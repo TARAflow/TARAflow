@@ -92,6 +92,7 @@ import {
   effectiveImpactWeightSource,
 } from "../services/impact-weight-source";
 import { ImpactAggregationSection } from "./impact-aggregation-section";
+import { IMPACT_FACTOR_IDS } from "../services/risk-sync-service";
 
 // Derive impact factors directly from ALL_PREDEFINED_FACTORS — always in sync.
 const ALL_IMPACT_FACTORS = ALL_PREDEFINED_FACTORS.filter(
@@ -120,6 +121,12 @@ interface RiskConfigDialogProps {
   recommendedImpactAggregation?: ImpactAggregation;
   /** Asset criterion weights — the one weight source for impact (§5.3). */
   assetImpactWeights?: Record<string, number>;
+  /**
+   * Impact criteria configured in the Asset Tab (the project-wide impact
+   * factor set, see updateImpactFactorsAutoEnable) — "reset to default" for
+   * impact restores this set instead of switching everything off.
+   */
+  configuredImpactCriteria?: readonly string[];
 }
 
 interface TabPanelProps {
@@ -138,7 +145,16 @@ function TabPanel({ children, value, index, ...other }: TabPanelProps) {
 
 // ==================== COMPONENT ====================
 
-export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
+/**
+ * The dialog edits a local copy of the configuration. It is mounted only while
+ * open, so every opening starts from the stored configuration and Cancel
+ * really discards — before, the copy outlived Cancel and a cancelled edit
+ * (e.g. "reset to default") showed up again on the next opening.
+ */
+export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = (props) =>
+  props.open ? <RiskConfigDialogBody {...props} /> : null;
+
+const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
   open,
   configuration,
   onSave,
@@ -146,6 +162,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
   riskData,
   recommendedImpactAggregation,
   assetImpactWeights,
+  configuredImpactCriteria,
 }) => {
   const { t } = useTranslation();
 
@@ -402,13 +419,24 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
 
   /**
    * Resets one category's PREDEFINED factors (per factorGroups[category]) back
-   * to DEFAULT_CONFIGURATION's enabled/weight state. Scoped to that category
-   * only — the other category and custom factors are untouched. Locked
-   * (non-editable) factors are skipped: their state comes from the preset, not
-   * from ship defaults, and resetting them here would fight factorLockState.
+   * to their default. Scoped to that category only — the other category and
+   * custom factors are untouched. Locked (non-editable) factors are skipped:
+   * their state comes from the preset, and resetting them here would fight
+   * factorLockState.
+   *
+   * Likelihood: DEFAULT_CONFIGURATION's enabled/weight state.
+   * Impact: the default IS the project's impact set — the criteria configured
+   * in the Asset Tab are enabled (autoEnabled, as the risk sync does), the
+   * others off; weights = the asset weights under the asset weight source,
+   * else the ship default. Without any configured criteria (no assets yet)
+   * the ship default applies.
    */
   const resetCategoryToDefault = (category: "likelihood" | "impact") => {
     const categoryIds = new Set(factorGroups[category].map((f) => f.id));
+    const configured =
+      category === "impact" && configuredImpactCriteria && configuredImpactCriteria.length > 0
+        ? new Set(configuredImpactCriteria)
+        : null;
     setActiveFactors((prev) =>
       prev.map((f) => {
         if (!categoryIds.has(f.factorId)) return f;
@@ -416,10 +444,20 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
         const defaultFactor = DEFAULT_CONFIGURATION.activeFactors.find(
           (df) => df.factorId === f.factorId,
         );
+        const weight =
+          category === "impact" && weightsFromAsset && f.factorId in assetImpactWeights!
+            ? assetImpactWeights![f.factorId]
+            : (defaultFactor?.weight ?? f.weight);
+        if (configured) {
+          // Safety has its own auto-enable rule (hazard links) — not ours to reset.
+          if (!(IMPACT_FACTOR_IDS as readonly string[]).includes(f.factorId)) return f;
+          const on = configured.has(f.factorId);
+          return { ...f, enabled: on, autoEnabled: on ? true : undefined, weight, weightManual: false };
+        }
         return {
           ...f,
           enabled: defaultFactor?.enabled ?? false,
-          weight: defaultFactor?.weight ?? f.weight,
+          weight,
           weightManual: false,
           autoEnabled: undefined,
         };
@@ -525,6 +563,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
           >
             <IconButton
               size="small"
+              data-testid={`reset-factors-${category}`}
               onClick={() => resetCategoryToDefault(category)}
             >
               <RestartAltIcon fontSize="small" />
@@ -575,6 +614,7 @@ export const RiskConfigDialog: React.FC<RiskConfigDialogProps> = ({
                       checked={checked}
                       disabled={isLocked}
                       tabIndex={-1}
+                      inputProps={{ "data-testid": `factor-check-${factor.id}` } as never}
                     />
                   </ListItemIcon>
                   <ListItemText

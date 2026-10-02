@@ -6,6 +6,7 @@
 // - Sync calls pass dfd + assetDataRef for asset criteria prefill
 // - pendingSafetySourceRemoval checked on mount and project change
 
+import { collectConfiguredImpactCriteria } from "../services/risk-sync-service";
 import React, {
   useState,
   useCallback,
@@ -516,6 +517,13 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   // Impact aggregation: while there are no risks, the preset's recommendation
   // is taken over directly — no risk value can change. With risks it is only
   // offered in the configuration dialog (preview before applying, design §6).
+  // The project's impact set (criteria configured in the Asset Tab) — what
+  // "reset to default" restores in the configuration dialog.
+  const configuredImpactCriteria = useMemo(
+    () => [...collectConfiguredImpactCriteria(project.assetDataRef)],
+    [project.assetDataRef],
+  );
+
   // One weight source for impact (design §5.3): follow the asset criterion
   // weights when the configuration says "asset" — or, without risks, switch to
   // them directly. Existing projects with risks switch in the dialog.
@@ -1076,6 +1084,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         riskData={riskData}
         recommendedImpactAggregation={project.recommendedImpactAggregation}
         assetImpactWeights={project.assetDataRef?.criterionWeights}
+        configuredImpactCriteria={configuredImpactCriteria}
       />
 
       {showSyncConfirm && (

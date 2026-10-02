@@ -219,7 +219,7 @@ export function updateSafetyFactorAutoEnable(
  * Impact factor IDs that map 1:1 to Asset Tab impact criteria.
  * Safety is intentionally excluded — handled separately by updateSafetyFactorAutoEnable.
  */
-const IMPACT_FACTOR_IDS = [
+export const IMPACT_FACTOR_IDS = [
   "financial_damage",
   "regulatory_compliance",
   "reputation",
@@ -242,7 +242,7 @@ const IMPACT_FACTOR_IDS = [
  * that asset. Requiring value > 0 here was the original bug (it hid every impact
  * factor until someone had rated an asset).
  */
-function collectConfiguredImpactCriteria(
+export function collectConfiguredImpactCriteria(
   assetDataRef?: AssetDataReference,
 ): Set<string> {
   const configured = new Set<string>();
