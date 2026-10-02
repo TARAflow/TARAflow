@@ -11,6 +11,9 @@ export default defineConfig({
       "src/tests/unit/**/*.test.ts",
       "src/tests/unit/**/*.test.tsx",
       "src/tests/regression/**/*.test.ts",
+      // Requirement tests: one describe per requirement of a design document
+      // (doc/Test/requirements-test-matrix.md), real services end to end.
+      "src/tests/requirements/**/*.test.ts",
       "taraflow-reporter/tests/**/*.test.ts",
       "electron/**/*.{test,spec}.ts",
       "taraflow-verifier/**/*.{test,spec}.ts",
