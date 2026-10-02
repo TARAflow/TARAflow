@@ -1,3 +1,141 @@
+## [0.12.0-alpha] - 2026-10-02
+
+A feature release around **security goals and risk impact**. Security goals
+are now decisions with a traceable basis instead of checkboxes: TARAflow
+derives them from the DFD and the asset impact, the analyst confirms, adjusts
+or excludes them with a rationale, and every later change of the basis is
+flagged. The goals drive threat generation and the risk impact, and the risk
+impact no longer dilutes harm to people. Threat generation reports — instead
+of silently applying — the effect of rule and goal changes on stored threats.
+
+> **Project format:** schema version **7**, unchanged. New data (goal
+> decisions with their snapshot, per-goal impact, impact aggregation, weight
+> source) is stored in additional optional fields.
+
+### Upgrading existing projects
+- **Stored threats and risk values do not change on load.**
+- **Generation drift may appear.** Security goals and element properties now
+  combine by intersection, and per-element data flows pass their properties
+  to the generator. Threats the current rules would no longer produce (or
+  would add) are shown in a banner in the Threats tab and as a warning on the
+  phase tab; keep or remove them explicitly.
+- **Impact aggregation and asset weights** stay at the previous behaviour
+  (weighted mean, own risk weights) until switched in the risk configuration,
+  where a preview lists every risk that changes. New projects take the
+  preset's recommendation.
+- **Risk impact from security goals** applies on the next risk sync. Without
+  per-goal impacts a value changes only where a linked asset without a
+  matching goal had the highest value.
+- **New asset findings** appear for manual goals without rationale and for
+  assets without impact rating.
+
+### Added
+- **Security-goal cards** in the asset dialog, one per goal: level and source
+  (Suggested / Adjusted / Added / Excluded), why this goal (DFD relations),
+  why this level (driving criterion), rationale, formal requirement and
+  damage-scenario consequence. A rationale is required for every deviation
+  from the suggestion; the suggestion a decision was made against is
+  recorded, and a later change of its basis is flagged ("Review" /
+  "Suggestion changed"). An unassessed goal never shows as "Low" — it says
+  "Assessment required" and points to the impact rating.
+- **Impact per security goal**: a goal can rate a criterion lower than the
+  asset (e.g. safety for integrity); a value above the asset is reported as
+  an error and never changed silently.
+- **Risk impact from the violated goals**: the impact of a risk comes from
+  the active goals its STRIDE category violates on the linked assets,
+  including per-goal impacts; without a matching goal the asset values apply
+  as before.
+- **Asset table**: goal chips with level and state (coloured by source, pen
+  icon for decisions, markers for errors and warnings), a findings panel below
+  the table that opens the asset where a finding is fixed, and a "Needs review
+  only" filter.
+- **Threat ↔ goal cross-checks**: threats that violate no active goal of
+  their assets (warning), active goals no threat violates (info), and "N
+  threats" on each goal card.
+- **Report**: security-goal table with level, state, basis and consequence,
+  excluded goals with their rationale.
+- **Impact aggregation** per regulation preset: harm floor = max(safety,
+  physical damage, environment, weighted mean of the other impact factors)
+  for the standard and EN 50742 presets, maximum for ISO/SAE 21434 and ETSI
+  TVRA, weighted mean for existing projects. Switchable in the risk
+  configuration with a preview of every changed risk; the risk dialog and
+  the report explain how the impact was formed.
+- **Impact weights from the asset configuration**: the asset criterion
+  weights are the default for the risk impact weights, overridable per
+  factor in the risk configuration.
+- **ISO/SAE 21434 risk per impact category** (S/F/O/P) in the risk dialog
+  and the traceability matrix (display; treatment per category is a design
+  draft).
+- **Likelihood factor levels** named by the situation they stand for
+  ("4 – No technical skills" instead of "4 – High"), for 3-, 4- and 5-level
+  scales, en/de; custom factors show the direction.
+- **Generation drift**: detection, banner, review dialog (keep as manual or
+  remove), warning before a regeneration that would drop threats, warning on
+  the Threats phase tab; kept threats are marked "retained" and can be
+  restored.
+- **Sidebar**: full project name and file path as tooltip.
+- **draw.io shape library**: orthogonal data-flow symbol.
+
+### Changed
+- **Threat generation**: a STRIDE category is generated only if it is
+  technically possible for the element (properties) **and** violates an
+  active security goal. Before, both were united whenever a property fired,
+  so a derived goal could override an explicit assumption and a property
+  that reduces the attack surface could add a category.
+- **ETSI TVRA factors** in the risk dialog show the norm's levels with the
+  value ("≤ 1 week (2)") and their own number of levels (time 5, intensity
+  3, others 4) instead of the project scale.
+- **Reading order** in threat tables, drift review and DFD description:
+  element kind, natural display ids (DF-2 before DF-10), S-T-R-I-D-E.
+- **New Project dialog** uses the same fields as the Overview tab; the
+  obsolete criticality switch is gone, the EN 50742-A window of opportunity
+  is offered.
+- **EN 50742 B tag** is no longer offered (no IEC 62443-4-2 support yet);
+  existing projects with the tag keep working.
+- **Asset deletion** is project-wide (asset store, DFD, hazard edges, risks)
+  from the DFD and the Asset tab; attack trees anchored on the asset block
+  it.
+
+### Fixed
+- **Phase status**: every threat update replaced the whole phase status map
+  with an empty list; the DFD, asset and risk services wrote into the wrong
+  phase slot (Hazard, DFD, Threats). Affected projects heal on load and on
+  the next save of each tab.
+- **Per-element data flows** did not pass their properties to the generator
+  (e.g. EL0 had no effect in per-element mode).
+- **Threat texts** of cloud, mobile and embedded data-flow templates
+  resolved to the text of a different template.
+- **Per-element deduplication** dropped the threats of elements sharing a
+  display id (e.g. physical and chip boundary "SDC").
+- **Per-interaction sync** reported flows outside every trust boundary as
+  "without threats" forever.
+- **Security goal levels** were inflated to "critical" when every relevant
+  criterion was n/a.
+- **Readable ids instead of UUIDs** in validation messages, the hazard
+  dialog, the threat asset chip, attack-tree DSL and the "missing in DFD"
+  list; linked assets read "DA-005: sensor firmware".
+- **Hazards**: quick-capture assets get correct labels and are not created
+  when their edge was removed; imported hazards get H-<n> ids; hazard
+  relations of projects migrated to schema 6 are repointed to the asset
+  UUIDs on load.
+- **DFD asset tree** clicks work again after a notification focused an
+  asset.
+- **Risk configuration dialog**: Cancel discards the edits; "reset to
+  default" for impact restores the factors configured in the Asset tab
+  instead of switching all off.
+
+### Internal
+- Requirement tests (`npm run test:requirements`): one test per requirement
+  of the security-goal and risk-aggregation design documents, through the
+  real services.
+- Simple Controller example projects for TARAflow_Examples, generated and
+  checked by the test suite.
+- Design documents: security-goal rework (rev. 3.11) and risk impact
+  aggregation (rev. 5) moved to `doc/Done`; new drafts for risk treatment
+  per impact category and the asset graph view.
+
+Full commit range: `v0.11.2-alpha..v0.12.0-alpha`
+
 ## [0.11.2-alpha] - 2026-09-24
 
 A maintenance release focused on **dependency and supply-chain hygiene**,

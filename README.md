@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.11.2-alpha`
+> **Current version:** `v0.12.0-alpha`
 
 TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
 
@@ -55,15 +55,15 @@ Assets can be modeled and associated with DFD elements.
 
 TARAflow supports:
 
-* Security goals
-* CIANAAA-based protection requirements
-* Confidentiality, Integrity, Availability, Authenticity and related properties
-* Impact assessment
-* Safety impact
-* Asset categorization
-* Asset-to-DFD synchronization
-* Automatic derivation of security-relevant properties
-* Asset relationship management
+* CIANAAA security goals (Confidentiality, Integrity, Availability, Non-repudiation, Authentication, Authorization, Accountability)
+* Goals derived from the DFD relations and the asset impact, with the reason shown for every goal and level
+* Analyst decisions per goal — adjust, add or exclude — always with a rationale; the suggestion a decision was made against is recorded, so a later change of its basis is flagged for review
+* Impact per security goal (e.g. a lower safety impact for integrity than for availability), capped by the asset's damage potential
+* Findings panel below the asset table (errors, warnings, infos) that opens the asset where a finding is fixed, and a "Needs review only" filter
+* Threat ↔ goal cross-checks: threats that violate no active goal, goals no threat violates, and the number of threats per goal
+* Impact assessment, safety impact, asset categorization
+* Asset-to-DFD synchronization and asset relationship management
+* Project-wide asset deletion (DFD, hazards, risks)
 
 Changes to the underlying DFD can be reflected in the corresponding asset model.
 
@@ -88,6 +88,8 @@ The threat analysis includes:
 * Manual threat creation
 * Threat mitigation information
 * Relevance-based filtering (unrated / relevant / uncertain / not relevant)
+* A STRIDE category is generated only if it is technically possible for the element **and** violates an active security goal
+* Generation drift detection: threats the current rules no longer produce are shown in a banner and on the phase tab, and are kept (marked as retained, with undo) or removed explicitly — never silently
 
 Threat generation uses contextual information from the modeled system instead of relying exclusively on a flat list of generic threats.
 
@@ -112,6 +114,12 @@ Features include:
 * EN 50742 Approach A — Security Requirement Severity Level (SRSL), as a parallel output to R = L × I
 * Mandated EN 50742 §7.4.3 controls surfaced in the mitigation picker and reports
 * Risk-level filtering (Critical / High / Medium / Low)
+* Risk impact from the security goals the threat violates, including per-goal impact
+* Impact aggregation per regulation preset — **harm floor** (safety, physical damage and environment are never diluted by milder consequences), **maximum** (ISO/SAE 21434, ETSI TVRA) or weighted mean — switchable with a preview of every changed risk
+* Asset criterion weights as the default for the impact weights, overridable per factor
+* Explanation of how a risk's impact was formed, in the risk dialog and the report
+* ISO/SAE 21434: risk per impact category (S/F/O/P) next to the register value
+* Likelihood factor levels named by the situation they stand for (e.g. "4 – No technical skills"); ETSI TVRA factors with the norm's levels (e.g. "≤ 1 week (2)")
 
 Risk information remains connected to the underlying threat and asset models.
 
@@ -492,13 +500,22 @@ Run the test suite with:
 npm test -- --run
 ```
 
-Integration tests use a dedicated Vitest configuration:
+Component tests and integration tests use dedicated Vitest configurations:
 
 ```bash
+npm run test:component
 npm run test:integration
 ```
 
-The repository contains unit, component, and integration tests covering application functionality as well as CLI and audit-related functionality.
+Requirement tests check the requirements of the design documents end to end through the real services (one test per requirement, see `src/tests/requirements/README.md`):
+
+```bash
+npm run test:requirements
+```
+
+The example projects in [TARAflow_Examples](https://github.com/TARAflow/TARAflow_Examples) (Simple Controller) are generated from `src/tests/examples` and checked by the same suite.
+
+The repository contains unit, component, requirement, and integration tests covering application functionality as well as CLI and audit-related functionality.
 
 ---
 
@@ -576,11 +593,12 @@ Recent development versions include:
 * `v0.11.0-alpha` — ISO/SAE 21434 support
 * `v0.11.1-alpha` — identity and label integrity, DFD thumbnail fixes
 * `v0.11.2-alpha` — dependency and supply-chain hardening
+* `v0.12.0-alpha` — security-goal rework, risk impact aggregation, threat generation drift
 
 The current development state is represented by:
 
 ```text
-v0.11.2-alpha
+v0.12.0-alpha
 ```
 
 See [`CHANGELOG.md`](CHANGELOG.md) for details.
@@ -639,7 +657,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.11.2-alpha**
+**TARAflow 0.12.0-alpha**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 
