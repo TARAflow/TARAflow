@@ -93,6 +93,21 @@ describe("SecurityGoalCard — states", () => {
     expect(levelChips).toEqual([]);
   });
 
+  // Example 03: with no impact rated, the card points to the rating — not to a
+  // rationale or an exclusion.
+  it("assessment missing: hint and 'Rate impact' button", () => {
+    const onRateImpact = vi.fn();
+    renderCard(asset([]), "I", { onRateImpact });
+    expect(screen.getByTestId("goal-rate-impact-I")).toHaveTextContent("no rationale is needed");
+    fireEvent.click(screen.getByText("Rate impact"));
+    expect(onRateImpact).toHaveBeenCalled();
+  });
+
+  it("assessed goal: no rating hint", () => {
+    renderCard(asset([r("safety", 4), r("operational", 4)]), "I", { onRateImpact: vi.fn() });
+    expect(screen.queryByTestId("goal-rate-impact-I")).toBeNull();
+  });
+
   // Phase 6: back-reference "N threats violate this goal".
   it("back-reference: number of violating threats, ids in the tooltip", () => {
     renderCard(asset([r("financial_damage", 3)]), "C", { violatingThreats: ["P1-I-1", "P2-I-1"] });

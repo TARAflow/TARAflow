@@ -91,7 +91,7 @@ describe("structured findings (notification panel)", () => {
     const a = { ...asset([]), linkedDFDElements: [] } as Asset;
     const f = collectAssetFindings(data(a));
     const unassessed = f.find((x) => x.key.endsWith("goalUnassessed") && x.goal === "C")!;
-    expect(unassessed).toMatchObject({ severity: "warning", assetId: "uuid-1", assetLabel: "A-001 (Config DB)", dialogTab: 1 });
+    expect(unassessed).toMatchObject({ severity: "warning", assetId: "uuid-1", assetLabel: "A-001 (Config DB)", dialogTab: 0 }); // rating tab: the fix is rating the impact
     expect(f.find((x) => x.key.endsWith("notLinkedToDFD"))).toMatchObject({ dialogTab: 0 });
     const v = validateAssetData(data(a));
     expect(v.warnings.length + v.errors.length + (v.infos ?? []).length).toBe(f.length);
@@ -165,5 +165,21 @@ describe("collectAssetFindings — threat ↔ goal cross-checks", () => {
     expect(collectAssetFindings(d).some((x) => x.key.includes("hreat"))).toBe(false);
     const v = validateAssetData(d);
     expect([...v.errors, ...v.warnings, ...(v.infos ?? [])].some((s) => s.includes("hreat"))).toBe(false);
+  });
+});
+
+// Reported on the Simple Controller example 03: "assessment required" opened
+// the goal card, which offered only a rationale or an exclusion. The fix is
+// rating the impact — the finding now opens the rating tab.
+describe("collectAssetFindings — assessment missing opens the rating tab", () => {
+  it("GOAL_UNASSESSED → tab 0 (General & Rating); other goal findings stay on tab 1", () => {
+    const unassessed = { ...asset([]), id: "u" } as Asset;
+    const f = collectAssetFindings({
+      assets: [unassessed],
+      configuration: { impactScale: "4-level" },
+    } as unknown as AssetData);
+    const goal = f.filter((x) => x.key.endsWith("goalUnassessed"));
+    expect(goal.length).toBeGreaterThan(0);
+    expect(goal.every((x) => x.dialogTab === 0)).toBe(true);
   });
 });

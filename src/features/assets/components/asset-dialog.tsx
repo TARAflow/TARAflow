@@ -563,6 +563,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       assetDisplayName={assetDisplayName}
       rationaleError={goalErrorTypes.includes(goal.type)}
       focused={goal.type === focusGoal}
+      onRateImpact={() => setTabValue(0)}
       violatingThreats={
         threatLinks && threatLinks.length > 0
           ? threatsForGoal(editedAsset.id, goal.type, threatLinks)

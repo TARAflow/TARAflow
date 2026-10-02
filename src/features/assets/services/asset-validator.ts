@@ -134,7 +134,9 @@ export function collectAssetFindings(
     asset.securityGoals.forEach((goal, i) => {
       for (const f of goalFindings(states[i], goal)) {
         const key = `${GOAL_FINDING_KEY[f.code]}${f.reason ? `.${STALE_KEY[f.reason]}` : ""}`;
-        push(f.severity, key, GOALS, f.goal, f.criterionId);
+        // Assessment missing → open the impact ratings: rating them is the fix,
+        // not a rationale or an exclusion on the goal card.
+        push(f.severity, key, f.code === "GOAL_UNASSESSED" ? GENERAL : GOALS, f.goal, f.criterionId);
       }
     });
     for (const f of assetImpactFindings(asset)) {

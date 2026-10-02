@@ -215,7 +215,7 @@
           "levelLowered": "Asset {{id}}: suggested level of {{type}} has fallen since the manual decision (manual choice is now more conservative)",
           "basisChanged": "Asset {{id}}: suggestion for {{type}} now rests on a different basis — check whether the rationale still fits"
         },
-        "goalUnassessed": "Asset {{id}}: {{type}} is suggested, but no impact is rated — assessment required",
+        "goalUnassessed": "Asset {{id}}: {{type}} is suggested, but no impact is rated — rate the asset impact",
         "goalProvisional": "Asset {{id}}: level of {{type}} is provisional — the goal-specific impact criteria are not rated yet",
         "goalNoApplicableImpact": "Asset {{id}}: {{type}} is suggested, all relevant impact criteria are n/a (minimum level)",
         "goalOverrideExceedsAsset": "Asset {{id}}: {{type}} rates {{criterion}} higher than the asset itself — reset the goal value or raise the asset value",
@@ -431,6 +431,8 @@
         "rationaleMissing": "Rationale missing",
         "rationaleRequired": "Required when deviating from the suggestion",
         "exceedsAsset": "Impact above asset value",
+        "rateImpactHint": "No impact is rated for this asset yet. Rate the impact criteria — the level of this goal follows from them; no rationale is needed. If the asset truly causes no damage, rate the criteria as n/a.",
+        "rateImpact": "Rate impact",
         "threatCount": "{{count}} threat(s)",
         "noThreat": "no threat",
         "threatsTooltip": "Threats that violate this goal: {{ids}}",

@@ -215,7 +215,7 @@
           "levelLowered": "Asset {{id}}: die vorgeschlagene Stufe von {{type}} ist seit der manuellen Entscheidung gesunken (die manuelle Wahl ist nun konservativer)",
           "basisChanged": "Asset {{id}}: der Vorschlag für {{type}} beruht jetzt auf einer anderen Grundlage — passt die Begründung noch?"
         },
-        "goalUnassessed": "Asset {{id}}: {{type}} ist vorgeschlagen, aber kein Impact bewertet — Bewertung erforderlich",
+        "goalUnassessed": "Asset {{id}}: {{type}} ist vorgeschlagen, aber kein Impact bewertet — Asset-Impact bewerten",
         "goalProvisional": "Asset {{id}}: die Stufe von {{type}} ist vorläufig — die zielspezifischen Impact-Kriterien sind noch nicht bewertet",
         "goalNoApplicableImpact": "Asset {{id}}: {{type}} ist vorgeschlagen, alle relevanten Impact-Kriterien sind n/a (Mindeststufe)",
         "goalOverrideExceedsAsset": "Asset {{id}}: {{type}} bewertet {{criterion}} höher als das Asset selbst — Zielwert zurücksetzen oder Asset-Wert erhöhen",
@@ -431,6 +431,8 @@
         "rationaleMissing": "Begründung fehlt",
         "rationaleRequired": "Pflicht bei einer Abweichung vom Vorschlag",
         "exceedsAsset": "Impact über Asset-Wert",
+        "rateImpactHint": "Für dieses Asset ist noch kein Impact bewertet. Bewerte die Impact-Kriterien — die Stufe dieses Ziels ergibt sich daraus; eine Begründung ist nicht nötig. Entsteht wirklich kein Schaden, bewerte die Kriterien mit n/a.",
+        "rateImpact": "Impact bewerten",
         "threatCount": "{{count}} Bedrohung(en)",
         "noThreat": "keine Bedrohung",
         "threatsTooltip": "Bedrohungen, die dieses Ziel verletzen: {{ids}}",

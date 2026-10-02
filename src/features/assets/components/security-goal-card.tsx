@@ -111,6 +111,11 @@ export interface SecurityGoalCardProps {
    * Undefined = no threat data (e.g. before threat generation) → not shown.
    */
   violatingThreats?: string[];
+  /**
+   * Switch the dialog to the impact ratings. Shown when the assessment is
+   * missing: the way out is rating the impact, not a rationale or an exclusion.
+   */
+  onRateImpact?: () => void;
   onLevel: (level: Exclude<CIANAAALevel, "none">) => void;
   onExclude: () => void;
   onKeep: () => void;
@@ -156,6 +161,7 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
   defaultExpanded = false,
   focused = false,
   violatingThreats,
+  onRateImpact,
   onLevel,
   onExclude,
   onKeep,
@@ -342,6 +348,34 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
       {/* ── Details ────────────────────────────────────────────────────── */}
       <Collapse in={open} unmountOnExit>
         <Box sx={{ px: 1.5, pb: 1.5 }}>
+          {/* Assessment missing: the level follows from the impact — no rationale needed */}
+          {!excluded && state.source !== "manual" && state.assessment === "missing" && (
+            <Box
+              data-testid={`goal-rate-impact-${goal.type}`}
+              sx={{
+                mb: 1.5,
+                p: 1,
+                borderRadius: 1,
+                bgcolor: "#fffbeb",
+                border: "1px solid #fcd34d",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Typography variant="caption" sx={{ flexGrow: 1 }}>
+                {t(`${K}.rateImpactHint`, {
+                  defaultValue:
+                    "No impact is rated for this asset yet. Rate the impact criteria — the level of this goal follows from them; no rationale is needed. If the asset truly causes no damage, rate the criteria as n/a.",
+                })}
+              </Typography>
+              {onRateImpact && (
+                <Button size="small" variant="outlined" onClick={onRateImpact} sx={{ flexShrink: 0 }}>
+                  {t(`${K}.rateImpact`, { defaultValue: "Rate impact" })}
+                </Button>
+              )}
+            </Box>
+          )}
           {/* Changed suggestion */}
           {state.stale && (
             <Box
