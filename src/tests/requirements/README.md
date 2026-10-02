@@ -39,7 +39,7 @@ and the app-layer reference builder.
 
 ## Matrix — risk impact aggregation
 
-`doc/Open/Risk/risk-impact-aggregation-design.md`
+`doc/Done/Risk/risk-impact-aggregation-design.md`
 
 | Id | Requirement (design §) | Requirement test | Further coverage (unit / component) |
 |---|---|---|---|

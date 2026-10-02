@@ -1,6 +1,6 @@
 // src/tests/requirements/risk-impact-aggregation.req.test.ts
 //
-// Requirement tests for doc/Open/Risk/risk-impact-aggregation-design.md
+// Requirement tests for doc/Done/Risk/risk-impact-aggregation-design.md
 // (requirements §4, Part B §7.4). One describe per requirement id (RA-xx,
 // see doc/Test/requirements-test-matrix.md). Real services end to end:
 // asset → reference → risk factors → calculation → preview → report.

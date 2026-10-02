@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** decide (A) how the impact of a risk is aggregated from its impact factors, per regulation preset, and how existing projects move to it, and (B) how the levels of the likelihood factors are labelled so they read in the direction they count. Binding: the decisions in §5, §7.4 and the migration rules in §6, §7.5. Implementation status in §10.
 
-**Status:** Rev. 5 — implemented: Part B (§7) and Part A phases 1–5 (§8; phase 5 in scope A, display only)
+**Status:** Rev. 5 — done, released in v0.12.0-alpha: Part B (§7) and Part A phases 1–5 (§8; phase 5 in scope A, display only — scope B in `doc/Open/Risk/risk-treatment-per-category-design.md`)
 **Code baseline:** `a0f177e`
 **Related:** `doc/InProgress/Asset/security-goal-rework-design.md` (Phase 4 delivers per-goal impact *values* to the risk; this document is about how those values are *combined*)
 
