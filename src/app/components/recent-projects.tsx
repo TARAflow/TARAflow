@@ -119,6 +119,11 @@ const RecentProjectItem: React.FC<RecentProjectItemProps> = ({
     setContextMenu({ x: rect.right, y: rect.top });
   };
 
+  // Native tooltip: full project name plus file location (if known)
+  const tooltip = project.filePath
+    ? `${project.info.name}\n${project.filePath}`
+    : project.info.name;
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -141,6 +146,7 @@ const RecentProjectItem: React.FC<RecentProjectItemProps> = ({
         className="group flex items-center gap-2 px-2 py-2 cursor-pointer rounded-lg hover:bg-gray-100 transition-colors"
         onClick={onOpen}
         onContextMenu={handleContextMenu}
+        title={tooltip}
       >
         <Folder className="w-4 h-4 text-gray-400 flex-shrink-0" />
         <div className="flex-1 min-w-0">

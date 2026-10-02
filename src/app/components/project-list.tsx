@@ -148,6 +148,11 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({
     setContextMenu({ x: rect.right, y: rect.top });
   };
 
+  // Native tooltip: full project name plus file location (if saved to disk)
+  const tooltip = project.filePath
+    ? `${project.info.name}\n${project.filePath}`
+    : project.info.name;
+
   const getStatusColor = () => {
     if (project.hasUnsavedChanges) return "bg-yellow-400";
     switch (project.status) {
@@ -170,6 +175,7 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({
         }`}
         onClick={onSelect}
         onContextMenu={handleContextMenu}
+        title={tooltip}
       >
         {/* Status Indicator */}
         <div
