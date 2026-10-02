@@ -1,10 +1,14 @@
 # Feature Design: Base DFD Generator
 
-**Status:** Draft v5
+**Status:** Draft v5.1
 **Author:** Juergen
 **Scope:** TARAflow — DFD generation from a configurable building-block catalog (DFD-tab)
 **Related:** `dfd-graph-builder.ts`, asset relationship model, bidirectional DFD-Asset sync,
-Rauchmelder reference (v2)
+Rauchmelder reference (v2), `asset-graph-view-requirements.md` (asset graph view, §9)
+
+**Changelog v5 → v5.1:** §9 no longer specifies its own asset-only view. The asset graph view is
+specified in `asset-graph-view-requirements.md` (view mode, edit mode, phases); the generator
+adds a review overlay to it. Decision 6 in §13 is superseded accordingly.
 
 **Changelog v4 → v5 (the six open questions resolved):**
 - **CIANAAA / protection-goal assignment removed from generator scope.** The generator lives in
@@ -165,7 +169,7 @@ reasoning — exactly what a block must not contain. Therefore:
 
 - The generator performs **no semantic merging**. Each block emits its own artifacts.
 - Two blocks that could plausibly share a store **produce two stores**; consolidation is an
-  **analyst decision** — a manual merge in the asset-only view (keep one, rewire its
+  **analyst decision** — a manual merge in the asset graph view (keep one, rewire its
   relationships, cascade-delete the other, §8).
 - The **only** cross-block sharing is explicit **named-port wiring** declared by the catalog
   author at design time (§3.4): a block can be authored to *consume another block's exposed
@@ -300,7 +304,7 @@ DFD has far more relationships than assets, and most are mechanical (`processed-
 `forwarded-to`). But relationships are **exactly the high-risk area** (§10) — most likely
 generated wrong — so they stay reviewable, just not via per-edge confirmation:
 - **Default: bulk-confirm** relationships alongside their assets.
-- **Visual surfacing** in the asset-only view (§9) makes a wrong edge obvious at a glance.
+- **Visual surfacing** in the asset graph view (§9) makes a wrong edge obvious at a glance.
 - Editing or deleting a single relationship is the only per-edge interaction; it marks that edge
   `adapted`.
 
@@ -348,7 +352,7 @@ dies with the element, simplest to keep in sync with deletion).
 
 1. Generate → full DFD + batch `B`, all members `pending`.
 2. A review affordance offers **Accept all** and **Discard all**, plus per-item actions (§9.3).
-3. The analyst reviews, primarily in the asset-only view.
+3. The analyst reviews, primarily in the asset graph view.
 4. Editing a member marks **that asset** `adapted` (§6.1); it does **not** dissolve the batch.
    The other members stay `pending`, and the batch stays a valid grouping ("these were generated
    together" remains true regardless of one edit).
@@ -416,7 +420,7 @@ DFD-Asset sync — reached from three entry points:
 1. **Whole-batch discard** (§7) — batch tag supplies the selection.
 2. **Single-element delete** — cascade-aware with a **blast-radius confirmation**
    ("Deleting this also removes: 1 asset, 3 relationships").
-3. **Multi-select bulk delete** — for fast cleanup, in both the DFD canvas and the asset-only view.
+3. **Multi-select bulk delete** — for fast cleanup, in both the DFD canvas and the asset graph view.
 
 Cascade rules:
 - Delete asset → its relationships go (a relationship cannot exist without an endpoint).
@@ -430,24 +434,34 @@ for bulk. The code is written once; all three entries call it. Consolidating dup
 
 ---
 
-## 9. Asset-only Graph View (review surface) — review-only for v1
+## 9. Asset Graph View as Review Surface
 
 Review happens on the layer that matters for the TARA: **assets and their typed relationships** —
 not the draw.io topology. Rationale: for many users the **DFD is a drawing surface**, whereas the
-**asset graph is the security model**. This view is plausibly the eventual primary review screen
-(a direction, not a v1 commitment).
+**asset graph is the security model**.
 
-### 9.1 Scope: review-only (v1)
+The generator does **not** build its own view. The asset graph view is specified in
+`doc/Open/DFD/asset-graph-view-requirements.md` (layer and focus view, view and edit mode,
+implementation phases 0–4). The generator contributes a **review overlay** to that view: review
+state, batch highlighting and the batch/item actions below.
 
-For v1 the view is a **review lens, not a second editor**. The analyst can look, confirm, discard,
-delete, and open an asset to edit its existing DFD-level values — but **creating new assets and
-drawing new relationships stays in the DFD-tab** (normal editing happens in DFD mode). Rationale:
-full editing here would force the question "may an asset exist without a DFD element?", reopening
-the bidirectional-sync invariants. Review-only keeps those closed and is also the cheap experiment
-that tells us whether analysts even want to author at the asset level before we build it.
+### 9.1 Scope and dependency
 
-### 9.2 Visual encoding
-- Distinct styling per review state (`pending` / `confirmed` / `adapted`) for nodes and edges.
+- **Supersedes v5 "review-only for v1".** The asset graph view has its own edit mode (assets and
+  asset-to-asset relations are authored in the graph; DFD elements are referenced, never created
+  there). Whether an asset may exist without a DFD element is decided there (decision D4), not
+  here.
+- **Order:** the review overlay needs at least Phase 2 (view mode) of the asset graph view;
+  per-item **Edit** from the graph needs its Phase 3. The generator is therefore implemented
+  after the asset graph view, not alongside it.
+- **Coding budget:** the overlay obeys the asset graph view's UX rules. Node colour is reserved
+  for the asset group (UX-3) and exactly one highlight wins (UX-4). Review state is therefore
+  **not** encoded as node colour; it needs its own channel (e.g. badge or outline) that fits the
+  highlight ranking. To be decided when the overlay is designed.
+
+### 9.2 Visual encoding (overlay)
+- Distinct styling per review state (`pending` / `confirmed` / `adapted`) for nodes and edges,
+  within the coding budget of §9.1.
 - Highlight freshly generated (`generationBatchId`) clusters for whole-batch Accept/Discard (§7).
 - Surface the pending count (soft warning, §6.5) and unconnected-port diagnostics (§5.2.5).
 - Make duplicate stores/assets from independent blocks visible (§3.5) so the analyst can consolidate.
@@ -501,7 +515,7 @@ avoiding divergence.
 6. **Unified cascade-delete** — one referentially-correct path, three entry points (§8).
 7. **Unconnected-port diagnostic** — lint over exposed ports, non-blocking, separate from review
    state (§5.2.5).
-8. **Asset-only view** — review-only projection + state-transition + batch actions (§9).
+8. **Review overlay on the asset graph view** — review state + state-transition + batch actions (§9).
 9. **i18n** — all block labels/descriptions via translation keys; **code comments in English**.
 
 ### Suggested file layout (clean architecture, no cross-feature imports)
@@ -513,8 +527,8 @@ src/features/dfd-generator/
   generation-batch.ts       // opaque transient tag + lifecycle + absence semantics
   generator-config.ts       // types
   __tests__/                // per-block, augment (additive), composition, cascade-delete, legacy-load
-src/features/asset-view/    // asset-only graph view (review-only, separate feature)
-  ...
+                            // asset graph view: features/assets (asset-graph-view-requirements.md);
+                            // the generator only contributes the review overlay
 src/shared/                 // cascade-delete lives with the DFD-Asset sync it reuses
 ```
 
@@ -550,8 +564,9 @@ batch affordances, no crash).
 4. **Batch persistence across save/reload** → **persist** an opaque grouping tag (no block
    reference). Backward-compatible via absence semantics for pre-alpha projects (§7.1, §7.5).
 5. **Default placement** → **`right`** (analyst-overridable to top/bottom/left) (§4, §5.2).
-6. **Asset-only view scope** → **review-only** for v1; asset/relationship authoring stays in DFD
-   mode; "primary security-model screen" remains a future direction (§9).
+6. **Asset-only view scope** → *superseded in v5.1:* the generator has no view of its own; it adds
+   a review overlay to the asset graph view (`asset-graph-view-requirements.md`), which has its
+   own edit mode (§9).
 7. **Batch dissolution on edit** *(post-v5 review)* → a single edit does **not** dissolve the
    batch. "Discard all" stays available while ≥1 `pending` member exists; with `adapted` members
    present it relies on the blast-radius confirmation (§8) to count analyst edits. The batch
@@ -578,5 +593,5 @@ enables **Accept all / Discard all**, with whole-block discard available **while
 member remains** (a single edit does not kill it; the blast-radius confirmation counts analyst
 edits) and surviving save/reload. **Pre-alpha projects load without
 migration** via safe absence semantics. All deletion flows through **one unified cascade-delete**.
-The **asset-only graph view is review-only** for v1. The catalog is the extension point — and the
+Review happens in a **review overlay on the asset graph view** (§9). The catalog is the extension point — and the
 core invariant is that it must **never** grow into a second domain model.
