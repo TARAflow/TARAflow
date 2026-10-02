@@ -59,3 +59,17 @@ and the app-layer reference builder.
    builders, not hand-made intermediate objects.
 3. Each negative check gets a positive control (the same setup without the
    cause must show the effect) — otherwise a broken fixture passes silently.
+
+## Example projects
+
+`src/tests/examples` builds the **Simple Controller** examples for
+TARAflow_Examples (one small model, one example per aspect) through the same
+services and checks what each example promises. Write them with
+`WRITE_EXAMPLES=<dir> npx vitest run src/tests/examples`.
+
+| Example | Requirements |
+|---|---|
+| 01 Goals derived | SG-01, SG-07 |
+| 02 Goals decided | SG-02, SG-04, SG-09 |
+| 03 Goals need review | SG-03, SG-05, SG-11 |
+| 04 Impact per goal | SG-06, SG-08 |

@@ -14,6 +14,9 @@ export default defineConfig({
       // Requirement tests: one describe per requirement of a design document
       // (doc/Test/requirements-test-matrix.md), real services end to end.
       "src/tests/requirements/**/*.test.ts",
+      // Example projects for TARAflow_Examples: checked here, written with
+      // WRITE_EXAMPLES=<dir> (src/tests/examples).
+      "src/tests/examples/**/*.test.ts",
       "taraflow-reporter/tests/**/*.test.ts",
       "electron/**/*.{test,spec}.ts",
       "taraflow-verifier/**/*.{test,spec}.ts",
