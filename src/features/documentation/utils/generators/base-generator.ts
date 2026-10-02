@@ -2,6 +2,7 @@
 // Abstract base class for document generators
 // Location: features/documentation/utils/generators/base-generator.ts
 
+import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -1575,9 +1576,15 @@ export abstract class BaseDocumentGenerator {
           tsDescription: this.escapeTableText(risk.threatDescription || "-"),
           afStatus,
           afLabel,
-          riskBefore:
-            project.computed.riskBeforeLabels.get(risk.id) ??
-            risk.calculatedRiskBeforeMitigation.toString(),
+          // 15.8 NOTE 1: the risk per impact category behind the register
+          // value (risk-impact-aggregation design §5.6, phase 5 scope A).
+          riskBefore: this.escapeTableText(
+            withCategoryRisks(
+              project.computed.riskBeforeLabels.get(risk.id) ??
+                risk.calculatedRiskBeforeMitigation.toString(),
+              isoRiskByCategory(risk.factorRatings ?? [], config),
+            ),
+          ),
           treatment: t(
             `risks.treatment.${risk.treatment}.label`,
             risk.treatment,
@@ -1700,4 +1707,14 @@ export abstract class BaseDocumentGenerator {
 
     return result;
   }
+}
+
+/** "High (S High · F Low · P Medium)" — register value plus the per-category risks. */
+function withCategoryRisks(
+  label: string,
+  categories: readonly { short: string; level: string }[],
+): string {
+  return categories.length === 0
+    ? label
+    : `${label} (${categories.map((c) => `${c.short} ${c.level}`).join(" · ")})`;
 }

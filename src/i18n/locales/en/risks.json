@@ -110,6 +110,7 @@
         "mitigationPlaceholder": "Describe the mitigation...",
         "addMitigation": "Add Mitigation",
         "notRated": "Not rated",
+        "riskByCategory": "Risk per impact category:",
         "likelihoodDirectionHint": "1 = attack unlikely … {{max}} = attack likely",
         "impactBasis": {
           "harmFloor": "Impact {{value}} — {{factor}} (harm floor)",

@@ -110,6 +110,7 @@
         "mitigationPlaceholder": "Massnahme beschreiben...",
         "addMitigation": "Massnahme hinzufügen",
         "notRated": "Nicht bewertet",
+        "riskByCategory": "Risiko pro Impact-Kategorie:",
         "likelihoodDirectionHint": "1 = Angriff unwahrscheinlich … {{max}} = Angriff wahrscheinlich",
         "impactBasis": {
           "harmFloor": "Impact {{value}} — {{factor}} (Schadens-Untergrenze)",

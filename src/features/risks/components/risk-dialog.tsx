@@ -108,6 +108,7 @@ function isoFactorPoints(factorId: string, value: number): number {
 import { RiskConfiguration } from "../models/risk-config-types";
 import { factorLevelOptions } from "../utils/factor-level-options";
 import { impactBasisText } from "../utils/impact-basis-text";
+import { isoRiskByCategory } from "../services/iso-risk-by-category";
 import { Risk, getFactorDefinition } from "../models/risk-assessment-types";
 import {
   MoSCoWPriority,
@@ -2330,6 +2331,37 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                           </Typography>
                         ) : null;
                       })()}
+                      {isISO && (() => {
+                        const rows = isoRiskByCategory(local?.factorRatings ?? [], configuration);
+                        if (rows.length === 0) return null;
+                        return (
+                          <Box
+                            data-testid="iso-risk-by-category-before"
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}
+                          >
+                            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+                              {t("tabs.risks.dialog.riskByCategory", {
+                                defaultValue: "Risk per impact category:",
+                              })}
+                            </Typography>
+                            {rows.map((c) => (
+                              <Tooltip
+                                key={c.factorId}
+                                title={`${t(`risks.factors.${c.factorId}.name`, {
+                                  defaultValue: c.factorId,
+                                })}: ${t("tabs.risks.dialog.impact", { defaultValue: "Impact" })} ${c.impact} · ${c.risk}`}
+                              >
+                                <Chip
+                                  size="small"
+                                  variant="outlined"
+                                  label={`${c.short}: ${c.level}`}
+                                  sx={{ height: 20, fontSize: "0.7rem" }}
+                                />
+                              </Tooltip>
+                            ))}
+                          </Box>
+                        );
+                      })()}
 
                       <Box
                         sx={{
@@ -3072,6 +3104,37 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             {line}
                           </Typography>
                         ) : null;
+                      })()}
+                      {isISO && (() => {
+                        const rows = isoRiskByCategory(local?.mitigatedFactorRatings ?? [], configuration);
+                        if (rows.length === 0) return null;
+                        return (
+                          <Box
+                            data-testid="iso-risk-by-category-after"
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}
+                          >
+                            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+                              {t("tabs.risks.dialog.riskByCategory", {
+                                defaultValue: "Risk per impact category:",
+                              })}
+                            </Typography>
+                            {rows.map((c) => (
+                              <Tooltip
+                                key={c.factorId}
+                                title={`${t(`risks.factors.${c.factorId}.name`, {
+                                  defaultValue: c.factorId,
+                                })}: ${t("tabs.risks.dialog.impact", { defaultValue: "Impact" })} ${c.impact} · ${c.risk}`}
+                              >
+                                <Chip
+                                  size="small"
+                                  variant="outlined"
+                                  label={`${c.short}: ${c.level}`}
+                                  sx={{ height: 20, fontSize: "0.7rem" }}
+                                />
+                              </Tooltip>
+                            ))}
+                          </Box>
+                        );
                       })()}
 
                       <Box
