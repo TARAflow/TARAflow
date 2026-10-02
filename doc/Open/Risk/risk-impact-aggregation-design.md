@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** decide (A) how the impact of a risk is aggregated from its impact factors, per regulation preset, and how existing projects move to it, and (B) how the levels of the likelihood factors are labelled so they read in the direction they count. Binding: the decisions in §5, §7.4 and the migration rules in §6, §7.5. Implementation status in §10.
 
-**Status:** Rev. 4 — decided. Implemented: Part B (§7) and Part A phases 1–3 (§8); phases 4–5 open
+**Status:** Rev. 5 — implemented: Part B (§7) and Part A phases 1–5 (§8; phase 5 in scope A, display only)
 **Code baseline:** `a0f177e`
 **Related:** `doc/InProgress/Asset/security-goal-rework-design.md` (Phase 4 delivers per-goal impact *values* to the risk; this document is about how those values are *combined*)
 
@@ -95,7 +95,7 @@ The weighted mean divides by the sum of the weights, so its result always lies w
 
 ### 5.3 One source of weights for impact
 
-Impact factor weights are **taken from the asset criterion weights** (`AssetConfiguration.impactCriteria[].weight`) and shown read-only in the risk configuration, with a hint where they are set. Likelihood factor weights stay in the risk configuration — they have no counterpart in the asset tab.
+The asset criterion weights (`AssetConfiguration.impactCriteria[].weight`) are the **default** for the impact factor weights. The analyst can override a factor's weight in the risk configuration; the override then applies (rev. 5 — the same derived / manual pattern as the factor values; rev. 4 had them read-only). Likelihood factor weights stay in the risk configuration — they have no counterpart in the asset tab.
 
 With `max`, weights do not apply and are hidden for the impact.
 
@@ -222,8 +222,8 @@ None affected: only labels change; stored values, calculation and matrix stay as
 1. **Calculation** — `impactAggregation` in `RiskConfiguration` (optional, absent = `weighted-mean`), the three variants in `calculateRiskValues`, preset field and defaults. Pure, fully tested; no UI, no behaviour change for existing projects.
 2. **Configuration and migration** — setting in the risk configuration dialog with explanation and the worked example; preview of changed risks before applying; preset application through the same preview.
 3. **Explanation** — "how the impact was formed" in the risk dialog and in the report.
-4. **One weight source** — impact factor weights from the asset configuration, read-only in the risk configuration.
-5. **Optional: ISO risk per category** (§5.6).
+4. **One weight source** — asset criterion weights as the default for the impact factor weights, overridable per factor in the risk configuration.
+5. **ISO risk per category** (§5.6) — scope A: display of the risk per impact category; treatment per category (scope B) is a separate design together with 1:n damage scenarios.
 6. **Likelihood factor labels** (§7) — independent of 1–5, can come first: level registry, i18n en/de, risk dialog and report; TVRA levels in the dialog. No calculation change.
 
 ## 9. Open questions
@@ -262,7 +262,17 @@ None. *Decided (rev. 4):*
 - Risk dialog: under "Impact factors" (before and after mitigation) one line, e.g. "Impact 4 — Safety Impact (harm floor)", "Impact 4 — highest factor: Financial Damage", "Impact 2.5 — weighted mean of 4 factor(s)".
 - Report: the risk assessment chapters state the project's aggregation in one sentence, all formats incl. pdfmake. A per-risk basis column was not added — the register shows risk labels only, no impact values.
 
-**Open:** phase 4 (one weight source), phase 5 (ISO risk per category).
+**Part A, phase 4 — one weight source** (patch 47)
+- `AssetDataReference.criterionWeights` (app layer) and `RiskConfiguration.impactWeightSource` `"asset" | "risk"` (absent = `"risk"`, no existing project changes); `ActiveFactor.weightManual`.
+- `impact-weight-source.ts`: `applyAssetImpactWeights()` puts the asset weight on every impact factor the analyst has **not** overridden (configuration, ratings before/after mitigation), keeps likelihood weights, overrides and every other rating field, recalculates.
+- Risk configuration dialog: under "asset", an impact factor's slider shows the asset weight with "(asset)"; moving it overrides the weight here (reset button back to the asset weight). Under "maximum" no impact weight is shown. Switching an existing project is a checkbox under the impact aggregation; the preview (`previewRiskDataChange`, combined with a pending aggregation change) shows the changed risks; Save applies.
+- Risk tab: under "asset" it follows changes of the asset weights for the factors not overridden; risk data without risks switches to "asset" directly.
+
+**Part A, phase 5 — ISO risk per category, scope A** (patch 48)
+- `iso-risk-by-category.ts`: per rated SFOP category the regular calculation with that one impact factor and the risk's likelihood factors — project likelihood method, scale and thresholds unchanged. Under `max` the highest category equals the register value.
+- Risk dialog (ISO projects): "Risk per impact category: S High · F Low · P Medium" under the impact factors, before and after mitigation.
+- Report: the ISO traceability matrix shows the register value with the categories, e.g. "High (S High · F Low)".
+- Not done (scope B): treatment and MoSCoW per category — a model change (risk, register, report, accepted risks), to be designed together with 1:n damage scenarios.
 
 ## 11. Change history
 
@@ -270,3 +280,4 @@ None. *Decided (rev. 4):*
 - **Rev. 2:** added Part B (§7): likelihood factor scales — the generic "Very Low … High" labels read against the direction of factors like skill level; proposal: per-factor level anchors (i18n), names following the direction, TVRA levels in the dialog. Phase 6 and open questions 6–8.
 - **Rev. 3:** Part B decided — Q6: own label set per scale size (tables for 3, 4, 5 levels); Q7: factor names stay; Q8: TVRA shows the norm's level names with the value in parentheses.
 - **Rev. 4:** Q1–Q5 decided (§9): `safety-floor` became `harm-floor` with safety, physical_damage and environmental; ISO 21434 and TVRA `max`, standard and EN 50742 A/B `harm-floor`; EN 50742-A SRSL unaffected; asset `calculationMethod` independent; preview of all impact changes. Implemented Part B and Part A phases 1–3 (§10).
+- **Rev. 5:** Phase 4 — asset criterion weights as default, overridable per factor in the risk configuration (analyst decision; rev. 4 had them read-only). Phase 5 in scope A (display of the risk per impact category); scope B with 1:n damage scenarios. Implementation complete (§10).
