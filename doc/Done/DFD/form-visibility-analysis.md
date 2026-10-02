@@ -3,7 +3,12 @@
 
 **Datum:** 2026-05-24  
 **Scope:** Alle 8 DFD-Element-Forms  
-**Ziel:** Saubere, konsistente Visibility-Logik für alle Felder — kein UI-Noise, kein semantischer Unsinn
+**Ziel:** Saubere, konsistente Visibility-Logik für alle Felder — kein UI-Noise, kein semantischer Unsinn  
+**Status (2026-10-02):** Prio 1 und Prio 2 umgesetzt. Interface-Felder laufen statt über eigene
+Sets über `isControlApplicable` (`shared/models/interface-capability-registry.ts`); volatile
+DataStores zeigen einen Hinweis statt die Felder auszublenden. Offen aus Prio 3:
+`contractExists`/`rateLimited` im ExternalEntity-Form sind weiterhin unbedingt sichtbar.
+Die `mfa`-Option im Interface-Form existiert nicht mehr.
 
 ---
 
