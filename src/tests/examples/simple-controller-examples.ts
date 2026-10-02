@@ -20,6 +20,7 @@ import type { SecurityGoalType } from "features/assets/models/asset-security-goa
 import { createEmptyAsset } from "features/assets/services/asset-factory";
 import { deriveSecurityGoalSuggestions } from "features/assets/services/asset-cianaaa-deriver";
 import { recalculateAllImpacts } from "features/assets/services/asset-impact-calculator";
+import { deriveDfdAssets } from "app/utils/asset-to-dfd-mapper";
 import {
   adjustGoal,
   excludeGoal,
@@ -73,6 +74,9 @@ function asset(
     name,
     impactRatings,
     linkedDFDElements: links.map(([id, relationType]) => ({ ...el(base, id), relationType })) as never,
+    // Like an asset created in the DFD: the links live on the diagram
+    // (element/connection.assetRelations), the asset store follows them.
+    source: "dfd",
     syncedWithDFD: true,
     created: "2026-10-02T00:00:00.000Z",
     lastModified: "2026-10-02T00:00:00.000Z",
@@ -138,6 +142,23 @@ function project(base: ProjectJson, slug: string, title: string, description: st
     lastModified: "2026-10-02T00:00:00.000Z",
   });
   p.assets = { ...data, lastModified: "2026-10-02T00:00:00.000Z" };
+  // The diagram is the source of the asset links: write them as assetRelations
+  // on the DFD elements/connections, and the dfd.assets mirror through the
+  // app's own mapper — otherwise the asset tab reports "not placed in DFD".
+  const dfdItems = [...p.dfd.elements, ...p.dfd.connections];
+  for (const item of dfdItems) delete item.assetRelations;
+  for (const a of data.assets) {
+    for (const link of a.linkedDFDElements) {
+      const item = dfdItems.find((x: { id: string }) => x.id === link.elementId);
+      if (!item) throw new Error(`${a.displayId}: no DFD element ${link.elementId}`);
+      (item.assetRelations ??= []).push({
+        assetId: a.id,
+        assetGroup: a.assetGroup,
+        relationType: link.relationType,
+      });
+    }
+  }
+  p.dfd.assets = deriveDfdAssets(data.assets, p.dfd.elements, p.dfd.connections);
   p.threats = null;
   p.risks = null;
   return p;

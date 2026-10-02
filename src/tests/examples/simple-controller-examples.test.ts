@@ -18,6 +18,8 @@ import { assetIdsNeedingReview, collectAssetFindings } from "features/assets/ser
 import { elementThreatGenerator } from "features/threats/services/per-element/element-generator";
 import type { ThreatConfiguration, ThreatProjectData } from "features/threats/models/threat-types";
 import type { Asset, AssetData } from "features/assets/models/asset-types";
+import { mapDFDAssetsToAssetFeature } from "app/utils/dfd-to-asset-mapper";
+import { getAssetsMissingInDFD } from "features/assets/services/asset-sync-service";
 import { applyAssetCriteriaToFactorRatings } from "features/risks/services/risk-calculation-service";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
 import { CIANAAA_LEVEL_KEY_PREFIX } from "features/assets/models/asset-security-goals-types";
@@ -81,6 +83,36 @@ describe("base model", () => {
     const keys = result.warnings.map((w) => `${w.key} ${JSON.stringify(w.params ?? {})}`);
     expect(keys.filter((k) => k.includes("missingProperty"))).toEqual([]);
     expect(keys.filter((k) => /protocol|accessModel/i.test(k))).toEqual([]);
+  });
+});
+
+describe("every example: assets are placed in the DFD", () => {
+  // The asset tab warns "N asset(s) not placed in DFD" for assets the diagram
+  // does not know (reported on the first generated version).
+  const check = (p: ProjectJson) => {
+    const dfdAssets = mapDFDAssetsToAssetFeature(p.dfd.assets, p.dfd.elements, p.dfd.connections);
+    return {
+      missing: getAssetsMissingInDFD(p.assets as AssetData, dfdAssets).map((a) => a.displayId),
+      links: Object.fromEntries(dfdAssets.map((a) => [a.displayId ?? a.id, (a.linkedElements ?? []).map((l) => l.displayId).sort()])),
+    };
+  };
+
+  for (const e of examples) {
+    it(e.file, () => {
+      const { missing, links } = check(e.project);
+      expect(missing).toEqual([]);
+      for (const a of assetsOf(e)) {
+        expect(links[a.displayId ?? a.id], a.displayId).toEqual(a.linkedDFDElements.map((l) => l.displayId).sort());
+      }
+    });
+  }
+
+  it("control: the first generated version (links only in the asset store) is reported", () => {
+    const p = JSON.parse(JSON.stringify(ex("01").project));
+    for (const item of [...p.dfd.elements, ...p.dfd.connections]) delete item.assetRelations;
+    p.dfd.assets = [];
+    for (const a of p.assets.assets) a.source = "manual";
+    expect(check(p).missing).toEqual(["DA-001", "DA-002", "PR-001"]);
   });
 });
 
