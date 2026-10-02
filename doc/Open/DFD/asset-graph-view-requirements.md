@@ -2,13 +2,15 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.1 (2026-09-30), zur externen Verifikation. **Phase 1 ist durch Gate G1 blockiert (§8).**
+> **Status:** Entwurf v2.2 (2026-10-02), zur externen Verifikation. **Phase 1 ist durch Gate G1 blockiert (§8);**
+> der automatisierte Teil von G1 ist durchgeführt, das manuelle Prüfprotokoll steht noch aus.
 > **Ablage:** `doc/Open/DFD/asset-graph-view-requirements.md`
-> **Code-Stand der Bestandsaufnahme:** `main` @ `22e9d26` (2026-09-30).
+> **Code-Stand der Bestandsaufnahme:** `main` @ `22e9d26` (2026-09-30); G1-Automatik und §10 Frage 1
+> geprüft gegen `main` @ `daacc38` (2026-10-02, Persistenzpfad seit `22e9d26` unverändert).
 > **Konvention:** Prosa Deutsch, Identifier/Typen/Code englisch.
 > **Bezug:** `taraflow-asset-beziehungen.md`, `taraflow-asset-zu-asset-beziehungen.md`,
 > `doc/Open/Asset/asset-store-ssot-refactor-v2.md`, `doc/Open/taraflow-usecase-konzept.md`,
-> `doc/InProgress/Asset/security-goal-rework-design.md`.
+> `doc/Done/Asset/security-goal-rework-design.md`.
 
 ### Revisionsverlauf
 
@@ -17,6 +19,7 @@
 | v1 | 2026-09-30 | Erstfassung: Bestandsaufnahme (B1–B5), Anforderungen, Entscheidungen D1–D7, Phasen 0–4. |
 | v2 | 2026-09-30 | Einarbeitung des externen UX-Reviews. Neu: §5.1 UX-Prinzipien (2 Sichten × 2 Modi, Codierungsbudget, Hervorhebungs-Rangfolge, Kontexterhalt); Context Bar (FR-V14); Ebenen-Presets statt reinem Multi-Select (FR-V2); Einstieg „Im Graph zeigen“ aus der Tabelle (FR-V13); Detailpanel als Interaction Hub mit Wiederverwendung bestehender Komponenten (FR-V8); Connection Handles mit Zielhervorhebung während des Ziehens (FR-E4/E5); Layout-Stabilität innerhalb der Sitzung als MUSS (AR-12), lokale Persistenz als KANN (FR-V15, D3 revidiert); Verzweigungs-Semantik für Process-Abläufe als Voraussetzung der Ablaufsicht (FR-P7, D8). Geändert: FR-V7 (keine dauerhafte KERN-Hervorhebung auf Kanten), FR-E1 (visuelle Modusunterscheidung), FR-E11 (MUSS). Die technischen Prüffragen aus §10 sind noch unbeantwortet. |
 | v2.1 | 2026-09-30 | Einarbeitung Review-Runde 2. Neu: **Gate G1** (§8) — B1 wird nicht als Annahme, sondern als formales Gate vor Phase 1 behandelt, mit Prüfprotokoll, Ergebnisfeld und Verzweigung PASS/FAIL. Heutiger A2A-**Schreibpfad** aus dem Code nachverfolgt (§3.3.1), inkl. Hinweis, dass A2A innerhalb der Sitzung sichtbar bleibt und erst Speichern+Neuöffnen den Verlust zeigt. Neues Prinzip **UX-8** (Sichten zeigen nur, was das Datenmodell ausdrücken kann); Phase 2/3 explizit ohne Verzweigungen. **AR-12** präzisiert (Fixierung auch nach „Neu anordnen“, neue Knoten werden nach dem Einschwingen ebenfalls fixiert). Befund B5 durch Code belegt, neuer Befund **B6** (Asset-Form im DFD-Beschreibungs-View ohne Zielliste). |
+| v2.2 | 2026-10-02 | Phase 0 begonnen: automatisierter Teil von Gate G1 umgesetzt und Ergebnis eingetragen (§8); Prüffrage 1 aus §10 per Code-Suche beantwortet, dabei zweiter Schreibweg über den DFD-Import gefunden; Phase-0-Liste mit vorhandenen Tests abgeglichen; Testkonvention „bekannter Verlust wird festgehalten, nicht rot gelassen“ (§8); Verweis auf das Schutzziel-Rework-Dokument (jetzt `doc/Done`) korrigiert. |
 
 ---
 
@@ -449,6 +452,27 @@ verschiedener Gruppen, z. B. Data + Function):**
 `commitAssetSync` (Laden) sowie ein Test, der protokolliert, an welcher Stelle der Kette die
 Relation verschwindet.
 
+Umgesetzt in `src/tests/regression/a2a-relations-persistence.test.ts` (reiner Teil des Pfads:
+Mutation auf `dfd.assets` wie `updateAsset`, dann `finalizeDfd` → `commitAssetSync` →
+`serialiseProject` → `commitAssetSync(undefined, …)`). Ergebnis am `daacc38`:
+
+| Stufe | Befund |
+|---|---|
+| 1 — Sitzung (`dfd.assets`) | Beziehung vorhanden |
+| 2 — kanonischer Store (`project.assets`) | **Verlust.** `mapDFDAssetsToAssetFeature` übernimmt `DFDAsset.assetRelations` nicht; kein anderer Pfad schreibt A2A nach `project.assets` |
+| 3 — Datei | nicht enthalten |
+| 4 — Neuöffnen | Asset vorhanden, Beziehung fehlt |
+| Migration `migrate_5_to_6` | v5-Beziehung geht verloren (`targetAssetId` wird umgebogen, danach `dfd.assets` verworfen) |
+
+Stufen 2–4 und die Migration halten den **heutigen Verlust** fest (`not.…`-Assertions) statt rot zu
+stehen: Jeder Commit bleibt für sich grün, und Phase 1 macht diese Tests gezielt rot — das Signal,
+die Assertions umzukehren. `it.fails` wird bewusst nicht verwendet, weil es auch bei einem
+Abbruch der Pipeline aus anderem Grund grün wäre. Gegenprobe: Ein `prepareForDisk`, das
+`dfd.assets` behält, macht Stufe 3 und 4 rot.
+
+Nicht automatisiert: Schritt 7 (B5, Gruppenwechsel), weil die Logik im Hook `useDFDData.updateAsset`
+liegt. Sie wird in Phase 1 mit dem Relations-Service (AR-5) als reine Funktion testbar.
+
 **Ergebnis G1:** ☐ PASS ☐ FAIL — Datum: ______ — Build/Commit: ______ — geprüft von: ______
 **Tatsächlicher Schreibpfad:** ☐ wie §3.3.1 ☐ abweichend: ______________________
 
@@ -466,13 +490,16 @@ Relation verschwindet.
 
 #### Weitere Arbeiten in Phase 0
 
-- Migrationstest: v5-Fixture mit A2A-Beziehungen durch die Migrationskette.
-- Test für B4: Asset mit `source: "manual"` erscheint nicht in `deriveDfdAssets`.
+- Migrationstest: v5-Fixture mit A2A-Beziehungen durch die Migrationskette. ✅ im G1-Test
+  (`asset-uuid-migration-v5.tara.json` mit eingefügter Beziehung durch `migrate_5_to_6`).
+- Test für B4: Asset mit `source: "manual"` erscheint nicht in `deriveDfdAssets`. ✅ bereits
+  vorhanden: `src/tests/unit/app/utils/commit-asset-sync.test.ts`, „excludes manual-only assets
+  from the derived dfd.assets“.
 - Golden-Snapshot der heutigen `AssetReference[]`- und Impact-Ableitung (falls nicht schon durch
   Phase 0 des SSOT-Dokuments vorhanden).
 
-**Ergebnis:** G1 entschieden und dokumentiert; Tests für B1/B4/B5 vorhanden (bei FAIL rot, als
-Beleg); Golden-Tests grün.
+**Ergebnis:** G1 entschieden und dokumentiert; Tests für B1/B4 vorhanden (bei FAIL halten sie den
+Verlust fest, siehe oben), B5 über das manuelle Protokoll; Golden-Tests grün.
 **Risiko:** keins.
 
 ### Phase 1 — A2A-Beziehungen kanonisch machen  ✅ *Safe-Stop*
@@ -609,6 +636,16 @@ Die Reviews der Runden 1 (UX) und 2 (Struktur, Gate) sind eingearbeitet. **Offen
    Ist der Schreibpfad in §3.3.1 vollständig, insbesondere: gibt es neben
    `useDFDData.updateAsset` weitere Stellen, die `dfd.assets[].assetRelations` mutieren
    (Import, Hazard-Mint, Asset-Tab)? Die manuelle Prüfung erfolgt über Gate G1.
+   **Antwort (Code-Suche, `daacc38`):** Die Kette ist korrekt gelesen, mit einer Präzisierung: Der
+   Verlust passiert schon vor `prepareForDisk`, weil `mapDFDAssetsToAssetFeature` die A2A nicht
+   in den Feature-Store trägt. Es gibt keinen Pfad, der A2A in `assets.assets` schreibt. Beide
+   Form-Einstiege landen in `useDFDData.updateAsset`: das Side Panel über
+   `dfd-tab.handleAssetChange`, die Beschreibungsansicht über `useDFDEditor.updateAssetDescription`.
+   Asset-Tab und Hazard-Bridge mutieren keine A2A (die Bridge legt nur neue Human-Assets an).
+   **Zweiter Schreibweg:** `useDFDExportImport.importDFD` setzt `project.dfd.assets = data.assets`
+   direkt aus der DFD-Exportdatei. Enthält ein Export A2A-Beziehungen, landen sie am Mirror vorbei
+   an `updateAsset` und gehen beim Speichern ebenso verloren. Phase 1 muss diesen Weg über den
+   Relations-Service (AR-5) führen und das Exportformat (`DFDExportData`) berücksichtigen.
 2. **D1** (Kantenliste vs. quellenseitig): Gibt es Gründe für (b), die übersehen wurden?
 3. **AR-3**: Ist eine nachträgliche Anpassung von `migrate_5_to_6` vertretbar, oder sollte die
    Rettung in einem neuen Migrationsschritt erfolgen (der dann aber keine Daten mehr vorfindet)?
