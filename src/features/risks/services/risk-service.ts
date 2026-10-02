@@ -5,6 +5,7 @@
 // Calculation → risk-calculation-service.ts
 
 import type { PhaseStatusMap, ThreatReference } from "shared";
+import { PHASE_STATUS_KEY } from "shared";
 import type {
   Risk,
   RiskData,
@@ -308,7 +309,7 @@ export const riskService = {
       lastModified: now,
     };
 
-    let phaseStatus: PhaseStatusMap[4];
+    let phaseStatus: PhaseStatusMap[typeof PHASE_STATUS_KEY.risk];
     if (riskData.risks.length === 0) phaseStatus = "not-started";
     else if (validation.isComplete) phaseStatus = "complete";
     else if (validation.errors.length > 0) phaseStatus = "incomplete";
@@ -317,7 +318,7 @@ export const riskService = {
     return {
       success: true,
       risks: updatedData,
-      phaseStatus: { ...project.phaseStatus, 4: phaseStatus },
+      phaseStatus: { ...project.phaseStatus, [PHASE_STATUS_KEY.risk]: phaseStatus },
       lastModified: now,
     };
   },

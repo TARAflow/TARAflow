@@ -118,6 +118,26 @@ export interface PhaseDefinition {
   icon?: string;
 }
 
+/**
+ * Keys of PhaseStatusMap by phase — the ONE place feature services take a
+ * phase's slot from. Must equal PhaseId (app/models/phase-types.ts; a test
+ * guards it). Hard-coded numbers drifted when Hazard was inserted at 1 and
+ * the attack tree moved before the risks: DFD wrote into the Hazard slot,
+ * Assets into DFD, Risk into Threats.
+ */
+export const PHASE_STATUS_KEY = {
+  general: 0,
+  hazard: 1,
+  dfd: 2,
+  assets: 3,
+  threats: 4,
+  attackTree: 5,
+  risk: 6,
+  documentation: 7,
+  audit: 8,
+  integration: 9,
+} as const;
+
 export interface PhaseStatusMap {
   0: PhaseStatus; // General
   1: PhaseStatus; // Hazards

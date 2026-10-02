@@ -17,6 +17,7 @@ export type {
 export {
   PHASES,
   PHASE_STATUS_CONFIG,
+  PHASE_STATUS_KEY,
   STRIDE_COLORS,
 } from "./models/common-types";
 

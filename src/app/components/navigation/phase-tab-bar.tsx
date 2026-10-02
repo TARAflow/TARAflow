@@ -17,6 +17,8 @@ const DEFAULT_PHASE_STATUS: Record<number, PhaseStatus> = {
   5: "not-started",
   6: "not-started",
   7: "not-started",
+  8: "not-started",
+  9: "not-started",
 };
 
 // ==================== PHASE TABS CONTAINER ====================

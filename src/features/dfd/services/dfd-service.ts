@@ -4,6 +4,7 @@
 // NO dependency on app - uses DFDProjectData from dfd-types
 
 import { PhaseStatus, PhaseStatusMap } from "shared";
+import { PHASE_STATUS_KEY } from "shared";
 import {
   DFDData,
   DFDStats,
@@ -448,7 +449,7 @@ class DFDService {
       // Create updated phase status map
       const updatedPhaseStatus: PhaseStatusMap = {
         ...project.phaseStatus,
-        1: phaseStatus,
+        [PHASE_STATUS_KEY.dfd]: phaseStatus,
       };
 
       return {
@@ -567,7 +568,7 @@ class DFDService {
       const phaseStatus = this.determinePhaseStatus(validation);
       const updatedPhaseStatus: PhaseStatusMap = {
         ...project.phaseStatus,
-        1: phaseStatus,
+        [PHASE_STATUS_KEY.dfd]: phaseStatus,
       };
 
       return {

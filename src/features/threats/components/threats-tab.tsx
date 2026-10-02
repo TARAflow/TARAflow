@@ -2,6 +2,7 @@
 // Main orchestrator for threat management
 // FIXED: Split view, toolbar connections, export/import, dialog management
 
+import { withThreatPhaseStatus } from "../services/threat-phase-status";
 import React, {
   useEffect,
   useRef,
@@ -164,13 +165,14 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     (updatedData: ThreatData) => {
       onUpdate({
         threats: updatedData,
-        phaseStatus: [] as unknown as PhaseStatusMap,
+        // Only the threat phase changes — the rest of the map is the project's.
+        phaseStatus: withThreatPhaseStatus(project.phaseStatus, updatedData),
         lastModified: new Date().toISOString(),
       });
       onDirtyChange?.(true);
       setIsDirty(true);
     },
-    [activeMethod, onUpdate, onDirtyChange],
+    [activeMethod, onUpdate, onDirtyChange, project.phaseStatus],
   );
 
   // Element threats hook

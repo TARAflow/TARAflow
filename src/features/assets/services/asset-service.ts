@@ -11,6 +11,7 @@
 //   asset-cianaaa-deriver   → CIANAAA level refresh after impact changes
 
 import type { PhaseStatusMap } from "shared";
+import { PHASE_STATUS_KEY } from "shared";
 import type {
   Asset,
   AssetData,
@@ -137,7 +138,7 @@ class AssetService {
       return {
         success: true,
         assets: { ...migrated, lastModified },
-        phaseStatus: { ...project.phaseStatus, 2: phaseStatus },
+        phaseStatus: { ...project.phaseStatus, [PHASE_STATUS_KEY.assets]: phaseStatus },
         lastModified,
         validation,
       };
