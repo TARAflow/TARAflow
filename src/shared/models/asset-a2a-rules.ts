@@ -174,3 +174,69 @@ export function getA2ARelationOptions(
   );
   return [...options.filter((o) => o.kern), ...options.filter((o) => !o.kern)];
 }
+
+// ==================== TARGET CLASSIFICATION ====================
+// Basis for target highlighting while dragging a connection (FR-E4) and for
+// the direction hint (FR-E5). Derived from the matrix only — never maintained
+// separately (AR-4).
+
+/**
+ * - `valid`        — at least one type is allowed source → target
+ * - `reverse_only` — nothing source → target, but target → source is allowed
+ * - `invalid`      — no direction allowed (also: the source asset itself)
+ */
+export type A2ATargetClass = "valid" | "reverse_only" | "invalid";
+
+export interface A2ATargetClassification {
+  readonly targetClass: A2ATargetClass;
+  /** Allowed types source → target, KERN first. */
+  readonly forward: readonly A2ARelationOption[];
+  /** Allowed types target → source, KERN first (for the direction hint). */
+  readonly reverse: readonly A2ARelationOption[];
+}
+
+/** Classifies a target group relative to a source group. */
+export function classifyA2ATargetGroup(
+  sourceGroup: AssetGroup,
+  targetGroup: AssetGroup,
+): A2ATargetClassification {
+  const forward = getA2ARelationOptions(sourceGroup, targetGroup);
+  const reverse = getA2ARelationOptions(targetGroup, sourceGroup);
+  const targetClass: A2ATargetClass =
+    forward.length > 0 ? "valid" : reverse.length > 0 ? "reverse_only" : "invalid";
+  return { targetClass, forward, reverse };
+}
+
+const NO_TARGET: A2ATargetClassification = {
+  targetClass: "invalid",
+  forward: [],
+  reverse: [],
+};
+
+/**
+ * Classifies every candidate asset relative to the source asset, keyed by
+ * asset id. The source itself is always `invalid` (no self relations).
+ */
+export function classifyA2ATargets(
+  source: { readonly id: string; readonly assetGroup: AssetGroup },
+  candidates: readonly { readonly id: string; readonly assetGroup: AssetGroup }[],
+): Map<string, A2ATargetClassification> {
+  const byGroup = new Map<AssetGroup, A2ATargetClassification>();
+  const result = new Map<string, A2ATargetClassification>();
+  for (const candidate of candidates) {
+    if (candidate.id === source.id) {
+      result.set(candidate.id, NO_TARGET);
+      continue;
+    }
+    let classification = byGroup.get(candidate.assetGroup);
+    if (!classification) {
+      classification = classifyA2ATargetGroup(
+        source.assetGroup,
+        candidate.assetGroup,
+      );
+      byGroup.set(candidate.assetGroup, classification);
+    }
+    result.set(candidate.id, classification);
+  }
+  return result;
+}

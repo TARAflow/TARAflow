@@ -6,6 +6,8 @@ import { describe, it, expect } from "vitest";
 import {
   ALLOWED_A2A_RELATIONS,
   KERN_A2A_RELATIONS,
+  classifyA2ATargetGroup,
+  classifyA2ATargets,
   getA2ARelationOptions,
   getAllowedA2ARelations,
   isKernA2ARelation,
@@ -74,5 +76,55 @@ describe("A2A rules — KERN", () => {
 
   it("options of an undefined pair are empty", () => {
     expect(getA2ARelationOptions("human", "data")).toEqual([]);
+  });
+});
+
+describe("A2A rules — target classification (FR-E4/E5)", () => {
+  it("valid when source → target is allowed", () => {
+    const c = classifyA2ATargetGroup("process", "function");
+    expect(c.targetClass).toBe("valid");
+    expect(c.forward.map((o) => o.relationType)).toEqual(["implements", "invokes"]);
+  });
+
+  it("reverse_only when only target → source is allowed, with the reverse types", () => {
+    // data → service: nothing; service → data: exposes, consumes
+    const c = classifyA2ATargetGroup("data", "service");
+    expect(c.targetClass).toBe("reverse_only");
+    expect(c.forward).toEqual([]);
+    expect(c.reverse.map((o) => o.relationType)).toEqual(["exposes", "consumes"]);
+  });
+
+  it("invalid when no direction is allowed", () => {
+    expect(classifyA2ATargetGroup("data", "infrastructure").targetClass).toBe(
+      "invalid",
+    );
+  });
+
+  it("is consistent with the matrix for every group pair", () => {
+    for (const s of GROUPS) {
+      for (const t of GROUPS) {
+        const c = classifyA2ATargetGroup(s, t);
+        const fwd = getAllowedA2ARelations(s, t).length > 0;
+        const rev = getAllowedA2ARelations(t, s).length > 0;
+        expect(c.targetClass).toBe(fwd ? "valid" : rev ? "reverse_only" : "invalid");
+      }
+    }
+  });
+
+  it("classifies candidates by id and never offers the source itself", () => {
+    const source = { id: "p1", assetGroup: "process" as const };
+    const result = classifyA2ATargets(source, [
+      source,
+      { id: "f1", assetGroup: "function" },
+      { id: "d1", assetGroup: "data" },
+      { id: "e1", assetGroup: "environment" },
+      { id: "p2", assetGroup: "process" },
+    ]);
+    expect(result.get("p1")!.targetClass).toBe("invalid");
+    expect(result.get("f1")!.targetClass).toBe("valid");
+    // process → data: nothing; data → process: required_by, …
+    expect(result.get("d1")!.targetClass).toBe("reverse_only");
+    expect(result.get("e1")!.targetClass).toBe("valid");
+    expect(result.get("p2")!.targetClass).toBe("valid");
   });
 });

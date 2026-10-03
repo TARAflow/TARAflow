@@ -277,8 +277,14 @@ export {
   KERN_A2A_RELATIONS,
   isKernA2ARelation,
   getA2ARelationOptions,
+  classifyA2ATargetGroup,
+  classifyA2ATargets,
 } from "./models/asset-a2a-rules";
-export type { A2ARelationOption } from "./models/asset-a2a-rules";
+export type {
+  A2ARelationOption,
+  A2ATargetClass,
+  A2ATargetClassification,
+} from "./models/asset-a2a-rules";
 
 // ==================== ASSET COLORS ====================
 // Display config for asset categories (colors, labels).
