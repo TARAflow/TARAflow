@@ -2,8 +2,10 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.2 (2026-10-02), zur externen Verifikation. **Phase 1 ist durch Gate G1 blockiert (§8);**
+> **Status:** Entwurf v2.3 (2026-10-02), zur externen Verifikation. **Phase 1 ist durch Gate G1 blockiert (§8);**
 > der automatisierte Teil von G1 ist durchgeführt, das manuelle Prüfprotokoll steht noch aus.
+> Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
+> explizite KERN-Kennzeichnung, Ziel-Einteilung (§8, Phase 1).
 > **Ablage:** `doc/Open/DFD/asset-graph-view-requirements.md`
 > **Code-Stand der Bestandsaufnahme:** `main` @ `22e9d26` (2026-09-30); G1-Automatik und §10 Frage 1
 > geprüft gegen `main` @ `daacc38` (2026-10-02, Persistenzpfad seit `22e9d26` unverändert).
@@ -20,6 +22,7 @@
 | v2 | 2026-09-30 | Einarbeitung des externen UX-Reviews. Neu: §5.1 UX-Prinzipien (2 Sichten × 2 Modi, Codierungsbudget, Hervorhebungs-Rangfolge, Kontexterhalt); Context Bar (FR-V14); Ebenen-Presets statt reinem Multi-Select (FR-V2); Einstieg „Im Graph zeigen“ aus der Tabelle (FR-V13); Detailpanel als Interaction Hub mit Wiederverwendung bestehender Komponenten (FR-V8); Connection Handles mit Zielhervorhebung während des Ziehens (FR-E4/E5); Layout-Stabilität innerhalb der Sitzung als MUSS (AR-12), lokale Persistenz als KANN (FR-V15, D3 revidiert); Verzweigungs-Semantik für Process-Abläufe als Voraussetzung der Ablaufsicht (FR-P7, D8). Geändert: FR-V7 (keine dauerhafte KERN-Hervorhebung auf Kanten), FR-E1 (visuelle Modusunterscheidung), FR-E11 (MUSS). Die technischen Prüffragen aus §10 sind noch unbeantwortet. |
 | v2.1 | 2026-09-30 | Einarbeitung Review-Runde 2. Neu: **Gate G1** (§8) — B1 wird nicht als Annahme, sondern als formales Gate vor Phase 1 behandelt, mit Prüfprotokoll, Ergebnisfeld und Verzweigung PASS/FAIL. Heutiger A2A-**Schreibpfad** aus dem Code nachverfolgt (§3.3.1), inkl. Hinweis, dass A2A innerhalb der Sitzung sichtbar bleibt und erst Speichern+Neuöffnen den Verlust zeigt. Neues Prinzip **UX-8** (Sichten zeigen nur, was das Datenmodell ausdrücken kann); Phase 2/3 explizit ohne Verzweigungen. **AR-12** präzisiert (Fixierung auch nach „Neu anordnen“, neue Knoten werden nach dem Einschwingen ebenfalls fixiert). Befund B5 durch Code belegt, neuer Befund **B6** (Asset-Form im DFD-Beschreibungs-View ohne Zielliste). |
 | v2.2 | 2026-10-02 | Phase 0 begonnen: automatisierter Teil von Gate G1 umgesetzt und Ergebnis eingetragen (§8); Prüffrage 1 aus §10 per Code-Suche beantwortet, dabei zweiter Schreibweg über den DFD-Import gefunden; Phase-0-Liste mit vorhandenen Tests abgeglichen; Testkonvention „bekannter Verlust wird festgehalten, nicht rot gelassen“ (§8); Verweis auf das Schutzziel-Rework-Dokument (jetzt `doc/Done`) korrigiert. |
+| v2.3 | 2026-10-02 | G1-unabhängige Teile von Phase 1 umgesetzt: A2A-Regelwerk nach `shared/models/asset-a2a-rules.ts`, explizite KERN-Kennzeichnung, Ziel-Einteilung *gültig / nur umgekehrt / ungültig*. Neuer Befund **B7** (KERN-Reihenfolge im Regelwerk widerspricht dem Beziehungsdokument). AR-4 in zwei Schritte geteilt: Element-zu-Asset-Regelwerk folgt mit FR-E7 (Phase 3). |
 
 ---
 
@@ -200,6 +203,14 @@ eigenen noch die fremden, die auf das Asset zeigen — aber nicht.
 Tab „Relations“ dieses Einstiegs gibt es daher keine Zielassets. Mit dem Relations-Service
 (AR-5) muss jeder Einstieg dieselben Ziele aus der kanonischen Quelle beziehen.
 
+**B7 — KERN-Kennzeichnung nur implizit und widersprüchlich.**
+Das A2A-Regelwerk sollte KERN-Beziehungen „jeweils zuerst“ auflisten. Die Reihenfolge stimmt aber
+nicht mit der KERN-Übersicht in `taraflow-asset-zu-asset-beziehungen.md` überein, z. B.
+process → human: `endangers` vor dem KERN-Typ `affects_privacy`; service → function: `provides`
+vor `depends_on`. Aus der Reihenfolge lässt sich KERN also nicht ablesen, und es gibt keine andere
+Stelle im Code, die KERN kennt. → Behoben in v2.3 durch `KERN_A2A_RELATIONS` (explizite Daten,
+Test gegen das Regelwerk); die Reihenfolge im Regelwerk hat keine Bedeutung mehr.
+
 ### 3.4 Sonstiges
 
 - **Hazard-Beziehungen** (`contributes_to`, `endangers`) sind ein eigenes System in
@@ -358,7 +369,7 @@ Modellierungsentscheidung behandelt, nicht als UX-Detail.
 | AR-1 | A2A-Beziehungen werden **kanonisch in `project.assets`** persistiert (Ort und Form: Entscheidung D1). `dfd.assets` bleibt reine Laufzeit-Projektion. | MUSS | 1 |
 | AR-2 | Relationen speichern **keine** Kopie der Asset-Gruppen; die Gruppe wird immer aus dem referenzierten Asset gelesen (behebt B5). Bestehende Validierung, die `sourceGroup`/`targetGroup` liest, wird umgestellt. | MUSS | 1 |
 | AR-3 | Schema-Bump mit Migration. Die Migration übernimmt A2A-Beziehungen aus `dfd.assets[].assetRelations` **und** `dfd.assets[].assetToAssetRelations`, sofern vorhanden. `migrate_5_to_6` wird so angepasst, dass v≤5-Dateien ihre Beziehungen **vor** dem Verwerfen von `dfd.assets` an den neuen Ort heben. | MUSS | 1 |
-| AR-4 | Regelwerke (`getAllowedRelations`, `getAllowedA2ARelations`, KERN-Kennzeichnung) liegen in `shared`; `features/dfd` und `features/assets` importieren von dort (behebt B3). Die Zielhervorhebung (FR-E4) und die Richtungshilfe (FR-E5) werden **aus dem Regelwerk abgeleitet**, nicht separat gepflegt. | MUSS | 1 |
+| AR-4 | Regelwerke (`getAllowedRelations`, `getAllowedA2ARelations`, KERN-Kennzeichnung) liegen in `shared`; `features/dfd` und `features/assets` importieren von dort (behebt B3). Die Zielhervorhebung (FR-E4) und die Richtungshilfe (FR-E5) werden **aus dem Regelwerk abgeleitet**, nicht separat gepflegt. **Zwei Schritte:** A2A-Regelwerk, KERN und Ziel-Einteilung in Phase 1 (erledigt, v2.3); das Element-zu-Asset-Regelwerk (`getAllowedRelations`) erst mit FR-E7, weil es an `DFDElementType` hängt und dieser Typ dafür ebenfalls nach `shared` muss — vorher braucht `features/assets` es nicht. | MUSS | 1 / 3 |
 | AR-5 | Ein **reiner** Relations-Service (ohne React) kapselt Hinzufügen, Entfernen, Ändern, Validieren und Kaskade beim Asset-Löschen. Side Panel, Detailpanel und Graph-Leinwand nutzen **denselben** Service — mehrere Oberflächen, ein Schreibpfad. | MUSS | 1 |
 | AR-6 | Element-zu-Asset-Beziehungen bleiben in `dfd.elements[]/connections[].assetRelations`. Die Graph-Sicht (in `features/assets`) schreibt sie **nicht direkt**, sondern über einen Callback an die App-Schicht, die eine reine DFD-Funktion anwendet und anschliessend `finalizeDfd` und `commitAssetSync` durchläuft. | MUSS | 3 |
 | AR-7 | `AssetData.a2aRelations` (bzw. Nachfolger) wird aus der kanonischen Quelle befüllt; `getDownstreamCount` in der Asset-Tabelle liefert korrekte Werte. | MUSS | 1 |
@@ -513,7 +524,10 @@ gelesen. Behebt B1, B3, B5, B6 und die Downstream-Anzeige.
   (ohne `sourceGroup`/`targetGroup`, AR-2).
 - Regelwerke nach `shared` verschieben (AR-4), inkl. einer reinen Funktion, die für ein
   Quell-Asset alle Ziel-Assets in *gültig / nur umgekehrt gültig / ungültig* einteilt
-  (Grundlage für FR-E4/E5, hier schon testbar).
+  (Grundlage für FR-E4/E5, hier schon testbar). ✅ für A2A (v2.3, vor G1 vorgezogen):
+  `shared/models/asset-a2a-rules.ts` mit `getAllowedA2ARelations`, `KERN_A2A_RELATIONS` /
+  `getA2ARelationOptions` (KERN zuerst, markiert) und `classifyA2ATargets` (das Quell-Asset
+  selbst ist immer ungültig). Element-zu-Asset-Regelwerk: siehe AR-4, Phase 3.
 - Reiner Relations-Service (AR-5) inkl. Kaskade beim Asset-Löschen und Validierung gegen das
   Regelwerk.
 - Den heutigen Mutationsort (`useDFDData.updateAsset` für A2A, §3.3.1) durch den Service
