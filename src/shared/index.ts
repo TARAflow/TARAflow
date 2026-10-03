@@ -286,6 +286,30 @@ export type {
   A2ATargetClassification,
 } from "./models/asset-a2a-rules";
 
+// ==================== A2A RELATIONS (CANONICAL) ====================
+// Edge-list shape (D1) and the single write path for A2A relations (AR-5).
+export type {
+  A2ARelation,
+  A2ARelationAttributes,
+} from "./models/a2a-relation-types";
+export {
+  addA2ARelation,
+  removeA2ARelation,
+  updateA2ARelationAttributes,
+  changeA2ARelationType,
+  relationsOfAsset,
+  removeA2ARelationsOfAsset,
+  validateA2ARelations,
+  sortA2ARelations,
+} from "./services/a2a-relation-service";
+export type {
+  AssetGroupLookup,
+  A2ARejection,
+  A2AResult,
+  A2AFinding,
+  NewA2ARelation,
+} from "./services/a2a-relation-service";
+
 // ==================== ASSET COLORS ====================
 // Display config for asset categories (colors, labels).
 // AssetGroupConfig is re-exported here for consumers that need the config shape.
