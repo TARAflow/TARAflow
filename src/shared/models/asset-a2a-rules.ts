@@ -13,7 +13,8 @@ import type { AssetGroup, A2ARelationType } from "./asset-group-types";
 // Core Rules matrix: sourceGroup × targetGroup → allowed A2ARelationType[]
 //
 // Derived from: taraflow-asset-zu-asset-beziehungen.md §3 Core Rules
-// [KERN] relations are listed first in each array.
+// KERN relations are marked explicitly in KERN_A2A_RELATIONS below; the order
+// within each array carries no meaning.
 //
 // Usage:
 //   getAllowedA2ARelations(sourceGroup, targetGroup) → A2ARelationType[]
@@ -91,4 +92,85 @@ export function getAllowedA2ARelations(
   targetGroup: AssetGroup,
 ): A2ARelationType[] {
   return ALLOWED_A2A_RELATIONS[sourceGroup]?.[targetGroup] ?? [];
+}
+
+// ==================== KERN RELATIONS ====================
+// The recommended starting set ("KERN-Beziehungen im Überblick" in
+// taraflow-asset-zu-asset-beziehungen.md), as explicit source × target data.
+//
+// Explicit on purpose: the matrix above was meant to list KERN relations
+// first, but its order does not match the document (e.g. process → human lists
+// `endangers` before the KERN relation `affects_privacy`, service → function
+// lists `provides` before `depends_on`). Order is therefore not a reliable
+// marker, and the type chooser (asset-graph-view-requirements.md, FR-E4) needs
+// one. `contributes_to` / `endangers` from the overview belong to the hazard
+// relation system (hazards.relations), not to A2A, and are not listed here.
+//
+// Every entry must also be allowed by ALLOWED_A2A_RELATIONS (checked by test).
+
+export const KERN_A2A_RELATIONS: Record<
+  AssetGroup,
+  Partial<Record<AssetGroup, readonly A2ARelationType[]>>
+> = {
+  data: {
+    process: ["required_by"],
+    function: ["required_by", "configures"],
+    system: ["configures"],
+    human: ["affects_privacy"],
+  },
+  function: {},
+  process: {
+    process: ["depends_on"],
+    function: ["implements"],
+    system: ["runs_on", "depends_on"],
+    human: ["affects_privacy"],
+  },
+  system: {
+    system: ["depends_on"],
+    function: ["implements", "depends_on"],
+    infrastructure: ["hosted_on"],
+  },
+  infrastructure: {},
+  physical: {},
+  service: {
+    service: ["depends_on"],
+    function: ["depends_on"],
+    infrastructure: ["depends_on"],
+  },
+  human: {},
+  environment: {},
+};
+
+/** True if `relationType` is a KERN relation for this source → target pair. */
+export function isKernA2ARelation(
+  sourceGroup: AssetGroup,
+  targetGroup: AssetGroup,
+  relationType: A2ARelationType,
+): boolean {
+  return (
+    KERN_A2A_RELATIONS[sourceGroup]?.[targetGroup]?.includes(relationType) ??
+    false
+  );
+}
+
+export interface A2ARelationOption {
+  readonly relationType: A2ARelationType;
+  readonly kern: boolean;
+}
+
+/**
+ * Allowed relation types for a pair, KERN first and marked (FR-E4). Within
+ * each part the matrix order is kept, so the result is deterministic.
+ */
+export function getA2ARelationOptions(
+  sourceGroup: AssetGroup,
+  targetGroup: AssetGroup,
+): A2ARelationOption[] {
+  const options = getAllowedA2ARelations(sourceGroup, targetGroup).map(
+    (relationType) => ({
+      relationType,
+      kern: isKernA2ARelation(sourceGroup, targetGroup, relationType),
+    }),
+  );
+  return [...options.filter((o) => o.kern), ...options.filter((o) => !o.kern)];
 }

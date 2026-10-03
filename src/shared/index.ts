@@ -274,7 +274,11 @@ export type { AssetGroup, A2ARelationType } from "./models/asset-group-types";
 export {
   ALLOWED_A2A_RELATIONS,
   getAllowedA2ARelations,
+  KERN_A2A_RELATIONS,
+  isKernA2ARelation,
+  getA2ARelationOptions,
 } from "./models/asset-a2a-rules";
+export type { A2ARelationOption } from "./models/asset-a2a-rules";
 
 // ==================== ASSET COLORS ====================
 // Display config for asset categories (colors, labels).
