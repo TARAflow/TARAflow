@@ -269,6 +269,13 @@ export {
 // Used by both dfd and assets features without cross-feature dependency.
 export type { AssetGroup, A2ARelationType } from "./models/asset-group-types";
 
+// ==================== ASSET-TO-ASSET RULES ====================
+// Allowed A2A relation types per source × target group (Core Rules).
+export {
+  ALLOWED_A2A_RELATIONS,
+  getAllowedA2ARelations,
+} from "./models/asset-a2a-rules";
+
 // ==================== ASSET COLORS ====================
 // Display config for asset categories (colors, labels).
 // AssetGroupConfig is re-exported here for consumers that need the config shape.

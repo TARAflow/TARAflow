@@ -47,9 +47,8 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import type { AssetToAssetRelation } from "../../models/asset-relation-types";
-import { getAllowedA2ARelations } from "../../models/asset-constants";
 import { getAssetGroupColor } from "../../models/dfd-formatters";
-import { AssetGroup, A2ARelationType } from "shared";
+import { AssetGroup, A2ARelationType, getAllowedA2ARelations } from "shared";
 
 // ==================== CONSTANTS ====================
 
