@@ -2,10 +2,11 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.3 (2026-10-02), zur externen Verifikation. **Phase 1 ist durch Gate G1 blockiert (§8);**
+> **Status:** Entwurf v2.4 (2026-10-02), zur externen Verifikation. **Phase 1 ist durch Gate G1 blockiert (§8);**
 > der automatisierte Teil von G1 ist durchgeführt, das manuelle Prüfprotokoll steht noch aus.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
-> explizite KERN-Kennzeichnung, Ziel-Einteilung (§8, Phase 1).
+> explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
+> **D1 entschieden: (a) Kantenliste.**
 > **Ablage:** `doc/Open/DFD/asset-graph-view-requirements.md`
 > **Code-Stand der Bestandsaufnahme:** `main` @ `22e9d26` (2026-09-30); G1-Automatik und §10 Frage 1
 > geprüft gegen `main` @ `daacc38` (2026-10-02, Persistenzpfad seit `22e9d26` unverändert).
@@ -23,6 +24,7 @@
 | v2.1 | 2026-09-30 | Einarbeitung Review-Runde 2. Neu: **Gate G1** (§8) — B1 wird nicht als Annahme, sondern als formales Gate vor Phase 1 behandelt, mit Prüfprotokoll, Ergebnisfeld und Verzweigung PASS/FAIL. Heutiger A2A-**Schreibpfad** aus dem Code nachverfolgt (§3.3.1), inkl. Hinweis, dass A2A innerhalb der Sitzung sichtbar bleibt und erst Speichern+Neuöffnen den Verlust zeigt. Neues Prinzip **UX-8** (Sichten zeigen nur, was das Datenmodell ausdrücken kann); Phase 2/3 explizit ohne Verzweigungen. **AR-12** präzisiert (Fixierung auch nach „Neu anordnen“, neue Knoten werden nach dem Einschwingen ebenfalls fixiert). Befund B5 durch Code belegt, neuer Befund **B6** (Asset-Form im DFD-Beschreibungs-View ohne Zielliste). |
 | v2.2 | 2026-10-02 | Phase 0 begonnen: automatisierter Teil von Gate G1 umgesetzt und Ergebnis eingetragen (§8); Prüffrage 1 aus §10 per Code-Suche beantwortet, dabei zweiter Schreibweg über den DFD-Import gefunden; Phase-0-Liste mit vorhandenen Tests abgeglichen; Testkonvention „bekannter Verlust wird festgehalten, nicht rot gelassen“ (§8); Verweis auf das Schutzziel-Rework-Dokument (jetzt `doc/Done`) korrigiert. |
 | v2.3 | 2026-10-02 | G1-unabhängige Teile von Phase 1 umgesetzt: A2A-Regelwerk nach `shared/models/asset-a2a-rules.ts`, explizite KERN-Kennzeichnung, Ziel-Einteilung *gültig / nur umgekehrt / ungültig*. Neuer Befund **B7** (KERN-Reihenfolge im Regelwerk widerspricht dem Beziehungsdokument). AR-4 in zwei Schritte geteilt: Element-zu-Asset-Regelwerk folgt mit FR-E7 (Phase 3). |
+| v2.4 | 2026-10-02 | **D1 entschieden: (a).** Begründung gegen den Code korrigiert: „gleiches Muster wie `hazards.relations`“ gilt nur halb (dort keine Kanten-IDs, kein Audit-Diff), stabile IDs sind kein Unterscheidungsmerkmal; tragend sind Robustheit gegen die Fehlerklasse von B1, lokale Kaskade/Audit und direkte Kantennutzung im Graph. Neuer Befund **B8** (Hazard-Relationen nicht im Audit-Diff). Kanonischer Typ `A2ARelation` und reiner Relations-Service (AR-5) umgesetzt, noch ohne Persistenz. |
 
 ---
 
@@ -202,6 +204,12 @@ eigenen noch die fremden, die auf das Asset zeigen — aber nicht.
 `dfd-description-view.tsx` rendert `AssetDescriptionForm` ohne `allAssets` (Default `[]`). Im
 Tab „Relations“ dieses Einstiegs gibt es daher keine Zielassets. Mit dem Relations-Service
 (AR-5) muss jeder Einstieg dieselben Ziele aus der kanonischen Quelle beziehen.
+
+**B8 — Hazard-Relationen nicht im Audit-Diff.**
+`features/audit/services/diff-service.ts` vergleicht DFD, Assets, Threats, Risks und Attack Trees,
+aber nicht `hazards` (weder Hazard Items noch `hazards.relations`). Nicht Teil dieses Plans, aber
+für AR-9 relevant: Der neue A2A-Abschnitt im Diff darf sich nicht am Hazard-Muster orientieren,
+weil es dort keines gibt. → Eigener Punkt außerhalb dieses Dokuments.
 
 **B7 — KERN-Kennzeichnung nur implizit und widersprüchlich.**
 Das A2A-Regelwerk sollte KERN-Beziehungen „jeweils zuerst“ auflisten. Die Reihenfolge stimmt aber
@@ -418,7 +426,7 @@ Zur Verdeutlichung von FR-E4, FR-E5, FR-E11 und UX-5 — kein zusätzlicher Anfo
 
 | ID | Frage | Optionen | Empfehlung | Status |
 |---|---|---|---|---|
-| D1 | Wo und in welcher Form werden A2A-Beziehungen kanonisch gespeichert? | (a) Kantenliste `assets.relations[]` mit eigener `id`, `sourceAssetId`, `targetAssetId`, `relationType` + Attributen; (b) quellenseitig am `Asset` (`asset.relations[]`, wie heute am `DFDAsset`) | **(a)**: stabile Kanten-IDs (Undo, Auswahl und Pulsieren im Graph, Audit-Diff), Kaskade beim Löschen trivial, gleiches Muster wie `hazards.relations`, Graph-Sicht arbeitet ohnehin kantenbasiert. | offen |
+| D1 | Wo und in welcher Form werden A2A-Beziehungen kanonisch gespeichert? | (a) Kantenliste `assets.relations[]` mit eigener `id`, `sourceAssetId`, `targetAssetId`, `relationType` + Attributen; (b) quellenseitig am `Asset` (`asset.relations[]`, wie heute am `DFDAsset`) | **(a).** Tragende Gründe: (1) Wege, die Assets kopieren oder umformen (`syncFromDFD`, `deriveDfdAssets`, Import, Hazard-Bridge, Asset-Erstellung), fassen die Kantenliste nicht an — genau dort entstand B1; (2) Kaskade beim Löschen und Audit-Diff bleiben lokal (eine Liste, ein Diff-Abschnitt statt einer Änderung je betroffenem Asset); (3) eingehende und ausgehende Kanten haben dieselbe Form, die Graph-Sicht nutzt sie direkt. Nicht tragend: stabile IDs (auch bei (b) möglich) und „gleiches Muster wie `hazards.relations`“ (dort ohne IDs und ohne Audit-Diff, B8). Vorteile von (b) sind einmalig (Migration 1:1, Asset-Export in sich vollständig); den Export-Vorteil erreicht (a), indem der Export eines Assets seine Kanten mitnimmt. | **entschieden (a)**, 2026-10-02 |
 | D2 | Eigener Haupt-Tab oder View im Asset-Tab? | Tab / View-Toggle | **View im Asset-Tab**, konsistent mit dem UseCase-Konzept; Impact-Kontext bleibt erreichbar; Einstieg aus der Tabelle (FR-V13) ist natürlich. | offen |
 | D3 | Knotenpositionen persistieren? | nein / in `.tara.json` / lokal | **Revidiert in v2:** Nie in `.tara.json` (jede Position erzeugt Diff-Rauschen im Audit-Trail und verletzt das Prinzip „inhaltliche Datei“). Stabilität innerhalb der Sitzung ist MUSS (AR-12). Stabilität über Sitzungen: lokal pro Projekt als KANN (FR-V15), analog zur Pfadspeicherung beim Multi-Diagram-Linking. | offen |
 | D4 | Welche `source` bekommt ein im Graph angelegtes Asset? | `"dfd"` / `"manual"` / Semantik von `source` neu fassen | Kurzfristig `"dfd"` (sonst unsichtbar in DFD-Pickern, B4). Mittelfristig `source` als Herkunft (wo erzeugt) von der Sichtbarkeit im DFD entkoppeln — gehört zu Phase 5/6 von `asset-store-ssot-refactor-v2.md`. | offen |
@@ -529,7 +537,14 @@ gelesen. Behebt B1, B3, B5, B6 und die Downstream-Anzeige.
   `getA2ARelationOptions` (KERN zuerst, markiert) und `classifyA2ATargets` (das Quell-Asset
   selbst ist immer ungültig). Element-zu-Asset-Regelwerk: siehe AR-4, Phase 3.
 - Reiner Relations-Service (AR-5) inkl. Kaskade beim Asset-Löschen und Validierung gegen das
-  Regelwerk.
+  Regelwerk. ✅ (v2.4, vor G1 vorgezogen): Typ `A2ARelation` in
+  `shared/models/a2a-relation-types.ts` (eigene `id`, `sourceAssetId`, keine Gruppen-Kopien),
+  Service in `shared/services/a2a-relation-service.ts`: Hinzufügen, Entfernen, Attribute ändern,
+  Typ ändern (ID bleibt), Kaskade `removeA2ARelationsOfAsset`, `relationsOfAsset` für den
+  Löschdialog, `validateA2ARelations` für Gruppenwechsel und Laden (meldet, löscht nicht),
+  `sortA2ARelations` für AR-9. IDs werden injiziert, damit die Funktionen rein bleiben.
+  Ablehnungsgründe: fehlende Quelle/Ziel, Selbstbeziehung, Typ nicht erlaubt, exaktes Duplikat.
+  Noch nicht angeschlossen; das passiert mit dem Schema-Bump.
 - Den heutigen Mutationsort (`useDFDData.updateAsset` für A2A, §3.3.1) durch den Service
   ersetzen: `AssetToAssetSelector`/`asset-description-form` schreiben über den Service; das
   `as any` auf `DFDAsset.assetRelations` entfällt; totes Feld `DFDAsset.assetToAssetRelations`
