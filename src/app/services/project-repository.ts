@@ -107,6 +107,24 @@ async function hydrateSigningKey(
 
 // ==================== REPOSITORY CLASS ====================
 
+
+// ==================== LOAD RESULT ====================
+
+/** A loaded project; `_migrated` means it is migrated in memory only. */
+export type LoadedProject = Project & {
+  _migrated?: boolean;
+  _fromVersion?: number;
+  /** Original file bytes, for the backup written by commitMigration. */
+  _originalText?: string;
+};
+
+export type LoadErrorCode = "schema_too_new";
+
+/** /p/x.tara.json → /p/x.tara.v7.backup.json */
+export function migrationBackupPath(filePath: string, fromVersion: number): string {
+  return filePath.replace(/\.tara\.json$/i, `.tara.v${fromVersion}.backup.json`);
+}
+
 class ProjectRepository {
   // ── Factory ─────────────────────────────────────────────────────────────
 
@@ -173,9 +191,7 @@ class ProjectRepository {
   async loadFromPath(
     filePath: string,
     options: { hydrateSigning?: boolean } = {},
-  ): Promise<
-    StorageResult<Project & { _migrated?: boolean; _fromVersion?: number }>
-  > {
+  ): Promise<StorageResult<LoadedProject> & { code?: LoadErrorCode }> {
     if (!isElectron()) {
       return { success: false, error: "loadFromPath requires Electron mode" };
     }
@@ -195,7 +211,11 @@ class ProjectRepository {
       } catch (migrationErr: any) {
         // Thrown by applyMigrations when schemaVersion > CURRENT_SCHEMA_VERSION.
         // Surface a clear user-facing error instead of a generic crash.
-        return { success: false, error: migrationErr.message };
+        return {
+          success: false,
+          error: migrationErr.message,
+          code: "schema_too_new",
+        };
       }
 
       if (!migrationResult) {
@@ -217,37 +237,17 @@ class ProjectRepository {
       }
 
       if (migrated) {
-        console.info(
-          `[ProjectRepository] Migrated project ${project.id} ` +
-            `from schema v${fromVersion} → v${CURRENT_SCHEMA_VERSION}: ${filePath}`,
-        );
-
-        // Write a backup of the original file before overwriting.
-        // Backup path: /path/to/project.tara.json → /path/to/project.tara.v0.backup.json
-        const backupPath = filePath.replace(
-          /\.tara\.json$/i,
-          `.tara.v${fromVersion}.backup.json`,
-        );
-        try {
-          await (window as any).electron.file.writeProject(
-            backupPath,
-            result.data,
-          );
-          console.info(`[ProjectRepository] Backup written to: ${backupPath}`);
-        } catch (backupErr) {
-          // Backup failure is non-fatal — proceed with migration
-          console.warn("[ProjectRepository] Backup write failed:", backupErr);
-        }
-
-        // Write the migrated file back to disk immediately so the next open
-        // does not need to migrate again.
-        const payload = serialiseProject(project); // TCS v1 canonical bytes
-        await (window as any).electron.file.writeProject(filePath, payload);
-
-        // Return migration metadata so main-layout can show a toast.
+        // Nothing is written here. Loading — including the bulk load of the
+        // recent list at start-up — never changes a file on disk. The caller
+        // asks the user and then calls commitMigration (single open only).
         return {
           success: true,
-          data: { ...project, _migrated: true, _fromVersion: fromVersion },
+          data: {
+            ...project,
+            _migrated: true,
+            _fromVersion: fromVersion,
+            _originalText: result.data,
+          },
         };
       }
 
@@ -258,11 +258,49 @@ class ProjectRepository {
   }
 
   /**
+   * Persist a migration the user confirmed: first a backup of the original
+   * bytes (`*.tara.v<from>.backup.json`), then the migrated project. A failed
+   * backup aborts — the original is never overwritten without a copy.
+   */
+  async commitMigration(
+    filePath: string,
+    project: Project,
+    fromVersion: number,
+    originalText: string,
+  ): Promise<StorageResult<{ backupPath: string }>> {
+    if (!isElectron()) {
+      return { success: false, error: "commitMigration requires Electron mode" };
+    }
+    const backupPath = migrationBackupPath(filePath, fromVersion);
+    try {
+      const backup = await (window as any).electron.file.writeProject(
+        backupPath,
+        originalText,
+      );
+      if (backup && backup.success === false) {
+        return { success: false, error: `Backup failed: ${backup.error}` };
+      }
+      await (window as any).electron.file.writeProject(
+        filePath,
+        serialiseProject(project), // TCS v1 canonical bytes
+      );
+      console.info(
+        `[ProjectRepository] Migrated project ${project.id} ` +
+          `from schema v${fromVersion} → v${CURRENT_SCHEMA_VERSION}: ${filePath} ` +
+          `(backup: ${backupPath})`,
+      );
+      return { success: true, data: { backupPath } };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
    * Load a project by ID — resolves the file path from the registry first.
    * Convenience wrapper used by main-layout when opening from the recent list.
    * This is a SINGLE open, so the signing key is hydrated.
    */
-  async loadById(projectId: string): Promise<StorageResult<Project>> {
+  async loadById(projectId: string): Promise<StorageResult<LoadedProject> & { code?: LoadErrorCode }> {
     const filePath = await projectRegistry.getFilePath(projectId);
 
     if (!filePath) {
@@ -375,11 +413,13 @@ class ProjectRepository {
           `[ProjectRepository] Failed to load ${entry.id} from ${entry.filePath}:`,
           result.error,
         );
-        failedIds.push(entry.id);
+        if (result.code !== "schema_too_new") failedIds.push(entry.id);
       }
     }
 
     // Clean up stale registry entries (file deleted/moved by user)
+    // A file saved by a newer TARAflow stays in the list: it is not broken,
+    // this build is just too old for it.
     for (const id of failedIds) {
       await projectRegistry.remove(id);
     }

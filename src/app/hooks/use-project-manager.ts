@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Project, ProjectMetadata } from "../models/project-types";
 import { projectService } from "../services/project-service";
 import { projectRepository } from "../services/project-repository";
+import { settleMigrationOnOpen } from "../services/project-migration-open";
 import { projectRegistry } from "../services/project-registry";
 import storageService from "../services/storage-service";
 import { useProjectPersistence } from "./use-project-persistence";
@@ -256,7 +257,14 @@ export function useProjectManager(): UseProjectManagerReturn {
         // linkedDFDElements, stranded hazard targets) on load. Idempotent: a
         // no-op for already-consistent projects. In-memory only; persists on the
         // next write.
+        // A project that needs a migration is never restored as open: it is
+        // only migrated in memory, and converting the file needs the user's
+        // consent when it is opened (settleMigrationOnOpen).
         const projectsWithGraph = validProjects
+          .map((p: any) => {
+            const { _migrated, _fromVersion, _originalText, ...plain } = p;
+            return (_migrated ? { ...plain, isOpen: false } : plain) as Project;
+          })
           .map(ensureProjectGraph)
           .map((p) => commitAssetSync(undefined, p))
           .map(commitProjectSafety);
@@ -438,7 +446,16 @@ export function useProjectManager(): UseProjectManagerReturn {
         return;
       }
 
-      const { _migrated, _fromVersion, ...rawProject } = result.data as any;
+      const settled = await settleMigrationOnOpen(
+        result.data,
+        (...args) => projectRepository.commitMigration(...args),
+      );
+      if (settled.status === "cancelled") return;
+      if (settled.status === "failed") {
+        toastRef.current.error(`Failed to convert project: ${settled.error}`);
+        return;
+      }
+      const rawProject = settled.project;
       const project = commitProjectSafety(
         commitAssetSync(
           undefined,
@@ -453,10 +470,10 @@ export function useProjectManager(): UseProjectManagerReturn {
 
       await projectRegistry.upsert(project);
 
-      if (_migrated) {
+      if (settled.status === "migrated") {
         toastRef.current.success(
-          `Project "${project.info.name}" was migrated from schema v${_fromVersion}. ` +
-            `A backup of the original file was saved alongside it.`,
+          `Project "${project.info.name}" was converted from schema v${settled.fromVersion}. ` +
+            `Backup: ${settled.backupPath}`,
         );
       }
 

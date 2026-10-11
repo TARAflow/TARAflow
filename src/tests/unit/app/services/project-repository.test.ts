@@ -137,3 +137,94 @@ describe("ProjectRepository.loadFromPath", () => {
     expect(result.success).toBe(false);
   });
 });
+describe("ProjectRepository — migration is never written on load", () => {
+  function v7Text(): string {
+    const p: any = projectRepository.createEmpty("Old", "desc");
+    p.schemaVersion = 7;
+    p.filePath = undefined;
+    return JSON.stringify(p);
+  }
+
+  it("loadFromPath migrates in memory only and returns the original bytes", async () => {
+    const { readProject, writeProject } = makeElectronMock();
+    const text = v7Text();
+    readProject.mockResolvedValue({ success: true, data: text });
+
+    const result = await projectRepository.loadFromPath("/p/old.tara.json");
+
+    expect(result.success).toBe(true);
+    expect(result.data?._migrated).toBe(true);
+    expect(result.data?._fromVersion).toBe(7);
+    expect(result.data?._originalText).toBe(text);
+    expect(writeProject).not.toHaveBeenCalled();
+  });
+
+  it("loadAll (recent list at start-up) writes nothing", async () => {
+    const { readProject, writeProject } = makeElectronMock();
+    readProject.mockResolvedValue({ success: true, data: v7Text() });
+    vi.spyOn(projectRegistry, "getAll").mockResolvedValue([
+      { id: "a", filePath: "/p/a.tara.json" },
+      { id: "b", filePath: "/p/b.tara.json" },
+    ] as any);
+    vi.spyOn(projectRegistry, "remove").mockResolvedValue(undefined as any);
+
+    const result = await projectRepository.loadAll();
+
+    expect(result.data).toHaveLength(2);
+    expect(writeProject).not.toHaveBeenCalled();
+  });
+
+  it("a file from a newer TARAflow stays in the recent list", async () => {
+    const { readProject } = makeElectronMock();
+    const p: any = projectRepository.createEmpty("Future", "desc");
+    p.schemaVersion = 99;
+    readProject.mockResolvedValue({ success: true, data: JSON.stringify(p) });
+    vi.spyOn(projectRegistry, "getAll").mockResolvedValue([
+      { id: "f", filePath: "/p/future.tara.json" },
+    ] as any);
+    const remove = vi.spyOn(projectRegistry, "remove").mockResolvedValue(undefined as any);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await projectRepository.loadAll();
+
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("commitMigration writes the backup first, then the migrated file", async () => {
+    const { writeProject } = makeElectronMock();
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const project = projectRepository.createEmpty("Old", "desc");
+
+    const res = await projectRepository.commitMigration(
+      "/p/old.tara.json",
+      project,
+      7,
+      "ORIGINAL",
+    );
+
+    expect(res).toEqual({
+      success: true,
+      data: { backupPath: "/p/old.tara.v7.backup.json" },
+    });
+    expect(writeProject.mock.calls.map((c) => c[0])).toEqual([
+      "/p/old.tara.v7.backup.json",
+      "/p/old.tara.json",
+    ]);
+    expect(writeProject.mock.calls[0][1]).toBe("ORIGINAL");
+  });
+
+  it("commitMigration does not touch the original when the backup fails", async () => {
+    const { writeProject } = makeElectronMock();
+    writeProject.mockResolvedValueOnce({ success: false, error: "disk full" });
+
+    const res = await projectRepository.commitMigration(
+      "/p/old.tara.json",
+      projectRepository.createEmpty("Old", "desc"),
+      7,
+      "ORIGINAL",
+    );
+
+    expect(res.success).toBe(false);
+    expect(writeProject).toHaveBeenCalledTimes(1);
+  });
+});

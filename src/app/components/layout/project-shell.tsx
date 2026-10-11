@@ -45,6 +45,7 @@ import { projectService } from "../../services/project-service";
 import { projectRegistry } from "../../services/project-registry";
 import storageService from "../../services/storage-service";
 import { projectRepository } from "../../services/project-repository";
+import { settleMigrationOnOpen } from "../../services/project-migration-open";
 
 // ==================== COMPONENT ====================
 
@@ -142,8 +143,18 @@ export const ProjectShell: React.FC = () => {
 
       try {
         const now = new Date().toISOString();
-        const { _migrated, _fromVersion, ...rawLoaded } =
-          loadResult.data as any;
+        // Backup + write the conversion BEFORE syncProjectToStorage below
+        // overwrites the file with the current schema.
+        const settled = await settleMigrationOnOpen(
+          loadResult.data,
+          (...args) => projectRepository.commitMigration(...args),
+        );
+        if (settled.status === "cancelled") return;
+        if (settled.status === "failed") {
+          toast.error(`Cannot convert project: ${settled.error}`);
+          return;
+        }
+        const rawLoaded = settled.project;
 
         const fullProject = {
           ...rawLoaded,
@@ -152,10 +163,10 @@ export const ProjectShell: React.FC = () => {
           hasUnsavedChanges: false,
         };
 
-        if (_migrated) {
+        if (settled.status === "migrated") {
           toast.success(
-            `Project "${fullProject.info.name}" was migrated from schema v${_fromVersion}. ` +
-              `A backup of the original file was saved alongside it.`,
+            `Project "${fullProject.info.name}" was converted from schema v${settled.fromVersion}. ` +
+              `Backup: ${settled.backupPath}`,
           );
         }
 
