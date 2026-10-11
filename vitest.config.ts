@@ -17,6 +17,7 @@ export default defineConfig({
       // Example projects for TARAflow_Examples: checked here, written with
       // WRITE_EXAMPLES=<dir> (src/tests/examples).
       "src/tests/examples/**/*.test.ts",
+      "src/tests/integration/**/*.test.ts",
       "taraflow-reporter/tests/**/*.test.ts",
       "electron/**/*.{test,spec}.ts",
       "taraflow-verifier/**/*.{test,spec}.ts",
