@@ -503,6 +503,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                 <AssetAccordion
                   key={asset.id}
                   asset={asset}
+                  allAssets={assets}
                   elements={elements}
                   connections={connections}
                   onUpdate={assetUpdateHandlers.get(asset.id)!} // ✅ Stable function!
@@ -875,6 +876,8 @@ ConnectionAccordion.displayName = "ConnectionAccordion";
 
 interface AssetAccordionProps {
   asset: DFDAsset;
+  /** All assets — target list of the asset-to-asset relation selector. */
+  allAssets: DFDAsset[];
   elements: DFDElement[];
   connections: DFDConnection[];
   onUpdate: (updates: Partial<DFDAsset>) => void;
@@ -885,6 +888,7 @@ interface AssetAccordionProps {
 const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
   ({
     asset,
+    allAssets,
     elements,
     connections,
     onUpdate,
@@ -925,6 +929,7 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
             <AssetDescriptionForm
               key={asset.id}
               asset={asset}
+              allAssets={allAssets}
               onChange={onUpdate}
               elements={elements}
               connections={connections}
@@ -952,7 +957,18 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
       return false;
     }
 
-    // ✅ Check assetRelations
+    // Asset-to-asset relations and the target list. Today the inline onToggle
+    // already forces a re-render; this keeps the accordion correct once that
+    // callback is made stable.
+    if (
+      (prevProps.asset as { assetRelations?: unknown }).assetRelations !==
+        (nextProps.asset as { assetRelations?: unknown }).assetRelations ||
+      prevProps.allAssets !== nextProps.allAssets
+    ) {
+      return false;
+    }
+
+    // ✅ Check linked elements
     if (
       !arraysEqual(
         prevProps.asset.linkedElements || [],
