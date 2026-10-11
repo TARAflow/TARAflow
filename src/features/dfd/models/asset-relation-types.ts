@@ -342,6 +342,12 @@ export function hasIsAnConflict(
  *   (Data→Process, Data→Function). Enables detection of Sequencing Attacks.
  */
 export interface AssetToAssetRelation {
+  /**
+   * Id of the canonical edge in assets.relations[] (schema v8). Set when the
+   * entry was projected from the canonical store; absent on an entry the
+   * selector just created — the next commit assigns one.
+   */
+  id?: string;
   sourceGroup: AssetGroup;
   targetGroup: AssetGroup;
   targetAssetId: string;

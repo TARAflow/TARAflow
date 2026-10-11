@@ -5,7 +5,8 @@
 // deletion must be explicit and must reach every holder of a reference:
 //
 //   assets.assets            the record itself
-//   dfd                      record, element/connection relations, A2A relations
+//   assets.relations         A2A edges in and out (canonical, schema v8)
+//   dfd                      record, element/connection relations, A2A mirror
 //   hazards.relations        contributes_to.from / endangers.to
 //   risks[].linkedAssetIds   cached from the threat; stripped so no stale id stays
 //
@@ -17,7 +18,12 @@
 
 import type { Project } from "app/models/project-types";
 import type { AssetUsage } from "shared";
-import { isContributesTo, isEndangers } from "shared";
+import {
+  isContributesTo,
+  isEndangers,
+  relationsOfAsset,
+  removeA2ARelationsOfAsset,
+} from "shared";
 import {
   countDfdAssetReferences,
   finalizeDfd,
@@ -41,9 +47,17 @@ export function collectAssetUsage(
         name: t.name,
       }))
     : [];
+  // A2A: the canonical list (schema v8) is the truth; it also holds edges of
+  // assets that are not on the dfd.assets mirror. The mirror count is a floor
+  // for projects whose canonical list has not been written yet.
+  const canonical = relationsOfAsset(project.assets?.relations ?? [], assetId);
+  const assetToAssetRelations = Math.max(
+    canonical.incoming.length + canonical.outgoing.length,
+    dfdCounts.assetToAssetRelations,
+  );
   return {
     dfdRelations: dfdCounts.elementRelations,
-    assetToAssetRelations: dfdCounts.assetToAssetRelations,
+    assetToAssetRelations,
     hazardRelations,
     blockingAttackTrees,
   };
@@ -75,13 +89,21 @@ export function purgeAssetFromProject(
   }
   const now = new Date().toISOString();
 
-  const assets = project.assets?.assets.some((a) => a.id === assetId)
-    ? {
-        ...project.assets,
-        assets: project.assets.assets.filter((a) => a.id !== assetId),
-        lastModified: now,
-      }
-    : project.assets;
+  const a2a = removeA2ARelationsOfAsset(
+    project.assets?.relations ?? [],
+    assetId,
+  );
+  const assets =
+    project.assets &&
+    (project.assets.assets.some((a) => a.id === assetId) ||
+      a2a.removed.length > 0)
+      ? {
+          ...project.assets,
+          assets: project.assets.assets.filter((a) => a.id !== assetId),
+          ...(a2a.removed.length > 0 ? { relations: a2a.relations } : {}),
+          lastModified: now,
+        }
+      : project.assets;
 
   const dfd = project.dfd
     ? finalizeDfd(stripAssetFromDfd(project.dfd, assetId))

@@ -136,3 +136,36 @@ describe("purgeAssetFromProject", () => {
     expect(() => purgeAssetFromProject(p, A)).toThrow(AssetDeletionBlockedError);
   });
 });
+
+describe("A2A edges in the canonical store (schema v8)", () => {
+  const C = "33333333-3333-4333-8333-333333333333";
+  function withEdges(): Project {
+    const p = makeProject();
+    return {
+      ...p,
+      assets: {
+        ...p.assets!,
+        relations: [
+          { id: "r1", sourceAssetId: B, targetAssetId: A, relationType: "uses" },
+          { id: "r2", sourceAssetId: A, targetAssetId: C, relationType: "depends_on" },
+          { id: "r3", sourceAssetId: B, targetAssetId: C, relationType: "uses" },
+        ],
+      },
+    } as unknown as Project;
+  }
+
+  it("counts in- and outgoing canonical edges, also for sources off the mirror", () => {
+    expect(collectAssetUsage(withEdges(), A).assetToAssetRelations).toBe(2);
+  });
+
+  it("purge removes every edge touching the asset and keeps the rest", () => {
+    const out = purgeAssetFromProject(withEdges(), A);
+    expect(out.assets!.relations!.map((r) => r.id)).toEqual(["r3"]);
+  });
+
+  it("purge leaves the edge list alone when nothing touches the asset", () => {
+    const p = withEdges();
+    const out = purgeAssetFromProject(p, "44444444-4444-4444-8444-444444444444");
+    expect(out.assets).toBe(p.assets);
+  });
+});

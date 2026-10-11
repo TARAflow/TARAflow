@@ -13,12 +13,11 @@
 //   → save:  serialiseProject (prepareForDisk empties dfd.assets)
 //   → load:  commitAssetSync(undefined, parsed)   // deriveDfdAssets
 //
-// Each stage is its own test so the report shows exactly where the relation
-// disappears. Stages 2–4 pin TODAY's lossy behaviour (`not.…`) as evidence for
-// G1 = FAIL. They deliberately do not use `it.fails`: that would also turn
-// green if the pipeline threw for an unrelated reason. Once Phase 1 makes A2A
-// relations canonical, these tests go red — that is the signal to invert the
-// assertions.
+// Each stage is its own test so a regression shows exactly where the relation
+// disappears. Until schema v8 stages 2–4 pinned the loss (G1 = FAIL, confirmed
+// manually on 2026-10-03). Since v8 the mirror edits are lifted into the
+// canonical edge list assets.relations[] (commitAssetSync) and projected back
+// on load, so every stage must hold.
 
 import { describe, it, expect } from "vitest";
 import { commitAssetSync } from "app/utils/commit-asset-sync";
@@ -28,6 +27,7 @@ import type { Project } from "app/models/project-types";
 import type { AssetToAssetRelation } from "features/dfd/models/asset-relation-types";
 import { migrate_5_to_6 } from "app/services/versions/migrate-5-to-6";
 import { loadProjectFixture } from "../fixtures/load-fixture";
+import { parseAndRepair } from "app/services/migration-service";
 
 const DATA_ID = "11111111-2222-4333-8444-555555555555";
 const FUNC_ID = "66666666-7777-4888-8999-aaaaaaaaaaaa";
@@ -131,29 +131,80 @@ describe("Gate G1 — A2A relation persistence (B1)", () => {
     expect(a2aOnMirror(next)).toHaveLength(1);
   });
 
-  it("stage 2 — KNOWN LOSS (B1): the relation never reaches project.assets", () => {
+  it("stage 2 — the relation reaches the canonical store (project.assets.relations)", () => {
     const next = addRelationViaSidePanel(loadedProject());
-    // No canonical field exists yet; anything reachable from project.assets
-    // that names the target asset as a relation target would count.
-    expect(JSON.stringify(next.assets)).not.toContain(
-      `"targetAssetId":"${FUNC_ID}"`,
+    expect(next.assets!.relations).toHaveLength(1);
+    expect(next.assets!.relations![0]).toMatchObject({
+      sourceAssetId: DATA_ID,
+      targetAssetId: FUNC_ID,
+      relationType: "required_by",
+    });
+    expect(next.assets!.relations![0]).not.toHaveProperty("sourceGroup");
+  });
+
+  it("stage 3 — the relation is written to disk", () => {
+    const next = addRelationViaSidePanel(loadedProject());
+    const onDisk = JSON.parse(serialiseProject(next));
+    expect(onDisk.dfd.assets).toEqual([]);
+    expect(onDisk.assets.relations).toHaveLength(1);
+  });
+
+  it("stage 4 — the relation survives save and reopen, with the same id", () => {
+    const next = addRelationViaSidePanel(loadedProject());
+    const id = next.assets!.relations![0].id;
+    const reopened = commitAssetSync(
+      undefined,
+      parseAndRepair(JSON.parse(serialiseProject(next)))!,
     );
+    expect(a2aOnMirror(reopened)).toEqual([
+      expect.objectContaining({
+        id,
+        targetAssetId: FUNC_ID,
+        relationType: "required_by",
+        sourceGroup: "data",
+        targetGroup: "function",
+      }),
+    ]);
+    expect(reopened.assets!.relations!.map((r) => r.id)).toEqual([id]);
   });
 
-  it("stage 3 — KNOWN LOSS (B1): the relation is not written to disk", () => {
-    const next = addRelationViaSidePanel(loadedProject());
-    expect(serialiseProject(next)).not.toContain("required_by");
-  });
-
-  it("stage 4 — KNOWN LOSS (B1): the relation is gone after save and reopen", () => {
+  it("stage 5 — an unchanged write after reopen does not touch the edges", () => {
     const next = addRelationViaSidePanel(loadedProject());
     const reopened = commitAssetSync(
       undefined,
-      JSON.parse(serialiseProject(next)) as Project,
+      parseAndRepair(JSON.parse(serialiseProject(next)))!,
     );
-    // The asset itself survives the roundtrip — only its relation is lost.
-    expect(reopened.dfd!.assets.some((a) => a.id === DATA_ID)).toBe(true);
-    expect(a2aOnMirror(reopened)).toHaveLength(0);
+    const touched = commitAssetSync(reopened, {
+      ...reopened,
+      dfd: finalizeDfd({ ...reopened.dfd! }),
+    });
+    expect(touched.assets!.relations).toBe(reopened.assets!.relations);
+  });
+
+  it("removing the relation on the mirror removes the canonical edge", () => {
+    const withRel = addRelationViaSidePanel(loadedProject());
+    const dfd = withRel.dfd!;
+    const removed = commitAssetSync(withRel, {
+      ...withRel,
+      dfd: finalizeDfd({
+        ...dfd,
+        assets: dfd.assets.map((a) =>
+          a.id === DATA_ID ? ({ ...a, assetRelations: [] } as typeof a) : a,
+        ),
+      }),
+    });
+    expect(removed.assets!.relations).toEqual([]);
+    expect(JSON.parse(serialiseProject(removed)).assets.relations).toBeUndefined();
+  });
+
+  it("a writer that drops the relations field does not delete the edges (B1 guard)", () => {
+    const withRel = addRelationViaSidePanel(loadedProject());
+    const { relations: _dropped, ...assetsWithout } = withRel.assets!;
+    const after = commitAssetSync(withRel, {
+      ...withRel,
+      assets: assetsWithout as typeof withRel.assets,
+    });
+    expect(after.assets!.relations).toHaveLength(1);
   });
 });
 
