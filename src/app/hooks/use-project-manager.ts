@@ -22,21 +22,13 @@ import storageService from "../services/storage-service";
 import { useProjectPersistence } from "./use-project-persistence";
 import { useAutoSave } from "./use-auto-save";
 import { useProjectFileDownload } from "./use-project-file-download";
-import { DefaultDFDGraphBuilder } from "features/dfd";
 import { useToast } from "shared";
 import { commitAssetSync } from "../utils/commit-asset-sync";
-import { buildAssetHazardLinks } from "../utils/build-asset-hazard-links";
-import { commitHazardSafety } from "../utils/commit-hazard-safety";
-
-// HazardItem safety chokepoint — runs right after commitAssetSync. Re-rates
-// CAUSE assets (physicalImpact / aggregatedImpact) from the bowtie via the
-// Safety Override. Reference-guarded: returns the same Project when no cause
-// asset changes, so it is a cheap no-op on DFD-only edits.
-function commitProjectSafety(project: Project): Project {
-  const summaries = buildAssetHazardLinks(project.hazards);
-  const assets = commitHazardSafety(project.assets, summaries) ?? null;
-  return assets === project.assets ? project : { ...project, assets };
-}
+import {
+  commitProjectSafety,
+  ensureProjectGraph as ensureProjectGraphPure,
+  mergeProjectPatch,
+} from "../services/project-commit";
 
 // ==================== TYPES ====================
 
@@ -114,15 +106,10 @@ export function useProjectManager(): UseProjectManagerReturn {
 
   // ── Graph helper ──────────────────────────────────────────────────────────
 
-  const ensureProjectGraph = useCallback((p: Project): Project => {
-    if (p.dfd?.graph || !p.dfd?.elements?.length) return p;
-    try {
-      const graph = new DefaultDFDGraphBuilder().build(p.dfd);
-      return { ...p, dfd: { ...p.dfd, graph } };
-    } catch {
-      return p;
-    }
-  }, []);
+  const ensureProjectGraph = useCallback(
+    (p: Project): Project => ensureProjectGraphPure(p),
+    [],
+  );
 
   // ── Storage sync ──────────────────────────────────────────────────────────
 
@@ -183,15 +170,7 @@ export function useProjectManager(): UseProjectManagerReturn {
         prev.map((p) => {
           if (p.id !== patch.id) return p;
 
-          const merged: Project = {
-            ...p,
-            ...patch,
-            info: { ...p.info, ...patch.info, lastModified: now },
-            hasUnsavedChanges: true,
-          };
-
-          const synced = commitAssetSync(p, merged);
-          return commitProjectSafety(synced);
+          return mergeProjectPatch(p, patch, now);
         }),
       );
 
@@ -210,15 +189,7 @@ export function useProjectManager(): UseProjectManagerReturn {
       const latest = projectsRef.current.find((p) => p.id === patch.id);
       if (!latest) return;
 
-      const mergedRaw: Project = {
-        ...latest,
-        ...patch,
-        info: { ...latest.info, ...patch.info, lastModified: now },
-        hasUnsavedChanges: true,
-      };
-      const mergedForAutoSave = commitProjectSafety(
-        commitAssetSync(latest, mergedRaw),
-      );
+      const mergedForAutoSave = mergeProjectPatch(latest, patch, now);
 
       if (mergedForAutoSave.settings?.autoSave) {
         const savedProject: Project = {
