@@ -50,6 +50,24 @@ import type { AssetToAssetRelation } from "../../models/asset-relation-types";
 import { getAssetGroupColor } from "../../models/dfd-formatters";
 import { AssetGroup, A2ARelationType, getAllowedA2ARelations } from "shared";
 
+// ==================== HELPERS ====================
+
+/** Allowed types from source to this target that are not used yet. */
+function remainingTypes(
+  sourceGroup: AssetGroup,
+  target: DFDAsset,
+  existing: AssetToAssetRelation[],
+): A2ARelationType[] {
+  const used = new Set(
+    existing
+      .filter((r) => r.targetAssetId === target.id)
+      .map((r) => r.relationType),
+  );
+  return getAllowedA2ARelations(sourceGroup, target.assetGroup).filter(
+    (t) => !used.has(t),
+  );
+}
+
 // ==================== CONSTANTS ====================
 
 const ASSET_GROUPS: AssetGroup[] = [
@@ -124,37 +142,47 @@ const AssetToAssetDialog: React.FC<A2ADialogProps> = ({
     setDegradationMode(false);
     setDegradationDescription("");
     // Auto-select first group with available targets
-    const alreadyTargeted = new Set(existingRelations.map((r) => r.targetAssetId));
     const first = ASSET_GROUPS.find((g) =>
-      allAssets.some((a) => a.id !== sourceAsset.id && a.assetGroup === g && !alreadyTargeted.has(a.id))
+      allAssets.some(
+        (a) =>
+          a.id !== sourceAsset.id &&
+          a.assetGroup === g &&
+          remainingTypes(sourceAsset.assetGroup, a, existingRelations).length > 0,
+      )
     );
     if (first) setSelectedGroup(first);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const alreadyTargeted = useMemo(
-    () => new Set(existingRelations.map((r) => r.targetAssetId)),
-    [existingRelations],
+  // A target stays selectable while at least one allowed type to it is still
+  // unused: a second type on the same pair is allowed, an exact duplicate is
+  // not (D1 duplicate rule). Groups without any allowed type are not offered.
+  const isAvailable = useCallback(
+    (a: DFDAsset) =>
+      a.id !== sourceAsset.id &&
+      remainingTypes(sourceAsset.assetGroup, a, existingRelations).length > 0,
+    [sourceAsset.id, sourceAsset.assetGroup, existingRelations],
   );
 
   const availableTargets = useMemo(
-    () => allAssets.filter(
-      (a) => a.id !== sourceAsset.id && a.assetGroup === selectedGroup && !alreadyTargeted.has(a.id)
-    ),
-    [allAssets, sourceAsset.id, selectedGroup, alreadyTargeted],
+    () => allAssets.filter((a) => a.assetGroup === selectedGroup && isAvailable(a)),
+    [allAssets, selectedGroup, isAvailable],
   );
 
   const groupsWithTargets = useMemo(
     () => ASSET_GROUPS.filter((g) =>
-      allAssets.some((a) => a.id !== sourceAsset.id && a.assetGroup === g && !alreadyTargeted.has(a.id))
+      allAssets.some((a) => a.assetGroup === g && isAvailable(a))
     ),
-    [allAssets, sourceAsset.id, alreadyTargeted],
+    [allAssets, isAvailable],
   );
 
   const targetAsset = allAssets.find((a) => a.id === targetAssetId);
 
   const allowedTypes = useMemo(
-    () => targetAsset ? getAllowedA2ARelations(sourceAsset.assetGroup, targetAsset.assetGroup) : [],
-    [sourceAsset.assetGroup, targetAsset],
+    () =>
+      targetAsset
+        ? remainingTypes(sourceAsset.assetGroup, targetAsset, existingRelations)
+        : [],
+    [sourceAsset.assetGroup, targetAsset, existingRelations],
   );
 
   // Reset relationType when target changes and current type is no longer valid
@@ -217,7 +245,7 @@ const AssetToAssetDialog: React.FC<A2ADialogProps> = ({
               <Alert severity="info" sx={{ py: 0.5 }}>
                 <Typography variant="caption">
                   {t("assets.relations.a2a.noTargets", {
-                    defaultValue: "All assets are already related to this asset.",
+                    defaultValue: "No further relation is possible from this asset.",
                   })}
                 </Typography>
               </Alert>
@@ -232,7 +260,7 @@ const AssetToAssetDialog: React.FC<A2ADialogProps> = ({
                 >
                   {groupsWithTargets.map((g) => {
                     const count = allAssets.filter(
-                      (a) => a.id !== sourceAsset.id && a.assetGroup === g && !alreadyTargeted.has(a.id)
+                      (a) => a.assetGroup === g && isAvailable(a)
                     ).length;
                     const colors = getAssetGroupColor(g);
                     return (
