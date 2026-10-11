@@ -2,8 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.4 (2026-10-02), zur externen Verifikation. **Phase 1 ist durch Gate G1 blockiert (§8);**
-> der automatisierte Teil von G1 ist durchgeführt, das manuelle Prüfprotokoll steht noch aus.
+> **Status:** Entwurf v2.5 (2026-10-03). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> Phase 1 läuft: Persistenz behoben (Schema v8), Integrationstest über alle Beziehungsfälle;
+> offen sind der Umbau der Schreibwege auf den Service, Audit-Diff und ein Sitzungsfehler (B11).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -25,6 +26,7 @@
 | v2.2 | 2026-10-02 | Phase 0 begonnen: automatisierter Teil von Gate G1 umgesetzt und Ergebnis eingetragen (§8); Prüffrage 1 aus §10 per Code-Suche beantwortet, dabei zweiter Schreibweg über den DFD-Import gefunden; Phase-0-Liste mit vorhandenen Tests abgeglichen; Testkonvention „bekannter Verlust wird festgehalten, nicht rot gelassen“ (§8); Verweis auf das Schutzziel-Rework-Dokument (jetzt `doc/Done`) korrigiert. |
 | v2.3 | 2026-10-02 | G1-unabhängige Teile von Phase 1 umgesetzt: A2A-Regelwerk nach `shared/models/asset-a2a-rules.ts`, explizite KERN-Kennzeichnung, Ziel-Einteilung *gültig / nur umgekehrt / ungültig*. Neuer Befund **B7** (KERN-Reihenfolge im Regelwerk widerspricht dem Beziehungsdokument). AR-4 in zwei Schritte geteilt: Element-zu-Asset-Regelwerk folgt mit FR-E7 (Phase 3). |
 | v2.4 | 2026-10-02 | **D1 entschieden: (a).** Begründung gegen den Code korrigiert: „gleiches Muster wie `hazards.relations`“ gilt nur halb (dort keine Kanten-IDs, kein Audit-Diff), stabile IDs sind kein Unterscheidungsmerkmal; tragend sind Robustheit gegen die Fehlerklasse von B1, lokale Kaskade/Audit und direkte Kantennutzung im Graph. Neuer Befund **B8** (Hazard-Relationen nicht im Audit-Diff). Kanonischer Typ `A2ARelation` und reiner Relations-Service (AR-5) umgesetzt, noch ohne Persistenz. |
+| v2.5 | 2026-10-03 | **G1 = FAIL**, manuell bestätigt (Beziehung nach Schliessen/Öffnen weg, nicht in der Datei). Phase 1 Teil 1 umgesetzt: Schema v8 mit `assets.relations[]`, Migration 7→8 und Rettung in `migrate_5_to_6`, Übergangs-Brücke Spiegel ↔ kanonische Liste in `commitAssetSync`, Lösch-Kaskade. Reine Schreibkette (`buildDfdUpdatePatch`, `mergeProjectPatch`) aus den Komponenten gezogen; Integrationstest über alle erlaubten Element→Asset- und Asset→Asset-Beziehungen. Neue Befunde **B10** (Beschreibungsansicht ohne Ziel-Assets im Dialog, behoben), **B11** (Sitzungsfehler „Eingabe verpufft“, offen); A2A-Dialog folgt der Duplikat-Regel. Entscheidung: DFD-Elemente bekommen keine eigene Kantenliste (AR-6). |
 
 ---
 
@@ -205,6 +207,20 @@ eigenen noch die fremden, die auf das Asset zeigen — aber nicht.
 Tab „Relations“ dieses Einstiegs gibt es daher keine Zielassets. Mit dem Relations-Service
 (AR-5) muss jeder Einstieg dieselben Ziele aus der kanonischen Quelle beziehen.
 
+**B10 — Beschreibungsansicht: Beziehungsdialog ohne Ziele.**
+`dfd-description-view.tsx` übergab `AssetDescriptionForm` kein `allAssets`; der A2A-Dialog dort
+hatte keine Ziel-Assets. → Behoben (v2.5), Komponententest.
+
+**B11 — Sitzungsfehler: Eingabe verpufft ohne Meldung (offen).**
+Manuell beobachtet (2026-10-03): Beziehung im Dialog vollständig gewählt und bestätigt, danach
+keine Änderung sichtbar, keine Fehlermeldung; nach Schliessen/Öffnen der Datei funktionierte
+derselbe Ablauf. Unabhängig von B1. Verdacht: `scheduleSave` wählt als Basis
+`lastCommittedDfdRef` statt `project.dfd`, weil eine Ableitung im Commit (`commitAssetSync`)
+`dfd.assets` ändert, ohne `dfd.lastModified` zu erhöhen (Gleichstand → der Hook-Stand gewinnt,
+`freshestOf`); fehlt das Asset dort, ist `updateAsset` ein No-op. Nicht reproduziert; der
+Integrationstest-Harness (`src/tests/integration/relations/`) ist dafür vorbereitet. Benötigt:
+die Schritte vor dem Fehler in der Sitzung.
+
 **B8 — Hazard-Relationen nicht im Audit-Diff.**
 `features/audit/services/diff-service.ts` vergleicht DFD, Assets, Threats, Risks und Attack Trees,
 aber nicht `hazards` (weder Hazard Items noch `hazards.relations`). Nicht Teil dieses Plans, aber
@@ -379,7 +395,7 @@ Modellierungsentscheidung behandelt, nicht als UX-Detail.
 | AR-3 | Schema-Bump mit Migration. Die Migration übernimmt A2A-Beziehungen aus `dfd.assets[].assetRelations` **und** `dfd.assets[].assetToAssetRelations`, sofern vorhanden. `migrate_5_to_6` wird so angepasst, dass v≤5-Dateien ihre Beziehungen **vor** dem Verwerfen von `dfd.assets` an den neuen Ort heben. | MUSS | 1 |
 | AR-4 | Regelwerke (`getAllowedRelations`, `getAllowedA2ARelations`, KERN-Kennzeichnung) liegen in `shared`; `features/dfd` und `features/assets` importieren von dort (behebt B3). Die Zielhervorhebung (FR-E4) und die Richtungshilfe (FR-E5) werden **aus dem Regelwerk abgeleitet**, nicht separat gepflegt. **Zwei Schritte:** A2A-Regelwerk, KERN und Ziel-Einteilung in Phase 1 (erledigt, v2.3); das Element-zu-Asset-Regelwerk (`getAllowedRelations`) erst mit FR-E7, weil es an `DFDElementType` hängt und dieser Typ dafür ebenfalls nach `shared` muss — vorher braucht `features/assets` es nicht. | MUSS | 1 / 3 |
 | AR-5 | Ein **reiner** Relations-Service (ohne React) kapselt Hinzufügen, Entfernen, Ändern, Validieren und Kaskade beim Asset-Löschen. Side Panel, Detailpanel und Graph-Leinwand nutzen **denselben** Service — mehrere Oberflächen, ein Schreibpfad. | MUSS | 1 |
-| AR-6 | Element-zu-Asset-Beziehungen bleiben in `dfd.elements[]/connections[].assetRelations`. Die Graph-Sicht (in `features/assets`) schreibt sie **nicht direkt**, sondern über einen Callback an die App-Schicht, die eine reine DFD-Funktion anwendet und anschliessend `finalizeDfd` und `commitAssetSync` durchläuft. | MUSS | 3 |
+| AR-6 | Element-zu-Asset-Beziehungen bleiben in `dfd.elements[]/connections[].assetRelations` (entschieden 2026-10-03: keine eigene Kantenliste; sie werden gespeichert, haben eine Lösch-Kaskade, und ein Umbau träfe STRIDE-Generierung, Mapper und Hazard-Bridge ohne konkreten Fehler zu beheben; neu bewerten, falls FR-E7 stabile Kanten-IDs braucht). Die Graph-Sicht (in `features/assets`) schreibt sie **nicht direkt**, sondern über einen Callback an die App-Schicht, die eine reine DFD-Funktion anwendet und anschliessend `finalizeDfd` und `commitAssetSync` durchläuft. | MUSS | 3 |
 | AR-7 | `AssetData.a2aRelations` (bzw. Nachfolger) wird aus der kanonischen Quelle befüllt; `getDownstreamCount` in der Asset-Tabelle liefert korrekte Werte. | MUSS | 1 |
 | AR-8 | `ConfirmAssetDeleteDialog`/`asset-usage` zählen A2A-Beziehungen aus der kanonischen Quelle, nicht aus `dfd.assets`. | MUSS | 1 |
 | AR-9 | Audit: `features/audit/services/diff-service.ts` berücksichtigt A2A-Beziehungen. Die Serialisierung ist deterministisch (stabile Sortierung), damit `canonicalStringify` idempotent bleibt und die TCS-Reproduzierbarkeitsprüfung nicht bricht. | MUSS | 1 |
@@ -492,8 +508,11 @@ Abbruch der Pipeline aus anderem Grund grün wäre. Gegenprobe: Ein `prepareForD
 Nicht automatisiert: Schritt 7 (B5, Gruppenwechsel), weil die Logik im Hook `useDFDData.updateAsset`
 liegt. Sie wird in Phase 1 mit dem Relations-Service (AR-5) als reine Funktion testbar.
 
-**Ergebnis G1:** ☐ PASS ☐ FAIL — Datum: ______ — Build/Commit: ______ — geprüft von: ______
-**Tatsächlicher Schreibpfad:** ☐ wie §3.3.1 ☐ abweichend: ______________________
+**Ergebnis G1:** ☐ PASS ☒ FAIL — Datum: 2026-10-03 — Build/Commit: `f6d2018` (Branch
+`feature/asset-graph-view-requirements`) — geprüft von: Juergen
+**Tatsächlicher Schreibpfad:** ☒ wie §3.3.1 ☐ abweichend. Schritte 1–2 erst nach Neuöffnen der
+Datei erfolgreich (beim ersten Versuch verpuffte die Eingabe, B11); Schritte 3–6 wie erwartet
+(Beziehung nicht in der Datei, nach Öffnen weg). Schritt 7 (B5) entfällt: Phase 1 hat begonnen.
 
 **Verzweigung:**
 
@@ -552,11 +571,26 @@ gelesen. Behebt B1, B3, B5, B6 und die Downstream-Anzeige.
   der kanonischen Quelle (B6).
 - Gruppenwechsel eines Assets validiert auch A2A-Relationen (ein- und ausgehend) gegen das
   Regelwerk (B5).
-- Schema-Bump + Migration (AR-3), inkl. Anpassung `migrate_5_to_6`.
+- Schema-Bump + Migration (AR-3), inkl. Anpassung `migrate_5_to_6`. ✅ (v2.5): Schema 8,
+  `AssetData.relations?: A2ARelation[]`; `migrate_7_to_8` hebt Alt-Beziehungen von `dfd.assets`
+  (`lift-legacy-a2a.ts`); `migrate_5_to_6` hebt sie, bevor es den Spiegel verwirft;
+  `prepareForDisk` schreibt sortiert, leere Liste wird nicht geschrieben.
+- **Übergangs-Brücke (v2.5, Abweichung von AR-5):** Damit B1 sofort behoben ist, schreibt der
+  Dialog vorerst weiter auf den Spiegel. `commitAssetSync` übernimmt bei jedem Schreiben die
+  A2A-Listen des Spiegels je Quell-Asset in `assets.relations` (`liftA2AFromMirror`, IDs bleiben)
+  und spielt sie beim Laden zurück (`projectA2AOntoMirror`, Gruppen berechnet). Schutz gegen die
+  B1-Fehlerklasse: Quell-Assets ohne `assetRelations`-Feld bleiben unberührt, ein Schreiber ohne
+  `relations`-Feld löscht nichts. Löschen eines Assets entfernt ein- und ausgehende Kanten.
+  Die Brücke entfällt, wenn der nächste Punkt umgesetzt ist.
 - `AssetData.a2aRelations` befüllen (AR-7), Löschdialog umstellen (AR-8), Audit-Diff und
   deterministische Serialisierung (AR-9).
 
-**Tests:** Phase-0-Roundtrip jetzt grün; Migration v5/v6/v7 → neu; Service-Unit-Tests;
+**Tests:** Phase-0-Roundtrip jetzt grün ✅; Integrationstest
+`src/tests/integration/relations/relations-pipeline.test.ts` ✅ — fährt die Produktionskette
+(Dialog-`onChange` → `useDFDPersistence`/`useDFDData` → `buildDfdUpdatePatch` →
+`mergeProjectPatch` → `serialiseProject` → `parseAndRepair`/`commitLoadedProject`) für jede
+erlaubte Element→Asset- und Asset→Asset-Beziehung aus den Regeltabellen, plus Entfernen,
+Attribute, unabhängige Änderung, Gruppenwechsel; Migration v5/v6/v7 → neu; Service-Unit-Tests;
 Ziel-Einteilung für alle Gruppenpaare; Idempotenz `canonicalStringify(JSON.parse(x)) === x`;
 Side Panel unverändert bedienbar (NFR-6).
 **Risiko:** mittel (Persistenz-Shape). Safe-Stop: Nach Phase 1 ist ein echter Fehler behoben,
