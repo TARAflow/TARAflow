@@ -157,9 +157,10 @@ describe("Gate G1 — A2A relation persistence (B1)", () => {
   });
 });
 
-describe("Gate G1 — A2A relations through migrate_5_to_6 (AR-3 baseline)", () => {
+describe("A2A relations through migrate_5_to_6 (AR-3, schema v8)", () => {
   // v≤5 files kept A2A relations on dfd.assets[]. migrate_5_to_6 repoints
-  // targetAssetId to the new UUIDs and then drops dfd.assets entirely.
+  // targetAssetId to the new UUIDs, lifts the relations into assets.relations
+  // and only then drops dfd.assets.
   function v5WithRelation(): any {
     const raw: any = loadProjectFixture("asset-uuid-migration-v5.tara.json");
     raw.dfd.assets = raw.dfd.assets.map((a: any) =>
@@ -184,9 +185,20 @@ describe("Gate G1 — A2A relations through migrate_5_to_6 (AR-3 baseline)", () 
     expect(JSON.stringify(v5WithRelation())).toContain('"targetAssetId":"DA-002"');
   });
 
-  it("KNOWN LOSS (B1): the relation does not survive migrate_5_to_6", () => {
+  it("the relation survives migrate_5_to_6 as a canonical edge with UUID endpoints", () => {
     const out = migrate_5_to_6(v5WithRelation());
     expect(out.schemaVersion).toBe(6);
-    expect(JSON.stringify(out)).not.toContain("targetAssetId");
+    expect(out.dfd.assets).toEqual([]);
+    const byDisplayId = new Map<string, string>(
+      out.assets.assets.map((a: any) => [a.displayId, a.id]),
+    );
+    expect(out.assets.relations).toHaveLength(1);
+    expect(out.assets.relations[0]).toMatchObject({
+      sourceAssetId: byDisplayId.get("DA-001"),
+      targetAssetId: byDisplayId.get("DA-002"),
+      relationType: "configures",
+    });
+    expect(out.assets.relations[0]).not.toHaveProperty("sourceGroup");
+    expect(out.assets.relations[0]).not.toHaveProperty("targetGroup");
   });
 });

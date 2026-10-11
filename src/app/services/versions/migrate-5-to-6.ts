@@ -45,6 +45,8 @@
  * untouched.
  */
 
+import { liftLegacyA2ARelations } from "./lift-legacy-a2a";
+
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -151,6 +153,18 @@ export function migrate_5_to_6(data: any): any {
       },
     };
   }
+  // Lift A2A relations off the mirror first (schema v8): they exist nowhere
+  // else, and dropping dfd.assets would lose them. Targets were repointed to
+  // UUIDs above; the mirror records' own ids (the relation source) were not,
+  // so the lift reads a rewritten view of them.
+  if (Array.isArray(next.dfd?.assets) && next.dfd.assets.length > 0) {
+    const lifted = liftLegacyA2ARelations({
+      ...next,
+      dfd: { ...next.dfd, assets: next.dfd.assets.map(rewriteRecord) },
+    });
+    next = { ...next, assets: lifted.assets };
+  }
+
   // Drop the dfd.assets mirror: the feature store is now the single canonical
   // asset store, and all references were repointed above. dfd.assets is a
   // runtime projection re-derived on load (commitAssetSync) and stripped on

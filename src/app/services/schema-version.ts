@@ -31,5 +31,12 @@
  *       readable label is derived (formatRiskLabel → "R-<threatDisplayId>").
  *       AttackTreeAnchor.riskId and dfd control-provenance riskId are repointed
  *       in the same pass; risk anchors gain a riskDisplayId snapshot.
+ *   8 = Asset-to-asset relations become canonical. They are stored as an edge
+ *       list in assets.relations[] (A2ARelation: own id, sourceAssetId,
+ *       targetAssetId, relationType + attributes, no group copies). Before,
+ *       they lived only on the runtime dfd.assets mirror and were lost on save.
+ *       Legacy relations still found on dfd.assets[] (assetRelations /
+ *       assetToAssetRelations) are lifted; migrate_5_to_6 lifts them before it
+ *       drops the mirror. Absent = no relations.
  */
-export const CURRENT_SCHEMA_VERSION = 7;
+export const CURRENT_SCHEMA_VERSION = 8;

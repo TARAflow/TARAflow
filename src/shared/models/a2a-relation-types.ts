@@ -29,6 +29,8 @@ export interface A2ARelation {
    * true: source continues degraded when the target fails (damped propagation).
    */
   readonly degradationMode?: boolean;
+  /** What still works in degraded mode (only with degradationMode = true). */
+  readonly degradationDescription?: string;
 }
 
 /** Attributes that can change without changing the edge's identity. */

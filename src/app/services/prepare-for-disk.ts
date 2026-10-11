@@ -78,6 +78,7 @@
 
 import type { Project } from "../models/project-types";
 import type { SourceBinding } from "shared";
+import { sortA2ARelations } from "shared";
 
 // The canonical TCS serializer lives in its own project-types-free module
 // (./tcs-serialize) so the Electron main process and the CLI can import it
@@ -189,6 +190,7 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
 
   return {
     ...rest,
+    assets: assetsForDisk(project.assets),
     dfd: project.dfd
       ? (() => {
           // dfd.assets is NOT persisted with data. It is a runtime projection
@@ -209,6 +211,19 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
     audit: audit ? auditForDisk(audit) : null,
     sourceBindings: project.sourceBindings?.map(sourceBindingForDisk),
   };
+}
+
+/**
+ * A2A relations (schema v8) are written in a deterministic order so that
+ * canonicalStringify stays idempotent and the audit diff is stable (AR-9).
+ * An empty list is not written: absent and empty mean the same, and leaving it
+ * out keeps files without relations byte-identical to before.
+ */
+function assetsForDisk(assets: Project["assets"]): Project["assets"] {
+  if (!assets || !("relations" in assets)) return assets;
+  const { relations, ...rest } = assets;
+  if (!relations || relations.length === 0) return rest as Project["assets"];
+  return { ...assets, relations: sortA2ARelations(relations) };
 }
 
 /**

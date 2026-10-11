@@ -2,7 +2,7 @@
 // Core data models for the Assets feature
 // NO dependency on app OR dfd - follows Dependency Inversion Principle
 
-import type { AssetGroup, PhaseStatusMap } from "shared";
+import type { AssetGroup, PhaseStatusMap, A2ARelation } from "shared";
 import type { AssetProperties } from "shared/models/asset-property-types";
 import type {
   ImpactRating,
@@ -176,6 +176,13 @@ export interface AssetData {
 
   /** List of assets */
   assets: Asset[];
+
+  /**
+   * Asset-to-asset relations — canonical and persisted (schema v8, D1 = edge
+   * list). Written only through the relations service in shared
+   * (a2a-relation-service). Absent = no relations.
+   */
+  relations?: A2ARelation[];
 
   /** DFD image for preview (base64 or URL) */
   dfdPreviewImage?: string;
