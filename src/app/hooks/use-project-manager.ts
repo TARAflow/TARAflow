@@ -17,7 +17,10 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Project, ProjectMetadata } from "../models/project-types";
 import { projectService } from "../services/project-service";
 import { projectRepository } from "../services/project-repository";
-import { settleMigrationOnOpen } from "../services/project-migration-open";
+import {
+  settleMigrationOnOpen,
+  type ConfirmMigration,
+} from "../services/project-migration-open";
 import { projectRegistry } from "../services/project-registry";
 import storageService from "../services/storage-service";
 import { useProjectPersistence } from "./use-project-persistence";
@@ -58,7 +61,10 @@ export interface UseProjectManagerReturn {
   // File operations (used by ProjectShell dialogs)
   loadProjects: () => Promise<void>;
   loadRecentProjects: () => Promise<void>;
-  handleOpenFromFile: (filePath: string) => Promise<void>;
+  handleOpenFromFile: (
+    filePath: string,
+    confirmMigration?: ConfirmMigration,
+  ) => Promise<void>;
   handleImportFile: (project: any) => Promise<void>;
 
   // Persistence (passed through to dialogs)
@@ -438,7 +444,10 @@ export function useProjectManager(): UseProjectManagerReturn {
   // ── File open / import ────────────────────────────────────────────────────
 
   const handleOpenFromFile = useCallback(
-    async (filePath: string): Promise<void> => {
+    async (
+      filePath: string,
+      confirmMigration?: ConfirmMigration,
+    ): Promise<void> => {
       const result = await projectRepository.loadFromPath(filePath);
 
       if (!result.success || !result.data) {
@@ -449,6 +458,7 @@ export function useProjectManager(): UseProjectManagerReturn {
       const settled = await settleMigrationOnOpen(
         result.data,
         (...args) => projectRepository.commitMigration(...args),
+        confirmMigration,
       );
       if (settled.status === "cancelled") return;
       if (settled.status === "failed") {

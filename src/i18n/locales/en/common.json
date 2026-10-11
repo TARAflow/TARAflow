@@ -124,6 +124,24 @@
     "noMessages": "No validation messages"
   },
   "dialogs": {
+    "migrateProject": {
+      "title": "Convert project?",
+      "intro": "\"{{name}}\" was saved by an older TARAflow version (file format v{{from}}). To open it, it is converted to the current format v{{to}}.",
+      "reasonsTitle": "What the conversion changes:",
+      "backup": "A backup of the original file is written first:",
+      "warning": "Afterwards the file can only be opened with this or a newer TARAflow version.",
+      "confirm": "Convert and open",
+      "reasons": {
+        "v1": "Base structure added: platform context per DFD element, risk–mitigation mapping, version field.",
+        "v2": "New \"Hazards\" phase inserted; the following phases move up by one.",
+        "v3": "Interface access control split up (pairing becomes link authentication).",
+        "v4": "Redundant direction field on data flows removed; the label carries the direction.",
+        "v5": "Threats get a stable id, separate from the display number — edits survive renumbering.",
+        "v6": "Assets get a stable id, separate from the display number — a group change no longer breaks references.",
+        "v7": "Risks are linked by the stable threat id instead of the display number.",
+        "v8": "Asset-to-asset relations are stored in the project file. Before, they were lost on save."
+      }
+    },
     "confirmAssetDelete": {
       "title": "Delete asset {{asset}}?",
       "message": "The asset is removed from the whole project (DFD, assets, hazards, threats, risks). This cannot be undone.",

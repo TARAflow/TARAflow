@@ -45,7 +45,11 @@ import { projectService } from "../../services/project-service";
 import { projectRegistry } from "../../services/project-registry";
 import storageService from "../../services/storage-service";
 import { projectRepository } from "../../services/project-repository";
-import { settleMigrationOnOpen } from "../../services/project-migration-open";
+import {
+  settleMigrationOnOpen,
+  type MigrationPrompt,
+} from "../../services/project-migration-open";
+import { MigrateProjectDialog } from "../dialogs/migrate-project-dialog";
 
 // ==================== COMPONENT ====================
 
@@ -85,6 +89,27 @@ export const ProjectShell: React.FC = () => {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+
+  // Conversion consent: settleMigrationOnOpen awaits this promise; the
+  // dialog below resolves it.
+  const [migrationRequest, setMigrationRequest] = useState<{
+    prompt: MigrationPrompt;
+    resolve: (ok: boolean) => void;
+  } | null>(null);
+  const confirmMigration = useCallback(
+    (prompt: MigrationPrompt) =>
+      new Promise<boolean>((resolve) =>
+        setMigrationRequest({ prompt, resolve }),
+      ),
+    [],
+  );
+  const answerMigration = useCallback(
+    (ok: boolean) => {
+      migrationRequest?.resolve(ok);
+      setMigrationRequest(null);
+    },
+    [migrationRequest],
+  );
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
@@ -148,6 +173,7 @@ export const ProjectShell: React.FC = () => {
         const settled = await settleMigrationOnOpen(
           loadResult.data,
           (...args) => projectRepository.commitMigration(...args),
+          confirmMigration,
         );
         if (settled.status === "cancelled") return;
         if (settled.status === "failed") {
@@ -212,6 +238,7 @@ export const ProjectShell: React.FC = () => {
     [
       activateProject,
       closeProject,
+      confirmMigration,
       openProjects,
       projects,
       switchProject,
@@ -386,11 +413,21 @@ export const ProjectShell: React.FC = () => {
           <OpenProjectDialog
             recentProjects={recentProjectsMetadata}
             onOpen={handleProjectOpen}
-            onOpenFile={handleOpenFromFile}
+            onOpenFile={(path: string) =>
+              handleOpenFromFile(path, confirmMigration)
+            }
             onImportFile={
               persistence.mode === "localStorage" ? handleImportFile : undefined
             }
             onClose={() => setShowOpenDialog(false)}
+          />
+        )}
+
+        {migrationRequest && (
+          <MigrateProjectDialog
+            prompt={migrationRequest.prompt}
+            onConfirm={() => answerMigration(true)}
+            onCancel={() => answerMigration(false)}
           />
         )}
 

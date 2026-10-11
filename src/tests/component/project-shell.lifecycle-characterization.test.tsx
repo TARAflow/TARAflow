@@ -96,7 +96,10 @@ vi.mock("app/services/project-repository", () => ({
     loadFromPath: vi.fn(),
     createEmpty: vi.fn(),
     unregister: vi.fn(),
+    commitMigration: vi.fn(),
   },
+  migrationBackupPath: (filePath: string, v: number) =>
+    filePath.replace(/\.tara\.json$/i, `.tara.v${v}.backup.json`),
 }));
 
 vi.mock("app/services/project-registry", () => ({
@@ -1026,6 +1029,72 @@ describe("ProjectShell lifecycle — activeProjectId reassignment characterizati
       await waitFor(() => expect(h.toast.error).toHaveBeenCalled());
       expect(activeIdShown()).toBe("A");
       expect(screen.queryByTestId("row-B")).not.toBeInTheDocument();
+    });
+  });
+
+  // ── Schema conversion needs consent ────────────────────────────────────
+
+  describe("handleProjectOpen — an older project is converted only after consent", () => {
+    async function openMigrated() {
+      const a = makeProject({ id: "A", isOpen: true });
+      await renderShellWith([a]);
+      await waitFor(() => expect(activeIdShown()).toBe("A"));
+      const loaded = {
+        ...makeProject({ id: "OLD", isOpen: false }),
+        filePath: "/p/old.tara.json",
+        _migrated: true,
+        _fromVersion: 7,
+        _originalText: "ORIGINAL",
+      };
+      (projectRepository.loadById as any).mockResolvedValue({
+        success: true,
+        data: loaded,
+      });
+      (projectRepository.commitMigration as any).mockReset();
+      (projectRepository.commitMigration as any).mockResolvedValue({
+        success: true,
+        data: { backupPath: "/p/old.tara.v7.backup.json" },
+      });
+      await act(async () => {
+        screen.getByRole("button", { name: "open-dialog" }).click();
+      });
+      fireEvent.change(screen.getByTestId("open-dialog-id-input"), {
+        target: { value: "OLD" },
+      });
+      await act(async () => {
+        screen.getByRole("button", { name: "open-selected" }).click();
+      });
+      await waitFor(() =>
+        expect(screen.getByText("dialogs.migrateProject.title")).toBeInTheDocument(),
+      );
+    }
+
+    it("cancel: nothing is written and the project is not opened", async () => {
+      await openMigrated();
+      await act(async () => {
+        screen.getByRole("button", { name: "common.cancel" }).click();
+      });
+      expect(projectRepository.commitMigration).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("row-OLD")).not.toBeInTheDocument();
+      expect(activeIdShown()).toBe("A");
+    });
+
+    it("confirm: backup and conversion are written, then the project opens", async () => {
+      await openMigrated();
+      await act(async () => {
+        screen
+          .getByRole("button", { name: "dialogs.migrateProject.confirm" })
+          .click();
+      });
+      await waitFor(() => expect(activeIdShown()).toBe("OLD"));
+      expect(projectRepository.commitMigration).toHaveBeenCalledWith(
+        "/p/old.tara.json",
+        expect.objectContaining({ id: "OLD" }),
+        7,
+        "ORIGINAL",
+      );
+      const passed = (projectRepository.commitMigration as any).mock.calls[0][1];
+      expect(passed).not.toHaveProperty("_originalText");
     });
   });
 });

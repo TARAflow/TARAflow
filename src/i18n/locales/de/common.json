@@ -122,6 +122,24 @@
     "noMessages": "Keine Validierungsmeldungen"
   },
   "dialogs": {
+    "migrateProject": {
+      "title": "Projekt konvertieren?",
+      "intro": "„{{name}}“ wurde mit einer älteren TARAflow-Version gespeichert (Dateiformat v{{from}}). Zum Öffnen wird es auf das aktuelle Format v{{to}} konvertiert.",
+      "reasonsTitle": "Was die Konvertierung ändert:",
+      "backup": "Vorher wird eine Sicherung der Originaldatei angelegt:",
+      "warning": "Danach lässt sich die Datei nur noch mit dieser oder einer neueren TARAflow-Version öffnen.",
+      "confirm": "Konvertieren und öffnen",
+      "reasons": {
+        "v1": "Grundstruktur ergänzt: Plattform-Kontext je DFD-Element, Zuordnung Risiko–Massnahme, Versionsfeld.",
+        "v2": "Neue Phase „Gefährdungen“ eingefügt; die nachfolgenden Phasen rücken um eins nach.",
+        "v3": "Zugriffskontrolle an Schnittstellen aufgeteilt (Pairing wird zur Link-Authentisierung).",
+        "v4": "Überflüssiges Richtungsfeld an Datenflüssen entfernt; die Richtung steckt im Label.",
+        "v5": "Bedrohungen erhalten eine stabile ID, getrennt von der Anzeige-Nummer — Änderungen gehen beim Neunummerieren nicht mehr verloren.",
+        "v6": "Assets erhalten eine stabile ID, getrennt von der Anzeige-Nummer — ein Gruppenwechsel bricht keine Verweise mehr.",
+        "v7": "Risiken werden über die stabile Bedrohungs-ID verknüpft statt über die Anzeige-Nummer.",
+        "v8": "Asset-zu-Asset-Beziehungen werden in der Projektdatei gespeichert. Vorher gingen sie beim Speichern verloren."
+      }
+    },
     "confirmAssetDelete": {
       "title": "Asset {{asset}} löschen?",
       "message": "Das Asset wird aus dem ganzen Projekt entfernt (DFD, Assets, Gefährdungen, Bedrohungen, Risiken). Das kann nicht rückgängig gemacht werden.",
