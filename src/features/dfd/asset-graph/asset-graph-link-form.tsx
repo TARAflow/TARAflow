@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Button, Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
-import type { A2ARelation, A2ARelationAttributes } from "shared";
+import { a2aTypeHasStep, type A2ARelation, type A2ARelationAttributes } from "shared";
 
 export interface LinkDraft {
   readonly stepOrder: string;
@@ -71,25 +71,35 @@ export const LinkAttributesForm: React.FC<LinkAttributesFormProps> = ({ relation
   const result = linkDraftResult(relation, draft);
   const set = (patch: Partial<LinkDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const showDegradation = relation.relationType === "depends_on" || relation.degradationMode !== undefined;
+  // Step only where it means something (invokes, configures); an old value on
+  // another type stays visible so it can be removed.
+  const showStep = a2aTypeHasStep(relation.relationType) || relation.stepOrder !== undefined;
   const label = (key: string, def: string) => t(`tabs.dfd.assetGraph.inspector.${key}`, { defaultValue: def });
 
   return (
     <Box data-testid="asset-graph-link-form" sx={{ mt: 1 }}>
       <Stack spacing={1}>
-        <TextField
-          size="small"
-          label={label("stepOrder", "Step")}
-          value={draft.stepOrder}
-          onChange={(e) => set({ stepOrder: e.target.value })}
-          error={result.error === "stepOrder"}
-          helperText={result.error === "stepOrder" ? label("stepOrderInvalid", "Whole number ≥ 0") : undefined}
-          inputProps={{ "data-testid": "asset-graph-link-step", inputMode: "numeric" }}
-        />
+        {showStep && (
+          <TextField
+            size="small"
+            label={label("stepOrder", "Step")}
+            value={draft.stepOrder}
+            onChange={(e) => set({ stepOrder: e.target.value })}
+            error={result.error === "stepOrder"}
+            helperText={
+              result.error === "stepOrder"
+                ? label("stepOrderInvalid", "Whole number ≥ 0")
+                : label("stepOrderHelp", "Position in the sequence: 1, 2, …")
+            }
+            inputProps={{ "data-testid": "asset-graph-link-step", inputMode: "numeric" }}
+          />
+        )}
         <TextField
           size="small"
           multiline
           minRows={2}
           label={label("rationale", "Rationale")}
+          helperText={label("rationaleHelp", "Why does this link exist? Source or reasoning for the review.")}
           value={draft.rationale}
           onChange={(e) => set({ rationale: e.target.value })}
           inputProps={{ "data-testid": "asset-graph-link-rationale" }}
@@ -99,6 +109,7 @@ export const LinkAttributesForm: React.FC<LinkAttributesFormProps> = ({ relation
           multiline
           minRows={1}
           label={label("notes", "Notes")}
+          helperText={label("notesHelp", "Open questions, assumptions, to-dos.")}
           value={draft.notes}
           onChange={(e) => set({ notes: e.target.value })}
           inputProps={{ "data-testid": "asset-graph-link-notes" }}

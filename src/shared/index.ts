@@ -283,6 +283,8 @@ export {
   getA2AMirror,
   A2A_INVERSE_NAMES,
   a2aRelationName,
+  A2A_STEP_TYPES,
+  a2aTypeHasStep,
 } from "./models/asset-a2a-rules";
 export type {
   A2ARelationOption,

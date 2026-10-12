@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.17 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.18 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -39,6 +39,7 @@
 | v2.15 | 2026-10-12 | Phase 3 Teil 2: Asset anlegen je Ebene (FR-E2/E3) und Asset löschen mit Folgenanzeige (FR-E8) im Graph. |
 | v2.16 | 2026-10-12 | Phase 3 Teil 3: Link-Attribute in der Kantenkarte bearbeiten (FR-E6). |
 | v2.17 | 2026-10-12 | **D9:** je Ansicht ein Bearbeitungsort — Seitenpanel nur beim Zeichnen, Beschreiben über die Akkordeons, Graph über die Karten. Hinweise navigieren in der aktuellen Ansicht; Asset-Baum folgt der Auswahl; Beschreibungsansicht linksbündig in voller Breite. |
+| v2.18 | 2026-10-12 | Asset-Eigenschaften in der Graph-Karte (gemeinsames Formular), Schritt nur bei `invokes`/`configures`, Hilfetexte in der Kantenkarte. |
 
 ---
 
@@ -760,6 +761,13 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
 - ✅ (v2.16) Link-Attribute in der Kantenkarte bearbeiten (FR-E6): Schritt, Begründung, Notizen,
   bei `depends_on` degradierter Betrieb mit Beschreibung (Pflicht wie im Dialog). Speichern sendet
   eine `update`-Operation über denselben Schreibweg; geleerte Felder werden entfernt.
+- ✅ (v2.18) Asset-Eigenschaften in der Karte (D9): aufklappbarer Bereich „Eigenschaften“ im
+  Bearbeiten-Modus mit demselben Formular wie Seitenpanel und Beschreibungsansicht, Schreiben über
+  `handleAssetChange` des DFD-Tabs.
+- ✅ (v2.18) Schritt nur bei Typen mit Ablaufbedeutung (`invokes`, `configures`;
+  `A2A_STEP_TYPES` in `shared`) — in Kantenkarte und Beziehungsdialog; ein alter Wert an einem
+  anderen Typ bleibt sichtbar, damit er entfernt werden kann. Hilfetexte zu Schritt, Begründung,
+  Notizen.
 - Offen in Phase 3: Element-zu-Asset-Beziehungen (FR-E7),
   Undo/Redo (FR-E9), Tastaturbedienung (NFR-4), lokale Positionsspeicherung (FR-V15).
 

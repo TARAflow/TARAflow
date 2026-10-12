@@ -5,10 +5,14 @@
 // attributes. Editing stays in the asset panel (the same selection) until the
 // edit mode of phase 3.
 
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Button, Divider, IconButton, Link, Paper, Stack, Typography } from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
+import { Close as CloseIcon, ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
+import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
+import { AssetDescriptionForm } from "../components/forms/asset-description-form";
+import type { DFDAsset } from "../models/dfd-asset-types";
+import type { DFDConnection, DFDElement } from "../models/dfd-types";
 import { a2aRelationName, type A2ARelationType } from "shared";
 import type { AssetGraphEdge, AssetGraphSource } from "./asset-graph-types";
 import { relationsOfAssetGrouped } from "./asset-graph-query";
@@ -39,6 +43,16 @@ export interface AssetGraphInspectorProps {
   readonly onDeleteLink?: (relationId: string) => void;
   /** Edit mode: delete the asset (the caller confirms, FR-E8). */
   readonly onDeleteAsset?: (assetId: string) => void;
+  /**
+   * Edit mode: the asset's properties in the card, through the SAME form as
+   * the side panel and the description view (D9, no third edit logic).
+   */
+  readonly assetEditing?: {
+    readonly assets: readonly DFDAsset[];
+    readonly elements: readonly DFDElement[];
+    readonly connections: readonly DFDConnection[];
+    readonly onChange: (assetId: string, changes: Partial<DFDAsset>) => void;
+  };
   /** Edit mode: change a link's attributes (FR-E6). */
   readonly onUpdateLink?: (relationId: string, attributes: Partial<A2ARelationAttributes>) => void;
 }
@@ -72,8 +86,10 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   onDeleteLink,
   onDeleteAsset,
   onUpdateLink,
+  assetEditing,
 }) => {
   const { t } = useTranslation();
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
   const assetById = (id: string) => source.assets.find((a) => a.id === id);
   const name = (id: string) => {
     const a = assetById(id);
@@ -193,8 +209,40 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
             ))}
           </Box>
         ))}
+        {assetEditing && (() => {
+          const formAsset = assetEditing.assets.find((a) => a.id === assetId);
+          if (!formAsset) return null;
+          return (
+            <Accordion
+              disableGutters
+              elevation={0}
+              expanded={propertiesOpen}
+              onChange={(_, open) => setPropertiesOpen(open)}
+              sx={{ border: 1, borderColor: "divider", "&:before": { display: "none" }, mt: 0.5 }}
+              data-testid="asset-graph-properties"
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: 36, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  {t("tabs.dfd.assetGraph.inspector.properties", { defaultValue: "Properties" })}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 0 }}>
+                {propertiesOpen && (
+                  <AssetDescriptionForm
+                    key={formAsset.id}
+                    asset={formAsset}
+                    allAssets={assetEditing.assets as DFDAsset[]}
+                    elements={assetEditing.elements as DFDElement[]}
+                    connections={assetEditing.connections as DFDConnection[]}
+                    onChange={(changes) => assetEditing.onChange(formAsset.id, changes)}
+                  />
+                )}
+              </AccordionDetails>
+            </Accordion>
+          );
+        })()}
         <Divider sx={{ my: 0.75 }} />
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button size="small" onClick={() => onFocus(assetId)}>
             {t("tabs.dfd.assetGraph.inspector.focus", { defaultValue: "Focus" })}
           </Button>
@@ -218,7 +266,7 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
     <Paper
       elevation={3}
       data-testid="asset-graph-inspector"
-      sx={{ position: "absolute", top: 12, right: rightInset + 12, width: 290, maxHeight: "calc(100% - 24px)", overflow: "auto", p: 1.5, zIndex: 1 }}
+      sx={{ position: "absolute", top: 12, right: rightInset + 12, width: propertiesOpen && assetEditing && !edge ? 460 : 300, maxHeight: "calc(100% - 24px)", overflow: "auto", p: 1.5, zIndex: 1 }}
     >
       <IconButton size="small" onClick={onClose} sx={{ position: "absolute", top: 4, right: 4 }}>
         <CloseIcon fontSize="small" />

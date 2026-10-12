@@ -80,7 +80,11 @@
           "deleteAsset": "Delete asset",
           "stepOrderInvalid": "Whole number ≥ 0",
           "degradationDescription": "What still works",
-          "degradationRequired": "Required with degraded mode"
+          "degradationRequired": "Required with degraded mode",
+          "properties": "Properties",
+          "stepOrderHelp": "Position in the sequence: 1, 2, …",
+          "rationaleHelp": "Why does this link exist? Source or reasoning for the review.",
+          "notesHelp": "Open questions, assumptions, to-dos."
         },
         "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus"
       },

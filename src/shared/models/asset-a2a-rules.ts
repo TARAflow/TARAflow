@@ -241,6 +241,18 @@ export function classifyA2ATargets(
   return result;
 }
 
+// ==================== STEP ORDER ====================
+// `stepOrder` places a link in a sequence of steps (a process calling its
+// functions one after another, data configuring one particular step). It
+// has a meaning only for these types (taraflow-asset-zu-asset-beziehungen
+// §3: `invokes [step?]`, `configures [step?]`); forms offer it only there.
+
+export const A2A_STEP_TYPES: readonly A2ARelationType[] = ["invokes", "configures"];
+
+export function a2aTypeHasStep(relationType: string): boolean {
+  return (A2A_STEP_TYPES as readonly string[]).includes(relationType);
+}
+
 // ==================== MIRROR PAIRS ====================
 // Two relation types in opposite directions that state the same fact
 // ("Measure Data required_by E-Stop" = "E-Stop reads Measure Data"). Both

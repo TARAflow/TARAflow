@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { A2A_STEP_TYPES, a2aTypeHasStep } from "shared/models/asset-a2a-rules";
 import { join } from "node:path";
 import {
   ALLOWED_A2A_RELATIONS,
@@ -196,5 +197,13 @@ describe("A2A rules — inverse names", () => {
         /\{\{source\}\}.*\{\{target\}\}/,
       );
     }
+  });
+});
+
+describe("step order types", () => {
+  it("only invokes and configures carry a step order", () => {
+    expect([...A2A_STEP_TYPES].sort()).toEqual(["configures", "invokes"]);
+    expect(a2aTypeHasStep("invokes")).toBe(true);
+    expect(a2aTypeHasStep("required_by")).toBe(false);
   });
 });

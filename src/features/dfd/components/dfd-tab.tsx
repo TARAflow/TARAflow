@@ -698,6 +698,18 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // ── Asset graph view (D2, phase 2) ──────────────────────────────────────
   const assetGraphSource = useMemo(() => assetGraphSourceFromDfd(dfd), [dfd]);
 
+  // Asset properties in the graph's card: the same form and the same write
+  // path (handleAssetChange) as the side panel (D9).
+  const assetEditingForGraph = useMemo(
+    () => ({
+      assets: dfd?.assets ?? [],
+      elements: dfd?.elements ?? [],
+      connections: dfd?.connections ?? [],
+      onChange: handleAssetChange,
+    }),
+    [dfd, handleAssetChange],
+  );
+
   // The graph has its own cards; the selection is only remembered so the
   // side panel shows the same asset when switching to the diagram.
   const handleGraphSelectAsset = useCallback((assetId: string) => {
@@ -846,6 +858,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               focusRequest={graphFocus}
               onShowInTable={onShowInTable}
               onCreateAsset={handleCreateAssetForGroup}
+              assetEditing={assetEditingForGraph}
               onDeleteAsset={handleDeleteAsset}
               assetUsage={assetUsage}
               // No side panel in the graph view — it has its own cards.

@@ -58,6 +58,7 @@ import {
   A2ARelationType,
   getAllowedA2ARelations,
   getA2AMirror,
+  a2aTypeHasStep,
 } from "shared";
 
 // ==================== HELPERS ====================
@@ -458,7 +459,7 @@ const AssetToAssetDialog: React.FC<A2ADialogProps> = ({
           )}
 
           {/* stepOrder — for invokes and configures (sequential step index) */}
-          {(relationType === "invokes" || relationType === "configures") && (
+          {a2aTypeHasStep(relationType) && (
             <TextField size="small"
               label={t("assets.relations.a2a.stepOrder", { defaultValue: "Step Order (optional)" })}
               placeholder="1"

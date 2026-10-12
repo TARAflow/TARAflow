@@ -176,20 +176,71 @@ describe("AssetGraphView — edit mode", () => {
     const commit = renderEditable();
     fireEvent.click(screen.getByTestId("asset-graph-mode-edit"));
     fireEvent.click(screen.getByTestId("asset-graph-edge-r1"));
+    // required_by has no step order — the field is not offered.
+    expect(screen.queryByTestId("asset-graph-link-step")).toBeNull();
     const save = screen.getByTestId("asset-graph-link-save");
     expect(save).toBeDisabled();
     fireEvent.change(screen.getByTestId("asset-graph-link-rationale"), { target: { value: "E-Stop needs the value" } });
-    fireEvent.change(screen.getByTestId("asset-graph-link-step"), { target: { value: "x" } });
-    expect(save).toBeDisabled();
-    fireEvent.change(screen.getByTestId("asset-graph-link-step"), { target: { value: "1" } });
     fireEvent.click(save);
     expect(commit).toHaveBeenCalledWith([
-      {
-        kind: "update",
-        relationId: "r1",
-        attributes: { stepOrder: 1, rationale: "E-Stop needs the value" },
-      },
+      { kind: "update", relationId: "r1", attributes: { rationale: "E-Stop needs the value" } },
     ]);
+  });
+
+  it("step order only for step types (invokes): invalid input blocks saving", () => {
+    const src: AssetGraphSource = {
+      assets: [
+        { id: "p1", displayId: "PR-001", name: "Update", assetGroup: "process" },
+        { id: "f1", displayId: "FU-001", name: "Verify", assetGroup: "function" },
+      ],
+      relations: [{ id: "r9", sourceAssetId: "p1", targetAssetId: "f1", relationType: "invokes" } as A2ARelation],
+      elements: [],
+    };
+    const commit = vi.fn();
+    render(
+      <A2AOpsProvider commit={commit}>
+        <AssetGraphView source={src} selectedAssetId={null} onSelectAsset={() => {}} focusRequest={{ assetId: "f1" }} />
+      </A2AOpsProvider>,
+    );
+    fireEvent.click(screen.getByTestId("asset-graph-mode-edit"));
+    fireEvent.click(screen.getByTestId("asset-graph-edge-r9"));
+    const step = screen.getByTestId("asset-graph-link-step");
+    fireEvent.change(step, { target: { value: "x" } });
+    expect(screen.getByTestId("asset-graph-link-save")).toBeDisabled();
+    fireEvent.change(step, { target: { value: "2" } });
+    fireEvent.click(screen.getByTestId("asset-graph-link-save"));
+    expect(commit).toHaveBeenCalledWith([{ kind: "update", relationId: "r9", attributes: { stepOrder: 2 } }]);
+  });
+
+  it("asset properties in the card use the shared asset form (D9)", () => {
+    const onChange = vi.fn();
+    const dfdAsset = (id: string, displayId: string, group: string, name: string) =>
+      ({ id, displayId, name, assetGroup: group, linkedElements: [], properties: {} }) as never;
+    render(
+      <A2AOpsProvider commit={vi.fn()}>
+        <AssetGraphView
+          source={source}
+          selectedAssetId={null}
+          onSelectAsset={() => {}}
+          assetEditing={{
+            assets: [dfdAsset("d1", "DA-001", "data", "Measure Data"), dfdAsset("f1", "FU-001", "function", "E-Stop")],
+            elements: [],
+            connections: [],
+            onChange,
+          }}
+        />
+      </A2AOpsProvider>,
+    );
+    fireEvent.click(screen.getByTestId("asset-graph-node-d1"));
+    expect(screen.queryByTestId("asset-graph-properties")).toBeNull(); // view mode
+    fireEvent.click(screen.getByTestId("asset-graph-mode-edit"));
+    fireEvent.click(screen.getByTestId("asset-graph-node-d1"));
+    fireEvent.click(screen.getByText("Properties"));
+    const name = document.getElementById("asset-name-input") as HTMLInputElement;
+    expect(name.value).toBe("Measure Data");
+    fireEvent.change(name, { target: { value: "Measured speed" } });
+    fireEvent.blur(name);
+    expect(onChange).toHaveBeenCalledWith("d1", { name: "Measured speed" });
   });
 
   it("in view mode the link card stays read-only", () => {

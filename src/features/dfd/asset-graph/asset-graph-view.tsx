@@ -108,6 +108,8 @@ export interface AssetGraphViewProps {
   readonly onDeleteAsset?: (assetId: string) => void;
   /** Usage counts for the delete confirmation (FR-E8). */
   readonly assetUsage?: AssetUsageLookup;
+  /** Edit mode: asset properties in the card (D9), see the inspector. */
+  readonly assetEditing?: React.ComponentProps<typeof AssetGraphInspector>["assetEditing"];
   readonly darkMode?: boolean;
 }
 
@@ -148,6 +150,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   onCreateAsset,
   onDeleteAsset,
   assetUsage,
+  assetEditing,
   rightInset = 0,
   darkMode = false,
 }) => {
@@ -1252,6 +1255,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             rightInset={rightInset}
             onDeleteLink={editing ? deleteLink : undefined}
             onUpdateLink={editing ? updateLink : undefined}
+            assetEditing={editing ? assetEditing : undefined}
             onDeleteAsset={editing && onDeleteAsset ? (id) => setConfirmDeleteId(id) : undefined}
             onClose={() => {
               setInspectorOpen(false);

@@ -80,7 +80,11 @@
           "deleteAsset": "Asset löschen",
           "stepOrderInvalid": "Ganze Zahl ≥ 0",
           "degradationDescription": "Was noch funktioniert",
-          "degradationRequired": "Bei degradiertem Betrieb erforderlich"
+          "degradationRequired": "Bei degradiertem Betrieb erforderlich",
+          "properties": "Eigenschaften",
+          "stepOrderHelp": "Position im Ablauf: 1, 2, …",
+          "rationaleHelp": "Warum gibt es diesen Link? Quelle oder Begründung für das Review.",
+          "notesHelp": "Offene Fragen, Annahmen, To-dos."
         },
         "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren"
       },
