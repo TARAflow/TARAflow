@@ -88,7 +88,6 @@ export interface DFDAsset {
   assetGroup: AssetGroup;
   protectionNeed?: "low" | "medium" | "high" | "critical";
   linkedElements?: ElementRelation[];
-  assetToAssetRelations?: AssetToAssetRelation[];
   /**
    * Outgoing asset-to-asset edges, projected from the canonical list
    * assets.relations on every commit (app/utils/a2a-mirror). A view —

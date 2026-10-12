@@ -112,8 +112,8 @@ export function dfdSourcedAssets(featureAssets: Asset[]): Asset[] {
  *   properties    ← asset.properties   (carried through)
  *   linkedElements← DERIVED from element/connection.assetRelations
  *
- * `assetToAssetRelations` is intentionally omitted: it is declared on
- * DFDAsset but never written or read anywhere in the app (dead field).
+ * Asset-to-asset relations are added afterwards by commitAssetSync, which
+ * projects the canonical list assets.relations onto each record.
  */
 export function deriveDfdAssets(
   featureAssets: Asset[],

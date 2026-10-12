@@ -61,6 +61,10 @@ function makeProject(overrides: Partial<Project> = {}): Project {
         { id: A, displayId: "SY-001", name: "Controller" },
         { id: B, displayId: "HU-001", name: "Operator" },
       ],
+      // Canonical A2A edge (schema v8); the mirror entry on B is its view.
+      relations: [
+        { id: "ab", sourceAssetId: B, targetAssetId: A, relationType: "manages" },
+      ],
       lastModified: "t0",
     },
     threats: null,
@@ -105,9 +109,8 @@ describe("purgeAssetFromProject", () => {
     expect(out.assets!.assets.map((a) => a.id)).toEqual([B]);
     expect(out.dfd!.assets.map((a) => a.id)).toEqual([B]);
     expect(out.dfd!.elements[0].assetRelations!.map((r) => r.assetId)).toEqual([B]);
-    expect(
-      (out.dfd!.assets[0] as unknown as { assetRelations: unknown[] }).assetRelations,
-    ).toEqual([]);
+    // The canonical edge goes; the mirror is re-projected on commit.
+    expect(out.assets!.relations).toEqual([]);
     expect(out.hazards!.relations).toHaveLength(1);
     expect(out.hazards!.relations[0].type).toBe("endangers");
     expect(out.risks!.risks[0].linkedAssetIds).toEqual([B]);

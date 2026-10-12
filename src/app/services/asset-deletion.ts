@@ -6,7 +6,8 @@
 //
 //   assets.assets            the record itself
 //   assets.relations         A2A edges in and out (canonical, schema v8)
-//   dfd                      record, element/connection relations, A2A mirror
+//   dfd                      record, element/connection relations (the A2A
+//                            mirror is re-projected on commit)
 //   hazards.relations        contributes_to.from / endangers.to
 //   risks[].linkedAssetIds   cached from the threat; stripped so no stale id stays
 //
@@ -47,14 +48,10 @@ export function collectAssetUsage(
         name: t.name,
       }))
     : [];
-  // A2A: the canonical list (schema v8) is the truth; it also holds edges of
-  // assets that are not on the dfd.assets mirror. The mirror count is a floor
-  // for projects whose canonical list has not been written yet.
+  // A2A: the canonical list (schema v8), in- and outgoing.
   const canonical = relationsOfAsset(project.assets?.relations ?? [], assetId);
-  const assetToAssetRelations = Math.max(
-    canonical.incoming.length + canonical.outgoing.length,
-    dfdCounts.assetToAssetRelations,
-  );
+  const assetToAssetRelations =
+    canonical.incoming.length + canonical.outgoing.length;
   return {
     dfdRelations: dfdCounts.elementRelations,
     assetToAssetRelations,
