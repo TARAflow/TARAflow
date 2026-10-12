@@ -235,3 +235,47 @@ describe("DiffService — asset detail detection", () => {
     expect(assetPhase(svc.detectChanges(cur, prev))).toBeUndefined();
   });
 });
+describe("DiffService — asset-to-asset relations (AR-9)", () => {
+  const md = anAsset({ id: "md", displayId: "DA-002", name: "Measure Data" });
+  const es = anAsset({ id: "es", displayId: "FU-001", name: "E-Stop" });
+  const edge = (over: Record<string, any> = {}) => ({
+    id: "r1",
+    sourceAssetId: "md",
+    targetAssetId: "es",
+    relationType: "required_by",
+    ...over,
+  });
+  const withRel = (relations: any[]) =>
+    project({ assets: { assets: [md, es], relations } });
+  const links = (changes: PhaseChanges[]) =>
+    (assetPhase(changes)?.changes ?? []).filter((c) => c.description.startsWith("Asset link"));
+
+  it("an added edge is one item named with display ids", () => {
+    const out = links(svc.detectChanges(withRel([edge()]), withRel([])));
+    expect(out).toEqual([
+      expect.objectContaining({ type: "added", id: "r1", name: "DA-002 required_by FU-001" }),
+    ]);
+  });
+
+  it("a removed edge is one deleted item", () => {
+    const out = links(svc.detectChanges(withRel([]), withRel([edge()])));
+    expect(out.map((c) => c.type)).toEqual(["deleted"]);
+  });
+
+  it("a changed attribute is a modified item with the field", () => {
+    const out = links(
+      svc.detectChanges(withRel([edge({ rationale: "new" })]), withRel([edge()])),
+    );
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: "modified",
+        details: [expect.objectContaining({ field: "rationale", oldValue: null, newValue: "new" })],
+      }),
+    ]);
+  });
+
+  it("no relations on either side — no items; same edges — no items", () => {
+    expect(links(svc.detectChanges(withRel([]), withRel([])))).toEqual([]);
+    expect(links(svc.detectChanges(withRel([edge()]), withRel([edge()])))).toEqual([]);
+  });
+});

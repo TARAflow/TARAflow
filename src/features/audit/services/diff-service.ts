@@ -30,6 +30,7 @@ import type { ThreatData, Threat } from "features/threats";
 import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
+import type { A2ARelation } from "shared";
 
 // ==================== DIFF SERVICE ====================
 
@@ -321,6 +322,107 @@ export class DiffService {
       }
     });
 
+    changes.push(...this.compareA2ARelations(current, previous));
+
+    return changes;
+  }
+
+  /**
+   * Asset-to-asset relations (assets.relations, schema v8), one item per
+   * edge, keyed by the edge id. An edge whose type changed keeps its id and is
+   * "modified"; endpoints never change (that is a new edge).
+   */
+  private compareA2ARelations(
+    current: AssetData | null,
+    previous: AssetData | null,
+  ): ChangeItem[] {
+    const changes: ChangeItem[] = [];
+    const cur = new Map((current?.relations ?? []).map((r) => [r.id, r]));
+    const prev = new Map((previous?.relations ?? []).map((r) => [r.id, r]));
+    if (cur.size === 0 && prev.size === 0) return changes;
+
+    const labels = new Map<string, string>();
+    for (const a of [...(previous?.assets ?? []), ...(current?.assets ?? [])]) {
+      labels.set(a.id, a.displayId ?? a.name ?? a.id);
+    }
+    const label = (id: string) => labels.get(id) ?? id.slice(0, 8);
+    const edgeName = (r: A2ARelation) =>
+      `${label(r.sourceAssetId)} ${r.relationType} ${label(r.targetAssetId)}`;
+
+    const ATTRS = [
+      "stepOrder",
+      "analyticallyActive",
+      "rationale",
+      "notes",
+      "degradationMode",
+      "degradationDescription",
+    ] as const;
+
+    // Sorted for a deterministic commit message.
+    const ids = [...new Set([...cur.keys(), ...prev.keys()])].sort();
+    for (const id of ids) {
+      const c = cur.get(id);
+      const p = prev.get(id);
+      if (c && !p) {
+        changes.push({
+          type: "added",
+          id,
+          name: edgeName(c),
+          description: `Asset link added: ${edgeName(c)}`,
+        });
+      } else if (!c && p) {
+        changes.push({
+          type: "deleted",
+          id,
+          name: edgeName(p),
+          description: `Asset link deleted: ${edgeName(p)}`,
+        });
+      } else if (c && p) {
+        const details: ChangeDetail[] = [];
+        if (c.relationType !== p.relationType) {
+          details.push({
+            field: "relationType",
+            fieldLabel: "Relation Type",
+            oldValue: p.relationType,
+            newValue: c.relationType,
+            valueType: "string",
+          });
+        }
+        for (const attr of ATTRS) {
+          if (c[attr] !== p[attr]) {
+            details.push({
+              field: attr,
+              fieldLabel: attr,
+              oldValue: p[attr] ?? null,
+              newValue: c[attr] ?? null,
+              valueType: typeof (c[attr] ?? p[attr]) === "number"
+                ? "number"
+                : typeof (c[attr] ?? p[attr]) === "boolean"
+                  ? "boolean"
+                  : "string",
+            });
+          }
+        }
+        if (JSON.stringify(c.safety ?? null) !== JSON.stringify(p.safety ?? null)) {
+          details.push({
+            field: "safety",
+            fieldLabel: "Safety",
+            oldValue: p.safety ?? null,
+            newValue: c.safety ?? null,
+            valueType: "object",
+          });
+        }
+        if (details.length > 0) {
+          changes.push({
+            type: "modified",
+            id,
+            name: edgeName(c),
+            description: `Asset link modified: ${details.length} field(s) changed`,
+            details,
+          });
+        }
+      }
+    }
     return changes;
   }
 
