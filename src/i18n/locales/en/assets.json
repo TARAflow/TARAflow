@@ -235,6 +235,9 @@
         "downstream": "Downstream",
         "securityGoals": "Sec. Goals",
         "linkedElements": "DFD Links",
+        "assetLinks": "Asset Links",
+        "assetLinksOutgoing": "Outgoing",
+        "assetLinksIncoming": "Incoming",
         "securityGoalsText": "Security Requirements",
         "hazards": "Hazards"
       },
@@ -317,6 +320,7 @@
         "consequencePlaceholder": "Adverse consequence of compromising this property — e.g. 'location disclosure enables physical stalking'.",
         "useTemplate": "Use template",
         "linkedElements": "Linked DFD Elements",
+        "assetLinks": "Linked Assets",
         "tooManyCriteria": "You have selected more than 6 criteria...",
         "tabGeneral": "Impact Assessment",
         "tabSecurityGoals": "Derived Protection Requirements",

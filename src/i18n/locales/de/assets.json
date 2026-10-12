@@ -235,6 +235,9 @@
         "downstream": "Downstream",
         "securityGoals": "Schutzziele",
         "linkedElements": "DFD Links",
+        "assetLinks": "Asset Links",
+        "assetLinksOutgoing": "Ausgehend",
+        "assetLinksIncoming": "Eingehend",
         "securityGoalsText": "Sicherheitsanforderungen",
         "hazards": "Gefährdungen"
       },
@@ -316,6 +319,7 @@
         "consequencePlaceholder": "Nachteilige Folge einer Kompromittierung dieser Eigenschaft — z. B. «Standortpreisgabe ermöglicht physisches Stalking».",
         "useTemplate": "Vorlage verwenden",
         "linkedElements": "Verknüpfte DFD-Elemente",
+        "assetLinks": "Verknüpfte Assets",
         "tabGeneral": "Impact-Bewertung",
         "tabSecurityGoals": "Abgeleitete Schutzanforderungen",
         "notRated": "Nicht bewertet",

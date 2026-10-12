@@ -55,6 +55,8 @@ import {
 import type { Asset, AssetConfiguration, AssetToAssetRelationReference } from "../models/asset-types";
 import type { DFDElementLink } from "../models/dfd-asset-link-types";
 import { getDownstreamCount } from "../utils/asset-graph-utils";
+import { buildAssetLinks } from "../utils/asset-links";
+import { AssetLinkChips } from "./asset-link-chips";
 import { SecurityGoalChips } from "./security-goal-chips";
 import {
   PREDEFINED_IMPACT_CRITERIA,
@@ -76,6 +78,12 @@ export interface AssetTableProps {
   assets: Asset[];
   configuration: AssetConfiguration;
   a2aRelations?: AssetToAssetRelationReference[];
+  /**
+   * Canonical asset-to-asset relations (assets.relations) for the "Asset
+   * Links" column. Separate from `a2aRelations`, which still feeds the
+   * Downstream column (direction semantics open, see requirements B12).
+   */
+  assetLinkRelations?: readonly AssetToAssetRelationReference[];
   /** Per-asset hazard links (endangeredBy / contributesTo), projected by the app layer. */
   hazardLinks?: Record<string, AssetHazardSummary>;
   onEdit: (asset: Asset) => void;
@@ -183,6 +191,7 @@ export const AssetTable = React.memo<AssetTableProps>(
     assets,
     configuration,
     a2aRelations = [],
+    assetLinkRelations,
     hazardLinks,
     onEdit,
     onDelete,
@@ -226,6 +235,11 @@ export const AssetTable = React.memo<AssetTableProps>(
     };
 
     // ── Downstream counts (derived from Asset-to-Asset graph) ────────────
+    const assetLinks = useMemo(
+      () => buildAssetLinks(assets, assetLinkRelations ?? []),
+      [assets, assetLinkRelations],
+    );
+
     const downstreamCounts = useMemo(
       () =>
         Object.fromEntries(
@@ -1360,8 +1374,29 @@ export const AssetTable = React.memo<AssetTableProps>(
         },
       };
 
+      // ── Asset Links ───────────────────────────────────────────────────
+      // Asset-to-asset relations, read-only. Sorts by number of links, so
+      // isolated assets can be found.
+      const assetLinksColumn: GridColDef<Asset> = {
+        field: "assetLinks",
+        headerName: t("tabs.assets.columns.assetLinks", {
+          defaultValue: "Asset Links",
+        }),
+        width: 240,
+        minWidth: 160,
+        sortable: true,
+        valueGetter: (params: { row: Asset }) =>
+          assetLinks.get(params.row.id)?.length ?? 0,
+        renderCell: (params: GridRenderCellParams<Asset>) => {
+          const links = assetLinks.get(params.row.id) ?? [];
+          if (links.length === 0)
+            return <Typography color="text.disabled">–</Typography>;
+          return <AssetLinkChips links={links} />;
+        },
+      };
+
       // ── Column order ───────────────────────────────────────────────────
-      // ID | Name | Type | [Factors] | Safety | Overall | Aggregated | HVA | Sec. Goals | Downstream | DFD Links | Actions
+      // ID | Name | Type | [Factors] | Safety | Overall | Aggregated | HVA | Sec. Goals | Downstream | DFD Links | Asset Links | Actions
       return [
         idColumn,
         nameColumn,
@@ -1375,6 +1410,7 @@ export const AssetTable = React.memo<AssetTableProps>(
         downstreamColumn,
         ...(showHazardColumn ? [hazardColumn] : []),
         linkedElementsColumn,
+        assetLinksColumn,
         actionsColumn,
       ];
     }, [
@@ -1385,6 +1421,7 @@ export const AssetTable = React.memo<AssetTableProps>(
       onDelete,
       downstreamCounts,
       hazardLinks,
+      assetLinks,
     ]);
 
     // ==================== EMPTY STATE ====================

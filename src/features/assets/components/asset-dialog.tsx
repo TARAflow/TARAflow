@@ -85,6 +85,8 @@ import { SecurityGoalCard } from "./security-goal-card";
 import { threatsForGoal } from "../services/asset-threat-crosscheck";
 import { compareDisplayIds, type ThreatGoalLink } from "shared";
 import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
+import type { AssetLink } from "../utils/asset-links";
+import { AssetLinkChips } from "./asset-link-chips";
 
 
 // ==================== TYPES ====================
@@ -107,6 +109,8 @@ interface AssetDialogProps {
   focusGoal?: SecurityGoalType;
   /** Threats with their linked assets (app layer) — card back-references. */
   threatLinks?: ThreatGoalLink[];
+  /** Asset-to-asset links of this asset (read-only display). */
+  assetLinks?: readonly AssetLink[];
 }
 
 interface TabPanelProps {
@@ -155,6 +159,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   initialTab = 0,
   focusGoal,
   threatLinks,
+  assetLinks,
 }) => {
   const { t } = useTranslation();
 
@@ -837,6 +842,18 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                     );
                   })}
                 </Stack>
+              </Box>
+            )}
+
+            {/* Asset Links (A2A, read-only — edited in the DFD asset panel) */}
+            {assetLinks && assetLinks.length > 0 && (
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  {t("tabs.assets.dialog.assetLinks", {
+                    defaultValue: "Asset Links",
+                  })}
+                </Typography>
+                <AssetLinkChips links={assetLinks} />
               </Box>
             )}
 

@@ -61,6 +61,7 @@ const DEFAULT_DFD_HEIGHT = 250; // Fixed pixel height instead of ratio
 
 import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
 import type { ThreatGoalLink } from "shared";
+import { buildAssetLinks } from "../utils/asset-links";
 
 export interface AssetTabProps {
   project: AssetProjectData;
@@ -118,6 +119,12 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   const [showDFDPreview, setShowDFDPreview] = useState(true);
   const [dfdPanelHeight, setDfdPanelHeight] = useState(DEFAULT_DFD_HEIGHT);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Asset Links (A2A, read-only) for the dialog; the table builds its own.
+  const assetLinksById = useMemo(
+    () => buildAssetLinks(assetData.assets, assetData.relations ?? []),
+    [assetData.assets, assetData.relations],
+  );
 
   // Dialog state
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -799,6 +806,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             assets={assetData.assets}
             configuration={assetData.configuration}
             hazardLinks={hazardLinks}
+            assetLinkRelations={assetData.relations}
             needsReview={needsReview}
             onEdit={handleEditAsset}
             onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
@@ -830,6 +838,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           initialTab={dialogFocus?.tab ?? 0}
           focusGoal={dialogFocus?.goal}
           threatLinks={threatLinks}
+          assetLinks={assetLinksById.get(selectedAsset.id)}
         />
       )}
       {/* Configuration Dialog */}
