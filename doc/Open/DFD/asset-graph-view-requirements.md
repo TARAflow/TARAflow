@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.9 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.10 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
-> B11 behoben. Nächster Schritt: D2/D6 bestätigen, Phase 2.
+> B11 behoben. **D2, D3, D6 entschieden** (Graph-Sicht im DFD-Tab). Nächster Schritt: Phase 2.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -31,6 +31,7 @@
 | v2.7 | 2026-10-12 | FR-V16 präzisiert: Pfeil + identischer Typ auf beiden Seiten war missverständlich (bei E-Stop las sich `required_by` falsch herum). Chips lesen jetzt aus Sicht der Zeile — gespeicherter Typ an der Quelle, inverser Name am Ziel (Tabelle `A2A_INVERSE_NAMES` für alle Typen); Tooltip-Satz de/en je Typ. |
 | v2.8 | 2026-10-12 | Phase 1 Teil 2: ein Schreibweg (AR-5) — Dialog und DFD-Import senden A2A-Operationen (`DFDUpdateResult.a2aOps`), die App-Schicht wendet sie über den Relations-Service an; Übergangs-Brücke entfernt, `dfd.assets` ist reine Projektion. Gruppenwechsel meldet ungültige Asset-Links als Befund (B5). A2A-Kanten im Audit-Diff (AR-9). Totes Feld `DFDAsset.assetToAssetRelations` und A2A-Pfade am Spiegel entfernt. |
 | v2.9 | 2026-10-12 | Ungültige Asset-Links zusätzlich im Hinweis-Panel des DFD-Tabs (dort werden sie bearbeitet). **B11 behoben**: Öffnen aus der Liste übersprang den Lade-Commit; bei `lastModified`-Gleichstand gewinnt jetzt der Projektstand. |
+| v2.10 | 2026-10-12 | **D2 revidiert und entschieden:** Graph-Sicht als dritte Ansicht im DFD-Tab (Diagramm / Beschreibung / Asset-Graph), weil dort Asset Links bearbeitet werden, der eine Schreibweg (AR-5) und das Asset-Panel als Detailpanel bereitstehen; aus dem Asset-Tab führt „Im Graph zeigen“ dorthin. FR-V1, FR-V8, FR-V9, FR-V13, §2 und Phase 2 angepasst. **D3** (Positionen nie in der Datei) und **D6** (`d3-force`, Spur je Ebene) entschieden. B13 behoben (Asset-Export/-Import mit Asset Links), neuer Befund B14 (Import „Alle ersetzen“ ersetzt nichts). |
 
 ---
 
@@ -102,8 +103,8 @@ festgehalten, damit sie nicht als Implementierungsdetail verloren gehen:
 | Hazard-Item-Modellierung | ❌ (nur optionale Anzeige) | Hazard-Tab, `hazards.relations` |
 
 **Verhältnis zum UseCase-Konzept:** Das UseCase-Konzept plant einen View-Toggle
-`[Assets] [UseCases]` im Asset-Tab. Die Graph-Sicht fügt sich als weiterer View in denselben
-Toggle ein (Entscheidung D2). UseCase (Sequenz von DFD-Elementen, Ebene 0) und Process Asset
+`[Assets] [UseCases]` im Asset-Tab. Die Graph-Sicht ist **nicht** Teil dieses Toggles, sondern
+eine Ansicht im DFD-Tab (Entscheidung D2, v2.10). UseCase (Sequenz von DFD-Elementen, Ebene 0) und Process Asset
 (Sequenz von Function-Aufrufen, Ebene 2) sind **verschiedene Konzepte** und werden nicht
 zusammengeführt; ein möglicher späterer Brückenschlag ist nicht Teil dieses Dokuments.
 
@@ -375,19 +376,19 @@ Modellierungsentscheidung behandelt, nicht als UX-Detail.
 
 | ID | Anforderung | Verb. | Phase |
 |---|---|---|---|
-| FR-V1 | Die Graph-Sicht ist als eigener View im Asset-Tab erreichbar (Toggle `[Tabelle] [Graph]`, erweiterbar um `[UseCases]`). | MUSS | 2 |
+| FR-V1 | Die Graph-Sicht ist als dritte Ansicht im DFD-Tab erreichbar (Umschalter `[Diagramm] [Beschreibung] [Asset-Graph]`, D2). Der Wechsel lädt das draw.io-Diagramm nicht neu; das Asset-Panel rechts bleibt sichtbar. | MUSS | 2 |
 | FR-V2 | **Ebenen-Auswahl über Presets:** Auswahl über benannte Presets, zusätzlich „Benutzerdefiniert“ mit Multi-Select der einzelnen Ebenen. Presets (initial): **Architektur** (data, function, system, infrastructure) · **Ablauf** (process, function, data, system) · **Dienste & Abhängigkeiten** (service, system, function, infrastructure) · **Schutzziele** (human, environment, physical; mit FR-V11 zusätzlich Hazard Items) · **Alle**. Wird ein Preset manuell verändert, wechselt die Anzeige auf „Benutzerdefiniert“. | MUSS | 2 |
 | FR-V3 | **Layout nach Ebenen:** Vertikale Ebenen liegen als horizontale Bahnen übereinander, Reihenfolge gemäss `asset-group-types.ts` (von unten nach oben: data → function → system → infrastructure). Orthogonale Ebenen liegen in einer seitlichen Spalte. Environment liegt neben Human (beides Schutzziele). | MUSS | 2 |
 | FR-V4 | **Stummel:** Kanten zu Assets ausgeblendeter Ebenen erscheinen als Zähler am Knoten, gruppiert nach Zielebene (z. B. „3 → System“). Klick blendet die Ebene ein. | MUSS | 2 |
 | FR-V5 | **Fokus-Sicht:** Auswahl eines Assets zeigt dessen ein- und ausgehende A2A-Beziehungen und Element-Anker. Tiefe 1 als Default, einstellbar bis mindestens 3. Knoten ausserhalb des Fokus werden entfernt oder abgeblendet (UX-4, Stufe 5), nicht gelöscht. | MUSS | 2 |
 | FR-V6 | Element-Anker werden in der Fokus-Sicht angezeigt (eigene Knotenform, DFD-Typ-Icon, `displayId`), in der Ebenen-Sicht zuschaltbar. | MUSS | 2 |
 | FR-V7 | Kanten zeigen Richtung (Pfeil) und `relationType` als Beschriftung; `stepOrder` erscheint als Badge. Codierung strikt nach UX-3; keine dauerhafte KERN-Hervorhebung. Eine Legende ist einblendbar. | MUSS | 2 |
-| FR-V8 | **Detailpanel als Interaction Hub:** Klick auf einen Knoten zeigt Kerndaten (Name, `displayId`, Gruppe, Schutzbedarf) und die Beziehungen **gruppiert nach Relationstyp** („invokes → Signaturprüfung [1], Firmware installieren [2]“ · „runs_on → Update Controller“ · „operated_by → Technician“), jeweils anklickbar zur Navigation. Aktionen im View Mode: Fokussieren, Im DFD zeigen, In Tabelle zeigen. Klick auf eine Kante zeigt Typ, Qualifier, `stepOrder`, `rationale`, `degradationMode`. Das Panel verwendet die **bestehenden** Komponenten (`AssetToAssetSelector` u. a.) und denselben Relations-Service (AR-5) — es entsteht keine dritte Editier-Logik. | MUSS | 2 (Anzeige), 3 (Bearbeitung) |
-| FR-V9 | **Navigation:** Von einem Element-Anker aus kann in den DFD-Tab gesprungen werden, das Element ist dort selektiert. | SOLL | 2 |
+| FR-V8 | **Detailpanel als Interaction Hub:** Klick auf einen Knoten zeigt Kerndaten (Name, `displayId`, Gruppe, Schutzbedarf) und die Beziehungen **gruppiert nach Relationstyp** („invokes → Signaturprüfung [1], Firmware installieren [2]“ · „runs_on → Update Controller“ · „operated_by → Technician“), jeweils anklickbar zur Navigation. Aktionen im View Mode: Fokussieren, Im DFD zeigen, In Tabelle zeigen. Klick auf eine Kante zeigt Typ, Qualifier, `stepOrder`, `rationale`, `degradationMode`. Das Panel verwendet die **bestehenden** Komponenten (`AssetToAssetSelector` u. a.) und denselben Relations-Service (AR-5) — es entsteht keine dritte Editier-Logik. Im DFD-Tab ist das das vorhandene Asset-Panel (Asset-Baum + Formular mit Reiter „Beziehungen“): Knotenauswahl im Graph und Auswahl im Baum sind dieselbe Auswahl. | MUSS | 2 (Anzeige), 3 (Bearbeitung) |
+| FR-V9 | **Navigation:** Von einem Element-Anker aus wechselt der DFD-Tab in die Diagramm-Ansicht, das Element ist dort selektiert; „Zurück zum Graph“ stellt Sicht, Fokus und Positionen wieder her. | SOLL | 2 |
 | FR-V10 | Filter nach Relationstyp; Suche nach Name/`displayId` mit Zentrieren auf den Treffer. Liegt ein Treffer in einer ausgeblendeten Ebene oder ausserhalb des Filters, sagt das Tool das explizit und bietet das Einblenden an (UX-6). | SOLL | 2 |
 | FR-V11 | Hazard Items aus `hazards.relations` können zugeschaltet werden (read-only, eigene Knotenform, `contributes_to`/`endangers`-Kanten). | KANN | 4 |
 | FR-V12 | Zoom, Pan, „Alles einpassen“, „Neu anordnen“ (einzige Stelle, an der ein vollständiges Re-Layout ausgelöst wird, UX-5). | MUSS | 2 |
-| FR-V13 | **Einstieg aus der Tabelle:** Jede Zeile der Asset-Tabelle bietet „Im Graph zeigen“; das öffnet die Graph-Sicht in der Fokus-Sicht dieses Assets. Umgekehrt führt „In Tabelle zeigen“ zurück (FR-V8). | MUSS | 2 |
+| FR-V13 | **Einstieg aus der Tabelle:** Jede Zeile der Asset-Tabelle bietet „Im Graph zeigen“; das wechselt in den DFD-Tab, öffnet die Graph-Ansicht in der Fokus-Sicht dieses Assets und wählt es im Asset-Panel aus. Umgekehrt führt „In Tabelle zeigen“ in den Asset-Tab zurück, die Zeile ist markiert (FR-V8). | MUSS | 2 |
 | FR-V14 | **Context Bar:** Ständig sichtbar oberhalb der Leinwand. Zeigt: Sicht, Preset bzw. gewählte Ebenen, Fokus-Asset und Tiefe, aktive Filter, Modus sowie Zähler („12 von 47 Assets sichtbar · 5 Beziehungen durch Filter ausgeblendet“). Jeder Eintrag ist direkt änderbar bzw. zurücksetzbar; „Alles zurücksetzen“ stellt die Standardansicht her. | MUSS | 2 |
 | FR-V15 | Knotenpositionen können **lokal** (pro Projekt-ID, z. B. localStorage) über Sitzungen hinweg gemerkt werden, damit sich der Analyst beim Wiederöffnen orientiert. Nie in der Projektdatei (D3). Fehlen gespeicherte Positionen oder passen sie nicht mehr, greift das deterministische Layout. | KANN | 3 |
 | FR-V16 | **Asset Links in der Tabelle:** Der Asset-Tab zeigt neben „DFD Links“ die Spalte „Asset Links“ mit den A2A-Beziehungen jedes Assets, gelesen aus Sicht der Zeile: beim Quell-Asset der gespeicherte Typ (`required_by FU-001`, gefüllter Chip), beim Ziel-Asset der inverse Name (`requires DA-002`, umrandeter Chip, `A2A_INVERSE_NAMES`); Tooltip mit dem Satz der gespeicherten Kante und dem Typ-Schlüssel; sortierbar nach Anzahl; der Asset-Dialog zeigt sie im Abschnitt „Verknüpfte Assets“. Nur lesend — bearbeitet wird im DFD-Asset-Panel bzw. in der Graph-Sicht (AR-5). ✅ v2.6 | MUSS | 1 |
@@ -478,11 +479,11 @@ Zur Verdeutlichung von FR-E4, FR-E5, FR-E11 und UX-5 — kein zusätzlicher Anfo
 | ID | Frage | Optionen | Empfehlung | Status |
 |---|---|---|---|---|
 | D1 | Wo und in welcher Form werden A2A-Beziehungen kanonisch gespeichert? | (a) Kantenliste `assets.relations[]` mit eigener `id`, `sourceAssetId`, `targetAssetId`, `relationType` + Attributen; (b) quellenseitig am `Asset` (`asset.relations[]`, wie heute am `DFDAsset`) | **(a).** Tragende Gründe: (1) Wege, die Assets kopieren oder umformen (`syncFromDFD`, `deriveDfdAssets`, Import, Hazard-Bridge, Asset-Erstellung), fassen die Kantenliste nicht an — genau dort entstand B1; (2) Kaskade beim Löschen und Audit-Diff bleiben lokal (eine Liste, ein Diff-Abschnitt statt einer Änderung je betroffenem Asset); (3) eingehende und ausgehende Kanten haben dieselbe Form, die Graph-Sicht nutzt sie direkt. Nicht tragend: stabile IDs (auch bei (b) möglich) und „gleiches Muster wie `hazards.relations`“ (dort ohne IDs und ohne Audit-Diff, B8). Vorteile von (b) sind einmalig (Migration 1:1, Asset-Export in sich vollständig); den Export-Vorteil erreicht (a), indem der Export eines Assets seine Kanten mitnimmt. | **entschieden (a)**, 2026-10-02 |
-| D2 | Eigener Haupt-Tab oder View im Asset-Tab? | Tab / View-Toggle | **View im Asset-Tab**, konsistent mit dem UseCase-Konzept; Impact-Kontext bleibt erreichbar; Einstieg aus der Tabelle (FR-V13) ist natürlich. | offen |
-| D3 | Knotenpositionen persistieren? | nein / in `.tara.json` / lokal | **Revidiert in v2:** Nie in `.tara.json` (jede Position erzeugt Diff-Rauschen im Audit-Trail und verletzt das Prinzip „inhaltliche Datei“). Stabilität innerhalb der Sitzung ist MUSS (AR-12). Stabilität über Sitzungen: lokal pro Projekt als KANN (FR-V15), analog zur Pfadspeicherung beim Multi-Diagram-Linking. | offen |
+| D2 | Wo liegt die Graph-Sicht? | eigener Haupt-Tab / View im Asset-Tab / Ansicht im DFD-Tab | **Ansicht im DFD-Tab** (neben Diagramm und Beschreibung). Revidiert in v2.10, nachdem Phase 1 das Bearbeiten der Asset Links auf den DFD-Tab festgelegt hat: (1) Phase 3 nutzt den dort vorhandenen Schreibweg (`A2AOpsProvider`, `commitA2AOps`, `useDFDPersistence`); im Asset-Tab wäre seine lokale Asset-Kopie mit verzögertem Speichern ein weiterer Schreiber (Fehlerklasse B11); (2) das Asset-Panel des DFD-Tabs ist das Detailpanel (FR-V8); (3) Element-Anker und DFD-Navigation (FR-V6, FR-V9) sind ein Ansichtswechsel; (4) der Umschalter existiert, der Tab bleibt gemountet. Der Bewertungskontext bleibt über „Im Graph zeigen“ / „In Tabelle zeigen“ erreichbar (FR-V13). Aufbereitung (AR-11) und Rendering sind eigenständig und könnten später zusätzlich lesend im Asset-Tab eingebunden werden. | **entschieden**, 2026-10-12 |
+| D3 | Knotenpositionen persistieren? | nein / in `.tara.json` / lokal | **Revidiert in v2:** Nie in `.tara.json` (jede Position erzeugt Diff-Rauschen im Audit-Trail und verletzt das Prinzip „inhaltliche Datei“). Stabilität innerhalb der Sitzung ist MUSS (AR-12). Stabilität über Sitzungen: lokal pro Projekt als KANN (FR-V15), analog zur Pfadspeicherung beim Multi-Diagram-Linking. | **entschieden**, 2026-10-12 |
 | D4 | Welche `source` bekommt ein im Graph angelegtes Asset? | `"dfd"` / `"manual"` / Semantik von `source` neu fassen | Kurzfristig `"dfd"` (sonst unsichtbar in DFD-Pickern, B4). Mittelfristig `source` als Herkunft (wo erzeugt) von der Sichtbarkeit im DFD entkoppeln — gehört zu Phase 5/6 von `asset-store-ssot-refactor-v2.md`. | offen |
 | D5 | Name der Kompositionsbeziehung | `consists_of`/`part_of`, `contains`/`contained_in`, `has_step` | `consists_of [step]` (Richtung: Parent → Child), Spiegel `part_of` nur zur Anzeige. | offen |
-| D6 | Layout-Engine | `d3-force` mit `forceY` je Ebene; geschichtetes Layout (dagre/ELK) | `d3-force` für Ebenen- und Fokus-Sicht (keine neue Dependency; Fixierung per `fx`/`fy` erfüllt AR-12); für die Process-Ablaufsicht eigenes deterministisches Layout (Schrittindex = Position im Hauptpfad). | offen |
+| D6 | Layout-Engine | `d3-force` mit `forceY` je Ebene; geschichtetes Layout (dagre/ELK) | `d3-force` für Ebenen- und Fokus-Sicht (keine neue Dependency; Fixierung per `fx`/`fy` erfüllt AR-12); für die Process-Ablaufsicht eigenes deterministisches Layout (Schrittindex = Position im Hauptpfad). | **entschieden**, 2026-10-12 |
 | D7 | Element-zu-Asset-Bearbeitung im Graph in Phase 3 oder später? | Phase 3 / eigene Phase | Phase 3 (Nutzerwunsch), abgesichert durch AR-6. | offen |
 | D8 | Wie werden Alternativ- und Fehlerpfade eines Process modelliert? | (a) Attribute `flow` + `condition` an `invokes`/`consists_of`; ein Eintrag mit `flow ≠ main` und gleichem `stepOrder` wie ein Hauptpfad-Schritt zweigt von diesem Schritt ab. (b) Jeder Alternativ-/Fehlerpfad ist ein eigener Sub-Process, verbunden über `triggers` mit Bedingung. (c) Keine Verzweigungen; Ablaufsicht bleibt linear. | **(a)**, beschränkt auf eine Verzweigungsebene je Schritt; tiefere Logik über Sub-Processes (Kombination mit b). Hält das Modell additiv (optionale Felder, alte Dateien gültig) und gibt der Ablaufsicht genau die Information, die sie braucht. (c) wird abgelehnt, weil gerade die Fehlerpfade sicherheitsrelevant sind. | offen |
 
@@ -652,7 +653,8 @@ auch wenn keine weitere Phase folgt.
 **Ziel:** Lesen und Verstehen des Asset-Graphen, mit den UX-Prinzipien von Anfang an.
 `stepOrder` wird nur als lineare Reihenfolge angezeigt; keine Verzweigungen (UX-8).
 
-- View-Toggle im Asset-Tab (FR-V1, D2) und Einstieg „Im Graph zeigen“ aus der Tabelle (FR-V13).
+- Dritte Ansicht „Asset-Graph“ im DFD-Tab (FR-V1, D2), Asset-Panel als Detailpanel (FR-V8),
+  Einstieg „Im Graph zeigen“ aus der Asset-Tabelle (FR-V13).
 - Reine Aufbereitungsfunktion (AR-11): Assets, A2A-Relationen, Element-Anker, Sicht,
   Preset/Ebenen, Fokus/Tiefe, Filter → Knoten, Kanten, Stummel, Context-Bar-Zähler.
 - D3-Rendering mit `d3-force` + `forceY` je Ebene (D6), deterministisches Initial-Layout
