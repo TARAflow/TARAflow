@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.19 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.20 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -41,6 +41,7 @@
 | v2.17 | 2026-10-12 | **D9:** je Ansicht ein Bearbeitungsort — Seitenpanel nur beim Zeichnen, Beschreiben über die Akkordeons, Graph über die Karten. Hinweise navigieren in der aktuellen Ansicht; Asset-Baum folgt der Auswahl; Beschreibungsansicht linksbündig in voller Breite. |
 | v2.18 | 2026-10-12 | Asset-Eigenschaften in der Graph-Karte (gemeinsames Formular), Schritt nur bei `invokes`/`configures`, Hilfetexte in der Kantenkarte. |
 | v2.19 | 2026-10-12 | Undo/Redo für Link-Änderungen im Graph (FR-E9); feste Kartenbreite. |
+| v2.20 | 2026-10-12 | Element-zu-Asset-Beziehungen im Graph (FR-E7): Griff am Element-Anker, „An Element anbinden“ in der Asset-Karte, Bearbeiten/Entfernen in der Ankerkarte; gemeinsamer Dialog des Seitenpanels, Schreiben über den Element-Update-Weg des DFD-Tabs (AR-6). Neuer Befund B15. |
 
 ---
 
@@ -255,6 +256,18 @@ Asset-Tabs (`AssetUpdateResult.a2aOps`) über den Relations-Service laufen — v
 werden übersprungen, abgelehnte gemeldet. Zugleich ignoriert die App-Schicht die
 `relations`-Kopie des Asset-Tabs (`buildAssetsUpdate`): Auch eine veraltete lokale Kopie kann
 die kanonische Liste nicht mehr überschreiben (AR-5).
+
+**B15 — Element-Beziehungsdialog des Seitenpanels: Typen nach Gruppe statt nach Elementtyp (offen).**
+Der Dialog „Asset-Beziehung hinzufügen/bearbeiten“ (`AssetRelationDialog` in
+`asset-relation-selector.tsx`) bietet die Typen je Asset-Gruppe an (`RELATIONS_BY_GROUP`), nicht
+nach `getAllowedRelations(elementType, group)`. Beispiel: Process → Data bietet auch `stores` und
+`transports` an, die der Validator anschliessend als unzulässig meldet. Zudem setzt
+`buildRelations` bei `uses` immer `assetGroup: "system"` und bei `accesses` immer
+`"infrastructure"` — auch für Service- bzw. Physical-Assets; der Validator prüft dann gegen die
+falsche Gruppe. Der Graph (FR-E7) nutzt denselben Dialog, schränkt die Typen aber über die neue
+Option `allowedTypes` auf das Regelwerk ein; das Seitenpanel bleibt unverändert. Vorschlag:
+Seitenpanel ebenfalls auf das Regelwerk umstellen und `assetGroup` aus dem Asset übernehmen
+(eigener Patch, weil bestehende Projekte Beziehungen mit falscher Gruppe enthalten können).
 
 **B14 — Asset-Import „Alle ersetzen“ ersetzt nichts (offen).**
 Im Import-Dialog ist „Alle ersetzen“ vorausgewählt und verspricht „bestehende Assets löschen
@@ -777,8 +790,20 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
   und Löschen von Assets sind nicht Teil der Historie (Kaskaden über den DFD-Weg).
 - ✅ (v2.19) Die Karte hat eine feste Breite (440 px) — sie springt nicht mehr, wenn
   „Eigenschaften“ aufgeklappt wird.
-- Offen in Phase 3: Element-zu-Asset-Beziehungen (FR-E7), Tastaturbedienung (NFR-4), lokale
-  Positionsspeicherung (FR-V15).
+- ✅ (v2.20) Element-zu-Asset-Beziehungen (FR-E7): Element-Anker haben im Bearbeiten-Modus einen
+  Griff; beim Ziehen sind die sichtbaren Assets nach `getAllowedRelations(elementType, group)`
+  markiert (gültig / unzulässig — eine Gegenrichtung gibt es hier nicht), unzulässig → Erklärung.
+  In der Asset-Karte „An Element anbinden“ mit Element-Auswahl (nur Elemente und Flüsse, die zur
+  Gruppe passen; bereits angebundene markiert). In beiden Fällen öffnet derselbe Dialog wie im
+  Seitenpanel (Typen, Qualifier, Safety, Notizen), eingeschränkt auf die zulässigen Typen. Die
+  Ankerkarte bietet „Beziehung bearbeiten“ und „Beziehung entfernen“. Ein Element ohne jede
+  Beziehung hat noch keinen Anker — für es ist „An Element anbinden“ der Weg. Geschrieben wird über
+  `updateElementDescription` / `updateConnectionDescription` des DFD-Tabs — derselbe Weg wie
+  Seitenpanel und Beschreibungsansicht (AR-6). DFD-Elemente werden nur referenziert. Nicht Teil
+  der Graph-Historie (FR-E9 gilt für Asset Links). `getAllowedRelations` bleibt in `features/dfd`:
+  die Graph-Sicht liegt dort (D2), `features/assets` braucht das Regelwerk weiterhin nicht (AR-4,
+  zweiter Schritt entfällt bis auf Weiteres).
+- Offen in Phase 3: Tastaturbedienung (NFR-4), lokale Positionsspeicherung (FR-V15).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen
 

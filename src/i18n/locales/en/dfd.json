@@ -91,7 +91,17 @@
           "rationaleHelp": "Why does this link exist? Source or reasoning for the review.",
           "notesHelp": "Open questions, assumptions, to-dos."
         },
-        "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus"
+        "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus",
+        "elementLink": {
+          "add": "Link to element",
+          "pick": "DFD element or flow",
+          "linked": "already linked",
+          "noCandidates": "No DFD element may relate to an asset of this group.",
+          "none": "A {{type}} cannot relate to a {{group}} asset ({{element}} – {{asset}}).",
+          "handle": "Drag to an asset to relate this DFD element to it",
+          "edit": "Edit relation",
+          "remove": "Remove relation"
+        }
       },
       "toolbar": {
         "zoomIn": "Zoom In",

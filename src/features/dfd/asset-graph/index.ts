@@ -11,3 +11,4 @@ export * from "./asset-graph-inspector";
 export * from "./asset-graph-connect";
 export * from "./asset-graph-link-form";
 export * from "./asset-graph-history";
+export * from "./asset-graph-element-link";

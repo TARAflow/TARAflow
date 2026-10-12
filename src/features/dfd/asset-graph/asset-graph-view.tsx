@@ -10,7 +10,9 @@
 //   Selection is shared with the asset panel (FR-V8): clicking a node selects
 //     the asset there; selecting in the tree highlights the node here.
 //
-// Read-only: nothing here writes the project (phase 3 adds the edit mode).
+// Edit mode (phase 3): asset links through the single A2A write path
+// (A2AOpsContext); assets, their properties and DFD element relations
+// through the DFD tab's callbacks — the graph has no write logic of its own.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -51,6 +53,7 @@ import {
 } from "@mui/icons-material";
 import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
 import type { AssetGroup } from "shared";
+import type { AssetRelation } from "../models/asset-relation-types";
 import { getAssetGroupColor } from "../models/dfd-formatters";
 import {
   ALL_LAYERS,
@@ -59,7 +62,7 @@ import {
   presetOfLayers,
   type AssetGraphPresetId,
 } from "./asset-graph-layers";
-import { buildAssetGraph, DEFAULT_FOCUS_DEPTH } from "./build-asset-graph";
+import { ANCHOR_PREFIX, buildAssetGraph, DEFAULT_FOCUS_DEPTH } from "./build-asset-graph";
 import {
   ANCHOR_LANE,
   LANE_HEIGHT,
@@ -84,6 +87,16 @@ import {
   type HistoryState,
 } from "./asset-graph-history";
 import { useA2AOps } from "../contexts/a2a-ops-context";
+import {
+  allowedElementTypes,
+  elementCandidates,
+  elementTargetClasses,
+  ElementPicker,
+  linkableElements,
+  withoutElementRelation,
+  type ElementLinking,
+} from "./asset-graph-element-link";
+import { ElementAssetRelationDialog } from "../components/forms/asset-relation-selector";
 import {
   classifyA2ATargets,
   ConfirmAssetDeleteDialog,
@@ -124,6 +137,8 @@ export interface AssetGraphViewProps {
   readonly assetUsage?: AssetUsageLookup;
   /** Edit mode: asset properties in the card (D9), see the inspector. */
   readonly assetEditing?: React.ComponentProps<typeof AssetGraphInspector>["assetEditing"];
+  /** Edit mode: DFD element → asset relations (FR-E7), see asset-graph-element-link. */
+  readonly elementLinking?: ElementLinking;
   readonly darkMode?: boolean;
 }
 
@@ -165,6 +180,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   onDeleteAsset,
   assetUsage,
   assetEditing,
+  elementLinking,
   rightInset = 0,
   darkMode = false,
 }) => {
@@ -443,8 +459,25 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     [transform],
   );
   // While dragging: every shown asset classified against the source.
+  const linkable = useMemo(
+    () => (elementLinking ? linkableElements(elementLinking) : []),
+    [elementLinking],
+  );
+  const elementOfAnchor = (nodeId: string) =>
+    nodeId.startsWith(ANCHOR_PREFIX)
+      ? linkable.find((x) => x.id === nodeId.slice(ANCHOR_PREFIX.length))
+      : undefined;
   const targetClasses = useMemo(() => {
     if (!drag) return null;
+    const shownAssets = graph.nodes
+      .filter((n) => n.kind === "asset")
+      .map((n) => ({ id: n.id, assetGroup: String((n as { group: string }).group) }));
+    // From a DFD element anchor (FR-E7): the element rules decide.
+    const element = elementOfAnchor(drag.sourceId);
+    if (element) {
+      const cls = elementTargetClasses(element.type, shownAssets);
+      return new Map([...cls].map(([id, c]) => [id, { targetClass: c as A2ATargetClass }]));
+    }
     const src = source.assets.find((a) => a.id === drag.sourceId);
     if (!src) return null;
     const shown = graph.nodes.filter((n) => n.kind === "asset").map((n) => ({
@@ -452,7 +485,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       assetGroup: (n as { group: string }).group as AssetGroup,
     }));
     return classifyA2ATargets({ id: src.id, assetGroup: src.assetGroup as AssetGroup }, shown);
-  }, [drag?.sourceId, graph, source]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [drag?.sourceId, graph, source, linkable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!drag) return;
@@ -484,6 +517,24 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     setDrag(null);
     if (assetId === d.sourceId) return;
     const cls = targetClasses?.get(assetId)?.targetClass ?? "invalid";
+    const element = elementOfAnchor(d.sourceId);
+    if (element) {
+      const target = source.assets.find((x) => x.id === assetId);
+      if (cls === "invalid") {
+        setConnectNotice(
+          t("tabs.dfd.assetGraph.elementLink.none", {
+            defaultValue: "A {{type}} cannot relate to a {{group}} asset ({{element}} – {{asset}}).",
+            type: elementTypeName(element.type),
+            group: groupLabel(String(target?.assetGroup)),
+            element: element.displayId,
+            asset: target?.displayId ?? "",
+          }),
+        );
+        return;
+      }
+      setElementDialog({ elementId: element.id, assetId });
+      return;
+    }
     if (cls === "invalid") {
       const a = source.assets.find((x) => x.id === d.sourceId);
       const b = source.assets.find((x) => x.id === assetId);
@@ -588,6 +639,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
 
   // FR-E8: delete an asset after the usual confirmation with its usage.
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // FR-E7: element → asset relation being edited, and the element picker.
+  const [elementDialog, setElementDialog] = useState<{ elementId: string; assetId: string } | null>(null);
+  const [elementPicker, setElementPicker] = useState<{ assetId: string; anchor: HTMLElement } | null>(null);
+  const canLinkElements = editing && !!elementLinking;
+  const elementTypeName = (type: string) =>
+    t(`tabs.dfd.elementTypes.${type}.name`, { defaultValue: type });
+  const writeElementRelations = (elementId: string, relations: AssetRelation[]) => {
+    elementLinking?.onChange(elementId, relations);
+  };
 
   // FR-E11 / UX-4 stage 2: a link that appears while the view is open pulses.
   const knownLinkIdsRef = useRef<Set<string> | null>(null);
@@ -1181,6 +1242,27 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     <rect x={-NODE_RADIUS * 1.2} y={-14} width={NODE_RADIUS * 2.4} height={28} rx={4} fill={darkMode ? "#2a2a2a" : "#fff"} stroke={muted} strokeDasharray="4 3" />
                     <text fontSize={11} fill={fg} textAnchor="middle" dy={4}>{n.displayId}</text>
                     <text fontSize={10} fill={muted} textAnchor="middle" dy={28}>{n.name || n.elementType}</text>
+                    {canLinkElements && !drag && (
+                      <circle
+                        cx={NODE_RADIUS * 1.2}
+                        cy={0}
+                        r={7}
+                        fill={darkMode ? "#2a2a2a" : "#fff"}
+                        stroke="#ed6c02"
+                        strokeWidth={2}
+                        style={{ cursor: "crosshair" }}
+                        data-graph-handle=""
+                        data-testid={`asset-graph-handle-${n.id}`}
+                        onPointerDown={(e) => startConnect(n.id, e)}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <title>
+                          {t("tabs.dfd.assetGraph.elementLink.handle", {
+                            defaultValue: "Drag to an asset to relate this DFD element to it",
+                          })}
+                        </title>
+                      </circle>
+                    )}
                   </g>
                 );
               }
@@ -1313,6 +1395,45 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           />
         )}
 
+        {elementPicker && (() => {
+          const asset = source.assets.find((a) => a.id === elementPicker.assetId);
+          return (
+            <ElementPicker
+              anchorEl={elementPicker.anchor}
+              candidates={elementCandidates(linkable, elementPicker.assetId, String(asset?.assetGroup))}
+              elementTypeName={elementTypeName}
+              onPick={(elementId) => {
+                setElementPicker(null);
+                setElementDialog({ elementId, assetId: elementPicker.assetId });
+              }}
+              onClose={() => setElementPicker(null)}
+            />
+          );
+        })()}
+
+        {elementDialog && (() => {
+          const el = linkable.find((x) => x.id === elementDialog.elementId);
+          const asset = source.assets.find((a) => a.id === elementDialog.assetId);
+          if (!el || !asset) return null;
+          return (
+            <ElementAssetRelationDialog
+              open
+              assetId={asset.id}
+              elementType={el.type}
+              relations={el.relations}
+              availableAssets={source.assets.map((a) => ({
+                id: a.id,
+                displayId: a.displayId ?? "",
+                name: a.name ?? "",
+                assetGroup: a.assetGroup as AssetGroup,
+              }))}
+              allowedTypes={allowedElementTypes(el.type, String(asset.assetGroup))}
+              onChange={(relations) => writeElementRelations(el.id, relations)}
+              onClose={() => setElementDialog(null)}
+            />
+          );
+        })()}
+
         <ConnectChooser
           request={connectRequest}
           assets={source.assets}
@@ -1343,6 +1464,24 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             onDeleteLink={editing ? deleteLink : undefined}
             onUpdateLink={editing ? updateLink : undefined}
             assetEditing={editing ? assetEditing : undefined}
+            onLinkElement={
+              canLinkElements
+                ? (assetId, anchor) => setElementPicker({ assetId, anchor })
+                : undefined
+            }
+            onEditElementLink={
+              canLinkElements ? (elementId, assetId) => setElementDialog({ elementId, assetId }) : undefined
+            }
+            onRemoveElementLink={
+              canLinkElements
+                ? (elementId, assetId, relationType) => {
+                    const el = linkable.find((x) => x.id === elementId);
+                    if (el) writeElementRelations(elementId, withoutElementRelation(el.relations, assetId, relationType));
+                    setSelectedEdgeId(null);
+                    setInspectorOpen(false);
+                  }
+                : undefined
+            }
             onDeleteAsset={editing && onDeleteAsset ? (id) => setConfirmDeleteId(id) : undefined}
             onClose={() => {
               setInspectorOpen(false);

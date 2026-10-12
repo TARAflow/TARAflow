@@ -1,9 +1,9 @@
 // features/dfd/asset-graph/asset-graph-inspector.tsx
 //
-// Read-only detail card of the asset graph (FR-V8, phase 2): the selected
-// asset with its relations grouped by type, or the selected link with its
-// attributes. Editing stays in the asset panel (the same selection) until the
-// edit mode of phase 3.
+// Detail card of the asset graph (FR-V8): the selected asset with its
+// relations grouped by type, or the selected link with its attributes. In
+// edit mode (phase 3) it is the graph's place to edit (D9): link attributes,
+// asset properties, DFD element relations (FR-E7), deleting.
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -58,6 +58,12 @@ export interface AssetGraphInspectorProps {
   };
   /** Edit mode: change a link's attributes (FR-E6). */
   readonly onUpdateLink?: (relationId: string, attributes: Partial<A2ARelationAttributes>) => void;
+  /** Edit mode: relate a DFD element to the asset — opens the picker (FR-E7). */
+  readonly onLinkElement?: (assetId: string, anchor: HTMLElement) => void;
+  /** Edit mode: edit a DFD element → asset relation in the shared dialog (FR-E7). */
+  readonly onEditElementLink?: (elementId: string, assetId: string) => void;
+  /** Edit mode: remove one DFD element → asset relation (FR-E7, FR-E8). */
+  readonly onRemoveElementLink?: (elementId: string, assetId: string, relationType: string) => void;
 }
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -90,6 +96,9 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   onDeleteAsset,
   onUpdateLink,
   assetEditing,
+  onLinkElement,
+  onEditElementLink,
+  onRemoveElementLink,
 }) => {
   const { t } = useTranslation();
   const [propertiesOpen, setPropertiesOpen] = useState(false);
@@ -152,6 +161,24 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
               defaultValue: "This link is not allowed for these groups (e.g. after a group change).",
             })}
           </Typography>
+        )}
+        {elementId && onEditElementLink && onRemoveElementLink && (
+          <>
+            <Divider sx={{ my: 0.75 }} />
+            <Stack direction="row" spacing={1}>
+              <Button size="small" onClick={() => onEditElementLink(elementId, edge.target)} data-testid="asset-graph-edit-element-link">
+                {t("tabs.dfd.assetGraph.elementLink.edit", { defaultValue: "Edit relation" })}
+              </Button>
+              <Button
+                size="small"
+                color="error"
+                onClick={() => onRemoveElementLink(elementId, edge.target, edge.relationType)}
+                data-testid="asset-graph-remove-element-link"
+              >
+                {t("tabs.dfd.assetGraph.elementLink.remove", { defaultValue: "Remove relation" })}
+              </Button>
+            </Stack>
+          </>
         )}
         {onDeleteLink && edge.kind === "a2a" && (
           <>
@@ -252,6 +279,11 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
           {onShowInTable && (
             <Button size="small" onClick={() => onShowInTable(assetId)}>
               {t("tabs.dfd.assetGraph.inspector.showInTable", { defaultValue: "Show in table" })}
+            </Button>
+          )}
+          {onLinkElement && (
+            <Button size="small" onClick={(e) => onLinkElement(assetId, e.currentTarget)} data-testid="asset-graph-link-element">
+              {t("tabs.dfd.assetGraph.elementLink.add", { defaultValue: "Link to element" })}
             </Button>
           )}
           {onDeleteAsset && (

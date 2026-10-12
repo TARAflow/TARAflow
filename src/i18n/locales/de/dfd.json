@@ -91,7 +91,17 @@
           "rationaleHelp": "Warum gibt es diesen Link? Quelle oder Begründung für das Review.",
           "notesHelp": "Offene Fragen, Annahmen, To-dos."
         },
-        "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren"
+        "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren",
+        "elementLink": {
+          "add": "An Element anbinden",
+          "pick": "DFD-Element oder Fluss",
+          "linked": "bereits angebunden",
+          "noCandidates": "Kein DFD-Element darf eine Beziehung zu einem Asset dieser Gruppe haben.",
+          "none": "Ein {{type}} kann keine Beziehung zu einem {{group}}-Asset haben ({{element}} – {{asset}}).",
+          "handle": "Auf ein Asset ziehen, um dieses DFD-Element damit zu verbinden",
+          "edit": "Beziehung bearbeiten",
+          "remove": "Beziehung entfernen"
+        }
       },
       "toolbar": {
         "zoomIn": "Vergrössern",

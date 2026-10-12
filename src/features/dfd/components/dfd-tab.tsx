@@ -710,6 +710,24 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     [dfd, handleAssetChange],
   );
 
+  // FR-E7 / AR-6: element → asset relations from the graph go through the
+  // same element/connection update as the side panel and the description
+  // view (scheduleSave on the freshest base, then validation).
+  const elementLinkingForGraph = useMemo(
+    () => ({
+      elements: dfd?.elements ?? [],
+      connections: dfd?.connections ?? [],
+      onChange: (elementId: string, relations: AssetRelation[]) => {
+        if (dfd?.connections?.some((c) => c.id === elementId)) {
+          editor.updateConnectionDescription(elementId, { assetRelations: relations });
+        } else {
+          editor.updateElementDescription(elementId, { assetRelations: relations });
+        }
+      },
+    }),
+    [dfd, editor],
+  );
+
   // The graph has its own cards; the selection is only remembered so the
   // side panel shows the same asset when switching to the diagram.
   const handleGraphSelectAsset = useCallback((assetId: string) => {
@@ -859,6 +877,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onShowInTable={onShowInTable}
               onCreateAsset={handleCreateAssetForGroup}
               assetEditing={assetEditingForGraph}
+              elementLinking={elementLinkingForGraph}
               onDeleteAsset={handleDeleteAsset}
               assetUsage={assetUsage}
               // No side panel in the graph view — it has its own cards.

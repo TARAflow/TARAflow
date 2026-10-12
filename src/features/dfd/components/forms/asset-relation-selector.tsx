@@ -561,6 +561,57 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
   );
 };
 
+// ==================== DIALOG FOR ONE ELEMENT–ASSET PAIR ====================
+// The same dialog as above, opened from outside for one asset (the asset
+// graph, FR-E7): the result is the element's complete new relation list,
+// computed exactly as the selector does it.
+
+export interface ElementAssetRelationDialogProps {
+  readonly open: boolean;
+  readonly assetId: string;
+  readonly elementType?: string;
+  /** The element's current relations (all assets). */
+  readonly relations: readonly AssetRelation[];
+  readonly availableAssets: readonly AvailableAsset[];
+  readonly allowedTypes?: readonly string[];
+  readonly onChange: (relations: AssetRelation[]) => void;
+  readonly onClose: () => void;
+}
+
+export const ElementAssetRelationDialog: React.FC<ElementAssetRelationDialogProps> = ({
+  open,
+  assetId,
+  elementType,
+  relations,
+  availableAssets,
+  allowedTypes,
+  onChange,
+  onClose,
+}) => {
+  const used = useMemo(() => new Set(relations.map((r) => r.assetId)), [relations]);
+  return (
+    <AssetRelationDialog
+      open={open}
+      initialAssetId={assetId}
+      existingRelations={relations as AssetRelation[]}
+      availableAssets={availableAssets as AvailableAsset[]}
+      usedAssetIds={used}
+      isDataFlow={elementType === "DataFlow"}
+      allowedTypes={allowedTypes}
+      onSave={(asset, map, notes) => {
+        const others = relations.filter((r) => r.assetId !== asset.id);
+        onChange([...others, ...buildRelations(asset, map, notes)]);
+        onClose();
+      }}
+      onRemoveAsset={(id) => {
+        onChange(relations.filter((r) => r.assetId !== id));
+        onClose();
+      }}
+      onClose={onClose}
+    />
+  );
+};
+
 // ==================== DIALOG ====================
 
 interface AssetRelationDialogProps {
@@ -574,6 +625,11 @@ interface AssetRelationDialogProps {
   onSave: (asset: AvailableAsset, map: RelationMap, notes: string) => void;
   onRemoveAsset: (assetId: string) => void;
   onClose: () => void;
+  /**
+   * Only these relation types are offered (the asset graph passes
+   * getAllowedRelations(elementType, group)). Without it: the group's list.
+   */
+  allowedTypes?: readonly string[];
 }
 
 const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
@@ -583,6 +639,7 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
   availableAssets,
   usedAssetIds,
   isDataFlow,
+  allowedTypes,
   onCreateAsset,
   onSave,
   onRemoveAsset,
@@ -635,8 +692,9 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
       "is_an",
       ...RELATIONS_BY_GROUP[effectiveGroup],
     ];
-    return isDataFlow ? all.filter((t) => DATAFLOW_ALLOWED.has(t)) : all;
-  }, [effectiveGroup, isDataFlow]);
+    const byElement = isDataFlow ? all.filter((t) => DATAFLOW_ALLOWED.has(t)) : all;
+    return allowedTypes ? byElement.filter((t) => allowedTypes.includes(t)) : byElement;
+  }, [effectiveGroup, isDataFlow, allowedTypes]);
 
   const isAnSelected = relationMap.has("is_an");
 
@@ -1042,7 +1100,10 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
             {/* ── Relation toggles + notes ─────────────── */}
             {assetId && !isCreatingNew && (
               <>
-                {/* is_an */}
+                {/* is_an — only where the element may be one (always in the
+                    side panel; the asset graph restricts by element type) */}
+                {availableTypes.includes("is_an") && (
+                <>
                 <Box>
                   <Typography
                     variant="overline"
@@ -1087,7 +1148,6 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
                         />
                       );
                     })()}
-                    ;
                     <Typography
                       variant="caption"
                       color="text.secondary"
@@ -1109,6 +1169,8 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
                     or
                   </Typography>
                 </Divider>
+                </>
+                )}
 
                 {/* Other relation type chips */}
                 <Box>
