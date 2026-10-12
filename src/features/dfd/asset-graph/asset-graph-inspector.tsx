@@ -12,6 +12,8 @@ import { Close as CloseIcon } from "@mui/icons-material";
 import { a2aRelationName, type A2ARelationType } from "shared";
 import type { AssetGraphEdge, AssetGraphSource } from "./asset-graph-types";
 import { relationsOfAssetGrouped } from "./asset-graph-query";
+import { LinkAttributesForm } from "./asset-graph-link-form";
+import type { A2ARelationAttributes } from "shared";
 
 export interface AssetGraphInspectorProps {
   readonly source: AssetGraphSource;
@@ -37,6 +39,8 @@ export interface AssetGraphInspectorProps {
   readonly onDeleteLink?: (relationId: string) => void;
   /** Edit mode: delete the asset (the caller confirms, FR-E8). */
   readonly onDeleteAsset?: (assetId: string) => void;
+  /** Edit mode: change a link's attributes (FR-E6). */
+  readonly onUpdateLink?: (relationId: string, attributes: Partial<A2ARelationAttributes>) => void;
 }
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -67,6 +71,7 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   rightInset = 0,
   onDeleteLink,
   onDeleteAsset,
+  onUpdateLink,
 }) => {
   const { t } = useTranslation();
   const assetById = (id: string) => source.assets.find((a) => a.id === id);
@@ -99,6 +104,10 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
         <Row label={t("tabs.dfd.assetGraph.inspector.to", { defaultValue: "To" })}>
           {name(edge.target)}
         </Row>
+        {rel && onUpdateLink ? (
+          <LinkAttributesForm relation={rel} onSave={onUpdateLink} />
+        ) : (
+          <>
         {rel?.stepOrder !== undefined && (
           <Row label={t("tabs.dfd.assetGraph.inspector.stepOrder", { defaultValue: "Step" })}>{rel.stepOrder}</Row>
         )}
@@ -112,6 +121,11 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
               : t("common.no", { defaultValue: "no" })}
           </Row>
         )}
+        {rel?.notes && (
+          <Row label={t("tabs.dfd.assetGraph.inspector.notes", { defaultValue: "Notes" })}>{rel.notes}</Row>
+        )}
+          </>
+        )}
         {edge.kind === "a2a" && findingOf?.(edge.id) && (
           <Typography variant="caption" sx={{ display: "block", color: "warning.dark", mb: 0.5 }} data-testid="asset-graph-inspector-finding">
             {"⚠ "}
@@ -119,9 +133,6 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
               defaultValue: "This link is not allowed for these groups (e.g. after a group change).",
             })}
           </Typography>
-        )}
-        {rel?.notes && (
-          <Row label={t("tabs.dfd.assetGraph.inspector.notes", { defaultValue: "Notes" })}>{rel.notes}</Row>
         )}
         {onDeleteLink && edge.kind === "a2a" && (
           <>

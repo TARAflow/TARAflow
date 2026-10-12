@@ -77,7 +77,10 @@
           "focus": "Focus",
           "showInTable": "Show in table",
           "deleteLink": "Delete link",
-          "deleteAsset": "Delete asset"
+          "deleteAsset": "Delete asset",
+          "stepOrderInvalid": "Whole number ≥ 0",
+          "degradationDescription": "What still works",
+          "degradationRequired": "Required with degraded mode"
         },
         "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus"
       },

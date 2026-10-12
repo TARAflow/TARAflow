@@ -489,6 +489,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     // FR-E11: the focus stays on the source.
     onSelectAsset(choice.sourceAssetId);
   };
+  const updateLink = (relationId: string, attributes: Record<string, unknown>) =>
+    commitA2AOps?.([{ kind: "update", relationId, attributes }]);
   const deleteLink = (relationId: string) => {
     commitA2AOps?.([{ kind: "remove", relationId }]);
     setSelectedEdgeId(null);
@@ -1245,6 +1247,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             onShowInTable={onShowInTable}
             rightInset={rightInset}
             onDeleteLink={editing ? deleteLink : undefined}
+            onUpdateLink={editing ? updateLink : undefined}
             onDeleteAsset={editing && onDeleteAsset ? (id) => setConfirmDeleteId(id) : undefined}
             onClose={() => {
               setInspectorOpen(false);

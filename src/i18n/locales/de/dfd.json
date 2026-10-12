@@ -77,7 +77,10 @@
           "focus": "Fokussieren",
           "showInTable": "In Tabelle zeigen",
           "deleteLink": "Link löschen",
-          "deleteAsset": "Asset löschen"
+          "deleteAsset": "Asset löschen",
+          "stepOrderInvalid": "Ganze Zahl ≥ 0",
+          "degradationDescription": "Was noch funktioniert",
+          "degradationRequired": "Bei degradiertem Betrieb erforderlich"
         },
         "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren"
       },

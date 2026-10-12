@@ -517,3 +517,26 @@ describe("Asset graph source from the DFD tab's data (phase 2)", () => {
     reopened.close();
   });
 });
+
+describe("Link attributes edited in the graph (FR-E6)", () => {
+  it("an update operation changes and clears attributes; the result survives reopen", async () => {
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const f = firstAsset(s.project, "function");
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by", rationale: "old" });
+    const id = s.project.assets!.relations![0].id;
+    s.a2a([{ kind: "update", relationId: id, attributes: { stepOrder: 4, rationale: undefined, notes: "n" } }]);
+    expect(s.lastRejected).toEqual([]);
+    const reopened = s.reopen();
+    const r = reopened.project.assets!.relations!.find((x) => x.id === id)!;
+    expect(r).toMatchObject({ stepOrder: 4, notes: "n" });
+    expect(r.rationale).toBeUndefined();
+    // The mirror (what the graph reads) shows the same.
+    const mirror = reopened.project.dfd!.assets.find((a) => a.id === d) as unknown as {
+      assetRelations: Record<string, unknown>[];
+    };
+    expect(mirror.assetRelations[0]).toMatchObject({ id, stepOrder: 4, notes: "n" });
+    expect(mirror.assetRelations[0]).not.toHaveProperty("rationale");
+    reopened.close();
+  });
+});

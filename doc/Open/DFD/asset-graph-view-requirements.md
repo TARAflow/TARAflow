@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.15 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.16 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -37,6 +37,7 @@
 | v2.13 | 2026-10-12 | Phase 2 abgeschlossen: Typ-Filter und Suche mit „warum nicht sichtbar“ (FR-V10), Detailkarte mit Beziehungen nach Typ und Kantendetails (FR-V8), „In Tabelle zeigen“ (FR-V13), Hervorhebungsstufen nach UX-4. |
 | v2.14 | 2026-10-12 | Phase 3 Teil 1: Umschalter Ansehen/Bearbeiten, Beziehung per Ziehen mit Zielmarkierung, Typauswahl, Richtungshilfe und Spiegelhinweis, Link löschen — alles über den einen Schreibweg. |
 | v2.15 | 2026-10-12 | Phase 3 Teil 2: Asset anlegen je Ebene (FR-E2/E3) und Asset löschen mit Folgenanzeige (FR-E8) im Graph. |
+| v2.16 | 2026-10-12 | Phase 3 Teil 3: Link-Attribute in der Kantenkarte bearbeiten (FR-E6). |
 
 ---
 
@@ -754,7 +755,10 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
   und läge ausserhalb des Fokus).
 - ✅ (v2.15) Asset löschen in der Detailkarte: Bestätigung mit Folgenanzeige
   (`ConfirmAssetDeleteDialog`, `assetUsage`), dann derselbe Weg wie im Asset-Panel (FR-E8).
-- Offen in Phase 3: Attribute im Detailpanel bearbeiten (FR-E6), Element-zu-Asset-Beziehungen (FR-E7),
+- ✅ (v2.16) Link-Attribute in der Kantenkarte bearbeiten (FR-E6): Schritt, Begründung, Notizen,
+  bei `depends_on` degradierter Betrieb mit Beschreibung (Pflicht wie im Dialog). Speichern sendet
+  eine `update`-Operation über denselben Schreibweg; geleerte Felder werden entfernt.
+- Offen in Phase 3: Element-zu-Asset-Beziehungen (FR-E7),
   Undo/Redo (FR-E9), Tastaturbedienung (NFR-4), lokale Positionsspeicherung (FR-V15).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen

@@ -171,4 +171,30 @@ describe("AssetGraphView — edit mode", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     expect(onDeleteAsset).toHaveBeenCalledWith("d1");
   });
+
+  it("editing a link's attributes sends one update operation (FR-E6)", () => {
+    const commit = renderEditable();
+    fireEvent.click(screen.getByTestId("asset-graph-mode-edit"));
+    fireEvent.click(screen.getByTestId("asset-graph-edge-r1"));
+    const save = screen.getByTestId("asset-graph-link-save");
+    expect(save).toBeDisabled();
+    fireEvent.change(screen.getByTestId("asset-graph-link-rationale"), { target: { value: "E-Stop needs the value" } });
+    fireEvent.change(screen.getByTestId("asset-graph-link-step"), { target: { value: "x" } });
+    expect(save).toBeDisabled();
+    fireEvent.change(screen.getByTestId("asset-graph-link-step"), { target: { value: "1" } });
+    fireEvent.click(save);
+    expect(commit).toHaveBeenCalledWith([
+      {
+        kind: "update",
+        relationId: "r1",
+        attributes: { stepOrder: 1, rationale: "E-Stop needs the value" },
+      },
+    ]);
+  });
+
+  it("in view mode the link card stays read-only", () => {
+    renderEditable();
+    fireEvent.click(screen.getByTestId("asset-graph-edge-r1"));
+    expect(screen.queryByTestId("asset-graph-link-form")).toBeNull();
+  });
 });

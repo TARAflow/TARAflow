@@ -9,3 +9,4 @@ export * from "./asset-graph-view";
 export * from "./asset-graph-query";
 export * from "./asset-graph-inspector";
 export * from "./asset-graph-connect";
+export * from "./asset-graph-link-form";
