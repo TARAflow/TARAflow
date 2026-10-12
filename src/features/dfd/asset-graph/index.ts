@@ -6,3 +6,4 @@ export * from "./build-asset-graph";
 export * from "./mirror-edges";
 export * from "./layout-asset-graph";
 export * from "./asset-graph-view";
+export * from "./asset-graph-query";

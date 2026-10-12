@@ -18,8 +18,12 @@ import {
   Box,
   Button,
   Checkbox,
+  Alert,
+  Badge,
   Chip,
   Divider,
+  InputAdornment,
+  TextField,
   FormControlLabel,
   IconButton,
   ListItemText,
@@ -38,6 +42,8 @@ import {
   RestartAlt as ResetIcon,
   HelpOutline as LegendIcon,
   Layers as LayersIcon,
+  FilterAlt as FilterIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
 import type { AssetGroup } from "shared";
@@ -58,6 +64,12 @@ import {
   type Point,
 } from "./layout-asset-graph";
 import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
+import {
+  assetVisibility,
+  relationTypesIn,
+  searchAssets,
+  type AssetVisibility,
+} from "./asset-graph-query";
 
 const MAX_DEPTH = 3;
 
@@ -79,6 +91,8 @@ interface ViewState {
   focusAssetId: string | null;
   depth: number;
   showAnchors: boolean;
+  /** Shown relation types; null = all (FR-V10). */
+  relationTypes: string[] | null;
 }
 
 const DEFAULT_STATE: ViewState = {
@@ -87,6 +101,7 @@ const DEFAULT_STATE: ViewState = {
   focusAssetId: null,
   depth: DEFAULT_FOCUS_DEPTH,
   showAnchors: false,
+  relationTypes: null,
 };
 
 function groupColor(group: string): { color: string; colorLight: string } {
@@ -109,6 +124,15 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   const [state, setState] = useState<ViewState>(DEFAULT_STATE);
   const [showLegend, setShowLegend] = useState(false);
   const [layerMenu, setLayerMenu] = useState<HTMLElement | null>(null);
+  const [typeMenu, setTypeMenu] = useState<HTMLElement | null>(null);
+  const [query, setQuery] = useState("");
+  const [searchMiss, setSearchMiss] = useState(false);
+  const [searchHit, setSearchHit] = useState<{
+    assetId: string;
+    index: number;
+    total: number;
+    visibility: AssetVisibility;
+  } | null>(null);
 
   // Focus request from outside (asset table "show in graph").
   useEffect(() => {
@@ -130,9 +154,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         focusAssetId: state.focusAssetId,
         depth: state.depth,
         showAnchors: state.showAnchors,
+        relationTypes: state.relationTypes,
       }),
     [source, state],
   );
+  const availableTypes = useMemo(() => relationTypesIn(source), [source]);
 
   // ── Layout: stable within the session (AR-12) ───────────────────────────
   const positionsRef = useRef<Map<string, Point>>(new Map());
@@ -197,6 +223,69 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     );
   }, [layout]);
 
+  // Centre a node, keeping the zoom level. A request for a node that is not
+  // laid out yet (e.g. right after showing its layer) waits for the layout.
+  const pendingCenterRef = useRef<string | null>(null);
+  const centerOn = useCallback(
+    (nodeId: string) => {
+      const svgEl = svgRef.current;
+      const p = layout.positions.get(nodeId);
+      if (!svgEl || !zoomRef.current || !p) {
+        pendingCenterRef.current = nodeId;
+        return;
+      }
+      pendingCenterRef.current = null;
+      const { width, height } = svgEl.getBoundingClientRect();
+      const k = transform.k;
+      select(svgEl).call(
+        zoomRef.current.transform,
+        zoomIdentity.translate((width || 0) / 2 - p.x * k, (height || 0) / 2 - p.y * k).scale(k),
+      );
+    },
+    [layout, transform.k],
+  );
+  useEffect(() => {
+    const id = pendingCenterRef.current;
+    if (id && layout.positions.has(id)) centerOn(id);
+  }, [layout, centerOn]);
+
+  // ── Search (FR-V10, UX-6) ───────────────────────────────────────────────
+  const runSearch = (direction: 1 | -1 = 1) => {
+    const matches = searchAssets(source, query);
+    if (matches.length === 0) {
+      setSearchHit(null);
+      setSearchMiss(true);
+      return;
+    }
+    setSearchMiss(false);
+    const index =
+      searchHit && searchHit.total === matches.length
+        ? (searchHit.index + direction + matches.length) % matches.length
+        : 0;
+    const hit = matches[index];
+    const visibility = assetVisibility(graph, source, state, hit.id);
+    setSearchHit({ assetId: hit.id, index, total: matches.length, visibility });
+    if (visibility.state === "visible") {
+      onSelectAsset(hit.id);
+      centerOn(hit.id);
+    }
+  };
+  // Re-evaluate the hit when the graph changes (e.g. its layer was shown).
+  const hitVisibility = searchHit
+    ? assetVisibility(graph, source, state, searchHit.assetId)
+    : null;
+  const hitAsset = searchHit ? source.assets.find((a) => a.id === searchHit.assetId) : undefined;
+
+  const toggleType = (type: string) =>
+    setState((s) => {
+      const all = availableTypes.map((x) => x.type);
+      const current = s.relationTypes ?? all;
+      const next = current.includes(type)
+        ? current.filter((x) => x !== type)
+        : [...current, type];
+      return { ...s, relationTypes: next.length === all.length ? null : next };
+    });
+
   // ── Context bar actions ─────────────────────────────────────────────────
   const preset = presetOfLayers(state.layers);
   const setPreset = (id: AssetGraphPresetId) =>
@@ -223,7 +312,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       // the focus within it keeps the user's layer choice.
       layers: s.view === "focus" ? s.layers : [...ALL_LAYERS],
     }));
-  const reset = () => setState(DEFAULT_STATE);
+  const reset = () => {
+    setState(DEFAULT_STATE);
+    setSearchHit(null);
+    setSearchMiss(false);
+    setQuery("");
+  };
 
   const groupLabel = (g: string) => t(`assets.groups.${g}`, { defaultValue: g });
   const typeLabel = (type: string) =>
@@ -354,6 +448,69 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           />
         )}
 
+        <Tooltip title={t("tabs.dfd.assetGraph.typeFilter", { defaultValue: "Relation types" })}>
+          <IconButton size="small" onClick={(e) => setTypeMenu(e.currentTarget)} data-testid="asset-graph-type-filter">
+            <Badge color="primary" variant="dot" invisible={state.relationTypes === null}>
+              <FilterIcon fontSize="small" />
+            </Badge>
+          </IconButton>
+        </Tooltip>
+        <Menu anchorEl={typeMenu} open={!!typeMenu} onClose={() => setTypeMenu(null)}>
+          <MenuItem dense onClick={() => setState((s) => ({ ...s, relationTypes: null }))}>
+            <Checkbox size="small" checked={state.relationTypes === null} sx={{ p: 0.5, mr: 1 }} />
+            <ListItemText primary={t("tabs.dfd.assetGraph.allTypes", { defaultValue: "All types" })} />
+          </MenuItem>
+          <Divider />
+          {availableTypes.map((x) => (
+            <MenuItem key={`${x.kind}:${x.type}`} dense onClick={() => toggleType(x.type)} data-testid={`asset-graph-type-${x.type}`}>
+              <Checkbox
+                size="small"
+                checked={state.relationTypes === null || state.relationTypes.includes(x.type)}
+                sx={{ p: 0.5, mr: 1 }}
+              />
+              <ListItemText
+                primary={`${typeLabel(x.type)} (${x.count})`}
+                secondary={x.kind === "anchor" ? t("tabs.dfd.assetGraph.anchorType", { defaultValue: "DFD element → asset" }) : undefined}
+              />
+            </MenuItem>
+          ))}
+        </Menu>
+        {state.relationTypes !== null && (
+          <Chip
+            size="small"
+            data-testid="asset-graph-filter-chip"
+            label={t("tabs.dfd.assetGraph.filterActive", {
+              defaultValue: "{{count}} of {{total}} types",
+              count: state.relationTypes.length,
+              total: availableTypes.length,
+            })}
+            onDelete={() => setState((s) => ({ ...s, relationTypes: null }))}
+          />
+        )}
+
+        <TextField
+          size="small"
+          value={query}
+          placeholder={t("tabs.dfd.assetGraph.search", { defaultValue: "Find asset" })}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setSearchHit(null);
+            setSearchMiss(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") runSearch(e.shiftKey ? -1 : 1);
+          }}
+          inputProps={{ "data-testid": "asset-graph-search" }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: 170 }}
+        />
+
         <Divider orientation="vertical" flexItem />
         <Typography variant="caption" color="text.secondary" data-testid="asset-graph-counts" sx={{ flexGrow: 1 }}>
           {countsText}
@@ -375,6 +532,59 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
 
       {/* ── Canvas ── */}
       <Box sx={{ position: "relative", flexGrow: 1, overflow: "hidden" }}>
+        {(searchMiss || (hitVisibility && hitVisibility.state !== "visible")) && (
+          <Alert
+            severity="info"
+            data-testid="asset-graph-search-notice"
+            onClose={() => {
+              setSearchHit(null);
+              setSearchMiss(false);
+            }}
+            sx={{ position: "absolute", top: 8, left: 8, right: 8, zIndex: 1 }}
+            action={
+              hitAsset && hitVisibility?.state === "hiddenLayer" ? (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    showLayer(hitVisibility.layer);
+                    onSelectAsset(hitAsset.id);
+                    pendingCenterRef.current = hitAsset.id;
+                  }}
+                >
+                  {t("tabs.dfd.assetGraph.showLayer", {
+                    defaultValue: "Show layer {{layer}}",
+                    layer: groupLabel(hitVisibility.layer),
+                  })}
+                </Button>
+              ) : hitAsset && hitVisibility?.state === "outsideFocus" ? (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    focusOn(hitAsset.id);
+                    onSelectAsset(hitAsset.id);
+                    pendingCenterRef.current = hitAsset.id;
+                  }}
+                >
+                  {t("tabs.dfd.assetGraph.focusHit", { defaultValue: "Focus on it" })}
+                </Button>
+              ) : undefined
+            }
+          >
+            {searchMiss
+              ? t("tabs.dfd.assetGraph.noMatch", { defaultValue: "No asset matches \"{{query}}\".", query })
+              : hitVisibility?.state === "hiddenLayer"
+                ? t("tabs.dfd.assetGraph.hitHiddenLayer", {
+                    defaultValue: "{{asset}} is in the hidden layer {{layer}}.",
+                    asset: `${hitAsset?.displayId ?? ""} ${hitAsset?.name ?? ""}`.trim(),
+                    layer: groupLabel((hitVisibility as { layer: string }).layer),
+                  })
+                : t("tabs.dfd.assetGraph.hitOutsideFocus", {
+                    defaultValue: "{{asset}} is outside the focus (depth {{depth}}).",
+                    asset: `${hitAsset?.displayId ?? ""} ${hitAsset?.name ?? ""}`.trim(),
+                    depth: state.depth,
+                  })}
+          </Alert>
+        )}
         {graph.nodes.length === 0 && (
           <Typography variant="body2" color="text.secondary" sx={{ position: "absolute", top: 16, left: 16 }}>
             {state.view === "focus" && graph.focusMissing
@@ -479,6 +689,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               }
               const { color, colorLight } = groupColor(String(n.group));
               const selected = n.id === selectedAssetId;
+              const hit = !selected && searchHit?.assetId === n.id;
               const stubs = graph.stubs[n.id] ?? [];
               return (
                 <g
@@ -489,6 +700,9 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   onDoubleClick={() => focusOn(n.id)}
                   data-testid={`asset-graph-node-${n.id}`}
                 >
+                  {hit && (
+                    <circle r={NODE_RADIUS + 7} fill="none" stroke="#f9a825" strokeWidth={3} data-testid={`asset-graph-hit-${n.id}`} />
+                  )}
                   <circle
                     r={NODE_RADIUS}
                     fill={darkMode ? color : colorLight}

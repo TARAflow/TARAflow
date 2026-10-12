@@ -89,4 +89,38 @@ describe("AssetGraphView", () => {
     expect(screen.getByTestId("asset-graph-node-f1")).toBeInTheDocument();
     expect(screen.getByTestId("asset-graph-counts")).toHaveTextContent("2 of 3 assets visible · 0 in hidden layers · 1 outside focus");
   });
+
+  it("type filter hides a relation type and the context bar says so (FR-V10)", () => {
+    view();
+    fireEvent.click(screen.getByTestId("asset-graph-type-filter"));
+    fireEvent.click(screen.getByTestId("asset-graph-type-required_by"));
+    expect(screen.queryByTestId("asset-graph-edge-r1")).toBeNull();
+    expect(screen.getByTestId("asset-graph-counts")).toHaveTextContent("1 links filtered");
+    fireEvent.click(screen.getByTestId("asset-graph-filter-chip").querySelector("svg")!);
+    expect(screen.getByTestId("asset-graph-edge-r1")).toBeInTheDocument();
+  });
+
+  it("search: a visible hit is selected; a hit in a hidden layer says why and offers the layer", () => {
+    const { onSelectAsset } = view();
+    const input = screen.getByTestId("asset-graph-search");
+    fireEvent.change(input, { target: { value: "FU-001" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSelectAsset).toHaveBeenCalledWith("f1");
+
+    fireEvent.change(input, { target: { value: "shutdown" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    const notice = screen.getByTestId("asset-graph-search-notice");
+    expect(notice).toHaveTextContent("PR-001 Shutdown is in the hidden layer process.");
+    fireEvent.click(screen.getByRole("button", { name: "Show layer process" }));
+    expect(screen.getByTestId("asset-graph-node-p1")).toBeInTheDocument();
+    expect(onSelectAsset).toHaveBeenLastCalledWith("p1");
+  });
+
+  it("search without a match says so", () => {
+    view();
+    const input = screen.getByTestId("asset-graph-search");
+    fireEvent.change(input, { target: { value: "nothing" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByTestId("asset-graph-search-notice")).toHaveTextContent('No asset matches "nothing".');
+  });
 });

@@ -30,6 +30,16 @@
         "reset": "Zurücksetzen",
         "empty": "Keine Assets in den gewählten Ebenen.",
         "stubHint": "Ebene einblenden",
+        "typeFilter": "Beziehungstypen",
+        "allTypes": "Alle Typen",
+        "anchorType": "DFD-Element → Asset",
+        "filterActive": "{{count}} von {{total}} Typen",
+        "search": "Asset suchen",
+        "showLayer": "Ebene {{layer}} einblenden",
+        "focusHit": "Darauf fokussieren",
+        "noMatch": "Kein Asset passt zu „{{query}}“.",
+        "hitHiddenLayer": "{{asset}} liegt in der ausgeblendeten Ebene {{layer}}.",
+        "hitOutsideFocus": "{{asset}} liegt ausserhalb des Fokus (Tiefe {{depth}}).",
         "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren"
       },
       "toolbar": {

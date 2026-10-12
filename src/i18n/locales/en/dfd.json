@@ -30,6 +30,16 @@
         "reset": "Reset",
         "empty": "No assets in the selected layers.",
         "stubHint": "Show layer",
+        "typeFilter": "Relation types",
+        "allTypes": "All types",
+        "anchorType": "DFD element → asset",
+        "filterActive": "{{count}} of {{total}} types",
+        "search": "Find asset",
+        "showLayer": "Show layer {{layer}}",
+        "focusHit": "Focus on it",
+        "noMatch": "No asset matches \"{{query}}\".",
+        "hitHiddenLayer": "{{asset}} is in the hidden layer {{layer}}.",
+        "hitOutsideFocus": "{{asset}} is outside the focus (depth {{depth}}).",
         "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus"
       },
       "toolbar": {
