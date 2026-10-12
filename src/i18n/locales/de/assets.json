@@ -414,6 +414,7 @@
       "exportImport": {
         "assetData": "Asset Data",
         "assetDataDesc": "{{count}} assets with impact ratings and security goals",
+        "hasAssetLinks": "{{count}} Asset Links",
         "configuration": "Configuration",
         "configurationDesc": "Impact criteria, scale, and calculation settings",
         "exportInfo": "Select what you want to export. The file can be imported into another project.",

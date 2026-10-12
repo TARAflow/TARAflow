@@ -40,6 +40,7 @@ import {
   AssetExportOptions,
   AssetImportOptions,
 } from "../models/asset-types";
+import { exportableRelations } from "../utils/asset-links-transfer";
 
 // ==================== TYPES ====================
 
@@ -110,6 +111,9 @@ export const AssetExportImportDialog: React.FC<AssetExportImportDialogProps> = (
 
     if (exportAssets) {
       exportData.assets = assetData.assets;
+      // Asset links between the exported assets go along (B13).
+      const relations = exportableRelations(assetData.assets, assetData.relations);
+      if (relations.length > 0) exportData.relations = relations;
     }
 
     // Generate filename
@@ -223,6 +227,7 @@ export const AssetExportImportDialog: React.FC<AssetExportImportDialogProps> = (
   const hasAssetsInFile =
     importedData?.assets !== undefined && importedData.assets.length > 0;
   const assetCountInFile = importedData?.assets?.length ?? 0;
+  const linkCountInFile = hasAssetsInFile ? importedData?.relations?.length ?? 0 : 0;
   const existingAssetCount = assetData.assets.length;
 
   const canExport = exportConfig || exportAssets;
@@ -432,6 +437,17 @@ export const AssetExportImportDialog: React.FC<AssetExportImportDialogProps> = (
                       label={t("tabs.assets.exportImport.hasAssets", {
                         count: assetCountInFile,
                         defaultValue: `${assetCountInFile} Assets`,
+                      })}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  )}
+                  {linkCountInFile > 0 && (
+                    <Chip
+                      size="small"
+                      label={t("tabs.assets.exportImport.hasAssetLinks", {
+                        count: linkCountInFile,
+                        defaultValue: `${linkCountInFile} Asset Links`,
                       })}
                       color="primary"
                       variant="outlined"

@@ -422,3 +422,69 @@ describe("First edit after opening a project (B11)", () => {
     s.close();
   });
 });
+
+describe("Asset tab export/import carries asset links (B13)", () => {
+  it("links in an asset export come back on import and survive save and reopen", async () => {
+    const { exportableRelations, a2aOpsFromAssetExport } = await import(
+      "features/assets/utils/asset-links-transfer"
+    );
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const f = firstAsset(s.project, "function");
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by", rationale: "check" });
+    // What the export dialog writes for "asset data".
+    const exported = {
+      assets: s.project.assets!.assets,
+      relations: exportableRelations(s.project.assets!.assets, s.project.assets!.relations),
+    };
+    expect(exported.relations).toHaveLength(1);
+
+    // The link is removed in the project, then the export is imported.
+    s.a2a([{ kind: "remove", relationId: s.project.assets!.relations![0].id }]);
+    expect(s.project.assets!.relations ?? []).toEqual([]);
+    s.assetTabWrite(
+      s.project.assets!,
+      a2aOpsFromAssetExport(exported.relations, s.project.assets!.relations),
+    );
+
+    expect(s.lastRejected).toEqual([]);
+    const edge = (p: Project) =>
+      (p.assets?.relations ?? []).find(
+        (r) => r.sourceAssetId === d && r.targetAssetId === f && r.relationType === "required_by",
+      );
+    expect(edge(s.project)).toMatchObject({ rationale: "check" });
+    const reopened = s.reopen();
+    expect(edge(reopened.project)).toBeDefined();
+    reopened.close();
+  });
+
+  it("an Asset tab write never changes the links itself (stale copy ignored)", () => {
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const f = firstAsset(s.project, "function");
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by" });
+    const staleCopy = s.project.assets!; // the tab's copy: one link
+    s.addA2A(d, { targetAssetId: f, relationType: "configures" });
+    const before = s.project.assets!.relations;
+    expect(before).toHaveLength(2);
+    s.assetTabWrite(staleCopy);
+    expect(s.project.assets!.relations).toEqual(before);
+    s.close();
+  });
+
+  it("a link to an asset that is not in the project is rejected and reported", async () => {
+    const { a2aOpsFromAssetExport } = await import("features/assets/utils/asset-links-transfer");
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    s.assetTabWrite(
+      s.project.assets!,
+      a2aOpsFromAssetExport(
+        [{ id: "x", sourceAssetId: d, targetAssetId: "not-here", relationType: "required_by" }],
+        s.project.assets!.relations,
+      ),
+    );
+    expect(s.lastRejected).toEqual([expect.objectContaining({ reason: "target_missing" })]);
+    expect(s.project.assets!.relations ?? []).toEqual([]);
+    s.close();
+  });
+});

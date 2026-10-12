@@ -117,6 +117,7 @@ import {
 } from "shared";
 import { resolveDfdGraph } from "../../utils/resolve-dfd-graph";
 import { buildDfdUpdate } from "app/services/dfd-update-patch";
+import { buildAssetsUpdate } from "app/services/assets-update-patch";
 import {
   AssetDeletionBlockedError,
   collectAssetUsage,
@@ -155,14 +156,6 @@ export const WorkspaceLayout: React.FC = () => {
   // the correct dfd.assets — into the project the edit actually belongs to.
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
-
-  // "" and undefined are the same "no description" state — Assets stores it
-  // inside properties (can be "" after a cleared text field), DFD stores it
-  // as an optional top-level field (undefined when absent). Used by both
-  // handleDFDUpdate (DFD→Assets mirror) and handleAssetsUpdate (Assets→DFD
-  // mirror) below.
-  const normDesc = (s: string | undefined): string | undefined =>
-    s && s.trim().length > 0 ? s : undefined;
 
   // ── Bidirectional asset sync ──────────────────────────────────────────────
   // REMOVED (see handleAssetsUpdate / handleDFDUpdate below): name and
@@ -402,50 +395,23 @@ export const WorkspaceLayout: React.FC = () => {
       if (!current) return;
 
       // Mirror name/description edits from the Asset-Tab onto dfd.assets in
-      // THIS SAME updateProject call. The Asset-Tab is the known source of
-      // this edit — there is nothing to guess, so we just propagate it.
-      // See the note above (former "Bidirectional asset sync" section) for
-      // why this replaced the async heuristic sync.
-      let dfd = current.dfd;
-      const newAssets = updates.assets?.assets;
-      if (dfd?.assets && newAssets) {
-        let changed = false;
-        const mirroredAssets = dfd.assets.map((dfdAsset) => {
-          const asset = newAssets.find((a) => a.id === dfdAsset.id);
-          if (!asset) return dfdAsset;
-
-          const newName = asset.name || dfdAsset.name;
-          const newDesc = normDesc(asset.properties?.description);
-          const nameChanged = newName !== dfdAsset.name;
-          const descChanged = newDesc !== normDesc(dfdAsset.description);
-
-          if (!nameChanged && !descChanged) return dfdAsset;
-
-          changed = true;
-          return {
-            ...dfdAsset,
-            name: newName,
-            description: newDesc,
-          };
-        });
-
-        if (changed) {
-          dfd = {
-            ...dfd,
-            assets: mirroredAssets,
-            lastModified: new Date().toISOString(),
-          };
-        }
+      // THIS SAME updateProject call (the Asset-Tab is the known source of
+      // the edit — see the note above on the former bidirectional sync).
+      // Asset links travel only as operations (asset import, AR-5).
+      const { patch, rejectedA2AOps } = buildAssetsUpdate(current, updates);
+      if (rejectedA2AOps.length > 0) {
+        toast.warning(
+          t("assets.relations.a2a.rejected", {
+            defaultValue:
+              "{{count}} asset relation(s) were not applied: {{reasons}}",
+            count: rejectedA2AOps.length,
+            reasons: [...new Set(rejectedA2AOps.map((r) => r.reason))].join(", "),
+          }),
+        );
       }
-
-      await updateProject({
-        id: projectId,
-        assets: updates.assets,
-        dfd,
-        phaseStatus: updates.phaseStatus,
-      });
+      await updateProject(patch);
     },
-    [updateProject],
+    [updateProject, toast, t],
   );
 
   // ── Asset deletion (Asset tab) ────────────────────────────────────────────

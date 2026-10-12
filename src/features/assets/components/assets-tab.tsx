@@ -60,8 +60,9 @@ const DEFAULT_DFD_HEIGHT = 250; // Fixed pixel height instead of ratio
 // ==================== ASSET TAB PROPS ====================
 
 import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
-import type { ThreatGoalLink } from "shared";
+import type { A2AOp, ThreatGoalLink } from "shared";
 import { buildAssetLinks } from "../utils/asset-links";
+import { a2aOpsFromAssetExport } from "../utils/asset-links-transfer";
 
 export interface AssetTabProps {
   project: AssetProjectData;
@@ -191,6 +192,17 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
 
+  // Asset-link operations from an asset import. They ride on the next write
+  // of this tab (auto-save or flush on unmount) and are applied by the app
+  // layer through the relations service — never written into the store here.
+  const pendingA2AOpsRef = useRef<A2AOp[]>([]);
+  const takePendingA2AOps = (): { a2aOps?: A2AOp[] } => {
+    const ops = pendingA2AOpsRef.current;
+    if (ops.length === 0) return {};
+    pendingA2AOpsRef.current = [];
+    return { a2aOps: ops };
+  };
+
   useEffect(() => {
     if (isDirtyRef.current) return; // a local edit is in flight — don't clobber it
     if (project.assets) {
@@ -219,6 +231,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           assets: result.assets,
           phaseStatus: result.phaseStatus,
           lastModified: result.lastModified,
+          ...takePendingA2AOps(),
         });
       }
     }, 1000); // 1 second debounce
@@ -267,6 +280,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           assets: result.assets,
           phaseStatus: result.phaseStatus,
           lastModified: result.lastModified,
+          ...takePendingA2AOps(),
         });
       }
       // Best-effort: if saveAssets fails here there is no UI left to surface
@@ -549,6 +563,14 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             lastModified: new Date().toISOString(),
           };
         }
+
+        // Asset links between the imported assets (B13): add operations for
+        // the relations service, skipping links that already exist. Links to
+        // assets that are not in the project are rejected there and reported.
+        pendingA2AOpsRef.current = [
+          ...pendingA2AOpsRef.current,
+          ...a2aOpsFromAssetExport(data.relations, assetData.relations),
+        ];
       }
 
       // Update State

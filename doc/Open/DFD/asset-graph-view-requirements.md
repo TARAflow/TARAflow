@@ -236,6 +236,24 @@ in `handleProjectOpen`; bei Gleichstand gewinnt der Projektstand. Regressionstes
 `relations-pipeline.test.ts` („First edit after opening a project“) und
 `project-shell.lifecycle-characterization.test.tsx`.
 
+**B13 — Asset-Export/-Import ohne Asset Links (behoben, 2026-10-12).**
+Der Export im Asset-Tab schrieb nur Konfiguration und Assets; `assets.relations` fehlte, ein
+Import verlor die Links ohne Meldung (Widerspruch zu D1: „der Export eines Assets nimmt seine
+Kanten mit“). Jetzt: Der Export enthält die Links zwischen den exportierten Assets
+(`relations`); der Import erzeugt daraus `add`-Operationen, die mit dem nächsten Schreiben des
+Asset-Tabs (`AssetUpdateResult.a2aOps`) über den Relations-Service laufen — vorhandene Links
+werden übersprungen, abgelehnte gemeldet. Zugleich ignoriert die App-Schicht die
+`relations`-Kopie des Asset-Tabs (`buildAssetsUpdate`): Auch eine veraltete lokale Kopie kann
+die kanonische Liste nicht mehr überschreiben (AR-5).
+
+**B14 — Asset-Import „Alle ersetzen“ ersetzt nichts (offen).**
+Im Import-Dialog ist „Alle ersetzen“ vorausgewählt und verspricht „bestehende Assets löschen
+und neue importieren“. Der Code übernimmt in diesem Modus keine Assets (die Zuweisung ist
+auskommentiert); nur die Konfiguration wirkt. Vermutlich bewusst entschärft, weil die Assets
+mit dem DFD synchronisiert sind und ein Ersetzen am DFD vorbei ginge. Zu klären: Modus
+entfernen oder Semantik festlegen. Asset Links werden in beiden Modi importiert, soweit ihre
+Assets im Projekt existieren.
+
 **B8 — Hazard-Relationen nicht im Audit-Diff.**
 `features/audit/services/diff-service.ts` vergleicht DFD, Assets, Threats, Risks und Attack Trees,
 aber nicht `hazards` (weder Hazard Items noch `hazards.relations`). Nicht Teil dieses Plans, aber

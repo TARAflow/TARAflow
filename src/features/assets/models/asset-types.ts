@@ -2,7 +2,7 @@
 // Core data models for the Assets feature
 // NO dependency on app OR dfd - follows Dependency Inversion Principle
 
-import type { AssetGroup, PhaseStatusMap, A2ARelation } from "shared";
+import type { AssetGroup, PhaseStatusMap, A2AOp, A2ARelation } from "shared";
 import type { AssetProperties } from "shared/models/asset-property-types";
 import type {
   ImpactRating,
@@ -223,6 +223,8 @@ export interface AssetExportData {
   projectName?: string;
   configuration?: AssetConfiguration;
   assets?: Asset[];
+  /** Asset links between the exported assets (written with the assets). */
+  relations?: A2ARelation[];
 }
 
 /**
@@ -279,8 +281,14 @@ export interface AssetProjectData {
 // What Assets returns to app layer after updates
 
 export interface AssetUpdateResult {
+  /**
+   * The asset store. Its `relations` field is ignored on write: asset links
+   * change only through `a2aOps` (single write path, AR-5).
+   */
   assets: AssetData;
   phaseStatus: PhaseStatusMap;
   lastModified: string;
+  /** Asset-link operations for the relations service (e.g. asset import). */
+  a2aOps?: A2AOp[];
 }
 

@@ -29,6 +29,8 @@ import type {
 import type { DFDAsset } from "features/dfd/models/dfd-asset-types";
 import type { Project } from "app/models/project-types";
 import { buildDfdUpdate } from "app/services/dfd-update-patch";
+import { buildAssetsUpdate } from "app/services/assets-update-patch";
+import type { AssetData } from "features/assets/models/asset-types";
 import type { A2AOp, NewA2ARelation } from "shared";
 import { a2aOpsFromExport } from "features/dfd/hooks/use-dfd-export-import";
 import { finalizeDfd } from "features/dfd/services/dfd-finalize";
@@ -184,6 +186,22 @@ export class RelationSession {
       connections: dfd.connections,
       assets: dfd.assets,
     };
+  }
+
+  /**
+   * An Asset tab write (auto-save after an edit or an asset import):
+   * WorkspaceLayout's assets handler → buildAssetsUpdate → mergeProjectPatch.
+   */
+  assetTabWrite(assets: AssetData, a2aOps?: A2AOp[]): void {
+    const { patch, rejectedA2AOps } = buildAssetsUpdate(this.project, {
+      assets,
+      phaseStatus: this.project.phaseStatus,
+      lastModified: this.now(),
+      ...(a2aOps ? { a2aOps } : {}),
+    });
+    this.lastRejected = rejectedA2AOps;
+    this.project = mergeProjectPatch(this.project, patch, this.now());
+    this.sync();
   }
 
   /** Rejected operations reported by the last DFD update. */
