@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.24 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.25 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
-> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). **Phase 3 abgeschlossen** (Edit Mode; B15 behoben, offen B14).
+> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). **Phase 3 abgeschlossen** (Edit Mode; B14 und B15 behoben).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -46,6 +46,7 @@
 | v2.22 | 2026-10-12 | Lokale Positionsspeicherung pro Projekt (FR-V15). **Phase 3 abgeschlossen.** |
 | v2.23 | 2026-10-12 | B15 Teil 1: Element-Beziehungsdialog des Seitenpanels nach Regelwerk; unzulässige gespeicherte Beziehungen markiert, Speichern erst nach Entfernen; Validator prüft Datenflüsse nach dem Regelwerk. |
 | v2.24 | 2026-10-12 | B15 Teil 2: Gruppe einer Element-Beziehung vom Asset, Qualifier je Gruppe, Reparatur beim Laden. **B15 behoben.** |
+| v2.25 | 2026-10-12 | B14 behoben: Asset-Import fügt hinzu; bereits vorhandene Assets je Asset behalten oder ersetzen. |
 
 ---
 
@@ -293,15 +294,26 @@ Fehlmeldungen wie Sensor → Physical `accesses`. `linkedElements` und die Mappe
 Qualifier aller vier qualifizierten Beziehungen (vorher nur System/Infrastruktur). Beim Laden setzt
 `repairElementRelationGroups` die Gruppe bestehender Beziehungen auf die des Assets — idempotent,
 ohne Schema-Version, Qualifier bleiben unverändert (kein Raten).
-Offen bleibt: Ändert ein Element später seinen Typ, prüft das nur der Validator.
+Ein Typwechsel eines DFD-Elements ist nicht vorgesehen (Element löschen und neu anlegen), daher gibt es dafür keinen eigenen Prüfpfad.
 
-**B14 — Asset-Import „Alle ersetzen“ ersetzt nichts (offen).**
-Im Import-Dialog ist „Alle ersetzen“ vorausgewählt und verspricht „bestehende Assets löschen
-und neue importieren“. Der Code übernimmt in diesem Modus keine Assets (die Zuweisung ist
-auskommentiert); nur die Konfiguration wirkt. Vermutlich bewusst entschärft, weil die Assets
-mit dem DFD synchronisiert sind und ein Ersetzen am DFD vorbei ginge. Zu klären: Modus
-entfernen oder Semantik festlegen. Asset Links werden in beiden Modi importiert, soweit ihre
-Assets im Projekt existieren.
+**B14 — Asset-Import „Alle ersetzen“ ersetzt nichts (behoben, v2.25).**
+Im Import-Dialog war „Alle ersetzen“ vorausgewählt und versprach „bestehende Assets löschen und neue
+importieren“; der Code übernahm in diesem Modus keine Assets. Gemeint war Hinzufügen.
+*Lösung:* Der Import **fügt hinzu**, es wird nie etwas gelöscht. Ein importiertes Asset, das schon im
+Projekt ist — gleiche ID (eigener Export, Projektkopie) oder sonst gleiche Gruppe und gleicher Name
+(ohne Gross-/Kleinschreibung) —, erscheint im Dialog unter „Bereits im Projekt“ mit **Behalten**
+(Vorgabe) oder **Ersetzen**, dazu „Alle behalten“ / „Alle ersetzen“.
+- *Behalten:* Das Projekt-Asset bleibt unverändert; aus der Datei gilt dafür nichts, auch keine Links.
+- *Ersetzen:* Der Inhalt kommt aus der Datei; ID, Display-ID, Gruppe, Quelle und alles, was dieses
+  Projekt abgeleitet hat (DFD-Verknüpfungen, Physical Impact aus DFD oder Hazards), bleiben — damit
+  bleiben DFD-Beziehungen, Risiken und Hazard-Bezüge gültig.
+- *Neue Assets* behalten ihre ID; eine belegte Display-ID wird neu vergeben. Verknüpfungen und
+  abgeleiteter Physical Impact aus dem anderen Projekt fallen weg, ein manueller bleibt.
+  Impact-Bewertungen folgen den Kriterien dieses Projekts (fehlende = 0).
+- Asset Links der Datei werden auf die Projekt-IDs umgehängt und über den Relations-Service
+  angelegt (AR-5); Links behaltener Assets nicht.
+Logik rein in `features/assets/utils/asset-import.ts` (`planAssetImport`, `applyAssetImport`,
+`remapImportedRelations`). Die Import-Texte des Dialogs sind jetzt auch auf Deutsch übersetzt.
 
 **B8 — Hazard-Relationen nicht im Audit-Diff.**
 `features/audit/services/diff-service.ts` vergleicht DFD, Assets, Threats, Risks und Attack Trees,
@@ -848,8 +860,8 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
   Gruppenwechsel in der alten Bahn stehen). Fehlt der Speicher, ist er voll oder gesperrt, oder
   sind die Daten unlesbar, greift das deterministische Layout; „Neu anordnen“ überschreibt die
   gemerkten Positionen.
-- Offen aus Phase 3 als Befunde: B14 (Import „Alle ersetzen“), B15 (Typen im Element-Dialog des
-  Seitenpanels). Asset-Anlegen/-Löschen und Element-Beziehungen sind nicht Teil der
+- Befunde aus Phase 3: B14 (Asset-Import) und B15 (Element-Beziehungsdialog) behoben (v2.23–v2.25).
+  Asset-Anlegen/-Löschen und Element-Beziehungen sind nicht Teil der
   Graph-Historie (FR-E9 gilt für Asset Links).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen

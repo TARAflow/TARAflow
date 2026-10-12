@@ -233,7 +233,12 @@ export interface AssetExportData {
 export interface AssetImportOptions {
   importConfiguration: boolean;
   importAssets: boolean;
-  mergeAssets: boolean; // true = merge with existing, false = replace
+  /**
+   * Imported assets are always added (B14). For an imported asset that is
+   * already in the project (same id, or same group and name): keep the
+   * project's asset (default) or replace its content. Key: id in the file.
+   */
+  decisions: Readonly<Record<string, "keep" | "replace">>;
 }
 
 // ==================== ASSET PROJECT INTERFACE ====================

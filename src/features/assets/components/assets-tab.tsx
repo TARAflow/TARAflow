@@ -63,6 +63,7 @@ import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-ty
 import type { A2AOp, ThreatGoalLink } from "shared";
 import { buildAssetLinks } from "../utils/asset-links";
 import { a2aOpsFromAssetExport } from "../utils/asset-links-transfer";
+import { applyAssetImport, planAssetImport, remapImportedRelations } from "../utils/asset-import";
 
 export interface AssetTabProps {
   project: AssetProjectData;
@@ -164,6 +165,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // Sync warnings
   const [syncWarnings, setSyncWarnings] = useState<string[]>([]);
+  // Result of the last asset import (B14), until dismissed.
+  const [importNotice, setImportNotice] = useState<string | null>(null);
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -537,46 +540,32 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         console.log("Configuration imported:", migratedConfig);
       }
 
-      // Import assets if selected
+      // Import assets if selected (B14): imported assets are added; one
+      // that is already in the project is kept or replaced as decided in the
+      // dialog. Nothing is deleted.
       if (options.importAssets && data.assets && data.assets.length > 0) {
-        if (options.mergeAssets) {
-          // Merge: update existing by ID, add new ones
-          const existingIds = new Set(updatedData.assets.map((a) => a.id));
-
-          data.assets.forEach((importedAsset) => {
-            if (existingIds.has(importedAsset.id)) {
-              // Update existing
-              updatedData = assetService.updateAsset(
-                updatedData,
-                importedAsset,
-              );
-            } else {
-              // Add new
-              updatedData = assetService.addAsset(updatedData, importedAsset);
-            }
-          });
-
-          // Renumber to ensure consistency
-          updatedData = {
-            ...updatedData,
-            // assets: renumberAssets(updatedData.assets),
-          };
-        } else {
-          // Replace: clear existing and add imported
-          updatedData = {
-            ...updatedData,
-            // assets: renumberAssets(data.assets),
-            lastModified: new Date().toISOString(),
-          };
+        const plan = planAssetImport(updatedData.assets, data.assets);
+        const result = applyAssetImport(updatedData, plan, options.decisions ?? {});
+        updatedData = { ...updatedData, assets: result.assets, lastModified: new Date().toISOString() };
+        // Recalculate impact, HVA and aggregated impact like any edit.
+        for (const id of result.touchedIds) {
+          const asset = updatedData.assets.find((a) => a.id === id);
+          if (asset) updatedData = assetService.updateAsset(updatedData, asset);
         }
 
-        // Asset links between the imported assets (B13): add operations for
-        // the relations service, skipping links that already exist. Links to
-        // assets that are not in the project are rejected there and reported.
+        // Asset links between the imported assets (B13), re-pointed to the
+        // project's ids: add operations for the relations service, skipping
+        // links that already exist. Links of kept assets are not imported.
         pendingA2AOpsRef.current = [
           ...pendingA2AOpsRef.current,
-          ...a2aOpsFromAssetExport(data.relations, assetData.relations),
+          ...a2aOpsFromAssetExport(remapImportedRelations(data.relations, result.idMap), assetData.relations),
         ];
+        setImportNotice(
+          t("tabs.assets.exportImport.importResult", {
+            ...result.counts,
+            defaultValue: `Import: ${result.counts.added} added · ${result.counts.replaced} replaced · ${result.counts.kept} kept`,
+          }),
+        );
       }
 
       // Update State
@@ -586,7 +575,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
       console.log("Import completed. Updated data:", updatedData);
     },
-    [assetData, markDirty],
+    [assetData, markDirty, t],
   );
 
   const handleCloseExportImportDialog = useCallback(() => {
@@ -736,6 +725,16 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         onImport={handleImport}
         onSyncFromDFD={handleSyncFromDFD}
       />
+      {importNotice && (
+        <Alert
+          severity="success"
+          sx={{ mx: 2, mt: 1 }}
+          onClose={() => setImportNotice(null)}
+          data-testid="asset-import-result"
+        >
+          {importNotice}
+        </Alert>
+      )}
       {/* Warnings */}
       <Collapse in={hasWarnings || missingInDFD.length > 0}>
         <Box sx={{ px: 2, py: 1, maxHeight: 150, overflow: "auto" }}>

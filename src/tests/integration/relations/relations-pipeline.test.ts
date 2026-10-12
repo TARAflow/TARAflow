@@ -540,3 +540,57 @@ describe("Link attributes edited in the graph (FR-E6)", () => {
     reopened.close();
   });
 });
+
+describe("Asset import adds and replaces without breaking references (B14)", () => {
+  it("a replaced asset keeps its id and DFD relations; new assets and re-pointed links survive reopen", async () => {
+    const { planAssetImport, applyAssetImport, remapImportedRelations } = await import(
+      "features/assets/utils/asset-import"
+    );
+    const { a2aOpsFromAssetExport } = await import("features/assets/utils/asset-links-transfer");
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const store = s.project.assets!;
+    const existing = store.assets.find((a) => a.id === d)!;
+    const elementRefs = (p: Project) =>
+      [...(p.dfd?.elements ?? []), ...(p.dfd?.connections ?? [])].flatMap((e) =>
+        (e.assetRelations ?? []).filter((r) => r.assetId === d),
+      ).length;
+    const refsBefore = elementRefs(s.project);
+
+    // A file from another project: the same data asset (other id, same name)
+    // and a new function asset, linked to each other.
+    const file = {
+      assets: [
+        { ...existing, id: "imp-d", displayId: "DA-077", properties: { ...existing.properties, description: "from file" } },
+        { ...existing, id: "imp-f", displayId: "FU-077", name: "Imported Function", assetGroup: "function" as const },
+      ],
+      relations: [{ id: "r", sourceAssetId: "imp-d", targetAssetId: "imp-f", relationType: "required_by" }],
+    };
+    const plan = planAssetImport(store.assets, file.assets);
+    expect(plan.conflicts.map((c) => c.existing.id)).toEqual([d]);
+    const result = applyAssetImport(store, plan, { "imp-d": "replace" });
+    s.assetTabWrite(
+      { ...store, assets: result.assets },
+      a2aOpsFromAssetExport(remapImportedRelations(file.relations, result.idMap), store.relations),
+    );
+
+    expect(s.lastRejected).toEqual([]);
+    const check = (p: Project) => {
+      const replaced = p.assets!.assets.find((a) => a.id === d)!;
+      expect(replaced.properties?.description).toBe("from file");
+      expect(replaced.displayId).toBe(existing.displayId);
+      expect(p.assets!.assets.some((a) => a.id === "imp-f" && a.name === "Imported Function")).toBe(true);
+      expect(p.assets!.assets.some((a) => a.id === "imp-d")).toBe(false);
+      expect(
+        (p.assets!.relations ?? []).some(
+          (r) => r.sourceAssetId === d && r.targetAssetId === "imp-f" && r.relationType === "required_by",
+        ),
+      ).toBe(true);
+      expect(elementRefs(p)).toBe(refsBefore);
+    };
+    check(s.project);
+    const reopened = s.reopen();
+    check(reopened.project);
+    reopened.close();
+  });
+});

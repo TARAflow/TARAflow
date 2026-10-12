@@ -2,7 +2,7 @@
 // Dialog for exporting and importing asset configuration and data
 // Allows selection of what to export/import: configuration and/or data
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Dialog,
@@ -21,15 +21,14 @@ import {
   Divider,
   Chip,
   Stack,
-  Radio,
-  RadioGroup,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import {
   Download as ExportIcon,
   Upload as UploadIcon,
   Settings as ConfigIcon,
   Storage as DataIcon,
-  Warning as WarningIcon,
 } from "@mui/icons-material";
 
 import {
@@ -41,6 +40,7 @@ import {
   AssetImportOptions,
 } from "../models/asset-types";
 import { exportableRelations } from "../utils/asset-links-transfer";
+import { planAssetImport, type ImportDecision } from "../utils/asset-import";
 
 // ==================== TYPES ====================
 
@@ -81,7 +81,9 @@ export const AssetExportImportDialog: React.FC<AssetExportImportDialogProps> = (
   // Import options state
   const [importConfig, setImportConfig] = useState(true);
   const [importAssets, setImportAssets] = useState(true);
-  const [mergeAssets, setMergeAssets] = useState(false);
+  // B14: imported assets are added; for each one that is already in the
+  // project the analyst keeps the project's asset or replaces its content.
+  const [decisions, setDecisions] = useState<Record<string, ImportDecision>>({});
 
   // Import file state
   const [importedData, setImportedData] = useState<AssetExportData | null>(null);
@@ -182,6 +184,7 @@ export const AssetExportImportDialog: React.FC<AssetExportImportDialogProps> = (
           setImportAssets(hasAssets);
 
           setImportedData(data);
+          setDecisions({});
         } catch (err) {
           setImportError(
             err instanceof Error
@@ -214,12 +217,12 @@ export const AssetExportImportDialog: React.FC<AssetExportImportDialogProps> = (
     const options: AssetImportOptions = {
       importConfiguration: importConfig && Boolean(importedData.configuration),
       importAssets: importAssets && Boolean(importedData.assets?.length),
-      mergeAssets: mergeAssets,
+      decisions,
     };
 
     onImport(importedData, options);
     onClose();
-  }, [importedData, importConfig, importAssets, mergeAssets, onImport, onClose]);
+  }, [importedData, importConfig, importAssets, decisions, onImport, onClose]);
 
   // ==================== COMPUTED ====================
 
@@ -228,7 +231,14 @@ export const AssetExportImportDialog: React.FC<AssetExportImportDialogProps> = (
     importedData?.assets !== undefined && importedData.assets.length > 0;
   const assetCountInFile = importedData?.assets?.length ?? 0;
   const linkCountInFile = hasAssetsInFile ? importedData?.relations?.length ?? 0 : 0;
-  const existingAssetCount = assetData.assets.length;
+  const plan = useMemo(
+    () => (importedData?.assets?.length ? planAssetImport(assetData.assets, importedData.assets) : null),
+    [importedData, assetData.assets],
+  );
+  const decisionOf = (id: string): ImportDecision => decisions[id] ?? "keep";
+  const setAll = (decision: ImportDecision) =>
+    setDecisions(Object.fromEntries((plan?.conflicts ?? []).map((c) => [c.imported.id, decision])));
+  const label = (a: Asset) => `${a.displayId ?? ""} ${a.name ?? ""}`.trim();
 
   const canExport = exportConfig || exportAssets;
   const canImport =
@@ -549,77 +559,86 @@ export const AssetExportImportDialog: React.FC<AssetExportImportDialogProps> = (
                 </FormGroup>
               </FormControl>
 
-              {/* Merge Option (only when importing assets) */}
-              {importAssets && hasAssetsInFile && existingAssetCount > 0 && (
+              {/* What happens to the assets (B14): added; conflicts decided per asset */}
+              {importAssets && hasAssetsInFile && plan && (
                 <>
                   <Divider />
-                  <FormControl component="fieldset">
-                    <FormLabel component="legend" sx={{ mb: 1.5 }}>
-                      {t("tabs.assets.exportImport.importMode", {
-                        defaultValue: "Import Mode",
-                      })}
-                    </FormLabel>
-                    <RadioGroup
-                      value={mergeAssets ? "merge" : "replace"}
-                      onChange={(e) =>
-                        setMergeAssets(e.target.value === "merge")
-                      }
-                    >
-                      <FormControlLabel
-                        value="replace"
-                        control={<Radio />}
-                        label={
-                          <Box>
-                            <Typography variant="body2">
-                              {t("tabs.assets.exportImport.replaceAll", {
-                                defaultValue: "Replace All",
-                              })}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {t("tabs.assets.exportImport.replaceAllDesc", {
-                                count: existingAssetCount,
-                                defaultValue: `Delete existing ${existingAssetCount} assets and import new ones`,
-                              })}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                      <FormControlLabel
-                        value="merge"
-                        control={<Radio />}
-                        label={
-                          <Box>
-                            <Typography variant="body2">
-                              {t("tabs.assets.exportImport.merge", {
-                                defaultValue: "Merge",
-                              })}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {t("tabs.assets.exportImport.mergeDesc", {
-                                defaultValue:
-                                  "Add imported assets, update existing by ID",
-                              })}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </RadioGroup>
-                  </FormControl>
-                </>
-              )}
-
-              {/* Warning for replace mode */}
-              {importAssets &&
-                hasAssetsInFile &&
-                !mergeAssets &&
-                existingAssetCount > 0 && (
-                  <Alert severity="warning" icon={<WarningIcon />}>
-                    {t("tabs.assets.exportImport.replaceWarning", {
-                      count: existingAssetCount,
-                      defaultValue: `This will delete all ${existingAssetCount} existing assets.`,
+                  <Alert severity="info" data-testid="asset-import-summary">
+                    {t("tabs.assets.exportImport.importSummary", {
+                      added: plan.added.length,
+                      conflicts: plan.conflicts.length,
+                      defaultValue: `${plan.added.length} new assets will be added · ${plan.conflicts.length} already in the project`,
                     })}
                   </Alert>
-                )}
+                  {plan.conflicts.length > 0 && (
+                    <Box data-testid="asset-import-conflicts">
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
+                          {t("tabs.assets.exportImport.conflictsTitle", {
+                            defaultValue: "Already in the project",
+                          })}
+                        </Typography>
+                        <Button size="small" onClick={() => setAll("keep")} data-testid="asset-import-keep-all">
+                          {t("tabs.assets.exportImport.keepAll", { defaultValue: "Keep all" })}
+                        </Button>
+                        <Button size="small" onClick={() => setAll("replace")} data-testid="asset-import-replace-all">
+                          {t("tabs.assets.exportImport.replaceAll", { defaultValue: "Replace all" })}
+                        </Button>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                        {t("tabs.assets.exportImport.conflictsHelp", {
+                          defaultValue:
+                            "Keep: the project's asset stays as it is, nothing of the file applies to it (no links either). Replace: its content comes from the file; ID, group and everything that references it in this project stay.",
+                        })}
+                      </Typography>
+                      <Stack spacing={0.75} sx={{ maxHeight: 260, overflow: "auto" }}>
+                        {plan.conflicts.map((c) => (
+                          <Stack
+                            key={c.imported.id}
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                            data-testid={`asset-import-conflict-${c.imported.id}`}
+                          >
+                            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                              <Typography variant="body2" noWrap>
+                                {label(c.existing)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {c.matchedBy === "id"
+                                  ? t("tabs.assets.exportImport.sameId", { defaultValue: "same asset (same ID)" })
+                                  : t("tabs.assets.exportImport.sameName", {
+                                      file: label(c.imported),
+                                      defaultValue: `same name and group as ${label(c.imported)} in the file`,
+                                    })}
+                              </Typography>
+                            </Box>
+                            <ToggleButtonGroup
+                              size="small"
+                              exclusive
+                              value={decisionOf(c.imported.id)}
+                              onChange={(_, v: ImportDecision | null) =>
+                                v && setDecisions((d) => ({ ...d, [c.imported.id]: v }))
+                              }
+                            >
+                              <ToggleButton value="keep" data-testid={`asset-import-keep-${c.imported.id}`}>
+                                {t("tabs.assets.exportImport.keep", { defaultValue: "Keep" })}
+                              </ToggleButton>
+                              <ToggleButton
+                                value="replace"
+                                color="warning"
+                                data-testid={`asset-import-replace-${c.imported.id}`}
+                              >
+                                {t("tabs.assets.exportImport.replace", { defaultValue: "Replace" })}
+                              </ToggleButton>
+                            </ToggleButtonGroup>
+                          </Stack>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+                </>
+              )}
 
               {!canImport && (
                 <Alert severity="info">
