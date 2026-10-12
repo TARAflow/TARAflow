@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.12.0-alpha`
+> **Current version:** `v0.13.0-alpha`
 
 TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
 
@@ -43,9 +43,25 @@ Supported modeling concepts include:
 * Protocol and communication metadata
 * Security and contextual properties
 * Validation and consistency checks
-* Asset relationships
+* Asset relationships, restricted to the relation types the element rules allow
+
+Three views of the same model: the **diagram**, a **description** view with one accordion per element, and the **asset graph**.
 
 The DFD model acts as the foundation for subsequent security analysis.
+
+---
+
+### Asset Graph
+
+The asset graph shows how assets relate to each other across layers — chains such as Data → Function → System, or which function a process invokes in which step — that a list per asset hides.
+
+* Layer view: one lane per vertical layer (data → function → system → infrastructure), process, service, physical, human and environment in a side column; presets and a custom layer choice
+* Focus view around one asset (depth 1–3), including the DFD elements that relate to it
+* Links to hidden layers shown as counters on the node; relation type filter and search that explains why a hit is not visible
+* Detail cards for assets and links; "Show in graph" from the asset table and "Show in table" back
+* Edit mode: connect assets by dragging, with every target marked as valid, reverse-only or not allowed and a type chooser that offers only allowed types; create and delete assets; edit link attributes and asset properties; relate DFD elements to assets; undo / redo
+* Stable layout — nodes move only on "Rearrange"; positions are remembered locally per project, never in the project file
+* Keyboard operation (Tab / arrow keys, Enter, Delete, Esc)
 
 ---
 
@@ -63,6 +79,8 @@ TARAflow supports:
 * Threat ↔ goal cross-checks: threats that violate no active goal, goals no threat violates, and the number of threats per goal
 * Impact assessment, safety impact, asset categorization
 * Asset-to-DFD synchronization and asset relationship management
+* Asset links (asset-to-asset relations) stored in the project, shown in the asset table and the asset dialog, read from the listed asset; findings for links the rules no longer allow
+* Asset export / import with asset links; the import adds assets and asks per asset whether an asset already in the project is kept or replaced
 * Project-wide asset deletion (DFD, hazards, risks)
 
 Changes to the underlying DFD can be reflected in the corresponding asset model.
@@ -537,7 +555,9 @@ The project format contains the information required to reconstruct and analyze 
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
-The file carries a schema version. Older projects are migrated automatically when opened, and a backup of the original file is written alongside it. A migrated project cannot be opened again by an older TARAflow version (current schema: **7**, since `v0.11.1-alpha`).
+The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **8**, since `v0.13.0-alpha`).
+
+View state such as the positions in the asset graph is not part of the project file.
 
 ---
 
@@ -594,11 +614,12 @@ Recent development versions include:
 * `v0.11.1-alpha` — identity and label integrity, DFD thumbnail fixes
 * `v0.11.2-alpha` — dependency and supply-chain hardening
 * `v0.12.0-alpha` — security-goal rework, risk impact aggregation, threat generation drift
+* `v0.13.0-alpha` — asset graph with edit mode, persistent asset-to-asset relations (schema 8)
 
 The current development state is represented by:
 
 ```text
-v0.12.0-alpha
+v0.13.0-alpha
 ```
 
 See [`CHANGELOG.md`](CHANGELOG.md) for details.
@@ -657,7 +678,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.12.0-alpha**
+**TARAflow 0.13.0-alpha**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 

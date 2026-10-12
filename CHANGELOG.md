@@ -1,3 +1,109 @@
+## [0.13.0-alpha] - 2026-10-12
+
+A feature release around **asset-to-asset relations**. Asset links are now
+stored in the project and survive save and reopen — before, they lived only
+on a runtime copy and were lost. On top of that, the DFD tab gets a third
+view: the **asset graph**, which shows how assets relate across layers and
+lets the analyst model them directly — asset links, assets, their properties
+and DFD element relations.
+
+> **Project format:** schema version **8** (was 7). Asset links are stored as
+> an edge list in `assets.relations`. Opening an older project asks before it
+> is converted; a backup is written first. A converted project cannot be
+> opened by an older TARAflow version.
+
+### Upgrading existing projects
+- **Conversion only on request.** Starting the app no longer converts the
+  projects of the recent list. Opening a project with an older schema shows
+  what changes per schema step, the backup path, and that older versions
+  cannot open the file afterwards; Cancel writes nothing.
+- **Asset links from older files** that are still found on the DFD asset
+  copy are taken over into `assets.relations`. Links that an earlier version
+  already lost when saving cannot be restored.
+- **Element → asset relations** get the group of the asset they point to
+  when the project is loaded. Earlier versions stored every "uses" as a
+  system and every "accesses" as an infrastructure relation, also for
+  service and physical assets. Qualifiers are left as they are; the relation
+  dialog asks for a valid one when it is edited next.
+- **Validation of data flows** follows the element rules. Relations the rules
+  allow (e.g. DataFlow → Function "invokes") are no longer reported; types
+  the rules do not allow are reported for data flows as for other elements.
+
+### Added
+- **Asset graph** — third view in the DFD tab next to Diagram and Description:
+  - Layer view with one lane per vertical layer (data → function → system →
+    infrastructure) and a side column for process, service, physical, human
+    and environment; presets (All, Architecture, Flow, Services &
+    dependencies, Protection targets) and a custom layer choice. Links to
+    hidden layers appear as counters on the node; a click shows the layer.
+  - Focus view around one asset with depth 1–3, including the DFD elements
+    that relate to it.
+  - Relation type filter and search; a hit in a hidden layer or outside the
+    focus says why and offers to show it.
+  - Detail card for an asset (relations grouped by type, DFD elements) or a
+    link (type, step, rationale, degraded mode, notes); "Show in table".
+  - Highlights: selection, newly appeared assets and links, search hit, and a
+    symbol on links the rules no longer allow.
+  - Stable layout: nodes move only on "Rearrange"; positions are remembered
+    locally per project (never in the project file).
+  - Keyboard: Tab and arrow keys select nodes, Enter focuses, Delete removes
+    (edit mode), Esc closes or cancels.
+- **Edit mode in the asset graph** (visibly marked):
+  - Connect by dragging from a node's handle; while dragging, every asset is
+    marked as valid, reverse-only or not allowed. The chooser offers only
+    allowed types (core types first), shows existing ones as taken, and helps
+    with the direction.
+  - Create an asset in a layer ("+" on the lane) and delete one with the
+    usual confirmation listing everything that depends on it.
+  - Edit link attributes (step, rationale, notes, degraded mode) and asset
+    properties in the card — the same forms and write paths as the side panel.
+  - Relate DFD elements to assets: from an element's handle or "Link to
+    element" in the asset card, with the side panel's relation dialog.
+  - Undo / redo of link changes (Ctrl+Z, Ctrl+Shift+Z).
+- **Asset Links** column in the asset table and "Linked assets" in the asset
+  dialog, read from the listed asset ("requires DA-002" at the target).
+- **"Show in graph"** from the asset table; the row is marked when coming
+  back via "Show in table".
+- **Findings for asset links** the rules no longer allow (e.g. after a group
+  change), in the asset tab and in the DFD notification panel; nothing is
+  deleted.
+- **Mirror hint** in the relation dialog when the same fact already exists
+  in the opposite direction (e.g. required_by ↔ reads).
+- **Audit diff**: asset links (added, removed, changed).
+- **Asset export/import** carries the asset links between the exported assets.
+
+### Changed
+- **One place to edit per view** in the DFD tab: the side panel only in the
+  diagram view; the description view edits in its accordions, the asset graph
+  in its cards. Notifications navigate in the current view. The description
+  view uses the full width.
+- **Asset import adds.** The former "Replace all" mode (which imported no
+  assets) is gone. Assets already in the project — same id, or same group and
+  name — are listed with **Keep** (default) or **Replace** per asset; replacing
+  keeps the asset's identity, so DFD relations, risks and hazard references
+  stay valid. Nothing is deleted.
+- **Element → asset relation dialog** offers only the relation types and
+  asset groups the element rules allow, and the qualifiers of the asset's
+  group (service: api/sdk/webhook/managed, physical: direct/indirect/remote).
+  Stored relations the rules do not allow are marked and must be removed
+  before saving.
+- **Step order** is offered only for relation types where it means something
+  (invokes, configures).
+- The asset tree in the DFD asset panel follows a selection made elsewhere.
+
+### Fixed
+- Asset-to-asset relations were lost on save and reopen.
+- The first asset edit after opening a project from the list was dropped
+  without notice.
+- A DFD import into a new project lost the asset-to-asset relations.
+- The relation dialog in the description view offered no target assets, and
+  hid a target as soon as any relation to it existed.
+- Service "uses" and physical "accesses" relations were stored with the wrong
+  group and lost their qualifier in the asset table.
+- The DFD editor stayed empty because diagrams.net rejects requests with a
+  localhost referrer; draw.io is loaded without a referrer.
+- Loading the recent list converted and overwrote every older project.
+
 ## [0.12.0-alpha] - 2026-10-02
 
 A feature release around **security goals and risk impact**. Security goals

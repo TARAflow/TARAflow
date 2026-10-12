@@ -441,7 +441,7 @@ not the draw.io topology. Rationale: for many users the **DFD is a drawing surfa
 **asset graph is the security model**.
 
 The generator does **not** build its own view. The asset graph view is specified in
-`doc/Open/DFD/asset-graph-view-requirements.md` (layer and focus view, view and edit mode,
+`doc/Done/DFD/asset-graph-view-requirements.md` (layer and focus view, view and edit mode,
 implementation phases 0–4). The generator contributes a **review overlay** to that view: review
 state, batch highlighting and the batch/item actions below.
 

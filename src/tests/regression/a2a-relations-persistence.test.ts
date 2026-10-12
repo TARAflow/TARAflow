@@ -1,6 +1,6 @@
 // src/tests/regression/a2a-relations-persistence.test.ts
 //
-// Gate G1 (doc/Open/DFD/asset-graph-view-requirements.md §8, finding B1):
+// Gate G1 (doc/Done/DFD/asset-graph-view-requirements.md §8, finding B1):
 // are asset-to-asset (A2A) relations persisted, and where on the chain are
 // they lost?
 //

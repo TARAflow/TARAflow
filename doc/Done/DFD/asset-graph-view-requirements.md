@@ -2,13 +2,15 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.25 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** **Umgesetzt** — v2.26 (2026-10-12), Phasen 0–3 released in `v0.13.0-alpha`. Phase 4
+> sowie AR-7/B12 und der Referenz-Snapshot aus Phase 2 sind ausgelagert nach
+> `doc/Open/DFD/asset-graph-process-view-requirements.md`. **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). **Phase 3 abgeschlossen** (Edit Mode; B14 und B15 behoben).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
-> **Ablage:** `doc/Open/DFD/asset-graph-view-requirements.md`
+> **Ablage:** `doc/Done/DFD/asset-graph-view-requirements.md` (bis v2.25 unter `doc/Open/DFD/`)
 > **Code-Stand der Bestandsaufnahme:** `main` @ `22e9d26` (2026-09-30); G1-Automatik und §10 Frage 1
 > geprüft gegen `main` @ `daacc38` (2026-10-02, Persistenzpfad seit `22e9d26` unverändert).
 > **Konvention:** Prosa Deutsch, Identifier/Typen/Code englisch.
@@ -47,6 +49,7 @@
 | v2.23 | 2026-10-12 | B15 Teil 1: Element-Beziehungsdialog des Seitenpanels nach Regelwerk; unzulässige gespeicherte Beziehungen markiert, Speichern erst nach Entfernen; Validator prüft Datenflüsse nach dem Regelwerk. |
 | v2.24 | 2026-10-12 | B15 Teil 2: Gruppe einer Element-Beziehung vom Asset, Qualifier je Gruppe, Reparatur beim Laden. **B15 behoben.** |
 | v2.25 | 2026-10-12 | B14 behoben: Asset-Import fügt hinzu; bereits vorhandene Assets je Asset behalten oder ersetzen. |
+| v2.26 | 2026-10-12 | **Abgeschlossen**, released in `v0.13.0-alpha`; nach `doc/Done/DFD/` verschoben. Phase 4, AR-7/B12 und der Referenz-Snapshot aus Phase 2 weiter in `doc/Open/DFD/asset-graph-process-view-requirements.md`. |
 
 ---
 
@@ -865,6 +868,10 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
   Graph-Historie (FR-E9 gilt für Asset Links).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen
+
+> **Ausgelagert (v2.26):** Phase 4 wird in `doc/Open/DFD/asset-graph-process-view-requirements.md`
+> weitergeführt, zusammen mit AR-7/B12 und dem Referenz-Snapshot aus Phase 2. Die Anforderungen
+> behalten ihre IDs; der Text hier bleibt als Herkunft stehen.
 
 **Ziel:** Die Erkenntnisse aus der Schulung im Modell und in der Darstellung verankern.
 

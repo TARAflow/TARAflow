@@ -1,5 +1,5 @@
 // features/dfd/asset-graph — asset graph view (requirements:
-// doc/Open/DFD/asset-graph-view-requirements.md, phase 2).
+// doc/Done/DFD/asset-graph-view-requirements.md, phase 2).
 export * from "./asset-graph-types";
 export * from "./asset-graph-layers";
 export * from "./build-asset-graph";
