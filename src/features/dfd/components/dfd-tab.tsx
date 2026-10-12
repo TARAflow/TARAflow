@@ -801,6 +801,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onShowElement={handleGraphShowElement}
               focusRequest={graphFocusRequest}
               onShowInTable={onShowInTable}
+              onCreateAsset={handleCreateAssetForGroup}
+              onDeleteAsset={handleDeleteAsset}
+              assetUsage={assetUsage}
               // The details panel overlays the canvas on the right (500 px
               // open, a 20 px handle closed).
               rightInset={detailsPanelOpen ? 520 : 20}

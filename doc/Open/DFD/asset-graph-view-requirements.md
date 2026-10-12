@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.14 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.15 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -36,6 +36,7 @@
 | v2.12 | 2026-10-12 | Phase 2 Teil 1: Aufbereitung, Layout und Ansicht „Asset-Graph“ im DFD-Tab (lesend), gemeinsame Auswahl mit dem Asset-Panel, „Im Graph zeigen“ aus der Asset-Tabelle. Stand und offene Punkte in §8 Phase 2. |
 | v2.13 | 2026-10-12 | Phase 2 abgeschlossen: Typ-Filter und Suche mit „warum nicht sichtbar“ (FR-V10), Detailkarte mit Beziehungen nach Typ und Kantendetails (FR-V8), „In Tabelle zeigen“ (FR-V13), Hervorhebungsstufen nach UX-4. |
 | v2.14 | 2026-10-12 | Phase 3 Teil 1: Umschalter Ansehen/Bearbeiten, Beziehung per Ziehen mit Zielmarkierung, Typauswahl, Richtungshilfe und Spiegelhinweis, Link löschen — alles über den einen Schreibweg. |
+| v2.15 | 2026-10-12 | Phase 3 Teil 2: Asset anlegen je Ebene (FR-E2/E3) und Asset löschen mit Folgenanzeige (FR-E8) im Graph. |
 
 ---
 
@@ -745,8 +746,15 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
   Beziehungsdialog, damit derselbe Projektzustand (FR-E10, AR-5). Neue Kante pulsiert kurz,
   Auswahl bleibt bei der Quelle, keine Neuanordnung (FR-E11, UX-5).
 - ✅ Link löschen in der Detailkarte im Bearbeiten-Modus (FR-E8, Teil Beziehungen).
-- Offen in Phase 3: Asset anlegen je Ebene (FR-E2/E3, D4), Asset löschen mit Folgenanzeige
-  (FR-E8), Attribute im Detailpanel bearbeiten (FR-E6), Element-zu-Asset-Beziehungen (FR-E7),
+- ✅ (v2.15) Asset anlegen: „+“ an jeder sichtbaren Ebenen-Bahn der Ebenen-Sicht, auch an leeren
+  Ebenen (FR-E2). Angelegt über denselben Weg wie im Asset-Panel (`createAsset` im DFD-Tab,
+  `source: "dfd"`, D4) — damit sofort in den DFD-Pickern und dauerhaft (FR-E3). Das neue Asset
+  erscheint am Ende seiner Bahn, nichts anderes bewegt sich (UX-5), und ist zum Benennen im
+  Asset-Panel ausgewählt. In der Fokus-Sicht kein „+“ (ein neues Asset hat noch keine Beziehung
+  und läge ausserhalb des Fokus).
+- ✅ (v2.15) Asset löschen in der Detailkarte: Bestätigung mit Folgenanzeige
+  (`ConfirmAssetDeleteDialog`, `assetUsage`), dann derselbe Weg wie im Asset-Panel (FR-E8).
+- Offen in Phase 3: Attribute im Detailpanel bearbeiten (FR-E6), Element-zu-Asset-Beziehungen (FR-E7),
   Undo/Redo (FR-E9), Tastaturbedienung (NFR-4), lokale Positionsspeicherung (FR-V15).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen

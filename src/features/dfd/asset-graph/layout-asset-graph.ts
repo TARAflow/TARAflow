@@ -70,20 +70,27 @@ function laneKey(node: AssetGraphNode): string {
   return node.kind === "anchor" ? ANCHOR_LANE : String(node.group);
 }
 
-/** Lane geometry for a node set (only lanes that hold nodes are returned). */
-function computeLanes(nodes: readonly AssetGraphNode[]): Map<string, LaneSlot> {
+/**
+ * Lane geometry for a node set: lanes that hold nodes, plus `extraLanes`
+ * (edit mode: every visible layer gets a lane to create assets in).
+ */
+function computeLanes(
+  nodes: readonly AssetGraphNode[],
+  extraLanes: readonly string[] = [],
+): Map<string, LaneSlot> {
   const counts = new Map<string, number>();
   for (const n of nodes) counts.set(laneKey(n), (counts.get(laneKey(n)) ?? 0) + 1);
+  const present = new Set<string>([...counts.keys(), ...extraLanes]);
 
   const top = VERTICAL_LAYERS.length - 1;
   const slots = new Map<string, LaneSlot>();
   VERTICAL_LAYERS.forEach((layer, i) => {
-    if (!counts.has(layer)) return;
+    if (!present.has(layer)) return;
     slots.set(layer, {
       lane: { id: layer, kind: "vertical", y: (top - i) * LANE_HEIGHT },
     });
   });
-  if (counts.has(ANCHOR_LANE)) {
+  if (present.has(ANCHOR_LANE)) {
     slots.set(ANCHOR_LANE, {
       lane: { id: ANCHOR_LANE, kind: "anchors", y: (top + 1) * LANE_HEIGHT },
     });
@@ -97,8 +104,8 @@ function computeLanes(nodes: readonly AssetGraphNode[]): Map<string, LaneSlot> {
   // Side column rows; environment shares the human row, one step further out.
   let row = 0;
   for (const layer of ORTHOGONAL_LAYERS) {
-    if (!counts.has(layer)) continue;
-    if (layer === "environment" && counts.has("human")) {
+    if (!present.has(layer)) continue;
+    if (layer === "environment" && present.has("human")) {
       const human = slots.get("human")!;
       const x = columnX + Math.max(1, counts.get("human") ?? 1) * NODE_SPACING;
       slots.set(layer, {
@@ -132,8 +139,9 @@ interface SimNode extends SimulationNodeDatum {
 export function layoutAssetGraph(
   graph: Pick<AssetGraph, "nodes" | "edges">,
   previous: Positions = new Map(),
+  options: { readonly extraLanes?: readonly string[] } = {},
 ): AssetGraphLayout {
-  const slots = computeLanes(graph.nodes);
+  const slots = computeLanes(graph.nodes, options.extraLanes);
   const lanes = [...slots.values()].map((s) => s.lane);
 
   // Neighbours (for placing new nodes next to a positioned one).

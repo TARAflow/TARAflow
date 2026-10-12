@@ -110,4 +110,65 @@ describe("AssetGraphView — edit mode", () => {
     fireEvent.click(screen.getByTestId("asset-graph-delete-link"));
     expect(commit).toHaveBeenCalledWith([{ kind: "remove", relationId: "r1" }]);
   });
+
+  it("edit mode in the layer view offers + in every visible layer, also empty ones (FR-E2)", () => {
+    const onCreateAsset = vi.fn();
+    const onSelectAsset = vi.fn();
+    const commit = vi.fn();
+    const { rerender } = render(
+      <A2AOpsProvider commit={commit}>
+        <AssetGraphView source={source} selectedAssetId={null} onSelectAsset={onSelectAsset} onCreateAsset={onCreateAsset} />
+      </A2AOpsProvider>,
+    );
+    expect(screen.queryByTestId("asset-graph-create-data")).toBeNull(); // view mode
+    fireEvent.click(screen.getByTestId("asset-graph-mode-edit"));
+    // architecture preset: data, function, infrastructure have assets; system is empty
+    expect(screen.getByTestId("asset-graph-create-system")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("asset-graph-create-data"));
+    expect(onCreateAsset).toHaveBeenCalledWith("data");
+
+    // The new asset arrives: it is selected (to be named) and sits in the data lane
+    // at the end, next to the existing data asset.
+    const grown: AssetGraphSource = {
+      ...source,
+      assets: [...source.assets, { id: "d9", displayId: "DA-002", name: "", assetGroup: "data" }],
+    };
+    rerender(
+      <A2AOpsProvider commit={commit}>
+        <AssetGraphView source={grown} selectedAssetId={null} onSelectAsset={onSelectAsset} onCreateAsset={onCreateAsset} />
+      </A2AOpsProvider>,
+    );
+    expect(onSelectAsset).toHaveBeenLastCalledWith("d9");
+    const pos = (id: string) =>
+      screen.getByTestId(`asset-graph-node-${id}`).getAttribute("transform")!.match(/translate\(([-\d.]+),([-\d.]+)\)/)!.slice(1).map(Number);
+    const [x1, y1] = pos("d1");
+    const [x9, y9] = pos("d9");
+    expect(y9).toBe(y1);
+    expect(x9).toBeGreaterThan(x1);
+    expect(screen.getByTestId("asset-graph-inspector-asset")).toHaveTextContent("DA-002");
+  });
+
+  it("deleting an asset asks first, with its usage, then uses the asset panel's path (FR-E8)", () => {
+    const onDeleteAsset = vi.fn();
+    const assetUsage = vi.fn(() => ({ dfdRelations: 2, assetToAssetRelations: 1, hazardRelations: 0, blockingAttackTrees: [] }));
+    render(
+      <A2AOpsProvider commit={vi.fn()}>
+        <AssetGraphView
+          source={source}
+          selectedAssetId={null}
+          onSelectAsset={() => {}}
+          onDeleteAsset={onDeleteAsset}
+          assetUsage={assetUsage as never}
+        />
+      </A2AOpsProvider>,
+    );
+    fireEvent.click(screen.getByTestId("asset-graph-node-d1"));
+    expect(screen.queryByTestId("asset-graph-delete-asset")).toBeNull(); // view mode
+    fireEvent.click(screen.getByTestId("asset-graph-mode-edit"));
+    fireEvent.click(screen.getByTestId("asset-graph-delete-asset"));
+    expect(assetUsage).toHaveBeenCalledWith("d1");
+    expect(onDeleteAsset).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(onDeleteAsset).toHaveBeenCalledWith("d1");
+  });
 });

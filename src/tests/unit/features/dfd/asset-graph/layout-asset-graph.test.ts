@@ -99,3 +99,17 @@ describe("layoutAssetGraph", () => {
     expect(layoutAssetGraph({ nodes: [], edges: [] })).toEqual({ positions: new Map(), lanes: [] });
   });
 });
+
+describe("layoutAssetGraph — extra lanes (edit mode)", () => {
+  it("empty layers get a lane when asked for, without moving anything", () => {
+    const g = buildAssetGraph(
+      { assets: [asset("d1", "data")], relations: [], elements: [] },
+      { view: "layers", layers: ASSET_GRAPH_PRESETS.architecture },
+    );
+    const plain = layoutAssetGraph(g);
+    expect(plain.lanes.map((l) => l.id)).toEqual(["data"]);
+    const withLanes = layoutAssetGraph(g, new Map(), { extraLanes: ["function", "system", "human"] });
+    expect(withLanes.lanes.map((l) => l.id).sort()).toEqual(["data", "function", "human", "system"]);
+    expect(withLanes.positions.get("d1")).toEqual(plain.positions.get("d1"));
+  });
+});

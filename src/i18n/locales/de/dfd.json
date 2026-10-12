@@ -40,6 +40,7 @@
         "noMatch": "Kein Asset passt zu „{{query}}“.",
         "hitHiddenLayer": "{{asset}} liegt in der ausgeblendeten Ebene {{layer}}.",
         "hitOutsideFocus": "{{asset}} liegt ausserhalb des Fokus (Tiefe {{depth}}).",
+        "create": "Neues Asset in {{layer}}",
         "mode": {
           "view": "Ansehen",
           "edit": "Bearbeiten",
@@ -75,7 +76,8 @@
           "noRelations": "Keine Beziehungen.",
           "focus": "Fokussieren",
           "showInTable": "In Tabelle zeigen",
-          "deleteLink": "Link löschen"
+          "deleteLink": "Link löschen",
+          "deleteAsset": "Asset löschen"
         },
         "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren"
       },

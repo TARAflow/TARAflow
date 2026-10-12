@@ -40,6 +40,7 @@
         "noMatch": "No asset matches \"{{query}}\".",
         "hitHiddenLayer": "{{asset}} is in the hidden layer {{layer}}.",
         "hitOutsideFocus": "{{asset}} is outside the focus (depth {{depth}}).",
+        "create": "New asset in {{layer}}",
         "mode": {
           "view": "View",
           "edit": "Edit",
@@ -75,7 +76,8 @@
           "noRelations": "No relations.",
           "focus": "Focus",
           "showInTable": "Show in table",
-          "deleteLink": "Delete link"
+          "deleteLink": "Delete link",
+          "deleteAsset": "Delete asset"
         },
         "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus"
       },

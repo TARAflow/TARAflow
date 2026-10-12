@@ -61,6 +61,7 @@ import { buildAssetGraph, DEFAULT_FOCUS_DEPTH } from "./build-asset-graph";
 import {
   ANCHOR_LANE,
   LANE_HEIGHT,
+  NODE_SPACING,
   NODE_RADIUS,
   layoutAssetGraph,
   type Point,
@@ -69,7 +70,12 @@ import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
 import { AssetGraphInspector } from "./asset-graph-inspector";
 import { ConnectChooser, type ConnectChoice, type ConnectRequest } from "./asset-graph-connect";
 import { useA2AOps } from "../contexts/a2a-ops-context";
-import { classifyA2ATargets, type A2ATargetClass } from "shared";
+import {
+  classifyA2ATargets,
+  ConfirmAssetDeleteDialog,
+  type A2ATargetClass,
+  type AssetUsageLookup,
+} from "shared";
 import {
   assetVisibility,
   invalidLinks,
@@ -96,6 +102,12 @@ export interface AssetGraphViewProps {
    * canvas). Detail card, legend and centring keep clear of it.
    */
   readonly rightInset?: number;
+  /** Edit mode: create an asset of a group (same path as the asset panel). */
+  readonly onCreateAsset?: (group: AssetGroup) => void;
+  /** Edit mode: delete an asset (same path as the asset panel). */
+  readonly onDeleteAsset?: (assetId: string) => void;
+  /** Usage counts for the delete confirmation (FR-E8). */
+  readonly assetUsage?: AssetUsageLookup;
   readonly darkMode?: boolean;
 }
 
@@ -133,6 +145,9 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   onShowElement,
   focusRequest,
   onShowInTable,
+  onCreateAsset,
+  onDeleteAsset,
+  assetUsage,
   rightInset = 0,
   darkMode = false,
 }) => {
@@ -223,13 +238,30 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   // ── Layout: stable within the session (AR-12) ───────────────────────────
   const positionsRef = useRef<Map<string, Point>>(new Map());
   const [layoutEpoch, setLayoutEpoch] = useState(0);
+  // FR-E2: an asset created from a lane's "+" appears where it was asked for.
+  const pendingCreateRef = useRef<{ group: string; x: number; y: number } | null>(null);
+  const createdIdRef = useRef<string | null>(null);
+  const canCreate = editing && state.view === "layers" && !!onCreateAsset;
   const layout = useMemo(() => {
-    const result = layoutAssetGraph(graph, positionsRef.current);
+    const pending = pendingCreateRef.current;
+    if (pending) {
+      const fresh = graph.nodes.find(
+        (n) => n.kind === "asset" && String(n.group) === pending.group && !positionsRef.current.has(n.id),
+      );
+      if (fresh) {
+        positionsRef.current.set(fresh.id, { x: pending.x, y: pending.y });
+        pendingCreateRef.current = null;
+        createdIdRef.current = fresh.id;
+      }
+    }
+    const result = layoutAssetGraph(graph, positionsRef.current, {
+      extraLanes: canCreate ? state.layers : [],
+    });
     for (const [id, p] of result.positions) positionsRef.current.set(id, p);
     return result;
     // layoutEpoch forces a fresh layout after "rearrange".
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, layoutEpoch]);
+  }, [graph, layoutEpoch, canCreate]);
 
   const rearrange = useCallback(() => {
     positionsRef.current = new Map();
@@ -462,6 +494,32 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     setSelectedEdgeId(null);
     setInspectorOpen(false);
   };
+
+  // The asset just created from a lane: select it so it can be named in the
+  // asset panel (the name is required, FR-E2).
+  useEffect(() => {
+    const id = createdIdRef.current;
+    if (!id) return;
+    createdIdRef.current = null;
+    setInspectedAssetId(id);
+    setInspectorOpen(true);
+    onSelectAsset(id);
+  }, [layout]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const createIn = (lane: { id: string; y: number; x?: number }) => {
+    if (!onCreateAsset) return;
+    // Next free place at the end of the lane.
+    const xs = graph.nodes
+      .filter((n) => n.kind === "asset" && String(n.group) === lane.id)
+      .map((n) => layout.positions.get(n.id)?.x)
+      .filter((x): x is number => x !== undefined);
+    const x = xs.length > 0 ? Math.max(...xs) + NODE_SPACING : lane.x ?? 0;
+    pendingCreateRef.current = { group: lane.id, x, y: lane.y };
+    onCreateAsset(lane.id as AssetGroup);
+  };
+
+  // FR-E8: delete an asset after the usual confirmation with its usage.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // FR-E11 / UX-4 stage 2: a link that appears while the view is open pulses.
   const knownLinkIdsRef = useRef<Set<string> | null>(null);
@@ -888,6 +946,26 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
                     : groupLabel(lane.id)}
                 </text>
+                {canCreate && lane.id !== ANCHOR_LANE && (
+                  <g
+                    transform={`translate(${(lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2) + 14},${lane.y - LANE_HEIGHT / 2 + 16})`}
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      createIn(lane);
+                    }}
+                    data-testid={`asset-graph-create-${lane.id}`}
+                  >
+                    <title>
+                      {t("tabs.dfd.assetGraph.create", {
+                        defaultValue: "New asset in {{layer}}",
+                        layer: groupLabel(lane.id),
+                      })}
+                    </title>
+                    <circle r={9} fill={darkMode ? "#2a2a2a" : "#fff"} stroke="#ed6c02" strokeWidth={2} />
+                    <text textAnchor="middle" dy={4} fontSize={14} fontWeight={700} fill="#ed6c02">+</text>
+                  </g>
+                )}
               </g>
             ))}
 
@@ -1121,6 +1199,24 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           </g>
         </svg>
 
+        {confirmDeleteId && (
+          <ConfirmAssetDeleteDialog
+            open
+            assetLabel={(() => {
+              const a = source.assets.find((x) => x.id === confirmDeleteId);
+              return a ? `${a.displayId ?? ""} · ${a.name ?? ""}` : "";
+            })()}
+            usage={assetUsage?.(confirmDeleteId) ?? null}
+            onCancel={() => setConfirmDeleteId(null)}
+            onConfirm={() => {
+              onDeleteAsset?.(confirmDeleteId);
+              setConfirmDeleteId(null);
+              setInspectorOpen(false);
+              setInspectedAssetId(null);
+            }}
+          />
+        )}
+
         <ConnectChooser
           request={connectRequest}
           assets={source.assets}
@@ -1149,6 +1245,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             onShowInTable={onShowInTable}
             rightInset={rightInset}
             onDeleteLink={editing ? deleteLink : undefined}
+            onDeleteAsset={editing && onDeleteAsset ? (id) => setConfirmDeleteId(id) : undefined}
             onClose={() => {
               setInspectorOpen(false);
               setSelectedEdgeId(null);
