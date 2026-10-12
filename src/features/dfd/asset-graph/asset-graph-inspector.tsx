@@ -17,6 +17,8 @@ export interface AssetGraphInspectorProps {
   readonly source: AssetGraphSource;
   readonly assetId: string | null;
   readonly edge: AssetGraphEdge | null;
+  /** Finding reason for an asset link (validateA2ARelations), if any. */
+  readonly findingOf?: (relationId: string) => string | undefined;
   readonly typeLabel: (type: string) => string;
   readonly groupLabel: (group: string) => string;
   /** Navigate to another asset (select + centre). */
@@ -42,6 +44,7 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   source,
   assetId,
   edge,
+  findingOf,
   typeLabel,
   groupLabel,
   onGoToAsset,
@@ -92,6 +95,14 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
               ? rel.degradationDescription || t("common.yes", { defaultValue: "yes" })
               : t("common.no", { defaultValue: "no" })}
           </Row>
+        )}
+        {edge.kind === "a2a" && findingOf?.(edge.id) && (
+          <Typography variant="caption" sx={{ display: "block", color: "warning.dark", mb: 0.5 }} data-testid="asset-graph-inspector-finding">
+            {"⚠ "}
+            {t(`tabs.dfd.assetGraph.finding.${findingOf(edge.id)}`, {
+              defaultValue: "This link is not allowed for these groups (e.g. after a group change).",
+            })}
+          </Typography>
         )}
         {rel?.notes && (
           <Row label={t("tabs.dfd.assetGraph.inspector.notes", { defaultValue: "Notes" })}>{rel.notes}</Row>

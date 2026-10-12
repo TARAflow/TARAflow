@@ -150,4 +150,37 @@ describe("AssetGraphView", () => {
     expect(card).toHaveTextContent("FU-001 E-Stop");
     expect(card).toHaveTextContent("Step1");
   });
+
+  it("an invalid link gets a symbol on the link and its source node (UX-4 stage 4)", () => {
+    const invalid: AssetGraphSource = {
+      ...source,
+      assets: source.assets.map((a) => (a.id === "d1" ? { ...a, assetGroup: "human" } : a)),
+    };
+    render(
+      <AssetGraphView
+        source={invalid}
+        selectedAssetId={null}
+        onSelectAsset={() => {}}
+        focusRequest={{ assetId: "f1" }}
+      />,
+    );
+    expect(screen.getByTestId("asset-graph-finding-d1")).toBeInTheDocument();
+    expect(screen.getByTestId("asset-graph-edge-r1")).toHaveTextContent("⚠");
+    fireEvent.click(screen.getByTestId("asset-graph-edge-r1"));
+    expect(screen.getByTestId("asset-graph-inspector-finding")).toBeInTheDocument();
+  });
+
+  it("an asset that appears while the view is open pulses (UX-4 stage 2)", () => {
+    const { rerender } = render(
+      <AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />,
+    );
+    expect(screen.queryByTestId("asset-graph-fresh-d1")).toBeNull();
+    const grown: AssetGraphSource = {
+      ...source,
+      assets: [...source.assets, { id: "d9", displayId: "DA-009", name: "New", assetGroup: "data" }],
+    };
+    rerender(<AssetGraphView source={grown} selectedAssetId={null} onSelectAsset={() => {}} />);
+    expect(screen.getByTestId("asset-graph-fresh-d9")).toBeInTheDocument();
+    expect(screen.queryByTestId("asset-graph-fresh-d1")).toBeNull();
+  });
 });

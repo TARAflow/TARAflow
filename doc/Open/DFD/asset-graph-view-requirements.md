@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.12 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.13 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
-> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). Phase 2 Teil 1 umgesetzt (Ansicht lesend im DFD-Tab).
+> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Nächster Schritt: Phase 3 (Edit Mode).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -34,6 +34,7 @@
 | v2.10 | 2026-10-12 | **D2 revidiert und entschieden:** Graph-Sicht als dritte Ansicht im DFD-Tab (Diagramm / Beschreibung / Asset-Graph), weil dort Asset Links bearbeitet werden, der eine Schreibweg (AR-5) und das Asset-Panel als Detailpanel bereitstehen; aus dem Asset-Tab führt „Im Graph zeigen“ dorthin. FR-V1, FR-V8, FR-V9, FR-V13, §2 und Phase 2 angepasst. **D3** (Positionen nie in der Datei) und **D6** (`d3-force`, Spur je Ebene) entschieden. B13 behoben (Asset-Export/-Import mit Asset Links), neuer Befund B14 (Import „Alle ersetzen“ ersetzt nichts). |
 | v2.11 | 2026-10-12 | **D4, D5, D7, D8 entschieden** nach Empfehlung: im Graph angelegte Assets bekommen `source: "dfd"` (D4); Kompositionsbeziehung `consists_of [step]`, `part_of` nur Anzeige (D5); Element-zu-Asset-Bearbeitung im Graph in Phase 3 (D7, durch D2 im selben Tab); Verzweigungen per Pfadtyp + Bedingung am Schritt, eine Ebene je Schritt, tiefere Logik über Sub-Processes (D8). AR-6: Code der Graph-Sicht in `features/dfd/asset-graph`. |
 | v2.12 | 2026-10-12 | Phase 2 Teil 1: Aufbereitung, Layout und Ansicht „Asset-Graph“ im DFD-Tab (lesend), gemeinsame Auswahl mit dem Asset-Panel, „Im Graph zeigen“ aus der Asset-Tabelle. Stand und offene Punkte in §8 Phase 2. |
+| v2.13 | 2026-10-12 | Phase 2 abgeschlossen: Typ-Filter und Suche mit „warum nicht sichtbar“ (FR-V10), Detailkarte mit Beziehungen nach Typ und Kantendetails (FR-V8), „In Tabelle zeigen“ (FR-V13), Hervorhebungsstufen nach UX-4. |
 
 ---
 
@@ -674,7 +675,7 @@ Context-Bar-Zähler); Stabilitätstest: Filter-/Tiefenwechsel verändert Positio
 Knoten nicht; Snapshot der Knoten/Kanten-Menge für ein Referenzprojekt.
 **Risiko:** gering (rein lesend). Hier bereits Schulungs- und Review-Nutzen.
 
-**Stand (v2.12, 2026-10-12) — Teil 1 umgesetzt:**
+**Stand (v2.13, 2026-10-12):**
 - ✅ Aufbereitung `features/dfd/asset-graph/build-asset-graph.ts` (AR-11): Ebenen, Presets mit
   „Benutzerdefiniert“, Fokus mit Tiefe (Lauf nur über sichtbare Kanten), Typ-Filter, Stummel,
   Element-Anker, Context-Bar-Zähler, deterministische Reihenfolge. Quelle im DFD-Tab ist der
@@ -690,10 +691,23 @@ Knoten nicht; Snapshot der Knoten/Kanten-Menge für ein Referenzprojekt.
 - ✅ Gemeinsame Auswahl mit dem Asset-Panel (FR-V8: Klick wählt im Panel, Baum-Auswahl markiert
   im Graph); Doppelklick fokussiert; Klick auf einen Anker zeigt das Element im Diagramm (FR-V9).
 - ✅ „Im Graph zeigen“ in der Asset-Tabelle (FR-V13, Hinweg).
-- Offen in Phase 2: Filter-/Such-UI mit „warum nicht sichtbar“ (FR-V10; die Aufbereitung kann
-  bereits filtern), Detailpanel mit Beziehungen gruppiert nach Typ und Kantendetails (FR-V8),
-  „In Tabelle zeigen“ (FR-V13, Rückweg), Hervorhebungsstufen 2–4 (UX-4), Positionen bei
-  „Zurück zum Graph“ ausdrücklich wiederherstellen (heute implizit durch das Mounten).
+- ✅ (v2.13) Typ-Filter mit Zähler je Typ und rücksetzbarem Chip, Suche nach `displayId`/Name mit
+  „warum nicht sichtbar“ (ausgeblendete Ebene → „Ebene einblenden“, ausserhalb des Fokus →
+  „Darauf fokussieren“), Treffer zentriert und markiert (FR-V10, UX-6).
+- ✅ (v2.13) Detailkarte (FR-V8, Anzeige): Asset mit Beziehungen gruppiert nach Typ — ausgehend
+  mit gespeichertem Typ, eingehend mit inversem Namen, DFD-Elemente — jeweils klickbar zur
+  Navigation; Klick auf eine Kante zeigt Typ, Richtung, Schritt, Begründung, degradierten
+  Betrieb, Notizen. Aktionen: Fokussieren, In Tabelle zeigen. Bearbeitet wird weiterhin im
+  Asset-Panel (Phase 3).
+- ✅ (v2.13) „In Tabelle zeigen“ (FR-V13, Rückweg): Asset-Tab, Zeile markiert und in Sicht
+  geblättert; ein aktiver Review-Filter, der sie verbergen würde, wird aufgehoben.
+- ✅ (v2.13) Hervorhebungen nach UX-4: Auswahl (1), neu erschienene Assets pulsieren kurz (2),
+  Suchtreffer (3), Befund als Symbol an Kante und Quellknoten, keine Farbänderung (4). Stufe 5
+  (Abblenden) entfällt: Knoten ausserhalb von Fokus/Filter werden entfernt (FR-V5 lässt beides zu).
+- FR-V9 „Zurück zum Graph“: über den Ansichts-Umschalter; Sicht, Fokus und Positionen bleiben
+  erhalten, weil die Ansicht gemountet bleibt. Ein eigener Rücksprung-Knopf ist nicht nötig.
+- **Phase 2 damit abgeschlossen**; offen bleibt der Referenz-Snapshot aus „Tests“ (folgt mit den
+  Beispielprojekten).
 
 ### Phase 3 — Edit Mode
 

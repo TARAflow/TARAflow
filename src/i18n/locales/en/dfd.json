@@ -40,6 +40,13 @@
         "noMatch": "No asset matches \"{{query}}\".",
         "hitHiddenLayer": "{{asset}} is in the hidden layer {{layer}}.",
         "hitOutsideFocus": "{{asset}} is outside the focus (depth {{depth}}).",
+        "findingNode": "Has asset links that are not allowed — see the notifications.",
+        "finding": {
+          "type_not_allowed": "This link is not allowed for these groups (e.g. after a group change).",
+          "target_missing": "The target asset no longer exists.",
+          "self_relation": "The link points to itself.",
+          "source_missing": "The source asset no longer exists."
+        },
         "inspector": {
           "link": "Asset link",
           "elementLink": "DFD element → asset",

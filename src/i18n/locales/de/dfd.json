@@ -40,6 +40,13 @@
         "noMatch": "Kein Asset passt zu „{{query}}“.",
         "hitHiddenLayer": "{{asset}} liegt in der ausgeblendeten Ebene {{layer}}.",
         "hitOutsideFocus": "{{asset}} liegt ausserhalb des Fokus (Tiefe {{depth}}).",
+        "findingNode": "Hat Asset Links, die nicht erlaubt sind — siehe Hinweise.",
+        "finding": {
+          "type_not_allowed": "Dieser Link ist für diese Gruppen nicht erlaubt (z. B. nach Gruppenwechsel).",
+          "target_missing": "Das Ziel-Asset existiert nicht mehr.",
+          "self_relation": "Der Link zeigt auf sich selbst.",
+          "source_missing": "Das Quell-Asset existiert nicht mehr."
+        },
         "inspector": {
           "link": "Asset Link",
           "elementLink": "DFD-Element → Asset",

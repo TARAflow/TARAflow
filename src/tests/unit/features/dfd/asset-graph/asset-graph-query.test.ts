@@ -95,3 +95,15 @@ describe("relationsOfAssetGrouped (FR-V8)", () => {
     expect(out[0].items[0]).toMatchObject({ id: "f1", relationId: "r3" });
   });
 });
+
+describe("invalidLinks (UX-4 stage 4)", () => {
+  it("reports links the rules no longer allow, by relation id", async () => {
+    const { invalidLinks } = await import("features/dfd/asset-graph");
+    const src: AssetGraphSource = {
+      ...source,
+      assets: source.assets.map((a) => (a.id === "d1" ? { ...a, assetGroup: "human" } : a)),
+    };
+    expect([...invalidLinks(src)]).toEqual([["r1", "type_not_allowed"]]);
+    expect(invalidLinks(source).size).toBe(0);
+  });
+});

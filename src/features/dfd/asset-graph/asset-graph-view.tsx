@@ -67,6 +67,7 @@ import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
 import { AssetGraphInspector } from "./asset-graph-inspector";
 import {
   assetVisibility,
+  invalidLinks,
   relationTypesIn,
   searchAssets,
   type AssetVisibility,
@@ -166,6 +167,28 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     [source, state],
   );
   const availableTypes = useMemo(() => relationTypesIn(source), [source]);
+  // UX-4 stage 4: invalid links get a small symbol (link and source node).
+  const findings = useMemo(() => invalidLinks(source), [source]);
+  const nodesWithFindings = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of source.relations) if (findings.has(r.id)) ids.add(r.sourceAssetId);
+    return ids;
+  }, [source, findings]);
+
+  // UX-4 stage 2: assets that appear while the view is open pulse briefly.
+  const knownAssetIdsRef = useRef<Set<string> | null>(null);
+  const [freshIds, setFreshIds] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    const ids = new Set(source.assets.map((a) => a.id));
+    const known = knownAssetIdsRef.current;
+    knownAssetIdsRef.current = ids;
+    if (!known) return; // first render: nothing is "new"
+    const fresh = [...ids].filter((id) => !known.has(id));
+    if (fresh.length === 0) return;
+    setFreshIds(new Set(fresh));
+    const timer = setTimeout(() => setFreshIds(new Set()), 2400);
+    return () => clearTimeout(timer);
+  }, [source]);
 
   // ── Layout: stable within the session (AR-12) ───────────────────────────
   const positionsRef = useRef<Map<string, Point>>(new Map());
@@ -698,8 +721,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     markerEnd="url(#ag-arrow)"
                   />
                   <text x={mx} y={my - 4} fontSize={10} fill={fg} textAnchor="middle" paintOrder="stroke" stroke={darkMode ? "#1a1a1a" : "#fafafa"} strokeWidth={3}>
+                    {findings.has(e.id) ? "⚠ " : ""}
                     {label}
                   </text>
+                  {findings.has(e.id) && (
+                    <title>
+                      {t(`tabs.dfd.assetGraph.finding.${findings.get(e.id)}`, {
+                        defaultValue: "This link is not allowed for these groups (e.g. after a group change).",
+                      })}
+                    </title>
+                  )}
                   {e.stepOrder !== undefined && (
                     <g transform={`translate(${mx + label.length * 2.8 + 10},${my - 8})`}>
                       <circle r={7} fill={muted} />
@@ -746,6 +777,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   onDoubleClick={() => focusOn(n.id)}
                   data-testid={`asset-graph-node-${n.id}`}
                 >
+                  {freshIds.has(n.id) && !selected && (
+                    <circle r={NODE_RADIUS} fill="none" stroke={color} strokeWidth={2} data-testid={`asset-graph-fresh-${n.id}`}>
+                      <animate attributeName="r" from={NODE_RADIUS} to={NODE_RADIUS + 16} dur="0.8s" repeatCount="3" />
+                      <animate attributeName="opacity" from="0.9" to="0" dur="0.8s" repeatCount="3" />
+                    </circle>
+                  )}
                   {hit && (
                     <circle r={NODE_RADIUS + 7} fill="none" stroke="#f9a825" strokeWidth={3} data-testid={`asset-graph-hit-${n.id}`} />
                   )}
@@ -761,6 +798,17 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   <text fontSize={11} fill={fg} textAnchor="middle" dy={NODE_RADIUS + 14}>
                     {n.name.length > 22 ? `${n.name.slice(0, 21)}…` : n.name}
                   </text>
+                  {nodesWithFindings.has(n.id) && (
+                    <g transform={`translate(${-NODE_RADIUS * 0.75},${-NODE_RADIUS * 0.75})`} data-testid={`asset-graph-finding-${n.id}`}>
+                      <title>
+                        {t("tabs.dfd.assetGraph.findingNode", {
+                          defaultValue: "Has asset links that are not allowed — see the notifications.",
+                        })}
+                      </title>
+                      <circle r={8} fill={darkMode ? "#2a2a2a" : "#fff"} stroke="#ed6c02" />
+                      <text fontSize={11} textAnchor="middle" dy={4} fill="#ed6c02">!</text>
+                    </g>
+                  )}
                   {stubs.map((s, i) => (
                     <g
                       key={s.layer}
@@ -787,6 +835,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             source={source}
             assetId={selectedAssetId}
             edge={selectedEdge}
+            findingOf={(id) => findings.get(id)}
             typeLabel={typeLabel}
             groupLabel={groupLabel}
             onGoToAsset={goToAsset}

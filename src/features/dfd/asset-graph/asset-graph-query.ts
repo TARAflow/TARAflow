@@ -4,7 +4,7 @@
 // which relation types exist, which assets match a search, and — for a
 // match that is not drawn — why not.
 
-import { compareDisplayIds } from "shared";
+import { compareDisplayIds, validateA2ARelations, type AssetGroup } from "shared";
 import { layerRank } from "./asset-graph-layers";
 import type { AssetGraph, AssetGraphOptions, AssetGraphSource, GraphAssetInput } from "./asset-graph-types";
 
@@ -157,4 +157,20 @@ export function relationsOfAssetGrouped(
           compareDisplayIds(a.displayId, b.displayId),
       ),
     }));
+}
+
+// ==================== FINDINGS (UX-4, stage 4) ====================
+
+/**
+ * Asset links the rules no longer allow (e.g. after a group change), by
+ * relation id → reason. Same check as the findings panels
+ * (validateA2ARelations); shown as a small symbol, never by colour.
+ */
+export function invalidLinks(source: AssetGraphSource): Map<string, string> {
+  const groups = new Map(source.assets.map((a) => [a.id, a.assetGroup as AssetGroup]));
+  const out = new Map<string, string>();
+  for (const f of validateA2ARelations(source.relations, (id) => groups.get(id))) {
+    out.set(f.relationId, f.reason);
+  }
+  return out;
 }
