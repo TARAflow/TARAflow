@@ -40,6 +40,20 @@
         "noMatch": "Kein Asset passt zu „{{query}}“.",
         "hitHiddenLayer": "{{asset}} liegt in der ausgeblendeten Ebene {{layer}}.",
         "hitOutsideFocus": "{{asset}} liegt ausserhalb des Fokus (Tiefe {{depth}}).",
+        "mode": {
+          "view": "Ansehen",
+          "edit": "Bearbeiten",
+          "editHint": "Bearbeiten — vom Griff eines Knotens auf ein anderes Asset ziehen, um zu verbinden"
+        },
+        "connect": {
+          "reverse": "Nur die andere Richtung ist erlaubt. Meintest du {{from}} → {{to}}?",
+          "exists": "existiert bereits",
+          "mirrorExists": "Die Gegenkante beschreibt dieselbe Tatsache — nur eine behalten.",
+          "mirrorPreferred": "Dieselbe Tatsache wie „{{type}}“ in der anderen Richtung (bevorzugt).",
+          "none": "Zwischen {{a}} und {{b}} ist keine Beziehung erlaubt ({{ga}} – {{gb}}).",
+          "reverseOnly": "Nur die andere Richtung ist erlaubt",
+          "handle": "Auf ein anderes Asset ziehen, um zu verbinden"
+        },
         "findingNode": "Hat Asset Links, die nicht erlaubt sind — siehe Hinweise.",
         "finding": {
           "type_not_allowed": "Dieser Link ist für diese Gruppen nicht erlaubt (z. B. nach Gruppenwechsel).",
@@ -60,7 +74,8 @@
           "protectionNeed": "Schutzbedarf",
           "noRelations": "Keine Beziehungen.",
           "focus": "Fokussieren",
-          "showInTable": "In Tabelle zeigen"
+          "showInTable": "In Tabelle zeigen",
+          "deleteLink": "Link löschen"
         },
         "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren"
       },

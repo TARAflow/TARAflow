@@ -33,6 +33,8 @@ export interface AssetGraphInspectorProps {
   readonly onClose: () => void;
   /** Space on the right covered by the side panel. */
   readonly rightInset?: number;
+  /** Edit mode: remove an asset link (FR-E8). */
+  readonly onDeleteLink?: (relationId: string) => void;
 }
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -61,6 +63,7 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   onShowInTable,
   onClose,
   rightInset = 0,
+  onDeleteLink,
 }) => {
   const { t } = useTranslation();
   const assetById = (id: string) => source.assets.find((a) => a.id === id);
@@ -116,6 +119,14 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
         )}
         {rel?.notes && (
           <Row label={t("tabs.dfd.assetGraph.inspector.notes", { defaultValue: "Notes" })}>{rel.notes}</Row>
+        )}
+        {onDeleteLink && edge.kind === "a2a" && (
+          <>
+            <Divider sx={{ my: 0.75 }} />
+            <Button size="small" color="error" onClick={() => onDeleteLink(edge.id)} data-testid="asset-graph-delete-link">
+              {t("tabs.dfd.assetGraph.inspector.deleteLink", { defaultValue: "Delete link" })}
+            </Button>
+          </>
         )}
       </Box>
     );

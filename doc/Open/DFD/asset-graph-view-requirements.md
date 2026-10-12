@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.13 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.14 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
-> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Nächster Schritt: Phase 3 (Edit Mode).
+> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -35,6 +35,7 @@
 | v2.11 | 2026-10-12 | **D4, D5, D7, D8 entschieden** nach Empfehlung: im Graph angelegte Assets bekommen `source: "dfd"` (D4); Kompositionsbeziehung `consists_of [step]`, `part_of` nur Anzeige (D5); Element-zu-Asset-Bearbeitung im Graph in Phase 3 (D7, durch D2 im selben Tab); Verzweigungen per Pfadtyp + Bedingung am Schritt, eine Ebene je Schritt, tiefere Logik über Sub-Processes (D8). AR-6: Code der Graph-Sicht in `features/dfd/asset-graph`. |
 | v2.12 | 2026-10-12 | Phase 2 Teil 1: Aufbereitung, Layout und Ansicht „Asset-Graph“ im DFD-Tab (lesend), gemeinsame Auswahl mit dem Asset-Panel, „Im Graph zeigen“ aus der Asset-Tabelle. Stand und offene Punkte in §8 Phase 2. |
 | v2.13 | 2026-10-12 | Phase 2 abgeschlossen: Typ-Filter und Suche mit „warum nicht sichtbar“ (FR-V10), Detailkarte mit Beziehungen nach Typ und Kantendetails (FR-V8), „In Tabelle zeigen“ (FR-V13), Hervorhebungsstufen nach UX-4. |
+| v2.14 | 2026-10-12 | Phase 3 Teil 1: Umschalter Ansehen/Bearbeiten, Beziehung per Ziehen mit Zielmarkierung, Typauswahl, Richtungshilfe und Spiegelhinweis, Link löschen — alles über den einen Schreibweg. |
 
 ---
 
@@ -728,6 +729,25 @@ Pfadtypen oder Bedingungen (UX-8, erst Phase 4).
 Side-Panel-Aktion (FR-E10); Asset aus dem Graph überlebt DFD-Edit und Save/Reopen;
 nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert positioniert.
 **Risiko:** mittel (zusätzliche Editier-Oberflächen; abgesichert durch einen Schreibpfad).
+
+**Stand (v2.14, 2026-10-12) — Teil 1 umgesetzt:**
+- ✅ Umschalter Ansehen/Bearbeiten in der Context Bar, Default Ansehen; nur vorhanden, wenn ein
+  Schreibweg da ist (A2AOpsContext des DFD-Tabs). Bearbeiten ist sichtbar anders: gestrichelter
+  Rahmen, getönte Fläche, Hinweis-Chip, Griffe an den Knoten (FR-E1, UX-2).
+- ✅ Beziehung per Ziehen vom Griff (FR-E4): während des Ziehens sind alle sichtbaren Assets nach
+  dem Regelwerk markiert — gültig (grüner Ring), nur umgekehrt gültig (gestrichelt orange),
+  unzulässig (abgeblendet). Loslassen auf einem Ziel öffnet die Typauswahl mit nur den
+  zulässigen Typen, KERN zuerst und markiert; vorhandene Typen sind sichtbar, aber gesperrt;
+  Spiegelkanten-Hinweis wie im Dialog (FR-E12). Nur umgekehrt gültig → Auswahl in der anderen
+  Richtung mit ausdrücklichem Hinweis; unzulässig → Erklärung, nichts wird angelegt (FR-E5).
+  Grundlage: `planConnection` aus `classifyA2ATargetGroup`/`getA2AMirror` (AR-4).
+- ✅ Schreiben ausschliesslich als A2A-Operation über `commitA2AOps` — derselbe Weg wie der
+  Beziehungsdialog, damit derselbe Projektzustand (FR-E10, AR-5). Neue Kante pulsiert kurz,
+  Auswahl bleibt bei der Quelle, keine Neuanordnung (FR-E11, UX-5).
+- ✅ Link löschen in der Detailkarte im Bearbeiten-Modus (FR-E8, Teil Beziehungen).
+- Offen in Phase 3: Asset anlegen je Ebene (FR-E2/E3, D4), Asset löschen mit Folgenanzeige
+  (FR-E8), Attribute im Detailpanel bearbeiten (FR-E6), Element-zu-Asset-Beziehungen (FR-E7),
+  Undo/Redo (FR-E9), Tastaturbedienung (NFR-4), lokale Positionsspeicherung (FR-V15).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen
 

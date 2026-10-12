@@ -44,6 +44,8 @@ import {
   Layers as LayersIcon,
   FilterAlt as FilterIcon,
   Search as SearchIcon,
+  Edit as EditIcon,
+  Visibility as ViewIcon,
 } from "@mui/icons-material";
 import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
 import type { AssetGroup } from "shared";
@@ -65,6 +67,9 @@ import {
 } from "./layout-asset-graph";
 import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
 import { AssetGraphInspector } from "./asset-graph-inspector";
+import { ConnectChooser, type ConnectChoice, type ConnectRequest } from "./asset-graph-connect";
+import { useA2AOps } from "../contexts/a2a-ops-context";
+import { classifyA2ATargets, type A2ATargetClass } from "shared";
 import {
   assetVisibility,
   invalidLinks,
@@ -147,6 +152,19 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   useEffect(() => {
     if (selectedAssetId) setInspectedAssetId(selectedAssetId);
   }, [selectedAssetId]);
+
+  // ── Edit mode (phase 3, FR-E1) ──────────────────────────────────────────
+  // Writes go through the DFD tab's single write path (A2AOpsContext →
+  // commitA2AOps → relations service). Without a provider: view only.
+  const commitA2AOps = useA2AOps();
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const editing = mode === "edit" && commitA2AOps !== null;
+  // Connection being dragged from a node's handle (FR-E4).
+  const [drag, setDrag] = useState<{ sourceId: string; x: number; y: number } | null>(null);
+  const dragRef = useRef(drag);
+  dragRef.current = drag;
+  const [connectRequest, setConnectRequest] = useState<ConnectRequest | null>(null);
+  const [connectNotice, setConnectNotice] = useState<string | null>(null);
   const [searchHit, setSearchHit] = useState<{
     assetId: string;
     index: number;
@@ -236,6 +254,13 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         ];
       })
       .scaleExtent([0.2, 3])
+      // A drag from a connection handle is not a pan.
+      .filter((e: Event & { button?: number; ctrlKey?: boolean; type: string }) => {
+        if (dragRef.current) return false;
+        const target = e.target as Element | null;
+        if (target?.closest?.("[data-graph-handle]")) return false;
+        return (!e.ctrlKey || e.type === "wheel") && !e.button;
+      })
       .on("zoom", (e) => setTransform({ x: e.transform.x, y: e.transform.y, k: e.transform.k }));
     zoomRef.current = behaviour;
     const svg = select(svgRef.current);
@@ -353,6 +378,106 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     ? graph.edges.find((e) => e.id === selectedEdgeId) ?? null
     : null;
 
+  // ── Connect by dragging (FR-E4, FR-E5) ──────────────────────────────────
+  const toGraph = useCallback(
+    (clientX: number, clientY: number) => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      return {
+        x: (clientX - (rect?.left ?? 0) - transform.x) / transform.k,
+        y: (clientY - (rect?.top ?? 0) - transform.y) / transform.k,
+      };
+    },
+    [transform],
+  );
+  // While dragging: every shown asset classified against the source.
+  const targetClasses = useMemo(() => {
+    if (!drag) return null;
+    const src = source.assets.find((a) => a.id === drag.sourceId);
+    if (!src) return null;
+    const shown = graph.nodes.filter((n) => n.kind === "asset").map((n) => ({
+      id: n.id,
+      assetGroup: (n as { group: string }).group as AssetGroup,
+    }));
+    return classifyA2ATargets({ id: src.id, assetGroup: src.assetGroup as AssetGroup }, shown);
+  }, [drag?.sourceId, graph, source]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!drag) return;
+    const move = (e: PointerEvent) => {
+      const p = toGraph(e.clientX, e.clientY);
+      setDrag((d) => (d ? { ...d, x: p.x, y: p.y } : d));
+    };
+    // Released anywhere but on a node: nothing happens.
+    const up = () => setDrag(null);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, [drag !== null, toGraph]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startConnect = (assetId: string, e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setConnectNotice(null);
+    const p = layout.positions.get(assetId);
+    setDrag({ sourceId: assetId, x: p?.x ?? 0, y: p?.y ?? 0 });
+  };
+  const dropOn = (assetId: string, e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d) return;
+    e.stopPropagation();
+    setDrag(null);
+    if (assetId === d.sourceId) return;
+    const cls = targetClasses?.get(assetId)?.targetClass ?? "invalid";
+    if (cls === "invalid") {
+      const a = source.assets.find((x) => x.id === d.sourceId);
+      const b = source.assets.find((x) => x.id === assetId);
+      setConnectNotice(
+        t("tabs.dfd.assetGraph.connect.none", {
+          defaultValue: "No relation is allowed between {{a}} and {{b}} ({{ga}} – {{gb}}).",
+          a: a?.displayId ?? "",
+          b: b?.displayId ?? "",
+          ga: groupLabel(String(a?.assetGroup)),
+          gb: groupLabel(String(b?.assetGroup)),
+        }),
+      );
+      return;
+    }
+    setConnectRequest({
+      sourceId: d.sourceId,
+      targetId: assetId,
+      anchor: { left: e.clientX, top: e.clientY },
+    });
+  };
+  const choose = (choice: ConnectChoice) => {
+    setConnectRequest(null);
+    commitA2AOps?.([{ kind: "add", relation: choice }]);
+    // FR-E11: the focus stays on the source.
+    onSelectAsset(choice.sourceAssetId);
+  };
+  const deleteLink = (relationId: string) => {
+    commitA2AOps?.([{ kind: "remove", relationId }]);
+    setSelectedEdgeId(null);
+    setInspectorOpen(false);
+  };
+
+  // FR-E11 / UX-4 stage 2: a link that appears while the view is open pulses.
+  const knownLinkIdsRef = useRef<Set<string> | null>(null);
+  const [freshLinkIds, setFreshLinkIds] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    const ids = new Set(source.relations.map((r) => r.id));
+    const known = knownLinkIdsRef.current;
+    knownLinkIdsRef.current = ids;
+    if (!known) return;
+    const fresh = [...ids].filter((id) => !known.has(id));
+    if (fresh.length === 0) return;
+    setFreshLinkIds(new Set(fresh));
+    const timer = setTimeout(() => setFreshLinkIds(new Set()), 2400);
+    return () => clearTimeout(timer);
+  }, [source]);
+
   // ── Context bar actions ─────────────────────────────────────────────────
   const preset = presetOfLayers(state.layers);
   const setPreset = (id: AssetGraphPresetId) =>
@@ -443,6 +568,32 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         useFlexGap
         sx={{ px: 1.5, py: 0.75, borderBottom: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}
       >
+        {commitA2AOps && (
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={mode}
+            onChange={(_, v: "view" | "edit" | null) => {
+              if (!v) return;
+              setMode(v);
+              setDrag(null);
+              setConnectRequest(null);
+              setConnectNotice(null);
+            }}
+          >
+            <ToggleButton value="view" data-testid="asset-graph-mode-view">
+              <Tooltip title={t("tabs.dfd.assetGraph.mode.view", { defaultValue: "View" })}>
+                <ViewIcon fontSize="small" />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="edit" data-testid="asset-graph-mode-edit" color="warning">
+              <Tooltip title={t("tabs.dfd.assetGraph.mode.edit", { defaultValue: "Edit" })}>
+                <EditIcon fontSize="small" />
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
+        )}
+
         <ToggleButtonGroup
           size="small"
           exclusive
@@ -619,7 +770,40 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       </Stack>
 
       {/* ── Canvas ── */}
-      <Box sx={{ position: "relative", flexGrow: 1, overflow: "hidden" }}>
+      <Box
+        data-testid="asset-graph-canvas-box"
+        data-mode={editing ? "edit" : "view"}
+        sx={{
+          position: "relative",
+          flexGrow: 1,
+          overflow: "hidden",
+          // UX-2: the edit mode is visibly different, not only a switch state.
+          outline: editing ? "3px dashed" : "none",
+          outlineColor: "warning.main",
+          outlineOffset: "-3px",
+          bgcolor: editing ? (darkMode ? "rgba(237,108,2,0.06)" : "rgba(237,108,2,0.04)") : undefined,
+        }}
+      >
+        {editing && (
+          <Chip
+            size="small"
+            color="warning"
+            label={t("tabs.dfd.assetGraph.mode.editHint", {
+              defaultValue: "Edit mode — drag from a node's handle to connect",
+            })}
+            sx={{ position: "absolute", left: 12, bottom: 12, zIndex: 1 }}
+          />
+        )}
+        {connectNotice && (
+          <Alert
+            severity="warning"
+            data-testid="asset-graph-connect-notice"
+            onClose={() => setConnectNotice(null)}
+            sx={{ position: "absolute", top: 8, left: 8, right: rightInset + 8, zIndex: 2 }}
+          >
+            {connectNotice}
+          </Alert>
+        )}
         {(searchMiss || (hitVisibility && hitVisibility.state !== "visible")) && (
           <Alert
             severity="info"
@@ -750,11 +934,23 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     stroke="transparent"
                     strokeWidth={12}
                   />
+                  {freshLinkIds.has(e.id) && (
+                    <path
+                      d={`M${p1.x},${p1.y} Q${cx},${cy} ${p2.x},${p2.y}`}
+                      fill="none"
+                      stroke="#ed6c02"
+                      strokeWidth={6}
+                      data-testid={`asset-graph-fresh-link-${e.id}`}
+                    >
+                      <animate attributeName="opacity" from="0.8" to="0" dur="0.8s" repeatCount="3" />
+                    </path>
+                  )}
                   <path
                     d={`M${p1.x},${p1.y} Q${cx},${cy} ${p2.x},${p2.y}`}
                     fill="none"
                     stroke={e.id === selectedEdgeId ? (darkMode ? "#90caf9" : "#1976d2") : muted}
                     strokeWidth={e.id === selectedEdgeId ? 2.6 : 1.4}
+                    data-fresh={freshLinkIds.has(e.id) ? "" : undefined}
                     strokeDasharray={e.kind === "anchor" ? "5 4" : undefined}
                     markerEnd="url(#ag-arrow)"
                   />
@@ -779,6 +975,22 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               );
             })}
 
+            {/* Connection being dragged */}
+            {drag && layout.positions.get(drag.sourceId) && (
+              <line
+                x1={layout.positions.get(drag.sourceId)!.x}
+                y1={layout.positions.get(drag.sourceId)!.y}
+                x2={drag.x}
+                y2={drag.y}
+                stroke="#ed6c02"
+                strokeWidth={2}
+                strokeDasharray="6 4"
+                markerEnd="url(#ag-arrow)"
+                pointerEvents="none"
+                data-testid="asset-graph-drag-line"
+              />
+            )}
+
             {/* Nodes */}
             {graph.nodes.map((n) => {
               const p = layout.positions.get(n.id);
@@ -802,11 +1014,18 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               const selected = n.id === selectedAssetId;
               const hit = !selected && searchHit?.assetId === n.id;
               const stubs = graph.stubs[n.id] ?? [];
+              // While dragging a connection: valid / reverse-only / invalid.
+              const targetClass: A2ATargetClass | null =
+                drag && n.id !== drag.sourceId
+                  ? targetClasses?.get(n.id)?.targetClass ?? "invalid"
+                  : null;
               return (
                 <g
                   key={n.id}
                   transform={`translate(${p.x},${p.y})`}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", opacity: targetClass === "invalid" ? 0.3 : 1 }}
+                  data-target-class={targetClass ?? undefined}
+                  onPointerUp={(e) => dropOn(n.id, e)}
                   onClick={() => {
                     setSelectedEdgeId(null);
                     setInspectedAssetId(n.id);
@@ -825,6 +1044,18 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   {hit && (
                     <circle r={NODE_RADIUS + 7} fill="none" stroke="#f9a825" strokeWidth={3} data-testid={`asset-graph-hit-${n.id}`} />
                   )}
+                  {targetClass === "valid" && (
+                    <circle r={NODE_RADIUS + 6} fill="none" stroke="#2e7d32" strokeWidth={3} />
+                  )}
+                  {targetClass === "reverse_only" && (
+                    <circle r={NODE_RADIUS + 6} fill="none" stroke="#ed6c02" strokeWidth={2.5} strokeDasharray="6 4">
+                      <title>
+                        {t("tabs.dfd.assetGraph.connect.reverseOnly", {
+                          defaultValue: "Only the other direction is allowed",
+                        })}
+                      </title>
+                    </circle>
+                  )}
                   <circle
                     r={NODE_RADIUS}
                     fill={darkMode ? color : colorLight}
@@ -837,6 +1068,27 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   <text fontSize={11} fill={fg} textAnchor="middle" dy={NODE_RADIUS + 14}>
                     {n.name.length > 22 ? `${n.name.slice(0, 21)}…` : n.name}
                   </text>
+                  {editing && !drag && (
+                    <circle
+                      cx={NODE_RADIUS}
+                      cy={0}
+                      r={7}
+                      fill={darkMode ? "#2a2a2a" : "#fff"}
+                      stroke="#ed6c02"
+                      strokeWidth={2}
+                      style={{ cursor: "crosshair" }}
+                      data-graph-handle=""
+                      data-testid={`asset-graph-handle-${n.id}`}
+                      onPointerDown={(e) => startConnect(n.id, e)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <title>
+                        {t("tabs.dfd.assetGraph.connect.handle", {
+                          defaultValue: "Drag to another asset to connect",
+                        })}
+                      </title>
+                    </circle>
+                  )}
                   {nodesWithFindings.has(n.id) && (
                     <g transform={`translate(${-NODE_RADIUS * 0.75},${-NODE_RADIUS * 0.75})`} data-testid={`asset-graph-finding-${n.id}`}>
                       <title>
@@ -869,6 +1121,15 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           </g>
         </svg>
 
+        <ConnectChooser
+          request={connectRequest}
+          assets={source.assets}
+          relations={source.relations}
+          typeLabel={typeLabel}
+          onChoose={choose}
+          onClose={() => setConnectRequest(null)}
+        />
+
         {inspectorOpen && (
           <AssetGraphInspector
             source={source}
@@ -887,6 +1148,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             }}
             onShowInTable={onShowInTable}
             rightInset={rightInset}
+            onDeleteLink={editing ? deleteLink : undefined}
             onClose={() => {
               setInspectorOpen(false);
               setSelectedEdgeId(null);

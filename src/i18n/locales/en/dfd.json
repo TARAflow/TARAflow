@@ -40,6 +40,20 @@
         "noMatch": "No asset matches \"{{query}}\".",
         "hitHiddenLayer": "{{asset}} is in the hidden layer {{layer}}.",
         "hitOutsideFocus": "{{asset}} is outside the focus (depth {{depth}}).",
+        "mode": {
+          "view": "View",
+          "edit": "Edit",
+          "editHint": "Edit mode — drag from a node's handle to connect"
+        },
+        "connect": {
+          "reverse": "Only the other direction is allowed. Did you mean {{from}} → {{to}}?",
+          "exists": "exists already",
+          "mirrorExists": "The opposite edge states the same fact — keep only one.",
+          "mirrorPreferred": "Same fact as \"{{type}}\" in the other direction (preferred).",
+          "none": "No relation is allowed between {{a}} and {{b}} ({{ga}} – {{gb}}).",
+          "reverseOnly": "Only the other direction is allowed",
+          "handle": "Drag to another asset to connect"
+        },
         "findingNode": "Has asset links that are not allowed — see the notifications.",
         "finding": {
           "type_not_allowed": "This link is not allowed for these groups (e.g. after a group change).",
@@ -60,7 +74,8 @@
           "protectionNeed": "Protection need",
           "noRelations": "No relations.",
           "focus": "Focus",
-          "showInTable": "Show in table"
+          "showInTable": "Show in table",
+          "deleteLink": "Delete link"
         },
         "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus"
       },
