@@ -97,6 +97,8 @@ interface AssetPanelProps {
   onClearAllVisibility?: () => void;
   focusAssetRequest?: AssetFocusRequest | null;
   assetUsage?: AssetUsageLookup;
+  /** Reports the tree selection (shared with the asset graph view, FR-V8). */
+  onSelectedAssetChange?: (assetId: string | null) => void;
 }
 
 /**
@@ -414,6 +416,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
   onClearAllVisibility,
   focusAssetRequest,
   assetUsage,
+  onSelectedAssetChange,
 }) => {
   const { t } = useTranslation();
 
@@ -441,6 +444,10 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({
   }, [focusAssetRequest]);
 
   const selectedAssetId = internalSelectedAssetId;
+
+  useEffect(() => {
+    onSelectedAssetChange?.(selectedAssetId);
+  }, [selectedAssetId, onSelectedAssetChange]);
 
   const selectedAsset = assets.find((a) => a.id === selectedAssetId) ?? null;
 

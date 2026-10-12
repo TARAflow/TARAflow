@@ -5,6 +5,33 @@
       "description": "Erstelle und bearbeite hier dein Datenflussdiagramm.",
       "loading": "DFD-Editor wird geladen...",
       "proceed": "Weiter",
+      "assetGraph": {
+        "view": {
+          "layers": "Ebenen",
+          "focus": "Fokus"
+        },
+        "preset": {
+          "architecture": "Architektur",
+          "flow": "Ablauf",
+          "services": "Dienste & Abhängigkeiten",
+          "protection": "Schutzziele",
+          "all": "Alle",
+          "custom": "Benutzerdefiniert"
+        },
+        "layers": "Ebenen wählen",
+        "focus": "Fokus",
+        "noFocus": "Asset wählen (Klick im Asset-Panel oder Doppelklick im Graph)",
+        "depth": "Tiefe {{depth}}",
+        "anchors": "DFD-Elemente",
+        "counts": "{{visible}} von {{total}} Assets sichtbar · {{hiddenLayers}} in ausgeblendeten Ebenen · {{outsideFocus}} ausserhalb des Fokus · {{filtered}} Links gefiltert",
+        "fit": "Alles einpassen",
+        "rearrange": "Neu anordnen",
+        "legend": "Legende",
+        "reset": "Zurücksetzen",
+        "empty": "Keine Assets in den gewählten Ebenen.",
+        "stubHint": "Ebene einblenden",
+        "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren"
+      },
       "toolbar": {
         "zoomIn": "Vergrössern",
         "zoomOut": "Verkleinern",
@@ -17,6 +44,7 @@
         "darkMode": "Dunkelmodus",
         "draw": "DFD zeichnen",
         "describe": "DFD beschreiben",
+        "assetGraph": "Asset-Graph",
         "exportDFD": "DFD exportieren",
         "importDFD": "DFD importieren",
         "settings": "DFD-Einstellungen"

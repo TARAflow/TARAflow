@@ -38,6 +38,7 @@ import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import DFDPreviewDialog from "./dfd-preview-dialog";
 import DFDNotificationsPanel from "./dfd-notification-panel";
 import DFDDescriptionView from "./dfd-description-view";
+import { AssetGraphView, assetGraphSourceFromDfd } from "../asset-graph";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
@@ -105,6 +106,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const [focusAssetRequest, setFocusAssetRequest] =
     useState<AssetFocusRequest | null>(null);
+  /** Asset selected in the asset panel — shared with the asset graph (FR-V8). */
+  const [panelAssetId, setPanelAssetId] = useState<string | null>(null);
 
   // ==================== UI STATE HOOK ====================
 
@@ -641,6 +644,26 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     },
     [editor, dfd],
   );
+  // ── Asset graph view (D2, phase 2) ──────────────────────────────────────
+  const assetGraphSource = useMemo(() => assetGraphSourceFromDfd(dfd), [dfd]);
+
+  const handleGraphSelectAsset = useCallback((assetId: string) => {
+    setFocusAssetRequest({ assetId });
+    setDetailsPanelOpen(true);
+  }, []);
+
+  // FR-V9: an element anchor leads to the element in the diagram.
+  const handleGraphShowElement = useCallback(
+    (elementId: string) => {
+      setFocusAssetRequest(null);
+      setViewMode("draw");
+      // The diagram view re-initialises the bridge first (see the effect on
+      // viewMode); select once that has happened.
+      setTimeout(() => editor.selectCell(elementId), 300);
+    },
+    [editor, setViewMode],
+  );
+
   // ==================== RENDER ====================
 
   return (
@@ -744,6 +767,25 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             />
           </Box>
 
+          {/* Asset Graph View (D2) — stays mounted, so view, focus and
+              positions survive a switch to the diagram and back (FR-V9). */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              visibility: viewMode === "graph" ? "visible" : "hidden",
+              pointerEvents: viewMode === "graph" ? "auto" : "none",
+            }}
+          >
+            <AssetGraphView
+              source={assetGraphSource}
+              selectedAssetId={panelAssetId}
+              onSelectAsset={handleGraphSelectAsset}
+              onShowElement={handleGraphShowElement}
+              darkMode={darkMode}
+            />
+          </Box>
+
           {/* Right: Details Drawer */}
           <DFDDetailsPanel
             open={detailsPanelOpen}
@@ -778,6 +820,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             graphContext={graphContext}
             focusAssetRequest={focusAssetRequest}
             assetUsage={assetUsage}
+            onSelectedAssetChange={setPanelAssetId}
           />
         </Box>
       </Box>

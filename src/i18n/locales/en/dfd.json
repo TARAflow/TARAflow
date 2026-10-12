@@ -5,6 +5,33 @@
       "description": "Create and edit your Data Flow Diagram here.",
       "loading": "Loading DFD Editor...",
       "proceed": "Continue",
+      "assetGraph": {
+        "view": {
+          "layers": "Layers",
+          "focus": "Focus"
+        },
+        "preset": {
+          "architecture": "Architecture",
+          "flow": "Flow",
+          "services": "Services & dependencies",
+          "protection": "Protection targets",
+          "all": "All",
+          "custom": "Custom"
+        },
+        "layers": "Choose layers",
+        "focus": "Focus",
+        "noFocus": "Select an asset (click in the asset panel or double-click in the graph)",
+        "depth": "Depth {{depth}}",
+        "anchors": "DFD elements",
+        "counts": "{{visible}} of {{total}} assets visible · {{hiddenLayers}} in hidden layers · {{outsideFocus}} outside focus · {{filtered}} links filtered",
+        "fit": "Fit to view",
+        "rearrange": "Rearrange",
+        "legend": "Legend",
+        "reset": "Reset",
+        "empty": "No assets in the selected layers.",
+        "stubHint": "Show layer",
+        "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus"
+      },
       "toolbar": {
         "zoomIn": "Zoom In",
         "zoomOut": "Zoom Out",
@@ -17,6 +44,7 @@
         "darkMode": "Dark Mode",
         "draw": "Draw DFD",
         "describe": "Describe DFD",
+        "assetGraph": "Asset graph",
         "exportDFD": "Export DFD",
         "importDFD": "Import DFD",
         "settings": "DFD Settings"

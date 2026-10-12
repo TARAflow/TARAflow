@@ -373,7 +373,8 @@ export interface DFDUpdateResult {
 
 // ==================== DFD VIEW MODE ====================
 
-export type DFDViewMode = "draw" | "describe";
+/** draw.io diagram, description list, asset graph (D2). */
+export type DFDViewMode = "draw" | "describe" | "graph";
 
 // ==================== RE-EXPORTS ====================
 

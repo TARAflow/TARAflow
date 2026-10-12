@@ -71,6 +71,8 @@ interface DFDDetailsPanelProps {
   focusAssetRequest?: AssetFocusRequest | null;
   /** Impact lookup for the asset delete confirm dialog. */
   assetUsage?: AssetUsageLookup;
+  /** Reports the asset tree selection (asset graph view, FR-V8). */
+  onSelectedAssetChange?: (assetId: string | null) => void;
 }
 
 // ==================== COMPONENT ====================
@@ -97,6 +99,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   graphContext,
   focusAssetRequest,
   assetUsage,
+  onSelectedAssetChange,
 }) => {
   const { t } = useTranslation();
 
@@ -321,6 +324,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   visibility={assetVisibility}
                   focusAssetRequest={focusAssetRequest}
                   assetUsage={assetUsage}
+                  onSelectedAssetChange={onSelectedAssetChange}
                   onVisibilityChange={onAssetVisibilityChange ?? (() => {})}
                   onAssetChange={onAssetChange ?? (() => {})}
                   onCreateAsset={onCreateAssetForGroup}

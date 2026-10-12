@@ -29,6 +29,7 @@ import {
   Upload as ExportIcon,
   Draw as DrawIcon,
   Description as DescriptionIcon,
+  Hub as AssetGraphIcon,
 } from "@mui/icons-material";
 
 import {
@@ -132,6 +133,19 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
           >
             <ToggleButton value="describe">
               <DescriptionIcon fontSize="small" />
+            </ToggleButton>
+          </Tooltip>
+
+          <Tooltip
+            title={t("tabs.dfd.toolbar.assetGraph", {
+              defaultValue: "Asset graph",
+            })}
+            arrow
+            placement="bottom"
+            slotProps={{ popper: { modifiers: NO_RESIZE_POPPER_MODIFIERS } }}
+          >
+            <ToggleButton value="graph" data-testid="dfd-view-graph">
+              <AssetGraphIcon fontSize="small" />
             </ToggleButton>
           </Tooltip>
         </ToggleButtonGroup>

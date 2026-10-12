@@ -1,0 +1,547 @@
+// features/dfd/asset-graph/asset-graph-view.tsx
+//
+// Asset graph view — third view of the DFD tab (D2), view mode (phase 2).
+//
+//   Context bar (FR-V14): view, preset/layers, focus + depth, anchors,
+//     counters, reset, rearrange, fit, legend.
+//   Canvas: lanes per layer (FR-V3), A2A edges solid with arrow + type label
+//     and stepOrder badge, element anchors dashed (UX-3, FR-V7), stubs as
+//     counters (FR-V4). Zoom/pan (FR-V12).
+//   Selection is shared with the asset panel (FR-V8): clicking a node selects
+//     the asset there; selecting in the tree highlights the node here.
+//
+// Read-only: nothing here writes the project (phase 3 adds the edit mode).
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Select,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import {
+  CenterFocusStrong as FitIcon,
+  Refresh as RearrangeIcon,
+  RestartAlt as ResetIcon,
+  HelpOutline as LegendIcon,
+  Layers as LayersIcon,
+} from "@mui/icons-material";
+import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
+import type { AssetGroup } from "shared";
+import { getAssetGroupColor } from "../models/dfd-formatters";
+import {
+  ALL_LAYERS,
+  ASSET_GRAPH_PRESETS,
+  ASSET_GRAPH_PRESET_ORDER,
+  presetOfLayers,
+  type AssetGraphPresetId,
+} from "./asset-graph-layers";
+import { buildAssetGraph, DEFAULT_FOCUS_DEPTH } from "./build-asset-graph";
+import {
+  ANCHOR_LANE,
+  LANE_HEIGHT,
+  NODE_RADIUS,
+  layoutAssetGraph,
+  type Point,
+} from "./layout-asset-graph";
+import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
+
+const MAX_DEPTH = 3;
+
+export interface AssetGraphViewProps {
+  readonly source: AssetGraphSource;
+  /** The asset selected in the asset panel (shared selection). */
+  readonly selectedAssetId: string | null;
+  readonly onSelectAsset: (assetId: string) => void;
+  /** Element anchor clicked: show the element in the diagram (FR-V9). */
+  readonly onShowElement?: (elementId: string) => void;
+  /** Request from outside to focus an asset (FR-V13). */
+  readonly focusRequest?: { readonly assetId: string } | null;
+  readonly darkMode?: boolean;
+}
+
+interface ViewState {
+  view: AssetGraphViewKind;
+  layers: AssetGroup[];
+  focusAssetId: string | null;
+  depth: number;
+  showAnchors: boolean;
+}
+
+const DEFAULT_STATE: ViewState = {
+  view: "layers",
+  layers: [...ASSET_GRAPH_PRESETS.architecture],
+  focusAssetId: null,
+  depth: DEFAULT_FOCUS_DEPTH,
+  showAnchors: false,
+};
+
+function groupColor(group: string): { color: string; colorLight: string } {
+  try {
+    return getAssetGroupColor(group as AssetGroup);
+  } catch {
+    return { color: "#757575", colorLight: "#EEEEEE" };
+  }
+}
+
+export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
+  source,
+  selectedAssetId,
+  onSelectAsset,
+  onShowElement,
+  focusRequest,
+  darkMode = false,
+}) => {
+  const { t } = useTranslation();
+  const [state, setState] = useState<ViewState>(DEFAULT_STATE);
+  const [showLegend, setShowLegend] = useState(false);
+  const [layerMenu, setLayerMenu] = useState<HTMLElement | null>(null);
+
+  // Focus request from outside (asset table "show in graph").
+  useEffect(() => {
+    if (!focusRequest) return;
+    // "What hangs on this asset?" — all layers, the user narrows afterwards.
+    setState((s) => ({
+      ...s,
+      view: "focus",
+      focusAssetId: focusRequest.assetId,
+      layers: [...ALL_LAYERS],
+    }));
+  }, [focusRequest]);
+
+  const graph = useMemo(
+    () =>
+      buildAssetGraph(source, {
+        view: state.view,
+        layers: state.layers,
+        focusAssetId: state.focusAssetId,
+        depth: state.depth,
+        showAnchors: state.showAnchors,
+      }),
+    [source, state],
+  );
+
+  // ── Layout: stable within the session (AR-12) ───────────────────────────
+  const positionsRef = useRef<Map<string, Point>>(new Map());
+  const [layoutEpoch, setLayoutEpoch] = useState(0);
+  const layout = useMemo(() => {
+    const result = layoutAssetGraph(graph, positionsRef.current);
+    for (const [id, p] of result.positions) positionsRef.current.set(id, p);
+    return result;
+    // layoutEpoch forces a fresh layout after "rearrange".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graph, layoutEpoch]);
+
+  const rearrange = useCallback(() => {
+    positionsRef.current = new Map();
+    setLayoutEpoch((e) => e + 1);
+  }, []);
+
+  // ── Zoom / pan (FR-V12) ─────────────────────────────────────────────────
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const [transform, setTransform] = useState({ x: 40, y: 40, k: 1 });
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const el = svgRef.current;
+    const behaviour = zoom<SVGSVGElement, unknown>()
+      // Explicit extent: d3's default reads svg.width.baseVal, which is not
+      // available for percentage sizes in every environment.
+      .extent((): [[number, number], [number, number]] => {
+        const r = el.getBoundingClientRect();
+        return [
+          [0, 0],
+          [r.width || 1, r.height || 1],
+        ];
+      })
+      .scaleExtent([0.2, 3])
+      .on("zoom", (e) => setTransform({ x: e.transform.x, y: e.transform.y, k: e.transform.k }));
+    zoomRef.current = behaviour;
+    const svg = select(svgRef.current);
+    svg.call(behaviour).on("dblclick.zoom", null);
+    svg.call(behaviour.transform, zoomIdentity.translate(40, 40));
+    return () => {
+      svg.on(".zoom", null);
+    };
+  }, []);
+
+  const fit = useCallback(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl || !zoomRef.current || layout.positions.size === 0) return;
+    const xs = [...layout.positions.values()].map((p) => p.x);
+    const ys = [...layout.positions.values()].map((p) => p.y);
+    const pad = NODE_RADIUS * 3;
+    const minX = Math.min(...xs) - pad;
+    const maxX = Math.max(...xs) + pad;
+    const minY = Math.min(...ys) - pad;
+    const maxY = Math.max(...ys) + pad;
+    const { width, height } = svgEl.getBoundingClientRect();
+    if (!width || !height) return;
+    const k = Math.min(1.2, width / (maxX - minX), height / (maxY - minY));
+    select(svgEl).call(
+      zoomRef.current.transform,
+      zoomIdentity.translate(-minX * k + (width - (maxX - minX) * k) / 2, -minY * k + (height - (maxY - minY) * k) / 2).scale(k),
+    );
+  }, [layout]);
+
+  // ── Context bar actions ─────────────────────────────────────────────────
+  const preset = presetOfLayers(state.layers);
+  const setPreset = (id: AssetGraphPresetId) =>
+    setState((s) => ({ ...s, layers: [...ASSET_GRAPH_PRESETS[id]] }));
+  const toggleLayer = (layer: AssetGroup) =>
+    setState((s) => ({
+      ...s,
+      layers: s.layers.includes(layer)
+        ? s.layers.filter((l) => l !== layer)
+        : [...s.layers, layer],
+    }));
+  const showLayer = (layer: string) =>
+    setState((s) =>
+      s.layers.includes(layer as AssetGroup)
+        ? s
+        : { ...s, layers: [...s.layers, layer as AssetGroup] },
+    );
+  const focusOn = (assetId: string) =>
+    setState((s) => ({
+      ...s,
+      view: "focus",
+      focusAssetId: assetId,
+      // Entering the focus view from the layer view shows all layers; moving
+      // the focus within it keeps the user's layer choice.
+      layers: s.view === "focus" ? s.layers : [...ALL_LAYERS],
+    }));
+  const reset = () => setState(DEFAULT_STATE);
+
+  const groupLabel = (g: string) => t(`assets.groups.${g}`, { defaultValue: g });
+  const typeLabel = (type: string) =>
+    t(`assets.relations.a2a.${type}`, { defaultValue: type.replace(/_/g, " ") });
+
+  const focusNode =
+    state.focusAssetId ? source.assets.find((a) => a.id === state.focusAssetId) : undefined;
+
+  const c = graph.counts;
+  const countsText = t("tabs.dfd.assetGraph.counts", {
+    defaultValue:
+      "{{visible}} of {{total}} assets visible · {{hiddenLayers}} in hidden layers · {{outsideFocus}} outside focus · {{filtered}} links filtered",
+    visible: c.assetsVisible,
+    total: c.assetsTotal,
+    hiddenLayers: c.assetsInHiddenLayers,
+    outsideFocus: c.assetsOutsideFocus,
+    filtered: c.edgesHiddenByFilter,
+  });
+
+  const fg = darkMode ? "#eee" : "#222";
+  const muted = darkMode ? "#999" : "#666";
+  const laneFill = darkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.035)";
+
+  return (
+    <Box
+      data-testid="asset-graph-view"
+      sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", bgcolor: darkMode ? "#1a1a1a" : "background.default" }}
+    >
+      {/* ── Context bar (FR-V14) ── */}
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        flexWrap="wrap"
+        useFlexGap
+        sx={{ px: 1.5, py: 0.75, borderBottom: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}
+      >
+        <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={state.view}
+          onChange={(_, v: AssetGraphViewKind | null) => {
+            if (!v) return;
+            setState((s) => ({
+              ...s,
+              view: v,
+              focusAssetId: v === "focus" ? s.focusAssetId ?? selectedAssetId : s.focusAssetId,
+            }));
+          }}
+        >
+          <ToggleButton value="layers" data-testid="asset-graph-view-layers">
+            {t("tabs.dfd.assetGraph.view.layers", { defaultValue: "Layers" })}
+          </ToggleButton>
+          <ToggleButton value="focus" data-testid="asset-graph-view-focus">
+            {t("tabs.dfd.assetGraph.view.focus", { defaultValue: "Focus" })}
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <Select
+          size="small"
+          value={preset}
+          data-testid="asset-graph-preset"
+          onChange={(e) => {
+            const v = e.target.value as AssetGraphPresetId | "custom";
+            if (v !== "custom") setPreset(v);
+          }}
+          sx={{ minWidth: 170 }}
+        >
+          {ASSET_GRAPH_PRESET_ORDER.map((id) => (
+            <MenuItem key={id} value={id}>
+              {t(`tabs.dfd.assetGraph.preset.${id}`, { defaultValue: id })}
+            </MenuItem>
+          ))}
+          <MenuItem value="custom" disabled>
+            {t("tabs.dfd.assetGraph.preset.custom", { defaultValue: "Custom" })}
+          </MenuItem>
+        </Select>
+        <Tooltip title={t("tabs.dfd.assetGraph.layers", { defaultValue: "Layers" })}>
+          <IconButton size="small" onClick={(e) => setLayerMenu(e.currentTarget)}>
+            <LayersIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Menu anchorEl={layerMenu} open={!!layerMenu} onClose={() => setLayerMenu(null)}>
+          {ALL_LAYERS.map((g) => (
+            <MenuItem key={g} dense onClick={() => toggleLayer(g)}>
+              <Checkbox size="small" checked={state.layers.includes(g)} sx={{ p: 0.5, mr: 1 }} />
+              <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: groupColor(g).color, mr: 1 }} />
+              <ListItemText primary={groupLabel(g)} />
+            </MenuItem>
+          ))}
+        </Menu>
+
+        {state.view === "focus" ? (
+          <>
+            <Chip
+              size="small"
+              color={graph.focusMissing ? "default" : "primary"}
+              variant="outlined"
+              label={
+                focusNode
+                  ? `${t("tabs.dfd.assetGraph.focus", { defaultValue: "Focus" })}: ${focusNode.displayId ?? ""} ${focusNode.name ?? ""}`
+                  : t("tabs.dfd.assetGraph.noFocus", { defaultValue: "Select an asset to focus" })
+              }
+            />
+            <Select
+              size="small"
+              value={state.depth}
+              onChange={(e) => setState((s) => ({ ...s, depth: Number(e.target.value) }))}
+              data-testid="asset-graph-depth"
+            >
+              {Array.from({ length: MAX_DEPTH }, (_, i) => i + 1).map((d) => (
+                <MenuItem key={d} value={d}>
+                  {t("tabs.dfd.assetGraph.depth", { defaultValue: "Depth {{depth}}", depth: d })}
+                </MenuItem>
+              ))}
+            </Select>
+          </>
+        ) : (
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={state.showAnchors}
+                onChange={(e) => setState((s) => ({ ...s, showAnchors: e.target.checked }))}
+              />
+            }
+            label={<Typography variant="body2">{t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })}</Typography>}
+          />
+        )}
+
+        <Divider orientation="vertical" flexItem />
+        <Typography variant="caption" color="text.secondary" data-testid="asset-graph-counts" sx={{ flexGrow: 1 }}>
+          {countsText}
+        </Typography>
+
+        <Tooltip title={t("tabs.dfd.assetGraph.fit", { defaultValue: "Fit to view" })}>
+          <IconButton size="small" onClick={fit}><FitIcon fontSize="small" /></IconButton>
+        </Tooltip>
+        <Tooltip title={t("tabs.dfd.assetGraph.rearrange", { defaultValue: "Rearrange" })}>
+          <IconButton size="small" onClick={rearrange} data-testid="asset-graph-rearrange"><RearrangeIcon fontSize="small" /></IconButton>
+        </Tooltip>
+        <Tooltip title={t("tabs.dfd.assetGraph.legend", { defaultValue: "Legend" })}>
+          <IconButton size="small" onClick={() => setShowLegend((v) => !v)}><LegendIcon fontSize="small" /></IconButton>
+        </Tooltip>
+        <Button size="small" startIcon={<ResetIcon />} onClick={reset}>
+          {t("tabs.dfd.assetGraph.reset", { defaultValue: "Reset" })}
+        </Button>
+      </Stack>
+
+      {/* ── Canvas ── */}
+      <Box sx={{ position: "relative", flexGrow: 1, overflow: "hidden" }}>
+        {graph.nodes.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={{ position: "absolute", top: 16, left: 16 }}>
+            {state.view === "focus" && graph.focusMissing
+              ? t("tabs.dfd.assetGraph.noFocus", { defaultValue: "Select an asset to focus" })
+              : t("tabs.dfd.assetGraph.empty", { defaultValue: "No assets in the selected layers." })}
+          </Typography>
+        )}
+        <svg ref={svgRef} width="100%" height="100%" data-testid="asset-graph-canvas" style={{ display: "block", cursor: "grab", fontFamily: "Roboto, Helvetica, Arial, sans-serif" }}>
+          <defs>
+            <marker id="ag-arrow" viewBox="0 -5 10 10" refX={10} refY={0} markerWidth={7} markerHeight={7} orient="auto">
+              <path d="M0,-5L10,0L0,5" fill={muted} />
+            </marker>
+          </defs>
+          <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
+            {/* Lanes */}
+            {layout.lanes.map((lane) => (
+              <g key={lane.id}>
+                {lane.kind !== "orthogonal" ? (
+                  <rect x={-2000} y={lane.y - LANE_HEIGHT / 2 + 6} width={8000} height={LANE_HEIGHT - 12} fill={laneFill} />
+                ) : null}
+                <text
+                  x={lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2}
+                  y={lane.y - LANE_HEIGHT / 2 + 20}
+                  fontSize={12}
+                  fill={muted}
+                  textAnchor="end"
+                >
+                  {lane.id === ANCHOR_LANE
+                    ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
+                    : groupLabel(lane.id)}
+                </text>
+              </g>
+            ))}
+
+            {/* Edges */}
+            {graph.edges.map((e) => {
+              const a = layout.positions.get(e.source);
+              const b = layout.positions.get(e.target);
+              if (!a || !b) return null;
+              // Element anchors are drawn as curves, so their dashed lines do
+              // not run through the asset column above them.
+              const dx = b.x - a.x;
+              const dy = b.y - a.y;
+              const len = Math.hypot(dx, dy) || 1;
+              const bend = e.kind === "anchor" ? Math.min(90, len * 0.3) : 0;
+              const cx = (a.x + b.x) / 2 + (-dy / len) * bend;
+              const cy = (a.y + b.y) / 2 + (dx / len) * bend;
+              const r = NODE_RADIUS + 2;
+              const toward = (from: Point, to: { x: number; y: number }) => {
+                const ux = to.x - from.x;
+                const uy = to.y - from.y;
+                const l = Math.hypot(ux, uy) || 1;
+                return { x: from.x + (ux / l) * r, y: from.y + (uy / l) * r };
+              };
+              const p1 = toward(a, { x: cx, y: cy });
+              const p2 = toward(b, { x: cx, y: cy });
+              // Point on the curve at t = 0.5.
+              const mx = 0.25 * p1.x + 0.5 * cx + 0.25 * p2.x;
+              const my = 0.25 * p1.y + 0.5 * cy + 0.25 * p2.y;
+              const label = typeLabel(e.relationType);
+              return (
+                <g key={e.id} data-testid={`asset-graph-edge-${e.id}`}>
+                  <path
+                    d={`M${p1.x},${p1.y} Q${cx},${cy} ${p2.x},${p2.y}`}
+                    fill="none"
+                    stroke={muted}
+                    strokeWidth={1.4}
+                    strokeDasharray={e.kind === "anchor" ? "5 4" : undefined}
+                    markerEnd="url(#ag-arrow)"
+                  />
+                  <text x={mx} y={my - 4} fontSize={10} fill={fg} textAnchor="middle" paintOrder="stroke" stroke={darkMode ? "#1a1a1a" : "#fafafa"} strokeWidth={3}>
+                    {label}
+                  </text>
+                  {e.stepOrder !== undefined && (
+                    <g transform={`translate(${mx + label.length * 2.8 + 10},${my - 8})`}>
+                      <circle r={7} fill={muted} />
+                      <text fontSize={9} fill="#fff" textAnchor="middle" dy={3}>{e.stepOrder}</text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* Nodes */}
+            {graph.nodes.map((n) => {
+              const p = layout.positions.get(n.id);
+              if (!p) return null;
+              if (n.kind === "anchor") {
+                return (
+                  <g
+                    key={n.id}
+                    transform={`translate(${p.x},${p.y})`}
+                    style={{ cursor: onShowElement ? "pointer" : "default" }}
+                    onClick={() => onShowElement?.(n.elementId)}
+                    data-testid={`asset-graph-node-${n.id}`}
+                  >
+                    <rect x={-NODE_RADIUS * 1.2} y={-14} width={NODE_RADIUS * 2.4} height={28} rx={4} fill={darkMode ? "#2a2a2a" : "#fff"} stroke={muted} strokeDasharray="4 3" />
+                    <text fontSize={11} fill={fg} textAnchor="middle" dy={4}>{n.displayId}</text>
+                    <text fontSize={10} fill={muted} textAnchor="middle" dy={28}>{n.name || n.elementType}</text>
+                  </g>
+                );
+              }
+              const { color, colorLight } = groupColor(String(n.group));
+              const selected = n.id === selectedAssetId;
+              const stubs = graph.stubs[n.id] ?? [];
+              return (
+                <g
+                  key={n.id}
+                  transform={`translate(${p.x},${p.y})`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => onSelectAsset(n.id)}
+                  onDoubleClick={() => focusOn(n.id)}
+                  data-testid={`asset-graph-node-${n.id}`}
+                >
+                  <circle
+                    r={NODE_RADIUS}
+                    fill={darkMode ? color : colorLight}
+                    stroke={selected ? (darkMode ? "#fff" : "#000") : color}
+                    strokeWidth={selected ? 3.5 : 2}
+                  />
+                  <text fontSize={12} fontWeight={600} fill={darkMode ? "#fff" : color} textAnchor="middle" dy={4}>
+                    {n.displayId}
+                  </text>
+                  <text fontSize={11} fill={fg} textAnchor="middle" dy={NODE_RADIUS + 14}>
+                    {n.name.length > 22 ? `${n.name.slice(0, 21)}…` : n.name}
+                  </text>
+                  {stubs.map((s, i) => (
+                    <g
+                      key={s.layer}
+                      transform={`translate(${NODE_RADIUS + 6},${-NODE_RADIUS + 4 + i * 18})`}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        showLayer(s.layer);
+                      }}
+                      data-testid={`asset-graph-stub-${n.id}-${s.layer}`}
+                    >
+                      <title>{t("tabs.dfd.assetGraph.stubHint", { defaultValue: "Show layer" })}</title>
+                      <rect height={15} width={30 + (String(s.count).length + groupLabel(s.layer).length) * 6.2} rx={7} fill={groupColor(s.layer).colorLight} stroke={groupColor(s.layer).color} />
+                      <text x={6} y={11} fontSize={10} fill="#333">{`${s.count} → ${groupLabel(s.layer)}`}</text>
+                    </g>
+                  ))}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+
+        {/* Legend (FR-V7) */}
+        {showLegend && (
+          <Box sx={{ position: "absolute", right: 12, bottom: 12, p: 1.5, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1, maxWidth: 280 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
+              {t("tabs.dfd.assetGraph.legend", { defaultValue: "Legend" })}
+            </Typography>
+            {ALL_LAYERS.map((g) => (
+              <Stack key={g} direction="row" spacing={1} alignItems="center">
+                <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: groupColor(g).color }} />
+                <Typography variant="caption">{groupLabel(g)}</Typography>
+              </Stack>
+            ))}
+            <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
+              {t("tabs.dfd.assetGraph.legendEdges", {
+                defaultValue: "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order",
+              })}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
