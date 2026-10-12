@@ -488,3 +488,32 @@ describe("Asset tab export/import carries asset links (B13)", () => {
     s.close();
   });
 });
+
+describe("Asset graph source from the DFD tab's data (phase 2)", () => {
+  it("the mirror yields exactly the canonical edges, with attributes", async () => {
+    const { assetGraphSourceFromDfd, buildAssetGraph, ASSET_GRAPH_PRESETS } = await import(
+      "features/dfd/asset-graph"
+    );
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const f = firstAsset(s.project, "function");
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by", stepOrder: 2, rationale: "r" });
+    const reopened = s.reopen();
+
+    const src = assetGraphSourceFromDfd(reopened.project.dfd as never);
+    const strip = (r: unknown) => JSON.parse(JSON.stringify(r));
+    expect(src.relations.map(strip)).toEqual(
+      (reopened.project.assets!.relations ?? []).map(strip),
+    );
+
+    const g = buildAssetGraph(src, {
+      view: "focus",
+      layers: ASSET_GRAPH_PRESETS.all,
+      focusAssetId: d,
+    });
+    expect(g.edges.filter((e) => e.kind === "a2a")).toEqual([
+      expect.objectContaining({ source: d, target: f, relationType: "required_by", stepOrder: 2 }),
+    ]);
+    reopened.close();
+  });
+});

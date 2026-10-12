@@ -11,40 +11,13 @@
 import {
   a2aRelationName,
   validateA2ARelations,
-  type A2ARelation,
   type AssetGroup,
 } from "shared";
 import type { ValidationFinding } from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
+import { a2aEdgesFromMirror } from "../../asset-graph/mirror-edges";
 
 export const ASSET_LINK_MESSAGE_PREFIX = "dfdValidation.assetLink.";
-
-interface MirrorEntry {
-  id?: string;
-  targetAssetId?: string;
-  relationType?: string;
-}
-
-/** The canonical edges as projected onto the mirror. */
-function edgesFromMirror(assets: readonly DFDAsset[]): A2ARelation[] {
-  const edges: A2ARelation[] = [];
-  for (const asset of assets) {
-    const list = (asset as { assetRelations?: unknown }).assetRelations;
-    if (!Array.isArray(list)) continue;
-    list.forEach((raw: MirrorEntry, i: number) => {
-      if (typeof raw?.targetAssetId !== "string" || typeof raw?.relationType !== "string") {
-        return;
-      }
-      edges.push({
-        id: raw.id ?? `${asset.id}#${i}`,
-        sourceAssetId: asset.id,
-        targetAssetId: raw.targetAssetId,
-        relationType: raw.relationType,
-      } as A2ARelation);
-    });
-  }
-  return edges;
-}
 
 /** Called from dfd-validator.ts. */
 export function validateAssetLinks(
@@ -53,7 +26,7 @@ export function validateAssetLinks(
 ): void {
   const byId = new Map(assets.map((a) => [a.id, a]));
   const groupOf = (id: string) => byId.get(id)?.assetGroup as AssetGroup | undefined;
-  const edges = edgesFromMirror(assets);
+  const edges = a2aEdgesFromMirror(assets);
   const byEdgeId = new Map(edges.map((e) => [e.id, e]));
 
   for (const f of validateA2ARelations(edges, groupOf)) {
