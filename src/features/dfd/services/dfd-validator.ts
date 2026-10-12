@@ -60,7 +60,7 @@ export interface ValidateOptions {
    * false "asset not found" errors until the user visited the Asset tab. The
    * feature store is the single source of truth and never lags.
    */
-  knownAssets?: readonly { id: string; name: string }[];
+  knownAssets?: readonly { id: string; name: string; assetGroup?: import("shared").AssetGroup }[];
 }
 
 /**

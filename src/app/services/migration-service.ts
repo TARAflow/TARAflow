@@ -4,6 +4,7 @@
 // Imported by ProjectRepository; never by UI components directly.
 
 import { repairHazardAssetRefs } from "./repair-hazard-asset-refs";
+import { repairElementRelationGroups } from "./repair-element-relation-groups";
 import {
   migrateProjectTags,
   EMPTY_PROJECT_TAGS,
@@ -288,6 +289,11 @@ export function applyLegacyMigrations(raw: any): any {
   // still point at the old readable label, now the displayId). Idempotent;
   // no-op on clean files and on pre-v6 files.
   data = repairHazardAssetRefs(data);
+
+  // Element → asset relations take their asset's group (B15: service "uses"
+  // and physical "accesses" were stored as system / infrastructure).
+  // Idempotent; no-op on clean files.
+  data = repairElementRelationGroups(data);
 
   return data;
 }

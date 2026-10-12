@@ -31,13 +31,11 @@ import type {
   AssetDFDConnection,
   DFDElementLink,
 } from "features/assets";
-import { isSystemUsesRelation, isInfraAccessesRelation } from "features/dfd";
+import { hasQualifier } from "features/dfd";
 
 function extractQualifier(relation: AssetRelation): string | undefined {
-  // Qualifier only exists on uses (System) and accesses (Infra) relations
-  if (isSystemUsesRelation(relation)) return relation.qualifier;
-  if (isInfraAccessesRelation(relation)) return relation.qualifier;
-  return undefined;
+  // uses (System, Service) and accesses (Infrastructure, Physical) carry one.
+  return hasQualifier(relation) ? relation.qualifier : undefined;
 }
 
 /**

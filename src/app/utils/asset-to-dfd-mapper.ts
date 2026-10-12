@@ -25,15 +25,14 @@ import type {
   AssetRelation,
   AssetProperties,
 } from "features/dfd";
-import { isSystemUsesRelation, isInfraAccessesRelation } from "features/dfd";
+import { hasQualifier } from "features/dfd";
 import type { Asset } from "features/assets";
 
 function extractQualifier(
   relation: AssetRelation,
 ): ElementRelation["qualifier"] {
-  if (isSystemUsesRelation(relation)) return relation.qualifier;
-  if (isInfraAccessesRelation(relation)) return relation.qualifier;
-  return undefined;
+  // uses (System, Service) and accesses (Infrastructure, Physical) carry one.
+  return hasQualifier(relation) ? relation.qualifier : undefined;
 }
 
 /**

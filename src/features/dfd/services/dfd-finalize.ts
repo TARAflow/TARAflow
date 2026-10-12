@@ -7,10 +7,7 @@
 
 import type { DFDData, DFDElement, DFDConnection } from "../models/dfd-types";
 import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
-import {
-  isSystemUsesRelation,
-  isInfraAccessesRelation,
-} from "../models/asset-relation-types";
+import { hasQualifier } from "../models/asset-relation-types";
 import { DefaultDFDGraphBuilder } from "./dfd-graph-builder";
 import { calculateStats } from "./parsers/stats-calculator";
 
@@ -44,10 +41,9 @@ export function syncAssetLinkedElements(
         elementType: element.type,
         displayId: element.displayId,
         relationType: relation.relationType,
-        qualifier:
-          isSystemUsesRelation(relation) || isInfraAccessesRelation(relation)
-            ? relation.qualifier
-            : undefined,
+        // All four qualified relations — service "uses" and physical
+        // "accesses" lost their qualifier here before (B15).
+        qualifier: hasQualifier(relation) ? relation.qualifier : undefined,
         notes: relation.notes,
       });
     }
@@ -62,10 +58,9 @@ export function syncAssetLinkedElements(
         elementType: "DataFlow",
         displayId: connection.displayId,
         relationType: relation.relationType,
-        qualifier:
-          isSystemUsesRelation(relation) || isInfraAccessesRelation(relation)
-            ? relation.qualifier
-            : undefined,
+        // All four qualified relations — service "uses" and physical
+        // "accesses" lost their qualifier here before (B15).
+        qualifier: hasQualifier(relation) ? relation.qualifier : undefined,
         notes: relation.notes,
       });
     }

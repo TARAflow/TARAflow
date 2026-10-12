@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.23 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.24 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
-> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). **Phase 3 abgeschlossen** (Edit Mode; offene Befunde B14, B15).
+> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). **Phase 3 abgeschlossen** (Edit Mode; B15 behoben, offen B14).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -45,6 +45,7 @@
 | v2.21 | 2026-10-12 | Tastaturbedienung des Graphen (NFR-4). |
 | v2.22 | 2026-10-12 | Lokale Positionsspeicherung pro Projekt (FR-V15). **Phase 3 abgeschlossen.** |
 | v2.23 | 2026-10-12 | B15 Teil 1: Element-Beziehungsdialog des Seitenpanels nach Regelwerk; unzulässige gespeicherte Beziehungen markiert, Speichern erst nach Entfernen; Validator prüft Datenflüsse nach dem Regelwerk. |
+| v2.24 | 2026-10-12 | B15 Teil 2: Gruppe einer Element-Beziehung vom Asset, Qualifier je Gruppe, Reparatur beim Laden. **B15 behoben.** |
 
 ---
 
@@ -260,7 +261,7 @@ werden übersprungen, abgelehnte gemeldet. Zugleich ignoriert die App-Schicht di
 `relations`-Kopie des Asset-Tabs (`buildAssetsUpdate`): Auch eine veraltete lokale Kopie kann
 die kanonische Liste nicht mehr überschreiben (AR-5).
 
-**B15 — Element-Beziehungsdialog des Seitenpanels: Typen nach Gruppe statt nach Elementtyp (Teil 1 behoben, v2.23).**
+**B15 — Element-Beziehungsdialog des Seitenpanels: Typen nach Gruppe statt nach Elementtyp (behoben, v2.23/v2.24).**
 Der Dialog „Asset-Beziehung hinzufügen/bearbeiten“ (`AssetRelationDialog` in
 `asset-relation-selector.tsx`) bietet die Typen je Asset-Gruppe an (`RELATIONS_BY_GROUP`), nicht
 nach `getAllowedRelations(elementType, group)`. Beispiel: Process → Data bietet auch `stores` und
@@ -283,6 +284,15 @@ Ein Elementtyp ohne zulässige Gruppe (z. B. Trust Boundary) zeigt einen Hinweis
 Zugleich prüft der Validator Datenflüsse nach demselben Regelwerk (`getAllowedRelations("DataFlow",
 …)`); vorher galt dort alles ausser `transports` als unzulässig — auch Typen, die das Regelwerk und
 der Kontextmenü-Dialog erlauben.
+*Teil 2 (v2.24):* Der Dialog speichert die Gruppe des Assets (vorher bei `uses` immer `system`, bei
+`accesses` immer `infrastructure`) und bietet die Qualifier der Gruppe an (Service: api/sdk/webhook/
+managed, Physical: direct/indirect/remote — vorher immer die System- bzw. Infrastruktur-Liste). Ein
+Qualifier aus der falschen Gruppe gilt als fehlend; Speichern erst nach gültiger Wahl. Der Validator
+prüft gegen die Gruppe des Assets (die Kopie an der Beziehung nur als Rückfall) — damit verschwinden
+Fehlmeldungen wie Sensor → Physical `accesses`. `linkedElements` und die Mapper übernehmen den
+Qualifier aller vier qualifizierten Beziehungen (vorher nur System/Infrastruktur). Beim Laden setzt
+`repairElementRelationGroups` die Gruppe bestehender Beziehungen auf die des Assets — idempotent,
+ohne Schema-Version, Qualifier bleiben unverändert (kein Raten).
 Offen bleibt: Ändert ein Element später seinen Typ, prüft das nur der Validator.
 
 **B14 — Asset-Import „Alle ersetzen“ ersetzt nichts (offen).**

@@ -280,7 +280,7 @@ export const WorkspaceLayout: React.FC = () => {
   // Invalidate dfdTabProject when the canonical asset registry (ids/names)
   // changes, so DFD validation always sees the current asset set.
   const knownAssetsKey = JSON.stringify(
-    activeProject?.assets?.assets?.map((a) => [a.id, a.name]) ?? [],
+    activeProject?.assets?.assets?.map((a) => [a.id, a.name, a.assetGroup]) ?? [],
   );
 
   const dfdTabProject = useMemo(
@@ -296,6 +296,7 @@ export const WorkspaceLayout: React.FC = () => {
               activeProject.assets?.assets?.map((a) => ({
                 id: a.id,
                 name: a.name,
+                assetGroup: a.assetGroup,
               })) ?? [],
             phaseStatus: activeProject.phaseStatus,
             settings: activeProject.settings,

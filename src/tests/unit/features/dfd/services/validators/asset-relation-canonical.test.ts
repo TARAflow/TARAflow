@@ -113,3 +113,24 @@ describe("validateAssetRelations — data flows follow the element rules (B15)",
     expect(run("function", "executes")).toBe(1);
   });
 });
+
+describe("validateAssetRelations — the asset's group decides (B15)", () => {
+  const sensor = (assetGroup: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ({ id: "s", type: "Sensor", name: "Door", displayId: "S-1", assetRelations: [{ assetId: "PH", assetGroup, relationType: "accesses" }] }) as any;
+  const invalid = (known: { id: string; name: string; assetGroup?: string }[], relationGroup: string) => {
+    const errors: { key: string }[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validateAssetRelations(known as any, [sensor(relationGroup)], [], errors as any, [] as any);
+    return errors.filter((e) => e.key === ValidationMessages.ASSET_RELATION_TYPE_INVALID).length;
+  };
+
+  it("a physical 'accesses' stored with the wrong group copy is not a false positive", () => {
+    // Sensor → infrastructure allows only "monitors"; Sensor → physical allows "accesses".
+    expect(invalid([{ id: "PH", name: "Door", assetGroup: "physical" }], "infrastructure")).toBe(0);
+  });
+
+  it("without a known group the relation's copy is the fallback", () => {
+    expect(invalid([{ id: "PH", name: "Door" }], "infrastructure")).toBe(1);
+  });
+});

@@ -340,7 +340,7 @@ export interface DFDProjectData {
    * than the dfd.assets mirror (which can lag). Optional: absent → validation
    * falls back to the mirror.
    */
-  knownAssets?: readonly { id: string; name: string }[];
+  knownAssets?: readonly { id: string; name: string; assetGroup?: import("shared").AssetGroup }[];
   phaseStatus: PhaseStatusMap;
   settings: {
     autoSave: boolean;

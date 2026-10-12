@@ -259,20 +259,15 @@ function buildRelations(
         relationType: "is_an",
         assetGroup: asset.assetGroup,
       });
-    } else if (relationType === "uses") {
+    } else if (relationType === "uses" || relationType === "accesses") {
+      // The group is the asset's (B15): service "uses" and physical
+      // "accesses" were stored as system / infrastructure before.
       result.push({
         ...shared,
-        relationType: "uses",
-        assetGroup: "system" as const,
-        qualifier: cfg.qualifier as SystemUsesQualifier,
-      });
-    } else if (relationType === "accesses") {
-      result.push({
-        ...shared,
-        relationType: "accesses",
-        assetGroup: "infrastructure" as const,
-        qualifier: cfg.qualifier as InfraAccessesQualifier,
-      });
+        relationType,
+        assetGroup: asset.assetGroup,
+        qualifier: cfg.qualifier,
+      } as AssetRelation);
     } else {
       result.push({
         ...shared,
@@ -284,10 +279,24 @@ function buildRelations(
   return result;
 }
 
-function isMapValid(map: RelationMap): boolean {
+/** Qualifier choices of a relation type for the asset's group (B15). */
+export function qualifierOptionsFor(
+  type: string,
+  group: AssetGroup,
+): { value: string; label: string }[] {
+  if (type === "uses") return group === "service" ? SERVICE_QUALIFIERS : group === "system" ? SYSTEM_QUALIFIERS : [];
+  if (type === "accesses")
+    return group === "physical" ? PHYSICAL_QUALIFIERS : group === "infrastructure" ? INFRA_QUALIFIERS : [];
+  return [];
+}
+
+function isMapValid(map: RelationMap, group: AssetGroup): boolean {
   if (map.size === 0) return false;
   for (const [type, cfg] of map.entries()) {
-    if ((type === "uses" || type === "accesses") && !cfg.qualifier)
+    // A qualifier is required where the group has choices, and must be one
+    // of them (a system qualifier on a service "uses" counts as missing).
+    const options = qualifierOptionsFor(type, group);
+    if (options.length > 0 && !options.some((o) => o.value === cfg.qualifier))
       return false;
     if (
       type !== "is_an" &&
@@ -789,7 +798,10 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
 
   const asset = selectedAsset;
   const canSave =
-    !!asset && isMapValid(relationMap) && !isCreatingNew && notAllowed.length === 0;
+    !!asset &&
+    isMapValid(relationMap, effectiveGroup) &&
+    !isCreatingNew &&
+    notAllowed.length === 0;
 
   return (
     <>
@@ -1249,12 +1261,11 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
                         const colors = getAssetGroupColor(
                           effectiveGroup ?? "data",
                         );
-                        const needsQual =
-                          type === "uses" || type === "accesses";
+                        const qualOptions = qualifierOptionsFor(type, effectiveGroup);
                         const missingQual =
                           selected &&
-                          needsQual &&
-                          !relationMap.get(type)?.qualifier;
+                          qualOptions.length > 0 &&
+                          !qualOptions.some((o) => o.value === relationMap.get(type)?.qualifier);
                         return (
                           <Tooltip
                             key={type}
@@ -1447,13 +1458,10 @@ const RelationDetailCard: React.FC<RelationDetailCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const colors = getAssetGroupColor(assetGroup ?? "data");
-  const qualifierOptions =
-    type === "uses"
-      ? SYSTEM_QUALIFIERS
-      : type === "accesses"
-        ? INFRA_QUALIFIERS
-        : [];
+  const qualifierOptions = qualifierOptionsFor(type, assetGroup);
   const needsQualifier = qualifierOptions.length > 0;
+  // A stored qualifier from another group (before B15) counts as missing.
+  const qualifierValid = qualifierOptions.some((o) => o.value === config.qualifier);
   const hasSafety = config.safety.relevance !== "none";
 
   if (type === "is_an") {
@@ -1543,7 +1551,7 @@ const RelationDetailCard: React.FC<RelationDetailCardProps> = ({
                 ` · ${config.safety.impact.replace(/_/g, " ")}`}
             </Box>
           )}
-          {needsQualifier && !config.qualifier && (
+          {needsQualifier && !qualifierValid && (
             <Box
               component="span"
               sx={{ ml: 0.75, color: "warning.main", fontSize: 11 }}
@@ -1591,7 +1599,7 @@ const RelationDetailCard: React.FC<RelationDetailCardProps> = ({
                   )}
                 </InputLabel>
                 <Select
-                  value={config.qualifier}
+                  value={qualifierValid ? config.qualifier : ""}
                   onChange={(e) => onUpdate({ qualifier: e.target.value })}
                   label={t(
                     "tabs.dfd.element_description.assetRelations.qualifier.label",
@@ -1599,7 +1607,7 @@ const RelationDetailCard: React.FC<RelationDetailCardProps> = ({
                       defaultValue: "Qualifier",
                     },
                   )}
-                  error={!config.qualifier}
+                  error={!qualifierValid}
                 >
                   {qualifierOptions.map((q) => (
                     <MenuItem key={q.value} value={q.value}>
