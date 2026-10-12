@@ -74,6 +74,7 @@ import {
 import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
 import { AssetGraphInspector, CARD_WIDTH } from "./asset-graph-inspector";
 import { ConnectChooser, type ConnectChoice, type ConnectRequest } from "./asset-graph-connect";
+import { arrowDirection, isTypingTarget, nearestInDirection } from "./asset-graph-keyboard";
 import {
   EMPTY_HISTORY,
   entryForAdd,
@@ -495,11 +496,17 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     };
     // Released anywhere but on a node: nothing happens.
     const up = () => setDrag(null);
+    // NFR-4: Esc cancels a running drag.
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrag(null);
+    };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("keydown", esc);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("keydown", esc);
     };
   }, [drag !== null, toGraph]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -597,6 +604,86 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     return () => window.removeEventListener("keydown", onKey);
   }); // re-bound each render: replay reads the current links and history
 
+  // ── Keyboard (NFR-4) ────────────────────────────────────────────────────
+  // Nodes are in the tab order; arrows move to the nearest node in that
+  // direction; a focused asset is selected like a click. Enter focuses the
+  // asset (an element anchor: shows the element), Delete removes the focused
+  // link or asset in edit mode (an asset with confirmation), Esc closes the
+  // card and the chooser. Links take focus on click (tabIndex -1).
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const focusNodeElement = (id: string) => {
+    const nodes = svgRef.current?.querySelectorAll<SVGGElement>("[data-node-id]") ?? [];
+    for (const el of nodes) {
+      if (el.dataset.nodeId === id) {
+        el.focus();
+        return;
+      }
+    }
+  };
+  const ensureVisible = (id: string) => {
+    const p = layout.positions.get(id);
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!p || !rect || !rect.width) return;
+    const x = p.x * transform.k + transform.x;
+    const y = p.y * transform.k + transform.y;
+    const margin = NODE_RADIUS * 2;
+    if (x < margin || y < margin || x > rect.width - rightInset - margin || y > rect.height - margin) centerOn(id);
+  };
+  const selectAssetNode = (id: string) => {
+    setSelectedEdgeId(null);
+    setInspectedAssetId(id);
+    setInspectorOpen(true);
+    onSelectAsset(id);
+  };
+  const onCanvasKeyDown = (e: React.KeyboardEvent) => {
+    if (isTypingTarget(e.target)) return;
+    const target = e.target as Element;
+    const nodeId = target.closest?.("[data-node-id]")?.getAttribute("data-node-id") ?? null;
+    const edgeId = target.closest?.("[data-edge-id]")?.getAttribute("data-edge-id") ?? null;
+    const node = nodeId ? graph.nodes.find((n) => n.id === nodeId) : undefined;
+
+    const direction = arrowDirection(e.key);
+    if (direction) {
+      const ids = graph.nodes.map((n) => n.id);
+      if (ids.length === 0) return;
+      const from = nodeId ?? focusedNodeId;
+      const next = from ? nearestInDirection(layout.positions, from, direction, ids) : ids[0];
+      e.preventDefault();
+      if (next) {
+        focusNodeElement(next);
+        ensureVisible(next);
+      }
+      return;
+    }
+    if (e.key === "Enter" && node) {
+      e.preventDefault();
+      if (node.kind === "anchor") onShowElement?.(node.elementId);
+      else {
+        focusOn(node.id);
+        pendingCenterRef.current = node.id;
+      }
+      return;
+    }
+    if ((e.key === "Delete" || e.key === "Backspace") && editing) {
+      const edge = graph.edges.find((x) => x.id === (edgeId ?? (inspectorOpen ? selectedEdgeId : null)));
+      if (edge) {
+        e.preventDefault();
+        removeEdge(edge);
+      } else if (node?.kind === "asset" && onDeleteAsset) {
+        e.preventDefault();
+        setConfirmDeleteId(node.id);
+      }
+      return;
+    }
+    if (e.key === "Escape") {
+      setConnectRequest(null);
+      setConnectNotice(null);
+      setElementPicker(null);
+      setSelectedEdgeId(null);
+      setInspectorOpen(false);
+    }
+  };
+
   const choose = (choice: ConnectChoice) => {
     setConnectRequest(null);
     run(entryForAdd(choice));
@@ -610,6 +697,18 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   const deleteLink = (relationId: string) => {
     const rel = source.relations.find((r) => r.id === relationId);
     if (rel) run(entryForRemove(rel));
+    setSelectedEdgeId(null);
+    setInspectorOpen(false);
+  };
+  /** Delete key on a link: an asset link, or a DFD element relation (FR-E7). */
+  const removeEdge = (edge: { id: string; kind: string; source: string; target: string; relationType: string }) => {
+    if (edge.kind === "a2a") {
+      deleteLink(edge.id);
+      return;
+    }
+    const el = elementOfAnchor(edge.source);
+    if (!el || !elementLinking) return;
+    writeElementRelations(el.id, withoutElementRelation(el.relations, edge.target, edge.relationType));
     setSelectedEdgeId(null);
     setInspectorOpen(false);
   };
@@ -1079,7 +1178,19 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               : t("tabs.dfd.assetGraph.empty", { defaultValue: "No assets in the selected layers." })}
           </Typography>
         )}
-        <svg ref={svgRef} width="100%" height="100%" data-testid="asset-graph-canvas" style={{ display: "block", cursor: "grab", fontFamily: "Roboto, Helvetica, Arial, sans-serif" }}>
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="100%"
+          data-testid="asset-graph-canvas"
+          tabIndex={0}
+          role="application"
+          aria-label={t("tabs.dfd.assetGraph.keyboard.canvas", {
+            defaultValue: "Asset graph — Tab or arrow keys: select a node · Enter: focus · Delete: remove (edit mode) · Esc: close",
+          })}
+          onKeyDown={onCanvasKeyDown}
+          style={{ display: "block", cursor: "grab", outline: "none", fontFamily: "Roboto, Helvetica, Arial, sans-serif" }}
+        >
           <defs>
             <marker id="ag-arrow" viewBox="0 -5 10 10" refX={10} refY={0} markerWidth={7} markerHeight={7} orient="auto">
               <path d="M0,-5L10,0L0,5" fill={muted} />
@@ -1156,7 +1267,10 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 <g
                   key={e.id}
                   data-testid={`asset-graph-edge-${e.id}`}
-                  style={{ cursor: "pointer" }}
+                  data-edge-id={e.id}
+                  // Takes focus on click, so Delete acts on it (NFR-4).
+                  tabIndex={-1}
+                  style={{ cursor: "pointer", outline: "none" }}
                   onClick={() => {
                     setSelectedEdgeId(e.id);
                     setInspectorOpen(true);
@@ -1235,10 +1349,30 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   <g
                     key={n.id}
                     transform={`translate(${p.x},${p.y})`}
-                    style={{ cursor: onShowElement ? "pointer" : "default" }}
+                    style={{ cursor: onShowElement ? "pointer" : "default", outline: "none" }}
                     onClick={() => onShowElement?.(n.elementId)}
                     data-testid={`asset-graph-node-${n.id}`}
+                    data-node-id={n.id}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${n.displayId} ${n.name || n.elementType}`.trim()}
+                    onFocus={() => setFocusedNodeId(n.id)}
+                    onBlur={() => setFocusedNodeId((f) => (f === n.id ? null : f))}
                   >
+                    {focusedNodeId === n.id && (
+                      <rect
+                        x={-NODE_RADIUS * 1.2 - 6}
+                        y={-20}
+                        width={NODE_RADIUS * 2.4 + 12}
+                        height={40}
+                        rx={6}
+                        fill="none"
+                        stroke={darkMode ? "#90caf9" : "#1976d2"}
+                        strokeWidth={2}
+                        strokeDasharray="3 3"
+                        data-testid={`asset-graph-focus-${n.id}`}
+                      />
+                    )}
                     <rect x={-NODE_RADIUS * 1.2} y={-14} width={NODE_RADIUS * 2.4} height={28} rx={4} fill={darkMode ? "#2a2a2a" : "#fff"} stroke={muted} strokeDasharray="4 3" />
                     <text fontSize={11} fill={fg} textAnchor="middle" dy={4}>{n.displayId}</text>
                     <text fontSize={10} fill={muted} textAnchor="middle" dy={28}>{n.name || n.elementType}</text>
@@ -1279,18 +1413,33 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 <g
                   key={n.id}
                   transform={`translate(${p.x},${p.y})`}
-                  style={{ cursor: "pointer", opacity: targetClass === "invalid" ? 0.3 : 1 }}
+                  style={{ cursor: "pointer", opacity: targetClass === "invalid" ? 0.3 : 1, outline: "none" }}
                   data-target-class={targetClass ?? undefined}
                   onPointerUp={(e) => dropOn(n.id, e)}
-                  onClick={() => {
-                    setSelectedEdgeId(null);
-                    setInspectedAssetId(n.id);
-                    setInspectorOpen(true);
-                    onSelectAsset(n.id);
-                  }}
+                  onClick={() => selectAssetNode(n.id)}
                   onDoubleClick={() => focusOn(n.id)}
                   data-testid={`asset-graph-node-${n.id}`}
+                  data-node-id={n.id}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${n.displayId} ${n.name} (${groupLabel(String(n.group))})`}
+                  onFocus={() => {
+                    setFocusedNodeId(n.id);
+                    // Keyboard selection selects like a click (NFR-4).
+                    if (n.id !== inspectedAssetId || !inspectorOpen || selectedEdgeId) selectAssetNode(n.id);
+                  }}
+                  onBlur={() => setFocusedNodeId((f) => (f === n.id ? null : f))}
                 >
+                  {focusedNodeId === n.id && (
+                    <circle
+                      r={NODE_RADIUS + 10}
+                      fill="none"
+                      stroke={darkMode ? "#90caf9" : "#1976d2"}
+                      strokeWidth={2}
+                      strokeDasharray="3 3"
+                      data-testid={`asset-graph-focus-${n.id}`}
+                    />
+                  )}
                   {freshIds.has(n.id) && !selected && (
                     <circle r={NODE_RADIUS} fill="none" stroke={color} strokeWidth={2} data-testid={`asset-graph-fresh-${n.id}`}>
                       <animate attributeName="r" from={NODE_RADIUS} to={NODE_RADIUS + 16} dur="0.8s" repeatCount="3" />
@@ -1505,6 +1654,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
               {t("tabs.dfd.assetGraph.legendEdges", {
                 defaultValue: "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order",
+              })}
+            </Typography>
+            <Typography variant="caption" sx={{ display: "block", mt: 0.5 }} data-testid="asset-graph-legend-keys">
+              {t("tabs.dfd.assetGraph.keyboard.legend", {
+                defaultValue: "Keyboard: Tab / arrows select · Enter focuses · Delete removes (edit) · Esc closes",
               })}
             </Typography>
           </Box>

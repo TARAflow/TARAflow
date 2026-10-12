@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.20 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.21 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -42,6 +42,7 @@
 | v2.18 | 2026-10-12 | Asset-Eigenschaften in der Graph-Karte (gemeinsames Formular), Schritt nur bei `invokes`/`configures`, Hilfetexte in der Kantenkarte. |
 | v2.19 | 2026-10-12 | Undo/Redo für Link-Änderungen im Graph (FR-E9); feste Kartenbreite. |
 | v2.20 | 2026-10-12 | Element-zu-Asset-Beziehungen im Graph (FR-E7): Griff am Element-Anker, „An Element anbinden“ in der Asset-Karte, Bearbeiten/Entfernen in der Ankerkarte; gemeinsamer Dialog des Seitenpanels, Schreiben über den Element-Update-Weg des DFD-Tabs (AR-6). Neuer Befund B15. |
+| v2.21 | 2026-10-12 | Tastaturbedienung des Graphen (NFR-4). |
 
 ---
 
@@ -803,7 +804,17 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
   der Graph-Historie (FR-E9 gilt für Asset Links). `getAllowedRelations` bleibt in `features/dfd`:
   die Graph-Sicht liegt dort (D2), `features/assets` braucht das Regelwerk weiterhin nicht (AR-4,
   zweiter Schritt entfällt bis auf Weiteres).
-- Offen in Phase 3: Tastaturbedienung (NFR-4), lokale Positionsspeicherung (FR-V15).
+- ✅ (v2.21) Tastaturbedienung (NFR-4): Knoten (Assets und Element-Anker) stehen in der
+  Tab-Reihenfolge; ein Knoten mit Fokus ist ausgewählt wie nach einem Klick (Karte offen) und hat
+  einen gestrichelten Fokusring. Pfeiltasten springen zum nächsten Knoten in der Richtung
+  (seitlicher Abstand zählt doppelt, damit „hoch“ die Ebene darüber trifft); aus der Zeichenfläche
+  heraus beginnen sie beim ersten Knoten; ein Knoten ausserhalb des Sichtbereichs wird zentriert.
+  Enter fokussiert das Asset (am Element-Anker: Element im Diagramm zeigen). Entf/Rücktaste im
+  Bearbeiten-Modus: auf einem Link (Links nehmen beim Klick den Fokus) löscht ihn — Asset Link
+  oder Element-Beziehung —, auf einem Asset öffnet die Lösch-Bestätigung. Esc schliesst Karte,
+  Typauswahl und Element-Auswahl und bricht ein laufendes Ziehen ab. In Eingabefeldern wirken die
+  Tasten nicht. Hinweis in der Legende.
+- Offen in Phase 3: lokale Positionsspeicherung (FR-V15).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen
 
