@@ -30,6 +30,8 @@ import type { DFDAsset } from "features/dfd/models/dfd-asset-types";
 import type { Project } from "app/models/project-types";
 import { buildDfdUpdate } from "app/services/dfd-update-patch";
 import type { A2AOp, NewA2ARelation } from "shared";
+import { a2aOpsFromExport } from "features/dfd/hooks/use-dfd-export-import";
+import { finalizeDfd } from "features/dfd/services/dfd-finalize";
 import {
   commitLoadedProject,
   mergeProjectPatch,
@@ -133,6 +135,49 @@ export class RelationSession {
         relation: { ...rest, sourceAssetId } as unknown as NewA2ARelation,
       },
     ]);
+  }
+
+  /**
+   * DFD toolbar "Import DFD": the export's asset lists become add operations
+   * (a2aOpsFromExport, queued on the persistence) that ride on the save of
+   * the imported DFD — same order as use-dfd-export-import.importDFD.
+   */
+  importDfd(exported: {
+    xml?: string;
+    elements: DFDElement[];
+    connections: DFDConnection[];
+    assets: DFDAsset[];
+  }): void {
+    const { persistence } = this.hook.result.current;
+    act(() => {
+      persistence.queueA2AOps(a2aOpsFromExport(exported.assets));
+      persistence.scheduleSave((base) => {
+        const dfd = finalizeDfd({
+          ...base,
+          xml: exported.xml ?? base.xml,
+          elements: exported.elements,
+          connections: exported.connections,
+          assets: exported.assets,
+        });
+        return {
+          dfd,
+          phaseStatus: this.project.phaseStatus,
+          lastModified: dfd.lastModified!,
+        };
+      });
+    });
+    this.sync();
+  }
+
+  /** What "Export DFD" writes (use-dfd-export-import.exportDFD). */
+  exportDfd() {
+    const dfd = this.project.dfd!;
+    return {
+      xml: dfd.xml,
+      elements: dfd.elements,
+      connections: dfd.connections,
+      assets: dfd.assets,
+    };
   }
 
   /** Rejected operations reported by the last DFD update. */

@@ -10,6 +10,7 @@ import type { Project } from "../models/project-types";
 import type { DFDUpdateResult } from "features/dfd";
 import { syncThreatsWithGraph } from "features/threats";
 import { syncFromDFD } from "features/assets/services/asset-sync-service";
+import { createDefaultAssetData } from "features/assets/services/asset-factory";
 import {
   EMPTY_PROJECT_TAGS,
   applyA2AOps,
@@ -66,10 +67,16 @@ export function buildDfdUpdate(
   //    newly drawn elements exist as linked assets BEFORE threats sync —
   //    otherwise new-element threats would resolve empty linkedAssetIds.
   //    Mirrors the canonical DFD→Assets sync in handleHazardsUpdate.
+  // A project without an asset store (new project) gets one as soon as its
+  // DFD carries assets — e.g. a DFD import. Without it the imported assets
+  // and their asset-to-asset operations had nowhere to land and the
+  // relations were dropped silently.
+  const baseAssets =
+    current.assets ?? (dfd.assets?.length ? createDefaultAssetData() : null);
   let assets = current.assets;
-  if (dfd.assets && current.assets) {
+  if (dfd.assets && baseAssets) {
     const { assetData } = syncFromDFD(
-      current.assets,
+      baseAssets,
       mapDFDAssetsToAssetFeature(
         dfd.assets,
         dfd.elements ?? [],
@@ -128,7 +135,14 @@ export function buildDfdUpdate(
   //     write path to the canonical list (AR-5). Applied after the sync and
   //     the deletions, so imported assets exist and deleted ones are gone.
   let rejectedA2AOps: DfdUpdateOutcome["rejectedA2AOps"] = [];
-  if (updates.a2aOps?.length && assets) {
+  if (updates.a2aOps?.length && !assets) {
+    // No asset store and no DFD assets: nothing the operations could refer
+    // to. Report them instead of dropping them silently.
+    rejectedA2AOps = updates.a2aOps.map((op) => ({
+      op,
+      reason: "source_missing" as const,
+    }));
+  } else if (updates.a2aOps?.length && assets) {
     const groups = new Map(
       assets.assets.map((a) => [a.id, a.assetGroup as AssetGroup]),
     );

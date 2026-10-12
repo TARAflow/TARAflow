@@ -18,6 +18,7 @@ import { ALLOWED_A2A_RELATIONS, validateA2ARelations } from "shared";
 import type { AssetGroup } from "shared";
 import type { Project } from "app/models/project-types";
 import { serialiseProject } from "app/services/prepare-for-disk";
+import { projectRepository } from "app/services/project-repository";
 import { commitLoadedProject } from "app/services/project-commit";
 import { loadProjectFixture } from "../../fixtures/load-fixture";
 import { openProject, RelationSession } from "./relations-harness";
@@ -321,5 +322,40 @@ describe("Group change → invalid asset links are reported (B5)", () => {
     ]);
     expect(s.project.assets!.relations).toHaveLength(1);
     s.close();
+  });
+});
+
+describe("DFD export → import into a new project keeps asset links", () => {
+  function freshProjectFile(): string {
+    const p = projectRepository.createEmpty("Import target", "") as Project;
+    // A new project has no asset store; its DFD exists once the tab is opened.
+    return serialiseProject({
+      ...p,
+      assets: null,
+      dfd: { xml: "", elements: [], connections: [], assets: [], lastModified: "2026-01-01T00:00:00.000Z" },
+    } as unknown as Project);
+  }
+
+  it("relations arrive in assets.relations and survive save and reopen", () => {
+    const src = new RelationSession(openProject(BASE));
+    const d = firstAsset(src.project, "data");
+    const f = firstAsset(src.project, "function");
+    src.addA2A(d, { targetAssetId: f, relationType: "required_by" });
+    const exported = src.exportDfd();
+    src.close();
+
+    const target = new RelationSession(openProject(freshProjectFile()));
+    expect(target.project.assets).toBeNull();
+    target.importDfd(exported as any);
+
+    expect(target.lastRejected).toEqual([]);
+    const edge = (p: Project) =>
+      (p.assets?.relations ?? []).find(
+        (r) => r.sourceAssetId === d && r.targetAssetId === f && r.relationType === "required_by",
+      );
+    expect(edge(target.project), "after import").toBeDefined();
+    const reopened = target.reopen();
+    expect(edge(reopened.project), "after reopen").toBeDefined();
+    reopened.close();
   });
 });
