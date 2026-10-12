@@ -19,6 +19,9 @@ import { relationsOfAssetGrouped } from "./asset-graph-query";
 import { LinkAttributesForm } from "./asset-graph-link-form";
 import type { A2ARelationAttributes } from "shared";
 
+/** Width of the detail card (fits the embedded asset form). */
+export const CARD_WIDTH = 440;
+
 export interface AssetGraphInspectorProps {
   readonly source: AssetGraphSource;
   readonly assetId: string | null;
@@ -266,7 +269,10 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
     <Paper
       elevation={3}
       data-testid="asset-graph-inspector"
-      sx={{ position: "absolute", top: 12, right: rightInset + 12, width: propertiesOpen && assetEditing && !edge ? 460 : 300, maxHeight: "calc(100% - 24px)", overflow: "auto", p: 1.5, zIndex: 1 }}
+      sx={{ position: "absolute", top: 12, right: rightInset + 12,
+        // One width for every card and state: it does not jump when the
+        // properties open or another node is picked.
+        width: CARD_WIDTH, maxHeight: "calc(100% - 24px)", overflow: "auto", p: 1.5, zIndex: 1 }}
     >
       <IconButton size="small" onClick={onClose} sx={{ position: "absolute", top: 4, right: 4 }}>
         <CloseIcon fontSize="small" />

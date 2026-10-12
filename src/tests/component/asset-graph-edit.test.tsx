@@ -248,4 +248,68 @@ describe("AssetGraphView — edit mode", () => {
     fireEvent.click(screen.getByTestId("asset-graph-edge-r1"));
     expect(screen.queryByTestId("asset-graph-link-form")).toBeNull();
   });
+
+  it("undo/redo of link changes, by button and Ctrl+Z (FR-E9)", () => {
+    const commit = vi.fn();
+    const { rerender } = render(
+      <A2AOpsProvider commit={commit}>
+        <AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />
+      </A2AOpsProvider>,
+    );
+    fireEvent.click(screen.getByTestId("asset-graph-mode-edit"));
+    expect(screen.getByTestId("asset-graph-undo")).toBeDisabled();
+    // Delete r1 …
+    fireEvent.click(screen.getByTestId("asset-graph-edge-r1"));
+    fireEvent.click(screen.getByTestId("asset-graph-delete-link"));
+    expect(commit).toHaveBeenLastCalledWith([{ kind: "remove", relationId: "r1" }]);
+    // … the store answers: r1 is gone.
+    const without: AssetGraphSource = { ...source, relations: [] };
+    rerender(
+      <A2AOpsProvider commit={commit}>
+        <AssetGraphView source={without} selectedAssetId={null} onSelectAsset={() => {}} />
+      </A2AOpsProvider>,
+    );
+    // Undo re-creates it.
+    fireEvent.click(screen.getByTestId("asset-graph-undo"));
+    expect(commit).toHaveBeenLastCalledWith([
+      { kind: "add", relation: { sourceAssetId: "d1", targetAssetId: "f1", relationType: "required_by" } },
+    ]);
+    // The store answers with a new id; redo (Ctrl+Shift+Z) removes that one.
+    const recreated: AssetGraphSource = {
+      ...source,
+      relations: [{ id: "r1b", sourceAssetId: "d1", targetAssetId: "f1", relationType: "required_by" } as A2ARelation],
+    };
+    rerender(
+      <A2AOpsProvider commit={commit}>
+        <AssetGraphView source={recreated} selectedAssetId={null} onSelectAsset={() => {}} />
+      </A2AOpsProvider>,
+    );
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true, shiftKey: true });
+    expect(commit).toHaveBeenLastCalledWith([{ kind: "remove", relationId: "r1b" }]);
+  });
+
+  it("the card keeps one width, whether the properties are open or not", () => {
+    render(
+      <A2AOpsProvider commit={vi.fn()}>
+        <AssetGraphView
+          source={source}
+          selectedAssetId={null}
+          onSelectAsset={() => {}}
+          assetEditing={{
+            assets: [{ id: "d1", displayId: "DA-001", name: "Measure Data", assetGroup: "data", linkedElements: [], properties: {} } as never],
+            elements: [],
+            connections: [],
+            onChange: () => {},
+          }}
+        />
+      </A2AOpsProvider>,
+    );
+    fireEvent.click(screen.getByTestId("asset-graph-mode-edit"));
+    fireEvent.click(screen.getByTestId("asset-graph-node-d1"));
+    const card = screen.getByTestId("asset-graph-inspector");
+    const before = card.style.width || getComputedStyle(card).width;
+    fireEvent.click(screen.getByText("Properties"));
+    expect(card.style.width || getComputedStyle(card).width).toBe(before);
+    expect(card).toHaveStyle({ width: "440px" });
+  });
 });

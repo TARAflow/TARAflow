@@ -40,6 +40,11 @@
         "noMatch": "Kein Asset passt zu „{{query}}“.",
         "hitHiddenLayer": "{{asset}} liegt in der ausgeblendeten Ebene {{layer}}.",
         "hitOutsideFocus": "{{asset}} liegt ausserhalb des Fokus (Tiefe {{depth}}).",
+        "history": {
+          "undo": "Rückgängig (Strg+Z)",
+          "redo": "Wiederholen (Strg+Umschalt+Z)",
+          "partial": "Nur teilweise möglich — ein Link wurde inzwischen anderswo geändert."
+        },
         "create": "Neues Asset in {{layer}}",
         "mode": {
           "view": "Ansehen",

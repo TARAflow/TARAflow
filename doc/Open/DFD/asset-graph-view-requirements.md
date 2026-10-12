@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.18 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.19 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -40,6 +40,7 @@
 | v2.16 | 2026-10-12 | Phase 3 Teil 3: Link-Attribute in der Kantenkarte bearbeiten (FR-E6). |
 | v2.17 | 2026-10-12 | **D9:** je Ansicht ein Bearbeitungsort — Seitenpanel nur beim Zeichnen, Beschreiben über die Akkordeons, Graph über die Karten. Hinweise navigieren in der aktuellen Ansicht; Asset-Baum folgt der Auswahl; Beschreibungsansicht linksbündig in voller Breite. |
 | v2.18 | 2026-10-12 | Asset-Eigenschaften in der Graph-Karte (gemeinsames Formular), Schritt nur bei `invokes`/`configures`, Hilfetexte in der Kantenkarte. |
+| v2.19 | 2026-10-12 | Undo/Redo für Link-Änderungen im Graph (FR-E9); feste Kartenbreite. |
 
 ---
 
@@ -768,8 +769,16 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
   `A2A_STEP_TYPES` in `shared`) — in Kantenkarte und Beziehungsdialog; ein alter Wert an einem
   anderen Typ bleibt sichtbar, damit er entfernt werden kann. Hilfetexte zu Schritt, Begründung,
   Notizen.
-- Offen in Phase 3: Element-zu-Asset-Beziehungen (FR-E7),
-  Undo/Redo (FR-E9), Tastaturbedienung (NFR-4), lokale Positionsspeicherung (FR-V15).
+- ✅ (v2.19) Undo/Redo für Link-Änderungen im Graph (FR-E9): Anlegen, Löschen, Attribute;
+  Knöpfe in der Context Bar und Strg+Z / Strg+Umschalt+Z (bzw. Strg+Y) im Bearbeiten-Modus,
+  sitzungsbezogen, höchstens 50 Schritte. Schritte benennen Links über (Quelle, Ziel, Typ), nicht
+  über die id — ein wiederhergestellter Link bekommt eine neue id und wird trotzdem gefunden.
+  Wurde ein Link inzwischen anderswo geändert, wird der Rest ausgeführt und das gemeldet. Anlegen
+  und Löschen von Assets sind nicht Teil der Historie (Kaskaden über den DFD-Weg).
+- ✅ (v2.19) Die Karte hat eine feste Breite (440 px) — sie springt nicht mehr, wenn
+  „Eigenschaften“ aufgeklappt wird.
+- Offen in Phase 3: Element-zu-Asset-Beziehungen (FR-E7), Tastaturbedienung (NFR-4), lokale
+  Positionsspeicherung (FR-V15).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen
 

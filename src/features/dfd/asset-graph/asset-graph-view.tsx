@@ -46,6 +46,8 @@ import {
   Search as SearchIcon,
   Edit as EditIcon,
   Visibility as ViewIcon,
+  Undo as UndoIcon,
+  Redo as RedoIcon,
 } from "@mui/icons-material";
 import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
 import type { AssetGroup } from "shared";
@@ -67,8 +69,20 @@ import {
   type Point,
 } from "./layout-asset-graph";
 import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
-import { AssetGraphInspector } from "./asset-graph-inspector";
+import { AssetGraphInspector, CARD_WIDTH } from "./asset-graph-inspector";
 import { ConnectChooser, type ConnectChoice, type ConnectRequest } from "./asset-graph-connect";
+import {
+  EMPTY_HISTORY,
+  entryForAdd,
+  entryForRemove,
+  entryForUpdate,
+  popRedo,
+  popUndo,
+  pushEntry,
+  resolveSteps,
+  type HistoryEntry,
+  type HistoryState,
+} from "./asset-graph-history";
 import { useA2AOps } from "../contexts/a2a-ops-context";
 import {
   classifyA2ATargets,
@@ -490,16 +504,61 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       anchor: { left: e.clientX, top: e.clientY },
     });
   };
+  // ── Undo / redo of link changes (FR-E9) ───────────────────────────────
+  const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
+  const [historyNotice, setHistoryNotice] = useState<string | null>(null);
+  const run = (entry: HistoryEntry) => {
+    const { ops } = resolveSteps(entry.redo, source.relations);
+    if (ops.length === 0) return;
+    commitA2AOps?.(ops);
+    setHistory((h) => pushEntry(h, entry));
+  };
+  const replay = (direction: "undo" | "redo") => {
+    const { entry, next } = direction === "undo" ? popUndo(history) : popRedo(history);
+    if (!entry) return;
+    const { ops, complete } = resolveSteps(direction === "undo" ? entry.undo : entry.redo, source.relations);
+    if (ops.length > 0) commitA2AOps?.(ops);
+    setHistory(next);
+    setHistoryNotice(
+      complete
+        ? null
+        : t("tabs.dfd.assetGraph.history.partial", {
+            defaultValue: "Only partly possible — a link was changed elsewhere in the meantime.",
+          }),
+    );
+  };
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
+      const k = e.key.toLowerCase();
+      if (k === "z" && !e.shiftKey) {
+        e.preventDefault();
+        replay("undo");
+      } else if ((k === "z" && e.shiftKey) || k === "y") {
+        e.preventDefault();
+        replay("redo");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }); // re-bound each render: replay reads the current links and history
+
   const choose = (choice: ConnectChoice) => {
     setConnectRequest(null);
-    commitA2AOps?.([{ kind: "add", relation: choice }]);
+    run(entryForAdd(choice));
     // FR-E11: the focus stays on the source.
     onSelectAsset(choice.sourceAssetId);
   };
-  const updateLink = (relationId: string, attributes: Record<string, unknown>) =>
-    commitA2AOps?.([{ kind: "update", relationId, attributes }]);
+  const updateLink = (relationId: string, attributes: Record<string, unknown>) => {
+    const rel = source.relations.find((r) => r.id === relationId);
+    if (rel) run(entryForUpdate(rel, attributes));
+  };
   const deleteLink = (relationId: string) => {
-    commitA2AOps?.([{ kind: "remove", relationId }]);
+    const rel = source.relations.find((r) => r.id === relationId);
+    if (rel) run(entryForRemove(rel));
     setSelectedEdgeId(null);
     setInspectorOpen(false);
   };
@@ -659,6 +718,24 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               </Tooltip>
             </ToggleButton>
           </ToggleButtonGroup>
+        )}
+        {editing && (
+          <>
+            <Tooltip title={t("tabs.dfd.assetGraph.history.undo", { defaultValue: "Undo (Ctrl+Z)" })}>
+              <span>
+                <IconButton size="small" disabled={history.past.length === 0} onClick={() => replay("undo")} data-testid="asset-graph-undo">
+                  <UndoIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={t("tabs.dfd.assetGraph.history.redo", { defaultValue: "Redo (Ctrl+Shift+Z)" })}>
+              <span>
+                <IconButton size="small" disabled={history.future.length === 0} onClick={() => replay("redo")} data-testid="asset-graph-redo">
+                  <RedoIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </>
         )}
 
         <ToggleButtonGroup
@@ -861,6 +938,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             sx={{ position: "absolute", left: 12, bottom: 12, zIndex: 1 }}
           />
         )}
+        {historyNotice && (
+          <Alert
+            severity="info"
+            data-testid="asset-graph-history-notice"
+            onClose={() => setHistoryNotice(null)}
+            sx={{ position: "absolute", top: 8, left: 8, right: rightInset + 8, zIndex: 2 }}
+          >
+            {historyNotice}
+          </Alert>
+        )}
         {connectNotice && (
           <Alert
             severity="warning"
@@ -879,7 +966,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               setSearchHit(null);
               setSearchMiss(false);
             }}
-            sx={{ position: "absolute", top: 8, left: 8, right: rightInset + (inspectorOpen ? 314 : 8), zIndex: 1 }}
+            sx={{ position: "absolute", top: 8, left: 8, right: rightInset + (inspectorOpen ? CARD_WIDTH + 24 : 8), zIndex: 1 }}
             action={
               hitAsset && hitVisibility?.state === "hiddenLayer" ? (
                 <Button

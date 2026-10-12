@@ -40,6 +40,11 @@
         "noMatch": "No asset matches \"{{query}}\".",
         "hitHiddenLayer": "{{asset}} is in the hidden layer {{layer}}.",
         "hitOutsideFocus": "{{asset}} is outside the focus (depth {{depth}}).",
+        "history": {
+          "undo": "Undo (Ctrl+Z)",
+          "redo": "Redo (Ctrl+Shift+Z)",
+          "partial": "Only partly possible — a link was changed elsewhere in the meantime."
+        },
         "create": "New asset in {{layer}}",
         "mode": {
           "view": "View",
