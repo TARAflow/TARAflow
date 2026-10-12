@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.7 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
-> Phase 1 läuft: Persistenz behoben (Schema v8), Integrationstest über alle Beziehungsfälle;
-> offen sind der Umbau der Schreibwege auf den Service, Audit-Diff und ein Sitzungsfehler (B11).
+> **Status:** Entwurf v2.8 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben) und den
+> Sitzungsfehler B11. Nächster Schritt: D2/D6 bestätigen, Phase 2.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -29,6 +29,7 @@
 | v2.5 | 2026-10-03 | **G1 = FAIL**, manuell bestätigt (Beziehung nach Schliessen/Öffnen weg, nicht in der Datei). Phase 1 Teil 1 umgesetzt: Schema v8 mit `assets.relations[]`, Migration 7→8 und Rettung in `migrate_5_to_6`, Übergangs-Brücke Spiegel ↔ kanonische Liste in `commitAssetSync`, Lösch-Kaskade. Reine Schreibkette (`buildDfdUpdatePatch`, `mergeProjectPatch`) aus den Komponenten gezogen; Integrationstest über alle erlaubten Element→Asset- und Asset→Asset-Beziehungen. Neue Befunde **B10** (Beschreibungsansicht ohne Ziel-Assets im Dialog, behoben), **B11** (Sitzungsfehler „Eingabe verpufft“, offen); A2A-Dialog folgt der Duplikat-Regel. Entscheidung: DFD-Elemente bekommen keine eigene Kantenliste (AR-6). |
 | v2.6 | 2026-10-11 | Laden schreibt keine Datei mehr, Konvertierung nur beim Öffnen nach Zustimmung (Dialog mit Begründung je Schema-Schritt). Asset-Tab: neue Spalte **Asset Links** (A2A, gerichtet, nur lesend) neben „DFD Links“, Abschnitt „Verknüpfte Assets“ im Asset-Dialog (FR-V16). Spiegelpaare im A2A-Regelwerk mit Hinweis im Beziehungsdialog (FR-E12). Neuer Befund **B12** (Downstream-Spalte: Richtungssemantik je Typ ungeklärt, daher noch nicht angeschlossen). |
 | v2.7 | 2026-10-12 | FR-V16 präzisiert: Pfeil + identischer Typ auf beiden Seiten war missverständlich (bei E-Stop las sich `required_by` falsch herum). Chips lesen jetzt aus Sicht der Zeile — gespeicherter Typ an der Quelle, inverser Name am Ziel (Tabelle `A2A_INVERSE_NAMES` für alle Typen); Tooltip-Satz de/en je Typ. |
+| v2.8 | 2026-10-12 | Phase 1 Teil 2: ein Schreibweg (AR-5) — Dialog und DFD-Import senden A2A-Operationen (`DFDUpdateResult.a2aOps`), die App-Schicht wendet sie über den Relations-Service an; Übergangs-Brücke entfernt, `dfd.assets` ist reine Projektion. Gruppenwechsel meldet ungültige Asset-Links als Befund (B5). A2A-Kanten im Audit-Diff (AR-9). Totes Feld `DFDAsset.assetToAssetRelations` und A2A-Pfade am Spiegel entfernt. |
 
 ---
 
@@ -576,19 +577,30 @@ gelesen. Behebt B1, B3, B5, B6 und die Downstream-Anzeige.
   Löschdialog, `validateA2ARelations` für Gruppenwechsel und Laden (meldet, löscht nicht),
   `sortA2ARelations` für AR-9. IDs werden injiziert, damit die Funktionen rein bleiben.
   Ablehnungsgründe: fehlende Quelle/Ziel, Selbstbeziehung, Typ nicht erlaubt, exaktes Duplikat.
-  Noch nicht angeschlossen; das passiert mit dem Schema-Bump.
+  Angeschlossen in v2.8 (siehe nächster Punkt); ergänzt um `applyA2AOps` (Operationen
+  `add`/`remove`/`update`, abgelehnte werden gemeldet, die übrigen angewendet).
 - Den heutigen Mutationsort (`useDFDData.updateAsset` für A2A, §3.3.1) durch den Service
   ersetzen: `AssetToAssetSelector`/`asset-description-form` schreiben über den Service; das
   `as any` auf `DFDAsset.assetRelations` entfällt; totes Feld `DFDAsset.assetToAssetRelations`
   entfernen; beide Form-Einstiege (`dfd-asset-panel`, `dfd-description-view`) beziehen Ziele aus
-  der kanonischen Quelle (B6).
+  der kanonischen Quelle (B6). ✅ (v2.8): Der Dialog meldet `onAdd`/`onRemove`; das Formular
+  macht daraus `A2AOp`s und gibt sie über `A2AOpsContext` an den DFD-Tab
+  (`useDFDPersistence.commitA2AOps`). Sie reisen als `DFDUpdateResult.a2aOps` (auch über
+  Debounce/Flush hinweg, wie `deletedAssetIds`) zu `buildDfdUpdate`, das sie nach Asset-Sync und
+  Löschungen mit `applyA2AOps` auf `assets.relations` anwendet; Abgelehntes erscheint als Toast.
+  Der DFD-Import erzeugt aus den Listen der Exportdatei `add`-Operationen
+  (`a2aOpsFromExport`) — derselbe Weg. `commitAssetSync` projiziert die kanonische Liste bei jedem
+  Commit auf `dfd.assets[].assetRelations`; eine Änderung am Spiegel allein bewirkt nichts.
+  `DFDAsset.assetRelations` ist typisiert, `assetToAssetRelations` entfernt.
 - Gruppenwechsel eines Assets validiert auch A2A-Relationen (ein- und ausgehend) gegen das
-  Regelwerk (B5).
+  Regelwerk (B5). ✅ (v2.8): Befund im Asset-Tab je ungültigem Asset-Link (Warnung am
+  Quell-Asset, mit Link und Gruppenpaar); im DFD-Beziehungsdialog Markierung „nicht erlaubt“
+  am Eintrag. Gelöscht wird nichts.
 - Schema-Bump + Migration (AR-3), inkl. Anpassung `migrate_5_to_6`. ✅ (v2.5): Schema 8,
   `AssetData.relations?: A2ARelation[]`; `migrate_7_to_8` hebt Alt-Beziehungen von `dfd.assets`
   (`lift-legacy-a2a.ts`); `migrate_5_to_6` hebt sie, bevor es den Spiegel verwirft;
   `prepareForDisk` schreibt sortiert, leere Liste wird nicht geschrieben.
-- **Übergangs-Brücke (v2.5, Abweichung von AR-5):** Damit B1 sofort behoben ist, schreibt der
+- ~~**Übergangs-Brücke (v2.5, Abweichung von AR-5):**~~ *Entfernt in v2.8.* Damit B1 sofort behoben ist, schreibt der
   Dialog vorerst weiter auf den Spiegel. `commitAssetSync` übernimmt bei jedem Schreiben die
   A2A-Listen des Spiegels je Quell-Asset in `assets.relations` (`liftA2AFromMirror`, IDs bleiben)
   und spielt sie beim Laden zurück (`projectA2AOntoMirror`, Gruppen berechnet). Schutz gegen die
@@ -596,11 +608,14 @@ gelesen. Behebt B1, B3, B5, B6 und die Downstream-Anzeige.
   `relations`-Feld löscht nichts. Löschen eines Assets entfernt ein- und ausgehende Kanten.
   Die Brücke entfällt, wenn der nächste Punkt umgesetzt ist.
 - `AssetData.a2aRelations` befüllen (AR-7), Löschdialog umstellen (AR-8), Audit-Diff und
-  deterministische Serialisierung (AR-9).
+  deterministische Serialisierung (AR-9). AR-8 ✅ (Zählung und Kaskade aus `assets.relations`).
+  AR-9 ✅ (v2.8): `diff-service` meldet je Kante hinzugefügt/gelöscht/geändert, benannt mit
+  Display-IDs. AR-7 → nach Phase 4 verschoben (B12: Richtung je Typ ungeklärt).
 
 **Tests:** Phase-0-Roundtrip jetzt grün ✅; Integrationstest
 `src/tests/integration/relations/relations-pipeline.test.ts` ✅ — fährt die Produktionskette
-(Dialog-`onChange` → `useDFDPersistence`/`useDFDData` → `buildDfdUpdatePatch` →
+(A2A: Dialog-Operation → `commitA2AOps` → `buildDfdUpdate`; Element→Asset: Dialog-`onChange` →
+`useDFDPersistence`/`useDFDData` → `buildDfdUpdate` →
 `mergeProjectPatch` → `serialiseProject` → `parseAndRepair`/`commitLoadedProject`) für jede
 erlaubte Element→Asset- und Asset→Asset-Beziehung aus den Regeltabellen, plus Entfernen,
 Attribute, unabhängige Änderung, Gruppenwechsel; Migration v5/v6/v7 → neu; Service-Unit-Tests;
