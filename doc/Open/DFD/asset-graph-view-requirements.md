@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.5 (2026-10-03). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.6 (2026-10-11). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > Phase 1 läuft: Persistenz behoben (Schema v8), Integrationstest über alle Beziehungsfälle;
 > offen sind der Umbau der Schreibwege auf den Service, Audit-Diff und ein Sitzungsfehler (B11).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -27,6 +27,7 @@
 | v2.3 | 2026-10-02 | G1-unabhängige Teile von Phase 1 umgesetzt: A2A-Regelwerk nach `shared/models/asset-a2a-rules.ts`, explizite KERN-Kennzeichnung, Ziel-Einteilung *gültig / nur umgekehrt / ungültig*. Neuer Befund **B7** (KERN-Reihenfolge im Regelwerk widerspricht dem Beziehungsdokument). AR-4 in zwei Schritte geteilt: Element-zu-Asset-Regelwerk folgt mit FR-E7 (Phase 3). |
 | v2.4 | 2026-10-02 | **D1 entschieden: (a).** Begründung gegen den Code korrigiert: „gleiches Muster wie `hazards.relations`“ gilt nur halb (dort keine Kanten-IDs, kein Audit-Diff), stabile IDs sind kein Unterscheidungsmerkmal; tragend sind Robustheit gegen die Fehlerklasse von B1, lokale Kaskade/Audit und direkte Kantennutzung im Graph. Neuer Befund **B8** (Hazard-Relationen nicht im Audit-Diff). Kanonischer Typ `A2ARelation` und reiner Relations-Service (AR-5) umgesetzt, noch ohne Persistenz. |
 | v2.5 | 2026-10-03 | **G1 = FAIL**, manuell bestätigt (Beziehung nach Schliessen/Öffnen weg, nicht in der Datei). Phase 1 Teil 1 umgesetzt: Schema v8 mit `assets.relations[]`, Migration 7→8 und Rettung in `migrate_5_to_6`, Übergangs-Brücke Spiegel ↔ kanonische Liste in `commitAssetSync`, Lösch-Kaskade. Reine Schreibkette (`buildDfdUpdatePatch`, `mergeProjectPatch`) aus den Komponenten gezogen; Integrationstest über alle erlaubten Element→Asset- und Asset→Asset-Beziehungen. Neue Befunde **B10** (Beschreibungsansicht ohne Ziel-Assets im Dialog, behoben), **B11** (Sitzungsfehler „Eingabe verpufft“, offen); A2A-Dialog folgt der Duplikat-Regel. Entscheidung: DFD-Elemente bekommen keine eigene Kantenliste (AR-6). |
+| v2.6 | 2026-10-11 | Laden schreibt keine Datei mehr, Konvertierung nur beim Öffnen nach Zustimmung (Dialog mit Begründung je Schema-Schritt). Asset-Tab: neue Spalte **Asset Links** (A2A, gerichtet, nur lesend) neben „DFD Links“, Abschnitt „Verknüpfte Assets“ im Asset-Dialog (FR-V16). Spiegelpaare im A2A-Regelwerk mit Hinweis im Beziehungsdialog (FR-E12). Neuer Befund **B12** (Downstream-Spalte: Richtungssemantik je Typ ungeklärt, daher noch nicht angeschlossen). |
 
 ---
 
@@ -211,6 +212,15 @@ Tab „Relations“ dieses Einstiegs gibt es daher keine Zielassets. Mit dem Rel
 `dfd-description-view.tsx` übergab `AssetDescriptionForm` kein `allAssets`; der A2A-Dialog dort
 hatte keine Ziel-Assets. → Behoben (v2.5), Komponententest.
 
+**B12 — Downstream-Spalte: Richtung hängt vom Beziehungstyp ab (offen).**
+Die Spalte „Downstream“ im Asset-Tab zählt per BFS die Ziele *ausgehender* A2A-Kanten und
+beschreibt das als „Assets, die von diesem Asset abhängen“. Das stimmt nur für Typen, bei denen das
+Ziel vom Quell-Asset abhängt (`required_by`, `configures`, `triggers`). Bei `depends_on`,
+`runs_on`, `hosted_on` hängt die *Quelle* vom Ziel ab — dort wäre die Zahl umgekehrt. Die Spalte
+bekommt bisher keine Daten (Prop `a2aRelations` wird nicht übergeben) und zeigt immer „–“.
+Bewusst nicht angeschlossen, bis die Abhängigkeitsrichtung je Typ festgelegt ist; gehört zur
+Impact-Propagation (Phase 4). Bis dahin zeigt „Asset Links“ die Kanten ohne Zählung.
+
 **B11 — Sitzungsfehler: Eingabe verpufft ohne Meldung (offen).**
 Manuell beobachtet (2026-10-03): Beziehung im Dialog vollständig gewählt und bestätigt, danach
 keine Änderung sichtbar, keine Fehlermeldung; nach Schliessen/Öffnen der Datei funktionierte
@@ -357,6 +367,7 @@ Modellierungsentscheidung behandelt, nicht als UX-Detail.
 | FR-V13 | **Einstieg aus der Tabelle:** Jede Zeile der Asset-Tabelle bietet „Im Graph zeigen“; das öffnet die Graph-Sicht in der Fokus-Sicht dieses Assets. Umgekehrt führt „In Tabelle zeigen“ zurück (FR-V8). | MUSS | 2 |
 | FR-V14 | **Context Bar:** Ständig sichtbar oberhalb der Leinwand. Zeigt: Sicht, Preset bzw. gewählte Ebenen, Fokus-Asset und Tiefe, aktive Filter, Modus sowie Zähler („12 von 47 Assets sichtbar · 5 Beziehungen durch Filter ausgeblendet“). Jeder Eintrag ist direkt änderbar bzw. zurücksetzbar; „Alles zurücksetzen“ stellt die Standardansicht her. | MUSS | 2 |
 | FR-V15 | Knotenpositionen können **lokal** (pro Projekt-ID, z. B. localStorage) über Sitzungen hinweg gemerkt werden, damit sich der Analyst beim Wiederöffnen orientiert. Nie in der Projektdatei (D3). Fehlen gespeicherte Positionen oder passen sie nicht mehr, greift das deterministische Layout. | KANN | 3 |
+| FR-V16 | **Asset Links in der Tabelle:** Der Asset-Tab zeigt neben „DFD Links“ die Spalte „Asset Links“ mit den A2A-Beziehungen jedes Assets, gerichtet markiert (→ ausgehend, ← eingehend, mit Ziel-ID und Typ), sortierbar nach Anzahl; der Asset-Dialog zeigt sie im Abschnitt „Verknüpfte Assets“. Nur lesend — bearbeitet wird im DFD-Asset-Panel bzw. in der Graph-Sicht (AR-5). ✅ v2.6 | MUSS | 1 |
 
 ### 5.3 Edit Mode
 
@@ -373,6 +384,7 @@ Modellierungsentscheidung behandelt, nicht als UX-Detail.
 | FR-E9 | Undo/Redo für Änderungen im Graph (sitzungsbezogen). | SOLL | 3 |
 | FR-E10 | Jede Änderung ist sofort in allen anderen Sichten sichtbar (Side Panel, Tabelle, DFD-Form) — es gibt keinen separaten Graph-Zustand. | MUSS | 3 |
 | FR-E11 | **Graph wächst:** Nach dem Anlegen einer Beziehung bleibt der Fokus auf dem Quell-Asset, das Ziel wird (falls neu sichtbar) nahe der Quelle eingefügt, die neue Kante pulsiert kurz (UX-4, Stufe 2). Kein Re-Layout (UX-5). | MUSS | 3 |
+| FR-E12 | **Spiegelkanten-Hinweis:** Wählt der Analyst einen Beziehungstyp, der dieselbe Tatsache wie ein Typ in Gegenrichtung beschreibt (`A2A_MIRROR_PAIRS`, z. B. `reads` ↔ `required_by`), zeigt der Dialog einen Hinweis: Warnung, wenn die Gegenkante schon existiert; sonst Nennung der bevorzugten Richtung. Kein Sperren (Linie „melden, nicht löschen“). ✅ v2.6 im DFD-Beziehungsdialog; in der Graph-Sicht mit FR-E4 | SOLL | 1 / 3 |
 
 ### 5.4 Process-Sicht und Modell-Erweiterungen
 
