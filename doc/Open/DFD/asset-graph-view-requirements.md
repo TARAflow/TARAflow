@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.6 (2026-10-11). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.7 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > Phase 1 läuft: Persistenz behoben (Schema v8), Integrationstest über alle Beziehungsfälle;
 > offen sind der Umbau der Schreibwege auf den Service, Audit-Diff und ein Sitzungsfehler (B11).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -28,6 +28,7 @@
 | v2.4 | 2026-10-02 | **D1 entschieden: (a).** Begründung gegen den Code korrigiert: „gleiches Muster wie `hazards.relations`“ gilt nur halb (dort keine Kanten-IDs, kein Audit-Diff), stabile IDs sind kein Unterscheidungsmerkmal; tragend sind Robustheit gegen die Fehlerklasse von B1, lokale Kaskade/Audit und direkte Kantennutzung im Graph. Neuer Befund **B8** (Hazard-Relationen nicht im Audit-Diff). Kanonischer Typ `A2ARelation` und reiner Relations-Service (AR-5) umgesetzt, noch ohne Persistenz. |
 | v2.5 | 2026-10-03 | **G1 = FAIL**, manuell bestätigt (Beziehung nach Schliessen/Öffnen weg, nicht in der Datei). Phase 1 Teil 1 umgesetzt: Schema v8 mit `assets.relations[]`, Migration 7→8 und Rettung in `migrate_5_to_6`, Übergangs-Brücke Spiegel ↔ kanonische Liste in `commitAssetSync`, Lösch-Kaskade. Reine Schreibkette (`buildDfdUpdatePatch`, `mergeProjectPatch`) aus den Komponenten gezogen; Integrationstest über alle erlaubten Element→Asset- und Asset→Asset-Beziehungen. Neue Befunde **B10** (Beschreibungsansicht ohne Ziel-Assets im Dialog, behoben), **B11** (Sitzungsfehler „Eingabe verpufft“, offen); A2A-Dialog folgt der Duplikat-Regel. Entscheidung: DFD-Elemente bekommen keine eigene Kantenliste (AR-6). |
 | v2.6 | 2026-10-11 | Laden schreibt keine Datei mehr, Konvertierung nur beim Öffnen nach Zustimmung (Dialog mit Begründung je Schema-Schritt). Asset-Tab: neue Spalte **Asset Links** (A2A, gerichtet, nur lesend) neben „DFD Links“, Abschnitt „Verknüpfte Assets“ im Asset-Dialog (FR-V16). Spiegelpaare im A2A-Regelwerk mit Hinweis im Beziehungsdialog (FR-E12). Neuer Befund **B12** (Downstream-Spalte: Richtungssemantik je Typ ungeklärt, daher noch nicht angeschlossen). |
+| v2.7 | 2026-10-12 | FR-V16 präzisiert: Pfeil + identischer Typ auf beiden Seiten war missverständlich (bei E-Stop las sich `required_by` falsch herum). Chips lesen jetzt aus Sicht der Zeile — gespeicherter Typ an der Quelle, inverser Name am Ziel (Tabelle `A2A_INVERSE_NAMES` für alle Typen); Tooltip-Satz de/en je Typ. |
 
 ---
 
@@ -367,7 +368,7 @@ Modellierungsentscheidung behandelt, nicht als UX-Detail.
 | FR-V13 | **Einstieg aus der Tabelle:** Jede Zeile der Asset-Tabelle bietet „Im Graph zeigen“; das öffnet die Graph-Sicht in der Fokus-Sicht dieses Assets. Umgekehrt führt „In Tabelle zeigen“ zurück (FR-V8). | MUSS | 2 |
 | FR-V14 | **Context Bar:** Ständig sichtbar oberhalb der Leinwand. Zeigt: Sicht, Preset bzw. gewählte Ebenen, Fokus-Asset und Tiefe, aktive Filter, Modus sowie Zähler („12 von 47 Assets sichtbar · 5 Beziehungen durch Filter ausgeblendet“). Jeder Eintrag ist direkt änderbar bzw. zurücksetzbar; „Alles zurücksetzen“ stellt die Standardansicht her. | MUSS | 2 |
 | FR-V15 | Knotenpositionen können **lokal** (pro Projekt-ID, z. B. localStorage) über Sitzungen hinweg gemerkt werden, damit sich der Analyst beim Wiederöffnen orientiert. Nie in der Projektdatei (D3). Fehlen gespeicherte Positionen oder passen sie nicht mehr, greift das deterministische Layout. | KANN | 3 |
-| FR-V16 | **Asset Links in der Tabelle:** Der Asset-Tab zeigt neben „DFD Links“ die Spalte „Asset Links“ mit den A2A-Beziehungen jedes Assets, gerichtet markiert (→ ausgehend, ← eingehend, mit Ziel-ID und Typ), sortierbar nach Anzahl; der Asset-Dialog zeigt sie im Abschnitt „Verknüpfte Assets“. Nur lesend — bearbeitet wird im DFD-Asset-Panel bzw. in der Graph-Sicht (AR-5). ✅ v2.6 | MUSS | 1 |
+| FR-V16 | **Asset Links in der Tabelle:** Der Asset-Tab zeigt neben „DFD Links“ die Spalte „Asset Links“ mit den A2A-Beziehungen jedes Assets, gelesen aus Sicht der Zeile: beim Quell-Asset der gespeicherte Typ (`required_by FU-001`, gefüllter Chip), beim Ziel-Asset der inverse Name (`requires DA-002`, umrandeter Chip, `A2A_INVERSE_NAMES`); Tooltip mit dem Satz der gespeicherten Kante und dem Typ-Schlüssel; sortierbar nach Anzahl; der Asset-Dialog zeigt sie im Abschnitt „Verknüpfte Assets“. Nur lesend — bearbeitet wird im DFD-Asset-Panel bzw. in der Graph-Sicht (AR-5). ✅ v2.6 | MUSS | 1 |
 
 ### 5.3 Edit Mode
 
