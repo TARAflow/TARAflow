@@ -68,6 +68,8 @@ import {
   isIsAnRelation,
 } from "../../models/asset-relation-types";
 import { AnyAssetRelationType, AssetGroup, SafetyAnnotation } from "shared";
+import { getAllowedRelations } from "../../models/asset-constants";
+import type { DFDElementType } from "../../models/dfd-types";
 
 // ==================== PUBLIC TYPES ====================
 
@@ -120,7 +122,33 @@ const RELATIONS_BY_GROUP: Record<AssetGroup, AnyAssetRelationType[]> = {
   environment: ["endangers"],
 };
 
-const DATAFLOW_ALLOWED = new Set<AnyAssetRelationType>(["transports", "is_an"]);
+
+/**
+ * Relation types an element may have to an asset of `group` (B15): the
+ * element rules (getAllowedRelations) — the same rules the validator checks,
+ * so the dialog cannot create a relation that is reported as invalid right
+ * after saving. Without an element type: the group's list, as before.
+ */
+export function relationTypesFor(
+  elementType: string | undefined,
+  group: AssetGroup,
+): AnyAssetRelationType[] {
+  if (elementType) {
+    try {
+      return getAllowedRelations(elementType as DFDElementType, group) as AnyAssetRelationType[];
+    } catch {
+      return [];
+    }
+  }
+  return ["is_an", ...RELATIONS_BY_GROUP[group]];
+}
+
+/** Groups an element may relate to at all (all groups without element type). */
+export function groupsAllowedFor(elementType: string | undefined): AssetGroup[] {
+  return [...ASSET_GROUPS, "environment" as AssetGroup].filter(
+    (g) => relationTypesFor(elementType, g).length > 0,
+  );
+}
 
 const SYSTEM_QUALIFIERS: { value: SystemUsesQualifier; label: string }[] = [
   { value: "api", label: "API / REST / RPC" },
@@ -299,7 +327,6 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
   onCreateAsset,
 }) => {
   const { t } = useTranslation();
-  const isDataFlow = elementType === "DataFlow";
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogAssetId, setDialogAssetId] = useState("");
@@ -443,26 +470,34 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
               const relSafety = r.safety?.relevance ?? "none";
               const isDirect = relSafety === "direct";
               const isIndirect = relSafety === "indirect";
+              // B15: a stored relation the rules do not allow is marked.
+              const notAllowed =
+                !!asset &&
+                !relationTypesFor(elementType, asset.assetGroup).includes(r.relationType);
+              const tip = notAllowed
+                ? t("tabs.dfd.element_description.assetRelations.notAllowedChip", {
+                    defaultValue: "Not allowed for this element type — open to remove",
+                  })
+                : relSafety !== "none"
+                  ? `Safety: ${relSafety}${r.safety?.impact ? ` · ${r.safety.impact.replace(/_/g, " ")}` : ""}`
+                  : "";
               return (
                 <Tooltip
                   key={r.relationType}
-                  title={
-                    relSafety !== "none"
-                      ? `Safety: ${relSafety}${r.safety?.impact ? ` · ${r.safety.impact.replace(/_/g, " ")}` : ""}`
-                      : ""
-                  }
-                  disableHoverListener={relSafety === "none"}
+                  title={tip}
+                  disableHoverListener={!tip}
                   arrow
                 >
                   <Chip
-                    label={`${r.relationType}${qualifier}`}
+                    label={`${notAllowed ? "⚠ " : ""}${r.relationType}${qualifier}`}
                     size="small"
+                    data-testid={notAllowed ? `asset-relation-not-allowed-${assetId}-${r.relationType}` : undefined}
                     sx={{
                       fontFamily: "monospace",
                       fontSize: 10,
                       bgcolor: colors.colorLight,
                       color: colors.color,
-                      border: `1px solid ${isDirect ? "red" : isIndirect ? "orange" : colors.color}`,
+                      border: `1px ${notAllowed ? "dashed" : "solid"} ${notAllowed || isDirect ? "red" : isIndirect ? "orange" : colors.color}`,
                     }}
                   />
                 </Tooltip>
@@ -513,6 +548,18 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
               })}
             </Typography>
           )}
+          {groupsAllowedFor(elementType).length === 0 ? (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontStyle: "italic" }}
+              data-testid="asset-relation-none-allowed"
+            >
+              {t("tabs.dfd.element_description.assetRelations.noneAllowed", {
+                defaultValue: "This element type cannot relate to assets.",
+              })}
+            </Typography>
+          ) : (
           <Tooltip
             title={t(
               "tabs.dfd.element_description.assetRelations.addRelation",
@@ -542,6 +589,7 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
               <AddIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Tooltip>
+          )}
         </Box>
       </Stack>
 
@@ -551,7 +599,7 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
         existingRelations={assetRelations}
         availableAssets={availableAssets}
         usedAssetIds={usedAssetIds}
-        isDataFlow={isDataFlow}
+        elementType={elementType}
         onCreateAsset={onCreateAsset}
         onSave={handleSave}
         onRemoveAsset={handleRemoveAsset}
@@ -573,7 +621,6 @@ export interface ElementAssetRelationDialogProps {
   /** The element's current relations (all assets). */
   readonly relations: readonly AssetRelation[];
   readonly availableAssets: readonly AvailableAsset[];
-  readonly allowedTypes?: readonly string[];
   readonly onChange: (relations: AssetRelation[]) => void;
   readonly onClose: () => void;
 }
@@ -584,7 +631,6 @@ export const ElementAssetRelationDialog: React.FC<ElementAssetRelationDialogProp
   elementType,
   relations,
   availableAssets,
-  allowedTypes,
   onChange,
   onClose,
 }) => {
@@ -596,8 +642,7 @@ export const ElementAssetRelationDialog: React.FC<ElementAssetRelationDialogProp
       existingRelations={relations as AssetRelation[]}
       availableAssets={availableAssets as AvailableAsset[]}
       usedAssetIds={used}
-      isDataFlow={elementType === "DataFlow"}
-      allowedTypes={allowedTypes}
+      elementType={elementType}
       onSave={(asset, map, notes) => {
         const others = relations.filter((r) => r.assetId !== asset.id);
         onChange([...others, ...buildRelations(asset, map, notes)]);
@@ -620,16 +665,12 @@ interface AssetRelationDialogProps {
   existingRelations: AssetRelation[];
   availableAssets: AvailableAsset[];
   usedAssetIds: Set<string>;
-  isDataFlow: boolean;
+  /** Element type — the offered relation types follow its rules (B15). */
+  elementType?: string;
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   onSave: (asset: AvailableAsset, map: RelationMap, notes: string) => void;
   onRemoveAsset: (assetId: string) => void;
   onClose: () => void;
-  /**
-   * Only these relation types are offered (the asset graph passes
-   * getAllowedRelations(elementType, group)). Without it: the group's list.
-   */
-  allowedTypes?: readonly string[];
 }
 
 const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
@@ -638,8 +679,7 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
   existingRelations,
   availableAssets,
   usedAssetIds,
-  isDataFlow,
-  allowedTypes,
+  elementType,
   onCreateAsset,
   onSave,
   onRemoveAsset,
@@ -670,8 +710,10 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
     setAssetNotes(extractAssetNotes(existingRelations, initialAssetId));
     setExpandedTypes(new Set());
     setNewAssetName("");
-    // Auto-select first group that has available assets
-    const firstAvailableGroup = ASSET_GROUPS.find(
+    const groups = groupsAllowedFor(elementType);
+    if (groups.length > 0 && !groups.includes(newAssetGroup)) setNewAssetGroup(groups[0]);
+    // Auto-select first allowed group that has available assets
+    const firstAvailableGroup = groups.find(
       (g) =>
         availableAssets.filter(
           (a) => !usedAssetIds.has(a.id) && a.assetGroup === g,
@@ -687,14 +729,15 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
     ? newAssetGroup
     : (selectedAsset?.assetGroup ?? "data");
 
-  const availableTypes = useMemo<AnyAssetRelationType[]>(() => {
-    const all: AnyAssetRelationType[] = [
-      "is_an",
-      ...RELATIONS_BY_GROUP[effectiveGroup],
-    ];
-    const byElement = isDataFlow ? all.filter((t) => DATAFLOW_ALLOWED.has(t)) : all;
-    return allowedTypes ? byElement.filter((t) => allowedTypes.includes(t)) : byElement;
-  }, [effectiveGroup, isDataFlow, allowedTypes]);
+  const availableTypes = useMemo<AnyAssetRelationType[]>(
+    () => relationTypesFor(elementType, effectiveGroup),
+    [effectiveGroup, elementType],
+  );
+  // Groups this element may relate to (asset tabs, new-asset group).
+  const allowedGroups = useMemo(() => groupsAllowedFor(elementType), [elementType]);
+  // Relations already stored that the rules do not allow (e.g. created
+  // before B15 was fixed): shown, but they must be removed before saving.
+  const notAllowed = [...relationMap.keys()].filter((type) => !availableTypes.includes(type));
 
   const isAnSelected = relationMap.has("is_an");
 
@@ -745,7 +788,8 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
   }, [newAssetName, newAssetGroup, onCreateAsset]);
 
   const asset = selectedAsset;
-  const canSave = !!asset && isMapValid(relationMap) && !isCreatingNew;
+  const canSave =
+    !!asset && isMapValid(relationMap) && !isCreatingNew && notAllowed.length === 0;
 
   return (
     <>
@@ -819,7 +863,7 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
               <Box>
                 {/* Group tabs — only show groups with available assets */}
                 {(() => {
-                  const groupsWithAssets = ASSET_GROUPS.filter(
+                  const groupsWithAssets = allowedGroups.filter(
                     (g) =>
                       availableAssets.filter(
                         (a) => !usedAssetIds.has(a.id) && a.assetGroup === g,
@@ -1049,7 +1093,7 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
                             },
                           )}
                         >
-                          {(Object.keys(GROUP_LABEL) as AssetGroup[]).map(
+                          {allowedGroups.map(
                             (g) => {
                               const colors = getAssetGroupColor(g);
 
@@ -1253,6 +1297,20 @@ const AssetRelationDialog: React.FC<AssetRelationDialogProps> = ({
                       })}
                   </Box>
                 </Box>
+
+                {notAllowed.length > 0 && (
+                  <Alert severity="warning" data-testid="asset-relation-not-allowed">
+                    {t(
+                      "tabs.dfd.element_description.assetRelations.notAllowed",
+                      {
+                        defaultValue:
+                          "Not allowed for a {{elementType}} and this asset: {{types}}. Remove it to save.",
+                        elementType: elementType ?? "",
+                        types: notAllowed.join(", "),
+                      },
+                    )}
+                  </Alert>
+                )}
 
                 {/* Selected relation cards (safety per relation) */}
                 {relationMap.size > 0 && (

@@ -351,6 +351,9 @@
           "notes": "Notes (optional)",
           "notesPlaceholder": "Notes about this asset in the context of this element…",
           "removeAllRelations": "Remove all",
+          "notAllowed": "Not allowed for a {{elementType}} and this asset: {{types}}. Remove it to save.",
+          "notAllowedChip": "Not allowed for this element type — open to remove",
+          "noneAllowed": "This element type cannot relate to assets.",
           "deselect": "Deselect",
           "safetyAnnotation": {
             "title": "Safety Annotation",

@@ -110,7 +110,13 @@ function validateElementAssetRelations(
         return;
       }
 
-      if (relation.relationType && relation.relationType !== "transports") {
+      // Same rules as for elements and as the dialogs offer (B15): a flow
+      // is a DataFlow. (Before, everything but "transports" was rejected —
+      // also types the rules allow, e.g. DataFlow → Function "invokes".)
+      if (
+        relation.relationType &&
+        !getAllowedRelations("DataFlow", relation.assetGroup).includes(relation.relationType)
+      ) {
         errors.push({
           key: ValidationMessages.ASSET_RELATION_TYPE_INVALID,
           displayId: connection.displayId,

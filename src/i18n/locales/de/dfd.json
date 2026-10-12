@@ -351,6 +351,9 @@
           "notes": "Notizen (optional)",
           "notesPlaceholder": "Notizen zu diesem Asset im Kontext dieses Elements…",
           "removeAllRelations": "Alle entfernen",
+          "notAllowed": "Für ein {{elementType}} und dieses Asset nicht zulässig: {{types}}. Zum Speichern entfernen.",
+          "notAllowedChip": "Für diesen Elementtyp nicht zulässig — öffnen, um zu entfernen",
+          "noneAllowed": "Dieser Elementtyp kann keine Beziehung zu Assets haben.",
           "deselect": "Abwählen",
           "safetyAnnotation": {
             "title": "Safety-Annotation",

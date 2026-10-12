@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.22 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.23 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). **Phase 3 abgeschlossen** (Edit Mode; offene Befunde B14, B15).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -44,6 +44,7 @@
 | v2.20 | 2026-10-12 | Element-zu-Asset-Beziehungen im Graph (FR-E7): Griff am Element-Anker, „An Element anbinden“ in der Asset-Karte, Bearbeiten/Entfernen in der Ankerkarte; gemeinsamer Dialog des Seitenpanels, Schreiben über den Element-Update-Weg des DFD-Tabs (AR-6). Neuer Befund B15. |
 | v2.21 | 2026-10-12 | Tastaturbedienung des Graphen (NFR-4). |
 | v2.22 | 2026-10-12 | Lokale Positionsspeicherung pro Projekt (FR-V15). **Phase 3 abgeschlossen.** |
+| v2.23 | 2026-10-12 | B15 Teil 1: Element-Beziehungsdialog des Seitenpanels nach Regelwerk; unzulässige gespeicherte Beziehungen markiert, Speichern erst nach Entfernen; Validator prüft Datenflüsse nach dem Regelwerk. |
 
 ---
 
@@ -259,7 +260,7 @@ werden übersprungen, abgelehnte gemeldet. Zugleich ignoriert die App-Schicht di
 `relations`-Kopie des Asset-Tabs (`buildAssetsUpdate`): Auch eine veraltete lokale Kopie kann
 die kanonische Liste nicht mehr überschreiben (AR-5).
 
-**B15 — Element-Beziehungsdialog des Seitenpanels: Typen nach Gruppe statt nach Elementtyp (offen).**
+**B15 — Element-Beziehungsdialog des Seitenpanels: Typen nach Gruppe statt nach Elementtyp (Teil 1 behoben, v2.23).**
 Der Dialog „Asset-Beziehung hinzufügen/bearbeiten“ (`AssetRelationDialog` in
 `asset-relation-selector.tsx`) bietet die Typen je Asset-Gruppe an (`RELATIONS_BY_GROUP`), nicht
 nach `getAllowedRelations(elementType, group)`. Beispiel: Process → Data bietet auch `stores` und
@@ -270,6 +271,19 @@ falsche Gruppe. Der Graph (FR-E7) nutzt denselben Dialog, schränkt die Typen ab
 Option `allowedTypes` auf das Regelwerk ein; das Seitenpanel bleibt unverändert. Vorschlag:
 Seitenpanel ebenfalls auf das Regelwerk umstellen und `assetGroup` aus dem Asset übernehmen
 (eigener Patch, weil bestehende Projekte Beziehungen mit falscher Gruppe enthalten können).
+*Teil 1 (v2.23):* Der Dialog bietet nur noch die Typen nach `getAllowedRelations(elementType, group)`
+an (`relationTypesFor`), als Asset-Gruppen nur solche, zu denen das Element überhaupt eine
+Beziehung haben darf (`groupsAllowedFor`, auch beim Anlegen eines neuen Assets). Damit gilt im
+Seitenpanel, in der Beschreibungsansicht, im Kontextmenü-Dialog und im Graph dasselbe Regelwerk wie
+im Validator. Die frühere Sonderliste für Datenflüsse (`transports`/`is_an`) entfällt; sie hat
+zulässige Typen wie DataFlow → Function `invokes` verhindert. Bereits gespeicherte unzulässige
+Beziehungen bleiben erhalten, sind in der Liste mit ⚠ markiert, im Dialog mit Hinweis aufgeführt,
+und Speichern ist erst möglich, wenn sie entfernt sind — es wird nichts stillschweigend gelöscht.
+Ein Elementtyp ohne zulässige Gruppe (z. B. Trust Boundary) zeigt einen Hinweis statt „+“.
+Zugleich prüft der Validator Datenflüsse nach demselben Regelwerk (`getAllowedRelations("DataFlow",
+…)`); vorher galt dort alles ausser `transports` als unzulässig — auch Typen, die das Regelwerk und
+der Kontextmenü-Dialog erlauben.
+Offen bleibt: Ändert ein Element später seinen Typ, prüft das nur der Validator.
 
 **B14 — Asset-Import „Alle ersetzen“ ersetzt nichts (offen).**
 Im Import-Dialog ist „Alle ersetzen“ vorausgewählt und verspricht „bestehende Assets löschen

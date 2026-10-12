@@ -91,3 +91,25 @@ describe("validateAssetRelations — validates against the canonical registry", 
     ).toBe(true);
   });
 });
+
+describe("validateAssetRelations — data flows follow the element rules (B15)", () => {
+  const flow = (assetGroup: string, relationType: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ({ id: "7", name: "push cmd", displayId: "DF-3", assetRelations: [{ assetId: "A", assetGroup, relationType }] }) as any;
+  const run = (assetGroup: string, relationType: string) => {
+    const errors: { key: string }[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    validateAssetRelations([{ id: "A", name: "A" }], [], [flow(assetGroup, relationType)], errors as any, [] as any);
+    return errors.filter((e) => e.key === ValidationMessages.ASSET_RELATION_TYPE_INVALID).length;
+  };
+
+  it("accepts what the rules allow for a DataFlow", () => {
+    expect(run("data", "transports")).toBe(0);
+    expect(run("function", "invokes")).toBe(0);
+  });
+
+  it("rejects what they do not", () => {
+    expect(run("data", "stores")).toBe(1);
+    expect(run("function", "executes")).toBe(1);
+  });
+});

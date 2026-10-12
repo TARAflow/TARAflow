@@ -90,7 +90,6 @@ import {
 } from "./asset-graph-history";
 import { useA2AOps } from "../contexts/a2a-ops-context";
 import {
-  allowedElementTypes,
   elementCandidates,
   elementTargetClasses,
   ElementPicker,
@@ -1606,7 +1605,6 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 name: a.name ?? "",
                 assetGroup: a.assetGroup as AssetGroup,
               }))}
-              allowedTypes={allowedElementTypes(el.type, String(asset.assetGroup))}
               onChange={(relations) => writeElementRelations(el.id, relations)}
               onClose={() => setElementDialog(null)}
             />
