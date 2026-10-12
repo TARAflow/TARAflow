@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.11 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.12 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
-> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). Phase 2 in Arbeit.
+> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). Phase 2 Teil 1 umgesetzt (Ansicht lesend im DFD-Tab).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -33,6 +33,7 @@
 | v2.9 | 2026-10-12 | Ungültige Asset-Links zusätzlich im Hinweis-Panel des DFD-Tabs (dort werden sie bearbeitet). **B11 behoben**: Öffnen aus der Liste übersprang den Lade-Commit; bei `lastModified`-Gleichstand gewinnt jetzt der Projektstand. |
 | v2.10 | 2026-10-12 | **D2 revidiert und entschieden:** Graph-Sicht als dritte Ansicht im DFD-Tab (Diagramm / Beschreibung / Asset-Graph), weil dort Asset Links bearbeitet werden, der eine Schreibweg (AR-5) und das Asset-Panel als Detailpanel bereitstehen; aus dem Asset-Tab führt „Im Graph zeigen“ dorthin. FR-V1, FR-V8, FR-V9, FR-V13, §2 und Phase 2 angepasst. **D3** (Positionen nie in der Datei) und **D6** (`d3-force`, Spur je Ebene) entschieden. B13 behoben (Asset-Export/-Import mit Asset Links), neuer Befund B14 (Import „Alle ersetzen“ ersetzt nichts). |
 | v2.11 | 2026-10-12 | **D4, D5, D7, D8 entschieden** nach Empfehlung: im Graph angelegte Assets bekommen `source: "dfd"` (D4); Kompositionsbeziehung `consists_of [step]`, `part_of` nur Anzeige (D5); Element-zu-Asset-Bearbeitung im Graph in Phase 3 (D7, durch D2 im selben Tab); Verzweigungen per Pfadtyp + Bedingung am Schritt, eine Ebene je Schritt, tiefere Logik über Sub-Processes (D8). AR-6: Code der Graph-Sicht in `features/dfd/asset-graph`. |
+| v2.12 | 2026-10-12 | Phase 2 Teil 1: Aufbereitung, Layout und Ansicht „Asset-Graph“ im DFD-Tab (lesend), gemeinsame Auswahl mit dem Asset-Panel, „Im Graph zeigen“ aus der Asset-Tabelle. Stand und offene Punkte in §8 Phase 2. |
 
 ---
 
@@ -672,6 +673,27 @@ auch wenn keine weitere Phase folgt.
 Context-Bar-Zähler); Stabilitätstest: Filter-/Tiefenwechsel verändert Positionen sichtbarer
 Knoten nicht; Snapshot der Knoten/Kanten-Menge für ein Referenzprojekt.
 **Risiko:** gering (rein lesend). Hier bereits Schulungs- und Review-Nutzen.
+
+**Stand (v2.12, 2026-10-12) — Teil 1 umgesetzt:**
+- ✅ Aufbereitung `features/dfd/asset-graph/build-asset-graph.ts` (AR-11): Ebenen, Presets mit
+  „Benutzerdefiniert“, Fokus mit Tiefe (Lauf nur über sichtbare Kanten), Typ-Filter, Stummel,
+  Element-Anker, Context-Bar-Zähler, deterministische Reihenfolge. Quelle im DFD-Tab ist der
+  `dfd.assets`-Spiegel (`assetGraphSourceFromDfd`), Integrationstest: Spiegel = kanonische Kanten.
+- ✅ Layout `layout-asset-graph.ts` (D6, FR-V3, AR-10, AR-12): Bahnen je vertikaler Ebene,
+  Seitenspalte für orthogonale Ebenen (Environment neben Human), Bahn für Element-Anker;
+  `d3-force` synchron bis zur Ruhe; bekannte Knoten fixiert, nur neue bewegen sich.
+- ✅ Ansicht `asset-graph-view.tsx` als dritte Ansicht im DFD-Tab (FR-V1): Context Bar mit Sicht,
+  Preset, Ebenen-Menü, Fokus + Tiefe, Anker-Schalter, Zählern, Einpassen, Neu anordnen,
+  Legende, Zurücksetzen (FR-V2, V5, V6, V12, V14); Kanten nach UX-3 (Pfeil, Typ, Schritt-Badge,
+  Anker gestrichelt), Stummel mit Klick zum Einblenden (FR-V4, V7). Die Ansicht bleibt gemountet;
+  Sicht, Fokus und Positionen überstehen den Wechsel ins Diagramm.
+- ✅ Gemeinsame Auswahl mit dem Asset-Panel (FR-V8: Klick wählt im Panel, Baum-Auswahl markiert
+  im Graph); Doppelklick fokussiert; Klick auf einen Anker zeigt das Element im Diagramm (FR-V9).
+- ✅ „Im Graph zeigen“ in der Asset-Tabelle (FR-V13, Hinweg).
+- Offen in Phase 2: Filter-/Such-UI mit „warum nicht sichtbar“ (FR-V10; die Aufbereitung kann
+  bereits filtern), Detailpanel mit Beziehungen gruppiert nach Typ und Kantendetails (FR-V8),
+  „In Tabelle zeigen“ (FR-V13, Rückweg), Hervorhebungsstufen 2–4 (UX-4), Positionen bei
+  „Zurück zum Graph“ ausdrücklich wiederherstellen (heute implizit durch das Mounten).
 
 ### Phase 3 — Edit Mode
 

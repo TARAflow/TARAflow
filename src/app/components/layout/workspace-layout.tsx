@@ -16,7 +16,7 @@
 // All project writes go through context.updateProject() — a single,
 // stable, ref-based write channel. No stale-closure risk.
 
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PHASES, getPhaseStatusIcon, getPhaseStatusColor, useToast } from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
@@ -178,6 +178,11 @@ export const WorkspaceLayout: React.FC = () => {
   // to guess and nothing left to race.
 
   // ── Phase change ──────────────────────────────────────────────────────────
+
+  // "Show in graph" from the asset table (FR-V13): DFD tab, asset graph view.
+  const [graphFocusRequest, setGraphFocusRequest] = useState<{
+    assetId: string;
+  } | null>(null);
 
   const handlePhaseChange = useCallback(
     (phaseId: number) => {
@@ -912,6 +917,7 @@ export const WorkspaceLayout: React.FC = () => {
               project={dfdTabProject}
               onUpdate={handleDFDUpdate}
               assetUsage={assetUsageLookup}
+              graphFocusRequest={graphFocusRequest}
               controlInstances={controlInstances}
               securityDrifts={securityDrifts}
             />
@@ -943,6 +949,10 @@ export const WorkspaceLayout: React.FC = () => {
             }}
             onUpdate={makeAssetsUpdateHandler(activeProject.id)}
             onDeleteAsset={makeAssetDeleteHandler(activeProject.id)}
+            onShowInGraph={(assetId) => {
+              setGraphFocusRequest({ assetId });
+              handlePhaseChange(PhaseId.DFD);
+            }}
             assetUsage={assetUsageLookup}
             hazardLinks={memoizedHazardRef}
             threatLinks={memoizedThreatGoalLinks}

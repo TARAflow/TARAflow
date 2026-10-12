@@ -61,6 +61,12 @@ const DRAWIO_BASE_URL = "https://embed.diagrams.net/?embed=1&spin=1&proto=json&p
 
 export interface DFDTabProps {
   project: DFDProjectData;
+  /**
+   * "Show in graph" from the asset table (FR-V13): a new object per request.
+   * Opens the asset graph view focused on the asset and selects it in the
+   * asset panel.
+   */
+  graphFocusRequest?: { readonly assetId: string } | null;
   onUpdate: (updates: DFDUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
@@ -90,6 +96,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   controlInstances,
   securityDrifts,
   assetUsage,
+  graphFocusRequest,
 }) => {
   // ==================== LOCAL UI STATE ====================
 
@@ -664,6 +671,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     [editor, setViewMode],
   );
 
+  useEffect(() => {
+    if (!graphFocusRequest) return;
+    setViewMode("graph");
+    setFocusAssetRequest({ assetId: graphFocusRequest.assetId });
+    setDetailsPanelOpen(true);
+  }, [graphFocusRequest, setViewMode]);
+
   // ==================== RENDER ====================
 
   return (
@@ -782,6 +796,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               selectedAssetId={panelAssetId}
               onSelectAsset={handleGraphSelectAsset}
               onShowElement={handleGraphShowElement}
+              focusRequest={graphFocusRequest}
               darkMode={darkMode}
             />
           </Box>

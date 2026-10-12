@@ -34,6 +34,7 @@ import { resolveAssetPhysicalImpact } from "app/utils/resolve-asset-physical-imp
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Hub as ShowInGraphIcon,
   Star as StarIcon,
   LocalFireDepartment as FlameIcon,
   AccountTree as DerivedIcon,
@@ -89,6 +90,8 @@ export interface AssetTableProps {
   onEdit: (asset: Asset) => void;
   /** Request deletion (the parent confirms). Omitted → no delete action. */
   onDelete?: (asset: Asset) => void;
+  /** "Show in graph" (FR-V13). Omitted → no action. */
+  onShowInGraph?: (asset: Asset) => void;
   /**
    * Ids of assets with errors or warnings in the findings. Given → the bar
    * offers the "Needs review only" filter.
@@ -195,6 +198,7 @@ export const AssetTable = React.memo<AssetTableProps>(
     hazardLinks,
     onEdit,
     onDelete,
+    onShowInGraph,
     needsReview,
   }) => {
     const { t, i18n } = useTranslation();
@@ -1196,8 +1200,21 @@ export const AssetTable = React.memo<AssetTableProps>(
         field: "actions",
         type: "actions",
         headerName: t("common.actions", { defaultValue: "Actions" }),
-        width: onDelete ? 90 : 70,
+        width: 70 + (onDelete ? 20 : 0) + (onShowInGraph ? 20 : 0),
         getActions: (params) => [
+          ...(onShowInGraph
+            ? [
+                <GridActionsCellItem
+                  key="graph"
+                  icon={<ShowInGraphIcon />}
+                  label={t("tabs.assets.showInGraph", { defaultValue: "Show in graph" })}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowInGraph(params.row);
+                  }}
+                />,
+              ]
+            : []),
           <GridActionsCellItem
             key="edit"
             icon={<EditIcon />}
@@ -1419,6 +1436,7 @@ export const AssetTable = React.memo<AssetTableProps>(
       isGerman,
       onEdit,
       onDelete,
+      onShowInGraph,
       downstreamCounts,
       hazardLinks,
       assetLinks,

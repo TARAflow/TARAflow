@@ -7,6 +7,7 @@
       "addAsset": "Asset hinzufügen",
       "syncFromDFD": "Aus DFD synchronisieren",
       "configuration": "Impact-Konfiguration",
+      "showInGraph": "Im Graph zeigen",
       "missingInDFD": "{{count}} Asset(s) nicht im DFD platziert",
       "notLinked": "Nicht verknüpft",
       "noAssets": "Keine Assets definiert",

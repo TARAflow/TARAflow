@@ -80,6 +80,8 @@ export interface AssetTabProps {
    * threats. Without it the tab offers no delete action.
    */
   onDeleteAsset?: (assetId: string) => void;
+  /** "Show in graph" from the table (FR-V13): the app opens the DFD tab. */
+  onShowInGraph?: (assetId: string) => void;
   /** Impact lookup for the delete confirm dialog (app layer). */
   assetUsage?: AssetUsageLookup;
   /**
@@ -98,6 +100,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   onDirtyChange,
   hazardLinks,
   onDeleteAsset,
+  onShowInGraph,
   assetUsage,
   threatLinks,
 }) => {
@@ -832,6 +835,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             needsReview={needsReview}
             onEdit={handleEditAsset}
             onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
+            onShowInGraph={onShowInGraph ? (a) => onShowInGraph(a.id) : undefined}
           />
         </Box>
 
