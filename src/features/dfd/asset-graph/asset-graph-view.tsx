@@ -64,6 +64,7 @@ import {
   type Point,
 } from "./layout-asset-graph";
 import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
+import { AssetGraphInspector } from "./asset-graph-inspector";
 import {
   assetVisibility,
   relationTypesIn,
@@ -82,6 +83,8 @@ export interface AssetGraphViewProps {
   readonly onShowElement?: (elementId: string) => void;
   /** Request from outside to focus an asset (FR-V13). */
   readonly focusRequest?: { readonly assetId: string } | null;
+  /** "Show in table" from the detail card (FR-V13, way back). */
+  readonly onShowInTable?: (assetId: string) => void;
   readonly darkMode?: boolean;
 }
 
@@ -118,6 +121,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   onSelectAsset,
   onShowElement,
   focusRequest,
+  onShowInTable,
   darkMode = false,
 }) => {
   const { t } = useTranslation();
@@ -127,6 +131,9 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   const [typeMenu, setTypeMenu] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState("");
   const [searchMiss, setSearchMiss] = useState(false);
+  // Detail card (FR-V8): the selected link, or else the selected asset.
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [searchHit, setSearchHit] = useState<{
     assetId: string;
     index: number;
@@ -285,6 +292,26 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         : [...current, type];
       return { ...s, relationTypes: next.length === all.length ? null : next };
     });
+
+  // Navigate from the detail card: select, and make the asset visible first
+  // if it is not (its layer, or the focus moves to it).
+  const goToAsset = (assetId: string) => {
+    setSelectedEdgeId(null);
+    onSelectAsset(assetId);
+    const v = assetVisibility(graph, source, state, assetId);
+    if (v.state === "hiddenLayer") {
+      showLayer(v.layer);
+      pendingCenterRef.current = assetId;
+    } else if (v.state === "outsideFocus") {
+      focusOn(assetId);
+      pendingCenterRef.current = assetId;
+    } else {
+      centerOn(assetId);
+    }
+  };
+  const selectedEdge = selectedEdgeId
+    ? graph.edges.find((e) => e.id === selectedEdgeId) ?? null
+    : null;
 
   // ── Context bar actions ─────────────────────────────────────────────────
   const preset = presetOfLayers(state.layers);
@@ -540,7 +567,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               setSearchHit(null);
               setSearchMiss(false);
             }}
-            sx={{ position: "absolute", top: 8, left: 8, right: 8, zIndex: 1 }}
+            sx={{ position: "absolute", top: 8, left: 8, right: inspectorOpen ? 314 : 8, zIndex: 1 }}
             action={
               hitAsset && hitVisibility?.state === "hiddenLayer" ? (
                 <Button
@@ -646,12 +673,27 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               const my = 0.25 * p1.y + 0.5 * cy + 0.25 * p2.y;
               const label = typeLabel(e.relationType);
               return (
-                <g key={e.id} data-testid={`asset-graph-edge-${e.id}`}>
+                <g
+                  key={e.id}
+                  data-testid={`asset-graph-edge-${e.id}`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setSelectedEdgeId(e.id);
+                    setInspectorOpen(true);
+                  }}
+                >
+                  {/* Wide invisible hit area */}
                   <path
                     d={`M${p1.x},${p1.y} Q${cx},${cy} ${p2.x},${p2.y}`}
                     fill="none"
-                    stroke={muted}
-                    strokeWidth={1.4}
+                    stroke="transparent"
+                    strokeWidth={12}
+                  />
+                  <path
+                    d={`M${p1.x},${p1.y} Q${cx},${cy} ${p2.x},${p2.y}`}
+                    fill="none"
+                    stroke={e.id === selectedEdgeId ? (darkMode ? "#90caf9" : "#1976d2") : muted}
+                    strokeWidth={e.id === selectedEdgeId ? 2.6 : 1.4}
                     strokeDasharray={e.kind === "anchor" ? "5 4" : undefined}
                     markerEnd="url(#ag-arrow)"
                   />
@@ -696,7 +738,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   key={n.id}
                   transform={`translate(${p.x},${p.y})`}
                   style={{ cursor: "pointer" }}
-                  onClick={() => onSelectAsset(n.id)}
+                  onClick={() => {
+                    setSelectedEdgeId(null);
+                    setInspectorOpen(true);
+                    onSelectAsset(n.id);
+                  }}
                   onDoubleClick={() => focusOn(n.id)}
                   data-testid={`asset-graph-node-${n.id}`}
                 >
@@ -735,6 +781,27 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             })}
           </g>
         </svg>
+
+        {inspectorOpen && (
+          <AssetGraphInspector
+            source={source}
+            assetId={selectedAssetId}
+            edge={selectedEdge}
+            typeLabel={typeLabel}
+            groupLabel={groupLabel}
+            onGoToAsset={goToAsset}
+            onGoToElement={onShowElement}
+            onFocus={(id) => {
+              focusOn(id);
+              pendingCenterRef.current = id;
+            }}
+            onShowInTable={onShowInTable}
+            onClose={() => {
+              setInspectorOpen(false);
+              setSelectedEdgeId(null);
+            }}
+          />
+        )}
 
         {/* Legend (FR-V7) */}
         {showLegend && (

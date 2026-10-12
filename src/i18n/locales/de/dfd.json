@@ -40,6 +40,21 @@
         "noMatch": "Kein Asset passt zu „{{query}}“.",
         "hitHiddenLayer": "{{asset}} liegt in der ausgeblendeten Ebene {{layer}}.",
         "hitOutsideFocus": "{{asset}} liegt ausserhalb des Fokus (Tiefe {{depth}}).",
+        "inspector": {
+          "link": "Asset Link",
+          "elementLink": "DFD-Element → Asset",
+          "from": "Von",
+          "type": "Typ",
+          "to": "Nach",
+          "stepOrder": "Schritt",
+          "rationale": "Begründung",
+          "degradation": "Degradierter Betrieb",
+          "notes": "Notizen",
+          "protectionNeed": "Schutzbedarf",
+          "noRelations": "Keine Beziehungen.",
+          "focus": "Fokussieren",
+          "showInTable": "In Tabelle zeigen"
+        },
         "legendEdges": "Durchgezogen: Asset Link · gestrichelt: DFD-Element → Asset · Pfeil: Richtung · Zahl: Schrittreihenfolge · Doppelklick: fokussieren"
       },
       "toolbar": {

@@ -123,4 +123,31 @@ describe("AssetGraphView", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     expect(screen.getByTestId("asset-graph-search-notice")).toHaveTextContent('No asset matches "nothing".');
   });
+
+  it("clicking a node opens the detail card with relations grouped by type (FR-V8)", () => {
+    const { onSelectAsset } = view({ selectedAssetId: "f1", onShowInTable: vi.fn() });
+    fireEvent.click(screen.getByTestId("asset-graph-node-f1"));
+    const card = screen.getByTestId("asset-graph-inspector-asset");
+    expect(card).toHaveTextContent("FU-001 E-Stop");
+    expect(card).toHaveTextContent("requires");
+    expect(card).toHaveTextContent("DA-001 Measure Data");
+    expect(card).toHaveTextContent("[1] PR-001 Shutdown");
+    expect(card).toHaveTextContent("implements");
+    // Going to a related asset in a hidden layer shows that layer.
+    fireEvent.click(screen.getByRole("button", { name: "[1] PR-001 Shutdown" }));
+    expect(onSelectAsset).toHaveBeenLastCalledWith("p1");
+    expect(screen.getByTestId("asset-graph-node-p1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show in table" })).toBeInTheDocument();
+  });
+
+  it("clicking a link shows its details", () => {
+    view();
+    fireEvent.click(screen.getByTestId("asset-graph-stub-f1-process"));
+    fireEvent.click(screen.getByTestId("asset-graph-edge-r2"));
+    const card = screen.getByTestId("asset-graph-inspector-edge");
+    expect(card).toHaveTextContent("PR-001 Shutdown");
+    expect(card).toHaveTextContent("(invokes)");
+    expect(card).toHaveTextContent("FU-001 E-Stop");
+    expect(card).toHaveTextContent("Step1");
+  });
 });

@@ -75,3 +75,86 @@ export function assetVisibility(
   }
   return { state: "outsideFocus" };
 }
+
+// ==================== DETAIL: RELATIONS GROUPED BY TYPE (FR-V8) ====================
+
+export interface GroupedRelationItem {
+  /** The other end: an asset id or an element id (anchors). */
+  readonly id: string;
+  readonly displayId: string;
+  readonly name: string;
+  readonly stepOrder?: number;
+  /** The A2A relation id (edge details); undefined for anchors. */
+  readonly relationId?: string;
+}
+
+export interface GroupedRelations {
+  /** Stored type (outgoing), its inverse name (incoming) or the element relation type. */
+  readonly label: string;
+  readonly relationType: string;
+  readonly direction: "out" | "in" | "element";
+  readonly items: readonly GroupedRelationItem[];
+}
+
+/**
+ * The relations of one asset, grouped by type and read from the asset's
+ * side: outgoing links under the stored type, incoming ones under the
+ * inverse name (`requires`, `implemented by` …), then DFD elements bound to
+ * it. Within a group: step order, then display id.
+ */
+export function relationsOfAssetGrouped(
+  source: AssetGraphSource,
+  assetId: string,
+  inverseName: (relationType: string) => string,
+): GroupedRelations[] {
+  const assets = new Map(source.assets.map((a) => [a.id, a]));
+  const groups = new Map<string, { label: string; relationType: string; direction: GroupedRelations["direction"]; items: GroupedRelationItem[] }>();
+  const push = (
+    key: string,
+    head: { label: string; relationType: string; direction: GroupedRelations["direction"] },
+    item: GroupedRelationItem,
+  ) => {
+    const g = groups.get(key) ?? groups.set(key, { ...head, items: [] }).get(key)!;
+    g.items.push(item);
+  };
+  for (const r of source.relations) {
+    const out = r.sourceAssetId === assetId;
+    const inn = r.targetAssetId === assetId;
+    if (!out && !inn) continue;
+    const otherId = out ? r.targetAssetId : r.sourceAssetId;
+    const other = assets.get(otherId);
+    const item: GroupedRelationItem = {
+      id: otherId,
+      displayId: other?.displayId ?? otherId.slice(0, 8),
+      name: other?.name ?? "",
+      relationId: r.id,
+      ...(r.stepOrder !== undefined ? { stepOrder: r.stepOrder } : {}),
+    };
+    if (out) {
+      push(`out:${r.relationType}`, { label: r.relationType, relationType: r.relationType, direction: "out" }, item);
+    } else {
+      push(`in:${r.relationType}`, { label: inverseName(r.relationType), relationType: r.relationType, direction: "in" }, item);
+    }
+  }
+  for (const el of source.elements) {
+    for (const r of el.assetRelations ?? []) {
+      if (r.assetId !== assetId) continue;
+      push(
+        `el:${r.relationType}`,
+        { label: r.relationType, relationType: r.relationType, direction: "element" },
+        { id: el.id, displayId: el.displayId ?? el.id, name: el.name ?? "" },
+      );
+    }
+  }
+  const rank = { out: 0, in: 1, element: 2 } as const;
+  return [...groups.values()]
+    .sort((a, b) => rank[a.direction] - rank[b.direction] || a.label.localeCompare(b.label))
+    .map((g) => ({
+      ...g,
+      items: [...g.items].sort(
+        (a, b) =>
+          (a.stepOrder ?? Infinity) - (b.stepOrder ?? Infinity) ||
+          compareDisplayIds(a.displayId, b.displayId),
+      ),
+    }));
+}

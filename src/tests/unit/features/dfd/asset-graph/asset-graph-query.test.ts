@@ -63,3 +63,35 @@ describe("assetVisibility", () => {
     expect(assetVisibility(g, source, options, "zz")).toEqual({ state: "unknown" });
   });
 });
+
+describe("relationsOfAssetGrouped (FR-V8)", () => {
+  it("groups outgoing by type, incoming by inverse name, then DFD elements", async () => {
+    const { relationsOfAssetGrouped } = await import("features/dfd/asset-graph");
+    const src: AssetGraphSource = {
+      ...source,
+      relations: [
+        ...source.relations,
+        { id: "r4", sourceAssetId: "p1", targetAssetId: "f1", relationType: "invokes", stepOrder: 2 } as A2ARelation,
+        { id: "r5", sourceAssetId: "p2", targetAssetId: "f1", relationType: "invokes", stepOrder: 1 } as A2ARelation,
+      ],
+      assets: [
+        ...source.assets,
+        { id: "p1", displayId: "PR-001", name: "Update", assetGroup: "process" },
+        { id: "p2", displayId: "PR-002", name: "Boot", assetGroup: "process" },
+      ],
+    };
+    const groups = relationsOfAssetGrouped(src, "f1", (t) => `inv(${t})`);
+    expect(groups.map((g) => [g.direction, g.label, g.items.map((i) => i.displayId)])).toEqual([
+      ["in", "inv(configures)", ["DA-002"]],
+      ["in", "inv(invokes)", ["PR-002", "PR-001"]],
+      ["in", "inv(required_by)", ["DA-001", "DA-002"]],
+      ["element", "implements", ["pe"]],
+    ]);
+    const out = relationsOfAssetGrouped(src, "d2", (t) => t);
+    expect(out.map((g) => [g.direction, g.label])).toEqual([
+      ["out", "configures"],
+      ["out", "required_by"],
+    ]);
+    expect(out[0].items[0]).toMatchObject({ id: "f1", relationId: "r3" });
+  });
+});

@@ -40,6 +40,21 @@
         "noMatch": "No asset matches \"{{query}}\".",
         "hitHiddenLayer": "{{asset}} is in the hidden layer {{layer}}.",
         "hitOutsideFocus": "{{asset}} is outside the focus (depth {{depth}}).",
+        "inspector": {
+          "link": "Asset link",
+          "elementLink": "DFD element → asset",
+          "from": "From",
+          "type": "Type",
+          "to": "To",
+          "stepOrder": "Step",
+          "rationale": "Rationale",
+          "degradation": "Degraded mode",
+          "notes": "Notes",
+          "protectionNeed": "Protection need",
+          "noRelations": "No relations.",
+          "focus": "Focus",
+          "showInTable": "Show in table"
+        },
         "legendEdges": "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order · double-click: focus"
       },
       "toolbar": {
