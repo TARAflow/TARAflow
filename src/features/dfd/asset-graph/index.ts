@@ -4,3 +4,4 @@ export * from "./asset-graph-types";
 export * from "./asset-graph-layers";
 export * from "./build-asset-graph";
 export * from "./mirror-edges";
+export * from "./layout-asset-graph";
