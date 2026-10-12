@@ -4,9 +4,9 @@
 // open the edit dialog underneath.
 
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { AssetTable } from "features/assets/components/asset-table";
+import { AssetTable, HIGHLIGHT_MS } from "features/assets/components/asset-table";
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import type { Asset } from "features/assets/models/asset-types";
 
@@ -97,5 +97,46 @@ describe("AssetTable — Show in graph", () => {
     );
     expect(screen.getByText("Alpha")).toBeTruthy();
     expect(container.querySelector(".MuiDataGrid-row--highlighted")).not.toBeNull();
+  });
+
+  it("the mark fades after a few seconds", () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(
+        <div style={{ width: 1800, height: 400 }}>
+          <AssetTable
+            assets={[asset]}
+            configuration={DEFAULT_ASSET_CONFIGURATION}
+            onEdit={() => {}}
+            highlightRequest={{ assetId: "da-001" }}
+          />
+        </div>,
+      );
+      expect(container.querySelector(".MuiDataGrid-row--highlighted")).not.toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(HIGHLIGHT_MS + 10);
+      });
+      expect(container.querySelector(".MuiDataGrid-row--highlighted")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clicking another row ends the mark", () => {
+    const other = { ...asset, id: "da-002", displayId: "DA-002", name: "Beta" } as Asset;
+    const { container } = render(
+      <div style={{ width: 1800, height: 400 }}>
+        <AssetTable
+          assets={[asset, other]}
+          configuration={DEFAULT_ASSET_CONFIGURATION}
+          onEdit={() => {}}
+          highlightRequest={{ assetId: "da-001" }}
+        />
+      </div>,
+    );
+    fireEvent.click(screen.getByText("Alpha"));
+    expect(container.querySelector(".MuiDataGrid-row--highlighted")).not.toBeNull();
+    fireEvent.click(screen.getByText("Beta"));
+    expect(container.querySelector(".MuiDataGrid-row--highlighted")).toBeNull();
   });
 });

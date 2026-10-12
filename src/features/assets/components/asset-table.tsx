@@ -195,6 +195,9 @@ function getBusinessImpactBg(level: number, maxLevels: number): string {
 
 // ==================== COMPONENT ====================
 
+/** How long a row stays marked after "Show in table" (FR-V13). */
+export const HIGHLIGHT_MS = 5000;
+
 export const AssetTable = React.memo<AssetTableProps>(
   ({
     assets,
@@ -236,7 +239,12 @@ export const AssetTable = React.memo<AssetTableProps>(
         api.setPage(Math.floor(index / pageSize));
         api.scrollToIndexes({ rowIndex: index % pageSize });
       });
-      return () => cancelAnimationFrame(frame);
+      // The mark is a pointer, not a state: it fades after a few seconds.
+      const timer = setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
+      return () => {
+        cancelAnimationFrame(frame);
+        clearTimeout(timer);
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [highlightRequest]);
 
@@ -1594,7 +1602,11 @@ export const AssetTable = React.memo<AssetTableProps>(
                 sortModel: [{ field: "aggregatedImpact", sort: "desc" }],
               },
             }}
-            onRowClick={(params) => onEdit(params.row)}
+            onRowClick={(params) => {
+              // Clicking another row ends the mark at once.
+              if (params.id !== highlightedId) setHighlightedId(null);
+              onEdit(params.row);
+            }}
             disableRowSelectionOnClick
             density="compact"
             sx={{

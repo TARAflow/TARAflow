@@ -209,6 +209,9 @@ export const WorkspaceLayout: React.FC = () => {
         }
       }
 
+      // A "show in table" mark belongs to that one jump; leaving the Assets
+      // tab drops it, so a later visit does not mark the row again.
+      if (phaseId !== PhaseId.Assets) setTableHighlightRequest(null);
       setActivePhase(phaseId);
       updateProject({ id: current.id, currentPhase: phaseId });
     },
