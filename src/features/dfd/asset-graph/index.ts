@@ -13,3 +13,4 @@ export * from "./asset-graph-link-form";
 export * from "./asset-graph-history";
 export * from "./asset-graph-element-link";
 export * from "./asset-graph-keyboard";
+export * from "./asset-graph-positions-store";

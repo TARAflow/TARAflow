@@ -878,6 +878,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onCreateAsset={handleCreateAssetForGroup}
               assetEditing={assetEditingForGraph}
               elementLinking={elementLinkingForGraph}
+              projectId={project.id}
               onDeleteAsset={handleDeleteAsset}
               assetUsage={assetUsage}
               // No side panel in the graph view — it has its own cards.

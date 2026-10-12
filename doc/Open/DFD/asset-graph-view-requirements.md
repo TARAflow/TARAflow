@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.21 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.22 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
-> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
+> B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). **Phase 3 abgeschlossen** (Edit Mode; offene Befunde B14, B15).
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -43,6 +43,7 @@
 | v2.19 | 2026-10-12 | Undo/Redo für Link-Änderungen im Graph (FR-E9); feste Kartenbreite. |
 | v2.20 | 2026-10-12 | Element-zu-Asset-Beziehungen im Graph (FR-E7): Griff am Element-Anker, „An Element anbinden“ in der Asset-Karte, Bearbeiten/Entfernen in der Ankerkarte; gemeinsamer Dialog des Seitenpanels, Schreiben über den Element-Update-Weg des DFD-Tabs (AR-6). Neuer Befund B15. |
 | v2.21 | 2026-10-12 | Tastaturbedienung des Graphen (NFR-4). |
+| v2.22 | 2026-10-12 | Lokale Positionsspeicherung pro Projekt (FR-V15). **Phase 3 abgeschlossen.** |
 
 ---
 
@@ -750,7 +751,7 @@ Side-Panel-Aktion (FR-E10); Asset aus dem Graph überlebt DFD-Edit und Save/Reop
 nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert positioniert.
 **Risiko:** mittel (zusätzliche Editier-Oberflächen; abgesichert durch einen Schreibpfad).
 
-**Stand (v2.14, 2026-10-12) — Teil 1 umgesetzt:**
+**Stand (v2.22, 2026-10-12) — abgeschlossen:**
 - ✅ Umschalter Ansehen/Bearbeiten in der Context Bar, Default Ansehen; nur vorhanden, wenn ein
   Schreibweg da ist (A2AOpsContext des DFD-Tabs). Bearbeiten ist sichtbar anders: gestrichelter
   Rahmen, getönte Fläche, Hinweis-Chip, Griffe an den Knoten (FR-E1, UX-2).
@@ -814,7 +815,18 @@ nach dem Anlegen einer Beziehung sind alle zuvor sichtbaren Knoten unverändert 
   oder Element-Beziehung —, auf einem Asset öffnet die Lösch-Bestätigung. Esc schliesst Karte,
   Typauswahl und Element-Auswahl und bricht ein laufendes Ziehen ab. In Eingabefeldern wirken die
   Tasten nicht. Hinweis in der Legende.
-- Offen in Phase 3: lokale Positionsspeicherung (FR-V15).
+- ✅ (v2.22) Lokale Positionsspeicherung (FR-V15): Positionen werden pro Projekt-ID im
+  Browser-Speicher gemerkt (`taraflow:assetGraphPositions:<id>`, verzögert nach jeder Änderung und
+  beim Verlassen), nie in der Projektdatei (D3). Beim Öffnen gelten sie wie Positionen aus der
+  laufenden Sitzung (AR-12). Gespeichert werden nur Knoten, die es noch gibt. Eine Position, die
+  nicht mehr in der Bahn ihres Knotens liegt (Gruppe geändert), zählt nicht — der Knoten wird neu
+  eingeordnet; das gilt jetzt auch innerhalb der Sitzung (vorher blieb ein Asset nach einem
+  Gruppenwechsel in der alten Bahn stehen). Fehlt der Speicher, ist er voll oder gesperrt, oder
+  sind die Daten unlesbar, greift das deterministische Layout; „Neu anordnen“ überschreibt die
+  gemerkten Positionen.
+- Offen aus Phase 3 als Befunde: B14 (Import „Alle ersetzen“), B15 (Typen im Element-Dialog des
+  Seitenpanels). Asset-Anlegen/-Löschen und Element-Beziehungen sind nicht Teil der
+  Graph-Historie (FR-E9 gilt für Asset Links).
 
 ### Phase 4 — Process-Sicht und Modell-Erweiterungen
 

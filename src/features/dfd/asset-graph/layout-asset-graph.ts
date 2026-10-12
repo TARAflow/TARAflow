@@ -16,6 +16,9 @@
 //     happens only when the caller passes no previous positions ("Rearrange",
 //     FR-V12). Positions of hidden nodes are kept by the caller and passed
 //     back later.
+//   - A known position only counts while it still lies in the node's lane
+//     (vertical layers and anchors): after a group change, or a position
+//     remembered from an earlier session (FR-V15), the node is placed anew.
 
 import {
   forceCollide,
@@ -163,7 +166,11 @@ export function layoutAssetGraph(
   const simNodes: SimNode[] = graph.nodes.map((n) => {
     const slot = slots.get(laneKey(n))!;
     const laneY = slot.lane.y;
-    const known = previous.get(n.id);
+    const stored = previous.get(n.id);
+    const known =
+      stored && (slot.lane.kind === "orthogonal" || Math.abs(stored.y - laneY) <= LANE_HEIGHT / 2)
+        ? stored
+        : undefined;
     if (known) {
       return { id: n.id, laneY, targetX: slot.targetX, x: known.x, y: known.y, fx: known.x, fy: known.y };
     }

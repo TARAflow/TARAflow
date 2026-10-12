@@ -75,6 +75,7 @@ import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
 import { AssetGraphInspector, CARD_WIDTH } from "./asset-graph-inspector";
 import { ConnectChooser, type ConnectChoice, type ConnectRequest } from "./asset-graph-connect";
 import { arrowDirection, isTypingTarget, nearestInDirection } from "./asset-graph-keyboard";
+import { loadPositions, savePositions } from "./asset-graph-positions-store";
 import {
   EMPTY_HISTORY,
   entryForAdd,
@@ -140,6 +141,11 @@ export interface AssetGraphViewProps {
   readonly assetEditing?: React.ComponentProps<typeof AssetGraphInspector>["assetEditing"];
   /** Edit mode: DFD element → asset relations (FR-E7), see asset-graph-element-link. */
   readonly elementLinking?: ElementLinking;
+  /**
+   * FR-V15: positions are remembered locally under this project id (browser
+   * storage, never the project file). Without it: this session only.
+   */
+  readonly projectId?: string | null;
   readonly darkMode?: boolean;
 }
 
@@ -182,6 +188,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   assetUsage,
   assetEditing,
   elementLinking,
+  projectId,
   rightInset = 0,
   darkMode = false,
 }) => {
@@ -273,8 +280,15 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     return () => clearTimeout(timer);
   }, [source]);
 
-  // ── Layout: stable within the session (AR-12) ───────────────────────────
+  // ── Layout: stable within the session (AR-12), remembered locally (FR-V15)
   const positionsRef = useRef<Map<string, Point>>(new Map());
+  // Positions of this project from an earlier session; another project
+  // starts from its own (or from the layout).
+  const loadedProjectRef = useRef<string | null | undefined>(undefined);
+  if (loadedProjectRef.current !== (projectId ?? null)) {
+    loadedProjectRef.current = projectId ?? null;
+    positionsRef.current = loadPositions(projectId);
+  }
   const [layoutEpoch, setLayoutEpoch] = useState(0);
   // FR-E2: an asset created from a lane's "+" appears where it was asked for.
   const pendingCreateRef = useRef<{ group: string; x: number; y: number } | null>(null);
@@ -297,9 +311,25 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     });
     for (const [id, p] of result.positions) positionsRef.current.set(id, p);
     return result;
-    // layoutEpoch forces a fresh layout after "rearrange".
+    // layoutEpoch forces a fresh layout after "rearrange"; projectId one for
+    // another project's positions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, layoutEpoch, canCreate]);
+  }, [graph, layoutEpoch, canCreate, projectId]);
+
+  // Remember positions (debounced, and once more when the view goes away) —
+  // only for nodes that still exist.
+  const savePositionsRef = useRef<() => void>(() => {});
+  savePositionsRef.current = () => {
+    const assets = new Set(source.assets.map((a) => a.id));
+    const elements = new Set(source.elements.map((e) => `${ANCHOR_PREFIX}${e.id}`));
+    savePositions(projectId, positionsRef.current, (id) => assets.has(id) || elements.has(id));
+  };
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = setTimeout(() => savePositionsRef.current(), 500);
+    return () => clearTimeout(timer);
+  }, [layout, projectId, source]);
+  useEffect(() => () => savePositionsRef.current(), []);
 
   const rearrange = useCallback(() => {
     positionsRef.current = new Map();
