@@ -34,7 +34,7 @@ function openDialog(existing: unknown[]) {
     assetGroup: "data",
     assetRelations: existing,
   };
-  render(<AssetToAssetSelector asset={data} allAssets={[data, fn]} onChange={() => {}} />);
+  render(<AssetToAssetSelector asset={data} allAssets={[data, fn]} onAdd={() => {}} onRemove={() => {}} />);
   fireEvent.click(screen.getByText("Add Relation"));
   return screen.getByRole("dialog");
 }
@@ -66,7 +66,7 @@ describe("AssetToAssetSelector — mirror hint", () => {
       assetRelations: dataRelations,
     };
     const estop: any = { ...fn, assetRelations: eStopRelations };
-    render(<AssetToAssetSelector asset={estop} allAssets={[data, estop]} onChange={() => {}} />);
+    render(<AssetToAssetSelector asset={estop} allAssets={[data, estop]} onAdd={() => {}} onRemove={() => {}} />);
     fireEvent.click(screen.getByText("Add Relation"));
     const dialog = screen.getByRole("dialog");
     fireEvent.click(within(dialog).getByRole("tab", { name: /data/i }));

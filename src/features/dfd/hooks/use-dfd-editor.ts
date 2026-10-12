@@ -2,6 +2,7 @@
 // Single Responsibility: Orchestrate atomic hooks into unified API
 // Follows Facade Pattern - simple interface, complex implementation
 
+import type { A2AOp } from "shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DFDProjectData,
@@ -108,6 +109,8 @@ export interface UseDFDEditorReturn {
 
   // Utility
   flushDebouncedSave: () => void;
+  /** Queue A2A operations for the next save of this editor (DFD import). */
+  queueA2AOps: (ops: A2AOp[]) => void;
 
   // Completion
   graphContext: DFDGraph | null;
@@ -525,6 +528,7 @@ export function useDFDEditor(
 
     // Utility
     flushDebouncedSave: persistence.flush,
+    queueA2AOps: persistence.queueA2AOps,
 
     // Completion
     elements: data.dfd?.elements ?? [],

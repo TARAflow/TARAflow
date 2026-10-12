@@ -2,6 +2,7 @@
 // Single Responsibility: View/UI only - delegates all logic to hooks
 // NO business logic, NO data transformation, just rendering and event delegation
 
+import { A2AOpsProvider } from "../contexts/a2a-ops-context";
 import React, {
   useState,
   useCallback,
@@ -205,7 +206,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
     useDFDData(project);
-  const { scheduleSave } = useDFDPersistence(project, { onUpdate });
+  const { scheduleSave, commitA2AOps } = useDFDPersistence(project, {
+    onUpdate,
+  });
 
   // AvailableAssets aus dfd.assets ableiten
   const availableAssets: AvailableAsset[] = useMemo(
@@ -390,6 +393,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       save: editor.save,
       scheduleSave: () => {},
       scheduleDrawioSave: () => {},
+      queueA2AOps: editor.queueA2AOps,
+      commitA2AOps: () => {},
       flush: editor.flushDebouncedSave,
       markDirty: () => {},
       markClean: () => {},
@@ -639,6 +644,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // ==================== RENDER ====================
 
   return (
+    <A2AOpsProvider commit={commitA2AOps}>
     <Box
       sx={{
         display: "flex",
@@ -812,6 +818,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onSave={handleAssetSave}
       />
     </Box>
+    </A2AOpsProvider>
   );
 }
 

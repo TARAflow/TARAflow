@@ -178,7 +178,8 @@ describe("Asset → Asset: every allowed relation survives save and reopen", () 
     const s = new RelationSession(openProject(BASE));
     const sourceId = firstAsset(s.project, sourceGroup);
     const targetId = firstAsset(s.project, targetGroup, sourceId);
-    s.setA2A(sourceId, [{ sourceGroup, targetGroup, targetAssetId: targetId, relationType }]);
+    s.addA2A(sourceId, { targetAssetId: targetId, relationType });
+    expect(s.lastRejected).toEqual([]);
 
     const edge = (p: Project) =>
       (p.assets!.relations ?? []).find(
@@ -208,12 +209,10 @@ describe("Asset → Asset lifecycle", () => {
     const d = firstAsset(s.project, "data");
     const f = firstAsset(s.project, "function");
     const p = firstAsset(s.project, "process");
-    s.setA2A(d, [
-      { sourceGroup: "data", targetGroup: "function", targetAssetId: f, relationType: "required_by" },
-      { sourceGroup: "data", targetGroup: "process", targetAssetId: p, relationType: "required_by" },
-    ]);
-    const kept = (s.asset(d) as any).assetRelations.filter((r: any) => r.targetAssetId === p);
-    s.setA2A(d, kept);
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by" });
+    s.addA2A(d, { targetAssetId: p, relationType: "required_by" });
+    const toF = (s.asset(d) as any).assetRelations.find((r: any) => r.targetAssetId === f);
+    s.a2a([{ kind: "remove", relationId: toF.id }]);
     const r = s.reopen();
     expect(r.project.assets!.relations!.filter((x) => x.sourceAssetId === d).map((x) => x.targetAssetId)).toEqual([p]);
     r.close();
@@ -223,18 +222,14 @@ describe("Asset → Asset lifecycle", () => {
     const s = new RelationSession(openProject(BASE));
     const sys = firstAsset(s.project, "system");
     const sys2 = firstAsset(s.project, "system", sys);
-    s.setA2A(sys, [
-      {
-        sourceGroup: "system",
-        targetGroup: "system",
+    s.addA2A(sys, {
         targetAssetId: sys2,
         relationType: "depends_on",
         rationale: "needs time sync",
         stepOrder: 2,
         degradationMode: true,
         degradationDescription: "runs on local clock",
-      },
-    ]);
+      });
     const r = s.reopen();
     expect(r.project.assets!.relations![0]).toMatchObject({
       rationale: "needs time sync",
@@ -249,7 +244,7 @@ describe("Asset → Asset lifecycle", () => {
     const s = new RelationSession(openProject(BASE));
     const d = firstAsset(s.project, "data");
     const f = firstAsset(s.project, "function");
-    s.setA2A(d, [{ sourceGroup: "data", targetGroup: "function", targetAssetId: f, relationType: "configures" }]);
+    s.addA2A(d, { targetAssetId: f, relationType: "configures" });
     const r = s.reopen();
     const before = r.project.assets!.relations;
     r.changeAsset(f, { ...r.asset(f), name: "Renamed" });
@@ -261,7 +256,7 @@ describe("Asset → Asset lifecycle", () => {
     const s = new RelationSession(openProject(BASE));
     const d = firstAsset(s.project, "data");
     const f = firstAsset(s.project, "function");
-    s.setA2A(d, [{ sourceGroup: "data", targetGroup: "function", targetAssetId: f, relationType: "required_by" }]);
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by" });
     s.changeAsset(d, { ...s.asset(d), assetGroup: "human" });
     const r = s.reopen();
     const groups = new Map(r.project.assets!.assets.map((a) => [a.id, a.assetGroup as AssetGroup]));
@@ -270,5 +265,32 @@ describe("Asset → Asset lifecycle", () => {
       expect.objectContaining({ reason: "type_not_allowed" }),
     ]);
     r.close();
+  });
+
+  it("the service rejects what the rules forbid; nothing is written", () => {
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const f = firstAsset(s.project, "function");
+    const before = s.project.assets!.relations;
+    s.addA2A(d, { targetAssetId: f, relationType: "hosted_on" });
+    expect(s.lastRejected).toEqual([
+      expect.objectContaining({ reason: "type_not_allowed" }),
+    ]);
+    expect(s.project.assets!.relations).toEqual(before);
+    s.close();
+  });
+
+  it("an exact duplicate is rejected, another type on the same pair is kept", () => {
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const f = firstAsset(s.project, "function");
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by" });
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by" });
+    expect(s.lastRejected).toEqual([expect.objectContaining({ reason: "duplicate" })]);
+    s.addA2A(d, { targetAssetId: f, relationType: "configures" });
+    expect(
+      s.project.assets!.relations!.filter((r) => r.sourceAssetId === d).map((r) => r.relationType).sort(),
+    ).toEqual(["configures", "required_by"]);
+    s.close();
   });
 });

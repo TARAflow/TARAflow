@@ -308,6 +308,7 @@ export {
   validateA2ARelations,
   sortA2ARelations,
   findMirrorRelation,
+  applyA2AOps,
 } from "./services/a2a-relation-service";
 export type {
   AssetGroupLookup,
@@ -315,6 +316,8 @@ export type {
   A2AResult,
   A2AFinding,
   NewA2ARelation,
+  A2AOp,
+  A2AOpsResult,
 } from "./services/a2a-relation-service";
 
 // ==================== ASSET COLORS ====================

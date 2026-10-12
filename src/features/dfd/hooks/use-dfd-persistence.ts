@@ -1,6 +1,7 @@
 // ==================== USE DFD PERSISTENCE HOOK ====================
 // Single Responsibility: Orchestrate save operations and dirty state tracking
 
+import type { A2AOp } from "shared";
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { DFDProjectData, DFDUpdateResult, DFDData } from "../models/dfd-types";
 import type { ValidationResult } from "../services/dfd-validator";
@@ -68,6 +69,13 @@ export interface UseDFDPersistenceReturn {
    */
   scheduleSave: (updater: (base: DFDData) => DFDUpdateResult) => void;
   scheduleDrawioSave: (xml: string) => void; // Debounced autosave triggered by DrawIO changes
+  /** Queue A2A operations for the next emitted update (e.g. before save()). */
+  queueA2AOps: (ops: A2AOp[]) => void;
+  /**
+   * Emit A2A operations now: with a pending edit if there is one (flush),
+   * otherwise as an update of the freshest known DFD.
+   */
+  commitA2AOps: (ops: A2AOp[]) => void;
   flush: () => void;
   markDirty: () => void;
   markClean: () => void;
@@ -127,8 +135,17 @@ export function useDFDPersistence(
   // asset deleted just before either would survive in the asset store.
   const pendingDeletedAssetIdsRef = useRef<Set<string>>(new Set());
 
+  const pendingA2AOpsRef = useRef<A2AOp[]>([]);
+
   const emit = useCallback(
     (result: DFDUpdateResult) => {
+      // A2A operations ride on the next emitted update, whatever triggers it
+      // (same carry pattern as deletedAssetIds below).
+      const ops = pendingA2AOpsRef.current;
+      if (ops.length > 0) {
+        pendingA2AOpsRef.current = [];
+        result = { ...result, a2aOps: [...(result.a2aOps ?? []), ...ops] };
+      }
       const carried = pendingDeletedAssetIdsRef.current;
       if (carried.size > 0) {
         pendingDeletedAssetIdsRef.current = new Set();
@@ -384,6 +401,35 @@ export function useDFDPersistence(
     }
   }, [emit, markClean]);
 
+  // ==================== A2A OPERATIONS ====================
+
+  const queueA2AOps = useCallback((ops: A2AOp[]) => {
+    pendingA2AOpsRef.current = [...pendingA2AOpsRef.current, ...ops];
+  }, []);
+
+  const commitA2AOps = useCallback(
+    (ops: A2AOp[]) => {
+      if (ops.length === 0) return;
+      queueA2AOps(ops);
+      if (pendingSaveRef.current) {
+        flush();
+        return;
+      }
+      const base = freshestOf(lastCommittedDfdRef.current, projectRef.current.dfd);
+      if (!base) {
+        console.warn("[useDFDPersistence] commitA2AOps: no dfd available — ignoring");
+        pendingA2AOpsRef.current = [];
+        return;
+      }
+      emit({
+        dfd: base,
+        phaseStatus: projectRef.current.phaseStatus,
+        lastModified: base.lastModified ?? new Date().toISOString(),
+      });
+    },
+    [queueA2AOps, flush, emit],
+  );
+
   // ==================== CLEANUP ====================
 
   useEffect(() => {
@@ -400,6 +446,8 @@ export function useDFDPersistence(
     save,
     scheduleSave,
     scheduleDrawioSave,
+    queueA2AOps,
+    commitA2AOps,
     flush,
     markDirty,
     markClean,

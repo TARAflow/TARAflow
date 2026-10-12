@@ -10,7 +10,15 @@ import type { Project } from "../models/project-types";
 import type { DFDUpdateResult } from "features/dfd";
 import { syncThreatsWithGraph } from "features/threats";
 import { syncFromDFD } from "features/assets/services/asset-sync-service";
-import { EMPTY_PROJECT_TAGS, regulationPresetFromTags, toGraphReference } from "shared";
+import {
+  EMPTY_PROJECT_TAGS,
+  applyA2AOps,
+  regulationPresetFromTags,
+  toGraphReference,
+  type A2AOp,
+  type A2ARejection,
+  type AssetGroup,
+} from "shared";
 import {
   mapDFDAssetsToAssetFeature,
   mapDFDConnectionsToAssetFeature,
@@ -24,10 +32,23 @@ import { purgeAssetFromProject } from "./asset-deletion";
 const normDesc = (s: string | undefined): string | undefined =>
   s && s.trim().length > 0 ? s : undefined;
 
+export interface DfdUpdateOutcome {
+  patch: Partial<Project> & { id: string };
+  /** A2A operations the relations service refused (to tell the user). */
+  rejectedA2AOps: readonly { op: A2AOp; reason: A2ARejection }[];
+}
+
 export function buildDfdUpdatePatch(
   current: Project,
   updates: DFDUpdateResult,
 ): Partial<Project> & { id: string } {
+  return buildDfdUpdate(current, updates).patch;
+}
+
+export function buildDfdUpdate(
+  current: Project,
+  updates: DFDUpdateResult,
+): DfdUpdateOutcome {
   const graph =
     updates.dfd?.graph ??
     current.dfd?.graph ??
@@ -103,6 +124,27 @@ export function buildDfdUpdatePatch(
     }
   }
 
+  // 1c) Asset-to-asset operations (relation dialog, DFD import) — the single
+  //     write path to the canonical list (AR-5). Applied after the sync and
+  //     the deletions, so imported assets exist and deleted ones are gone.
+  let rejectedA2AOps: DfdUpdateOutcome["rejectedA2AOps"] = [];
+  if (updates.a2aOps?.length && assets) {
+    const groups = new Map(
+      assets.assets.map((a) => [a.id, a.assetGroup as AssetGroup]),
+    );
+    const base = assets.relations ?? [];
+    const result = applyA2AOps(
+      base,
+      updates.a2aOps,
+      (id) => groups.get(id),
+      () => crypto.randomUUID(),
+    );
+    rejectedA2AOps = result.rejected;
+    if (result.relations !== base) {
+      assets = { ...assets, relations: result.relations };
+    }
+  }
+
   // 2) Build the enriched asset reference from the freshly-synced store.
   const assetDataRef = assets
     ? buildAssetDataReference(
@@ -122,7 +164,7 @@ export function buildDfdUpdatePatch(
   );
 
 
-  return {
+  const patch = {
     id: current.id,
     dfd,
     assets, // persist the reconciled asset store too
@@ -130,4 +172,5 @@ export function buildDfdUpdatePatch(
     threats,
     ...(updates.deletedAssetIds?.length ? { hazards, risks } : {}),
   };
+  return { patch, rejectedA2AOps };
 }

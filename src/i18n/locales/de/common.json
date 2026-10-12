@@ -527,6 +527,7 @@
         "noRelationTypes": "Keine definierten Beziehungstypen für diese Quelle → Ziel-Kombination.",
         "mirrorExists": "{{target}} hat bereits „{{type}}“ zu diesem Asset. Beide Kanten beschreiben dieselbe Tatsache — nur eine behalten.",
         "mirrorPreferred": "Dieselbe Tatsache wie „{{type}}“ von der Seite {{group}} aus; das ist die bevorzugte Richtung.",
+        "rejected": "{{count}} Asset-Beziehung(en) wurden nicht übernommen: {{reasons}}",
         "stepOrder": "Schrittreihenfolge (optional)",
         "rationale": "Begründung (optional)",
         "noRelations": "Keine Asset-zu-Asset-Beziehungen definiert.",

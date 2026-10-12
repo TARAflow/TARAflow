@@ -11,6 +11,7 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DFDDescriptionView from "features/dfd/components/dfd-description-view";
+import { A2AOpsProvider } from "features/dfd/contexts/a2a-ops-context";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -41,6 +42,7 @@ const fn: any = {
 
 function view(assets: any[]) {
   return (
+    <A2AOpsProvider commit={() => {}}>
     <DFDDescriptionView
       elements={[]}
       connections={[]}
@@ -53,6 +55,7 @@ function view(assets: any[]) {
       expandedElements={["d1"]}
       onToggleElement={() => {}}
     />
+    </A2AOpsProvider>
   );
 }
 
@@ -95,5 +98,72 @@ describe("DFD description view — asset-to-asset relations", () => {
     const dialog = screen.getByRole("dialog");
     fireEvent.click(within(dialog).getByRole("tab", { name: /function/i }));
     expect(within(dialog).getByText("E-Stop")).toBeTruthy();
+  });
+});
+
+describe("DFD description view — A2A edits go out as operations", () => {
+  it("adding a relation emits one add operation, nothing is written locally", () => {
+    const commit = vi.fn();
+    render(
+      <A2AOpsProvider commit={commit}>
+        <DFDDescriptionView
+          elements={[]}
+          connections={[]}
+          assets={[data, fn]}
+          onElementUpdate={() => {}}
+          onAssetUpdate={() => {}}
+          onConnectionUpdate={() => {}}
+          expandedGroups={["assets"]}
+          onToggleGroup={() => {}}
+          expandedElements={["d1"]}
+          onToggleElement={() => {}}
+        />
+      </A2AOpsProvider>,
+    );
+    openRelationsTab();
+    fireEvent.click(
+      screen.getAllByRole("button").find((b) => /add/i.test(b.textContent ?? ""))!,
+    );
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("tab", { name: /function/i }));
+    fireEvent.click(within(dialog).getByText("E-Stop"));
+    fireEvent.mouseDown(within(dialog).getByRole("combobox"));
+    fireEvent.click(screen.getByRole("option", { name: "required_by" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^add$/i }));
+    expect(commit).toHaveBeenCalledWith([
+      {
+        kind: "add",
+        relation: { sourceAssetId: "d1", targetAssetId: "f1", relationType: "required_by" },
+      },
+    ]);
+  });
+
+  it("removing emits a remove operation with the canonical id", () => {
+    const commit = vi.fn();
+    const withRel = {
+      ...data,
+      assetRelations: [
+        { id: "r1", sourceGroup: "data", targetGroup: "function", targetAssetId: "f1", relationType: "required_by" },
+      ],
+    };
+    render(
+      <A2AOpsProvider commit={commit}>
+        <DFDDescriptionView
+          elements={[]}
+          connections={[]}
+          assets={[withRel, fn]}
+          onElementUpdate={() => {}}
+          onAssetUpdate={() => {}}
+          onConnectionUpdate={() => {}}
+          expandedGroups={["assets"]}
+          onToggleGroup={() => {}}
+          expandedElements={["d1"]}
+          onToggleElement={() => {}}
+        />
+      </A2AOpsProvider>,
+    );
+    openRelationsTab();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(commit).toHaveBeenCalledWith([{ kind: "remove", relationId: "r1" }]);
   });
 });

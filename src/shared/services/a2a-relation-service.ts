@@ -254,3 +254,47 @@ export function findMirrorRelation(
       r.relationType === mirror.counterpart.relationType,
   );
 }
+
+// ==================== OPERATIONS ====================
+// What a UI (relation dialog, DFD import, later the graph canvas) asks for.
+// Operations are data so they can travel with a DFD update and be applied by
+// the app layer to the canonical list — the single write path (AR-5).
+
+export type A2AOp =
+  | { readonly kind: "add"; readonly relation: NewA2ARelation }
+  | { readonly kind: "remove"; readonly relationId: string }
+  | {
+      readonly kind: "update";
+      readonly relationId: string;
+      readonly attributes: Partial<A2ARelationAttributes>;
+    };
+
+export interface A2AOpsResult {
+  readonly relations: A2ARelation[];
+  readonly rejected: readonly { op: A2AOp; reason: A2ARejection }[];
+}
+
+/**
+ * Applies operations in order. A rejected operation is skipped and reported;
+ * the others still apply. Returns the input list itself when nothing changed.
+ */
+export function applyA2AOps(
+  relations: readonly A2ARelation[],
+  ops: readonly A2AOp[],
+  groupOf: AssetGroupLookup,
+  newId: () => string,
+): A2AOpsResult {
+  let current = relations as A2ARelation[];
+  const rejected: { op: A2AOp; reason: A2ARejection }[] = [];
+  for (const op of ops) {
+    const res =
+      op.kind === "add"
+        ? addA2ARelation(current, op.relation, groupOf, newId)
+        : op.kind === "remove"
+          ? removeA2ARelation(current, op.relationId)
+          : updateA2ARelationAttributes(current, op.relationId, op.attributes);
+    if (res.ok) current = res.relations;
+    else rejected.push({ op, reason: res.reason });
+  }
+  return { relations: current, rejected };
+}

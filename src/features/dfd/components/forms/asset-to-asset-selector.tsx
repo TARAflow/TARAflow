@@ -12,7 +12,12 @@
 // Props:
 //   asset           — the source asset (owner of these relations)
 //   allAssets       — all DFDAssets available as targets (excluding self)
-//   onChange        — called when relations array changes
+//   onAdd           — a new relation was confirmed in the dialog
+//   onRemove        — the relation with this canonical id is to be removed
+//
+// The list shows the asset's outgoing edges as projected from the canonical
+// list (assets.relations); this component never builds the list itself —
+// the caller turns onAdd/onRemove into relation-service operations (AR-5).
 
 import React, { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -99,7 +104,8 @@ const GROUP_LABEL: Record<AssetGroup, string> = {
 interface AssetToAssetSelectorProps {
   asset: DFDAsset;
   allAssets: DFDAsset[];
-  onChange: (relations: AssetToAssetRelation[]) => void;
+  onAdd: (relation: AssetToAssetRelation) => void;
+  onRemove: (relationId: string) => void;
 }
 
 // ==================== HELPERS ====================
@@ -492,20 +498,18 @@ const AssetToAssetDialog: React.FC<A2ADialogProps> = ({
 export const AssetToAssetSelector: React.FC<AssetToAssetSelectorProps> = ({
   asset,
   allAssets,
-  onChange,
+  onAdd,
+  onRemove,
 }) => {
   const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const relations = getRelations(asset);
 
-  const handleAdd = useCallback((relation: AssetToAssetRelation) => {
-    onChange([...relations, relation]);
-  }, [relations, onChange]);
-
-  const handleRemove = useCallback((idx: number) => {
-    onChange(relations.filter((_, i) => i !== idx));
-  }, [relations, onChange]);
+  const handleAdd = useCallback(
+    (relation: AssetToAssetRelation) => onAdd(relation),
+    [onAdd],
+  );
 
   return (
     <Stack spacing={2}>
@@ -524,7 +528,7 @@ export const AssetToAssetSelector: React.FC<AssetToAssetSelectorProps> = ({
             const targetAsset = allAssets.find((a) => a.id === rel.targetAssetId);
             const colors = getAssetGroupColor(rel.targetGroup);
             return (
-              <Paper key={idx} variant="outlined" sx={{ px: 1.5, py: 1 }}>
+              <Paper key={rel.id ?? idx} variant="outlined" sx={{ px: 1.5, py: 1 }}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label={rel.relationType} size="small"
                     sx={{
@@ -547,7 +551,8 @@ export const AssetToAssetSelector: React.FC<AssetToAssetSelectorProps> = ({
                       sx={{ fontSize: 10, height: 18 }} />
                   )}
                   <Tooltip title={t("common.delete", { defaultValue: "Delete" })}>
-                    <IconButton size="small" onClick={() => handleRemove(idx)}
+                    <IconButton size="small" disabled={!rel.id}
+                      onClick={() => rel.id && onRemove(rel.id)}
                       sx={{ color: "error.main", opacity: 0.6, "&:hover": { opacity: 1 } }}>
                       <DeleteOutlineIcon sx={{ fontSize: 15 }} />
                     </IconButton>

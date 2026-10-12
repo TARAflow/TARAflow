@@ -14,7 +14,7 @@ import type { Project } from "../models/project-types";
 import { syncFromDFD } from "features/assets/services/asset-sync-service"; // or barrel: "features/assets"
 import { mapDFDAssetsToAssetFeature } from "./dfd-to-asset-mapper";
 import { deriveDfdAssets, dfdSourcedAssets } from "./asset-to-dfd-mapper";
-import { liftA2AFromMirror, projectA2AOntoMirror } from "./a2a-mirror";
+import { projectA2AOntoMirror } from "./a2a-mirror";
 import type { AssetGroup } from "shared";
 
 function groupLookup(project: Project): (id: string) => AssetGroup | undefined {
@@ -36,6 +36,32 @@ function carryRelations(prev: Project | undefined, next: Project): Project {
 }
 
 /**
+ * The dfd.assets mirror shows the canonical A2A edges (assets.relations) of
+ * each asset as `assetRelations` — a view, never a source: edits reach the
+ * canonical list only as operations (DFDUpdateResult.a2aOps → relations
+ * service). Re-projected whenever the edges or the mirror changed.
+ */
+function withA2AProjection(prev: Project | undefined, out: Project): Project {
+  const mirror = out.dfd?.assets;
+  if (!out.assets || !out.dfd || !mirror || mirror.length === 0) return out;
+  if (
+    prev &&
+    prev.dfd?.assets === mirror &&
+    prev.assets?.relations === out.assets?.relations
+  ) {
+    return out;
+  }
+  const projected = projectA2AOntoMirror(
+    mirror,
+    out.assets?.relations ?? [],
+    groupLookup(out),
+  );
+  return projected === mirror
+    ? out
+    : { ...out, dfd: { ...out.dfd, assets: projected } };
+}
+
+/**
  * Returns `next` with AssetData re-synced from its DFD assets.
  *
  * - On a write (updateProject): pass `prev` = the project's previous state. The
@@ -53,6 +79,10 @@ export function commitAssetSync(
   prev: Project | undefined,
   nextIn: Project,
 ): Project {
+  return withA2AProjection(prev, syncAssets(prev, nextIn));
+}
+
+function syncAssets(prev: Project | undefined, nextIn: Project): Project {
   // Nothing to sync into.
   if (!nextIn.assets) return nextIn;
   const next = carryRelations(prev, nextIn);
@@ -69,16 +99,12 @@ export function commitAssetSync(
   if (dfdAssetList.length === 0 && next.dfd) {
     const sourced = dfdSourcedAssets(nextAssets.assets ?? []);
     if (sourced.length > 0) {
-      const projected = projectA2AOntoMirror(
-        deriveDfdAssets(
-          sourced,
-          next.dfd.elements ?? [],
-          next.dfd.connections ?? [],
-        ),
-        nextAssets.relations ?? [],
-        groupLookup(next),
+      const derived = deriveDfdAssets(
+        sourced,
+        next.dfd.elements ?? [],
+        next.dfd.connections ?? [],
       );
-      return { ...next, dfd: { ...next.dfd, assets: projected } };
+      return { ...next, dfd: { ...next.dfd, assets: derived } };
     }
   }
 
@@ -95,23 +121,6 @@ export function commitAssetSync(
     [],
     [],
   );
-
-  // A2A edges edited on the mirror become canonical (schema v8).
-  const lifted = liftA2AFromMirror(
-    assetData.relations ?? [],
-    next.dfd?.assets ?? [],
-    () => crypto.randomUUID(),
-  );
-  if (lifted) {
-    return {
-      ...next,
-      assets: {
-        ...assetData,
-        relations: lifted,
-        lastModified: new Date().toISOString(),
-      },
-    };
-  }
 
   return hasChanges ? { ...next, assets: assetData } : next;
 }

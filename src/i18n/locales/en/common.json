@@ -529,6 +529,7 @@
         "noRelationTypes": "No defined relation types for this source → target combination.",
         "mirrorExists": "{{target}} already has \"{{type}}\" towards this asset. Both edges state the same fact — keep only one.",
         "mirrorPreferred": "Same fact as \"{{type}}\" from the {{group}} side, which is the preferred direction.",
+        "rejected": "{{count}} asset relation(s) were not applied: {{reasons}}",
         "stepOrder": "Step Order (optional)",
         "rationale": "Rationale (optional)",
         "noRelations": "No asset-to-asset relations defined.",

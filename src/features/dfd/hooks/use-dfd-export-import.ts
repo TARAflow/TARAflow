@@ -1,6 +1,7 @@
 // ==================== USE DFD EXPORT IMPORT HOOK ====================
 // Single Responsibility: Manage DFD export and import operations
 
+import type { A2AOp, NewA2ARelation } from "shared";
 import { useCallback } from "react";
 import type { DFDProjectData, DFDExportData } from "../models/dfd-types";
 import type { UseDrawioBridgeReturn } from "./use-drawio-bridge";
@@ -19,6 +20,28 @@ export interface UseDFDExportImportReturn {
 }
 
 // ==================== HOOK ====================
+
+/** Add operations for the A2A lists carried by exported assets. */
+export function a2aOpsFromExport(assets: readonly unknown[]): A2AOp[] {
+  const ops: A2AOp[] = [];
+  for (const asset of assets as { id?: unknown; assetRelations?: unknown }[]) {
+    if (typeof asset?.id !== "string" || !Array.isArray(asset.assetRelations)) continue;
+    for (const r of asset.assetRelations as Record<string, unknown>[]) {
+      if (typeof r?.targetAssetId !== "string" || typeof r?.relationType !== "string") continue;
+      const { id: _id, sourceGroup: _s, targetGroup: _t, targetAssetId, relationType, ...attributes } = r;
+      ops.push({
+        kind: "add",
+        relation: {
+          ...(attributes as object),
+          sourceAssetId: asset.id,
+          targetAssetId,
+          relationType,
+        } as NewA2ARelation,
+      });
+    }
+  }
+  return ops;
+}
 
 export function useDFDExportImport(
   project: DFDProjectData,
@@ -110,6 +133,13 @@ export function useDFDExportImport(
           connections: data.connections,
           assets: data.assets ?? [],
         };
+
+        // Asset-to-asset relations in the export (mirror lists on the
+        // assets) go through the single write path: they ride on the save
+        // below as add operations and are applied to assets.relations after
+        // the imported assets exist. Rejected ones (e.g. a type not allowed
+        // any more) are reported by the app layer.
+        persistence.queueA2AOps(a2aOpsFromExport(data.assets ?? []));
 
         // Wait for the browser to restore focus to the iframe after the
         // file-picker dialog closes. On some browsers/Electron the iframe

@@ -75,6 +75,7 @@ import type {
 } from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import type { AssetToAssetRelation } from "../../models/asset-relation-types";
+import { useA2AOps } from "../../contexts/a2a-ops-context";
 import {
   hasQualifier,
   isIsAnRelation,
@@ -1560,23 +1561,56 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
 
   // ==================== TAB 2: RELATIONS (Asset-to-Asset) ====================
 
-  const a2aRelations: AssetToAssetRelation[] =
-    (asset as any).assetRelations ?? [];
+  // Outgoing edges as projected from the canonical list (read-only view).
+  const a2aRelations: AssetToAssetRelation[] = asset.assetRelations ?? [];
 
-  const handleA2AChange = useCallback(
-    (relations: AssetToAssetRelation[]) => {
-      onChange({ ...asset, assetRelations: relations } as any);
+  // Edits go out as relation-service operations, never as a list written
+  // onto the mirror (AR-5).
+  const commitA2AOps = useA2AOps();
+
+  const handleA2AAdd = useCallback(
+    (relation: AssetToAssetRelation) => {
+      const {
+        id: _id,
+        sourceGroup: _sourceGroup,
+        targetGroup: _targetGroup,
+        targetAssetId,
+        relationType,
+        ...attributes
+      } = relation;
+      commitA2AOps?.([
+        {
+          kind: "add",
+          relation: { ...attributes, sourceAssetId: asset.id, targetAssetId, relationType },
+        },
+      ]);
     },
-    [asset, onChange],
+    [asset.id, commitA2AOps],
+  );
+
+  const handleA2ARemove = useCallback(
+    (relationId: string) => {
+      commitA2AOps?.([{ kind: "remove", relationId }]);
+    },
+    [commitA2AOps],
   );
 
   const renderRelationsTab = () => (
     <Box sx={{ pt: 1 }}>
-      <AssetToAssetSelector
-        asset={asset}
-        allAssets={allAssets}
-        onChange={handleA2AChange}
-      />
+      {commitA2AOps ? (
+        <AssetToAssetSelector
+          asset={asset}
+          allAssets={allAssets}
+          onAdd={handleA2AAdd}
+          onRemove={handleA2ARemove}
+        />
+      ) : (
+        <Typography variant="body2" color="text.secondary">
+          {t("assets.relations.a2a.readOnly", {
+            defaultValue: "Asset relations can be edited in the DFD tab.",
+          })}
+        </Typography>
+      )}
     </Box>
   );
 

@@ -5,6 +5,7 @@
 //   DFDElementType, SecurityLevel, TrustLevel → dfd-element-types.ts
 //   AssetProperties, ElementRelation, DFDAsset → asset-types.ts
 
+import type { A2AOp } from "shared";
 import type { ControlInstance, PhaseStatusMap } from "shared";
 import type {
   ProcessProperties,
@@ -361,6 +362,13 @@ export interface DFDUpdateResult {
    * as a side effect of a mirror diff, so the deletion has to be explicit.
    */
   deletedAssetIds?: string[];
+  /**
+   * Asset-to-asset relation operations (relation dialog, DFD import) since
+   * the last emitted update. The app layer applies them to the canonical
+   * list assets.relations through the relations service (AR-5); the
+   * dfd.assets mirror is only a projection of that list.
+   */
+  a2aOps?: A2AOp[];
 }
 
 // ==================== DFD VIEW MODE ====================

@@ -116,7 +116,7 @@ import {
   getRegulationPreset,
 } from "shared";
 import { resolveDfdGraph } from "../../utils/resolve-dfd-graph";
-import { buildDfdUpdatePatch } from "app/services/dfd-update-patch";
+import { buildDfdUpdate } from "app/services/dfd-update-patch";
 import {
   AssetDeletionBlockedError,
   collectAssetUsage,
@@ -316,12 +316,26 @@ export const WorkspaceLayout: React.FC = () => {
       // Read via ref — always current, never stale
       const current = activeProjectRef.current;
       if (!current) return;
-      await updateProject(buildDfdUpdatePatch(current, updates));
+      const { patch, rejectedA2AOps } = buildDfdUpdate(current, updates);
+      if (rejectedA2AOps.length > 0) {
+        // The dialog prevents these; reaching here means stale data (e.g. an
+        // asset deleted meanwhile) or an import with relations the rules no
+        // longer allow.
+        toast.warning(
+          t("assets.relations.a2a.rejected", {
+            defaultValue:
+              "{{count}} asset relation(s) were not applied: {{reasons}}",
+            count: rejectedA2AOps.length,
+            reasons: [...new Set(rejectedA2AOps.map((r) => r.reason))].join(", "),
+          }),
+        );
+      }
+      await updateProject(patch);
     },
 
     // Stable — reads current project via ref, never via closure
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [updateProject],
+    [updateProject, toast, t],
   );
 
   // ── Hazard tab ────────────────────────────────────────────────────────────

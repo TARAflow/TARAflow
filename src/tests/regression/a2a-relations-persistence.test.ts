@@ -4,20 +4,18 @@
 // are asset-to-asset (A2A) relations persisted, and where on the chain are
 // they lost?
 //
-// The test drives the pure part of today's write path (§3.3.1):
+// The test drives the pure part of the write path:
 //
-//   AssetDescriptionForm.handleA2AChange
-//     → onChange({ ...asset, assetRelations })    // on the DFDAsset mirror
-//   → useDFDData.updateAsset → finalizeDfd        // mutation on dfd.assets
-//   → updateProject → commitAssetSync(prev, next)
-//   → save:  serialiseProject (prepareForDisk empties dfd.assets)
-//   → load:  commitAssetSync(undefined, parsed)   // deriveDfdAssets
+//   relation dialog → A2AOp (add/remove) on a DFDUpdateResult
+//   → buildDfdUpdatePatch (relations service applies the op to
+//     assets.relations)  → mergeProjectPatch (commitAssetSync re-projects
+//     the dfd.assets mirror from the canonical list)
+//   → save: serialiseProject   → open: parseAndRepair + commitAssetSync
 //
-// Each stage is its own test so a regression shows exactly where the relation
-// disappears. Until schema v8 stages 2–4 pinned the loss (G1 = FAIL, confirmed
-// manually on 2026-10-03). Since v8 the mirror edits are lifted into the
-// canonical edge list assets.relations[] (commitAssetSync) and projected back
-// on load, so every stage must hold.
+// Each stage is its own test so a regression shows exactly where a relation
+// disappears. Until schema v8 stages 2–4 pinned the loss (G1 = FAIL,
+// confirmed manually on 2026-10-03). Since v8 every stage must hold, and
+// since Phase 1 part 2 the mirror is a view only: editing it changes nothing.
 
 import { describe, it, expect } from "vitest";
 import { commitAssetSync } from "app/utils/commit-asset-sync";
@@ -28,6 +26,9 @@ import type { AssetToAssetRelation } from "features/dfd/models/asset-relation-ty
 import { migrate_5_to_6 } from "app/services/versions/migrate-5-to-6";
 import { loadProjectFixture } from "../fixtures/load-fixture";
 import { parseAndRepair } from "app/services/migration-service";
+import { buildDfdUpdatePatch } from "app/services/dfd-update-patch";
+import { mergeProjectPatch } from "app/services/project-commit";
+import { EMPTY_PROJECT_TAGS, type A2AOp } from "shared";
 
 const DATA_ID = "11111111-2222-4333-8444-555555555555";
 const FUNC_ID = "66666666-7777-4888-8999-aaaaaaaaaaaa";
@@ -59,7 +60,7 @@ function loadedProject(): Project {
   const onDisk = {
     id: "proj_g1",
     schemaVersion: 7,
-    info: { name: "G1", description: "", version: "1.0", tags: {}, team: [] },
+    info: { name: "G1", description: "", version: "1.0", tags: EMPTY_PROJECT_TAGS, team: [] },
     phaseStatus: {},
     settings: {},
     status: "draft",
@@ -100,17 +101,28 @@ function loadedProject(): Project {
 }
 
 /** Today's write path for a new A2A relation on the DATA asset. */
-function addRelationViaSidePanel(prev: Project): Project {
-  const dfd = prev.dfd!;
-  const updatedDfd = finalizeDfd({
-    ...dfd,
-    assets: dfd.assets.map((a) =>
-      a.id === DATA_ID
-        ? ({ ...a, assetRelations: [RELATION] } as typeof a)
-        : a,
-    ),
+/** The relation dialog's path: an add operation on a DFD update (AR-5). */
+function sendOps(prev: Project, a2aOps: A2AOp[]): Project {
+  const patch = buildDfdUpdatePatch(prev, {
+    dfd: prev.dfd!,
+    phaseStatus: prev.phaseStatus,
+    lastModified: new Date().toISOString(),
+    a2aOps,
   });
-  return commitAssetSync(prev, { ...prev, dfd: updatedDfd });
+  return mergeProjectPatch(prev, patch, new Date().toISOString());
+}
+
+function addRelationViaSidePanel(prev: Project): Project {
+  return sendOps(prev, [
+    {
+      kind: "add",
+      relation: {
+        sourceAssetId: DATA_ID,
+        targetAssetId: RELATION.targetAssetId,
+        relationType: RELATION.relationType,
+      },
+    },
+  ]);
 }
 
 function a2aOnMirror(project: Project): unknown[] {
@@ -181,10 +193,19 @@ describe("Gate G1 — A2A relation persistence (B1)", () => {
     expect(touched.assets!.relations).toBe(reopened.assets!.relations);
   });
 
-  it("removing the relation on the mirror removes the canonical edge", () => {
+  it("a remove operation removes the canonical edge and the mirror entry", () => {
+    const withRel = addRelationViaSidePanel(loadedProject());
+    const id = withRel.assets!.relations![0].id;
+    const removed = sendOps(withRel, [{ kind: "remove", relationId: id }]);
+    expect(removed.assets!.relations).toEqual([]);
+    expect(a2aOnMirror(removed)).toEqual([]);
+    expect(JSON.parse(serialiseProject(removed)).assets.relations).toBeUndefined();
+  });
+
+  it("editing the mirror alone changes nothing — it is a view (single write path)", () => {
     const withRel = addRelationViaSidePanel(loadedProject());
     const dfd = withRel.dfd!;
-    const removed = commitAssetSync(withRel, {
+    const after = commitAssetSync(withRel, {
       ...withRel,
       dfd: finalizeDfd({
         ...dfd,
@@ -193,8 +214,9 @@ describe("Gate G1 — A2A relation persistence (B1)", () => {
         ),
       }),
     });
-    expect(removed.assets!.relations).toEqual([]);
-    expect(JSON.parse(serialiseProject(removed)).assets.relations).toBeUndefined();
+    expect(after.assets!.relations).toHaveLength(1);
+    // …and the mirror is re-projected from the canonical list.
+    expect(a2aOnMirror(after)).toHaveLength(1);
   });
 
   it("a writer that drops the relations field does not delete the edges (B1 guard)", () => {

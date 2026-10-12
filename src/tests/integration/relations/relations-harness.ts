@@ -7,7 +7,9 @@
 //     → DFD tab handler (same body as dfd-tab.handleAssetChange /
 //       use-dfd-editor.updateElementDescription / updateConnectionDescription)
 //     → useDFDPersistence.scheduleSave(base => useDFDData.updateX(…, base))
-//     → onUpdate → buildDfdUpdatePatch            (WorkspaceLayout.handleDFDUpdate)
+//     → onUpdate → buildDfdUpdate                 (WorkspaceLayout.handleDFDUpdate)
+//     A2A: dialog onAdd/onRemove → useDFDPersistence.commitA2AOps → a2aOps
+//          on the update → relations service inside buildDfdUpdate
 //     → mergeProjectPatch                         (useProjectManager.updateProject)
 //     → serialiseProject                          (save)
 //     → parseAndRepair → commitLoadedProject      (open)
@@ -26,7 +28,8 @@ import type {
 } from "features/dfd/models/dfd-types";
 import type { DFDAsset } from "features/dfd/models/dfd-asset-types";
 import type { Project } from "app/models/project-types";
-import { buildDfdUpdatePatch } from "app/services/dfd-update-patch";
+import { buildDfdUpdate } from "app/services/dfd-update-patch";
+import type { A2AOp, NewA2ARelation } from "shared";
 import {
   commitLoadedProject,
   mergeProjectPatch,
@@ -61,11 +64,9 @@ export class RelationSession {
   constructor(project: Project) {
     this.project = project;
     const onUpdate = (updates: DFDUpdateResult) => {
-      this.project = mergeProjectPatch(
-        this.project,
-        buildDfdUpdatePatch(this.project, updates),
-        this.now(),
-      );
+      const { patch, rejectedA2AOps } = buildDfdUpdate(this.project, updates);
+      this.lastRejected = rejectedA2AOps;
+      this.project = mergeProjectPatch(this.project, patch, this.now());
     };
     this.hook = renderHook(
       ({ p }) => ({
@@ -108,13 +109,34 @@ export class RelationSession {
     this.sync();
   }
 
-  /** AssetToAssetSelector.onChange → AssetDescriptionForm.handleA2AChange. */
-  setA2A(assetId: string, relations: unknown[]): void {
-    this.changeAsset(assetId, {
-      ...this.asset(assetId),
-      assetRelations: relations,
-    } as unknown as Partial<DFDAsset>);
+  /**
+   * AssetToAssetSelector onAdd/onRemove → AssetDescriptionForm → A2AOpsContext
+   * → useDFDPersistence.commitA2AOps (the DFD tab's provider).
+   */
+  a2a(ops: A2AOp[]): void {
+    const { persistence } = this.hook.result.current;
+    act(() => {
+      persistence.commitA2AOps(ops);
+    });
+    this.sync();
   }
+
+  /** The dialog's "Add": one add operation from `sourceAssetId`. */
+  addA2A(
+    sourceAssetId: string,
+    entry: { targetAssetId: string; relationType: string } & Record<string, unknown>,
+  ): void {
+    const { sourceGroup: _s, targetGroup: _t, ...rest } = entry;
+    this.a2a([
+      {
+        kind: "add",
+        relation: { ...rest, sourceAssetId } as unknown as NewA2ARelation,
+      },
+    ]);
+  }
+
+  /** Rejected operations reported by the last DFD update. */
+  lastRejected: readonly unknown[] = [];
 
   /** AssetRelationSelector.onChange → use-dfd-editor.updateElementDescription. */
   setElementRelations(elementId: string, relations: unknown[]): void {
