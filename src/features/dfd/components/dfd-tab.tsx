@@ -67,6 +67,8 @@ export interface DFDTabProps {
    * asset panel.
    */
   graphFocusRequest?: { readonly assetId: string } | null;
+  /** "Show in table" from the asset graph (FR-V13, way back). */
+  onShowInTable?: (assetId: string) => void;
   onUpdate: (updates: DFDUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
@@ -97,6 +99,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   securityDrifts,
   assetUsage,
   graphFocusRequest,
+  onShowInTable,
 }) => {
   // ==================== LOCAL UI STATE ====================
 
@@ -797,6 +800,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onSelectAsset={handleGraphSelectAsset}
               onShowElement={handleGraphShowElement}
               focusRequest={graphFocusRequest}
+              onShowInTable={onShowInTable}
               darkMode={darkMode}
             />
           </Box>

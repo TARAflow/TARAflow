@@ -183,6 +183,10 @@ export const WorkspaceLayout: React.FC = () => {
   const [graphFocusRequest, setGraphFocusRequest] = useState<{
     assetId: string;
   } | null>(null);
+  // "Show in table" from the asset graph (FR-V13, way back).
+  const [tableHighlightRequest, setTableHighlightRequest] = useState<{
+    assetId: string;
+  } | null>(null);
 
   const handlePhaseChange = useCallback(
     (phaseId: number) => {
@@ -918,6 +922,10 @@ export const WorkspaceLayout: React.FC = () => {
               onUpdate={handleDFDUpdate}
               assetUsage={assetUsageLookup}
               graphFocusRequest={graphFocusRequest}
+              onShowInTable={(assetId) => {
+                setTableHighlightRequest({ assetId });
+                handlePhaseChange(PhaseId.Assets);
+              }}
               controlInstances={controlInstances}
               securityDrifts={securityDrifts}
             />
@@ -949,6 +957,7 @@ export const WorkspaceLayout: React.FC = () => {
             }}
             onUpdate={makeAssetsUpdateHandler(activeProject.id)}
             onDeleteAsset={makeAssetDeleteHandler(activeProject.id)}
+            tableHighlightRequest={tableHighlightRequest}
             onShowInGraph={(assetId) => {
               setGraphFocusRequest({ assetId });
               handlePhaseChange(PhaseId.DFD);

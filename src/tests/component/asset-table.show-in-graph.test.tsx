@@ -55,4 +55,47 @@ describe("AssetTable — Show in graph", () => {
     );
     expect(screen.queryByRole("menuitem", { name: "Show in graph" })).toBeNull();
   });
+
+  it("a highlight request marks the row (show in table from the graph)", () => {
+    const { container } = render(
+      <div style={{ width: 1800, height: 400 }}>
+        <AssetTable
+          assets={[asset]}
+          configuration={DEFAULT_ASSET_CONFIGURATION}
+          onEdit={() => {}}
+          highlightRequest={{ assetId: "da-001" }}
+        />
+      </div>,
+    );
+    expect(container.querySelector(".MuiDataGrid-row--highlighted")).not.toBeNull();
+  });
+
+  it("a highlighted row hidden by the review filter lifts the filter", () => {
+    const other = { ...asset, id: "da-002", displayId: "DA-002", name: "Beta" } as Asset;
+    const { rerender, container } = render(
+      <div style={{ width: 1800, height: 400 }}>
+        <AssetTable
+          assets={[asset, other]}
+          configuration={DEFAULT_ASSET_CONFIGURATION}
+          onEdit={() => {}}
+          needsReview={new Set(["da-002"])}
+        />
+      </div>,
+    );
+    fireEvent.click(screen.getByTestId("asset-review-filter"));
+    expect(screen.queryByText("Alpha")).toBeNull();
+    rerender(
+      <div style={{ width: 1800, height: 400 }}>
+        <AssetTable
+          assets={[asset, other]}
+          configuration={DEFAULT_ASSET_CONFIGURATION}
+          onEdit={() => {}}
+          needsReview={new Set(["da-002"])}
+          highlightRequest={{ assetId: "da-001" }}
+        />
+      </div>,
+    );
+    expect(screen.getByText("Alpha")).toBeTruthy();
+    expect(container.querySelector(".MuiDataGrid-row--highlighted")).not.toBeNull();
+  });
 });

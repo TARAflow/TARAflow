@@ -82,6 +82,8 @@ export interface AssetTabProps {
   onDeleteAsset?: (assetId: string) => void;
   /** "Show in graph" from the table (FR-V13): the app opens the DFD tab. */
   onShowInGraph?: (assetId: string) => void;
+  /** "Show in table" from the asset graph (FR-V13): mark this row. */
+  tableHighlightRequest?: { readonly assetId: string } | null;
   /** Impact lookup for the delete confirm dialog (app layer). */
   assetUsage?: AssetUsageLookup;
   /**
@@ -101,6 +103,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   hazardLinks,
   onDeleteAsset,
   onShowInGraph,
+  tableHighlightRequest,
   assetUsage,
   threatLinks,
 }) => {
@@ -836,6 +839,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             onEdit={handleEditAsset}
             onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
             onShowInGraph={onShowInGraph ? (a) => onShowInGraph(a.id) : undefined}
+            highlightRequest={tableHighlightRequest}
           />
         </Box>
 

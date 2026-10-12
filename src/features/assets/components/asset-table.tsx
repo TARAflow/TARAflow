@@ -19,7 +19,7 @@
 //
 // Compatible with @mui/x-data-grid v7
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
@@ -27,6 +27,7 @@ import {
   GridColDef,
   GridActionsCellItem,
   GridRenderCellParams,
+  useGridApiRef,
 } from "@mui/x-data-grid";
 import { Box, Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
 import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
@@ -92,6 +93,11 @@ export interface AssetTableProps {
   onDelete?: (asset: Asset) => void;
   /** "Show in graph" (FR-V13). Omitted → no action. */
   onShowInGraph?: (asset: Asset) => void;
+  /**
+   * "Show in table" from the asset graph (FR-V13, way back): a new object per
+   * request. The row is brought into view and marked.
+   */
+  highlightRequest?: { readonly assetId: string } | null;
   /**
    * Ids of assets with errors or warnings in the findings. Given → the bar
    * offers the "Needs review only" filter.
@@ -199,9 +205,12 @@ export const AssetTable = React.memo<AssetTableProps>(
     onEdit,
     onDelete,
     onShowInGraph,
+    highlightRequest,
     needsReview,
   }) => {
     const { t, i18n } = useTranslation();
+    const apiRef = useGridApiRef();
+    const [highlightedId, setHighlightedId] = useState<string | null>(null);
     const isGerman = i18n.language === "de";
 
     // ── "Needs review only" filter ────────────────────────────────────────
@@ -211,6 +220,26 @@ export const AssetTable = React.memo<AssetTableProps>(
       [assets, needsReview],
     );
     const filterActive = reviewOnly && !!needsReview;
+    // ── "Show in table" from the asset graph (FR-V13) ─────────────────────
+    useEffect(() => {
+      if (!highlightRequest) return;
+      const id = highlightRequest.assetId;
+      setHighlightedId(id);
+      // A row hidden by the review filter would stay invisible — lift it.
+      if (needsReview && !needsReview.has(id)) setReviewOnly(false);
+      const frame = requestAnimationFrame(() => {
+        const api = apiRef.current;
+        if (!api?.getSortedRowIds) return;
+        const index = api.getSortedRowIds().indexOf(id);
+        if (index < 0) return;
+        const pageSize = api.state?.pagination?.paginationModel?.pageSize ?? 25;
+        api.setPage(Math.floor(index / pageSize));
+        api.scrollToIndexes({ rowIndex: index % pageSize });
+      });
+      return () => cancelAnimationFrame(frame);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [highlightRequest]);
+
     const rows = useMemo(
       () => (filterActive ? assets.filter((a) => needsReview!.has(a.id)) : assets),
       [assets, needsReview, filterActive],
@@ -1552,6 +1581,7 @@ export const AssetTable = React.memo<AssetTableProps>(
             </Typography>
           ) : (
           <DataGrid
+            apiRef={apiRef}
             rows={rows}
             columns={columns}
             columnVisibilityModel={columnVisibilityModel}
@@ -1591,6 +1621,12 @@ export const AssetTable = React.memo<AssetTableProps>(
                 backgroundColor: "rgba(239,68,68,0.04)",
               },
               "& .MuiDataGrid-row:hover": { cursor: "pointer" },
+              "& .MuiDataGrid-row--highlighted": {
+                outline: "2px solid",
+                outlineColor: "primary.main",
+                outlineOffset: "-2px",
+                backgroundColor: "action.selected",
+              },
               "& .MuiDataGrid-footerContainer": {
                 borderTop: "1px solid",
                 borderColor: "divider",
@@ -1598,9 +1634,12 @@ export const AssetTable = React.memo<AssetTableProps>(
               },
             }}
             getRowClassName={(params) =>
-              params.row.aggregatedImpact === "CRITICAL"
-                ? "MuiDataGrid-row--criticalImpact"
-                : ""
+              [
+                params.row.aggregatedImpact === "CRITICAL"
+                  ? "MuiDataGrid-row--criticalImpact"
+                  : "",
+                params.id === highlightedId ? "MuiDataGrid-row--highlighted" : "",
+              ].join(" ")
             }
           />
           )}
