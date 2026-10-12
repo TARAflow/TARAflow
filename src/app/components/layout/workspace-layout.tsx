@@ -309,16 +309,6 @@ export const WorkspaceLayout: React.FC = () => {
       // Read via ref — always current, never stale
       const current = activeProjectRef.current;
       if (!current) return;
-      // B11 diagnostics: a DFD writer built its update on an older state than
-      // the one in the project — whatever happened in between is overwritten.
-      const incomingAt = Date.parse(updates.dfd?.lastModified ?? "");
-      const currentAt = Date.parse(current.dfd?.lastModified ?? "");
-      if (incomingAt < currentAt) {
-        console.warn("[WorkspaceLayout] DFD update older than the project's DFD", {
-          incoming: updates.dfd?.lastModified,
-          current: current.dfd?.lastModified,
-        });
-      }
       const { patch, rejectedA2AOps } = buildDfdUpdate(current, updates);
       if (rejectedA2AOps.length > 0) {
         // The dialog prevents these; reaching here means stale data (e.g. an

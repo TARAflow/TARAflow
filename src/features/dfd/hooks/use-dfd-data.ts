@@ -191,18 +191,6 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
       // actually apply on top of, not necessarily this hook's own `dfd`.
       const effectiveBase = baseDfd ?? dfd;
       const oldAsset = effectiveBase?.assets.find((a) => a.id === assetId);
-      if (!oldAsset) {
-        // B11 diagnostics: the change has nothing to apply to and is dropped.
-        console.warn(
-          "[useDFDData] updateAsset: asset not in the base DFD — change dropped",
-          {
-            assetId,
-            changes: Object.keys(updates),
-            baseLastModified: effectiveBase?.lastModified,
-            baseAssetIds: effectiveBase?.assets.map((a) => a.id),
-          },
-        );
-      }
       const categoryChanged =
         updates.assetGroup &&
         oldAsset &&
