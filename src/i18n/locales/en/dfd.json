@@ -2564,6 +2564,12 @@
     "duplicateIdLabel": "ID label \"{{id}}\" is used multiple times. Each element should have a unique ID.",
     "assetRelationInconsistent": "Asset \"{{detail}}\" not found",
     "assetRelationTypeInvalid": "Relation \"{{relationType}}\" to \"{{assetName}}\" not allowed for {{elementType}}",
+    "assetLink": {
+      "type_not_allowed": "Asset \"{{name}}\": asset link \"{{relation}}\" is not allowed for {{sourceGroup}} → {{targetGroup}} (e.g. after a group change) — fix or remove it in the Relations tab",
+      "target_missing": "Asset \"{{name}}\": asset link \"{{relation}}\" points to an asset that no longer exists — remove it in the Relations tab",
+      "self_relation": "Asset \"{{name}}\": asset link \"{{relation}}\" points to itself — remove it in the Relations tab",
+      "source_missing": "Asset link \"{{relation}}\" has no source asset"
+    },
     "assetMissingName": "Asset \"{{name}}\" has no name set",
     "assetMissingProtectionNeed": "Asset \"{{name}}\" has no protection need set — required for threat prioritisation",
     "assetMissingDataType": "Asset \"{{name}}\" has no data type set — required for Information Disclosure / Tampering threat selection",

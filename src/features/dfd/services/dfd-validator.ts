@@ -28,6 +28,7 @@ import { validateDataflowLabels } from "./validators/dataflow-label-validator";
 import { validateDataflowProperties } from "./validators/dataflow-property-validator";
 import { validateAssetProperties } from "./validators/asset-property-validator";
 import { validateAssetRelations } from "./validators/asset-relation-validator";
+import { validateAssetLinks } from "./validators/asset-link-validator";
 import { validateEndpointProtection } from "./validators/endpoint-protection-validator";
 import {
   isComplete,
@@ -127,6 +128,9 @@ export class DFDValidator {
       errors,
       warnings,
     );
+
+    // 4b. Asset-to-asset links no longer valid (e.g. after a group change)
+    validateAssetLinks(assets, warnings);
 
     // 5. Validate Scenario & Completeness
     const scenario = validateScenario(

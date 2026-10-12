@@ -2551,6 +2551,12 @@
     "duplicateIdLabel": "ID-Label \"{{id}}\" wird mehrfach verwendet. Jedes Element sollte eine eindeutige ID haben.",
     "assetRelationInconsistent": "Asset \"{{detail}}\" nicht gefunden",
     "assetRelationTypeInvalid": "Beziehung \"{{relationType}}\" zu \"{{assetName}}\" für {{elementType}} nicht erlaubt",
+    "assetLink": {
+      "type_not_allowed": "Asset \"{{name}}\": Asset-Link „{{relation}}“ ist für {{sourceGroup}} → {{targetGroup}} nicht erlaubt (z. B. nach Gruppenwechsel) — im Reiter „Beziehungen“ korrigieren oder entfernen",
+      "target_missing": "Asset \"{{name}}\": Asset-Link „{{relation}}“ zeigt auf ein Asset, das es nicht mehr gibt — im Reiter „Beziehungen“ entfernen",
+      "self_relation": "Asset \"{{name}}\": Asset-Link „{{relation}}“ zeigt auf sich selbst — im Reiter „Beziehungen“ entfernen",
+      "source_missing": "Asset-Link „{{relation}}“ ohne Quell-Asset"
+    },
     "assetMissingName": "Asset \"{{name}}\" hat keinen Namen gesetzt",
     "assetMissingProtectionNeed": "Asset \"{{name}}\" hat keinen Schutzbedarf gesetzt — erforderlich für Bedrohungspriorisierung",
     "assetMissingDataType": "Asset \"{{name}}\" hat keinen Datentyp gesetzt — erforderlich für Informationspreisgabe-/Manipulations-Bedrohungsauswahl",

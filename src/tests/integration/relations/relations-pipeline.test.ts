@@ -323,6 +323,39 @@ describe("Group change → invalid asset links are reported (B5)", () => {
     expect(s.project.assets!.relations).toHaveLength(1);
     s.close();
   });
+
+  it("the DFD tab finding names the source asset and the link (notification panel)", async () => {
+    const { validateAssetLinks } = await import(
+      "features/dfd/services/validators/asset-link-validator"
+    );
+    const dfdLinkFindings = (p: Project) => {
+      const warnings: { key: string; elementId?: string; params?: Record<string, unknown> }[] = [];
+      validateAssetLinks(p.dfd!.assets, warnings as never);
+      return warnings;
+    };
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const f = firstAsset(s.project, "function");
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by" });
+    expect(dfdLinkFindings(s.project)).toEqual([]);
+
+    s.changeAsset(d, { ...s.asset(d), assetGroup: "human" });
+
+    const display = (id: string) => s.project.dfd!.assets.find((a) => a.id === id)!.displayId;
+    expect(dfdLinkFindings(s.project)).toEqual([
+      expect.objectContaining({
+        key: "dfdValidation.assetLink.type_not_allowed",
+        elementId: d,
+        params: expect.objectContaining({
+          name: display(d),
+          relation: `required_by ${display(f)}`,
+          sourceGroup: "human",
+          targetGroup: "function",
+        }),
+      }),
+    ]);
+    s.close();
+  });
 });
 
 describe("DFD export → import into a new project keeps asset links", () => {
