@@ -12,6 +12,7 @@ import {
   sortA2ARelations,
   updateA2ARelationAttributes,
   validateA2ARelations,
+  findMirrorRelation,
   type AssetGroupLookup,
 } from "shared/services/a2a-relation-service";
 import type { A2ARelation } from "shared/models/a2a-relation-types";
@@ -223,5 +224,29 @@ describe("sortA2ARelations (AR-9)", () => {
     const d = rel("r0", "0", "z", "calls");
     expect(sortA2ARelations([a, b, c, d])).toEqual([d, c, b, a]);
     expect(sortA2ARelations([d, a, c, b])).toEqual([d, c, b, a]);
+  });
+});
+
+describe("findMirrorRelation", () => {
+  const groups = lookup({ d1: "data", f1: "function" });
+  it("finds the existing counterpart in the opposite direction", () => {
+    const existing = [rel("r1", "d1", "f1", "required_by")];
+    expect(
+      findMirrorRelation(
+        existing,
+        { sourceAssetId: "f1", targetAssetId: "d1", relationType: "reads" },
+        groups,
+      )?.id,
+    ).toBe("r1");
+  });
+  it("ignores types that are no mirror (modifies is a different fact)", () => {
+    const existing = [rel("r1", "d1", "f1", "required_by")];
+    expect(
+      findMirrorRelation(
+        existing,
+        { sourceAssetId: "f1", targetAssetId: "d1", relationType: "modifies" },
+        groups,
+      ),
+    ).toBeUndefined();
   });
 });

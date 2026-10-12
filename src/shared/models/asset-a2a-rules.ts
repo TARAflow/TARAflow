@@ -240,3 +240,63 @@ export function classifyA2ATargets(
   }
   return result;
 }
+
+// ==================== MIRROR PAIRS ====================
+// Two relation types in opposite directions that state the same fact
+// ("Measure Data required_by E-Stop" = "E-Stop reads Measure Data"). Both
+// stay allowed; modelling both duplicates the fact (two graph edges, double
+// counting in propagation). The tool hints, it does not block. `preferred`
+// is the direction the relationship document recommends.
+
+export interface A2AEdgeShape {
+  readonly sourceGroup: AssetGroup;
+  readonly targetGroup: AssetGroup;
+  readonly relationType: A2ARelationType;
+}
+
+export interface A2AMirrorPair {
+  readonly preferred: A2AEdgeShape;
+  readonly mirror: A2AEdgeShape;
+}
+
+export const A2A_MIRROR_PAIRS: readonly A2AMirrorPair[] = [
+  {
+    preferred: { sourceGroup: "data", targetGroup: "function", relationType: "required_by" },
+    mirror: { sourceGroup: "function", targetGroup: "data", relationType: "reads" },
+  },
+  {
+    preferred: { sourceGroup: "process", targetGroup: "function", relationType: "implements" },
+    mirror: { sourceGroup: "function", targetGroup: "process", relationType: "implemented_by" },
+  },
+  {
+    preferred: { sourceGroup: "system", targetGroup: "function", relationType: "implements" },
+    mirror: { sourceGroup: "function", targetGroup: "system", relationType: "implemented_by" },
+  },
+  {
+    preferred: { sourceGroup: "physical", targetGroup: "infrastructure", relationType: "located_in" },
+    mirror: { sourceGroup: "infrastructure", targetGroup: "physical", relationType: "houses" },
+  },
+];
+
+const sameShape = (a: A2AEdgeShape, b: A2AEdgeShape) =>
+  a.sourceGroup === b.sourceGroup &&
+  a.targetGroup === b.targetGroup &&
+  a.relationType === b.relationType;
+
+/**
+ * The counterpart in the opposite direction, if `edge` is part of a mirror
+ * pair. `isPreferred` tells whether `edge` itself is the recommended side.
+ */
+export function getA2AMirror(
+  edge: A2AEdgeShape,
+): { counterpart: A2AEdgeShape; isPreferred: boolean } | undefined {
+  for (const pair of A2A_MIRROR_PAIRS) {
+    if (sameShape(edge, pair.preferred)) {
+      return { counterpart: pair.mirror, isPreferred: true };
+    }
+    if (sameShape(edge, pair.mirror)) {
+      return { counterpart: pair.preferred, isPreferred: false };
+    }
+  }
+  return undefined;
+}

@@ -279,11 +279,15 @@ export {
   getA2ARelationOptions,
   classifyA2ATargetGroup,
   classifyA2ATargets,
+  A2A_MIRROR_PAIRS,
+  getA2AMirror,
 } from "./models/asset-a2a-rules";
 export type {
   A2ARelationOption,
   A2ATargetClass,
   A2ATargetClassification,
+  A2AEdgeShape,
+  A2AMirrorPair,
 } from "./models/asset-a2a-rules";
 
 // ==================== A2A RELATIONS (CANONICAL) ====================
@@ -301,6 +305,7 @@ export {
   removeA2ARelationsOfAsset,
   validateA2ARelations,
   sortA2ARelations,
+  findMirrorRelation,
 } from "./services/a2a-relation-service";
 export type {
   AssetGroupLookup,

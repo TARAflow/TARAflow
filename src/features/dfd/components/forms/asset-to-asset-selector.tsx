@@ -48,7 +48,12 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import type { AssetToAssetRelation } from "../../models/asset-relation-types";
 import { getAssetGroupColor } from "../../models/dfd-formatters";
-import { AssetGroup, A2ARelationType, getAllowedA2ARelations } from "shared";
+import {
+  AssetGroup,
+  A2ARelationType,
+  getAllowedA2ARelations,
+  getA2AMirror,
+} from "shared";
 
 // ==================== HELPERS ====================
 
@@ -176,6 +181,28 @@ const AssetToAssetDialog: React.FC<A2ADialogProps> = ({
   );
 
   const targetAsset = allAssets.find((a) => a.id === targetAssetId);
+
+  // Mirror hint: the chosen type states the same fact as a type in the
+  // opposite direction (A2A_MIRROR_PAIRS). Warn when that counterpart already
+  // exists on the target; otherwise name the preferred side. Never blocks.
+  const mirrorHint = useMemo(() => {
+    if (!targetAsset || !relationType) return null;
+    const mirror = getA2AMirror({
+      sourceGroup: sourceAsset.assetGroup,
+      targetGroup: targetAsset.assetGroup,
+      relationType: relationType as A2ARelationType,
+    });
+    if (!mirror) return null;
+    const targetRelations: AssetToAssetRelation[] =
+      (targetAsset as unknown as { assetRelations?: AssetToAssetRelation[] })
+        .assetRelations ?? [];
+    const exists = targetRelations.some(
+      (r) =>
+        r.targetAssetId === sourceAsset.id &&
+        r.relationType === mirror.counterpart.relationType,
+    );
+    return { ...mirror, exists };
+  }, [targetAsset, relationType, sourceAsset.id, sourceAsset.assetGroup]);
 
   const allowedTypes = useMemo(
     () =>
@@ -351,6 +378,31 @@ const AssetToAssetDialog: React.FC<A2ADialogProps> = ({
                 </Select>
               </FormControl>
             )
+          )}
+
+          {mirrorHint?.exists && (
+            <Alert severity="warning" sx={{ py: 0.5 }} data-testid="a2a-mirror-exists">
+              <Typography variant="caption">
+                {t("assets.relations.a2a.mirrorExists", {
+                  defaultValue:
+                    "{{target}} already has \"{{type}}\" towards this asset. Both edges state the same fact — keep only one.",
+                  target: targetAsset?.displayId ?? targetAsset?.name ?? "",
+                  type: mirrorHint.counterpart.relationType,
+                })}
+              </Typography>
+            </Alert>
+          )}
+          {mirrorHint && !mirrorHint.exists && !mirrorHint.isPreferred && (
+            <Alert severity="info" sx={{ py: 0.5 }} data-testid="a2a-mirror-preferred">
+              <Typography variant="caption">
+                {t("assets.relations.a2a.mirrorPreferred", {
+                  defaultValue:
+                    "Same fact as \"{{type}}\" from the {{group}} side, which is the preferred direction.",
+                  type: mirrorHint.counterpart.relationType,
+                  group: mirrorHint.counterpart.sourceGroup,
+                })}
+              </Typography>
+            </Alert>
           )}
 
           {/* degradationMode — only for depends_on */}

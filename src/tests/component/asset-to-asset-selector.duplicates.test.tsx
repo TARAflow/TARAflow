@@ -55,3 +55,42 @@ describe("AssetToAssetSelector — duplicate rule", () => {
     expect(within(dialog).queryByText("E-Stop")).toBeNull();
   });
 });
+
+describe("AssetToAssetSelector — mirror hint", () => {
+  function openFromEStop(eStopRelations: unknown[], dataRelations: unknown[]) {
+    const data: any = {
+      id: "d1",
+      displayId: "DA-002",
+      name: "Measure Data",
+      assetGroup: "data",
+      assetRelations: dataRelations,
+    };
+    const estop: any = { ...fn, assetRelations: eStopRelations };
+    render(<AssetToAssetSelector asset={estop} allAssets={[data, estop]} onChange={() => {}} />);
+    fireEvent.click(screen.getByText("Add Relation"));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("tab", { name: /data/i }));
+    fireEvent.click(within(dialog).getByText("Measure Data"));
+    fireEvent.mouseDown(within(dialog).getByRole("combobox"));
+    return dialog;
+  }
+
+  it("warns when the counterpart already exists", () => {
+    const dialog = openFromEStop([], [rel("required_by")]);
+    fireEvent.click(screen.getByRole("option", { name: "reads" }));
+    expect(within(dialog).getByTestId("a2a-mirror-exists")).toBeTruthy();
+  });
+
+  it("names the preferred side when choosing the non-preferred type", () => {
+    const dialog = openFromEStop([], []);
+    fireEvent.click(screen.getByRole("option", { name: "reads" }));
+    expect(within(dialog).getByTestId("a2a-mirror-preferred")).toBeTruthy();
+  });
+
+  it("no hint for a type without a mirror", () => {
+    const dialog = openFromEStop([], [rel("required_by")]);
+    fireEvent.click(screen.getByRole("option", { name: "modifies" }));
+    expect(within(dialog).queryByTestId("a2a-mirror-exists")).toBeNull();
+    expect(within(dialog).queryByTestId("a2a-mirror-preferred")).toBeNull();
+  });
+});

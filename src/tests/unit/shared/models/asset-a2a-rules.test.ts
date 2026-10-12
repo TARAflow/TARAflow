@@ -8,6 +8,8 @@ import {
   KERN_A2A_RELATIONS,
   classifyA2ATargetGroup,
   classifyA2ATargets,
+  A2A_MIRROR_PAIRS,
+  getA2AMirror,
   getA2ARelationOptions,
   getAllowedA2ARelations,
   isKernA2ARelation,
@@ -126,5 +128,31 @@ describe("A2A rules — target classification (FR-E4/E5)", () => {
     expect(result.get("d1")!.targetClass).toBe("reverse_only");
     expect(result.get("e1")!.targetClass).toBe("valid");
     expect(result.get("p2")!.targetClass).toBe("valid");
+  });
+});
+
+describe("A2A rules — mirror pairs", () => {
+  it("both sides of every pair are allowed and point in opposite directions", () => {
+    for (const { preferred: p, mirror: m } of A2A_MIRROR_PAIRS) {
+      expect(getAllowedA2ARelations(p.sourceGroup, p.targetGroup)).toContain(p.relationType);
+      expect(getAllowedA2ARelations(m.sourceGroup, m.targetGroup)).toContain(m.relationType);
+      expect([m.sourceGroup, m.targetGroup]).toEqual([p.targetGroup, p.sourceGroup]);
+    }
+  });
+
+  it("finds the counterpart from either side", () => {
+    expect(
+      getA2AMirror({ sourceGroup: "function", targetGroup: "data", relationType: "reads" }),
+    ).toEqual({
+      counterpart: { sourceGroup: "data", targetGroup: "function", relationType: "required_by" },
+      isPreferred: false,
+    });
+    expect(
+      getA2AMirror({ sourceGroup: "data", targetGroup: "function", relationType: "required_by" })
+        ?.isPreferred,
+    ).toBe(true);
+    expect(
+      getA2AMirror({ sourceGroup: "function", targetGroup: "data", relationType: "modifies" }),
+    ).toBeUndefined();
   });
 });

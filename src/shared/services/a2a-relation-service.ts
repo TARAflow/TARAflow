@@ -12,7 +12,7 @@ import type {
   A2ARelation,
   A2ARelationAttributes,
 } from "../models/a2a-relation-types";
-import { getAllowedA2ARelations } from "../models/asset-a2a-rules";
+import { getA2AMirror, getAllowedA2ARelations } from "../models/asset-a2a-rules";
 
 /** Resolves an asset id to its group; undefined = asset does not exist. */
 export type AssetGroupLookup = (assetId: string) => AssetGroup | undefined;
@@ -224,4 +224,33 @@ export function validateA2ARelations(
     }
   }
   return findings;
+}
+
+// ==================== MIRROR ====================
+
+/**
+ * The existing relation in the opposite direction that states the same fact
+ * as `candidate` (see A2A_MIRROR_PAIRS), or undefined. A hint for the UI —
+ * the add itself is not rejected.
+ */
+export function findMirrorRelation(
+  relations: readonly A2ARelation[],
+  candidate: Pick<A2ARelation, "sourceAssetId" | "targetAssetId" | "relationType">,
+  groupOf: AssetGroupLookup,
+): A2ARelation | undefined {
+  const sourceGroup = groupOf(candidate.sourceAssetId);
+  const targetGroup = groupOf(candidate.targetAssetId);
+  if (!sourceGroup || !targetGroup) return undefined;
+  const mirror = getA2AMirror({
+    sourceGroup,
+    targetGroup,
+    relationType: candidate.relationType,
+  });
+  if (!mirror) return undefined;
+  return relations.find(
+    (r) =>
+      r.sourceAssetId === candidate.targetAssetId &&
+      r.targetAssetId === candidate.sourceAssetId &&
+      r.relationType === mirror.counterpart.relationType,
+  );
 }
