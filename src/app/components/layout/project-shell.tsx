@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { Toast, ToastContainer, useToast } from "shared";
 import type { Project } from "../../models/project-types";
 import { applyRegulationFromTags } from "app/services/regulation-preset-orchestrator";
+import { commitLoadedProject } from "app/services/project-commit";
 
 import { ProjectContext } from "../../contexts/project-context";
 import { useProjectManager } from "../../hooks/use-project-manager";
@@ -182,12 +183,18 @@ export const ProjectShell: React.FC = () => {
         }
         const rawLoaded = settled.project;
 
-        const fullProject = {
+        // Same load-side commit as every other open path (file open, import,
+        // restore on start): graph, asset mirror re-derived from the store
+        // (incl. the asset links), safety. Without it the DFD tab mounted on
+        // the on-disk DFD whose asset mirror is empty; its persistence kept
+        // that snapshot as the base for the first edit (same lastModified as
+        // the derived one), and the first asset change was dropped (B11).
+        const fullProject = commitLoadedProject({
           ...rawLoaded,
           isOpen: true,
           lastOpened: now,
           hasUnsavedChanges: false,
-        };
+        });
 
         if (settled.status === "migrated") {
           toast.success(

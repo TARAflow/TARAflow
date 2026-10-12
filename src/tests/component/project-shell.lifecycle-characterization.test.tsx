@@ -710,6 +710,34 @@ describe("ProjectShell lifecycle — activeProjectId reassignment characterizati
       // No auto-close warning — well under MAX_OPEN.
       expect(h.toast.warning).not.toHaveBeenCalled();
     });
+
+    it("runs the load-side commit (graph, asset sync, safety) like every other open path (B11)", async () => {
+      const a = makeProject({ id: "A", isOpen: true });
+      await renderShellWith([a]);
+      await waitFor(() => expect(activeIdShown()).toBe("A"));
+      (commitAssetSync as any).mockClear();
+
+      (projectRepository.loadById as any).mockResolvedValue({
+        success: true,
+        data: makeProject({ id: "B", isOpen: false }),
+      });
+      await act(async () => {
+        screen.getByRole("button", { name: "open-dialog" }).click();
+      });
+      fireEvent.change(screen.getByTestId("open-dialog-id-input"), {
+        target: { value: "B" },
+      });
+      await act(async () => {
+        screen.getByRole("button", { name: "open-selected" }).click();
+      });
+
+      await waitFor(() => expect(activeIdShown()).toBe("B"));
+      expect(commitAssetSync).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ id: "B", isOpen: true }),
+      );
+      expect(commitHazardSafety).toHaveBeenCalled();
+    });
   });
 
   // ── #1: confirmProjectSwitch (unsaved-changes gate before switching) ────

@@ -22,8 +22,13 @@ import dfdService from "../services/dfd-service";
  * tab — the relation persisted while the asset object vanished). Comparing
  * `lastModified` picks the genuinely newest snapshot instead.
  *
- * `a` (the last dfd this hook committed) wins ties and unparseable
- * timestamps, preserving prior behavior when the two are equally fresh.
+ * On a tie `b` (the project prop) wins: the app's commit chain derives
+ * parts of `dfd` (e.g. the asset mirror re-derived from the store, incl. the
+ * asset links) WITHOUT bumping `lastModified`, so an equal timestamp means
+ * "the same state or the same state plus derivations" — never older. Letting
+ * the hook's own snapshot win a tie made the first asset edit after opening a
+ * project a silent no-op (B11): the snapshot was the on-disk DFD with an
+ * empty asset mirror. `a` still wins when `b`'s timestamp is unparseable.
  */
 function freshestOf(
   a: DFDData | undefined,
@@ -35,7 +40,7 @@ function freshestOf(
   const bt = Date.parse(b.lastModified ?? "");
   if (Number.isNaN(bt)) return a;
   if (Number.isNaN(at)) return b;
-  return bt > at ? b : a;
+  return bt >= at ? b : a;
 }
 
 // ==================== TYPES ====================

@@ -63,7 +63,12 @@ export class RelationSession {
   private hook;
   private tick = 0;
 
-  constructor(project: Project) {
+  /**
+   * `mountedOn`: the state the DFD tab first rendered with, if different from
+   * `project` (e.g. the raw on-disk project before the load commit). The
+   * session then re-renders with `project`, as the app does.
+   */
+  constructor(project: Project, mountedOn?: Project) {
     this.project = project;
     const onUpdate = (updates: DFDUpdateResult) => {
       const { patch, rejectedA2AOps } = buildDfdUpdate(this.project, updates);
@@ -75,8 +80,9 @@ export class RelationSession {
         data: useDFDData(p),
         persistence: useDFDPersistence(p, { onUpdate, debounceDelay: 0 }),
       }),
-      { initialProps: { p: dfdTabProject(project) } },
+      { initialProps: { p: dfdTabProject(mountedOn ?? project) } },
     );
+    if (mountedOn) this.sync();
   }
 
   private now(): string {

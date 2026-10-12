@@ -2,9 +2,9 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.8 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
-> **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben) und den
-> Sitzungsfehler B11. Nächster Schritt: D2/D6 bestätigen, Phase 2.
+> **Status:** Entwurf v2.9 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
+> B11 behoben. Nächster Schritt: D2/D6 bestätigen, Phase 2.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
 > explizite KERN-Kennzeichnung, Ziel-Einteilung, kanonischer Typ und Relations-Service (§8, Phase 1).
 > **D1 entschieden: (a) Kantenliste.**
@@ -30,6 +30,7 @@
 | v2.6 | 2026-10-11 | Laden schreibt keine Datei mehr, Konvertierung nur beim Öffnen nach Zustimmung (Dialog mit Begründung je Schema-Schritt). Asset-Tab: neue Spalte **Asset Links** (A2A, gerichtet, nur lesend) neben „DFD Links“, Abschnitt „Verknüpfte Assets“ im Asset-Dialog (FR-V16). Spiegelpaare im A2A-Regelwerk mit Hinweis im Beziehungsdialog (FR-E12). Neuer Befund **B12** (Downstream-Spalte: Richtungssemantik je Typ ungeklärt, daher noch nicht angeschlossen). |
 | v2.7 | 2026-10-12 | FR-V16 präzisiert: Pfeil + identischer Typ auf beiden Seiten war missverständlich (bei E-Stop las sich `required_by` falsch herum). Chips lesen jetzt aus Sicht der Zeile — gespeicherter Typ an der Quelle, inverser Name am Ziel (Tabelle `A2A_INVERSE_NAMES` für alle Typen); Tooltip-Satz de/en je Typ. |
 | v2.8 | 2026-10-12 | Phase 1 Teil 2: ein Schreibweg (AR-5) — Dialog und DFD-Import senden A2A-Operationen (`DFDUpdateResult.a2aOps`), die App-Schicht wendet sie über den Relations-Service an; Übergangs-Brücke entfernt, `dfd.assets` ist reine Projektion. Gruppenwechsel meldet ungültige Asset-Links als Befund (B5). A2A-Kanten im Audit-Diff (AR-9). Totes Feld `DFDAsset.assetToAssetRelations` und A2A-Pfade am Spiegel entfernt. |
+| v2.9 | 2026-10-12 | Ungültige Asset-Links zusätzlich im Hinweis-Panel des DFD-Tabs (dort werden sie bearbeitet). **B11 behoben**: Öffnen aus der Liste übersprang den Lade-Commit; bei `lastModified`-Gleichstand gewinnt jetzt der Projektstand. |
 
 ---
 
@@ -223,15 +224,17 @@ bekommt bisher keine Daten (Prop `a2aRelations` wird nicht übergeben) und zeigt
 Bewusst nicht angeschlossen, bis die Abhängigkeitsrichtung je Typ festgelegt ist; gehört zur
 Impact-Propagation (Phase 4). Bis dahin zeigt „Asset Links“ die Kanten ohne Zählung.
 
-**B11 — Sitzungsfehler: Eingabe verpufft ohne Meldung (offen).**
-Manuell beobachtet (2026-10-03): Beziehung im Dialog vollständig gewählt und bestätigt, danach
-keine Änderung sichtbar, keine Fehlermeldung; nach Schliessen/Öffnen der Datei funktionierte
-derselbe Ablauf. Unabhängig von B1. Verdacht: `scheduleSave` wählt als Basis
-`lastCommittedDfdRef` statt `project.dfd`, weil eine Ableitung im Commit (`commitAssetSync`)
-`dfd.assets` ändert, ohne `dfd.lastModified` zu erhöhen (Gleichstand → der Hook-Stand gewinnt,
-`freshestOf`); fehlt das Asset dort, ist `updateAsset` ein No-op. Nicht reproduziert; der
-Integrationstest-Harness (`src/tests/integration/relations/`) ist dafür vorbereitet. Benötigt:
-die Schritte vor dem Fehler in der Sitzung.
+**B11 — Sitzungsfehler: Eingabe verpufft ohne Meldung (behoben, 2026-10-12).**
+Erste Asset-Änderung nach dem Öffnen eines Projekts (z. B. Gruppenwechsel im DFD-Tab) blieb ohne
+Wirkung und ohne Meldung; ein späterer Versuch klappte. Ursache, per Diagnose-Log belegt
+(`baseAssetIds: []`, `baseLastModified` = `dfd.lastModified` der Datei): Öffnen aus der Liste
+(`project-shell.handleProjectOpen`) übersprang den Lade-Commit, der DFD-Tab montierte auf dem
+Plattenstand mit leerem Asset-Spiegel. `useDFDPersistence` merkte sich diesen Stand; der danach
+abgeleitete Spiegel trägt denselben `lastModified`, und bei Gleichstand gewann der Hook-Stand
+(`freshestOf`) — `updateAsset` fand das Asset nicht. Fix: Lade-Commit (`commitLoadedProject`) auch
+in `handleProjectOpen`; bei Gleichstand gewinnt der Projektstand. Regressionstests:
+`relations-pipeline.test.ts` („First edit after opening a project“) und
+`project-shell.lifecycle-characterization.test.tsx`.
 
 **B8 — Hazard-Relationen nicht im Audit-Diff.**
 `features/audit/services/diff-service.ts` vergleicht DFD, Assets, Threats, Risks und Attack Trees,

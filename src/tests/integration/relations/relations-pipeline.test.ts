@@ -20,6 +20,7 @@ import type { Project } from "app/models/project-types";
 import { serialiseProject } from "app/services/prepare-for-disk";
 import { projectRepository } from "app/services/project-repository";
 import { commitLoadedProject } from "app/services/project-commit";
+import { parseAndRepair } from "app/services/migration-service";
 import { loadProjectFixture } from "../../fixtures/load-fixture";
 import { openProject, RelationSession } from "./relations-harness";
 
@@ -390,5 +391,34 @@ describe("DFD export → import into a new project keeps asset links", () => {
     const reopened = target.reopen();
     expect(edge(reopened.project), "after reopen").toBeDefined();
     reopened.close();
+  });
+});
+
+describe("First edit after opening a project (B11)", () => {
+  // The DFD tab can first render with the on-disk project (asset mirror
+  // empty) and then with the committed one, whose mirror is derived without
+  // bumping dfd.lastModified. The first asset edit must apply to the
+  // committed state, not to the empty snapshot.
+  function rawAndCommitted(): { raw: Project; committed: Project } {
+    const raw = parseAndRepair(JSON.parse(BASE)) as Project;
+    const committed = commitLoadedProject(raw);
+    return { raw, committed };
+  }
+
+  it("precondition: same dfd.lastModified, empty mirror on disk", () => {
+    const { raw, committed } = rawAndCommitted();
+    expect(raw.dfd!.assets).toEqual([]);
+    expect(committed.dfd!.assets.length).toBeGreaterThan(0);
+    expect(committed.dfd!.lastModified).toBe(raw.dfd!.lastModified);
+  });
+
+  it("a group change right after opening is applied", () => {
+    const { raw, committed } = rawAndCommitted();
+    const s = new RelationSession(committed, raw);
+    const d = firstAsset(s.project, "data");
+    s.changeAsset(d, { ...s.asset(d), assetGroup: "human" });
+    expect(s.asset(d).assetGroup).toBe("human");
+    expect(s.project.assets!.assets.find((a) => a.id === d)!.assetGroup).toBe("human");
+    s.close();
   });
 });
