@@ -1,8 +1,9 @@
-import { app, BrowserWindow, Menu } from "electron";
+import { app, BrowserWindow, Menu, session } from "electron";
 import path from "path";
 import { registerOAuthProtocol, setupOAuthHandler } from "./oauth-handler";
 import { buildAppMenu } from "./app-menu";
 import { hardenWindowNavigation, makeIsInternalUrl } from "./window-navigation";
+import { configureDrawioRequests } from "./drawio-requests";
 
 import { registerShellHandlers } from "./ipc/shell-handlers";
 import { registerPdfHandlers } from "./ipc/pdf-handlers";
@@ -183,6 +184,7 @@ function createWindow() {
 registerOAuthProtocol();
 
 app.whenReady().then(() => {
+  configureDrawioRequests(session.defaultSession);
   Menu.setApplicationMenu(buildAppMenu());
   createWindow();
   setupOAuthHandler(() => mainWindow);

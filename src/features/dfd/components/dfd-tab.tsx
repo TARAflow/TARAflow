@@ -698,6 +698,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               key={`${project.id}-${editor.iframeKey}`}
               ref={editor.iframeRef as React.RefObject<HTMLIFrameElement>}
               src={drawioUrl}
+              // diagrams.net answers 403 to a localhost Referer (dev build);
+              // draw.io needs none — the bridge runs on postMessage.
+              referrerPolicy="no-referrer"
               style={{
                 width: "100%",
                 height: "100%",
