@@ -365,7 +365,9 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   // ==================== RENDER ====================
 
   return (
-    <Box sx={{ p: 2, maxWidth: 1200, mx: "auto" }}>
+    // Full width, left-aligned: the view has no side panel any more, so
+    // centring it only left a wide gap on the left.
+    <Box sx={{ p: 2 }}>
       {/* Header */}
       <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: "background.default" }}>
         <Typography variant="h6" gutterBottom>
@@ -704,6 +706,7 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
     return (
       <Accordion
         expanded={isExpanded}
+        data-describe-id={element.id}
         onChange={onToggle} // ✅ Direct callback, no data-attribute needed
         sx={{
           "&:before": { display: "none" },
@@ -805,6 +808,7 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
     return (
       <Accordion
         expanded={isExpanded}
+        data-describe-id={connection.id}
         onChange={onToggle} // ✅ Direct callback
         sx={{
           "&:before": { display: "none" },
@@ -903,6 +907,7 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
     return (
       <Accordion
         expanded={isExpanded}
+        data-describe-id={asset.id}
         onChange={onToggle} // ✅ Direct callback
         sx={{
           "&:before": { display: "none" },

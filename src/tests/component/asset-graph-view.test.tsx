@@ -204,4 +204,9 @@ describe("AssetGraphView", () => {
     expect(screen.getByTestId("asset-graph-inspector-asset")).toHaveTextContent("DA-001 Measure Data");
     expect(screen.getByTestId("asset-graph-inspector")).toHaveStyle({ right: "532px" });
   });
+
+  it("a focus request opens the asset's card — the card is the place to edit in the graph", () => {
+    view({ focusRequest: { assetId: "d1" } });
+    expect(screen.getByTestId("asset-graph-inspector-asset")).toHaveTextContent("DA-001 Measure Data");
+  });
 });

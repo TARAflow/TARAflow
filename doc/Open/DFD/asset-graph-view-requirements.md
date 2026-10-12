@@ -2,7 +2,7 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v2.16 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
+> **Status:** Entwurf v2.17 (2026-10-12). **G1 = FAIL** (automatisiert und manuell bestätigt, §8).
 > **Phase 1 abgeschlossen** bis auf AR-7/B12 (Downstream, nach Phase 4 verschoben); Sitzungsfehler
 > B11 behoben. **Alle Entscheidungen D1–D8 getroffen** (Graph-Sicht im DFD-Tab). **Phase 2 abgeschlossen** (Asset-Graph lesend im DFD-Tab). Phase 3 (Edit Mode) Teil 1 umgesetzt.
 > Vorgezogen, weil in beiden G1-Zweigen nötig und ohne Persistenzbezug: A2A-Regelwerk in `shared`,
@@ -38,6 +38,7 @@
 | v2.14 | 2026-10-12 | Phase 3 Teil 1: Umschalter Ansehen/Bearbeiten, Beziehung per Ziehen mit Zielmarkierung, Typauswahl, Richtungshilfe und Spiegelhinweis, Link löschen — alles über den einen Schreibweg. |
 | v2.15 | 2026-10-12 | Phase 3 Teil 2: Asset anlegen je Ebene (FR-E2/E3) und Asset löschen mit Folgenanzeige (FR-E8) im Graph. |
 | v2.16 | 2026-10-12 | Phase 3 Teil 3: Link-Attribute in der Kantenkarte bearbeiten (FR-E6). |
+| v2.17 | 2026-10-12 | **D9:** je Ansicht ein Bearbeitungsort — Seitenpanel nur beim Zeichnen, Beschreiben über die Akkordeons, Graph über die Karten. Hinweise navigieren in der aktuellen Ansicht; Asset-Baum folgt der Auswahl; Beschreibungsansicht linksbündig in voller Breite. |
 
 ---
 
@@ -389,7 +390,7 @@ Modellierungsentscheidung behandelt, nicht als UX-Detail.
 | FR-V5 | **Fokus-Sicht:** Auswahl eines Assets zeigt dessen ein- und ausgehende A2A-Beziehungen und Element-Anker. Tiefe 1 als Default, einstellbar bis mindestens 3. Knoten ausserhalb des Fokus werden entfernt oder abgeblendet (UX-4, Stufe 5), nicht gelöscht. | MUSS | 2 |
 | FR-V6 | Element-Anker werden in der Fokus-Sicht angezeigt (eigene Knotenform, DFD-Typ-Icon, `displayId`), in der Ebenen-Sicht zuschaltbar. | MUSS | 2 |
 | FR-V7 | Kanten zeigen Richtung (Pfeil) und `relationType` als Beschriftung; `stepOrder` erscheint als Badge. Codierung strikt nach UX-3; keine dauerhafte KERN-Hervorhebung. Eine Legende ist einblendbar. | MUSS | 2 |
-| FR-V8 | **Detailpanel als Interaction Hub:** Klick auf einen Knoten zeigt Kerndaten (Name, `displayId`, Gruppe, Schutzbedarf) und die Beziehungen **gruppiert nach Relationstyp** („invokes → Signaturprüfung [1], Firmware installieren [2]“ · „runs_on → Update Controller“ · „operated_by → Technician“), jeweils anklickbar zur Navigation. Aktionen im View Mode: Fokussieren, Im DFD zeigen, In Tabelle zeigen. Klick auf eine Kante zeigt Typ, Qualifier, `stepOrder`, `rationale`, `degradationMode`. Das Panel verwendet die **bestehenden** Komponenten (`AssetToAssetSelector` u. a.) und denselben Relations-Service (AR-5) — es entsteht keine dritte Editier-Logik. Im DFD-Tab ist das das vorhandene Asset-Panel (Asset-Baum + Formular mit Reiter „Beziehungen“): Knotenauswahl im Graph und Auswahl im Baum sind dieselbe Auswahl. | MUSS | 2 (Anzeige), 3 (Bearbeitung) |
+| FR-V8 | **Detailpanel als Interaction Hub:** Klick auf einen Knoten zeigt Kerndaten (Name, `displayId`, Gruppe, Schutzbedarf) und die Beziehungen **gruppiert nach Relationstyp** („invokes → Signaturprüfung [1], Firmware installieren [2]“ · „runs_on → Update Controller“ · „operated_by → Technician“), jeweils anklickbar zur Navigation. Aktionen im View Mode: Fokussieren, Im DFD zeigen, In Tabelle zeigen. Klick auf eine Kante zeigt Typ, Qualifier, `stepOrder`, `rationale`, `degradationMode`. Das Panel verwendet die **bestehenden** Komponenten (`AssetToAssetSelector` u. a.) und denselben Relations-Service (AR-5) — es entsteht keine dritte Editier-Logik. Im Graph ist das die Karte des Knotens bzw. der Kante (D9); das Seitenpanel gibt es nur im Zeichnen-Modus. | MUSS | 2 (Anzeige), 3 (Bearbeitung) |
 | FR-V9 | **Navigation:** Von einem Element-Anker aus wechselt der DFD-Tab in die Diagramm-Ansicht, das Element ist dort selektiert; „Zurück zum Graph“ stellt Sicht, Fokus und Positionen wieder her. | SOLL | 2 |
 | FR-V10 | Filter nach Relationstyp; Suche nach Name/`displayId` mit Zentrieren auf den Treffer. Liegt ein Treffer in einer ausgeblendeten Ebene oder ausserhalb des Filters, sagt das Tool das explizit und bietet das Einblenden an (UX-6). | SOLL | 2 |
 | FR-V11 | Hazard Items aus `hazards.relations` können zugeschaltet werden (read-only, eigene Knotenform, `contributes_to`/`endangers`-Kanten). | KANN | 4 |
@@ -492,6 +493,7 @@ Zur Verdeutlichung von FR-E4, FR-E5, FR-E11 und UX-5 — kein zusätzlicher Anfo
 | D6 | Layout-Engine | `d3-force` mit `forceY` je Ebene; geschichtetes Layout (dagre/ELK) | `d3-force` für Ebenen- und Fokus-Sicht (keine neue Dependency; Fixierung per `fx`/`fy` erfüllt AR-12); für die Process-Ablaufsicht eigenes deterministisches Layout (Schrittindex = Position im Hauptpfad). | **entschieden**, 2026-10-12 |
 | D7 | Element-zu-Asset-Bearbeitung im Graph in Phase 3 oder später? | Phase 3 / eigene Phase | Phase 3 (Nutzerwunsch), abgesichert durch AR-6. | **entschieden**, 2026-10-12 |
 | D8 | Wie werden Alternativ- und Fehlerpfade eines Process modelliert? | (a) Attribute `flow` + `condition` an `invokes`/`consists_of`; ein Eintrag mit `flow ≠ main` und gleichem `stepOrder` wie ein Hauptpfad-Schritt zweigt von diesem Schritt ab. (b) Jeder Alternativ-/Fehlerpfad ist ein eigener Sub-Process, verbunden über `triggers` mit Bedingung. (c) Keine Verzweigungen; Ablaufsicht bleibt linear. | **(a)**, beschränkt auf eine Verzweigungsebene je Schritt; tiefere Logik über Sub-Processes (Kombination mit b). Hält das Modell additiv (optionale Felder, alte Dateien gültig) und gibt der Ablaufsicht genau die Information, die sie braucht. (c) wird abgelehnt, weil gerade die Fehlerpfade sicherheitsrelevant sind. | **entschieden**, 2026-10-12 |
+| D9 | Wo wird in den Ansichten des DFD-Tabs bearbeitet? | Seitenpanel überall / je Ansicht ein Ort | **Je Ansicht genau ein Ort:** Zeichnen → Seitenpanel (Element, Assets, Overlay-Augen); Beschreiben → die Akkordeons (enthalten dieselben Formulare); Asset-Graph → die Karten. Das Seitenpanel erscheint nur beim Zeichnen. Asset-Eigenschaften im Graph über dasselbe eingebettete Formular, keine dritte Bearbeitungslogik (AR-5). Hinweise navigieren in der aktuellen Ansicht. | **entschieden**, 2026-10-12 |
 
 ---
 

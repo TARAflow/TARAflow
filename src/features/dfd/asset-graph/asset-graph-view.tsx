@@ -197,6 +197,10 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       focusAssetId: focusRequest.assetId,
       layers: [...ALL_LAYERS],
     }));
+    // …and its card is open: in the graph, the card is where it is edited.
+    setSelectedEdgeId(null);
+    setInspectedAssetId(focusRequest.assetId);
+    setInspectorOpen(true);
   }, [focusRequest]);
 
   const graph = useMemo(

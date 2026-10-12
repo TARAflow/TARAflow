@@ -130,6 +130,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     toggleGroup,
     expandedElements,
     toggleElement,
+    revealElement,
   } = useDFDUIState({
     projectId: project.id,
   });
@@ -639,27 +640,69 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     : false;
   const { t } = useTranslation();
 
+  // A finding leads to its place in the CURRENT view: the side panel when
+  // drawing, the accordion when describing, the asset's card in the graph.
+  // Each view has exactly one place to edit (side panel only in "draw").
+  const describeRef = useRef<HTMLDivElement | null>(null);
+  const revealInDescription = useCallback(
+    (groupKey: string, id: string) => {
+      revealElement(groupKey, id);
+      requestAnimationFrame(() => {
+        const el = Array.from(
+          describeRef.current?.querySelectorAll<HTMLElement>("[data-describe-id]") ?? [],
+        ).find((x) => x.dataset.describeId === id);
+        el?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+      });
+    },
+    [revealElement],
+  );
+  const [graphFocus, setGraphFocus] = useState<{ assetId: string } | null>(null);
+
   const handleNotificationNavigation = useCallback(
     (id: string) => {
       const asset = dfd?.assets?.find((a) => a.id === id || a.displayId === id);
 
+      if (viewMode === "describe") {
+        if (asset) return revealInDescription("assets", asset.id);
+        const element = dfd?.elements?.find((e) => e.id === id);
+        if (element) return revealInDescription(element.type, element.id);
+        if (dfd?.connections?.some((c) => c.id === id)) {
+          return revealInDescription("connections", id);
+        }
+      }
+
+      if (viewMode === "graph" && asset) {
+        setPanelAssetId(asset.id);
+        setGraphFocus({ assetId: asset.id });
+        return;
+      }
+
       if (asset) {
+        setViewMode("draw");
         setFocusAssetRequest({ assetId: asset.id });
         setDetailsPanelOpen(true);
         return;
       }
 
+      // An element or flow from the graph view: show it in the diagram.
       setFocusAssetRequest(null);
+      if (viewMode !== "draw") {
+        setViewMode("draw");
+        setTimeout(() => editor.selectCell(id), 300);
+        return;
+      }
       editor.selectCell(id);
     },
-    [editor, dfd],
+    [editor, dfd, viewMode, revealInDescription, setViewMode],
   );
   // ── Asset graph view (D2, phase 2) ──────────────────────────────────────
   const assetGraphSource = useMemo(() => assetGraphSourceFromDfd(dfd), [dfd]);
 
+  // The graph has its own cards; the selection is only remembered so the
+  // side panel shows the same asset when switching to the diagram.
   const handleGraphSelectAsset = useCallback((assetId: string) => {
+    setPanelAssetId(assetId);
     setFocusAssetRequest({ assetId });
-    setDetailsPanelOpen(true);
   }, []);
 
   // FR-V9: an element anchor leads to the element in the diagram.
@@ -678,7 +721,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     if (!graphFocusRequest) return;
     setViewMode("graph");
     setFocusAssetRequest({ assetId: graphFocusRequest.assetId });
-    setDetailsPanelOpen(true);
+    setGraphFocus({ assetId: graphFocusRequest.assetId });
   }, [graphFocusRequest, setViewMode]);
 
   // ==================== RENDER ====================
@@ -760,6 +803,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
           {/* Description View */}
           <Box
+            ref={describeRef}
             sx={{
               position: "absolute",
               inset: 0,
@@ -799,19 +843,20 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               selectedAssetId={panelAssetId}
               onSelectAsset={handleGraphSelectAsset}
               onShowElement={handleGraphShowElement}
-              focusRequest={graphFocusRequest}
+              focusRequest={graphFocus}
               onShowInTable={onShowInTable}
               onCreateAsset={handleCreateAssetForGroup}
               onDeleteAsset={handleDeleteAsset}
               assetUsage={assetUsage}
-              // The details panel overlays the canvas on the right (500 px
-              // open, a 20 px handle closed).
-              rightInset={detailsPanelOpen ? 520 : 20}
+              // No side panel in the graph view — it has its own cards.
+              rightInset={0}
               darkMode={darkMode}
             />
           </Box>
 
-          {/* Right: Details Drawer */}
+          {/* Right: Details Drawer — only when drawing. "Describe" edits in its
+              accordions and the asset graph in its cards. */}
+          {viewMode === "draw" && (
           <DFDDetailsPanel
             open={detailsPanelOpen}
             onToggle={() => setDetailsPanelOpen((prev) => !prev)}
@@ -847,6 +892,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             assetUsage={assetUsage}
             onSelectedAssetChange={setPanelAssetId}
           />
+          )}
         </Box>
       </Box>
 

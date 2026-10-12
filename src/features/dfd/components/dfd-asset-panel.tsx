@@ -156,6 +156,25 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     }
   }, [expandedGroup]);
 
+  // The tree follows the selection, also one made elsewhere (a finding, the
+  // graph): open the asset's group and bring its row into view.
+  const treeRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!selectedAssetId) return;
+    const group = assets.find((a) => a.id === selectedAssetId)?.assetGroup as AssetGroup | undefined;
+    if (group) {
+      setExpandedGroups((prev) => (prev.has(group) ? prev : new Set([...prev, group])));
+    }
+    const frame = requestAnimationFrame(() => {
+      const row = Array.from(
+        treeRef.current?.querySelectorAll<HTMLElement>("[data-asset-tree-id]") ?? [],
+      ).find((el) => el.dataset.assetTreeId === selectedAssetId);
+      row?.scrollIntoView?.({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAssetId]);
+
   const handleEyeClick = useCallback(
     (e: React.MouseEvent, group: AssetGroup, assetId: string) => {
       e.stopPropagation(); // don't also select the asset
@@ -168,7 +187,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
 
   return (
     <>
-      <Box sx={{ overflow: "auto", flexShrink: 0 }}>
+      <Box ref={treeRef} sx={{ overflow: "auto", flexShrink: 0 }}>
         {ASSET_GROUPS.map((group) => {
           const groupAssets = assets.filter((a) => a.assetGroup === group);
           const color = getAssetGroupColor(group);
@@ -286,6 +305,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
                       return (
                         <ListItemButton
                           key={asset.id}
+                          data-asset-tree-id={asset.id}
                           selected={isSelected}
                           onClick={() => onSelect(asset.id)}
                           sx={{ pl: 3, pr: 0.5, py: 0.5 }}

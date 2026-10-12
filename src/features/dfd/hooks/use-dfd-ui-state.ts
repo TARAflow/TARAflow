@@ -41,6 +41,8 @@ interface UseDFDUIStateReturn {
   expandedElements: string[];
   toggleElement: (elementId: string) => void;
   isElementExpanded: (elementId: string) => boolean;
+  /** Opens a group and one entry in it (never closes anything). */
+  revealElement: (groupKey: string, elementId: string) => void;
 }
 
 // ==================== CONSTANTS ====================
@@ -208,6 +210,11 @@ export const useDFDUIState = ({
     [expandedElements]
   );
 
+  const revealElement = useCallback((groupKey: string, elementId: string) => {
+    setExpandedGroupsInternal((prev) => (prev.includes(groupKey) ? prev : [...prev, groupKey]));
+    setExpandedElements((prev) => (prev.includes(elementId) ? prev : [...prev, elementId]));
+  }, []);
+
   // ==================== RETURN ====================
 
   return {
@@ -223,6 +230,7 @@ export const useDFDUIState = ({
     expandedElements,
     toggleElement,
     isElementExpanded,
+    revealElement,
   };
 };
 
