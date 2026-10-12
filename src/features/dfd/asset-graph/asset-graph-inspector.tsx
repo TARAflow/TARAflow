@@ -20,6 +20,10 @@ export interface AssetGraphInspectorProps {
   /** Finding reason for an asset link (validateA2ARelations), if any. */
   readonly findingOf?: (relationId: string) => string | undefined;
   readonly typeLabel: (type: string) => string;
+  /** Label of a drawn edge (asset link or DFD element → asset). */
+  readonly edgeLabel?: (edge: AssetGraphEdge) => string;
+  /** Label of a DFD element → asset relation type for an asset group. */
+  readonly elementTypeLabel?: (type: string, group?: string) => string;
   readonly groupLabel: (group: string) => string;
   /** Navigate to another asset (select + centre). */
   readonly onGoToAsset: (assetId: string) => void;
@@ -27,6 +31,8 @@ export interface AssetGraphInspectorProps {
   readonly onFocus: (assetId: string) => void;
   readonly onShowInTable?: (assetId: string) => void;
   readonly onClose: () => void;
+  /** Space on the right covered by the side panel. */
+  readonly rightInset?: number;
 }
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -46,12 +52,15 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   edge,
   findingOf,
   typeLabel,
+  edgeLabel,
+  elementTypeLabel,
   groupLabel,
   onGoToAsset,
   onGoToElement,
   onFocus,
   onShowInTable,
   onClose,
+  rightInset = 0,
 }) => {
   const { t } = useTranslation();
   const assetById = (id: string) => source.assets.find((a) => a.id === id);
@@ -78,7 +87,8 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
           {name(elementId ?? edge.source)}
         </Row>
         <Row label={t("tabs.dfd.assetGraph.inspector.type", { defaultValue: "Type" })}>
-          {typeLabel(edge.relationType)} <span style={{ opacity: 0.6 }}>({edge.relationType})</span>
+          {edgeLabel ? edgeLabel(edge) : typeLabel(edge.relationType)}{" "}
+          <span style={{ opacity: 0.6 }}>({edge.relationType})</span>
         </Row>
         <Row label={t("tabs.dfd.assetGraph.inspector.to", { defaultValue: "To" })}>
           {name(edge.target)}
@@ -132,7 +142,11 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
         {groups.map((g) => (
           <Box key={`${g.direction}:${g.relationType}`} sx={{ mb: 0.75 }}>
             <Typography variant="caption" sx={{ fontWeight: 600, display: "block" }}>
-              {g.direction === "out" ? typeLabel(g.relationType) : g.label}
+              {g.direction === "out"
+                ? typeLabel(g.relationType)
+                : g.direction === "element" && elementTypeLabel
+                  ? elementTypeLabel(g.relationType, String(asset.assetGroup))
+                  : g.label}
               {g.direction === "element"
                 ? ` · ${t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })}`
                 : ""}
@@ -174,7 +188,7 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
     <Paper
       elevation={3}
       data-testid="asset-graph-inspector"
-      sx={{ position: "absolute", top: 12, right: 12, width: 290, maxHeight: "calc(100% - 24px)", overflow: "auto", p: 1.5, zIndex: 1 }}
+      sx={{ position: "absolute", top: 12, right: rightInset + 12, width: 290, maxHeight: "calc(100% - 24px)", overflow: "auto", p: 1.5, zIndex: 1 }}
     >
       <IconButton size="small" onClick={onClose} sx={{ position: "absolute", top: 4, right: 4 }}>
         <CloseIcon fontSize="small" />

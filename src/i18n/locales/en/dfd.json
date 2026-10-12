@@ -74,6 +74,7 @@
         "refresh": "Refresh Validation",
         "autoNumber": "Auto-Number Labels",
         "darkMode": "Dark Mode",
+        "lightMode": "Light mode",
         "draw": "Draw DFD",
         "describe": "Describe DFD",
         "assetGraph": "Asset graph",

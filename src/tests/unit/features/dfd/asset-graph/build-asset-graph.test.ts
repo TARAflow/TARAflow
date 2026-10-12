@@ -85,6 +85,11 @@ describe("presets (FR-V2)", () => {
     }
   });
 
+  it('"All" comes first in the preset list', async () => {
+    const { ASSET_GRAPH_PRESET_ORDER } = await import("features/dfd/asset-graph");
+    expect(ASSET_GRAPH_PRESET_ORDER[0]).toBe("all");
+  });
+
   it("a changed preset becomes custom", () => {
     expect(presetOfLayers(["data", "function", "system"])).toBe("custom");
   });

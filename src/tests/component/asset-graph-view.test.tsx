@@ -9,13 +9,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AssetGraphView, type AssetGraphSource } from "features/dfd/asset-graph";
 import type { A2ARelation } from "shared";
 
+// Element → asset labels live under assets.relations.element.<group>.<type>.
+const DICT: Record<string, string> = {
+  "assets.relations.element.function.implements": "implemented by element",
+};
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (k: string, o?: Record<string, unknown>) => {
-      const text = (o?.defaultValue as string | undefined) ?? k;
+      const text = DICT[k] ?? (o?.defaultValue as string | undefined) ?? k;
       return text.replace(/\{\{(\w+)\}\}/g, (_, n) => String(o?.[n] ?? ""));
     },
-    i18n: { language: "en" },
+    i18n: {
+      language: "en",
+      exists: (k: string) => k in DICT || k.startsWith("assets.relations.a2a."),
+    },
   }),
 }));
 
@@ -132,7 +139,7 @@ describe("AssetGraphView", () => {
     expect(card).toHaveTextContent("requires");
     expect(card).toHaveTextContent("DA-001 Measure Data");
     expect(card).toHaveTextContent("[1] PR-001 Shutdown");
-    expect(card).toHaveTextContent("implements");
+    expect(card).toHaveTextContent("implemented by element");
     // Going to a related asset in a hidden layer shows that layer.
     fireEvent.click(screen.getByRole("button", { name: "[1] PR-001 Shutdown" }));
     expect(onSelectAsset).toHaveBeenLastCalledWith("p1");
@@ -182,5 +189,19 @@ describe("AssetGraphView", () => {
     rerender(<AssetGraphView source={grown} selectedAssetId={null} onSelectAsset={() => {}} />);
     expect(screen.getByTestId("asset-graph-fresh-d9")).toBeInTheDocument();
     expect(screen.queryByTestId("asset-graph-fresh-d1")).toBeNull();
+  });
+
+  it("DFD element links use the element relation label of the target's group", () => {
+    view({ focusRequest: { assetId: "f1" } });
+    expect(screen.getByTestId("asset-graph-edge-el:pe->f1:implements")).toHaveTextContent(
+      "implemented by element",
+    );
+  });
+
+  it("the detail card opens on click even without a panel selection, clear of the side panel", () => {
+    view({ selectedAssetId: null, rightInset: 520 });
+    fireEvent.click(screen.getByTestId("asset-graph-node-d1"));
+    expect(screen.getByTestId("asset-graph-inspector-asset")).toHaveTextContent("DA-001 Measure Data");
+    expect(screen.getByTestId("asset-graph-inspector")).toHaveStyle({ right: "532px" });
   });
 });

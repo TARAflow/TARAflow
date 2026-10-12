@@ -74,6 +74,7 @@
         "refresh": "Validierung aktualisieren",
         "autoNumber": "Labels automatisch nummerieren",
         "darkMode": "Dunkelmodus",
+        "lightMode": "Hellmodus",
         "draw": "DFD zeichnen",
         "describe": "DFD beschreiben",
         "assetGraph": "Asset-Graph",

@@ -50,12 +50,13 @@ export const ASSET_GRAPH_PRESETS: Readonly<
   all: ALL_LAYERS,
 };
 
+/** Display order of the presets — "All" first. */
 export const ASSET_GRAPH_PRESET_ORDER: readonly AssetGraphPresetId[] = [
+  "all",
   "architecture",
   "flow",
   "services",
   "protection",
-  "all",
 ];
 
 /**

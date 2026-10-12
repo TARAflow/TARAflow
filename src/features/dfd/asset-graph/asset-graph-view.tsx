@@ -86,6 +86,11 @@ export interface AssetGraphViewProps {
   readonly focusRequest?: { readonly assetId: string } | null;
   /** "Show in table" from the detail card (FR-V13, way back). */
   readonly onShowInTable?: (assetId: string) => void;
+  /**
+   * Pixels on the right covered by the DFD tab's side panel (it overlays the
+   * canvas). Detail card, legend and centring keep clear of it.
+   */
+  readonly rightInset?: number;
   readonly darkMode?: boolean;
 }
 
@@ -123,9 +128,10 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   onShowElement,
   focusRequest,
   onShowInTable,
+  rightInset = 0,
   darkMode = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [state, setState] = useState<ViewState>(DEFAULT_STATE);
   const [showLegend, setShowLegend] = useState(false);
   const [layerMenu, setLayerMenu] = useState<HTMLElement | null>(null);
@@ -135,6 +141,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   // Detail card (FR-V8): the selected link, or else the selected asset.
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  // The card's asset: set by a click here, and follows the asset panel's
+  // selection. Kept locally so the card works even while the panel is closed.
+  const [inspectedAssetId, setInspectedAssetId] = useState<string | null>(null);
+  useEffect(() => {
+    if (selectedAssetId) setInspectedAssetId(selectedAssetId);
+  }, [selectedAssetId]);
   const [searchHit, setSearchHit] = useState<{
     assetId: string;
     index: number;
@@ -244,14 +256,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     const maxX = Math.max(...xs) + pad;
     const minY = Math.min(...ys) - pad;
     const maxY = Math.max(...ys) + pad;
-    const { width, height } = svgEl.getBoundingClientRect();
+    const rect = svgEl.getBoundingClientRect();
+    const width = Math.max(0, rect.width - rightInset);
+    const height = rect.height;
     if (!width || !height) return;
     const k = Math.min(1.2, width / (maxX - minX), height / (maxY - minY));
     select(svgEl).call(
       zoomRef.current.transform,
       zoomIdentity.translate(-minX * k + (width - (maxX - minX) * k) / 2, -minY * k + (height - (maxY - minY) * k) / 2).scale(k),
     );
-  }, [layout]);
+  }, [layout, rightInset]);
 
   // Centre a node, keeping the zoom level. A request for a node that is not
   // laid out yet (e.g. right after showing its layer) waits for the layout.
@@ -265,14 +279,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         return;
       }
       pendingCenterRef.current = null;
-      const { width, height } = svgEl.getBoundingClientRect();
+      const rect = svgEl.getBoundingClientRect();
+      const width = Math.max(0, rect.width - rightInset);
+      const height = rect.height;
       const k = transform.k;
       select(svgEl).call(
         zoomRef.current.transform,
         zoomIdentity.translate((width || 0) / 2 - p.x * k, (height || 0) / 2 - p.y * k).scale(k),
       );
     },
-    [layout, transform.k],
+    [layout, transform.k, rightInset],
   );
   useEffect(() => {
     const id = pendingCenterRef.current;
@@ -320,6 +336,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   // if it is not (its layer, or the focus moves to it).
   const goToAsset = (assetId: string) => {
     setSelectedEdgeId(null);
+    setInspectedAssetId(assetId);
     onSelectAsset(assetId);
     const v = assetVisibility(graph, source, state, assetId);
     if (v.state === "hiddenLayer") {
@@ -370,8 +387,29 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   };
 
   const groupLabel = (g: string) => t(`assets.groups.${g}`, { defaultValue: g });
-  const typeLabel = (type: string) =>
-    t(`assets.relations.a2a.${type}`, { defaultValue: type.replace(/_/g, " ") });
+  // Labels: asset links under assets.relations.a2a.<type>; DFD element →
+  // asset relations under assets.relations.element.<group>.<type> (the
+  // target asset's group). Looked up with exists() so an unknown type falls
+  // back to its key quietly instead of logging a missing key per render.
+  const has = (key: string) => (i18n?.exists ? i18n.exists(key) : true);
+  const plain = (type: string) => type.replace(/_/g, " ");
+  const typeLabel = (type: string) => {
+    const key = `assets.relations.a2a.${type}`;
+    return has(key) ? t(key, { defaultValue: plain(type) }) : plain(type);
+  };
+  const elementTypeLabel = (type: string, group?: string) => {
+    for (const g of group ? [group, ...ALL_LAYERS] : ALL_LAYERS) {
+      const key = `assets.relations.element.${g}.${type}`;
+      if (i18n?.exists?.(key)) return t(key);
+    }
+    return plain(type);
+  };
+  const groupOfAsset = (id: string) =>
+    source.assets.find((a) => a.id === id)?.assetGroup as string | undefined;
+  const edgeLabel = (e: { kind: string; relationType: string; target: string }) =>
+    e.kind === "anchor"
+      ? elementTypeLabel(e.relationType, groupOfAsset(e.target))
+      : typeLabel(e.relationType);
 
   const focusNode =
     state.focusAssetId ? source.assets.find((a) => a.id === state.focusAssetId) : undefined;
@@ -519,7 +557,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 sx={{ p: 0.5, mr: 1 }}
               />
               <ListItemText
-                primary={`${typeLabel(x.type)} (${x.count})`}
+                primary={`${x.kind === "anchor" ? elementTypeLabel(x.type) : typeLabel(x.type)} (${x.count})`}
                 secondary={x.kind === "anchor" ? t("tabs.dfd.assetGraph.anchorType", { defaultValue: "DFD element → asset" }) : undefined}
               />
             </MenuItem>
@@ -590,7 +628,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               setSearchHit(null);
               setSearchMiss(false);
             }}
-            sx={{ position: "absolute", top: 8, left: 8, right: inspectorOpen ? 314 : 8, zIndex: 1 }}
+            sx={{ position: "absolute", top: 8, left: 8, right: rightInset + (inspectorOpen ? 314 : 8), zIndex: 1 }}
             action={
               hitAsset && hitVisibility?.state === "hiddenLayer" ? (
                 <Button
@@ -694,7 +732,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               // Point on the curve at t = 0.5.
               const mx = 0.25 * p1.x + 0.5 * cx + 0.25 * p2.x;
               const my = 0.25 * p1.y + 0.5 * cy + 0.25 * p2.y;
-              const label = typeLabel(e.relationType);
+              const label = edgeLabel(e);
               return (
                 <g
                   key={e.id}
@@ -771,6 +809,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   style={{ cursor: "pointer" }}
                   onClick={() => {
                     setSelectedEdgeId(null);
+                    setInspectedAssetId(n.id);
                     setInspectorOpen(true);
                     onSelectAsset(n.id);
                   }}
@@ -833,10 +872,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         {inspectorOpen && (
           <AssetGraphInspector
             source={source}
-            assetId={selectedAssetId}
+            assetId={inspectedAssetId ?? selectedAssetId}
             edge={selectedEdge}
             findingOf={(id) => findings.get(id)}
             typeLabel={typeLabel}
+            edgeLabel={edgeLabel}
+            elementTypeLabel={elementTypeLabel}
             groupLabel={groupLabel}
             onGoToAsset={goToAsset}
             onGoToElement={onShowElement}
@@ -845,6 +886,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               pendingCenterRef.current = id;
             }}
             onShowInTable={onShowInTable}
+            rightInset={rightInset}
             onClose={() => {
               setInspectorOpen(false);
               setSelectedEdgeId(null);
@@ -854,7 +896,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
 
         {/* Legend (FR-V7) */}
         {showLegend && (
-          <Box sx={{ position: "absolute", right: 12, bottom: 12, p: 1.5, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1, maxWidth: 280 }}>
+          <Box sx={{ position: "absolute", right: rightInset + 12, bottom: 12, p: 1.5, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1, maxWidth: 280 }}>
             <Typography variant="caption" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
               {t("tabs.dfd.assetGraph.legend", { defaultValue: "Legend" })}
             </Typography>
