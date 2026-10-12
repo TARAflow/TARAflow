@@ -94,3 +94,29 @@ describe("AssetToAssetSelector — mirror hint", () => {
     expect(within(dialog).queryByTestId("a2a-mirror-preferred")).toBeNull();
   });
 });
+
+describe("AssetToAssetSelector — relation no longer allowed", () => {
+  it("marks an entry whose type the rules no longer allow", () => {
+    const human: any = {
+      id: "d1",
+      displayId: "HU-001",
+      name: "Was data",
+      assetGroup: "human",
+      assetRelations: [{ id: "r1", ...rel("required_by") }],
+    };
+    render(<AssetToAssetSelector asset={human} allAssets={[human, fn]} onAdd={() => {}} onRemove={() => {}} />);
+    expect(screen.getByTestId("a2a-not-allowed")).toBeTruthy();
+  });
+
+  it("no mark for an allowed entry", () => {
+    const data: any = {
+      id: "d1",
+      displayId: "DA-002",
+      name: "Measure Data",
+      assetGroup: "data",
+      assetRelations: [{ id: "r1", ...rel("required_by") }],
+    };
+    render(<AssetToAssetSelector asset={data} allAssets={[data, fn]} onAdd={() => {}} onRemove={() => {}} />);
+    expect(screen.queryByTestId("a2a-not-allowed")).toBeNull();
+  });
+});

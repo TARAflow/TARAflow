@@ -10,7 +10,13 @@ import type {
 import { assetImpactFindings, goalFindings, goalStates } from "./asset-goal-state";
 import type { GoalFindingCode } from "./asset-goal-state";
 import type { PhaseStatus, ThreatGoalLink } from "shared";
-import { compareDisplayIds, goalTypesFor } from "shared";
+import {
+  a2aRelationName,
+  compareDisplayIds,
+  goalTypesFor,
+  validateA2ARelations,
+  type AssetGroup,
+} from "shared";
 import { threatGoalFindings } from "./asset-threat-crosscheck";
 
 /**
@@ -141,6 +147,35 @@ export function collectAssetFindings(
     });
     for (const f of assetImpactFindings(asset)) {
       push(f.severity, GOAL_FINDING_KEY[f.code], GOALS, undefined, f.criterionId);
+    }
+  }
+
+  // Asset-to-asset relations the rules no longer allow — typically after an
+  // asset's group changed (B5). Reported at the source asset, never deleted:
+  // fixing or removing the edge is the analyst's decision.
+  if (assetData.relations?.length) {
+    const byId = new Map(assetData.assets.map((a) => [a.id, a]));
+    const byRelationId = new Map(assetData.relations.map((r) => [r.id, r]));
+    const groupOf = (id: string) => byId.get(id)?.assetGroup as AssetGroup | undefined;
+    for (const f of validateA2ARelations(assetData.relations, groupOf)) {
+      const r = byRelationId.get(f.relationId)!;
+      const source = byId.get(r.sourceAssetId);
+      const target = byId.get(r.targetAssetId);
+      if (!source) continue; // dangling source: no asset to show it at
+      out.push({
+        severity: "warning",
+        key: `tabs.assets.validation.a2a.${f.reason}`,
+        dialogTab: GENERAL,
+        assetId: source.id,
+        assetLabel: assetLabel(source),
+        params: {
+          relation: `${a2aRelationName(r.relationType, "out")} ${
+            target?.displayId ?? r.targetAssetId.slice(0, 8)
+          }`,
+          sourceGroup: source.assetGroup,
+          targetGroup: target?.assetGroup ?? "–",
+        },
+      });
     }
   }
 

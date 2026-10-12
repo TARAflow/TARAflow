@@ -206,6 +206,12 @@
         "noSecurityGoalDescription": "Asset {{id}}: security goal {{type}} has no formal description",
         "noPhysicalImpactRationale": "Asset {{id}}: manual safety impact requires rationale",
         "notLinkedToDFD": "Asset {{id}}: not linked to any DFD element",
+        "a2a": {
+          "type_not_allowed": "Asset {{id}}: asset link \"{{relation}}\" is not allowed for {{sourceGroup}} → {{targetGroup}} (e.g. after a group change) — fix or remove it in the DFD asset panel",
+          "target_missing": "Asset {{id}}: asset link \"{{relation}}\" points to an asset that no longer exists",
+          "self_relation": "Asset {{id}}: asset link \"{{relation}}\" points to itself",
+          "source_missing": "Asset {{id}}: asset link \"{{relation}}\" has no source asset"
+        },
         "unratedImpact": "Asset {{id}}: has unrated impact factors",
         "goalRationaleMissing": "Asset {{id}}: security goal {{type}} was decided manually without a rationale",
         "goalOverrideStale": {

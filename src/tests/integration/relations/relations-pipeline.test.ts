@@ -294,3 +294,32 @@ describe("Asset → Asset lifecycle", () => {
     s.close();
   });
 });
+
+describe("Group change → invalid asset links are reported (B5)", () => {
+  it("the asset tab finding names the source asset and the link; the edge stays", async () => {
+    const { collectAssetFindings } = await import("features/assets/services/asset-validator");
+    const s = new RelationSession(openProject(BASE));
+    const d = firstAsset(s.project, "data");
+    const f = firstAsset(s.project, "function");
+    s.addA2A(d, { targetAssetId: f, relationType: "required_by" });
+    expect(
+      collectAssetFindings(s.project.assets!).filter((x) => x.key.startsWith("tabs.assets.validation.a2a.")),
+    ).toEqual([]);
+
+    s.changeAsset(d, { ...s.asset(d), assetGroup: "human" });
+
+    const found = collectAssetFindings(s.project.assets!).filter((x) =>
+      x.key.startsWith("tabs.assets.validation.a2a."),
+    );
+    expect(found).toEqual([
+      expect.objectContaining({
+        key: "tabs.assets.validation.a2a.type_not_allowed",
+        assetId: d,
+        severity: "warning",
+        params: expect.objectContaining({ sourceGroup: "human", targetGroup: "function" }),
+      }),
+    ]);
+    expect(s.project.assets!.relations).toHaveLength(1);
+    s.close();
+  });
+});

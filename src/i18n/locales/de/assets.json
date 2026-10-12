@@ -206,6 +206,12 @@
         "noSecurityGoalDescription": "Asset {{id}}: Schutzziel {{type}} hat keine formale Beschreibung",
         "noPhysicalImpactRationale": "Asset {{id}}: manueller Safety Impact erfordert Rationale",
         "notLinkedToDFD": "Asset {{id}}: nicht mit DFD-Element verknüpft",
+        "a2a": {
+          "type_not_allowed": "Asset {{id}}: Asset-Link „{{relation}}“ ist für {{sourceGroup}} → {{targetGroup}} nicht erlaubt (z. B. nach Gruppenwechsel) — im DFD-Asset-Panel korrigieren oder entfernen",
+          "target_missing": "Asset {{id}}: Asset-Link „{{relation}}“ zeigt auf ein Asset, das es nicht mehr gibt",
+          "self_relation": "Asset {{id}}: Asset-Link „{{relation}}“ zeigt auf sich selbst",
+          "source_missing": "Asset {{id}}: Asset-Link „{{relation}}“ ohne Quell-Asset"
+        },
         "unratedImpact": "Asset {{id}}: unbewertete Impact-Faktoren vorhanden",
         "goalRationaleMissing": "Asset {{id}}: Schutzziel {{type}} wurde manuell ohne Begründung entschieden",
         "goalOverrideStale": {

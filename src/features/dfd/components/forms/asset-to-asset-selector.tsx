@@ -542,6 +542,29 @@ export const AssetToAssetSelector: React.FC<AssetToAssetSelectorProps> = ({
                     </Box>
                     {targetAsset?.name || rel.targetAssetId}
                   </Typography>
+                  {targetAsset &&
+                    !getAllowedA2ARelations(asset.assetGroup, targetAsset.assetGroup).includes(
+                      rel.relationType,
+                    ) && (
+                      <Tooltip
+                        title={t("assets.relations.a2a.notAllowed", {
+                          defaultValue:
+                            "Not allowed for {{source}} → {{target}} (e.g. after a group change). Remove it and add a fitting type.",
+                          source: asset.assetGroup,
+                          target: targetAsset.assetGroup,
+                        })}
+                      >
+                        <Chip
+                          label={t("assets.relations.a2a.notAllowedShort", {
+                            defaultValue: "not allowed",
+                          })}
+                          size="small"
+                          color="warning"
+                          data-testid="a2a-not-allowed"
+                          sx={{ fontSize: 10, height: 18 }}
+                        />
+                      </Tooltip>
+                    )}
                   {rel.degradationMode && (
                     <Chip label="degraded" size="small" color="warning" variant="outlined"
                       sx={{ fontSize: 10, height: 18 }} />
