@@ -4,7 +4,7 @@
 // direction-marked, next to the DFD Links.
 
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AssetTable } from "features/assets/components/asset-table";
 import { AssetLinkChips } from "features/assets/components/asset-link-chips";
@@ -12,12 +12,27 @@ import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types"
 import type { Asset } from "features/assets/models/asset-types";
 import { buildAssetLinks } from "features/assets/utils/asset-links";
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (k: string, o?: { defaultValue?: string }) => o?.defaultValue ?? k,
-    i18n: { language: "en" },
-  }),
-}));
+vi.mock("react-i18next", async () => {
+  const { readFileSync } = await import("node:fs");
+  const common = JSON.parse(
+    readFileSync(`${process.cwd()}/src/i18n/locales/en/common.json`, "utf-8"),
+  );
+  const lookup = (k: string) =>
+    k.split(".").reduce<any>((o, p) => (o == null ? o : o[p]), common);
+  return {
+    useTranslation: () => ({
+      t: (k: string, o?: Record<string, unknown>) => {
+        const raw = lookup(k);
+        const base =
+          typeof raw === "string" ? raw : ((o?.defaultValue as string) ?? k);
+        return base.replace(/\{\{(\w+)\}\}/g, (_m: string, n: string) =>
+          o && n in o ? String(o[n]) : `{{${n}}}`,
+        );
+      },
+      i18n: { language: "en" },
+    }),
+  };
+});
 
 afterEach(cleanup);
 
@@ -67,10 +82,22 @@ describe("buildAssetLinks", () => {
 });
 
 describe("AssetLinkChips", () => {
-  it("labels direction, other asset and type", () => {
+  it("reads from the listed asset: stored type at the source, inverse at the target", () => {
+    const links = buildAssetLinks([MD, ES], REL);
+    render(<AssetLinkChips links={[...links.get("md")!, ...links.get("es")!]} />);
+    const out = screen.getByText("required_by FU-001").closest("[data-direction]");
+    const inc = screen.getByText("requires DA-002").closest("[data-direction]");
+    expect(out?.getAttribute("data-direction")).toBe("out");
+    expect(inc?.getAttribute("data-direction")).toBe("in");
+  });
+
+  it("the tooltip states the stored edge as a sentence", async () => {
     const links = buildAssetLinks([MD, ES], REL);
     render(<AssetLinkChips links={links.get("es")!} />);
-    expect(screen.getByText("← DA-002 · required_by")).toBeTruthy();
+    fireEvent.mouseOver(screen.getByText("requires DA-002"));
+    expect(
+      await screen.findByText("DA-002 Measure Data is required by FU-001 E-Stop"),
+    ).toBeTruthy();
   });
 });
 
@@ -87,7 +114,7 @@ describe("AssetTable — Asset Links column", () => {
       </div>,
     );
     expect(screen.getByText("Asset Links")).toBeTruthy();
-    expect(screen.getByText("→ FU-001 · required_by")).toBeTruthy();
-    expect(screen.getByText("← DA-002 · required_by")).toBeTruthy();
+    expect(screen.getByText("required_by FU-001")).toBeTruthy();
+    expect(screen.getByText("requires DA-002")).toBeTruthy();
   });
 });

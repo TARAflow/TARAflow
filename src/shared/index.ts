@@ -281,6 +281,8 @@ export {
   classifyA2ATargets,
   A2A_MIRROR_PAIRS,
   getA2AMirror,
+  A2A_INVERSE_NAMES,
+  a2aRelationName,
 } from "./models/asset-a2a-rules";
 export type {
   A2ARelationOption,

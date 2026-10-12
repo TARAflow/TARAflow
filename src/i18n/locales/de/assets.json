@@ -236,8 +236,6 @@
         "securityGoals": "Schutzziele",
         "linkedElements": "DFD Links",
         "assetLinks": "Asset Links",
-        "assetLinksOutgoing": "Ausgehend",
-        "assetLinksIncoming": "Eingehend",
         "securityGoalsText": "Sicherheitsanforderungen",
         "hazards": "Gefährdungen"
       },

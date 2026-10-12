@@ -5,7 +5,7 @@
 // asset dialog). Read-only — A2A relations are edited in the DFD asset panel
 // and later in the graph view, never here (AR-5).
 
-import type { AssetGroup, A2ARelationType } from "shared";
+import { a2aRelationName, type AssetGroup, type A2ARelationType } from "shared";
 import type { AssetToAssetRelationReference } from "../models/dfd-asset-link-types";
 
 export type AssetLinkDirection = "out" | "in";
@@ -18,6 +18,9 @@ export interface AssetLink {
   readonly otherDisplayId: string;
   readonly otherName: string;
   readonly otherGroup?: AssetGroup;
+  /** The asset this link is listed at. */
+  readonly selfDisplayId: string;
+  readonly selfName: string;
 }
 
 interface AssetLike {
@@ -39,25 +42,29 @@ export function buildAssetLinks(
   const byId = new Map(assets.map((a) => [a.id, a]));
   const result = new Map<string, AssetLink[]>(assets.map((a) => [a.id, []]));
 
+  const shortId = (a: AssetLike) => a.displayId ?? a.id.slice(0, 8);
   const link = (
     direction: AssetLinkDirection,
+    self: AssetLike,
     other: AssetLike,
     relationType: A2ARelationType,
   ): AssetLink => ({
     direction,
     relationType,
     otherId: other.id,
-    otherDisplayId: other.displayId ?? other.id.slice(0, 8),
+    otherDisplayId: shortId(other),
     otherName: other.name,
     otherGroup: other.assetGroup as AssetGroup,
+    selfDisplayId: shortId(self),
+    selfName: self.name,
   });
 
   for (const r of relations) {
     const source = byId.get(r.sourceAssetId);
     const target = byId.get(r.targetAssetId);
     if (!source || !target) continue;
-    result.get(source.id)!.push(link("out", target, r.relationType));
-    result.get(target.id)!.push(link("in", source, r.relationType));
+    result.get(source.id)!.push(link("out", source, target, r.relationType));
+    result.get(target.id)!.push(link("in", target, source, r.relationType));
   }
 
   for (const list of result.values()) {
@@ -73,7 +80,19 @@ export function buildAssetLinks(
   return result;
 }
 
-/** Chip text: "→ FU-001 · required_by" / "← DA-002 · required_by". */
+/**
+ * Chip text, read from the listed asset: the stored type at the source
+ * ("required_by FU-001"), the inverse name at the target ("requires DA-002").
+ */
 export function assetLinkLabel(l: AssetLink): string {
-  return `${l.direction === "out" ? "→" : "←"} ${l.otherDisplayId} · ${l.relationType}`;
+  return `${a2aRelationName(l.relationType, l.direction)} ${l.otherDisplayId}`;
+}
+
+/** The stored edge as source and target labels, for the tooltip sentence. */
+export function assetLinkEnds(l: AssetLink): { source: string; target: string } {
+  const self = `${l.selfDisplayId} ${l.selfName}`;
+  const other = `${l.otherDisplayId} ${l.otherName}`;
+  return l.direction === "out"
+    ? { source: self, target: other }
+    : { source: other, target: self };
 }

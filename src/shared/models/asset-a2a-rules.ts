@@ -300,3 +300,72 @@ export function getA2AMirror(
   }
   return undefined;
 }
+
+// ==================== INVERSE NAMES ====================
+// How a relation reads from the TARGET's side, in the same key style as the
+// stored type. The asset tab shows the stored type at the source
+// ("Measure Data: required_by FU-001") and this name at the target
+// ("E-Stop: requires DA-002"). Not derivable mechanically: the stored types
+// mix active and passive names. Where the inverse is itself a stored type,
+// the two state the same fact (see A2A_MIRROR_PAIRS). Symmetric types map to
+// themselves.
+
+export const A2A_INVERSE_NAMES: Readonly<Record<A2ARelationType, string>> = {
+  accesses: "accessed_by",
+  affects_privacy: "privacy_affected_by",
+  affects_safety: "safety_affected_by",
+  aggregates: "aggregated_in",
+  authorized_for: "grants_authorization_to",
+  calls: "called_by",
+  configures: "configured_by",
+  connected_to: "connected_to",
+  consumed_by: "consumes",
+  consumes: "consumed_by",
+  contaminates: "contaminated_by",
+  controlled_by: "controls",
+  creates: "created_by",
+  delegates_to: "delegated_from",
+  deletes: "deleted_by",
+  depends_on: "dependency_of",
+  derives_from: "source_of",
+  enables: "enabled_by",
+  endangers: "endangered_by",
+  exposes: "exposed_by",
+  hosted_on: "hosts",
+  hosts: "hosted_on",
+  houses: "located_in",
+  implemented_by: "implements",
+  implements: "implemented_by",
+  integrates: "integrated_in",
+  integrates_with: "integrates_with",
+  invokes: "invoked_by",
+  located_in: "houses",
+  manages: "managed_by",
+  mechanically_linked: "mechanically_linked",
+  modifies: "modified_by",
+  monitors: "monitored_by",
+  operated_by: "operates",
+  owns: "owned_by",
+  powered_by: "powers",
+  powers: "powered_by",
+  provides: "provided_by",
+  reads: "read_by",
+  reports_to: "receives_reports_from",
+  required_by: "requires",
+  responsible_for: "responsibility_of",
+  runs_on: "executes",
+  supersedes: "superseded_by",
+  suspends: "suspended_by",
+  triggers: "triggered_by",
+};
+
+/**
+ * Chip text from one asset's point of view: the stored type for an outgoing
+ * edge, the inverse name for an incoming one.
+ */
+export function a2aRelationName(
+  relationType: A2ARelationType,
+  direction: "out" | "in",
+): string {
+  return direction === "out" ? relationType : A2A_INVERSE_NAMES[relationType];
+}

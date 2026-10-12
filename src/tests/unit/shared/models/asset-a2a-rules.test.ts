@@ -3,6 +3,8 @@
 // A2A rule set in shared (asset-graph-view-requirements.md, AR-4).
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   ALLOWED_A2A_RELATIONS,
   KERN_A2A_RELATIONS,
@@ -10,6 +12,8 @@ import {
   classifyA2ATargets,
   A2A_MIRROR_PAIRS,
   getA2AMirror,
+  A2A_INVERSE_NAMES,
+  a2aRelationName,
   getA2ARelationOptions,
   getAllowedA2ARelations,
   isKernA2ARelation,
@@ -154,5 +158,43 @@ describe("A2A rules — mirror pairs", () => {
     expect(
       getA2AMirror({ sourceGroup: "function", targetGroup: "data", relationType: "modifies" }),
     ).toBeUndefined();
+  });
+});
+
+describe("A2A rules — inverse names", () => {
+  it("every type used in the matrix has an inverse name", () => {
+    for (const s of GROUPS) {
+      for (const t of GROUPS) {
+        for (const type of getAllowedA2ARelations(s, t)) {
+          expect(A2A_INVERSE_NAMES[type], type).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  it("structural mirror pairs invert into each other; required_by reads as requires", () => {
+    expect(A2A_INVERSE_NAMES.implements).toBe("implemented_by");
+    expect(A2A_INVERSE_NAMES.implemented_by).toBe("implements");
+    expect(A2A_INVERSE_NAMES.located_in).toBe("houses");
+    expect(A2A_INVERSE_NAMES.houses).toBe("located_in");
+    // Not "reads": the inverse must keep the dependency meaning.
+    expect(A2A_INVERSE_NAMES.required_by).toBe("requires");
+  });
+
+  it("reads from the listed asset", () => {
+    expect(a2aRelationName("required_by", "out")).toBe("required_by");
+    expect(a2aRelationName("required_by", "in")).toBe("requires");
+    expect(a2aRelationName("connected_to", "in")).toBe("connected_to");
+  });
+
+  it.each(["de", "en"])("%s has a label and a sentence for every type", (lang) => {
+    const file = join(process.cwd(), "src/i18n/locales", lang, "common.json");
+    const a2a = JSON.parse(readFileSync(file, "utf-8")).assets.relations.a2a;
+    for (const type of Object.keys(A2A_INVERSE_NAMES)) {
+      expect(a2a[type], `${lang} label ${type}`).toBeTruthy();
+      expect(a2a.sentence[type], `${lang} sentence ${type}`).toMatch(
+        /\{\{source\}\}.*\{\{target\}\}/,
+      );
+    }
   });
 });
