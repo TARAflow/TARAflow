@@ -1,7 +1,7 @@
 // src/tests/regression/threat-multi-page-guard.test.ts
 //
-// Phase 0 of the leveled-DFD design (doc/Open/DFD/leveled-dfd-multi-diagram-
-// design.md §13), threat side.
+// Phase 0 of the leveled-DFD design (leveled-dfd-multi-diagram-design.md
+// §13), threat side.
 //
 // A project file may already carry multi-page DFD XML together with a model
 // merged from all pages (written by an older version or edited outside

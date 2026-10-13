@@ -1,6 +1,6 @@
 // ==================== PAGE LAYOUT VALIDATOR ====================
 // Phase 0 guard of the leveled-DFD design
-// (doc/Open/DFD/leveled-dfd-multi-diagram-design.md §13).
+// (leveled-dfd-multi-diagram-design.md §13).
 //
 // Turns an unsupported draw.io page layout (several pages, or a compressed
 // page) into validation errors for the DFD notification panel. The layout

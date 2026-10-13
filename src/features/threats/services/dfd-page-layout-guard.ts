@@ -1,6 +1,6 @@
 // ==================== DFD PAGE LAYOUT GUARD ====================
 // Phase 0 of the leveled-DFD design
-// (doc/Open/DFD/leveled-dfd-multi-diagram-design.md §13).
+// (leveled-dfd-multi-diagram-design.md §13).
 //
 // The DFD side refuses to derive a model from a multi-page or compressed
 // draw.io layout. A project file may nevertheless already carry such XML

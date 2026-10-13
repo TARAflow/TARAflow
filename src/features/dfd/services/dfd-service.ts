@@ -58,8 +58,8 @@ export interface DFDLoadResult {
 }
 
 // ==================== PAGE LAYOUT GUARD ====================
-// Phase 0 of the leveled-DFD design (doc/Open/DFD/leveled-dfd-multi-diagram-
-// design.md §13). The parsers merge all <diagram> pages into one model and
+// Phase 0 of the leveled-DFD design (leveled-dfd-multi-diagram-design.md
+// §13). The parsers merge all <diagram> pages into one model and
 // cannot read compressed pages. Such a layout must never be turned into
 // dfd.elements/connections: the merged model is wrong, and an empty parse of
 // a compressed page would replace the stored elements and drop their

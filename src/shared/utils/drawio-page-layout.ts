@@ -1,6 +1,6 @@
 // ==================== DRAW.IO PAGE LAYOUT ====================
 // Phase 0 guard of the leveled-DFD design
-// (doc/Open/DFD/leveled-dfd-multi-diagram-design.md §13).
+// (leveled-dfd-multi-diagram-design.md §13).
 //
 // The DFD parsers read every <object> of the whole mxfile and ignore the
 // <diagram> pages they belong to. A second page is therefore silently merged

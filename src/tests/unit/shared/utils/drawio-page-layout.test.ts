@@ -1,4 +1,5 @@
-// Phase 0 guard of the leveled-DFD design (doc/Open/DFD/leveled-dfd-multi-diagram-design.md §13).
+// Phase 0 guard of the leveled-DFD design
+// (leveled-dfd-multi-diagram-design.md §13).
 import { describe, it, expect } from "vitest";
 import {
   inspectDrawioPages,

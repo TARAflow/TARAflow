@@ -1,7 +1,6 @@
 // src/tests/regression/dfd-multi-page-guard.test.ts
 //
-// Phase 0 of the leveled-DFD design (doc/Open/DFD/leveled-dfd-multi-diagram-
-// design.md §13).
+// Phase 0 of the leveled-DFD design (leveled-dfd-multi-diagram-design.md §13).
 //
 // Bug: the DFD parsers read every <object> of the whole mxfile and ignore the
 // <diagram> page it belongs to. A second draw.io page was silently merged into
