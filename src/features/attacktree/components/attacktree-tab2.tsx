@@ -662,6 +662,9 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
               key={group.id}
               expanded={expandedGroups.includes(group.id)}
               onChange={() => toggleGroupExpanded(group.id)}
+              // MUI v5 keeps collapsed AccordionDetails mounted: with many trees
+              // every path table rendered (hidden) on each workspace render.
+              TransitionProps={{ unmountOnExit: true }}
             >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box
