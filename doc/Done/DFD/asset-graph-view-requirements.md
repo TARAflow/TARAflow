@@ -15,7 +15,7 @@
 > geprüft gegen `main` @ `daacc38` (2026-10-02, Persistenzpfad seit `22e9d26` unverändert).
 > **Konvention:** Prosa Deutsch, Identifier/Typen/Code englisch.
 > **Bezug:** `taraflow-asset-beziehungen.md`, `taraflow-asset-zu-asset-beziehungen.md`,
-> `doc/Open/Asset/asset-store-ssot-refactor-v2.md`, `doc/Open/taraflow-usecase-konzept.md`,
+> `doc/Done/Asset/asset-store-ssot-refactor-v2.md`, `doc/Open/taraflow-usecase-konzept.md`,
 > `doc/Done/Asset/security-goal-rework-design.md`.
 
 ### Revisionsverlauf

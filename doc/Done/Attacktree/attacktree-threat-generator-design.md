@@ -1,11 +1,14 @@
 # TARAflow — Attack Tree as Threat Generator
 
-**Status:** Design approved — implementation started
+**Status:** Design approved — 5a shipped, 5b core shipped (sync + factor + builder green); 5b end-to-end wiring + 5b-1b/c owed. Phase 8 (UI rework) and Phase 9 (phase reordering) shipped 2026-07-25/26.
 **Version target:** post-0.6.0-alpha
 **Author:** Juergen Messerer / TARAflow
 **Normative basis:** ISO/SAE 21434:2021 Cl. 15 (verified), IEC 62443-3-2, EN 50742
 
 > **Revision history**
+> **v9** — Phase 8 (UI rework) and Phase 9 (phase reordering, §9) DONE and shipped, 2026-07-25/26 — see below. §8 gains DocBook as a sixth report format, with a configurable XSLT stylesheet — detail moved to Phase 7's own doc, `phase-7-reporter-design.md`, since Phase 7 hadn't started and the scope note was getting long for a revision-history line. No model change.
+> **v8.1** — §5.7 corrected to match the shipped 5b-1a: ISO mode requires an *audit-grade RC-15-11 method* (not "attack-potential only") — three methods are permitted (attack-potential / CVSS / attack-vector), narrowing keyed on `FeasibilityConfiguration`, enforced only on explicit opt-in; `f,b,i`/`p,i` rejected as the non-audit-grade quick form. Method scoping corrected from "per tree" to **project-wide**. No model change.
+> **v8** — 5b as-built. The model from v7 is unchanged (one likelihood factor, averages in), but implementation surfaced three refinements, now recorded in §"Implementation reality": (1) the tree factor is written by a **separate `syncRisksFromAttackTrees` pass**, chained after `syncRisksFromThreats` — not routed through the threat sync, which would discard it via `reconcileFactorRatings` (rebuilds from enabled activeFactors only); (2) `reconcileFactorRatings` **exempts `source: "attack-tree"`** so the threat sync passes it through (the earlier "auto-enable the factor" plan is dropped); (3) Mapping B lives in the **app-layer builder** `build-attack-tree-likelihood-references.ts` producing the shared `AttackTreeLikelihoodReference` type — `features/risks` imports only from `shared`. Asset-anchored trees emit per-path, threat-anchored aggregated; unrated → no contribution. **All trees feed risk** (both anchors, both methods) since risk treatment lives in the Risk tab. Also records the independent `fix(risks): always enable impact factors` bug. 5b-1a shipped (project-wide feasibility config + ISO method enforcement per RC-15-11); 5b-1b/c (CVSS, attack-vector) still owed.
 > **v7** — 5b reworked. The `likelihoodSource` discriminator and `mode: supplementary/authoritative` from v6 are **dropped** — the tree likelihood is instead **a predefined likelihood factor (`attack_tree_likelihood`, default weight 1, adjustable in the config like any factor)** that averages into `calculateRiskValues`, so all three cases (Standard refine / new asset-anchored / ISO) fall out with no special-casing. A **project-global** `treeLikelihoodContribution: "factor" | "advisory"` (default `factor`) decides, for the Standard refine case, whether the tree writes an active factor or is shown as an advisory hint only (`advisory` = the old `supplementary` intent, achieved by not writing the factor rather than by a discriminator). The tree contributes likelihood only; the leaf's impact `i` never enters the risk. Tree feeds before-mitigation only. §5 tightened: **ISO mode REQUIRES the attack-potential leaf format**; `f,b,i` and `p,i` are validator errors in ISO (5a done and shipped in the interim).
 > **v6** — Phase 5 splits into 5a (asset-anchored, new threats) and 5b (threat-anchored, feasibility into existing risk). Adds the anchor-driven two-use-cases model (§1), the `likelihoodSource` discriminator, and read-only impact/feasibility in the risk dialog (SSoT). Tab order fixed by the data flow, not deferred. *(5b model superseded by v7.)*
 > **v5** — §4 settles damage scenario cardinality: **1:1 (asset × security goal), as a declared simplification**, not a normative violation. Adds `SecurityGoal.damageScenario` and makes the simplification mandatory in the report's methodology section. Phase 3 marked done.
@@ -161,6 +164,18 @@ export type PathEmissionPolicy =
 ```
 
 - **`cheapest-per-goal`** (default): the most feasible path per (tree × attackGoal). Bounded count. Non-emitted paths stay documented in the tree and the report (§8).
+
+> **Superseded — REMOVED in code (2026-07-24).** `PathEmissionPolicy` and the
+> whole selection step are gone; `selectEmittablePaths` is just the `isEmittable`
+> filter. Every rated path is a candidate and the analyst confirms or dismisses
+> it in the table (`attacktree-ui-rework-design.md` §6). Two reasons drove it —
+> the tie-break between equally feasible paths fell back to comparing hash
+> strings, dropping a genuinely equivalent path from the register; and which
+> paths constitute threat scenarios is an analyst judgement a policy neither
+> records nor makes visible. `collectAllThreats` already filters unrated and
+> dismissed threats, so the gate exists. The `cheapest-per-goal` /
+> `above-threshold` / `all` description below is retained only to explain what
+> was removed and why.
 - **`above-threshold`**: every path at or above a feasibility level. For genuinely independent routes.
 - **`all`**: honest but explosive (20–50 leaves per realistic tree). Offer it; never default to it.
 
@@ -335,20 +350,30 @@ Validator **info** in ISO mode when `b` is present:
 
 It also aligns with what TARAflow already has: the EN 50742 factors (`window_of_opportunity`, `attacker_capability`, `exposure_level`) are recognisably from the same family.
 
-#### ISO mode REQUIRES attack-potential — the DSL enforces it
+#### ISO mode requires an audit-grade RC-15-11 method — the DSL enforces it
 
-"Prefer" is a Standard-mode statement. In **ISO mode it is mandatory**, and the
-DSL/validator enforce it. A leaf in an ISO-mode tree may carry **only** the
-attack-potential form:
+"Prefer" is a Standard-mode statement. In **ISO mode an audit-grade RC-15-11
+method is mandatory**, and the validator enforces it. ISO 21434 15.7 [RC-15-11]
+permits three approaches — attack-potential (RC-15-12), CVSS (RC-15-13), and
+attack-vector — so ISO mode does not narrow to attack-potential *alone*; it
+narrows to *an implemented, audit-grade RC-15-11 method*. Today only
+attack-potential is implemented (`IMPLEMENTED_FEASIBILITY_METHODS`), so in
+practice an ISO leaf carries the attack-potential form; CVSS (5b-1b) and
+attack-vector (5b-1c) extend this without touching the validator, which checks
+against `IMPLEMENTED_FEASIBILITY_METHODS`, not a hardcoded method.
 
 ```
-# ISO mode — the ONLY accepted leaf evaluation:
+# ISO mode, attack-potential method — the accepted leaf evaluation today:
 Extract Data;et=1w,se=expert,kn=restricted,wo=easy,eq=standard
 
 # REJECTED by the validator in ISO mode (syntax error, not a warning):
 Extract Data;0.6,0.8,4     # f,b,i  — a bare guessed feasibility, plus benefit, plus impact
 Extract Data;p=0.8,i=3     # p,i    — a bare guessed probability, plus impact
 ```
+
+`f,b,i` and `p,i` are rejected in ISO not because they are "not attack-potential"
+but because they are the non-audit-grade *quick* form — they are no RC-15-11
+method at all.
 
 Three reasons, each normative, not stylistic:
 
@@ -365,9 +390,14 @@ Three reasons, each normative, not stylistic:
    impact that is meant to be shared.
 
 Standard mode keeps all forms (`p,i`, `f,b,i`, attack-potential) — the analyst
-chooses. Only ISO mode narrows to attack-potential-only. The narrowing lives in
-the **validator**, keyed on the project's `LikelihoodModel` (`feasibility-only`
-= ISO), so a Standard tree parses byte-identically to before.
+chooses. Only ISO mode narrows to an audit-grade RC-15-11 method. The narrowing
+lives in the **validator**, keyed on the project's `FeasibilityConfiguration`
+(`likelihoodModel: "feasibility-only"` = ISO, plus the chosen `method`), so a
+Standard tree parses byte-identically to before. The config is **project-wide**
+(anchored on `AttackTreeProjectConfiguration.feasibilityConfiguration`), and ISO
+enforcement fires only when the project has *explicitly* opted in — an
+unconfigured project defaults to Standard, so the bundled templates are never
+rejected.
 
 **Dual-mode DSL:**
 
@@ -387,7 +417,7 @@ export type FeasibilityLevel  = "very-low" | "low" | "medium" | "high";
 export type FeasibilityMethod = "quick" | "attack-potential" | "cvss" | "attack-vector";
 ```
 
-The method is recorded **per tree** and printed in the report: a quick-mode TARA is not audit-grade and must say so.
+The method is recorded **project-wide** (on `AttackTreeProjectConfiguration.feasibilityConfiguration`, normatively required — a mixed-method TARA is not comparable and is an audit finding) and printed in the report: a quick-mode TARA is not audit-grade and must say so.
 
 **Band boundaries and factor→value tables are organisation-specific.** Configurable (Attack Tree config dialog) and printed in the report. Populate defaults from Annex G Tables G.1–G.7 of the licensed copy — deliberately not reproduced here.
 
@@ -481,13 +511,29 @@ Without this, an attack-tree-focused TARA is not auditable.
 4. **Non-emitted paths:** listed (documented, not risk-bearing). Silence looks like an omission.
 5. **Mitigation effect:** cheapest path before vs. after, per tree.
 
-Formats: Markdown / AsciiDoc / HTML / PDF / StrictDoc.
+Formats: Markdown / AsciiDoc / HTML / PDF / StrictDoc / **DocBook** (with a
+configurable XSLT stylesheet — added v9, detail in `phase-7-reporter-design.md`
+since Phase 7 hasn't started yet and this doc stays the normative summary,
+not the working scope doc).
 
 ---
 
-## 9. Phase ordering (deferred)
+## 9. Phase ordering — DONE (v9)
 
-For attack-tree-focused mode the natural tab order is `DFD → Assets → Threats → Attack Tree → Risks`. But correctness comes from the **data flow**, not tab position. Reordering touches `PhaseId`, `phaseStatus`, migration and the reporter — ergonomics only. **Data flow first; tabs last.**
+~~For attack-tree-focused mode the natural tab order is `DFD → Assets →
+Threats → Attack Tree → Risks`. But correctness comes from the **data
+flow**, not tab position. Reordering touches `PhaseId`, `phaseStatus`,
+migration and the reporter — ergonomics only. **Data flow first; tabs
+last.**~~
+
+Done, 2026-07-25/26 (Phase 9 of the implementation plan, §10): Attack Tree
+now sits between Threats and Risk in every workflow — `isHighImpact`
+("Critical System") no longer affects its position at all, and the
+workflow-mode-based ordering machinery that used to implement the
+conditional (`STANDARD_/CRITICAL_PHASE_ORDER`, `phase-navigation.ts`'s
+mode-dependent functions) was removed down to nothing rather than left in
+place unused. `PhaseId` renumbered accordingly (`Threats:4, AttackTree:5,
+Risk:6`). See `taraflow.md` memory area for the full breakdown.
 
 ---
 
@@ -671,6 +717,66 @@ The `attack_tree_likelihood` entry in `factorRatings[]` carries
 `"derived"` / `"manual"`), so the asset-criteria prefill never overwrites it —
 the same protection `"manual"` already gets.
 
+#### Implementation reality — as built (supersedes the sketch above where they differ)
+
+Building 5b surfaced three refinements the sketch did not anticipate. They do not
+change the *model* (one likelihood factor, averages in) but they fix *where* the
+factor is written and *how* it survives.
+
+**1. Two independent syncs, not one.** The tree factor does **not** travel through
+`syncRisksFromThreats`. That function rebuilds each risk's `factorRatings[]` via
+`reconcileFactorRatings`, which reconstructs the list from **enabled
+`activeFactors` only** — and `attack_tree_likelihood` is deliberately *not* an
+enabled activeFactor (it is data-driven, not analyst-configured). Routed through
+the threat sync it was discarded on every second sync.
+
+The fix follows the natural seam: the STRIDE sync and the attack-tree sync have
+**different triggers** (a threat changes vs. a tree changes). So they are
+**separate passes**, chained additively:
+
+```
+syncRisksFromThreats(riskData, threats, …)        // STRIDE: threats → risks + OWASP/impact factors
+  → syncRisksFromAttackTrees(riskData, refs, contribution)   // trees → the attack_tree_likelihood factor
+```
+
+`syncRisksFromAttackTrees(riskData, attackTreeLikelihoods, contribution) →
+RiskData` is the **sole owner** of the factor: it sets it where a tree feeds a
+risk (matched by `riskId === risk.threatId`), clears it where none does or in
+`advisory` mode, and recomputes only the before-mitigation values. The threat
+sync no longer references the factor at all.
+
+**2. `reconcileFactorRatings` exempts `source: "attack-tree"`.** So the threat
+sync passes the tree factor through untouched instead of discarding it — the two
+syncs stay independent, and no auto-enable of the factor into `activeFactors` is
+needed. (An earlier plan to auto-enable it, mirroring safety, is **dropped** —
+the exemption is the cleaner seam and keeps "enabled activeFactor" and
+"tree-derived rating" as distinct concepts.)
+
+**3. The app-layer builder does Mapping B.** `build-attack-tree-likelihood-references.ts`
+(app/utils, twin of `build-attack-path-threat-references.ts`) reads the tree
+store and emits `AttackTreeLikelihoodReference[]` — a **shared** type
+(`src/shared/attacktree-reference-types.ts`) carrying `mappedValue` already on
+the risk scale. `features/risks` imports only from `shared`, never from
+`features/attacktree`. Asset-anchored trees emit **per path** (each emitted path
+is its own risk, keyed by `buildThreatId(treeId, pathKey, stride)` = the 5a
+threat id); threat-anchored trees emit **once**, aggregated
+(`aggregatedLikelihoodLevel`, the ISO 15.8 max). An unrated path — or a
+threat-anchored tree with no `strideCategory` — contributes **nothing** (never a
+silent low).
+
+**Related bug fixed alongside (own commit).** Impact factors were only enabled
+when a linked asset carried a rated criterion, so a threat with **no** asset link
+showed *no* impact factors in the risk dialog (the dialog renders only enabled
+factors). Impact is intrinsic to a risk, so `updateImpactFactorsAutoEnable` now
+enables all impact factors unconditionally; they stay unrated (value 0) until the
+analyst fills them. This is independent of 5b and ships as
+`fix(risks): always enable impact factors so asset-less threats show them`.
+
+**All trees feed risk, both anchors, both methods** (Juergen's call): the risk
+treatment — MoSCoW, mitigations, prioritisation — lives in the Risk tab, so every
+tree that determines a likelihood feeds a risk there rather than duplicating that
+workflow in the attack-tree tab.
+
 **Impact stays read-only in the risk dialog, editable only at source (SSoT):**
 Impact S/F/O/P shown with a provenance link to the Asset tab (`ResolvedImpact.source`
 from Phase 3 says goal-override vs. asset-default). Editing it in the risk dialog
@@ -694,9 +800,19 @@ would fork the one impact that belongs to (asset × goal).
 - Asset-criteria prefill does not overwrite a `source: "attack-tree"` rating.
 - An existing factor-only risk with no tree is unchanged.
 
-**Commit split:**
-- `feat(attacktree): enforce attack-potential-only leaves in ISO mode` (DSL/validator)
-- `feat(risks): attack-tree likelihood as a project-configurable likelihood factor`
+**Commit split (as built):**
+- ✅ `refactor(attacktree): i18n keys for ValidationError` + `refactor(attacktree): move all UI strings to i18n, remove isGerman branching` (prereq: validator/parser/UI moved to i18n before the ISO messages landed)
+- ✅ `feat(attacktree): project-wide feasibility config + ISO method enforcement (5b-1a)` — RC-15-11 method axis, project-wide, ISO enforces an *implemented* method; CVSS (5b-1b) and attack-vector (5b-1c) still owed
+- ✅ `fix(risks): always enable impact factors so asset-less threats show them` (independent bug)
+- ✅ `feat(risks): attack-tree likelihood as a project-configurable likelihood factor` — the factor, `setAttackTreeLikelihoodFactor`, the shared reference type
+- ✅ `feat(risks): sync attack-tree likelihood into risks via a separate pass` — `syncRisksFromAttackTrees`, the `reconcileFactorRatings` exemption, the app-layer builder
+
+**Still owed to finish 5b end-to-end:**
+- `use-risk-sync.ts` chains `syncRisksFromThreats → syncRisksFromAttackTrees` and threads `attackTreeLikelihoods` from the `RiskProjectData` prop
+- `RiskProjectData.attackTreeLikelihoods` field + the `buildAttackTreeLikelihoodReferences` call in `workspace-layout.tsx`
+- `treeLikelihoodContribution` as a real project setting + UI toggle (defaults to `"factor"` at the call site today)
+- `attackTreeAssessment` provenance field on `Risk` (persisted in both modes)
+- 5b-1b (CVSS RC-15-13) + 5b-1c (attack-vector) parsers/banding + the config-dialog method selector
 
 ### Phase 6 — Risks tab UI integration
 Wire the model of 5a/5b into the dialog and table: render the
@@ -711,20 +827,32 @@ ISO vs. 62443 differ from the same tree; STRIDE-mode project unaffected.
 **Commit:** `feat(risks): attack-tree provenance and factor-hiding in the dialog`
 
 ### Phase 7 — Documentation + reporter
-Per §8, including the mandatory methodology section.
+Per §8, including the mandatory methodology section and DocBook (v9).
+**Superseded as the working scope doc by `phase-7-reporter-design.md`** —
+not started yet; this section stays the normative summary.
 **Tests:** golden/snapshot per format; methodology present; traceability risk → tree → path.
 **Commit:** `feat(report): attack tree analysis, traceability and methodology section`
 
-### Phase 8 — UI polish (unblocked, parallel)
-Split-handle drag (`editorWidthPercent` already persists — only the handle is missing), rename, guarded delete.
-**Commit:** `feat(attacktree): resizable split view, rename and guarded delete`
+### Phase 8 — UI rework (unblocked, parallel)
+Originally scoped as polish — split-handle drag, rename, guarded delete. Working
+through 5b and Phase 6 on the real UI showed the problem is structural: the tree
+selector lives inside one view and vanishes in the other, the "overview" reads as
+a settings page, and the table view shares nothing with the Threat and Risk tabs.
 
-### Phase 9 — Phase reordering (optional, last)
+**Superseded by `attacktree-ui-rework-design.md`.** Steps 1-3 (shared table,
+attack-tree table on it, detail view) and step 5 (retire the emission policy)
+are DONE and committed as of 2026-07-24/25, with tests. Only step 4 — overview
+rename and guarded delete — remains.
+
+### Phase 9 — Phase reordering — DONE (v9)
+Per §9. Shipped 2026-07-25/26.
 
 ---
 
 ## 11. Open questions
 
-1. **1:n damage scenarios** — revisit when a customer needs *separate risk treatment decisions per consequence* ("we accept the equipment damage but not the injury", both from one integrity violation). Until then the 1:1 simplification holds (§4). Trigger, not a deadline.
-2. **EN 50742 vs. Annex G** — do the EN 50742 factors (WoO, AC, EL) map onto the ISO/IEC 18045 five, or are both sets needed side by side for EN-50742-scoped projects?
-3. **Hazards toggle** — safety coupling purely impact-side (the S category), or does it also constrain feasibility?
+1. **1:n damage scenarios** — OPEN. Revisit when a customer needs *separate risk treatment decisions per consequence* ("we accept the equipment damage but not the injury", both from one integrity violation). Until then the 1:1 simplification holds (§4). Trigger, not a deadline.
+   *Intermediate option, should this be reopened:* treatment and MoSCoW per impact category on one risk. `impactByCategory` already exists and 15.8 NOTE 1 permits a risk value per category, so "financial: accept, safety: reduce" becomes expressible without a damage-scenario entity — leaving `AttackTreeAnchor`, `pathKey`, the generator and the Risks tab untouched. It does not separate two consequences in the *same* category, which is the loss §4 already names.
+2. **EN 50742 vs. Annex G** — CLOSED. The two factor sets are different and are never applied in parallel: method choice is exclusive per project, so there is nothing to map. Consequence worth recording: a project cannot be converted between the two without re-rating.
+3. **Hazards toggle** — MOVED to `safety-feasibility-coupling-design.md`. Safety is impact-side only today by omission rather than by decision; that document frames the options and recommends keeping it impact-side while adding a validation cross-check.
+4. **Mitigation ownership** — NEW, see `mitigation-ownership-design.md`. Status and ticket live on `SelectedMitigation`, i.e. per risk, so the same catalog measure selected in three risks produces three tickets. Surfaced by the attack-tree table showing mitigations per path.
