@@ -1,3 +1,34 @@
+## [0.13.1-alpha] - 2026-10-13
+
+A bugfix release from a real-size ISO/SAE 21434 project (36 DFD elements,
+26 assets, 87 attack trees): the app became sluggish, tab switches took
+seconds, and memory grew with every visit to the DFD tab.
+
+### Fixed
+- **Tab switches took seconds with many attack trees.** The attack-tree tab
+  stays mounted in the workspace (hidden), and MUI v5 keeps the content of a
+  collapsed accordion mounted — so the path tables of every tree group were
+  rendered on each workspace render, even with all groups collapsed. A
+  group's trees are now rendered only while it is expanded
+  (`unmountOnExit`). Measured on the 87-tree project: re-render ~4 s → ~0.15 s
+  (jsdom), DOM nodes 12k → <500.
+- **Memory leak in the DFD tab.** The draw.io bridge registered a `window`
+  message listener that was never removed; disposing the bridge only set a
+  flag. Every visit to the DFD tab kept the previous draw.io controller, its
+  detached iframe and the whole draw.io window alive, and each of them kept
+  handling every message. The listener is now removed when the bridge is
+  disposed.
+- **Asset findings asked for a goal the asset cannot have.** "N threat(s) of
+  category S/E violate no active security goal — add AuthN/AuthZ" was also
+  shown for data assets, where AuthN and AuthZ do not apply. For such assets
+  the finding now says to link a function or system asset carrying the goal
+  to the DFD element (or to check whether the threats belong to the asset);
+  for applicable goals the hint lists only those.
+- **Pure hazard protection targets got goal/DFD findings.** Assets that a
+  hazard only endangers (people, environment, building) are no longer asked
+  for a security goal and a DFD link; an asset that is also a cause keeps
+  both checks.
+
 ## [0.13.0-alpha] - 2026-10-12
 
 A feature release around **asset-to-asset relations**. Asset links are now
