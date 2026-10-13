@@ -86,8 +86,9 @@ describe("per-page parse keeps pages apart", () => {
 
   it("resolves id labels per page and records both occurrences", () => {
     const result = dfdParser.parse(xml);
-    // Phase 1.1: the second "n1" is not added again (logical identity is 1.2),
-    // but its id label no longer leaks onto the first page's element.
+    // Both cells are plain definitions with tfId "n1" (a duplicated page);
+    // the first one is kept — reassigning the second a fresh tfId is
+    // Phase 1.3. Its id label no longer leaks onto the first page's element.
     expect(result.elements.map((e) => [e.id, e.name, e.displayId])).toEqual([
       ["n1", "Gateway", "P-1"],
     ]);

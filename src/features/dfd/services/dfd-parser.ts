@@ -8,6 +8,11 @@ import type { DFDAsset } from "../models/dfd-asset-types";
 import { extractXmlFromDrawioMsg } from "./parsers/xml-parser";
 import { readDrawioPages } from "./parsers/page-reader";
 import {
+  collectCellIdentities,
+  identityOf,
+  type OccurrenceRole,
+} from "./parsers/identity-reader";
+import {
   parseElements,
   collectIdLabels,
   assignDisplayIds as assignElementDisplayIds,
@@ -33,8 +38,8 @@ export interface ParseResult {
   pages: ParsedPageInfo[];
   /**
    * One entry per parsed element / connection cell, recording on which page
-   * it was drawn. Not persisted (the XML is the source of truth, D7). Basis
-   * for the logical identity model of leveled-DFD Phase 1.2+.
+   * it was drawn and which logical element / flow it shows. Not persisted
+   * (the XML is the source of truth, D7).
    */
   occurrences: ParsedOccurrence[];
 }
@@ -47,11 +52,19 @@ export interface ParsedPageInfo {
 
 export interface ParsedOccurrence {
   kind: "element" | "connection";
-  /** Id of the parsed DFDElement / DFDConnection this cell produced. */
-  id: string;
+  /**
+   * Logical identity (§5.2): id of the DFDElement / DFDConnection this cell
+   * shows. Equals cellId unless the cell carries a tfId attribute.
+   */
+  tfId: string;
+  /** "definition" (home of the logical record) or "ref" (context copy). */
+  role: OccurrenceRole;
   pageId: string;
-  /** draw.io cell id of this occurrence. */
+  /** draw.io cell id of this occurrence (page-local). */
   cellId: string;
+  /** Connections only: endpoints as drawn on THIS page, resolved to tfIds. */
+  sourceTfId?: string;
+  targetTfId?: string;
 }
 
 /**
@@ -84,18 +97,18 @@ export class DFDParser {
       //    lookup below (id labels, groups, edge endpoints) runs per page.
       const pages = readDrawioPages(xml);
 
-      const elements: DFDElement[] = [];
-      const connections: DFDConnection[] = [];
       const unconnectedDataflows: string[] = [];
       const occurrences: ParsedOccurrence[] = [];
-      const seenElementIds = new Set<string>();
-      const seenConnectionIds = new Set<string>();
+      const elementRecords = new LogicalRecords<DFDElement>();
+      const connectionRecords = new LogicalRecords<DFDConnection>();
 
       for (const page of pages) {
         // 2. Collect ID labels first (they reference parent elements)
         const idLabels = collectIdLabels(page.doc);
+        // Identity attributes (tfId / tfRole) of this page, by cell id
+        const identities = collectCellIdentities(page.doc);
 
-        // 3. Parse elements
+        // 3. Parse elements (ids are still page-local cell ids here)
         const pageElements = parseElements(page.doc);
         assignElementDisplayIds(pageElements, idLabels);
 
@@ -103,40 +116,46 @@ export class DFDParser {
         const pageConnections = parseConnections(page.doc);
         assignConnectionDisplayIds(pageConnections.connections, idLabels);
 
-        // Phase 1.1: an element/connection id seen on an earlier page is not
-        // added twice (same behaviour as the former whole-document parse).
-        // Logical identity across pages (tfId / context copies) is Phase 1.2;
-        // multi-page layouts are still refused by the Phase 0 guard.
+        // 5. Re-key from page-local cell ids to logical tfIds (§5.2).
+        //    Endpoints are resolved on the page they are drawn on, so a flow
+        //    attached to a context copy points to the copied element.
         for (const element of pageElements) {
-          occurrences.push({
-            kind: "element",
-            id: element.id,
-            pageId: page.pageId,
-            cellId: element.id,
-          });
-          if (seenElementIds.has(element.id)) continue;
-          seenElementIds.add(element.id);
-          elements.push(element);
+          const cellId = element.id;
+          const { tfId, role } = identityOf(identities, cellId);
+          element.id = tfId;
+          occurrences.push({ kind: "element", tfId, role, pageId: page.pageId, cellId });
+          elementRecords.offer(tfId, role, element);
         }
         for (const connection of pageConnections.connections) {
+          const cellId = connection.id;
+          const { tfId, role } = identityOf(identities, cellId);
+          connection.id = tfId;
+          connection.from = identityOf(identities, connection.from).tfId;
+          connection.to = identityOf(identities, connection.to).tfId;
           occurrences.push({
             kind: "connection",
-            id: connection.id,
+            tfId,
+            role,
             pageId: page.pageId,
-            cellId: connection.id,
+            cellId,
+            sourceTfId: connection.from,
+            targetTfId: connection.to,
           });
-          if (seenConnectionIds.has(connection.id)) continue;
-          seenConnectionIds.add(connection.id);
-          connections.push(connection);
+          connectionRecords.offer(tfId, role, connection);
         }
         unconnectedDataflows.push(...pageConnections.unconnectedDataflows);
       }
 
-      // 5. Assets are not markers on the canvas — they live in dfd.assets[]
+      // 6. One logical record per tfId: context copies merge into their
+      //    definition (its label, display id, position and endpoints win).
+      const elements = elementRecords.records();
+      const connections = connectionRecords.records();
+
+      // 7. Assets are not markers on the canvas — they live in dfd.assets[]
       // and are reconciled downstream in dfd-service. Parsing derives none.
       const assets: DFDAsset[] = [];
 
-      // 6. Calculate statistics
+      // 8. Calculate statistics
       const stats = calculateStats(elements, connections, assets);
 
       return {
@@ -161,6 +180,35 @@ export class DFDParser {
    */
   extractXmlFromDrawioMsg(drawioMsg: string): string | null {
     return extractXmlFromDrawioMsg(drawioMsg);
+  }
+}
+
+/**
+ * Collects the parsed cells of all pages and keeps one record per tfId.
+ *
+ * - The first definition in document order provides the record; a context
+ *   copy never overrides a definition.
+ * - Without any definition (a dangling context copy, §5.2.1) the first copy
+ *   provides the record, so the logical element stays in the model and is
+ *   analysed conservatively; detection and repair are Phase 1.4.
+ * - Several definitions of one tfId (paste / duplicated page) keep the
+ *   first one; reassigning the others a fresh tfId is Phase 1.3.
+ * - Records are returned in order of the first occurrence of their tfId,
+ *   which for a single page without identity attributes is exactly the
+ *   former document order.
+ */
+class LogicalRecords<T> {
+  private readonly byTfId = new Map<string, { role: OccurrenceRole; record: T }>();
+
+  offer(tfId: string, role: OccurrenceRole, record: T): void {
+    const current = this.byTfId.get(tfId);
+    if (!current || (current.role === "ref" && role === "definition")) {
+      this.byTfId.set(tfId, { role, record });
+    }
+  }
+
+  records(): T[] {
+    return Array.from(this.byTfId.values(), (entry) => entry.record);
   }
 }
 

@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1 done, 1.2 next
+Status: rev. 4 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1–1.2 done, 1.3 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -798,8 +798,8 @@ to disk.
 
 ## 13. Implementation phases
 
-**Phase 0 — Guard and inventory (small, ship first). ✅ Guard done** (`568682a` fix(dfd),
-`1065044` fix(threats)); the inventory script is still open. On load, before any parse result
+**Phase 0 — Guard and inventory (small, ship first). ✅ Guard done** (`401e8c5` fix(dfd),
+`bb7cc6a` fix(threats)); the inventory script is still open. On load, before any parse result
 reaches the threat or risk feature: detect more than one `<diagram>` or a compressed one; show a
 blocking message "multiple pages / compressed pages are not supported yet" and do **not** run
 threat generation on a partial model. Inventory script over `TARAflow_Examples` to find files that
@@ -807,10 +807,18 @@ already contain several pages.
 
 **Phase 1 — Identity and occurrence model.** Split into commits:
 
-- **1.1 ✅** (`2f3091a`) page-aware parsing: `page-reader`, parser runs per page, `ParseResult.pages`
+- **1.1 ✅** (`1da1e8b`) page-aware parsing: `page-reader`, parser runs per page, `ParseResult.pages`
   / `occurrences` (in memory); golden gate against the former whole-document parse.
-- **1.2** identity: read `tfId`/`tfRole` (lazy, §5.2), merge context copies into their definition,
-  resolve connection endpoints from page-local cell ids to `tfId`s.
+- **1.2 ✅** identity: read `tfId`/`tfRole` (lazy, §5.2), merge context copies into their definition,
+  resolve connection endpoints from page-local cell ids to `tfId`s. `parsers/identity-reader`;
+  `ParseResult.occurrences` carry `tfId`, `role` and, for flows, the endpoints as drawn on that page
+  (`sourceTfId`/`targetTfId`) — the input of the stitching algorithm (§6.2). Record selection per
+  `tfId`: the first definition in document order; without any definition the first context copy
+  (the element stays in the model, detection is 1.4); further definitions of the same `tfId` are
+  kept as occurrences only (reassignment is 1.3). A `ref` without `tfId` is a plain definition of
+  its own cell, never guessed into a merge. Consumers that address XML cells by id (label/property
+  write-back, auto-numbering, id-label visibility) stay cell-id based; they only diverge from the
+  `tfId` once TARAflow writes explicit `tfId`s (1.3 / 1.5) and are made `tfId`-aware there.
 - **1.3** `dfd.pages[]` persisted, home page, duplicate definitions (paste / page duplication) with
   `tfId` reassignment.
 - **1.4** dangling detection (§5.2.1) and "Promote to definition".
