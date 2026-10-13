@@ -10,6 +10,7 @@ import type {
 import { assetImpactFindings, goalFindings, goalStates } from "./asset-goal-state";
 import type { GoalFindingCode } from "./asset-goal-state";
 import type { PhaseStatus, ThreatGoalLink } from "shared";
+import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types";
 import {
   a2aRelationName,
   compareDisplayIds,
@@ -64,7 +65,25 @@ const GOALS: AssetDialogTab = 1;
 /** How many threat ids a message lists before it says "…". */
 const MAX_LISTED_THREATS = 5;
 
+/** Per-asset hazard links, projected by the app layer (buildAssetHazardLinks). */
+export type AssetHazardLinks = Readonly<Record<string, AssetHazardSummary>>;
+
 /**
+ * A pure protection target: a hazard endangers the asset, but the asset is no
+ * cause of any hazard (bowtie right side only — people, environment, the
+ * building). Such an asset is reached through the HazardItem chain, not through
+ * the DFD, and has no CIANAAA property of its own to protect: the safety goal is
+ * the hazard's, the security goals belong to the cause assets. So neither a
+ * security goal nor a DFD link is required.
+ */
+export function isPureProtectionTarget(summary: AssetHazardSummary | undefined): boolean {
+  return !!summary?.isHazardTarget && summary.contributesTo.length === 0;
+}
+
+/**
+ * @param hazardLinks  hazard projection per asset (app layer). Given → pure
+ *                     protection targets are exempt from the security-goal and
+ *                     DFD-link checks.
  * @param threatLinks  threats of the enabled generators, projected by the app
  *                     layer. Given → the threat ↔ goal cross-checks run
  *                     (Phase 6). They live only in the findings panel and the
@@ -74,6 +93,7 @@ const MAX_LISTED_THREATS = 5;
 export function collectAssetFindings(
   assetData: AssetData,
   threatLinks?: readonly ThreatGoalLink[],
+  hazardLinks?: AssetHazardLinks,
 ): AssetFinding[] {
   const out: AssetFinding[] = [];
   const impactScale = assetData.configuration?.impactScale ?? "4-level";
@@ -105,8 +125,10 @@ export function collectAssetFindings(
 
     if (!asset.name.trim()) push("error", "tabs.assets.validation.noName", GENERAL);
 
+    const protectionTarget = isPureProtectionTarget(hazardLinks?.[asset.id]);
+
     // At least one CIANAAA dimension must be active (level !== "none")
-    if (!asset.securityGoals.some((sg) => sg.level !== "none")) {
+    if (!protectionTarget && !asset.securityGoals.some((sg) => sg.level !== "none")) {
       push("error", "tabs.assets.validation.noSecurityGoal", GOALS);
     }
 
@@ -127,7 +149,7 @@ export function collectAssetFindings(
       push("warning", "tabs.assets.validation.noPhysicalImpactRationale", GENERAL);
     }
 
-    if (asset.linkedDFDElements.length === 0) {
+    if (!protectionTarget && asset.linkedDFDElements.length === 0) {
       push("warning", "tabs.assets.validation.notLinkedToDFD", GENERAL);
     }
 
@@ -231,8 +253,11 @@ function findingToString(f: AssetFinding): string {
   return [f.key, f.assetLabel, f.goal, f.criterionId].filter(Boolean).join(":");
 }
 
-export function validateAssetData(assetData: AssetData): AssetValidation {
-  const findings = collectAssetFindings(assetData);
+export function validateAssetData(
+  assetData: AssetData,
+  hazardLinks?: AssetHazardLinks,
+): AssetValidation {
+  const findings = collectAssetFindings(assetData, undefined, hazardLinks);
   const by = (sev: AssetFinding["severity"]) =>
     findings.filter((f) => f.severity === sev).map(findingToString);
   const errors = by("error");

@@ -148,9 +148,15 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   const [exportImportMode, setExportImportMode] =
     useState<ExportImportMode>("export");
 
+  // Hazard projection for the validation: pure protection targets (endangered,
+  // never a cause) need neither a security goal nor a DFD link. Read through a
+  // ref so the many validate() call sites below always see the current links.
+  const hazardLinksRef = useRef(hazardLinks);
+  hazardLinksRef.current = hazardLinks;
+
   // Validation
   const [validation, setValidation] = useState<AssetValidation | null>(() =>
-    project.assets ? assetService.validate(project.assets) : null,
+    project.assets ? assetService.validate(project.assets, hazardLinks) : null,
   );
 
   const hasSafetyAnnotations = useMemo(
@@ -220,7 +226,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         configuration: migrateAssetConfiguration(project.assets.configuration),
       };
       setAssetData(data);
-      setValidation(assetService.validate(data)); // ← immer neu berechnen
+      setValidation(assetService.validate(data, hazardLinksRef.current)); // ← immer neu berechnen
     }
   }, [project.assets]);
 
@@ -229,11 +235,11 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     if (!isDirty) return;
 
     const timeoutId = setTimeout(() => {
-      const result = assetService.saveAssets(project, assetData);
+      const result = assetService.saveAssets(project, assetData, hazardLinksRef.current);
 
       if (result.success) {
         setAssetData(result.assets);
-        setValidation(assetService.validate(result.assets));
+        setValidation(assetService.validate(result.assets, hazardLinksRef.current));
         setIsDirty(false);
 
         onUpdate({
@@ -282,6 +288,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       const result = assetService.saveAssets(
         projectRef.current,
         assetDataRef.current,
+        hazardLinksRef.current,
       );
 
       if (result.success) {
@@ -332,7 +339,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         assets: updatedAssets,
       }));
       setValidation(
-        assetService.validate({ ...assetData, assets: updatedAssets }),
+        assetService.validate({ ...assetData, assets: updatedAssets }, hazardLinksRef.current),
       );
       markDirty();
     }
@@ -384,7 +391,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         updatedData = assetService.addAsset(assetData, asset);
       }
       setAssetData(updatedData);
-      setValidation(assetService.validate(updatedData));
+      setValidation(assetService.validate(updatedData, hazardLinksRef.current));
       setShowAssetDialog(false);
       setSelectedAsset(null);
       markDirty();
@@ -409,7 +416,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     if (!asset || !onDeleteAsset) return;
     setAssetData((prev) => {
       const next = assetService.deleteAsset(prev, asset.id);
-      setValidation(assetService.validate(next));
+      setValidation(assetService.validate(next, hazardLinksRef.current));
       return next;
     });
     if (selectedAsset?.id === asset.id) {
@@ -468,7 +475,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
     });
 
     setAssetData(updatedData);
-    setValidation(assetService.validate(updatedData));
+    setValidation(assetService.validate(updatedData, hazardLinksRef.current));
     setShowConfigDialog(false);
     setTempConfig(null);
     markDirty();
@@ -570,7 +577,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
       // Update State
       setAssetData(updatedData);
-      setValidation(assetService.validate(updatedData));
+      setValidation(assetService.validate(updatedData, hazardLinksRef.current));
       markDirty();
 
       console.log("Import completed. Updated data:", updatedData);
@@ -599,7 +606,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       // Only update state if something actually changed
       if (result.hasChanges) {
         setAssetData(result.assetData);
-        setValidation(assetService.validate(result.assetData));
+        setValidation(assetService.validate(result.assetData, hazardLinksRef.current));
         markDirty();
       }
     },
@@ -687,8 +694,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // Validation findings, structured — for the panel below the table.
   const findings = useMemo(
-    () => collectAssetFindings(assetData, threatLinks),
-    [assetData, threatLinks],
+    () => collectAssetFindings(assetData, threatLinks, hazardLinks),
+    [assetData, threatLinks, hazardLinks],
   );
   const needsReview = useMemo(() => assetIdsNeedingReview(findings), [findings]);
 

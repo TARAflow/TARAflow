@@ -46,7 +46,7 @@ import {
 } from "./asset-physical-impact-deriver";
 import { applyHVAToAsset } from "./asset-hva-deriver";
 import { migrateAssetConfiguration, migrateAssetData } from "./asset-migration";
-import { validateAssetData, derivePhaseStatus } from "./asset-validator";
+import { validateAssetData, derivePhaseStatus, type AssetHazardLinks } from "./asset-validator";
 import { syncFromDFD, getAssetsMissingInDFD } from "./asset-sync-service";
 import { deriveSecurityGoalSuggestions } from "./asset-cianaaa-deriver";
 export type { DFDAssetSyncResult } from "./asset-sync-service";
@@ -126,12 +126,16 @@ class AssetService {
 
   // ── Save ────────────────────────────────────────────────────────────────
 
-  saveAssets(project: AssetProjectData, assetData: AssetData): AssetSaveResult {
+  saveAssets(
+    project: AssetProjectData,
+    assetData: AssetData,
+    hazardLinks?: AssetHazardLinks,
+  ): AssetSaveResult {
     try {
       // Full migration: configuration + SecurityGoal boolean→CIANAAALevel
       const migrated = migrateAssetData(assetData);
 
-      const validation = validateAssetData(migrated);
+      const validation = validateAssetData(migrated, hazardLinks);
       const phaseStatus = derivePhaseStatus(validation);
       const lastModified = new Date().toISOString();
 
@@ -339,8 +343,8 @@ class AssetService {
     return PREDEFINED_IMPACT_CRITERIA.find((c) => c.id === id);
   }
 
-  validate(assetData: AssetData): AssetValidation {
-    return validateAssetData(assetData);
+  validate(assetData: AssetData, hazardLinks?: AssetHazardLinks): AssetValidation {
+    return validateAssetData(assetData, hazardLinks);
   }
 }
 
