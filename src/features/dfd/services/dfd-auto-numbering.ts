@@ -1,6 +1,8 @@
 // ==================== DFD AUTO NUMBERING SERVICE ====================
 // Single Responsibility: Auto-number IdLabels from top-left to bottom-right
 
+import { inspectDrawioPages, describeUnsupportedPageLayout } from "shared";
+
 /**
  * Configuration for element type prefixes
  * NOTE: Assets are excluded - they are references, not unique elements
@@ -77,6 +79,19 @@ export class DFDAutoNumbering {
    */
   public autoNumber(xml: string): string {
     if (!xml || xml.trim() === "") {
+      return xml;
+    }
+
+    // Phase 0 guard (leveled-DFD design §13): numbering is positional over
+    // the whole XML. On several pages it would renumber context copies of
+    // the same element independently and destroy cross-page IDs; on a
+    // compressed page it would see nothing. Leave the XML untouched.
+    const pageLayout = inspectDrawioPages(xml);
+    if (!pageLayout.supported) {
+      console.warn(
+        "[AutoNumbering] Skipped:",
+        describeUnsupportedPageLayout(pageLayout),
+      );
       return xml;
     }
 

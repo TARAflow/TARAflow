@@ -2728,7 +2728,9 @@
       "pcie": "PCIe",
       "custom": "Custom"
     },
-    "internalError": "Validation error: {{message}}"
+    "internalError": "Validation error: {{message}}",
+    "multiPageNotSupported": "The diagram has {{count}} pages ({{pages}}). Multiple pages are not supported yet: remove the extra pages — until then changes are not saved and threats cannot be generated.",
+    "compressedPageNotSupported": "Compressed diagram page(s) cannot be read ({{pages}}). Changes are not saved and threats cannot be generated until the page is stored uncompressed."
   },
   "levels": {
     "security": {

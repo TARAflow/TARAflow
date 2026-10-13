@@ -5,6 +5,8 @@
 
 import { PhaseStatus, PhaseStatusMap } from "shared";
 import { PHASE_STATUS_KEY } from "shared";
+import { inspectDrawioPages, describeUnsupportedPageLayout } from "shared";
+import type { DrawioPageLayout } from "shared";
 import {
   DFDData,
   DFDStats,
@@ -27,6 +29,7 @@ import {
   isSystemUsesRelation,
   isInfraAccessesRelation,
 } from "../models/asset-relation-types";
+import { validatePageLayout } from "./validators/page-layout-validator";
 
 export interface DFDSaveResult {
   success: boolean;
@@ -36,6 +39,8 @@ export interface DFDSaveResult {
   lastModified: string;
   validation: ValidationResult;
   error?: string;
+  /** Set when the save was refused because of an unsupported page layout. */
+  unsupportedPageLayout?: DrawioPageLayout;
 }
 
 export interface DFDLoadResult {
@@ -44,6 +49,45 @@ export interface DFDLoadResult {
   stats?: DFDStats;
   error?: string;
   graphContext: DFDGraphAnalysisContext;
+  /**
+   * Set when the stored XML has an unsupported page layout. The XML is still
+   * handed to draw.io (so the extra pages can be seen and removed), but the
+   * model is NOT re-derived from it and project.dfd stays untouched.
+   */
+  unsupportedPageLayout?: DrawioPageLayout;
+}
+
+// ==================== PAGE LAYOUT GUARD ====================
+// Phase 0 of the leveled-DFD design (doc/Open/DFD/leveled-dfd-multi-diagram-
+// design.md §13). The parsers merge all <diagram> pages into one model and
+// cannot read compressed pages. Such a layout must never be turned into
+// dfd.elements/connections: the merged model is wrong, and an empty parse of
+// a compressed page would replace the stored elements and drop their
+// properties and asset relations. Every entry point that derives the model
+// from XML checks the layout first and refuses.
+
+function unsupportedLayoutValidation(
+  layout: DrawioPageLayout,
+): ValidationResult {
+  return {
+    isValid: false,
+    isComplete: false,
+    errors: validatePageLayout(layout),
+    warnings: [],
+    scenario: null,
+  };
+}
+
+function refuseSave(
+  emptyResult: DFDSaveResult,
+  layout: DrawioPageLayout,
+): DFDSaveResult {
+  return {
+    ...emptyResult,
+    validation: unsupportedLayoutValidation(layout),
+    error: describeUnsupportedPageLayout(layout),
+    unsupportedPageLayout: layout,
+  };
 }
 
 /**
@@ -91,6 +135,24 @@ class DFDService {
           hasData: false,
           stats: project.dfd.stats,
           graphContext: emptyContext,
+        };
+      }
+
+      // Phase 0 guard: hand the XML to draw.io (done above) but do not derive
+      // the model from an unsupported page layout.
+      const pageLayout = inspectDrawioPages(project.dfd!.xml);
+      if (!pageLayout.supported) {
+        console.error(
+          "[DFDService] loadDFDForEditing:",
+          describeUnsupportedPageLayout(pageLayout),
+        );
+        return {
+          success: true,
+          hasData: true,
+          stats: project.dfd?.stats,
+          error: describeUnsupportedPageLayout(pageLayout),
+          graphContext: emptyContext,
+          unsupportedPageLayout: pageLayout,
         };
       }
 
@@ -345,6 +407,12 @@ class DFDService {
       // Get current XML
       const xml = adapter.getXml();
 
+      // Phase 0 guard: never derive the model from an unsupported layout.
+      const pageLayout = inspectDrawioPages(xml);
+      if (!pageLayout.supported) {
+        return refuseSave(emptyResult, pageLayout);
+      }
+
       // Parse and validate
       const { elements, connections, unconnectedDataflows } =
         this.parser.parse(xml || "");
@@ -490,6 +558,12 @@ class DFDService {
       },
     };
 
+    // Phase 0 guard: never derive the model from an unsupported layout.
+    const pageLayout = inspectDrawioPages(xml);
+    if (!pageLayout.supported) {
+      return refuseSave(emptyResult, pageLayout);
+    }
+
     try {
       const { elements, connections, unconnectedDataflows } =
         this.parser.parse(xml);
@@ -596,6 +670,15 @@ class DFDService {
     const adapter = createDFDStorageAdapter(project.id);
     adapter.syncFromLegacy();
     const xml = adapter.getXml();
+
+    // Phase 0 guard: report the unsupported layout instead of validating a
+    // merged multi-page model. This is what makes the refusal visible in the
+    // DFD notification panel.
+    const pageLayout = inspectDrawioPages(xml);
+    if (!pageLayout.supported) {
+      return unsupportedLayoutValidation(pageLayout);
+    }
+
     const { elements, connections, unconnectedDataflows } =
       this.parser.parse(xml || "");
 

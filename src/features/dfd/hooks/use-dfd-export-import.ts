@@ -2,6 +2,7 @@
 // Single Responsibility: Manage DFD export and import operations
 
 import type { A2AOp, NewA2ARelation } from "shared";
+import { inspectDrawioPages, describeUnsupportedPageLayout } from "shared";
 import { useCallback } from "react";
 import type { DFDProjectData, DFDExportData } from "../models/dfd-types";
 import type { UseDrawioBridgeReturn } from "./use-drawio-bridge";
@@ -113,6 +114,14 @@ export function useDFDExportImport(
         // Validate format
         if (!data.xml || !data.elements) {
           throw new Error("Invalid DFD export format: missing required fields");
+        }
+
+        // Phase 0 guard (leveled-DFD design §13): refuse BEFORE project.dfd
+        // is touched below — a multi-page or compressed layout cannot be
+        // parsed correctly and must not replace the current model.
+        const pageLayout = inspectDrawioPages(data.xml);
+        if (!pageLayout.supported) {
+          throw new Error(describeUnsupportedPageLayout(pageLayout));
         }
 
         if (data.version !== "1.0") {

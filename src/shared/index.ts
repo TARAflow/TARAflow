@@ -247,6 +247,11 @@ export {
   goalTypesFor,
 } from "./utils/threat-impact";
 export { formatAssetLabel } from "./utils/asset-label";
+export {
+  inspectDrawioPages,
+  describeUnsupportedPageLayout,
+} from "./utils/drawio-page-layout";
+export type { DrawioPageLayout } from "./utils/drawio-page-layout";
 export type { ThreatImpactAssets } from "./utils/threat-impact";
 export {
   ELEMENT_TYPE_ORDER,
