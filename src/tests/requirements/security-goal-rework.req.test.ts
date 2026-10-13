@@ -255,8 +255,11 @@ describe("SG-10 threat ↔ goal cross-checks", () => {
   it("an E threat on an asset without AuthZ → THREAT_WITHOUT_GOAL (warning)", () => {
     const f = collectAssetFindings(data, [
       { id: "t1", displayId: "P1-E-1", strideCategory: "E", linkedAssetIds: ["a"] },
-    ]).find((x) => x.key.endsWith("threatWithoutGoal"))!;
+    ]).find((x) => x.key.includes("threatWithoutGoal"))!;
+    // data asset: AuthZ is not applicable, so the message variant points to
+    // linking an asset instead of adding the goal — same finding, same goal card
     expect(f).toMatchObject({ severity: "warning", goal: "AuthZ" });
+    expect(f.key).toBe("tabs.assets.validation.threatWithoutGoalNotApplicable");
   });
 
   it("an active goal no threat violates → GOAL_WITHOUT_THREAT (info)", () => {

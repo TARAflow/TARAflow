@@ -150,7 +150,10 @@ describe("collectAssetFindings — threat ↔ goal cross-checks", () => {
   ];
 
   it("threat without goal: warning with count and sorted threat ids; opens the goal card", () => {
-    const f = collectAssetFindings(d, links).find((x) => x.key.endsWith("threatWithoutGoal"))!;
+    // function assets can carry AuthZ → the hint asks to add it
+    const fa = { ...a, assetGroup: "function" } as Asset;
+    const fd = { ...d, assets: [fa] } as AssetData;
+    const f = collectAssetFindings(fd, links).find((x) => x.key.endsWith("threatWithoutGoal"))!;
     expect(f).toMatchObject({
       severity: "warning",
       assetId: "u",
@@ -159,6 +162,24 @@ describe("collectAssetFindings — threat ↔ goal cross-checks", () => {
       params: { count: 2, stride: "E", goals: "AuthZ", threats: "P1-E-2, P1-E-10" },
     });
     expect(assetIdsNeedingReview([f]).has("u")).toBe(true);
+  });
+
+  it("threat without goal on a data asset: AuthZ is not applicable → hint points to linking an asset", () => {
+    const all = collectAssetFindings(d, links);
+    expect(all.some((x) => x.key.endsWith("threatWithoutGoal"))).toBe(false);
+    const f = all.find((x) => x.key.endsWith("threatWithoutGoalNotApplicable"))!;
+    expect(f).toMatchObject({
+      severity: "warning",
+      assetId: "u",
+      params: { count: 2, stride: "E", goals: "AuthZ", group: "data", threats: "P1-E-2, P1-E-10" },
+    });
+    expect(assetIdsNeedingReview([f]).has("u")).toBe(true);
+  });
+
+  it("threat without goal on a data asset with an applicable goal keeps the add-goal hint (R → N / Acc)", () => {
+    const rLinks = [{ id: "r1", displayId: "P1-R-1", strideCategory: "R" as const, linkedAssetIds: ["u"] }];
+    const f = collectAssetFindings(d, rLinks).find((x) => x.key.endsWith("threatWithoutGoal"))!;
+    expect(f.params).toMatchObject({ stride: "R", goals: "N / Acc" });
   });
 
   it("without the projection nothing changes, and the persisted validation never carries them", () => {

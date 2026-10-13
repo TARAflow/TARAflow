@@ -228,6 +228,7 @@
         "goalOverrideExceedsAsset": "Asset {{id}}: {{type}} bewertet {{criterion}} höher als das Asset selbst — Zielwert zurücksetzen oder Asset-Wert erhöhen",
         "goalEnvelopeSlack": "Asset {{id}}: kein aktives Schutzziel erreicht den Asset-Wert für {{criterion}} — bewusst höherer Worst Case?",
         "threatWithoutGoal": "Asset {{id}}: {{count}} Bedrohung(en) der Kategorie {{stride}} ({{threats}}) verletzen kein aktives Schutzziel — {{goals}} ergänzen oder prüfen, ob die Bedrohungen zu diesem Asset gehören",
+        "threatWithoutGoalNotApplicable": "Asset {{id}}: {{count}} Bedrohung(en) der Kategorie {{stride}} ({{threats}}) verletzen kein aktives Schutzziel — {{goals}} ist für Assets der Gruppe {{group}} nicht vorgesehen: ein Funktions- oder System-Asset mit {{goals}} am DFD-Element verknüpfen oder prüfen, ob die Bedrohungen zu diesem Asset gehören",
         "goalWithoutThreat": "Asset {{id}}: keine Bedrohung verletzt {{type}} — ist das Ziel nötig, oder fehlt eine Bedrohung?"
       },
       "columns": {

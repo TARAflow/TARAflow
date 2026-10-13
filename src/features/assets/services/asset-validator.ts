@@ -19,6 +19,7 @@ import {
   type AssetGroup,
 } from "shared";
 import { threatGoalFindings } from "./asset-threat-crosscheck";
+import { CIANAAA_APPLICABLE } from "../models/asset-security-goals-types";
 
 /**
  * How a validation message names an asset: display id plus name, e.g.
@@ -207,11 +208,23 @@ export function collectAssetFindings(
     for (const f of threatGoalFindings(assetData.assets, threatLinks)) {
       const asset = byId.get(f.assetId)!;
       const ids = f.threats.map((x) => x.displayId).sort(compareDisplayIds);
+      // Only suggest goals the asset's group can carry: AuthN/AuthZ do not
+      // apply to data assets (CIANAAA_APPLICABLE). There the fix is linking a
+      // function/system asset that carries the goal to the element — adding
+      // the goal is impossible, so the hint must not ask for it.
+      const needed = f.strideCategory ? goalTypesFor(f.strideCategory) : [];
+      const applicable = needed.filter(
+        (g) => CIANAAA_APPLICABLE[asset.assetGroup]?.[g] !== false,
+      );
+      const notApplicable =
+        f.code === "THREAT_WITHOUT_GOAL" && needed.length > 0 && applicable.length === 0;
       out.push({
         severity: f.severity,
         key:
           f.code === "THREAT_WITHOUT_GOAL"
-            ? "tabs.assets.validation.threatWithoutGoal"
+            ? notApplicable
+              ? "tabs.assets.validation.threatWithoutGoalNotApplicable"
+              : "tabs.assets.validation.threatWithoutGoal"
             : "tabs.assets.validation.goalWithoutThreat",
         dialogTab: GOALS,
         assetId: asset.id,
@@ -222,7 +235,8 @@ export function collectAssetFindings(
               params: {
                 count: f.threats.length,
                 stride: f.strideCategory,
-                goals: goalTypesFor(f.strideCategory).join(" / "),
+                goals: (notApplicable ? needed : applicable).join(" / "),
+                group: asset.assetGroup,
                 threats:
                   ids.slice(0, MAX_LISTED_THREATS).join(", ") +
                   (ids.length > MAX_LISTED_THREATS ? ", …" : ""),

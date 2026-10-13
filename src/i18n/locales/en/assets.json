@@ -228,6 +228,7 @@
         "goalOverrideExceedsAsset": "Asset {{id}}: {{type}} rates {{criterion}} higher than the asset itself — reset the goal value or raise the asset value",
         "goalEnvelopeSlack": "Asset {{id}}: no active security goal reaches the asset value for {{criterion}} — intended as a higher worst case?",
         "threatWithoutGoal": "Asset {{id}}: {{count}} threat(s) of category {{stride}} ({{threats}}) violate no active security goal — add {{goals}} or check whether the threats belong to this asset",
+        "threatWithoutGoalNotApplicable": "Asset {{id}}: {{count}} threat(s) of category {{stride}} ({{threats}}) violate no active security goal — {{goals}} cannot be set on {{group}} assets: link a function or system asset carrying {{goals}} to the DFD element, or check whether the threats belong to this asset",
         "goalWithoutThreat": "Asset {{id}}: no threat violates {{type}} — is the goal needed, or is a threat missing?"
       },
       "columns": {
