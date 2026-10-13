@@ -267,6 +267,7 @@ export class DrawioBridge implements IDrawioBridge {
   dispose(): void {
     this.disposed = true;
     this.localStorageModel.clearObservers();
+    this.corsComm.dispose();
     this.controller = null;
     this.imageReadyCallback = null;
     this.diagramChangeCallback = null;
