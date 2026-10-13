@@ -17,6 +17,7 @@
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction is disabled by the active regulation preset",
+      "dfdPageLayoutUnsupported": "The DFD has several pages or a compressed page. This is not supported yet — threat generation and synchronisation are disabled until the DFD consists of a single uncompressed page.",
       "configuration": "Configuration",
       "searchPlaceholder": "Search threats...",
       "threatsFound": "Threats found",

@@ -11,7 +11,7 @@ import React, {
   useMemo,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Collapse } from "@mui/material";
+import { Alert, Box, Collapse } from "@mui/material";
 import type {
   Threat,
   ThreatData,
@@ -27,6 +27,7 @@ import { ThreatEvalDialog } from "./shared/threat-dialog";
 import { ThreatConfigDialog } from "./shared/threat-config-dialog";
 import { ThreatSyncBanner } from "./shared/threat-sync-banner";
 import { ThreatDriftBanner } from "./shared/threat-drift-banner";
+import { unsupportedDfdLayoutError } from "../services/dfd-page-layout-guard";
 import { ThreatDriftDialog } from "./shared/threat-drift-dialog";
 import {
   detectGenerationDrift,
@@ -415,6 +416,14 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
   const hasDFD = !!project.dfdElements && project.dfdElements.length > 0;
 
+  // Phase 0 guard (leveled-DFD design §13): a multi-page or compressed DFD
+  // layout blocks generation and sync. The services refuse as well; this only
+  // makes the block visible and disables the toolbar actions.
+  const dfdLayoutBlocked = useMemo(
+    () => unsupportedDfdLayoutError({ dfdXml: project.dfdXml }) !== null,
+    [project.dfdXml],
+  );
+
   // ── Generation drift ────────────────────────────────────────────────────
   // Stored threats vs. what the current rules / security goals would produce.
   // Only evaluated while the DFD sync is clean: threats for new or deleted
@@ -484,7 +493,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         activeMethod={activeMethod}
         disabledMethods={disabledMethods}
         hasThreats={hasThreats}
-        hasDFD={hasDFD}
+        hasDFD={hasDFD && !dfdLayoutBlocked}
         syncStatus={activeHook.syncStatus}
         showDFDPreview={showDFDPreview}
         showFilters={showFilters}
@@ -511,10 +520,23 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         onImport={handleImportClick}
       />
 
+      {/* Unsupported DFD page layout — generation and sync blocked */}
+      {dfdLayoutBlocked && (
+        <Box sx={{ px: 2, py: 1 }}>
+          <Alert severity="error">
+            {t("tabs.threats.dfdPageLayoutUnsupported", {
+              defaultValue:
+                "The DFD has several pages or a compressed page. This is not supported yet — threat generation and synchronisation are disabled until the DFD consists of a single uncompressed page.",
+            })}
+          </Alert>
+        </Box>
+      )}
+
       {/* Sync Warning Banner */}
       <Collapse
         in={
           hasDFD &&
+          !dfdLayoutBlocked &&
           hasThreats &&
           activeHook.syncStatus !== null &&
           !activeHook.syncStatus.inSync &&
