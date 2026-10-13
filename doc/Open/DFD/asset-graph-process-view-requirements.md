@@ -2,7 +2,8 @@
 
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
-> **Status:** Entwurf v1.0 (2026-10-12). Noch nichts umgesetzt.
+> **Status:** Entwurf v1.1 (2026-10-13). Noch nichts umgesetzt. v1.1: Befund B16 (Beziehungsdokumente
+> weichen vom Regelwerk ab), Entscheidung D13, Anforderungen DOC-1/DOC-2.
 > **Herkunft:** Phase 4 aus `doc/Done/DFD/asset-graph-view-requirements.md` (v2.26; Phasen 0–3
 > umgesetzt und released in `v0.13.0-alpha`). Übernommen sind ausserdem die dort offen gebliebenen
 > Punkte AR-7/B12 (Downstream-Spalte) und der Referenz-Snapshot aus Phase 2. Die Anforderungen
@@ -69,6 +70,30 @@ Downstream-Spalte (AR-7/B12) und ein Referenz-Snapshot der Graph-Sicht.
 - Asset-Tabelle: Spalte „Asset Links“ (gelesen vom gelisteten Asset). Die Spalte „Downstream“
   bekommt keine Daten und zeigt „–“ (B12).
 
+### 3.1 Befund B16 — Beziehungsdokumente weichen vom Regelwerk ab
+
+Beim Aufräumen von `doc/` (2026-10-13) fiel auf, dass die Beziehungsdokumente Typen und Richtungen
+beschreiben, die das Regelwerk im Code nicht kennt. Massgeblich ist der Code: Element → Asset nach
+`getAllowedRelations` (`features/dfd/models/asset-constants.ts`), Asset → Asset nach
+`ALLOWED_A2A_RELATIONS` (`shared/models/asset-a2a-rules.ts`). Der Dialog und der Validator folgen
+seit `v0.13.0-alpha` ausschliesslich diesem Regelwerk (B15) — was die Dokumente darüber hinaus
+beschreiben, lässt sich nicht modellieren bzw. wird als unzulässig gemeldet.
+
+| # | Stelle | Dokument sagt | Regelwerk (Code) |
+|---|---|---|---|
+| 1 | `taraflow-asset-beziehungen.md`, „Physical Boundary — Asset-Beziehungen“ | `Physical Asset located_in PhysicalBoundary`, `Infrastructure secured_by PhysicalBoundary`, `System Asset depends_on PhysicalBoundary` — Richtung Asset → Boundary | Element → Asset: PhysicalBoundary → System `is_an`, `depends_on`; → Infrastructure `is_an`, `secures`, `powers`; → Physical `is_an`, `secures`, `accesses`, `damages`. `secured_by` gibt es nicht; `located_in` gibt es nur als Asset Link Physical → Infrastructure. |
+| 2 | `taraflow-asset-beziehungen.md`, „Chip Boundary — Asset-Beziehungen“ | MCU `uses` Firmware (Data), MCU `hosts` Bootloader (Function), Process `depends_on` SE ChipBoundary | ChipBoundary → Data `reads`, `stores`, `modifies`; → Function `implements`, `depends_on`; → System `is_an`, `uses`, `depends_on`. `hosts` ist nur ein Asset Link Physical → System; Element → Element ist keine Asset-Beziehung. |
+| 3 | `taraflow-beziehungen-cheatsheet.md`, PhysicalBoundary | „connectables DFD-Element … DataFlows terminieren via Interface-Symbol auf der Boundary-Kante“; Tabelle nur mit Physical/Infrastructure | Kein DataFlow darf direkt an einer PhysicalBoundary enden (`validatePhysicalBoundaryConnections`); Zugang über Interfaces auf dem Rand — so beschreibt es `taraflow-asset-beziehungen.md` richtig. Es fehlen Infrastructure `powers` und System `is_an`/`depends_on`. |
+| 4 | Cheatsheet: Human-Tabelle und „Function → Human“ | `affects_safety` als aktive Beziehung | In keiner erlaubten Liste. `taraflow-asset-beziehungen.md` führt es als *deprecated* (ersetzt durch `endangers`); Typ, inverser Name und CIANAAA-Ableitung existieren noch im Code. |
+| 5 | `taraflow-asset-beziehungen.md` | `belongs_to` (Data → Human, dokumentarisch), `contains` (hierarchische Assets) | Nicht im Regelwerk. `contains` überschneidet sich mit `consists_of` (D5). |
+| 6 | Cheatsheet und `taraflow-asset-zu-asset-beziehungen.md` | `administered_to`, `treats`, `diagnoses`, … (Medizin, „dokumentarisch“) | Nicht im Regelwerk. |
+
+Kein Befund: `contributes_to` ist eine Hazard-Relation (`hazards.relations`), keine Element- oder
+Asset-Beziehung; `hosts`/`controlled_by` sind gültige Asset Links Physical → System.
+
+Ursache ist strukturell: Die Matrizen stehen zweimal — im Code und als Prosa/Tabelle in den
+Dokumenten — und nichts hält beide gleich. DOC-2 schliesst das.
+
 ## 4. Entscheidungen
 
 ### 4.1 Übernommen (entschieden)
@@ -84,6 +109,7 @@ Downstream-Spalte (AR-7/B12) und ein Referenz-Snapshot der Graph-Sicht.
 |---|---|---|---|
 | D10 | Abhängigkeitsrichtung je A2A-Typ (für Downstream, AR-7/B12) | (a) Tabelle je Typ: *Ziel hängt von Quelle ab* / *Quelle hängt vom Ziel ab* / *keine Abhängigkeit*; (b) Downstream nur für eine feste Typ-Liste; (c) Spalte entfernen | (a), als Daten im Regelwerk neben den inversen Namen, mit Test „jeder Typ ist eingeordnet“. Beispiele: `required_by`, `configures`, `triggers`, `powers`, `houses` → Ziel hängt von Quelle ab; `depends_on`, `runs_on`, `hosted_on`, `powered_by` → Quelle hängt vom Ziel ab. |
 | D11 | Wo öffnet die Ablaufsicht? | (a) eigene Ansicht im DFD-Tab neben dem Asset-Graph; (b) Modus der Graph-Sicht, Einstieg über einen Process-Knoten („Als Ablauf zeigen“); (c) Dialog | (b): ein Process ist dort schon ausgewählt, Rückweg über denselben Umschalter wie Ebenen/Fokus; kein vierter Ansichtsknopf. |
+| D13 | Umgang mit Typen, die nur in den Dokumenten stehen (B16 Nr. 4–6) | (a) aus den Dokumenten streichen; (b) als „nicht im Regelwerk / geplant“ markieren; (c) ins Regelwerk aufnehmen | `affects_safety`: (a), es ist durch `endangers` ersetzt — im Code dann ebenfalls entfernen (Typ, inverser Name, Ableitung; ein Projekt mit altem Wert meldet der Validator). `contains`: (a) zugunsten von `consists_of` (D5). `belongs_to`, Medizin-Typen: (b) — bewusst dokumentarische Erweiterungen, bis ein Referenzfall sie braucht. |
 | D12 | Schema-Version für `consists_of`, `flow`, `condition` | (a) neue Schema-Version 9; (b) keine: additive, optionale Felder und ein neuer Typ | (b), wie bei `v0.12.0-alpha` (neue Daten in optionalen Feldern). Ältere Versionen öffnen die Datei weiter, melden `consists_of` aber als unzulässigen Typ — das steht im Changelog. |
 
 ## 5. Anforderungen
@@ -121,7 +147,14 @@ im Asset-Tab und in den DFD-Hinweisen; ein Klick führt in der aktuellen Ansicht
 | AR-7 | Die Spalte „Downstream“ der Asset-Tabelle zählt nach der Abhängigkeitsrichtung je Typ (D10) aus der kanonischen Quelle `assets.relations`; Beschreibung der Spalte entsprechend. Bis D10 entschieden ist, bleibt sie leer (B12). | MUSS |
 | T-1 | **Referenz-Snapshot** der Graph-Sicht: Knoten- und Kantenmenge von `buildAssetGraph` (Ebenen- und Fokus-Sicht) für die Beispielprojekte aus `src/tests/examples` (TARAflow_Examples). Erweitert um einen Process mit Komposition und Verzweigung, sobald FR-P1/FR-P7 da sind. | MUSS |
 
-### 5.5 Nicht-funktional
+### 5.5 Dokumentation
+
+| ID | Anforderung | Verb. |
+|---|---|---|
+| DOC-1 | **Abgleich der Beziehungsdokumente mit dem Regelwerk** (B16): `taraflow-asset-beziehungen.md` (Abschnitte Physical Boundary und Chip Boundary), `taraflow-beziehungen-cheatsheet.md` und `taraflow-asset-zu-asset-beziehungen.md` beschreiben genau die Typen und Richtungen des Codes. Typen ausserhalb des Regelwerks nach D13. Dazu die neuen Typen aus FR-P1/FR-P7 sowie „Function vs. Process“ und die Naming-Konvention (§2). | MUSS |
+| DOC-2 | **Eine Quelle für die Matrizen:** Die Tabellen „Element → Asset“ (je Elementtyp und Gruppe) und „Asset → Asset“ (je Gruppenpaar) werden aus dem Code erzeugt (Skript) und in die Dokumente zwischen festen Markierungen eingesetzt. Ein Test schlägt fehl, wenn der eingesetzte Abschnitt nicht mehr dem Code entspricht. Die Prosa erklärt, die Tabelle gilt. | SOLL |
+
+### 5.6 Nicht-funktional
 
 | ID | Anforderung | Verb. |
 |---|---|---|
@@ -133,17 +166,20 @@ im Asset-Tab und in den DFD-Hinweisen; ein Klick führt in der aktuellen Ansicht
 
 Jeder Schritt ist für sich lieferbar.
 
-1. **Entscheidungen D10–D12** treffen (D10 und D12 sind Modellierungsfragen, D11 ist UX).
-2. **Modell** (FR-P1, FR-P7, NFR-7): Typ, Regelwerk, Attribute, Relations-Service, Kantenkarte und
-   Beziehungsdialog, i18n; Beziehungsdokument, Cheatsheet und Abschnitt „Function vs. Process“
-   samt Naming-Konvention (§2) in die Beziehungsdokumente übernehmen.
-3. **Validierungen** (FR-P3 … FR-P5) als reine Funktionen in `shared`, angebunden an Asset-Tab und
+1. **Entscheidungen D10–D13** treffen (D10, D12 und D13 sind Modellierungsfragen, D11 ist UX).
+2. **Doku-Abgleich** (DOC-1 Teil B16, DOC-2): zuerst die bestehenden Abweichungen beheben und die
+   Matrizen aus dem Code erzeugen, damit die Erweiterungen in Schritt 3 auf einer stimmigen
+   Grundlage dokumentiert werden. Unabhängig vom Rest lieferbar.
+3. **Modell** (FR-P1, FR-P7, NFR-7): Typ, Regelwerk, Attribute, Relations-Service, Kantenkarte und
+   Beziehungsdialog, i18n; die neuen Typen, „Function vs. Process“ und die Naming-Konvention (§2)
+   in die Beziehungsdokumente (DOC-1).
+4. **Validierungen** (FR-P3 … FR-P5) als reine Funktionen in `shared`, angebunden an Asset-Tab und
    DFD-Hinweise; dann FR-P6 in der Graph-Sicht.
-4. **Ablaufsicht** (FR-P2): reine Aufbereitung (Process → Schritte, Daten, Abzweige,
+5. **Ablaufsicht** (FR-P2): reine Aufbereitung (Process → Schritte, Daten, Abzweige,
    Sub-Processes), dann die Darstellung.
-5. **Downstream** (AR-7) nach D10.
-6. **Referenz-Snapshot** (T-1), zuerst für den heutigen Stand, später um Process-Beispiele erweitert.
-7. Optional **Hazard Items** im Graph (FR-V11).
+6. **Downstream** (AR-7) nach D10.
+7. **Referenz-Snapshot** (T-1), zuerst für den heutigen Stand, später um Process-Beispiele erweitert.
+8. Optional **Hazard Items** im Graph (FR-V11).
 
 **Risiko:** gering bis mittel — additive Typ-Erweiterung; die Ablaufsicht ist neue Oberfläche, aber
 lesend.
@@ -158,6 +194,8 @@ lesend.
   `implements` und Spiegelduplikate — ohne etwas zu ändern.
 - Downstream zählt nach der festgelegten Richtung je Typ.
 - Referenz-Snapshot der Graph-Sicht für die Beispielprojekte vorhanden.
+- Beziehungsdokumente und Cheatsheet stimmen mit dem Regelwerk überein (B16 erledigt); die
+  Matrizen in den Dokumenten sind aus dem Code erzeugt und durch einen Test gesichert.
 - i18n en/de vollständig; `canonicalStringify`-Idempotenz und AVE-TCS-Prüfung weiterhin grün.
 
 ## 8. Nicht in diesem Plan
