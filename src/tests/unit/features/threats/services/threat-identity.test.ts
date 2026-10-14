@@ -4,6 +4,7 @@
 // matched by stable natural key, while recomputing every system-derived field.
 
 import { describe, it, expect } from "vitest";
+import { applyIsoAssetRelevance } from "../../../../../features/threats/services/sync-threats-with-graph";
 import type { Threat } from "../../../../../features/threats/models/threat-types";
 import {
   elementThreatNaturalKey,
@@ -188,6 +189,42 @@ describe("mergeGeneratedThreat", () => {
     expect(merged.workflowStatus).toBe("reviewed");
     expect(merged.evalNote).toBe("ruled out — internal only");
     expect(merged.threatActor).toBe("insider");
+  });
+
+  it("preserves relevanceOverridden (the analyst's relevance stays protected)", () => {
+    const existing = baseThreat({ relevance: "not_relevant", relevanceOverridden: true });
+    const fresh = baseThreat({ relevance: "unrated", relevanceOverridden: false });
+    const merged = mergeGeneratedThreat(existing, fresh);
+    expect(merged.relevance).toBe("not_relevant");
+    expect(merged.relevanceOverridden).toBe(true);
+  });
+
+  it("an overridden relevance survives regeneration AND the next ISO sync", () => {
+    // Regression: the flag was dropped on regeneration, so the next sync
+    // re-derived relevance from the asset link and flipped the decision.
+    const existing = baseThreat({
+      relevance: "not_relevant",
+      relevanceOverridden: true,
+      workflowStatus: "reviewed",
+      linkedAssetIds: ["A-1"],
+    });
+    const fresh = baseThreat({ linkedAssetIds: ["A-1"] });
+    const merged = mergeGeneratedThreat(existing, fresh);
+    const synced = applyIsoAssetRelevance(
+      {
+        perElementTables: [
+          {
+            trustBoundaryId: null,
+            trustBoundaryName: "No Trust Boundary",
+            displayIdentifier: "[UB]",
+            threats: [merged],
+          },
+        ],
+        perInteractionTables: [],
+      } as any,
+      true,
+    );
+    expect(synced.perElementTables[0].threats[0].relevance).toBe("not_relevant");
   });
 
   it("recomputes system-derived fields from fresh", () => {

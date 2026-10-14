@@ -185,8 +185,8 @@ export function mergeProposedVerifications(
  * trustBoundary*, linkedAssetIds, initialImpact, source, templateId,
  * causeDescription, sequenceNumber.
  *
- * ANALYST-OWNED (preserved from `existing`): relevance, workflowStatus,
- * evalNote, threatActor, isTextCustomized (+ the customised threat/attack text
+ * ANALYST-OWNED (preserved from `existing`): relevance, relevanceOverridden,
+ * workflowStatus, evalNote, threatActor, isTextCustomized (+ the customised threat/attack text
  * when that flag is set), mitigation/verification notes and custom entries.
  *
  * created / lastModified are preserved from `existing` so that a no-op
@@ -210,6 +210,10 @@ export function mergeGeneratedThreat(
 
     // ── Analyst-owned: always preserved ──────────────────────────────────
     relevance: existing.relevance,
+    // The marker that protects the analyst's relevance from the ISO 21434
+    // asset-relevance derivation (applyIsoAssetRelevance). Keeping the
+    // relevance but dropping the marker let the next graph sync overwrite it.
+    relevanceOverridden: existing.relevanceOverridden,
     workflowStatus: existing.workflowStatus,
     evalNote: existing.evalNote,
     threatActor: existing.threatActor,
