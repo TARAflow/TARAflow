@@ -66,7 +66,7 @@ const BASE_RULES: Record<DerivationKey, SecurityGoalType[]> = {
   "function:is_an": ["I", "A"],
   "function:executes": ["I", "A", "AuthZ"],
   "function:depends_on": ["A"],
-  "function:invokes": ["AuthZ", "N"],
+  "function:invokes": ["AuthZ"], // triggering is an authorization question; N only via executes/monitors
   "function:implements": ["I", "A"],
   "function:monitors": ["I", "N"],
 

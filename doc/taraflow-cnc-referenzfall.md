@@ -868,7 +868,7 @@ zwischen DFD-Element und Asset.
 | `is_an` | Integrity, Availability |
 | `executes` | Integrity, Availability, Authorization |
 | `depends_on` | Availability |
-| `invokes` | Authorization, Non-Repudiation |
+| `invokes` | Authorization |
 | `implements` | Integrity, Availability |
 | `monitors` | Integrity, Non-Repudiation |
 

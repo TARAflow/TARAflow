@@ -261,16 +261,20 @@ describe("function asset rules", () => {
     ["is_an", ["I", "A"]],
     ["executes", ["I", "A", "AuthZ"]],
     ["depends_on", ["A"]],
-    ["invokes", ["AuthZ", "N"]],
+    ["invokes", ["AuthZ"]],
     ["implements", ["I", "A"]],
     ["monitors", ["I", "N"]],
   ])("%s", (relation, expected) => {
     expect(computeSuggestedGoalTypes(fn(relation))).toEqual(new Set(expected));
   });
 
+  it("invokes alone does not suggest N", () => {
+    expect(computeSuggestedGoalTypes(fn("invokes")).has("N")).toBe(false);
+  });
+
   it("several relations → union; C never (not applicable), no conditional C/Acc flags", () => {
     const s = computeSuggestedGoalTypes(fn("invokes", "implements", "monitors"));
-    expect(s).toEqual(new Set(["I", "A", "AuthZ", "N"]));
+    expect(s).toEqual(new Set(["I", "A", "AuthZ", "N"])); // N from monitors, not invokes
     expect(s.has("C")).toBe(false);
     expect(s.has("Acc")).toBe(false);
   });
