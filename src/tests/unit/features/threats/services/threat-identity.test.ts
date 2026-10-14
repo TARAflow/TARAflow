@@ -399,6 +399,62 @@ describe("mergeGeneratedTables — manual threat preservation (keepManual)", () 
   });
 });
 
+describe("mergeGeneratedTables — a kept threat whose rule returns", () => {
+  // The analyst kept a generated threat as manual after a rule change
+  // (drift review → Keep). A later rule change produces it again.
+  const tbl = (threats: Threat[]) =>
+    ({ trustBoundaryId: null, trustBoundaryName: "No Trust Boundary", displayIdentifier: "[UB]", threats } as any);
+  const kept = () =>
+    baseThreat({
+      id: "uuid-kept-1",
+      displayId: "P1-S-1",
+      source: "manual",
+      retainedAfterRuleChange: { at: "2026-10-13T18:13:53.508Z", previousSource: "generated:classic" },
+      relevance: "relevant",
+      relevanceOverridden: true,
+      workflowStatus: "reviewed",
+      evalNote: "confirm in workshop",
+    });
+  const fresh = () =>
+    baseThreat({ id: "uuid-fresh-9", displayId: "P1-S-1", source: "generated:cianaaa" });
+
+  it.each([false, true])("merges it back as the generated threat (keepManual %s)", (keepManual) => {
+    const merged = mergeGeneratedTables([tbl([fresh()])], [tbl([kept()])], elementThreatNaturalKey, {
+      keepManual,
+    });
+    const threats = merged.flatMap((t) => t.threats);
+    expect(threats).toHaveLength(1); // neither dropped nor duplicated
+    const t = threats[0];
+    expect(t.id).toBe("uuid-kept-1"); // identity kept — references stay linked
+    expect(t.source).toBe("generated:cianaaa");
+    expect(t.retainedAfterRuleChange).toBeUndefined();
+    expect(t.relevance).toBe("relevant");
+    expect(t.relevanceOverridden).toBe(true);
+    expect(t.workflowStatus).toBe("reviewed");
+    expect(t.evalNote).toBe("confirm in workshop");
+  });
+
+  it("a generated predecessor of the same key wins; the kept threat stays manual", () => {
+    const gen = baseThreat({ id: "uuid-gen-1", source: "generated:classic", evalNote: "gen" });
+    const merged = mergeGeneratedTables([tbl([fresh()])], [tbl([gen, kept()])], elementThreatNaturalKey, {
+      keepManual: true,
+    });
+    const threats = merged.flatMap((t) => t.threats);
+    expect(threats.find((t) => t.id === "uuid-gen-1")?.source).toBe("generated:cianaaa");
+    expect(threats.find((t) => t.id === "uuid-kept-1")?.source).toBe("manual");
+  });
+
+  it("an analyst-authored manual threat is still never merged", () => {
+    const authored = baseThreat({ id: "uuid-m", source: "manual", evalNote: "mine" });
+    const merged = mergeGeneratedTables([tbl([fresh()])], [tbl([authored])], elementThreatNaturalKey, {
+      keepManual: true,
+    });
+    const threats = merged.flatMap((t) => t.threats);
+    expect(threats).toHaveLength(2);
+    expect(threats.find((t) => t.source === "generated:cianaaa")?.id).toBe("uuid-fresh-9");
+  });
+});
+
 describe("retainManualThreatTables", () => {
   const gen = () => baseThreat({ id: "uuid-g", displayId: "P1-S-1", source: "generated:full" });
   const man = (over: Partial<Threat> = {}) =>

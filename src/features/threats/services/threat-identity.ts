@@ -86,7 +86,17 @@ export function interactionThreatNaturalKey(threat: Threat): string | null {
  * linkedElement like a generated one, so indexing it let a freshly generated
  * threat of the same element+STRIDE inherit the manual threat's UUID and
  * analyst fields while the manual threat itself was re-attached — two rows,
- * one identity. First occurrence wins — the
+ * one identity.
+ *
+ * Exception: a threat the analyst KEPT after a rule change
+ * (retainedAfterRuleChange) is a former generated threat, not an
+ * analyst-authored one. When the rules produce its key again it is indexed —
+ * after the generated threats, so a generated predecessor always wins — and
+ * the regeneration merges it back: same UUID, analyst fields kept, source
+ * from the generator, retention marker gone. Without this it was dropped
+ * (keepManual off: the evaluation was lost) or duplicated (keepManual on).
+ *
+ * First occurrence wins — the
  * generator's own end-of-run dedup guarantees at most one threat per key, so a
  * collision here would only mean pre-existing duplicate residue in a loaded
  * file, in which case keeping the first is the safe choice.
@@ -97,12 +107,14 @@ export function buildThreatIndex(
 ): Map<string, Threat> {
   const index = new Map<string, Threat>();
   if (!tables) return index;
-  for (const table of tables) {
-    for (const threat of table.threats) {
-      if (threat.source === "manual") continue;
-      const key = keyFn(threat);
-      if (key && !index.has(key)) index.set(key, threat);
-    }
+  const all = tables.flatMap((table) => table.threats);
+  const generated = all.filter((t) => t.source !== "manual");
+  const retained = all.filter(
+    (t) => t.source === "manual" && t.retainedAfterRuleChange,
+  );
+  for (const threat of [...generated, ...retained]) {
+    const key = keyFn(threat);
+    if (key && !index.has(key)) index.set(key, threat);
   }
   return index;
 }
@@ -295,13 +307,19 @@ export function mergeGeneratedTables(
 
   if (!options.keepManual || !previousTables) return merged;
 
+  // A retained threat that the merge took back as a predecessor is already in
+  // `merged` under its own UUID — re-attaching it as well would duplicate it.
+  const mergedIds = new Set(merged.flatMap((t) => t.threats.map((x) => x.id)));
+
   // normalizeThreatTables:
   //  - dissolves legacy/untitled carried-over tables into the table of the
   //    threat's own trust boundary (see threat-table-normalize.ts);
   //  - re-numbers manual threats that landed on a label the regeneration just
   //    issued (the generator numbers from 1 without seeing manual threats).
   // Identity (UUID) is unaffected.
-  return normalizeThreatTables(reattachManualThreats(merged, previousTables));
+  return normalizeThreatTables(
+    reattachManualThreats(merged, previousTables, mergedIds),
+  );
 }
 
 /** Grouping key for matching a manual threat's previous table to a fresh one. */
@@ -321,10 +339,13 @@ function tableGroupKey(table: ThreatTable): string {
 function reattachManualThreats(
   freshTables: ThreatTable[],
   previousTables: ThreatTable[],
+  alreadyMerged: ReadonlySet<string> = new Set(),
 ): ThreatTable[] {
   const manualByGroup = new Map<string, Threat[]>();
   for (const table of previousTables) {
-    const manual = table.threats.filter((t) => t.source === "manual");
+    const manual = table.threats.filter(
+      (t) => t.source === "manual" && !alreadyMerged.has(t.id),
+    );
     if (manual.length === 0) continue;
     const key = tableGroupKey(table);
     const bucket = manualByGroup.get(key);
