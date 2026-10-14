@@ -839,6 +839,13 @@ Accountability:  Zusatz bei Privacy (DSGVO) und behördlicher Nachweispflicht
 Die CIANAAA-Schutzziele werden nicht frei vergeben. Sie folgen aus dem Beziehungstyp
 zwischen DFD-Element und Asset.
 
+Die Tabellen sind vollständig: jede Kombination aus Asset-Gruppe, Beziehungstyp und
+Qualifier hat eine Regel (Code: `BASE_RULES` in `asset-cianaaa-deriver.ts`, geprüft durch
+`asset-cianaaa-rule-coverage.test.ts`). Ein „–" bedeutet *bewusst kein Vorschlag*
+(Schutzobjekt), nicht *vergessen*. Danach filtert `CIANAAA_APPLICABLE` die Schutzziele,
+die für eine Asset-Gruppe nicht anwendbar sind (z. B. AuthN/AuthZ auf Data, N auf
+System und Infrastructure, I/A auf Human); die Tabellen zeigen die Regel vor diesem Filter.
+
 *Data Assets:*
 
 | Beziehungstyp | Primäre Schutzziele |
@@ -849,6 +856,7 @@ zwischen DFD-Element und Asset.
 | `creates` | Integrity, Authentication, Non-Repudiation, Accountability** |
 | `deletes` | Integrity, Authorization, Non-Repudiation, Accountability** |
 | `transports` | Integrity, Confidentiality, Authentication, Accountability** |
+| `is_an` | Integrity, Availability, Confidentiality* |
 
 *Process Assets:*
 
@@ -880,8 +888,20 @@ zwischen DFD-Element und Asset.
 | `controls` | Integrity, Availability, Authorization |
 | `configures` | Integrity, Authorization, Non-Repudiation |
 | `depends_on` | Availability |
+| `monitors` | Integrity, Non-Repudiation, Accountability** |
 | `uses [network]` | Authentication, Authorization, Integrity, Accountability** |
 | `uses [local]` | Authorization, Integrity |
+| `uses [api]` | Authentication, Authorization, Integrity, Accountability** |
+| `uses [hardware]` | Authorization, Integrity |
+| `uses [library]` | Integrity, Authorization |
+| `uses [authentication]` | Authentication, Integrity, Availability, Accountability** |
+| `uses [authorization]` | Authorization, Integrity, Availability, Accountability** |
+| `uses [storage]` | Integrity, Availability, Authorization |
+| `uses [computation]` | Integrity, Availability |
+| `uses [messaging]` | Integrity, Confidentiality, Authentication, Accountability** |
+| `uses [configuration]` | Integrity, Authorization, Non-Repudiation |
+| `uses [monitoring]` | Integrity, Non-Repudiation, Accountability** |
+| `uses [networking]` | Authentication, Integrity, Availability |
 
 *Infrastructure Assets:*
 
@@ -890,21 +910,60 @@ zwischen DFD-Element und Asset.
 | `is_an` | Integrity, Availability |
 | `accesses [on-site]` | Authorization, Non-Repudiation |
 | `accesses [internal]` | Authorization, Non-Repudiation |
-| `accesses [remote]` | Authentication, Authorization, Non-Repudiation, Accountability** |
+| `accesses [proximity]` | Authorization, Non-Repudiation |
 | `secures` | Availability, Integrity |
 | `powers` | Availability |
 | `damages` | Availability, Integrity |
 | `monitors` | Integrity, Non-Repudiation, Accountability** |
+
+Einen Qualifier `[remote]` gibt es für Infrastructure nicht: Fernzugriff auf Infrastruktur
+wird als `uses [network]` auf das System Asset modelliert.
+
+*Physical Assets:* (anwendbar nur Integrity, Availability, Accountability)
+
+| Beziehungstyp | Primäre Schutzziele |
+|---|---|
+| `is_an` | Integrity, Availability |
+| `accesses [direct]` | Integrity, Availability, Authorization |
+| `accesses [indirect]` | – (nur Beobachtung; Confidentiality auf Physical nicht anwendbar) |
+| `accesses [remote]` | Integrity, Availability, Authorization |
+| `damages` | Availability, Integrity |
+| `secures` | Availability, Integrity |
+| `monitors` | Integrity, Non-Repudiation |
+
+*Service Assets:*
+
+| Beziehungstyp | Primäre Schutzziele |
+|---|---|
+| `is_an` | Integrity, Availability |
+| `uses [api]` | Authentication, Authorization, Integrity, Accountability** |
+| `uses [sdk]` | Integrity, Authorization |
+| `uses [webhook]` | Authentication, Integrity, Non-Repudiation |
+| `uses [managed]` | Availability |
+| `configures` | Integrity, Authorization, Non-Repudiation |
+| `monitors` | Integrity, Non-Repudiation, Accountability** |
+| `depends_on` | Availability |
 
 *Human Assets:*
 
 | Beziehungstyp | Primäre Schutzziele |
 |---|---|
 | `is_an` | – (Protection Target Definition) |
-| `affects_safety` | Availability, Integrity |
+| `endangers` | – (Safety-Pfad: Schaden wird als Safety Impact bewertet, Hazard-Item-Kette) |
+| `affects_safety` | Availability, Integrity (veraltet, ersetzt durch `endangers`; I/A auf Human nicht anwendbar) |
 | `affects_privacy` | Confidentiality, Authorization, Accountability |
 | `tracks` | Confidentiality, Authorization, Accountability |
 | `exposes` | Confidentiality, Authentication, Accountability** |
+| `identifies` | Confidentiality, Authorization |
+
+*Environment Assets:* (nur über Sensor/Actuator erreichbar)
+
+| Beziehungstyp | Primäre Schutzziele |
+|---|---|
+| `is_an` | – (Schutzobjekt) |
+| `endangers` | – (Schaden wird als Umwelt-Impact bewertet) |
+| `contaminates` | – (Schaden wird als Umwelt-Impact bewertet) |
+| `monitors` | – (eine verfälschte Messung betrifft das Data Asset, das der Sensor erzeugt: `creates`) |
 
 > __'*'__ Confidentiality gilt nur wenn das Asset explizit als vertraulich klassifiziert ist.
 

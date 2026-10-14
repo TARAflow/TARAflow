@@ -50,7 +50,10 @@ interface AssetFlags {
 
 type DerivationKey = string;
 
-const BASE_RULES: Record<DerivationKey, SecurityGoalType[]> = {
+// Every reachable group × relation [× qualifier] has an entry — an empty list
+// means "no suggestion by design" (protection targets), not "forgotten".
+// Guarded by asset-cianaaa-rule-coverage.test.ts.
+export const BASE_RULES: Readonly<Record<DerivationKey, readonly SecurityGoalType[]>> = {
   // ── Data Assets ────────────────────────────────────────────────
   "data:stores": ["I", "A"], // + C* if isSecureStorage
   "data:reads": ["C", "AuthZ"],
@@ -58,6 +61,7 @@ const BASE_RULES: Record<DerivationKey, SecurityGoalType[]> = {
   "data:creates": ["I", "AuthN", "N"], // + Acc** if isPersonalData
   "data:deletes": ["I", "AuthZ", "N"], // + Acc** if isPersonalData
   "data:transports": ["I", "C", "AuthN"], // + Acc** if isPersonalData
+  "data:is_an": ["I", "A"], // + C* if isSecureStorage
 
   // ── Function Assets ────────────────────────────────────────────
   // "What must the system be able to do?" — C is not applicable (CIANAAA_APPLICABLE).
@@ -83,35 +87,79 @@ const BASE_RULES: Record<DerivationKey, SecurityGoalType[]> = {
   "system:controls": ["I", "A", "AuthZ"],
   "system:configures": ["I", "AuthZ", "N"],
   "system:depends_on": ["A"],
+  "system:monitors": ["I", "N"], // + Acc** if isPersonalData (N not applicable on system)
   "system:uses:network": ["AuthN", "AuthZ", "I"], // + Acc** if isPersonalData
   "system:uses:local": ["AuthZ", "I"],
   "system:uses:api": ["AuthN", "AuthZ", "I"], // + Acc** if isPersonalData
   "system:uses:hardware": ["AuthZ", "I"],
   "system:uses:library": ["I", "AuthZ"],
+  "system:uses:authentication": ["AuthN", "I", "A"], // + Acc** if isPersonalData
+  "system:uses:authorization": ["AuthZ", "I", "A"], // + Acc** if isPersonalData
+  "system:uses:storage": ["I", "A", "AuthZ"],
+  "system:uses:computation": ["I", "A"],
+  "system:uses:messaging": ["I", "C", "AuthN"], // + Acc** if isPersonalData
+  "system:uses:configuration": ["I", "AuthZ", "N"],
+  "system:uses:monitoring": ["I", "N"], // + Acc** if isPersonalData
+  "system:uses:networking": ["AuthN", "I", "A"],
 
   // ── Infrastructure Assets ──────────────────────────────────────
   "infrastructure:is_an": ["I", "A"],
-  "infrastructure:accesses:local": ["AuthZ", "N"],
+  // Qualifiers are InfraAccessesQualifier ("on-site" | "proximity" | "internal").
+  // Remote access to infrastructure is modelled as system:uses:network.
+  "infrastructure:accesses:on-site": ["AuthZ", "N"],
   "infrastructure:accesses:internal": ["AuthZ", "N"],
-  "infrastructure:accesses:remote": ["AuthN", "AuthZ", "N"], // + Acc** if isPersonalData
   "infrastructure:accesses:proximity": ["AuthZ", "N"],
   "infrastructure:secures": ["A", "I"],
   "infrastructure:powers": ["A"],
   "infrastructure:damages": ["A", "I"],
   "infrastructure:monitors": ["I", "N"], // + Acc** if isPersonalData
 
+  // ── Physical Assets ────────────────────────────────────────────
+  // Passive objects — only I, A, Acc are applicable (CIANAAA_APPLICABLE);
+  // the remaining flags document the intent and are filtered out.
+  "physical:is_an": ["I", "A"],
+  "physical:accesses:direct": ["I", "A", "AuthZ"],
+  "physical:accesses:indirect": [], // observation only — C is not applicable on physical
+  "physical:accesses:remote": ["I", "A", "AuthZ"],
+  "physical:damages": ["A", "I"],
+  "physical:secures": ["A", "I"],
+  "physical:monitors": ["I", "N"],
+
+  // ── Service Assets ─────────────────────────────────────────────
+  "service:is_an": ["I", "A"],
+  "service:uses:api": ["AuthN", "AuthZ", "I"], // + Acc** if isPersonalData
+  "service:uses:sdk": ["I", "AuthZ"],
+  "service:uses:webhook": ["AuthN", "I", "N"],
+  "service:uses:managed": ["A"],
+  "service:configures": ["I", "AuthZ", "N"],
+  "service:monitors": ["I", "N"], // + Acc** if isPersonalData
+  "service:depends_on": ["A"],
+
   // ── Human Assets ───────────────────────────────────────────────
   "human:is_an": [], // Protection Target — no CIANAAA flags on asset itself
+  // Safety path: the damage is rated as safety impact (Hazard Item chain);
+  // I/A are not applicable on human assets.
+  "human:endangers": [],
   "human:affects_safety": ["A", "I"],
   "human:affects_privacy": ["C", "AuthZ", "Acc"],
   "human:tracks": ["C", "AuthZ", "Acc"],
   "human:exposes": ["C", "AuthN"], // + Acc** if isPersonalData
   "human:identifies": ["C", "AuthZ"],
+
+  // ── Environment Assets ─────────────────────────────────────────
+  // Protection target reached by transducers only (Sensor/Actuator). The damage
+  // is rated as environment impact; a falsified measurement is the integrity of
+  // the data asset the sensor creates (data:creates), not of the environment.
+  "environment:is_an": [],
+  "environment:endangers": [],
+  "environment:contaminates": [],
+  "environment:monitors": [],
 };
 
 // Relations that carry (*) conditional Confidentiality
 const CONFIDENTIALITY_STAR_RELATIONS: Set<DerivationKey> = new Set([
   "data:stores",
+  "data:is_an",
   "process:is_an",
 ]);
 
@@ -123,10 +171,16 @@ const ACCOUNTABILITY_STAR_STAR_RELATIONS: Set<DerivationKey> = new Set([
   "process:invokes",
   "process:monitors",
   "process:executes",
+  "system:monitors",
   "system:uses:network",
   "system:uses:api",
-  "infrastructure:accesses:remote",
+  "system:uses:authentication",
+  "system:uses:authorization",
+  "system:uses:messaging",
+  "system:uses:monitoring",
   "infrastructure:monitors",
+  "service:uses:api",
+  "service:monitors",
   "human:exposes",
 ]);
 
