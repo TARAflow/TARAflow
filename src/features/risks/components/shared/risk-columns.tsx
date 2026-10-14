@@ -9,7 +9,6 @@ import {
   Box,
   Chip,
   Stack,
-  Tooltip,
   Typography,
   FormControl,
   Select,
@@ -40,6 +39,8 @@ import {
   clauseFromMandatedId,
 } from "../../models/en50742-approach-a-core";
 import type { StrideCategory, DataColumn } from "shared";
+// ~10 tooltips per row: mount them on first hover only (see lazy-tooltip.tsx).
+import { LazyTooltip as Tooltip } from "shared";
 
 // ==================== COLUMN TYPE ====================
 
