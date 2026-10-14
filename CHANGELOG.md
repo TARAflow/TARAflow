@@ -1,3 +1,28 @@
+## [0.13.3-alpha] - 2026-10-14
+
+A bugfix release for threat regeneration: it lost analyst decisions.
+
+### Fixed
+- **Regeneration dropped the relevance override.** Relevance, status and
+  note were kept, but not the `relevanceOverridden` marker that protects the
+  analyst's relevance from the ISO 21434 derivation from the asset link. The
+  next graph sync then overwrote the decision — on a real project 59 threats
+  marked "not relevant" despite an asset link would have become "relevant".
+  The marker is now kept.
+- **A kept threat whose rule returned was dropped or duplicated.** A threat
+  the analyst kept after a rule change (drift review → Keep) became manual.
+  When a later rule change produced it again, regeneration either dropped it
+  with its evaluation (manual threats not kept) or added the generated one
+  next to it (manual threats kept). It is now merged back: same id, the
+  analyst's relevance, status and note, source from the generator, the
+  "kept" marker removed. Analyst-authored manual threats are unchanged and
+  never merged.
+
+### Notes
+- Projects regenerated with 0.13.2 or earlier may already have lost
+  overrides. They cannot be recovered from the project itself; restore them
+  from a copy saved before the regeneration.
+
 ## [0.13.2-alpha] - 2026-10-14
 
 A bugfix release for the CIANAAA derivation: security goals are suggested from
