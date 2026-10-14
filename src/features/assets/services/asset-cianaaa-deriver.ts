@@ -59,6 +59,17 @@ const BASE_RULES: Record<DerivationKey, SecurityGoalType[]> = {
   "data:deletes": ["I", "AuthZ", "N"], // + Acc** if isPersonalData
   "data:transports": ["I", "C", "AuthN"], // + Acc** if isPersonalData
 
+  // ── Function Assets ────────────────────────────────────────────
+  // "What must the system be able to do?" — C is not applicable (CIANAAA_APPLICABLE).
+  // is_an / executes / depends_on as specified in taraflow-cnc-referenzfall.md;
+  // invokes / implements / monitors complete the FunctionAssetRelationType set.
+  "function:is_an": ["I", "A"],
+  "function:executes": ["I", "A", "AuthZ"],
+  "function:depends_on": ["A"],
+  "function:invokes": ["AuthZ", "N"],
+  "function:implements": ["I", "A"],
+  "function:monitors": ["I", "N"],
+
   // ── Process Assets ─────────────────────────────────────────────
   "process:is_an": ["I", "A"], // + C* if isBusinessSecret
   "process:invokes": ["AuthZ", "N"], // + Acc** if isPersonalData

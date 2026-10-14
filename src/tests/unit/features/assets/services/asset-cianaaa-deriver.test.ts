@@ -233,3 +233,53 @@ describe("data rules use the stored relation names", () => {
     );
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────
+// Function assets had no rules at all, so every relation on a function asset
+// (executes, invokes, implements, monitors, depends_on, is_an) produced no
+// suggestion and the analyst had to set every goal by hand.
+// ──────────────────────────────────────────────────────────────────────────
+
+describe("function asset rules", () => {
+  function fn(...relations: string[]): Asset {
+    return {
+      id: "FU-1",
+      name: "Emergency stop",
+      assetGroup: "function",
+      properties: { isPersonalData: true, isBusinessSecret: true },
+      impactRatings: [rating("safety", 4), rating("operational", 3)],
+      securityGoals: emptyGoals(),
+      linkedDFDElements: relations.map((relationType, i) => ({
+        elementId: `E-${i}`,
+        elementName: `E${i}`,
+        relationType,
+      })),
+    } as unknown as Asset;
+  }
+
+  it.each<[string, SecurityGoalType[]]>([
+    ["is_an", ["I", "A"]],
+    ["executes", ["I", "A", "AuthZ"]],
+    ["depends_on", ["A"]],
+    ["invokes", ["AuthZ", "N"]],
+    ["implements", ["I", "A"]],
+    ["monitors", ["I", "N"]],
+  ])("%s", (relation, expected) => {
+    expect(computeSuggestedGoalTypes(fn(relation))).toEqual(new Set(expected));
+  });
+
+  it("several relations → union; C never (not applicable), no conditional C/Acc flags", () => {
+    const s = computeSuggestedGoalTypes(fn("invokes", "implements", "monitors"));
+    expect(s).toEqual(new Set(["I", "A", "AuthZ", "N"]));
+    expect(s.has("C")).toBe(false);
+    expect(s.has("Acc")).toBe(false);
+  });
+
+  it("stored goals follow the suggestion (levels derived, not 'none')", () => {
+    const a = fn("executes");
+    const active = deriveSecurityGoalSuggestions(a, a.securityGoals, "4-level")
+      .filter((g) => g.level !== "none")
+      .map((g) => g.type);
+    expect(new Set(active)).toEqual(new Set(["I", "A", "AuthZ"]));
+  });
+});
