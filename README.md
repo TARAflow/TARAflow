@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.13.0-alpha`
+> **Current version:** `v0.13.3-alpha`
 
 TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
 
@@ -555,7 +555,7 @@ The project format contains the information required to reconstruct and analyze 
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
-The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **8**, since `v0.13.0-alpha`).
+The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **8**, since `v0.13.3-alpha`).
 
 View state such as the positions in the asset graph is not part of the project file.
 
@@ -614,12 +614,12 @@ Recent development versions include:
 * `v0.11.1-alpha` — identity and label integrity, DFD thumbnail fixes
 * `v0.11.2-alpha` — dependency and supply-chain hardening
 * `v0.12.0-alpha` — security-goal rework, risk impact aggregation, threat generation drift
-* `v0.13.0-alpha` — asset graph with edit mode, persistent asset-to-asset relations (schema 8)
+* `v0.13.3-alpha` — asset graph with edit mode, persistent asset-to-asset relations (schema 8)
 
 The current development state is represented by:
 
 ```text
-v0.13.0-alpha
+v0.13.3-alpha
 ```
 
 See [`CHANGELOG.md`](CHANGELOG.md) for details.
