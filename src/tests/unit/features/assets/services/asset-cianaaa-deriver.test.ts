@@ -203,3 +203,33 @@ describe("single suggestion rule: stored goals follow computeSuggestedGoalTypes"
     expect(active).toEqual(computeSuggestedGoalTypes(a));
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────
+// Rule keys must use the relation names the DFD actually stores.
+// The data rule was keyed "data:destroys" while DataAssetRelationType is
+// "deletes", so a deletes relation produced no suggestion at all.
+// ──────────────────────────────────────────────────────────────────────────
+
+describe("data rules use the stored relation names", () => {
+  function dataWith(relation: string, props: Record<string, unknown> = {}): Asset {
+    return {
+      id: "A-10",
+      name: "Log store",
+      assetGroup: "data",
+      properties: props,
+      impactRatings: [rating("regulatory_compliance", 3)],
+      securityGoals: emptyGoals(),
+      linkedDFDElements: [{ elementId: "P-1", elementName: "Cleanup", relationType: relation }],
+    } as unknown as Asset;
+  }
+
+  it("deletes → I, N (AuthZ is not applicable on data assets)", () => {
+    expect(computeSuggestedGoalTypes(dataWith("deletes"))).toEqual(new Set(["I", "N"]));
+  });
+
+  it("deletes on personal data adds Acc**", () => {
+    expect(computeSuggestedGoalTypes(dataWith("deletes", { isPersonalData: true }))).toEqual(
+      new Set(["I", "N", "Acc"]),
+    );
+  });
+});

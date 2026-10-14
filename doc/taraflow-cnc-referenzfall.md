@@ -847,7 +847,7 @@ zwischen DFD-Element und Asset.
 | `reads` | Confidentiality, Authorization |
 | `modifies` | Integrity, Authorization, Non-Repudiation |
 | `creates` | Integrity, Authentication, Non-Repudiation, Accountability** |
-| `destroys` | Integrity, Authorization, Non-Repudiation, Accountability** |
+| `deletes` | Integrity, Authorization, Non-Repudiation, Accountability** |
 | `transports` | Integrity, Confidentiality, Authentication, Accountability** |
 
 *Process Assets:*

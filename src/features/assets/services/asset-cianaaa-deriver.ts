@@ -56,7 +56,7 @@ const BASE_RULES: Record<DerivationKey, SecurityGoalType[]> = {
   "data:reads": ["C", "AuthZ"],
   "data:modifies": ["I", "AuthZ", "N"],
   "data:creates": ["I", "AuthN", "N"], // + Acc** if isPersonalData
-  "data:destroys": ["I", "AuthZ", "N"], // + Acc** if isPersonalData
+  "data:deletes": ["I", "AuthZ", "N"], // + Acc** if isPersonalData
   "data:transports": ["I", "C", "AuthN"], // + Acc** if isPersonalData
 
   // ── Process Assets ─────────────────────────────────────────────
@@ -107,7 +107,7 @@ const CONFIDENTIALITY_STAR_RELATIONS: Set<DerivationKey> = new Set([
 // Relations that carry (**) conditional Accountability
 const ACCOUNTABILITY_STAR_STAR_RELATIONS: Set<DerivationKey> = new Set([
   "data:creates",
-  "data:destroys",
+  "data:deletes",
   "data:transports",
   "process:invokes",
   "process:monitors",
