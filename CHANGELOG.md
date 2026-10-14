@@ -1,3 +1,38 @@
+## [0.13.2-alpha] - 2026-10-14
+
+A bugfix release for the CIANAAA derivation: security goals are suggested from
+the relation between a DFD element and an asset, and several relations had no
+rule — those assets silently got fewer (or no) suggested goals. Every
+combination of asset group, relation type and qualifier now has a rule; a
+test guards that it stays so.
+
+### Fixed
+- **`deletes` on data assets suggested nothing.** The rule was keyed
+  `data:destroys`, a relation that does not exist; the stored relation is
+  `deletes`. It now suggests Integrity and Non-Repudiation (+ Accountability
+  for personal data).
+- **Function assets got no suggestions for `invokes`, `implements` and
+  `monitors`.** Added: `invokes` → Authorization, `implements` → Integrity,
+  Availability, `monitors` → Integrity, Non-Repudiation. The specified rules
+  for `is_an`, `executes` and `depends_on` were missing in the code as well.
+- **On-site access to infrastructure was never derived.** The rule was keyed
+  `accesses:local`, but the qualifier is `on-site`. The unused
+  `accesses:remote` rule is removed — there is no such qualifier; remote
+  access is modelled as `uses [network]` on the system asset.
+- **Missing rules completed:** data `is_an`; system `monitors` and `uses`
+  with the qualifiers authentication, authorization, storage, computation,
+  messaging, configuration, monitoring and networking; all physical and
+  service relations. Human `endangers` and all environment relations are
+  explicit "no suggestion" rules — these are protection targets whose damage
+  is rated as safety or environment impact.
+
+### Notes
+- Existing projects can get **new suggested goals** on assets with these
+  relations, and with them new threats in the threat preview. Goals the
+  analyst decided (`manual`) are never changed.
+- The rule tables in `doc/taraflow-cnc-referenzfall.md` § 4.2 now list every
+  group and relation, including what is filtered as not applicable.
+
 ## [0.13.1-alpha] - 2026-10-13
 
 A bugfix release from a real-size ISO/SAE 21434 project (36 DFD elements,
