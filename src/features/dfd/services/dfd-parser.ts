@@ -2,7 +2,12 @@
 // Single Responsibility: Orchestrate DFD parsing from DrawIO XML
 // This is the public API for DFD parsing
 
-import type { DFDElement, DFDConnection, DFDStats } from "../models/dfd-types";
+import type {
+  DFDElement,
+  DFDConnection,
+  DFDPage,
+  DFDStats,
+} from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 
 import { extractXmlFromDrawioMsg } from "./parsers/xml-parser";
@@ -54,7 +59,7 @@ export interface ParsedOccurrence {
   kind: "element" | "connection";
   /**
    * Logical identity (§5.2): id of the DFDElement / DFDConnection this cell
-   * shows. Equals cellId unless the cell carries a tfId attribute.
+   * shows. Equals cellId unless dfd.pages[].links links the cell elsewhere.
    */
   tfId: string;
   /** "definition" (home of the logical record) or "ref" (context copy). */
@@ -84,9 +89,13 @@ export interface ParsedOccurrence {
  */
 export class DFDParser {
   /**
-   * Parse DrawIO XML string to structured data
+   * Parse DrawIO XML string to structured data.
+   *
+   * @param pages dfd.pages — supplies the identity links per page (§5.2).
+   *              Absent for classic projects: every cell is a definition
+   *              with tfId = cell id.
    */
-  parse(xml: string): ParseResult {
+  parse(xml: string, pages?: readonly DFDPage[]): ParseResult {
     // Early return for empty XML
     if (!xml || xml.trim() === "") {
       return emptyResult();
@@ -95,18 +104,21 @@ export class DFDParser {
     try {
       // 1. Split into pages. Cell ids are only unique within a page, so every
       //    lookup below (id labels, groups, edge endpoints) runs per page.
-      const pages = readDrawioPages(xml);
+      const drawioPages = readDrawioPages(xml);
+      const linksByPage = new Map(
+        (pages ?? []).map((page) => [page.pageId, page.links]),
+      );
 
       const unconnectedDataflows: string[] = [];
       const occurrences: ParsedOccurrence[] = [];
       const elementRecords = new LogicalRecords<DFDElement>();
       const connectionRecords = new LogicalRecords<DFDConnection>();
 
-      for (const page of pages) {
+      for (const page of drawioPages) {
         // 2. Collect ID labels first (they reference parent elements)
         const idLabels = collectIdLabels(page.doc);
-        // Identity attributes (tfId / tfRole) of this page, by cell id
-        const identities = collectCellIdentities(page.doc);
+        // Identity links of this page (dfd.pages[].links), by cell id
+        const identities = collectCellIdentities(linksByPage.get(page.pageId));
 
         // 3. Parse elements (ids are still page-local cell ids here)
         const pageElements = parseElements(page.doc);
@@ -164,7 +176,11 @@ export class DFDParser {
         assets,
         stats,
         unconnectedDataflows,
-        pages: pages.map(({ pageId, name, index }) => ({ pageId, name, index })),
+        pages: drawioPages.map(({ pageId, name, index }) => ({
+          pageId,
+          name,
+          index,
+        })),
         occurrences,
       };
     } catch (error) {

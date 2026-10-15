@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1–1.2 done, 1.3 next
+Status: rev. 4.1 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1–1.2 done, 1.3 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -15,6 +15,9 @@ Revision history (short):
   (§5.2, §11.2); compressed pages are not decoded (§11.1).
 - rev. 4 — all examples rebuilt on a self-made leveled Smoke Detector (§3, §16). No external or
   customer model is used anywhere in this document, its tests or fixtures.
+- rev. 4.1 — identity links live in the project (`dfd.pages[].links`) instead of `tfId`/`tfRole`
+  attributes in the XML; the XML stays plain draw.io and every identity action is a JSON change
+  (§5.2). Pasted copies are linked via an assignment dialog, shared with adoption (§5.2, §11.2.1).
 
 ## 1. Goal
 
@@ -146,8 +149,8 @@ Pages (draw.io views)        →  Logical model (one per project)     →  Effec
 | Fact | Lives in | Never duplicated in |
 |---|---|---|
 | Which cells exist on which page, geometry, page-local endpoints (and thus crossed interfaces) | `dfd.xml` (occurrences) | logical records |
-| Identity, displayId, properties, asset relations, `refines`, `abstract` | logical record (`dfd.elements[]`, `dfd.connections[]`) + identity attributes in the XML | — |
-| Page tree | `dfd.pages[]` | `<diagram>` attributes |
+| Identity, displayId, properties, asset relations, `refines`, `abstract` | logical record (`dfd.elements[]`, `dfd.connections[]`) | — |
+| Page tree, identity links (cell → `tfId`, role) | `dfd.pages[]` | `<diagram>` / cell attributes in the XML |
 | Resolved endpoints, effective boundaries, crossings | effective model (computed) | disk |
 
 Occurrences are **parsed from the XML on every load**, exactly like `from`/`to` today. They are not
@@ -224,43 +227,51 @@ Three distinct concepts that must never be mixed:
   renumbering, renaming and moving between pages. All references (threats, risks, asset relations,
   attack-tree anchors) point to `tfId`.
 
-`role` (XML attribute `tfRole`) distinguishes the **definition** (exactly one per `tfId`, on the
-home page) from **context copies** (`ref`, any number, styled grey/dashed, not editable — the form
-opens the definition).
+`role` distinguishes the **definition** (exactly one per `tfId`, on the home page) from **context
+copies** (`ref`, any number, styled grey/dashed, not editable — the form opens the definition).
 
-**Lazy identity.** The `tfId` and `tfRole` attributes are optional:
+**Identity links, lazy.** Which cell shows which logical element is stored in the project, per page,
+in `dfd.pages[].links` (§5.3) — **not** in the XML. The XML stays plain draw.io. A cell is
+addressed by `(pageId, cellId)`, because draw.io cell ids are unique within a page only.
 
-| XML | Meaning |
+| Link of the cell | Meaning |
 |---|---|
-| no `tfId`, no `tfRole` | definition; `tfId` = cell id (all existing projects, every normally drawn element) |
-| `tfRole="ref" tfId="…"` | context copy of the element with that `tfId` |
-| `tfId="…"` without `tfRole` | definition whose identity differs from its cell id (after "Move definition" or adoption) |
+| none | definition; `tfId` = cell id (all existing projects, every normally drawn element) |
+| `{ cellId, tfId, role: "ref" }` | context copy of the element/flow with that `tfId` |
+| `{ cellId, tfId, role: "definition" }` | definition whose identity differs from its cell id (after "Move definition" or adoption) |
 
-TARAflow writes the attributes **only** where the identity differs from the cell id. Consequences:
+TARAflow stores a link **only** where the identity differs from the cell id. Consequences:
 
-- Existing projects need **no XML migration**: their references (threats, asset relations,
-  attack-tree anchors) already hold cell ids, which *are* the `tfId`s. This also matters because
-  migrations run in the CLI reporter as well, where no DOMParser is available.
-- draw.io keeps cell ids stable across edits; they change only on paste or page duplication —
-  exactly when a new identity is intended ("paste = new element", D8, comes for free for plain
-  definitions).
-- Only definitions that carry an explicit `tfId` can be duplicated with their identity; that case
-  is the reassignment rule below.
+- Existing projects need **no migration**: their references (threats, asset relations,
+  attack-tree anchors) already hold cell ids, which *are* the `tfId`s. No XML is touched, which also
+  matters because migrations run in the CLI reporter, where no DOMParser is available.
+- Every identity action (insert as context, promote, move definition, adoption, paste reassignment)
+  is a **JSON change only**; nothing writes identity into the XML.
+- Links do **not** travel with draw.io copy/paste: a pasted cell has a new cell id and no link, so it
+  is a new element (D8 for free). Linking it as a context copy is an explicit decision in the
+  assignment dialog (below).
+- draw.io keeps cell ids stable across edits. "Duplicate page" keeps the cell ids on a new `pageId`
+  → several definitions with the same `tfId`; that is the reassignment rule below.
+- **Stale links:** on every save, links whose `(pageId, cellId)` no longer exists in the XML are
+  dropped, so a link can never attach to a different cell later. A link whose cell type does not
+  match the type of its `tfId`'s definition is ignored for identity and reported (Phase 4).
+- Malformed links (empty ids, a cell linked to itself, a second link for the same cell) are ignored,
+  never guessed into a merge.
 
 #### Identity lifecycle (D8)
 
 | Action | Rule |
 |---|---|
 | Create element in TARAflow | Plain definition, identity = cell id, displayId per §8 |
-| **Paste** (draw.io copy/paste, duplicate page) | **Paste = new element.** A plain definition gets a new cell id and thus a new identity. If two definitions end up with the same `tfId` (explicit `tfId` pasted, or a duplicated page keeping its cell ids), the cell that was **not** in the last saved state gets a fresh `tfId` and a new displayId. Info finding `ID_PASTE_REASSIGNED`. Never merged. |
-| Paste of a `ref` cell | Stays a context copy of the same `tfId` (it already declares itself a reference). |
-| "Insert as context…" (TARAflow action) | The only intended way to create a context copy: pick an existing element, place a `ref` cell on the current page. |
+| **Paste** (draw.io copy/paste, duplicate page) | **Paste = new element.** A pasted cell has a new cell id and no link, thus a new identity. If two definitions end up with the same `tfId` (a duplicated page keeping its cell ids), the cell that was **not** in the last saved state gets a fresh `tfId` (a `definition` link) and a new displayId. Info finding `ID_PASTE_REASSIGNED`. Never merged. |
+| Pasted copy of an existing element (same displayId and type as an existing definition, no link) | Stays a new element until decided (analysed, `BAL_DUPLICATE_DISPLAY_ID`). After save a non-blocking hint offers the **assignment dialog**: one row per such cell, choice *context copy of X* / *new element*; default *context copy* when the cell is on another page than the definition, *new element* on the same page; "apply to all" for copied groups with their flows. Same mechanism as adoption (§11.2.1). |
+| "Insert as context…" (TARAflow action) | Pick an existing element, place a cell on the current page and store its `ref` link. Also available on an existing cell as **"Make this a context copy of…"** (element form, list of candidates of the same type). |
 | Delete a context copy | Graphical change only. |
 | Delete the definition while copies remain | Copies become dangling → `BAL_DANGLING_REF` (error). Repair action **"Promote to definition"** on a chosen copy. **Never automatic** — promotion changes home page and boundary membership. Analysis until repair: §5.2.1. |
 | Delete the definition, no copies left | Element is deleted (as today: threats become orphans, asset relations removed via `dfd-asset-deletion`). |
-| **Move definition** (explicit action "Make this the definition") | The new definition cell gets an explicit `tfId`; the old one becomes `ref`. Semantic change: home page, geometric boundaries and possibly the analysis change. Recorded by the diff-service. |
+| **Move definition** (explicit action "Make this the definition") | The new definition cell gets a `definition` link with the `tfId`; the old cell gets a `ref` link. Semantic change: home page, geometric boundaries and possibly the analysis change. Recorded by the diff-service. |
 | Delete a page | Its definitions are treated as deleted (above); its context copies vanish. If the page decomposed an MP, the MP becomes a leaf again (§10). Confirmation dialog lists the consequences. |
-| Explicit `tfId` attribute removed by external editing | The cell is treated as a new element (identity = its cell id); if a displayId collides → `BAL_DUPLICATE_DISPLAY_ID`. The **old** logical record has lost its definition: with remaining context copies it becomes dangling (§5.2.1); without, it is treated as deleted — **but only after a confirmation on save** that lists the affected threats, asset relations and attack-tree anchors, with the option to re-attach the old `tfId` to the new cell instead. |
+| A linked cell is recreated (deleted and redrawn, or cut and pasted, also in external draw.io) | The new cell has a new cell id and no link → new element; the stale link is dropped on save. If the cell was the definition of a moved/adopted `tfId`, the **old** logical record has lost its definition: with remaining context copies it becomes dangling (§5.2.1); without, it is treated as deleted — **but only after a confirmation on save** that lists the affected threats, asset relations and attack-tree anchors, with the option to re-attach the old `tfId` to the new cell instead (a `definition` link). |
 | Import of a DFD / project merge | Imported `tfId`s that already exist are re-keyed (fresh `tfId`), never merged silently. |
 
 #### 5.2.1 Dangling definitions (D12)
@@ -291,6 +302,13 @@ interface DFDPage {
   name: string;            // display name, mirrors <diagram name>
   decomposes?: string;     // tfId of the multiprocess this page details; absent = root page
   order: number;           // sibling order for navigation and numbering
+  links?: DFDCellLink[];   // identity links of this page's cells, only where tfId ≠ cell id (§5.2)
+}
+
+interface DFDCellLink {
+  cellId: string;          // draw.io cell id (page-local)
+  tfId: string;
+  role: "definition" | "ref";
 }
 
 // DFDData
@@ -311,8 +329,9 @@ Rules:
   (`link="data:page/id,<pageId>"`), so double-click/Ctrl-click opens the child page also in plain
   draw.io.
 
-The page tree lives in the JSON (`dfd.pages`), not as a custom attribute on `<diagram>`, because
-draw.io does not guarantee to preserve unknown attributes on the `<diagram>` element.
+The page tree and the identity links live in the JSON (`dfd.pages`), not as custom attributes in
+the XML: draw.io does not guarantee to preserve unknown attributes on the `<diagram>` element, and
+keeping the XML plain draw.io means no identity can be lost or duplicated by editing in draw.io.
 
 #### 5.3.1 Containment parent (formal)
 
@@ -721,7 +740,7 @@ threat is a manual analyst action and recorded in the audit diff.
 #### 11.2.1 Adoption of files that are already multi-page (D13)
 
 A multi-page file drawn before this feature (or outside TARAflow) has context copies that are plain
-cells with their own cell ids and no `tfRole`. Lazy identity alone would make every copy an
+cells with their own cell ids and no links. Lazy identity alone would make every copy an
 independent definition with a duplicate displayId.
 
 Such files (detected by Phase 0, finding `ID_ADOPTION_PENDING`) go through an **adoption step**:
@@ -746,9 +765,11 @@ Such files (detected by Phase 0, finding `ID_ADOPTION_PENDING`) go through an **
    MP (e.g. *Sensor Module* → `MP-1`, because `MP-1` is the only element of *System* missing there
    and replaced by parts). The analyst confirms or corrects each page.
 5. The whole proposal is shown in **one confirmation dialog**; nothing is merged silently, because
-   grouping by displayId is an assumption. On confirmation TARAflow writes `tfRole="ref"
-   tfId="…"` onto the context copies (and an explicit `tfId` only where a definition's identity
-   differs from its cell id).
+   grouping by displayId is an assumption. On confirmation TARAflow stores `ref` links for the
+   context copies in `dfd.pages[].links` (and a `definition` link only where a definition's identity
+   differs from its cell id). The XML is not changed.
+6. The same dialog serves pasted copies (§5.2, lifecycle): adoption is the case "all pages at
+   once", the paste hint the case "these few new cells".
 
 Until adoption is confirmed, the file stays read-only for threat generation (Phase 0 behaviour).
 
@@ -809,8 +830,10 @@ already contain several pages.
 
 - **1.1 ✅** (`1da1e8b`) page-aware parsing: `page-reader`, parser runs per page, `ParseResult.pages`
   / `occurrences` (in memory); golden gate against the former whole-document parse.
-- **1.2 ✅** identity: read `tfId`/`tfRole` (lazy, §5.2), merge context copies into their definition,
-  resolve connection endpoints from page-local cell ids to `tfId`s. `parsers/identity-reader`;
+- **1.2 ✅** identity: read the identity links (lazy, §5.2), merge context copies into their
+  definition, resolve connection endpoints from page-local cell ids to `tfId`s. Since rev. 4.1 the
+  links come from `dfd.pages[].links` (`DFDParser.parse(xml, pages)`), not from XML attributes;
+  `parsers/identity-reader`;
   `ParseResult.occurrences` carry `tfId`, `role` and, for flows, the endpoints as drawn on that page
   (`sourceTfId`/`targetTfId`) — the input of the stitching algorithm (§6.2). Record selection per
   `tfId`: the first definition in document order; without any definition the first context copy
@@ -818,7 +841,7 @@ already contain several pages.
   kept as occurrences only (reassignment is 1.3). A `ref` without `tfId` is a plain definition of
   its own cell, never guessed into a merge. Consumers that address XML cells by id (label/property
   write-back, auto-numbering, id-label visibility) stay cell-id based; they only diverge from the
-  `tfId` once TARAflow writes explicit `tfId`s (1.3 / 1.5) and are made `tfId`-aware there.
+  `tfId` once links exist (1.4 / 1.5) and are made `tfId`-aware there.
 - **1.3** `dfd.pages[]` persisted, home page, duplicate definitions (paste / page duplication) with
   `tfId` reassignment.
 - **1.4** dangling detection (§5.2.1) and "Promote to definition".
@@ -860,7 +883,7 @@ Identity and persistence
 - Delete definition, keep copy → `BAL_DANGLING_REF` → "Promote to definition" repair path.
 - A compressed page is refused with a visible error, never read as empty.
 - Migration 8 → 9 leaves the XML byte-identical; references preserved.
-- Adoption of the leveled Smoke Detector **without** `tfRole` attributes: proposal groups `MP-1`,
+- Adoption of the leveled Smoke Detector **without** identity links: proposal groups `MP-1`,
   `MP-2`, `EE-1`, `SB`, … correctly, proposes *Sensor Module* → `MP-1`, *Controller Module* →
   `MP-2`; nothing merged before confirmation.
 - Dangling definition: boundaries = union of copies + inherited, `fallbackReason: dangling`; a
@@ -920,12 +943,12 @@ Diff and audit
 | D5 | Home page of shared EEs/boundaries | **Highest page** | Home page = page of the definition cell; TARAflow suggests moving it up (`BAL_HOME_NOT_HIGHEST`), never moves it automatically |
 | D6 | Cross-project linking | **Separate convenience feature** | `multi-diagram-linking-design.md` stays independent |
 | D7 | Flow occurrences | **Parsed from the XML, not persisted separately** | Logical record has no `from/to`; one source of truth per fact (§5.1) |
-| D8 | Identity lifecycle | **Paste = new element; context copies only via explicit action; no automatic promotion** | Lazy identity (§5.2); lifecycle table §5.2 |
+| D8 | Identity lifecycle | **Paste = new element; context copies only via explicit action (insert as context, assignment dialog); no automatic promotion** | Lazy identity links in `dfd.pages[].links`, XML stays plain draw.io (rev. 4.1, §5.2); lifecycle table §5.2 |
 | D9 | Threat lifecycle | **Reconciliation with new / unchanged / reference changed / obsolete; ratings never transferred** | Generator key based on `tfId` (§10) |
 | D10 | Error policy | **Block only on unreadable XML. Incomplete or ambiguous modelling never by itself excludes a flow — conservative fallback instead; intentional exclusions (`abstract`, EE→EE, `excludeFromThreatGen`) stay valid** | Banner for fallback flows; `fallbackReason` (§6.5, §7) |
 | D11 | Interfaces of a stitched flow | **Ordered interface list per flow, attributed per side by the page's decomposition border** | Interfaces determined geometrically per occurrence and page; multi-level port chains supported; single-page = `side: none` (§6.2.1) |
 | D12 | Analysis of dangling definitions | **Keep logical record; no home page; boundaries = union of all copies + inherited; flagged** | Conservative, never an empty boundary set by accident (§5.2.1) |
-| D13 | Files that are already multi-page | **Adoption step with one confirmation dialog** (group by displayId+type, definition per D5, decomposition proposal) | Lazy identity alone would make every copy a definition (§11.2.1) |
+| D13 | Files that are already multi-page | **Adoption step with one confirmation dialog** (group by displayId+type, definition per D5, decomposition proposal) | Lazy identity alone would make every copy a definition; the dialog is shared with pasted copies (§11.2.1) |
 
 ## 16. End-to-end example: `DF-7 stream sensor data`
 
@@ -956,7 +979,7 @@ Page tree: `sys` (root) · `sen` decomposes `mp1` · `ctl` decomposes `mp2`.
 **1. XML (abbreviated)**
 
 ```xml
-<!-- page sys (System) — definitions carry no identity attributes (lazy identity) -->
+<!-- page sys (System) — plain draw.io; identity comes from dfd.pages[].links (lazy, §5.2) -->
 <object id="mp1" type="multiprocess" label="Sensor Module"/>
 <object id="mp2" type="multiprocess" label="Controller Module"/>
 <object id="df7" type="dataflow" label="stream sensor data [stream]">
@@ -966,18 +989,32 @@ Page tree: `sys` (root) · `sen` decomposes `mp1` · `ctl` decomposes `mp2`.
 <!-- page sen (Sensor Module) -->
 <object id="sen_p2"  type="process" label="Sensor Communication Controller"/>
 <object id="sen_if1" type="interface" label="RS485"/>               <!-- shape on the module border -->
-<object id="sen_mp2" tfRole="ref" tfId="mp2" type="multiprocess" label="Controller Module"/>
-<object id="sen_df7" tfRole="ref" tfId="df7" type="dataflow" label="stream sensor data [stream]">
+<object id="sen_mp2" type="multiprocess" label="Controller Module"/>     <!-- linked: ref of mp2 -->
+<object id="sen_df7" type="dataflow" label="stream sensor data [stream]"> <!-- linked: ref of df7 -->
   <mxCell edge="1" source="sen_p2" target="sen_mp2"/>               <!-- path crosses sen_if1 -->
 </object>
 
 <!-- page ctl (Controller Module) -->
-<object id="ctl_mp1" tfRole="ref" tfId="mp1" type="multiprocess" label="Sensor Module"/>
+<object id="ctl_mp1" type="multiprocess" label="Sensor Module"/>         <!-- linked: ref of mp1 -->
 <object id="ctl_p5"  type="process" label="Alarm Processing Controller"/>
 <object id="ctl_if3" type="interface" label="RS485"/>
-<object id="ctl_df7" tfRole="ref" tfId="df7" type="dataflow" label="stream sensor data [stream]">
+<object id="ctl_df7" type="dataflow" label="stream sensor data [stream]"> <!-- linked: ref of df7 -->
   <mxCell edge="1" source="ctl_mp1" target="ctl_p5"/>               <!-- path crosses ctl_if3 -->
 </object>
+```
+
+Identity links (`dfd.pages`, abbreviated):
+
+```json
+[
+  { "pageId": "sys", "name": "System", "order": 0 },
+  { "pageId": "sen", "name": "Sensor Module", "decomposes": "mp1", "order": 0,
+    "links": [ { "cellId": "sen_mp2", "tfId": "mp2", "role": "ref" },
+               { "cellId": "sen_df7", "tfId": "df7", "role": "ref" } ] },
+  { "pageId": "ctl", "name": "Controller Module", "decomposes": "mp2", "order": 1,
+    "links": [ { "cellId": "ctl_mp1", "tfId": "mp1", "role": "ref" },
+               { "cellId": "ctl_df7", "tfId": "df7", "role": "ref" } ] }
+]
 ```
 
 Note: `mxCell source/target` reference **cell ids** (draw.io's own wiring, page-local). The parser

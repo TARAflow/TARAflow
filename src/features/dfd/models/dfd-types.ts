@@ -314,6 +314,44 @@ export interface DFDData {
   graph?: DFDGraph;
   /** Auto-numbering configuration — persisted per project */
   autoNumberingConfig?: DFDAutoNumberingConfig;
+  /**
+   * Pages of a leveled DFD with their identity links
+   * (leveled-dfd-multi-diagram-design.md §5.2, §5.3). Absent = classic
+   * single-page project. Optional and additive — no schema bump (§11.2).
+   */
+  pages?: DFDPage[];
+}
+
+/**
+ * One draw.io page of a leveled DFD. Lives in the JSON, not on <diagram>:
+ * draw.io does not guarantee to keep unknown <diagram> attributes, and the
+ * XML stays plain draw.io.
+ */
+export interface DFDPage {
+  /** draw.io <diagram id> */
+  pageId: string;
+  /** Display name; the <diagram name> in the XML is authoritative. */
+  name: string;
+  /** tfId of the multiprocess this page details; absent = root page. */
+  decomposes?: string;
+  /** Sibling order for navigation and numbering. */
+  order: number;
+  /**
+   * Identity links of the cells on this page (lazy identity, §5.2). Only
+   * cells whose identity differs from their own cell id are listed; every
+   * other cell is a definition with tfId = cell id.
+   */
+  links?: DFDCellLink[];
+}
+
+/** Links one draw.io cell of a page to a logical element / flow. */
+export interface DFDCellLink {
+  /** draw.io cell id, unique within its page only */
+  cellId: string;
+  /** Logical identity the cell shows */
+  tfId: string;
+  /** "ref" = context copy; "definition" = home of a tfId ≠ cell id (moved / adopted) */
+  role: "definition" | "ref";
 }
 
 // ==================== DFD EXPORT/IMPORT ====================

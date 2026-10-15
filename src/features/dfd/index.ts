@@ -14,6 +14,8 @@ export type {
   DFDValidation,
   DFDStats,
   DFDData,
+  DFDPage,
+  DFDCellLink,
 
   // App integration
   DFDProjectData,

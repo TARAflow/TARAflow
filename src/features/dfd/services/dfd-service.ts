@@ -157,7 +157,7 @@ class DFDService {
       }
 
       // Parse XML
-      const parseResult = this.parser.parse(project.dfd!.xml!);
+      const parseResult = this.parser.parse(project.dfd!.xml!, project.dfd!.pages);
       const { elements, connections, unconnectedDataflows } =
         parseResult;
 
@@ -415,7 +415,7 @@ class DFDService {
 
       // Parse and validate
       const { elements, connections, unconnectedDataflows } =
-        this.parser.parse(xml || "");
+        this.parser.parse(xml || "", project.dfd?.pages);
 
       // Merge with existing properties (preserves assetRelations, user descriptions, etc.)
       const mergedElements = this.mergeElementProperties(
@@ -566,7 +566,7 @@ class DFDService {
 
     try {
       const { elements, connections, unconnectedDataflows } =
-        this.parser.parse(xml);
+        this.parser.parse(xml, project.dfd?.pages);
 
       const mergedElements = this.mergeElementProperties(
         elements,
@@ -680,7 +680,7 @@ class DFDService {
     }
 
     const { elements, connections, unconnectedDataflows } =
-      this.parser.parse(xml || "");
+      this.parser.parse(xml || "", project.dfd?.pages);
 
     const mergedConnections = this.mergeConnectionProperties(
       connections,

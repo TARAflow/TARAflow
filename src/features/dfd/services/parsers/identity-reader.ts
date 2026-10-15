@@ -1,25 +1,26 @@
 // ==================== IDENTITY READER ====================
 // Leveled-DFD Phase 1.2 (leveled-dfd-multi-diagram-design.md §5.2).
 //
-// Reads the optional identity attributes of one draw.io page ("lazy
-// identity"):
+// Resolves the identity of the cells of one draw.io page from the identity
+// links stored in the project (dfd.pages[].links) — "lazy identity":
 //
-//   no tfId, no tfRole        → definition, tfId = cell id (every existing
-//                               project, every normally drawn element)
-//   tfRole="ref" tfId="X"     → context copy of the logical element/flow X
-//   tfId="X" without tfRole   → definition whose identity differs from its
-//                               cell id (after "Move definition" / adoption)
+//   no link                          → definition, tfId = cell id (every
+//                                      existing project, every normally
+//                                      drawn element)
+//   { role: "ref", tfId: X }         → context copy of the logical
+//                                      element / flow X
+//   { role: "definition", tfId: X }  → definition whose identity differs
+//                                      from its cell id (moved / adopted)
 //
-// TARAflow writes the attributes only where the identity differs from the
-// cell id, so existing XML stays byte-identical and needs no migration.
-// The attributes live on the <object> wrapper — draw.io keeps custom
-// attributes only there, a bare <mxCell> cannot carry them.
+// The XML stays plain draw.io: no identity attributes are read or written.
+// Only cells whose identity differs from their cell id carry a link, so
+// classic projects have none and need no migration.
 //
-// Malformed input is never guessed into a merge:
-//   - tfRole="ref" without a tfId → plain definition of its own cell
-//     (it stays analysable as an element of its own; merging needs an
-//     explicit tfId)
-//   - an empty tfId or an unknown tfRole value is ignored
+// Malformed links are ignored, never guessed into a merge: an empty cell id
+// or tfId, a link pointing a cell to itself, and every further link for a
+// cell id that already has one (the first one wins).
+
+import type { DFDCellLink } from "../../models/dfd-types";
 
 export type OccurrenceRole = "definition" | "ref";
 
@@ -29,26 +30,21 @@ export interface CellIdentity {
 }
 
 /**
- * Identity attributes of all <object> cells of one page, keyed by cell id.
- * Only cells whose identity differs from the default (definition, tfId =
- * cell id) are listed; use {@link identityOf} to look a cell up.
+ * Identity links of one page, keyed by cell id. Use {@link identityOf} to
+ * look a cell up; cells without a link are plain definitions.
  */
 export function collectCellIdentities(
-  doc: Document,
+  links: readonly DFDCellLink[] | undefined,
 ): Map<string, CellIdentity> {
   const identities = new Map<string, CellIdentity>();
 
-  for (const obj of Array.from(doc.getElementsByTagName("object"))) {
-    const cellId = obj.getAttribute("id");
-    if (!cellId) continue;
+  for (const link of links ?? []) {
+    const cellId = (link.cellId ?? "").trim();
+    const tfId = (link.tfId ?? "").trim();
+    if (cellId === "" || tfId === "" || tfId === cellId) continue;
+    if (identities.has(cellId)) continue;
 
-    const tfId = (obj.getAttribute("tfId") ?? "").trim();
-    if (tfId === "") continue;
-
-    const role: OccurrenceRole =
-      obj.getAttribute("tfRole") === "ref" ? "ref" : "definition";
-
-    if (role === "definition" && tfId === cellId) continue;
+    const role: OccurrenceRole = link.role === "ref" ? "ref" : "definition";
     identities.set(cellId, { tfId, role });
   }
 

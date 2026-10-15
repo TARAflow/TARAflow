@@ -1,66 +1,58 @@
-// Leveled-DFD Phase 1.2 — lazy identity attributes (design §5.2).
+// Leveled-DFD Phase 1.2 — lazy identity links (design §5.2).
 import { describe, it, expect } from "vitest";
 import {
   collectCellIdentities,
   identityOf,
 } from "features/dfd/services/parsers/identity-reader";
-import { parseXmlString } from "features/dfd/services/parsers/xml-parser";
+import type { DFDCellLink } from "features/dfd/models/dfd-types";
 
-const model = (objects: string) =>
-  parseXmlString(
-    `<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>${objects}</root></mxGraphModel>`,
-  );
-
-const obj = (id: string, attrs = "") =>
-  `<object label="X" type="process" id="${id}" ${attrs}><mxCell vertex="1" parent="1"><mxGeometry width="10" height="10" as="geometry"/></mxCell></object>`;
+const ref = (cellId: string, tfId: string): DFDCellLink => ({
+  cellId,
+  tfId,
+  role: "ref",
+});
 
 describe("collectCellIdentities", () => {
-  it("lists nothing for plain definitions (tfId = cell id)", () => {
-    const ids = collectCellIdentities(model(obj("a") + obj("b")));
+  it("treats every cell as a plain definition without links", () => {
+    const ids = collectCellIdentities(undefined);
     expect(ids.size).toBe(0);
     expect(identityOf(ids, "a")).toEqual({ tfId: "a", role: "definition" });
   });
 
   it("reads a context copy", () => {
-    const ids = collectCellIdentities(
-      model(obj("sen_mp2", 'tfRole="ref" tfId="mp2"')),
-    );
+    const ids = collectCellIdentities([ref("sen_mp2", "mp2")]);
     expect(identityOf(ids, "sen_mp2")).toEqual({ tfId: "mp2", role: "ref" });
   });
 
-  it("reads a definition with an explicit tfId", () => {
-    const ids = collectCellIdentities(model(obj("new_cell", 'tfId="mp2"')));
+  it("reads a definition with an identity other than its cell id", () => {
+    const ids = collectCellIdentities([
+      { cellId: "new_cell", tfId: "mp2", role: "definition" },
+    ]);
     expect(identityOf(ids, "new_cell")).toEqual({
       tfId: "mp2",
       role: "definition",
     });
   });
 
-  it("does not list a definition whose tfId equals its cell id", () => {
-    const ids = collectCellIdentities(model(obj("a", 'tfId="a"')));
+  it("ignores malformed links instead of guessing", () => {
+    const ids = collectCellIdentities([
+      ref("", "mp1"),
+      ref("c", " "),
+      ref("d", "d"), // a copy of itself
+      { cellId: "e", tfId: "e", role: "definition" },
+    ]);
     expect(ids.size).toBe(0);
   });
 
-  it("treats a ref without tfId as a plain definition (never guessed into a merge)", () => {
-    const ids = collectCellIdentities(
-      model(obj("c", 'tfRole="ref"') + obj("d", 'tfRole="ref" tfId="  "')),
-    );
-    expect(identityOf(ids, "c")).toEqual({ tfId: "c", role: "definition" });
-    expect(identityOf(ids, "d")).toEqual({ tfId: "d", role: "definition" });
+  it("keeps the first link of a cell", () => {
+    const ids = collectCellIdentities([ref("x", "mp1"), ref("x", "mp2")]);
+    expect(identityOf(ids, "x")).toEqual({ tfId: "mp1", role: "ref" });
   });
 
-  it("ignores unknown tfRole values", () => {
-    const ids = collectCellIdentities(
-      model(obj("e", 'tfRole="copy" tfId="mp1"')),
-    );
-    expect(identityOf(ids, "e")).toEqual({ tfId: "mp1", role: "definition" });
-  });
-
-  it("maps cells it does not know (e.g. bare mxCells) to themselves", () => {
-    const ids = collectCellIdentities(model(""));
-    expect(identityOf(ids, "edge-7")).toEqual({
-      tfId: "edge-7",
-      role: "definition",
-    });
+  it("treats an unknown role as definition", () => {
+    const ids = collectCellIdentities([
+      { cellId: "f", tfId: "mp1", role: "copy" as never },
+    ]);
+    expect(identityOf(ids, "f")).toEqual({ tfId: "mp1", role: "definition" });
   });
 });
