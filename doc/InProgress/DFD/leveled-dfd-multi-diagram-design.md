@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.1 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic), Phase 2 next
+Status: rev. 4.2 — decisions D1–D14 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic), Phase 2 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -18,6 +18,8 @@ Revision history (short):
 - rev. 4.1 — identity links live in the project (`dfd.pages[].links`) instead of `tfId`/`tfRole`
   attributes in the XML; the XML stays plain draw.io and every identity action is a JSON change
   (§5.2). Pasted copies are linked via an assignment dialog, shared with adoption (§5.2, §11.2.1).
+- rev. 4.2 — D14: interfaces inherit physical and chip boundaries, not trust boundaries (§6.3);
+  generated three-page Smoke Detector checked against the single-page original (§13, Phase 2 gate).
 
 ## 1. Goal
 
@@ -483,7 +485,9 @@ still generated once per interface element (its home page), independent of how m
 
 ```
 effectiveBoundaries(e) = geometricBoundaries(e, homePage(e))
-                       ∪ effectiveBoundaries(containmentParent(e))   // §5.3.1; ∅ if none
+                       ∪ inherited(e)
+inherited(e)           = effectiveBoundaries(containmentParent(e))   // §5.3.1; ∅ if none
+                         minus its trust boundaries if e is an interface
 // dangling e (§5.2.1): geometricBoundaries(e, homePage(e)) is replaced by
 //                      ∪ { geometricBoundaries(e, p) | p hosts a context copy of e }
 ```
@@ -491,8 +495,15 @@ effectiveBoundaries(e) = geometricBoundaries(e, homePage(e))
 - **Always additive.** A part of a device is inside every boundary the device is in. There is no
   way to "leave" an inherited boundary on a deeper level; if that seems necessary, the element is
   not really a part of that multiprocess and is modelled in the wrong place.
-- **Child-only boundaries are allowed** (chip boundaries `SDS`, `SDC` exist only on the module
-  pages); they apply to the elements inside them and their descendants.
+- **Interfaces inherit physical and chip boundaries, not trust boundaries** (decided 2026-10-15).
+  An interface is always related to a physical or chip boundary: the physical boundary that encloses
+  a multiprocess encloses its interfaces too. Trust boundaries are a different matter — an interface
+  is the crossing point drawn on a trust boundary's border, not a member of the zone, exactly as in
+  single-page models today. Its trust boundary membership is therefore only the geometry on its
+  home page. Processes, multiprocesses and data stores inherit all three kinds.
+- **Child-only boundaries are allowed** and expected for chip boundaries, which belong to the
+  detailed DFD (`SDS`, `SDC` exist only on the module pages); they apply to the elements inside them
+  and their descendants.
 - **Nesting and overlap** are evaluated geometrically per page exactly as today
   (`trustBoundaryHierarchy`, innermost TB = effective TB), then the inherited set is added.
   The effective (innermost) trust boundary of a leaf is taken from its home page if it has one
@@ -921,6 +932,13 @@ generator iterates the interface list. Document which graph properties the gener
 Gate: golden test on the leveled Smoke Detector fixture (§3, §16) + ambiguity/self-loop/EE→EE cases.
 The fixture is built from the single-page `SmokeDetector` example; its threats for elements and
 flows that are unchanged by the leveling must equal the single-page result.
+A generated three-page version exists (System with MP-1 *Sensor Head* and MP-2 *Smoke Detector
+Controller*; *Sensor Head*; *Controller*; all original cell ids kept, copies linked in
+`dfd.pages`). Checked against the single-page original with the current parser and graph builder:
+same 36 elements + 2 MPs and 41 flows, no dangling copies, stitched endpoints and the union of
+crossed interfaces identical for every flow, trust/chip/physical membership identical for every
+element under the interface rule of §6.3; adoption (1.5) of the same file without links proposes
+exactly its links and decomposition.
 
 **Phase 3 — Numbering.** High-water mark, definition-only, global namespace; explicit renumber in
 tree order. Also applies the duplicate-definition decision of 1.3 (fresh `tfId` link + new
@@ -1016,6 +1034,7 @@ Diff and audit
 | D11 | Interfaces of a stitched flow | **Ordered interface list per flow, attributed per side by the page's decomposition border** | Interfaces determined geometrically per occurrence and page; multi-level port chains supported; single-page = `side: none` (§6.2.1) |
 | D12 | Analysis of dangling definitions | **Keep logical record; no home page; boundaries = union of all copies + inherited; flagged** | Conservative, never an empty boundary set by accident (§5.2.1) |
 | D13 | Files that are already multi-page | **Adoption step with one confirmation dialog** (group by displayId+type, definition per D5, decomposition proposal) | Lazy identity alone would make every copy a definition; the dialog is shared with pasted copies (§11.2.1) |
+| D14 | Boundary inheritance of interfaces | **Interfaces inherit physical and chip boundaries of their multiprocess, not its trust boundaries** (2026-10-15) | Interfaces relate to physical/chip boundaries; on a trust boundary they are the crossing point, not a zone member. Keeps the leveled Smoke Detector identical to the single-page model (§6.3) |
 
 ## 16. End-to-end example: `DF-7 stream sensor data`
 
