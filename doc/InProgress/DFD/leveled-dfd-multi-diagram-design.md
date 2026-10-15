@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.1 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1–1.2 done, 1.3 next
+Status: rev. 4.1 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1–1.3 done, 1.4 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -602,6 +602,14 @@ later. Global blocking would also hit every incremental modelling step.
 | `ID_PASTE_REASSIGNED` | info | A pasted definition received a fresh `tfId` (§5.2) | – |
 | `DFD_EE_TO_EE_FLOW` | info | Flow between two external entities (out of analysis scope) | `DF-39` |
 
+Page-tree findings (structural, computed by `buildPageTree` since 1.3, reported by the validator in
+Phase 4): `PAGE_UNASSIGNED` (page in the XML but not in `dfd.pages`; with several pages this is
+`ID_ADOPTION_PENDING`), `PAGE_MISSING`, `PAGE_NO_ROOT`, `PAGE_MULTIPLE_ROOTS`,
+`PAGE_DECOMPOSES_UNKNOWN`, `PAGE_DECOMPOSES_NOT_MULTIPROCESS` (D1), `PAGE_DECOMPOSED_TWICE`,
+`PAGE_PARENT_UNRESOLVED` (decomposed MP dangling or defined outside the tree), `PAGE_CYCLE`, plus
+`BAL_DECOMPOSED_ON_OWN_PAGE` above. A page that cannot be placed keeps no depth and is never
+attached somewhere silently; its content stays in the logical model (D10).
+
 Note on `BAL_LABEL_DIVERGENCE`: the label is a property of the logical record. Editing the label of
 any occurrence updates the logical record and all occurrences on save; divergence can only arise
 from external editing and is repaired from the **logical record** (also when the definition is
@@ -724,8 +732,13 @@ threat is a manual analyst action and recorded in the audit diff.
 
 - **No XML change** (lazy identity, §5.2): the XML of existing projects stays byte-identical.
 - JSON only: creates `pages[]` (one root page from the `<diagram>`, or none for a bare
-  `<mxGraphModel>`) and initialises the numbering high-water marks. Both are additive; whether this
-  needs a schema bump or can stay optional-and-absent is decided in Phase 1.3.
+  `<mxGraphModel>`) and initialises the numbering high-water marks. Both are additive.
+- **Decided in 1.3:** `dfd.pages` stays **optional and absent** for classic projects (no churn, no
+  bump for it). The schema is bumped to 9 only when the Phase 0 guard is lifted (Phase 2/5), as a
+  **version fence**: every released TARAflow before Phase 0 silently merges the pages of a
+  multi-page file (§4); a newer schema makes it refuse the file instead
+  (`migration-service` rejects `schemaVersion > CURRENT_SCHEMA_VERSION`). The 8 → 9 step itself
+  changes no data.
 - **Multi-page files:** see §11.2.1 (adoption runs in the renderer, where the XML can be edited).
 - **Idempotent:** running it twice yields the identical result.
 - **Atomic:** migration runs in memory and is written once via the single writer; an abort leaves the
@@ -819,8 +832,9 @@ to disk.
 
 ## 13. Implementation phases
 
-**Phase 0 — Guard and inventory (small, ship first). ✅ Guard done** (`401e8c5` fix(dfd),
-`bb7cc6a` fix(threats)); the inventory script is still open. On load, before any parse result
+**Phase 0 — Guard and inventory (small, ship first). ✅ Guard done** (commits "fix(dfd): refuse
+multi-page and compressed draw.io layouts" and "fix(threats): block generation and sync on
+multi-page DFD layouts"); the inventory script is still open. On load, before any parse result
 reaches the threat or risk feature: detect more than one `<diagram>` or a compressed one; show a
 blocking message "multiple pages / compressed pages are not supported yet" and do **not** run
 threat generation on a partial model. Inventory script over `TARAflow_Examples` to find files that
@@ -828,7 +842,7 @@ already contain several pages.
 
 **Phase 1 — Identity and occurrence model.** Split into commits:
 
-- **1.1 ✅** (`1da1e8b`) page-aware parsing: `page-reader`, parser runs per page, `ParseResult.pages`
+- **1.1 ✅** page-aware parsing: `page-reader`, parser runs per page, `ParseResult.pages`
   / `occurrences` (in memory); golden gate against the former whole-document parse.
 - **1.2 ✅** identity: read the identity links (lazy, §5.2), merge context copies into their
   definition, resolve connection endpoints from page-local cell ids to `tfId`s. Since rev. 4.1 the
@@ -838,12 +852,24 @@ already contain several pages.
   (`sourceTfId`/`targetTfId`) — the input of the stitching algorithm (§6.2). Record selection per
   `tfId`: the first definition in document order; without any definition the first context copy
   (the element stays in the model, detection is 1.4); further definitions of the same `tfId` are
-  kept as occurrences only (reassignment is 1.3). A `ref` without `tfId` is a plain definition of
+  kept as occurrences only (reassignment: 1.3 decides, Phase 3 applies). A `ref` without `tfId` is a plain definition of
   its own cell, never guessed into a merge. Consumers that address XML cells by id (label/property
   write-back, auto-numbering, id-label visibility) stay cell-id based; they only diverge from the
   `tfId` once links exist (1.4 / 1.5) and are made `tfId`-aware there.
-- **1.3** `dfd.pages[]` persisted, home page, duplicate definitions (paste / page duplication) with
-  `tfId` reassignment.
+- **1.3 ✅** `services/leveled/`, pure and derived:
+  - `dfd.pages` is persisted as written (`prepareForDisk`); classic projects get none. No schema bump
+    (§11.2).
+  - `computeHomePages` (§5.4): page of the definition cell — the same definition the parser takes
+    the record from; no home page while dangling.
+  - `buildPageTree`: reconciles `dfd.pages` with the XML pages (XML names win), derives root, parent
+    page (= home page of the decomposed MP, §5.3.1), depth and tree order; reports inconsistencies as
+    issues instead of repairing them (§7, page-tree findings).
+  - `findDuplicateDefinitions` (D8): decides which definition cell keeps a duplicated `tfId` (the one
+    in the last saved state, otherwise tree order, then document order). Since links are page-local
+    the only source is a duplicated page with plain cell ids. The fresh `tfId` is a JSON link, but the
+    new displayId lives in the id label in the XML and needs the high-water mark, so applying the
+    decision **lands in Phase 3**.
+  - Stale-link pruning on save (§5.2) comes with the first writer of links (1.4).
 - **1.4** dangling detection (§5.2.1) and "Promote to definition".
 - **1.5** adoption dialog for files that are already multi-page (§11.2.1).
 
@@ -859,7 +885,8 @@ The fixture is built from the single-page `SmokeDetector` example; its threats f
 flows that are unchanged by the leveling must equal the single-page result.
 
 **Phase 3 — Numbering.** High-water mark, definition-only, global namespace; explicit renumber in
-tree order.
+tree order. Also applies the duplicate-definition decision of 1.3 (fresh `tfId` link + new
+displayId on save, `ID_PASTE_REASSIGNED`).
 
 **Phase 4 — Validator.** Findings from §7; `refines` and `abstract` in the connection form; error
 policy (§7).
