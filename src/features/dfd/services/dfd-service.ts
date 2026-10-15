@@ -30,6 +30,7 @@ import {
   isInfraAccessesRelation,
 } from "../models/asset-relation-types";
 import { validatePageLayout } from "./validators/page-layout-validator";
+import { pruneStaleLinks } from "./leveled";
 
 export interface DFDSaveResult {
   success: boolean;
@@ -413,9 +414,13 @@ class DFDService {
         return refuseSave(emptyResult, pageLayout);
       }
 
+      // Leveled DFD (§5.2): drop identity links whose cell is gone, so a
+      // link can never attach to a different cell later. No-op without links.
+      const { pages } = pruneStaleLinks(project.dfd?.pages, xml || "");
+
       // Parse and validate
       const { elements, connections, unconnectedDataflows } =
-        this.parser.parse(xml || "", project.dfd?.pages);
+        this.parser.parse(xml || "", pages);
 
       // Merge with existing properties (preserves assetRelations, user descriptions, etc.)
       const mergedElements = this.mergeElementProperties(
@@ -508,6 +513,7 @@ class DFDService {
         validation: this.validator.createValidationData(validation),
         lastModified: new Date().toISOString(),
         graph: dfdGraph,
+        ...(pages ? { pages } : {}),
       };
 
       // Determine phase status
@@ -565,8 +571,11 @@ class DFDService {
     }
 
     try {
+      // Leveled DFD (§5.2): drop identity links whose cell is gone.
+      const { pages } = pruneStaleLinks(project.dfd?.pages, xml);
+
       const { elements, connections, unconnectedDataflows } =
-        this.parser.parse(xml, project.dfd?.pages);
+        this.parser.parse(xml, pages);
 
       const mergedElements = this.mergeElementProperties(
         elements,
@@ -637,6 +646,7 @@ class DFDService {
         validation: this.validator.createValidationData(validation),
         lastModified: new Date().toISOString(),
         graph: dfdGraph,
+        ...(pages ? { pages } : {}),
       };
 
       const phaseStatus = this.determinePhaseStatus(validation);

@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.1 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1–1.3 done, 1.4 next
+Status: rev. 4.1 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1–1.4 done, 1.5 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -255,8 +255,9 @@ TARAflow stores a link **only** where the identity differs from the cell id. Con
 - **Stale links:** on every save, links whose `(pageId, cellId)` no longer exists in the XML are
   dropped, so a link can never attach to a different cell later. A link whose cell type does not
   match the type of its `tfId`'s definition is ignored for identity and reported (Phase 4).
-- Malformed links (empty ids, a cell linked to itself, a second link for the same cell) are ignored,
-  never guessed into a merge.
+- Malformed links (empty ids, a second link for the same cell) are ignored, never guessed into a
+  merge. A `ref` link whose `tfId` equals its own cell id is valid: it is the former definition cell
+  after "Make this the definition" moved the definition elsewhere.
 
 #### Identity lifecycle (D8)
 
@@ -869,8 +870,22 @@ already contain several pages.
     the only source is a duplicated page with plain cell ids. The fresh `tfId` is a JSON link, but the
     new displayId lives in the id label in the XML and needs the high-water mark, so applying the
     decision **lands in Phase 3**.
-  - Stale-link pruning on save (§5.2) comes with the first writer of links (1.4).
-- **1.4** dangling detection (§5.2.1) and "Promote to definition".
+  - Stale-link pruning on save (§5.2): done in 1.4.
+- **1.4 ✅** `services/leveled/dangling` and `identity-links` — the only writers of `dfd.pages[].links`,
+  all pure (new array, or the same one if nothing changes; the XML is never touched):
+  - `findDanglingReferences` (§5.2.1, `BAL_DANGLING_REF`): `tfId`s with context copies but no
+    definition. The element stays in the model (record from the first copy, persisted properties
+    merged by id).
+  - `promoteToDefinition`: a chosen copy of a dangling element becomes its definition. Refused if the
+    element still has a definition.
+  - `makeDefinition` ("Make this the definition"): the copy becomes the definition, the former
+    definition cell a `ref` — a `ref` link with `tfId` = own cell id, which the reader accepts. Moving
+    back restores the lazy state (no link). Refused for dangling elements, duplicate definitions, or a
+    page without a `dfd.pages` entry.
+  - `pruneStaleLinks`, called by `saveDFD` / `saveDFDFromXml`: drops links whose cell no longer
+    exists in the XML (existence only — a present but unparsed cell keeps its link); pages missing
+    from the XML stay untouched (`PAGE_MISSING`). Saving never adds `dfd.pages` to a classic project.
+  - The buttons for these actions come with the UI (Phase 5).
 - **1.5** adoption dialog for files that are already multi-page (§11.2.1).
 
 Gate: every existing example project loads and produces identical threats **including** threat

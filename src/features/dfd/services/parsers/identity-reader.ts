@@ -17,8 +17,11 @@
 // classic projects have none and need no migration.
 //
 // Malformed links are ignored, never guessed into a merge: an empty cell id
-// or tfId, a link pointing a cell to itself, and every further link for a
-// cell id that already has one (the first one wins).
+// or tfId, and every further link for a cell id that already has one (the
+// first one wins). A "definition" link with tfId = cell id says nothing and
+// is skipped; a "ref" link with tfId = cell id is valid — it is the former
+// definition cell after "Make this the definition" moved the definition to
+// another cell.
 
 import type { DFDCellLink } from "../../models/dfd-types";
 
@@ -41,10 +44,11 @@ export function collectCellIdentities(
   for (const link of links ?? []) {
     const cellId = (link.cellId ?? "").trim();
     const tfId = (link.tfId ?? "").trim();
-    if (cellId === "" || tfId === "" || tfId === cellId) continue;
+    if (cellId === "" || tfId === "") continue;
     if (identities.has(cellId)) continue;
 
     const role: OccurrenceRole = link.role === "ref" ? "ref" : "definition";
+    if (role === "definition" && tfId === cellId) continue;
     identities.set(cellId, { tfId, role });
   }
 

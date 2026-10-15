@@ -38,10 +38,14 @@ describe("collectCellIdentities", () => {
     const ids = collectCellIdentities([
       ref("", "mp1"),
       ref("c", " "),
-      ref("d", "d"), // a copy of itself
-      { cellId: "e", tfId: "e", role: "definition" },
+      { cellId: "e", tfId: "e", role: "definition" }, // says nothing
     ]);
     expect(ids.size).toBe(0);
+  });
+
+  it("accepts a ref whose tfId equals its own cell id (former definition after a move)", () => {
+    const ids = collectCellIdentities([ref("mp2", "mp2")]);
+    expect(identityOf(ids, "mp2")).toEqual({ tfId: "mp2", role: "ref" });
   });
 
   it("keeps the first link of a cell", () => {

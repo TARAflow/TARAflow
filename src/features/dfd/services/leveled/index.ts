@@ -12,3 +12,13 @@ export {
   findDuplicateDefinitions,
   type DuplicateDefinition,
 } from "./duplicate-definitions";
+export { findDanglingReferences, type DanglingReference } from "./dangling";
+export {
+  pruneStaleLinks,
+  promoteToDefinition,
+  makeDefinition,
+  type CellRef,
+  type LinkEditResult,
+  type LinkEditRefusal,
+  type PrunedLink,
+} from "./identity-links";
