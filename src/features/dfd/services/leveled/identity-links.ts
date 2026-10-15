@@ -12,6 +12,9 @@
 //                        becomes the definition (BAL_DANGLING_REF)
 //   makeDefinition       "Make this the definition": a context copy becomes
 //                        the definition, the former definition a copy
+//   linkAsContextCopy    "Make this a context copy of …": a plain cell
+//                        (pasted or redrawn) becomes a copy of an existing
+//                        element / flow (assignment dialog, adoption)
 //
 // Lazy invariant kept by every writer: a cell whose identity equals its own
 // cell id as a definition has NO link; everything else has exactly one.
@@ -40,7 +43,13 @@ export type LinkEditRefusal =
   /** makeDefinition: several definitions (duplicate page) — resolve first. */
   | "DUPLICATE_DEFINITIONS"
   /** The page of a cell to relink has no entry in dfd.pages. */
-  | "PAGE_NOT_IN_TREE";
+  | "PAGE_NOT_IN_TREE"
+  /** linkAsContextCopy: the cell already carries a link (copy or moved definition). */
+  | "NOT_A_PLAIN_CELL"
+  /** linkAsContextCopy: the cell would become a copy of itself. */
+  | "SAME_IDENTITY"
+  /** linkAsContextCopy: the cell type differs from the type of the target. */
+  | "TYPE_MISMATCH";
 
 export interface PrunedLink extends CellRef {
   tfId: string;
@@ -139,22 +148,62 @@ export function makeDefinition(
   return setIdentity(demoted.pages, copy, "definition");
 }
 
+/**
+ * "Make this a context copy of …" (§5.2 lifecycle, assignment dialog): a
+ * plain cell — pasted, redrawn, or adopted — becomes a context copy of an
+ * existing element / flow with a definition. The cell's own logical record
+ * ceases to exist; meant for cells that are new or were never analysed on
+ * their own (the dialog only proposes those).
+ *
+ * @param types type per record (kind\0tfId → DFDElementType / "DataFlow"),
+ *              e.g. from recordInfos(parse)
+ */
+export function linkAsContextCopy(
+  pages: readonly DFDPage[],
+  occurrences: readonly ParsedOccurrence[],
+  types: ReadonlyMap<string, { type: string }>,
+  cell: CellRef,
+  tfId: string,
+): LinkEditResult {
+  const occurrence = findOccurrence(occurrences, cell);
+  if (!occurrence) return refuse("CELL_NOT_FOUND");
+  if (
+    occurrence.role !== "definition" ||
+    occurrence.tfId !== occurrence.cellId
+  ) {
+    return refuse("NOT_A_PLAIN_CELL");
+  }
+  if (tfId === occurrence.tfId) return refuse("SAME_IDENTITY");
+
+  const target = { ...occurrence, tfId };
+  if (definitionsOf(occurrences, target).length === 0) {
+    return refuse("NO_DEFINITION");
+  }
+  const key = (id: string) => `${occurrence.kind}\u0000${id}`;
+  if (types.get(key(tfId))?.type !== types.get(key(occurrence.tfId))?.type) {
+    return refuse("TYPE_MISMATCH");
+  }
+
+  return setIdentity(pages, occurrence, "ref", tfId);
+}
+
 // ---------------------------------------------------------------------------
 
 function setIdentity(
   pages: readonly DFDPage[],
   cell: ParsedOccurrence,
   role: DFDCellLink["role"],
+  tfId: string = cell.tfId,
 ): LinkEditResult {
   const index = pages.findIndex((p) => p.pageId === cell.pageId);
   if (index < 0) return refuse("PAGE_NOT_IN_TREE");
 
   const page = pages[index];
   const others = (page.links ?? []).filter((l) => l.cellId !== cell.cellId);
-  const plainDefinition = role === "definition" && cell.tfId === cell.cellId;
+  const plainDefinition = role === "definition" && tfId === cell.cellId;
   const links = plainDefinition
     ? others
-    : [...others, { cellId: cell.cellId, tfId: cell.tfId, role }];
+    : [...others, { cellId: cell.cellId, tfId, role }];
 
   const next = [...pages];
   next[index] = withLinks(page, links);

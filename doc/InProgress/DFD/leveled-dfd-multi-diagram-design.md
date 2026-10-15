@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.1 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1.1–1.4 done, 1.5 next
+Status: rev. 4.1 — decisions D1–D13 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic), Phase 2 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -759,14 +759,16 @@ independent definition with a duplicate displayId.
 
 Such files (detected by Phase 0, finding `ID_ADOPTION_PENDING`) go through an **adoption step**:
 
-1. Objects that **already carry a `tfId`** are grouped by it; this grouping has priority.
-   Remaining objects are grouped by `(displayId, type)`. An object without a valid displayId is a
-   **singleton group** of its own and is never merged with anything (several such objects stay
-   several elements; the analyst can merge them manually afterwards with "Make this a context copy
-   of …"). If a displayId group would mix objects with different existing `tfId`s, the group is
-   split by `tfId` and flagged as a conflict in the dialog.
+1. Cells that are **already linked** to one `tfId` stay together; this grouping has priority.
+   The groups are then merged by `(displayId, type)`. A displayId only counts if it is a real id
+   (numbered types: their prefix, e.g. `MP-2`; boundaries: their bracket id, e.g. `SB`); a cell
+   without one is a **singleton group** of its own and is never merged with anything (the analyst
+   can merge it manually afterwards with "Make this a context copy of …"). A `(displayId, type)`
+   bucket holding two or more already-linked `tfId`s is a **conflict**: nothing in it is merged,
+   the groups are listed with the identities they collide with.
 2. Per group, choose the definition — an **adoption heuristic**, not a statement about where the
-   definition semantically belongs:
+   definition semantically belongs. An already-linked group keeps its existing definition
+   (reason `existing`); otherwise:
    1. the root page, if the element occurs there;
    2. otherwise the page with minimal depth (§5.4);
    3. on a tie, the page first in tree order (`order`), then the lower cell id — a purely technical
@@ -774,10 +776,14 @@ Such files (detected by Phase 0, finding `ID_ADOPTION_PENDING`) go through an **
    All other members become `ref` with the definition's `tfId`.
 3. Groups whose members disagree on label or properties are flagged `BAL_LABEL_DIVERGENCE` and listed
    separately in the dialog.
-4. The decomposition tree is proposed from the page content: a page whose definitions are not on the
-   root page and that does not contain an MP drawn on its parent page is proposed to decompose that
-   MP (e.g. *Sensor Module* → `MP-1`, because `MP-1` is the only element of *System* missing there
-   and replaced by parts). The analyst confirms or corrects each page.
+4. The decomposition tree is proposed from the page content, starting at the root (pages already in
+   `dfd.pages` keep their place). An unplaced page P is proposed to decompose the multiprocess M of
+   an already placed page K that is **missing on P** and whose **flow neighbourhood on K** (flows
+   touching M, elements at their other end — exactly what "Decompose…" pre-populates, §12) appears
+   most often on P. E.g. *Sensor Module* → `MP-1`: `MP-1` is missing there, while its neighbours
+   `MP-2`, `EE-1`, `DF-7`, `DF-9`, `DF-8` appear as copies. A tie between two MPs is **ambiguous**, no
+   candidate at all **unplaced**; both are left to the analyst (candidates listed). Placed pages
+   get depth `depth(K) + 1`, which feeds step 2. The analyst confirms or corrects each page.
 5. The whole proposal is shown in **one confirmation dialog**; nothing is merged silently, because
    grouping by displayId is an assumption. On confirmation TARAflow stores `ref` links for the
    context copies in `dfd.pages[].links` (and a `definition` link only where a definition's identity
@@ -886,7 +892,24 @@ already contain several pages.
     exists in the XML (existence only — a present but unparsed cell keeps its link); pages missing
     from the XML stay untouched (`PAGE_MISSING`). Saving never adds `dfd.pages` to a classic project.
   - The buttons for these actions come with the UI (Phase 5).
-- **1.5** adoption dialog for files that are already multi-page (§11.2.1).
+- **1.5 ✅** adoption and paste assignment **logic** (the dialog itself comes with the UI, Phase 5,
+  when the guard falls and the effect is visible):
+  - `signatures`: `(displayId, type)` grouping signature; only real ids count (prefix / bracket id).
+  - `proposeAdoption` / `applyAdoption` (§11.2.1): groups, conflicts, label divergence, definition
+    with reason (`existing` / `root` / `highest` / `tie-break`), decomposition proposal per page
+    (`root` / `existing` / `proposed` / `ambiguous` / `unplaced`, with candidates). Applying takes the
+    analyst's decisions (reject a group, another definition, another or no decomposition) and writes
+    one `dfd.pages` entry per XML page; a second proposal on an adopted file finds nothing to merge
+    and re-applying is a no-op.
+  - `proposeCopyAssignments` / `applyCopyAssignments` (§5.2 lifecycle): new plain cells whose
+    `(displayId, type)` matches exactly one existing element/flow; default *copy* on another page,
+    *new* on the definition's own page; applying is all-or-nothing.
+  - `linkAsContextCopy` ("Make this a context copy of …"): refuses linked cells, self links, targets
+    without definition, type mismatches and pages without entry.
+
+Phase 1 is complete: identity, occurrences, page tree and every identity action exist as pure,
+tested functions; nothing of it is reachable from the UI yet, and multi-page files stay refused by
+the Phase 0 guard until Phase 2 delivers the effective model.
 
 Gate: every existing example project loads and produces identical threats **including** threat
 attributes, references, display ids and asset relations (golden test).
@@ -906,7 +929,9 @@ displayId on save, `ID_PASTE_REASSIGNED`).
 **Phase 4 — Validator.** Findings from §7; `refines` and `abstract` in the connection form; error
 policy (§7).
 
-**Phase 5 — UI.** Page tree, decompose action, context-copy styling and actions.
+**Phase 5 — UI.** Page tree, decompose action, context-copy styling and actions; the adoption /
+assignment dialog on top of the 1.5 logic (one dialog, two entry points: `ID_ADOPTION_PENDING` and
+the paste hint).
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

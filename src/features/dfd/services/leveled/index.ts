@@ -22,3 +22,23 @@ export {
   type LinkEditRefusal,
   type PrunedLink,
 } from "./identity-links";
+export { linkAsContextCopy } from "./identity-links";
+export { recordInfos, signatureOf, type RecordInfo } from "./signatures";
+export {
+  proposeAdoption,
+  applyAdoption,
+  type AdoptionProposal,
+  type AdoptionGroup,
+  type AdoptionPage,
+  type AdoptionInput,
+  type AdoptionDecisions,
+  type AdoptionApplyResult,
+  type DefinitionReason,
+  type PageStatus,
+} from "./adoption";
+export {
+  proposeCopyAssignments,
+  applyCopyAssignments,
+  type CopyAssignment,
+  type CopyAssignmentResult,
+} from "./copy-assignment";
