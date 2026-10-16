@@ -390,3 +390,32 @@ describe("buildEffectiveModel — boundaries (2b)", () => {
     expect(mp2.boundaries).toEqual({ trust: ["sb"], chip: [], physical: [] });
   });
 });
+
+describe("buildEffectiveModel — decomposition takes effect with the first part (D15)", () => {
+  // Controller page created automatically, so far only a context copy.
+  const controllerCopiesOnly = page(
+    "ctl",
+    "Controller Module",
+    node("ctl_mp1", "multiprocess", "Sensor Module", "MP-1", 10),
+  );
+  const pages = LEVELED_PAGES.map((p) =>
+    p.pageId === "ctl" ? { ...p, links: [ref("ctl_mp1", "mp1")] } : p,
+  );
+  const model = effective(mxfile(SYSTEM, SENSOR, controllerCopiesOnly), pages);
+
+  it("keeps the multiprocess a leaf while its page has no part of its own", () => {
+    expect(model.elements.map((e) => e.tfId)).toContain("mp2");
+    expect(model.elements.map((e) => e.tfId)).not.toContain("mp1");
+  });
+
+  it("its flows end at the multiprocess, resolved — no fallback noise", () => {
+    expect(flowOf(model, "df7")).toMatchObject({
+      from: "sen_p2",
+      to: "mp2",
+      state: "resolved",
+    });
+    expect(
+      model.findings.filter((f) => f.code === "BAL_UNRESOLVED_ENDPOINT"),
+    ).toEqual([]);
+  });
+});

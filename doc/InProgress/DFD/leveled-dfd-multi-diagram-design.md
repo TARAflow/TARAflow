@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.2 — decisions D1–D14 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2a–2b done (leaves, stitching, interfaces, boundaries), 2c next
+Status: rev. 4.3 — decisions D1–D17 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2a–2b done (leaves, stitching, interfaces, boundaries), 2c next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -20,6 +20,9 @@ Revision history (short):
   (§5.2). Pasted copies are linked via an assignment dialog, shared with adoption (§5.2, §11.2.1).
 - rev. 4.2 — D14: interfaces inherit physical and chip boundaries, not trust boundaries (§6.3);
   generated three-page Smoke Detector checked against the single-page original (§13, Phase 2 gate).
+- rev. 4.3 — D15–D17: a child page is created automatically with every multiprocess, but the
+  decomposition takes effect only with the page's first own part; tab name = multiprocess name;
+  the root page is *Top* (§5.3, §6.1, §12).
 
 ## 1. Goal
 
@@ -54,16 +57,16 @@ separated by its two trust boundaries: the **sensor** (`SB`) and the **controlle
 an RS485 bus. Leveled, it becomes three pages. This example is the basis of the Phase 2 golden
 fixture.
 
-**Page *System*** (root, `pageId sys`)
+**Page *Top*** (root, `pageId sys`; the root page is always named *Top*, D17)
 
 | Element | Notes |
 |---|---|
 | `MP-1 Sensor Module`, `MP-2 Controller Module` | multiprocesses, each decomposed on its own page |
 | `EE-1 Debugger`, `EE-2 Fire Panel`, `EE-3 Maintenance Technician`, `EE-4 WiFi Gateway`, `EE-5 Update Server` | external entities |
 | `SB Sensor Boundary` around `MP-1`, `CB Controller Boundary` around `MP-2` | trust boundaries |
-| `PB Smoke Detector Case` around both | physical boundary — drawn **only** on *System* |
+| `PB Smoke Detector Case` around both | physical boundary — drawn **only** on *Top* |
 
-| Flow | Drawn on *System* |
+| Flow | Drawn on *Top* |
 |---|---|
 | `DF-7 stream sensor data` | `MP-1 → MP-2` |
 | `DF-9 pull calibration command` | `MP-2 → MP-1` |
@@ -87,27 +90,27 @@ What the example shows:
 1. **IDs are global.** `EE-1 Debugger` appears on all three pages and is one entity; no displayId is
    reused for a different thing.
 2. **Reappearance = identity.** `MP-2` on the *Sensor Module* page is a **context copy** of the
-   element defined on *System*, not a new element.
+   element defined on *Top*, not a new element.
 3. **Flows are split across pages ("half-refinement").** `DF-7 stream sensor data`:
 
    | Page | Source | Target | crossed interface |
    |---|---|---|---|
-   | System | MP-1 | MP-2 | – |
+   | Top | MP-1 | MP-2 | – |
    | Sensor Module | **P-2** Sensor Communication | MP-2 | IF-1 |
    | Controller Module | MP-1 | **P-5** Alarm Processing | IF-3 |
 
    Neither child page alone knows both real endpoints. Only the combination yields the effective
    flow `P-2 → P-5` leaving through `IF-1` and arriving through `IF-3` — the two ends of the RS485
    bus. **This is the core mechanism the tool must implement** ("endpoint stitching", §6.2).
-4. **1:n refinement.** *System* shows one `DF-27 push alarm` to the fire panel. The *Controller
+4. **1:n refinement.** *Top* shows one `DF-27 push alarm` to the fire panel. The *Controller
    Module* page shows it as `DF-27` (`P-6 → EE-2` via `IF-6 Alarm`, the data channel) **plus**
    `DF-19 push alarm relay` (`P-5 → EE-2` via `IF-5 Alarm Relay`, the potential-free contact). `DF-19`
    is an *additional* flow that refines `DF-27`; without a `refines` link a balancing check flags it
    as "boundary flow missing on the parent level" (§7, D2).
 5. **Boundary membership is page-local but must be inherited.** `PB Smoke Detector Case` is drawn
-   only on *System*; the parts on the child pages are still inside the case → membership is
+   only on *Top*; the parts on the child pages are still inside the case → membership is
    **inherited from the decomposed parent** (§6.3).
-6. **Interfaces exist on the detail pages.** *System* has no `IF-*` shapes; ports appear when a
+6. **Interfaces exist on the detail pages.** *Top* has no `IF-*` shapes; ports appear when a
    multiprocess is opened up. The top level stays relevant for the analysis — its EEs and flows are
    part of the effective model (§6).
 7. **EE→EE.** `DF-39` (WiFi gateway → update server) runs between two external entities: kept in
@@ -320,7 +323,14 @@ pages?: DFDPage[];         // absent or length 1 = classic single-page project
 
 Rules:
 
-- Exactly **one root page** (`decomposes` absent).
+- Exactly **one root page** (`decomposes` absent). It is named **Top** (D17) — from the moment a
+  project gets its second page, and from the start for new projects. Classic single-page projects
+  keep their page name until then, so their XML does not churn.
+- **Every multiprocess gets its child page automatically** when it is created, on any level (D15).
+  The page **name follows the multiprocess name** in one direction: renaming the MP renames the tab
+  on save; renaming the tab in draw.io is overwritten on the next save (D16). Identity is the
+  `pageId`, so equal names are only a cosmetic issue. The MP cell carries the draw.io page link
+  (below).
 - Only **multiprocesses** can be decomposed (D1). A multiprocess has at most one child page.
   Nesting is unlimited.
 - A decomposed multiprocess must **not** appear on its own child page (on *Controller Module*,
@@ -373,7 +383,7 @@ XML, no separate field, no re-derivation on load.
 - Elements created on a child page live there (`P-1…P-4`, `DS-1`, `IF-1`, `SDS` on *Sensor Module*).
 - Elements used on several levels (EEs, cross-level boundaries) should be defined on the **highest
   page** they occur on. Formally: `depth(root) = 0`, `depth(child) = depth(parent page) + 1`;
-  "highest" = minimal depth among the pages the element occurs on (`EE-1`, `SB` → *System*). If an
+  "highest" = minimal depth among the pages the element occurs on (`EE-1`, `SB` → *Top*). If an
   element was first created on a child page and is later inserted as context on a higher page,
   TARAflow does **not** move the definition automatically; the info finding `BAL_HOME_NOT_HIGHEST`
   offers the action "Move definition here".
@@ -385,7 +395,14 @@ XML, no separate field, no re-derivation on load.
 
 The effective element set = all logical elements that are **not decomposed**. `MP-1` and `MP-2`
 disappear and are replaced by their descendants; all EEs and any not-yet-decomposed multiprocess are
-leaves. A decomposed multiprocess generates no own STRIDE-per-element threats — **except** as a
+leaves.
+
+**A decomposition takes effect only once its page defines at least one part of its own** (a
+process, multiprocess, data store, interface, sensor or actuator — not an EE, not a boundary, not a
+context copy) (D15). An automatically created, still empty child page, or one holding only context
+copies, therefore leaves the multiprocess a **leaf with its own threats**; its flows end at the MP,
+resolved, without fallback findings. Without this rule every new MP would lose its threats and turn
+its flows into `unresolved` fallbacks the moment it is drawn. A decomposed multiprocess generates no own STRIDE-per-element threats — **except** as a
 fallback endpoint of individual flows (§6.2, §6.5).
 
 ### 6.2 Flow endpoint stitching (deterministic algorithm)
@@ -513,7 +530,7 @@ inherited(e)           = effectiveBoundaries(containmentParent(e))   // §5.3.1;
   there, otherwise from the nearest ancestor.
 
 Example: `P-2` is geometrically inside `SB` and `SDS` on *Sensor Module* and inherits `PB` from
-`MP-1` on *System*. Crossings of a stitched flow are computed from the resolved endpoints'
+`MP-1` on *Top*. Crossings of a stitched flow are computed from the resolved endpoints'
 effective boundaries, so `DF-7` (`P-2 → P-5`) crosses `SB → CB` and `SDS → SDC`, but not `PB` — both
 ends are inside the case.
 
@@ -535,7 +552,7 @@ Rules:
    descendant of, the corresponding endpoint of the parent flow's **top-most occurrence** (EEs:
    identical). Same direction. Violation → `BAL_REFINES_INCOMPATIBLE` (warning).
    The check deliberately uses the top-most occurrence, not the parent's resolved leaf: `DF-27` is
-   drawn `MP-2 → EE-2` on *System* and resolves to `P-6 → EE-2`; `DF-19 P-5 → EE-2` is compatible
+   drawn `MP-2 → EE-2` on *Top* and resolves to `P-6 → EE-2`; `DF-19 P-5 → EE-2` is compatible
    because `P-5 ⊂ MP-2`, although `P-5` is not `P-6`.
    An incompatible refining flow is **analysed normally**, but the claimed refinement does **not**
    count as balancing: the parent-level check (`BAL_MISSING_PARENT_FLOW`) is evaluated as if
@@ -831,6 +848,11 @@ to disk.
 
 ## 12. UI
 
+- **Automatic child page (D15–D17):** creating a multiprocess creates its child page, named like the
+  MP, linked from the MP cell (`link="data:page/id,<pageId>"`, so double-click opens it — also on
+  its context copies). Until the page has a part of its own, the MP stays a leaf (§6.1). Deleting
+  the MP asks whether to delete its page as well (lifecycle "Delete a page", §5.2). The root tab is
+  *Top*.
 - **Page tree** in the DFD tab's left area: root page + child pages, badge with finding count.
 - **"Decompose…"** on a multiprocess creates the child page and pre-populates it with context copies
   of exactly:
@@ -954,13 +976,15 @@ Split into commits:
   `boundaryProvenance: context-copies`). Gate part: for the leveled Smoke Detector every flow
   crosses exactly the single-page interfaces and every element lies in exactly the single-page
   trust/chip/physical boundaries; DF-7 carries `IF-1` (source, level 1) and `IF-3` (target, level 1).
+  D15 is part of the effective model: only pages that define a part of their own decompose their
+  MP.
 - **2c** hand-over to `DFDGraphReference` and the threat generators; lift the Phase 0 guard for
   adopted files; schema 9 as version fence (§11.2); gate: identical threats.
 Gate: golden test on the leveled Smoke Detector fixture (§3, §16) + ambiguity/self-loop/EE→EE cases.
 The fixture is built from the single-page `SmokeDetector` example; its threats for elements and
 flows that are unchanged by the leveling must equal the single-page result.
-A generated three-page version exists (System with MP-1 *Sensor Head* and MP-2 *Smoke Detector
-Controller*; *Sensor Head*; *Controller*; all original cell ids kept, copies linked in
+A generated three-page version exists (*Top* with MP-1 *Sensor Head* and MP-2 *Smoke Detector
+Controller*; *Sensor Head*; *Smoke Detector Controller*; page links on the multiprocesses; all original cell ids kept, copies linked in
 `dfd.pages`). Checked against the single-page original with the current parser and graph builder:
 same 36 elements + 2 MPs and 41 flows, no dangling copies, stitched endpoints and the union of
 crossed interfaces identical for every flow, trust/chip/physical membership identical for every
@@ -1062,6 +1086,9 @@ Diff and audit
 | D12 | Analysis of dangling definitions | **Keep logical record; no home page; boundaries = union of all copies + inherited; flagged** | Conservative, never an empty boundary set by accident (§5.2.1) |
 | D13 | Files that are already multi-page | **Adoption step with one confirmation dialog** (group by displayId+type, definition per D5, decomposition proposal) | Lazy identity alone would make every copy a definition; the dialog is shared with pasted copies (§11.2.1) |
 | D14 | Boundary inheritance of interfaces | **Interfaces inherit physical and chip boundaries of their multiprocess, not its trust boundaries** (2026-10-15) | Interfaces relate to physical/chip boundaries; on a trust boundary they are the crossing point, not a zone member. Keeps the leveled Smoke Detector identical to the single-page model (§6.3) |
+| D15 | Child page of a multiprocess | **Created automatically with the MP; the decomposition takes effect only with the page's first own part** (2026-10-16) | Navigation without an extra step, but an empty page never costs the MP its threats or turns its flows into fallbacks (§6.1, §12) |
+| D16 | Tab name of a child page | **= name of the decomposed MP, one direction (MP → tab)** (2026-10-16) | One name to maintain; identity is the pageId (§5.3) |
+| D17 | Name of the root page | **Always *Top*** — from the second page on, and for new projects from the start (2026-10-16) | Recognisable entry point; classic projects do not churn (§5.3) |
 
 ## 16. End-to-end example: `DF-7 stream sensor data`
 
@@ -1092,7 +1119,7 @@ Page tree: `sys` (root) · `sen` decomposes `mp1` · `ctl` decomposes `mp2`.
 **1. XML (abbreviated)**
 
 ```xml
-<!-- page sys (System) — plain draw.io; identity comes from dfd.pages[].links (lazy, §5.2) -->
+<!-- page sys (Top) — plain draw.io; identity comes from dfd.pages[].links (lazy, §5.2) -->
 <object id="mp1" type="multiprocess" label="Sensor Module"/>
 <object id="mp2" type="multiprocess" label="Controller Module"/>
 <object id="df7" type="dataflow" label="stream sensor data [stream]">
@@ -1120,7 +1147,7 @@ Identity links (`dfd.pages`, abbreviated):
 
 ```json
 [
-  { "pageId": "sys", "name": "System", "order": 0 },
+  { "pageId": "sys", "name": "Top", "order": 0 },
   { "pageId": "sen", "name": "Sensor Module", "decomposes": "mp1", "order": 0,
     "links": [ { "cellId": "sen_mp2", "tfId": "mp2", "role": "ref" },
                { "cellId": "sen_df7", "tfId": "df7", "role": "ref" } ] },
@@ -1138,7 +1165,7 @@ resolves each to the `tfId` of the referenced cell on the same page: `sen_mp2 �
 
 | pageId | cellId | role | sourceTfId | targetTfId | interfaces (geometric) |
 |---|---|---|---|---|---|
-| `sys` | `df7` | definition | `mp1` | `mp2` | – (*System* has no interface shapes) |
+| `sys` | `df7` | definition | `mp1` | `mp2` | – (*Top* has no interface shapes) |
 | `sen` | `sen_df7` | ref | `sen_p2` | `mp2` | `[sen_if1]` |
 | `ctl` | `ctl_df7` | ref | `mp1` | `ctl_p5` | `[ctl_if3]` |
 

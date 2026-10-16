@@ -8,7 +8,8 @@
 //   containment  containmentParent(e) = the multiprocess decomposed by the
 //                home page of e (§5.3.1); none for external entities,
 //                boundaries and dangling elements
-//   leaves       every element that is not a decomposed multiprocess (§6.1)
+//   leaves       every element that is not a decomposed multiprocess (§6.1);
+//                a decomposition counts once its page defines a part (D15)
 //   stitching    per flow side: the drawn endpoints must lie on one
 //                containment chain; the deepest wins. Otherwise the lowest
 //                common ancestor (ambiguous), a decomposed MP nobody drew
@@ -148,11 +149,23 @@ export function buildEffectiveModel(
   const typeOf = new Map(elements.map((e) => [e.id, e.type]));
 
   // ---- containment (§5.3.1) -------------------------------------------------
+  // A decomposition is effective only once its page defines at least one
+  // part of its own (D15): an automatically created, still empty child page
+  // — or one holding nothing but context copies — leaves the multiprocess a
+  // leaf with its own threats instead of turning all its flows into
+  // fallbacks.
+  const pagesWithParts = new Set<string>();
+  for (const o of occurrences) {
+    if (o.kind !== "element" || o.role !== "definition") continue;
+    const type = typeOf.get(o.tfId);
+    if (type && !NO_CONTAINMENT.has(type)) pagesWithParts.add(o.pageId);
+  }
   const decomposedBy = new Map<string, string>(); // pageId → MP tfId
   for (const page of tree.pages) {
     if (
       page.decomposes &&
-      tree.childPageOf.get(page.decomposes) === page.pageId
+      tree.childPageOf.get(page.decomposes) === page.pageId &&
+      pagesWithParts.has(page.pageId)
     ) {
       decomposedBy.set(page.pageId, page.decomposes);
     }

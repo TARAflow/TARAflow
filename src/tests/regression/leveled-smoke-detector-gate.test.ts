@@ -1,6 +1,6 @@
 // Leveled-DFD Phase 2 gate (leveled-dfd-multi-diagram-design.md §13).
 //
-// The single-page SmokeDetector DFD and its three-page version (System with
+// The single-page SmokeDetector DFD and its three-page version (Top with
 // MP-1 Sensor Head and MP-2 Smoke Detector Controller, one child page per
 // multiprocess; original cell ids kept, copies linked in dfd.pages). The
 // leveled model must analyse exactly like the single page.
