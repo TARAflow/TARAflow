@@ -42,3 +42,14 @@ export {
   type CopyAssignment,
   type CopyAssignmentResult,
 } from "./copy-assignment";
+export {
+  buildEffectiveModel,
+  type EffectiveModel,
+  type EffectiveModelInput,
+  type EffectiveElement,
+  type EffectiveFlow,
+  type EffectiveFinding,
+  type FallbackReason,
+  type FlowState,
+  type ExclusionReason,
+} from "./effective-model";

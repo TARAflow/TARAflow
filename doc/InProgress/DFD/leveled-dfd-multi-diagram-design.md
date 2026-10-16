@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.2 — decisions D1–D14 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic), Phase 2 next
+Status: rev. 4.2 — decisions D1–D14 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2a done (leaves, stitching), 2b next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -359,7 +359,9 @@ Rules:
   (`trustBoundaryHierarchy`), and a boundary's membership in other boundaries is not inherited along
   the decomposition.
 - **Dangling elements** keep the containment parent of their last definition page if that page still
-  exists; otherwise they have none.
+  exists; otherwise they have none. *Implementation note (2a):* the last definition page is not
+  known without history, so a dangling element has no containment parent for now; its boundaries
+  are the union over its copies (§5.2.1). Revisit with 2b if the persisted record should carry it.
 - `a ⊆ M` ("a inside M") means: `a == M` or `M` is reached by following `containmentParent` from `a`.
   EEs and boundaries are never inside any MP.
 
@@ -398,6 +400,7 @@ for side in (source, target):
   if exists a, b in C with not (a ancestorOrSelf b or b ancestorOrSelf a):
       finding BAL_AMBIGUOUS_ENDPOINT (error)
       resolved.side = lowestCommonAncestor(C)          // conservative fallback, never "pick one"
+                    ?? endpoint drawn by the flow's definition   // no common ancestor (e.g. an EE)
       state = fallback
       continue
 
@@ -929,6 +932,21 @@ attributes, references, display ids and asset relations (golden test).
 chain (§6.2.1), boundary inheritance, analysis state with reason → `DFDGraphReference`. Interaction
 generator iterates the interface list. Document which graph properties the generators may rely on
 (every endpoint is a leaf or a flagged fallback; boundary sets are complete; no EE→EE flows).
+Split into commits:
+
+- **2a ✅** `services/leveled/effective-model`, pure: containment parents (§5.3.1), leaves (§6.1),
+  stitching per flow side (§6.2: one chain → deepest; otherwise lowest common ancestor, or — without
+  a common ancestor — the endpoint drawn by the flow's definition; a decomposed MP nobody drew below
+  → `unresolved`), dangling endpoints, `BAL_DUPLICATE_OCCURRENCE` (all occurrences still used),
+  states `resolved` / `fallback` (reasons ordered `ambiguous > dangling > unresolved`) / `excluded`
+  (EE→EE with `DFD_EE_TO_EE_FLOW`, `excludeFromThreatGen`; `abstract` follows with Phase 4). Gate
+  part: the leveled Smoke Detector's leaves are exactly the single-page elements and all 41 flows
+  resolve to the single-page endpoints, no findings (`regression/leveled-smoke-detector-gate`,
+  fixture `fixtures/leveled/smoke-detector-leveled.json`).
+- **2b** interface chain per flow (§6.2.1) and effective boundaries with inheritance (§6.3, D14);
+  gate: crossed interfaces and boundary membership identical to the single page.
+- **2c** hand-over to `DFDGraphReference` and the threat generators; lift the Phase 0 guard for
+  adopted files; schema 9 as version fence (§11.2); gate: identical threats.
 Gate: golden test on the leveled Smoke Detector fixture (§3, §16) + ambiguity/self-loop/EE→EE cases.
 The fixture is built from the single-page `SmokeDetector` example; its threats for elements and
 flows that are unchanged by the leveling must equal the single-page result.
