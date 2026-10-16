@@ -47,6 +47,21 @@ export interface ParseResult {
    * (the XML is the source of truth, D7).
    */
   occurrences: ParsedOccurrence[];
+  /**
+   * The parsed cells of every page as drawn — page-local cell ids, endpoints
+   * and geometry, context copies included — before they are merged into
+   * logical records. Input of the per-page geometry (interfaces crossed,
+   * boundary membership) of the effective model. Not persisted.
+   */
+  pageCells: ParsedPageCells[];
+}
+
+export interface ParsedPageCells {
+  pageId: string;
+  /** Elements with page-local cell ids (copies included). */
+  elements: DFDElement[];
+  /** Connections with page-local cell ids and cell-id endpoints. */
+  connections: DFDConnection[];
 }
 
 export interface ParsedPageInfo {
@@ -111,6 +126,7 @@ export class DFDParser {
 
       const unconnectedDataflows: string[] = [];
       const occurrences: ParsedOccurrence[] = [];
+      const pageCells: ParsedPageCells[] = [];
       const elementRecords = new LogicalRecords<DFDElement>();
       const connectionRecords = new LogicalRecords<DFDConnection>();
 
@@ -127,6 +143,13 @@ export class DFDParser {
         // 4. Parse connections
         const pageConnections = parseConnections(page.doc);
         assignConnectionDisplayIds(pageConnections.connections, idLabels);
+
+        // Keep the page as drawn (copies made before re-keying mutates ids).
+        pageCells.push({
+          pageId: page.pageId,
+          elements: pageElements.map((e) => ({ ...e })),
+          connections: pageConnections.connections.map((c) => ({ ...c })),
+        });
 
         // 5. Re-key from page-local cell ids to logical tfIds (§5.2).
         //    Endpoints are resolved on the page they are drawn on, so a flow
@@ -182,6 +205,7 @@ export class DFDParser {
           index,
         })),
         occurrences,
+        pageCells,
       };
     } catch (error) {
       console.error("DFDParser: Failed to parse XML", error);
@@ -237,6 +261,7 @@ function emptyResult(): ParseResult {
     unconnectedDataflows: [],
     pages: [],
     occurrences: [],
+    pageCells: [],
   };
 }
 

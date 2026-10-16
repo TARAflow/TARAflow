@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.2 — decisions D1–D14 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2a done (leaves, stitching), 2b next
+Status: rev. 4.2 — decisions D1–D14 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2a–2b done (leaves, stitching, interfaces, boundaries), 2c next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -943,8 +943,17 @@ Split into commits:
   part: the leveled Smoke Detector's leaves are exactly the single-page elements and all 41 flows
   resolve to the single-page endpoints, no findings (`regression/leveled-smoke-detector-gate`,
   fixture `fixtures/leveled/smoke-detector-leveled.json`).
-- **2b** interface chain per flow (§6.2.1) and effective boundaries with inheritance (§6.3, D14);
-  gate: crossed interfaces and boundary membership identical to the single page.
+- **2b ✅** interface chain per flow (§6.2.1) and effective boundaries with inheritance (§6.3, D14).
+  The per-page geometry is computed by the existing graph builder on each page alone
+  (`page-geometry`, fed by the new `ParseResult.pageCells` — the cells as drawn, copies included), so
+  there is one geometry implementation. `buildEffectiveModel` takes it as `pageGeometry` and adds
+  `EffectiveFlow.interfaces` (side by the page's decomposition border, level = depth of the
+  interface's home page, deduplicated by (tfId, side), `BAL_INTERFACE_UNATTRIBUTED` instead of a
+  guess) and `EffectiveElement.boundaries` (home-page geometry ∪ the parent's effective boundaries;
+  interfaces without the parent's trust boundaries; dangling: union over the copies,
+  `boundaryProvenance: context-copies`). Gate part: for the leveled Smoke Detector every flow
+  crosses exactly the single-page interfaces and every element lies in exactly the single-page
+  trust/chip/physical boundaries; DF-7 carries `IF-1` (source, level 1) and `IF-3` (target, level 1).
 - **2c** hand-over to `DFDGraphReference` and the threat generators; lift the Phase 0 guard for
   adopted files; schema 9 as version fence (§11.2); gate: identical threats.
 Gate: golden test on the leveled Smoke Detector fixture (§3, §16) + ambiguity/self-loop/EE→EE cases.

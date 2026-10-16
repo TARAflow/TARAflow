@@ -53,3 +53,8 @@ export {
   type FlowState,
   type ExclusionReason,
 } from "./effective-model";
+export { analysePageGeometry, type PageGeometry } from "./page-geometry";
+export type {
+  EffectiveInterface,
+  EffectiveBoundaries,
+} from "./effective-model";

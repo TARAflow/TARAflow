@@ -3,6 +3,7 @@
 import { describe, it, expect } from "vitest";
 import { dfdParser } from "features/dfd/services/dfd-parser";
 import {
+  analysePageGeometry,
   buildEffectiveModel,
   buildPageTree,
   computeHomePages,
@@ -239,5 +240,153 @@ describe("buildEffectiveModel — exclusions", () => {
       state: "excluded",
       excludedReason: "excluded-by-property",
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 2b — interface chain (§6.2.1, D11) and boundaries (§6.3, D14)
+
+function effective2b(xml: string, pages?: readonly DFDPage[]) {
+  const parse = dfdParser.parse(xml, pages);
+  const homePages = computeHomePages(parse.occurrences);
+  const tree = buildPageTree({
+    parsedPages: parse.pages,
+    persistedPages: pages,
+    elements: parse.elements,
+    occurrences: parse.occurrences,
+    homePages,
+  });
+  return buildEffectiveModel({
+    elements: parse.elements,
+    connections: parse.connections,
+    occurrences: parse.occurrences,
+    tree,
+    homePages,
+    pageGeometry: analysePageGeometry(parse.pageCells),
+  });
+}
+
+/** A shape at x with the given type, without id label (boundaries carry [ID]). */
+const shape = (
+  id: string,
+  type: string,
+  label: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) =>
+  `<object label="${label}" type="${type}" id="${id}">
+     <mxCell style="rounded=0;" vertex="1" parent="1">
+       <mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/>
+     </mxCell>
+   </object>`;
+
+// Sensor Module with the RS-485 port on the module border, crossed by DF-7.
+const SENSOR_WITH_PORT = SENSOR.replace(
+  "</root>",
+  shape("sen_if1", "interface", "RS-485", 300, 10, 60, 60) + "</root>",
+);
+
+describe("buildEffectiveModel — interface chain (2b)", () => {
+  it("a port crossed on a child page belongs to the source side, level 1", () => {
+    const model = effective2b(
+      mxfile(SYSTEM, SENSOR_WITH_PORT, CONTROLLER),
+      LEVELED_PAGES,
+    );
+    expect(flowOf(model, "df7").interfaces).toEqual([
+      { tfId: "sen_if1", side: "source", level: 1 },
+    ]);
+  });
+
+  it("on the root page an interface keeps today's single-page meaning (side none)", () => {
+    const system = SYSTEM.replace(
+      "</root>",
+      shape("if0", "interface", "Bus", 200, 10, 60, 60) + "</root>",
+    );
+    const model = effective2b(mxfile(system));
+    expect(flowOf(model, "df7").interfaces).toEqual([
+      { tfId: "if0", side: "none", level: 0 },
+    ]);
+  });
+
+  it("a crossing that belongs to neither side is reported, not guessed", () => {
+    // Sensor Module draws DF-7 between two copies — nothing inside MP-1.
+    const sensor = SENSOR_WITH_PORT.replace(
+      'source="sen_p2" target="sen_mp2"',
+      'source="sen_mp1x" target="sen_mp2"',
+    ).replace(
+      "</root>",
+      node("sen_mp1x", "externalentity", "Debugger", "EE-1", 10) + "</root>",
+    );
+    const model = effective2b(
+      mxfile(SYSTEM, sensor, CONTROLLER),
+      LEVELED_PAGES,
+    );
+    expect(model.findings).toContainEqual({
+      code: "BAL_INTERFACE_UNATTRIBUTED",
+      tfId: "df7",
+      interface: "sen_if1",
+      pageId: "sen",
+    });
+    expect(flowOf(model, "df7").interfaces).toEqual([
+      { tfId: "sen_if1", side: "none", level: 1 },
+    ]);
+  });
+});
+
+describe("buildEffectiveModel — boundaries (2b)", () => {
+  // System: trust boundary SB and physical boundary CASE around MP-1.
+  const system = SYSTEM.replace(
+    "</root>",
+    shape("sb", "trustboundary", "Sensor Board [SB]", 0, 0, 200, 100) +
+      shape("case", "physicalboundary", "Case [CASE]", -10, -10, 220, 120) +
+      "</root>",
+  );
+  // Sensor Module: the SB copy encloses P-2 but not the port on its border.
+  const sensor = SENSOR_WITH_PORT.replace(
+    "</root>",
+    shape("sen_sb", "trustboundary", "Sensor Board [SB]", 0, 0, 200, 100) +
+      "</root>",
+  );
+  const pages = LEVELED_PAGES.map((p) =>
+    p.pageId === "sen"
+      ? { ...p, links: [...(p.links ?? []), ref("sen_sb", "sb")] }
+      : p,
+  );
+  const model = effective2b(mxfile(system, sensor, CONTROLLER), pages);
+  const boundaries = (tfId: string) =>
+    model.elements.find((e) => e.tfId === tfId)!.boundaries;
+
+  it("a process inherits every boundary of its multiprocess", () => {
+    expect(boundaries("sen_p2")).toEqual({
+      trust: ["sb"],
+      chip: [],
+      physical: ["case"],
+    });
+  });
+
+  it("an interface inherits physical and chip boundaries, not trust boundaries (D14)", () => {
+    expect(boundaries("sen_if1")).toEqual({
+      trust: [],
+      chip: [],
+      physical: ["case"],
+    });
+  });
+
+  it("a dangling element takes the union over its copies, flagged provisional", () => {
+    // Only Sensor Module left: MP-2 exists as a copy inside a wide SB copy.
+    const wide = SENSOR_WITH_PORT.replace(
+      "</root>",
+      shape("sen_sb", "trustboundary", "Sensor Board [SB]", 0, 0, 700, 100) +
+        "</root>",
+    );
+    const danglingModel = effective2b(mxfile(wide), [
+      { ...pages[1], decomposes: undefined },
+    ]);
+    const mp2 = danglingModel.elements.find((e) => e.tfId === "mp2")!;
+    expect(mp2.provenance).toBe("dangling");
+    expect(mp2.boundaryProvenance).toBe("context-copies");
+    expect(mp2.boundaries).toEqual({ trust: ["sb"], chip: [], physical: [] });
   });
 });

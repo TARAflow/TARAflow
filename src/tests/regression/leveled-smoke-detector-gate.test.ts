@@ -6,9 +6,11 @@
 // leveled model must analyse exactly like the single page.
 //
 // Phase 2a: leaves and stitched flow endpoints.
+// Phase 2b: crossed interfaces per flow, boundary membership per element.
 import { describe, it, expect } from "vitest";
 import { dfdParser } from "features/dfd/services/dfd-parser";
 import {
+  analysePageGeometry,
   buildEffectiveModel,
   buildPageTree,
   computeHomePages,
@@ -34,7 +36,10 @@ const model = buildEffectiveModel({
   occurrences: leveled.occurrences,
   tree,
   homePages,
+  pageGeometry: analysePageGeometry(leveled.pageCells),
 });
+// The single page as today's graph builder sees it (cell id = tfId).
+const singleGeometry = [...analysePageGeometry(single.pageCells).values()][0];
 
 describe("leveled SmokeDetector — structure", () => {
   it("is a clean three-page tree without dangling copies", () => {
@@ -73,6 +78,45 @@ describe("leveled SmokeDetector — effective model (Phase 2a)", () => {
       .map((f) => [f.tfId, f.from, f.to, f.state])
       .sort();
     expect(actual).toEqual(expected);
+    expect(model.findings).toEqual([]);
+  });
+});
+
+describe("leveled SmokeDetector — interfaces and boundaries (Phase 2b)", () => {
+  it("every flow crosses the same interfaces as on the single page", () => {
+    const expected = single.connections
+      .map((c) => [
+        c.id,
+        [...(singleGeometry.flowInterfaces.get(c.id) ?? [])].sort(),
+      ])
+      .sort();
+    const actual = model.flows
+      .map((f) => [f.tfId, (f.interfaces ?? []).map((i) => i.tfId).sort()])
+      .sort();
+    expect(actual).toEqual(expected);
+  });
+
+  it("attributes the bus interfaces of DF-7 to their side of each border", () => {
+    // DF-7 stream smoke measurement: P-2 (Sensor Head) → P-5 (Controller)
+    expect(model.flows.find((f) => f.tfId === "DF-1")!.interfaces).toEqual([
+      { tfId: "IF-2", side: "source", level: 1 }, // IF-1 RS-485 (Head)
+      { tfId: "21", side: "target", level: 1 }, // IF-3 RS-485 (Controller)
+    ]);
+  });
+
+  it("every element lies in the same boundaries as on the single page (D14)", () => {
+    for (const kind of ["trust", "chip", "physical"] as const) {
+      const expected = Object.fromEntries(
+        single.elements.map((e) => [
+          e.id,
+          [...(singleGeometry[kind].get(e.id) ?? [])].sort(),
+        ]),
+      );
+      const actual = Object.fromEntries(
+        model.elements.map((e) => [e.tfId, e.boundaries![kind]]),
+      );
+      expect({ kind, actual }).toEqual({ kind, actual: expected });
+    }
     expect(model.findings).toEqual([]);
   });
 });

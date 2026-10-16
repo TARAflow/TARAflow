@@ -15,15 +15,25 @@
 //                below (unresolved) — never "pick one" (§6.2)
 //   state        resolved | fallback (with reasons) | excluded (§6.5)
 //
-// Interfaces and boundary inheritance are Phase 2b, the hand-over to the
-// threat generators Phase 2c. Pure; single-page projects come out
-// unchanged (every flow resolved to its drawn endpoints).
+//   interfaces   (2b, with page geometry) per flow the interfaces its
+//                occurrences cross, attributed to the source or target side
+//                of each page's decomposition border, level = depth of the
+//                interface's home page (§6.2.1, D11)
+//   boundaries   (2b, with page geometry) per element: geometry on its home
+//                page ∪ the effective boundaries of its containment parent;
+//                interfaces inherit physical and chip boundaries only (§6.3,
+//                D14); dangling elements: union over their copies (§5.2.1)
+//
+// The hand-over to the threat generators is Phase 2c. Pure; single-page
+// projects come out unchanged (flows as drawn, interfaces side "none",
+// boundaries = the page's geometry).
 
 import type { DFDConnection, DFDElement } from "../../models/dfd-types";
 import type { DFDElementType } from "../../models/dfd-element-types";
 import type { ParsedOccurrence } from "../dfd-parser";
 import { findDanglingReferences } from "./dangling";
 import type { HomePages } from "./home-pages";
+import type { PageGeometry } from "./page-geometry";
 import type { PageTree } from "./page-tree";
 
 export type FallbackReason = "ambiguous" | "dangling" | "unresolved";
@@ -41,6 +51,22 @@ export interface EffectiveFlow {
   /** All collected reasons, for diagnosis. */
   fallbackReasons?: FallbackReason[];
   excludedReason?: ExclusionReason;
+  /** Crossed interfaces, ordered by side, then level (outer → inner). 2b. */
+  interfaces?: EffectiveInterface[];
+}
+
+export interface EffectiveInterface {
+  tfId: string;
+  /** Side of the decomposition border it belongs to; "none" on the root page. */
+  side: "source" | "target" | "none";
+  /** Depth of the interface's home page (root = 0). */
+  level: number;
+}
+
+export interface EffectiveBoundaries {
+  trust: string[];
+  chip: string[];
+  physical: string[];
 }
 
 export interface EffectiveElement {
@@ -51,6 +77,10 @@ export interface EffectiveElement {
   provenance: "definition" | "dangling";
   /** The decomposed multiprocess this element is a part of (§5.3.1). */
   containmentParent?: string;
+  /** Effective boundary tfIds (§6.3, D14). 2b. */
+  boundaries?: EffectiveBoundaries;
+  /** Geometry from the home page, or provisional from the copies. 2b. */
+  boundaryProvenance?: "home-page" | "context-copies";
 }
 
 export type EffectiveFinding =
@@ -73,7 +103,13 @@ export type EffectiveFinding =
       cellIds: string[];
     }
   | { code: "BAL_DANGLING_REF"; kind: ParsedOccurrence["kind"]; tfId: string }
-  | { code: "DFD_EE_TO_EE_FLOW"; tfId: string };
+  | { code: "DFD_EE_TO_EE_FLOW"; tfId: string }
+  | {
+      code: "BAL_INTERFACE_UNATTRIBUTED";
+      tfId: string;
+      interface: string;
+      pageId: string;
+    };
 
 export interface EffectiveModel {
   /** Leaves only: every element that is not a decomposed multiprocess. */
@@ -91,6 +127,8 @@ export interface EffectiveModelInput {
   occurrences: readonly ParsedOccurrence[];
   tree: PageTree;
   homePages: HomePages;
+  /** analysePageGeometry(parse.pageCells); enables interfaces and boundaries. */
+  pageGeometry?: ReadonlyMap<string, PageGeometry>;
 }
 
 const NO_CONTAINMENT = new Set<DFDElementType>([
@@ -104,7 +142,8 @@ const SEVERITY: FallbackReason[] = ["ambiguous", "dangling", "unresolved"];
 export function buildEffectiveModel(
   input: EffectiveModelInput,
 ): EffectiveModel {
-  const { elements, connections, occurrences, tree, homePages } = input;
+  const { elements, connections, occurrences, tree, homePages, pageGeometry } =
+    input;
   const findings: EffectiveFinding[] = [];
   const typeOf = new Map(elements.map((e) => [e.id, e.type]));
 
@@ -152,6 +191,27 @@ export function buildEffectiveModel(
     dangling.filter((d) => d.kind === "element").map((d) => d.tfId),
   );
 
+  // page-local cell id → tfId, per page
+  const tfIdOfCell = new Map<string, Map<string, string>>();
+  for (const o of occurrences) {
+    const cells = tfIdOfCell.get(o.pageId) ?? new Map<string, string>();
+    cells.set(o.cellId, o.tfId);
+    tfIdOfCell.set(o.pageId, cells);
+  }
+  const toTfId = (pageId: string, cellId: string) =>
+    tfIdOfCell.get(pageId)?.get(cellId) ?? cellId;
+
+  const boundariesOf = pageGeometry
+    ? effectiveBoundaryResolver(
+        occurrences,
+        pageGeometry,
+        homePages,
+        containmentParent,
+        typeOf,
+        toTfId,
+      )
+    : undefined;
+
   const effectiveElements: EffectiveElement[] = elements
     .filter((e) => !decomposed.has(e.id))
     .map((e) => {
@@ -163,6 +223,12 @@ export function buildEffectiveModel(
         ...(homePageId ? { homePageId } : {}),
         provenance: danglingElements.has(e.id) ? "dangling" : "definition",
         ...(parent ? { containmentParent: parent } : {}),
+        ...(boundariesOf
+          ? {
+              boundaries: boundariesOf(e.id),
+              boundaryProvenance: homePageId ? "home-page" : "context-copies",
+            }
+          : {}),
       };
     });
 
@@ -172,6 +238,53 @@ export function buildEffectiveModel(
     if (o.kind !== "connection") continue;
     occurrencesOf.set(o.tfId, [...(occurrencesOf.get(o.tfId) ?? []), o]);
   }
+
+  // ---- interface chain (§6.2.1, D11) --------------------------------------
+  const SIDE_ORDER = { source: 0, target: 1, none: 2 } as const;
+  const interfaceChain = (
+    flowTfId: string,
+    flowOccurrences: readonly ParsedOccurrence[],
+  ): EffectiveInterface[] => {
+    const entries = new Map<string, EffectiveInterface>();
+    for (const o of flowOccurrences) {
+      const crossed = pageGeometry?.get(o.pageId)?.flowInterfaces.get(o.cellId);
+      if (!crossed || crossed.length === 0) continue;
+      const border = decomposedBy.get(o.pageId);
+      const inside = (end: string | undefined) =>
+        border !== undefined &&
+        end !== undefined &&
+        isAncestorOrSelf(border, end);
+      const srcInside = inside(o.sourceTfId);
+      const tgtInside = inside(o.targetTfId);
+
+      for (const cellId of crossed) {
+        const tfId = toTfId(o.pageId, cellId);
+        let side: EffectiveInterface["side"] = "none";
+        if (border !== undefined) {
+          if (srcInside && !tgtInside) side = "source";
+          else if (tgtInside && !srcInside) side = "target";
+          else if (!srcInside && !tgtInside) {
+            findings.push({
+              code: "BAL_INTERFACE_UNATTRIBUTED",
+              tfId: flowTfId,
+              interface: tfId,
+              pageId: o.pageId,
+            });
+          }
+        }
+        const home = homePages.elements.get(tfId);
+        const level = (home !== undefined && tree.depthOf.get(home)) || 0;
+        const key = `${tfId}\u0000${side}`;
+        if (!entries.has(key)) entries.set(key, { tfId, side, level });
+      }
+    }
+    return [...entries.values()].sort(
+      (a, b) =>
+        SIDE_ORDER[a.side] - SIDE_ORDER[b.side] ||
+        a.level - b.level ||
+        a.tfId.localeCompare(b.tfId),
+    );
+  };
 
   const flows: EffectiveFlow[] = [];
   for (const connection of connections) {
@@ -253,6 +366,9 @@ export function buildEffectiveModel(
       to,
       state: "resolved",
     };
+    if (pageGeometry) {
+      flow.interfaces = interfaceChain(connection.id, flowOccurrences);
+    }
     const eeToEe =
       typeOf.get(from) === "ExternalEntity" &&
       typeOf.get(to) === "ExternalEntity";
@@ -298,4 +414,69 @@ function lowestCommonAncestor(
     }
   }
   return "";
+}
+
+/**
+ * Effective boundaries per element (§6.3, D14), memoised:
+ *   geometry on the home page (dangling: union over the copies' pages)
+ *   ∪ the effective boundaries of the containment parent, of which an
+ *     interface inherits only the physical and chip boundaries.
+ */
+function effectiveBoundaryResolver(
+  occurrences: readonly ParsedOccurrence[],
+  pageGeometry: ReadonlyMap<string, PageGeometry>,
+  homePages: HomePages,
+  containmentParent: ReadonlyMap<string, string>,
+  typeOf: ReadonlyMap<string, DFDElementType>,
+  toTfId: (pageId: string, cellId: string) => string,
+): (tfId: string) => EffectiveBoundaries {
+  const cellsOf = new Map<string, ParsedOccurrence[]>();
+  for (const o of occurrences) {
+    if (o.kind !== "element") continue;
+    cellsOf.set(o.tfId, [...(cellsOf.get(o.tfId) ?? []), o]);
+  }
+
+  const geometric = (tfId: string): EffectiveBoundaries => {
+    const home = homePages.elements.get(tfId);
+    const all = cellsOf.get(tfId) ?? [];
+    const cells = home
+      ? all
+          .filter((o) => o.role === "definition" && o.pageId === home)
+          .slice(0, 1)
+      : all; // dangling: every copy counts (§5.2.1)
+    const result: EffectiveBoundaries = { trust: [], chip: [], physical: [] };
+    for (const o of cells) {
+      const g = pageGeometry.get(o.pageId);
+      if (!g) continue;
+      for (const kind of ["trust", "chip", "physical"] as const) {
+        for (const b of g[kind].get(o.cellId) ?? []) {
+          result[kind].push(toTfId(o.pageId, b));
+        }
+      }
+    }
+    return result;
+  };
+
+  const memo = new Map<string, EffectiveBoundaries>();
+  const resolve = (tfId: string): EffectiveBoundaries => {
+    const known = memo.get(tfId);
+    if (known) return known;
+    memo.set(tfId, { trust: [], chip: [], physical: [] }); // cycle guard
+
+    const own = geometric(tfId);
+    const parent = containmentParent.get(tfId);
+    const inherited = parent ? resolve(parent) : undefined;
+    const isInterface = typeOf.get(tfId) === "Interface";
+    const merge = (a: string[], b: string[] = []) =>
+      [...new Set([...a, ...b])].filter((id) => id !== tfId).sort();
+
+    const result: EffectiveBoundaries = {
+      trust: merge(own.trust, isInterface ? [] : inherited?.trust),
+      chip: merge(own.chip, inherited?.chip),
+      physical: merge(own.physical, inherited?.physical),
+    };
+    memo.set(tfId, result);
+    return result;
+  };
+  return resolve;
 }
