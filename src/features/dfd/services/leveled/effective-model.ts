@@ -118,6 +118,12 @@ export interface EffectiveModel {
   flows: EffectiveFlow[];
   /** element tfId → decomposed multiprocess it belongs to */
   containmentParent: Map<string, string>;
+  /**
+   * Trust boundary tfId → its parent trust boundary, from the geometry of
+   * the boundary's home page (nesting is purely geometric, §5.3.1). With
+   * page geometry only.
+   */
+  trustBoundaryParent?: Map<string, string | undefined>;
   findings: EffectiveFinding[];
 }
 
@@ -406,7 +412,38 @@ export function buildEffectiveModel(
     flows.push(flow);
   }
 
-  return { elements: effectiveElements, flows, containmentParent, findings };
+  // ---- trust boundary nesting (home page geometry) -------------------------
+  let trustBoundaryParent: Map<string, string | undefined> | undefined;
+  if (pageGeometry) {
+    trustBoundaryParent = new Map();
+    for (const e of elements) {
+      if (e.type !== "TrustBoundary") continue;
+      const home = homePages.elements.get(e.id);
+      const cell = occurrences.find(
+        (o) =>
+          o.kind === "element" &&
+          o.tfId === e.id &&
+          o.role === "definition" &&
+          o.pageId === home,
+      );
+      const parentCell =
+        home && cell
+          ? pageGeometry.get(home)?.trustParent.get(cell.cellId)
+          : undefined;
+      trustBoundaryParent.set(
+        e.id,
+        parentCell && home ? toTfId(home, parentCell) : undefined,
+      );
+    }
+  }
+
+  return {
+    elements: effectiveElements,
+    flows,
+    containmentParent,
+    ...(trustBoundaryParent ? { trustBoundaryParent } : {}),
+    findings,
+  };
 }
 
 /**

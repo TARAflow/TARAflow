@@ -74,9 +74,8 @@ vi.mock("app/hooks/use-project-file-download", () => ({
 }));
 
 vi.mock("features/dfd", () => ({
-  DefaultDFDGraphBuilder: vi.fn().mockImplementation(() => ({
-    build: vi.fn(),
-  })),
+  // The one graph entry point (leveled DFD Phase 2c).
+  buildDfdGraph: vi.fn(),
 }));
 
 vi.mock("shared", () => ({

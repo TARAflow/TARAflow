@@ -11,7 +11,7 @@
 // leaves a project without a graph showed an EMPTY Threats tab. Deriving the
 // graph at the point of use removes that hidden dependency.
 
-import { DefaultDFDGraphBuilder } from "features/dfd";
+import { buildDfdGraph } from "features/dfd";
 import type { Project } from "../models/project-types";
 
 type ProjectDfd = Project["dfd"];
@@ -28,7 +28,7 @@ export function resolveDfdGraph(dfd: ProjectDfd | null | undefined): DfdGraph | 
   if (!dfd.elements?.length) return undefined;
   try {
     console.warn("[workspace] DFD graph missing in project state — rebuilding from the persisted DFD");
-    return new DefaultDFDGraphBuilder().build(dfd as any) as DfdGraph;
+    return buildDfdGraph(dfd as any) as DfdGraph;
   } catch (err) {
     console.error("[workspace] DFD graph could not be built:", err);
     return undefined;

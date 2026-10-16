@@ -22,6 +22,7 @@ import {
   createDFDStorageAdapter,
 } from "./dfd-storage-adapter";
 import { DefaultDFDGraphBuilder } from "./dfd-graph-builder";
+import { buildDfdGraph, isLeveled } from "./build-dfd-graph";
 import { dfdChangeDetector } from "../utils/dfd-change-detector";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import { calculateStats } from "./parsers/stats-calculator";
@@ -187,9 +188,10 @@ class DFDService {
         syncedAssets,
       );
 
-      // Build DFD graph
-      const graphBuilder = new DefaultDFDGraphBuilder();
-      const graph = graphBuilder.build({
+      // Build DFD graph (leveled DFDs: effective model, §6)
+      const graph = buildDfdGraph({
+        xml: project.dfd!.xml,
+        pages: project.dfd!.pages,
         elements: mergedElements,
         connections: mergedConnections,
         assets: syncedAssets,
@@ -469,9 +471,15 @@ class DFDService {
       );
 
       let dfdGraph;
-      if (changeResult.requiresRebuild || !project.dfd?.graph) {
+      if (
+        changeResult.requiresRebuild ||
+        !project.dfd?.graph ||
+        isLeveled(xml || undefined) // graph holds leaves only: always rebuild
+      ) {
         // Full rebuild — topology changed or no existing graph
-        dfdGraph = graphBuilder.build({
+        dfdGraph = buildDfdGraph({
+          xml: xml || undefined,
+          pages,
           elements: mergedElements,
           connections: mergedConnections,
           assets: syncedAssets,
@@ -609,8 +617,14 @@ class DFDService {
       );
 
       let dfdGraph;
-      if (changeResult.requiresRebuild || !project.dfd?.graph) {
-        dfdGraph = graphBuilder.build({
+      if (
+        changeResult.requiresRebuild ||
+        !project.dfd?.graph ||
+        isLeveled(xml) // graph holds leaves only: always rebuild
+      ) {
+        dfdGraph = buildDfdGraph({
+          xml,
+          pages,
           elements: mergedElements,
           connections: mergedConnections,
           assets: syncedAssets,
@@ -717,11 +731,12 @@ class DFDService {
       syncedAssets,
     );
 
-    const graphBuilder = new DefaultDFDGraphBuilder();
-    const graph = graphBuilder.build({
+    const graph = buildDfdGraph({
+      xml: xml || undefined,
+      pages: project.dfd?.pages,
       elements: mergedElements,
       connections: mergedConnections,
-      assets: syncedAssets, // NEU
+      assets: syncedAssets,
     });
 
     return this.validator.validate(

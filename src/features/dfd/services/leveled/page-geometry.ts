@@ -8,6 +8,8 @@
 //   flowInterfaces   connection cell → interface cells it crosses (path
 //                    through the shape, or an endpoint inside it)
 //   trust/chip/physical  element cell → boundary cells it lies in
+//   trustParent      trust boundary cell → the trust boundary cell that
+//                    completely contains it on this page (nesting)
 //
 // All ids are page-local cell ids; the effective model maps them to tfIds
 // with the occurrences of the same page. Context copies take part like any
@@ -21,6 +23,7 @@ export interface PageGeometry {
   trust: Map<string, string[]>;
   chip: Map<string, string[]>;
   physical: Map<string, string[]>;
+  trustParent: Map<string, string | undefined>;
 }
 
 export function analysePageGeometry(
@@ -44,6 +47,12 @@ export function analysePageGeometry(
       trust: copyOf(graph.elementTrustBoundaries),
       chip: copyOf(graph.elementChipBoundaries),
       physical: copyOf(graph.elementPhysicalBoundaries),
+      trustParent: new Map(
+        [...graph.trustBoundaryHierarchy].map(([id, analysis]) => [
+          id,
+          analysis.parentTrustBoundaryId,
+        ]),
+      ),
     });
   }
   return result;

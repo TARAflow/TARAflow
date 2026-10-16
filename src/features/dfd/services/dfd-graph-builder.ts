@@ -98,6 +98,26 @@ export interface DFDGraphBuilderInput {
   elements: DFDElement[];
   connections: DFDConnection[];
   assets: DFDAsset[];
+  /**
+   * Leveled DFDs (leveled-dfd-multi-diagram-design.md §6): boundary
+   * membership, trust boundary nesting and crossed interfaces resolved over
+   * all pages by the effective model. When given, the builder takes them
+   * instead of deriving them from the geometry of one page; everything
+   * downstream (crossings, effective trust boundary, exposure) is computed
+   * from them exactly as for a single page. Absent = classic single page.
+   */
+  facts?: PrecomputedGraphFacts;
+}
+
+export interface PrecomputedGraphFacts {
+  /** element id → trust / chip / physical boundary ids it lies in */
+  trust: ReadonlyMap<string, readonly string[]>;
+  chip: ReadonlyMap<string, readonly string[]>;
+  physical: ReadonlyMap<string, readonly string[]>;
+  /** trust boundary id → the trust boundary that contains it */
+  trustBoundaryParent: ReadonlyMap<string, string | undefined>;
+  /** connection id → interface ids the flow passes */
+  flowInterfaces: ReadonlyMap<string, readonly string[]>;
 }
 
 export interface DFDGraphBuilder {
@@ -108,7 +128,7 @@ export interface DFDGraphBuilder {
 
 export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
   build(input: DFDGraphBuilderInput): DFDGraph {
-    const { elements, connections, assets } = input;
+    const { elements, connections, assets, facts } = input;
 
     // 1. Basic lookup maps
     const elementsById = new Map(elements.map((e) => [e.id, e]));
@@ -119,20 +139,39 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     const { outgoingConnections, incomingConnections } =
       this.buildTopologyMaps(connections);
 
-    // 3. Trust Boundary membership (overlap-based)
-    const { elementTrustBoundaries, trustBoundaryElements } =
-      this.buildTrustBoundaryMembership(elements);
+    // 3. Trust Boundary membership (overlap-based, or precomputed)
+    const { elementTrustBoundaries, trustBoundaryElements } = facts
+      ? this.membershipFromFacts(elements, "TrustBoundary", facts.trust)
+      : this.buildTrustBoundaryMembership(elements);
 
     // 3b. Chip Boundary membership (overlap-based, analog to TB)
-    const { elementChipBoundaries, chipBoundaryElements } =
-      this.buildChipBoundaryMembership(elements);
+    const {
+      elementBoundaries: elementChipBoundaries,
+      boundaryElements: chipBoundaryElements,
+    } = facts
+      ? this.renamed(
+          this.membershipFromFacts(elements, "ChipBoundary", facts.chip),
+        )
+      : this.renamed(this.buildChipBoundaryMembership(elements));
 
     // 3c. Physical Boundary membership (overlap-based, analog to ChipBoundary)
-    const { elementPhysicalBoundaries, physicalBoundaryElements } =
-      this.buildPhysicalBoundaryMembership(elements);
+    const {
+      elementBoundaries: elementPhysicalBoundaries,
+      boundaryElements: physicalBoundaryElements,
+    } = facts
+      ? this.renamed(
+          this.membershipFromFacts(
+            elements,
+            "PhysicalBoundary",
+            facts.physical,
+          ),
+        )
+      : this.renamed(this.buildPhysicalBoundaryMembership(elements));
 
-    // 4. Trust Boundary hierarchy (containment-based)
-    const trustBoundaryHierarchy = this.buildTrustBoundaryHierarchy(elements);
+    // 4. Trust Boundary hierarchy (containment-based, or precomputed)
+    const trustBoundaryHierarchy = facts
+      ? this.hierarchyFromFacts(elements, facts.trustBoundaryParent)
+      : this.buildTrustBoundaryHierarchy(elements);
 
     // 5. Effective TB (deepest nested)
     const effectiveElementTrustBoundary = this.computeEffectiveTrustBoundaries(
@@ -149,6 +188,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       effectiveElementTrustBoundary,
       elementChipBoundaries,
       elementPhysicalBoundaries,
+      facts?.flowInterfaces,
     );
 
     // 7. Derive Exposure Levels
@@ -360,6 +400,117 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     return { elementPhysicalBoundaries, physicalBoundaryElements };
   }
 
+  /** Name-neutral view of the chip / physical membership result. */
+  private renamed(
+    result:
+      | {
+          elementChipBoundaries: Map<string, string[]>;
+          chipBoundaryElements: Map<string, string[]>;
+        }
+      | {
+          elementPhysicalBoundaries: Map<string, string[]>;
+          physicalBoundaryElements: Map<string, string[]>;
+        }
+      | {
+          elementTrustBoundaries: Map<string, string[]>;
+          trustBoundaryElements: Map<string, string[]>;
+        },
+  ): {
+    elementBoundaries: Map<string, string[]>;
+    boundaryElements: Map<string, string[]>;
+  } {
+    if ("elementChipBoundaries" in result) {
+      return {
+        elementBoundaries: result.elementChipBoundaries,
+        boundaryElements: result.chipBoundaryElements,
+      };
+    }
+    if ("elementPhysicalBoundaries" in result) {
+      return {
+        elementBoundaries: result.elementPhysicalBoundaries,
+        boundaryElements: result.physicalBoundaryElements,
+      };
+    }
+    return {
+      elementBoundaries: result.elementTrustBoundaries,
+      boundaryElements: result.trustBoundaryElements,
+    };
+  }
+
+  /**
+   * Membership maps from precomputed facts (leveled DFD), with exactly the
+   * key set and ordering the geometric builders produce: the same element
+   * types are skipped or forced empty, boundary ids and member ids follow
+   * the element order.
+   */
+  private membershipFromFacts(
+    elements: DFDElement[],
+    kind: "TrustBoundary" | "ChipBoundary" | "PhysicalBoundary",
+    facts: ReadonlyMap<string, readonly string[]>,
+  ): {
+    elementTrustBoundaries: Map<string, string[]>;
+    trustBoundaryElements: Map<string, string[]>;
+  } {
+    const elementBoundaries = new Map<string, string[]>();
+    const boundaryElements = new Map<string, string[]>();
+    const boundaries = elements.filter((e) => e.type === kind);
+
+    const skipped: Record<typeof kind, string[]> = {
+      TrustBoundary: ["TrustBoundary"],
+      ChipBoundary: ["ChipBoundary", "TrustBoundary", "PhysicalBoundary"],
+      PhysicalBoundary: ["PhysicalBoundary", "TrustBoundary"],
+    };
+    const forcedEmpty: Record<typeof kind, string[]> = {
+      TrustBoundary: ["ExternalEntity", "Interface", "ChipBoundary"],
+      ChipBoundary: [],
+      PhysicalBoundary: [],
+    };
+
+    for (const element of elements) {
+      if (skipped[kind].includes(element.type)) continue;
+      if (forcedEmpty[kind].includes(element.type)) {
+        elementBoundaries.set(element.id, []);
+        continue;
+      }
+      const member = new Set(facts.get(element.id) ?? []);
+      const ids: string[] = [];
+      for (const boundary of boundaries) {
+        if (!member.has(boundary.id)) continue;
+        ids.push(boundary.id);
+        const list = boundaryElements.get(boundary.id) || [];
+        list.push(element.id);
+        boundaryElements.set(boundary.id, list);
+      }
+      elementBoundaries.set(element.id, ids);
+    }
+    return {
+      elementTrustBoundaries: elementBoundaries,
+      trustBoundaryElements: boundaryElements,
+    };
+  }
+
+  /** Trust boundary hierarchy from precomputed parents (leveled DFD). */
+  private hierarchyFromFacts(
+    elements: DFDElement[],
+    parents: ReadonlyMap<string, string | undefined>,
+  ): Map<string, TrustBoundaryAnalysis> {
+    const hierarchy = new Map<string, TrustBoundaryAnalysis>();
+    const present = new Set(
+      elements.filter((e) => e.type === "TrustBoundary").map((e) => e.id),
+    );
+    for (const id of present) {
+      const parent = parents.get(id);
+      hierarchy.set(id, {
+        trustBoundaryId: id,
+        parentTrustBoundaryId:
+          parent && present.has(parent) ? parent : undefined,
+        depth: 0,
+      });
+    }
+    this.computeDepths(hierarchy);
+    return hierarchy;
+  }
+
   // ==================== TRUST BOUNDARY HIERARCHY ====================
 
   /**
@@ -496,6 +647,7 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     effectiveElementTrustBoundary: Map<string, string | undefined>,
     elementChipBoundaries: Map<string, string[]>,
     elementPhysicalBoundaries: Map<string, string[]>,
+    precomputedInterfaces?: ReadonlyMap<string, readonly string[]>,
   ): Map<string, DataFlowAnalysis> {
     const analysis = new Map<string, DataFlowAnalysis>();
 
@@ -552,7 +704,16 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
 
       const interfaceIds: string[] = [];
 
-      for (const iface of interfaces) {
+      // Leveled DFD: the interfaces were resolved over all pages (§6.2.1);
+      // keep the element order the geometric detection would produce.
+      if (precomputedInterfaces) {
+        const passed = new Set(precomputedInterfaces.get(conn.id) ?? []);
+        for (const iface of interfaces) {
+          if (passed.has(iface.id)) interfaceIds.push(iface.id);
+        }
+      }
+
+      for (const iface of precomputedInterfaces ? [] : interfaces) {
         // Rule 1: geometric intersection
         const dataflowsThrough = dfdAnalyzer.findDataflowsThroughInterface(
           iface,

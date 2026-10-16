@@ -5,7 +5,7 @@
 // so tests and the app run the same merge and the same commit chain.
 
 import type { Project } from "../models/project-types";
-import { DefaultDFDGraphBuilder } from "features/dfd";
+import { buildDfdGraph } from "features/dfd";
 import { commitAssetSync } from "../utils/commit-asset-sync";
 import { buildAssetHazardLinks } from "../utils/build-asset-hazard-links";
 import { commitHazardSafety } from "../utils/commit-hazard-safety";
@@ -24,7 +24,7 @@ export function commitProjectSafety(project: Project): Project {
 export function ensureProjectGraph(p: Project): Project {
   if (p.dfd?.graph || !p.dfd?.elements?.length) return p;
   try {
-    const graph = new DefaultDFDGraphBuilder().build(p.dfd);
+    const graph = buildDfdGraph(p.dfd);
     return { ...p, dfd: { ...p.dfd, graph } };
   } catch {
     return p;

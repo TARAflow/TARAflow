@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.3 — decisions D1–D17 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2a–2b done (leaves, stitching, interfaces, boundaries), 2c next
+Status: rev. 4.3 — decisions D1–D17 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2a–2b and 2c-1 done (effective model, hand-over to the analysis graph), 2c-2 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -978,8 +978,19 @@ Split into commits:
   trust/chip/physical boundaries; DF-7 carries `IF-1` (source, level 1) and `IF-3` (target, level 1).
   D15 is part of the effective model: only pages that define a part of their own decompose their
   MP.
-- **2c** hand-over to `DFDGraphReference` and the threat generators; lift the Phase 0 guard for
-  adopted files; schema 9 as version fence (§11.2); gate: identical threats.
+- **2c-1 ✅** hand-over to the analysis graph, guard still in place. `DefaultDFDGraphBuilder` accepts
+  optional precomputed facts (boundary membership, trust boundary nesting, crossed interfaces) and
+  takes them instead of the geometry of one page; key sets and orders follow the geometric
+  builders. `buildDfdGraph` is the one entry point (all seven former builder calls: load, save,
+  save-from-XML, validation, finalize, `ensureProjectGraph`, `resolveDfdGraph`): one page → as
+  before; several pages → effective model, leaves as elements, stitched flows (excluded flows left
+  out), facts from 2b. Gate part (`regression/leveled-smoke-detector-threats`, fixture now with the
+  records and assets): the leveled graph has the single-page elements, flows, boundary membership
+  (member lists compared as sets — they follow page order), nesting, effective trust boundaries and
+  an identical data-flow analysis; element and interaction generation give **exactly the same 451
+  threats**.
+- **2c-2** lift the Phase 0 guard for adopted files; schema 9 as version fence (§11.2); CLI reporter
+  refuses leveled projects until Phase 7 (it runs without a DOM parser and cannot read the pages).
 Gate: golden test on the leveled Smoke Detector fixture (§3, §16) + ambiguity/self-loop/EE→EE cases.
 The fixture is built from the single-page `SmokeDetector` example; its threats for elements and
 flows that are unchanged by the leveling must equal the single-page result.
