@@ -317,7 +317,8 @@ export interface DFDData {
   /**
    * Pages of a leveled DFD with their identity links
    * (leveled-dfd-multi-diagram-design.md §5.2, §5.3). Absent = classic
-   * single-page project. Optional and additive — no schema bump (§11.2).
+   * single-page project. Optional and additive; schema 9 is the version
+   * fence for multi-page files (§11.2).
    */
   pages?: DFDPage[];
 }

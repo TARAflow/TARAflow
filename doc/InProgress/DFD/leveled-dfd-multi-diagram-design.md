@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.4 — decisions D1–D18 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 next
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3.1–3.2 done (hierarchical numbering) · 3.3 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -647,26 +647,37 @@ any occurrence updates the logical record and all occurrences on save; divergenc
 from external editing and is repaired from the **logical record** (also when the definition is
 missing).
 
-## 8. Numbering
+## 8. Numbering (D19)
 
-**One namespace per prefix per project**, across all pages. The ID belongs to the logical element,
-not to the drawn cell.
+**Hierarchical numbers.** The root page numbers its definitions `1..n` per prefix (`MP-1`, `P-1`,
+`DF-1`, …). The child page of the multiprocess `MP-m` numbers **its own** definitions `m.1..m.n` per
+prefix: `P-1.3` is the third process in `MP-1`, `DS-1.1`, `IF-1.2`, `DF-1.4`. A nested multiprocess
+on that page is `MP-1.2`, its parts `P-1.2.1`. Since only multiprocesses are decomposed (D1),
+`P-1.3` can never be read as a part of `P-1`. The ID belongs to the logical element, not to the
+drawn cell.
 
-- **New element:** next number from a **persisted high-water mark per prefix**
-  (`autoNumberingConfig.nextNumber[prefix]`, monotonic). Deleted numbers are **not reused** until an
-  explicit renumber — gaps are accepted; reuse would silently re-attach old commit messages, reports
-  and external references to a different element.
-- **Context copies** inherit the definition's displayId and never consume a number.
-- **Invalid or manually typed IDs** (not matching `^(P|MP|DF|DS|EE|IF|…)-\d+$`) → finding; they get a
-  regular number on the next renumber. Manually typed valid IDs raise the high-water mark if higher.
-- **Renumber (explicit action only):** traverse pages in tree order (root, then child pages
-  depth-first by `order`), sort definitions per page with the existing position strategy, assign
-  per prefix from 1, reset the high-water mark. Context copies are updated from their definition.
-  Threat display ids follow through the existing renumber path (threat identity is the UUID).
-- Renumbering a single page in isolation is **not** offered — it cannot be done without gaps or
-  collisions in a global namespace.
-- `dfd-auto-numbering` therefore changes from "XML-global, positional" to "logical-model, page-aware,
-  definitions only".
+- **Context copies** show the number of their definition and never consume one: a flow drawn on
+  *Top* as `DF-3` stays `DF-3` on every child page it is copied to; only flows defined on the child
+  page get `DF-m.k`.
+- **Dangling elements** (copies, no definition) and definitions on a page the tree cannot place take
+  numbers of the root namespace after the root page's own definitions — unique, and flagged anyway.
+  A child page whose multiprocess has no number yet uses the root namespace too.
+- **Renumber (explicit action, as today):** pages in tree order (root, then child pages depth-first
+  by `order`), so every multiprocess has its number before its child page; each page sorted with the
+  existing position strategy on its own geometry; counters per page namespace and type. A single
+  page has no links, so the result is exactly the classic numbering.
+- **Consequences, accepted:** renumbering *Top* can change an `MP` number and with it every ID
+  below it (cascade); moving an element to another page changes its ID. In return a change on one
+  child page no longer shifts the numbers of any other page, and renumbering a single page becomes
+  possible (UI, Phase 5).
+- **No high-water mark.** TARAflow has no automatic numbering of new elements: a new element keeps
+  its placeholder (`P-xx`) until the explicit action. The persisted per-prefix high-water mark of
+  earlier revisions is dropped (2026-10-17); it would have changed numbering for every project,
+  single-page included, and is not needed here.
+- **Invalid or manually typed IDs** (not matching `^(P|MP|DF|DS|EE|IF|…)-\d+(\.\d+)*$`) →
+  finding; they get a regular number on the next renumber.
+- Threat display ids follow through the existing renumber path (threat identity is the UUID):
+  `P-1.3` → `P1.3-S-1`, `IF-2.1` → `SB-IF2.1-T-1`; natural sorting orders `1.9` before `1.10`.
 
 ## 9. Assets (D3)
 
@@ -764,7 +775,7 @@ threat is a manual analyst action and recorded in the audit diff.
 
 - **No XML change** (lazy identity, §5.2): the XML of existing projects stays byte-identical.
 - JSON only: creates `pages[]` (one root page from the `<diagram>`, or none for a bare
-  `<mxGraphModel>`) and initialises the numbering high-water marks. Both are additive.
+  `<mxGraphModel>`). Additive. (The numbering high-water marks planned here were dropped with D19.)
 - **Decided in 1.3, done in 2c-2:** `dfd.pages` stays **optional and absent** for classic projects
   (no churn). The schema is bumped to 9 when the Phase 0 guard is lifted (Phase 2c-2), as a
   **version fence**: every released TARAflow before Phase 0 silently merges the pages of a
@@ -944,8 +955,8 @@ already contain several pages.
   - `findDuplicateDefinitions` (D8): decides which definition cell keeps a duplicated `tfId` (the one
     in the last saved state, otherwise tree order, then document order). Since links are page-local
     the only source is a duplicated page with plain cell ids. The fresh `tfId` is a JSON link, but the
-    new displayId lives in the id label in the XML and needs the high-water mark, so applying the
-    decision **lands in Phase 3**.
+    new displayId lives in the id label in the XML and needs the numbering, so applying the
+    decision **lands in Phase 3** (3.3).
   - Stale-link pruning on save (§5.2): done in 1.4.
 - **1.4 ✅** `services/leveled/dangling` and `identity-links` — the only writers of `dfd.pages[].links`,
   all pure (new array, or the same one if nothing changes; the XML is never touched):
@@ -1052,9 +1063,24 @@ crossed interfaces identical for every flow, trust/chip/physical membership iden
 element under the interface rule of §6.3; adoption (1.5) of the same file without links proposes
 exactly its links and decomposition.
 
-**Phase 3 — Numbering.** High-water mark, definition-only, global namespace; explicit renumber in
-tree order. Also applies the duplicate-definition decision of 1.3 (fresh `tfId` link + new
-displayId on save, `ID_PASTE_REASSIGNED`).
+**Phase 3 — Numbering.** (rev. 2026-10-17: hierarchical numbers, D19)
+
+- **3.1 ✅** dotted IDs accepted everywhere (no behaviour change): risk grouping by element and
+  interface detection on threat ids, description view, validator id tags in names, adoption
+  signatures, id-label recognition and whole-number replacement in auto-numbering, attack tree
+  highlighting.
+- **3.2 ✅** hierarchical renumber across pages (§8). `DFDAutoNumbering.autoNumber(xml, pages)`:
+  - every page is its own search scope (cell ids are page-local); pages in tree order from the same
+    page tree as the analysis, unplaced pages after them in document order;
+  - counters per page namespace and type; only definitions take numbers, once per logical element
+    (`kind` + `tfId`); every occurrence shows the number of its logical element; a duplicated
+    definition (same `tfId`) shows the same number until 3.3 reassigns it;
+  - the guard is narrowed like in 2c-2: numbering runs once every page is adopted; the editor hook
+    reads `dfd.pages` at the moment of numbering;
+  - single page: byte-identical output to the previous implementation (checked on all example DFDs
+    with all three sort strategies before the old code was replaced).
+- **3.3** duplicate definitions: fresh `tfId` link + new displayId (next free number in the page's
+  namespace) on save, `ID_PASTE_REASSIGNED` (decision of 1.3).
 
 **Phase 4 — Validator.** Findings from §7; `refines` and `abstract` in the connection form; error
 policy (§7).
@@ -1122,8 +1148,10 @@ Threats and risks
 - Subtree roll-up reproducible, each threat counted once.
 
 Numbering
-- New element on a child page gets the high-water mark; deleted numbers not reused; context copies
-  never consume a number; renumber idempotent.
+- Root page `1..n`, child page of `MP-m` `m.1..m.n` per prefix without gaps, nested pages deeper;
+  context copies show their definition's number and never consume one; dangling elements and
+  unplaced pages in the root namespace; renumber idempotent; single page byte-identical to the
+  classic numbering (D19, `unit/.../leveled/leveled-numbering`).
 
 Diff and audit
 - Graphical vs. semantic vs. structural changes distinguished (§11.3).
@@ -1153,6 +1181,7 @@ Diff and audit
 | D16 | Tab name of a child page | **= name of the decomposed MP, one direction (MP → tab)** (2026-10-16) | One name to maintain; identity is the pageId (§5.3) |
 | D17 | Name of the root page | **Always *Top*** — from the second page on, and for new projects from the start (2026-10-16) | Recognisable entry point; classic projects do not churn (§5.3) |
 | D18 | Thumbnails of a leveled DFD | **One thumbnail per page in `dfd.pages[].thumbnail`; `dfd.thumbnail` = *Top*; the preview panel lets the user pick the page** (2026-10-17) | Preview and reports no longer depend on the tab active at save time; the reporter gets one figure per page without a headless draw.io; existing consumers unchanged (§12.1) |
+| D19 | Numbering of a leveled DFD | **Hierarchical: root page `1..n`, child page of `MP-m` numbers its own definitions `m.1..m.n` per prefix; copies show their definition's number; no high-water mark** (2026-10-17) | IDs show where an element lives; a change on one page never shifts the numbers of another; renumbering *Top* cascades to the pages below; dotted IDs accepted everywhere (§8) |
 
 ## 16. End-to-end example: `DF-7 stream sensor data`
 

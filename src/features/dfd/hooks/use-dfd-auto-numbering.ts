@@ -6,6 +6,7 @@ import type { UseDrawioBridgeReturn } from "./use-drawio-bridge";
 import type { UseDFDValidationReturn } from "./use-dfd-validation";
 import type { UseDFDPersistenceReturn } from "./use-dfd-persistence";
 import { DFDAutoNumbering } from "../services/dfd-auto-numbering";
+import type { DFDPage } from "../models/dfd-types";
 
 // ==================== TYPES ====================
 
@@ -22,6 +23,11 @@ export interface UseDFDAutoNumberingOptions {
   validateAfter?: boolean;
   /** Delay in ms before validation (default: 500) */
   validationDelay?: number;
+  /**
+   * Current dfd.pages (page tree and identity links) of a leveled DFD —
+   * read at the moment of numbering. Absent / undefined = classic project.
+   */
+  getPages?: () => readonly DFDPage[] | undefined;
 }
 
 export interface UseDFDAutoNumberingReturn {
@@ -47,6 +53,7 @@ export function useDFDAutoNumbering(
     weightY = 1.0,
     validateAfter = true,
     validationDelay = 500,
+    getPages,
   } = options;
 
   // ==================== STATE ====================
@@ -84,7 +91,7 @@ export function useDFDAutoNumbering(
       );
 
       // Apply auto-numbering
-      const numberedXml = numbering.autoNumber(currentXml);
+      const numberedXml = numbering.autoNumber(currentXml, getPages?.());
 
       // Check if anything changed
       if (numberedXml === currentXml) {
@@ -130,6 +137,7 @@ export function useDFDAutoNumbering(
     weightY,
     validateAfter,
     validationDelay,
+    getPages,
   ]);
 
   // ==================== RETURN ====================

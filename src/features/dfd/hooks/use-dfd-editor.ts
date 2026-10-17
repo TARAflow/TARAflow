@@ -337,7 +337,9 @@ export function useDFDEditor(
     restoreFromProject: true,
   });
 
-  // Auto-numbering layer
+  // Auto-numbering layer — reads the current page tree and identity links
+  // (leveled DFDs) at the moment of numbering, not at hook creation.
+  const getProjectPages = useCallback(() => projectRef.current.dfd?.pages, []);
   const autoNumbering = useDFDAutoNumbering(bridge, validation, persistence, {
     tolerance: autoNumberingConfig?.tolerance ?? 50,
     sortStrategy: autoNumberingConfig?.sortStrategy ?? "diagonal",
@@ -345,6 +347,7 @@ export function useDFDEditor(
     weightY: autoNumberingConfig?.weightY ?? 1.0,
     validateAfter: true,
     validationDelay: 500,
+    getPages: getProjectPages,
   });
 
   // Export/Import layer

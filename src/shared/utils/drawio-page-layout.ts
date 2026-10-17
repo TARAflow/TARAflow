@@ -64,8 +64,7 @@ function decodeXmlAttribute(value: string): string {
  * page still counts as a page (a blank second page is a multi-page layout).
  *
  * @param adoptedPageIds pageIds of dfd.pages; absent = nothing adopted
- *                       (the strict Phase 0 behaviour, e.g. for imports
- *                       and auto-numbering)
+ *                       (the strict Phase 0 behaviour, e.g. for imports)
  */
 export function inspectDrawioPages(
   xml: string | null | undefined,
