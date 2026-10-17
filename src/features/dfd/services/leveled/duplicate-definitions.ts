@@ -8,10 +8,9 @@
 // saved state is to get a fresh tfId (a "definition" link in dfd.pages) and
 // a new displayId (info finding ID_PASTE_REASSIGNED).
 //
-// This module only DECIDES which cell keeps the identity. Applying it needs
-// a new displayId, which lives in the id label in the XML and comes from the
-// numbering high-water mark — so it lands in Phase 3. Until then the parser
-// keeps the first definition in document order as the record.
+// This module only DECIDES which cell keeps the identity. It is applied on
+// save by duplicate-reassignment (Phase 3.3: fresh tfId link); the new
+// displayId follows with the next explicit renumber (§8).
 //
 // Keeper, per (kind, tfId):
 //   1. the one definition cell that already existed with this tfId in the

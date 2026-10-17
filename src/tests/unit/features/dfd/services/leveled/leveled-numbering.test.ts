@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import { DFDAutoNumbering } from "features/dfd/services/dfd-auto-numbering";
 import { dfdParser } from "features/dfd/services/dfd-parser";
+import { reassignDuplicateDefinitions } from "features/dfd/services/leveled";
 import {
   identityOf,
   collectCellIdentities,
@@ -214,8 +215,19 @@ describe("hierarchical numbering — nesting, copies, dangling, duplicates", () 
     expect(labelOf(numbered, "pn", "c1")).toBe("P-1.1.1");
   });
 
-  it("a duplicated definition shows the same number (reassigned in 3b)", () => {
+  it("a duplicated definition shows the same number until it is reassigned", () => {
     expect(labelOf(numbered, "pm", "a1")).toBe("P-1");
+  });
+
+  it("after the save reassigned it (3.3), the duplicate gets its own number", () => {
+    const { pages: reassigned } = reassignDuplicateDefinitions({
+      xml,
+      pages: pageList,
+    });
+    const renumbered = new DFDAutoNumbering().autoNumber(xml, reassigned);
+    expect(labelOf(renumbered, "top", "a1")).toBe("P-1");
+    expect(labelOf(renumbered, "pm", "b1")).toBe("P-1.1");
+    expect(labelOf(renumbered, "pm", "a1")).toBe("P-1.2");
   });
 
   it("an unplaced page and a dangling element use the root namespace", () => {

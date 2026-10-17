@@ -22,7 +22,16 @@ export {
   type LinkEditRefusal,
   type PrunedLink,
 } from "./identity-links";
-export { linkAsContextCopy } from "./identity-links";
+export {
+  linkAsContextCopy,
+  giveFreshIdentities,
+  type FreshIdentity,
+} from "./identity-links";
+export {
+  reassignDuplicateDefinitions,
+  type DuplicateReassignmentInput,
+  type DuplicateReassignmentResult,
+} from "./duplicate-reassignment";
 export { recordInfos, signatureOf, type RecordInfo } from "./signatures";
 export {
   proposeAdoption,

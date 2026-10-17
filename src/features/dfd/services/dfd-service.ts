@@ -13,6 +13,7 @@ import {
   DFDProjectData,
   DFDElement,
   DFDConnection,
+  DFDPage,
 } from "../models/dfd-types";
 import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
 import { DFDParser, dfdParser } from "./dfd-parser";
@@ -35,9 +36,28 @@ import {
   isInfraAccessesRelation,
 } from "../models/asset-relation-types";
 import { validatePageLayout } from "./validators/page-layout-validator";
-import { pruneStaleLinks } from "./leveled";
+import { pruneStaleLinks, reassignDuplicateDefinitions } from "./leveled";
 
 /** pageIds of dfd.pages — an adopted multi-page DFD is analysable (§11.2.1). */
+/**
+ * dfd.pages for a save of `xml` (leveled DFDs, §5.2): stale links pruned,
+ * duplicated definitions (draw.io "Duplicate page") reassigned to fresh
+ * identities against the last saved state. Same array when nothing changes;
+ * undefined for classic projects.
+ */
+function linksForSave(
+  project: DFDProjectData,
+  xml: string,
+): DFDPage[] | undefined {
+  const { pages } = pruneStaleLinks(project.dfd?.pages, xml);
+  return reassignDuplicateDefinitions({
+    xml,
+    pages,
+    previousXml: project.dfd?.xml,
+    previousPages: project.dfd?.pages,
+  }).pages;
+}
+
 function adoptedPageIds(pages: readonly { pageId: string }[] | undefined) {
   return pages?.map((p) => p.pageId);
 }
@@ -436,7 +456,8 @@ class DFDService {
 
       // Leveled DFD (§5.2): drop identity links whose cell is gone, so a
       // link can never attach to a different cell later. No-op without links.
-      const { pages } = pruneStaleLinks(project.dfd?.pages, xml || "");
+      // Then give duplicated definitions their own identity (Phase 3.3).
+      const pages = linksForSave(project, xml || "");
 
       // Parse and validate
       const { elements, connections, unconnectedDataflows } =
@@ -604,8 +625,9 @@ class DFDService {
     }
 
     try {
-      // Leveled DFD (§5.2): drop identity links whose cell is gone.
-      const { pages } = pruneStaleLinks(project.dfd?.pages, xml);
+      // Leveled DFD (§5.2): drop identity links whose cell is gone, then
+      // give duplicated definitions their own identity (Phase 3.3).
+      const pages = linksForSave(project, xml);
 
       const { elements, connections, unconnectedDataflows } =
         this.parser.parse(xml, pages);

@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3.1–3.2 done (hierarchical numbering) · 3.3 next
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -269,7 +269,7 @@ TARAflow stores a link **only** where the identity differs from the cell id. Con
 | Action | Rule |
 |---|---|
 | Create element in TARAflow | Plain definition, identity = cell id, displayId per §8 |
-| **Paste** (draw.io copy/paste, duplicate page) | **Paste = new element.** A pasted cell has a new cell id and no link, thus a new identity. If two definitions end up with the same `tfId` (a duplicated page keeping its cell ids), the cell that was **not** in the last saved state gets a fresh `tfId` (a `definition` link) and a new displayId. Info finding `ID_PASTE_REASSIGNED`. Never merged. |
+| **Paste** (draw.io copy/paste, duplicate page) | **Paste = new element.** A pasted cell has a new cell id and no link, thus a new identity. If two definitions end up with the same `tfId` (a duplicated page keeping its cell ids), the cell that was **not** in the last saved state gets a fresh `tfId` (a `definition` link, `<pageId>:<cellId>`) on save; its new displayId follows with the next explicit renumber (§8, the save never rewrites the XML). Info finding `ID_PASTE_REASSIGNED` (Phase 4). Never merged. |
 | Pasted copy of an existing element (same displayId and type as an existing definition, no link) | Stays a new element until decided (analysed, `BAL_DUPLICATE_DISPLAY_ID`). After save a non-blocking hint offers the **assignment dialog**: one row per such cell, choice *context copy of X* / *new element*; default *context copy* when the cell is on another page than the definition, *new element* on the same page; "apply to all" for copied groups with their flows. Same mechanism as adoption (§11.2.1). |
 | "Insert as context…" (TARAflow action) | Pick an existing element, place a cell on the current page and store its `ref` link. Also available on an existing cell as **"Make this a context copy of…"** (element form, list of candidates of the same type). |
 | Delete a context copy | Graphical change only. |
@@ -1079,13 +1079,32 @@ exactly its links and decomposition.
     reads `dfd.pages` at the moment of numbering;
   - single page: byte-identical output to the previous implementation (checked on all example DFDs
     with all three sort strategies before the old code was replaced).
-- **3.3** duplicate definitions: fresh `tfId` link + new displayId (next free number in the page's
-  namespace) on save, `ID_PASTE_REASSIGNED` (decision of 1.3).
+- **3.3 ✅** duplicate definitions (decision of 1.3). `reassignDuplicateDefinitions` runs in both
+  save paths after stale-link pruning: `findDuplicateDefinitions` against the last saved state
+  (tree order as fallback), then `giveFreshIdentities` (the link writer, `identity-links`) gives
+  every non-keeper a `definition` link with the fresh `tfId` `<pageId>:<cellId>` (counter suffix
+  on a clash). Flows on that page attach to the new identities through the page's links, so a
+  duplicated page becomes a set of new elements and flows — never merged. Stable on the next save.
+  - **Deviation:** the new displayId is **not** written on save. The save path never rewrites the
+    XML — the editor owns it, and a rewritten label would be overwritten by the next autosave. The
+    duplicate keeps its drawn label until the next explicit renumber, which numbers it as the new
+    definition it is (next free number in its page's namespace). Until then the existing
+    duplicate-id warning shows the clash.
+  - `ID_PASTE_REASSIGNED` comes with the other leveled findings in Phase 4 (none reaches the
+    validator yet).
+  - Reachable in practice only with Phase 5: a duplicated page is a new, unadopted page and
+    refused until the adoption dialog adopts it.
 
 **Phase 4 — Validator.** Findings from §7; `refines` and `abstract` in the connection form; error
 policy (§7).
 
-**Phase 5 — UI.** Page tree, decompose action, context-copy styling and actions; the adoption /
+**Phase 5 — UI.** **Prerequisite (gap found in 3.3):** UI code still addresses draw.io cells by the
+record id — selection (`selectCell(element.id)`), the details/property forms and their write-back,
+id-label visibility. For every cell with an identity link (adoption, "Make this the definition",
+duplicate reassignment) record id (`tfId`) and cell id differ, so these paths miss the cell. 1.2
+planned to make them `tfId`-aware in 1.4/1.5; that did not happen. Needed: a cell ↔ `tfId` map per
+page (from the occurrences) used in both directions, plus "which occurrence" when a record has
+several. Page tree, decompose action, context-copy styling and actions; the adoption /
 assignment dialog on top of the 1.5 logic (one dialog, two entry points: `ID_ADOPTION_PENDING` and
 the paste hint). Per-page thumbnails (generation of changed pages, `dfd.thumbnail` = *Top*) and the
 page selector in the preview panel (§12.1, D18).

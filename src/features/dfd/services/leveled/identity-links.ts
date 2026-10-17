@@ -15,6 +15,8 @@
 //   linkAsContextCopy    "Make this a context copy of …": a plain cell
 //                        (pasted or redrawn) becomes a copy of an existing
 //                        element / flow (assignment dialog, adoption)
+//   giveFreshIdentities  a duplicated definition (draw.io "Duplicate page")
+//                        becomes a new logical element (save, Phase 3.3)
 //
 // Lazy invariant kept by every writer: a cell whose identity equals its own
 // cell id as a definition has NO link; everything else has exactly one.
@@ -185,6 +187,54 @@ export function linkAsContextCopy(
   }
 
   return setIdentity(pages, occurrence, "ref", tfId);
+}
+
+export interface FreshIdentity extends CellRef {
+  kind: ParsedOccurrence["kind"];
+  /** The duplicated tfId the cell had. */
+  previousTfId: string;
+  /** The new logical identity. */
+  tfId: string;
+}
+
+/**
+ * Give each of the given definition cells a fresh tfId of its own — a new
+ * logical element / flow ("paste = new element", D8). The fresh tfId is
+ * `<pageId>:<cellId>`, unique per cell, readable, and stable across saves;
+ * on the (unlikely) clash with an existing tfId a counter is appended.
+ * Flows on the same page attach to the new identities automatically:
+ * endpoints resolve through the page's links.
+ *
+ * @param cells       definition cells to reassign (findDuplicateDefinitions)
+ * @param occurrences all occurrences of the current XML (taken tfIds)
+ */
+export function giveFreshIdentities(
+  pages: DFDPage[],
+  cells: readonly ParsedOccurrence[],
+  occurrences: readonly ParsedOccurrence[],
+): { pages: DFDPage[]; reassigned: FreshIdentity[] } {
+  const taken = new Set(occurrences.map((o) => o.tfId));
+  const reassigned: FreshIdentity[] = [];
+  let next = pages;
+
+  for (const cell of cells) {
+    const base = `${cell.pageId}:${cell.cellId}`;
+    let tfId = base;
+    for (let n = 2; taken.has(tfId); n++) tfId = `${base}#${n}`;
+
+    const result = setIdentity(next, cell, "definition", tfId);
+    if (!result.ok) continue; // page not in dfd.pages: nothing to link
+    taken.add(tfId);
+    next = result.pages;
+    reassigned.push({
+      kind: cell.kind,
+      pageId: cell.pageId,
+      cellId: cell.cellId,
+      previousTfId: cell.tfId,
+      tfId,
+    });
+  }
+  return { pages: next, reassigned };
 }
 
 // ---------------------------------------------------------------------------
