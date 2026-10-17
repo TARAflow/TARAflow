@@ -6,6 +6,7 @@ import dfd1 from "../shapes/DFD_1.json";
 import dfd2 from "../shapes/DFD_2.json";
 import CORSCommunicator from "./cors-communicator";
 import LocalStorageModel from "./local-storage-model";
+import type { SelectionCallback } from "../interfaces/dfd-editor-interfaces";
 
 export default class DrawioController {
   private drawio: CORSCommunicator;
@@ -18,7 +19,7 @@ export default class DrawioController {
   private changedAfterImported: boolean = false;
   private isDarkMode: boolean = false;
 
-  private selectionCallback: ((cells: any[]) => void) | null = null;
+  private selectionCallback: SelectionCallback | null = null;
 
   private diagramChangeWithXmlCallback: ((xml: string) => void) | null = null;
 
@@ -82,7 +83,7 @@ export default class DrawioController {
         break;
       case "selection":
         console.log("[DrawioController] 🎯 Selection received:", msg.selection);
-        this.handleSelectionChange(msg.selection);
+        this.handleSelectionChange(msg.selection, msg.pageId ?? null);
         break;
 
       default:
@@ -90,26 +91,30 @@ export default class DrawioController {
     }
   }
 
-  public onSelectionChanged(callback: (cells: any[]) => void): void {
+  public onSelectionChanged(callback: SelectionCallback): void {
     this.selectionCallback = callback;
   }
 
-  private handleSelectionChange(selection: any[]): void {
+  /**
+   * @param pageId draw.io page the selection was made on (cell ids are
+   *               page-local); null from a plugin that does not send it.
+   */
+  private handleSelectionChange(selection: any[], pageId: string | null): void {
     if (this.selectionCallback) {
       // Convert to expected format (array of objects with xmlId)
       const cells = selection.map((item) => {
         // If it's already in correct format {id, value, type}
         if (typeof item === "object" && item.id) {
-          return { xmlId: item.id };
+          return { xmlId: item.id, pageId };
         }
         // If it's just a string ID
         if (typeof item === "string") {
-          return { xmlId: item };
+          return { xmlId: item, pageId };
         }
         return item;
       });
 
-      this.selectionCallback(cells);
+      this.selectionCallback(cells, pageId);
     }
   }
 

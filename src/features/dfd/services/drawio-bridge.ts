@@ -2,7 +2,11 @@
 // Single Responsibility: Handles all Draw.io iframe communication
 // Abstracts postMessage API and controller interactions
 
-import { IDrawioBridge, IDrawioBridgeFactory } from "../interfaces/dfd-editor-interfaces";
+import {
+  IDrawioBridge,
+  IDrawioBridgeFactory,
+  type SelectionCallback,
+} from "../interfaces/dfd-editor-interfaces";
 import type {
   DrawioViewport,
   DrawioExportResult,
@@ -24,7 +28,7 @@ export class DrawioBridge implements IDrawioBridge {
   private corsComm: CORSCommunicator;
   private imageReadyCallback: ((imageSrc: string) => void) | null = null;
   private diagramChangeCallback: (() => void) | null = null;
-  private selectionCallback: ((cells: any[]) => void) | null = null;
+  private selectionCallback: SelectionCallback | null = null;
   private disposed = false;
   private diagramChangeWithXmlCallback: ((xml: string) => void) | null = null;
 
@@ -62,9 +66,9 @@ export class DrawioBridge implements IDrawioBridge {
         }
       });
 
-      this.controller.onSelectionChanged((cells: any[]) => {
+      this.controller.onSelectionChanged((cells, pageId) => {
         if (!this.disposed && this.selectionCallback) {
-          this.selectionCallback(cells);
+          this.selectionCallback(cells, pageId);
         }
       });
 
@@ -76,7 +80,7 @@ export class DrawioBridge implements IDrawioBridge {
     }
   }
 
-  onSelectionChanged(callback: (cells: any[]) => void): void {
+  onSelectionChanged(callback: SelectionCallback): void {
     this.selectionCallback = callback;
   }
 
@@ -93,7 +97,11 @@ export class DrawioBridge implements IDrawioBridge {
     this.iframe.contentWindow!.postMessage(msg, "*");
   }
 
-  async selectCell(cellId: string): Promise<void> {
+  /**
+   * Select a cell. With a pageId draw.io first opens that page — cell ids
+   * are page-local (leveled DFD §5.2). Without one the current page is used.
+   */
+  async selectCell(cellId: string, pageId?: string | null): Promise<void> {
     if (!this.isReady()) {
       console.warn(`[DrawioBridge] Cannot select cell "${cellId}" - not ready`);
       return;
@@ -101,7 +109,7 @@ export class DrawioBridge implements IDrawioBridge {
 
     if (window.electronAPI?.selectDrawioCell) {
       // Electron: direkt auf draw.io graph via IPC
-      await window.electronAPI.selectDrawioCell(cellId);
+      await window.electronAPI.selectDrawioCell(cellId, pageId);
     } else {
       // Fallback für non-Electron (z.B. Browser-Dev)
       this.iframe.contentWindow!.postMessage(

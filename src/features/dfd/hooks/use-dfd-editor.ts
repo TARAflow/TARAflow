@@ -31,6 +31,7 @@ import { useDFDThumbnail } from "./use-dfd-thumbnail";
 import { useDFDAutoNumbering } from "./use-dfd-auto-numbering";
 import { useDFDExportImport } from "./use-dfd-export-import";
 import { useDFDCompletion } from "./use-dfd-completion";
+import { useCellIdentity } from "./use-cell-identity";
 
 import { DFDGraph } from "../models/dfd-graph-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
@@ -87,7 +88,12 @@ export interface UseDFDEditorReturn {
 
   // Editor operations
   sendAction: (action: string) => void;
-  selectCell: (cellId: string) => Promise<void>;
+  /**
+   * Select the cell of a logical element / flow (its tfId = record id). In a
+   * leveled DFD this opens the page of the chosen occurrence: the current
+   * page if the element is shown there, otherwise its definition (§5.2).
+   */
+  selectCell: (tfId: string) => Promise<void>;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
@@ -146,6 +152,28 @@ export function useDFDEditor(
 
   // ==================== SELECTION RESOLUTION ====================
 
+  // Cell ↔ tfId (leveled DFD §5.2): draw.io reports page-local cells, the
+  // records and the side panel use logical identities. Every forwarded cell
+  // gets `tfId`; for classic projects tfId = cell id.
+  const cellIdentity = useCellIdentity(data.dfd);
+  const cellIdentityRef = useRef(cellIdentity);
+  cellIdentityRef.current = cellIdentity;
+  // The draw.io page the user is looking at; navigation prefers it.
+  const currentPageIdRef = useRef<string | null>(null);
+
+  const withTfIds = useCallback(
+    (cells: any[]) =>
+      cells.map((cell) => {
+        const cellId = cell?.xmlId || cell?.id;
+        if (!cellId) return cell;
+        return {
+          ...cell,
+          tfId: cellIdentityRef.current.tfIdOf(cellId, cell?.pageId),
+        };
+      }),
+    [],
+  );
+
   const [pendingCells, setPendingCells] = useState<any[] | null>(null);
 
   /**
@@ -155,7 +183,9 @@ export function useDFDEditor(
    * neu emittiert sobald data.dfd.elements updated.
    */
   const handleSelectionChanged = useCallback(
-    (cells: any[]) => {
+    (rawCells: any[], pageId?: string | null) => {
+      if (pageId !== undefined) currentPageIdRef.current = pageId;
+      const cells = withTfIds(rawCells);
       if (!cells.length) {
         setPendingCells(null);
         onSelectionChanged?.(cells);
@@ -163,7 +193,7 @@ export function useDFDEditor(
       }
 
       const cell = cells[0];
-      const id = cell?.xmlId || cell?.id;
+      const id = cell?.tfId;
       if (!id) {
         onSelectionChanged?.(cells);
         return;
@@ -179,10 +209,10 @@ export function useDFDEditor(
         onSelectionChanged?.(cells);
       } else {
         // Noch nicht synchronisiert → puffern, retry via useEffect
-        setPendingCells(cells);
+        setPendingCells(rawCells);
       }
     },
-    [data.dfd?.elements, data.dfd?.connections, onSelectionChanged],
+    [data.dfd?.elements, data.dfd?.connections, onSelectionChanged, withTfIds],
   );
 
   /**
@@ -192,8 +222,10 @@ export function useDFDEditor(
   useEffect(() => {
     if (!pendingCells?.length) return;
 
-    const cell = pendingCells[0];
-    const id = cell?.xmlId || cell?.id;
+    // Resolve again: the save that brought the record may also have
+    // brought its identity link.
+    const cells = withTfIds(pendingCells);
+    const id = cells[0]?.tfId;
     if (!id) return;
 
     const existsInData =
@@ -201,7 +233,7 @@ export function useDFDEditor(
       data.dfd?.connections.some((c) => c.id === id);
 
     if (existsInData) {
-      onSelectionChanged?.(pendingCells);
+      onSelectionChanged?.(cells);
       setPendingCells(null);
     }
     // Bewusst nur auf elements/connections reagieren, nicht auf pendingCells
@@ -331,6 +363,16 @@ export function useDFDEditor(
   // Keep bridgeRef in sync so handlePluginReady can call bridge.exportImage
   // without closing over a stale bridge instance.
   bridgeRef.current = bridge;
+
+  const bridgeSelectCell = bridge.selectCell;
+  const selectCell = useCallback(
+    async (tfId: string): Promise<void> => {
+      const target = cellIdentityRef.current.cellOf(tfId, currentPageIdRef.current);
+      // No cell known (classic project, or not parsed yet): the id is the cell id.
+      await bridgeSelectCell(target?.cellId ?? tfId, target?.pageId);
+    },
+    [bridgeSelectCell],
+  );
 
   // Thumbnail layer
   const thumbnail = useDFDThumbnail(bridge, project, {
@@ -513,7 +555,7 @@ export function useDFDEditor(
 
     // Editor operations
     sendAction: bridge.sendAction,
-    selectCell: bridge.selectCell,
+    selectCell,
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,

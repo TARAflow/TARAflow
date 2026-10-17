@@ -152,9 +152,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     cancelPointerCaptureRef.current?.();
 
     const selectedCell = cells[0];
-    const cellId = selectedCell?.xmlId || selectedCell?.id;
+    // tfId: the logical record the cell shows (useDFDEditor resolves it,
+    // also for context copies on other pages — leveled DFD §5.2).
+    const elementId = selectedCell?.tfId || selectedCell?.xmlId || selectedCell?.id;
 
-    if (!cellId) {
+    if (!elementId) {
       setSelectedElementId(null);
       setDetailsPanelOpen(false);
       return;
@@ -162,7 +164,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
     // Kein Guard nötig — useDFDEditor stellt sicher dass das
     // Element im State ist bevor dieser Callback feuert.
-    setSelectedElementId(cellId);
+    setSelectedElementId(elementId);
     setDetailsPanelOpen(true);
   }, []);
 

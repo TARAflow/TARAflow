@@ -63,6 +63,11 @@ export {
   type ExclusionReason,
 } from "./effective-model";
 export { analysePageGeometry, type PageGeometry } from "./page-geometry";
+export {
+  buildCellIdentityIndex,
+  type CellIdentityIndex,
+  type CellOccurrenceRef,
+} from "./cell-identity";
 export type {
   EffectiveInterface,
   EffectiveBoundaries,

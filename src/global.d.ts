@@ -101,6 +101,7 @@ declare global {
       }) => Promise<{ success: boolean; error?: string }>;
       selectDrawioCell: (
         cellId: string,
+        pageId?: string | null,
       ) => Promise<{ success: boolean; error?: string }>;
       injectDrawioLibraries: (
         dfd1Xml: string,

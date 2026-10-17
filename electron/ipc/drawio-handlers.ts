@@ -120,23 +120,36 @@ export function registerDrawioHandlers() {
               }
             }, 100);
 
-            // Setup selection listener
-            ui.editor.graph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
-              var cells = ui.editor.graph.getSelectionCells();
+            // Setup selection listener. Cell ids are only unique within a
+            // page, so every selection carries the page it was made on
+            // (leveled DFD, design §5.2).
+            var currentPageId = function() {
+              return ui.currentPage && ui.currentPage.getId ? ui.currentPage.getId() : null;
+            };
+            var postSelection = function(cells) {
               var selection = cells.map(function(c) {
-                return { 
-                  id: c.id, 
+                return {
+                  id: c.id,
                   value: c.value,
                   type: c.getAttribute ? c.getAttribute('type') : null
                 };
               });
-              
+
               console.log('[Plugin] Selection changed:', selection);
-              
+
               window.parent.postMessage(JSON.stringify({
                 event: 'selection',
-                selection: selection
+                selection: selection,
+                pageId: currentPageId()
               }), '*');
+            };
+            ui.editor.graph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
+              postSelection(ui.editor.graph.getSelectionCells());
+            });
+            // A page switch empties the selection; report it with the new page
+            // so TARAflow knows which page the user is looking at.
+            ui.editor.addListener('pageSelected', function() {
+              postSelection([]);
             });
 
             // Viewport restore handler
@@ -226,27 +239,46 @@ export function registerDrawioHandlers() {
     },
   );
 
-  ipcMain.handle("drawio:selectCell", async (_, cellId: string) => {
-    if (!cachedDrawioFrame)
-      return { success: false, error: "No drawio frame cached" };
-    try {
-      await cachedDrawioFrame.executeJavaScript(`
-      (function() {
-        var ui = Draw._taraflowUi;
-        if (!ui) { console.warn('[Main:selectCell] No taraflowUi'); return false; }
-        var graph = ui.editor.graph;
-        var cell = graph.model.getCell("${cellId}");
-        if (!cell) { console.warn('[Main:selectCell] Cell not found: ${cellId}'); return false; }
-        graph.setSelectionCell(cell);
-        graph.scrollCellToVisible(cell, true);
-        return true;
-      })()
-    `);
-      return { success: true };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
+  ipcMain.handle(
+    "drawio:selectCell",
+    async (_, cellId: string, pageId?: string | null) => {
+      if (!cachedDrawioFrame)
+        return { success: false, error: "No drawio frame cached" };
+      // Ids go into the script as JSON literals, never spliced into code.
+      const cellIdJs = JSON.stringify(String(cellId));
+      const pageIdJs = JSON.stringify(pageId == null ? null : String(pageId));
+      try {
+        await cachedDrawioFrame.executeJavaScript(`
+        (function() {
+          var ui = Draw._taraflowUi;
+          if (!ui) { console.warn('[Main:selectCell] No taraflowUi'); return false; }
+          var cellId = ${cellIdJs};
+          var pageId = ${pageIdJs};
+          // Cell ids are page-local (leveled DFD, design §5.2): open the page
+          // first if the cell lives on another one.
+          if (pageId !== null && ui.pages && ui.currentPage &&
+              ui.currentPage.getId() !== pageId) {
+            var page = null;
+            for (var i = 0; i < ui.pages.length; i++) {
+              if (ui.pages[i].getId() === pageId) { page = ui.pages[i]; break; }
+            }
+            if (!page) { console.warn('[Main:selectCell] Page not found: ' + pageId); return false; }
+            ui.selectPage(page);
+          }
+          var graph = ui.editor.graph;
+          var cell = graph.model.getCell(cellId);
+          if (!cell) { console.warn('[Main:selectCell] Cell not found: ' + cellId); return false; }
+          graph.setSelectionCell(cell);
+          graph.scrollCellToVisible(cell, true);
+          return true;
+        })()
+      `);
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+  );
 
   ipcMain.handle("drawio:getScroll", async () => {
     if (!cachedDrawioFrame) return { scrollLeft: 0, scrollTop: 0 };

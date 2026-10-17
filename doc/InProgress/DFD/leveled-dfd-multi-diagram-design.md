@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 next
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1127,7 +1127,7 @@ exactly its links and decomposition.
     the records covers it (one finding per fact).
   - Leveled SmokeDetector: no leveled finding at all (regression).
   - Known limit until Phase 5: clicking a finding selects the cell by record id, which misses
-    linked cells (see Phase 5 prerequisite).
+    linked cells (see Phase 5 prerequisite; fixed in 5a).
 - **4b ✅** `refines` and `abstract` (§6.4).
   - `DataflowProperties.refines` / `.abstract` (JSON, persisted with the flow record).
   - Effective model, second pass after stitching (`applyRefinements`): target missing (or the flow
@@ -1154,6 +1154,26 @@ several. Page tree, decompose action, context-copy styling and actions; the adop
 assignment dialog on top of the 1.5 logic (one dialog, two entry points: `ID_ADOPTION_PENDING` and
 the paste hint). Per-page thumbnails (generation of changed pages, `dfd.thumbnail` = *Top*) and the
 page selector in the preview panel (§12.1, D18).
+
+- **5a ✅** cell ↔ `tfId` (the prerequisite above).
+  - `leveled/cell-identity`, pure: `buildCellIdentityIndex(pages, occurrences)`.
+    `tfIdOf(cellId, pageId)` reads the page's links like the parser (so a cell the last parse has
+    not seen yet resolves too); without a page id only a cell id that is unique across pages is
+    resolved, otherwise the cell id is kept — never a guess. `cellOf(tfId, preferredPageId)`: the
+    occurrence on the page the user is looking at (its definition first), else the definition,
+    else the first copy (dangling). `occurrencesOf(tfId)` for "Show occurrences" later.
+  - `useCellIdentity(dfd)`: classic projects (no `dfd.pages`, or one page without links) skip the
+    parse and get the identity — selection unchanged.
+  - draw.io is page-aware: the injected plugin sends the current `pageId` with every selection and
+    an empty selection on `pageSelected`; `drawio:selectCell(cellId, pageId)` opens the page first
+    (ids passed as JSON literals instead of being spliced into the script).
+  - `useDFDEditor`: every selected cell gets `tfId`, the side panel opens the logical record (also
+    for context copies); `selectCell(tfId)` — findings, asset graph, notification panel — picks the
+    cell via `cellOf` and the remembered current page.
+  - Scope check against the list above: the forms write only the JSON records (keyed by `tfId`),
+    never the XML, so they needed no change. `useIdLabelVisibility` is unused (no caller), left
+    alone. Still cell-id / first-page based: the asset overlay (`dfd-overlay-builder`, first
+    `<diagram>` only, §4) — with the page tree.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

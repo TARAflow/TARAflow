@@ -9,6 +9,7 @@ import type {
   DrawioViewport,
   DrawioExportResult,
 } from "../models/drawio-types";
+import type { SelectionCallback } from "../interfaces/dfd-editor-interfaces";
 import { createDFDStorageAdapter } from "../services/dfd-storage-adapter";
 import dfdService from "../services/dfd-service";
 
@@ -18,7 +19,7 @@ export interface UseDrawioBridgeOptions {
   darkMode?: boolean;
   onDiagramChange?: () => void;
   onDiagramChangeWithXml?: (xml: string) => void; // NEU
-  onSelectionChanged?: (cells: any[]) => void;
+  onSelectionChanged?: SelectionCallback;
   onPluginReady?: () => void;
 }
 
@@ -41,7 +42,7 @@ export interface UseDrawioBridgeReturn {
   getCurrentXML: () => string | null;
   exportImage: () => Promise<string | null>;
   sendAction: (action: string) => void;
-  selectCell: (cellId: string) => Promise<void>;
+  selectCell: (cellId: string, pageId?: string | null) => Promise<void>;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
@@ -138,9 +139,9 @@ export function useDrawioBridge(
         });
       }
 
-      bridge.onSelectionChanged((cells) => {
+      bridge.onSelectionChanged((cells, pageId) => {
         setSelectedCells(cells);
-        onSelectionChangedRef.current?.(cells);
+        onSelectionChangedRef.current?.(cells, pageId);
       });
 
       bridge.onDiagramChangeWithXml((xml: string) => {
@@ -316,10 +317,13 @@ export function useDrawioBridge(
     bridgeRef.current.sendAction(action);
   }, []);
 
-  const selectCell = useCallback(async (cellId: string): Promise<void> => {
-    if (!bridgeRef.current) return;
-    await bridgeRef.current.selectCell(cellId);
-  }, []);
+  const selectCell = useCallback(
+    async (cellId: string, pageId?: string | null): Promise<void> => {
+      if (!bridgeRef.current) return;
+      await bridgeRef.current.selectCell(cellId, pageId);
+    },
+    [],
+  );
 
 
   const onImageReady = useCallback((handler: (imageData: string) => void) => {

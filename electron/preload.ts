@@ -197,8 +197,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   setDrawioViewport: (viewport: any) =>
     ipcRenderer.invoke("drawio:setViewport", viewport),
-  selectDrawioCell: (cellId: string) =>
-    ipcRenderer.invoke("drawio:selectCell", cellId),
+  selectDrawioCell: (cellId: string, pageId?: string | null) =>
+    ipcRenderer.invoke("drawio:selectCell", cellId, pageId),
   injectDrawioLibraries: (dfd1Xml: string, dfd2Xml: string) =>
     ipcRenderer.invoke("drawio:injectLibraries", dfd1Xml, dfd2Xml),
   jiraRequest: (config: { url: string; options: any }) =>

@@ -47,6 +47,14 @@ export interface IXmlSourceManager {
 // ==================== DRAWIO BRIDGE INTERFACE ====================
 
 /**
+ * Selection in draw.io. Every cell carries `xmlId` (its page-local cell id)
+ * and `pageId`; `pageId` is the page the selection was made on — also for
+ * an empty selection after a page switch. null from a plugin that does not
+ * report pages. Cell ids are only unique within a page (leveled DFD §5.2).
+ */
+export type SelectionCallback = (cells: any[], pageId?: string | null) => void;
+
+/**
  * Interface for Draw.io iframe communication
  * Abstracts the postMessage API
  */
@@ -91,7 +99,7 @@ export interface IDrawioBridge {
   onDiagramChangeWithXml(callback: (xml: string) => void): void;
 
   /** Set callback for selection changes */
-  onSelectionChanged(callback: (cells: any[]) => void): void;
+  onSelectionChanged(callback: SelectionCallback): void;
 
   /** Get current XML from localStorage (if available) */
   getCurrentXml(): string | null;
