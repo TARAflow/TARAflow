@@ -2634,6 +2634,13 @@
           "notReferenced": "This asset is not yet referenced by any DFD element."
         }
       },
+      "pageTree": {
+        "title": "Pages",
+        "pendingDecomposition": "no part of its own yet — the multiprocess is analysed as a whole",
+        "notPlaced": "not in the page tree",
+        "errors": "Errors on this page",
+        "warnings": "Warnings on this page"
+      },
       "identityReview": {
         "cancel": "Cancel",
         "later": "Later",

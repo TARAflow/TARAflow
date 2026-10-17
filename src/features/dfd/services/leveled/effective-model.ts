@@ -158,6 +158,25 @@ const NO_CONTAINMENT = new Set<DFDElementType>([
 ]);
 const SEVERITY: FallbackReason[] = ["ambiguous", "dangling", "unresolved"];
 
+/**
+ * Pages that define at least one part of their own — a process,
+ * multiprocess, data store, interface, sensor or actuator; not an EE, a
+ * boundary or a context copy. Only on such a page the decomposition takes
+ * effect (D15).
+ */
+export function pagesWithOwnParts(
+  occurrences: readonly ParsedOccurrence[],
+  typeOf: ReadonlyMap<string, DFDElementType>,
+): Set<string> {
+  const pages = new Set<string>();
+  for (const o of occurrences) {
+    if (o.kind !== "element" || o.role !== "definition") continue;
+    const type = typeOf.get(o.tfId);
+    if (type && !NO_CONTAINMENT.has(type)) pages.add(o.pageId);
+  }
+  return pages;
+}
+
 export function buildEffectiveModel(
   input: EffectiveModelInput,
 ): EffectiveModel {
@@ -172,12 +191,7 @@ export function buildEffectiveModel(
   // — or one holding nothing but context copies — leaves the multiprocess a
   // leaf with its own threats instead of turning all its flows into
   // fallbacks.
-  const pagesWithParts = new Set<string>();
-  for (const o of occurrences) {
-    if (o.kind !== "element" || o.role !== "definition") continue;
-    const type = typeOf.get(o.tfId);
-    if (type && !NO_CONTAINMENT.has(type)) pagesWithParts.add(o.pageId);
-  }
+  const pagesWithParts = pagesWithOwnParts(occurrences, typeOf);
   const decomposedBy = new Map<string, string>(); // pageId → MP tfId
   for (const page of tree.pages) {
     if (

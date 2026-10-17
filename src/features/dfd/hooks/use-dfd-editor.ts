@@ -97,6 +97,10 @@ export interface UseDFDEditorReturn {
    * page if the element is shown there, otherwise its definition (§5.2).
    */
   selectCell: (tfId: string) => Promise<void>;
+  /** draw.io page the user is looking at (null until draw.io reports one). */
+  currentPageId: string | null;
+  /** Open a draw.io page (page tree, leveled DFD 5c). */
+  selectPage: (pageId: string) => Promise<boolean>;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
@@ -161,8 +165,10 @@ export function useDFDEditor(
   const cellIdentity = useCellIdentity(data.dfd);
   const cellIdentityRef = useRef(cellIdentity);
   cellIdentityRef.current = cellIdentity;
-  // The draw.io page the user is looking at; navigation prefers it.
+  // The draw.io page the user is looking at; navigation prefers it, the
+  // page tree highlights it.
   const currentPageIdRef = useRef<string | null>(null);
+  const [currentPageId, setCurrentPageId] = useState<string | null>(null);
 
   const withTfIds = useCallback(
     (cells: any[]) =>
@@ -187,7 +193,10 @@ export function useDFDEditor(
    */
   const handleSelectionChanged = useCallback(
     (rawCells: any[], pageId?: string | null) => {
-      if (pageId !== undefined) currentPageIdRef.current = pageId;
+      if (pageId !== undefined) {
+        currentPageIdRef.current = pageId;
+        setCurrentPageId(pageId);
+      }
       const cells = withTfIds(rawCells);
       if (!cells.length) {
         setPendingCells(null);
@@ -377,6 +386,19 @@ export function useDFDEditor(
     [bridgeSelectCell],
   );
 
+  const bridgeSelectPage = bridge.selectPage;
+  const selectPage = useCallback(
+    async (pageId: string): Promise<boolean> => {
+      const ok = await bridgeSelectPage(pageId);
+      if (ok) {
+        currentPageIdRef.current = pageId;
+        setCurrentPageId(pageId);
+      }
+      return ok;
+    },
+    [bridgeSelectPage],
+  );
+
   // Thumbnail layer
   const thumbnail = useDFDThumbnail(bridge, project, {
     restoreFromProject: true,
@@ -564,6 +586,8 @@ export function useDFDEditor(
     // Editor operations
     sendAction: bridge.sendAction,
     selectCell,
+    currentPageId,
+    selectPage,
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,

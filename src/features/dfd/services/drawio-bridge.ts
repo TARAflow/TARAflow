@@ -120,6 +120,16 @@ export class DrawioBridge implements IDrawioBridge {
   }
 
   /**
+   * Open a draw.io page (leveled DFD page tree). Electron only: the embed
+   * protocol has no page action, so the browser dev build cannot switch.
+   */
+  async selectPage(pageId: string): Promise<boolean> {
+    if (!this.isReady() || !window.electronAPI?.selectDrawioPage) return false;
+    const result = await window.electronAPI.selectDrawioPage(pageId);
+    return result.success;
+  }
+
+  /**
    * Load XML into Draw.io AND persist to localStorage.
    * Used for permanent diagram changes (auto-numbering, import, etc.)
    */

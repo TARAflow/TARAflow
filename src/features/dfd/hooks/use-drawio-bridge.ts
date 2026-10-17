@@ -43,6 +43,8 @@ export interface UseDrawioBridgeReturn {
   exportImage: () => Promise<string | null>;
   sendAction: (action: string) => void;
   selectCell: (cellId: string, pageId?: string | null) => Promise<void>;
+  /** Open a draw.io page; false if it cannot be switched (browser dev). */
+  selectPage: (pageId: string) => Promise<boolean>;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
@@ -325,6 +327,11 @@ export function useDrawioBridge(
     [],
   );
 
+  const selectPage = useCallback(async (pageId: string): Promise<boolean> => {
+    if (!bridgeRef.current) return false;
+    return bridgeRef.current.selectPage(pageId);
+  }, []);
+
 
   const onImageReady = useCallback((handler: (imageData: string) => void) => {
     imageHandlerRef.current = handler;
@@ -389,6 +396,7 @@ export function useDrawioBridge(
     exportImage,
     sendAction,
     selectCell,
+    selectPage,
     onImageReady,
     loadXMLTransient,
   };

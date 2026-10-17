@@ -92,3 +92,8 @@ export {
   type AdoptionReview,
   type AssignmentReview,
 } from "./identity-review";
+export {
+  buildPageOutline,
+  type PageOutline,
+  type PageOutlineNode,
+} from "./page-outline";

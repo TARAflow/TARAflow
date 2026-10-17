@@ -34,6 +34,7 @@ import { useDFDData } from "../hooks/use-dfd-data";
 import { useDFDPersistence } from "../hooks/use-dfd-persistence";
 import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import { useIdentityReview } from "../hooks/use-identity-review";
+import { usePageOutline } from "../hooks/use-page-outline";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -49,6 +50,7 @@ import {
   IdentityReviewHints,
 } from "./identity-review-dialog";
 import { ValidationMessages } from "../services/validators/validator-utils";
+import { DFDPageTree } from "./dfd-page-tree";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
@@ -247,6 +249,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     ),
     savePages: editor.savePages,
   });
+  // Leveled DFD (5c): page tree left of the diagram; null for one page.
+  const pageOutline = usePageOutline(project.dfd, editor.validation);
+
   // Adopted pages the tree cannot use — repaired with the same dialog.
   const pageRepair = [
     ...(editor.validation?.errors ?? []),
@@ -436,6 +441,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       onImageReady: () => {},
       selectedCells: editor.selectedCells || [],
       selectCell: async () => {},
+      selectPage: async () => false,
     },
     {
       isDirty: editor.isDirty,
@@ -836,6 +842,17 @@ export const DFDTab: React.FC<DFDTabProps> = ({
           overflow: "hidden",
         }}
       >
+        {/* Leveled DFD: page tree (draw view only) */}
+        {viewMode === "draw" && pageOutline && (
+          <DFDPageTree
+            outline={pageOutline}
+            // draw.io reports the page with the first selection or page
+            // switch; until then it shows the first page of the document.
+            currentPageId={editor.currentPageId ?? pageOutline.firstPageId ?? null}
+            onSelectPage={editor.selectPage}
+          />
+        )}
+
         {/* Left: DFD Canvas (Draw/Describe Views) */}
         <Box
           sx={{
