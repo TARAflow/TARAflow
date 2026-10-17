@@ -21,6 +21,7 @@
 // is already there. Nothing is removed. Pure: cell ids in, cell ids out;
 // draw.io clones with the original geometry, the caller links the clones.
 
+import type { DFDCellLink } from "../../models/dfd-types";
 import type { ParseResult } from "../dfd-parser";
 import { computeHomePages } from "./home-pages";
 import type { PageGeometry } from "./page-geometry";
@@ -48,6 +49,13 @@ export interface ContextCopyInput {
   /** The decomposed multiprocess. */
   multiprocess: string;
   childPageId: string;
+  /**
+   * Identity links of the child page (dfd.pages[].links). A linked cell
+   * counts as present even when the parser does not see it as an
+   * occurrence — a copied flow whose free end is not attached yet — so it
+   * is never copied a second time.
+   */
+  childLinks?: readonly DFDCellLink[];
 }
 
 export function planContextCopies(input: ContextCopyInput): ContextCopySpec | undefined {
@@ -59,6 +67,9 @@ export function planContextCopies(input: ContextCopyInput): ContextCopySpec | un
   const onChild = parse.occurrences.filter((o) => o.pageId === childPageId);
   const childCellOf = new Map<string, string>();
   for (const o of onChild) if (!childCellOf.has(o.tfId)) childCellOf.set(o.tfId, o.cellId);
+  for (const l of input.childLinks ?? []) {
+    if (!childCellOf.has(l.tfId)) childCellOf.set(l.tfId, l.cellId);
+  }
   const tfIdOf: Record<string, string> = {};
   for (const o of onHome) tfIdOf[o.cellId] = o.tfId;
 

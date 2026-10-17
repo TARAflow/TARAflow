@@ -93,6 +93,27 @@ describe("planContextCopies", () => {
     expect(plan(sen, PAGES(links))).toBeUndefined();
   });
 
+  it("counts a linked cell as present although it is no occurrence (flow with a free end)", () => {
+    // DF-8 was copied earlier; its MP end is still free, so the parser does
+    // not see it — the link alone says it is there.
+    const sen = page(
+      "sen",
+      "Sensor Module",
+      `<object label="pull debug commands" type="dataflow" id="sen_df8"><mxCell edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell></object>`,
+    );
+    const links = [ref("sen_df8", "df8")];
+    const xml = mxfile(TOP, sen);
+    const parse = dfdParser.parse(xml, PAGES(links));
+    const result = planContextCopies({
+      parse,
+      pageGeometry: analysePageGeometry(parse.pageCells),
+      multiprocess: "mp1",
+      childPageId: "sen",
+      childLinks: links,
+    });
+    expect(result?.cells).toEqual(["sb", "mp2", "ee1", "df7"]);
+  });
+
   it("does nothing for a multiprocess without a home page", () => {
     expect(plan(page("sen", "Sensor Module", ""), PAGES(), "nope")).toBeUndefined();
   });

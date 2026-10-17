@@ -1296,14 +1296,19 @@ page selector in the preview panel (§12.1, D18).
     kept. Returns original → clone per cell.
   - Every child page gets its context when it is created (automatically, 5d, or by "Create child
     page", 5e); "Sync context" in the details panel adds what is missing on an existing one.
+  - **Pure context pages follow automatically** (fix after first use: an MP's page is created at
+    the first save, usually before its flows are drawn, so it stayed empty). While a child page
+    has no part of its own (D15), its missing context is copied after every save; once the
+    analyst draws parts there, "Sync context" is manual — nothing removed on purpose comes back.
+    Each context cell is requested once per page and session.
   - **Links after the autosave:** the clones become context copies (`ref` links to the originals'
-    tfIds) only once draw.io's autosave has brought them into the saved XML — a link written
+    tfIds) as soon as draw.io's autosave has brought the cells into the saved XML — a link written
     earlier would be dropped as stale by the same save (`pruneStaleLinks`). Until then
     `settling` hides the paste hint (5b) and the clones get no automatic page.
   - **Loose flows:** a copied flow with a free end is no occurrence for the parser yet (and reports
-    an unconnected data flow); it is linked as soon as its end is attached to a part in the same
-    session. Attached in a later session it is a plain flow with the displayId of the original —
-    the copy assignment (5b) then offers "context copy of DF-x".
+    an unconnected data flow until its end is attached). It is linked as soon as the cell is in the
+    saved XML — not only once attached — and `planContextCopies` counts linked cells of the child
+    page as present (`childLinks`), so it is never copied a second time, also after reopening.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

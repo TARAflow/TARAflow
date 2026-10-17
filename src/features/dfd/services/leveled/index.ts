@@ -52,6 +52,7 @@ export {
   type CopyAssignmentResult,
 } from "./copy-assignment";
 export {
+  pagesWithOwnParts,
   buildEffectiveModel,
   type EffectiveModel,
   type EffectiveModelInput,

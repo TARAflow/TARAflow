@@ -452,11 +452,62 @@ describe("useChildPages", () => {
       );
       rerender({ p: project(arrived, pages) });
       await waitFor(() => expect(opts.savePages).toHaveBeenCalledTimes(2));
+      // Both linked as soon as they are in the saved XML — also the flow with
+      // the free end, which the parser does not see as an occurrence yet
+      // (so it is never copied a second time).
       expect(opts.savePages.mock.calls[1][0].find((p) => p.pageId === "child1")?.links).toEqual([
         { cellId: "copy_ee", tfId: "ee", role: "ref" },
+        { cellId: "copy_df8", tfId: "df8", role: "ref" },
       ]);
-      // The loose flow is not parsed as an occurrence yet: its link waits.
-      expect(result.current.settling).toBe(true);
+      rerender({ p: project(arrived, opts.savePages.mock.calls[1][0]) });
+      await waitFor(() => expect(result.current.settling).toBe(false));
+    });
+
+    it("lets the context of a pure context page follow the parent page", async () => {
+      // Reported with 5f: the page of MyProcess was created before the flow
+      // to the Debugger existed — the flow drawn later did not appear.
+      const pages: DFDPage[] = [
+        { pageId: "p1", name: "Top", order: 0 },
+        { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
+      ];
+      const mpLinked = node("mp", "multiprocess", "Gateway", "MP-1", 300).replace(
+        'id="mp">',
+        'id="mp" link="data:page/id,gw">',
+      );
+      const xml = mxfile(
+        page("p1", "Top", EE + mpLinked + flow("df8", "commands", "DF-8", "ee", "mp")),
+        page("gw", "Gateway", ""),
+      );
+      const opts = o();
+      const { rerender } = renderHook(
+        ({ p }: { p: DFDProjectData }) => useChildPages(p, opts),
+        { initialProps: { p: project(xml, pages, [{ id: "mp", type: "Multiprocess" }]) } },
+      );
+      await waitFor(() => expect(opts.syncPages).toHaveBeenCalledTimes(1));
+      expect(opts.syncPages.mock.calls[0][0].context?.[0].cells).toEqual(["ee", "df8"]);
+      // Same state again (autosave pending): not requested a second time.
+      rerender({ p: project(xml + " ", pages, [{ id: "mp", type: "Multiprocess" }]) });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(opts.syncPages).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves a child page with parts of its own to Sync context", async () => {
+      const pages: DFDPage[] = [
+        { pageId: "p1", name: "Top", order: 0 },
+        { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
+      ];
+      const mpLinked = node("mp", "multiprocess", "Gateway", "MP-1", 300).replace(
+        'id="mp">',
+        'id="mp" link="data:page/id,gw">',
+      );
+      const xml = mxfile(
+        page("p1", "Top", EE + mpLinked + flow("df8", "commands", "DF-8", "ee", "mp")),
+        page("gw", "Gateway", node("gw_p", "process", "Part", "P-1.1", 10)),
+      );
+      const opts = o();
+      renderHook(() => useChildPages(project(xml, pages, [{ id: "mp", type: "Multiprocess" }]), opts));
+      await new Promise((r) => setTimeout(r, 30));
+      expect(opts.syncPages).not.toHaveBeenCalled();
     });
 
     it("syncs the context of an existing child page on request", async () => {
