@@ -2,11 +2,11 @@
 // Leveled-DFD Phase 5d (leveled-dfd-multi-diagram-design.md §5.3, §12,
 // D15–D17). What the page structure needs after a save:
 //
-//   D15  every NEW multiprocess gets its child page (empty, named like the
-//        MP, page link on the MP's cells). The decomposition only takes
-//        effect with the page's first own part, so an empty page costs the
-//        MP nothing. Multiprocesses that existed when the DFD was opened
-//        get no page: opening a project never levels it.
+//   D15  every multiprocess without a child page gets one (empty, named
+//        like the MP, page link on the MP's cells). The decomposition only
+//        takes effect with the page's first own part, so an empty page costs
+//        the MP nothing. In a CLASSIC project only multiprocesses drawn after
+//        opening count: opening a project never levels it.
 //   D16  a child page's tab name follows its multiprocess's name (MP → tab).
 //   D17  the root page is named "Top" from the second page on.
 //
@@ -45,7 +45,11 @@ export interface PageSyncPlan {
 export interface PageSyncInput {
   parse: Pick<ParseResult, "pages" | "elements" | "connections" | "occurrences">;
   pages: readonly DFDPage[] | undefined;
-  /** Multiprocess tfIds that existed when the DFD was opened. */
+  /**
+   * Multiprocess tfIds that get no page automatically: in a classic project
+   * those that existed when the DFD was opened; plus those already tried in
+   * this session. A leveled project ignores the first part (D15 for all).
+   */
   knownMultiprocesses: ReadonlySet<string>;
   newPageId: () => string;
 }

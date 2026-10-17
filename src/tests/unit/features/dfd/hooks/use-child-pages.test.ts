@@ -77,6 +77,53 @@ describe("useChildPages", () => {
     expect(syncPages).toHaveBeenCalledTimes(1);
   });
 
+  it("in a leveled project gives every multiprocess without page one, also at open", async () => {
+    // Reported with 5d: "MyProcess" drawn on the root page got no page, and
+    // after reopening it counted as "existing". D15 holds for every MP of a
+    // leveled project; only a classic project is protected on open.
+    const top = page(
+      "p1",
+      "Top",
+      EE + node("mp", "multiprocess", "Gateway", "MP-1", 300) +
+        node("mine", "multiprocess", "MyProcess", "MP-xx", 600),
+    );
+    const pages: DFDPage[] = [
+      { pageId: "p1", name: "Top", order: 0 },
+      { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
+    ];
+    const xml = mxfile(top, page("gw", "Gateway", ""));
+    const syncPages = vi.fn(async (_spec: DrawioPageSyncSpec) => ({ success: true }));
+    const savePages = vi.fn(async (_pages: DFDPage[]) => ({}) as DFDUpdateResult);
+    renderHook(() =>
+      useChildPages(project(xml, pages), {
+        enabled: true,
+        syncPages,
+        savePages,
+        newPageId: () => "child-mine",
+      }),
+    );
+    await waitFor(() => expect(savePages).toHaveBeenCalledTimes(1));
+    expect(syncPages.mock.calls[0][0].create.map((c) => c.name)).toEqual(["MyProcess"]);
+    expect(savePages.mock.calls[0][0].at(-1)).toEqual({
+      pageId: "child-mine",
+      name: "MyProcess",
+      decomposes: "mine",
+      order: 2,
+    });
+  });
+
+  it("keeps a page draw.io did not insert out of dfd.pages", async () => {
+    const { rerender, syncPages, savePages } = setup({
+      success: true,
+      created: [],
+      errors: ["page not inserted (diagram not editable?): Gateway"],
+    } as never);
+    rerender({ p: project(WITH_MP) });
+    await waitFor(() => expect(syncPages).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(savePages).not.toHaveBeenCalled(); // classic project stays classic
+  });
+
   it("does nothing while the plugin is not ready", async () => {
     const syncPages = vi.fn();
     const { rerender } = renderHook(

@@ -1219,9 +1219,10 @@ page selector in the preview panel (§12.1, D18).
     element / flow a finding names (findings without an element count on no page).
   - `leveled/page-tab-info`, pure: tooltip lines and badge (error count, else warning count) per
     page; texts through `t`.
-  - The injected plugin wraps `ui.createTabForPage`: a tab whose page has info gets the tooltip
-    (`title`) and a small badge; without info, or in a draw.io without that function, the tab
-    stays as it is. `drawio:setPageTabInfo` (info as JSON literal) stores the info and redraws
+  - The injected plugin decorates the tabs after every `ui.updateTabContainer` (all `.gePageTab`,
+    page by `data-index`): tooltip (`title`) and a small badge; without info the tab stays as it
+    is. (Fix after checking the draw.io source: the first version wrapped `createTabForPage`, but
+    draw.io caches tabs in `btPageTabCache` and resets a reused tab's title to the page name.) `drawio:setPageTabInfo` (info as JSON literal) stores the info and redraws
     the tabs (`updateTabContainer`). The DFD tab sends it whenever the outline or the findings
     change, once the plugin is ready (`pluginReady`, ~3 s after load). Electron only.
 - **5d ✅** child page per new multiprocess, tab names (§5.3, §12, D15–D17).
@@ -1229,14 +1230,23 @@ page selector in the preview panel (§12.1, D18).
     page yet) gets a page named like the MP with the page link on all its cells; the root is named
     *Top* from the second page on; a child page's name follows its MP (D16). A classic project
     gets its `dfd.pages` (root + child) only with its first child page.
-  - **Only new multiprocesses** (decided in 5d): those that exist when the DFD is opened get no
-    page — opening a classic project with multiprocesses must not level it. Such an MP gets its
-    page with "Decompose…" (5e). A new MP that looks like a copy of an existing one (same real
-    displayId) is left to the copy assignment (5b).
+  - **Classic projects: only new multiprocesses** — those that exist when a classic DFD is opened
+    get no page; opening a project with multiprocesses must not level it (such an MP gets its page
+    with "Decompose…", 5e). **Leveled projects: every multiprocess without a child page** gets one,
+    also right after opening (fix after first use: the first version applied the "only new" rule
+    to leveled projects too, so an MP that missed its page never got one). A new MP that looks like
+    a copy of an existing one (same real displayId) is left to the copy assignment (5b).
+  - Diagnosis: `useChildPages` logs every reason for doing nothing once (`[useChildPages] nothing
+    to do: …`) and every sync; the plugin logs the draw.io page API it finds (`[Plugin] page
+    API: …`), and a refused `syncPages` reports which functions are missing.
   - `drawio:syncPages` (spec as JSON literal) creates the pages (`createPage` / `insertPage`), sets
     the links (`setLinkForCell`, switching to the MP's page if needed) and renames
     (`RenamePage`), then shows the user's page again; idempotent; without the page API it
-    changes nothing and reports the failure.
+    changes nothing and reports the failure. API checked against the draw.io source
+    (`diagramly/Pages.js`): `createPage(name, id, node)`, `insertPage(page, index)` — a no-op
+    while the graph is not editable, so the script checks that the page exists afterwards and
+    only reports created pages —, `selectPage`, `RenamePage(ui, page, name)`,
+    `Graph.setLinkForCell`.
   - `useChildPages` after every save: draw.io first, then `dfd.pages` (before draw.io's autosave
     brings the page, so it arrives adopted). Guards: one sync at a time, one attempt per MP and
     per rename per session; when draw.io refuses, a classic project stays classic (no *Top*, no

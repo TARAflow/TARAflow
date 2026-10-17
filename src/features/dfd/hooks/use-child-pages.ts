@@ -48,8 +48,16 @@ export function useChildPages(
   const xml = project.dfd?.xml;
   const pages = project.dfd?.pages;
 
-  // Multiprocesses of the DFD as opened: they never get a page automatically.
+  // Multiprocesses of the DFD as opened: in a classic project they never get
+  // a page automatically (opening must not level it). Leveled: D15 for all.
   const knownRef = useRef<Set<string> | null>(null);
+  // Last reason for doing nothing, logged once per change (diagnosis).
+  const lastSkipRef = useRef<string | null>(null);
+  const skip = (reason: string) => {
+    if (lastSkipRef.current === reason) return;
+    lastSkipRef.current = reason;
+    console.info(`[useChildPages] nothing to do: ${reason}`);
+  };
   // Multiprocesses already handled in this session (page requested).
   const attemptedRef = useRef(new Set<string>());
   // Renames requested: pageId → name.
@@ -63,10 +71,14 @@ export function useChildPages(
     const xmlPageIds = new Set(xml ? inspectDrawioPages(xml).pageIds : []);
     setSettling([...createdPagesRef.current].some((id) => !xmlPageIds.has(id)));
 
-    if (!enabled || !xml || busyRef.current) return;
+    if (!enabled) return skip("draw.io plugin not ready (Electron only)");
+    if (!xml) return skip("no saved diagram yet");
+    if (busyRef.current) return;
     const layout = inspectDrawioPages(xml, pages?.map((p) => p.pageId));
-    if (!layout.supported) return; // adoption first (5b)
-    if (needsPageReview(xml, pages)) return; // repair first, or a page is on its way
+    if (!layout.supported) return skip("pages wait for adoption (5b)");
+    if (needsPageReview(xml, pages)) {
+      return skip("page tree needs a review (extra root or missing page) or a new page is on its way");
+    }
 
     const parse = dfdParser.parse(xml, pages);
     if (!knownRef.current) {
@@ -74,17 +86,28 @@ export function useChildPages(
         parse.elements.filter((e) => e.type === "Multiprocess").map((e) => e.id),
       );
     }
+    const leveled = !!pages && pages.length > 0;
     const plan = planPageSync({
       parse,
       pages,
-      knownMultiprocesses: new Set([...knownRef.current, ...attemptedRef.current]),
+      knownMultiprocesses: new Set([
+        ...(leveled ? [] : knownRef.current),
+        ...attemptedRef.current,
+      ]),
       newPageId: newPageIdRef.current,
     });
-    if (!plan) return;
+    if (!plan) return skip("pages up to date");
 
     const rename = plan.rename.filter((r) => renamedRef.current.get(r.pageId) !== r.name);
     const pagesChanged = JSON.stringify(plan.pages) !== JSON.stringify(pages ?? []);
-    if (plan.create.length === 0 && rename.length === 0 && !pagesChanged) return;
+    if (plan.create.length === 0 && rename.length === 0 && !pagesChanged) {
+      return skip("pages up to date (requests already sent)");
+    }
+    lastSkipRef.current = null;
+    console.info("[useChildPages] syncing pages:", {
+      create: plan.create.map((c) => `${c.name} (${c.decomposes})`),
+      rename: rename.map((r) => `${r.pageId} → ${r.name}`),
+    });
 
     busyRef.current = true;
     void (async () => {
@@ -95,10 +118,16 @@ export function useChildPages(
           for (const c of plan.create) attemptedRef.current.add(c.decomposes);
           const result = await syncPages({ create: plan.create, rename: [] });
           if (!result.success) {
-            console.warn("[useChildPages] draw.io could not create pages:", result.error);
+            console.warn("[useChildPages] draw.io could not create pages:", result.error, result);
             created = [];
-          } else if (result.errors?.length) {
-            console.warn("[useChildPages] draw.io page links:", result.errors);
+          } else {
+            // Only what draw.io reports as created (an insert can fail).
+            if (result.created) {
+              created = plan.create.filter((c) => result.created!.includes(c.pageId));
+            }
+            if (result.errors?.length) {
+              console.warn("[useChildPages] draw.io page sync:", result.errors);
+            }
           }
         }
         // A classic project only becomes leveled once a page really exists:
@@ -110,7 +139,7 @@ export function useChildPages(
           for (const r of rename) renamedRef.current.set(r.pageId, r.name);
           const result = await syncPages({ create: [], rename });
           if (!result.success) {
-            console.warn("[useChildPages] draw.io could not rename pages:", result.error);
+            console.warn("[useChildPages] draw.io could not rename pages:", result.error, result);
           }
         }
 

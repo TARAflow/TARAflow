@@ -120,36 +120,61 @@ export function registerDrawioHandlers() {
               }
             }, 100);
 
+            // Diagnosis for the leveled-DFD page features (5c, 5d).
+            console.log('[Plugin] page API:', JSON.stringify({
+              pages: ui.pages ? ui.pages.length : null,
+              createPage: typeof ui.createPage,
+              insertPage: typeof ui.insertPage,
+              selectPage: typeof ui.selectPage,
+              createTabForPage: typeof ui.createTabForPage,
+              updateTabContainer: typeof ui.updateTabContainer,
+              RenamePage: typeof RenamePage,
+              setLinkForCell: typeof ui.editor.graph.setLinkForCell
+            }));
+
             // Page tabs (leveled DFD 5c): TARAflow decorates draw.io's own
             // tab bar — a tooltip and a finding badge per page — instead of
             // a second page tree. The info is pushed by drawio:setPageTabInfo;
-            // without it, or in a draw.io without createTabForPage, the tabs
-            // stay as they are.
-            if (typeof ui.createTabForPage === 'function') {
-              var createTab = ui.createTabForPage;
-              ui.createTabForPage = function(page) {
-                var tab = createTab.apply(this, arguments);
-                try {
-                  var pageId = page && page.getId ? page.getId() : '';
-                  var info = (Draw._taraflowPageTabInfo || {})[pageId];
-                  if (tab && info) {
-                    tab.setAttribute('title', info.title);
-                    if (info.badge) {
-                      var badge = document.createElement('span');
-                      badge.textContent = String(info.badge.count);
-                      badge.setAttribute('data-taraflow-badge', info.badge.severity);
-                      badge.style.cssText =
-                        'display:inline-block;min-width:14px;padding:0 4px;margin-left:4px;' +
-                        'border-radius:7px;font-size:10px;line-height:14px;text-align:center;' +
-                        'color:#fff;background:' +
-                        (info.badge.severity === 'error' ? '#d32f2f' : '#ed6c02') + ';';
-                      tab.appendChild(badge);
-                    }
-                  }
-                } catch (e) {
+            // without it, or in a draw.io without updateTabContainer, the
+            // tabs stay as they are.
+            // draw.io caches page tabs (btPageTabCache) and resets a reused
+            // tab's title to the page name, so the decoration runs after
+            // every updateTabContainer over all tabs (data-index → page).
+            var decorateTabs = function() {
+              var info = Draw._taraflowPageTabInfo || {};
+              var container = ui.tabContainer;
+              if (!container || !ui.pages) return;
+              var tabs = container.querySelectorAll('.gePageTab');
+              for (var i = 0; i < tabs.length; i++) {
+                var tab = tabs[i];
+                var page = ui.pages[parseInt(tab.getAttribute('data-index'), 10)];
+                var old = tab.querySelector('[data-taraflow-badge]');
+                if (old) old.parentNode.removeChild(old);
+                var pageInfo = page && page.getId ? info[page.getId()] : null;
+                if (!pageInfo) continue;
+                tab.setAttribute('title', pageInfo.title);
+                if (pageInfo.badge) {
+                  var badge = document.createElement('span');
+                  badge.textContent = String(pageInfo.badge.count);
+                  badge.setAttribute('data-taraflow-badge', pageInfo.badge.severity);
+                  badge.style.cssText =
+                    'display:inline-block;min-width:14px;padding:0 4px;margin-left:4px;' +
+                    'border-radius:7px;font-size:10px;line-height:14px;text-align:center;' +
+                    'color:#fff;background:' +
+                    (pageInfo.badge.severity === 'error' ? '#d32f2f' : '#ed6c02') + ';';
+                  tab.appendChild(badge);
+                }
+              }
+            };
+            Draw._taraflowDecorateTabs = decorateTabs;
+            if (typeof ui.updateTabContainer === 'function') {
+              var updateTabs = ui.updateTabContainer;
+              ui.updateTabContainer = function() {
+                var result = updateTabs.apply(this, arguments);
+                try { decorateTabs(); } catch (e) {
                   console.warn('[Plugin] Page tab decoration failed:', e);
                 }
-                return tab;
+                return result;
               };
             }
 
@@ -328,6 +353,7 @@ export function registerDrawioHandlers() {
           Draw._taraflowPageTabInfo = ${infoJs};
           var ui = Draw._taraflowUi;
           if (ui && typeof ui.updateTabContainer === 'function') ui.updateTabContainer();
+          else if (Draw._taraflowDecorateTabs) Draw._taraflowDecorateTabs();
           return true;
         })()
       `);
@@ -354,7 +380,17 @@ export function registerDrawioHandlers() {
         var ui = Draw._taraflowUi;
         if (!ui || !ui.pages || typeof ui.createPage !== 'function' ||
             typeof ui.insertPage !== 'function' || typeof ui.selectPage !== 'function') {
-          return { success: false, error: 'draw.io page API not available' };
+          return {
+            success: false,
+            error: 'draw.io page API not available',
+            api: ui ? {
+              pages: ui.pages ? ui.pages.length : null,
+              createPage: typeof ui.createPage,
+              insertPage: typeof ui.insertPage,
+              selectPage: typeof ui.selectPage,
+              RenamePage: typeof RenamePage
+            } : 'no ui'
+          };
         }
         var find = function(id) {
           for (var i = 0; i < ui.pages.length; i++) {
@@ -372,7 +408,12 @@ export function registerDrawioHandlers() {
           (spec.create || []).forEach(function(c) {
             if (!find(c.pageId)) {
               var page = ui.createPage(c.name, c.pageId);
+              // insertPage does nothing while the graph is not editable.
               ui.insertPage(page, ui.pages.length);
+              if (!find(c.pageId)) {
+                errors.push('page not inserted (diagram not editable?): ' + c.name);
+                return;
+              }
               created.push(c.pageId);
             }
             (c.links || []).forEach(function(ref) {
