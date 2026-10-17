@@ -83,6 +83,7 @@ export {
 export {
   isAdoptionPending,
   needsPageReview,
+  needsPageRepair,
   misplacedPages,
   reviewAdoption,
   reviewCopyAssignments,

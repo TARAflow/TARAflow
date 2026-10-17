@@ -36,7 +36,7 @@ import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import { useIdentityReview } from "../hooks/use-identity-review";
 import { usePageOutline } from "../hooks/use-page-outline";
 import { useChildPages } from "../hooks/use-child-pages";
-import { buildPageTabInfo } from "../services/leveled";
+import { buildPageTabInfo, needsPageRepair } from "../services/leveled";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -67,12 +67,6 @@ import { refinementCandidatesOf } from "../utils/refinement-candidates";
 // ==================== CONSTANTS ====================
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
 const DRAWIO_BASE_URL = "https://embed.diagrams.net/?embed=1&spin=1&proto=json&plugins=1&configure=1&modified=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1";
-
-/** Page-tree findings the adoption dialog repairs (leveled DFD 5b). */
-const PAGE_REPAIR_KEYS = new Set([
-  "dfdValidation.leveled.PAGE_MULTIPLE_ROOTS",
-  "dfdValidation.leveled.PAGE_MISSING",
-]);
 
 // ==================== DFD TAB PROPS ====================
 
@@ -277,14 +271,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     setNoChildPage,
   });
 
-  // Adopted pages the tree cannot use — repaired with the same dialog. Not
-  // while a page just created is on its way into the saved XML.
-  const pageRepair =
-    !childPages.settling &&
-    [
-      ...(editor.validation?.errors ?? []),
-      ...(editor.validation?.warnings ?? []),
-    ].some((f) => PAGE_REPAIR_KEYS.has(f.key));
+  // Adopted pages the tree cannot use and that need a decision (extra or
+  // missing root page) — repaired with the same dialog. From the saved
+  // state, not from the validation: a deleted child page is cleaned up
+  // automatically and must not flash the hint until that save. Not while a
+  // page just created is on its way into the saved XML.
+  const pageRepair = useMemo(
+    () => !childPages.settling && needsPageRepair(project.dfd?.xml, project.dfd?.pages),
+    [childPages.settling, project.dfd?.xml, project.dfd?.pages],
+  );
 
   const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
     useDFDData(project);

@@ -1270,6 +1270,10 @@ page selector in the preview panel (§12.1, D18).
     `removePage` silently does nothing while the graph is not enabled — the script then executes
     the same undoable `ChangePage` directly, reports `graphEnabled` and the page counts if the page
     is still there, and the dialog stays open with the error instead of closing.
+  - The *Review pages…* hint (5b repair) only appears for what needs a decision — an extra or
+    a missing **root** page (`needsPageRepair`, from the saved state). A deleted child page is
+    cleaned up automatically (5d); deriving the hint from the validation made it flash for a few
+    seconds after every page deletion until that save.
   - **"Create child page"** in the details panel of a multiprocess without one — the "Decompose…"
     of §12 for multiprocesses the automatic rule leaves out (classic project, MP that existed at
     opening, `noChildPage`). Clears `noChildPage`; refused for an MP that already has a page.

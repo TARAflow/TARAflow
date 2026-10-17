@@ -10,6 +10,7 @@ import {
   confirmCopyAssignments,
   isAdoptionPending,
   misplacedPages,
+  needsPageRepair,
   needsPageReview,
   reviewAdoption,
   reviewCopyAssignments,
@@ -238,5 +239,28 @@ describe("page repair — the state a 'none' decomposition used to write", () =>
     const repaired = confirmAdoption(review, LEVELED_PAGES, {});
     if (!repaired.ok) throw new Error(repaired.reason);
     expect(repaired.pages.map((p) => p.pageId)).toEqual(["sys", "sen"]);
+  });
+});
+
+describe("needsPageRepair — the 'Review pages…' hint", () => {
+  it("is shown for an extra root page", () => {
+    const xml = mxfile(SYSTEM, SENSOR, CONTROLLER, page("p4", "Page-4", ""));
+    const pages: DFDPage[] = [...LEVELED_PAGES, { pageId: "p4", name: "Page-4", order: 3 }];
+    expect(needsPageRepair(xml, pages)).toBe(true);
+  });
+
+  it("is not shown for a deleted child page — that one is cleaned up automatically", () => {
+    // Reported with 5e: after "Delete page" the hint flashed for a few
+    // seconds until the entry left dfd.pages.
+    expect(needsPageRepair(mxfile(SYSTEM, SENSOR), LEVELED_PAGES)).toBe(false);
+  });
+
+  it("is shown for a missing root page", () => {
+    expect(needsPageRepair(mxfile(SENSOR, CONTROLLER), LEVELED_PAGES)).toBe(true);
+  });
+
+  it("is not shown for a healthy tree or a classic project", () => {
+    expect(needsPageRepair(XML, LEVELED_PAGES)).toBe(false);
+    expect(needsPageRepair(mxfile(SYSTEM), undefined)).toBe(false);
   });
 });

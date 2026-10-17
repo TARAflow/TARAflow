@@ -100,6 +100,23 @@ export function needsPageReview(
   return extraRoots.length > 0 || missing.length > 0;
 }
 
+/**
+ * The page tree needs the analyst's decision ("Review pages…" hint): an
+ * extra root page, or a missing ROOT page. A missing CHILD page needs none —
+ * a child page deleted in draw.io leaves dfd.pages automatically (5d), so a
+ * hint for it would only flash until that save.
+ */
+export function needsPageRepair(
+  xml: string | null | undefined,
+  pages: readonly DFDPage[] | undefined,
+): boolean {
+  const { extraRoots, missing } = misplacedPages(xml, pages);
+  const childPages = new Set(
+    (pages ?? []).filter((p) => p.decomposes !== undefined).map((p) => p.pageId),
+  );
+  return extraRoots.length > 0 || missing.some((pageId) => !childPages.has(pageId));
+}
+
 /** Adoption proposal for the current XML; undefined if nothing is pending. */
 export function reviewAdoption(
   xml: string | null | undefined,
