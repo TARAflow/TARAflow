@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -637,7 +637,7 @@ later. Global blocking would also hit every incremental modelling step.
 | `BAL_REFINES_INCOMPATIBLE` | warning | §6.4 rule 4; refinement not counted for balancing | – |
 | `BAL_ABSTRACT_WITHOUT_REFINEMENT` | warning | §6.4 | – |
 | `BAL_ASSET_NOT_REALISED` | warning | A pending asset relation on a decomposed MP is held by none of its descendants (§9) | – |
-| `ID_ADOPTION_PENDING` | warning | File contains pages whose occurrences have not been adopted yet (§11.2.1) | – |
+| `ID_ADOPTION_PENDING` | error (5b) | File contains pages whose occurrences have not been adopted yet (§11.2.1) | – |
 | `ID_PASTE_REASSIGNED` | info | A pasted definition received a fresh `tfId` (§5.2) and still shows another element's displayId (until the next renumber) | – |
 | `DFD_EE_TO_EE_FLOW` | info | Flow between two external entities (out of analysis scope) | `DF-39` |
 
@@ -1174,6 +1174,28 @@ page selector in the preview panel (§12.1, D18).
     never the XML, so they needed no change. `useIdLabelVisibility` is unused (no caller), left
     alone. Still cell-id / first-page based: the asset overlay (`dfd-overlay-builder`, first
     `<diagram>` only, §4) — with the page tree.
+- **5b ✅** adoption / assignment dialog (§11.2.1, §5.2 lifecycle, D8, D13) on top of the 1.5 logic.
+  - `leveled/identity-review`, pure: `reviewAdoption(xml, pages)` (only while pages are
+    unadopted), `reviewCopyAssignments(current, baseline)` (adopted DFDs only, and only if at
+    least one cell is proposed as a *copy* — a duplicate on the definition's own page alone is an
+    ordinary paste), `confirmAdoption` / `confirmCopyAssignments` → new `dfd.pages`.
+  - `ID_ADOPTION_PENDING` replaces the Phase 0 message "multi-page not supported" (en/de).
+    **Deviation from §7:** severity *error*, not warning — while it is pending the save is still
+    refused (the model is not derived from unadopted pages), so the finding does block.
+  - One dialog (`IdentityReviewDialog`), two entry points as hints above the diagram
+    (`IdentityReviewHints`): *Adopt pages…* while `ID_ADOPTION_PENDING` is reported, *Assign…*
+    after a save that brought pasted copies. Adoption: page table (decomposed MP per page, status
+    root / adopted / proposed / ambiguous / unplaced, candidates first), groups (merge on/off,
+    definition per group with the tie-break marked, label divergence and conflicts shown —
+    conflicts are never merged). Assignment: *context copy* / *new element* per cell, "all as
+    copies", "keep all as new".
+  - `useIdentityReview`: the adoption proposal is made for the current draw.io XML (storage
+    adapter, as `saveDFD`); the paste hint compares the saved state with a baseline that moves on
+    with every decision (apply or dismiss) and is taken when a classic project gets its pages, so
+    every pasted cell is asked about once and adopted copies are not asked about again.
+  - `savePages(pages)` (persistence / editor): immediate save of the current XML with the new
+    `dfd.pages`; the XML is not touched. The root page keeps its name; renaming it to *Top* (D17)
+    writes the XML and comes with the page tree.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

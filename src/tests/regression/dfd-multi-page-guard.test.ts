@@ -98,7 +98,7 @@ describe("DFD multi-page guard — save", () => {
     expect(result.unsupportedPageLayout?.pageCount).toBe(2);
     expect(result.error).toContain("2 pages");
     expect(result.validation.errors.map((f) => f.key)).toEqual([
-      ValidationMessages.MULTI_PAGE_NOT_SUPPORTED,
+      ValidationMessages.ADOPTION_PENDING,
     ]);
   });
 
@@ -155,7 +155,7 @@ describe("DFD multi-page guard — validation findings", () => {
     const findings = validatePageLayout(inspectDrawioPages(TWO_PAGES));
     expect(findings).toEqual([
       {
-        key: ValidationMessages.MULTI_PAGE_NOT_SUPPORTED,
+        key: ValidationMessages.ADOPTION_PENDING,
         params: { count: 2, pages: "Top, Gateway detail" },
       },
     ]);

@@ -80,3 +80,13 @@ export {
   type LeveledFindingsInput,
   type LeveledSeverity,
 } from "./leveled-findings";
+export {
+  isAdoptionPending,
+  reviewAdoption,
+  reviewCopyAssignments,
+  confirmAdoption,
+  confirmCopyAssignments,
+  type IdentityReview,
+  type AdoptionReview,
+  type AssignmentReview,
+} from "./identity-review";

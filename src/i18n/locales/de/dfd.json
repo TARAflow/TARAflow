@@ -2621,6 +2621,51 @@
           "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
         }
       },
+      "identityReview": {
+        "cancel": "Abbrechen",
+        "later": "Später",
+        "error": "Die Entscheidung konnte nicht übernommen werden ({{code}}).",
+        "adoption": {
+          "title": "Seiten übernehmen",
+          "intro": "Dieses Diagramm hat mehrere Seiten. Bestätigen Sie, welche Seite welchen Multiprozess detailliert und welche Zellen dasselbe Element zeigen. Gespeichert werden nur der Seitenbaum und die Identitätsverknüpfungen; die Zeichnung bleibt unverändert.",
+          "pages": "Seiten",
+          "page": "Seite",
+          "details": "Detailliert Multiprozess",
+          "root": "— oberste Ebene —",
+          "noDecomposition": "keinen (Seite bleibt außerhalb des Baums)",
+          "status": {
+            "root": "oberste Ebene",
+            "existing": "übernommen",
+            "proposed": "vorgeschlagen",
+            "ambiguous": "mehrdeutig — bitte wählen",
+            "unplaced": "kein Vorschlag — bitte wählen"
+          },
+          "groups": "Dasselbe Element auf mehreren Seiten",
+          "noGroups": "Keine Zelle erscheint auf mehr als einer Seite.",
+          "element": "Element",
+          "definition": "Definition auf",
+          "copies": "Kontextkopien auf",
+          "labelDivergence": "Beschriftungen unterschiedlich",
+          "conflict": "Konflikt — nicht zusammengeführt",
+          "tieBreak": "nach Seitenreihenfolge gewählt — bitte prüfen",
+          "apply": "Übernehmen",
+          "open": "Seiten übernehmen…",
+          "hint": "Dieses Diagramm hat Seiten, die noch nicht übernommen sind. Änderungen werden erst gespeichert, wenn Sie sie übernehmen."
+        },
+        "assignment": {
+          "title": "Eingefügte Zellen zuordnen",
+          "intro": "Diese Zellen wurden eingefügt und tragen die ID eines vorhandenen Elements. Eine Kontextkopie zeigt dieses Element (ein Element, ein Satz Bedrohungen); ein neues Element wird eigenständig analysiert und bekommt mit der nächsten Auto-Nummerierung eine eigene ID.",
+          "cell": "Eingefügte Zelle",
+          "target": "Sieht aus wie",
+          "copy": "Kontextkopie",
+          "new": "Neues Element",
+          "allCopies": "Alle als Kontextkopien",
+          "keepNew": "Alle als neu behalten",
+          "apply": "Übernehmen",
+          "open": "Zuordnen…",
+          "hint": "{{count}} eingefügte Zelle(n) sehen wie Kopien vorhandener Elemente aus."
+        }
+      },
       "notifications": {
         "title": "{{count}} Meldung(en)",
         "heuristic": "Heuristische Zuordnung — vor dem Anwenden prüfen",
@@ -2727,7 +2772,6 @@
       "custom": "Benutzerdefiniert"
     },
     "internalError": "Validierungsfehler: {{message}}",
-    "multiPageNotSupported": "Das Diagramm hat {{count}} Seiten; {{pages}} sind noch nicht in den Seitenbaum übernommen (die Übernahme bestehender mehrseitiger Dateien folgt in einer späteren Version). Bis dahin werden Änderungen nicht gespeichert und es können keine Bedrohungen generiert werden — entfernen Sie diese Seiten oder verwenden Sie ein Projekt mit übernommenen Seiten.",
     "compressedPageNotSupported": "Komprimierte Diagrammseite(n) können nicht gelesen werden ({{pages}}). Änderungen werden nicht gespeichert und es können keine Bedrohungen generiert werden, bis die Seite unkomprimiert gespeichert ist.",
     "leveled": {
       "PAGE_UNASSIGNED": "Seite \"{{page}}\" ist noch nicht Teil des Seitenbaums (nicht übernommen).",
@@ -2749,6 +2793,7 @@
       "BAL_HOME_NOT_HIGHEST": "{{element}} ist auf \"{{page}}\" definiert, erscheint aber auch auf der höheren Seite \"{{highest}}\"; die Definition sollte nach oben wandern.",
       "BAL_LABEL_DIVERGENCE": "Die Vorkommen von {{element}} tragen unterschiedliche Bezeichnungen: {{labels}}.",
       "BAL_MISSING_PARENT_FLOW": "Fluss {{flow}} kreuzt die Grenze von {{element}}, ist auf der Elternseite \"{{page}}\" aber nicht gezeichnet.",
+      "ID_ADOPTION_PENDING": "Das Diagramm hat {{count}} Seiten; {{pages}} sind noch nicht in den Seitenbaum übernommen. Bis Sie die Übernahme bestätigen (\"Seiten übernehmen…\" über dem Diagramm), werden Änderungen nicht gespeichert und es können keine Bedrohungen generiert werden.",
       "ID_PASTE_REASSIGNED": "{{element}} auf Seite \"{{page}}\" wurde eingefügt und ist jetzt ein eigenes Element; Auto-Nummerierung ausführen, damit es eine eigene ID bekommt.",
       "BAL_REFINES_TARGET_MISSING": "Fluss {{flow}} verfeinert \"{{target}}\", das nicht existiert; die Verfeinerung zählt nicht.",
       "BAL_REFINES_CYCLE": "Fluss {{flow}}: Die Verfeinerungen bilden einen Kreis ({{cycle}}); die Verfeinerung zählt nicht.",

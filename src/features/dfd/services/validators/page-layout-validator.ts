@@ -3,8 +3,8 @@
 // (leveled-dfd-multi-diagram-design.md §13).
 //
 // Turns an unsupported draw.io page layout (pages not adopted into the page
-// tree yet, or a compressed page) into validation errors for the DFD
-// notification panel. Adopted multi-page DFDs are supported (Phase 2c-2). The layout
+// tree yet — ID_ADOPTION_PENDING, resolved by the adoption dialog (5b) — or
+// a compressed page) into validation errors for the DFD notification panel. Adopted multi-page DFDs are supported (Phase 2c-2). The layout
 // itself is detected by the shared, pure inspectDrawioPages().
 
 import type { DrawioPageLayout } from "shared";
@@ -27,7 +27,7 @@ export function validatePageLayout(
 
   if (layout.unadoptedPageNames.length > 0) {
     findings.push({
-      key: ValidationMessages.MULTI_PAGE_NOT_SUPPORTED,
+      key: ValidationMessages.ADOPTION_PENDING,
       params: {
         count: layout.pageCount,
         pages: formatPageNames(layout.unadoptedPageNames),

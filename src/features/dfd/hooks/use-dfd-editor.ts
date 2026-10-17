@@ -5,6 +5,7 @@
 import type { A2AOp } from "shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  DFDPage,
   DFDProjectData,
   DFDUpdateResult,
   DFDElement,
@@ -78,6 +79,8 @@ export interface UseDFDEditorReturn {
 
   // Save operations
   save: () => Promise<DFDUpdateResult | null>;
+  /** Save with new dfd.pages (leveled DFD identity review, 5b). */
+  savePages: (pages: DFDPage[]) => Promise<DFDUpdateResult | null>;
 
   // Validation
   validate: () => ValidationResult;
@@ -545,6 +548,11 @@ export function useDFDEditor(
 
     // Save operations
     save,
+    savePages: async (pages: DFDPage[]) => {
+      const result = await persistence.savePages(pages);
+      if (result) validation.validate();
+      return result;
+    },
 
     // Validation
     validate: validation.validate,

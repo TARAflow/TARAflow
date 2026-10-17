@@ -3,7 +3,12 @@
 
 import type { A2AOp } from "shared";
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { DFDProjectData, DFDUpdateResult, DFDData } from "../models/dfd-types";
+import type {
+  DFDProjectData,
+  DFDUpdateResult,
+  DFDData,
+  DFDPage,
+} from "../models/dfd-types";
 import type { ValidationResult } from "../services/dfd-validator";
 import { createDFDStorageAdapter } from "../services/dfd-storage-adapter";
 import dfdService from "../services/dfd-service";
@@ -60,6 +65,12 @@ export interface UseDFDPersistenceReturn {
 
   // Actions
   save: (thumbnailData?: string) => Promise<DFDUpdateResult | null>;
+  /**
+   * Save with new dfd.pages (leveled DFD: adoption, copy assignment —
+   * identity links only, the XML is not touched). Immediate, like save():
+   * the model is re-derived from the current draw.io XML with these pages.
+   */
+  savePages: (pages: DFDPage[]) => Promise<DFDUpdateResult | null>;
   /**
    * Schedule a debounced save. `updater` receives the freshest known base —
    * the still-pending (not yet flushed) DFDData if one exists, otherwise the
@@ -230,6 +241,47 @@ export function useDFDPersistence(
       }
     },
     [project, emit, markClean],
+  );
+
+  const savePages = useCallback(
+    async (pages: DFDPage[]): Promise<DFDUpdateResult | null> => {
+      // Same base as scheduleSave: a pending edit must not be lost.
+      const base =
+        pendingSaveRef.current?.dfd ??
+        freshestOf(lastCommittedDfdRef.current, projectRef.current.dfd);
+      if (!base) {
+        console.warn("[useDFDPersistence] savePages: no dfd available — ignoring");
+        return null;
+      }
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      pendingSaveRef.current = null;
+
+      try {
+        const currentProject = { ...projectRef.current, dfd: { ...base, pages } };
+        createDFDStorageAdapter(currentProject.id).syncFromLegacy();
+        const result = dfdService.saveDFD(currentProject);
+        if (!result.success) {
+          console.error("[useDFDPersistence] savePages failed:", result.error);
+          return null;
+        }
+        const updateResult: DFDUpdateResult = {
+          dfd: result.dfd,
+          phaseStatus: result.phaseStatus,
+          lastModified: result.lastModified,
+        };
+        lastCommittedDfdRef.current = updateResult.dfd;
+        emit(updateResult);
+        markClean();
+        return updateResult;
+      } catch (error) {
+        console.error("[useDFDPersistence] savePages error:", error);
+        return null;
+      }
+    },
+    [emit, markClean],
   );
 
   /**
@@ -449,6 +501,7 @@ export function useDFDPersistence(
   return {
     isDirty,
     save,
+    savePages,
     scheduleSave,
     scheduleDrawioSave,
     queueA2AOps,

@@ -46,8 +46,12 @@ export const ValidationMessages = {
   ELEMENT_MISSING_PROPERTY: "tabs.dfd.validation.element.missingProperty",
   /** Unexpected exception during validation (caught in useDFDValidation) — not a structural finding. */
   INTERNAL_VALIDATION_ERROR: "dfdValidation.internalError",
-  /** More than one draw.io page — not supported before leveled-DFD Phase 1. */
-  MULTI_PAGE_NOT_SUPPORTED: "dfdValidation.multiPageNotSupported",
+  /**
+   * Several draw.io pages, not all adopted into dfd.pages (leveled DFD,
+   * ID_ADOPTION_PENDING, §11.2.1). The model is not derived until the
+   * analyst confirms the adoption dialog.
+   */
+  ADOPTION_PENDING: "dfdValidation.leveled.ID_ADOPTION_PENDING",
   /** A compressed draw.io page — the parsers cannot read it. */
   COMPRESSED_PAGE_NOT_SUPPORTED: "dfdValidation.compressedPageNotSupported",
 

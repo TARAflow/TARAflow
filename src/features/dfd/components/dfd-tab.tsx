@@ -33,6 +33,7 @@ import { useAssetAssignment } from "../hooks/use-asset-assignment";
 import { useDFDData } from "../hooks/use-dfd-data";
 import { useDFDPersistence } from "../hooks/use-dfd-persistence";
 import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
+import { useIdentityReview } from "../hooks/use-identity-review";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -43,6 +44,11 @@ import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
 import { DFDConfigDialog } from "./dfd-config-dialog";
+import {
+  IdentityReviewDialog,
+  IdentityReviewHints,
+} from "./identity-review-dialog";
+import { ValidationMessages } from "../services/validators/validator-utils";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
@@ -225,6 +231,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const assetAssignment = useAssetAssignment({
     iframeRef: editor.iframeRef,
+  });
+
+  // Leveled DFD (5b): adoption of unadopted pages and assignment of pasted
+  // copies — one dialog, two hints above the diagram.
+  const identityReview = useIdentityReview(project, {
+    adoptionPending: !!editor.validation?.errors.some(
+      (f) => f.key === ValidationMessages.ADOPTION_PENDING,
+    ),
+    savePages: editor.savePages,
   });
 
   const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
@@ -414,6 +429,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     {
       isDirty: editor.isDirty,
       save: editor.save,
+      savePages: editor.savePages,
       scheduleSave: () => {},
       scheduleDrawioSave: () => {},
       queueA2AOps: editor.queueA2AOps,
@@ -793,6 +809,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onSave={handleSave}
       />
 
+      <IdentityReviewHints
+        adoptionPending={identityReview.adoptionPending}
+        pendingCopies={identityReview.pendingCopies}
+        onOpenAdoption={identityReview.openAdoption}
+        onOpenAssignment={identityReview.openAssignment}
+      />
+
       {/* Main Content Container with Drawer */}
       <Box
         sx={{
@@ -957,6 +980,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onClose={() => setShowPreview(false)}
         previewImage={editor.previewImage}
         projectName={project.name}
+      />
+
+      {/* Leveled DFD: adoption / pasted-copy assignment (5b) */}
+      <IdentityReviewDialog
+        review={identityReview.review}
+        onClose={identityReview.close}
+        onApplyAdoption={identityReview.applyAdoption}
+        onApplyAssignment={identityReview.applyAssignment}
+        onDismissAssignment={identityReview.dismissAssignment}
       />
 
       {/* DFD Config Dialog */}
