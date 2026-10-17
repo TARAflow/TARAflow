@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1224,6 +1224,27 @@ page selector in the preview panel (§12.1, D18).
     stays as it is. `drawio:setPageTabInfo` (info as JSON literal) stores the info and redraws
     the tabs (`updateTabContainer`). The DFD tab sends it whenever the outline or the findings
     change, once the plugin is ready (`pluginReady`, ~3 s after load). Electron only.
+- **5d ✅** child page per new multiprocess, tab names (§5.3, §12, D15–D17).
+  - `leveled/child-pages`, pure: `planPageSync` — every **new** multiprocess (definition, no child
+    page yet) gets a page named like the MP with the page link on all its cells; the root is named
+    *Top* from the second page on; a child page's name follows its MP (D16). A classic project
+    gets its `dfd.pages` (root + child) only with its first child page.
+  - **Only new multiprocesses** (decided in 5d): those that exist when the DFD is opened get no
+    page — opening a classic project with multiprocesses must not level it. Such an MP gets its
+    page with "Decompose…" (5e). A new MP that looks like a copy of an existing one (same real
+    displayId) is left to the copy assignment (5b).
+  - `drawio:syncPages` (spec as JSON literal) creates the pages (`createPage` / `insertPage`), sets
+    the links (`setLinkForCell`, switching to the MP's page if needed) and renames
+    (`RenamePage`), then shows the user's page again; idempotent; without the page API it
+    changes nothing and reports the failure.
+  - `useChildPages` after every save: draw.io first, then `dfd.pages` (before draw.io's autosave
+    brings the page, so it arrives adopted). Guards: one sync at a time, one attempt per MP and
+    per rename per session; when draw.io refuses, a classic project stays classic (no *Top*, no
+    `dfd.pages`). `settling` hides the page-repair hint while the new page is on its way.
+  - Consequence of D17 for leveled projects saved before 5d: their root page is renamed to *Top*
+    when they are opened.
+  - Open (5e): asking on MP deletion whether to delete its page, "Decompose…" / "Sync context",
+    page links on copies drawn later.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

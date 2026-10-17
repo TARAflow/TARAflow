@@ -14,6 +14,22 @@ import type {
 import CORSCommunicator from "../services/cors-communicator";
 import LocalStorageModel from "../services/local-storage-model";
 import type { PageTabInfoMap } from "./leveled/page-tab-info";
+import type { ChildPageCreation, PageRename } from "./leveled/child-pages";
+
+/** What draw.io has to do for a page sync (planPageSync). */
+export interface DrawioPageSyncSpec {
+  create: readonly ChildPageCreation[];
+  rename: readonly PageRename[];
+}
+
+export interface DrawioPageSyncResult {
+  success: boolean;
+  error?: string;
+  /** pageIds actually created (an existing page is not created again). */
+  created?: string[];
+  /** Cells or pages that were not found for a link. */
+  errors?: string[];
+}
 import DrawioController from "../services/drawio-controller";
 
 /**
@@ -118,6 +134,17 @@ export class DrawioBridge implements IDrawioBridge {
         "*",
       );
     }
+  }
+
+  /**
+   * Create child pages, set page links, rename pages (leveled DFD 5d).
+   * Electron only; elsewhere nothing is done and `success` is false.
+   */
+  async syncPages(spec: DrawioPageSyncSpec): Promise<DrawioPageSyncResult> {
+    if (!this.isReady() || !window.electronAPI?.syncDrawioPages) {
+      return { success: false, error: "not available" };
+    }
+    return window.electronAPI.syncDrawioPages(spec as unknown as Record<string, unknown>);
   }
 
   /**

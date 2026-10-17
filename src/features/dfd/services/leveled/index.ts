@@ -102,3 +102,12 @@ export {
   type PageTabInfo,
   type PageTabInfoMap,
 } from "./page-tab-info";
+export {
+  planPageSync,
+  pageLink,
+  ROOT_PAGE_NAME,
+  type PageSyncPlan,
+  type PageSyncInput,
+  type ChildPageCreation,
+  type PageRename,
+} from "./child-pages";

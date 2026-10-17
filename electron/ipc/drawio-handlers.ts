@@ -338,6 +338,75 @@ export function registerDrawioHandlers() {
     },
   );
 
+  // Leveled DFD (5d, D15–D17): create child pages, set the page link on the
+  // multiprocess cells, rename pages. Planned by planPageSync in the
+  // renderer; the spec goes into the script as a JSON literal. Idempotent:
+  // an existing page is not created twice, a page with the wanted name is
+  // not renamed. The user's page is shown again afterwards.
+  ipcMain.handle("drawio:syncPages", async (_, spec: unknown) => {
+    if (!cachedDrawioFrame)
+      return { success: false, error: "No drawio frame cached" };
+    const specJs = JSON.stringify(spec ?? {});
+    try {
+      const result = await cachedDrawioFrame.executeJavaScript(`
+      (function() {
+        var spec = ${specJs};
+        var ui = Draw._taraflowUi;
+        if (!ui || !ui.pages || typeof ui.createPage !== 'function' ||
+            typeof ui.insertPage !== 'function' || typeof ui.selectPage !== 'function') {
+          return { success: false, error: 'draw.io page API not available' };
+        }
+        var find = function(id) {
+          for (var i = 0; i < ui.pages.length; i++) {
+            if (ui.pages[i].getId() === id) return ui.pages[i];
+          }
+          return null;
+        };
+        var show = function(page) {
+          if (page && ui.currentPage !== page) ui.selectPage(page);
+        };
+        var userPage = ui.currentPage;
+        var created = [];
+        var errors = [];
+        try {
+          (spec.create || []).forEach(function(c) {
+            if (!find(c.pageId)) {
+              var page = ui.createPage(c.name, c.pageId);
+              ui.insertPage(page, ui.pages.length);
+              created.push(c.pageId);
+            }
+            (c.links || []).forEach(function(ref) {
+              var host = find(ref.pageId);
+              if (!host) { errors.push('page not found: ' + ref.pageId); return; }
+              show(host);
+              var graph = ui.editor.graph;
+              var cell = graph.model.getCell(ref.cellId);
+              if (!cell) { errors.push('cell not found: ' + ref.cellId); return; }
+              graph.setLinkForCell(cell, 'data:page/id,' + c.pageId);
+            });
+          });
+          (spec.rename || []).forEach(function(r) {
+            var page = find(r.pageId);
+            if (!page || page.getName() === r.name) return;
+            if (typeof RenamePage === 'function') {
+              ui.editor.graph.model.execute(new RenamePage(ui, page, r.name));
+            } else {
+              page.setName(r.name);
+              if (typeof ui.updateTabContainer === 'function') ui.updateTabContainer();
+            }
+          });
+        } finally {
+          if (userPage && find(userPage.getId())) show(userPage);
+        }
+        return { success: true, created: created, errors: errors };
+      })()
+    `);
+      return result ?? { success: false, error: "No result" };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  });
+
   ipcMain.handle("drawio:getScroll", async () => {
     if (!cachedDrawioFrame) return { scrollLeft: 0, scrollTop: 0 };
     try {

@@ -34,6 +34,10 @@ import { useDFDExportImport } from "./use-dfd-export-import";
 import { useDFDCompletion } from "./use-dfd-completion";
 import { useCellIdentity } from "./use-cell-identity";
 import type { PageTabInfoMap } from "../services/leveled/page-tab-info";
+import type {
+  DrawioPageSyncResult,
+  DrawioPageSyncSpec,
+} from "../services/drawio-bridge";
 
 import { DFDGraph } from "../models/dfd-graph-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
@@ -102,6 +106,8 @@ export interface UseDFDEditorReturn {
   pluginReady: boolean;
   /** Tooltip and finding badge per draw.io page tab (leveled DFD 5c). */
   setPageTabInfo: (info: PageTabInfoMap) => Promise<void>;
+  /** Child pages, page links, page names in draw.io (leveled DFD 5d). */
+  syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
@@ -372,6 +378,18 @@ export function useDFDEditor(
   // without closing over a stale bridge instance.
   bridgeRef.current = bridge;
 
+  // Stable: the child-page sync (5d) runs an effect on it.
+  const persistenceSavePages = persistence.savePages;
+  const validate = validation.validate;
+  const savePages = useCallback(
+    async (pages: DFDPage[]) => {
+      const result = await persistenceSavePages(pages);
+      if (result) validate();
+      return result;
+    },
+    [persistenceSavePages, validate],
+  );
+
   const bridgeSelectCell = bridge.selectCell;
   const selectCell = useCallback(
     async (tfId: string): Promise<void> => {
@@ -553,11 +571,7 @@ export function useDFDEditor(
 
     // Save operations
     save,
-    savePages: async (pages: DFDPage[]) => {
-      const result = await persistence.savePages(pages);
-      if (result) validation.validate();
-      return result;
-    },
+    savePages,
 
     // Validation
     validate: validation.validate,
@@ -571,6 +585,7 @@ export function useDFDEditor(
     selectCell,
     pluginReady: bridge.pluginReady,
     setPageTabInfo: bridge.setPageTabInfo,
+    syncPages: bridge.syncPages,
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,

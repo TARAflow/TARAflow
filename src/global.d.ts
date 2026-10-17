@@ -103,6 +103,12 @@ declare global {
         cellId: string,
         pageId?: string | null,
       ) => Promise<{ success: boolean; error?: string }>;
+      syncDrawioPages?: (spec: Record<string, unknown>) => Promise<{
+        success: boolean;
+        error?: string;
+        created?: string[];
+        errors?: string[];
+      }>;
       setDrawioPageTabInfo?: (
         info: Record<string, unknown>,
       ) => Promise<{ success: boolean; error?: string }>;

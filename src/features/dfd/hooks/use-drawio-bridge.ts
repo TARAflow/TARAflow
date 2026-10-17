@@ -4,7 +4,11 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { DFDProjectData } from "../models/dfd-types";
-import { DrawioBridge } from "../services/drawio-bridge";
+import {
+  DrawioBridge,
+  type DrawioPageSyncResult,
+  type DrawioPageSyncSpec,
+} from "../services/drawio-bridge";
 import type {
   DrawioViewport,
   DrawioExportResult,
@@ -48,6 +52,8 @@ export interface UseDrawioBridgeReturn {
   pluginReady: boolean;
   /** Tooltip and finding badge per page tab (leveled DFD 5c). */
   setPageTabInfo: (info: PageTabInfoMap) => Promise<void>;
+  /** Child pages, page links, page names in draw.io (leveled DFD 5d). */
+  syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
@@ -338,6 +344,14 @@ export function useDrawioBridge(
     await bridgeRef.current.setPageTabInfo(info);
   }, []);
 
+  const syncPages = useCallback(
+    async (spec: DrawioPageSyncSpec): Promise<DrawioPageSyncResult> => {
+      if (!bridgeRef.current) return { success: false, error: "no bridge" };
+      return bridgeRef.current.syncPages(spec);
+    },
+    [],
+  );
+
 
   const onImageReady = useCallback((handler: (imageData: string) => void) => {
     imageHandlerRef.current = handler;
@@ -404,6 +418,7 @@ export function useDrawioBridge(
     selectCell,
     pluginReady,
     setPageTabInfo,
+    syncPages,
     onImageReady,
     loadXMLTransient,
   };

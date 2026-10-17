@@ -35,6 +35,7 @@ import { useDFDPersistence } from "../hooks/use-dfd-persistence";
 import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import { useIdentityReview } from "../hooks/use-identity-review";
 import { usePageOutline } from "../hooks/use-page-outline";
+import { useChildPages } from "../hooks/use-child-pages";
 import { buildPageTabInfo } from "../services/leveled";
 
 // Components
@@ -253,11 +254,21 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // page tree) and a finding badge — no second page tree next to them.
   const pageOutline = usePageOutline(project.dfd, editor.validation);
 
-  // Adopted pages the tree cannot use — repaired with the same dialog.
-  const pageRepair = [
-    ...(editor.validation?.errors ?? []),
-    ...(editor.validation?.warnings ?? []),
-  ].some((f) => PAGE_REPAIR_KEYS.has(f.key));
+  // Leveled DFD (5d, D15–D17): child page per new multiprocess, tab names.
+  const childPages = useChildPages(project, {
+    enabled: editor.pluginReady,
+    syncPages: editor.syncPages,
+    savePages: editor.savePages,
+  });
+
+  // Adopted pages the tree cannot use — repaired with the same dialog. Not
+  // while a page just created is on its way into the saved XML.
+  const pageRepair =
+    !childPages.settling &&
+    [
+      ...(editor.validation?.errors ?? []),
+      ...(editor.validation?.warnings ?? []),
+    ].some((f) => PAGE_REPAIR_KEYS.has(f.key));
 
   const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
     useDFDData(project);
@@ -444,6 +455,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       selectCell: async () => {},
       pluginReady: false,
       setPageTabInfo: async () => {},
+      syncPages: async () => ({ success: false }),
     },
     {
       isDirty: editor.isDirty,
