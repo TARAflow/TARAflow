@@ -38,6 +38,7 @@ import { usePageOutline } from "../hooks/use-page-outline";
 import { useChildPages } from "../hooks/use-child-pages";
 import {
   buildPageTabInfo,
+  contextCellsOf,
   describeIdentity,
   linkAsContextCopy,
   makeDefinition,
@@ -281,14 +282,12 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     return dfdParser.parse(xml, pages);
   }, [project.dfd?.xml, project.dfd?.pages]);
 
-  // Context copies are shown faded and dashed in draw.io (display only).
-  const contextCells = useMemo(() => {
-    const byPage: ContextCellMap = {};
-    for (const o of leveledParse?.occurrences ?? []) {
-      if (o.role === "ref") (byPage[o.pageId] ??= {})[o.cellId] = true;
-    }
-    return byPage;
-  }, [leveledParse]);
+  // Context copies are shown faded and dashed in draw.io (display only) —
+  // also a copied flow whose free end is not attached yet (link only).
+  const contextCells = useMemo<ContextCellMap>(
+    () => (leveledParse ? contextCellsOf(leveledParse.occurrences, project.dfd?.pages) : {}),
+    [leveledParse, project.dfd?.pages],
+  );
   const { setContextCells } = editor;
   useEffect(() => {
     if (editor.pluginReady) void setContextCells(contextCells);

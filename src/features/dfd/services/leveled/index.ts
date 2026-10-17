@@ -124,6 +124,7 @@ export {
 } from "./context-copies";
 export {
   describeIdentity,
+  contextCellsOf,
   type IdentityInfo,
   type OccurrenceInfo,
 } from "./identity-info";

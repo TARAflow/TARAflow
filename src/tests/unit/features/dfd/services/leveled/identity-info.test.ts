@@ -2,7 +2,7 @@
 // details panel offers (design §5.2, §12).
 import { describe, it, expect } from "vitest";
 import { dfdParser } from "features/dfd/services/dfd-parser";
-import { describeIdentity } from "features/dfd/services/leveled";
+import { contextCellsOf, describeIdentity } from "features/dfd/services/leveled";
 import type { DFDPage } from "features/dfd/models/dfd-types";
 import {
   CONTROLLER,
@@ -73,5 +73,36 @@ describe("describeIdentity", () => {
 
   it("is undefined for a cell that is no element or flow", () => {
     expect(describe_(XML, LEVELED_PAGES, "sys", "nope")).toBeUndefined();
+  });
+});
+
+describe("contextCellsOf", () => {
+  it("lists the context copies per page", () => {
+    const { occurrences } = dfdParser.parse(XML, LEVELED_PAGES);
+    expect(contextCellsOf(occurrences, LEVELED_PAGES)).toEqual({
+      sen: { sen_mp2: true, sen_df7: true },
+      ctl: { ctl_mp1: true, ctl_df7: true },
+    });
+  });
+
+  it("includes a linked flow with a free end, which is no occurrence", () => {
+    // Reported with 5g: the copied flow to the Debugger was not faded.
+    const pages: DFDPage[] = LEVELED_PAGES.map((p) =>
+      p.pageId === "sen"
+        ? { ...p, links: [...(p.links ?? []), { cellId: "sen_loose", tfId: "df8", role: "ref" }] }
+        : p,
+    );
+    const { occurrences } = dfdParser.parse(XML, pages);
+    expect(occurrences.some((o) => o.cellId === "sen_loose")).toBe(false);
+    expect(contextCellsOf(occurrences, pages).sen).toEqual({
+      sen_mp2: true,
+      sen_df7: true,
+      sen_loose: true,
+    });
+  });
+
+  it("is empty for a classic project", () => {
+    const xml = mxfile(page("p1", "Page-1", node("a", "process", "A", "P-1", 10)));
+    expect(contextCellsOf(dfdParser.parse(xml).occurrences, undefined)).toEqual({});
   });
 });

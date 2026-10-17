@@ -110,3 +110,24 @@ export function describeIdentity(
     contextCopyCandidates,
   };
 }
+
+/**
+ * The context copies per page, for their faded display (5g): every "ref"
+ * occurrence, plus every cell with a "ref" link — a copied flow whose free
+ * end is not attached yet is no occurrence for the parser, but it is a
+ * context copy all the same.
+ */
+export function contextCellsOf(
+  occurrences: readonly { pageId: string; cellId: string; role: "definition" | "ref" }[],
+  pages: readonly DFDPage[] | undefined,
+): Record<string, Record<string, true>> {
+  const byPage: Record<string, Record<string, true>> = {};
+  const add = (pageId: string, cellId: string) => {
+    (byPage[pageId] ??= {})[cellId] = true;
+  };
+  for (const o of occurrences) if (o.role === "ref") add(o.pageId, o.cellId);
+  for (const page of pages ?? []) {
+    for (const link of page.links ?? []) if (link.role === "ref") add(page.pageId, link.cellId);
+  }
+  return byPage;
+}

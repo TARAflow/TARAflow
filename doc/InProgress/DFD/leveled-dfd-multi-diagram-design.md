@@ -1320,7 +1320,9 @@ page selector in the preview panel (§12.1, D18).
   - **Display:** context copies are shown faded and dashed (opacity, dashed stroke), with their ID
     label. In the display only — the plugin wraps `graph.getCellStyle`; the XML style is not
     touched (§5.2: plain draw.io, no diff noise). The DFD tab pushes the copy cells per page
-    (`drawio:setContextCells`, JSON literal) after every save.
+    (`drawio:setContextCells`, JSON literal) after every save — `contextCellsOf`: every `ref`
+    occurrence plus every cell with a `ref` link (fix after first use: a copied flow with a free
+    end is no occurrence for the parser and was not faded).
   - `leveled/identity-info`, pure: `describeIdentity(parse, pages, cell)` — role of the selected
     cell, definition, all occurrences, and which actions apply.
   - Details panel, section *Identity* (leveled DFDs): *Context copy* / *Definition*; for a copy its
