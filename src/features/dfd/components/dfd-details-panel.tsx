@@ -24,6 +24,7 @@ import type { AssetUsageLookup } from "shared";
 import { AssetPanel } from "./dfd-asset-panel";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
+import { ChildPageSection, type ChildPageInfo } from "./child-page-ui";
 
 // ==================== PROPS ====================
 
@@ -76,6 +77,8 @@ interface DFDDetailsPanelProps {
   onSelectedAssetChange?: (assetId: string | null) => void;
   /** Leveled DFD: flows a data flow may refine (§6.4); absent = single page. */
   refinementCandidates?: RefinementCandidate[];
+  /** Leveled DFD (5e): child page of the selected multiprocess. */
+  childPage?: ChildPageInfo;
 }
 
 // ==================== COMPONENT ====================
@@ -104,6 +107,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   assetUsage,
   onSelectedAssetChange,
   refinementCandidates,
+  childPage,
 }) => {
   const { t } = useTranslation();
 
@@ -306,6 +310,9 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
             {/* Element tab */}
             {activeTab === "element" && hasSelection && (
               <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+                {childPage && element?.type === "Multiprocess" && (
+                  <ChildPageSection info={childPage} />
+                )}
                 <DFDElementForm
                   element={element}
                   connection={connection}

@@ -2641,6 +2641,17 @@
         "notPlaced": "Not in the page tree",
         "findings": "{{errors}} error(s), {{warnings}} warning(s)"
       },
+      "childPages": {
+        "orphan": {
+          "title": "Delete the child page too?",
+          "text": "The multiprocess detailed on page \"{{page}}\" was deleted. Delete the page as well? Its contents are deleted with it (undo in draw.io).",
+          "keep": "Keep page",
+          "delete": "Delete page"
+        },
+        "detailedOn": "Detailed on page \"{{page}}\" — double-click the multiprocess to open it.",
+        "create": "Create child page",
+        "none": "No child page — the multiprocess is analysed as a whole."
+      },
       "identityReview": {
         "cancel": "Cancel",
         "later": "Later",

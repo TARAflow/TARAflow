@@ -2,7 +2,7 @@
 // (design §5.3, §12, D15–D17).
 import { describe, it, expect } from "vitest";
 import { dfdParser } from "features/dfd/services/dfd-parser";
-import { planPageSync, ROOT_PAGE_NAME } from "features/dfd/services/leveled";
+import { planPageSync, readCellLinks, ROOT_PAGE_NAME } from "features/dfd/services/leveled";
 import type { DFDPage } from "features/dfd/models/dfd-types";
 import {
   CONTROLLER,
@@ -133,3 +133,55 @@ describe("planPageSync — leveled project", () => {
     expect(plan(mxfile(top, SENSOR, ctl), LEVELED_PAGES, ["mp1", "mp2"])?.create ?? []).toEqual([]);
   });
 });
+
+describe("planPageSync — 5e: page links and orphan pages", () => {
+  const withLink = (xml: string, cellId: string, target: string) =>
+    xml.replace(`id="${cellId}">`, `id="${cellId}" link="data:page/id,${target}">`);
+  const top = SYSTEM.replace('name="System"', 'name="Top"');
+  const pages = LEVELED_PAGES.map((p) => (p.pageId === "sys" ? { ...p, name: "Top" } : p));
+
+  it("reads the link attributes per page and cell", () => {
+    const xml = mxfile(withLink(top, "mp1", "sen"), SENSOR, CONTROLLER);
+    expect([...readCellLinks(xml)]).toEqual([["sys\u0000mp1", "data:page/id,sen"]]);
+  });
+
+  it("asks for the page link on every occurrence that lacks it", () => {
+    const xml = mxfile(withLink(top, "mp1", "sen"), SENSOR, CONTROLLER);
+    const plan = planPageSync({
+      parse: dfdParser.parse(xml, pages),
+      pages,
+      knownMultiprocesses: new Set(["mp1", "mp2"]),
+      newPageId: ids(),
+      cellLinks: readCellLinks(xml),
+    })!;
+    // mp1 on Top is linked; its copy on the controller page and both
+    // occurrences of mp2 are not.
+    expect(plan.link).toEqual([
+      { pageId: "ctl", cellId: "ctl_mp1", target: "sen" },
+      { pageId: "sys", cellId: "mp2", target: "ctl" },
+      { pageId: "sen", cellId: "sen_mp2", target: "ctl" },
+    ]);
+  });
+
+  it("reports a child page whose multiprocess was deleted", () => {
+    // MP-2 and its copy deleted; the controller page is still there.
+    const sys = page(
+      "sys",
+      "Top",
+      node("mp1", "multiprocess", "Sensor Module", "MP-1", 10),
+    );
+    const sen = page("sen", "Sensor Module", node("sen_p2", "process", "Sample Smoke Sensor", "P-2", 10));
+    const ctl = page("ctl", "Controller Module", node("ctl_p5", "process", "Evaluate Alarm", "P-5", 300));
+    const plan = plan_(mxfile(sys, sen, ctl), pages);
+    expect(plan?.orphans).toEqual([{ pageId: "ctl", name: "Controller Module", decomposes: "mp2" }]);
+  });
+});
+
+function plan_(xml: string, pages: DFDPage[]) {
+  return planPageSync({
+    parse: dfdParser.parse(xml, pages),
+    pages,
+    knownMultiprocesses: new Set(["mp1", "mp2"]),
+    newPageId: ids(),
+  });
+}

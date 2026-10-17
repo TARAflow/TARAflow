@@ -18,6 +18,7 @@ import type { ParseResult } from "../dfd-parser";
 import { computeHomePages } from "./home-pages";
 import type { CellRef } from "./identity-links";
 import { recordInfos, recordKey, signatureOf } from "./signatures";
+import { readDrawioPages } from "../parsers/page-reader";
 
 export const ROOT_PAGE_NAME = "Top";
 
@@ -35,11 +36,29 @@ export interface PageRename {
   name: string;
 }
 
+/** A cell of a decomposed multiprocess whose page link is missing or wrong. */
+export interface PageLinkFix extends CellRef {
+  /** pageId the link has to open. */
+  target: string;
+}
+
+/** A child page whose multiprocess no longer exists (5e: ask to delete it). */
+export interface OrphanPage {
+  pageId: string;
+  name: string;
+  /** tfId of the deleted multiprocess. */
+  decomposes: string;
+}
+
 export interface PageSyncPlan {
   /** dfd.pages after the sync. */
   pages: DFDPage[];
   create: ChildPageCreation[];
   rename: PageRename[];
+  /** Page links for occurrences drawn after the page was created (5e). */
+  link: PageLinkFix[];
+  /** Child pages whose multiprocess was deleted — the analyst decides. */
+  orphans: OrphanPage[];
 }
 
 export interface PageSyncInput {
@@ -52,6 +71,26 @@ export interface PageSyncInput {
    */
   knownMultiprocesses: ReadonlySet<string>;
   newPageId: () => string;
+  /**
+   * Current `link` attribute per cell ("pageId\u0000cellId", readCellLinks).
+   * Absent: no link check.
+   */
+  cellLinks?: ReadonlyMap<string, string>;
+}
+
+const cellKey = (c: CellRef) => `${c.pageId}\u0000${c.cellId}`;
+
+/** `link` attributes of the cells of every page, keyed by page and cell. */
+export function readCellLinks(xml: string): Map<string, string> {
+  const links = new Map<string, string>();
+  for (const page of readDrawioPages(xml)) {
+    for (const node of Array.from(page.doc.getElementsByTagName("*"))) {
+      const link = node.getAttribute("link");
+      const id = node.getAttribute("id");
+      if (link && id) links.set(cellKey({ pageId: page.pageId, cellId: id }), link);
+    }
+  }
+  return links;
 }
 
 /** draw.io page link to a page (double-click / Ctrl-click opens it). */
@@ -134,12 +173,41 @@ export function planPageSync(input: PageSyncInput): PageSyncPlan | undefined {
     return p.name === wanted ? p : { ...p, name: wanted };
   });
 
+  // Page links on every occurrence of a decomposed multiprocess — also on
+  // copies drawn after the page was created (§12: double-click opens the
+  // child page on its copies too). New pages get theirs with `create`.
+  const link: PageLinkFix[] = [];
+  if (input.cellLinks) {
+    for (const p of input.pages ?? []) {
+      if (!p.decomposes || !xmlName.has(p.pageId)) continue;
+      for (const cell of occurrencesOf(p.decomposes)) {
+        if (input.cellLinks.get(cellKey(cell)) !== pageLink(p.pageId)) {
+          link.push({ ...cell, target: p.pageId });
+        }
+      }
+    }
+  }
+
+  // Child pages whose multiprocess is gone (a dangling MP keeps its record
+  // from its copies and is not an orphan).
+  const orphans: OrphanPage[] = (input.pages ?? [])
+    .filter((p) => p.decomposes && xmlName.has(p.pageId) && !byId.has(p.decomposes))
+    .map((p) => ({ pageId: p.pageId, name: xmlName.get(p.pageId) ?? p.name, decomposes: p.decomposes! }));
+
   const pagesChanged =
     create.length > 0 ||
     !input.pages ||
     pages.some((p, i) => p !== input.pages![i]);
-  if (create.length === 0 && rename.length === 0 && !pagesChanged) return undefined;
-  return { pages, create, rename };
+  if (
+    create.length === 0 &&
+    rename.length === 0 &&
+    link.length === 0 &&
+    orphans.length === 0 &&
+    !pagesChanged
+  ) {
+    return undefined;
+  }
+  return { pages, create, rename, link, orphans };
 }
 
 function pageNameOf(mp: { name?: string; displayId?: string; id: string }): string {

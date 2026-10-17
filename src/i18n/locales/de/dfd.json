@@ -2628,6 +2628,17 @@
         "notPlaced": "Nicht im Seitenbaum",
         "findings": "{{errors}} Fehler, {{warnings}} Warnung(en)"
       },
+      "childPages": {
+        "orphan": {
+          "title": "Unterseite auch löschen?",
+          "text": "Der Multiprozess, den die Seite \"{{page}}\" detailliert, wurde gelöscht. Soll die Seite ebenfalls gelöscht werden? Ihr Inhalt wird mit gelöscht (rückgängig in draw.io).",
+          "keep": "Seite behalten",
+          "delete": "Seite löschen"
+        },
+        "detailedOn": "Detailliert auf Seite \"{{page}}\" — Doppelklick auf den Multiprozess öffnet sie.",
+        "create": "Unterseite anlegen",
+        "none": "Keine Unterseite — der Multiprozess wird als Ganzes analysiert."
+      },
       "identityReview": {
         "cancel": "Abbrechen",
         "later": "Später",

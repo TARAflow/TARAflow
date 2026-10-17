@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1260,9 +1260,22 @@ page selector in the preview panel (§12.1, D18).
     (fix: the first version kept a deleted page "settling" for ever, which hid the repair hint).
   - Consequence of D17 for leveled projects saved before 5d: their root page is renamed to *Top*
     when they are opened.
-  - Open (5e): asking on MP deletion whether to delete its page (today the page stays and
-    reports `PAGE_DECOMPOSES_UNKNOWN` until it is deleted in draw.io), "Decompose…" / "Sync context",
-    page links on copies drawn later.
+  - Open after 5d: see 5e.
+- **5e ✅** child page actions (§5.2 "Delete a page", §12).
+  - **Deleted multiprocess:** `planPageSync` reports child pages whose multiprocess is gone
+    (`orphans`; a dangling MP keeps its record from its copies and is no orphan). The DFD tab asks
+    once per page and session: *Delete page* (`drawio:syncPages` `remove`, draw.io `removePage`;
+    the entry then leaves `dfd.pages` like any page deleted in draw.io) or *Keep page* (it reports
+    `PAGE_DECOMPOSES_UNKNOWN` until it is deleted or the MP is drawn again).
+  - **"Create child page"** in the details panel of a multiprocess without one — the "Decompose…"
+    of §12 for multiprocesses the automatic rule leaves out (classic project, MP that existed at
+    opening, `noChildPage`). Clears `noChildPage`; refused for an MP that already has a page.
+    The panel names the child page of a decomposed MP. Electron only (draw.io plugin).
+  - **Page links on later copies:** `planPageSync` compares the `link` attribute of every
+    occurrence of a decomposed MP (`readCellLinks`) with its page link and has draw.io set the
+    missing ones (`link`), once per cell and target per session.
+  - Not done, moved to **5f**: pre-populating a new child page with context copies (flow
+    neighbours, flows at the MP's border, containing boundaries) and "Sync context" (§12).
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

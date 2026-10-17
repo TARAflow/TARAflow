@@ -52,6 +52,7 @@ import {
   IdentityReviewHints,
 } from "./identity-review-dialog";
 import { ValidationMessages } from "../services/validators/validator-utils";
+import { OrphanPageDialog } from "./child-page-ui";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
@@ -257,14 +258,14 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // Leveled DFD (5d, D15–D17): child page per new multiprocess, tab names.
   const { updateElementDescription } = editor;
   const projectElements = project.dfd?.elements;
-  const markNoChildPage = useCallback(
-    (tfId: string) => {
+  const setNoChildPage = useCallback(
+    (tfId: string, noChildPage: boolean) => {
       const mp = projectElements?.find((e) => e.id === tfId);
       if (!mp) return;
       updateElementDescription(tfId, {
         // MultiprocessProperties.noChildPage; the element's union type has
         // no multiprocess member of its own.
-        properties: { ...mp.properties, noChildPage: true } as unknown as typeof mp.properties,
+        properties: { ...mp.properties, noChildPage } as unknown as typeof mp.properties,
       });
     },
     [projectElements, updateElementDescription],
@@ -273,7 +274,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     enabled: editor.pluginReady,
     syncPages: editor.syncPages,
     savePages: editor.savePages,
-    markNoChildPage,
+    setNoChildPage,
   });
 
   // Adopted pages the tree cannot use — repaired with the same dialog. Not
@@ -700,6 +701,17 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     ? editor.elements.find((e) => e.id === selectedElementId)
     : undefined;
 
+  // Leveled DFD (5e): child page of the selected multiprocess, or the
+  // "Create child page" action (draw.io plugin only).
+  const selectedChildPage = useMemo(() => {
+    if (selectedElement?.type !== "Multiprocess") return undefined;
+    const page = project.dfd?.pages?.find((p) => p.decomposes === selectedElement.id);
+    if (page) return { pageName: page.name };
+    const decompose = childPages.decompose;
+    const mpId = selectedElement.id;
+    return editor.pluginReady ? { onCreate: () => void decompose(mpId) } : {};
+  }, [selectedElement, project.dfd?.pages, childPages.decompose, editor.pluginReady]);
+
   const selectedConnection = selectedElementId
     ? editor.connections.find((c) => c.id === selectedElementId)
     : undefined;
@@ -1012,6 +1024,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onAssetChange={handleAssetChange}
             graphContext={graphContext}
             refinementCandidates={refinementCandidates}
+            childPage={selectedChildPage}
             focusAssetRequest={focusAssetRequest}
             assetUsage={assetUsage}
             onSelectedAssetChange={setPanelAssetId}
@@ -1037,6 +1050,12 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onClose={() => setShowPreview(false)}
         previewImage={editor.previewImage}
         projectName={project.name}
+      />
+
+      {/* Leveled DFD: delete the child page of a deleted multiprocess? (5e) */}
+      <OrphanPageDialog
+        orphans={childPages.orphanPages}
+        onResolve={(pageId, remove) => void childPages.resolveOrphan(pageId, remove)}
       />
 
       {/* Leveled DFD: adoption / pasted-copy assignment (5b) */}

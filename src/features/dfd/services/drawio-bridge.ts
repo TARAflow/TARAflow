@@ -14,12 +14,20 @@ import type {
 import CORSCommunicator from "../services/cors-communicator";
 import LocalStorageModel from "../services/local-storage-model";
 import type { PageTabInfoMap } from "./leveled/page-tab-info";
-import type { ChildPageCreation, PageRename } from "./leveled/child-pages";
+import type {
+  ChildPageCreation,
+  PageLinkFix,
+  PageRename,
+} from "./leveled/child-pages";
 
-/** What draw.io has to do for a page sync (planPageSync). */
+/** What draw.io has to do for a page sync (planPageSync, 5e). */
 export interface DrawioPageSyncSpec {
   create: readonly ChildPageCreation[];
   rename: readonly PageRename[];
+  /** Page links on further occurrences of decomposed multiprocesses. */
+  link?: readonly PageLinkFix[];
+  /** Pages to delete (child pages of deleted multiprocesses, on request). */
+  remove?: readonly string[];
 }
 
 export interface DrawioPageSyncResult {

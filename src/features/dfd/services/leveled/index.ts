@@ -110,4 +110,7 @@ export {
   type PageSyncInput,
   type ChildPageCreation,
   type PageRename,
+  type PageLinkFix,
+  type OrphanPage,
+  readCellLinks,
 } from "./child-pages";

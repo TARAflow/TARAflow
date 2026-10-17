@@ -11,12 +11,21 @@
 // (page, name); a multiprocess gets one attempt per session, also when
 // draw.io refuses (old draw.io without the page API) — then it simply stays
 // without page, as before 5d.
+//
+// 5e: "Create child page" for a multiprocess without one (decompose), page
+// links on copies drawn later, and a question when a multiprocess with a
+// child page is deleted: delete the page too, or keep it.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { inspectDrawioPages } from "shared";
 import type { DFDPage, DFDProjectData, DFDUpdateResult } from "../models/dfd-types";
 import { dfdParser } from "../services/dfd-parser";
-import { needsPageReview, planPageSync } from "../services/leveled";
+import {
+  needsPageReview,
+  planPageSync,
+  readCellLinks,
+  type OrphanPage,
+} from "../services/leveled";
 import type {
   DrawioPageSyncResult,
   DrawioPageSyncSpec,
@@ -28,11 +37,11 @@ export interface UseChildPagesOptions {
   syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
   savePages: (pages: DFDPage[]) => Promise<DFDUpdateResult | null>;
   /**
-   * The child page of this multiprocess was deleted: mark it so it gets no
-   * page automatically again (properties.noChildPage). Called before
-   * savePages, which then saves both.
+   * Set properties.noChildPage of a multiprocess: true when its child page
+   * was deleted (no page automatically again), false when the analyst
+   * creates one explicitly. Called before savePages, which saves both.
    */
-  markNoChildPage: (tfId: string) => void;
+  setNoChildPage: (tfId: string, noChildPage: boolean) => void;
   /** Page id generator (tests); default: random, draw.io style. */
   newPageId?: () => string;
 }
@@ -43,13 +52,19 @@ export interface UseChildPagesReturn {
    * autosave is on its way). Page-tree findings about it are transient.
    */
   settling: boolean;
+  /** Child pages whose multiprocess was deleted and not decided yet (5e). */
+  orphanPages: OrphanPage[];
+  /** Delete the orphan page in draw.io, or keep it (asked once per session). */
+  resolveOrphan: (pageId: string, removePage: boolean) => Promise<void>;
+  /** "Create child page" for a multiprocess without one; false if impossible. */
+  decompose: (tfId: string) => boolean;
 }
 
 export function useChildPages(
   project: DFDProjectData,
   options: UseChildPagesOptions,
 ): UseChildPagesReturn {
-  const { enabled, syncPages, savePages, markNoChildPage } = options;
+  const { enabled, syncPages, savePages, setNoChildPage } = options;
   const newPageIdRef = useRef(options.newPageId ?? randomPageId);
   const xml = project.dfd?.xml;
   const pages = project.dfd?.pages;
@@ -74,6 +89,14 @@ export function useChildPages(
   const createdPagesRef = useRef(new Set<string>());
   const busyRef = useRef(false);
   const [settling, setSettling] = useState(false);
+  // 5e: explicit "Create child page" requests (override noChildPage and the
+  // classic "only new" rule), page links requested (cell → target), orphan
+  // pages asked about.
+  const forcedRef = useRef(new Set<string>());
+  const linkedRef = useRef(new Set<string>());
+  const askedRef = useRef(new Set<string>());
+  const [orphanPages, setOrphanPages] = useState<OrphanPage[]>([]);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     const xmlPageIds = new Set(xml ? inspectDrawioPages(xml).pageIds : []);
@@ -108,7 +131,7 @@ export function useChildPages(
           for (const p of deleted) {
             if (multiprocesses.has(p.decomposes!)) {
               attemptedRef.current.add(p.decomposes!);
-              markNoChildPage(p.decomposes!);
+              setNoChildPage(p.decomposes!, true);
             }
           }
           const gone = new Set(deleted.map((p) => p.pageId));
@@ -141,27 +164,44 @@ export function useChildPages(
           (e.properties as { noChildPage?: boolean } | undefined)?.noChildPage,
       )
       .map((e) => e.id);
+    const known = new Set([
+      ...(leveled ? [] : knownRef.current),
+      ...attemptedRef.current,
+      ...optedOut,
+    ]);
+    for (const tfId of forcedRef.current) known.delete(tfId);
     const plan = planPageSync({
       parse,
       pages,
-      knownMultiprocesses: new Set([
-        ...(leveled ? [] : knownRef.current),
-        ...attemptedRef.current,
-        ...optedOut,
-      ]),
+      knownMultiprocesses: known,
       newPageId: newPageIdRef.current,
+      cellLinks: readCellLinks(xml),
     });
+
+    // Orphan pages: the analyst decides (once per session).
+    const orphans = (plan?.orphans ?? []).filter((o) => !askedRef.current.has(o.pageId));
+    setOrphanPages((current) =>
+      JSON.stringify(current) === JSON.stringify(orphans) ? current : orphans,
+    );
     if (!plan) return skip("pages up to date");
 
     const rename = plan.rename.filter((r) => renamedRef.current.get(r.pageId) !== r.name);
+    const linkKey = (l: { pageId: string; cellId: string; target: string }) =>
+      `${l.pageId}\u0000${l.cellId}\u0000${l.target}`;
+    const link = plan.link.filter((l) => !linkedRef.current.has(linkKey(l)));
     const pagesChanged = JSON.stringify(plan.pages) !== JSON.stringify(pages ?? []);
-    if (plan.create.length === 0 && rename.length === 0 && !pagesChanged) {
-      return skip("pages up to date (requests already sent)");
+    if (plan.create.length === 0 && rename.length === 0 && link.length === 0 && !pagesChanged) {
+      return skip(
+        orphans.length > 0
+          ? "waiting for the decision on orphan pages"
+          : "pages up to date (requests already sent)",
+      );
     }
     lastSkipRef.current = null;
     console.info("[useChildPages] syncing pages:", {
       create: plan.create.map((c) => `${c.name} (${c.decomposes})`),
       rename: rename.map((r) => `${r.pageId} → ${r.name}`),
+      link: link.map((l) => `${l.pageId}/${l.cellId} → ${l.target}`),
     });
 
     busyRef.current = true;
@@ -170,7 +210,10 @@ export function useChildPages(
         // 1. Create the child pages.
         let created = plan.create;
         if (plan.create.length > 0) {
-          for (const c of plan.create) attemptedRef.current.add(c.decomposes);
+          for (const c of plan.create) {
+            attemptedRef.current.add(c.decomposes);
+            forcedRef.current.delete(c.decomposes);
+          }
           const result = await syncPages({ create: plan.create, rename: [] });
           if (!result.success) {
             console.warn("[useChildPages] draw.io could not create pages:", result.error, result);
@@ -189,12 +232,15 @@ export function useChildPages(
         // otherwise neither the root is renamed nor dfd.pages written.
         if (!pages && created.length === 0) return;
 
-        // 2. Names (D16, D17).
-        if (rename.length > 0) {
+        // 2. Names (D16, D17) and page links on later copies (5e).
+        if (rename.length > 0 || link.length > 0) {
           for (const r of rename) renamedRef.current.set(r.pageId, r.name);
-          const result = await syncPages({ create: [], rename });
+          for (const l of link) linkedRef.current.add(linkKey(l));
+          const result = await syncPages({ create: [], rename, link });
           if (!result.success) {
-            console.warn("[useChildPages] draw.io could not rename pages:", result.error, result);
+            console.warn("[useChildPages] draw.io could not rename / link:", result.error, result);
+          } else if (result.errors?.length) {
+            console.warn("[useChildPages] draw.io page sync:", result.errors);
           }
         }
 
@@ -212,9 +258,41 @@ export function useChildPages(
         busyRef.current = false;
       }
     })();
-  }, [enabled, xml, pages, project.dfd?.elements, syncPages, savePages, markNoChildPage]);
+  }, [enabled, xml, pages, project.dfd?.elements, syncPages, savePages, setNoChildPage, nonce]);
 
-  return { settling };
+  const resolveOrphan = useCallback(
+    async (pageId: string, removePage: boolean) => {
+      askedRef.current.add(pageId);
+      setOrphanPages((current) => current.filter((o) => o.pageId !== pageId));
+      if (!removePage) return;
+      // The deleted page then leaves dfd.pages like any page deleted in
+      // draw.io (see above).
+      const result = await syncPages({ create: [], rename: [], remove: [pageId] });
+      if (!result.success || result.errors?.length) {
+        console.warn("[useChildPages] draw.io could not delete the page:", result.error, result.errors);
+      }
+    },
+    [syncPages],
+  );
+
+  const elements = project.dfd?.elements;
+  const decompose = useCallback(
+    (tfId: string): boolean => {
+      const mp = elements?.find((e) => e.id === tfId && e.type === "Multiprocess");
+      if (!enabled || !mp) return false;
+      if (pages?.some((p) => p.decomposes === tfId)) return false;
+      forcedRef.current.add(tfId);
+      attemptedRef.current.delete(tfId);
+      if ((mp.properties as { noChildPage?: boolean } | undefined)?.noChildPage) {
+        setNoChildPage(tfId, false);
+      }
+      setNonce((n) => n + 1);
+      return true;
+    },
+    [enabled, elements, pages, setNoChildPage],
+  );
+
+  return { settling, orphanPages, resolveOrphan, decompose };
 }
 
 /** 20 characters like draw.io's own page ids. */

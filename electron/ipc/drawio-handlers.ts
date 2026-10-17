@@ -364,8 +364,8 @@ export function registerDrawioHandlers() {
     },
   );
 
-  // Leveled DFD (5d, D15–D17): create child pages, set the page link on the
-  // multiprocess cells, rename pages. Planned by planPageSync in the
+  // Leveled DFD (5d, D15–D17; 5e): create child pages, set the page link on
+  // the multiprocess cells, rename pages, remove pages. Planned by planPageSync in the
   // renderer; the spec goes into the script as a JSON literal. Idempotent:
   // an existing page is not created twice, a page with the wanted name is
   // not renamed. The user's page is shown again afterwards.
@@ -425,6 +425,24 @@ export function registerDrawioHandlers() {
               if (!cell) { errors.push('cell not found: ' + ref.cellId); return; }
               graph.setLinkForCell(cell, 'data:page/id,' + c.pageId);
             });
+          });
+          // Page links on cells drawn after their page was created (5e).
+          (spec.link || []).forEach(function(l) {
+            var host = find(l.pageId);
+            if (!host || !find(l.target)) { errors.push('page not found for link: ' + l.cellId); return; }
+            show(host);
+            var graph = ui.editor.graph;
+            var cell = graph.model.getCell(l.cellId);
+            if (!cell) { errors.push('cell not found: ' + l.cellId); return; }
+            graph.setLinkForCell(cell, 'data:page/id,' + l.target);
+          });
+          // Child pages the analyst chose to delete with their MP (5e).
+          (spec.remove || []).forEach(function(pageId) {
+            var page = find(pageId);
+            if (!page) return;
+            if (typeof ui.removePage !== 'function') { errors.push('removePage not available'); return; }
+            ui.removePage(page);
+            if (find(pageId)) errors.push('page not removed (diagram not editable?): ' + pageId);
           });
           (spec.rename || []).forEach(function(r) {
             var page = find(r.pageId);
