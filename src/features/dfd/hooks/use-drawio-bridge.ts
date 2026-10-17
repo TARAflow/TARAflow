@@ -10,6 +10,7 @@ import type {
   DrawioExportResult,
 } from "../models/drawio-types";
 import type { SelectionCallback } from "../interfaces/dfd-editor-interfaces";
+import type { PageTabInfoMap } from "../services/leveled/page-tab-info";
 import { createDFDStorageAdapter } from "../services/dfd-storage-adapter";
 import dfdService from "../services/dfd-service";
 
@@ -43,8 +44,10 @@ export interface UseDrawioBridgeReturn {
   exportImage: () => Promise<string | null>;
   sendAction: (action: string) => void;
   selectCell: (cellId: string, pageId?: string | null) => Promise<void>;
-  /** Open a draw.io page; false if it cannot be switched (browser dev). */
-  selectPage: (pageId: string) => Promise<boolean>;
+  /** The TARAflow plugin runs in draw.io (Electron); reset on re-init. */
+  pluginReady: boolean;
+  /** Tooltip and finding badge per page tab (leveled DFD 5c). */
+  setPageTabInfo: (info: PageTabInfoMap) => Promise<void>;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
@@ -70,6 +73,7 @@ export function useDrawioBridge(
   const [isLoading, setIsLoading] = useState(true);
   const [iframeKey, setIframeKey] = useState(0);
   const [selectedCells, setSelectedCells] = useState<any[]>([]); // ✅ NEU
+  const [pluginReady, setPluginReady] = useState(false);
 
   // ==================== REFS ====================
 
@@ -168,6 +172,7 @@ export function useDrawioBridge(
         }
       });
 
+      setPluginReady(false);
       const injectPlugin = async () => {
         // Wait until draw.io is fully loaded before injecting the plugin.
         await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -185,6 +190,7 @@ export function useDrawioBridge(
             } else {
               // Plugin is fully ready — draw.io can now respond to exportImage().
               // Notify the caller so an initial thumbnail can be generated.
+              setPluginReady(true);
               onPluginReadyRef.current?.();
             }
           } catch (error) {
@@ -327,9 +333,9 @@ export function useDrawioBridge(
     [],
   );
 
-  const selectPage = useCallback(async (pageId: string): Promise<boolean> => {
-    if (!bridgeRef.current) return false;
-    return bridgeRef.current.selectPage(pageId);
+  const setPageTabInfo = useCallback(async (info: PageTabInfoMap): Promise<void> => {
+    if (!bridgeRef.current) return;
+    await bridgeRef.current.setPageTabInfo(info);
   }, []);
 
 
@@ -396,7 +402,8 @@ export function useDrawioBridge(
     exportImage,
     sendAction,
     selectCell,
-    selectPage,
+    pluginReady,
+    setPageTabInfo,
     onImageReady,
     loadXMLTransient,
   };

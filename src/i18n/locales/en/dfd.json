@@ -2634,12 +2634,12 @@
           "notReferenced": "This asset is not yet referenced by any DFD element."
         }
       },
-      "pageTree": {
-        "title": "Pages",
-        "pendingDecomposition": "no part of its own yet — the multiprocess is analysed as a whole",
-        "notPlaced": "not in the page tree",
-        "errors": "Errors on this page",
-        "warnings": "Warnings on this page"
+      "pageTabs": {
+        "root": "Top level",
+        "details": "Details {{element}}",
+        "pendingDecomposition": "No part of its own yet — the multiprocess is analysed as a whole",
+        "notPlaced": "Not in the page tree",
+        "findings": "{{errors}} error(s), {{warnings}} warning(s)"
       },
       "identityReview": {
         "cancel": "Cancel",

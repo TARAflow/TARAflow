@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tree done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -872,7 +872,10 @@ to disk.
   its context copies). Until the page has a part of its own, the MP stays a leaf (§6.1). Deleting
   the MP asks whether to delete its page as well (lifecycle "Delete a page", §5.2). The root tab is
   *Top*.
-- **Page tree** in the DFD tab's left area: root page + child pages, badge with finding count.
+- **Page tree:** no panel of its own — draw.io's page tabs at the bottom are the page list and the
+  navigation. TARAflow decorates them: tooltip with the page's place in the tree (top level /
+  details MP-x / decomposition not in effect yet / not in the tree) and its finding counts, badge
+  with the error count, else the warning count (5c, decided 2026-10-17).
 - **"Decompose…"** on a multiprocess creates the child page and pre-populates it with context copies
   of exactly:
   1. every element directly connected to the MP by a flow (**flow neighbours** — for `MP-1`:
@@ -1205,18 +1208,22 @@ page selector in the preview panel (§12.1, D18).
     pages and pages gone from the XML (`misplacedPages`, hint *Review pages…* on
     `PAGE_MULTIPLE_ROOTS` / `PAGE_MISSING`). Extra roots (all but the first by order) are proposed
     again like unadopted pages, missing entries are dropped; links of all other pages are kept.
-- **5c ✅** page tree (§12), navigation only; the automatic child page (D15–D17) follows in 5d.
+- **5c ✅** page information on draw.io's own page tabs (§12) instead of a page tree panel
+  (decided 2026-10-17 after a first version with a panel: the tab bar already lists and switches
+  the pages; a second list next to it only costs space). The automatic child page (D15–D17)
+  follows in 5d.
   - `leveled/page-outline`, pure: `buildPageOutline` — pages in tree order with depth and the
     detailed multiprocess, unplaced pages after the tree, `pendingDecomposition` for a child page
     without a part of its own (D15: the MP is still analysed as a whole; the rule is shared with
     the effective model as `pagesWithOwnParts`), finding counts per page by the home page of the
     element / flow a finding names (findings without an element count on no page).
-  - `DFDPageTree` left of the diagram (draw view, only with ≥ 2 adopted pages; `usePageOutline`
-    is null for one page and while adoption is pending). The page shown in draw.io is
-    highlighted — reported by the selection events of 5a; until the first one, the first page of
-    the document, which draw.io opens on load. A click opens the page (`drawio:selectPage`, page id
-    as JSON literal; Electron only — the embed protocol has no page action, so the browser dev
-    build cannot switch).
+  - `leveled/page-tab-info`, pure: tooltip lines and badge (error count, else warning count) per
+    page; texts through `t`.
+  - The injected plugin wraps `ui.createTabForPage`: a tab whose page has info gets the tooltip
+    (`title`) and a small badge; without info, or in a draw.io without that function, the tab
+    stays as it is. `drawio:setPageTabInfo` (info as JSON literal) stores the info and redraws
+    the tabs (`updateTabContainer`). The DFD tab sends it whenever the outline or the findings
+    change, once the plugin is ready (`pluginReady`, ~3 s after load). Electron only.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

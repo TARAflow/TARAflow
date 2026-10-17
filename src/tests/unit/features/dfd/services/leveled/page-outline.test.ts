@@ -27,13 +27,12 @@ const outline = (
 
 describe("buildPageOutline", () => {
   it("lists the pages in tree order with depth and detailed multiprocess", () => {
-    const { nodes, firstPageId } = outline(XML);
+    const { nodes } = outline(XML);
     expect(nodes.map((n) => [n.pageId, n.name, n.depth, n.decomposes?.label])).toEqual([
       ["sys", "System", 0, undefined],
       ["sen", "Sensor Module", 1, "MP-1 Sensor Module"],
       ["ctl", "Controller Module", 1, "MP-2 Controller Module"],
     ]);
-    expect(firstPageId).toBe("sys");
     expect(nodes.every((n) => !n.pendingDecomposition)).toBe(true);
   });
 

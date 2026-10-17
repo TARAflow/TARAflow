@@ -37,8 +37,6 @@ export interface PageOutlineNode {
 export interface PageOutline {
   /** Placed pages in tree order, then the unplaced ones in document order. */
   nodes: PageOutlineNode[];
-  /** First page of the document — the one draw.io opens on load. */
-  firstPageId?: string;
 }
 
 export interface PageOutlineInput {
@@ -99,5 +97,5 @@ export function buildPageOutline(input: PageOutlineInput): PageOutline {
     .filter((p) => !placedIds.has(p.pageId))
     .map((p) => node(p.pageId, pages?.find((x) => x.pageId === p.pageId)?.decomposes));
 
-  return { nodes: [...placed, ...unplaced], firstPageId: parse.pages[0]?.pageId };
+  return { nodes: [...placed, ...unplaced] };
 }

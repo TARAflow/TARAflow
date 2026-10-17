@@ -97,3 +97,8 @@ export {
   type PageOutline,
   type PageOutlineNode,
 } from "./page-outline";
+export {
+  buildPageTabInfo,
+  type PageTabInfo,
+  type PageTabInfoMap,
+} from "./page-tab-info";

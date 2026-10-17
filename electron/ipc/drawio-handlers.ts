@@ -120,6 +120,39 @@ export function registerDrawioHandlers() {
               }
             }, 100);
 
+            // Page tabs (leveled DFD 5c): TARAflow decorates draw.io's own
+            // tab bar — a tooltip and a finding badge per page — instead of
+            // a second page tree. The info is pushed by drawio:setPageTabInfo;
+            // without it, or in a draw.io without createTabForPage, the tabs
+            // stay as they are.
+            if (typeof ui.createTabForPage === 'function') {
+              var createTab = ui.createTabForPage;
+              ui.createTabForPage = function(page) {
+                var tab = createTab.apply(this, arguments);
+                try {
+                  var pageId = page && page.getId ? page.getId() : '';
+                  var info = (Draw._taraflowPageTabInfo || {})[pageId];
+                  if (tab && info) {
+                    tab.setAttribute('title', info.title);
+                    if (info.badge) {
+                      var badge = document.createElement('span');
+                      badge.textContent = String(info.badge.count);
+                      badge.setAttribute('data-taraflow-badge', info.badge.severity);
+                      badge.style.cssText =
+                        'display:inline-block;min-width:14px;padding:0 4px;margin-left:4px;' +
+                        'border-radius:7px;font-size:10px;line-height:14px;text-align:center;' +
+                        'color:#fff;background:' +
+                        (info.badge.severity === 'error' ? '#d32f2f' : '#ed6c02') + ';';
+                      tab.appendChild(badge);
+                    }
+                  }
+                } catch (e) {
+                  console.warn('[Plugin] Page tab decoration failed:', e);
+                }
+                return tab;
+              };
+            }
+
             // Setup selection listener. Cell ids are only unique within a
             // page, so every selection carries the page it was made on
             // (leveled DFD, design §5.2).
@@ -280,31 +313,30 @@ export function registerDrawioHandlers() {
     },
   );
 
-  // Leveled DFD (page tree, 5c): open a draw.io page. The page id goes into
-  // the script as a JSON literal.
-  ipcMain.handle("drawio:selectPage", async (_, pageId: string) => {
-    if (!cachedDrawioFrame)
-      return { success: false, error: "No drawio frame cached" };
-    const pageIdJs = JSON.stringify(String(pageId));
-    try {
-      const found = await cachedDrawioFrame.executeJavaScript(`
-      (function() {
-        var ui = Draw._taraflowUi;
-        if (!ui || !ui.pages) return false;
-        var pageId = ${pageIdJs};
-        if (ui.currentPage && ui.currentPage.getId() === pageId) return true;
-        for (var i = 0; i < ui.pages.length; i++) {
-          if (ui.pages[i].getId() === pageId) { ui.selectPage(ui.pages[i]); return true; }
-        }
-        console.warn('[Main:selectPage] Page not found: ' + pageId);
-        return false;
-      })()
-    `);
-      return found ? { success: true } : { success: false, error: "Page not found" };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  });
+  // Leveled DFD (5c): tooltip and finding badge per page tab, see the
+  // createTabForPage wrapper in the plugin. The info goes into the script as
+  // a JSON literal.
+  ipcMain.handle(
+    "drawio:setPageTabInfo",
+    async (_, info: Record<string, unknown> | null) => {
+      if (!cachedDrawioFrame)
+        return { success: false, error: "No drawio frame cached" };
+      const infoJs = JSON.stringify(info ?? {});
+      try {
+        await cachedDrawioFrame.executeJavaScript(`
+        (function() {
+          Draw._taraflowPageTabInfo = ${infoJs};
+          var ui = Draw._taraflowUi;
+          if (ui && typeof ui.updateTabContainer === 'function') ui.updateTabContainer();
+          return true;
+        })()
+      `);
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+  );
 
   ipcMain.handle("drawio:getScroll", async () => {
     if (!cachedDrawioFrame) return { scrollLeft: 0, scrollTop: 0 };

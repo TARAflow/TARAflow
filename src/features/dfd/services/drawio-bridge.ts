@@ -13,6 +13,7 @@ import type {
 } from "../models/drawio-types";
 import CORSCommunicator from "../services/cors-communicator";
 import LocalStorageModel from "../services/local-storage-model";
+import type { PageTabInfoMap } from "./leveled/page-tab-info";
 import DrawioController from "../services/drawio-controller";
 
 /**
@@ -120,13 +121,12 @@ export class DrawioBridge implements IDrawioBridge {
   }
 
   /**
-   * Open a draw.io page (leveled DFD page tree). Electron only: the embed
-   * protocol has no page action, so the browser dev build cannot switch.
+   * Tooltip and finding badge per draw.io page tab (leveled DFD 5c).
+   * Electron only — the plugin that decorates the tabs is injected there.
    */
-  async selectPage(pageId: string): Promise<boolean> {
-    if (!this.isReady() || !window.electronAPI?.selectDrawioPage) return false;
-    const result = await window.electronAPI.selectDrawioPage(pageId);
-    return result.success;
+  async setPageTabInfo(info: PageTabInfoMap): Promise<void> {
+    if (!this.isReady() || !window.electronAPI?.setDrawioPageTabInfo) return;
+    await window.electronAPI.setDrawioPageTabInfo(info);
   }
 
   /**

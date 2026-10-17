@@ -2621,12 +2621,12 @@
           "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
         }
       },
-      "pageTree": {
-        "title": "Seiten",
-        "pendingDecomposition": "noch kein eigener Teil — der Multiprozess wird als Ganzes analysiert",
-        "notPlaced": "nicht im Seitenbaum",
-        "errors": "Fehler auf dieser Seite",
-        "warnings": "Warnungen auf dieser Seite"
+      "pageTabs": {
+        "root": "Oberste Ebene",
+        "details": "Detailliert {{element}}",
+        "pendingDecomposition": "Noch kein eigener Teil — der Multiprozess wird als Ganzes analysiert",
+        "notPlaced": "Nicht im Seitenbaum",
+        "findings": "{{errors}} Fehler, {{warnings}} Warnung(en)"
       },
       "identityReview": {
         "cancel": "Abbrechen",

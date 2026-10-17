@@ -35,6 +35,7 @@ import { useDFDPersistence } from "../hooks/use-dfd-persistence";
 import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import { useIdentityReview } from "../hooks/use-identity-review";
 import { usePageOutline } from "../hooks/use-page-outline";
+import { buildPageTabInfo } from "../services/leveled";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -50,7 +51,6 @@ import {
   IdentityReviewHints,
 } from "./identity-review-dialog";
 import { ValidationMessages } from "../services/validators/validator-utils";
-import { DFDPageTree } from "./dfd-page-tree";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
@@ -249,7 +249,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     ),
     savePages: editor.savePages,
   });
-  // Leveled DFD (5c): page tree left of the diagram; null for one page.
+  // Leveled DFD (5c): draw.io's own page tabs get a tooltip (place in the
+  // page tree) and a finding badge — no second page tree next to them.
   const pageOutline = usePageOutline(project.dfd, editor.validation);
 
   // Adopted pages the tree cannot use — repaired with the same dialog.
@@ -441,7 +442,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       onImageReady: () => {},
       selectedCells: editor.selectedCells || [],
       selectCell: async () => {},
-      selectPage: async () => false,
+      pluginReady: false,
+      setPageTabInfo: async () => {},
     },
     {
       isDirty: editor.isDirty,
@@ -682,6 +684,16 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     : false;
   const { t } = useTranslation();
 
+  // Page tabs of a leveled DFD (5c), see pageOutline above.
+  const pageTabInfo = useMemo(
+    () => buildPageTabInfo(pageOutline, (key, options) => String(t(key, options))),
+    [pageOutline, t],
+  );
+  const { pluginReady, setPageTabInfo } = editor;
+  useEffect(() => {
+    if (pluginReady) void setPageTabInfo(pageTabInfo);
+  }, [pluginReady, setPageTabInfo, pageTabInfo]);
+
   // A finding leads to its place in the CURRENT view: the side panel when
   // drawing, the accordion when describing, the asset's card in the graph.
   // Each view has exactly one place to edit (side panel only in "draw").
@@ -842,17 +854,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
           overflow: "hidden",
         }}
       >
-        {/* Leveled DFD: page tree (draw view only) */}
-        {viewMode === "draw" && pageOutline && (
-          <DFDPageTree
-            outline={pageOutline}
-            // draw.io reports the page with the first selection or page
-            // switch; until then it shows the first page of the document.
-            currentPageId={editor.currentPageId ?? pageOutline.firstPageId ?? null}
-            onSelectPage={editor.selectPage}
-          />
-        )}
-
         {/* Left: DFD Canvas (Draw/Describe Views) */}
         <Box
           sx={{
