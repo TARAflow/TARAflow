@@ -422,6 +422,7 @@
           "context": "Kontext",
           "security": "Sicherheit",
           "documentation": "Dokumentation",
+          "leveling": "Leveling",
           "hardware_security": "Hardware-Sicherheit",
           "physical_security": "Physische Sicherheit",
           "implemented_controls": "Implementierte Controls",
@@ -1391,6 +1392,15 @@
             "hint": "Hohes Risiko für: Manipulation, Informationspreisgabe, Denial of Service"
           },
           "fields": {
+            "refines": {
+              "label": "Verfeinert",
+              "none": "— keiner —",
+              "helper": "Ein weiterer Kanal eines Flusses der Elternebene. Beide behalten ihre eigenen Bedrohungen; eine gültige Verfeinerung gleicht den Elternfluss aus."
+            },
+            "abstract": {
+              "label": "Abstrakt (Sammelfluss, keine eigenen Bedrohungen)",
+              "helper": "Wirkt erst, wenn mindestens ein Fluss ihn gültig verfeinert; bis dahin behält der Fluss seine Bedrohungen."
+            },
             "excludeFromThreatGen": {
               "label": "Von automatischer Bedrohungsgenerierung ausschliessen",
               "warning_no_trust": "Einen Flow ausschliessen ohne ihn als 'Vertrauenswürdig angenommen' zu markieren kann echte Bedrohungen verbergen. Vertrauensbegründung oben hinzufügen."
@@ -2739,7 +2749,11 @@
       "BAL_HOME_NOT_HIGHEST": "{{element}} ist auf \"{{page}}\" definiert, erscheint aber auch auf der höheren Seite \"{{highest}}\"; die Definition sollte nach oben wandern.",
       "BAL_LABEL_DIVERGENCE": "Die Vorkommen von {{element}} tragen unterschiedliche Bezeichnungen: {{labels}}.",
       "BAL_MISSING_PARENT_FLOW": "Fluss {{flow}} kreuzt die Grenze von {{element}}, ist auf der Elternseite \"{{page}}\" aber nicht gezeichnet.",
-      "ID_PASTE_REASSIGNED": "{{element}} auf Seite \"{{page}}\" wurde eingefügt und ist jetzt ein eigenes Element; Auto-Nummerierung ausführen, damit es eine eigene ID bekommt."
+      "ID_PASTE_REASSIGNED": "{{element}} auf Seite \"{{page}}\" wurde eingefügt und ist jetzt ein eigenes Element; Auto-Nummerierung ausführen, damit es eine eigene ID bekommt.",
+      "BAL_REFINES_TARGET_MISSING": "Fluss {{flow}} verfeinert \"{{target}}\", das nicht existiert; die Verfeinerung zählt nicht.",
+      "BAL_REFINES_CYCLE": "Fluss {{flow}}: Die Verfeinerungen bilden einen Kreis ({{cycle}}); die Verfeinerung zählt nicht.",
+      "BAL_REFINES_INCOMPATIBLE": "Fluss {{flow}} passt nicht zu dem Fluss, den er verfeinert ({{target}}): Seine Endpunkte müssen denen des Ziels entsprechen oder darin liegen, in derselben Richtung. Wird normal analysiert; die Verfeinerung zählt nicht.",
+      "BAL_ABSTRACT_WITHOUT_REFINEMENT": "Fluss {{flow}} ist abstrakt, hat aber keinen gültigen verfeinernden Fluss; er behält seine eigenen Bedrohungen, bis ein Fluss ihn verfeinert."
     }
   },
   "levels": {

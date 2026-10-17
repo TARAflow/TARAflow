@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4a done (leveled findings in the validation) · 4b next
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -568,6 +568,13 @@ Rules:
 - generates **no threats** of its own;
 - requires at least one refining flow, else `BAL_ABSTRACT_WITHOUT_REFINEMENT` (warning) — an
   abstract flow without children would silently drop threats.
+- **Decided in 4b (D10):** the exclusion takes effect only while at least one **valid** refinement
+  exists. Without one (none, or only invalid ones) the abstract flow is analysed normally and keeps
+  its threats, plus the warning — never a silent drop.
+
+Storage (4b): `refines` and `abstract` are data-flow properties (`DataflowProperties`, JSON
+record like `excludeFromThreatGen`), not XML attributes. They only take effect in a leveled DFD; on
+a single page there is no effective model and both are ignored.
 
 ### 6.5 Flow analysis state
 
@@ -577,7 +584,7 @@ Each effective flow carries a computed state (not persisted):
 |---|---|---|
 | `resolved` | both endpoints are leaves | normal |
 | `fallback` | at least one endpoint could not be resolved to a confirmed leaf | normal, on the fallback endpoint; threat marked with the reason |
-| `excluded` | `abstract`, EE→EE, or `excludeFromThreatGen` | none |
+| `excluded` | `abstract` (with a valid refinement), EE→EE, or `excludeFromThreatGen` | none |
 
 `fallbackReasons` collects **all** causes (both sides, all checks) for diagnosis and the report;
 `fallbackReason` is the most severe one for display, order `ambiguous > dangling > unresolved`:
@@ -1121,10 +1128,19 @@ exactly its links and decomposition.
   - Leveled SmokeDetector: no leveled finding at all (regression).
   - Known limit until Phase 5: clicking a finding selects the cell by record id, which misses
     linked cells (see Phase 5 prerequisite).
-- **4b** `refines` and `abstract` on flows (model, connection form), §6.4 semantics in the
-  effective model (refinement counts for balancing, abstract flows are excluded), findings
-  `BAL_REFINES_CYCLE` / `_TARGET_MISSING` / `_INCOMPATIBLE`, `BAL_ABSTRACT_WITHOUT_REFINEMENT`;
-  `BAL_MISSING_PARENT_FLOW` accepts a `refines` as substitute (D2).
+- **4b ✅** `refines` and `abstract` (§6.4).
+  - `DataflowProperties.refines` / `.abstract` (JSON, persisted with the flow record).
+  - Effective model, second pass after stitching (`applyRefinements`): target missing (or the flow
+    itself → cycle), cycle along the `refines` chain, compatibility of the refining flow's
+    resolved endpoints with the drawn endpoints of the target's **top-most occurrence**
+    (ancestor-or-self in the containment tree, same direction). `EffectiveFlow.refines =
+    { target, valid }`. Exclusion reason `abstract` only with ≥ 1 valid refinement (decision above).
+  - Findings `BAL_REFINES_TARGET_MISSING`, `BAL_REFINES_CYCLE` (errors),
+    `BAL_REFINES_INCOMPATIBLE`, `BAL_ABSTRACT_WITHOUT_REFINEMENT` (warnings), en/de.
+    `BAL_MISSING_PARENT_FLOW` accepts a **valid** refinement as substitute (D2); an invalid one
+    counts as absent.
+  - Data-flow form: section "Leveling" (only when the DFD has several pages) with *Refines* (all
+    other flows, natural id order; validity is the validator's job) and *Abstract*.
 - Moved: `BAL_ASSET_NOT_REALISED` → Phase 6 (asset roll-up); threat-tab banner "N flows analysed
   on parent level" → Phase 5 (UI).
 

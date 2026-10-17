@@ -50,7 +50,10 @@ import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context"
 // Import element-specific forms
 import { ProcessDescriptionForm } from "./forms/process-description-form";
 import { MultiprocessDescriptionForm } from "./forms/multiprocess-description-form";
-import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
+import {
+  DataFlowDescriptionForm,
+  type RefinementCandidate,
+} from "./forms/dataflow-description-form";
 import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
 import { ExternalEntityDescriptionForm } from "./forms/external-entity-form";
 import { InterfaceDescriptionForm } from "./forms/interface-description-form";
@@ -80,6 +83,8 @@ interface DFDDescriptionViewProps {
   expandedElements: string[];
   onToggleElement: (elementId: string) => void;
   graphContext?: DFDGraphAnalysisContext | null;
+  /** Leveled DFD: flows a data flow may refine (§6.4); absent = single page. */
+  refinementCandidates?: RefinementCandidate[];
 }
 
 interface GroupedElements {
@@ -265,6 +270,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   expandedElements,
   onToggleElement,
   graphContext,
+  refinementCandidates,
 }) => {
   const { t } = useTranslation();
 
@@ -565,6 +571,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                   onToggle={(event, isExpanded) =>
                     onToggleElement(connection.id)
                   } // ✅ Inline callback!
+                  refinementCandidates={refinementCandidates}
                 />
               ))}
             </AccordionDetails>
@@ -788,6 +795,7 @@ interface ConnectionAccordionProps {
   isExpanded: boolean;
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void; // ✅ Direct callback
   graphContext?: DFDGraphAnalysisContext | null;
+  refinementCandidates?: RefinementCandidate[];
 }
 
 const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
@@ -799,6 +807,7 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
     isExpanded,
     onToggle,
     graphContext,
+    refinementCandidates,
   }) => {
     const isDescribed = isConnectionDescribed(connection);
     const { displayId, label } = formatConnectionLabel(connection, elements);
@@ -842,6 +851,7 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
                 graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
                 undefined
               }
+              refinementCandidates={refinementCandidates}
             />
           )}
         </AccordionDetails>
@@ -858,6 +868,7 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
       prevProps.onToggle !== nextProps.onToggle ||
+      prevProps.refinementCandidates !== nextProps.refinementCandidates ||
       prevProps.availableAssets.length !== nextProps.availableAssets.length
     ) {
       return false;

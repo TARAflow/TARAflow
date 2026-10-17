@@ -52,6 +52,7 @@ import type {
   DFDUpdateResult,
 } from "../models/dfd-types";
 import { DEFAULT_AUTONUMBERING_CONFIG } from "../models/dfd-types";
+import { refinementCandidatesOf } from "../utils/refinement-candidates";
 
 // ==================== CONSTANTS ====================
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
@@ -201,6 +202,12 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       iframe.style.pointerEvents = "";
     });
   };
+
+  // Leveled DFD only: the flows a data flow may refine (§6.4, Phase 4b).
+  const refinementCandidates = useMemo(
+    () => refinementCandidatesOf(project.dfd),
+    [project.dfd?.xml, project.dfd?.connections],
+  );
 
   // Stabilize graphContext — new DFDGraphAnalysisContext() on every render
   // causes all consumers to remount. useMemo ensures stable reference.
@@ -855,6 +862,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onToggleElement={toggleElement}
               onCreateAsset={handleCreateAsset}
               graphContext={graphContext}
+              refinementCandidates={refinementCandidates}
             />
           </Box>
 
@@ -921,6 +929,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onClearAllVisibility={handleClearAllVisibility}
             onAssetChange={handleAssetChange}
             graphContext={graphContext}
+            refinementCandidates={refinementCandidates}
             focusAssetRequest={focusAssetRequest}
             assetUsage={assetUsage}
             onSelectedAssetChange={setPanelAssetId}

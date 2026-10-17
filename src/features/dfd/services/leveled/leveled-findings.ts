@@ -10,9 +10,8 @@
 // ambiguous modelling is analysed conservatively (fallback to the parent),
 // never excluded.
 //
-// Not here: BAL_REFINES_* / BAL_ABSTRACT_WITHOUT_REFINEMENT (Phase 4b, need
-// `refines` / `abstract`), BAL_ASSET_NOT_REALISED (Phase 6),
-// BAL_DUPLICATE_DISPLAY_ID (covered by the existing duplicate-id check).
+// Not here: BAL_ASSET_NOT_REALISED (Phase 6), BAL_DUPLICATE_DISPLAY_ID
+// (covered by the existing duplicate-id check).
 
 import type {
   DFDConnection,
@@ -67,6 +66,10 @@ export const LEVELED_SEVERITY: Record<string, LeveledSeverity> = {
   BAL_HOME_NOT_HIGHEST: "info",
   BAL_LABEL_DIVERGENCE: "warning",
   BAL_MISSING_PARENT_FLOW: "warning",
+  BAL_REFINES_CYCLE: "error",
+  BAL_REFINES_TARGET_MISSING: "error",
+  BAL_REFINES_INCOMPATIBLE: "warning",
+  BAL_ABSTRACT_WITHOUT_REFINEMENT: "warning",
   ID_PASTE_REASSIGNED: "info",
 };
 
@@ -201,6 +204,36 @@ function effectiveFinding(
         },
       });
       return;
+    case "BAL_REFINES_TARGET_MISSING":
+      push(finding.code, {
+        ...flow(finding.tfId),
+        params: { flow: names.flow(finding.tfId), target: finding.target },
+      });
+      return;
+    case "BAL_REFINES_INCOMPATIBLE":
+      push(finding.code, {
+        ...flow(finding.tfId),
+        params: {
+          flow: names.flow(finding.tfId),
+          target: names.flow(finding.target),
+        },
+      });
+      return;
+    case "BAL_REFINES_CYCLE":
+      push(finding.code, {
+        ...flow(finding.tfId),
+        params: {
+          flow: names.flow(finding.tfId),
+          cycle: finding.cycle.map((c) => names.flow(c)).join(" → "),
+        },
+      });
+      return;
+    case "BAL_ABSTRACT_WITHOUT_REFINEMENT":
+      push(finding.code, {
+        ...flow(finding.tfId),
+        params: { flow: names.flow(finding.tfId) },
+      });
+      return;
     case "DFD_EE_TO_EE_FLOW":
       push(finding.code, {
         ...flow(finding.tfId),
@@ -291,7 +324,8 @@ function labelDivergence(
 /**
  * BAL_MISSING_PARENT_FLOW: a flow defined on the child page of M crosses
  * M's border (one drawn end inside M, the other outside) but has no
- * occurrence on M's page. (`refines` as a substitute comes in Phase 4b.)
+ * occurrence on M's page and no valid `refines` (a valid refinement is the
+ * substitute, D2; an invalid one counts as absent, §6.4).
  */
 function missingParentFlows(
   input: LeveledFindingsInput,
@@ -308,6 +342,9 @@ function missingParentFlows(
     }
     return false;
   };
+  const refinedValidly = new Set(
+    model.flows.filter((f) => f.refines?.valid).map((f) => f.tfId),
+  );
   const pagesOf = new Map<string, Set<string>>();
   for (const o of input.parse.occurrences) {
     if (o.kind !== "connection") continue;
@@ -322,6 +359,7 @@ function missingParentFlows(
     if (!mp || !parentPage) continue;
     if (inside(o.sourceTfId, mp) === inside(o.targetTfId, mp)) continue;
     if (pagesOf.get(o.tfId)?.has(parentPage)) continue;
+    if (refinedValidly.has(o.tfId)) continue;
     push("BAL_MISSING_PARENT_FLOW", {
       elementId: o.tfId,
       displayId: names.displayId("connection", o.tfId),

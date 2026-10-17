@@ -422,6 +422,7 @@
           "context": "Context",
           "security": "Security",
           "documentation": "Documentation",
+          "leveling": "Leveling",
           "hardware_security": "Hardware Security",
           "physical_security": "Physical Security",
           "implemented_controls": "Implemented Controls",
@@ -1386,6 +1387,15 @@
             "hint": "High risk for: Tampering, Information Disclosure, Denial of Service"
           },
           "fields": {
+            "refines": {
+              "label": "Refines",
+              "none": "— none —",
+              "helper": "A further channel of a parent-level flow. Both keep their own threats; a valid refinement balances the parent flow."
+            },
+            "abstract": {
+              "label": "Abstract (umbrella flow, no threats of its own)",
+              "helper": "Takes effect once at least one flow validly refines it; until then the flow keeps its threats."
+            },
             "excludeFromThreatGen": {
               "label": "Exclude from automated threat generation",
               "warning_no_trust": "Excluding a flow without marking it as Assumed Trusted may hide real threats. Add a trust rationale above."
@@ -2752,7 +2762,11 @@
       "BAL_HOME_NOT_HIGHEST": "{{element}} is defined on \"{{page}}\" but also appears on the higher page \"{{highest}}\"; consider moving its definition up.",
       "BAL_LABEL_DIVERGENCE": "The occurrences of {{element}} carry different labels: {{labels}}.",
       "BAL_MISSING_PARENT_FLOW": "Flow {{flow}} crosses the border of {{element}} but is not drawn on the parent page \"{{page}}\".",
-      "ID_PASTE_REASSIGNED": "{{element}} on page \"{{page}}\" was pasted and is now an element of its own; run auto-numbering to give it its own ID."
+      "ID_PASTE_REASSIGNED": "{{element}} on page \"{{page}}\" was pasted and is now an element of its own; run auto-numbering to give it its own ID.",
+      "BAL_REFINES_TARGET_MISSING": "Flow {{flow}} refines \"{{target}}\", which does not exist; the refinement does not count.",
+      "BAL_REFINES_CYCLE": "Flow {{flow}}: the refinements form a cycle ({{cycle}}); the refinement does not count.",
+      "BAL_REFINES_INCOMPATIBLE": "Flow {{flow}} does not fit the flow it refines ({{target}}): its endpoints must equal or lie inside the target's endpoints, same direction. Analysed normally; the refinement does not count.",
+      "BAL_ABSTRACT_WITHOUT_REFINEMENT": "Flow {{flow}} is abstract but has no valid refining flow; it keeps its own threats until a flow refines it."
     }
   },
   "levels": {

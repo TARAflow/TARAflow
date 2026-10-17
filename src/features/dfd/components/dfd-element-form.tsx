@@ -16,7 +16,10 @@ import { ExternalEntityDescriptionForm } from "./forms/external-entity-form";
 import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
 import { InterfaceDescriptionForm } from "./forms/interface-description-form";
 import { TrustBoundaryDescriptionForm } from "./forms/trust-boundary-form";
-import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
+import {
+  DataFlowDescriptionForm,
+  type RefinementCandidate,
+} from "./forms/dataflow-description-form";
 import { ChipBoundaryDescriptionForm } from "./forms/chip-boundary-form";
 import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form";
 import { SensorDescriptionForm } from "./forms/sensor-description-form";
@@ -32,6 +35,8 @@ interface DFDElementFormProps {
   crossesTrustBoundary?: boolean; // For DataFlow
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   graphContext?: DFDGraphAnalysisContext | null;
+  /** Leveled DFD: flows a data flow may refine (§6.4); absent = single page. */
+  refinementCandidates?: RefinementCandidate[];
 }
 
 // ==================== COMPONENT ====================
@@ -44,6 +49,7 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
   crossesTrustBoundary = false,
   onCreateAsset,
   graphContext,
+  refinementCandidates,
 }) => {
   // ==================== DATA FLOW (Connection) ====================
 
@@ -58,6 +64,7 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
           graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
           undefined
         }
+        refinementCandidates={refinementCandidates}
       />
     );
   }

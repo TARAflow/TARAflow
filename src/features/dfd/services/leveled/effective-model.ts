@@ -15,6 +15,12 @@
 //                common ancestor (ambiguous), a decomposed MP nobody drew
 //                below (unresolved) — never "pick one" (§6.2)
 //   state        resolved | fallback (with reasons) | excluded (§6.5)
+//   refinement   (4b) per flow with `refines`: target exists, no cycle,
+//                endpoints compatible with the target's top-most
+//                occurrence (§6.4); only a valid refinement balances its
+//                parent. `abstract` excludes a flow once at least one valid
+//                refinement exists — without one it is analysed normally
+//                (D10: never drop threats silently)
 //
 //   interfaces   (2b, with page geometry) per flow the interfaces its
 //                occurrences cross, attributed to the source or target side
@@ -39,7 +45,7 @@ import type { PageTree } from "./page-tree";
 
 export type FallbackReason = "ambiguous" | "dangling" | "unresolved";
 export type FlowState = "resolved" | "fallback" | "excluded";
-export type ExclusionReason = "ee-to-ee" | "excluded-by-property";
+export type ExclusionReason = "ee-to-ee" | "excluded-by-property" | "abstract";
 
 export interface EffectiveFlow {
   tfId: string;
@@ -52,6 +58,8 @@ export interface EffectiveFlow {
   /** All collected reasons, for diagnosis. */
   fallbackReasons?: FallbackReason[];
   excludedReason?: ExclusionReason;
+  /** `refines` of the flow (§6.4, 4b); valid = counts for balancing. */
+  refines?: { target: string; valid: boolean };
   /** Crossed interfaces, ordered by side, then level (outer → inner). 2b. */
   interfaces?: EffectiveInterface[];
 }
@@ -105,6 +113,10 @@ export type EffectiveFinding =
     }
   | { code: "BAL_DANGLING_REF"; kind: ParsedOccurrence["kind"]; tfId: string }
   | { code: "DFD_EE_TO_EE_FLOW"; tfId: string }
+  | { code: "BAL_REFINES_TARGET_MISSING"; tfId: string; target: string }
+  | { code: "BAL_REFINES_CYCLE"; tfId: string; cycle: string[] }
+  | { code: "BAL_REFINES_INCOMPATIBLE"; tfId: string; target: string }
+  | { code: "BAL_ABSTRACT_WITHOUT_REFINEMENT"; tfId: string }
   | {
       code: "BAL_INTERFACE_UNATTRIBUTED";
       tfId: string;
@@ -412,6 +424,15 @@ export function buildEffectiveModel(
     flows.push(flow);
   }
 
+  applyRefinements(
+    flows,
+    connections,
+    occurrencesOf,
+    tree,
+    isAncestorOrSelf,
+    findings,
+  );
+
   // ---- trust boundary nesting (home page geometry) -------------------------
   let trustBoundaryParent: Map<string, string | undefined> | undefined;
   if (pageGeometry) {
@@ -444,6 +465,103 @@ export function buildEffectiveModel(
     ...(trustBoundaryParent ? { trustBoundaryParent } : {}),
     findings,
   };
+}
+
+/**
+ * `refines` and `abstract` (§6.4, Phase 4b), after all flows are resolved.
+ *
+ *   target missing  the refined tfId is no flow (or the flow itself)
+ *   cycle           following `refines` leads back to the flow
+ *   incompatible    a resolved endpoint of the refining flow is neither the
+ *                   endpoint of the target's top-most occurrence nor inside
+ *                   it (same direction; EEs identical)
+ *
+ * Only a valid refinement counts (balancing, the abstract exclusion); an
+ * invalid one leaves the flow analysed as if `refines` were absent. An
+ * abstract flow is excluded once it has a valid refinement; without one it
+ * keeps its threats and gets BAL_ABSTRACT_WITHOUT_REFINEMENT.
+ */
+function applyRefinements(
+  flows: EffectiveFlow[],
+  connections: readonly DFDConnection[],
+  occurrencesOf: ReadonlyMap<string, ParsedOccurrence[]>,
+  tree: PageTree,
+  isAncestorOrSelf: (ancestor: string, id: string) => boolean,
+  findings: EffectiveFinding[],
+): void {
+  const props = (c: DFDConnection) =>
+    (c.properties as Record<string, unknown> | undefined) ?? {};
+  const refinesOf = new Map<string, string>();
+  const abstract = new Set<string>();
+  for (const c of connections) {
+    const target = props(c)["refines"];
+    if (typeof target === "string" && target.trim() !== "") {
+      refinesOf.set(c.id, target.trim());
+    }
+    if (props(c)["abstract"] === true) abstract.add(c.id);
+  }
+  if (refinesOf.size === 0 && abstract.size === 0) return;
+
+  const flowById = new Map(flows.map((f) => [f.tfId, f]));
+  const topMost = (tfId: string) =>
+    [...(occurrencesOf.get(tfId) ?? [])].sort(
+      (a, b) =>
+        (tree.depthOf.get(a.pageId) ?? Infinity) -
+        (tree.depthOf.get(b.pageId) ?? Infinity),
+    )[0];
+
+  const validRefinements = new Map<string, number>(); // target → count
+  for (const [tfId, target] of refinesOf) {
+    const flow = flowById.get(tfId);
+    if (!flow) continue;
+    let valid = false;
+
+    if (target === tfId || !flowById.has(target)) {
+      if (target === tfId) {
+        findings.push({ code: "BAL_REFINES_CYCLE", tfId, cycle: [tfId] });
+      } else {
+        findings.push({ code: "BAL_REFINES_TARGET_MISSING", tfId, target });
+      }
+    } else {
+      const chain = [tfId];
+      let next: string | undefined = target;
+      while (next !== undefined && next !== tfId && !chain.includes(next)) {
+        chain.push(next);
+        next = refinesOf.get(next);
+      }
+      if (next === tfId) {
+        findings.push({ code: "BAL_REFINES_CYCLE", tfId, cycle: chain });
+      } else {
+        const top = topMost(target);
+        const compatible =
+          !!top &&
+          isAncestorOrSelf(top.sourceTfId ?? "", flow.from) &&
+          isAncestorOrSelf(top.targetTfId ?? "", flow.to);
+        if (compatible) valid = true;
+        else {
+          findings.push({ code: "BAL_REFINES_INCOMPATIBLE", tfId, target });
+        }
+      }
+    }
+
+    flow.refines = { target, valid };
+    if (valid) {
+      validRefinements.set(target, (validRefinements.get(target) ?? 0) + 1);
+    }
+  }
+
+  for (const tfId of abstract) {
+    const flow = flowById.get(tfId);
+    if (!flow || flow.state === "excluded") continue;
+    if ((validRefinements.get(tfId) ?? 0) === 0) {
+      findings.push({ code: "BAL_ABSTRACT_WITHOUT_REFINEMENT", tfId });
+      continue;
+    }
+    flow.state = "excluded";
+    flow.excludedReason = "abstract";
+    delete flow.fallbackReason;
+    delete flow.fallbackReasons;
+  }
 }
 
 /**

@@ -1385,6 +1385,20 @@ export interface DataFlowProperties {
   excludeFromThreatGenRationale?: string;
 
   /**
+   * Leveled DFD (leveled-dfd-multi-diagram-design.md §6.4, D2): this flow
+   * refines the parent-level flow with this tfId (a further channel of the
+   * same exchange). Balancing and roll-up only — both flows keep their own
+   * threats. Ignored on a single page.
+   */
+  refines?: string;
+  /**
+   * Leveled DFD (§6.4): pure umbrella flow whose real traffic is in its
+   * refining flows — no threats of its own once at least one valid
+   * refinement exists. Ignored on a single page.
+   */
+  abstract?: boolean;
+
+  /**
    * Audit trail of security controls intentionally applied to this element.
    * Managed via DFDNotificationsPanel Apply or manual analyst entry.
    * @see SecurityControlRecord

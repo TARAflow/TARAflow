@@ -19,6 +19,7 @@ import type { DFDConnection, DFDElement } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
+import type { RefinementCandidate } from "./forms/dataflow-description-form";
 import type { AssetUsageLookup } from "shared";
 import { AssetPanel } from "./dfd-asset-panel";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
@@ -73,6 +74,8 @@ interface DFDDetailsPanelProps {
   assetUsage?: AssetUsageLookup;
   /** Reports the asset tree selection (asset graph view, FR-V8). */
   onSelectedAssetChange?: (assetId: string | null) => void;
+  /** Leveled DFD: flows a data flow may refine (§6.4); absent = single page. */
+  refinementCandidates?: RefinementCandidate[];
 }
 
 // ==================== COMPONENT ====================
@@ -100,6 +103,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   focusAssetRequest,
   assetUsage,
   onSelectedAssetChange,
+  refinementCandidates,
 }) => {
   const { t } = useTranslation();
 
@@ -310,6 +314,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                   crossesTrustBoundary={crossesTrustBoundary}
                   onCreateAsset={onCreateAsset}
                   graphContext={graphContext}
+                  refinementCandidates={refinementCandidates}
                 />
               </Box>
             )}
