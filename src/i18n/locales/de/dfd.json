@@ -2633,7 +2633,8 @@
           "title": "Unterseite auch löschen?",
           "text": "Der Multiprozess, den die Seite \"{{page}}\" detailliert, wurde gelöscht. Soll die Seite ebenfalls gelöscht werden? Ihr Inhalt wird mit gelöscht (rückgängig in draw.io).",
           "keep": "Seite behalten",
-          "delete": "Seite löschen"
+          "delete": "Seite löschen",
+          "error": "draw.io hat die Seite nicht gelöscht ({{error}}). Löschen Sie sie in draw.io (Rechtsklick auf den Tab) oder behalten Sie sie."
         },
         "detailedOn": "Detailliert auf Seite \"{{page}}\" — Doppelklick auf den Multiprozess öffnet sie.",
         "create": "Unterseite anlegen",

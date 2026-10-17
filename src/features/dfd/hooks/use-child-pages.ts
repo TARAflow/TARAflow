@@ -54,8 +54,12 @@ export interface UseChildPagesReturn {
   settling: boolean;
   /** Child pages whose multiprocess was deleted and not decided yet (5e). */
   orphanPages: OrphanPage[];
-  /** Delete the orphan page in draw.io, or keep it (asked once per session). */
-  resolveOrphan: (pageId: string, removePage: boolean) => Promise<void>;
+  /**
+   * Delete the orphan page in draw.io, or keep it (asked once per session).
+   * Resolves to an error text if draw.io did not delete the page — the
+   * question stays then.
+   */
+  resolveOrphan: (pageId: string, removePage: boolean) => Promise<string | null>;
   /** "Create child page" for a multiprocess without one; false if impossible. */
   decompose: (tfId: string) => boolean;
 }
@@ -261,16 +265,20 @@ export function useChildPages(
   }, [enabled, xml, pages, project.dfd?.elements, syncPages, savePages, setNoChildPage, nonce]);
 
   const resolveOrphan = useCallback(
-    async (pageId: string, removePage: boolean) => {
+    async (pageId: string, removePage: boolean): Promise<string | null> => {
+      if (removePage) {
+        // The deleted page then leaves dfd.pages like any page deleted in
+        // draw.io (see above).
+        const result = await syncPages({ create: [], rename: [], remove: [pageId] });
+        if (!result.success || result.errors?.length) {
+          const error = result.error ?? result.errors!.join("; ");
+          console.warn("[useChildPages] draw.io could not delete the page:", error, result);
+          return error;
+        }
+      }
       askedRef.current.add(pageId);
       setOrphanPages((current) => current.filter((o) => o.pageId !== pageId));
-      if (!removePage) return;
-      // The deleted page then leaves dfd.pages like any page deleted in
-      // draw.io (see above).
-      const result = await syncPages({ create: [], rename: [], remove: [pageId] });
-      if (!result.success || result.errors?.length) {
-        console.warn("[useChildPages] draw.io could not delete the page:", result.error, result.errors);
-      }
+      return null;
     },
     [syncPages],
   );

@@ -437,12 +437,22 @@ export function registerDrawioHandlers() {
             graph.setLinkForCell(cell, 'data:page/id,' + l.target);
           });
           // Child pages the analyst chose to delete with their MP (5e).
+          // removePage does nothing while the graph is not enabled; then the
+          // same undoable ChangePage it would execute is executed directly.
           (spec.remove || []).forEach(function(pageId) {
             var page = find(pageId);
             if (!page) return;
-            if (typeof ui.removePage !== 'function') { errors.push('removePage not available'); return; }
-            ui.removePage(page);
-            if (find(pageId)) errors.push('page not removed (diagram not editable?): ' + pageId);
+            var before = ui.pages.length;
+            if (typeof ui.removePage === 'function') ui.removePage(page);
+            if (find(pageId) && typeof ChangePage === 'function' && ui.pages.length > 1) {
+              var next = ui.currentPage !== page ? ui.currentPage :
+                ui.pages[(ui.pages.indexOf(page) + 1) % ui.pages.length];
+              ui.editor.graph.model.execute(new ChangePage(ui, page, next));
+            }
+            if (find(pageId)) {
+              errors.push('page not removed: ' + pageId + ' (graph enabled: ' +
+                ui.editor.graph.isEnabled() + ', pages: ' + before + ' -> ' + ui.pages.length + ')');
+            }
           });
           (spec.rename || []).forEach(function(r) {
             var page = find(r.pageId);

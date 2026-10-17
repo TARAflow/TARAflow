@@ -25,15 +25,23 @@ describe("OrphanPageDialog", () => {
   ];
 
   it("asks about the first page and deletes it on request", () => {
-    const onResolve = vi.fn();
+    const onResolve = vi.fn(async () => null);
     render(<OrphanPageDialog orphans={orphans} onResolve={onResolve} />);
     expect(screen.getByText(/page "Gateway" was deleted/)).toBeTruthy();
     fireEvent.click(screen.getByTestId("orphan-delete"));
     expect(onResolve).toHaveBeenCalledWith("gw", true);
   });
 
+  it("stays open and shows the error when draw.io did not delete the page", async () => {
+    const onResolve = vi.fn(async () => "page not removed: gw");
+    render(<OrphanPageDialog orphans={orphans} onResolve={onResolve} />);
+    fireEvent.click(screen.getByTestId("orphan-delete"));
+    expect((await screen.findByTestId("orphan-error")).textContent).toContain("page not removed: gw");
+    expect(screen.getByTestId("orphan-page-dialog")).toBeTruthy();
+  });
+
   it("keeps the page", () => {
-    const onResolve = vi.fn();
+    const onResolve = vi.fn(async () => null);
     render(<OrphanPageDialog orphans={orphans} onResolve={onResolve} />);
     fireEvent.click(screen.getByTestId("orphan-keep"));
     expect(onResolve).toHaveBeenCalledWith("gw", false);

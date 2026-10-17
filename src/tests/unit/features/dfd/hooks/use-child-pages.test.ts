@@ -315,6 +315,25 @@ describe("useChildPages", () => {
       expect(result.current.orphanPages).toEqual([]);
     });
 
+    it("keeps asking and reports the error when draw.io did not delete the page", async () => {
+      const xml = mxfile(page("p1", "Top", EE), page("gw", "Gateway", ""));
+      const o = {
+        ...opts(),
+        syncPages: vi.fn(async (_spec: DrawioPageSyncSpec) => ({
+          success: true,
+          errors: ["page not removed: gw (graph enabled: false, pages: 2 -> 2)"],
+        })),
+      };
+      const { result } = renderHook(() => useChildPages(project(xml, pages), o));
+      await waitFor(() => expect(result.current.orphanPages).toHaveLength(1));
+      let error: string | null = null;
+      await act(async () => {
+        error = await result.current.resolveOrphan("gw", true);
+      });
+      expect(error).toContain("page not removed");
+      expect(result.current.orphanPages).toHaveLength(1);
+    });
+
     it("keeps the page when the analyst says so, and does not ask again", async () => {
       const xml = mxfile(page("p1", "Top", EE), page("gw", "Gateway", ""));
       const o = opts();

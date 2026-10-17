@@ -1266,7 +1266,10 @@ page selector in the preview panel (§12.1, D18).
     (`orphans`; a dangling MP keeps its record from its copies and is no orphan). The DFD tab asks
     once per page and session: *Delete page* (`drawio:syncPages` `remove`, draw.io `removePage`;
     the entry then leaves `dfd.pages` like any page deleted in draw.io) or *Keep page* (it reports
-    `PAGE_DECOMPOSES_UNKNOWN` until it is deleted or the MP is drawn again).
+    `PAGE_DECOMPOSES_UNKNOWN` until it is deleted or the MP is drawn again). Fix after first use:
+    `removePage` silently does nothing while the graph is not enabled — the script then executes
+    the same undoable `ChangePage` directly, reports `graphEnabled` and the page counts if the page
+    is still there, and the dialog stays open with the error instead of closing.
   - **"Create child page"** in the details panel of a multiprocess without one — the "Decompose…"
     of §12 for multiprocesses the automatic rule leaves out (classic project, MP that existed at
     opening, `noChildPage`). Clears `noChildPage`; refused for an MP that already has a page.

@@ -1055,7 +1055,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       {/* Leveled DFD: delete the child page of a deleted multiprocess? (5e) */}
       <OrphanPageDialog
         orphans={childPages.orphanPages}
-        onResolve={(pageId, remove) => void childPages.resolveOrphan(pageId, remove)}
+        onResolve={childPages.resolveOrphan}
       />
 
       {/* Leveled DFD: adoption / pasted-copy assignment (5b) */}

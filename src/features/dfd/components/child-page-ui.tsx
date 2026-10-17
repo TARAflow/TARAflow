@@ -23,13 +23,23 @@ import type { OrphanPage } from "../services/leveled";
 export interface OrphanPageDialogProps {
   /** Pages still to decide; the first one is asked. */
   orphans: OrphanPage[];
-  onResolve: (pageId: string, removePage: boolean) => void;
+  /** Resolves to an error text when draw.io did not delete the page. */
+  onResolve: (pageId: string, removePage: boolean) => Promise<string | null> | void;
 }
 
 export const OrphanPageDialog: React.FC<OrphanPageDialogProps> = ({ orphans, onResolve }) => {
   const { t } = useTranslation();
+  const [error, setError] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
   const orphan = orphans[0];
+  React.useEffect(() => setError(null), [orphan?.pageId]);
   if (!orphan) return null;
+  const resolve = async (removePage: boolean) => {
+    setBusy(true);
+    const result = await onResolve(orphan.pageId, removePage);
+    setBusy(false);
+    setError(result ?? null);
+  };
   return (
     <Dialog open maxWidth="xs" fullWidth data-testid="orphan-page-dialog">
       <DialogTitle>
@@ -43,15 +53,25 @@ export const OrphanPageDialog: React.FC<OrphanPageDialogProps> = ({ orphans, onR
             page: orphan.name,
           })}
         </Typography>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }} data-testid="orphan-error">
+            {t("tabs.dfd.childPages.orphan.error", {
+              defaultValue:
+                "draw.io did not delete the page ({{error}}). Delete it in draw.io (right-click on the tab) or keep it.",
+              error,
+            })}
+          </Alert>
+        )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => onResolve(orphan.pageId, false)} data-testid="orphan-keep">
+        <Button disabled={busy} onClick={() => void resolve(false)} data-testid="orphan-keep">
           {t("tabs.dfd.childPages.orphan.keep", { defaultValue: "Keep page" })}
         </Button>
         <Button
           color="error"
           variant="contained"
-          onClick={() => onResolve(orphan.pageId, true)}
+          disabled={busy}
+          onClick={() => void resolve(true)}
           data-testid="orphan-delete"
         >
           {t("tabs.dfd.childPages.orphan.delete", { defaultValue: "Delete page" })}

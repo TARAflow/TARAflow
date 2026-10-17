@@ -2646,7 +2646,8 @@
           "title": "Delete the child page too?",
           "text": "The multiprocess detailed on page \"{{page}}\" was deleted. Delete the page as well? Its contents are deleted with it (undo in draw.io).",
           "keep": "Keep page",
-          "delete": "Delete page"
+          "delete": "Delete page",
+          "error": "draw.io did not delete the page ({{error}}). Delete it in draw.io (right-click on the tab) or keep it."
         },
         "detailedOn": "Detailed on page \"{{page}}\" — double-click the multiprocess to open it.",
         "create": "Create child page",
