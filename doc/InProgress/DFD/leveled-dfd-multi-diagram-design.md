@@ -1251,9 +1251,17 @@ page selector in the preview panel (§12.1, D18).
     brings the page, so it arrives adopted). Guards: one sync at a time, one attempt per MP and
     per rename per session; when draw.io refuses, a classic project stays classic (no *Top*, no
     `dfd.pages`). `settling` hides the page-repair hint while the new page is on its way.
+  - **Deleted child page** (decided 2026-10-17, "stays away"): a child page deleted in draw.io
+    leaves `dfd.pages` automatically (the XML says which pages exist) — no `PAGE_MISSING` that
+    only a dialog could clear. If its multiprocess still exists, it gets
+    `MultiprocessProperties.noChildPage` and no page automatically again; "Decompose…" (5e)
+    creates one explicitly. A page created in this session counts as on its way (`settling`)
+    only until it has appeared in the saved XML once — before that it is never taken for deleted
+    (fix: the first version kept a deleted page "settling" for ever, which hid the repair hint).
   - Consequence of D17 for leveled projects saved before 5d: their root page is renamed to *Top*
     when they are opened.
-  - Open (5e): asking on MP deletion whether to delete its page, "Decompose…" / "Sync context",
+  - Open (5e): asking on MP deletion whether to delete its page (today the page stays and
+    reports `PAGE_DECOMPOSES_UNKNOWN` until it is deleted in draw.io), "Decompose…" / "Sync context",
     page links on copies drawn later.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo

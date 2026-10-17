@@ -255,10 +255,25 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const pageOutline = usePageOutline(project.dfd, editor.validation);
 
   // Leveled DFD (5d, D15–D17): child page per new multiprocess, tab names.
+  const { updateElementDescription } = editor;
+  const projectElements = project.dfd?.elements;
+  const markNoChildPage = useCallback(
+    (tfId: string) => {
+      const mp = projectElements?.find((e) => e.id === tfId);
+      if (!mp) return;
+      updateElementDescription(tfId, {
+        // MultiprocessProperties.noChildPage; the element's union type has
+        // no multiprocess member of its own.
+        properties: { ...mp.properties, noChildPage: true } as unknown as typeof mp.properties,
+      });
+    },
+    [projectElements, updateElementDescription],
+  );
   const childPages = useChildPages(project, {
     enabled: editor.pluginReady,
     syncPages: editor.syncPages,
     savePages: editor.savePages,
+    markNoChildPage,
   });
 
   // Adopted pages the tree cannot use — repaired with the same dialog. Not

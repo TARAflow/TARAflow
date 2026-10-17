@@ -256,6 +256,13 @@ export interface ProcessProperties {
 
 // ==================== MULTI PROCESS PROPERTIES ====================
 export interface MultiprocessProperties {
+  /**
+   * Leveled DFD (leveled-dfd-multi-diagram-design.md §5.3, D15, 5d): the
+   * analyst deleted this multiprocess's child page — it gets no page
+   * automatically again ("Decompose…" creates one explicitly).
+   */
+  noChildPage?: boolean;
+
   // ── System Class (primary field) ─────────────────────────────────────────
   /**
    * Overarching system class — determines visible form fields and applicable

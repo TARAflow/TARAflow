@@ -8,12 +8,16 @@ import type { DFDPage, DFDProjectData, DFDUpdateResult } from "features/dfd/mode
 import type { DrawioPageSyncSpec } from "features/dfd/services/drawio-bridge";
 import { mxfile, node, page } from "../../../../fixtures/leveled-dfd-xml";
 
-const project = (xml: string, pages?: DFDPage[]): DFDProjectData =>
+const project = (
+  xml: string,
+  pages?: DFDPage[],
+  elements: { id: string; type: string; properties?: object }[] = [],
+): DFDProjectData =>
   ({
     id: "p-child",
     name: "child",
     phaseStatus: {},
-    dfd: { xml, pages, elements: [], connections: [], assets: [] },
+    dfd: { xml, pages, elements, connections: [], assets: [] },
   }) as unknown as DFDProjectData;
 
 const EE = node("ee", "externalentity", "User", "EE-1", 10);
@@ -23,7 +27,13 @@ const WITH_MP = mxfile(page("p1", "Page-1", EE + node("mp", "multiprocess", "Gat
 function setup(syncResult = { success: true }) {
   const syncPages = vi.fn(async (_spec: DrawioPageSyncSpec) => syncResult);
   const savePages = vi.fn(async (_pages: DFDPage[]) => ({}) as DFDUpdateResult);
-  const options = { enabled: true, syncPages, savePages, newPageId: () => "child1" };
+  const options = {
+    enabled: true,
+    syncPages,
+    savePages,
+    markNoChildPage: vi.fn(),
+    newPageId: () => "child1",
+  };
   const hook = renderHook(({ p }: { p: DFDProjectData }) => useChildPages(p, options), {
     initialProps: { p: project(OPENED) },
   });
@@ -57,7 +67,12 @@ describe("useChildPages", () => {
     const syncPages = vi.fn();
     const savePages = vi.fn();
     renderHook(() =>
-      useChildPages(project(WITH_MP), { enabled: true, syncPages, savePages }),
+      useChildPages(project(WITH_MP), {
+        enabled: true,
+        syncPages,
+        savePages,
+        markNoChildPage: vi.fn(),
+      }),
     );
     await new Promise((r) => setTimeout(r, 20));
     expect(syncPages).not.toHaveBeenCalled();
@@ -99,6 +114,7 @@ describe("useChildPages", () => {
         enabled: true,
         syncPages,
         savePages,
+        markNoChildPage: vi.fn(),
         newPageId: () => "child-mine",
       }),
     );
@@ -128,7 +144,12 @@ describe("useChildPages", () => {
     const syncPages = vi.fn();
     const { rerender } = renderHook(
       ({ p }: { p: DFDProjectData }) =>
-        useChildPages(p, { enabled: false, syncPages, savePages: vi.fn() }),
+        useChildPages(p, {
+          enabled: false,
+          syncPages,
+          savePages: vi.fn(),
+          markNoChildPage: vi.fn(),
+        }),
       { initialProps: { p: project(OPENED) } },
     );
     rerender({ p: project(WITH_MP) });
@@ -147,5 +168,78 @@ describe("useChildPages", () => {
     );
     rerender({ p: project(arrived, pages) });
     await waitFor(() => expect(result.current.settling).toBe(false));
+  });
+
+  describe("deleted child pages (reported with 5d)", () => {
+    const pages: DFDPage[] = [
+      { pageId: "p1", name: "Top", order: 0 },
+      { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
+      { pageId: "my", name: "MyProcess", decomposes: "mine", order: 2 },
+    ];
+    const opts = () => ({
+      enabled: true,
+      syncPages: vi.fn(async (_spec: DrawioPageSyncSpec) => ({ success: true })),
+      savePages: vi.fn(async (_pages: DFDPage[]) => ({}) as DFDUpdateResult),
+      markNoChildPage: vi.fn(),
+    });
+
+    it("MP deleted first, then its page: the entry leaves dfd.pages", async () => {
+      const xml = mxfile(
+        page("p1", "Top", EE + node("mp", "multiprocess", "Gateway", "MP-1", 300)),
+        page("gw", "Gateway", ""),
+      );
+      const o = opts();
+      renderHook(() =>
+        useChildPages(project(xml, pages, [{ id: "mp", type: "Multiprocess" }]), o),
+      );
+      await waitFor(() => expect(o.savePages).toHaveBeenCalledTimes(1));
+      expect(o.savePages.mock.calls[0][0].map((p) => p.pageId)).toEqual(["p1", "gw"]);
+      expect(o.markNoChildPage).not.toHaveBeenCalled(); // the MP is gone anyway
+      expect(o.syncPages).not.toHaveBeenCalled();
+    });
+
+    it("page deleted, MP still there: entry removed and the MP keeps no page", async () => {
+      const xml = mxfile(
+        page(
+          "p1",
+          "Top",
+          EE + node("mp", "multiprocess", "Gateway", "MP-1", 300) +
+            node("mine", "multiprocess", "MyProcess", "MP-2", 600),
+        ),
+        page("gw", "Gateway", ""),
+      );
+      const elements = [
+        { id: "mp", type: "Multiprocess" },
+        { id: "mine", type: "Multiprocess" },
+      ];
+      const o = opts();
+      const { rerender } = renderHook(({ p }: { p: DFDProjectData }) => useChildPages(p, o), {
+        initialProps: { p: project(xml, pages, elements) },
+      });
+      await waitFor(() => expect(o.savePages).toHaveBeenCalledTimes(1));
+      expect(o.markNoChildPage).toHaveBeenCalledWith("mine");
+
+      // Saved: entry gone, MP marked — no new page for it.
+      rerender({
+        p: project(xml, pages.slice(0, 2), [
+          { id: "mp", type: "Multiprocess" },
+          { id: "mine", type: "Multiprocess", properties: { noChildPage: true } },
+        ]),
+      });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(o.syncPages).not.toHaveBeenCalled();
+      expect(o.savePages).toHaveBeenCalledTimes(1);
+    });
+
+    it("a page just created and not yet saved is not taken for deleted", async () => {
+      const { rerender, savePages, result } = setup();
+      rerender({ p: project(WITH_MP) });
+      await waitFor(() => expect(savePages).toHaveBeenCalledTimes(1));
+      // dfd.pages has the new page, the saved XML not yet (autosave pending).
+      rerender({ p: project(WITH_MP, savePages.mock.calls[0][0]) });
+      await new Promise((r) => setTimeout(r, 20));
+      expect(savePages).toHaveBeenCalledTimes(1);
+      expect(result.current.settling).toBe(true);
+    });
   });
 });

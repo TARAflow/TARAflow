@@ -27,6 +27,12 @@ export interface UseChildPagesOptions {
   enabled: boolean;
   syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
   savePages: (pages: DFDPage[]) => Promise<DFDUpdateResult | null>;
+  /**
+   * The child page of this multiprocess was deleted: mark it so it gets no
+   * page automatically again (properties.noChildPage). Called before
+   * savePages, which then saves both.
+   */
+  markNoChildPage: (tfId: string) => void;
   /** Page id generator (tests); default: random, draw.io style. */
   newPageId?: () => string;
 }
@@ -43,7 +49,7 @@ export function useChildPages(
   project: DFDProjectData,
   options: UseChildPagesOptions,
 ): UseChildPagesReturn {
-  const { enabled, syncPages, savePages } = options;
+  const { enabled, syncPages, savePages, markNoChildPage } = options;
   const newPageIdRef = useRef(options.newPageId ?? randomPageId);
   const xml = project.dfd?.xml;
   const pages = project.dfd?.pages;
@@ -62,20 +68,60 @@ export function useChildPages(
   const attemptedRef = useRef(new Set<string>());
   // Renames requested: pageId → name.
   const renamedRef = useRef(new Map<string, string>());
-  // Pages created in this session.
+  // Pages created in this session that the saved XML does not show yet
+  // (draw.io's autosave is on its way). Removed once they arrive: a page
+  // that disappears after that was deleted.
   const createdPagesRef = useRef(new Set<string>());
   const busyRef = useRef(false);
   const [settling, setSettling] = useState(false);
 
   useEffect(() => {
     const xmlPageIds = new Set(xml ? inspectDrawioPages(xml).pageIds : []);
-    setSettling([...createdPagesRef.current].some((id) => !xmlPageIds.has(id)));
+    for (const id of [...createdPagesRef.current]) {
+      if (xmlPageIds.has(id)) createdPagesRef.current.delete(id);
+    }
+    setSettling(createdPagesRef.current.size > 0);
 
-    if (!enabled) return skip("draw.io plugin not ready (Electron only)");
     if (!xml) return skip("no saved diagram yet");
     if (busyRef.current) return;
     const layout = inspectDrawioPages(xml, pages?.map((p) => p.pageId));
     if (!layout.supported) return skip("pages wait for adoption (5b)");
+
+    // A child page deleted in draw.io leaves dfd.pages (the XML says which
+    // pages exist). Its multiprocess, if it still exists, keeps no page:
+    // deleting the page was the analyst's decision ("stays away").
+    const deleted = (pages ?? []).filter(
+      (p) => p.decomposes && !xmlPageIds.has(p.pageId) && !createdPagesRef.current.has(p.pageId),
+    );
+    if (deleted.length > 0) {
+      const multiprocesses = new Set(
+        (project.dfd?.elements ?? []).filter((e) => e.type === "Multiprocess").map((e) => e.id),
+      );
+      lastSkipRef.current = null;
+      console.info(
+        "[useChildPages] child page(s) deleted in draw.io, removed from the page tree:",
+        deleted.map((p) => p.name),
+      );
+      busyRef.current = true;
+      void (async () => {
+        try {
+          for (const p of deleted) {
+            if (multiprocesses.has(p.decomposes!)) {
+              attemptedRef.current.add(p.decomposes!);
+              markNoChildPage(p.decomposes!);
+            }
+          }
+          const gone = new Set(deleted.map((p) => p.pageId));
+          await savePages((pages ?? []).filter((p) => !gone.has(p.pageId)));
+        } finally {
+          busyRef.current = false;
+        }
+      })();
+      return;
+    }
+
+    if (!enabled) return skip("draw.io plugin not ready (Electron only)");
+
     if (needsPageReview(xml, pages)) {
       return skip("page tree needs a review (extra root or missing page) or a new page is on its way");
     }
@@ -87,12 +133,21 @@ export function useChildPages(
       );
     }
     const leveled = !!pages && pages.length > 0;
+    // Multiprocesses whose child page the analyst deleted (noChildPage).
+    const optedOut = (project.dfd?.elements ?? [])
+      .filter(
+        (e) =>
+          e.type === "Multiprocess" &&
+          (e.properties as { noChildPage?: boolean } | undefined)?.noChildPage,
+      )
+      .map((e) => e.id);
     const plan = planPageSync({
       parse,
       pages,
       knownMultiprocesses: new Set([
         ...(leveled ? [] : knownRef.current),
         ...attemptedRef.current,
+        ...optedOut,
       ]),
       newPageId: newPageIdRef.current,
     });
@@ -157,7 +212,7 @@ export function useChildPages(
         busyRef.current = false;
       }
     })();
-  }, [enabled, xml, pages, syncPages, savePages]);
+  }, [enabled, xml, pages, project.dfd?.elements, syncPages, savePages, markNoChildPage]);
 
   return { settling };
 }
