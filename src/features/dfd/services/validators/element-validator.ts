@@ -135,7 +135,7 @@ function validateIdLabels(
     if (!typesNeedingIds.includes(element.type)) continue;
 
     const hasDisplayId = Boolean(element.displayId);
-    const hasIdInName = /\[[A-Z]+-?\d+\]/i.test(element.name);
+    const hasIdInName = /\[[A-Z]+-?\d+(?:\.\d+)*\]/i.test(element.name);
 
     if (!hasDisplayId && !hasIdInName) {
       warnings.push({
@@ -367,7 +367,7 @@ export function validateDuplicateIdLabels(
     }
 
     // Also check for [ID] in name
-    const match = element.name.match(/\[([A-Z]+-?\d+)\]/i);
+    const match = element.name.match(/\[([A-Z]+-?\d+(?:\.\d+)*)\]/i);
     if (match) {
       const id = match[1].toUpperCase();
       if (!idLabels.has(id)) {

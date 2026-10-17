@@ -69,6 +69,6 @@ export function getElementIconComponent(
 export function isInterfaceThreat(
   threatId: string | undefined | null
 ): boolean {
-  return typeof threatId === "string" && /-IF\d+-/.test(threatId);
+  return typeof threatId === "string" && /-IF\d+(?:\.\d+)*-/.test(threatId);
   //return trustBoundaryName?.includes("Physical Interfaces") ?? false;
 }

@@ -65,7 +65,7 @@ const attackTreeLanguage = StreamLanguage.define({
     }
 
     // References: [A-001], [T-001], [DS-01]
-    if (stream.match(/\[[A-Z][A-Z0-9-]*\]/)) {
+    if (stream.match(/\[[A-Z][A-Z0-9.-]*\]/)) {
       return "variableName";
     }
 

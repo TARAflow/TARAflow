@@ -74,7 +74,9 @@ export function signatureOf(info: RecordInfo): string | undefined {
     const prefix = ELEMENT_PREFIXES[info.type.toLowerCase()];
     if (!prefix) return undefined;
     const escaped = prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-    if (!new RegExp(`^${escaped}\\d+$`).test(displayId)) return undefined;
+    if (!new RegExp(`^${escaped}\\d+(?:\\.\\d+)*$`).test(displayId)) {
+      return undefined;
+    }
   }
   return `${info.kind}\u0000${info.type}\u0000${displayId}`;
 }

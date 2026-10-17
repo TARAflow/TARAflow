@@ -59,8 +59,9 @@ export function groupElementRisks(
 
     // Group by element within trust boundary
     if (threat?.elementName) {
-      // Extract element info from threatId (e.g., "EE1-S-1" -> "EE1")
-      const elementIdMatch = (risk.threatDisplayId ?? "").match(/^([A-Z]+\d+)/);
+      // Extract element info from threatId (e.g., "EE1-S-1" -> "EE1",
+      // leveled DFDs: "P1.3-S-1" -> "P1.3")
+      const elementIdMatch = (risk.threatDisplayId ?? "").match(/^([A-Z]+\d+(?:\.\d+)*)/);
       const elementId = elementIdMatch ? elementIdMatch[1] : threat.elementName;
 
       // Determine element type from ID prefix

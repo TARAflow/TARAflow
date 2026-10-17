@@ -126,7 +126,8 @@ const isConnectionDescribed = (connection: DFDConnection): boolean => {
   return !!connection.description && connection.description.trim().length > 0;
 };
 
-const GENERIC_ID_PATTERN = /^(P|MP|DS|EE|TB|A|IF|PI|DF)-\d+$/i;
+// Numbers may be hierarchical in leveled DFDs ("P-1.3").
+const GENERIC_ID_PATTERN = /^(P|MP|DS|EE|TB|A|IF|PI|DF)-\d+(?:\.\d+)*$/i;
 
 const formatElementLabel = (
   element: DFDElement,
@@ -146,12 +147,12 @@ const formatElementLabel = (
     return { displayId: name, name: element.type };
   }
 
-  const startMatch = name.match(/^((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+)\s+(.+)$/i);
+  const startMatch = name.match(/^((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+(?:\.\d+)*)\s+(.+)$/i);
   if (startMatch) {
     return { displayId: startMatch[1], name: startMatch[2] };
   }
 
-  const endMatch = name.match(/^(.+?)\s+((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+)$/i);
+  const endMatch = name.match(/^(.+?)\s+((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+(?:\.\d+)*)$/i);
   if (endMatch) {
     return { displayId: endMatch[2], name: endMatch[1] };
   }

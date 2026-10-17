@@ -472,14 +472,15 @@ export class DFDAutoNumbering {
     const cleanValue = value.replace(/<[^>]*>/g, "").trim();
 
     // More flexible patterns that match various formats
+    // Numbers may be hierarchical in leveled DFDs ("P-1.3", "P-1.xx").
     const patterns = [
-      /^P-\d*x*$/i,
-      /^MP-\d*x*$/i,
-      /^DF-\d*x*$/i,
-      /^DS-\d*x*$/i,
-      /^EE-\d*x*$/i,
-      /^A-\d*x*$/i,
-      /^IF-\d*x*$/i,
+      /^P-(?:\d+\.)*\d*x*$/i,
+      /^MP-(?:\d+\.)*\d*x*$/i,
+      /^DF-(?:\d+\.)*\d*x*$/i,
+      /^DS-(?:\d+\.)*\d*x*$/i,
+      /^EE-(?:\d+\.)*\d*x*$/i,
+      /^A-(?:\d+\.)*\d*x*$/i,
+      /^IF-(?:\d+\.)*\d*x*$/i,
     ];
     return patterns.some((p) => p.test(cleanValue));
   }
@@ -630,9 +631,13 @@ export class DFDAutoNumbering {
     // Escape the prefix for regex (e.g., "MP-" needs to escape the "-")
     const escapedPrefix = prefix.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 
-    // Pattern matches: prefix followed by digits and/or x's
-    // e.g., "P-xx", "P-1", "MP-xx", "EE-123", "A-xx"
-    const labelPattern = new RegExp(`${escapedPrefix}[\\dxX]+`, "i");
+    // Pattern matches: prefix followed by digits and/or x's, hierarchical
+    // in leveled DFDs — the whole number is replaced, never only its head
+    // e.g., "P-xx", "P-1", "MP-xx", "EE-123", "A-xx", "P-1.3", "P-1.xx"
+    const labelPattern = new RegExp(
+      `${escapedPrefix}[\\dxX]+(?:\\.[\\dxX]+)*`,
+      "i",
+    );
 
     // Check if the pattern exists in the label
     if (labelPattern.test(currentLabel)) {
@@ -645,7 +650,7 @@ export class DFDAutoNumbering {
     }
 
     // Fallback: Try to find any IdLabel-like pattern and replace
-    const anyLabelPattern = /([PMDS]P?-|DF-|EE-|A-|IF-)[\dxX]+/i;
+    const anyLabelPattern = /([PMDS]P?-|DF-|EE-|A-|IF-)[\dxX]+(?:\.[\dxX]+)*/i;
     if (anyLabelPattern.test(currentLabel)) {
       const result = currentLabel.replace(anyLabelPattern, newLabel);
       console.log(
