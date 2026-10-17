@@ -2632,7 +2632,6 @@
           "page": "Seite",
           "details": "Detailliert Multiprozess",
           "root": "— oberste Ebene —",
-          "noDecomposition": "keinen (Seite bleibt außerhalb des Baums)",
           "status": {
             "root": "oberste Ebene",
             "existing": "übernommen",
@@ -2640,6 +2639,9 @@
             "ambiguous": "mehrdeutig — bitte wählen",
             "unplaced": "kein Vorschlag — bitte wählen"
           },
+          "chooseMultiprocess": "Multiprozess wählen, den diese Seite detailliert…",
+          "noMultiprocess": "Kein Multiprozess mehr frei. Zeichnen Sie den Multiprozess, den diese Seite detailliert, zuerst auf einer höheren Seite, oder löschen Sie die Seite in draw.io.",
+          "unplaced": "Jede Seite außer der obersten Ebene detailliert einen Multiprozess. Bitte wählen für: {{pages}}.",
           "groups": "Dasselbe Element auf mehreren Seiten",
           "noGroups": "Keine Zelle erscheint auf mehr als einer Seite.",
           "element": "Element",
@@ -2651,6 +2653,10 @@
           "apply": "Übernehmen",
           "open": "Seiten übernehmen…",
           "hint": "Dieses Diagramm hat Seiten, die noch nicht übernommen sind. Änderungen werden erst gespeichert, wenn Sie sie übernehmen."
+        },
+        "repair": {
+          "open": "Seiten prüfen…",
+          "hint": "Einige Seiten haben keinen Platz im Seitenbaum (mehrere oberste Seiten oder eine Seite, die nicht mehr existiert)."
         },
         "assignment": {
           "title": "Eingefügte Zellen zuordnen",

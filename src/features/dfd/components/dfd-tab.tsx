@@ -64,6 +64,12 @@ import { refinementCandidatesOf } from "../utils/refinement-candidates";
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
 const DRAWIO_BASE_URL = "https://embed.diagrams.net/?embed=1&spin=1&proto=json&plugins=1&configure=1&modified=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1";
 
+/** Page-tree findings the adoption dialog repairs (leveled DFD 5b). */
+const PAGE_REPAIR_KEYS = new Set([
+  "dfdValidation.leveled.PAGE_MULTIPLE_ROOTS",
+  "dfdValidation.leveled.PAGE_MISSING",
+]);
+
 // ==================== DFD TAB PROPS ====================
 
 export interface DFDTabProps {
@@ -241,6 +247,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     ),
     savePages: editor.savePages,
   });
+  // Adopted pages the tree cannot use — repaired with the same dialog.
+  const pageRepair = [
+    ...(editor.validation?.errors ?? []),
+    ...(editor.validation?.warnings ?? []),
+  ].some((f) => PAGE_REPAIR_KEYS.has(f.key));
 
   const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
     useDFDData(project);
@@ -811,6 +822,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
       <IdentityReviewHints
         adoptionPending={identityReview.adoptionPending}
+        pageRepair={pageRepair}
         pendingCopies={identityReview.pendingCopies}
         onOpenAdoption={identityReview.openAdoption}
         onOpenAssignment={identityReview.openAssignment}

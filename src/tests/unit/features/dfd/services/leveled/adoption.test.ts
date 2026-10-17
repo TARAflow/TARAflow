@@ -198,12 +198,16 @@ describe("applyAdoption — the analyst's decisions", () => {
     });
   });
 
-  it("a page can be set to no decomposition", () => {
-    const result = applyAdoption(proposal, undefined, {
-      decomposes: { ctl: null },
-    });
+  it("refuses a page without decomposition — it would be a second root", () => {
+    expect(
+      applyAdoption(proposal, undefined, { decomposes: { ctl: null } }),
+    ).toEqual({ ok: false, reason: "PAGE_NOT_PLACED", pageId: "ctl" });
+  });
+
+  it("the root page stays without decomposition", () => {
+    const result = applyAdoption(proposal, undefined, {});
     if (!result.ok) throw new Error(result.reason);
-    expect(result.pages.find((p) => p.pageId === "ctl")).not.toHaveProperty(
+    expect(result.pages.find((p) => p.pageId === "sys")).not.toHaveProperty(
       "decomposes",
     );
   });
@@ -302,6 +306,23 @@ describe("proposeAdoption — what is never merged or guessed", () => {
       ["sys", "root", []],
       ["amb", "ambiguous", ["mp1", "mp2"]],
       ["oth", "unplaced", []],
+    ]);
+
+    // An unplaced or ambiguous page is never adopted as a second root: the
+    // analyst has to name the multiprocess it details.
+    expect(applyAdoption(proposal, undefined, {})).toEqual({
+      ok: false,
+      reason: "PAGE_NOT_PLACED",
+      pageId: "amb",
+    });
+    const placed = applyAdoption(proposal, undefined, {
+      decomposes: { amb: "mp1", oth: "mp2" },
+    });
+    if (!placed.ok) throw new Error(placed.reason);
+    expect(placed.pages.map((p) => [p.pageId, p.decomposes])).toEqual([
+      ["sys", undefined],
+      ["amb", "mp1"],
+      ["oth", "mp2"],
     ]);
   });
 

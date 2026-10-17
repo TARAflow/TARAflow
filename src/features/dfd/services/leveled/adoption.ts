@@ -417,19 +417,29 @@ export interface AdoptionDecisions {
   reject?: readonly string[];
   /** Per group key: a different member cell as definition. */
   definition?: Readonly<Record<string, CellRef>>;
-  /** Per page: decomposed MP tfId, or null for "no decomposition / root". */
+  /**
+   * Per page: decomposed MP tfId. null = no decomposition, which is only
+   * valid for the root page — a page without `decomposes` IS a root page.
+   */
   decomposes?: Readonly<Record<string, string | null>>;
 }
 
 export type AdoptionApplyResult =
   | { ok: true; pages: DFDPage[] }
-  | { ok: false; reason: "INVALID_DEFINITION"; groupKey: string };
+  | { ok: false; reason: "INVALID_DEFINITION"; groupKey: string }
+  /**
+   * A page other than the root ends without a decomposed multiprocess. It
+   * would become a second root page (PAGE_MULTIPLE_ROOTS); the analyst has
+   * to choose the multiprocess it details.
+   */
+  | { ok: false; reason: "PAGE_NOT_PLACED"; pageId: string };
 
 /**
  * Write the confirmed proposal into dfd.pages: one entry per XML page (in
  * document order), decomposition per page, `ref` links for the copies and
  * a `definition` link only where the definition's cell id differs from the
  * tfId. Links of cells outside the confirmed groups are kept as they are.
+ * Every page except the root must end with a decomposed multiprocess.
  */
 export function applyAdoption(
   proposal: AdoptionProposal,
@@ -474,11 +484,20 @@ export function applyAdoption(
     }
   }
 
+  const decomposesOf = (p: AdoptionPage) => {
+    const override = decisions.decomposes?.[p.pageId];
+    return override === null ? undefined : (override ?? p.decomposes);
+  };
+  const unplaced = proposal.pages.find(
+    (p) => p.status !== "root" && !decomposesOf(p),
+  );
+  if (unplaced) {
+    return { ok: false, reason: "PAGE_NOT_PLACED", pageId: unplaced.pageId };
+  }
+
   const pages: DFDPage[] = proposal.pages.map((p, index) => {
     const before = persisted.get(p.pageId);
-    const override = decisions.decomposes?.[p.pageId];
-    const decomposes =
-      override === null ? undefined : (override ?? p.decomposes);
+    const decomposes = decomposesOf(p);
     const pageLinks = [...(links.get(p.pageId)?.values() ?? [])];
     return {
       pageId: p.pageId,

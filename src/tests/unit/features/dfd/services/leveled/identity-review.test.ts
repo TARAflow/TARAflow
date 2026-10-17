@@ -9,6 +9,8 @@ import {
   confirmAdoption,
   confirmCopyAssignments,
   isAdoptionPending,
+  misplacedPages,
+  needsPageReview,
   reviewAdoption,
   reviewCopyAssignments,
 } from "features/dfd/services/leveled";
@@ -18,6 +20,7 @@ import {
   LEVELED_PAGES,
   SENSOR,
   SYSTEM,
+  flow,
   mxfile,
   node,
   page,
@@ -91,14 +94,17 @@ describe("adoption — proposal, confirmation, save", () => {
   it("follows the analyst's decisions", () => {
     const review = reviewAdoption(XML, undefined)!;
     const mp2 = review.proposal.groups.find((g) => g.displayId === "MP-2")!;
-    const adopted = confirmAdoption(review, undefined, {
-      reject: [mp2.key],
-      decomposes: { ctl: null },
-    });
+    const adopted = confirmAdoption(review, undefined, { reject: [mp2.key] });
     if (!adopted.ok) throw new Error(adopted.reason);
     const sen = adopted.pages.find((p) => p.pageId === "sen")!;
     expect(sen.links?.some((l) => l.cellId === "sen_mp2")).toBe(false);
-    expect(adopted.pages.find((p) => p.pageId === "ctl")?.decomposes).toBeUndefined();
+    expect(adopted.pages.find((p) => p.pageId === "ctl")?.decomposes).toBe("mp2");
+    // "No decomposition" is not a choice for a child page (second root).
+    expect(confirmAdoption(review, undefined, { decomposes: { ctl: null } })).toEqual({
+      ok: false,
+      reason: "PAGE_NOT_PLACED",
+      pageId: "ctl",
+    });
   });
 });
 
@@ -156,5 +162,81 @@ describe("copy assignment — pasted cells after a save", () => {
     // The copy is now an occurrence of P-2, not an element of its own.
     const parsed = dfdParser.parse(current.xml, result.pages);
     expect(parsed.elements.some((e) => e.id === "ctl_paste")).toBe(false);
+  });
+});
+
+describe("page repair — the state a 'none' decomposition used to write", () => {
+  // Reported with 5b: a new page adopted without a multiprocess became a
+  // second root page (PAGE_MULTIPLE_ROOTS: "System, Page-4").
+  const P4 = page("p4", "Page-4", node("p4_p9", "process", "Logger", "P-9", 10));
+  const XML4 = mxfile(SYSTEM, SENSOR, CONTROLLER, P4);
+  const BROKEN: DFDPage[] = [...LEVELED_PAGES, { pageId: "p4", name: "Page-4", order: 3 }];
+
+  it("an adoption never writes a second root", () => {
+    const review = reviewAdoption(XML4, LEVELED_PAGES)!;
+    expect(review.proposal.pages.find((p) => p.pageId === "p4")?.status).toBe("unplaced");
+    expect(confirmAdoption(review, LEVELED_PAGES, {})).toEqual({
+      ok: false,
+      reason: "PAGE_NOT_PLACED",
+      pageId: "p4",
+    });
+  });
+
+  it("detects extra root pages and missing pages", () => {
+    expect(misplacedPages(XML4, BROKEN)).toEqual({ extraRoots: ["p4"], missing: [] });
+    expect(misplacedPages(XML, LEVELED_PAGES)).toEqual({ extraRoots: [], missing: [] });
+    expect(misplacedPages(mxfile(SYSTEM, SENSOR), LEVELED_PAGES)).toEqual({
+      extraRoots: [],
+      missing: ["ctl"],
+    });
+    expect(needsPageReview(XML4, BROKEN)).toBe(true);
+    expect(needsPageReview(XML, LEVELED_PAGES)).toBe(false);
+  });
+
+  it("places an extra root again and keeps the first root", () => {
+    const review = reviewAdoption(XML4, BROKEN)!;
+    expect(review.proposal.pages.map((p) => [p.pageId, p.status])).toEqual([
+      ["sys", "root"],
+      ["sen", "existing"],
+      ["ctl", "existing"],
+      ["p4", "unplaced"],
+    ]);
+    // P-5 lives on the controller page; MP-1 / MP-2 are taken — the analyst
+    // details a further multiprocess. Here: none left, so p4 is refused…
+    expect(confirmAdoption(review, BROKEN, {}).ok).toBe(false);
+  });
+
+  it("repairs the tree once the page details a multiprocess", () => {
+    const sysWithMp3 = page(
+      "sys",
+      "System",
+      node("mp1", "multiprocess", "Sensor Module", "MP-1", 10) +
+        node("mp2", "multiprocess", "Controller Module", "MP-2", 300) +
+        node("mp3", "multiprocess", "Logger Module", "MP-3", 600) +
+        flow("df7", "stream sensor data", "DF-7", "mp1", "mp2"),
+    );
+    const xml = mxfile(sysWithMp3, SENSOR, CONTROLLER, P4);
+    const review = reviewAdoption(xml, BROKEN)!;
+    const repaired = confirmAdoption(review, BROKEN, { decomposes: { p4: "mp3" } });
+    if (!repaired.ok) throw new Error(repaired.reason);
+    expect(repaired.pages.map((p) => [p.pageId, p.decomposes])).toEqual([
+      ["sys", undefined],
+      ["sen", "mp1"],
+      ["ctl", "mp2"],
+      ["p4", "mp3"],
+    ]);
+    // Links of the other pages survive the repair.
+    const senLinks = repaired.pages.find((p) => p.pageId === "sen")?.links ?? [];
+    expect(senLinks).toHaveLength(LEVELED_PAGES[1].links!.length);
+    expect(senLinks).toEqual(expect.arrayContaining(LEVELED_PAGES[1].links!));
+    expect(needsPageReview(xml, repaired.pages)).toBe(false);
+  });
+
+  it("drops the entry of a page that is gone", () => {
+    const xml = mxfile(SYSTEM, SENSOR);
+    const review = reviewAdoption(xml, LEVELED_PAGES)!;
+    const repaired = confirmAdoption(review, LEVELED_PAGES, {});
+    if (!repaired.ok) throw new Error(repaired.reason);
+    expect(repaired.pages.map((p) => p.pageId)).toEqual(["sys", "sen"]);
   });
 });

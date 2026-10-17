@@ -82,6 +82,8 @@ export {
 } from "./leveled-findings";
 export {
   isAdoptionPending,
+  needsPageReview,
+  misplacedPages,
   reviewAdoption,
   reviewCopyAssignments,
   confirmAdoption,

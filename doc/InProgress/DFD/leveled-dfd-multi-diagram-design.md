@@ -987,7 +987,7 @@ already contain several pages.
   - `proposeAdoption` / `applyAdoption` (§11.2.1): groups, conflicts, label divergence, definition
     with reason (`existing` / `root` / `highest` / `tie-break`), decomposition proposal per page
     (`root` / `existing` / `proposed` / `ambiguous` / `unplaced`, with candidates). Applying takes the
-    analyst's decisions (reject a group, another definition, another or no decomposition) and writes
+    analyst's decisions (reject a group, another definition, another decomposition) and writes
     one `dfd.pages` entry per XML page; a second proposal on an adopted file finds nothing to merge
     and re-applying is a no-op.
   - `proposeCopyAssignments` / `applyCopyAssignments` (§5.2 lifecycle): new plain cells whose
@@ -1196,6 +1196,15 @@ page selector in the preview panel (§12.1, D18).
   - `savePages(pages)` (persistence / editor): immediate save of the current XML with the new
     `dfd.pages`; the XML is not touched. The root page keeps its name; renaming it to *Top* (D17)
     writes the XML and comes with the page tree.
+  - **Fix (found in use):** a page without `decomposes` *is* a root page — there is no "outside
+    the tree". The dialog offered "no decomposition" for an unplaced page and adopted it as a second
+    root (`PAGE_MULTIPLE_ROOTS`). Now `applyAdoption` refuses every non-root page without a
+    decomposed multiprocess (`PAGE_NOT_PLACED`); the dialog requires the choice (only multiprocesses
+    no other page details are offered; none left → the page has to be deleted or its MP drawn first).
+  - **Repair:** the same dialog also opens for adopted entries the tree cannot use — extra root
+    pages and pages gone from the XML (`misplacedPages`, hint *Review pages…* on
+    `PAGE_MULTIPLE_ROOTS` / `PAGE_MISSING`). Extra roots (all but the first by order) are proposed
+    again like unadopted pages, missing entries are dropped; links of all other pages are kept.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

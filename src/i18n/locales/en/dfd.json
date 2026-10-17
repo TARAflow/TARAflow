@@ -2645,7 +2645,6 @@
           "page": "Page",
           "details": "Details multiprocess",
           "root": "— top level —",
-          "noDecomposition": "none (page stays outside the tree)",
           "status": {
             "root": "top level",
             "existing": "adopted",
@@ -2653,6 +2652,9 @@
             "ambiguous": "ambiguous — please choose",
             "unplaced": "no proposal — please choose"
           },
+          "chooseMultiprocess": "Choose the multiprocess this page details…",
+          "noMultiprocess": "No multiprocess left to detail. Draw the multiprocess this page details on a higher page first, or delete the page in draw.io.",
+          "unplaced": "Every page except the top level details a multiprocess. Choose one for: {{pages}}.",
           "groups": "Same element on several pages",
           "noGroups": "No cell appears on more than one page.",
           "element": "Element",
@@ -2664,6 +2666,10 @@
           "apply": "Adopt",
           "open": "Adopt pages…",
           "hint": "This diagram has pages that are not adopted yet. Changes are not saved until you adopt them."
+        },
+        "repair": {
+          "open": "Review pages…",
+          "hint": "Some pages have no place in the page tree (several top-level pages, or a page that no longer exists)."
         },
         "assignment": {
           "title": "Assign pasted cells",

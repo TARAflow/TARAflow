@@ -62,18 +62,62 @@ export function isAdoptionPending(
   return layout.unadoptedPageNames.length > 0 && layout.compressedPageNames.length === 0;
 }
 
+/**
+ * Entries of dfd.pages the page tree cannot use (§5.3): a page without
+ * `decomposes` is a root, so every root after the first (by order, then
+ * document order — as buildPageTree) is an extra root (PAGE_MULTIPLE_ROOTS);
+ * an entry whose page is gone from the XML is missing (PAGE_MISSING).
+ */
+export function misplacedPages(
+  xml: string | null | undefined,
+  pages: readonly DFDPage[] | undefined,
+): { extraRoots: string[]; missing: string[] } {
+  if (!xml || !pages || pages.length === 0) return { extraRoots: [], missing: [] };
+  const docIndex = new Map(
+    inspectDrawioPages(xml).pageIds.map((pageId, index) => [pageId, index]),
+  );
+  const missing = pages.filter((p) => !docIndex.has(p.pageId)).map((p) => p.pageId);
+  const roots = pages
+    .filter((p) => docIndex.has(p.pageId) && p.decomposes === undefined)
+    .sort(
+      (a, b) =>
+        a.order - b.order || (docIndex.get(a.pageId) ?? 0) - (docIndex.get(b.pageId) ?? 0),
+    );
+  return { extraRoots: roots.slice(1).map((p) => p.pageId), missing };
+}
+
+/**
+ * The page tree needs the analyst: unadopted pages, or adopted entries the
+ * tree cannot use (extra roots, missing pages). The same dialog repairs
+ * them — extra roots are placed again like unadopted pages.
+ */
+export function needsPageReview(
+  xml: string | null | undefined,
+  pages: readonly DFDPage[] | undefined,
+): boolean {
+  if (isAdoptionPending(xml, pages)) return true;
+  const { extraRoots, missing } = misplacedPages(xml, pages);
+  return extraRoots.length > 0 || missing.length > 0;
+}
+
 /** Adoption proposal for the current XML; undefined if nothing is pending. */
 export function reviewAdoption(
   xml: string | null | undefined,
   pages: readonly DFDPage[] | undefined,
 ): AdoptionReview | undefined {
-  if (!xml || !isAdoptionPending(xml, pages)) return undefined;
+  if (!xml || !needsPageReview(xml, pages)) return undefined;
+  if (inspectDrawioPages(xml).compressedPageNames.length > 0) return undefined;
   const parse = dfdParser.parse(xml, pages);
+  // Extra roots and missing pages are proposed anew; their links still
+  // apply (parse above) and are kept by applyAdoption.
+  const { extraRoots, missing } = misplacedPages(xml, pages);
+  const drop = new Set([...extraRoots, ...missing]);
+  const persistedPages = pages?.filter((p) => !drop.has(p.pageId));
   return {
     kind: "adoption",
     xml,
     parse,
-    proposal: proposeAdoption({ parse, persistedPages: pages }),
+    proposal: proposeAdoption({ parse, persistedPages }),
   };
 }
 

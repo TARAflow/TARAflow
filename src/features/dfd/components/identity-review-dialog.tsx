@@ -110,8 +110,15 @@ const AdoptionContent: React.FC<
     setError(null);
   }, [review]);
 
+  // Every page except the root details a multiprocess — a page without one
+  // would be a second root (§5.3). Decomposition per page: the analyst's
+  // choice, else the proposal.
+  const chosenDecomposes = (p: { pageId: string; decomposes?: string }) =>
+    decomposes[p.pageId] ?? p.decomposes ?? "";
+
   // Decomposition targets: the proposed candidates first, then every other
-  // multiprocess that is not just a copy of a grouped one.
+  // multiprocess that is not just a copy of a grouped one — without those
+  // another page already details (a multiprocess has one child page).
   const multiprocesses = useMemo(() => {
     const copies = new Set(
       proposal.groups.flatMap((g) => (g.conflictWith ? [] : g.copies.map((c) => c.cellId))),
@@ -119,11 +126,22 @@ const AdoptionContent: React.FC<
     const all = review.parse.elements
       .filter((e) => e.type === "Multiprocess" && !copies.has(e.id))
       .map((e) => e.id);
-    return (candidates: string[]) => [
-      ...candidates,
-      ...all.filter((id) => !candidates.includes(id)),
-    ];
-  }, [proposal.groups, review.parse.elements]);
+    return (pageId: string, candidates: string[]) => {
+      const taken = new Set(
+        proposal.pages
+          .filter((p) => p.pageId !== pageId)
+          .map((p) => decomposes[p.pageId] ?? p.decomposes)
+          .filter(Boolean),
+      );
+      return [...candidates, ...all.filter((id) => !candidates.includes(id))].filter(
+        (id) => !taken.has(id),
+      );
+    };
+  }, [proposal.groups, proposal.pages, review.parse.elements, decomposes]);
+
+  const unplaced = proposal.pages.filter(
+    (p) => p.status !== "root" && chosenDecomposes(p) === "",
+  );
 
   const handleApply = async () => {
     const decisions: AdoptionDecisions = {
@@ -132,7 +150,7 @@ const AdoptionContent: React.FC<
         Object.entries(definition).map(([key, cell]) => [key, parseCellKey(cell)]),
       ),
       decomposes: Object.fromEntries(
-        Object.entries(decomposes).map(([pageId, tfId]) => [pageId, tfId === "" ? null : tfId]),
+        Object.entries(decomposes).filter(([, tfId]) => tfId !== ""),
       ),
     };
     setBusy(true);
@@ -169,6 +187,7 @@ const AdoptionContent: React.FC<
           <TableBody>
             {proposal.pages.map((p) => {
               const fixed = p.status === "root" || p.status === "existing";
+              const options = fixed ? [] : multiprocesses(p.pageId, p.candidates);
               return (
                 <TableRow key={p.pageId} data-testid={`adoption-page-${p.pageId}`}>
                   <TableCell>{p.name || p.pageId}</TableCell>
@@ -177,25 +196,37 @@ const AdoptionContent: React.FC<
                       t("tabs.dfd.identityReview.adoption.root", { defaultValue: "— top level —" })
                     ) : fixed ? (
                       label(p.decomposes)
+                    ) : options.length === 0 ? (
+                      <Typography variant="body2" color="error">
+                        {t("tabs.dfd.identityReview.adoption.noMultiprocess", {
+                          defaultValue:
+                            "No multiprocess left to detail. Draw the multiprocess this page details on a higher page first, or delete the page in draw.io.",
+                        })}
+                      </Typography>
                     ) : (
                       <Select
                         size="small"
                         fullWidth
                         displayEmpty
-                        value={decomposes[p.pageId] ?? p.decomposes ?? ""}
+                        error={chosenDecomposes(p) === ""}
+                        value={chosenDecomposes(p)}
+                        renderValue={(value) =>
+                          value === "" ? (
+                            <em>
+                              {t("tabs.dfd.identityReview.adoption.chooseMultiprocess", {
+                                defaultValue: "Choose the multiprocess this page details…",
+                              })}
+                            </em>
+                          ) : (
+                            label(String(value))
+                          )
+                        }
                         onChange={(e) =>
                           setDecomposes((d) => ({ ...d, [p.pageId]: String(e.target.value) }))
                         }
                         inputProps={{ "data-testid": `adoption-decomposes-${p.pageId}` }}
                       >
-                        <MenuItem value="">
-                          <em>
-                            {t("tabs.dfd.identityReview.adoption.noDecomposition", {
-                              defaultValue: "none (page stays outside the tree)",
-                            })}
-                          </em>
-                        </MenuItem>
-                        {multiprocesses(p.candidates).map((tfId) => (
+                        {options.map((tfId) => (
                           <MenuItem key={tfId} value={tfId}>
                             {label(tfId)}
                           </MenuItem>
@@ -336,6 +367,15 @@ const AdoptionContent: React.FC<
             </TableBody>
           </Table>
         )}
+        {unplaced.length > 0 && (
+          <Alert severity="warning" sx={{ mt: 2 }} data-testid="adoption-unplaced">
+            {t("tabs.dfd.identityReview.adoption.unplaced", {
+              defaultValue:
+                "Every page except the top level details a multiprocess. Choose one for: {{pages}}.",
+              pages: unplaced.map((p) => p.name || p.pageId).join(", "),
+            })}
+          </Alert>
+        )}
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
             {t("tabs.dfd.identityReview.error", {
@@ -352,7 +392,7 @@ const AdoptionContent: React.FC<
         <Button
           variant="contained"
           onClick={handleApply}
-          disabled={busy}
+          disabled={busy || unplaced.length > 0}
           data-testid="identity-review-apply"
         >
           {t("tabs.dfd.identityReview.adoption.apply", { defaultValue: "Adopt" })}
@@ -486,6 +526,11 @@ const AssignmentContent: React.FC<
 
 export interface IdentityReviewHintsProps {
   adoptionPending: boolean;
+  /**
+   * Adopted pages the page tree cannot use (extra root pages, missing
+   * pages) — repaired with the same dialog.
+   */
+  pageRepair?: boolean;
   pendingCopies: number;
   onOpenAdoption: () => void;
   onOpenAssignment: () => void;
@@ -494,12 +539,13 @@ export interface IdentityReviewHintsProps {
 /** Non-blocking hints above the diagram — the dialog's two entry points. */
 export const IdentityReviewHints: React.FC<IdentityReviewHintsProps> = ({
   adoptionPending,
+  pageRepair = false,
   pendingCopies,
   onOpenAdoption,
   onOpenAssignment,
 }) => {
   const { t } = useTranslation();
-  if (!adoptionPending && pendingCopies === 0) return null;
+  if (!adoptionPending && !pageRepair && pendingCopies === 0) return null;
   return (
     <Box>
       {adoptionPending && (
@@ -518,7 +564,23 @@ export const IdentityReviewHints: React.FC<IdentityReviewHintsProps> = ({
           })}
         </Alert>
       )}
-      {!adoptionPending && pendingCopies > 0 && (
+      {!adoptionPending && pageRepair && (
+        <Alert
+          severity="warning"
+          data-testid="page-repair-hint"
+          action={
+            <Button color="inherit" size="small" onClick={onOpenAdoption}>
+              {t("tabs.dfd.identityReview.repair.open", { defaultValue: "Review pages…" })}
+            </Button>
+          }
+        >
+          {t("tabs.dfd.identityReview.repair.hint", {
+            defaultValue:
+              "Some pages have no place in the page tree (several top-level pages, or a page that no longer exists).",
+          })}
+        </Alert>
+      )}
+      {!adoptionPending && !pageRepair && pendingCopies > 0 && (
         <Alert
           severity="info"
           data-testid="assignment-hint"
