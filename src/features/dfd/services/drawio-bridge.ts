@@ -19,6 +19,7 @@ import type {
   PageLinkFix,
   PageRename,
 } from "./leveled/child-pages";
+import type { ContextCopySpec } from "./leveled/context-copies";
 
 /** What draw.io has to do for a page sync (planPageSync, 5e). */
 export interface DrawioPageSyncSpec {
@@ -28,6 +29,8 @@ export interface DrawioPageSyncSpec {
   link?: readonly PageLinkFix[];
   /** Pages to delete (child pages of deleted multiprocesses, on request). */
   remove?: readonly string[];
+  /** Context copies onto child pages (5f), after the pages are created. */
+  context?: readonly ContextCopySpec[];
 }
 
 export interface DrawioPageSyncResult {
@@ -37,6 +40,8 @@ export interface DrawioPageSyncResult {
   created?: string[];
   /** Cells or pages that were not found for a link. */
   errors?: string[];
+  /** Context copies made (5f): original cell → clone on the child page. */
+  copies?: { pageId: string; from: string; to: string }[];
 }
 import DrawioController from "../services/drawio-controller";
 

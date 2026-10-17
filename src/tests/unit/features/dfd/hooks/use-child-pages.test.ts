@@ -6,7 +6,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { useChildPages } from "features/dfd/hooks/use-child-pages";
 import type { DFDPage, DFDProjectData, DFDUpdateResult } from "features/dfd/models/dfd-types";
 import type { DrawioPageSyncSpec } from "features/dfd/services/drawio-bridge";
-import { mxfile, node, page } from "../../../../fixtures/leveled-dfd-xml";
+import { flow, mxfile, node, page } from "../../../../fixtures/leveled-dfd-xml";
 
 const project = (
   xml: string,
@@ -52,6 +52,7 @@ describe("useChildPages", () => {
           { pageId: "child1", name: "Gateway", decomposes: "mp", links: [{ pageId: "p1", cellId: "mp" }] },
         ],
         rename: [],
+        context: [],
       },
       { create: [], rename: [{ pageId: "p1", name: "Top" }], link: [] },
     ]);
@@ -388,6 +389,118 @@ describe("useChildPages", () => {
         useChildPages(project(xml, pages, [{ id: "mp", type: "Multiprocess" }]), o),
       );
       expect(result.current.decompose("mp")).toBe(false);
+    });
+  });
+
+  describe("5f: context copies", () => {
+    // Top: EE-1 --DF-8--> MP "Gateway" (new, gets a page with context).
+    const TOP_XML = mxfile(
+      page(
+        "p1",
+        "Top",
+        EE +
+          node("mp", "multiprocess", "Gateway", "MP-xx", 300) +
+          flow("df8", "commands", "DF-8", "ee", "mp"),
+      ),
+    );
+    const o = () => ({
+      enabled: true,
+      syncPages: vi.fn(async (spec: DrawioPageSyncSpec) => ({
+        success: true,
+        created: spec.create.map((c) => c.pageId),
+        copies: (spec.context ?? []).flatMap((c) =>
+          c.cells.map((cell) => ({ pageId: c.toPageId, from: cell, to: `copy_${cell}` })),
+        ),
+      })),
+      savePages: vi.fn(async (_pages: DFDPage[]) => ({}) as DFDUpdateResult),
+      setNoChildPage: vi.fn(),
+      newPageId: () => "child1",
+    });
+
+    it("copies the context with the new page and links the copies once they are saved", async () => {
+      const opts = o();
+      const { rerender, result } = renderHook(
+        ({ p }: { p: DFDProjectData }) => useChildPages(p, opts),
+        { initialProps: { p: project(mxfile(page("p1", "Top", EE))) } },
+      );
+      rerender({ p: project(TOP_XML) });
+      await waitFor(() => expect(opts.savePages).toHaveBeenCalledTimes(1));
+      const createCall = opts.syncPages.mock.calls.find((c) => c[0].create.length > 0)![0];
+      expect(createCall.context).toEqual([
+        {
+          fromPageId: "p1",
+          toPageId: "child1",
+          cells: ["ee", "df8"],
+          existing: {},
+          tfIdOf: { ee: "ee", df8: "df8" },
+        },
+      ]);
+      // Page saved without links: the copies are not in the saved XML yet.
+      const pages = opts.savePages.mock.calls[0][0];
+      expect(pages.find((p) => p.pageId === "child1")?.links).toBeUndefined();
+      expect(result.current.settling).toBe(true);
+
+      // draw.io's autosave brings page and copies: now they are linked.
+      const arrived = mxfile(
+        page("p1", "Top", EE + node("mp", "multiprocess", "Gateway", "MP-xx", 300) + flow("df8", "commands", "DF-8", "ee", "mp")),
+        page(
+          "child1",
+          "Gateway",
+          node("copy_ee", "externalentity", "User", "EE-1", 10) +
+            `<object label="commands" type="dataflow" id="copy_df8"><mxCell edge="1" parent="1" source="copy_ee"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="40" as="targetPoint"/></mxGeometry></mxCell></object>`,
+        ),
+      );
+      rerender({ p: project(arrived, pages) });
+      await waitFor(() => expect(opts.savePages).toHaveBeenCalledTimes(2));
+      expect(opts.savePages.mock.calls[1][0].find((p) => p.pageId === "child1")?.links).toEqual([
+        { cellId: "copy_ee", tfId: "ee", role: "ref" },
+      ]);
+      // The loose flow is not parsed as an occurrence yet: its link waits.
+      expect(result.current.settling).toBe(true);
+    });
+
+    it("syncs the context of an existing child page on request", async () => {
+      const pages: DFDPage[] = [
+        { pageId: "p1", name: "Top", order: 0 },
+        { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
+      ];
+      const xml = mxfile(
+        page(
+          "p1",
+          "Top",
+          EE +
+            node("mp", "multiprocess", "Gateway", "MP-1", 300).replace(
+              'id="mp">',
+              'id="mp" link="data:page/id,gw">',
+            ) +
+            flow("df8", "commands", "DF-8", "ee", "mp"),
+        ),
+        page("gw", "Gateway", node("gw_p", "process", "Part", "P-1.1", 10)),
+      );
+      const opts = o();
+      const { result } = renderHook(() =>
+        useChildPages(project(xml, pages, [{ id: "mp", type: "Multiprocess" }]), opts),
+      );
+      let copied: number | string = -1;
+      await act(async () => {
+        copied = await result.current.syncContext("mp");
+      });
+      expect(copied).toBe(2);
+      const call = opts.syncPages.mock.calls.find((c) => (c[0].context ?? []).length > 0)![0];
+      expect(call.context![0].cells).toEqual(["ee", "df8"]);
+      expect(result.current.settling).toBe(true);
+    });
+
+    it("refuses Sync context for a multiprocess without child page", async () => {
+      const opts = o();
+      const { result } = renderHook(() =>
+        useChildPages(project(mxfile(page("p1", "Top", EE)), []), opts),
+      );
+      let r: number | string = -1;
+      await act(async () => {
+        r = await result.current.syncContext("mp");
+      });
+      expect(r).toBe("not available");
     });
   });
 });

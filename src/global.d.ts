@@ -108,6 +108,7 @@ declare global {
         error?: string;
         created?: string[];
         errors?: string[];
+        copies?: { pageId: string; from: string; to: string }[];
       }>;
       setDrawioPageTabInfo?: (
         info: Record<string, unknown>,

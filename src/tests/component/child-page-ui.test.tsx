@@ -72,4 +72,25 @@ describe("ChildPageSection", () => {
     expect(screen.getByText(/No child page/)).toBeTruthy();
     expect(screen.queryByTestId("child-page-create")).toBeNull();
   });
+
+  it("syncs the context and reports the result", async () => {
+    const onSyncContext = vi.fn(async () => 3);
+    render(<ChildPageSection info={{ pageName: "Gateway", onSyncContext }} />);
+    fireEvent.click(screen.getByTestId("child-page-sync"));
+    expect((await screen.findByTestId("child-page-sync-result")).textContent).toBe(
+      "3 context copies added.",
+    );
+  });
+
+  it("says when the context is complete, and shows an error", async () => {
+    const results: (number | string)[] = [0, "busy"];
+    const onSyncContext = vi.fn(async () => results.shift()!);
+    render(<ChildPageSection info={{ pageName: "Gateway", onSyncContext }} />);
+    fireEvent.click(screen.getByTestId("child-page-sync"));
+    expect((await screen.findByTestId("child-page-sync-result")).textContent).toMatch(/already shows/);
+    fireEvent.click(screen.getByTestId("child-page-sync"));
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("child-page-sync-result").textContent).toMatch(/busy/),
+    );
+  });
 });

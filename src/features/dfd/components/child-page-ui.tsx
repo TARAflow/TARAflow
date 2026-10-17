@@ -88,18 +88,60 @@ export interface ChildPageInfo {
   pageName?: string;
   /** "Create child page"; absent = not possible here (no draw.io plugin). */
   onCreate?: () => void;
+  /**
+   * "Sync context" (5f): copy what is missing on the child page; resolves
+   * to the number of copied cells or an error text. Absent = not possible.
+   */
+  onSyncContext?: () => Promise<number | string>;
 }
 
 export const ChildPageSection: React.FC<{ info: ChildPageInfo }> = ({ info }) => {
   const { t } = useTranslation();
+  const [syncResult, setSyncResult] = React.useState<number | string | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  React.useEffect(() => setSyncResult(null), [info.pageName]);
+  const sync = async () => {
+    if (!info.onSyncContext) return;
+    setBusy(true);
+    setSyncResult(await info.onSyncContext());
+    setBusy(false);
+  };
   return (
     <Box sx={{ px: 2, pt: 1.5 }} data-testid="child-page-section">
       {info.pageName ? (
-        <Alert severity="info" variant="outlined" sx={{ py: 0 }}>
+        <Alert
+          severity="info"
+          variant="outlined"
+          sx={{ py: 0 }}
+          action={
+            info.onSyncContext && (
+              <Button size="small" disabled={busy} onClick={() => void sync()} data-testid="child-page-sync">
+                {t("tabs.dfd.childPages.sync", { defaultValue: "Sync context" })}
+              </Button>
+            )
+          }
+        >
           {t("tabs.dfd.childPages.detailedOn", {
             defaultValue: 'Detailed on page "{{page}}" — double-click the multiprocess to open it.',
             page: info.pageName,
           })}
+          {syncResult !== null && (
+            <Typography variant="caption" display="block" data-testid="child-page-sync-result">
+              {typeof syncResult === "string"
+                ? t("tabs.dfd.childPages.syncFailed", {
+                    defaultValue: "Context not synced ({{error}}).",
+                    error: syncResult,
+                  })
+                : syncResult === 0
+                  ? t("tabs.dfd.childPages.syncNothing", {
+                      defaultValue: "The child page already shows the whole context.",
+                    })
+                  : t("tabs.dfd.childPages.syncDone", {
+                      defaultValue: "{{count}} context copies added.",
+                      count: syncResult,
+                    })}
+            </Typography>
+          )}
         </Alert>
       ) : (
         <Alert

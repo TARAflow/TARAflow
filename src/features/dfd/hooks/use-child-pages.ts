@@ -15,15 +15,30 @@
 // 5e: "Create child page" for a multiprocess without one (decompose), page
 // links on copies drawn later, and a question when a multiprocess with a
 // child page is deleted: delete the page too, or keep it.
+//
+// 5f: every new child page gets its context copies (flow neighbours, flows
+// at the MP's border, boundaries around them); "Sync context" adds what is
+// missing on an existing one. The clones become context copies ("ref"
+// links) only once draw.io's autosave has brought them into the saved XML —
+// a link to a cell the saved XML does not have yet would be pruned as stale
+// by the very save that writes it.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { inspectDrawioPages } from "shared";
-import type { DFDPage, DFDProjectData, DFDUpdateResult } from "../models/dfd-types";
+import type {
+  DFDCellLink,
+  DFDPage,
+  DFDProjectData,
+  DFDUpdateResult,
+} from "../models/dfd-types";
 import { dfdParser } from "../services/dfd-parser";
 import {
+  analysePageGeometry,
   needsPageReview,
+  planContextCopies,
   planPageSync,
   readCellLinks,
+  type ContextCopySpec,
   type OrphanPage,
 } from "../services/leveled";
 import type {
@@ -62,6 +77,11 @@ export interface UseChildPagesReturn {
   resolveOrphan: (pageId: string, removePage: boolean) => Promise<string | null>;
   /** "Create child page" for a multiprocess without one; false if impossible. */
   decompose: (tfId: string) => boolean;
+  /**
+   * "Sync context" (5f): copy what is missing on the child page of this
+   * multiprocess. Resolves to the number of cells copied, or an error text.
+   */
+  syncContext: (tfId: string) => Promise<number | string>;
 }
 
 export function useChildPages(
@@ -101,13 +121,16 @@ export function useChildPages(
   const askedRef = useRef(new Set<string>());
   const [orphanPages, setOrphanPages] = useState<OrphanPage[]>([]);
   const [nonce, setNonce] = useState(0);
+  // 5f: context copies waiting for draw.io's autosave — pageId → links to
+  // write once the clones are in the saved XML.
+  const pendingLinksRef = useRef(new Map<string, DFDCellLink[]>());
 
   useEffect(() => {
     const xmlPageIds = new Set(xml ? inspectDrawioPages(xml).pageIds : []);
     for (const id of [...createdPagesRef.current]) {
       if (xmlPageIds.has(id)) createdPagesRef.current.delete(id);
     }
-    setSettling(createdPagesRef.current.size > 0);
+    setSettling(createdPagesRef.current.size > 0 || pendingLinksRef.current.size > 0);
 
     if (!xml) return skip("no saved diagram yet");
     if (busyRef.current) return;
@@ -147,6 +170,23 @@ export function useChildPages(
       return;
     }
 
+    // 5f: context copies have arrived in the saved XML — link them now.
+    if (pendingLinksRef.current.size > 0 && pages) {
+      const arrived = applyArrivedLinks(xml, pages, pendingLinksRef.current);
+      if (arrived) {
+        lastSkipRef.current = null;
+        busyRef.current = true;
+        void (async () => {
+          try {
+            await savePages(arrived);
+          } finally {
+            busyRef.current = false;
+          }
+        })();
+        return;
+      }
+    }
+
     if (!enabled) return skip("draw.io plugin not ready (Electron only)");
 
     if (needsPageReview(xml, pages)) {
@@ -174,6 +214,10 @@ export function useChildPages(
       ...optedOut,
     ]);
     for (const tfId of forcedRef.current) known.delete(tfId);
+    // Context copies not linked yet are plain cells: never give them a page.
+    for (const links of pendingLinksRef.current.values()) {
+      for (const l of links) known.add(l.cellId);
+    }
     const plan = planPageSync({
       parse,
       pages,
@@ -218,7 +262,20 @@ export function useChildPages(
             attemptedRef.current.add(c.decomposes);
             forcedRef.current.delete(c.decomposes);
           }
-          const result = await syncPages({ create: plan.create, rename: [] });
+          // 5f: every new child page gets its context copies.
+          const geometry = analysePageGeometry(parse.pageCells);
+          const context = plan.create
+            .map((c) =>
+              planContextCopies({
+                parse,
+                pageGeometry: geometry,
+                multiprocess: c.decomposes,
+                childPageId: c.pageId,
+              }),
+            )
+            .filter((c): c is ContextCopySpec => !!c);
+          const result = await syncPages({ create: plan.create, rename: [], context });
+          rememberCopies(pendingLinksRef.current, context, result.copies);
           if (!result.success) {
             console.warn("[useChildPages] draw.io could not create pages:", result.error, result);
             created = [];
@@ -300,7 +357,82 @@ export function useChildPages(
     [enabled, elements, pages, setNoChildPage],
   );
 
-  return { settling, orphanPages, resolveOrphan, decompose };
+  const syncContext = useCallback(
+    async (tfId: string): Promise<number | string> => {
+      const page = pages?.find((p) => p.decomposes === tfId);
+      if (!enabled || !xml || !page) return "not available";
+      if (busyRef.current) return "busy";
+      busyRef.current = true;
+      try {
+        const parse = dfdParser.parse(xml, pages);
+        const spec = planContextCopies({
+          parse,
+          pageGeometry: analysePageGeometry(parse.pageCells),
+          multiprocess: tfId,
+          childPageId: page.pageId,
+        });
+        if (!spec) return 0;
+        const result = await syncPages({ create: [], rename: [], context: [spec] });
+        if (!result.success) return result.error ?? "failed";
+        if (result.errors?.length) console.warn("[useChildPages] sync context:", result.errors);
+        rememberCopies(pendingLinksRef.current, [spec], result.copies);
+        setSettling(true);
+        return result.copies?.length ?? 0;
+      } finally {
+        busyRef.current = false;
+      }
+    },
+    [enabled, xml, pages, syncPages],
+  );
+
+  return { settling, orphanPages, resolveOrphan, decompose, syncContext };
+}
+
+/** Remember the clones draw.io made: they become "ref" copies once saved. */
+function rememberCopies(
+  pending: Map<string, DFDCellLink[]>,
+  specs: readonly ContextCopySpec[],
+  copies: { pageId: string; from: string; to: string }[] | undefined,
+): void {
+  for (const copy of copies ?? []) {
+    const tfId = specs.find((s) => s.toPageId === copy.pageId)?.tfIdOf[copy.from];
+    if (!tfId) continue;
+    const links = pending.get(copy.pageId) ?? [];
+    links.push({ cellId: copy.to, tfId, role: "ref" });
+    pending.set(copy.pageId, links);
+  }
+}
+
+/**
+ * dfd.pages with the links of the clones that the saved XML now contains;
+ * undefined if none has arrived. Pending links of a page that is gone are
+ * dropped.
+ */
+function applyArrivedLinks(
+  xml: string,
+  pages: readonly DFDPage[],
+  pending: Map<string, DFDCellLink[]>,
+): DFDPage[] | undefined {
+  const cells = new Set(
+    dfdParser.parse(xml, pages).occurrences.map((o) => `${o.pageId}\u0000${o.cellId}`),
+  );
+  let changed = false;
+  const next = pages.map((p) => {
+    const links = pending.get(p.pageId);
+    if (!links) return p;
+    const arrived = links.filter((l) => cells.has(`${p.pageId}\u0000${l.cellId}`));
+    if (arrived.length === 0) return p;
+    const rest = links.filter((l) => !arrived.includes(l));
+    if (rest.length > 0) pending.set(p.pageId, rest);
+    else pending.delete(p.pageId);
+    const own = new Set((p.links ?? []).map((l) => l.cellId));
+    changed = true;
+    return { ...p, links: [...(p.links ?? []), ...arrived.filter((l) => !own.has(l.cellId))] };
+  });
+  for (const pageId of [...pending.keys()]) {
+    if (!pages.some((p) => p.pageId === pageId)) pending.delete(pageId);
+  }
+  return changed ? next : undefined;
 }
 
 /** 20 characters like draw.io's own page ids. */

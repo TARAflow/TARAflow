@@ -115,3 +115,8 @@ export {
   type OrphanPage,
   readCellLinks,
 } from "./child-pages";
+export {
+  planContextCopies,
+  type ContextCopySpec,
+  type ContextCopyInput,
+} from "./context-copies";

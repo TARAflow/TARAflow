@@ -2638,6 +2638,10 @@
         },
         "detailedOn": "Detailliert auf Seite \"{{page}}\" — Doppelklick auf den Multiprozess öffnet sie.",
         "create": "Unterseite anlegen",
+        "sync": "Kontext aktualisieren",
+        "syncFailed": "Kontext nicht aktualisiert ({{error}}).",
+        "syncNothing": "Die Unterseite zeigt den Kontext bereits vollständig.",
+        "syncDone": "{{count}} Kontextkopien ergänzt.",
         "none": "Keine Unterseite — der Multiprozess wird als Ganzes analysiert."
       },
       "identityReview": {

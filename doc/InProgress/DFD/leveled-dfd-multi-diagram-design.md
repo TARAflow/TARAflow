@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1281,8 +1281,29 @@ page selector in the preview panel (§12.1, D18).
   - **Page links on later copies:** `planPageSync` compares the `link` attribute of every
     occurrence of a decomposed MP (`readCellLinks`) with its page link and has draw.io set the
     missing ones (`link`), once per cell and target per session.
-  - Not done, moved to **5f**: pre-populating a new child page with context copies (flow
-    neighbours, flows at the MP's border, containing boundaries) and "Sync context" (§12).
+  - Pre-population and "Sync context": 5f.
+- **5f ✅** context copies (§12 "Decompose…" / "Sync context").
+  - `leveled/context-copies`, pure: `planContextCopies` — from the MP's home page the boundaries
+    around the MP or a flow neighbour (page geometry), the flow neighbours and the flows touching
+    the MP; never the MP itself, no self-loops, no second-degree neighbours. Only what the child
+    page does not show yet (by tfId), so it is idempotent and never causes
+    `BAL_DUPLICATE_OCCURRENCE`; a flow copied later is connected to the neighbour copy already
+    there (`existing`).
+  - draw.io (`drawio:syncPages` `context`): `graph.cloneCells(…, keepPosition)` with the home
+    page shown — the copies keep the parent's layout and a flow whose MP end is not cloned keeps a
+    **free end at the MP's border position**, to be dragged onto the new parts (mxGraph sets the
+    terminal point from the view state). Nested DFD elements are removed from the clones, ID labels
+    kept. Returns original → clone per cell.
+  - Every child page gets its context when it is created (automatically, 5d, or by "Create child
+    page", 5e); "Sync context" in the details panel adds what is missing on an existing one.
+  - **Links after the autosave:** the clones become context copies (`ref` links to the originals'
+    tfIds) only once draw.io's autosave has brought them into the saved XML — a link written
+    earlier would be dropped as stale by the same save (`pruneStaleLinks`). Until then
+    `settling` hides the paste hint (5b) and the clones get no automatic page.
+  - **Loose flows:** a copied flow with a free end is no occurrence for the parser yet (and reports
+    an unconnected data flow); it is linked as soon as its end is attached to a part in the same
+    session. Attached in a later session it is a plain flow with the displayId of the original —
+    the copy assignment (5b) then offers "context copy of DF-x".
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

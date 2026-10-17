@@ -364,8 +364,9 @@ export function registerDrawioHandlers() {
     },
   );
 
-  // Leveled DFD (5d, D15–D17; 5e): create child pages, set the page link on
-  // the multiprocess cells, rename pages, remove pages. Planned by planPageSync in the
+  // Leveled DFD (5d, D15–D17; 5e; 5f): create child pages, copy their
+  // context, set the page link on the multiprocess cells, rename pages,
+  // remove pages. Planned by planPageSync in the
   // renderer; the spec goes into the script as a JSON literal. Idempotent:
   // an existing page is not created twice, a page with the wanted name is
   // not renamed. The user's page is shown again afterwards.
@@ -403,6 +404,7 @@ export function registerDrawioHandlers() {
         };
         var userPage = ui.currentPage;
         var created = [];
+        var copies = [];
         var errors = [];
         try {
           (spec.create || []).forEach(function(c) {
@@ -426,6 +428,76 @@ export function registerDrawioHandlers() {
               graph.setLinkForCell(cell, 'data:page/id,' + c.pageId);
             });
           });
+          // Context copies (5f): clone cells of the MP's home page onto its
+          // child page with their geometry. cloneCells needs the source page
+          // shown: a flow whose MP end is not cloned then keeps a free end
+          // at the old position. Nested DFD elements are not copied (labels
+          // are). A loose flow end is connected to the copy of its element
+          // that is already on the child page (ctx.existing).
+          (spec.context || []).forEach(function(ctx) {
+            var from = find(ctx.fromPageId);
+            var to = find(ctx.toPageId);
+            if (!from || !to) { errors.push('page not found for context: ' + ctx.toPageId); return; }
+            show(from);
+            var graph = ui.editor.graph;
+            var originals = [];
+            (ctx.cells || []).forEach(function(id) {
+              var cell = graph.model.getCell(id);
+              if (cell) originals.push(cell); else errors.push('context cell not found: ' + id);
+            });
+            if (originals.length === 0) return;
+            var clones = graph.cloneCells(originals, true, null, true);
+            var typeOf = function(c) {
+              return (c && c.value && typeof c.value === 'object' && c.value.getAttribute) ?
+                c.value.getAttribute('type') : null;
+            };
+            var kept = [];
+            var originalOf = [];
+            for (var i = 0; i < clones.length; i++) {
+              var clone = clones[i];
+              if (!clone) continue;
+              for (var j = clone.getChildCount() - 1; j >= 0; j--) {
+                var childType = typeOf(clone.getChildAt(j));
+                if (childType && childType !== 'idlabel') clone.remove(j);
+              }
+              kept.push(clone);
+              originalOf.push(originals[i]);
+            }
+            show(to);
+            graph = ui.editor.graph;
+            var model = graph.model;
+            model.beginUpdate();
+            try {
+              graph.addCells(kept, graph.getDefaultParent());
+              for (var k = 0; k < kept.length; k++) {
+                var copy = kept[k];
+                var original = originalOf[k];
+                if (model.isEdge(copy)) {
+                  var ends = [true, false];
+                  for (var e = 0; e < ends.length; e++) {
+                    var isSource = ends[e];
+                    if (model.getTerminal(copy, isSource) != null) continue;
+                    var terminal = original.getTerminal(isSource);
+                    var there = terminal && ctx.existing ? ctx.existing[terminal.id] : null;
+                    var target = there ? model.getCell(there) : null;
+                    if (target) {
+                      model.setTerminal(copy, target, isSource);
+                      var geo = model.getGeometry(copy);
+                      if (geo) {
+                        geo = geo.clone();
+                        geo.setTerminalPoint(null, isSource);
+                        model.setGeometry(copy, geo);
+                      }
+                    }
+                  }
+                }
+                copies.push({ pageId: ctx.toPageId, from: original.id, to: copy.id });
+              }
+            } finally {
+              model.endUpdate();
+            }
+          });
+
           // Page links on cells drawn after their page was created (5e).
           (spec.link || []).forEach(function(l) {
             var host = find(l.pageId);
@@ -467,7 +539,7 @@ export function registerDrawioHandlers() {
         } finally {
           if (userPage && find(userPage.getId())) show(userPage);
         }
-        return { success: true, created: created, errors: errors };
+        return { success: true, created: created, copies: copies, errors: errors };
       })()
     `);
       return result ?? { success: false, error: "No result" };

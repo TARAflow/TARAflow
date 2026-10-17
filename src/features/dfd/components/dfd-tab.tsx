@@ -701,11 +701,23 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const selectedChildPage = useMemo(() => {
     if (selectedElement?.type !== "Multiprocess") return undefined;
     const page = project.dfd?.pages?.find((p) => p.decomposes === selectedElement.id);
-    if (page) return { pageName: page.name };
+    const syncContext = childPages.syncContext;
+    if (page) {
+      const mpTfId = selectedElement.id;
+      return editor.pluginReady
+        ? { pageName: page.name, onSyncContext: () => syncContext(mpTfId) }
+        : { pageName: page.name };
+    }
     const decompose = childPages.decompose;
     const mpId = selectedElement.id;
     return editor.pluginReady ? { onCreate: () => void decompose(mpId) } : {};
-  }, [selectedElement, project.dfd?.pages, childPages.decompose, editor.pluginReady]);
+  }, [
+    selectedElement,
+    project.dfd?.pages,
+    childPages.decompose,
+    childPages.syncContext,
+    editor.pluginReady,
+  ]);
 
   const selectedConnection = selectedElementId
     ? editor.connections.find((c) => c.id === selectedElementId)
@@ -875,7 +887,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       <IdentityReviewHints
         adoptionPending={identityReview.adoptionPending}
         pageRepair={pageRepair}
-        pendingCopies={identityReview.pendingCopies}
+        // Context copies wait for their links (5f): not "pasted" cells.
+        pendingCopies={childPages.settling ? 0 : identityReview.pendingCopies}
         onOpenAdoption={identityReview.openAdoption}
         onOpenAssignment={identityReview.openAssignment}
       />

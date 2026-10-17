@@ -2651,6 +2651,10 @@
         },
         "detailedOn": "Detailed on page \"{{page}}\" — double-click the multiprocess to open it.",
         "create": "Create child page",
+        "sync": "Sync context",
+        "syncFailed": "Context not synced ({{error}}).",
+        "syncNothing": "The child page already shows the whole context.",
+        "syncDone": "{{count}} context copies added.",
         "none": "No child page — the multiprocess is analysed as a whole."
       },
       "identityReview": {
