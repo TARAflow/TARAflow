@@ -3,7 +3,11 @@
 // border, the boundaries around them; never the MP itself; idempotent.
 import { describe, it, expect } from "vitest";
 import { dfdParser } from "features/dfd/services/dfd-parser";
-import { analysePageGeometry, planContextCopies } from "features/dfd/services/leveled";
+import {
+  analysePageGeometry,
+  planContextCopies,
+  planContextRemovals,
+} from "features/dfd/services/leveled";
 import type { DFDPage } from "features/dfd/models/dfd-types";
 import { LEVELED_PAGES, flow, mxfile, node, page, ref } from "../../../../../fixtures/leveled-dfd-xml";
 
@@ -122,5 +126,79 @@ describe("planContextCopies", () => {
     // Sanity: the fixture's controller page already copies MP-1 and DF-7.
     const result = plan(page("ctl", "Controller Module", ""), LEVELED_PAGES, "mp2", "ctl");
     expect(result?.cells).toEqual(["sb", "mp1", "ee1", "df7", "df9"]);
+  });
+});
+
+describe("planContextRemovals", () => {
+  // The sensor page shows MP-2, EE-1 and both flows as copies; a process of
+  // its own is not part of this check (the caller only asks for pure
+  // context pages).
+  const sen = page(
+    "sen",
+    "Sensor Module",
+    boundary.replace('id="sb"', 'id="sen_sb"') +
+      node("sen_mp2", "multiprocess", "Controller Module", "MP-2", 500) +
+      node("sen_ee1", "externalentity", "Debugger", "EE-1", 700) +
+      `<object label="stream sensor data" type="dataflow" id="sen_df7"><mxCell edge="1" parent="1" target="sen_mp2"><mxGeometry relative="1" as="geometry"><mxPoint x="10" y="40" as="sourcePoint"/></mxGeometry></mxCell></object>` +
+      `<object label="pull debug commands" type="dataflow" id="sen_df8"><mxCell edge="1" parent="1" source="sen_ee1"><mxGeometry relative="1" as="geometry"><mxPoint x="10" y="40" as="targetPoint"/></mxGeometry></mxCell></object>`,
+  );
+  const links = [
+    ref("sen_sb", "sb"),
+    ref("sen_mp2", "mp2"),
+    ref("sen_ee1", "ee1"),
+    ref("sen_df7", "df7"),
+    ref("sen_df8", "df8"),
+  ];
+  const removals = (top: string) => {
+    const xml = mxfile(top, sen);
+    const parse = dfdParser.parse(xml, PAGES(links));
+    return planContextRemovals({
+      parse,
+      pageGeometry: analysePageGeometry(parse.pageCells),
+      multiprocess: "mp1",
+      childPageId: "sen",
+      childLinks: links,
+    });
+  };
+
+  it("removes nothing while the context is unchanged", () => {
+    expect(removals(TOP)).toEqual([]);
+  });
+
+  it("removes the copy of a deleted flow and of a neighbour without flow to the MP", () => {
+    // Reported with 5g: DF-8 (Debugger → MP-1) deleted on the top page;
+    // its copy and the Debugger stayed on the child page.
+    const withoutDf8 = TOP.replace(/<object label="pull debug commands"[\s\S]*?<\/object>\s*<object label="DF-8"[\s\S]*?<\/object>/, "");
+    expect(withoutDf8).not.toContain('id="df8"');
+    expect(removals(withoutDf8).sort()).toEqual(["sen_df8", "sen_ee1"]);
+  });
+
+  it("never removes a definition", () => {
+    const own = sen.replace(
+      node("sen_ee1", "externalentity", "Debugger", "EE-1", 700),
+      node("sen_ee9", "externalentity", "Own", "EE-9", 700),
+    );
+    const xml = mxfile(TOP, own);
+    const parse = dfdParser.parse(xml, PAGES(links));
+    const result = planContextRemovals({
+      parse,
+      pageGeometry: analysePageGeometry(parse.pageCells),
+      multiprocess: "mp1",
+      childPageId: "sen",
+      childLinks: links,
+    });
+    expect(result).not.toContain("sen_ee9");
+  });
+
+  it("does nothing for a multiprocess that is gone (orphan question instead)", () => {
+    expect(
+      planContextRemovals({
+        parse: dfdParser.parse(mxfile(page("sys", "Top", ""), sen), PAGES(links)),
+        pageGeometry: new Map(),
+        multiprocess: "mp1",
+        childPageId: "sen",
+        childLinks: links,
+      }),
+    ).toEqual([]);
   });
 });

@@ -491,6 +491,43 @@ describe("useChildPages", () => {
       expect(opts.syncPages).toHaveBeenCalledTimes(1);
     });
 
+    it("removes context copies that left the context of a pure context page", async () => {
+      // Reported with 5g: the flow to the Debugger was deleted on Top; its
+      // copy and the Debugger stayed on the (pure context) child page.
+      const pages: DFDPage[] = [
+        { pageId: "p1", name: "Top", order: 0 },
+        {
+          pageId: "gw",
+          name: "Gateway",
+          decomposes: "mp",
+          order: 1,
+          links: [
+            { cellId: "gw_ee", tfId: "ee", role: "ref" },
+            { cellId: "gw_df8", tfId: "df8", role: "ref" },
+          ],
+        },
+      ];
+      const mpLinked = node("mp", "multiprocess", "Gateway", "MP-1", 300).replace(
+        'id="mp">',
+        'id="mp" link="data:page/id,gw">',
+      );
+      const xml = mxfile(
+        page("p1", "Top", EE + mpLinked), // DF-8 deleted
+        page(
+          "gw",
+          "Gateway",
+          node("gw_ee", "externalentity", "User", "EE-1", 10) +
+            `<object label="commands" type="dataflow" id="gw_df8"><mxCell edge="1" parent="1" source="gw_ee"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="40" as="targetPoint"/></mxGeometry></mxCell></object>`,
+        ),
+      );
+      const opts = o();
+      renderHook(() => useChildPages(project(xml, pages, [{ id: "mp", type: "Multiprocess" }]), opts));
+      await waitFor(() => expect(opts.syncPages).toHaveBeenCalledTimes(1));
+      expect(opts.syncPages.mock.calls[0][0].removeCells).toEqual([
+        { pageId: "gw", cellIds: ["gw_ee", "gw_df8"] },
+      ]);
+    });
+
     it("leaves a child page with parts of its own to Sync context", async () => {
       const pages: DFDPage[] = [
         { pageId: "p1", name: "Top", order: 0 },

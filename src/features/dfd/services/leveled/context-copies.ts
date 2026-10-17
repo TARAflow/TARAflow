@@ -58,21 +58,29 @@ export interface ContextCopyInput {
   childLinks?: readonly DFDCellLink[];
 }
 
-export function planContextCopies(input: ContextCopyInput): ContextCopySpec | undefined {
-  const { parse, multiprocess, childPageId } = input;
+/** The context of a multiprocess on its home page (§12). */
+interface HomeContext {
+  home: string;
+  /** home-page cell → tfId */
+  tfIdOf: Record<string, string>;
+  /** Flow cells touching the MP (no self-loops). */
+  flowCells: string[];
+  neighbourCells: string[];
+  boundaryCells: string[];
+}
+
+function contextOnHome(
+  parse: Pick<ParseResult, "occurrences">,
+  pageGeometry: ReadonlyMap<string, PageGeometry>,
+  multiprocess: string,
+  childPageId: string,
+): HomeContext | undefined {
   const home = computeHomePages(parse.occurrences).elements.get(multiprocess);
   if (!home || home === childPageId) return undefined;
 
   const onHome = parse.occurrences.filter((o) => o.pageId === home);
-  const onChild = parse.occurrences.filter((o) => o.pageId === childPageId);
-  const childCellOf = new Map<string, string>();
-  for (const o of onChild) if (!childCellOf.has(o.tfId)) childCellOf.set(o.tfId, o.cellId);
-  for (const l of input.childLinks ?? []) {
-    if (!childCellOf.has(l.tfId)) childCellOf.set(l.tfId, l.cellId);
-  }
   const tfIdOf: Record<string, string> = {};
   for (const o of onHome) tfIdOf[o.cellId] = o.tfId;
-
   const elementCells = (tfId: string) =>
     onHome.filter((o) => o.kind === "element" && o.tfId === tfId).map((o) => o.cellId);
 
@@ -90,12 +98,35 @@ export function planContextCopies(input: ContextCopyInput): ContextCopySpec | un
   const neighbourCells = [...neighbours].flatMap(elementCells);
 
   // 3. Boundaries around the MP or a neighbour on the home page.
-  const geometry = input.pageGeometry.get(home);
+  const geometry = pageGeometry.get(home);
   const boundaryCells = new Set<string>();
   for (const cell of [...elementCells(multiprocess), ...neighbourCells]) {
     for (const map of [geometry?.trust, geometry?.chip, geometry?.physical]) {
       for (const boundary of map?.get(cell) ?? []) boundaryCells.add(boundary);
     }
+  }
+
+  return {
+    home,
+    tfIdOf,
+    flowCells: flows.map((f) => f.cellId),
+    neighbourCells,
+    boundaryCells: [...boundaryCells],
+  };
+}
+
+export function planContextCopies(input: ContextCopyInput): ContextCopySpec | undefined {
+  const { parse, multiprocess, childPageId } = input;
+  const context = contextOnHome(parse, input.pageGeometry, multiprocess, childPageId);
+  if (!context) return undefined;
+  const { home, tfIdOf, flowCells, neighbourCells, boundaryCells } = context;
+
+  const childCellOf = new Map<string, string>();
+  for (const o of parse.occurrences) {
+    if (o.pageId === childPageId && !childCellOf.has(o.tfId)) childCellOf.set(o.tfId, o.cellId);
+  }
+  for (const l of input.childLinks ?? []) {
+    if (!childCellOf.has(l.tfId)) childCellOf.set(l.tfId, l.cellId);
   }
 
   // Only what the child page does not show yet.
@@ -104,9 +135,9 @@ export function planContextCopies(input: ContextCopyInput): ContextCopySpec | un
     return tfId !== undefined && !childCellOf.has(tfId);
   };
   const cells = [
-    ...[...boundaryCells].filter(missing),
+    ...boundaryCells.filter(missing),
     ...neighbourCells.filter(missing),
-    ...flows.map((f) => f.cellId).filter(missing),
+    ...flowCells.filter(missing),
   ];
   if (cells.length === 0) return undefined;
 
@@ -119,4 +150,38 @@ export function planContextCopies(input: ContextCopyInput): ContextCopySpec | un
   for (const cell of cells) usedTfIds[cell] = tfIdOf[cell];
 
   return { fromPageId: home, toPageId: childPageId, cells, existing, tfIdOf: usedTfIds };
+}
+
+/**
+ * Context copies on the child page that no longer belong to the context —
+ * the copy of a flow deleted or re-routed on the home page, a neighbour
+ * without a flow to the MP, a boundary around none of them. Only context
+ * copies (a "ref" link) are ever proposed, never a definition. For PURE
+ * context pages (no part of their own, D15) only: there the context
+ * follows the parent page both ways; on a page with parts a copy whose
+ * definition was deleted stays and reports BAL_DANGLING_REF (§5.2).
+ *
+ * Undefined home (the MP is dangling or gone): nothing — that is the
+ * orphan-page question (5e), not a context change.
+ */
+export function planContextRemovals(input: ContextCopyInput): string[] {
+  const { parse, multiprocess, childPageId } = input;
+  const context = contextOnHome(parse, input.pageGeometry, multiprocess, childPageId);
+  if (!context) return [];
+  const { tfIdOf, flowCells, neighbourCells, boundaryCells } = context;
+  const wanted = new Set(
+    [...flowCells, ...neighbourCells, ...boundaryCells].map((cell) => tfIdOf[cell]),
+  );
+
+  const copies = new Map<string, string>(); // child cell → tfId
+  for (const o of parse.occurrences) {
+    if (o.pageId === childPageId && o.role === "ref") copies.set(o.cellId, o.tfId);
+  }
+  // Linked cells the parser does not see (a flow with a free end).
+  for (const l of input.childLinks ?? []) {
+    if (l.role === "ref" && !copies.has(l.cellId)) copies.set(l.cellId, l.tfId);
+  }
+  return [...copies]
+    .filter(([, tfId]) => tfId !== multiprocess && !wanted.has(tfId))
+    .map(([cell]) => cell);
 }

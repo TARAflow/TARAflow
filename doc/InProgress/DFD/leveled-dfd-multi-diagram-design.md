@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1301,6 +1301,13 @@ page selector in the preview panel (§12.1, D18).
     has no part of its own (D15), its missing context is copied after every save; once the
     analyst draws parts there, "Sync context" is manual — nothing removed on purpose comes back.
     Each context cell is requested once per page and session.
+  - **Both ways** (decided after first use of 5g): a pure context page also drops context copies
+    that left the context — the copy of a flow deleted or re-routed on the home page, a neighbour
+    without a flow to the MP, a boundary around none of them (`planContextRemovals`, draw.io
+    `removeCells` without connected edges). Only context copies, never a definition; nothing for an
+    MP without home page (orphan question, 5e). On a page with parts of its own a copy whose
+    definition was deleted stays and reports `BAL_DANGLING_REF` (§5.2): there work may hang on it
+    (a flow attached to a part), so the analyst decides ("Promote to definition" or delete).
   - **Links after the autosave:** the clones become context copies (`ref` links to the originals'
     tfIds) as soon as draw.io's autosave has brought the cells into the saved XML — a link written
     earlier would be dropped as stale by the same save (`pruneStaleLinks`). Until then
@@ -1309,6 +1316,23 @@ page selector in the preview panel (§12.1, D18).
     an unconnected data flow until its end is attached). It is linked as soon as the cell is in the
     saved XML — not only once attached — and `planContextCopies` counts linked cells of the child
     page as present (`childLinks`), so it is never copied a second time, also after reopening.
+- **5g ✅** context copies visible, identity actions (§5.2, §12; the buttons promised in 1.4 / 1.5).
+  - **Display:** context copies are shown faded and dashed (opacity, dashed stroke), with their ID
+    label. In the display only — the plugin wraps `graph.getCellStyle`; the XML style is not
+    touched (§5.2: plain draw.io, no diff noise). The DFD tab pushes the copy cells per page
+    (`drawio:setContextCells`, JSON literal) after every save.
+  - `leveled/identity-info`, pure: `describeIdentity(parse, pages, cell)` — role of the selected
+    cell, definition, all occurrences, and which actions apply.
+  - Details panel, section *Identity* (leveled DFDs): *Context copy* / *Definition*; for a copy its
+    definition with **"Go to definition"** and all occurrences as links (**"Show occurrences"**,
+    `selectCellAt` opens the page); **"Make this the definition"** (copy with a definition
+    elsewhere), **"Promote to definition"** (copy of a dangling element, the `BAL_DANGLING_REF`
+    repair), **"Make this a context copy of …"** (plain cell, same type, with a warning that its own
+    record is dropped and its threats become orphans). Each writes `dfd.pages` through the 1.4 /
+    1.5 writers and `savePages`; a refusal is shown with its code.
+  - Not here: the form of a copy is still editable — it edits the logical record, which is the
+    same record the definition shows (§5.2 asks for "not editable", but the record is shared, so
+    nothing diverges). "Insert as context…" follows in 5h.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

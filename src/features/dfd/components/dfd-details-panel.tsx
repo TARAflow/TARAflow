@@ -25,6 +25,7 @@ import { AssetPanel } from "./dfd-asset-panel";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import { ChildPageSection, type ChildPageInfo } from "./child-page-ui";
+import { IdentitySection, type IdentitySectionProps } from "./identity-section";
 
 // ==================== PROPS ====================
 
@@ -79,6 +80,8 @@ interface DFDDetailsPanelProps {
   refinementCandidates?: RefinementCandidate[];
   /** Leveled DFD (5e): child page of the selected multiprocess. */
   childPage?: ChildPageInfo;
+  /** Leveled DFD (5g): identity of the selected cell and its actions. */
+  identity?: IdentitySectionProps;
 }
 
 // ==================== COMPONENT ====================
@@ -108,6 +111,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   onSelectedAssetChange,
   refinementCandidates,
   childPage,
+  identity,
 }) => {
   const { t } = useTranslation();
 
@@ -310,6 +314,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
             {/* Element tab */}
             {activeTab === "element" && hasSelection && (
               <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+                {identity && <IdentitySection {...identity} />}
                 {childPage && element?.type === "Multiprocess" && (
                   <ChildPageSection info={childPage} />
                 )}

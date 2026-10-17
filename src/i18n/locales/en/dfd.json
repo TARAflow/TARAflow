@@ -2657,6 +2657,22 @@
         "syncDone": "{{count}} context copies added.",
         "none": "No child page — the multiprocess is analysed as a whole."
       },
+      "identity": {
+        "copy": "Context copy",
+        "definition": "Definition",
+        "dangling": "definition missing",
+        "definedOn": "Defined on page \"{{page}}\".",
+        "goToDefinition": "Go to definition",
+        "danglingHint": "The definition was deleted — promote one copy, or delete the element.",
+        "occurrences": "Shown on",
+        "makeDefinition": "Make this the definition",
+        "promote": "Promote to definition",
+        "makeCopyOf": "Make this a context copy of",
+        "chooseElement": "choose…",
+        "apply": "Apply",
+        "makeCopyWarning": "This cell then shows the chosen element; its own record (properties, asset relations) is no longer used and its threats become orphans.",
+        "error": "Not possible ({{code}})."
+      },
       "identityReview": {
         "cancel": "Cancel",
         "later": "Later",

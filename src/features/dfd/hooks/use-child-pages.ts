@@ -38,6 +38,7 @@ import {
   pagesWithOwnParts,
   needsPageReview,
   planContextCopies,
+  planContextRemovals,
   planPageSync,
   readCellLinks,
   type ContextCopySpec,
@@ -135,9 +136,17 @@ export function useChildPages(
       for (const cell of spec.cells) requestedRef.current.add(`${spec.toPageId}\u0000${cell}`);
     }
   };
-  const copyContext = async (specs: ContextCopySpec[]) => {
+  const copyContext = async (specs: ContextCopySpec[], removals: ContextRemoval[] = []) => {
     markRequested(specs);
-    const result = await syncPages({ create: [], rename: [], context: specs });
+    for (const r of removals) {
+      for (const cell of r.cellIds) requestedRef.current.add(`${r.pageId}\u0000-${cell}`);
+    }
+    const result = await syncPages({
+      create: [],
+      rename: [],
+      context: specs,
+      ...(removals.length > 0 ? { removeCells: removals } : {}),
+    });
     if (!result.success) {
       console.warn("[useChildPages] draw.io could not copy the context:", result.error, result);
       return;
@@ -259,18 +268,23 @@ export function useChildPages(
     // drawn to the MP after its page was created. Once the analyst draws
     // parts there, "Sync context" is manual, so nothing removed on purpose
     // comes back.
-    const autoContext = autoContextOf(parse, pages, requestedRef.current);
+    const { copies: autoContext, removals: autoRemovals } = autoContextOf(
+      parse,
+      pages,
+      requestedRef.current,
+    );
+    const autoChanges = autoContext.length + autoRemovals.length;
     if (!plan) {
-      if (autoContext.length === 0) return skip("pages up to date");
+      if (autoChanges === 0) return skip("pages up to date");
       lastSkipRef.current = null;
-      console.info(
-        "[useChildPages] context follows the parent page:",
-        autoContext.map((c) => `${c.toPageId}: ${c.cells.join(", ")}`),
-      );
+      console.info("[useChildPages] context follows the parent page:", {
+        add: autoContext.map((c) => `${c.toPageId}: ${c.cells.join(", ")}`),
+        remove: autoRemovals.map((r) => `${r.pageId}: ${r.cellIds.join(", ")}`),
+      });
       busyRef.current = true;
       void (async () => {
         try {
-          await copyContext(autoContext);
+          await copyContext(autoContext, autoRemovals);
         } finally {
           busyRef.current = false;
         }
@@ -288,7 +302,7 @@ export function useChildPages(
       rename.length === 0 &&
       link.length === 0 &&
       !pagesChanged &&
-      autoContext.length === 0
+      autoChanges === 0
     ) {
       return skip(
         orphans.length > 0
@@ -358,7 +372,7 @@ export function useChildPages(
         }
 
         // 2b. Context of pure context pages (5f).
-        if (autoContext.length > 0) await copyContext(autoContext);
+        if (autoChanges > 0) await copyContext(autoContext, autoRemovals);
 
         // 3. dfd.pages — only with the pages draw.io has really created.
         const failed = new Set(
@@ -445,16 +459,24 @@ export function useChildPages(
   return { settling, orphanPages, resolveOrphan, decompose, syncContext };
 }
 
+interface ContextRemoval {
+  pageId: string;
+  cellIds: string[];
+}
+
 /**
- * Context still missing on child pages without a part of their own (pure
- * context pages, D15), minus the cells already requested in this session.
+ * Pure context pages (no part of their own, D15) follow their parent page
+ * both ways: context still missing is copied, context copies that left the
+ * context are removed. Cells already requested in this session are left
+ * out (copies on their way, removals sent).
  */
 function autoContextOf(
   parse: ReturnType<typeof dfdParser.parse>,
   pages: readonly DFDPage[] | undefined,
   requested: ReadonlySet<string>,
-): ContextCopySpec[] {
-  if (!pages) return [];
+): { copies: ContextCopySpec[]; removals: ContextRemoval[] } {
+  const none = { copies: [], removals: [] };
+  if (!pages) return none;
   const typeOf = new Map(parse.elements.map((e) => [e.id, e.type]));
   const withParts = pagesWithOwnParts(parse.occurrences, typeOf);
   const xmlPages = new Set(parse.pages.map((p) => p.pageId));
@@ -465,27 +487,33 @@ function autoContextOf(
       typeOf.has(p.decomposes) &&
       !withParts.has(p.pageId),
   );
-  if (candidates.length === 0) return [];
+  if (candidates.length === 0) return none;
   const geometry = analysePageGeometry(parse.pageCells);
-  const specs: ContextCopySpec[] = [];
+  const copies: ContextCopySpec[] = [];
+  const removals: ContextRemoval[] = [];
   for (const p of candidates) {
-    const spec = planContextCopies({
+    const input = {
       parse,
       pageGeometry: geometry,
       multiprocess: p.decomposes!,
       childPageId: p.pageId,
       childLinks: p.links,
-    });
-    if (!spec) continue;
-    const cells = spec.cells.filter((c) => !requested.has(`${p.pageId}\u0000${c}`));
-    if (cells.length === 0) continue;
-    specs.push({
-      ...spec,
-      cells,
-      tfIdOf: Object.fromEntries(cells.map((c) => [c, spec.tfIdOf[c]])),
-    });
+    };
+    const spec = planContextCopies(input);
+    const cells = (spec?.cells ?? []).filter((c) => !requested.has(`${p.pageId}\u0000${c}`));
+    if (spec && cells.length > 0) {
+      copies.push({
+        ...spec,
+        cells,
+        tfIdOf: Object.fromEntries(cells.map((c) => [c, spec.tfIdOf[c]])),
+      });
+    }
+    const gone = planContextRemovals(input).filter(
+      (c) => !requested.has(`${p.pageId}\u0000-${c}`),
+    );
+    if (gone.length > 0) removals.push({ pageId: p.pageId, cellIds: gone });
   }
-  return specs;
+  return { copies, removals };
 }
 
 /** Remember the clones draw.io made: they become "ref" copies once saved. */

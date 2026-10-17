@@ -6,6 +6,7 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import type { DFDProjectData } from "../models/dfd-types";
 import {
   DrawioBridge,
+  type ContextCellMap,
   type DrawioPageSyncResult,
   type DrawioPageSyncSpec,
 } from "../services/drawio-bridge";
@@ -54,6 +55,8 @@ export interface UseDrawioBridgeReturn {
   setPageTabInfo: (info: PageTabInfoMap) => Promise<void>;
   /** Child pages, page links, page names in draw.io (leveled DFD 5d). */
   syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
+  /** Context copies shown faded and dashed (leveled DFD 5g). */
+  setContextCells: (cells: ContextCellMap) => Promise<void>;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
@@ -344,6 +347,11 @@ export function useDrawioBridge(
     await bridgeRef.current.setPageTabInfo(info);
   }, []);
 
+  const setContextCells = useCallback(async (cells: ContextCellMap): Promise<void> => {
+    if (!bridgeRef.current) return;
+    await bridgeRef.current.setContextCells(cells);
+  }, []);
+
   const syncPages = useCallback(
     async (spec: DrawioPageSyncSpec): Promise<DrawioPageSyncResult> => {
       if (!bridgeRef.current) return { success: false, error: "no bridge" };
@@ -419,6 +427,7 @@ export function useDrawioBridge(
     pluginReady,
     setPageTabInfo,
     syncPages,
+    setContextCells,
     onImageReady,
     loadXMLTransient,
   };

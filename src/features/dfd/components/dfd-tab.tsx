@@ -12,7 +12,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Typography, CircularProgress } from "@mui/material";
-import { AssetGroup } from "shared";
+import { AssetGroup, inspectDrawioPages } from "shared";
 import type {
   DFDViewMode,
   AssetRelation,
@@ -36,7 +36,19 @@ import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import { useIdentityReview } from "../hooks/use-identity-review";
 import { usePageOutline } from "../hooks/use-page-outline";
 import { useChildPages } from "../hooks/use-child-pages";
-import { buildPageTabInfo, needsPageRepair } from "../services/leveled";
+import {
+  buildPageTabInfo,
+  describeIdentity,
+  linkAsContextCopy,
+  makeDefinition,
+  needsPageRepair,
+  promoteToDefinition,
+  recordInfos,
+  type CellRef,
+  type LinkEditResult,
+} from "../services/leveled";
+import { dfdParser } from "../services/dfd-parser";
+import type { ContextCellMap } from "../services/drawio-bridge";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -118,6 +130,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
   );
+  // The selected CELL (leveled DFD 5g): page + cell id, for the identity
+  // section — selectedElementId is the logical record it shows.
+  const [selectedCellRef, setSelectedCellRef] = useState<CellRef | null>(null);
   const [detailsPanelOpen, setDetailsPanelOpen] = useState(false);
   const [showAutoNumberConfig, setShowAutoNumberConfig] = useState(false);
   const [autoNumberingConfig, setAutoNumberingConfig] =
@@ -168,9 +183,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
     if (!elementId) {
       setSelectedElementId(null);
+      setSelectedCellRef(null);
       setDetailsPanelOpen(false);
       return;
     }
+    setSelectedCellRef(
+      selectedCell?.pageId && selectedCell?.xmlId
+        ? { pageId: selectedCell.pageId, cellId: selectedCell.xmlId }
+        : null,
+    );
 
     // Kein Guard nötig — useDFDEditor stellt sicher dass das
     // Element im State ist bevor dieser Callback feuert.
@@ -248,6 +269,30 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // Leveled DFD (5c): draw.io's own page tabs get a tooltip (place in the
   // page tree) and a finding badge — no second page tree next to them.
   const pageOutline = usePageOutline(project.dfd, editor.validation);
+
+  // Leveled DFD (5g): the saved DFD parsed once for the identity section
+  // and the context-copy display. Null for a classic project and while
+  // pages wait for adoption.
+  const leveledParse = useMemo(() => {
+    const xml = project.dfd?.xml;
+    const pages = project.dfd?.pages;
+    if (!xml || !pages || pages.length === 0) return null;
+    if (!inspectDrawioPages(xml, pages.map((p) => p.pageId)).supported) return null;
+    return dfdParser.parse(xml, pages);
+  }, [project.dfd?.xml, project.dfd?.pages]);
+
+  // Context copies are shown faded and dashed in draw.io (display only).
+  const contextCells = useMemo(() => {
+    const byPage: ContextCellMap = {};
+    for (const o of leveledParse?.occurrences ?? []) {
+      if (o.role === "ref") (byPage[o.pageId] ??= {})[o.cellId] = true;
+    }
+    return byPage;
+  }, [leveledParse]);
+  const { setContextCells } = editor;
+  useEffect(() => {
+    if (editor.pluginReady) void setContextCells(contextCells);
+  }, [editor.pluginReady, setContextCells, contextCells]);
 
   // Leveled DFD (5d, D15–D17): child page per new multiprocess, tab names.
   const { updateElementDescription } = editor;
@@ -467,6 +512,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       pluginReady: false,
       setPageTabInfo: async () => {},
       syncPages: async () => ({ success: false }),
+      setContextCells: async () => {},
     },
     {
       isDirty: editor.isDirty,
@@ -718,6 +764,31 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     childPages.syncContext,
     editor.pluginReady,
   ]);
+
+  // Leveled DFD (5g): identity of the selected cell and its actions.
+  const savePagesOf = editor.savePages;
+  const selectedIdentity = useMemo(() => {
+    const pages = project.dfd?.pages;
+    if (!leveledParse || !pages || !selectedCellRef) return undefined;
+    const info = describeIdentity(leveledParse, pages, selectedCellRef);
+    if (!info) return undefined;
+    const cell = selectedCellRef;
+    const apply = async (result: LinkEditResult): Promise<string | null> => {
+      if (!result.ok) return result.reason;
+      return (await savePagesOf(result.pages)) ? null : "SAVE_FAILED";
+    };
+    return {
+      info,
+      onGoTo: (target: CellRef) => void editor.selectCellAt(target.pageId, target.cellId),
+      onMakeDefinition: () => apply(makeDefinition(pages, leveledParse.occurrences, cell)),
+      onPromote: () => apply(promoteToDefinition(pages, leveledParse.occurrences, cell)),
+      onLinkAsContextCopy: (tfId: string) =>
+        apply(
+          linkAsContextCopy(pages, leveledParse.occurrences, recordInfos(leveledParse), cell, tfId),
+        ),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leveledParse, project.dfd?.pages, selectedCellRef, savePagesOf]);
 
   const selectedConnection = selectedElementId
     ? editor.connections.find((c) => c.id === selectedElementId)
@@ -1033,6 +1104,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             graphContext={graphContext}
             refinementCandidates={refinementCandidates}
             childPage={selectedChildPage}
+            identity={selectedIdentity}
             focusAssetRequest={focusAssetRequest}
             assetUsage={assetUsage}
             onSelectedAssetChange={setPanelAssetId}

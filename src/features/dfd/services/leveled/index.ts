@@ -118,6 +118,12 @@ export {
 } from "./child-pages";
 export {
   planContextCopies,
+  planContextRemovals,
   type ContextCopySpec,
   type ContextCopyInput,
 } from "./context-copies";
+export {
+  describeIdentity,
+  type IdentityInfo,
+  type OccurrenceInfo,
+} from "./identity-info";

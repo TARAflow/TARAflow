@@ -21,6 +21,9 @@ import type {
 } from "./leveled/child-pages";
 import type { ContextCopySpec } from "./leveled/context-copies";
 
+/** Context copies per page: pageId → cellId → true (leveled DFD 5g). */
+export type ContextCellMap = Record<string, Record<string, true>>;
+
 /** What draw.io has to do for a page sync (planPageSync, 5e). */
 export interface DrawioPageSyncSpec {
   create: readonly ChildPageCreation[];
@@ -31,6 +34,8 @@ export interface DrawioPageSyncSpec {
   remove?: readonly string[];
   /** Context copies onto child pages (5f), after the pages are created. */
   context?: readonly ContextCopySpec[];
+  /** Context copies to remove from pure context pages (5f). */
+  removeCells?: readonly { pageId: string; cellIds: readonly string[] }[];
 }
 
 export interface DrawioPageSyncResult {
@@ -158,6 +163,15 @@ export class DrawioBridge implements IDrawioBridge {
       return { success: false, error: "not available" };
     }
     return window.electronAPI.syncDrawioPages(spec as unknown as Record<string, unknown>);
+  }
+
+  /**
+   * Context copies per page, shown faded and dashed (leveled DFD 5g).
+   * Electron only.
+   */
+  async setContextCells(cells: ContextCellMap): Promise<void> {
+    if (!this.isReady() || !window.electronAPI?.setDrawioContextCells) return;
+    await window.electronAPI.setDrawioContextCells(cells);
   }
 
   /**

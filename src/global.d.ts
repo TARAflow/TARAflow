@@ -110,6 +110,9 @@ declare global {
         errors?: string[];
         copies?: { pageId: string; from: string; to: string }[];
       }>;
+      setDrawioContextCells?: (
+        cells: Record<string, Record<string, true>>,
+      ) => Promise<{ success: boolean; error?: string }>;
       setDrawioPageTabInfo?: (
         info: Record<string, unknown>,
       ) => Promise<{ success: boolean; error?: string }>;

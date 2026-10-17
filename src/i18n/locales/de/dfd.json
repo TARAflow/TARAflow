@@ -2644,6 +2644,22 @@
         "syncDone": "{{count}} Kontextkopien ergänzt.",
         "none": "Keine Unterseite — der Multiprozess wird als Ganzes analysiert."
       },
+      "identity": {
+        "copy": "Kontextkopie",
+        "definition": "Definition",
+        "dangling": "Definition fehlt",
+        "definedOn": "Definiert auf Seite \"{{page}}\".",
+        "goToDefinition": "Zur Definition",
+        "danglingHint": "Die Definition wurde gelöscht — eine Kopie zur Definition befördern oder das Element löschen.",
+        "occurrences": "Gezeigt auf",
+        "makeDefinition": "Zur Definition machen",
+        "promote": "Zur Definition befördern",
+        "makeCopyOf": "Zur Kontextkopie machen von",
+        "chooseElement": "wählen…",
+        "apply": "Übernehmen",
+        "makeCopyWarning": "Diese Zelle zeigt dann das gewählte Element; ihr eigener Datensatz (Eigenschaften, Asset-Beziehungen) wird nicht mehr verwendet und ihre Bedrohungen werden verwaist.",
+        "error": "Nicht möglich ({{code}})."
+      },
       "identityReview": {
         "cancel": "Abbrechen",
         "later": "Später",

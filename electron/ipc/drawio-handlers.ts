@@ -178,6 +178,37 @@ export function registerDrawioHandlers() {
               };
             }
 
+            // Context copies (leveled DFD 5g): shown faded and dashed — in
+            // the display only, the XML style is not changed (§5.2: the XML
+            // stays plain draw.io). The cells per page are pushed by
+            // drawio:setContextCells; a label child (ID label, edge label)
+            // follows its element.
+            var contextGraph = ui.editor.graph;
+            var baseCellStyle = contextGraph.getCellStyle;
+            contextGraph.getCellStyle = function(cell) {
+              var style = baseCellStyle.apply(this, arguments);
+              try {
+                var byPage = Draw._taraflowContextCells;
+                var page = ui.currentPage;
+                var ids = (byPage && page) ? byPage[page.getId()] : null;
+                if (ids && style) {
+                  var c = cell;
+                  for (var depth = 0; c && depth < 2; depth++) {
+                    if (ids[c.id]) {
+                      style.opacity = 45;
+                      style.textOpacity = 60;
+                      style.dashed = 1;
+                      break;
+                    }
+                    c = c.parent;
+                  }
+                }
+              } catch (e) {
+                console.warn('[Plugin] Context copy style failed:', e);
+              }
+              return style;
+            };
+
             // Setup selection listener. Cell ids are only unique within a
             // page, so every selection carries the page it was made on
             // (leveled DFD, design §5.2).
@@ -328,6 +359,31 @@ export function registerDrawioHandlers() {
           if (!cell) { console.warn('[Main:selectCell] Cell not found: ' + cellId); return false; }
           graph.setSelectionCell(cell);
           graph.scrollCellToVisible(cell, true);
+          return true;
+        })()
+      `);
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+  );
+
+  // Leveled DFD (5g): context copies per page ({ pageId: { cellId: true } }),
+  // shown faded and dashed by the getCellStyle wrapper in the plugin. The
+  // map goes into the script as a JSON literal.
+  ipcMain.handle(
+    "drawio:setContextCells",
+    async (_, cells: Record<string, Record<string, true>> | null) => {
+      if (!cachedDrawioFrame)
+        return { success: false, error: "No drawio frame cached" };
+      const cellsJs = JSON.stringify(cells ?? {});
+      try {
+        await cachedDrawioFrame.executeJavaScript(`
+        (function() {
+          Draw._taraflowContextCells = ${cellsJs};
+          var ui = Draw._taraflowUi;
+          if (ui && ui.editor && ui.editor.graph) ui.editor.graph.refresh();
           return true;
         })()
       `);
@@ -496,6 +552,22 @@ export function registerDrawioHandlers() {
             } finally {
               model.endUpdate();
             }
+          });
+
+          // Context copies that left the context of a pure context page
+          // (5f): exactly the listed cells, connected edges are not taken
+          // along (they are listed themselves when they leave too).
+          (spec.removeCells || []).forEach(function(r) {
+            var host = find(r.pageId);
+            if (!host) return;
+            show(host);
+            var graph = ui.editor.graph;
+            var cells = [];
+            (r.cellIds || []).forEach(function(id) {
+              var cell = graph.model.getCell(id);
+              if (cell) cells.push(cell);
+            });
+            if (cells.length > 0) graph.removeCells(cells, false);
           });
 
           // Page links on cells drawn after their page was created (5e).

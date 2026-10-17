@@ -35,6 +35,7 @@ import { useDFDCompletion } from "./use-dfd-completion";
 import { useCellIdentity } from "./use-cell-identity";
 import type { PageTabInfoMap } from "../services/leveled/page-tab-info";
 import type {
+  ContextCellMap,
   DrawioPageSyncResult,
   DrawioPageSyncSpec,
 } from "../services/drawio-bridge";
@@ -108,6 +109,10 @@ export interface UseDFDEditorReturn {
   setPageTabInfo: (info: PageTabInfoMap) => Promise<void>;
   /** Child pages, page links, page names in draw.io (leveled DFD 5d). */
   syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
+  /** Context copies shown faded and dashed (leveled DFD 5g). */
+  setContextCells: (cells: ContextCellMap) => Promise<void>;
+  /** Select one particular cell (page + cell), e.g. "Go to definition". */
+  selectCellAt: (pageId: string, cellId: string) => Promise<void>;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
@@ -586,6 +591,8 @@ export function useDFDEditor(
     pluginReady: bridge.pluginReady,
     setPageTabInfo: bridge.setPageTabInfo,
     syncPages: bridge.syncPages,
+    setContextCells: bridge.setContextCells,
+    selectCellAt: (pageId: string, cellId: string) => bridgeSelectCell(cellId, pageId),
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,
