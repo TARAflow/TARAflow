@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.3 — decisions D1–D17 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 next
+Status: rev. 4.4 — decisions D1–D18 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -872,6 +872,40 @@ to disk.
 - **"Insert as context…"**, **"Go to definition"**, **"Show occurrences"**, **"Make this the
   definition"**, **"Promote to definition"** (repair).
 - Description view and reporter: per page, plus one consolidated element list.
+- **One thumbnail per page (D18)**, see §12.1.
+
+### 12.1 Thumbnails per page (D18)
+
+**Today:** one `dfd.thumbnail` (base64 SVG data URL), produced by draw.io's embed export
+(`{action: "export", format: "svg"}`) after an autosave and normalised in `prepareForDisk`. Consumers:
+the DFD preview panel in the other tabs (`dfdPreviewImage`), the documentation generators
+(`base-generator`, `pdfmake-converter`, PNG conversion in `pdf-helpers`) and the CLI reporter (resvg
+rasterisation, no headless draw.io). The export renders the **current page only**, so in a
+multi-page file the stored thumbnail is whichever tab was active at the last save — today's leveled
+projects can therefore show a child page as "the DFD" in preview and report. Until Phase 5 this is a
+known limitation.
+
+**Target:**
+1. **Persistence:** `dfd.pages[].thumbnail?` — one SVG data URL per page, next to the page it shows
+   (the page's identity is its `pageId`, §5.3). `dfd.thumbnail` stays and always holds the **root
+   page (*Top*)**, so classic projects, older readers and every existing consumer keep working
+   unchanged. Classic single-page projects have no `dfd.pages` and keep exactly today's format. The
+   field is optional and additive inside schema 9; `prepareForDisk` normalises every page thumbnail
+   like `dfd.thumbnail` (pinned `ge-svg-*` id) so the TCS diff stays stable.
+2. **Generation:** after a save, export each page whose content changed (per-page XML hash) — not
+   only the active one. To verify in Phase 5: whether the embed export can address a page directly
+   (page id / index in the export message) or whether the bridge must select each page, export and
+   restore the user's tab. Either way the user's view must not visibly jump. A page without a
+   thumbnail yet shows a placeholder plus the existing "regenerate" action.
+3. **Preview panel:** a page selector (tabs or dropdown with the page tree order and names, *Top*
+   first) above the image; default *Top*; the selection is a per-viewer convenience (not persisted
+   in the project). Single-page projects show no selector.
+4. **Reports (Phase 7):** one figure per page in tree order, captioned with the page name and — for
+   child pages — the decomposed MP (`MP-1 Sensor Head`). The CLI reporter needs nothing new: it
+   rasterises stored SVGs exactly as today, so per-page figures come without a headless draw.io.
+
+**Size:** n pages = n SVGs in the project file. Acceptable (a thumbnail is typically tens of kB);
+regenerating only changed pages keeps the TCS diff to the pages actually edited.
 
 ## 13. Implementation phases
 
@@ -1027,13 +1061,15 @@ policy (§7).
 
 **Phase 5 — UI.** Page tree, decompose action, context-copy styling and actions; the adoption /
 assignment dialog on top of the 1.5 logic (one dialog, two entry points: `ID_ADOPTION_PENDING` and
-the paste hint).
+the paste hint). Per-page thumbnails (generation of changed pages, `dfd.thumbnail` = *Top*) and the
+page selector in the preview panel (§12.1, D18).
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.
 
-**Phase 7 — Reporter.** One figure per page, consolidated element/threat tables, decomposition tree,
-flows analysed on parent level listed explicitly.
+**Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
+consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
+explicitly.
 
 ## 14. Testing
 
@@ -1116,6 +1152,7 @@ Diff and audit
 | D15 | Child page of a multiprocess | **Created automatically with the MP; the decomposition takes effect only with the page's first own part** (2026-10-16) | Navigation without an extra step, but an empty page never costs the MP its threats or turns its flows into fallbacks (§6.1, §12) |
 | D16 | Tab name of a child page | **= name of the decomposed MP, one direction (MP → tab)** (2026-10-16) | One name to maintain; identity is the pageId (§5.3) |
 | D17 | Name of the root page | **Always *Top*** — from the second page on, and for new projects from the start (2026-10-16) | Recognisable entry point; classic projects do not churn (§5.3) |
+| D18 | Thumbnails of a leveled DFD | **One thumbnail per page in `dfd.pages[].thumbnail`; `dfd.thumbnail` = *Top*; the preview panel lets the user pick the page** (2026-10-17) | Preview and reports no longer depend on the tab active at save time; the reporter gets one figure per page without a headless draw.io; existing consumers unchanged (§12.1) |
 
 ## 16. End-to-end example: `DF-7 stream sensor data`
 
