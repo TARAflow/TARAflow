@@ -27,6 +27,7 @@ import {
   buildAnalysisView,
   buildDfdGraph,
   isLeveled,
+  type AnalysisView,
 } from "./build-dfd-graph";
 import { dfdChangeDetector } from "../utils/dfd-change-detector";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
@@ -244,6 +245,7 @@ class DFDService {
         {
           unconnectedDataflows,
           knownAssets: project.knownAssets,
+          leveledFindings: view.leveledFindings,
         },
       );
 
@@ -551,6 +553,7 @@ class DFDService {
         dfdGraph,
         {
           unconnectedDataflows,
+          leveledFindings: view.leveledFindings,
         },
       );
 
@@ -697,7 +700,10 @@ class DFDService {
         syncedAssets,
         stats,
         dfdGraph,
-        { unconnectedDataflows },
+        {
+          unconnectedDataflows,
+          leveledFindings: view.leveledFindings,
+        },
       );
 
       const dfdData: DFDData = {
@@ -799,7 +805,7 @@ class DFDService {
       syncedAssets,
       stats,
       graph,
-      { unconnectedDataflows },
+      { unconnectedDataflows, leveledFindings: view.leveledFindings },
     );
   }
 

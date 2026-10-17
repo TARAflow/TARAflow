@@ -5,6 +5,9 @@
 // Message types (in display order):
 //   error    — structural validation errors (red)
 //   warning  — structural validation warnings (yellow)
+//   info     — notes without action pressure (leveled DFDs, §7; blue),
+//              hidden until their chip or the "Notes" filter is chosen
+//              (like the asset notification panel)
 //   security — control gap suggestions from Risk Tab mitigations (orange)
 //
 // Future extension points:
@@ -35,6 +38,7 @@ import {
 } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SecurityIcon from "@mui/icons-material/Security";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -62,7 +66,13 @@ const HEADER_HEIGHT = 44;
 
 // ==================== NOTIFICATION TYPES ====================
 
-type NotificationType = "error" | "warning" | "security" | "drift" | "conflict";
+type NotificationType =
+  | "error"
+  | "warning"
+  | "info"
+  | "security"
+  | "drift"
+  | "conflict";
 
 interface BaseNotification {
   key: string;
@@ -70,7 +80,7 @@ interface BaseNotification {
 }
 
 interface ValidationNotification extends BaseNotification {
-  type: "error" | "warning";
+  type: "error" | "warning" | "info";
   finding: ValidationFinding;
   displayId?: string;
   elementId?: string;
@@ -180,6 +190,16 @@ function buildNotifications(
     });
   });
 
+  (validation?.infos ?? []).forEach((f, idx) => {
+    notifications.push({
+      key: `info:${idx}:${f.key}:${f.displayId ?? ""}`,
+      type: "info",
+      finding: f,
+      displayId: f.displayId,
+      elementId: f.elementId,
+    });
+  });
+
   if (controlInstances.length > 0) {
     const elementById = new Map(elements.map((e) => [e.id, e]));
     const connectionById = new Map(connections.map((c) => [c.id, c]));
@@ -271,7 +291,7 @@ export interface DFDNotificationsPanelProps {
 
 // ==================== COMPONENT ====================
 
-type FilterType = "all" | "error" | "warning" | "security";
+type FilterType = "all" | "error" | "warning" | "info" | "security";
 
 export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   validation,
@@ -363,7 +383,8 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   );
 
   const filteredNotifications = useMemo(() => {
-    if (activeFilter === "all") return notifications;
+    if (activeFilter === "all")
+      return notifications.filter((n) => n.type !== "info");
     if (activeFilter === "error")
       return notifications.filter(
         (n) => n.type === "error" || n.type === "conflict",
@@ -372,6 +393,8 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
       return notifications.filter(
         (n) => n.type === "warning" || n.type === "drift",
       );
+    if (activeFilter === "info")
+      return notifications.filter((n) => n.type === "info");
     if (activeFilter === "security")
       return notifications.filter((n) => n.type === "security");
     return notifications;
@@ -381,6 +404,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
 
   const errorCount = notifications.filter((n) => n.type === "error").length;
   const warningCount = notifications.filter((n) => n.type === "warning").length;
+  const infoCount = notifications.filter((n) => n.type === "info").length;
   const securityCount = notifications.filter(
     (n) => n.type === "security",
   ).length;
@@ -394,7 +418,9 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
       ? "error.main"
       : securityCount > 0 || driftCount > 0
         ? "warning.main"
-        : "warning.light";
+        : warningCount > 0
+          ? "warning.light"
+          : "info.light";
 
   return (
     <Paper
@@ -457,7 +483,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
       >
         <Typography variant="body2" fontWeight={600} sx={{ flexGrow: 1 }}>
           {t("tabs.dfd.notifications.title", {
-            count: notifications.length,
+            count: notifications.length - infoCount,
             defaultValue: "{{count}} notification(s)",
           })}
         </Typography>
@@ -484,6 +510,24 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
               size="small"
               color="warning"
               variant="filled"
+              sx={{ height: 22, fontSize: "0.82rem" }}
+            />
+          )}
+          {infoCount > 0 && (
+            <Chip
+              data-testid="dfd-notification-info-toggle"
+              icon={
+                <InfoOutlinedIcon sx={{ fontSize: "0.95rem !important" }} />
+              }
+              label={infoCount}
+              size="small"
+              color="info"
+              variant={activeFilter === "info" ? "filled" : "outlined"}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(true);
+                setActiveFilter((f) => (f === "info" ? "all" : "info"));
+              }}
               sx={{ height: 22, fontSize: "0.82rem" }}
             />
           )}
@@ -537,7 +581,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
           >
             <MenuItem value="all" sx={{ fontSize: "0.85rem" }}>
               {t("tabs.dfd.notifications.filter.all", { defaultValue: "All" })}{" "}
-              ({notifications.length})
+              ({notifications.length - infoCount})
             </MenuItem>
             {errorCount + conflictCount > 0 && (
               <MenuItem value="error" sx={{ fontSize: "0.85rem" }}>
@@ -553,6 +597,14 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
                   defaultValue: "Warnings",
                 })}{" "}
                 ({warningCount + driftCount})
+              </MenuItem>
+            )}
+            {infoCount > 0 && (
+              <MenuItem value="info" sx={{ fontSize: "0.85rem" }}>
+                {t("tabs.dfd.notifications.filter.infos", {
+                  defaultValue: "Notes",
+                })}{" "}
+                ({infoCount})
               </MenuItem>
             )}
             {securityCount > 0 && (
@@ -582,7 +634,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
           sx={{ overflow: "auto", maxHeight: panelHeight - HEADER_HEIGHT - 8 }}
         >
           {filteredNotifications.map((n) =>
-            n.type === "error" || n.type === "warning" ? (
+            n.type === "error" || n.type === "warning" || n.type === "info" ? (
               <ValidationRow
                 key={n.key}
                 notification={n as ValidationNotification}
@@ -632,7 +684,12 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
       borderBottom: "1px solid",
       borderColor: "divider",
       "&:last-child": { borderBottom: "none" },
-      bgcolor: notification.type === "error" ? "error.50" : "warning.50",
+      bgcolor:
+        notification.type === "error"
+          ? "error.50"
+          : notification.type === "info"
+            ? "info.50"
+            : "warning.50",
       flexWrap: "nowrap",
       minWidth: 0,
       cursor: notification.elementId ? "pointer" : "default",
@@ -642,6 +699,10 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
     {notification.type === "error" ? (
       <ErrorOutlineIcon
         sx={{ fontSize: 18, color: "error.main", flexShrink: 0 }}
+      />
+    ) : notification.type === "info" ? (
+      <InfoOutlinedIcon
+        sx={{ fontSize: 18, color: "info.main", flexShrink: 0 }}
       />
     ) : (
       <WarningAmberIcon
@@ -655,7 +716,13 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
         label={notification.displayId}
         size="small"
         variant="outlined"
-        color={notification.type === "error" ? "error" : "warning"}
+        color={
+          notification.type === "error"
+            ? "error"
+            : notification.type === "info"
+              ? "info"
+              : "warning"
+        }
         sx={{ height: 20, fontSize: "0.78rem", flexShrink: 0 }}
       />
     )}

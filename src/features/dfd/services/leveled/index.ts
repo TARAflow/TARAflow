@@ -67,3 +67,11 @@ export type {
   EffectiveInterface,
   EffectiveBoundaries,
 } from "./effective-model";
+export {
+  collectLeveledFindings,
+  emptyLeveledFindings,
+  LEVELED_SEVERITY,
+  type LeveledFindings,
+  type LeveledFindingsInput,
+  type LeveledSeverity,
+} from "./leveled-findings";

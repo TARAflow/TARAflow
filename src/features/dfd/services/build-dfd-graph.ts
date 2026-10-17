@@ -29,7 +29,14 @@ import {
   buildPageTree,
   computeHomePages,
   type EffectiveModel,
+  type HomePages,
+  type PageTree,
 } from "./leveled";
+import {
+  collectLeveledFindings,
+  type LeveledFindings,
+} from "./leveled/leveled-findings";
+import type { ParseResult } from "./dfd-parser";
 
 export interface DfdGraphSource {
   xml?: string;
@@ -51,14 +58,23 @@ export interface AnalysisView {
   elements: DFDElement[];
   connections: DFDConnection[];
   facts?: PrecomputedGraphFacts;
+  /** Leveled DFD only: findings of the page tree and the effective model
+   *  (§7), handed to the validator. */
+  leveledFindings?: LeveledFindings;
 }
 
 export function buildAnalysisView(source: DfdGraphSource): AnalysisView {
   if (!isLeveled(source.xml)) {
     return { elements: source.elements, connections: source.connections };
   }
-  const { model, records } = effectiveModelOf(source);
-  return graphInputOf(model, records);
+  const leveled = effectiveModelOf(source);
+  return {
+    ...graphInputOf(leveled.model, leveled.records),
+    leveledFindings: collectLeveledFindings({
+      ...leveled,
+      persistedPages: source.pages,
+    }),
+  };
 }
 
 /**
@@ -84,6 +100,9 @@ export function effectiveModelOf(source: DfdGraphSource): {
     elements: Map<string, DFDElement>;
     connections: Map<string, DFDConnection>;
   };
+  parse: ParseResult;
+  tree: PageTree;
+  homePages: HomePages;
 } {
   const parse = dfdParser.parse(source.xml ?? "", source.pages);
   const elementRecords = new Map(parse.elements.map((e) => [e.id, e]));
@@ -114,6 +133,9 @@ export function effectiveModelOf(source: DfdGraphSource): {
   return {
     model,
     records: { elements: elementRecords, connections: connectionRecords },
+    parse,
+    tree,
+    homePages,
   };
 }
 

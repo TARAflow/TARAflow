@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 next
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4a done (leveled findings in the validation) · 4b next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -631,7 +631,7 @@ later. Global blocking would also hit every incremental modelling step.
 | `BAL_ABSTRACT_WITHOUT_REFINEMENT` | warning | §6.4 | – |
 | `BAL_ASSET_NOT_REALISED` | warning | A pending asset relation on a decomposed MP is held by none of its descendants (§9) | – |
 | `ID_ADOPTION_PENDING` | warning | File contains pages whose occurrences have not been adopted yet (§11.2.1) | – |
-| `ID_PASTE_REASSIGNED` | info | A pasted definition received a fresh `tfId` (§5.2) | – |
+| `ID_PASTE_REASSIGNED` | info | A pasted definition received a fresh `tfId` (§5.2) and still shows another element's displayId (until the next renumber) | – |
 | `DFD_EE_TO_EE_FLOW` | info | Flow between two external entities (out of analysis scope) | `DF-39` |
 
 Page-tree findings (structural, computed by `buildPageTree` since 1.3, reported by the validator in
@@ -639,7 +639,8 @@ Phase 4): `PAGE_UNASSIGNED` (page in the XML but not in `dfd.pages`; with severa
 `ID_ADOPTION_PENDING`), `PAGE_MISSING`, `PAGE_NO_ROOT`, `PAGE_MULTIPLE_ROOTS`,
 `PAGE_DECOMPOSES_UNKNOWN`, `PAGE_DECOMPOSES_NOT_MULTIPROCESS` (D1), `PAGE_DECOMPOSED_TWICE`,
 `PAGE_PARENT_UNRESOLVED` (decomposed MP dangling or defined outside the tree), `PAGE_CYCLE`, plus
-`BAL_DECOMPOSED_ON_OWN_PAGE` above. A page that cannot be placed keeps no depth and is never
+`BAL_DECOMPOSED_ON_OWN_PAGE` above. Severities (4a): errors `PAGE_NO_ROOT`, `PAGE_MULTIPLE_ROOTS`,
+`PAGE_DECOMPOSES_NOT_MULTIPROCESS`, `PAGE_DECOMPOSED_TWICE`, `PAGE_CYCLE`; warnings the others. A page that cannot be placed keeps no depth and is never
 attached somewhere silently; its content stays in the logical model (D10).
 
 Note on `BAL_LABEL_DIVERGENCE`: the label is a property of the logical record. Editing the label of
@@ -1095,8 +1096,37 @@ exactly its links and decomposition.
   - Reachable in practice only with Phase 5: a duplicated page is a new, unadopted page and
     refused until the adoption dialog adopts it.
 
-**Phase 4 — Validator.** Findings from §7; `refines` and `abstract` in the connection form; error
-policy (§7).
+**Phase 4 — Validator.** (split 2026-10-17)
+
+- **4a ✅** leveled findings in the DFD validation.
+  - `leveled/leveled-findings`: `collectLeveledFindings` turns the page-tree issues, the
+    effective-model findings and the occurrences into `ValidationFinding`s with the §7 severities;
+    message keys `dfdValidation.leveled.<CODE>` (en/de), parameters are human-readable names
+    (displayId + name, page names as in the XML — the XML name wins, §5.3). Rules computed here:
+    `BAL_HOME_NOT_HIGHEST`, `BAL_LABEL_DIVERGENCE`, `BAL_MISSING_PARENT_FLOW` (without `refines`
+    until 4b), `ID_PASTE_REASSIGNED`.
+  - `AnalysisView.leveledFindings` (built with the view, single page: none) → validator option
+    `leveledFindings`, appended in every validation (load, both saves, `validateCurrentState`).
+  - **New severity `infos`** (`ValidationResult.infos`, `DFDValidation.infos`, optional, absent =
+    none): never affects `isValid` / `isComplete`. The DFD notification panel shows them like the
+    asset panel — hidden by default, the info chip (or the "Notes" filter) shows them.
+  - Error policy (D10) confirmed in the code: validation errors only set the DFD phase status;
+    nothing gates threat generation on them.
+  - `ID_PASTE_REASSIGNED` is **derived from the state** (a `definition` link `<pageId>:<cellId>`
+    whose displayId is still shared with another record), not handed over from the save: the panel
+    shows `validateCurrentState`, which knows nothing about the last save. It disappears with the
+    next renumber.
+  - `BAL_DUPLICATE_DISPLAY_ID` is **not** a separate finding: the existing duplicate-id check on
+    the records covers it (one finding per fact).
+  - Leveled SmokeDetector: no leveled finding at all (regression).
+  - Known limit until Phase 5: clicking a finding selects the cell by record id, which misses
+    linked cells (see Phase 5 prerequisite).
+- **4b** `refines` and `abstract` on flows (model, connection form), §6.4 semantics in the
+  effective model (refinement counts for balancing, abstract flows are excluded), findings
+  `BAL_REFINES_CYCLE` / `_TARGET_MISSING` / `_INCOMPATIBLE`, `BAL_ABSTRACT_WITHOUT_REFINEMENT`;
+  `BAL_MISSING_PARENT_FLOW` accepts a `refines` as substitute (D2).
+- Moved: `BAL_ASSET_NOT_REALISED` → Phase 6 (asset roll-up); threat-tab banner "N flows analysed
+  on parent level" → Phase 5 (UI).
 
 **Phase 5 — UI.** **Prerequisite (gap found in 3.3):** UI code still addresses draw.io cells by the
 record id — selection (`selectCell(element.id)`), the details/property forms and their write-back,

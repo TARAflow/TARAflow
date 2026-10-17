@@ -2620,6 +2620,7 @@
           "all": "Alle",
           "errors": "Fehler",
           "warnings": "Warnungen",
+          "infos": "Hinweise",
           "apply": "Anwenden"
         },
         "conflict": {
@@ -2717,7 +2718,29 @@
     },
     "internalError": "Validierungsfehler: {{message}}",
     "multiPageNotSupported": "Das Diagramm hat {{count}} Seiten; {{pages}} sind noch nicht in den Seitenbaum übernommen (die Übernahme bestehender mehrseitiger Dateien folgt in einer späteren Version). Bis dahin werden Änderungen nicht gespeichert und es können keine Bedrohungen generiert werden — entfernen Sie diese Seiten oder verwenden Sie ein Projekt mit übernommenen Seiten.",
-    "compressedPageNotSupported": "Komprimierte Diagrammseite(n) können nicht gelesen werden ({{pages}}). Änderungen werden nicht gespeichert und es können keine Bedrohungen generiert werden, bis die Seite unkomprimiert gespeichert ist."
+    "compressedPageNotSupported": "Komprimierte Diagrammseite(n) können nicht gelesen werden ({{pages}}). Änderungen werden nicht gespeichert und es können keine Bedrohungen generiert werden, bis die Seite unkomprimiert gespeichert ist.",
+    "leveled": {
+      "PAGE_UNASSIGNED": "Seite \"{{page}}\" ist noch nicht Teil des Seitenbaums (nicht übernommen).",
+      "PAGE_MISSING": "Seite \"{{page}}\" steht im Seitenbaum, existiert im Diagramm aber nicht mehr.",
+      "PAGE_NO_ROOT": "Der Seitenbaum hat keine Wurzelseite.",
+      "PAGE_MULTIPLE_ROOTS": "Mehrere Seiten sind Wurzelseiten ({{pages}}); nur die erste wird als Wurzel verwendet.",
+      "PAGE_DECOMPOSES_UNKNOWN": "Seite \"{{page}}\" detailliert ein Element, das nicht existiert ({{element}}).",
+      "PAGE_DECOMPOSES_NOT_MULTIPROCESS": "Seite \"{{page}}\" detailliert {{element}}, das kein Multiprozess ist — nur Multiprozesse können zerlegt werden.",
+      "PAGE_DECOMPOSED_TWICE": "{{element}} wird von mehr als einer Seite detailliert ({{pages}}).",
+      "PAGE_PARENT_UNRESOLVED": "Seite \"{{page}}\" kann nicht eingeordnet werden: {{element}} hat keine Definition im Seitenbaum.",
+      "PAGE_CYCLE": "Die Seiten {{pages}} detaillieren sich gegenseitig im Kreis.",
+      "BAL_DECOMPOSED_ON_OWN_PAGE": "{{element}} erscheint auf seiner eigenen Unterseite \"{{page}}\".",
+      "BAL_AMBIGUOUS_ENDPOINT": "Fluss {{flow}}: Die gezeichneten Endpunkte liegen nicht auf einer Zerlegungskette ({{candidates}}); analysiert am gemeinsamen Elternelement.",
+      "BAL_UNRESOLVED_ENDPOINT": "Fluss {{flow}} ist auf der Unterseite von {{element}} nicht gezeichnet; analysiert mit {{element}} als Endpunkt.",
+      "BAL_DUPLICATE_OCCURRENCE": "Fluss {{flow}} ist auf Seite \"{{page}}\" {{count}}-mal gezeichnet.",
+      "BAL_DANGLING_REF": "{{element}} existiert nur als Kontextkopie — die Definition fehlt.",
+      "DFD_EE_TO_EE_FLOW": "Fluss {{flow}} verbindet zwei externe Entitäten und liegt außerhalb der Analyse.",
+      "BAL_INTERFACE_UNATTRIBUTED": "Fluss {{flow}}: Interface {{interface}} auf Seite \"{{page}}\" lässt sich keiner Seite der Zerlegungsgrenze zuordnen.",
+      "BAL_HOME_NOT_HIGHEST": "{{element}} ist auf \"{{page}}\" definiert, erscheint aber auch auf der höheren Seite \"{{highest}}\"; die Definition sollte nach oben wandern.",
+      "BAL_LABEL_DIVERGENCE": "Die Vorkommen von {{element}} tragen unterschiedliche Bezeichnungen: {{labels}}.",
+      "BAL_MISSING_PARENT_FLOW": "Fluss {{flow}} kreuzt die Grenze von {{element}}, ist auf der Elternseite \"{{page}}\" aber nicht gezeichnet.",
+      "ID_PASTE_REASSIGNED": "{{element}} auf Seite \"{{page}}\" wurde eingefügt und ist jetzt ein eigenes Element; Auto-Nummerierung ausführen, damit es eine eigene ID bekommt."
+    }
   },
   "levels": {
     "security": {

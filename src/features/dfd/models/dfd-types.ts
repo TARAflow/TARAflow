@@ -226,6 +226,8 @@ export interface DFDValidation {
   isComplete: boolean;
   errors: ValidationFinding[];
   warnings: ValidationFinding[];
+  /** Notes without action pressure (leveled DFDs, §7); absent = none. */
+  infos?: ValidationFinding[];
   lastValidated: string;
 }
 

@@ -2633,6 +2633,7 @@
           "all": "All",
           "errors": "Errors",
           "warnings": "Warnings",
+          "infos": "Notes",
           "apply": "Apply"
         },
         "conflict": {
@@ -2730,7 +2731,29 @@
     },
     "internalError": "Validation error: {{message}}",
     "multiPageNotSupported": "The diagram has {{count}} pages; {{pages}} are not adopted into the page tree yet (adoption of existing multi-page files follows in a later version). Until then changes are not saved and threats cannot be generated — remove those pages or use a project whose pages are adopted.",
-    "compressedPageNotSupported": "Compressed diagram page(s) cannot be read ({{pages}}). Changes are not saved and threats cannot be generated until the page is stored uncompressed."
+    "compressedPageNotSupported": "Compressed diagram page(s) cannot be read ({{pages}}). Changes are not saved and threats cannot be generated until the page is stored uncompressed.",
+    "leveled": {
+      "PAGE_UNASSIGNED": "Page \"{{page}}\" is not part of the page tree yet (not adopted).",
+      "PAGE_MISSING": "Page \"{{page}}\" is listed in the page tree but no longer exists in the diagram.",
+      "PAGE_NO_ROOT": "The page tree has no root page.",
+      "PAGE_MULTIPLE_ROOTS": "Several pages are root pages ({{pages}}); only the first is used as root.",
+      "PAGE_DECOMPOSES_UNKNOWN": "Page \"{{page}}\" details an element that does not exist ({{element}}).",
+      "PAGE_DECOMPOSES_NOT_MULTIPROCESS": "Page \"{{page}}\" details {{element}}, which is not a multiprocess — only multiprocesses can be decomposed.",
+      "PAGE_DECOMPOSED_TWICE": "{{element}} is detailed by more than one page ({{pages}}).",
+      "PAGE_PARENT_UNRESOLVED": "Page \"{{page}}\" cannot be placed: {{element}} has no definition inside the page tree.",
+      "PAGE_CYCLE": "The pages {{pages}} detail each other in a cycle.",
+      "BAL_DECOMPOSED_ON_OWN_PAGE": "{{element}} appears on its own child page \"{{page}}\".",
+      "BAL_AMBIGUOUS_ENDPOINT": "Flow {{flow}}: its drawn endpoints are not on one decomposition chain ({{candidates}}); analysed at the common parent.",
+      "BAL_UNRESOLVED_ENDPOINT": "Flow {{flow}} is not drawn on the child page of {{element}}; analysed with {{element}} as endpoint.",
+      "BAL_DUPLICATE_OCCURRENCE": "Flow {{flow}} is drawn {{count}} times on page \"{{page}}\".",
+      "BAL_DANGLING_REF": "{{element}} only exists as context copies — its definition is missing.",
+      "DFD_EE_TO_EE_FLOW": "Flow {{flow}} connects two external entities and is out of the analysis scope.",
+      "BAL_INTERFACE_UNATTRIBUTED": "Flow {{flow}}: interface {{interface}} on page \"{{page}}\" cannot be attributed to a side of the decomposition border.",
+      "BAL_HOME_NOT_HIGHEST": "{{element}} is defined on \"{{page}}\" but also appears on the higher page \"{{highest}}\"; consider moving its definition up.",
+      "BAL_LABEL_DIVERGENCE": "The occurrences of {{element}} carry different labels: {{labels}}.",
+      "BAL_MISSING_PARENT_FLOW": "Flow {{flow}} crosses the border of {{element}} but is not drawn on the parent page \"{{page}}\".",
+      "ID_PASTE_REASSIGNED": "{{element}} on page \"{{page}}\" was pasted and is now an element of its own; run auto-numbering to give it its own ID."
+    }
   },
   "levels": {
     "security": {
