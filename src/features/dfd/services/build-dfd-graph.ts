@@ -18,7 +18,10 @@ import { inspectDrawioPages } from "shared";
 import type { DFDConnection, DFDElement, DFDPage } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { DFDGraph } from "../models/dfd-graph-types";
-import { DefaultDFDGraphBuilder } from "./dfd-graph-builder";
+import {
+  DefaultDFDGraphBuilder,
+  type PrecomputedGraphFacts,
+} from "./dfd-graph-builder";
 import { dfdParser } from "./dfd-parser";
 import {
   analysePageGeometry,
@@ -36,15 +39,37 @@ export interface DfdGraphSource {
   assets: DFDAsset[];
 }
 
-export function buildDfdGraph(source: DfdGraphSource): DFDGraph {
-  const builder = new DefaultDFDGraphBuilder();
-  const { elements, connections, assets } = source;
+/**
+ * What the analysis sees of a DFD: for a single page its records as they
+ * are; for a leveled DFD the leaves, the stitched (non-excluded) flows and
+ * the precomputed facts. The graph AND the validator take this view, so a
+ * decomposed multiprocess is neither analysed nor validated as an element,
+ * and flow checks see the resolved endpoints (e.g. the TLS terminator is
+ * P-11, not the multiprocess the flow is drawn to on Top).
+ */
+export interface AnalysisView {
+  elements: DFDElement[];
+  connections: DFDConnection[];
+  facts?: PrecomputedGraphFacts;
+}
 
+export function buildAnalysisView(source: DfdGraphSource): AnalysisView {
   if (!isLeveled(source.xml)) {
-    return builder.build({ elements, connections, assets });
+    return { elements: source.elements, connections: source.connections };
   }
   const { model, records } = effectiveModelOf(source);
-  return builder.build({ ...graphInputOf(model, records), assets });
+  return graphInputOf(model, records);
+}
+
+/**
+ * @param view the analysis view if the caller already built it (to validate
+ *             with the same view); built here otherwise
+ */
+export function buildDfdGraph(
+  source: DfdGraphSource,
+  view: AnalysisView = buildAnalysisView(source),
+): DFDGraph {
+  return new DefaultDFDGraphBuilder().build({ ...view, assets: source.assets });
 }
 
 /** More than one draw.io page = leveled DFD. */
@@ -98,7 +123,7 @@ function graphInputOf(
     elements: Map<string, DFDElement>;
     connections: Map<string, DFDConnection>;
   },
-) {
+): AnalysisView {
   const elements = model.elements.map((e) => records.elements.get(e.tfId)!);
   const connections = model.flows
     .filter((f) => f.state !== "excluded")

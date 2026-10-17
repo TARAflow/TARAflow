@@ -20,6 +20,8 @@ import fs from "fs/promises";
 import { loadProject } from "./cli/load-project";
 import { toDocProjectData } from "./cli/to-doc-project-data";
 import { initI18nNode, i18n } from "./cli/i18n-node";
+// Deep import: the shared barrel pulls UI components; this module is pure.
+import { inspectDrawioPages } from "../src/shared/utils/drawio-page-layout";
 import {
   createCliGenerator,
   generatePdfBufferCli,
@@ -108,6 +110,19 @@ async function main() {
     console.warn(
       `Note: project schema was migrated from v${fromVersion} during load ` +
         `(in-memory only — this CLI does not write the migrated file back to disk).`,
+    );
+  }
+
+  // Leveled DFD (leveled-dfd-multi-diagram-design.md, Phase 7 open): the CLI
+  // has no DOM parser and does not read the pages. Threat and risk tables are
+  // the stored ones and correct; the DFD figure is the stored thumbnail and
+  // flows are listed with the endpoints their definition draws (top level).
+  const pageCount = inspectDrawioPages(project.dfd?.xml).pageCount;
+  if (pageCount > 1) {
+    console.warn(
+      `Note: the DFD has ${pageCount} pages. Threat and risk tables are complete; ` +
+        `the DFD figure and flow list show the stored top-level view — ` +
+        `per-page figures follow in a later version.`,
     );
   }
 

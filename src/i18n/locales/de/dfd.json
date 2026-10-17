@@ -2716,7 +2716,7 @@
       "custom": "Benutzerdefiniert"
     },
     "internalError": "Validierungsfehler: {{message}}",
-    "multiPageNotSupported": "Das Diagramm hat {{count}} Seiten ({{pages}}). Mehrere Seiten werden noch nicht unterstützt: Entfernen Sie die zusätzlichen Seiten — bis dahin werden Änderungen nicht gespeichert und es können keine Bedrohungen generiert werden.",
+    "multiPageNotSupported": "Das Diagramm hat {{count}} Seiten; {{pages}} sind noch nicht in den Seitenbaum übernommen (die Übernahme bestehender mehrseitiger Dateien folgt in einer späteren Version). Bis dahin werden Änderungen nicht gespeichert und es können keine Bedrohungen generiert werden — entfernen Sie diese Seiten oder verwenden Sie ein Projekt mit übernommenen Seiten.",
     "compressedPageNotSupported": "Komprimierte Diagrammseite(n) können nicht gelesen werden ({{pages}}). Änderungen werden nicht gespeichert und es können keine Bedrohungen generiert werden, bis die Seite unkomprimiert gespeichert ist."
   },
   "levels": {

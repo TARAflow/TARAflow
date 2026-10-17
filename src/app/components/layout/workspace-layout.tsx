@@ -980,6 +980,7 @@ export const WorkspaceLayout: React.FC = () => {
               threats: activeProject.threats ?? null,
               phaseStatus: activeProject.phaseStatus,
               dfdXml: activeProject.dfd?.xml,
+              dfdPageIds: activeProject.dfd?.pages?.map((p) => p.pageId),
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               dfdElements: (activeProject.dfd?.elements || []) as any[],
               // eslint-disable-next-line @typescript-eslint/no-explicit-any

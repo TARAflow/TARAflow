@@ -420,8 +420,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   // layout blocks generation and sync. The services refuse as well; this only
   // makes the block visible and disables the toolbar actions.
   const dfdLayoutBlocked = useMemo(
-    () => unsupportedDfdLayoutError({ dfdXml: project.dfdXml }) !== null,
-    [project.dfdXml],
+    () =>
+      unsupportedDfdLayoutError({
+        dfdXml: project.dfdXml,
+        dfdPageIds: project.dfdPageIds,
+      }) !== null,
+    [project.dfdXml, project.dfdPageIds],
   );
 
   // ── Generation drift ────────────────────────────────────────────────────

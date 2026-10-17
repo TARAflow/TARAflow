@@ -26,6 +26,15 @@ describe("unsupportedDfdLayoutError", () => {
     }
   });
 
+  it("lets an adopted multi-page layout through (Phase 2c-2)", () => {
+    expect(
+      unsupportedDfdLayoutError({ dfdXml: TWO_PAGES, dfdPageIds: ["top", "sub"] }),
+    ).toBeNull();
+    expect(
+      unsupportedDfdLayoutError({ dfdXml: TWO_PAGES, dfdPageIds: ["top"] }),
+    ).toContain("not adopted");
+  });
+
   it("explains a multi-page layout", () => {
     const error = unsupportedDfdLayoutError({ dfdXml: TWO_PAGES });
     expect(error).toContain("2 pages");

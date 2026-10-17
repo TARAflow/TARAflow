@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.3 — decisions D1–D17 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2a–2b and 2c-1 done (effective model, hand-over to the analysis graph), 2c-2 next
+Status: rev. 4.3 — decisions D1–D17 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -765,8 +765,8 @@ threat is a manual analyst action and recorded in the audit diff.
 - **No XML change** (lazy identity, §5.2): the XML of existing projects stays byte-identical.
 - JSON only: creates `pages[]` (one root page from the `<diagram>`, or none for a bare
   `<mxGraphModel>`) and initialises the numbering high-water marks. Both are additive.
-- **Decided in 1.3:** `dfd.pages` stays **optional and absent** for classic projects (no churn, no
-  bump for it). The schema is bumped to 9 only when the Phase 0 guard is lifted (Phase 2/5), as a
+- **Decided in 1.3, done in 2c-2:** `dfd.pages` stays **optional and absent** for classic projects
+  (no churn). The schema is bumped to 9 when the Phase 0 guard is lifted (Phase 2c-2), as a
   **version fence**: every released TARAflow before Phase 0 silently merges the pages of a
   multi-page file (§4); a newer schema makes it refuse the file instead
   (`migration-service` rejects `schemaVersion > CURRENT_SCHEMA_VERSION`). The 8 → 9 step itself
@@ -989,8 +989,24 @@ Split into commits:
   (member lists compared as sets — they follow page order), nesting, effective trust boundaries and
   an identical data-flow analysis; element and interaction generation give **exactly the same 451
   threats**.
-- **2c-2** lift the Phase 0 guard for adopted files; schema 9 as version fence (§11.2); CLI reporter
-  refuses leveled projects until Phase 7 (it runs without a DOM parser and cannot read the pages).
+- **2c-2 ✅** guard narrowed, schema 9, reporter note.
+  - `inspectDrawioPages(xml, adoptedPageIds)`: a multi-page layout is supported once every page has
+    an entry in `dfd.pages`; compressed pages stay refused. All service guards pass the ids
+    (`dfd-service` load/save/validate, threat generation and sync via `ThreatProjectData.dfdPageIds`,
+    threats-tab banner). Imports of DFD files and auto-numbering keep the strict check (no
+    `dfd.pages` on import; numbering across pages is Phase 3). Messages now say "not adopted".
+  - **Validation sees the analysis view too** (`buildAnalysisView`, shared with the graph): leaves
+    and stitched flows. Found with the leveled Smoke Detector: with the raw records the validator
+    reported a missing TLS terminator on two flows drawn to `MP-2` on *Top* and property warnings
+    for the decomposed MPs. Now its findings equal the single page exactly
+    (`regression/leveled-dfd-service`).
+  - Schema 9 (`migrate_8_to_9`, no data change) as the version fence of §11.2; reason text in the
+    conversion dialog.
+  - **CLI reporter: note instead of refusal** (deviation from the plan). The reporter builds no
+    graph and generates no threats — it prints stored data. For a leveled project the threat and
+    risk tables are complete and correct; only the DFD figure (stored thumbnail) and the flow list
+    (endpoints as drawn by the definition, i.e. the top level) are simplified. A refusal would block
+    reports of leveled projects altogether, so the CLI prints a note until Phase 7.
 Gate: golden test on the leveled Smoke Detector fixture (§3, §16) + ambiguity/self-loop/EE→EE cases.
 The fixture is built from the single-page `SmokeDetector` example; its threats for elements and
 flows that are unchanged by the leveling must equal the single-page result.

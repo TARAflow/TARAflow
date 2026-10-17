@@ -22,7 +22,11 @@ import {
   createDFDStorageAdapter,
 } from "./dfd-storage-adapter";
 import { DefaultDFDGraphBuilder } from "./dfd-graph-builder";
-import { buildDfdGraph, isLeveled } from "./build-dfd-graph";
+import {
+  buildAnalysisView,
+  buildDfdGraph,
+  isLeveled,
+} from "./build-dfd-graph";
 import { dfdChangeDetector } from "../utils/dfd-change-detector";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import { calculateStats } from "./parsers/stats-calculator";
@@ -32,6 +36,11 @@ import {
 } from "../models/asset-relation-types";
 import { validatePageLayout } from "./validators/page-layout-validator";
 import { pruneStaleLinks } from "./leveled";
+
+/** pageIds of dfd.pages — an adopted multi-page DFD is analysable (§11.2.1). */
+function adoptedPageIds(pages: readonly { pageId: string }[] | undefined) {
+  return pages?.map((p) => p.pageId);
+}
 
 export interface DFDSaveResult {
   success: boolean;
@@ -142,7 +151,10 @@ class DFDService {
 
       // Phase 0 guard: hand the XML to draw.io (done above) but do not derive
       // the model from an unsupported page layout.
-      const pageLayout = inspectDrawioPages(project.dfd!.xml);
+      const pageLayout = inspectDrawioPages(
+        project.dfd!.xml,
+        adoptedPageIds(project.dfd!.pages),
+      );
       if (!pageLayout.supported) {
         console.error(
           "[DFDService] loadDFDForEditing:",
@@ -188,21 +200,24 @@ class DFDService {
         syncedAssets,
       );
 
-      // Build DFD graph (leveled DFDs: effective model, §6)
-      const graph = buildDfdGraph({
+      // Build DFD graph (leveled DFDs: effective model, §6). Graph and
+      // validation share one analysis view.
+      const graphSource = {
         xml: project.dfd!.xml,
         pages: project.dfd!.pages,
         elements: mergedElements,
         connections: mergedConnections,
         assets: syncedAssets,
-      });
+      };
+      const view = buildAnalysisView(graphSource);
+      const graph = buildDfdGraph(graphSource, view);
 
       const graphContext = new DFDGraphAnalysisContext(graph);
 
       // Run initial validation
       const validation = this.validator.validate(
-        mergedElements,
-        mergedConnections,
+        view.elements,
+        view.connections,
         syncedAssets,
         stats,
         graph,
@@ -411,7 +426,10 @@ class DFDService {
       const xml = adapter.getXml();
 
       // Phase 0 guard: never derive the model from an unsupported layout.
-      const pageLayout = inspectDrawioPages(xml);
+      const pageLayout = inspectDrawioPages(
+        xml,
+        adoptedPageIds(project.dfd?.pages),
+      );
       if (!pageLayout.supported) {
         return refuseSave(emptyResult, pageLayout);
       }
@@ -452,6 +470,16 @@ class DFDService {
         syncedAssets,
       );
 
+      // One analysis view for graph and validation (leveled DFDs: leaves
+      // and stitched flows, §6).
+      const graphSource = {
+        xml: xml || undefined,
+        pages,
+        elements: mergedElements,
+        connections: mergedConnections,
+        assets: syncedAssets,
+      };
+      const view = buildAnalysisView(graphSource);
       const graphBuilder = new DefaultDFDGraphBuilder();
 
       // Detect topology changes — only rebuild graph if structure changed.
@@ -477,13 +505,7 @@ class DFDService {
         isLeveled(xml || undefined) // graph holds leaves only: always rebuild
       ) {
         // Full rebuild — topology changed or no existing graph
-        dfdGraph = buildDfdGraph({
-          xml: xml || undefined,
-          pages,
-          elements: mergedElements,
-          connections: mergedConnections,
-          assets: syncedAssets,
-        });
+        dfdGraph = buildDfdGraph(graphSource, view);
       } else {
         // Reuse existing graph — only re-derive exposure levels
         dfdGraph = project.dfd.graph;
@@ -501,8 +523,8 @@ class DFDService {
       const graphContext = new DFDGraphAnalysisContext(dfdGraph);
 
       const validation = this.validator.validate(
-        mergedElements,
-        mergedConnections,
+        view.elements,
+        view.connections,
         syncedAssets,
         stats,
         dfdGraph,
@@ -573,7 +595,10 @@ class DFDService {
     };
 
     // Phase 0 guard: never derive the model from an unsupported layout.
-    const pageLayout = inspectDrawioPages(xml);
+    const pageLayout = inspectDrawioPages(
+      xml,
+      adoptedPageIds(project.dfd?.pages),
+    );
     if (!pageLayout.supported) {
       return refuseSave(emptyResult, pageLayout);
     }
@@ -608,6 +633,14 @@ class DFDService {
         syncedAssets,
       );
 
+      const graphSource = {
+        xml,
+        pages,
+        elements: mergedElements,
+        connections: mergedConnections,
+        assets: syncedAssets,
+      };
+      const view = buildAnalysisView(graphSource);
       const graphBuilder = new DefaultDFDGraphBuilder();
       const changeResult = dfdChangeDetector.detect(
         project.dfd?.elements ?? [],
@@ -622,13 +655,7 @@ class DFDService {
         !project.dfd?.graph ||
         isLeveled(xml) // graph holds leaves only: always rebuild
       ) {
-        dfdGraph = buildDfdGraph({
-          xml,
-          pages,
-          elements: mergedElements,
-          connections: mergedConnections,
-          assets: syncedAssets,
-        });
+        dfdGraph = buildDfdGraph(graphSource, view);
       } else {
         dfdGraph = project.dfd.graph;
         graphBuilder.deriveExposureLevels(
@@ -643,8 +670,8 @@ class DFDService {
 
       const graphContext = new DFDGraphAnalysisContext(dfdGraph);
       const validation = this.validator.validate(
-        mergedElements,
-        mergedConnections,
+        view.elements,
+        view.connections,
         syncedAssets,
         stats,
         dfdGraph,
@@ -698,7 +725,10 @@ class DFDService {
     // Phase 0 guard: report the unsupported layout instead of validating a
     // merged multi-page model. This is what makes the refusal visible in the
     // DFD notification panel.
-    const pageLayout = inspectDrawioPages(xml);
+    const pageLayout = inspectDrawioPages(
+      xml,
+      adoptedPageIds(project.dfd?.pages),
+    );
     if (!pageLayout.supported) {
       return unsupportedLayoutValidation(pageLayout);
     }
@@ -731,17 +761,19 @@ class DFDService {
       syncedAssets,
     );
 
-    const graph = buildDfdGraph({
+    const graphSource = {
       xml: xml || undefined,
       pages: project.dfd?.pages,
       elements: mergedElements,
       connections: mergedConnections,
       assets: syncedAssets,
-    });
+    };
+    const view = buildAnalysisView(graphSource);
+    const graph = buildDfdGraph(graphSource, view);
 
     return this.validator.validate(
-      mergedElements,
-      mergedConnections,
+      view.elements,
+      view.connections,
       syncedAssets,
       stats,
       graph,

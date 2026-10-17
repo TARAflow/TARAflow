@@ -17,7 +17,7 @@
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction ist durch das aktive Regulierungs-Preset deaktiviert",
-      "dfdPageLayoutUnsupported": "Das DFD hat mehrere Seiten oder eine komprimierte Seite. Das wird noch nicht unterstützt — Generierung und Synchronisation der Bedrohungen sind deaktiviert, bis das DFD aus einer einzigen unkomprimierten Seite besteht.",
+      "dfdPageLayoutUnsupported": "Das DFD hat eine komprimierte Seite oder Seiten, die noch nicht in den Seitenbaum übernommen sind — Generierung und Synchronisation der Bedrohungen sind deaktiviert, bis alle Seiten unkomprimiert und übernommen sind.",
       "configuration": "Konfiguration",
       "searchPlaceholder": "Bedrohungen durchsuchen...",
       "threatsFound": "Bedrohungen gefunden",

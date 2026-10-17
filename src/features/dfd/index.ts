@@ -151,7 +151,13 @@ export { type ICrossingElements } from "./interfaces/drawio-interfaces";
 export { DFDPreviewDialog } from "./components/dfd-preview-dialog";
 export { DFDTab } from "./components/dfd-tab";
 export { DefaultDFDGraphBuilder } from "./services/dfd-graph-builder";
-export { buildDfdGraph, isLeveled, type DfdGraphSource } from "./services/build-dfd-graph";
+export {
+  buildDfdGraph,
+  buildAnalysisView,
+  isLeveled,
+  type AnalysisView,
+  type DfdGraphSource,
+} from "./services/build-dfd-graph";
 
 // ==================== HOOKS ====================
 export { useDFDEditor } from "./hooks/use-dfd-editor";

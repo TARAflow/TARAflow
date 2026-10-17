@@ -2,8 +2,10 @@
 // Phase 0 of the leveled-DFD design
 // (leveled-dfd-multi-diagram-design.md §13).
 //
-// The DFD side refuses to derive a model from a multi-page or compressed
-// draw.io layout. A project file may nevertheless already carry such XML
+// The DFD side refuses to derive a model from a compressed draw.io layout or
+// from a multi-page layout that is not adopted into the page tree yet
+// (Phase 2c-2: adopted multi-page DFDs are analysed through the effective
+// model). A project file may nevertheless already carry such XML
 // (written by an older version, or edited outside TARAflow), together with a
 // model that was merged from all pages. Threat generation and sync must not
 // run on that model — generation could replace a correct register with
@@ -20,12 +22,12 @@ import type { ThreatProjectData } from "../models/threat-types";
  * layout, otherwise null.
  */
 export function unsupportedDfdLayoutError(
-  project: Pick<ThreatProjectData, "dfdXml">,
+  project: Pick<ThreatProjectData, "dfdXml" | "dfdPageIds">,
 ): string | null {
-  const layout = inspectDrawioPages(project.dfdXml);
+  const layout = inspectDrawioPages(project.dfdXml, project.dfdPageIds);
   if (layout.supported) return null;
   return (
     describeUnsupportedPageLayout(layout) +
-    " Threat generation and synchronisation are disabled until the DFD has a single uncompressed page."
+    " Threat generation and synchronisation are disabled until every page is uncompressed and adopted."
   );
 }

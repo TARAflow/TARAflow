@@ -838,6 +838,11 @@ export interface ThreatProjectData {
   threats: ThreatData | null;
   phaseStatus: PhaseStatusMap;
   dfdXml?: string;
+  /**
+   * pageIds of dfd.pages. A multi-page DFD whose pages are all adopted is
+   * analysable (leveled-dfd-multi-diagram-design.md §11.2.1, Phase 2c-2).
+   */
+  dfdPageIds?: string[];
   dfdElements?: DFDElementReference[];
   dfdConnections?: DFDConnectionReference[];
   dfdPreviewImage?: string;

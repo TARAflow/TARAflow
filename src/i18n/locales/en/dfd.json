@@ -2729,7 +2729,7 @@
       "custom": "Custom"
     },
     "internalError": "Validation error: {{message}}",
-    "multiPageNotSupported": "The diagram has {{count}} pages ({{pages}}). Multiple pages are not supported yet: remove the extra pages — until then changes are not saved and threats cannot be generated.",
+    "multiPageNotSupported": "The diagram has {{count}} pages; {{pages}} are not adopted into the page tree yet (adoption of existing multi-page files follows in a later version). Until then changes are not saved and threats cannot be generated — remove those pages or use a project whose pages are adopted.",
     "compressedPageNotSupported": "Compressed diagram page(s) cannot be read ({{pages}}). Changes are not saved and threats cannot be generated until the page is stored uncompressed."
   },
   "levels": {

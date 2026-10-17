@@ -1,5 +1,6 @@
 // Phase 0 guard of the leveled-DFD design
-// (leveled-dfd-multi-diagram-design.md §13).
+// (leveled-dfd-multi-diagram-design.md §13), narrowed in Phase 2c-2:
+// adopted multi-page layouts (every page in dfd.pages) are supported.
 import { describe, it, expect } from "vitest";
 import {
   inspectDrawioPages,
@@ -25,6 +26,8 @@ describe("inspectDrawioPages", () => {
     expect(layout).toEqual({
       pageCount: 0,
       pageNames: [],
+      pageIds: [],
+      unadoptedPageNames: [],
       compressedPageNames: [],
       supported: true,
     });
@@ -37,7 +40,7 @@ describe("inspectDrawioPages", () => {
     expect(layout.supported).toBe(true);
   });
 
-  it("rejects several pages and reports their names in order", () => {
+  it("rejects several pages that are not adopted and reports their names in order", () => {
     const xml = `<mxfile host="x">${page("sys", "System")}
       ${page("sen", "Sensor Module")}${page("ctl", "Controller Module")}${page("dbg", "Diagnostics")}</mxfile>`;
     const layout = inspectDrawioPages(xml);
@@ -48,7 +51,24 @@ describe("inspectDrawioPages", () => {
       "Controller Module",
       "Diagnostics",
     ]);
+    expect(layout.pageIds).toEqual(["sys", "sen", "ctl", "dbg"]);
+    expect(layout.unadoptedPageNames).toEqual(layout.pageNames);
     expect(layout.compressedPageNames).toEqual([]);
+    expect(layout.supported).toBe(false);
+  });
+
+  it("supports several pages once every page is adopted (Phase 2c-2)", () => {
+    const xml = `<mxfile>${page("sys", "Top")}${page("sen", "Sensor Head")}</mxfile>`;
+    expect(inspectDrawioPages(xml, ["sys", "sen"]).supported).toBe(true);
+    const partly = inspectDrawioPages(xml, ["sys"]);
+    expect(partly.supported).toBe(false);
+    expect(partly.unadoptedPageNames).toEqual(["Sensor Head"]);
+  });
+
+  it("never supports a compressed page, adopted or not", () => {
+    const xml = `<mxfile>${page("sys", "Top")}<diagram id="sen" name="Sensor Head">abc</diagram></mxfile>`;
+    const layout = inspectDrawioPages(xml, ["sys", "sen"]);
+    expect(layout.unadoptedPageNames).toEqual([]);
     expect(layout.supported).toBe(false);
   });
 
@@ -96,5 +116,6 @@ describe("describeUnsupportedPageLayout", () => {
     expect(text).toContain('"Top"');
     expect(text).toContain("<unnamed>");
     expect(text).toContain("compressed");
+    expect(text).toContain("not adopted");
   });
 });

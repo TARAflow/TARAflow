@@ -2,8 +2,9 @@
 // Phase 0 guard of the leveled-DFD design
 // (leveled-dfd-multi-diagram-design.md §13).
 //
-// Turns an unsupported draw.io page layout (several pages, or a compressed
-// page) into validation errors for the DFD notification panel. The layout
+// Turns an unsupported draw.io page layout (pages not adopted into the page
+// tree yet, or a compressed page) into validation errors for the DFD
+// notification panel. Adopted multi-page DFDs are supported (Phase 2c-2). The layout
 // itself is detected by the shared, pure inspectDrawioPages().
 
 import type { DrawioPageLayout } from "shared";
@@ -16,19 +17,20 @@ function formatPageNames(names: string[]): string {
 
 /**
  * Validation errors for an unsupported page layout. Empty for a supported
- * layout (single uncompressed page or bare <mxGraphModel>).
+ * layout (single uncompressed page, bare <mxGraphModel>, or several adopted
+ * uncompressed pages).
  */
 export function validatePageLayout(
   layout: DrawioPageLayout,
 ): ValidationFinding[] {
   const findings: ValidationFinding[] = [];
 
-  if (layout.pageCount > 1) {
+  if (layout.unadoptedPageNames.length > 0) {
     findings.push({
       key: ValidationMessages.MULTI_PAGE_NOT_SUPPORTED,
       params: {
         count: layout.pageCount,
-        pages: formatPageNames(layout.pageNames),
+        pages: formatPageNames(layout.unadoptedPageNames),
       },
     });
   }

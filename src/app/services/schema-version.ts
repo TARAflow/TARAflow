@@ -38,5 +38,9 @@
  *       Legacy relations still found on dfd.assets[] (assetRelations /
  *       assetToAssetRelations) are lifted; migrate_5_to_6 lifts them before it
  *       drops the mirror. Absent = no relations.
+ *   9 = Leveled DFDs: the DFD may span several draw.io pages; page tree and
+ *       identity links live in dfd.pages (optional, absent for classic
+ *       projects). No data changes — a version fence, so releases that
+ *       would merge the pages of a multi-page file refuse it instead.
  */
-export const CURRENT_SCHEMA_VERSION = 8;
+export const CURRENT_SCHEMA_VERSION = 9;
