@@ -735,15 +735,17 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
       {importNotice && (
         <Alert
           severity="success"
-          sx={{ mx: 2, mt: 1 }}
+          sx={{ mx: 2, mt: 1, flexShrink: 0 }}
           onClose={() => setImportNotice(null)}
           data-testid="asset-import-result"
         >
           {importNotice}
         </Alert>
       )}
-      {/* Warnings */}
-      <Collapse in={hasWarnings || missingInDFD.length > 0}>
+      {/* Warnings — must not shrink: in this fixed-height column a shrunk
+          banner overflowed its box and the DFD preview below was drawn over
+          it. The split view shrinks instead (minHeight: 0). */}
+      <Collapse in={hasWarnings || missingInDFD.length > 0} sx={{ flexShrink: 0 }}>
         <Box sx={{ px: 2, py: 1, maxHeight: 150, overflow: "auto" }}>
           {syncWarnings.map((warning, i) => (
             <Alert key={i} severity="warning" sx={{ mb: 1 }}>
@@ -767,6 +769,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         ref={splitContainerRef}
         sx={{
           flexGrow: 1,
+          minHeight: 0,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
