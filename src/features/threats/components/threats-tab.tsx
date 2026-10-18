@@ -603,7 +603,10 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 bgcolor: "background.default",
               }}
             >
-              <DFDPreviewPanel imageSrc={project.dfdPreviewImage} />
+              <DFDPreviewPanel
+              imageSrc={project.dfdPreviewImage}
+              pages={project.dfdPreviewPages}
+            />
             </Box>
 
             {/* Resize Handle */}

@@ -405,6 +405,7 @@
         "weightsDisabled": "Weights are disabled in Conservative (MAX) mode — switch to Weighted Mean to use them."
       },
       "dfdPreview": {
+        "page": "Page",
         "zoomIn": "Zoom In",
         "zoomOut": "Zoom Out",
         "fitToScreen": "Fit to Screen",

@@ -1,6 +1,8 @@
 // ==================== DFD PREVIEW PANEL ====================
 // Displays the DFD image with zoom and pan capabilities
 // Uses thumbnail from project.dfd.thumbnail (generated on DFD save)
+// Leveled DFD (D18): with several pages a page selector picks the page
+// thumbnail (Top first); the selection is per viewer, not persisted.
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,7 +13,10 @@ import {
   Typography,
   Slider,
   CircularProgress,
+  MenuItem,
+  Select,
 } from "@mui/material";
+import type { DFDPreviewPage } from "../utils/dfd-preview-pages";
 import {
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
@@ -32,6 +37,11 @@ interface DFDPreviewPanelProps {
   onRegenerateThumbnail?: () => Promise<string | null>;
   /** Loading state while generating */
   isGenerating?: boolean;
+  /**
+   * Leveled DFD (D18): the pages with their thumbnails, Top first
+   * (dfdPreviewPagesOf). Absent or one page: imageSrc only.
+   */
+  pages?: DFDPreviewPage[];
 }
 
 // ==================== CONSTANTS ====================
@@ -43,12 +53,41 @@ const ZOOM_STEP = 0.1;
 // ==================== COMPONENT ====================
 
 export const DFDPreviewPanel: React.FC<DFDPreviewPanelProps> = ({
-  imageSrc,
+  imageSrc: singleImageSrc,
  // assets = [],
   onRegenerateThumbnail,
   isGenerating = false,
+  pages,
 }) => {
   const { t } = useTranslation();
+
+  // Leveled DFD: which page is shown (default Top). A page that is gone
+  // falls back to the first one.
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const multiPage = !!pages && pages.length > 1;
+  const selectedPage = multiPage
+    ? (pages!.find((p) => p.pageId === selectedPageId) ?? pages![0])
+    : undefined;
+  const imageSrc = multiPage ? selectedPage?.thumbnail : singleImageSrc;
+  const pageSelector = multiPage ? (
+    <Select
+      size="small"
+      variant="standard"
+      value={selectedPage!.pageId}
+      onChange={(e) => setSelectedPageId(String(e.target.value))}
+      sx={{ minWidth: 140, fontSize: "0.8125rem" }}
+      inputProps={{
+        "aria-label": t("tabs.assets.dfdPreview.page", { defaultValue: "Page" }),
+        "data-testid": "dfd-preview-page",
+      }}
+    >
+      {pages!.map((p) => (
+        <MenuItem key={p.pageId} value={p.pageId}>
+          {p.name}
+        </MenuItem>
+      ))}
+    </Select>
+  ) : null;
 
   // Zoom and pan state
   const [zoom, setZoom] = useState(1);
@@ -188,6 +227,7 @@ export const DFDPreviewPanel: React.FC<DFDPreviewPanelProps> = ({
           gap: 2,
         }}
       >
+        {pageSelector}
         <Typography variant="body1">
           {t("tabs.assets.noDFDImage", {
             defaultValue: "No DFD image available",
@@ -267,6 +307,7 @@ export const DFDPreviewPanel: React.FC<DFDPreviewPanelProps> = ({
           minHeight: 40,
         }}
       >
+        {pageSelector}
         <Tooltip
           title={t("tabs.assets.dfdPreview.zoomOut", {
             defaultValue: "Zoom Out",

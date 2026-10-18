@@ -33,9 +33,11 @@ import { useDFDAutoNumbering } from "./use-dfd-auto-numbering";
 import { useDFDExportImport } from "./use-dfd-export-import";
 import { useDFDCompletion } from "./use-dfd-completion";
 import { useCellIdentity } from "./use-cell-identity";
+import { withPageThumbnails } from "../services/leveled/page-thumbnails";
 import type { PageTabInfoMap } from "../services/leveled/page-tab-info";
 import type {
   ContextCellMap,
+  PageSvgExport,
   DrawioPageSyncResult,
   DrawioPageSyncSpec,
 } from "../services/drawio-bridge";
@@ -115,6 +117,13 @@ export interface UseDFDEditorReturn {
   selectCellAt: (pageId: string, cellId: string) => Promise<void>;
   /** The draw.io page last reported by the selection events; null before. */
   getCurrentPageId: () => string | null;
+  /** One SVG thumbnail per page (leveled DFD 5i, D18). */
+  exportPageSvgs: (pageIds: string[]) => Promise<PageSvgExport>;
+  /**
+   * Store page thumbnails (debounced, JSON only): dfd.pages[].thumbnail,
+   * dfd.thumbnail mirrors the root page.
+   */
+  updatePageThumbnails: (svgs: Record<string, string>) => void;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
@@ -284,6 +293,10 @@ export function useDFDEditor(
     // so the preview stays in sync without requiring a manual save.
     onAfterDrawioSave: generateThumbnailOnSave
       ? async () => {
+          // A leveled DFD has one thumbnail per page (D18, usePageThumbnails);
+          // exporting the page that happens to be shown would put a child
+          // page into dfd.thumbnail.
+          if ((project.dfd?.pages?.length ?? 0) > 1) return;
           try {
             // Same guard as the initial thumbnail: an export from a hidden or
             // not-yet-laid-out iframe persists a broken image. Skip it — the
@@ -341,6 +354,8 @@ export function useDFDEditor(
   const handlePluginReady = useCallback(async () => {
     if (!generateThumbnailOnSave) return;
     if (projectRef.current.dfd?.thumbnail) return;
+    // Leveled DFD: thumbnails per page (D18, usePageThumbnails).
+    if ((projectRef.current.dfd?.pages?.length ?? 0) > 1) return;
 
     // Wait until draw.io can export faithfully (visible, fonts loaded, layout
     // settled) instead of a fixed delay. Never visible → skip; the first
@@ -540,6 +555,26 @@ export function useDFDEditor(
   );
 
   /**
+   * Store page thumbnails (leveled DFD 5i, D18) on the freshest base, like
+   * the description edits — JSON only, no re-parse.
+   */
+  const scheduleSave = persistence.scheduleSave;
+  const updatePageThumbnails = useCallback(
+    (svgs: Record<string, string>) => {
+      scheduleSave((base) => {
+        const { pages, thumbnail } = withPageThumbnails(base.pages, base.thumbnail, svgs);
+        const lastModified = new Date().toISOString();
+        return {
+          dfd: { ...base, ...(pages ? { pages } : {}), thumbnail, lastModified },
+          phaseStatus: project.phaseStatus,
+          lastModified,
+        };
+      });
+    },
+    [scheduleSave, project.phaseStatus],
+  );
+
+  /**
    * Export image and update preview
    */
   const exportImage = useCallback(() => {
@@ -596,6 +631,8 @@ export function useDFDEditor(
     setContextCells: bridge.setContextCells,
     selectCellAt: (pageId: string, cellId: string) => bridgeSelectCell(cellId, pageId),
     getCurrentPageId: () => currentPageIdRef.current,
+    exportPageSvgs: bridge.exportPageSvgs,
+    updatePageThumbnails,
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,

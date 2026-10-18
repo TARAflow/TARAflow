@@ -18,7 +18,13 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PHASES, getPhaseStatusIcon, getPhaseStatusColor, useToast } from "shared";
+import {
+  PHASES,
+  getPhaseStatusIcon,
+  getPhaseStatusColor,
+  useToast,
+  dfdPreviewPagesOf,
+} from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
 import {
   AssetDataReference,
@@ -948,6 +954,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdElements: memoizedDFDElements,
               dfdConnections: memoizedDFDConnections,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
+              dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               lastModified: activeProject.info?.lastModified || "",
               damageScenarioMode:
                 regulationPresetFromTags(
@@ -986,6 +993,7 @@ export const WorkspaceLayout: React.FC = () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               dfdConnections: activeProject.dfd?.connections as any,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
+              dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               assetIds: activeProject.assets?.assets?.map((a) => a.id),
               lastModified: activeProject.info?.lastModified || "",
               dfdGraph: memoizedDFDGraphRef,
@@ -1044,6 +1052,7 @@ export const WorkspaceLayout: React.FC = () => {
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
+              dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               integration: activeProject.integration
                 ? {
                     connection: {
@@ -1092,6 +1101,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdElements: extractDFDElementReferences(activeProject),
               mitigations: extractMitigationReferences(activeProject),
               dfdPreviewImage: activeProject.dfd?.thumbnail,
+              dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handleAttackTreeUpdate}

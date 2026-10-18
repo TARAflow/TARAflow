@@ -36,6 +36,8 @@ import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import { useIdentityReview } from "../hooks/use-identity-review";
 import { usePageOutline } from "../hooks/use-page-outline";
 import { useChildPages } from "../hooks/use-child-pages";
+import { usePageThumbnails } from "../hooks/use-page-thumbnails";
+import { waitForRenderable } from "../utils/wait-for-renderable";
 import {
   buildPageTabInfo,
   contextCellsOf,
@@ -318,6 +320,19 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     setNoChildPage,
   });
 
+  // Leveled DFD (5i, D18): one thumbnail per page, dfd.thumbnail = Top.
+  const iframeRefForThumbnails = editor.iframeRef;
+  const isRenderable = useCallback(
+    () => waitForRenderable(() => iframeRefForThumbnails.current, { timeoutMs: 2_000 }),
+    [iframeRefForThumbnails],
+  );
+  usePageThumbnails(project, {
+    enabled: editor.pluginReady,
+    exportPageSvgs: editor.exportPageSvgs,
+    storeThumbnails: editor.updatePageThumbnails,
+    isRenderable,
+  });
+
   // Adopted pages the tree cannot use and that need a decision (extra or
   // missing root page) — repaired with the same dialog. From the saved
   // state, not from the validation: a deleted child page is cleaned up
@@ -515,6 +530,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       setPageTabInfo: async () => {},
       syncPages: async () => ({ success: false }),
       setContextCells: async () => {},
+      exportPageSvgs: async () => ({ success: false }),
     },
     {
       isDirty: editor.isDirty,

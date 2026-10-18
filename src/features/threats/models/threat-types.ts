@@ -846,6 +846,8 @@ export interface ThreatProjectData {
   dfdElements?: DFDElementReference[];
   dfdConnections?: DFDConnectionReference[];
   dfdPreviewImage?: string;
+  /** Leveled DFD (D18): one thumbnail per page, Top first. */
+  dfdPreviewPages?: import("shared").DFDPreviewPage[];
   assetIds?: string[];
   dfdGraph?: DFDGraphReference;
   assetDataRef?: AssetDataReference;

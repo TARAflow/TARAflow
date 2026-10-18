@@ -181,6 +181,8 @@ export interface RiskProjectData {
   attackTreeLikelihoods?: AttackTreeLikelihoodReference[];
   assetDataRef?: AssetDataReference;
   dfdPreviewImage?: string;
+  /** Leveled DFD (D18): one thumbnail per page, Top first. */
+  dfdPreviewPages?: import("shared").DFDPreviewPage[];
   dfd?: DFDReference | null;
   /** Integration connection for Jira/ADO ticket linking in RiskMitigationStatusDialog */
   integration?: {

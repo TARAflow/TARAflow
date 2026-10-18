@@ -179,6 +179,10 @@ export { LazyTooltip } from "./components/lazy-tooltip";
 export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";
 export { DFDPreviewPanel } from "./components/dfd-preview-panel";
+export {
+  dfdPreviewPagesOf,
+  type DFDPreviewPage,
+} from "./utils/dfd-preview-pages";
 export { MitigationCoverageBadge } from "./components/mitigation-coverage-badge";
 export {
   type DataColumn,

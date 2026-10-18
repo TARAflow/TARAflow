@@ -7,6 +7,7 @@ import type { DFDProjectData } from "../models/dfd-types";
 import {
   DrawioBridge,
   type ContextCellMap,
+  type PageSvgExport,
   type DrawioPageSyncResult,
   type DrawioPageSyncSpec,
 } from "../services/drawio-bridge";
@@ -57,6 +58,8 @@ export interface UseDrawioBridgeReturn {
   syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
   /** Context copies shown faded and dashed (leveled DFD 5g). */
   setContextCells: (cells: ContextCellMap) => Promise<void>;
+  /** One SVG thumbnail per page (leveled DFD 5i, D18). */
+  exportPageSvgs: (pageIds: string[]) => Promise<PageSvgExport>;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
@@ -352,6 +355,11 @@ export function useDrawioBridge(
     await bridgeRef.current.setContextCells(cells);
   }, []);
 
+  const exportPageSvgs = useCallback(async (pageIds: string[]): Promise<PageSvgExport> => {
+    if (!bridgeRef.current) return { success: false, error: "no bridge" };
+    return bridgeRef.current.exportPageSvgs(pageIds);
+  }, []);
+
   const syncPages = useCallback(
     async (spec: DrawioPageSyncSpec): Promise<DrawioPageSyncResult> => {
       if (!bridgeRef.current) return { success: false, error: "no bridge" };
@@ -428,6 +436,7 @@ export function useDrawioBridge(
     setPageTabInfo,
     syncPages,
     setContextCells,
+    exportPageSvgs,
     onImageReady,
     loadXMLTransient,
   };

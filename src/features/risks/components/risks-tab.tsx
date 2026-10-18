@@ -853,7 +853,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 overflow: "hidden",
               }}
             >
-              <DFDPreviewPanel imageSrc={project.dfdPreviewImage} />
+              <DFDPreviewPanel
+              imageSrc={project.dfdPreviewImage}
+              pages={project.dfdPreviewPages}
+            />
             </Box>
             <Box
               onMouseDown={handleMouseDown}

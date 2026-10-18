@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions, 5h insert as context done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions, 5h insert as context, 5i page thumbnails done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1350,6 +1350,25 @@ page selector in the preview panel (§12.1, D18).
     it is not part of the MP's flow context.
   - An action of the analyst ("Insert", "Sync context") waits up to 5 s for a sync that is
     running instead of failing with "busy".
+- **5i ✅** one thumbnail per page (§12.1, D18).
+  - **Export without switching the page:** draw.io's embed SVG export renders the current page
+    only (`pageId` exists for PNG only, checked in `diagramly/EditorUi.js`). `drawio:exportPageSvgs`
+    does what draw.io does for a page that is not shown: a temporary graph
+    (`createTemporaryGraph`, `updatePageRoot`, `model.setRoot(page.root)`), `getSvg`, removed
+    again; the current page renders directly. The DFD shapes are stencils, so no image embedding
+    is needed.
+  - `leveled/page-thumbnails`, pure: `pageFingerprints` (FNV over each `<diagram>`),
+    `pagesToExport` (pages without thumbnail, or changed since their export — a stored thumbnail
+    counts as current at opening), `withPageThumbnails` (`dfd.thumbnail` mirrors the root page).
+  - `usePageThumbnails` after every save, once the plugin is ready and the iframe can render
+    (`waitForRenderable`, as the single thumbnail); stores via `scheduleSave` (JSON only).
+    The single-thumbnail export after the autosave and at plugin start is skipped for a leveled
+    DFD — it would put the page that happens to be shown into `dfd.thumbnail`.
+  - `prepareForDisk` pins the random `ge-svg-*` id of every page thumbnail like `dfd.thumbnail`.
+  - **Preview:** `dfdPreviewPagesOf(dfd)` (shared) — pages Top first, Top falling back to
+    `dfd.thumbnail`; `DFDPreviewPanel` shows a page selector for several pages (assets, threats,
+    risks, attack trees), per viewer, not persisted. Classic DFDs unchanged.
+  - Reports (one figure per page) remain Phase 7.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

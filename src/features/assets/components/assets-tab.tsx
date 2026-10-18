@@ -788,6 +788,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             >
               <DFDPreviewPanel
                 imageSrc={project.dfdPreviewImage}
+                pages={project.dfdPreviewPages}
                 //assets={assetData.assets}
               />
             </Box>

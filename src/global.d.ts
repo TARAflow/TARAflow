@@ -110,6 +110,12 @@ declare global {
         errors?: string[];
         copies?: { pageId: string; from: string; to: string }[];
       }>;
+      exportDrawioPageSvgs?: (pageIds: string[]) => Promise<{
+        success: boolean;
+        error?: string;
+        svgs?: Record<string, string>;
+        errors?: string[];
+      }>;
       setDrawioContextCells?: (
         cells: Record<string, Record<string, true>>,
       ) => Promise<{ success: boolean; error?: string }>;

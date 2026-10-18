@@ -186,6 +186,8 @@ export interface AssetData {
 
   /** DFD image for preview (base64 or URL) */
   dfdPreviewImage?: string;
+  /** Leveled DFD (D18): one thumbnail per page, Top first. */
+  dfdPreviewPages?: import("shared").DFDPreviewPage[];
 
   /** Last modified timestamp */
   lastModified: string;
@@ -278,6 +280,8 @@ export interface AssetProjectData {
 
   /** DFD preview image */
   dfdPreviewImage?: string;
+  /** Leveled DFD (D18): one thumbnail per page, Top first. */
+  dfdPreviewPages?: import("shared").DFDPreviewPage[];
 
   lastModified: string;
 }

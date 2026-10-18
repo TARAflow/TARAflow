@@ -131,3 +131,8 @@ export {
   type IdentityInfo,
   type OccurrenceInfo,
 } from "./identity-info";
+export {
+  pageFingerprints,
+  pagesToExport,
+  withPageThumbnails,
+} from "./page-thumbnails";

@@ -345,6 +345,11 @@ export interface DFDPage {
    * other cell is a definition with tfId = cell id.
    */
   links?: DFDCellLink[];
+  /**
+   * Leveled DFD (§12.1, D18): SVG thumbnail of this page (data URL). The
+   * root page's is mirrored in dfd.thumbnail for readers that know only it.
+   */
+  thumbnail?: string;
 }
 
 /** Links one draw.io cell of a page to a logical element / flow. */

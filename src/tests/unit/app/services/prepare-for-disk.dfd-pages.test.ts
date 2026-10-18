@@ -28,3 +28,24 @@ describe("prepareForDisk keeps dfd.pages", () => {
     expect(onDisk.dfd).not.toHaveProperty("pages");
   });
 });
+
+describe("prepareForDisk pins the page thumbnails (D18)", () => {
+  const svg = (id: string) =>
+    "data:image/svg+xml;base64," + btoa(`<svg id="ge-svg-${id}"><g/></svg>`);
+
+  it("pins the random draw.io id of every page thumbnail like dfd.thumbnail", () => {
+    const pages = [
+      { pageId: "sys", name: "Top", order: 0, thumbnail: svg("a1B2") },
+      { pageId: "sen", name: "Sensor Module", decomposes: "mp1", order: 1, thumbnail: svg("x9") },
+      { pageId: "ctl", name: "Controller", decomposes: "mp2", order: 2 },
+    ];
+    const onDisk = prepareForDisk(project({ xml: "<mxfile/>", pages, thumbnail: svg("a1B2") }));
+    const written = (onDisk.dfd as { pages: { thumbnail?: string }[]; thumbnail: string });
+    const pinned = svg("thumb");
+    expect(written.pages.map((p) => p.thumbnail)).toEqual([pinned, pinned, undefined]);
+    expect(written.thumbnail).toBe(pinned);
+    // Two renders of the same page give the same bytes.
+    const again = prepareForDisk(project({ xml: "<mxfile/>", pages: [{ ...pages[0], thumbnail: svg("zz") }] }));
+    expect((again.dfd as { pages: { thumbnail?: string }[] }).pages[0].thumbnail).toBe(pinned);
+  });
+});

@@ -21,6 +21,15 @@ import type {
 } from "./leveled/child-pages";
 import type { ContextCopySpec } from "./leveled/context-copies";
 
+/** Result of a page thumbnail export (leveled DFD 5i). */
+export interface PageSvgExport {
+  success: boolean;
+  error?: string;
+  /** pageId → SVG data URL */
+  svgs?: Record<string, string>;
+  errors?: string[];
+}
+
 /** Context copies per page: pageId → cellId → true (leveled DFD 5g). */
 export type ContextCellMap = Record<string, Record<string, true>>;
 
@@ -163,6 +172,17 @@ export class DrawioBridge implements IDrawioBridge {
       return { success: false, error: "not available" };
     }
     return window.electronAPI.syncDrawioPages(spec as unknown as Record<string, unknown>);
+  }
+
+  /**
+   * One SVG thumbnail per page (leveled DFD 5i, D18) without switching the
+   * page the user sees. Electron only.
+   */
+  async exportPageSvgs(pageIds: string[]): Promise<PageSvgExport> {
+    if (!this.isReady() || !window.electronAPI?.exportDrawioPageSvgs) {
+      return { success: false, error: "not available" };
+    }
+    return window.electronAPI.exportDrawioPageSvgs(pageIds);
   }
 
   /**

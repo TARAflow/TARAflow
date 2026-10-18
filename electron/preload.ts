@@ -201,6 +201,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("drawio:selectCell", cellId, pageId),
   syncDrawioPages: (spec: Record<string, unknown>) =>
     ipcRenderer.invoke("drawio:syncPages", spec),
+  exportDrawioPageSvgs: (pageIds: string[]) =>
+    ipcRenderer.invoke("drawio:exportPageSvgs", pageIds),
   setDrawioContextCells: (cells: Record<string, Record<string, true>>) =>
     ipcRenderer.invoke("drawio:setContextCells", cells),
   setDrawioPageTabInfo: (info: Record<string, unknown>) =>
