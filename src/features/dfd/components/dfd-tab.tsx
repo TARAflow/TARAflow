@@ -39,6 +39,8 @@ import { useChildPages } from "../hooks/use-child-pages";
 import {
   buildPageTabInfo,
   contextCellsOf,
+  insertCandidates,
+  type InsertCandidate,
   describeIdentity,
   linkAsContextCopy,
   makeDefinition,
@@ -66,6 +68,7 @@ import {
 } from "./identity-review-dialog";
 import { ValidationMessages } from "../services/validators/validator-utils";
 import { OrphanPageDialog } from "./child-page-ui";
+import { InsertContextDialog } from "./insert-context-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
@@ -764,6 +767,22 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     editor.pluginReady,
   ]);
 
+  // Leveled DFD (5h): "Insert as context…" on the page draw.io shows (as
+  // reported by the selection events; before the first one, the first page
+  // of the document, which draw.io opens on load).
+  const [insertTargetPage, setInsertTargetPage] = useState<string | null>(null);
+  const insertContext = useMemo(() => {
+    if (!leveledParse || !insertTargetPage) return null;
+    return {
+      candidates: insertCandidates(leveledParse, project.dfd?.pages, insertTargetPage),
+      pageNames: Object.fromEntries(leveledParse.pages.map((p) => [p.pageId, p.name || p.pageId])),
+    };
+  }, [leveledParse, project.dfd?.pages, insertTargetPage]);
+  const openInsertContext = useCallback(() => {
+    setInsertTargetPage(editor.getCurrentPageId() ?? leveledParse?.pages[0]?.pageId ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leveledParse]);
+
   // Leveled DFD (5g): identity of the selected cell and its actions.
   const savePagesOf = editor.savePages;
   const selectedIdentity = useMemo(() => {
@@ -952,6 +971,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onExport={exportImport.downloadExport}
         onImport={exportImport.promptImport}
         onSave={handleSave}
+        onInsertContext={leveledParse && editor.pluginReady ? openInsertContext : undefined}
       />
 
       <IdentityReviewHints
@@ -1129,6 +1149,20 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onClose={() => setShowPreview(false)}
         previewImage={editor.previewImage}
         projectName={project.name}
+      />
+
+      {/* Leveled DFD: insert a context copy on the current page (5h) */}
+      <InsertContextDialog
+        open={!!insertTargetPage && !!insertContext}
+        pageName={
+          (insertTargetPage && insertContext?.pageNames[insertTargetPage]) || insertTargetPage || ""
+        }
+        candidates={insertContext?.candidates ?? []}
+        pageNames={insertContext?.pageNames ?? {}}
+        onInsert={(c: InsertCandidate) =>
+          childPages.insertAsContext(c.kind, c.tfId, insertTargetPage!)
+        }
+        onClose={() => setInsertTargetPage(null)}
       />
 
       {/* Leveled DFD: delete the child page of a deleted multiprocess? (5e) */}

@@ -39,6 +39,7 @@ import {
   needsPageReview,
   planContextCopies,
   planContextRemovals,
+  planInsertAsContext,
   planPageSync,
   readCellLinks,
   type ContextCopySpec,
@@ -85,6 +86,15 @@ export interface UseChildPagesReturn {
    * multiprocess. Resolves to the number of cells copied, or an error text.
    */
   syncContext: (tfId: string) => Promise<number | string>;
+  /**
+   * "Insert as context…" (5h): a copy of an element / flow on the page.
+   * Resolves to null, or an error text. The copy is marked `manual`.
+   */
+  insertAsContext: (
+    kind: "element" | "connection",
+    tfId: string,
+    pageId: string,
+  ) => Promise<string | null>;
 }
 
 export function useChildPages(
@@ -430,7 +440,7 @@ export function useChildPages(
     async (tfId: string): Promise<number | string> => {
       const page = pages?.find((p) => p.decomposes === tfId);
       if (!enabled || !xml || !page) return "not available";
-      if (busyRef.current) return "busy";
+      if (!(await waitIdle(busyRef))) return "busy";
       busyRef.current = true;
       try {
         const parse = dfdParser.parse(xml, pages);
@@ -456,7 +466,29 @@ export function useChildPages(
     [enabled, xml, pages, syncPages],
   );
 
-  return { settling, orphanPages, resolveOrphan, decompose, syncContext };
+  const insertAsContext = useCallback(
+    async (kind: "element" | "connection", tfId: string, pageId: string): Promise<string | null> => {
+      if (!enabled || !xml) return "not available";
+      if (!(await waitIdle(busyRef))) return "busy";
+      busyRef.current = true;
+      try {
+        const parse = dfdParser.parse(xml, pages);
+        const spec = planInsertAsContext(parse, pages, kind, tfId, pageId);
+        if (!spec) return "not possible";
+        const result = await syncPages({ create: [], rename: [], context: [spec] });
+        if (!result.success) return result.error ?? "failed";
+        if (!result.copies?.length) return result.errors?.join("; ") || "nothing copied";
+        rememberCopies(pendingLinksRef.current, [spec], result.copies, true);
+        setSettling(true);
+        return null;
+      } finally {
+        busyRef.current = false;
+      }
+    },
+    [enabled, xml, pages, syncPages],
+  );
+
+  return { settling, orphanPages, resolveOrphan, decompose, syncContext, insertAsContext };
 }
 
 interface ContextRemoval {
@@ -521,12 +553,13 @@ function rememberCopies(
   pending: Map<string, DFDCellLink[]>,
   specs: readonly ContextCopySpec[],
   copies: { pageId: string; from: string; to: string }[] | undefined,
+  manual = false,
 ): void {
   for (const copy of copies ?? []) {
     const tfId = specs.find((s) => s.toPageId === copy.pageId)?.tfIdOf[copy.from];
     if (!tfId) continue;
     const links = pending.get(copy.pageId) ?? [];
-    links.push({ cellId: copy.to, tfId, role: "ref" });
+    links.push({ cellId: copy.to, tfId, role: "ref", ...(manual ? { manual: true } : {}) });
     pending.set(copy.pageId, links);
   }
 }
@@ -568,6 +601,20 @@ function applyArrivedLinks(
     if (!pages.some((p) => p.pageId === pageId)) pending.delete(pageId);
   }
   return changed ? next : undefined;
+}
+
+/**
+ * An action of the analyst waits for a sync that is running (e.g. a page
+ * link after the last save) instead of failing with "busy" — up to a few
+ * seconds.
+ */
+async function waitIdle(busy: { current: boolean }, timeoutMs = 5_000): Promise<boolean> {
+  const start = Date.now();
+  while (busy.current) {
+    if (Date.now() - start > timeoutMs) return false;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return true;
 }
 
 /** 20 characters like draw.io's own page ids. */

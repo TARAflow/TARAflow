@@ -5,8 +5,10 @@ import { describe, it, expect } from "vitest";
 import { dfdParser } from "features/dfd/services/dfd-parser";
 import {
   analysePageGeometry,
+  insertCandidates,
   planContextCopies,
   planContextRemovals,
+  planInsertAsContext,
 } from "features/dfd/services/leveled";
 import type { DFDPage } from "features/dfd/models/dfd-types";
 import { LEVELED_PAGES, flow, mxfile, node, page, ref } from "../../../../../fixtures/leveled-dfd-xml";
@@ -200,5 +202,68 @@ describe("planContextRemovals", () => {
         childLinks: links,
       }),
     ).toEqual([]);
+  });
+});
+
+describe("planContextRemovals — copies inserted by hand stay", () => {
+  it("never removes a manual copy, although it is not part of the context", () => {
+    // EE-1 has no flow to MP-1 any more, but the analyst inserted it.
+    const top = page(
+      "sys",
+      "Top",
+      node("mp1", "multiprocess", "Sensor Module", "MP-1", 10) +
+        node("ee1", "externalentity", "Debugger", "EE-1", 600),
+    );
+    const sen = page("sen", "Sensor Module", node("sen_ee1", "externalentity", "Debugger", "EE-1", 600));
+    for (const manual of [false, true]) {
+      const links = [{ cellId: "sen_ee1", tfId: "ee1", role: "ref" as const, ...(manual ? { manual } : {}) }];
+      const xml = mxfile(top, sen);
+      const parse = dfdParser.parse(xml, PAGES(links));
+      const result = planContextRemovals({
+        parse,
+        pageGeometry: analysePageGeometry(parse.pageCells),
+        multiprocess: "mp1",
+        childPageId: "sen",
+        childLinks: links,
+      });
+      expect(result).toEqual(manual ? [] : ["sen_ee1"]);
+    }
+  });
+});
+
+describe("Insert as context (5h)", () => {
+  const sen = page("sen", "Sensor Module", node("sen_mp2", "multiprocess", "Controller Module", "MP-2", 500));
+  const pages = PAGES([ref("sen_mp2", "mp2")]);
+  const parse = dfdParser.parse(mxfile(TOP, sen), pages);
+
+  it("offers what is not on the page yet, never the MP the page details", () => {
+    const labels = insertCandidates(parse, pages, "sen").map((c) => `${c.kind}:${c.label}`);
+    expect(labels).toContain("element:EE-1 Debugger");
+    expect(labels).toContain("connection:DF-8 pull debug commands");
+    expect(labels).not.toContain("element:MP-1 Sensor Module"); // detailed by this page
+    expect(labels).not.toContain("element:MP-2 Controller Module"); // already there
+  });
+
+  it("copies an element from its definition page", () => {
+    expect(planInsertAsContext(parse, pages, "element", "ee1", "sen")).toEqual({
+      fromPageId: "sys",
+      toPageId: "sen",
+      cells: ["ee1"],
+      existing: {},
+      tfIdOf: { ee1: "ee1" },
+    });
+  });
+
+  it("connects an inserted flow to copies of its ends already on the page", () => {
+    // DF-9 runs EE-1 → MP-2; MP-2 is already shown on the sensor page.
+    expect(planInsertAsContext(parse, pages, "connection", "df9", "sen")?.existing).toEqual({
+      mp2: "sen_mp2",
+    });
+  });
+
+  it("refuses the detailed MP, an element already shown and an unknown page", () => {
+    expect(planInsertAsContext(parse, pages, "element", "mp1", "sen")).toBeUndefined();
+    expect(planInsertAsContext(parse, pages, "element", "mp2", "sen")).toBeUndefined();
+    expect(planInsertAsContext(parse, pages, "element", "ee1", "nope")).toBeUndefined();
   });
 });

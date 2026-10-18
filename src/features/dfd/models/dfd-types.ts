@@ -355,6 +355,12 @@ export interface DFDCellLink {
   tfId: string;
   /** "ref" = context copy; "definition" = home of a tfId ≠ cell id (moved / adopted) */
   role: "definition" | "ref";
+  /**
+   * Leveled DFD 5h: a context copy the analyst inserted by hand ("Insert as
+   * context…"). A pure context page never removes it automatically, also
+   * when it is not part of the multiprocess's flow context.
+   */
+  manual?: boolean;
 }
 
 // ==================== DFD EXPORT/IMPORT ====================

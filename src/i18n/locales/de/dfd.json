@@ -115,6 +115,7 @@
         "redo": "Wiederholen",
         "exportImage": "Als Bild exportieren",
         "refresh": "Validierung aktualisieren",
+        "insertContext": "Als Kontext einfügen…",
         "autoNumber": "Labels automatisch nummerieren",
         "darkMode": "Dunkelmodus",
         "lightMode": "Hellmodus",
@@ -2659,6 +2660,15 @@
         "apply": "Übernehmen",
         "makeCopyWarning": "Diese Zelle zeigt dann das gewählte Element; ihr eigener Datensatz (Eigenschaften, Asset-Beziehungen) wird nicht mehr verwendet und ihre Bedrohungen werden verwaist.",
         "error": "Nicht möglich ({{code}})."
+      },
+      "insertContext": {
+        "title": "Als Kontext einfügen auf \"{{page}}\"",
+        "intro": "Eine Kontextkopie zeigt ein Element oder einen Fluss, der auf einer anderen Seite definiert ist — ein Element, ein Satz Bedrohungen. Sie wird an derselben Position wie auf der eigenen Seite eingefügt; danach verschieben.",
+        "none": "Alle Elemente und Flüsse des DFD sind auf dieser Seite schon zu sehen.",
+        "definedOn": "definiert auf {{page}}",
+        "choose": "Element oder Fluss",
+        "error": "Nicht eingefügt ({{error}}).",
+        "insert": "Einfügen"
       },
       "identityReview": {
         "cancel": "Abbrechen",

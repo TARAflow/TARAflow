@@ -21,7 +21,7 @@
 // is already there. Nothing is removed. Pure: cell ids in, cell ids out;
 // draw.io clones with the original geometry, the caller links the clones.
 
-import type { DFDCellLink } from "../../models/dfd-types";
+import type { DFDCellLink, DFDPage } from "../../models/dfd-types";
 import type { ParseResult } from "../dfd-parser";
 import { computeHomePages } from "./home-pages";
 import type { PageGeometry } from "./page-geometry";
@@ -181,7 +181,116 @@ export function planContextRemovals(input: ContextCopyInput): string[] {
   for (const l of input.childLinks ?? []) {
     if (l.role === "ref" && !copies.has(l.cellId)) copies.set(l.cellId, l.tfId);
   }
+  // Inserted by hand ("Insert as context…", 5h): never removed automatically.
+  for (const l of input.childLinks ?? []) {
+    if (l.manual) copies.delete(l.cellId);
+  }
   return [...copies]
     .filter(([, tfId]) => tfId !== multiprocess && !wanted.has(tfId))
     .map(([cell]) => cell);
+}
+
+// ==================== INSERT AS CONTEXT (5h) ====================
+
+export interface InsertCandidate {
+  kind: "element" | "connection";
+  tfId: string;
+  /** displayId and name */
+  label: string;
+  type: string;
+  /** Page of the definition. */
+  definitionPageId: string;
+}
+
+/**
+ * Elements and flows that can be inserted as context on a page: those with
+ * a definition that do not occur on it yet — never the multiprocess the
+ * page details (it must not appear on its own child page, §5.3).
+ */
+export function insertCandidates(
+  parse: Pick<ParseResult, "elements" | "connections" | "occurrences">,
+  pages: readonly DFDPage[] | undefined,
+  targetPageId: string,
+): InsertCandidate[] {
+  const page = pages?.find((p) => p.pageId === targetPageId);
+  if (!page) return [];
+  const onTarget = new Set(
+    parse.occurrences.filter((o) => o.pageId === targetPageId).map((o) => `${o.kind}:${o.tfId}`),
+  );
+  for (const l of page.links ?? []) onTarget.add(`element:${l.tfId}`).add(`connection:${l.tfId}`);
+  const definitionPage = new Map<string, string>();
+  for (const o of parse.occurrences) {
+    if (o.role === "definition" && !definitionPage.has(`${o.kind}:${o.tfId}`)) {
+      definitionPage.set(`${o.kind}:${o.tfId}`, o.pageId);
+    }
+  }
+  const candidate = (kind: "element" | "connection") => (r: {
+    id: string;
+    displayId?: string;
+    name?: string;
+    type?: string;
+  }): InsertCandidate | undefined => {
+    const key = `${kind}:${r.id}`;
+    const home = definitionPage.get(key);
+    if (!home || onTarget.has(key)) return undefined;
+    if (kind === "element" && r.id === page.decomposes) return undefined;
+    return {
+      kind,
+      tfId: r.id,
+      label: [r.displayId, r.name].filter(Boolean).join(" ") || r.id,
+      type: kind === "connection" ? "DataFlow" : (r.type ?? ""),
+      definitionPageId: home,
+    };
+  };
+  return [
+    ...parse.elements.map(candidate("element")),
+    ...parse.connections.map(candidate("connection")),
+  ]
+    .filter((c): c is InsertCandidate => !!c)
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+}
+
+/**
+ * Clone the definition cell of an element / flow onto the target page (same
+ * position as on its page). A flow is connected to copies of its endpoints
+ * that are already on the target page; otherwise its ends stay free.
+ */
+export function planInsertAsContext(
+  parse: Pick<ParseResult, "occurrences">,
+  pages: readonly DFDPage[] | undefined,
+  kind: "element" | "connection",
+  tfId: string,
+  targetPageId: string,
+): ContextCopySpec | undefined {
+  const page = pages?.find((p) => p.pageId === targetPageId);
+  if (!page) return undefined;
+  if (kind === "element" && tfId === page.decomposes) return undefined;
+  const definition = parse.occurrences.find(
+    (o) => o.kind === kind && o.tfId === tfId && o.role === "definition",
+  );
+  if (!definition || definition.pageId === targetPageId) return undefined;
+  const already =
+    parse.occurrences.some((o) => o.pageId === targetPageId && o.kind === kind && o.tfId === tfId) ||
+    (page.links ?? []).some((l) => l.tfId === tfId);
+  if (already) return undefined;
+
+  const existing: Record<string, string> = {};
+  if (kind === "connection") {
+    const cellOn = (pageId: string, id: string | undefined) =>
+      parse.occurrences.find((o) => o.pageId === pageId && o.kind === "element" && o.tfId === id)
+        ?.cellId ??
+      (pageId === targetPageId ? page.links?.find((l) => l.tfId === id)?.cellId : undefined);
+    for (const end of [definition.sourceTfId, definition.targetTfId]) {
+      const from = cellOn(definition.pageId, end);
+      const there = cellOn(targetPageId, end);
+      if (from && there) existing[from] = there;
+    }
+  }
+  return {
+    fromPageId: definition.pageId,
+    toPageId: targetPageId,
+    cells: [definition.cellId],
+    existing,
+    tfIdOf: { [definition.cellId]: tfId },
+  };
 }

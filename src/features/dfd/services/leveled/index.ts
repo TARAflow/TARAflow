@@ -119,6 +119,9 @@ export {
 export {
   planContextCopies,
   planContextRemovals,
+  insertCandidates,
+  planInsertAsContext,
+  type InsertCandidate,
   type ContextCopySpec,
   type ContextCopyInput,
 } from "./context-copies";

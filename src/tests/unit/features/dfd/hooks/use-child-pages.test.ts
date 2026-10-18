@@ -591,4 +591,66 @@ describe("useChildPages", () => {
       expect(r).toBe("not available");
     });
   });
+
+  describe("5h: insert as context", () => {
+    it("inserts a copy and links it as manual once it is saved", async () => {
+      const pages: DFDPage[] = [
+        { pageId: "p1", name: "Top", order: 0 },
+        { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
+      ];
+      const mpLinked = node("mp", "multiprocess", "Gateway", "MP-1", 300).replace(
+        'id="mp">',
+        'id="mp" link="data:page/id,gw">',
+      );
+      const xml = mxfile(
+        page("p1", "Top", EE + mpLinked),
+        page("gw", "Gateway", node("gw_p", "process", "Part", "P-1.1", 10)),
+      );
+      const syncPages = vi.fn(async (spec: DrawioPageSyncSpec) => ({
+        success: true,
+        copies: (spec.context ?? []).flatMap((c) =>
+          c.cells.map((cell) => ({ pageId: c.toPageId, from: cell, to: `copy_${cell}` })),
+        ),
+      }));
+      const savePages = vi.fn(async (_pages: DFDPage[]) => ({}) as DFDUpdateResult);
+      const opts = { enabled: true, syncPages, savePages, setNoChildPage: vi.fn() };
+      const { result, rerender } = renderHook(
+        ({ p }: { p: DFDProjectData }) => useChildPages(p, opts),
+        { initialProps: { p: project(xml, pages, [{ id: "mp", type: "Multiprocess" }]) } },
+      );
+      let error: string | null = "unset";
+      await act(async () => {
+        error = await result.current.insertAsContext("element", "ee", "gw");
+      });
+      expect(error).toBeNull();
+      expect(syncPages.mock.calls.at(-1)![0].context).toEqual([
+        { fromPageId: "p1", toPageId: "gw", cells: ["ee"], existing: {}, tfIdOf: { ee: "ee" } },
+      ]);
+      // Autosave brings the copy: linked as manual copy.
+      const arrived = mxfile(
+        page("p1", "Top", EE + mpLinked),
+        page("gw", "Gateway", node("gw_p", "process", "Part", "P-1.1", 10) + node("copy_ee", "externalentity", "User", "EE-1", 10)),
+      );
+      rerender({ p: project(arrived, pages, [{ id: "mp", type: "Multiprocess" }]) });
+      await waitFor(() => expect(savePages).toHaveBeenCalled());
+      expect(savePages.mock.calls.at(-1)![0].find((p) => p.pageId === "gw")?.links).toEqual([
+        { cellId: "copy_ee", tfId: "ee", role: "ref", manual: true },
+      ]);
+    });
+
+    it("refuses an element that is already on the page", async () => {
+      const pages: DFDPage[] = [
+        { pageId: "p1", name: "Top", order: 0 },
+        { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
+      ];
+      const xml = mxfile(page("p1", "Top", EE + node("mp", "multiprocess", "Gateway", "MP-1", 300)), page("gw", "Gateway", ""));
+      const opts = { enabled: true, syncPages: vi.fn(), savePages: vi.fn(), setNoChildPage: vi.fn() };
+      const { result } = renderHook(() => useChildPages(project(xml, pages), opts));
+      let error: string | null = null;
+      await act(async () => {
+        error = await result.current.insertAsContext("element", "ee", "p1");
+      });
+      expect(error).toBe("not possible");
+    });
+  });
 });

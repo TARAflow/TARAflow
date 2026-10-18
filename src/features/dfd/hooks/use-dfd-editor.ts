@@ -113,6 +113,8 @@ export interface UseDFDEditorReturn {
   setContextCells: (cells: ContextCellMap) => Promise<void>;
   /** Select one particular cell (page + cell), e.g. "Go to definition". */
   selectCellAt: (pageId: string, cellId: string) => Promise<void>;
+  /** The draw.io page last reported by the selection events; null before. */
+  getCurrentPageId: () => string | null;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
   autoNumberLabels: () => Promise<void>;
@@ -593,6 +595,7 @@ export function useDFDEditor(
     syncPages: bridge.syncPages,
     setContextCells: bridge.setContextCells,
     selectCellAt: (pageId: string, cellId: string) => bridgeSelectCell(cellId, pageId),
+    getCurrentPageId: () => currentPageIdRef.current,
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,

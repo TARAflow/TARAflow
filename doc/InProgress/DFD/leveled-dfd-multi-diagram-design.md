@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions, 5h insert as context done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1334,7 +1334,20 @@ page selector in the preview panel (§12.1, D18).
     1.5 writers and `savePages`; a refusal is shown with its code.
   - Not here: the form of a copy is still editable — it edits the logical record, which is the
     same record the definition shows (§5.2 asks for "not editable", but the record is shared, so
-    nothing diverges). "Insert as context…" follows in 5h.
+    nothing diverges).
+- **5h ✅** "Insert as context…" (§5.2 lifecycle, §12).
+  - `leveled/context-copies`: `insertCandidates(parse, pages, page)` — elements and flows with a
+    definition that do not occur on the page yet, never the MP the page details;
+    `planInsertAsContext` — clones the definition cell (5f mechanism, same position as on its own
+    page); an inserted flow is connected to copies of its ends already on the page.
+  - Toolbar button (leveled DFDs, Electron) → dialog with a searchable list grouped by type, each
+    with its definition page; the target is the page draw.io shows (selection events; before the
+    first one the first page of the document).
+  - **`DFDCellLink.manual`** (additive JSON): an inserted copy is marked as inserted by hand — a
+    pure context page never removes it automatically (`planContextRemovals` skips it), although
+    it is not part of the MP's flow context.
+  - An action of the analyst ("Insert", "Sync context") waits up to 5 s for a sync that is
+    running instead of failing with "busy".
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

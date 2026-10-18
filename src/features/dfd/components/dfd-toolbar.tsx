@@ -30,6 +30,7 @@ import {
   Draw as DrawIcon,
   Description as DescriptionIcon,
   Hub as AssetGraphIcon,
+  AddLink as InsertContextIcon,
 } from "@mui/icons-material";
 
 import {
@@ -57,6 +58,8 @@ interface DFDToolbarProps {
   onExport: () => void;
   onImport: () => void;
   onSave: () => void;
+  /** Leveled DFD (5h): "Insert as context…"; absent = not offered. */
+  onInsertContext?: () => void;
 }
 
 // Disables Popper's window resize listener for all Tooltips in this toolbar.
@@ -84,6 +87,7 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
     onExport,
     onImport,
     onSave,
+    onInsertContext,
   }) => {
     const { t } = useTranslation();
     React.useEffect(() => {
@@ -213,6 +217,22 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
                 <AutoNumberIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+            {onInsertContext && (
+              <Tooltip
+                title={t("tabs.dfd.toolbar.insertContext", {
+                  defaultValue: "Insert as context…",
+                })}
+                slotProps={{ popper: { modifiers: NO_RESIZE_POPPER_MODIFIERS } }}
+              >
+                <IconButton
+                  size="small"
+                  onClick={onInsertContext}
+                  data-testid="toolbar-insert-context"
+                >
+                  <InsertContextIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
 
             <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 

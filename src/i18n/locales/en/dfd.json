@@ -115,6 +115,7 @@
         "redo": "Redo",
         "exportImage": "Export as Image",
         "refresh": "Refresh Validation",
+        "insertContext": "Insert as context…",
         "autoNumber": "Auto-Number Labels",
         "darkMode": "Dark Mode",
         "lightMode": "Light mode",
@@ -2672,6 +2673,15 @@
         "apply": "Apply",
         "makeCopyWarning": "This cell then shows the chosen element; its own record (properties, asset relations) is no longer used and its threats become orphans.",
         "error": "Not possible ({{code}})."
+      },
+      "insertContext": {
+        "title": "Insert as context on \"{{page}}\"",
+        "intro": "A context copy shows an element or flow that is defined on another page — one element, one set of threats. It is placed where the element is on its own page; move it afterwards.",
+        "none": "Every element and flow of the DFD is already shown on this page.",
+        "definedOn": "defined on {{page}}",
+        "choose": "Element or flow",
+        "error": "Not inserted ({{error}}).",
+        "insert": "Insert"
       },
       "identityReview": {
         "cancel": "Cancel",
