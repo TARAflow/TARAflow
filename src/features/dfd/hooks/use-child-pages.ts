@@ -151,7 +151,7 @@ export function useChildPages(
     for (const r of removals) {
       for (const cell of r.cellIds) requestedRef.current.add(`${r.pageId}\u0000-${cell}`);
     }
-    const result = await syncPages({
+    const result = await callSync(syncPages, {
       create: [],
       rename: [],
       context: specs,
@@ -350,7 +350,7 @@ export function useChildPages(
             )
             .filter((c): c is ContextCopySpec => !!c);
           markRequested(context);
-          const result = await syncPages({ create: plan.create, rename: [], context });
+          const result = await callSync(syncPages, { create: plan.create, rename: [], context });
           rememberCopies(pendingLinksRef.current, context, result.copies);
           if (!result.success) {
             console.warn("[useChildPages] draw.io could not create pages:", result.error, result);
@@ -373,7 +373,7 @@ export function useChildPages(
         if (rename.length > 0 || link.length > 0) {
           for (const r of rename) renamedRef.current.set(r.pageId, r.name);
           for (const l of link) linkedRef.current.add(linkKey(l));
-          const result = await syncPages({ create: [], rename, link });
+          const result = await callSync(syncPages, { create: [], rename, link });
           if (!result.success) {
             console.warn("[useChildPages] draw.io could not rename / link:", result.error, result);
           } else if (result.errors?.length) {
@@ -405,7 +405,7 @@ export function useChildPages(
       if (removePage) {
         // The deleted page then leaves dfd.pages like any page deleted in
         // draw.io (see above).
-        const result = await syncPages({ create: [], rename: [], remove: [pageId] });
+        const result = await callSync(syncPages, { create: [], rename: [], remove: [pageId] });
         if (!result.success || result.errors?.length) {
           const error = result.error ?? result.errors!.join("; ");
           console.warn("[useChildPages] draw.io could not delete the page:", error, result);
@@ -453,7 +453,7 @@ export function useChildPages(
         });
         if (!spec) return 0;
         markRequested([spec]);
-        const result = await syncPages({ create: [], rename: [], context: [spec] });
+        const result = await callSync(syncPages, { create: [], rename: [], context: [spec] });
         if (!result.success) return result.error ?? "failed";
         if (result.errors?.length) console.warn("[useChildPages] sync context:", result.errors);
         rememberCopies(pendingLinksRef.current, [spec], result.copies);
@@ -475,7 +475,7 @@ export function useChildPages(
         const parse = dfdParser.parse(xml, pages);
         const spec = planInsertAsContext(parse, pages, kind, tfId, pageId);
         if (!spec) return "not possible";
-        const result = await syncPages({ create: [], rename: [], context: [spec] });
+        const result = await callSync(syncPages, { create: [], rename: [], context: [spec] });
         if (!result.success) return result.error ?? "failed";
         if (!result.copies?.length) return result.errors?.join("; ") || "nothing copied";
         rememberCopies(pendingLinksRef.current, [spec], result.copies, true);
@@ -615,6 +615,22 @@ async function waitIdle(busy: { current: boolean }, timeoutMs = 5_000): Promise<
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   return true;
+}
+
+/**
+ * draw.io's answer, never undefined: a missing result (no bridge, a test
+ * double) or a thrown error (IPC) is a failed sync — reported, not an
+ * unhandled rejection in a fire-and-forget effect.
+ */
+async function callSync(
+  syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>,
+  spec: DrawioPageSyncSpec,
+): Promise<DrawioPageSyncResult> {
+  try {
+    return (await syncPages(spec)) ?? { success: false, error: "no result" };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 /** 20 characters like draw.io's own page ids. */

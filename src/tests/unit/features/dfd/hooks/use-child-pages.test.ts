@@ -592,6 +592,31 @@ describe("useChildPages", () => {
     });
   });
 
+  it("survives a sync without result instead of an unhandled rejection", async () => {
+    // Reported from CI: a test double returned undefined and
+    // result.success threw after the test had finished.
+    const pages: DFDPage[] = [
+      { pageId: "p1", name: "Top", order: 0 },
+      { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
+    ];
+    const xml = mxfile(page("p1", "Top", EE + node("mp", "multiprocess", "Gateway", "MP-1", 300)), page("gw", "Gateway", ""));
+    const syncPages = vi.fn(async () => undefined as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() =>
+      useChildPages(project(xml, pages, [{ id: "mp", type: "Multiprocess" }]), {
+        enabled: true,
+        syncPages,
+        savePages: vi.fn(),
+        setNoChildPage: vi.fn(),
+      }),
+    );
+    await waitFor(() => expect(syncPages).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(warn.mock.calls.some((c) => String(c[0]).includes("[useChildPages]"))).toBe(true),
+    );
+    warn.mockRestore();
+  });
+
   describe("5h: insert as context", () => {
     it("inserts a copy and links it as manual once it is saved", async () => {
       const pages: DFDPage[] = [
@@ -644,7 +669,14 @@ describe("useChildPages", () => {
         { pageId: "gw", name: "Gateway", decomposes: "mp", order: 1 },
       ];
       const xml = mxfile(page("p1", "Top", EE + node("mp", "multiprocess", "Gateway", "MP-1", 300)), page("gw", "Gateway", ""));
-      const opts = { enabled: true, syncPages: vi.fn(), savePages: vi.fn(), setNoChildPage: vi.fn() };
+      // A real answer: the hook syncs in the background on render (page
+      // link of the MP) — a bare vi.fn() returned undefined there.
+      const opts = {
+        enabled: true,
+        syncPages: vi.fn(async (_spec: DrawioPageSyncSpec) => ({ success: true })),
+        savePages: vi.fn(async (_pages: DFDPage[]) => ({}) as DFDUpdateResult),
+        setNoChildPage: vi.fn(),
+      };
       const { result } = renderHook(() => useChildPages(project(xml, pages), opts));
       let error: string | null = null;
       await act(async () => {

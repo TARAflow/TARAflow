@@ -73,9 +73,13 @@ export function usePageThumbnails(
           retryLater();
           return;
         }
-        const result = await exportPageSvgs(ids);
-        if (!result.success) {
-          console.warn("[usePageThumbnails] export failed — trying again:", result.error);
+        // A missing result or a thrown error is a failed try, not an
+        // unhandled rejection.
+        const result = await exportPageSvgs(ids).catch(
+          (error: unknown): PageSvgExport => ({ success: false, error: String(error) }),
+        );
+        if (!result?.success) {
+          console.warn("[usePageThumbnails] export failed — trying again:", result?.error);
           retryLater();
           return;
         }
