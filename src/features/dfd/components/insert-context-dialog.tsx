@@ -4,6 +4,9 @@
 // a context copy of it on the current page. The copy keeps the position it
 // has on its own page and is marked as inserted by hand (never removed
 // automatically from a pure context page).
+//
+// One tab per category (element type, data flows) that still has
+// candidates; below it a searchable list of that category only.
 
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +19,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
@@ -33,6 +38,31 @@ export interface InsertContextDialogProps {
   onClose: () => void;
 }
 
+/** Category order of the tabs; other types follow alphabetically. */
+const CATEGORY_ORDER = [
+  "ExternalEntity",
+  "Process",
+  "Multiprocess",
+  "DataStore",
+  "Interface",
+  "Sensor",
+  "Actuator",
+  "DataFlow",
+  "TrustBoundary",
+  "ChipBoundary",
+  "PhysicalBoundary",
+];
+
+/** The categories that have candidates, in tab order. */
+export function categoriesOf(candidates: readonly InsertCandidate[]): string[] {
+  const types = [...new Set(candidates.map((c) => c.type))];
+  const rank = (type: string) => {
+    const i = CATEGORY_ORDER.indexOf(type);
+    return i < 0 ? CATEGORY_ORDER.length : i;
+  };
+  return types.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
 export const InsertContextDialog: React.FC<InsertContextDialogProps> = ({
   open,
   pageName,
@@ -45,12 +75,24 @@ export const InsertContextDialog: React.FC<InsertContextDialogProps> = ({
   const [choice, setChoice] = React.useState<InsertCandidate | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const categories = React.useMemo(() => categoriesOf(candidates), [candidates]);
+  const [category, setCategory] = React.useState<string | null>(null);
   React.useEffect(() => {
     if (open) {
       setChoice(null);
       setError(null);
+      setCategory(categories[0] ?? null);
     }
+    // Only when the dialog opens; the candidates change with every save.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+  const activeCategory = category && categories.includes(category) ? category : categories[0];
+  const inCategory = React.useMemo(
+    () => candidates.filter((c) => c.type === activeCategory),
+    [candidates, activeCategory],
+  );
+  const categoryLabel = (type: string) =>
+    t(`tabs.dfd.elementTypes.${type}.plural`, { defaultValue: type });
 
   const insert = async () => {
     if (!choice) return;
@@ -83,35 +125,55 @@ export const InsertContextDialog: React.FC<InsertContextDialogProps> = ({
             })}
           </Alert>
         ) : (
-          <Autocomplete
-            options={candidates}
-            value={choice}
-            onChange={(_, value) => setChoice(value)}
-            groupBy={(c) => c.type}
-            getOptionLabel={(c) => c.label}
-            isOptionEqualToValue={(a, b) => a.kind === b.kind && a.tfId === b.tfId}
-            renderOption={(props, c) => (
-              <li {...props} key={`${c.kind}:${c.tfId}`}>
-                <Box>
-                  <Typography variant="body2">{c.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {t("tabs.dfd.insertContext.definedOn", {
-                      defaultValue: "defined on {{page}}",
-                      page: pageNames[c.definitionPageId] ?? c.definitionPageId,
-                    })}
-                  </Typography>
-                </Box>
-              </li>
-            )}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                autoFocus
-                label={t("tabs.dfd.insertContext.choose", { defaultValue: "Element or flow" })}
-              />
-            )}
-            data-testid="insert-context-choice"
-          />
+          <>
+            <Tabs
+              value={activeCategory}
+              onChange={(_, value: string) => {
+                setCategory(value);
+                setChoice(null);
+                setError(null);
+              }}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+              data-testid="insert-context-categories"
+            >
+              {categories.map((type) => (
+                <Tab
+                  key={type}
+                  value={type}
+                  label={`${categoryLabel(type)} (${candidates.filter((c) => c.type === type).length})`}
+                  data-testid={`insert-context-category-${type}`}
+                  sx={{ textTransform: "none" }}
+                />
+              ))}
+            </Tabs>
+            <Autocomplete
+              key={activeCategory}
+              options={inCategory}
+              value={choice}
+              onChange={(_, value) => setChoice(value)}
+              getOptionLabel={(c) => c.label}
+              isOptionEqualToValue={(a, b) => a.kind === b.kind && a.tfId === b.tfId}
+              renderOption={(props, c) => (
+                <li {...props} key={`${c.kind}:${c.tfId}`}>
+                  <Box>
+                    <Typography variant="body2">{c.label}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {t("tabs.dfd.insertContext.definedOn", {
+                        defaultValue: "defined on {{page}}",
+                        page: pageNames[c.definitionPageId] ?? c.definitionPageId,
+                      })}
+                    </Typography>
+                  </Box>
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField {...params} autoFocus label={categoryLabel(activeCategory ?? "")} />
+              )}
+              data-testid="insert-context-choice"
+            />
+          </>
         )}
         {error && (
           <Alert severity="error" sx={{ mt: 2 }} data-testid="insert-context-error">

@@ -1340,9 +1340,11 @@ page selector in the preview panel (§12.1, D18).
     definition that do not occur on the page yet, never the MP the page details;
     `planInsertAsContext` — clones the definition cell (5f mechanism, same position as on its own
     page); an inserted flow is connected to copies of its ends already on the page.
-  - Toolbar button (leveled DFDs, Electron) → dialog with a searchable list grouped by type, each
-    with its definition page; the target is the page draw.io shows (selection events; before the
-    first one the first page of the document).
+  - Toolbar button (leveled DFDs, Electron) → dialog: one tab per category that still has
+    candidates (element types in palette order, then data flows and boundaries, with counts),
+    below it a searchable list of that category only, each entry with its definition page
+    (changed after first use from one list for everything); the target is the page draw.io shows
+    (selection events; before the first one the first page of the document).
   - **`DFDCellLink.manual`** (additive JSON): an inserted copy is marked as inserted by hand — a
     pure context page never removes it automatically (`planContextRemovals` skips it), although
     it is not part of the MP's flow context.
