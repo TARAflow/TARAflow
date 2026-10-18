@@ -17,7 +17,17 @@
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction ist durch das aktive Regulierungs-Preset deaktiviert",
-      "dfdPageLayoutUnsupported": "Das DFD hat eine komprimierte Seite oder Seiten, die noch nicht in den Seitenbaum übernommen sind — Generierung und Synchronisation der Bedrohungen sind deaktiviert, bis alle Seiten unkomprimiert und übernommen sind.",
+      "dfdPageLayoutUnsupported": "Das DFD hat eine komprimierte Seite oder Seiten, die noch nicht in den Seitenbaum übernommen sind — Generierung und Synchronisation der Bedrohungen sind deaktiviert, bis alle Seiten unkomprimiert und übernommen sind (\"Seiten übernehmen…\" im DFD-Tab).",
+      "parentLevel": {
+        "summary": "{{count}} Datenfluss/Datenflüsse auf Elternebene analysiert — ihre Bedrohungen beziehen sich auf einen Multiprozess statt auf seine Teile und sind vorläufig. Zeichnen Sie die Flüsse auf der Unterseite, um sie zu verfeinern.",
+        "show": "Anzeigen",
+        "hide": "Ausblenden",
+        "reason": {
+          "ambiguous": "zu verschiedenen Teilen gezeichnet — beim gemeinsamen Elternelement analysiert",
+          "dangling": "ein Endpunkt hat keine Definition",
+          "unresolved": "nicht auf der Unterseite des Multiprozesses gezeichnet"
+        }
+      },
       "configuration": "Konfiguration",
       "searchPlaceholder": "Bedrohungen durchsuchen...",
       "threatsFound": "Bedrohungen gefunden",

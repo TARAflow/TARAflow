@@ -208,3 +208,9 @@ export {
   countDfdAssetReferences,
 } from "./services/dfd-asset-deletion";
 export { finalizeDfd } from "./services/dfd-finalize";
+
+// Leveled DFD (5j): data flows analysed on a parent level, for the threats tab.
+export {
+  parentLevelFlowsOf,
+  type ParentLevelFlow,
+} from "./services/leveled/parent-level-flows";

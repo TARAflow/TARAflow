@@ -830,6 +830,20 @@ export interface ThreatValidation {
   lastValidated: string;
 }
 
+// ==================== LEVELED DFD ====================
+
+/** A data flow analysed on a parent level (leveled DFD §6.5). */
+export interface ParentLevelFlowInfo {
+  tfId: string;
+  /** displayId and name */
+  label: string;
+  /** Endpoints the flow is analysed with. */
+  from: string;
+  to: string;
+  /** ambiguous | dangling | unresolved */
+  reason: "ambiguous" | "dangling" | "unresolved";
+}
+
 // ==================== PROJECT INTERFACE ====================
 
 export interface ThreatProjectData {
@@ -848,6 +862,11 @@ export interface ThreatProjectData {
   dfdPreviewImage?: string;
   /** Leveled DFD (D18): one thumbnail per page, Top first. */
   dfdPreviewPages?: import("shared").DFDPreviewPage[];
+  /**
+   * Leveled DFD (§6.5, 5j): data flows analysed on a parent level (state
+   * "fallback") — their threats are provisional. Empty / absent: none.
+   */
+  dfdParentLevelFlows?: ParentLevelFlowInfo[];
   assetIds?: string[];
   dfdGraph?: DFDGraphReference;
   assetDataRef?: AssetDataReference;

@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions, 5h insert as context, 5i page thumbnails done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions, 5h insert as context, 5i page thumbnails, 5j parent-level banner done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1374,6 +1374,18 @@ page selector in the preview panel (§12.1, D18).
     `dfd.thumbnail`; `DFDPreviewPanel` shows a page selector for several pages (assets, threats,
     risks, attack trees), per viewer, not persisted. Classic DFDs unchanged.
   - Reports (one figure per page) remain Phase 7.
+- **5j ✅** threat-tab banner "N flows analysed on parent level" (§6.5, §7, D4, D10; moved here
+  from Phase 4).
+  - `leveled/parent-level-flows`: `parentLevelFlowsOf(dfd)` — the effective flows in state
+    `fallback` with label, the endpoints they are analysed with and the most severe reason;
+    empty for a classic DFD. Computed in the app layout (memoised on the DFD) and handed to the
+    threats tab as `dfdParentLevelFlows`, so the threats feature imports nothing from the DFD
+    feature.
+  - `ParentLevelFlowsBanner` (info, not an error — analysis runs, nothing is excluded): count,
+    "Show" lists each flow with its endpoints and reason (not drawn below the MP / drawn to
+    different parts / endpoint without definition). Hidden while the layout blocks generation.
+  - The filter "by analysis state" in the threat table remains Phase 6.
+  - The blocked-layout message (Phase 0 guard) now names the way out ("Adopt pages…").
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

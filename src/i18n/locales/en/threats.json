@@ -17,7 +17,17 @@
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction is disabled by the active regulation preset",
-      "dfdPageLayoutUnsupported": "The DFD has a compressed page or pages that are not adopted into the page tree yet — threat generation and synchronisation are disabled until every page is uncompressed and adopted.",
+      "dfdPageLayoutUnsupported": "The DFD has a compressed page or pages that are not adopted into the page tree yet — threat generation and synchronisation are disabled until every page is uncompressed and adopted (\"Adopt pages…\" in the DFD tab).",
+      "parentLevel": {
+        "summary": "{{count}} data flow(s) analysed on a parent level — their threats refer to a multiprocess instead of its parts and are provisional. Draw the flows on the child page to refine them.",
+        "show": "Show",
+        "hide": "Hide",
+        "reason": {
+          "ambiguous": "drawn to different parts — analysed at their common parent",
+          "dangling": "an endpoint has no definition",
+          "unresolved": "not drawn on the child page of the multiprocess"
+        }
+      },
       "configuration": "Configuration",
       "searchPlaceholder": "Search threats...",
       "threatsFound": "Threats found",

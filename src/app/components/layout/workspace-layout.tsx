@@ -51,7 +51,7 @@ import {
   DFDUpdateResult,
   DFDGraphAnalysisContext,
 } from "features/dfd";
-import { addCreatedAssets, translateFinding } from "features/dfd";
+import { addCreatedAssets, parentLevelFlowsOf, translateFinding } from "features/dfd";
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
@@ -638,6 +638,22 @@ export const WorkspaceLayout: React.FC = () => {
     [activeDfdGraph],
   );
 
+  // Leveled DFD (5j): flows analysed on a parent level, for the threats tab.
+  const activeDfd = activeProject?.dfd;
+  const memoizedParentLevelFlows = useMemo(
+    () =>
+      activeDfd?.xml && activeDfd.pages && activeDfd.pages.length > 1
+        ? parentLevelFlowsOf({
+            xml: activeDfd.xml,
+            pages: activeDfd.pages,
+            elements: activeDfd.elements ?? [],
+            connections: activeDfd.connections ?? [],
+            assets: [],
+          })
+        : [],
+    [activeDfd?.xml, activeDfd?.pages, activeDfd?.elements, activeDfd?.connections],
+  );
+
   const memoizedDFDContext = useMemo(
     () => (activeDfdGraph ? new DFDGraphAnalysisContext(activeDfdGraph) : null),
     [activeDfdGraph],
@@ -988,6 +1004,7 @@ export const WorkspaceLayout: React.FC = () => {
               phaseStatus: activeProject.phaseStatus,
               dfdXml: activeProject.dfd?.xml,
               dfdPageIds: activeProject.dfd?.pages?.map((p) => p.pageId),
+              dfdParentLevelFlows: memoizedParentLevelFlows,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               dfdElements: (activeProject.dfd?.elements || []) as any[],
               // eslint-disable-next-line @typescript-eslint/no-explicit-any

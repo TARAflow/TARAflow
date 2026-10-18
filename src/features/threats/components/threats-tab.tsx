@@ -51,6 +51,7 @@ import {
   EMPTY_PROJECT_TAGS,
 } from "shared";
 import { StrategyIndicator } from "./shared/strategy-indicator";
+import { ParentLevelFlowsBanner } from "./parent-level-flows-banner";
 
 // ==================== HELPER ====================
 
@@ -530,11 +531,14 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           <Alert severity="error">
             {t("tabs.threats.dfdPageLayoutUnsupported", {
               defaultValue:
-                "The DFD has several pages or a compressed page. This is not supported yet — threat generation and synchronisation are disabled until the DFD consists of a single uncompressed page.",
+                "The DFD has pages that are not adopted into the page tree yet, or a compressed page. Threat generation and synchronisation are disabled until the pages are adopted (\"Adopt pages…\" in the DFD tab).",
             })}
           </Alert>
         </Box>
       )}
+
+      {/* Leveled DFD: flows analysed on a parent level (§6.5, 5j) */}
+      {!dfdLayoutBlocked && <ParentLevelFlowsBanner flows={project.dfdParentLevelFlows} />}
 
       {/* Sync Warning Banner */}
       <Collapse
