@@ -260,7 +260,24 @@ export function useDFDPersistence(
       pendingSaveRef.current = null;
 
       try {
-        const currentProject = { ...projectRef.current, dfd: { ...base, pages } };
+        // The callers compute pages from page-tree logic (adoption, child
+        // pages, identity links) and do not carry the page thumbnails (D18);
+        // the update replaces dfd.pages wholesale, so keep the thumbnails of
+        // the base — otherwise every such save dropped them.
+        const thumbnails = new Map(
+          (base.pages ?? [])
+            .filter((p) => p.thumbnail)
+            .map((p) => [p.pageId, p.thumbnail!]),
+        );
+        const withThumbnails = pages.map((p) =>
+          p.thumbnail || !thumbnails.has(p.pageId)
+            ? p
+            : { ...p, thumbnail: thumbnails.get(p.pageId)! },
+        );
+        const currentProject = {
+          ...projectRef.current,
+          dfd: { ...base, pages: withThumbnails },
+        };
         createDFDStorageAdapter(currentProject.id).syncFromLegacy();
         const result = dfdService.saveDFD(currentProject);
         if (!result.success) {

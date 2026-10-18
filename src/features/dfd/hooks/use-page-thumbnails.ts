@@ -10,7 +10,7 @@
 // store a broken image; the next save while the DFD is visible catches up.
 // Classic projects (one page) are untouched: they keep dfd.thumbnail.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DFDProjectData } from "../models/dfd-types";
 import { pageFingerprints, pagesToExport } from "../services/leveled";
 import type { PageSvgExport } from "../services/drawio-bridge";
@@ -22,6 +22,8 @@ export interface UsePageThumbnailsOptions {
   storeThumbnails: (svgs: Record<string, string>) => void;
   /** Resolves true once the DFD iframe can render (waitForRenderable). */
   isRenderable: () => Promise<boolean>;
+  /** Pause before another try (tests); default RETRY_MS. */
+  retryMs?: number;
 }
 
 export function usePageThumbnails(
@@ -29,6 +31,7 @@ export function usePageThumbnails(
   options: UsePageThumbnailsOptions,
 ): void {
   const { enabled, exportPageSvgs, storeThumbnails, isRenderable } = options;
+  const retryMs = options.retryMs ?? RETRY_MS;
   const xml = project.dfd?.xml;
   const pages = project.dfd?.pages;
 
@@ -36,6 +39,16 @@ export function usePageThumbnails(
   // counts as current when the DFD is opened.
   const exportedRef = useRef<Map<string, string> | null>(null);
   const busyRef = useRef(false);
+  // A try that could not export (iframe not visible yet, draw.io busy) is
+  // repeated after a pause — not only with the next change of the DFD.
+  const [retry, setRetry] = useState(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!enabled || !xml || !pages || pages.length < 2 || busyRef.current) return;
@@ -48,16 +61,22 @@ export function usePageThumbnails(
     const ids = pagesToExport(xml, pages, exportedRef.current);
     if (ids.length === 0) return;
 
+    const retryLater = () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = setTimeout(() => setRetry((n) => n + 1), retryMs);
+    };
     busyRef.current = true;
     void (async () => {
       try {
         if (!(await isRenderable())) {
-          console.debug("[usePageThumbnails] skipped — DFD iframe not visible");
+          console.debug("[usePageThumbnails] DFD iframe not visible — trying again");
+          retryLater();
           return;
         }
         const result = await exportPageSvgs(ids);
         if (!result.success) {
-          console.warn("[usePageThumbnails] export failed:", result.error);
+          console.warn("[usePageThumbnails] export failed — trying again:", result.error);
+          retryLater();
           return;
         }
         if (result.errors?.length) console.warn("[usePageThumbnails]", result.errors);
@@ -70,5 +89,8 @@ export function usePageThumbnails(
         busyRef.current = false;
       }
     })();
-  }, [enabled, xml, pages, exportPageSvgs, storeThumbnails, isRenderable]);
+  }, [enabled, xml, pages, exportPageSvgs, storeThumbnails, isRenderable, retry, retryMs]);
 }
+
+/** Pause before another try when a page could not be exported. */
+export const RETRY_MS = 3_000;

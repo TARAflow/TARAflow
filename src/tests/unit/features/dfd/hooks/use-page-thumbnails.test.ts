@@ -70,6 +70,32 @@ describe("usePageThumbnails", () => {
     expect(exportPageSvgs).not.toHaveBeenCalled();
   });
 
+  it("tries again after a pause, without a change of the DFD", async () => {
+    // Reported with 5i: thumbnails appeared only after several edits.
+    const { exportPageSvgs, storeThumbnails, options } = setup();
+    let renderable = false;
+    const opts = { ...options, isRenderable: async () => renderable, retryMs: 10 };
+    renderHook(() =>
+      usePageThumbnails(project(mxfile(TOP, SEN), withThumbs.map(({ thumbnail: _t, ...p }) => p)), opts),
+    );
+    await new Promise((r) => setTimeout(r, 15));
+    expect(exportPageSvgs).not.toHaveBeenCalled();
+    renderable = true;
+    await waitFor(() => expect(storeThumbnails).toHaveBeenCalled());
+    expect(exportPageSvgs).toHaveBeenCalledWith(["sys", "sen"]);
+  });
+
+  it("exports a thumbnail again that was lost by another save", async () => {
+    const { exportPageSvgs, options } = setup();
+    const { rerender } = renderHook(({ p }: { p: DFDProjectData }) => usePageThumbnails(p, options), {
+      initialProps: { p: project(mxfile(TOP, SEN), withThumbs) },
+    });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(exportPageSvgs).not.toHaveBeenCalled();
+    rerender({ p: project(mxfile(TOP, SEN), [withThumbs[0], { ...withThumbs[1], thumbnail: undefined }]) });
+    await waitFor(() => expect(exportPageSvgs).toHaveBeenCalledWith(["sen"]));
+  });
+
   it("leaves a classic project alone", async () => {
     const { exportPageSvgs, options } = setup();
     renderHook(() => usePageThumbnails(project(mxfile(TOP)), options));

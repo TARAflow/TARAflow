@@ -1365,6 +1365,11 @@ page selector in the preview panel (§12.1, D18).
     The single-thumbnail export after the autosave and at plugin start is skipped for a leveled
     DFD — it would put the page that happens to be shown into `dfd.thumbnail`.
   - `prepareForDisk` pins the random `ge-svg-*` id of every page thumbnail like `dfd.thumbnail`.
+  - Fix after first use (thumbnails appeared only after several edits): an update replaces
+    `dfd.pages` wholesale, and the page-tree writers (`savePages`: child pages, adoption, identity
+    actions) pass pages without thumbnails — `savePages` now keeps the thumbnails of the base. And a
+    try that could not export (iframe not visible yet, export failed) is repeated after 3 s instead
+    of waiting for the next change; a thumbnail lost by another save is exported again at once.
   - **Preview:** `dfdPreviewPagesOf(dfd)` (shared) — pages Top first, Top falling back to
     `dfd.thumbnail`; `DFDPreviewPanel` shows a page selector for several pages (assets, threats,
     risks, attack trees), per viewer, not persisted. Classic DFDs unchanged.
