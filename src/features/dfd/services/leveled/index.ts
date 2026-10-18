@@ -136,3 +136,9 @@ export {
   pagesToExport,
   withPageThumbnails,
 } from "./page-thumbnails";
+export {
+  findLostDefinitions,
+  reattachDefinition,
+  type LostDefinition,
+  type DfdState,
+} from "./lost-definitions";

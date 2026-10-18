@@ -2670,6 +2670,17 @@
         "error": "Nicht eingefügt ({{error}}).",
         "insert": "Einfügen"
       },
+      "lostDefinition": {
+        "title": "Element hat seine Definition verloren",
+        "text": "\"{{element}}\" auf Seite \"{{page}}\" wurde gelöscht oder neu gezeichnet und ist nicht mehr im Modell.",
+        "usage": "{{threats}} Bedrohung(en) und {{relations}} Asset-Beziehung(en) verweisen darauf. Wiederanhängen behält sie; wird die Löschung bestätigt, sind die Bedrohungen verwaist.",
+        "reattachTo": "An die neue Zelle anhängen",
+        "noCandidate": "Auf dieser Seite gibt es noch keine neue Zelle desselben Typs. \"Später\" wählen und neu zeichnen — die Frage kommt mit der neuen Zelle wieder — oder die Löschung bestätigen.",
+        "error": "Nicht angehängt ({{error}}).",
+        "later": "Später",
+        "accept": "Löschung bestätigen",
+        "reattach": "Wiederanhängen"
+      },
       "identityReview": {
         "cancel": "Abbrechen",
         "later": "Später",

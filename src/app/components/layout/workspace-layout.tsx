@@ -440,6 +440,25 @@ export const WorkspaceLayout: React.FC = () => {
         };
   }, []);
 
+  // Leveled DFD (5k): threats referring to a DFD element / flow (tfId), for
+  // the question when a linked definition is lost.
+  const threatCountLookup = useCallback((tfId: string) => {
+    const threats = activeProjectRef.current?.threats;
+    if (!threats) return 0;
+    let count = 0;
+    for (const table of [...threats.perElementTables, ...threats.perInteractionTables]) {
+      for (const threat of table.threats) {
+        if (
+          threat.linkedElement?.elementId === tfId ||
+          threat.dataFlow?.connectionId === tfId
+        ) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }, []);
+
   const makeAssetDeleteHandler = useCallback(
     (projectId: string) => async (assetId: string) => {
       const current = projectsRef.current.find((p) => p.id === projectId);
@@ -947,6 +966,7 @@ export const WorkspaceLayout: React.FC = () => {
               project={dfdTabProject}
               onUpdate={handleDFDUpdate}
               assetUsage={assetUsageLookup}
+              threatCountOf={threatCountLookup}
               graphFocusRequest={graphFocusRequest}
               onShowInTable={(assetId) => {
                 setTableHighlightRequest({ assetId });

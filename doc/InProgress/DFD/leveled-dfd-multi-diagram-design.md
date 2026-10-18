@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions, 5h insert as context, 5i page thumbnails, 5j parent-level banner done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions, 5h insert as context, 5i page thumbnails, 5j parent-level banner, 5k lost definitions done)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1386,6 +1386,20 @@ page selector in the preview panel (§12.1, D18).
     different parts / endpoint without definition). Hidden while the layout blocks generation.
   - The filter "by analysis state" in the threat table remains Phase 6.
   - The blocked-layout message (Phase 0 guard) now names the way out ("Adopt pages…").
+- **5k ✅** a linked definition cell recreated (§5.2 lifecycle).
+  - `leveled/lost-definitions`, pure: `findLostDefinitions(before, after, parse)` — `definition`
+    links (tfId ≠ cell id: moved, adopted, promoted) whose cell is gone from the XML and whose
+    element no longer exists at all (with copies left it is dangling — "Promote", 5g). Keeps the
+    record; candidates are new plain cells of the same kind and type on that page, the same
+    displayId first. `reattachDefinition` writes the `definition` link. A plain cell drawn again
+    is a new element as in a classic DFD and is not reported.
+  - **"Confirmation on save" as a question after the save:** the autosave cannot wait, so
+    `useLostDefinitions` compares each saved state with the one before. Dialog: what refers to the
+    element (threats — counted by the app layer, `threatCountOf` — and asset relations; attack-tree
+    anchors hang on the threats), **Re-attach** to the new cell (link, then properties and asset
+    relations written back, threats match again by tfId), **Accept deletion**, or **Later** (the
+    modal must not block drawing the new cell; the question returns with a new candidate). The
+    candidates follow the drawing; an undo that brings the cell back ends the question.
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.

@@ -2683,6 +2683,17 @@
         "error": "Not inserted ({{error}}).",
         "insert": "Insert"
       },
+      "lostDefinition": {
+        "title": "Element lost its definition",
+        "text": "\"{{element}}\" on page \"{{page}}\" was deleted or drawn again and is no longer in the model.",
+        "usage": "{{threats}} threat(s) and {{relations}} asset relation(s) refer to it. Re-attach keeps them; accepting the deletion leaves the threats as orphans.",
+        "reattachTo": "Re-attach to the new cell",
+        "noCandidate": "There is no new cell of the same type on that page yet. Choose \"Later\" and draw it again — the question comes back with the new cell — or accept the deletion.",
+        "error": "Not re-attached ({{error}}).",
+        "later": "Later",
+        "accept": "Accept deletion",
+        "reattach": "Re-attach"
+      },
       "identityReview": {
         "cancel": "Cancel",
         "later": "Later",

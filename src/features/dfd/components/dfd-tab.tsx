@@ -36,6 +36,7 @@ import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import { useIdentityReview } from "../hooks/use-identity-review";
 import { usePageOutline } from "../hooks/use-page-outline";
 import { useChildPages } from "../hooks/use-child-pages";
+import { useLostDefinitions } from "../hooks/use-lost-definitions";
 import { usePageThumbnails } from "../hooks/use-page-thumbnails";
 import { waitForRenderable } from "../utils/wait-for-renderable";
 import {
@@ -43,6 +44,7 @@ import {
   contextCellsOf,
   insertCandidates,
   type InsertCandidate,
+  type LostDefinition,
   describeIdentity,
   linkAsContextCopy,
   makeDefinition,
@@ -71,6 +73,7 @@ import {
 import { ValidationMessages } from "../services/validators/validator-utils";
 import { OrphanPageDialog } from "./child-page-ui";
 import { InsertContextDialog } from "./insert-context-dialog";
+import { LostDefinitionDialog } from "./lost-definition-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
@@ -115,6 +118,11 @@ export interface DFDTabProps {
   securityDrifts?: SecurityDrift[];
   /** Impact lookup for the asset delete confirm dialog (app layer). */
   assetUsage?: AssetUsageLookup;
+  /**
+   * Leveled DFD (5k): threats referring to an element / flow (by tfId), for
+   * the question when a linked definition is lost (app layer).
+   */
+  threatCountOf?: (tfId: string) => number;
 }
 
 // ==================== COMPONENT ====================
@@ -127,6 +135,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   controlInstances,
   securityDrifts,
   assetUsage,
+  threatCountOf,
   graphFocusRequest,
   onShowInTable,
 }) => {
@@ -318,6 +327,29 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     syncPages: editor.syncPages,
     savePages: editor.savePages,
     setNoChildPage,
+  });
+
+  // Leveled DFD (5k): a linked definition cell deleted or drawn again —
+  // re-attach the old identity (and its record) or accept the deletion.
+  const { updateConnectionDescription } = editor;
+  const restoreRecord = useCallback(
+    (lost: LostDefinition) => {
+      const { properties, assetRelations } = lost.record as {
+        properties?: unknown;
+        assetRelations?: unknown;
+      };
+      const updates = {
+        ...(properties !== undefined ? { properties } : {}),
+        ...(assetRelations !== undefined ? { assetRelations } : {}),
+      };
+      if (lost.kind === "element") updateElementDescription(lost.tfId, updates as never);
+      else updateConnectionDescription(lost.tfId, updates as never);
+    },
+    [updateElementDescription, updateConnectionDescription],
+  );
+  const lostDefinitions = useLostDefinitions(project, {
+    savePages: editor.savePages,
+    restoreRecord,
   });
 
   // Leveled DFD (5i, D18): one thumbnail per page, dfd.thumbnail = Top.
@@ -1165,6 +1197,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onClose={() => setShowPreview(false)}
         previewImage={editor.previewImage}
         projectName={project.name}
+      />
+
+      {/* Leveled DFD: a linked definition was lost (5k) */}
+      <LostDefinitionDialog
+        lost={lostDefinitions.lost}
+        threatCountOf={threatCountOf}
+        onReattach={lostDefinitions.reattach}
+        onAccept={lostDefinitions.acceptDeletion}
+        onLater={lostDefinitions.postpone}
       />
 
       {/* Leveled DFD: insert a context copy on the current page (5h) */}
