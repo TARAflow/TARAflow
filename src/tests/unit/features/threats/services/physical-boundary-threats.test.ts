@@ -125,3 +125,19 @@ describe("physical boundary threats — per interaction", () => {
     expect(templates(pbThreats(perInteraction(data)))).toEqual(templates(pbThreats(perElement(data))));
   });
 });
+
+describe("physical boundary with interfaces — per element", () => {
+  it("one table holds the interface threats and the enclosure's own threats", () => {
+    const data = project(ENCLOSURE);
+    const graph = data.dfdGraph as unknown as {
+      elementsById: Map<string, unknown>;
+      elementPhysicalBoundaries: Map<string, string[]>;
+    };
+    graph.elementsById.set("if1", { id: "if1", type: "Interface", name: "UART", displayId: "IF-1", properties: {} });
+    graph.elementPhysicalBoundaries.set("if1", ["pb"]);
+    const own = perElement(data).filter((t) => t.trustBoundaryId === "pb");
+    expect(own).toHaveLength(1);
+    const types = new Set(own[0].threats.map((t) => t.linkedElement?.elementType));
+    expect(types).toEqual(new Set(["Interface", "PhysicalBoundary"]));
+  });
+});

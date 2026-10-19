@@ -315,6 +315,23 @@ export class ElementThreatGenerator {
       });
     }
 
+    // One table per boundary: a physical or chip boundary holds the threats
+    // of its interfaces and its own element threats — two tables with the
+    // same boundary were listed twice under the same name.
+    const tableByBoundary = new Map<string, ThreatTable>();
+    const mergedTables: ThreatTable[] = [];
+    for (const table of tables) {
+      const first = table.trustBoundaryId
+        ? tableByBoundary.get(table.trustBoundaryId)
+        : undefined;
+      if (first) {
+        first.threats = [...first.threats, ...table.threats];
+        continue;
+      }
+      if (table.trustBoundaryId) tableByBoundary.set(table.trustBoundaryId, table);
+      mergedTables.push(table);
+    }
+
     // Safety net: deduplicate threats that appear twice for the SAME element
     // (e.g. a DataFlow threat that could theoretically land in two tables).
     // NB: not keyed on id — createEmptyThreat mints a fresh UUID per threat.
@@ -324,7 +341,7 @@ export class ElementThreatGenerator {
     // produced identical labels (SDC-T-1 …) and the chip boundary's threats
     // were silently dropped.
     const seenThreats = new Set<string>();
-    const deduplicatedTables = tables
+    const deduplicatedTables = mergedTables
       .map((table) => ({
         ...table,
         threats: table.threats.filter((threat) => {
