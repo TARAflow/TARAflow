@@ -7,7 +7,11 @@
 //             the containment parents to the one below Top); a decomposed
 //             MP itself (a fallback endpoint) is its own group; anything
 //             else — EEs, elements on Top, MPs not decomposed — "Top level"
-//   flow      the groups of its two resolved ends: one, or both (D20)
+//   flow      the group of its two resolved ends if both lie in the same
+//             multiprocess; otherwise — between two multiprocesses, or
+//             between the top level and a multiprocess — "Top level"
+//             (D20, revised 2026-10-19: every threat in exactly one group;
+//             a multiprocess shows only what lies entirely inside it)
 
 import { TOP_LEVEL_GROUP, type DfdTableGroups } from "shared";
 import type { DfdGraphSource } from "../build-dfd-graph";
@@ -42,7 +46,8 @@ export function multiprocessGroupsOf(source: DfdGraphSource): DfdTableGroups | u
   for (const id of records.elements.keys()) elementGroup[id] = groupOf(id);
   const flowGroups: Record<string, string[]> = {};
   for (const flow of model.flows) {
-    flowGroups[flow.tfId] = [...new Set([groupOf(flow.from), groupOf(flow.to)])];
+    const from = groupOf(flow.from);
+    flowGroups[flow.tfId] = [from === groupOf(flow.to) ? from : TOP_LEVEL_GROUP];
   }
 
   // Multiprocess groups in page-tree order (the order of their child pages).

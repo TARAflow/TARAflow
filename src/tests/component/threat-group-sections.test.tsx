@@ -5,25 +5,34 @@
 // tables inside, flows between two groups in both, original table index
 // kept for editing.
 import React from "react";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ThreatGroupSections } from "features/threats/components/shared/threat-group-sections";
+import {
+  ThreatGroupSections,
+  endpointLabelFor,
+} from "features/threats/components/shared/threat-group-sections";
 import { TOP_LEVEL_GROUP, type DfdTableGroups } from "shared";
 import type { Threat, ThreatTable } from "features/threats/models/threat-types";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, o?: { defaultValue?: string }) => o?.defaultValue ?? key,
+    t: (key: string, o?: Record<string, unknown> & { defaultValue?: string }) =>
+      (o?.defaultValue ?? key).replace(/\{\{(\w+)\}\}/g, (_, name) => String(o?.[name] ?? "")),
     i18n: { language: "en" },
   }),
 }));
 
 afterEach(cleanup);
 
-const threat = (id: string, ref: { elementId?: string; connectionId?: string }) =>
+const threat = (
+  id: string,
+  ref: { elementId?: string; connectionId?: string },
+  strideCategory = "S",
+) =>
   ({
     id,
     displayId: id,
+    strideCategory,
     linkedElement: ref.elementId ? { elementId: ref.elementId } : null,
     dataFlow: ref.connectionId ? { connectionId: ref.connectionId } : null,
   }) as unknown as Threat;
@@ -42,11 +51,16 @@ const GROUPS: DfdTableGroups = {
     { key: "mp2", label: "MP-2 Controller" },
   ],
   elementGroup: { ee1: TOP_LEVEL_GROUP, p2: "mp1", p5: "mp2" },
-  flowGroups: { df7: ["mp1", "mp2"] },
+  // DF-7 runs P-2 (MP-1) → P-5 (MP-2): between groups → top level (D20).
+  flowGroups: { df7: [TOP_LEVEL_GROUP] },
 };
 
 const TABLES = [
-  table("SB", [threat("T-p2", { elementId: "p2" }), threat("T-df7", { connectionId: "df7" })]),
+  table("SB", [
+    threat("T-p2", { elementId: "p2" }),
+    threat("T-p2b", { elementId: "p2" }, "T"),
+    threat("T-df7", { connectionId: "df7" }),
+  ]),
   table("CB", [threat("T-p5", { elementId: "p5" }), threat("T-gone", { elementId: "gone" })]),
   table("none", [threat("T-ee1", { elementId: "ee1" })]),
 ];
@@ -58,18 +72,41 @@ const renderTable = (t: ThreatTable, index: number, groupKey: string) => (
 );
 
 describe("ThreatGroupSections", () => {
-  it("groups per multiprocess, keeps the table index, flows in both groups", () => {
+  it("shows every threat once: flows between groups only on the top level", () => {
     render(<ThreatGroupSections groups={GROUPS} tables={TABLES} renderTable={renderTable} />);
     const top = screen.getByTestId(`threat-group-${TOP_LEVEL_GROUP}`);
     expect(within(top).getByText("Top level")).toBeTruthy();
+    expect(within(top).getByTestId(`table-${TOP_LEVEL_GROUP}-0`).textContent).toBe("T-df7");
     expect(within(top).getByTestId(`table-${TOP_LEVEL_GROUP}-2`).textContent).toBe("T-ee1");
 
     const mp1 = screen.getByTestId("threat-group-mp1");
-    expect(within(mp1).getByTestId("table-mp1-0").textContent).toBe("T-p2,T-df7");
+    expect(within(mp1).getByTestId("table-mp1-0").textContent).toBe("T-p2,T-p2b");
     const mp2 = screen.getByTestId("threat-group-mp2");
-    // Table 0 (SB) carries DF-7 for MP-2 too; index 1 = CB.
-    expect(within(mp2).getByTestId("table-mp2-0").textContent).toBe("T-df7");
+    // Table index kept: CB is table 1. DF-7 is not repeated here.
+    expect(within(mp2).queryByTestId("table-mp2-0")).toBeNull();
     expect(within(mp2).getByTestId("table-mp2-1").textContent).toBe("T-p5");
+  });
+
+  it("summarises each multiprocess on the top level and opens it on Details", () => {
+    render(<ThreatGroupSections groups={GROUPS} tables={TABLES} renderTable={renderTable} />);
+    const summary = screen.getByTestId("threat-group-summary-mp1");
+    expect(summary.textContent).toContain("MP-1 Sensor");
+    expect(summary.textContent).toContain("2 threat(s) of its parts — S 1 · T 1 · R 0 · I 0 · D 0 · E 0");
+
+    // Collapse MP-1, then "Details" opens it again.
+    const mp1 = screen.getByTestId("threat-group-mp1");
+    fireEvent.click(within(mp1).getByText("MP-1 Sensor"));
+    expect(mp1.querySelector('[aria-expanded="false"]')).not.toBeNull();
+    fireEvent.click(within(summary).getByText("Details"));
+    expect(mp1.querySelector('[aria-expanded="true"]')).not.toBeNull();
+  });
+
+  it("labels flow ends inside a multiprocess on the top level only", () => {
+    const top = endpointLabelFor(GROUPS, TOP_LEVEL_GROUP)!;
+    expect(top("p2", "P-1.1")).toBe("P-1.1 (in MP-1 Sensor)");
+    expect(top("ee1", "EE-1")).toBe("EE-1");
+    expect(endpointLabelFor(GROUPS, "mp1")).toBeUndefined();
+    expect(endpointLabelFor(undefined, TOP_LEVEL_GROUP)).toBeUndefined();
   });
 
   it("collects threats of elements no longer in the DFD", () => {
@@ -83,5 +120,6 @@ describe("ThreatGroupSections", () => {
     render(<ThreatGroupSections tables={TABLES} renderTable={renderTable} />);
     expect(screen.queryByTestId(`threat-group-${TOP_LEVEL_GROUP}`)).toBeNull();
     expect(screen.getByTestId("table--1").textContent).toBe("T-p5,T-gone");
+    expect(screen.queryByTestId("threat-group-summaries")).toBeNull();
   });
 });

@@ -3,7 +3,7 @@
 // ThreatsTab is the single source of truth for hook state.
 
 import type { DfdTableGroups } from "shared";
-import { ThreatGroupSections } from "../shared/threat-group-sections";
+import { ThreatGroupSections, endpointLabelFor } from "../shared/threat-group-sections";
 import React, { useCallback } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { AutoAwesome as GenerateIcon } from "@mui/icons-material";
@@ -209,6 +209,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
                   onEdit={(threat) => handleEdit(index, threat)}
                   onDelete={(threatId) => handleDelete(index, threatId)}
                   onAdd={(threat) => onAdd(index, threat)}
+                  endpointLabel={endpointLabelFor(groups, groupKey)}
                 />
               )}
             />

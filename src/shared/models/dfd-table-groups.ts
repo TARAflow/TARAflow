@@ -20,7 +20,10 @@ export interface DfdTableGroups {
   groups: DfdTableGroup[];
   /** element tfId → group key */
   elementGroup: Record<string, string>;
-  /** flow tfId → group keys of its two ends (one, or two different ones) */
+  /**
+   * flow tfId → its group: the multiprocess both ends lie in, otherwise
+   * the top level (exactly one entry — every threat in one group, D20).
+   */
   flowGroups: Record<string, string[]>;
 }
 

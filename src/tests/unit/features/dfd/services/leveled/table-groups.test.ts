@@ -47,16 +47,27 @@ describe("multiprocessGroupsOf", () => {
     expect(groups.elementGroup.ee1).toBe(TOP_LEVEL_GROUP);
   });
 
-  it("puts a flow between two groups into both, a flow into one group into it", () => {
-    // DF-7 resolves P-2 (in MP-1) → P-5 (in MP-2).
-    expect(groups.flowGroups.df7).toEqual(["mp1", "mp2"]);
-    // DF-8 EE-1 → MP-1, not drawn below MP-1: analysed with MP-1 itself.
-    expect(groups.flowGroups.df8).toEqual([TOP_LEVEL_GROUP, "mp1"]);
+  it("puts a flow between groups into Top level only — every threat once (D20)", () => {
+    // DF-7 resolves P-2 (in MP-1) → P-5 (in MP-2): between two MPs.
+    expect(groups.flowGroups.df7).toEqual([TOP_LEVEL_GROUP]);
+    // DF-8 EE-1 → MP-1, not drawn below MP-1: between Top and an MP.
+    expect(groups.flowGroups.df8).toEqual([TOP_LEVEL_GROUP]);
+  });
+
+  it("keeps a flow inside a multiprocess in its group", () => {
+    const sen = SENSOR.replace(
+      "</root>",
+      node("sen_p3", "process", "Diagnostics", "P-3", 300) +
+        flow("sen_df1", "samples", "DF-1.1", "sen_p2", "sen_p3") +
+        "</root>",
+    );
+    const g = multiprocessGroupsOf(source(mxfile(SYS, sen, CONTROLLER)))!;
+    expect(g.flowGroups.sen_df1).toEqual(["mp1"]);
   });
 
   it("answers for threats by element or flow, nothing for unknown ids", () => {
     expect(groupsOfDfdItem(groups, { elementId: "sen_p2" })).toEqual(["mp1"]);
-    expect(groupsOfDfdItem(groups, { connectionId: "df7" })).toEqual(["mp1", "mp2"]);
+    expect(groupsOfDfdItem(groups, { connectionId: "df7" })).toEqual([TOP_LEVEL_GROUP]);
     expect(groupsOfDfdItem(groups, { elementId: "gone" })).toEqual([]);
   });
 

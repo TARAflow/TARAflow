@@ -104,6 +104,11 @@ export interface InteractionThreatTableProps {
   onEdit: (threat: Threat) => void;
   onDelete: (threatId: string) => void;
   onAdd: (threat: Threat) => void;
+  /**
+   * Leveled DFD (D20): label of a flow end — in the top-level group an end
+   * inside a multiprocess says so. Absent: the name.
+   */
+  endpointLabel?: (elementId: string, name: string) => string;
 }
 
 // ==================== HELPERS ====================
@@ -610,6 +615,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
     onEdit,
     onDelete,
     onAdd,
+    endpointLabel,
   }) => {
     const { t } = useTranslation();
 
@@ -1007,7 +1013,8 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
                             }}
                           />
                           <Typography variant="body2">
-                            {group.sourceName} → {group.targetName}
+                            {endpointLabel ? endpointLabel(group.sourceId, group.sourceName) : group.sourceName} →{" "}
+                              {endpointLabel ? endpointLabel(group.targetId, group.targetName) : group.targetName}
                           </Typography>
                           {group.dataFlowName &&
                             group.dataFlowName !== group.dataFlowId &&
