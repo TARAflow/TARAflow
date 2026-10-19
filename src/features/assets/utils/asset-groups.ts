@@ -4,7 +4,9 @@
 // several multiprocesses → "Shared". A top-level element or flow that only
 // carries the asset into one multiprocess (e.g. the maintenance session that
 // writes the alarm configuration) does not make it shared. Held only on the
-// top level → "Top level"; held by nothing in the DFD → "Not in the DFD".
+// top level → "Top level". An asset linked to no element (people, the
+// building: endangered by the system as a whole) is top level too; only an
+// asset whose linked elements are all gone → "Not in the DFD".
 
 import { TOP_LEVEL_GROUP, groupsOfDfdItem, type DfdTableGroups } from "shared";
 import type { Asset } from "../models/asset-types";
@@ -29,7 +31,9 @@ export function assetGroupOf(groups: DfdTableGroups, asset: Asset): string {
         : { elementId: link.elementId };
     for (const key of groupsOfDfdItem(groups, ref)) keys.add(key);
   }
-  if (keys.size === 0) return ASSET_NOT_IN_DFD;
+  if (keys.size === 0) {
+    return (asset.linkedDFDElements ?? []).length === 0 ? TOP_LEVEL_GROUP : ASSET_NOT_IN_DFD;
+  }
   const multiprocesses = [...keys].filter((key) => key !== TOP_LEVEL_GROUP);
   if (multiprocesses.length > 1) return ASSET_SHARED_GROUP;
   return multiprocesses[0] ?? TOP_LEVEL_GROUP;

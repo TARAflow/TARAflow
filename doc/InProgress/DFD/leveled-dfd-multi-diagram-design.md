@@ -1431,9 +1431,10 @@ drawn on *Top*, multiprocesses that are not decomposed). The subtree filter of �
     STRIDE category, "Details" opens its group. A view — the multiprocess has no threats of its
     own once decomposed (§6.1).
   - **Assets** held in one multiprocess appear there; held in several multiprocesses → group
-    **"Shared"**; held only on the top level → "Top level"; held by no element → group "Not in
-    the DFD". A top-level element or flow that only carries an asset into one multiprocess does
-    not make it shared (revised in 6c).
+    **"Shared"**; held only on the top level, or linked to no element at all (people, the
+    building — endangered by the system as a whole) → "Top level"; linked only to elements that
+    are gone → group "Not in the DFD". A top-level element or flow that only carries an asset into
+    one multiprocess does not make it shared (revised in 6c).
   - **Threat tables keep their trust-boundary grouping** inside each multiprocess group.
   - **Risks follow their threat's group(s).**
   - Classic DFDs (one page) and leveled DFDs without a decomposed MP: tables as today.
@@ -1494,6 +1495,11 @@ Order (Phase 6):
     to its flow as `linkedElement`; `groupsOfDfdItem` now also looks an element id up among the
     flows. Before, these threats (and their risks) of top-level flows were listed under "Not in
     the DFD".
+  - After first use: "Show factors" and "Needs review only" sit once above all groups
+    (`AssetTableToolbar`; the group tables follow `view`); the review filter applies before the
+    grouping, groups without a match disappear. "Show in table" scrolls the row into view (a
+    table with autoHeight has no scroll area of its own). Assets without any DFD link go to the
+    top level instead of "Not in the DFD".
 - **6d** asset roll-up on decomposed MPs with provenance, pending relations,
   `BAL_ASSET_NOT_REALISED` (§9);
 - **6e** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10);

@@ -3,8 +3,8 @@
 // Leveled DFD (leveled-dfd-multi-diagram-design.md Phase 6c, D20): assets
 // grouped by the elements and flows holding them — one multiprocess →
 // there (a top-level flow carrying it in does not count), several
-// multiprocesses → "Shared", only top level → "Top level", none → "Not in
-// the DFD".
+// multiprocesses → "Shared", only top level or no link at all → "Top
+// level", links only to deleted elements → "Not in the DFD".
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -60,22 +60,23 @@ const ASSETS = [
 const ids = (assets: Asset[]) => assets.map((a) => a.id);
 
 describe("assetGroupOf / assetGroupSections", () => {
-  it("one multiprocess → there, several → Shared, top only → Top level, none → Not in the DFD", () => {
+  it("one multiprocess → there, several → Shared, top or no link → Top level, gone → Not in the DFD", () => {
     expect(assetGroupOf(GROUPS, ASSETS[0])).toBe("mp1");
     expect(assetGroupOf(GROUPS, ASSETS[1])).toBe("mp2");
     expect(assetGroupOf(GROUPS, ASSETS[2])).toBe(TOP_LEVEL_GROUP);
     expect(assetGroupOf(GROUPS, ASSETS[3])).toBe(ASSET_SHARED_GROUP);
-    expect(assetGroupOf(GROUPS, ASSETS[4])).toBe(ASSET_NOT_IN_DFD);
+    // No link at all (people, building): the system as a whole → top level.
+    expect(assetGroupOf(GROUPS, ASSETS[4])).toBe(TOP_LEVEL_GROUP);
     expect(assetGroupOf(GROUPS, ASSETS[5])).toBe(ASSET_NOT_IN_DFD);
   });
 
   it("orders top level, multiprocesses, Shared, Not in the DFD", () => {
     expect(assetGroupSections(GROUPS, ASSETS).map((s) => [s.key, ids(s.assets)])).toEqual([
-      [TOP_LEVEL_GROUP, ["panel-cmd"]],
+      [TOP_LEVEL_GROUP, ["panel-cmd", "occupants"]],
       ["mp1", ["calibration"]],
       ["mp2", ["thresholds"]],
       [ASSET_SHARED_GROUP, ["measurement"]],
-      [ASSET_NOT_IN_DFD, ["occupants", "gone"]],
+      [ASSET_NOT_IN_DFD, ["gone"]],
     ]);
   });
 });
@@ -87,7 +88,7 @@ const renderTable = (assets: Asset[], groupKey: string) => (
 describe("AssetGroupSections", () => {
   it("renders the table once per group with its assets", () => {
     render(<AssetGroupSections groups={GROUPS} assets={ASSETS} renderTable={renderTable} />);
-    expect(screen.getByTestId(`table-${TOP_LEVEL_GROUP}`).textContent).toBe("panel-cmd");
+    expect(screen.getByTestId(`table-${TOP_LEVEL_GROUP}`).textContent).toBe("panel-cmd,occupants");
     expect(screen.getByTestId("table-mp1").textContent).toBe("calibration");
     expect(screen.getByTestId(`table-${ASSET_SHARED_GROUP}`).textContent).toBe("measurement");
     const shared = screen.getByTestId(`asset-group-${ASSET_SHARED_GROUP}`);
