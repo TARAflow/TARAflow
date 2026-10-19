@@ -116,6 +116,8 @@
         "exportImage": "Als Bild exportieren",
         "refresh": "Validierung aktualisieren",
         "insertContext": "Als Kontext einfügen…",
+        "autoNumberAll": "Alle Seiten neu nummerieren",
+        "autoNumberPage": "„{{page}}“ und ihre Unterseiten neu nummerieren",
         "autoNumber": "Labels automatisch nummerieren",
         "darkMode": "Dunkelmodus",
         "lightMode": "Hellmodus",

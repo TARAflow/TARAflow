@@ -126,7 +126,8 @@ export interface UseDFDEditorReturn {
   updatePageThumbnails: (svgs: Record<string, string>) => void;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
-  autoNumberLabels: () => Promise<void>;
+  /** Renumber; with a page id one page and its child pages (5l). */
+  autoNumberLabels: (onlyPageId?: string) => Promise<void>;
 
   // Description editing (triggers debounced save)
   updateElementDescription: (

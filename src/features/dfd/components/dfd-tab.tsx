@@ -669,6 +669,22 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     await editor.autoNumberLabels();
   }, [editor]);
 
+  // Leveled DFD (5l): renumber the page draw.io shows and its child pages
+  // (before the first selection event the first page of the document).
+  const currentPageOf = useCallback(
+    () => editor.getCurrentPageId() ?? leveledParse?.pages[0]?.pageId ?? null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [leveledParse],
+  );
+  const handleAutoNumberPage = useCallback(async () => {
+    const pageId = currentPageOf();
+    if (pageId) await editor.autoNumberLabels(pageId);
+  }, [editor, currentPageOf]);
+  const getCurrentPageName = useCallback(() => {
+    const pageId = currentPageOf();
+    return leveledParse?.pages.find((p) => p.pageId === pageId)?.name ?? pageId ?? "";
+  }, [currentPageOf, leveledParse]);
+
   const handleAutoNumberConfigSave = useCallback(
     (config: DFDAutoNumberingConfig) => {
       setAutoNumberingConfig(config);
@@ -1020,6 +1036,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onImport={exportImport.promptImport}
         onSave={handleSave}
         onInsertContext={leveledParse && editor.pluginReady ? openInsertContext : undefined}
+        onAutoNumberPage={leveledParse ? handleAutoNumberPage : undefined}
+        getCurrentPageName={getCurrentPageName}
       />
 
       <IdentityReviewHints

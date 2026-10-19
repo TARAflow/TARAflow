@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 in progress (5a cell ↔ tfId, 5b adoption / assignment dialog, 5c page tabs, 5d child page per multiprocess, 5e child page actions, 5f context copies, 5g identity actions, 5h insert as context, 5i page thumbnails, 5j parent-level banner, 5k lost definitions done)
+Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 done (UI, 5a–5l) · Phase 6 next
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -1400,9 +1400,28 @@ page selector in the preview panel (§12.1, D18).
     relations written back, threats match again by tfId), **Accept deletion**, or **Later** (the
     modal must not block drawing the new cell; the question returns with a new candidate). The
     candidates follow the drawing; an undo that brings the cell back ends the question.
+- **5l ✅** renumber one page (§8).
+  - `DFDAutoNumbering.autoNumber(xml, pages, onlyPageId)`: the page **and the pages below it** —
+    their namespaces hang on its multiprocesses (MP-2 → MP-3 would leave P-2.1 under MP-3).
+    Every other page keeps its numbers: its definitions are read from their labels and seed the
+    namespaces and the counters (a child page whose MP has no number yet numbers in the root
+    namespace, after the highest number outside — no collision). Copies of renumbered elements
+    on other pages follow. Root page or a page the tree cannot place: everything, as before.
+  - Toolbar (leveled DFDs): the numbering button opens "Renumber all pages" / "Renumber «page»
+    and its child pages" (the page draw.io shows); classic DFDs keep the one-click button.
+
+Phase 5 is complete. Moved: per-page grouping of the description view → Phase 7 (with the
+per-page report sections).
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.
+Added 2026-10-19 (analyst's idea): the asset, threat and risk tables **grouped by multiprocess**
+— one accordion per decomposed MP (its subtree), the top level / external entities in a group
+of their own; the subtree filter of §10 as a layout. To decide before building it: the group of
+a flow between two subtrees (source side, target side, or a "crossing" group), of an asset held
+in several subtrees (in each group, or a "shared" group), whether the TB grouping of today's
+threat tables stays (nested inside the MP group, or a switch between the two), and whether a
+risk follows its threat's group.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed

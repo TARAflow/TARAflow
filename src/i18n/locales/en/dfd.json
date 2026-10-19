@@ -116,6 +116,8 @@
         "exportImage": "Export as Image",
         "refresh": "Refresh Validation",
         "insertContext": "Insert as context…",
+        "autoNumberAll": "Renumber all pages",
+        "autoNumberPage": "Renumber \"{{page}}\" and its child pages",
         "autoNumber": "Auto-Number Labels",
         "darkMode": "Dark Mode",
         "lightMode": "Light mode",

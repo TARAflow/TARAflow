@@ -113,9 +113,18 @@ export class DFDAutoNumbering {
    * @param pages - dfd.pages (page tree and identity links); absent for a
    *                classic single-page project. A multi-page file is only
    *                numbered when every page is adopted (listed here).
+   * @param onlyPageId - leveled DFD (§8, 5l): renumber this page and its
+   *                child pages only; every other page keeps its numbers,
+   *                copies of the renumbered elements elsewhere follow. The
+   *                root page (or a page the tree cannot place) renumbers
+   *                everything.
    * @returns The XML string with updated IdLabels
    */
-  public autoNumber(xml: string, pages?: readonly DFDPage[]): string {
+  public autoNumber(
+    xml: string,
+    pages?: readonly DFDPage[],
+    onlyPageId?: string,
+  ): string {
     if (!xml || xml.trim() === "") {
       return xml;
     }
@@ -150,11 +159,11 @@ export class DFDAutoNumbering {
 
       // Per page: elements with positions and IdLabels, sorted top-left to
       // bottom-right on that page's own geometry; pages in tree order.
-      const numberingPages = this.pagesInTreeOrder(
-        this.pageScopes(doc),
-        xml,
-        pages,
-      ).map(({ pageId, scope, decomposes }) => {
+      const ordered = this.pagesInTreeOrder(this.pageScopes(doc), xml, pages);
+      const numberingScope = onlyPageId
+        ? this.subtreeOf(onlyPageId, ordered)
+        : undefined;
+      const numberingPages = ordered.map(({ pageId, scope, decomposes }) => {
         const elementsWithPositions = this.findElementsWithPositions(scope);
         console.log(
           `[AutoNumbering] Found elements on page "${pageId}":`,
@@ -176,8 +185,8 @@ export class DFDAutoNumbering {
         };
       });
 
-      // Number per prefix across all pages
-      this.applyNumbering(numberingPages);
+      // Number per prefix across all pages (or one page and its subtree)
+      this.applyNumbering(numberingPages, numberingScope);
 
       // Serialize back to XML
       const serializer = new XMLSerializer();
@@ -216,7 +225,7 @@ export class DFDAutoNumbering {
     scopes: T[],
     xml: string,
     pages: readonly DFDPage[] | undefined,
-  ): (T & { decomposes?: string })[] {
+  ): (T & { decomposes?: string; parent?: string })[] {
     if (scopes.length < 2) return scopes;
     const parse = dfdParser.parse(xml, pages);
     const homePages = computeHomePages(parse.occurrences);
@@ -242,7 +251,46 @@ export class DFDAutoNumbering {
       .map((scope) => ({
         ...scope,
         decomposes: decomposedBy.get(scope.pageId),
+        parent: tree.parentOf.get(scope.pageId),
       }));
+  }
+
+  /**
+   * A page and every page below it in the tree (§8: renumbering a page
+   * renumbers the namespaces under its multiprocesses too). Undefined —
+   * number everything — for the root page, a page without parent (not
+   * placed) or an unknown page.
+   */
+  private subtreeOf(
+    pageId: string,
+    pages: readonly { pageId: string; parent?: string }[],
+  ): Set<string> | undefined {
+    const page = pages.find((p) => p.pageId === pageId);
+    if (!page?.parent) return undefined;
+    const subtree = new Set([pageId]);
+    let grown = true;
+    while (grown) {
+      grown = false;
+      for (const p of pages) {
+        if (p.parent && subtree.has(p.parent) && !subtree.has(p.pageId)) {
+          subtree.add(p.pageId);
+          grown = true;
+        }
+      }
+    }
+    return subtree;
+  }
+
+  /**
+   * The number an IdLabel shows ("2.3" for "P-2.3"); undefined for a
+   * placeholder ("P-xx") or a label without the prefix.
+   */
+  private currentNumber(idLabelElement: Element, prefix: string): string | undefined {
+    const raw =
+      idLabelElement.getAttribute("label") ?? idLabelElement.getAttribute("value") ?? "";
+    const text = raw.replace(/<[^>]*>/g, "");
+    const escaped = prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+    return new RegExp(`${escaped}(\\d+(?:\\.\\d+)*)(?![\\d.xX])`).exec(text)?.[1];
   }
 
   /**
@@ -672,7 +720,10 @@ export class DFDAutoNumbering {
    *   3. every labelled occurrence — definition or copy — shows the number
    *      of its logical element
    */
-  private applyNumbering(pages: NumberingPage[]): void {
+  private applyNumbering(
+    pages: NumberingPage[],
+    scope?: ReadonlySet<string>,
+  ): void {
     // Counters per namespace and type
     const counters = new Map<string, NumberingCounters>();
     const numbers = new Map<
@@ -690,8 +741,39 @@ export class DFDAutoNumbering {
         ? (numbers.get(`element\u0000${page.decomposes}`)?.number ?? "")
         : "";
 
+    // One page and its subtree (§8, 5l): definitions outside keep the
+    // number their label shows. They provide the namespaces of the pages
+    // inside and the counters to continue from (a child page whose MP has
+    // no number yet uses the root namespace, shared with pages outside).
+    const inScope = (page: NumberingPage) => !scope || scope.has(page.pageId);
+    if (scope) {
+      for (const page of pages) {
+        if (inScope(page)) continue;
+        for (const element of page.elements) {
+          if (!element.idLabelElement) continue;
+          if (identityOf(page.identities, element.id).role !== "definition") continue;
+          const prefix = this.getPrefixForType(element.type);
+          if (!prefix) continue;
+          const number = this.currentNumber(element.idLabelElement, prefix);
+          const key = logicalKey(page, element);
+          if (!number || numbers.has(key)) continue;
+          numbers.set(key, { label: `${prefix}${number}`, prefix, number });
+          const dot = number.lastIndexOf(".");
+          const namespace = dot < 0 ? "" : number.slice(0, dot);
+          const typeCounters = counters.get(namespace) ?? {};
+          counters.set(namespace, typeCounters);
+          typeCounters[element.type] = Math.max(
+            typeCounters[element.type] ?? 1,
+            Number(number.slice(dot + 1)) + 1,
+          );
+        }
+      }
+    }
+    const renumbered = new Set<string>();
+
     for (const definitionsOnly of [true, false]) {
       for (const page of pages) {
+        if (!inScope(page)) continue;
         const namespace = definitionsOnly ? namespaceOf(page) : "";
         for (const element of page.elements) {
           if (!element.idLabelElement) continue;
@@ -714,6 +796,7 @@ export class DFDAutoNumbering {
             ? `${namespace}.${typeCounters[type]}`
             : `${typeCounters[type]}`;
           numbers.set(key, { label: `${prefix}${number}`, prefix, number });
+          renumbered.add(key);
           typeCounters[type]++;
         }
       }
@@ -722,7 +805,10 @@ export class DFDAutoNumbering {
     for (const page of pages) {
       for (const element of page.elements) {
         if (!element.idLabelElement) continue;
-        const number = numbers.get(logicalKey(page, element));
+        const key = logicalKey(page, element);
+        // Outside the scope only the copies of renumbered elements change.
+        if (!inScope(page) && !renumbered.has(key)) continue;
+        const number = numbers.get(key);
         if (!number) continue;
 
         // Update the IdLabel

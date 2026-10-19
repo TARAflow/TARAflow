@@ -12,6 +12,8 @@ import {
   Divider,
   ToggleButtonGroup,
   ToggleButton,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import {
   Save as SaveIcon,
@@ -60,6 +62,13 @@ interface DFDToolbarProps {
   onSave: () => void;
   /** Leveled DFD (5h): "Insert as context…"; absent = not offered. */
   onInsertContext?: () => void;
+  /**
+   * Leveled DFD (5l): renumber the page shown and its child pages. Present
+   * = the numbering button opens a menu (all pages / this page).
+   */
+  onAutoNumberPage?: () => void;
+  /** Name of the page shown, read when the menu opens. */
+  getCurrentPageName?: () => string;
 }
 
 // Disables Popper's window resize listener for all Tooltips in this toolbar.
@@ -88,8 +97,15 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
     onImport,
     onSave,
     onInsertContext,
+    onAutoNumberPage,
+    getCurrentPageName,
   }) => {
     const { t } = useTranslation();
+    // Leveled DFD (5l): numbering menu — all pages / this page.
+    const [numberMenu, setNumberMenu] = useState<{
+      anchor: HTMLElement;
+      pageName: string;
+    } | null>(null);
     React.useEffect(() => {
       console.log("🔥 DFDToolbar MOUNT");
       return () => console.log("❌ DFDToolbar UNMOUNT");
@@ -213,10 +229,48 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
               })}
               slotProps={{ popper: { modifiers: NO_RESIZE_POPPER_MODIFIERS } }}
             >
-              <IconButton size="small" onClick={onAutoNumber}>
+              <IconButton
+                size="small"
+                data-testid="toolbar-auto-number"
+                onClick={(e) =>
+                  onAutoNumberPage
+                    ? setNumberMenu({
+                        anchor: e.currentTarget,
+                        pageName: getCurrentPageName?.() ?? "",
+                      })
+                    : onAutoNumber()
+                }
+              >
                 <AutoNumberIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+            <Menu
+              anchorEl={numberMenu?.anchor}
+              open={!!numberMenu}
+              onClose={() => setNumberMenu(null)}
+            >
+              <MenuItem
+                data-testid="auto-number-all"
+                onClick={() => {
+                  setNumberMenu(null);
+                  onAutoNumber();
+                }}
+              >
+                {t("tabs.dfd.toolbar.autoNumberAll", { defaultValue: "Renumber all pages" })}
+              </MenuItem>
+              <MenuItem
+                data-testid="auto-number-page"
+                onClick={() => {
+                  setNumberMenu(null);
+                  onAutoNumberPage?.();
+                }}
+              >
+                {t("tabs.dfd.toolbar.autoNumberPage", {
+                  defaultValue: 'Renumber "{{page}}" and its child pages',
+                  page: numberMenu?.pageName ?? "",
+                })}
+              </MenuItem>
+            </Menu>
             {onInsertContext && (
               <Tooltip
                 title={t("tabs.dfd.toolbar.insertContext", {
