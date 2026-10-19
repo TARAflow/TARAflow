@@ -1461,7 +1461,8 @@ Order (Phase 6):
     partners: both methods now take its threats from the physical element templates.
   - per element, an enclosure inside a trust boundary was generated in the trust boundary's table
     too; the de-duplication then dropped its own table. Physical and chip boundaries are left out
-    of the trust-boundary pass.
+    of the trust-boundary pass. Its own threats and those of its interfaces form one table
+    (before: two tables with the same name).
   - catalog: impersonation of personnel (S-008, S-009) and the missing audit trail (R-012) only
     for `boundaryType` cabinet / room / building; a category without a matching template gets no
     threat for a physical boundary (no generic fallback; sync and drift use the same rule).
