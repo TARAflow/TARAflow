@@ -38,6 +38,11 @@ export function groupsOfDfdItem(
   if (ref.elementId && groups.elementGroup[ref.elementId]) {
     return [groups.elementGroup[ref.elementId]];
   }
+  // A data-flow threat of the per-element method refers to its flow as
+  // linkedElement (element id = flow id), not as dataFlow.
+  if (ref.elementId && groups.flowGroups[ref.elementId]) {
+    return groups.flowGroups[ref.elementId];
+  }
   if (ref.connectionId && groups.elementGroup[ref.connectionId]) {
     return [groups.elementGroup[ref.connectionId]];
   }

@@ -1430,8 +1430,10 @@ drawn on *Top*, multiprocesses that are not decomposed). The subtree filter of �
   - **Summary row** per decomposed multiprocess in the top-level group: threats of its parts per
     STRIDE category, "Details" opens its group. A view — the multiprocess has no threats of its
     own once decomposed (§6.1).
-  - **Assets** held in one group appear there; held in several groups → group **"Shared"**;
-    held by no element → group "Not in the DFD".
+  - **Assets** held in one multiprocess appear there; held in several multiprocesses → group
+    **"Shared"**; held only on the top level → "Top level"; held by no element → group "Not in
+    the DFD". A top-level element or flow that only carries an asset into one multiprocess does
+    not make it shared (revised in 6c).
   - **Threat tables keep their trust-boundary grouping** inside each multiprocess group.
   - **Risks follow their threat's group(s).**
   - Classic DFDs (one page) and leveled DFDs without a decomposed MP: tables as today.
@@ -1483,7 +1485,15 @@ Order (Phase 6):
   deceive the RS-485 bus"). Both methods now take interface threats from the interface element
   templates (`generateInterfaceElementThreats`); the natural key (element + STRIDE) is unchanged,
   so a regeneration keeps identity and ratings.
-- **6c** assets tab;
+- **6c ✅** assets tab: `assetGroupOf` / `assetGroupSections` (assets utils) group an asset by the
+  elements and flows of `linkedDFDElements`; `AssetGroupSections` renders the asset table once
+  per group (top level, multiprocesses, "Shared", "Not in the DFD"), the table takes the height
+  of its rows (`autoHeight`); "Show in table" from the asset graph opens the asset's group. The
+  groups reach the tab as `AssetProjectData.dfdTableGroups`.
+  - Fix found with the leveled SmokeDetector: a data-flow threat of the per-element method refers
+    to its flow as `linkedElement`; `groupsOfDfdItem` now also looks an element id up among the
+    flows. Before, these threats (and their risks) of top-level flows were listed under "Not in
+    the DFD".
 - **6d** asset roll-up on decomposed MPs with provenance, pending relations,
   `BAL_ASSET_NOT_REALISED` (§9);
 - **6e** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10);

@@ -282,6 +282,12 @@ export interface AssetProjectData {
   dfdPreviewImage?: string;
   /** Leveled DFD (D18): one thumbnail per page, Top first. */
   dfdPreviewPages?: import("shared").DFDPreviewPage[];
+  /**
+   * Leveled DFD (Phase 6c, D20): groups per top-level decomposed
+   * multiprocess; the asset table is grouped by the elements holding each
+   * asset. Undefined for a classic DFD or without a decomposed multiprocess.
+   */
+  dfdTableGroups?: import("shared").DfdTableGroups;
 
   lastModified: string;
 }

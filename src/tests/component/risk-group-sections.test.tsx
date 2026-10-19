@@ -48,6 +48,8 @@ const THREATS = [
   threat("t-p5", { elementId: "p5" }),
   threat("t-ee1", { elementId: "ee1" }),
   threat("t-gone", { elementId: "gone" }),
+  // Per element: a data-flow threat refers to its flow as linkedElement.
+  threat("t-df7-el", { elementId: "df7" }),
 ];
 
 const risk = (id: string, threatId: string, before = 0) =>
@@ -60,6 +62,7 @@ const RISKS = [
   risk("r-p5", "t-p5"),
   risk("r-ee1", "t-ee1"),
   risk("r-gone", "t-gone"),
+  risk("r-df7-el", "t-df7-el"),
   // Its threat was deleted.
   risk("r-orphan", "t-deleted"),
 ];
@@ -72,7 +75,7 @@ describe("riskGroupSections", () => {
   it("puts every risk into its threat's group, top level first", () => {
     const sections = riskGroupSections(GROUPS, RISKS, THREATS);
     expect(sections.map((s) => [s.key, ids(s.risks)])).toEqual([
-      [TOP_LEVEL_GROUP, ["r-df7", "r-ee1"]],
+      [TOP_LEVEL_GROUP, ["r-df7", "r-ee1", "r-df7-el"]],
       ["mp1", ["r-p2", "r-df9"]],
       ["mp2", ["r-p5"]],
       [RISK_NOT_IN_DFD, ["r-gone", "r-orphan"]],
@@ -94,7 +97,7 @@ describe("RiskGroupSections", () => {
     render(
       <RiskGroupSections groups={GROUPS} risks={RISKS} threats={THREATS} configuration={CONFIG} renderView={renderView} />,
     );
-    expect(screen.getByTestId(`view-${TOP_LEVEL_GROUP}`).textContent).toBe("r-df7,r-ee1");
+    expect(screen.getByTestId(`view-${TOP_LEVEL_GROUP}`).textContent).toBe("r-df7,r-ee1,r-df7-el");
     expect(screen.getByTestId("view-mp1").textContent).toBe("r-p2,r-df9");
     expect(screen.getByTestId("view-mp2").textContent).toBe("r-p5");
     expect(screen.getByTestId(`view-${RISK_NOT_IN_DFD}`).textContent).toBe("r-gone,r-orphan");

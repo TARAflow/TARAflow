@@ -87,6 +87,10 @@ describe("multiprocessGroupsOf", () => {
     expect(groupsOfDfdItem(groups, { elementId: "gone" })).toEqual([]);
   });
 
+  it("finds a flow given as element id (per-element data-flow threats)", () => {
+    expect(groupsOfDfdItem(groups, { elementId: "df7" })).toEqual([TOP_LEVEL_GROUP]);
+  });
+
   it("is undefined without a decomposed multiprocess and for a classic DFD", () => {
     // Child pages hold only copies: neither MP is decomposed (D15).
     const copiesOnly = [

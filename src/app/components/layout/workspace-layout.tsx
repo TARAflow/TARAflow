@@ -1012,6 +1012,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdConnections: memoizedDFDConnections,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
+              dfdTableGroups: memoizedTableGroups,
               lastModified: activeProject.info?.lastModified || "",
               damageScenarioMode:
                 regulationPresetFromTags(

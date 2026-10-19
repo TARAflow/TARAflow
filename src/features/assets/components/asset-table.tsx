@@ -103,6 +103,11 @@ export interface AssetTableProps {
    * offers the "Needs review only" filter.
    */
   needsReview?: ReadonlySet<string>;
+  /**
+   * Leveled DFD (Phase 6c): the table sits in a group accordion and takes
+   * the height of its rows instead of filling the panel.
+   */
+  autoHeight?: boolean;
 }
 
 // ==================== CATEGORY ICONS ====================
@@ -210,6 +215,7 @@ export const AssetTable = React.memo<AssetTableProps>(
     onShowInGraph,
     highlightRequest,
     needsReview,
+    autoHeight = false,
   }) => {
     const { t, i18n } = useTranslation();
     const apiRef = useGridApiRef();
@@ -1509,7 +1515,7 @@ export const AssetTable = React.memo<AssetTableProps>(
     return (
       <Box
         sx={{
-          height: "100%",
+          height: autoHeight ? "auto" : "100%",
           width: "100%",
           display: "flex",
           flexDirection: "column",
@@ -1590,6 +1596,7 @@ export const AssetTable = React.memo<AssetTableProps>(
           ) : (
           <DataGrid
             apiRef={apiRef}
+            autoHeight={autoHeight}
             rows={rows}
             columns={columns}
             columnVisibilityModel={columnVisibilityModel}

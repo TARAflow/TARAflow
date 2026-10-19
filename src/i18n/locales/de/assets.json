@@ -11,6 +11,12 @@
       "missingInDFD": "{{count}} Asset(s) nicht im DFD platziert",
       "notLinked": "Nicht verknüpft",
       "noAssets": "Keine Assets definiert",
+      "groups": {
+        "topLevel": "Oberste Ebene",
+        "shared": "Gemeinsam",
+        "sharedHint": "in mehreren Multiprozessen gehalten",
+        "notInDfd": "Nicht im DFD"
+      },
       "noAssetsHint": "Fügen Sie Assets manuell hinzu oder synchronisieren Sie aus dem DFD.",
       "noDFDImage": "Kein DFD-Bild verfügbar",
       "noDFDImageHint": "Speichern Sie das DFD, um ein Vorschaubild zu generieren",

@@ -36,6 +36,7 @@ import { createDefaultAssetData } from "../services/asset-factory";
 import { assetService } from "../services/asset-service";
 import { AssetsToolbar } from "./asset-toolbar";
 import { AssetTable } from "./asset-table";
+import { AssetGroupSections } from "./asset-group-sections";
 import { AssetDialog } from "./asset-dialog";
 import { AssetNotificationPanel } from "./asset-notification-panel";
 import {
@@ -840,16 +841,24 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             minHeight: MIN_PANEL_HEIGHT,
           }}
         >
-          <AssetTable
+          <AssetGroupSections
+            groups={project.dfdTableGroups}
             assets={assetData.assets}
-            configuration={assetData.configuration}
-            hazardLinks={hazardLinks}
-            assetLinkRelations={assetData.relations}
-            needsReview={needsReview}
-            onEdit={handleEditAsset}
-            onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
-            onShowInGraph={onShowInGraph ? (a) => onShowInGraph(a.id) : undefined}
             highlightRequest={tableHighlightRequest}
+            renderTable={(groupAssets, groupKey) => (
+              <AssetTable
+                assets={groupAssets}
+                configuration={assetData.configuration}
+                hazardLinks={hazardLinks}
+                assetLinkRelations={assetData.relations}
+                needsReview={needsReview}
+                onEdit={handleEditAsset}
+                onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
+                onShowInGraph={onShowInGraph ? (a) => onShowInGraph(a.id) : undefined}
+                highlightRequest={tableHighlightRequest}
+                autoHeight={groupKey !== ""}
+              />
+            )}
           />
         </Box>
 
