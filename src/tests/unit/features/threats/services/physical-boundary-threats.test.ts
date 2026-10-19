@@ -141,3 +141,32 @@ describe("physical boundary with interfaces — per element", () => {
     expect(types).toEqual(new Set(["Interface", "PhysicalBoundary"]));
   });
 });
+
+describe("interface threats — per interaction", () => {
+  it("come from the interface element templates, as in the per-element method", () => {
+    const data = project(ENCLOSURE);
+    const graph = data.dfdGraph as unknown as {
+      elementsById: Map<string, unknown>;
+      elementPhysicalBoundaries: Map<string, string[]>;
+    };
+    graph.elementsById.set("if1", {
+      id: "if1",
+      type: "Interface",
+      name: "UART",
+      displayId: "IF-1",
+      properties: { type: "rs485", location: "field_accessible" },
+    });
+    graph.elementPhysicalBoundaries.set("if1", ["pb"]);
+    const ifThreats = (tables: ThreatTable[]) =>
+      tables.flatMap((t) => t.threats).filter((t) => t.linkedElement?.elementId === "if1");
+    const tables = perInteraction(data);
+    const interaction = ifThreats(tables);
+    expect(interaction.length).toBeGreaterThan(0);
+    expect(templates(interaction)).toEqual(templates(ifThreats(perElement(data))));
+    // In the enclosure's table, no flow perspective.
+    expect(interaction.every((t) => t.dataFlow == null && t.interactionContext == null)).toBe(true);
+    expect(tables.find((t) => t.trustBoundaryId === "pb")?.threats).toEqual(
+      expect.arrayContaining(interaction),
+    );
+  });
+});

@@ -1478,6 +1478,11 @@ Order (Phase 6):
   parts per risk level, assessment progress, "Details"). The groups reach the tab as
   `RiskProjectData.dfdTableGroups`. Not grouped: attack-tree risks (no DFD element) and the
   Won't table.
+- **Fix before 6c — interface threats per interaction:** like the enclosures, interfaces got the
+  flow templates with the interface on both ends ("Attacker impersonates the RS-485 bus to
+  deceive the RS-485 bus"). Both methods now take interface threats from the interface element
+  templates (`generateInterfaceElementThreats`); the natural key (element + STRIDE) is unchanged,
+  so a regeneration keeps identity and ratings.
 - **6c** assets tab;
 - **6d** asset roll-up on decomposed MPs with provenance, pending relations,
   `BAL_ASSET_NOT_REALISED` (§9);

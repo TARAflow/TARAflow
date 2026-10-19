@@ -291,8 +291,6 @@ export class InteractionThreatGenerator {
       if (element.type !== "Interface" && element.type !== "PhysicalInterface")
         continue;
 
-      const elProps = element.properties ?? {};
-
       const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
       const tbId = effectiveTB ?? null;
 
@@ -322,32 +320,21 @@ export class InteractionThreatGenerator {
           return pbIds[0] ?? cbIds[0] ?? "__no_tb__";
         })();
 
-      const { categories: applicableStride } = strategy.getStrideCategories(
+      // An interface has no flow of its own and no interaction partner: its
+      // threats come from the interface element templates, as in the
+      // per-element method. The flow templates put the interface on both
+      // ends ("Attacker impersonates the bus to deceive the bus").
+      const threats = elementThreatGenerator.generateInterfaceElementThreats(
         element,
-        STRIDE_PER_INTERACTION,
+        tbId,
+        tbName,
+        tbDisplayId,
+        elementToAssets,
         project,
-        defaultConfig,
+        strategy,
       );
-
-      for (const stride of applicableStride) {
-        // shouldEliminateThreat covers permanent_disabled, fused_off,
-        // sealed, fiber_optic, enabled_read_only per STRIDE category.
-        if (shouldEliminateThreat(element.type, elProps, stride)) continue;
-
-        const threat = this.createInterfaceThreat(
-          element,
-          stride,
-          tbId,
-          tbName,
-          tbDisplayId,
-          elementToAssets,
-          project,
-          strategy,
-        );
-        const existing = tableMap.get(tableKey) ?? [];
-        existing.push(threat);
-        tableMap.set(tableKey, existing);
-      }
+      if (threats.length === 0) continue;
+      tableMap.set(tableKey, [...(tableMap.get(tableKey) ?? []), ...threats]);
     }
 
     // ── PhysicalBoundary threats ──────────────────────────────────────────
@@ -549,127 +536,6 @@ export class InteractionThreatGenerator {
       threat.proposedMitigations = mergeMitigationHints(
         templateMitigations,
         hints,
-      );
-      threat.proposedVerifications = template.verifications.map((id) => ({
-        id,
-      }));
-    }
-
-    return threat;
-  }
-
-  private createInterfaceThreat(
-    element: DFDElementReference,
-    strideCategory: StrideCategory,
-    trustBoundaryId: string | null,
-    trustBoundaryName: string,
-    trustBoundaryDisplayId: string,
-    elementToAssets: Map<string, string[]>,
-    project: ThreatProjectData,
-    strategy: IGeneratorStrategy,
-  ): Threat {
-    const displayId = element.displayId || element.id;
-    const interfaceNumber = displayId.replace(/^IF-/, "");
-    const interfaceIdPart = `IF${interfaceNumber}`;
-
-    const threatId = generateThreatIdPerInteraction(
-      trustBoundaryDisplayId,
-      interfaceIdPart,
-      strideCategory,
-      "incoming",
-      1,
-    );
-
-    const threat = createEmptyThreat(
-      threatId,
-      strideCategory,
-      trustBoundaryId,
-      trustBoundaryName,
-      trustBoundaryDisplayId,
-    );
-
-    threat.linkedElement = {
-      elementId: element.id,
-      elementName: element.name,
-      elementType: element.type,
-      displayId,
-    };
-
-    threat.linkedAssetIds = elementToAssets.get(element.id) ?? [];
-
-    const defaultConfig = {
-      activeMethod: "per-interaction" as const,
-      zeroTrustMode: false,
-      showThreatActor: false,
-      forceClassicMode: false,
-      customElementTemplates: [],
-      customInteractionTemplates: [],
-      customMitigations: [],
-      customVerifications: [],
-    };
-    const { modules: ifModules } = strategy.getStrideCategories(
-      element,
-      [strideCategory],
-      project,
-      project.threats?.configuration ?? defaultConfig,
-    );
-    threat.source = modulesToSource(ifModules);
-
-    const ifInitialImpact = strategy.getInitialImpact(
-      element,
-      strideCategory,
-      project,
-    );
-    if (ifInitialImpact !== undefined) {
-      threat.initialImpact = ifInitialImpact;
-    }
-
-    // Interface element properties for context matching
-    const elementProps =
-      ((element as any).properties as Record<string, unknown>) ?? null;
-
-    // ── Catalog lookup (interface = receiver perspective by convention) ────
-    const template = strategy.selectInteractionTemplate(
-      strideCategory,
-      "receiver",
-      project,
-      elementProps,
-    );
-
-    if (template) {
-      threat.templateId = template.id; // ← traceability: originating catalog entry
-      const placeholders = {
-        sourceName: element.name,
-        targetName: element.name,
-        sourceType: element.type,
-        targetType: element.type,
-        dataFlowName: displayId,
-        trustBoundaryName,
-      };
-      threat.threatDescription = getLocalizedInteractionThreat(
-        template.id,
-        placeholders,
-        template.domain ?? "general",
-      );
-      threat.attackDescription = getLocalizedInteractionAttack(
-        template.id,
-        placeholders,
-        template.domain ?? "general",
-      );
-      threat.causeDescription = getLocalizedInteractionCause(
-        template.id,
-        placeholders,
-        template.domain ?? "general",
-      );
-      const templateMitigations = template.mitigations.map((id) => ({ id }));
-      const ifHints = getImplementedMitigationHints(
-        element.type,
-        elementProps,
-        strideCategory,
-      );
-      threat.proposedMitigations = mergeMitigationHints(
-        templateMitigations,
-        ifHints,
       );
       threat.proposedVerifications = template.verifications.map((id) => ({
         id,
