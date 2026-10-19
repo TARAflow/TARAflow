@@ -604,6 +604,31 @@ export class ElementThreatGenerator {
     );
   }
 
+  /**
+   * The threats of one interface — used by the per-interaction method too:
+   * an interface has no flow of its own and no interaction partner, so both
+   * methods take its threats from the interface element templates.
+   */
+  public generateInterfaceElementThreats(
+    element: DFDElementReference,
+    tableId: string | null,
+    tableName: string,
+    tableDisplayId: string,
+    elementToAssets: Map<string, string[]>,
+    project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
+  ): Threat[] {
+    return this.generateThreatsForElement(
+      element,
+      tableId,
+      tableName,
+      tableDisplayId,
+      elementToAssets,
+      project,
+      strategy,
+    );
+  }
+
   private generateThreatsForElement(
     element: DFDElementReference,
     trustBoundaryId: string | null,
