@@ -214,3 +214,6 @@ export {
   parentLevelFlowsOf,
   type ParentLevelFlow,
 } from "./services/leveled/parent-level-flows";
+
+// Leveled DFD (6a, D20): accordion groups of the asset / threat / risk tables.
+export { multiprocessGroupsOf } from "./services/leveled/table-groups";

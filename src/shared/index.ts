@@ -180,6 +180,12 @@ export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";
 export { DFDPreviewPanel } from "./components/dfd-preview-panel";
 export {
+  TOP_LEVEL_GROUP,
+  groupsOfDfdItem,
+  type DfdTableGroup,
+  type DfdTableGroups,
+} from "./models/dfd-table-groups";
+export {
   dfdPreviewPagesOf,
   type DFDPreviewPage,
 } from "./utils/dfd-preview-pages";

@@ -867,6 +867,11 @@ export interface ThreatProjectData {
    * "fallback") — their threats are provisional. Empty / absent: none.
    */
   dfdParentLevelFlows?: ParentLevelFlowInfo[];
+  /**
+   * Leveled DFD (Phase 6, D20): groups of the threat tables — one per
+   * top-level decomposed multiprocess plus "Top level". Absent: as today.
+   */
+  dfdTableGroups?: import("shared").DfdTableGroups;
   assetIds?: string[];
   dfdGraph?: DFDGraphReference;
   assetDataRef?: AssetDataReference;

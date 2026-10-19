@@ -680,6 +680,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               onAdd={elementHook.addThreat}
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
+              groups={project.dfdTableGroups}
             />
           ) : (
             <InteractionThreatsView
@@ -698,6 +699,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               onAdd={interactionHook.addThreat}
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
+              groups={project.dfdTableGroups}
             />
           )}
         </Box>

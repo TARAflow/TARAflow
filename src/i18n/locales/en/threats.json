@@ -18,6 +18,10 @@
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction is disabled by the active regulation preset",
       "dfdPageLayoutUnsupported": "The DFD has a compressed page or pages that are not adopted into the page tree yet — threat generation and synchronisation are disabled until every page is uncompressed and adopted (\"Adopt pages…\" in the DFD tab).",
+      "groups": {
+        "topLevel": "Top level",
+        "notInDfd": "Not in the DFD"
+      },
       "parentLevel": {
         "summary": "{{count}} data flow(s) analysed on a parent level — their threats refer to a multiprocess instead of its parts and are provisional. Draw the flows on the child page to refine them.",
         "show": "Show",

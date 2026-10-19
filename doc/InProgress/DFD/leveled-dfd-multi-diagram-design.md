@@ -1415,13 +1415,34 @@ per-page report sections).
 
 **Phase 6 — Assets & threat/risk lifecycle.** Roll-up with provenance, pending relations, undo
 decomposition, reconciliation dialog (§10), page/subtree/state filters, risk roll-up.
-Added 2026-10-19 (analyst's idea): the asset, threat and risk tables **grouped by multiprocess**
-— one accordion per decomposed MP (its subtree), the top level / external entities in a group
-of their own; the subtree filter of §10 as a layout. To decide before building it: the group of
-a flow between two subtrees (source side, target side, or a "crossing" group), of an asset held
-in several subtrees (in each group, or a "shared" group), whether the TB grouping of today's
-threat tables stays (nested inside the MP group, or a switch between the two), and whether a
-risk follows its threat's group.
+**Grouping by multiprocess (D20, 2026-10-19, analyst's idea):** the asset, threat and risk
+tables are grouped in one accordion per **top-level decomposed multiprocess** (the MP a child
+page of *Top* details; parts of nested MPs belong to its group, no second accordion level), plus
+a group **"Top level"** for everything not inside a decomposed MP (external entities, elements
+drawn on *Top*, multiprocesses that are not decomposed). The subtree filter of §10 as a layout.
+  - **Flows between two groups:** their threats appear in **both** groups (source and target).
+  - **Assets** held in one group appear there; held in several groups → group **"Shared"**;
+    held by no element → group "Not in the DFD".
+  - **Threat tables keep their trust-boundary grouping** inside each multiprocess group.
+  - **Risks follow their threat's group(s).**
+  - Classic DFDs (one page) and leveled DFDs without a decomposed MP: tables as today.
+
+Order (Phase 6):
+- **6a ✅** grouping model and the threats tab:
+  - `leveled/table-groups`: `multiprocessGroupsOf(dfd)` — group of each element (the top-level
+    decomposed MP along its containment parents; a decomposed MP as fallback endpoint is its own
+    group; everything else "Top level") and of each flow (the groups of its two resolved ends).
+    Undefined for a classic DFD or without a decomposed MP. The structure (`DfdTableGroups`,
+    `groupsOfDfdItem`) lives in `shared`, computed once in the app layout.
+  - `ThreatGroupSections` in both threat views (per element, per interaction): one accordion per
+    group (count, expanded), the trust-boundary tables inside filtered to the group, the original
+    table index kept (edit / delete / add unchanged); a threat whose element or flow is gone gets
+    the group "Not in the DFD".
+- **6b** risks tab; **6c** assets tab;
+- **6d** asset roll-up on decomposed MPs with provenance, pending relations,
+  `BAL_ASSET_NOT_REALISED` (§9);
+- **6e** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10);
+- **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
@@ -1512,6 +1533,7 @@ Diff and audit
 | D17 | Name of the root page | **Always *Top*** — from the second page on, and for new projects from the start (2026-10-16) | Recognisable entry point; classic projects do not churn (§5.3) |
 | D18 | Thumbnails of a leveled DFD | **One thumbnail per page in `dfd.pages[].thumbnail`; `dfd.thumbnail` = *Top*; the preview panel lets the user pick the page** (2026-10-17) | Preview and reports no longer depend on the tab active at save time; the reporter gets one figure per page without a headless draw.io; existing consumers unchanged (§12.1) |
 | D19 | Numbering of a leveled DFD | **Hierarchical: root page `1..n`, child page of `MP-m` numbers its own definitions `m.1..m.n` per prefix; copies show their definition's number; no high-water mark** (2026-10-17) | IDs show where an element lives; a change on one page never shifts the numbers of another; renumbering *Top* cascades to the pages below; dotted IDs accepted everywhere (§8) |
+| D20 | Tables of a leveled DFD | **Assets, threats and risks grouped in one accordion per top-level decomposed multiprocess plus "Top level"; flow threats in both groups; assets of several groups under "Shared"; trust-boundary tables kept inside each group; risks follow their threats** (2026-10-19) | The subtree view of §10 as a layout; nothing is filtered away, an item can appear in two groups (flows, their risks) (Phase 6) |
 
 ## 16. End-to-end example: `DF-7 stream sensor data`
 

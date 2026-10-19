@@ -18,6 +18,10 @@
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction ist durch das aktive Regulierungs-Preset deaktiviert",
       "dfdPageLayoutUnsupported": "Das DFD hat eine komprimierte Seite oder Seiten, die noch nicht in den Seitenbaum übernommen sind — Generierung und Synchronisation der Bedrohungen sind deaktiviert, bis alle Seiten unkomprimiert und übernommen sind (\"Seiten übernehmen…\" im DFD-Tab).",
+      "groups": {
+        "topLevel": "Oberste Ebene",
+        "notInDfd": "Nicht im DFD"
+      },
       "parentLevel": {
         "summary": "{{count}} Datenfluss/Datenflüsse auf Elternebene analysiert — ihre Bedrohungen beziehen sich auf einen Multiprozess statt auf seine Teile und sind vorläufig. Zeichnen Sie die Flüsse auf der Unterseite, um sie zu verfeinern.",
         "show": "Anzeigen",

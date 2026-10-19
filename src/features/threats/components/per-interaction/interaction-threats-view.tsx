@@ -2,6 +2,8 @@
 // Props-only view — no internal hooks.
 // ThreatsTab is the single source of truth for hook state.
 
+import type { DfdTableGroups } from "shared";
+import { ThreatGroupSections } from "../shared/threat-group-sections";
 import React, { useCallback } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { AutoAwesome as GenerateIcon } from "@mui/icons-material";
@@ -31,6 +33,8 @@ export interface InteractionThreatsViewProps {
   onAdd: (tableIndex: number, threat: Threat) => void;
   showFilters?: boolean;
   reviewedCount?: number;
+  /** Leveled DFD (D20): accordion per top-level decomposed multiprocess. */
+  groups?: DfdTableGroups;
 }
 
 // ==================== COMPONENT ====================
@@ -49,6 +53,7 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
     onAdd,
     showFilters = true,
     reviewedCount,
+    groups,
   }) => {
     const { t } = useTranslation();
 
@@ -189,20 +194,24 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
           </Box>
         ) : (
           <Box sx={{ flexGrow: 1, overflow: "auto" }}>
-            {filteredTables.map((table, index) => (
-              <InteractionThreatTable
-                key={`${table.trustBoundaryId ?? "none"}-${table.trustBoundaryName}`}
-                table={table}
-                allThreats={allThreats}
-                tableIndex={index}
-                configuration={configuration}
-                assetDataRef={assetDataRef}
-                showThreatActor={showThreatActor}
-                onEdit={(threat) => handleEdit(index, threat)}
-                onDelete={(threatId) => handleDelete(index, threatId)}
-                onAdd={(threat) => onAdd(index, threat)}
-              />
-            ))}
+            <ThreatGroupSections
+              groups={groups}
+              tables={filteredTables}
+              renderTable={(table, index, groupKey) => (
+                <InteractionThreatTable
+                  key={`${groupKey}-${table.trustBoundaryId ?? "none"}-${table.trustBoundaryName}`}
+                  table={table}
+                  allThreats={allThreats}
+                  tableIndex={index}
+                  configuration={configuration}
+                  assetDataRef={assetDataRef}
+                  showThreatActor={showThreatActor}
+                  onEdit={(threat) => handleEdit(index, threat)}
+                  onDelete={(threatId) => handleDelete(index, threatId)}
+                  onAdd={(threat) => onAdd(index, threat)}
+                />
+              )}
+            />
           </Box>
         )}
       </Box>

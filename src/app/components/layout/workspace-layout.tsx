@@ -51,7 +51,12 @@ import {
   DFDUpdateResult,
   DFDGraphAnalysisContext,
 } from "features/dfd";
-import { addCreatedAssets, parentLevelFlowsOf, translateFinding } from "features/dfd";
+import {
+  addCreatedAssets,
+  multiprocessGroupsOf,
+  parentLevelFlowsOf,
+  translateFinding,
+} from "features/dfd";
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
@@ -673,6 +678,22 @@ export const WorkspaceLayout: React.FC = () => {
     [activeDfd?.xml, activeDfd?.pages, activeDfd?.elements, activeDfd?.connections],
   );
 
+  // Leveled DFD (Phase 6, D20): accordion groups of the asset / threat /
+  // risk tables.
+  const memoizedTableGroups = useMemo(
+    () =>
+      activeDfd?.xml && activeDfd.pages && activeDfd.pages.length > 1
+        ? multiprocessGroupsOf({
+            xml: activeDfd.xml,
+            pages: activeDfd.pages,
+            elements: activeDfd.elements ?? [],
+            connections: activeDfd.connections ?? [],
+            assets: [],
+          })
+        : undefined,
+    [activeDfd?.xml, activeDfd?.pages, activeDfd?.elements, activeDfd?.connections],
+  );
+
   const memoizedDFDContext = useMemo(
     () => (activeDfdGraph ? new DFDGraphAnalysisContext(activeDfdGraph) : null),
     [activeDfdGraph],
@@ -1025,6 +1046,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdXml: activeProject.dfd?.xml,
               dfdPageIds: activeProject.dfd?.pages?.map((p) => p.pageId),
               dfdParentLevelFlows: memoizedParentLevelFlows,
+              dfdTableGroups: memoizedTableGroups,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               dfdElements: (activeProject.dfd?.elements || []) as any[],
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
