@@ -1112,6 +1112,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfd: memoizedDFDReference,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
+              dfdTableGroups: memoizedTableGroups,
               integration: activeProject.integration
                 ? {
                     connection: {

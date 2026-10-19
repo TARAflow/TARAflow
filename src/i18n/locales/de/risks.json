@@ -54,6 +54,12 @@
       "rationaleBefore": "Vorher",
       "rationaleAfter": "Nachher",
       "attackPathRisksTitle": "Angriffsbaum-Risiken",
+      "groups": {
+        "topLevel": "Oberste Ebene",
+        "notInDfd": "Nicht im DFD",
+        "summary": "Risiken seiner Teile: {{count}}",
+        "details": "Details"
+      },
       "threatsNotConfirmed": "Threats noch nicht bestätigt",
       "threatsNotConfirmedPerElementHint": "Es existieren Per-Element-Threats, die aber noch nicht bestätigt wurden. Bestätige sie im Threat-Eval-Tab, bevor du hier Risiken bewertest.",
       "threatsNotConfirmedPerInteractionHint": "Es existieren Per-Interaction-Threats, die aber noch nicht bestätigt wurden. Bestätige sie im Threat-Eval-Tab, bevor du hier Risiken bewertest.",

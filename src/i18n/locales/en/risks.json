@@ -54,6 +54,12 @@
       "rationaleBefore": "Before",
       "rationaleAfter": "After",
       "attackPathRisksTitle": "Attack Tree Risks",
+      "groups": {
+        "topLevel": "Top level",
+        "notInDfd": "Not in the DFD",
+        "summary": "{{count}} risk(s) of its parts",
+        "details": "Details"
+      },
       "threatsNotConfirmed": "Threats not yet confirmed",
       "threatsNotConfirmedPerElementHint": "Per-Element threats exist but haven't been confirmed yet. Confirm them in the Threat Eval tab before assessing risks here.",
       "threatsNotConfirmedPerInteractionHint": "Per-Interaction threats exist but haven't been confirmed yet. Confirm them in the Threat Eval tab before assessing risks here.",

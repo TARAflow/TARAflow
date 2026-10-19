@@ -1033,6 +1033,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onImplementationClick={handleImplementationClick}
                 attackPathRisks={attackPathActiveRisks}
                 attackPathThreats={project.perAttackPathThreats ?? []}
+                groups={project.dfdTableGroups}
               />
               {(wontRisks.length > 0 || attackPathWontRisks.length > 0) &&
                 showWontTable && (

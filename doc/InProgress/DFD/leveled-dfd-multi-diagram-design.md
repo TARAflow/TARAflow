@@ -1471,7 +1471,14 @@ Order (Phase 6):
     destruction (D-007).
   - stored projects: the drift banner offers to remove the threats no longer generated; a
     regeneration replaces the content of the others (analyst fields kept).
-- **6b** risks tab; **6c** assets tab;
+- **6b ✅** risks tab: `riskGroupSections` (risks utils) — a risk follows its threat's group (the
+  threat's element or flow); a risk whose threat is gone or not in the DFD → "Not in the DFD".
+  `RiskGroupSections` renders the trust-boundary view (per element / per interaction) once per
+  group, the filters once above; summary rows per multiprocess on the top level (risks of its
+  parts per risk level, assessment progress, "Details"). The groups reach the tab as
+  `RiskProjectData.dfdTableGroups`. Not grouped: attack-tree risks (no DFD element) and the
+  Won't table.
+- **6c** assets tab;
 - **6d** asset roll-up on decomposed MPs with provenance, pending relations,
   `BAL_ASSET_NOT_REALISED` (§9);
 - **6e** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10);
