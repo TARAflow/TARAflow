@@ -1454,6 +1454,22 @@ Order (Phase 6):
     level). And `isInterfaceTable` checks every threat (no threat bound to a flow) instead of the
     first: an enclosure table filtered to the enclosure's own threats was taken for a flow table
     and rendered as an empty accordion.
+- **Fix before 6b — physical boundary (enclosure) threats** (not leveled-specific, found with the
+  leveled SmokeDetector):
+  - per interaction, an enclosure got the flow templates with sender = receiver = enclosure
+    ("Attacker impersonates the enclosure to deceive the enclosure"). It has no flows and no
+    partners: both methods now take its threats from the physical element templates.
+  - per element, an enclosure inside a trust boundary was generated in the trust boundary's table
+    too; the de-duplication then dropped its own table. Physical and chip boundaries are left out
+    of the trust-boundary pass.
+  - catalog: impersonation of personnel (S-008, S-009) and the missing audit trail (R-012) only
+    for `boundaryType` cabinet / room / building; a category without a matching template gets no
+    threat for a physical boundary (no generic fallback; sync and drift use the same rule).
+    Opening (T-001) proposes active tamper protection (M-PB-T-002) and the new tamper-resistant
+    enclosure (M-PB-T-006: security screws, lockable or sealed cover, vandal-resistant), as does
+    destruction (D-007).
+  - stored projects: the drift banner offers to remove the threats no longer generated; a
+    regeneration replaces the content of the others (analyst fields kept).
 - **6b** risks tab; **6c** assets tab;
 - **6d** asset roll-up on decomposed MPs with provenance, pending relations,
   `BAL_ASSET_NOT_REALISED` (§9);
