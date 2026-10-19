@@ -3,12 +3,19 @@
 // Leveled DFD (leveled-dfd-multi-diagram-design.md Phase 6c): the asset
 // tables of the group accordions share one toolbar ("Show factors", "Needs
 // review only") and take the height of their rows; "Show in table" then
-// brings the row into view in the page.
+// brings the row into view in the page — repeatedly, because the accordion
+// may still be opening and the row heights are measured after the first
+// paint.
 
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssetTable, AssetTableToolbar, type AssetTableView } from "features/assets/components/asset-table";
+import {
+  AssetTable,
+  AssetTableToolbar,
+  SCROLL_RETRY_MS,
+  type AssetTableView,
+} from "features/assets/components/asset-table";
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import type { Asset } from "features/assets/models/asset-types";
 
@@ -75,21 +82,31 @@ describe("AssetTable under the shared toolbar", () => {
     expect(onChange).toHaveBeenLastCalledWith({ factorsVisible: false, reviewOnly: true });
   });
 
-  it("'Show in table' scrolls the row into view when the table has no scroll area", async () => {
-    const scrollIntoView = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoView;
-    render(
-      <div style={{ width: 1800 }}>
-        <AssetTable
-          assets={[asset]}
-          configuration={DEFAULT_ASSET_CONFIGURATION}
-          onEdit={() => {}}
-          autoHeight
-          view={{ factorsVisible: false, reviewOnly: false }}
-          highlightRequest={{ assetId: "da-001" }}
-        />
-      </div>,
-    );
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+  it("'Show in table' scrolls the row into view until the layout has settled", () => {
+    vi.useFakeTimers();
+    try {
+      const scrollIntoView = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoView;
+      render(
+        <div style={{ width: 1800 }}>
+          <AssetTable
+            assets={[asset]}
+            configuration={DEFAULT_ASSET_CONFIGURATION}
+            onEdit={() => {}}
+            autoHeight
+            view={{ factorsVisible: false, reviewOnly: false }}
+            highlightRequest={{ assetId: "da-001" }}
+          />
+        </div>,
+      );
+      // Once after the first paint, again after the accordion opened and
+      // the row heights were measured (a row further down was missed).
+      act(() => {
+        vi.advanceTimersByTime(SCROLL_RETRY_MS[SCROLL_RETRY_MS.length - 1] + 10);
+      });
+      expect(scrollIntoView).toHaveBeenCalledTimes(SCROLL_RETRY_MS.length);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

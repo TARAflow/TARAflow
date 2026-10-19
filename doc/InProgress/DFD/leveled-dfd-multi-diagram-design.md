@@ -1497,8 +1497,10 @@ Order (Phase 6):
     the DFD".
   - After first use: "Show factors" and "Needs review only" sit once above all groups
     (`AssetTableToolbar`; the group tables follow `view`); the review filter applies before the
-    grouping, groups without a match disappear. "Show in table" scrolls the row into view (a
-    table with autoHeight has no scroll area of its own). Assets without any DFD link go to the
+    grouping, groups without a match disappear; the toolbar stays outside the scroll area. "Show
+    in table" scrolls the row into view (a table with autoHeight has no scroll area of its own),
+    repeated until the layout has settled — the group accordion may still be opening and the row
+    heights are measured after the first paint, so one scroll fell short for a row further down. Assets without any DFD link go to the
     top level instead of "Not in the DFD".
 - **6d** asset roll-up on decomposed MPs with provenance, pending relations,
   `BAL_ASSET_NOT_REALISED` (§9);

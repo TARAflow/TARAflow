@@ -854,6 +854,29 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           </>
         )}
 
+        {/* Leveled DFD (6c): one toolbar for all group tables, outside the
+            scroll area so it stays in place. */}
+        {grouped && assetData.assets.length > 0 && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              mx: 2,
+              mt: 1,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              overflow: "hidden",
+            }}
+          >
+            <AssetTableToolbar
+              view={tableView}
+              onChange={setTableView}
+              needsReview={needsReview}
+              reviewCount={assetData.assets.filter((a) => needsReview.has(a.id)).length}
+            />
+          </Box>
+        )}
+
         {/* Asset Table (Bottom) */}
         <Box
           sx={{
@@ -863,16 +886,6 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             minHeight: MIN_PANEL_HEIGHT,
           }}
         >
-          {grouped && assetData.assets.length > 0 && (
-            <Box sx={{ mb: 1, border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
-              <AssetTableToolbar
-                view={tableView}
-                onChange={setTableView}
-                needsReview={needsReview}
-                reviewCount={assetData.assets.filter((a) => needsReview.has(a.id)).length}
-              />
-            </Box>
-          )}
           {reviewFilterActive && groupedAssets.length === 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ p: 2 }} data-testid="asset-review-empty">
               {t("tabs.assets.reviewFilter.none", { defaultValue: "No asset needs review." })}

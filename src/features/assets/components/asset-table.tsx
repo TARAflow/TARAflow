@@ -291,6 +291,13 @@ function getBusinessImpactBg(level: number, maxLevels: number): string {
 /** How long a row stays marked after "Show in table" (FR-V13). */
 export const HIGHLIGHT_MS = 5000;
 
+/**
+ * Times (ms after a "Show in table" request) at which a table with
+ * autoHeight scrolls the row into view: after the first paint, after the
+ * accordion transition and after the row heights were measured.
+ */
+export const SCROLL_RETRY_MS = [50, 350, 800] as const;
+
 export const AssetTable = React.memo<AssetTableProps>(
   ({
     assets,
@@ -334,19 +341,26 @@ export const AssetTable = React.memo<AssetTableProps>(
         const pageSize = api.state?.pagination?.paginationModel?.pageSize ?? 25;
         api.setPage(Math.floor(index / pageSize));
         api.scrollToIndexes({ rowIndex: index % pageSize });
-        // A grid with autoHeight (group accordions) has no scroll area of
-        // its own: bring the row into view in the page.
-        if (autoHeight) {
-          requestAnimationFrame(() =>
-            api.getRowElement?.(id)?.scrollIntoView?.({ block: "center", behavior: "smooth" }),
-          );
-        }
       });
+      // A grid with autoHeight (group accordions) has no scroll area of its
+      // own: bring the row into view in the page. The page is not final yet
+      // — the group accordion may still be opening and the grid measures
+      // its row heights after the first paint — so a single scroll falls
+      // short for a row further down. Repeat until the layout has settled.
+      const scrollTimers = autoHeight
+        ? SCROLL_RETRY_MS.map((ms) =>
+            setTimeout(
+              () => apiRef.current?.getRowElement?.(id)?.scrollIntoView?.({ block: "center" }),
+              ms,
+            ),
+          )
+        : [];
       // The mark is a pointer, not a state: it fades after a few seconds.
       const timer = setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
       return () => {
         cancelAnimationFrame(frame);
         clearTimeout(timer);
+        scrollTimers.forEach(clearTimeout);
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [highlightRequest]);
