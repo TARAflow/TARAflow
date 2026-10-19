@@ -14,6 +14,9 @@
   "M-PB-T-005": {
     "mitigation": "Für portable Geräte: Vollverschlüsselung, manipulationssichere Versiegelung und Fernlösch-Funktion anwenden"
   },
+  "M-PB-T-006": {
+    "mitigation": "Manipulationsresistentes Gehäuse verwenden: Sicherheitsschrauben, abschliessbarer oder versiegelter Deckel, vandalensichere Ausführung"
+  },
   "M-PB-S-001": {
     "mitigation": "Mehrfaktor-Zutrittskontrolle implementieren (Badge + PIN, Biometrie oder bewachter Eingang)"
   },

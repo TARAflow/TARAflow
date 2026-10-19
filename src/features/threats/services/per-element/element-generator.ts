@@ -28,7 +28,20 @@ import i18n from "i18next";
  * (build-attack-path-threat-references.ts).
  */
 const GENERIC_CATEGORY_CONTROL_CAP = 4;
+
+/**
+ * Element types that receive a threat only where the catalog has a template
+ * for the element (no generic fallback). A physical boundary is a housing,
+ * cabinet or room: an impersonation threat makes sense for a room with
+ * access control, not for a device enclosure — the catalog's boundaryType
+ * context decides, and a category without a matching template is skipped.
+ */
+const TEMPLATE_ONLY_TYPES = new Set(["PhysicalBoundary"]);
+
+/** Boundaries with a threat table of their own (never in a trust boundary's). */
+const OWN_TABLE_BOUNDARY_TYPES = new Set(["PhysicalBoundary", "ChipBoundary"]);
 import {
+  findElementTemplate,
   getLocalizedElementThreat,
   getLocalizedElementAttack,
   getLocalizedElementCause,
@@ -114,6 +127,11 @@ export class ElementThreatGenerator {
           if (!el) return false;
           if (el.type === "TrustBoundary" || el.type === "ExternalEntity")
             return false;
+          // A physical or chip boundary inside a trust boundary gets its own
+          // table below; generating it here too put its threats into the
+          // trust boundary's table and the de-duplication dropped them from
+          // the boundary's own table.
+          if (OWN_TABLE_BOUNDARY_TYPES.has(el.type)) return false;
           const stride = STRIDE_PER_ELEMENT_TYPE[el.type];
           return stride !== undefined && stride.length > 0;
         });
@@ -424,18 +442,15 @@ export class ElementThreatGenerator {
 
     for (const element of graph.elementsById.values()) {
       if (element.type !== "PhysicalBoundary") continue;
-
-      const threats = this.generateThreatsForElement(
-        element,
+      tableMap.set(
         element.id,
-        element.name,
-        element.displayId ?? "",
-        elementToAssets,
-        project,
-        strategy,
+        this.generatePhysicalBoundaryElementThreats(
+          element,
+          elementToAssets,
+          project,
+          strategy,
+        ),
       );
-
-      tableMap.set(element.id, threats);
     }
 
     return tableMap;
@@ -549,6 +564,29 @@ export class ElementThreatGenerator {
     );
   }
 
+  /**
+   * The element threats of one physical boundary — used by the
+   * per-interaction method too: an enclosure has no flows and no partners,
+   * so both methods take its threats from the physical element templates
+   * (not from the sender/receiver flow templates).
+   */
+  public generatePhysicalBoundaryElementThreats(
+    element: DFDElementReference,
+    elementToAssets: Map<string, string[]>,
+    project: ThreatProjectData,
+    strategy: IGeneratorStrategy,
+  ): Threat[] {
+    return this.generateThreatsForElement(
+      element,
+      element.id,
+      element.name,
+      element.displayId ?? "",
+      elementToAssets,
+      project,
+      strategy,
+    );
+  }
+
   private generateThreatsForElement(
     element: DFDElementReference,
     trustBoundaryId: string | null,
@@ -585,6 +623,16 @@ export class ElementThreatGenerator {
       .filter(
         (strideCategory) =>
           !shouldEliminateThreat(element.type, elementProps, strideCategory),
+      )
+      .filter(
+        (strideCategory) =>
+          !TEMPLATE_ONLY_TYPES.has(element.type) ||
+          strategy.selectElementTemplate(
+            strideCategory,
+            element.type,
+            project,
+            elementProps,
+          ) !== undefined,
       )
       .map((strideCategory) =>
         this.createThreatForElement(
@@ -641,7 +689,14 @@ export class ElementThreatGenerator {
       const elementProps = (element as any).properties ?? {};
       return categories.filter(
         (strideCategory) =>
-          !shouldEliminateThreat(element.type, elementProps, strideCategory),
+          !shouldEliminateThreat(element.type, elementProps, strideCategory) &&
+          (!TEMPLATE_ONLY_TYPES.has(element.type) ||
+            findElementTemplate(
+              strideCategory,
+              element.type,
+              project,
+              elementProps,
+            ) !== undefined),
       );
     } catch {
       // Total fallback for the sync stub: treat the base table as the answer.

@@ -14,6 +14,9 @@
   "M-PB-T-005": {
     "mitigation": "For portable devices: apply full-disk encryption, tamper-evident seal, and remote wipe capability"
   },
+  "M-PB-T-006": {
+    "mitigation": "Use a tamper-resistant enclosure: security screws, lockable or sealed cover, vandal-resistant design"
+  },
   "M-PB-S-001": {
     "mitigation": "Implement multi-factor physical access control (badge + PIN, biometric, or guarded entry)"
   },

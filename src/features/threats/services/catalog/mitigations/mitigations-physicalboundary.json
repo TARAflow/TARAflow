@@ -89,6 +89,23 @@
       ]
     },
     {
+      "id": "M-PB-T-006",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [
+        {
+          "targetType": "PhysicalBoundary",
+          "property": "requiresToolAccess",
+          "expectedValue": true,
+          "confidence": "heuristic"
+        }
+      ],
+      "verifications": [
+        "V-PB-T-001"
+      ]
+    },
+    {
       "id": "M-PB-S-001",
       "strideCategory": "S",
       "context": {},

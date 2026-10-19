@@ -45,6 +45,7 @@ import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
 import { modulesToSource } from "../../models/strategy-types";
 import { shouldEliminateThreat } from "../threat-elimination-filter";
+import { elementThreatGenerator } from "../per-element/element-generator";
 import {
   getImplementedMitigationHints,
   mergeMitigationHints,
@@ -350,40 +351,21 @@ export class InteractionThreatGenerator {
     }
 
     // ── PhysicalBoundary threats ──────────────────────────────────────────
-    // PB has no DataFlows and no interaction partners — generated unconditionally,
-    // same as Interface threats. PB is always its own table key (never has a TB parent).
+    // An enclosure has no flows and no interaction partners: its threats come
+    // from the physical element templates, as in the per-element method. The
+    // flow templates (sender/receiver) made nonsense of it ("Attacker
+    // impersonates the enclosure to deceive the enclosure"). PB is always its
+    // own table key (never has a TB parent).
     for (const element of graph.elementsById.values()) {
       if (element.type !== "PhysicalBoundary") continue;
-
-      const elProps = element.properties ?? {};
-      const pbId = element.id;
-      const pbName = element.name;
-      const pbDisplayId = element.displayId ?? pbId;
-
-      const { categories: applicableStride } = strategy.getStrideCategories(
+      const threats = elementThreatGenerator.generatePhysicalBoundaryElementThreats(
         element,
-        STRIDE_PER_INTERACTION,
+        elementToAssets,
         project,
-        defaultConfig,
+        strategy,
       );
-
-      for (const stride of applicableStride) {
-        if (shouldEliminateThreat(element.type, elProps, stride)) continue;
-
-        const threat = this.createInterfaceThreat(
-          element,
-          stride,
-          pbId,
-          pbName,
-          pbDisplayId,
-          elementToAssets,
-          project,
-          strategy,
-        );
-        const existing = tableMap.get(pbId) ?? [];
-        existing.push(threat);
-        tableMap.set(pbId, existing);
-      }
+      if (threats.length === 0) continue;
+      tableMap.set(element.id, [...(tableMap.get(element.id) ?? []), ...threats]);
     }
 
     // ── Build tables ──────────────────────────────────────────────────────

@@ -7,7 +7,7 @@
       "strideCategory": "T",
       "elementTypes": ["PhysicalBoundary"],
       "context": {},
-      "mitigations": ["M-T-001", "M-IF-T-001", "M-IF-T-003", "M-PB-T-001"],
+      "mitigations": ["M-T-001", "M-IF-T-001", "M-IF-T-003", "M-PB-T-001", "M-PB-T-006", "M-PB-T-002"],
       "verifications": ["V-T-001", "V-IF-T-001", "V-PB-T-001"],
       "isCustom": false,
       "domain": "physical"
@@ -75,7 +75,7 @@
       "strideCategory": "D",
       "elementTypes": ["PhysicalBoundary"],
       "context": {},
-      "mitigations": ["M-D-001", "M-D-002", "M-PB-D-001"],
+      "mitigations": ["M-D-001", "M-D-002", "M-PB-D-001", "M-PB-T-006"],
       "verifications": ["V-D-001", "V-IF-T-001"],
       "isCustom": false,
       "domain": "physical"
@@ -96,7 +96,9 @@
       "id": "S-008",
       "strideCategory": "S",
       "elementTypes": ["PhysicalBoundary"],
-      "context": {},
+      "context": {
+        "boundaryType": ["cabinet", "room", "building"]
+      },
       "mitigations": ["M-S-001", "M-PB-S-001"],
       "verifications": ["V-S-001", "V-PB-S-001"],
       "isCustom": false,
@@ -107,7 +109,8 @@
       "strideCategory": "S",
       "elementTypes": ["PhysicalBoundary"],
       "context": {
-        "accessibility": ["public"]
+        "accessibility": ["public"],
+        "boundaryType": ["cabinet", "room", "building"]
       },
       "mitigations": ["M-S-001", "M-S-008", "M-PB-S-001", "M-PB-S-002"],
       "verifications": ["V-S-001", "V-IF-S-001", "V-PB-S-001"],
@@ -141,7 +144,8 @@
       "strideCategory": "R",
       "elementTypes": ["PhysicalBoundary"],
       "context": {
-        "monitoringType": ["none"]
+        "monitoringType": ["none"],
+        "boundaryType": ["cabinet", "room", "building"]
       },
       "mitigations": ["M-R-001", "M-PB-R-001", "M-PB-R-002"],
       "verifications": ["V-R-001", "V-PB-R-001"],
