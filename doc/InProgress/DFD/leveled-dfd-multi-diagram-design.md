@@ -1449,6 +1449,11 @@ Order (Phase 6):
     table index kept (edit / delete / add unchanged); a threat whose element or flow is gone gets
     the group "Not in the DFD". Revision: summary rows on the top level, flow ends inside an MP
     labelled there (`endpointLabelFor`, interaction tables).
+  - Fix after first use with the leveled SmokeDetector: a **boundary** belongs to the group of the
+    page it is defined on (chip boundaries of a module page → that MP; an enclosure on Top → top
+    level). And `isInterfaceTable` checks every threat (no threat bound to a flow) instead of the
+    first: an enclosure table filtered to the enclosure's own threats was taken for a flow table
+    and rendered as an empty accordion.
 - **6b** risks tab; **6c** assets tab;
 - **6d** asset roll-up on decomposed MPs with provenance, pending relations,
   `BAL_ASSET_NOT_REALISED` (§9);

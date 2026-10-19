@@ -5,8 +5,11 @@
 //
 //   element   the top-level decomposed multiprocess it lies in (following
 //             the containment parents to the one below Top); a decomposed
-//             MP itself (a fallback endpoint) is its own group; anything
-//             else — EEs, elements on Top, MPs not decomposed — "Top level"
+//             MP itself (a fallback endpoint) is its own group; a boundary
+//             the group of the page it is defined on (a chip boundary on
+//             the Sensor page belongs to the Sensor MP; boundaries have no
+//             containment parent, §5.3.1); anything else — EEs, elements
+//             on Top, MPs not decomposed — "Top level"
 //   flow      the group of its two resolved ends if both lie in the same
 //             multiprocess; otherwise — between two multiprocesses, or
 //             between the top level and a multiprocess — "Top level"
@@ -23,7 +26,7 @@ import { effectiveModelOf, isLeveled } from "../build-dfd-graph";
  */
 export function multiprocessGroupsOf(source: DfdGraphSource): DfdTableGroups | undefined {
   if (!isLeveled(source.xml)) return undefined;
-  const { model, records, tree } = effectiveModelOf(source);
+  const { model, records, tree, homePages } = effectiveModelOf(source);
   const parent = model.containmentParent;
   const decomposed = new Set(parent.values());
   if (decomposed.size === 0) return undefined;
@@ -37,8 +40,19 @@ export function multiprocessGroupsOf(source: DfdGraphSource): DfdTableGroups | u
     }
     return current;
   };
+  // Page → the decomposed multiprocess it details (placed child pages).
+  const pageDetails = new Map(
+    tree.pages.filter((p) => p.decomposes && decomposed.has(p.decomposes)).map((p) => [p.pageId, p.decomposes!]),
+  );
+  const BOUNDARIES = new Set(["TrustBoundary", "ChipBoundary", "PhysicalBoundary"]);
   const groupOf = (tfId: string): string => {
     if (parent.has(tfId) || decomposed.has(tfId)) return topOf(tfId);
+    const record = records.elements.get(tfId);
+    if (record && BOUNDARIES.has(record.type)) {
+      const home = homePages.elements.get(tfId);
+      const mp = home ? pageDetails.get(home) : undefined;
+      if (mp) return topOf(mp);
+    }
     return TOP_LEVEL_GROUP;
   };
 

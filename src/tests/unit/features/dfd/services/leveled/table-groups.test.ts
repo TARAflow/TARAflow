@@ -65,6 +65,22 @@ describe("multiprocessGroupsOf", () => {
     expect(g.flowGroups.sen_df1).toEqual(["mp1"]);
   });
 
+  it("puts a boundary into the group of the page it is defined on", () => {
+    // A chip boundary drawn (defined) on the sensor page belongs to MP-1; a
+    // boundary on Top stays top level.
+    const chip = `<object label="Sensor MCU [SMCU]" type="chipboundary" id="sen_chip">
+      <mxCell style="rounded=0;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="400" height="200" as="geometry"/></mxCell>
+    </object>`;
+    const enclosure = `<object label="Enclosure [ENC]" type="physicalboundary" id="enc">
+      <mxCell style="rounded=0;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="900" height="300" as="geometry"/></mxCell>
+    </object>`;
+    const g = multiprocessGroupsOf(
+      source(mxfile(SYS.replace("</root>", enclosure + "</root>"), SENSOR.replace("</root>", chip + "</root>"), CONTROLLER)),
+    )!;
+    expect(g.elementGroup.sen_chip).toBe("mp1");
+    expect(g.elementGroup.enc).toBe(TOP_LEVEL_GROUP);
+  });
+
   it("answers for threats by element or flow, nothing for unknown ids", () => {
     expect(groupsOfDfdItem(groups, { elementId: "sen_p2" })).toEqual(["mp1"]);
     expect(groupsOfDfdItem(groups, { connectionId: "df7" })).toEqual([TOP_LEVEL_GROUP]);

@@ -1001,12 +1001,14 @@ export function isInterfaceTable(table: ThreatTable): boolean {
   // Detect by threat content — not by table name.
   // Interface tables are grouped under PhysicalBoundary or ChipBoundary
   // and can have any boundary name (e.g. "Device Boundary [DB]").
-  // All threats in an interface table have linkedElement set; dataFlow is null.
+  // All threats in an interface table have linkedElement set; dataFlow is
+  // null — interface threats and the threats of the boundary itself.
+  // Every threat is checked, not only the first: a table filtered to a
+  // subset (leveled DFD groups, D20) may start with a boundary threat and
+  // must still render by element, not as an empty flow table.
   if (table.threats.length === 0) return false;
-  const first = table.threats[0];
-  return (
-    first.linkedElement != null &&
-    first.linkedElement.elementType === "Interface"
+  return table.threats.every(
+    (threat) => threat.dataFlow == null && threat.linkedElement != null,
   );
 }
 
