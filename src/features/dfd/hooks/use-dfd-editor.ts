@@ -417,6 +417,12 @@ export function useDFDEditor(
 
   const bridgeSelectCell = bridge.selectCell;
   // An empty cell id makes drawio:selectCell only open the page.
+  const selectCellAt = useCallback(
+    (pageId: string, cellId: string) => bridgeSelectCell(cellId, pageId),
+    [bridgeSelectCell],
+  );
+  // Stable: reads the page last reported by the selection events.
+  const getCurrentPageId = useCallback(() => currentPageIdRef.current, []);
   const openPage = useCallback(
     (pageId: string) => bridgeSelectCell("", pageId),
     [bridgeSelectCell],
@@ -637,9 +643,9 @@ export function useDFDEditor(
     setPageTabInfo: bridge.setPageTabInfo,
     syncPages: bridge.syncPages,
     setContextCells: bridge.setContextCells,
-    selectCellAt: (pageId: string, cellId: string) => bridgeSelectCell(cellId, pageId),
+    selectCellAt,
     openPage,
-    getCurrentPageId: () => currentPageIdRef.current,
+    getCurrentPageId,
     exportPageSvgs: bridge.exportPageSvgs,
     updatePageThumbnails,
     getCurrentXML: async () => bridge.getCurrentXML(),

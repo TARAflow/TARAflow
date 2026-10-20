@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DFDPage, DFDProjectData, DFDUpdateResult } from "../models/dfd-types";
 import { parseDfd } from "../services/leveled/leveled-analysis";
+import type { ParseResult } from "../services/dfd-parser";
 import {
   findLostDefinitions,
   reattachDefinition,
@@ -34,6 +35,12 @@ export interface UseLostDefinitionsOptions {
   savePages: (pages: DFDPage[]) => Promise<DFDUpdateResult | null>;
   /** Write the lost record's properties and asset relations back (by tfId). */
   restoreRecord: (lost: LostDefinition) => void;
+  /**
+   * Parse of the saved DFD from the shared leveled analysis (finding 1);
+   * null when the caller has none (e.g. the DFD just fell back to one page)
+   * — then the shared cache is asked.
+   */
+  parse?: ParseResult | null;
 }
 
 export interface UseLostDefinitionsReturn {
@@ -51,6 +58,9 @@ export function useLostDefinitions(
 ): UseLostDefinitionsReturn {
   const { savePages, restoreRecord } = options;
   const dfd = project.dfd;
+  // Read in the effect, which runs per saved DFD state (the parse belongs to it).
+  const parseRef = useRef(options.parse);
+  parseRef.current = options.parse;
   const previousRef = useRef<DfdState | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
 
@@ -68,7 +78,7 @@ export function useLostDefinitions(
     if (previous.xml === current.xml && previous.pages === current.pages) return;
     if (!current.pages?.length && !previous.pages?.length) return; // classic DFD
 
-    const parse = parseDfd(current.xml ?? "", current.pages);
+    const parse = parseRef.current ?? parseDfd(current.xml ?? "", current.pages);
     setEntries((open) => {
       // Open questions: still lost? Fresh candidates.
       const kept = open

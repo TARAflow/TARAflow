@@ -12,7 +12,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Typography, CircularProgress } from "@mui/material";
-import { AssetGroup, inspectDrawioPages } from "shared";
+import { AssetGroup } from "shared";
 import type {
   DFDViewMode,
   AssetRelation,
@@ -33,31 +33,8 @@ import { useAssetAssignment } from "../hooks/use-asset-assignment";
 import { useDFDData } from "../hooks/use-dfd-data";
 import { useDFDPersistence } from "../hooks/use-dfd-persistence";
 import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
-import { useIdentityReview } from "../hooks/use-identity-review";
-import { usePageOutline } from "../hooks/use-page-outline";
-import { useChildPages } from "../hooks/use-child-pages";
-import { assetRollupsOfSource } from "../services/leveled/asset-rollup";
-import type { AssetRollupContextValue } from "./forms/asset-rollup-view";
-import { useLostDefinitions } from "../hooks/use-lost-definitions";
-import { usePageThumbnails } from "../hooks/use-page-thumbnails";
-import { waitForRenderable } from "../utils/wait-for-renderable";
-import {
-  buildPageTabInfo,
-  contextCellsOf,
-  insertCandidates,
-  type InsertCandidate,
-  type LostDefinition,
-  describeIdentity,
-  linkAsContextCopy,
-  makeDefinition,
-  needsPageRepair,
-  promoteToDefinition,
-  recordInfos,
-  type CellRef,
-  type LinkEditResult,
-} from "../services/leveled";
-import { parseDfd } from "../services/leveled/leveled-analysis";
-import type { ContextCellMap } from "../services/drawio-bridge";
+import { useLeveledDfd } from "../hooks/use-leveled-dfd";
+import type { InsertCandidate, CellRef } from "../services/leveled";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -72,7 +49,6 @@ import {
   IdentityReviewDialog,
   IdentityReviewHints,
 } from "./identity-review-dialog";
-import { ValidationMessages } from "../services/validators/validator-utils";
 import { OrphanPageDialog } from "./child-page-ui";
 import { InsertContextDialog } from "./insert-context-dialog";
 import { LostDefinitionDialog } from "./lost-definition-dialog";
@@ -85,7 +61,6 @@ import type {
   DFDUpdateResult,
 } from "../models/dfd-types";
 import { DEFAULT_AUTONUMBERING_CONFIG } from "../models/dfd-types";
-import { refinementCandidatesOf } from "../utils/refinement-candidates";
 
 // ==================== CONSTANTS ====================
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
@@ -230,12 +205,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const editor = useDFDEditor(project, editorOptions);
 
-  // Leveled DFD only: the flows a data flow may refine (§6.4, Phase 4b).
-  const refinementCandidates = useMemo(
-    () => refinementCandidatesOf(project.dfd),
-    [project.dfd?.xml, project.dfd?.connections],
-  );
-
   // Stabilize graphContext — new DFDGraphAnalysisContext() on every render
   // causes all consumers to remount. useMemo ensures stable reference.
   const graphContext = useMemo(
@@ -252,108 +221,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     iframeRef: editor.iframeRef,
   });
 
-  // Leveled DFD (5b): adoption of unadopted pages and assignment of pasted
-  // copies — one dialog, two hints above the diagram.
-  const identityReview = useIdentityReview(project, {
-    adoptionPending: !!editor.validation?.errors.some(
-      (f) => f.key === ValidationMessages.ADOPTION_PENDING,
-    ),
-    savePages: editor.savePages,
+  // Leveled DFD: analysis and flows of a multi-page DFD (façade, finding 4).
+  const selectedElement = selectedElementId
+    ? editor.elements.find((e) => e.id === selectedElementId)
+    : undefined;
+  const leveled = useLeveledDfd(project, editor, {
+    element: selectedElement,
+    cellRef: selectedCellRef,
   });
-  // Leveled DFD (5g): the saved DFD parsed once — the shared parse of the
-  // leveled analysis — for the page outline, the identity section, the
-  // context-copy display and the leveled hooks. Null for a classic project
-  // and while pages wait for adoption.
-  const leveledParse = useMemo(() => {
-    const xml = project.dfd?.xml;
-    const pages = project.dfd?.pages;
-    if (!xml || !pages || pages.length === 0) return null;
-    if (!inspectDrawioPages(xml, pages.map((p) => p.pageId)).supported) return null;
-    return parseDfd(xml, pages);
-  }, [project.dfd?.xml, project.dfd?.pages]);
-
-  // Leveled DFD (5c): draw.io's own page tabs get a tooltip (place in the
-  // page tree) and a finding badge — no second page tree next to them.
-  const pageOutline = usePageOutline(leveledParse, project.dfd?.pages, editor.validation);
-
-  // Context copies are shown faded and dashed in draw.io (display only) —
-  // also a copied flow whose free end is not attached yet (link only).
-  const contextCells = useMemo<ContextCellMap>(
-    () => (leveledParse ? contextCellsOf(leveledParse.occurrences, project.dfd?.pages) : {}),
-    [leveledParse, project.dfd?.pages],
-  );
-  const { setContextCells } = editor;
-  useEffect(() => {
-    if (editor.pluginReady) void setContextCells(contextCells);
-  }, [editor.pluginReady, setContextCells, contextCells]);
-
-  // Leveled DFD (5d, D15–D17): child page per new multiprocess, tab names.
-  const { updateElementDescription } = editor;
-  const projectElements = project.dfd?.elements;
-  const setNoChildPage = useCallback(
-    (tfId: string, noChildPage: boolean) => {
-      const mp = projectElements?.find((e) => e.id === tfId);
-      if (!mp) return;
-      updateElementDescription(tfId, {
-        // MultiprocessProperties.noChildPage; the element's union type has
-        // no multiprocess member of its own.
-        properties: { ...mp.properties, noChildPage } as unknown as typeof mp.properties,
-      });
-    },
-    [projectElements, updateElementDescription],
-  );
-  const childPages = useChildPages(project, {
-    enabled: editor.pluginReady,
-    syncPages: editor.syncPages,
-    savePages: editor.savePages,
-    setNoChildPage,
-  });
-
-  // Leveled DFD (5k): a linked definition cell deleted or drawn again —
-  // re-attach the old identity (and its record) or accept the deletion.
-  const { updateConnectionDescription } = editor;
-  const restoreRecord = useCallback(
-    (lost: LostDefinition) => {
-      const { properties, assetRelations } = lost.record as {
-        properties?: unknown;
-        assetRelations?: unknown;
-      };
-      const updates = {
-        ...(properties !== undefined ? { properties } : {}),
-        ...(assetRelations !== undefined ? { assetRelations } : {}),
-      };
-      if (lost.kind === "element") updateElementDescription(lost.tfId, updates as never);
-      else updateConnectionDescription(lost.tfId, updates as never);
-    },
-    [updateElementDescription, updateConnectionDescription],
-  );
-  const lostDefinitions = useLostDefinitions(project, {
-    savePages: editor.savePages,
-    restoreRecord,
-  });
-
-  // Leveled DFD (5i, D18): one thumbnail per page, dfd.thumbnail = Top.
-  const iframeRefForThumbnails = editor.iframeRef;
-  const isRenderable = useCallback(
-    () => waitForRenderable(() => iframeRefForThumbnails.current, { timeoutMs: 2_000 }),
-    [iframeRefForThumbnails],
-  );
-  usePageThumbnails(project, {
-    enabled: editor.pluginReady,
-    exportPageSvgs: editor.exportPageSvgs,
-    storeThumbnails: editor.updatePageThumbnails,
-    isRenderable,
-  });
-
-  // Adopted pages the tree cannot use and that need a decision (extra or
-  // missing root page) — repaired with the same dialog. From the saved
-  // state, not from the validation: a deleted child page is cleaned up
-  // automatically and must not flash the hint until that save. Not while a
-  // page just created is on its way into the saved XML.
-  const pageRepair = useMemo(
-    () => !childPages.settling && needsPageRepair(project.dfd?.xml, project.dfd?.pages),
-    [childPages.settling, project.dfd?.xml, project.dfd?.pages],
-  );
+  const { identityReview, childPages, lostDefinitions, insertContext } = leveled;
 
   const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
     useDFDData(project);
@@ -649,22 +525,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     await editor.autoNumberLabels();
   }, [editor]);
 
-  // Leveled DFD (5l): renumber the page draw.io shows and its child pages
-  // (before the first selection event the first page of the document).
-  const currentPageOf = useCallback(
-    () => editor.getCurrentPageId() ?? leveledParse?.pages[0]?.pageId ?? null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [leveledParse],
-  );
-  const handleAutoNumberPage = useCallback(async () => {
-    const pageId = currentPageOf();
-    if (pageId) await editor.autoNumberLabels(pageId);
-  }, [editor, currentPageOf]);
-  const getCurrentPageName = useCallback(() => {
-    const pageId = currentPageOf();
-    return leveledParse?.pages.find((p) => p.pageId === pageId)?.name ?? pageId ?? "";
-  }, [currentPageOf, leveledParse]);
-
   const handleAutoNumberConfigSave = useCallback(
     (config: DFDAutoNumberingConfig) => {
       setAutoNumberingConfig(config);
@@ -783,108 +643,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const currentElementType: DFDElementType | undefined =
     currentElement?.type ?? (currentConnection ? "DataFlow" : undefined);
 
-  // Get Selected Item (simplified)
-  const selectedElement = selectedElementId
-    ? editor.elements.find((e) => e.id === selectedElementId)
-    : undefined;
-
-  // Leveled DFD (6d): roll-up of the selected multiprocess if it is
-  // decomposed — its "Asset" tab shows what its parts hold.
-  const selectedAssetRollup = useMemo((): AssetRollupContextValue | undefined => {
-    if (selectedElement?.type !== "Multiprocess") return undefined;
-    const dfd = project.dfd;
-    if (!dfd?.xml || !dfd.pages || dfd.pages.length < 2) return undefined;
-    const assets = assetRollupsOfSource({
-      xml: dfd.xml,
-      pages: dfd.pages,
-      elements: dfd.elements ?? [],
-      connections: dfd.connections ?? [],
-      assets: [],
-    }).get(selectedElement.id);
-    if (!assets) return undefined;
-    const labels = new Map(
-      [...(dfd.elements ?? []), ...(dfd.connections ?? [])].map((r) => [
-        r.id,
-        r.displayId || r.name || r.id,
-      ]),
-    );
-    return {
-      elementId: selectedElement.id,
-      assets,
-      partLabel: (tfId) => labels.get(tfId) ?? tfId,
-    };
-  }, [selectedElement, project.dfd]);
-
-  // Leveled DFD (5e): child page of the selected multiprocess, or the
-  // "Create child page" action (draw.io plugin only).
-  const selectedChildPage = useMemo(() => {
-    if (selectedElement?.type !== "Multiprocess") return undefined;
-    const page = project.dfd?.pages?.find((p) => p.decomposes === selectedElement.id);
-    const syncContext = childPages.syncContext;
-    if (page) {
-      const mpTfId = selectedElement.id;
-      const openPage = editor.openPage;
-      return editor.pluginReady
-        ? {
-            pageName: page.name,
-            onOpen: () => void openPage(page.pageId),
-            onSyncContext: () => syncContext(mpTfId),
-          }
-        : { pageName: page.name };
-    }
-    const decompose = childPages.decompose;
-    const mpId = selectedElement.id;
-    return editor.pluginReady ? { onCreate: () => void decompose(mpId) } : {};
-  }, [
-    selectedElement,
-    project.dfd?.pages,
-    childPages.decompose,
-    childPages.syncContext,
-    editor.pluginReady,
-    editor.openPage,
-  ]);
-
-  // Leveled DFD (5h): "Insert as context…" on the page draw.io shows (as
-  // reported by the selection events; before the first one, the first page
-  // of the document, which draw.io opens on load).
-  const [insertTargetPage, setInsertTargetPage] = useState<string | null>(null);
-  const insertContext = useMemo(() => {
-    if (!leveledParse || !insertTargetPage) return null;
-    return {
-      candidates: insertCandidates(leveledParse, project.dfd?.pages, insertTargetPage),
-      pageNames: Object.fromEntries(leveledParse.pages.map((p) => [p.pageId, p.name || p.pageId])),
-    };
-  }, [leveledParse, project.dfd?.pages, insertTargetPage]);
-  const openInsertContext = useCallback(() => {
-    setInsertTargetPage(editor.getCurrentPageId() ?? leveledParse?.pages[0]?.pageId ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leveledParse]);
-
-  // Leveled DFD (5g): identity of the selected cell and its actions.
-  const savePagesOf = editor.savePages;
-  const selectedIdentity = useMemo(() => {
-    const pages = project.dfd?.pages;
-    if (!leveledParse || !pages || !selectedCellRef) return undefined;
-    const info = describeIdentity(leveledParse, pages, selectedCellRef);
-    if (!info) return undefined;
-    const cell = selectedCellRef;
-    const apply = async (result: LinkEditResult): Promise<string | null> => {
-      if (!result.ok) return result.reason;
-      return (await savePagesOf(result.pages)) ? null : "SAVE_FAILED";
-    };
-    return {
-      info,
-      onGoTo: (target: CellRef) => void editor.selectCellAt(target.pageId, target.cellId),
-      onMakeDefinition: () => apply(makeDefinition(pages, leveledParse.occurrences, cell)),
-      onPromote: () => apply(promoteToDefinition(pages, leveledParse.occurrences, cell)),
-      onLinkAsContextCopy: (tfId: string) =>
-        apply(
-          linkAsContextCopy(pages, leveledParse.occurrences, recordInfos(leveledParse), cell, tfId),
-        ),
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leveledParse, project.dfd?.pages, selectedCellRef, savePagesOf]);
-
   const selectedConnection = selectedElementId
     ? editor.connections.find((c) => c.id === selectedElementId)
     : undefined;
@@ -895,16 +653,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         ?.crossesTrustBoundary ?? false)
     : false;
   const { t } = useTranslation();
-
-  // Page tabs of a leveled DFD (5c), see pageOutline above.
-  const pageTabInfo = useMemo(
-    () => buildPageTabInfo(pageOutline, (key, options) => String(t(key, options))),
-    [pageOutline, t],
-  );
-  const { pluginReady, setPageTabInfo } = editor;
-  useEffect(() => {
-    if (pluginReady) void setPageTabInfo(pageTabInfo);
-  }, [pluginReady, setPageTabInfo, pageTabInfo]);
 
   // A finding leads to its place in the CURRENT view: the side panel when
   // drawing, the accordion when describing, the asset's card in the graph.
@@ -1048,14 +796,14 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onExport={exportImport.downloadExport}
         onImport={exportImport.promptImport}
         onSave={handleSave}
-        onInsertContext={leveledParse && editor.pluginReady ? openInsertContext : undefined}
-        onAutoNumberPage={leveledParse ? handleAutoNumberPage : undefined}
-        getCurrentPageName={getCurrentPageName}
+        onInsertContext={leveled.parse && editor.pluginReady ? insertContext.open : undefined}
+        onAutoNumberPage={leveled.parse ? leveled.page.autoNumberPage : undefined}
+        getCurrentPageName={leveled.page.currentPageName}
       />
 
       <IdentityReviewHints
         adoptionPending={identityReview.adoptionPending}
-        pageRepair={pageRepair}
+        pageRepair={leveled.pageRepair}
         // Context copies wait for their links (5f): not "pasted" cells.
         pendingCopies={childPages.settling ? 0 : identityReview.pendingCopies}
         onOpenAdoption={identityReview.openAdoption}
@@ -1133,7 +881,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onToggleElement={toggleElement}
               onCreateAsset={handleCreateAsset}
               graphContext={graphContext}
-              refinementCandidates={refinementCandidates}
+              refinementCandidates={leveled.refinementCandidates}
             />
           </Box>
 
@@ -1200,10 +948,10 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onClearAllVisibility={handleClearAllVisibility}
             onAssetChange={handleAssetChange}
             graphContext={graphContext}
-            refinementCandidates={refinementCandidates}
-            childPage={selectedChildPage}
-            assetRollup={selectedAssetRollup}
-            identity={selectedIdentity}
+            refinementCandidates={leveled.refinementCandidates}
+            childPage={leveled.selection.childPage}
+            assetRollup={leveled.selection.assetRollup}
+            identity={leveled.selection.identity}
             focusAssetRequest={focusAssetRequest}
             assetUsage={assetUsage}
             onSelectedAssetChange={setPanelAssetId}
@@ -1242,16 +990,18 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
       {/* Leveled DFD: insert a context copy on the current page (5h) */}
       <InsertContextDialog
-        open={!!insertTargetPage && !!insertContext}
+        open={!!insertContext.data}
         pageName={
-          (insertTargetPage && insertContext?.pageNames[insertTargetPage]) || insertTargetPage || ""
+          insertContext.data
+            ? insertContext.data.pageNames[insertContext.data.targetPage] || insertContext.data.targetPage
+            : ""
         }
-        candidates={insertContext?.candidates ?? []}
-        pageNames={insertContext?.pageNames ?? {}}
+        candidates={insertContext.data?.candidates ?? []}
+        pageNames={insertContext.data?.pageNames ?? {}}
         onInsert={(c: InsertCandidate) =>
-          childPages.insertAsContext(c.kind, c.tfId, insertTargetPage!)
+          childPages.insertAsContext(c.kind, c.tfId, insertContext.data!.targetPage)
         }
-        onClose={() => setInsertTargetPage(null)}
+        onClose={insertContext.close}
       />
 
       {/* Leveled DFD: delete the child page of a deleted multiprocess? (5e) */}

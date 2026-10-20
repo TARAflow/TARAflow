@@ -1568,6 +1568,14 @@ Order (Phase 6):
     into them, `deriveExposureLevels`); the cached parse stays untouched.
   - Measured: a save parses its XML once, a save without a change of the drawing not at all; a
     change of an ordinary property neither parses nor rebuilds the model.
+- **R4 ✅ façade `useLeveledDfd(project, editor, selection)`** — the leveled flows of the DFD tab
+  (4b refinement candidates, 5b review, 5c outline and page tabs, 5d/5e child pages, 5g context
+  copies and cell identity, 5h insert as context, 5i thumbnails, 5k lost definitions, 5l page
+  renumbering, 6d roll-up of the selection) moved out of `dfd-tab.tsx` (1328 → 1078 lines). The
+  façade holds the shared analysis and hands its parse to `usePageOutline` and
+  `useLostDefinitions`; the roll-up of the selection comes from the same model. Its
+  dependencies are complete — three `exhaustive-deps` suppressions are gone (`getCurrentPageId`
+  and `selectCellAt` are stable callbacks of the editor now).
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
