@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { DFDPage, DFDProjectData, DFDUpdateResult } from "../models/dfd-types";
 import { parseDfd } from "../services/leveled/leveled-analysis";
 import type { ParseResult } from "../services/dfd-parser";
+import type { LeveledActionError } from "../models/leveled-errors";
 import {
   findLostDefinitions,
   reattachDefinition,
@@ -46,7 +47,7 @@ export interface UseLostDefinitionsOptions {
 export interface UseLostDefinitionsReturn {
   /** Lost elements / flows waiting for a decision (the first one is asked). */
   lost: LostDefinition[];
-  reattach: (tfId: string, cellId: string) => Promise<string | null>;
+  reattach: (tfId: string, cellId: string) => Promise<LeveledActionError | null>;
   acceptDeletion: (tfId: string) => void;
   /** Ask again once a new candidate cell appears. */
   postpone: (tfId: string) => void;
@@ -107,9 +108,9 @@ export function useLostDefinitions(
 
   const pages = dfd?.pages;
   const reattach = useCallback(
-    async (tfId: string, cellId: string): Promise<string | null> => {
+    async (tfId: string, cellId: string): Promise<LeveledActionError | null> => {
       const entry = entries.find((e) => e.lost.tfId === tfId);
-      if (!entry || !pages) return "not available";
+      if (!entry || !pages) return "NOT_AVAILABLE";
       const saved = await savePages(reattachDefinition(pages, entry.lost, cellId));
       if (!saved) return "SAVE_FAILED";
       restoreRecord(entry.lost);

@@ -40,6 +40,7 @@ import { usePageOutline } from "./use-page-outline";
 import { useChildPages } from "./use-child-pages";
 import { useLostDefinitions } from "./use-lost-definitions";
 import { usePageThumbnails } from "./use-page-thumbnails";
+import type { LeveledActionError } from "../models/leveled-errors";
 
 export interface LeveledSelection {
   /** The selected element (record), if any. */
@@ -243,7 +244,7 @@ export function useLeveledDfd(
     if (!parse || !pages || !cellRef) return undefined;
     const info = describeIdentity(parse, pages, cellRef);
     if (!info) return undefined;
-    const apply = async (result: LinkEditResult): Promise<string | null> => {
+    const apply = async (result: LinkEditResult): Promise<LeveledActionError | null> => {
       if (!result.ok) return result.reason;
       return (await savePages(result.pages)) ? null : "SAVE_FAILED";
     };

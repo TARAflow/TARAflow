@@ -41,6 +41,8 @@ import type {
   IdentityReview,
 } from "../services/leveled";
 import type { AdoptionDecisions } from "../services/leveled";
+import type { LeveledActionError } from "../models/leveled-errors";
+import { leveledErrorText } from "./leveled-error-text";
 
 // ==================== PROPS ====================
 
@@ -48,8 +50,8 @@ export interface IdentityReviewDialogProps {
   review: IdentityReview | null;
   onClose: () => void;
   /** Resolves to an error code, or null on success. */
-  onApplyAdoption: (decisions: AdoptionDecisions) => Promise<string | null>;
-  onApplyAssignment: (copies: readonly CellRef[]) => Promise<string | null>;
+  onApplyAdoption: (decisions: AdoptionDecisions) => Promise<LeveledActionError | null>;
+  onApplyAssignment: (copies: readonly CellRef[]) => Promise<LeveledActionError | null>;
   /** "Keep all as new elements" — the paste hint is done. */
   onDismissAssignment: () => void;
 }
@@ -101,7 +103,7 @@ const AdoptionContent: React.FC<
   const [rejected, setRejected] = useState<Set<string>>(new Set());
   const [definition, setDefinition] = useState<Record<string, string>>({});
   const [decomposes, setDecomposes] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LeveledActionError | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     setRejected(new Set());
@@ -379,8 +381,8 @@ const AdoptionContent: React.FC<
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
             {t("tabs.dfd.identityReview.error", {
-              defaultValue: "The decision could not be applied ({{code}}).",
-              code: error,
+              defaultValue: "The decision could not be applied: {{reason}}",
+              reason: leveledErrorText(error, t),
             })}
           </Alert>
         )}
@@ -413,7 +415,7 @@ const AssignmentContent: React.FC<
   const initial = () =>
     Object.fromEntries(review.assignments.map((a) => [cellKey(a.cell), a.proposal]));
   const [choice, setChoice] = useState<Record<string, "copy" | "new">>(initial);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LeveledActionError | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     setChoice(initial());
@@ -488,8 +490,8 @@ const AssignmentContent: React.FC<
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
             {t("tabs.dfd.identityReview.error", {
-              defaultValue: "The decision could not be applied ({{code}}).",
-              code: error,
+              defaultValue: "The decision could not be applied: {{reason}}",
+              reason: leveledErrorText(error, t),
             })}
           </Alert>
         )}

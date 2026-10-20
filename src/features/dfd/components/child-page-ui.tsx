@@ -18,6 +18,8 @@ import {
   Typography,
 } from "@mui/material";
 import type { OrphanPage } from "../services/leveled";
+import type { LeveledActionError } from "../models/leveled-errors";
+import { leveledErrorText } from "./leveled-error-text";
 
 // ==================== ORPHAN PAGE QUESTION ====================
 
@@ -25,12 +27,12 @@ export interface OrphanPageDialogProps {
   /** Pages still to decide; the first one is asked. */
   orphans: OrphanPage[];
   /** Resolves to an error text when draw.io did not delete the page. */
-  onResolve: (pageId: string, removePage: boolean) => Promise<string | null> | void;
+  onResolve: (pageId: string, removePage: boolean) => Promise<LeveledActionError | null> | void;
 }
 
 export const OrphanPageDialog: React.FC<OrphanPageDialogProps> = ({ orphans, onResolve }) => {
   const { t } = useTranslation();
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<LeveledActionError | null>(null);
   const [busy, setBusy] = React.useState(false);
   const orphan = orphans[0];
   React.useEffect(() => setError(null), [orphan?.pageId]);
@@ -59,7 +61,7 @@ export const OrphanPageDialog: React.FC<OrphanPageDialogProps> = ({ orphans, onR
             {t("tabs.dfd.childPages.orphan.error", {
               defaultValue:
                 "draw.io did not delete the page ({{error}}). Delete it in draw.io (right-click on the tab) or keep it.",
-              error,
+              error: leveledErrorText(error, t),
             })}
           </Alert>
         )}
@@ -95,12 +97,12 @@ export interface ChildPageInfo {
    * "Sync context" (5f): copy what is missing on the child page; resolves
    * to the number of copied cells or an error text. Absent = not possible.
    */
-  onSyncContext?: () => Promise<number | string>;
+  onSyncContext?: () => Promise<number | LeveledActionError>;
 }
 
 export const ChildPageSection: React.FC<{ info: ChildPageInfo }> = ({ info }) => {
   const { t } = useTranslation();
-  const [syncResult, setSyncResult] = React.useState<number | string | null>(null);
+  const [syncResult, setSyncResult] = React.useState<number | LeveledActionError | null>(null);
   const [busy, setBusy] = React.useState(false);
   React.useEffect(() => setSyncResult(null), [info.pageName]);
   const sync = async () => {
@@ -140,7 +142,7 @@ export const ChildPageSection: React.FC<{ info: ChildPageInfo }> = ({ info }) =>
               {typeof syncResult === "string"
                 ? t("tabs.dfd.childPages.syncFailed", {
                     defaultValue: "Context not synced ({{error}}).",
-                    error: syncResult,
+                    error: leveledErrorText(syncResult, t),
                   })
                 : syncResult === 0
                   ? t("tabs.dfd.childPages.syncNothing", {

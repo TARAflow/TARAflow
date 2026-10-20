@@ -23,6 +23,7 @@ import {
 } from "../services/leveled";
 import type { AdoptionDecisions } from "../services/leveled";
 import { createDFDStorageAdapter } from "../services/dfd-storage-adapter";
+import type { LeveledActionError } from "../models/leveled-errors";
 
 export interface UseIdentityReviewOptions {
   /** The validation reports ID_ADOPTION_PENDING. */
@@ -43,8 +44,8 @@ export interface UseIdentityReviewReturn {
   close: () => void;
   /** Keep the pasted cells as new elements; the hint disappears. */
   dismissAssignment: () => void;
-  applyAdoption: (decisions: AdoptionDecisions) => Promise<string | null>;
-  applyAssignment: (copies: readonly CellRef[]) => Promise<string | null>;
+  applyAdoption: (decisions: AdoptionDecisions) => Promise<LeveledActionError | null>;
+  applyAssignment: (copies: readonly CellRef[]) => Promise<LeveledActionError | null>;
 }
 
 interface Snapshot {
@@ -108,7 +109,7 @@ export function useIdentityReview(
   pagesRef.current = pages;
 
   const applyAdoption = useCallback(
-    async (decisions: AdoptionDecisions): Promise<string | null> => {
+    async (decisions: AdoptionDecisions): Promise<LeveledActionError | null> => {
       if (review?.kind !== "adoption") return "NO_REVIEW";
       const result = confirmAdoption(review as AdoptionReview, pagesRef.current, decisions);
       if (!result.ok) return result.reason;
@@ -122,10 +123,10 @@ export function useIdentityReview(
   );
 
   const applyAssignment = useCallback(
-    async (copies: readonly CellRef[]): Promise<string | null> => {
+    async (copies: readonly CellRef[]): Promise<LeveledActionError | null> => {
       if (review?.kind !== "assignment") return "NO_REVIEW";
       const current = pagesRef.current;
-      if (!current) return "NO_PAGES";
+      if (!current) return "NOT_AVAILABLE";
       const result = confirmCopyAssignments(review as AssignmentReview, current, copies);
       if (!result.ok) return result.reason;
       const saved = await savePages(result.pages);

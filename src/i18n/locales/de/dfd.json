@@ -392,12 +392,12 @@
           }
         },
         "assetRollup": {
-          "info": "Dieser Multiprozess ist zerlegt: Er hält die Assets seiner Teile. Bearbeite die Relationen an den Teilen.",
+          "info": "Dieser Multiprozess ist zerlegt: Er hält die Assets seiner Teile. Bearbeiten Sie die Relationen an den Teilen.",
           "rollupTitle": "Von seinen Teilen gehalten",
           "rollupEmpty": "Noch kein Teil hält ein Asset.",
           "via": "über {{parts}}",
           "pendingTitle": "Noch keinem Teil zugeordnet",
-          "pendingHint": "Stammt aus der Zeit vor der Zerlegung. Ordne das Asset dem Teil zu, der es hält – der Eintrag verschwindet dann beim nächsten Speichern.",
+          "pendingHint": "Stammt aus der Zeit vor der Zerlegung. Ordnen Sie das Asset dem Teil zu, der es hält – der Eintrag verschwindet dann beim nächsten Speichern.",
           "removePending": "Entfernen – kein Teil hält dieses Asset"
         },
         "exposure_level": {
@@ -2640,13 +2640,33 @@
         "notPlaced": "Nicht im Seitenbaum",
         "findings": "{{errors}} Fehler, {{warnings}} Warnung(en)"
       },
+      "leveledErrors": {
+        "NOT_AVAILABLE": "hier nicht verfügbar (draw.io-Plugin, gespeichertes Diagramm oder Unterseite fehlt)",
+        "NOT_POSSIBLE": "für dieses Element auf dieser Seite nichts zu tun",
+        "DRAWIO_FAILED": "draw.io konnte die Änderung nicht ausführen",
+        "NOTHING_COPIED": "draw.io hat nichts kopiert",
+        "PAGE_NOT_DELETED": "draw.io hat die Seite nicht gelöscht",
+        "SAVE_FAILED": "die Änderung konnte nicht gespeichert werden",
+        "NO_REVIEW": "der Vorschlag hat sich inzwischen geändert – bitte erneut öffnen",
+        "INVALID_DEFINITION": "die gewählte Definition ist für dieses Element nicht gültig",
+        "PAGE_NOT_PLACED": "eine Seite detailliert keinen Multiprozess – wählen Sie den Multiprozess, den sie detailliert",
+        "CELL_NOT_FOUND": "die Zelle ist nicht mehr auf ihrer Seite",
+        "NOT_A_CONTEXT_COPY": "die Zelle ist bereits die Definition",
+        "NOT_DANGLING": "das Element hat noch eine Definition – verwenden Sie „Zur Definition machen“",
+        "NO_DEFINITION": "das Element hat keine Definition – verwenden Sie „Zur Definition befördern“",
+        "DUPLICATE_DEFINITIONS": "das Element hat mehrere Definitionen – lösen Sie diese zuerst auf",
+        "PAGE_NOT_IN_TREE": "die Seite ist noch nicht im Seitenbaum",
+        "NOT_A_PLAIN_CELL": "die Zelle ist bereits mit einem Element verknüpft",
+        "SAME_IDENTITY": "die Zelle kann keine Kopie ihrer selbst werden",
+        "TYPE_MISMATCH": "die Zelle hat einen anderen Elementtyp als das Element"
+      },
       "childPages": {
         "orphan": {
           "title": "Unterseite auch löschen?",
           "text": "Der Multiprozess, den die Seite \"{{page}}\" detailliert, wurde gelöscht. Soll die Seite ebenfalls gelöscht werden? Ihr Inhalt wird mit gelöscht (rückgängig in draw.io).",
           "keep": "Seite behalten",
           "delete": "Seite löschen",
-          "error": "draw.io hat die Seite nicht gelöscht ({{error}}). Löschen Sie sie in draw.io (Rechtsklick auf den Tab) oder behalten Sie sie."
+          "error": "Nicht gelöscht: {{error}}. Löschen Sie sie in draw.io (Rechtsklick auf den Reiter) oder behalten Sie sie."
         },
         "detailedOn": "Detailliert auf Seite \"{{page}}\".",
         "open": "Seite öffnen",
@@ -2671,7 +2691,7 @@
         "chooseElement": "wählen…",
         "apply": "Übernehmen",
         "makeCopyWarning": "Diese Zelle zeigt dann das gewählte Element; ihr eigener Datensatz (Eigenschaften, Asset-Beziehungen) wird nicht mehr verwendet und ihre Bedrohungen werden verwaist.",
-        "error": "Nicht möglich ({{code}})."
+        "error": "Nicht möglich: {{reason}}."
       },
       "insertContext": {
         "title": "Als Kontext einfügen auf \"{{page}}\"",
@@ -2696,7 +2716,7 @@
       "identityReview": {
         "cancel": "Abbrechen",
         "later": "Später",
-        "error": "Die Entscheidung konnte nicht übernommen werden ({{code}}).",
+        "error": "Die Entscheidung konnte nicht übernommen werden: {{reason}}.",
         "adoption": {
           "title": "Seiten übernehmen",
           "intro": "Dieses Diagramm hat mehrere Seiten. Bestätigen Sie, welche Seite welchen Multiprozess detailliert und welche Zellen dasselbe Element zeigen. Gespeichert werden nur der Seitenbaum und die Identitätsverknüpfungen; die Zeichnung bleibt unverändert.",
@@ -2869,7 +2889,7 @@
       "DFD_EE_TO_EE_FLOW": "Fluss {{flow}} verbindet zwei externe Entitäten und liegt außerhalb der Analyse.",
       "BAL_INTERFACE_UNATTRIBUTED": "Fluss {{flow}}: Interface {{interface}} auf Seite \"{{page}}\" lässt sich keiner Seite der Zerlegungsgrenze zuordnen.",
       "BAL_HOME_NOT_HIGHEST": "{{element}} ist auf \"{{page}}\" definiert, erscheint aber auch auf der höheren Seite \"{{highest}}\"; die Definition sollte nach oben wandern.",
-      "BAL_ASSET_NOT_REALISED": "{{element}} hält „{{asset}}“ ({{relation}}) noch aus der Zeit vor der Zerlegung, aber keiner seiner Teile hält es. Ordne es dem Teil zu, der das Asset hält (oft fehlt ein Datenspeicher).",
+      "BAL_ASSET_NOT_REALISED": "{{element}} hält „{{asset}}“ ({{relation}}) noch aus der Zeit vor der Zerlegung, aber keiner seiner Teile hält es. Ordnen Sie es dem Teil zu, der das Asset hält (oft fehlt ein Datenspeicher).",
       "BAL_LABEL_DIVERGENCE": "Die Vorkommen von {{element}} tragen unterschiedliche Bezeichnungen: {{labels}}.",
       "BAL_MISSING_PARENT_FLOW": "Fluss {{flow}} kreuzt die Grenze von {{element}}, ist auf der Elternseite \"{{page}}\" aber nicht gezeichnet.",
       "ID_ADOPTION_PENDING": "Das Diagramm hat {{count}} Seiten; {{pages}} sind noch nicht in den Seitenbaum übernommen. Bis Sie die Übernahme bestätigen (\"Seiten übernehmen…\" über dem Diagramm), werden Änderungen nicht gespeichert und es können keine Bedrohungen generiert werden.",

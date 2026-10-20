@@ -10,6 +10,7 @@ import {
   categoriesOf,
 } from "features/dfd/components/insert-context-dialog";
 import type { InsertCandidate } from "features/dfd/services/leveled";
+import type { LeveledActionError } from "features/dfd/models/leveled-errors";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -28,7 +29,7 @@ const CANDIDATES: InsertCandidate[] = [
   { kind: "element", tfId: "p3", label: "P-3 Logger", type: "Process", definitionPageId: "sys" },
 ];
 
-const renderDialog = (onInsert = vi.fn(async (): Promise<string | null> => null), candidates = CANDIDATES) => {
+const renderDialog = (onInsert = vi.fn(async (): Promise<LeveledActionError | null> => null), candidates = CANDIDATES) => {
   const onClose = vi.fn();
   render(
     <InsertContextDialog
@@ -89,11 +90,11 @@ describe("InsertContextDialog", () => {
   });
 
   it("stays open and shows why nothing was inserted", async () => {
-    const { onClose } = renderDialog(vi.fn(async (): Promise<string | null> => "busy"));
+    const { onClose } = renderDialog(vi.fn(async (): Promise<LeveledActionError | null> => "DRAWIO_FAILED"));
     fireEvent.mouseDown(screen.getByRole("combobox"));
     fireEvent.click(screen.getByText("EE-1 Debugger"));
     fireEvent.click(screen.getByTestId("insert-context-apply"));
-    expect((await screen.findByTestId("insert-context-error")).textContent).toContain("busy");
+    expect((await screen.findByTestId("insert-context-error")).textContent).toContain("DRAWIO_FAILED");
     expect(onClose).not.toHaveBeenCalled();
   });
 

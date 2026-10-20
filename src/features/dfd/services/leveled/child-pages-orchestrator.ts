@@ -28,6 +28,7 @@ import { inspectDrawioPages } from "shared";
 import type { DFDCellLink, DFDElement, DFDPage, DFDUpdateResult } from "../../models/dfd-types";
 import type { DrawioPageSyncResult, DrawioPageSyncSpec } from "../drawio-bridge";
 import type { ParseResult } from "../dfd-parser";
+import type { LeveledActionError } from "../../models/leveled-errors";
 import { SerialQueue } from "../../utils/serial-queue";
 import { parseDfd } from "./leveled-analysis";
 import { analysePageGeometry } from "./page-geometry";
@@ -156,12 +157,12 @@ export class ChildPagesOrchestrator {
     return true;
   };
 
-  /** "Sync context" (5f): the number of cells copied, or an error text. */
-  syncContext = (tfId: string): Promise<number | string> =>
+  /** "Sync context" (5f): the number of cells copied, or an error code. */
+  syncContext = (tfId: string): Promise<number | LeveledActionError> =>
     this.queue.run(async () => {
       const { enabled, xml, pages } = this.state ?? { enabled: false };
       const page = pages?.find((p) => p.decomposes === tfId);
-      if (!enabled || !xml || !page || !this.deps) return "not available";
+      if (!enabled || !xml || !page || !this.deps) return "NOT_AVAILABLE";
       const parse = this.parseOf(xml, pages);
       const spec = planContextCopies({
         parse,
@@ -173,39 +174,51 @@ export class ChildPagesOrchestrator {
       if (!spec) return 0;
       this.markRequested([spec]);
       const result = await callSync(this.deps.syncPages, { create: [], rename: [], context: [spec] });
-      if (!result.success) return result.error ?? "failed";
+      if (!result.success) {
+        console.warn("[childPages] draw.io could not sync the context:", result.error, result);
+        return "DRAWIO_FAILED";
+      }
       if (result.errors?.length) console.warn("[childPages] sync context:", result.errors);
       rememberCopies(this.pendingLinks, [spec], result.copies);
       this.publish({ settling: true });
       return result.copies?.length ?? 0;
     });
 
-  /** "Insert as context…" (5h): null, or an error text. The copy is `manual`. */
-  insertAsContext = (kind: "element" | "connection", tfId: string, pageId: string): Promise<string | null> =>
+  /** "Insert as context…" (5h): null, or an error code. The copy is `manual`. */
+  insertAsContext = (
+    kind: "element" | "connection",
+    tfId: string,
+    pageId: string,
+  ): Promise<LeveledActionError | null> =>
     this.queue.run(async () => {
       const { enabled, xml, pages } = this.state ?? { enabled: false };
-      if (!enabled || !xml || !this.deps) return "not available";
+      if (!enabled || !xml || !this.deps) return "NOT_AVAILABLE";
       const parse = this.parseOf(xml, pages);
       const spec = planInsertAsContext(parse, pages, kind, tfId, pageId);
-      if (!spec) return "not possible";
+      if (!spec) return "NOT_POSSIBLE";
       const result = await callSync(this.deps.syncPages, { create: [], rename: [], context: [spec] });
-      if (!result.success) return result.error ?? "failed";
-      if (!result.copies?.length) return result.errors?.join("; ") || "nothing copied";
+      if (!result.success) {
+        console.warn("[childPages] draw.io could not insert the copy:", result.error, result);
+        return "DRAWIO_FAILED";
+      }
+      if (!result.copies?.length) {
+        console.warn("[childPages] draw.io copied nothing:", result.errors, result);
+        return "NOTHING_COPIED";
+      }
       rememberCopies(this.pendingLinks, [spec], result.copies, true);
       this.publish({ settling: true });
       return null;
     });
 
-  /** Delete the orphan page in draw.io, or keep it: null, or the error (question stays). */
-  resolveOrphan = (pageId: string, removePage: boolean): Promise<string | null> =>
+  /** Delete the orphan page in draw.io, or keep it: null, or an error code (question stays). */
+  resolveOrphan = (pageId: string, removePage: boolean): Promise<LeveledActionError | null> =>
     this.queue.run(async () => {
       if (removePage && this.deps) {
         // The deleted page then leaves dfd.pages like any page deleted in draw.io.
         const result = await callSync(this.deps.syncPages, { create: [], rename: [], remove: [pageId] });
         if (!result.success || result.errors?.length) {
-          const error = result.error ?? result.errors!.join("; ");
-          console.warn("[childPages] draw.io could not delete the page:", error, result);
-          return error;
+          console.warn("[childPages] draw.io could not delete the page:", result.error ?? result.errors, result);
+          return "PAGE_NOT_DELETED";
         }
       }
       this.asked.add(pageId);

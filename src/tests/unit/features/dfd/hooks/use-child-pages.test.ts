@@ -325,13 +325,17 @@ describe("useChildPages", () => {
           errors: ["page not removed: gw (graph enabled: false, pages: 2 -> 2)"],
         })),
       };
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       const { result } = renderHook(() => useChildPages(project(xml, pages), o));
       await waitFor(() => expect(result.current.orphanPages).toHaveLength(1));
       let error: string | null = null;
       await act(async () => {
         error = await result.current.resolveOrphan("gw", true);
       });
-      expect(error).toContain("page not removed");
+      // A code for the dialog; draw.io's technical message only in the log.
+      expect(error).toBe("PAGE_NOT_DELETED");
+      expect(warn.mock.calls.some((c) => JSON.stringify(c).includes("page not removed"))).toBe(true);
+      warn.mockRestore();
       expect(result.current.orphanPages).toHaveLength(1);
     });
 
@@ -588,7 +592,7 @@ describe("useChildPages", () => {
       await act(async () => {
         r = await result.current.syncContext("mp");
       });
-      expect(r).toBe("not available");
+      expect(r).toBe("NOT_AVAILABLE");
     });
   });
 
@@ -682,7 +686,7 @@ describe("useChildPages", () => {
       await act(async () => {
         error = await result.current.insertAsContext("element", "ee", "p1");
       });
-      expect(error).toBe("not possible");
+      expect(error).toBe("NOT_POSSIBLE");
     });
   });
 });

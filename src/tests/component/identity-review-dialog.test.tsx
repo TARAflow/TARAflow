@@ -24,6 +24,7 @@ import {
   node,
   page,
 } from "../fixtures/leveled-dfd-xml";
+import type { LeveledActionError } from "features/dfd/models/leveled-errors";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -39,8 +40,8 @@ const XML = mxfile(SYSTEM, SENSOR, CONTROLLER);
 
 const handlers = () => ({
   onClose: vi.fn(),
-  onApplyAdoption: vi.fn(async (_decisions: AdoptionDecisions): Promise<string | null> => null),
-  onApplyAssignment: vi.fn(async (_copies: readonly CellRef[]): Promise<string | null> => null),
+  onApplyAdoption: vi.fn(async (_decisions: AdoptionDecisions): Promise<LeveledActionError | null> => null),
+  onApplyAssignment: vi.fn(async (_copies: readonly CellRef[]): Promise<LeveledActionError | null> => null),
   onDismissAssignment: vi.fn(),
 });
 
@@ -74,7 +75,7 @@ describe("IdentityReviewDialog — adoption", () => {
   it("shows an error returned by the apply step", async () => {
     const h = {
       ...handlers(),
-      onApplyAdoption: vi.fn(async (): Promise<string | null> => "SAVE_FAILED"),
+      onApplyAdoption: vi.fn(async (): Promise<LeveledActionError | null> => "SAVE_FAILED"),
     };
     render(<IdentityReviewDialog review={review} {...h} />);
     fireEvent.click(screen.getByTestId("identity-review-apply"));

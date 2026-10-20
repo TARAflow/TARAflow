@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IdentitySection } from "features/dfd/components/identity-section";
 import type { IdentityInfo } from "features/dfd/services/leveled";
+import type { LeveledActionError } from "features/dfd/models/leveled-errors";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -35,9 +36,9 @@ const COPY: IdentityInfo = {
 
 const handlers = () => ({
   onGoTo: vi.fn(),
-  onMakeDefinition: vi.fn(async (): Promise<string | null> => null),
-  onPromote: vi.fn(async (): Promise<string | null> => null),
-  onLinkAsContextCopy: vi.fn(async (_tfId: string): Promise<string | null> => null),
+  onMakeDefinition: vi.fn(async (): Promise<LeveledActionError | null> => null),
+  onPromote: vi.fn(async (): Promise<LeveledActionError | null> => null),
+  onLinkAsContextCopy: vi.fn(async (_tfId: string): Promise<LeveledActionError | null> => null),
 });
 
 describe("IdentitySection", () => {
@@ -58,7 +59,7 @@ describe("IdentitySection", () => {
   });
 
   it("makes the copy the definition and shows a refusal", async () => {
-    const h = { ...handlers(), onMakeDefinition: vi.fn(async (): Promise<string | null> => "DUPLICATE_DEFINITIONS") };
+    const h = { ...handlers(), onMakeDefinition: vi.fn(async (): Promise<LeveledActionError | null> => "DUPLICATE_DEFINITIONS") };
     render(<IdentitySection info={COPY} {...h} />);
     fireEvent.click(screen.getByTestId("identity-make-definition"));
     expect((await screen.findByTestId("identity-error")).textContent).toContain("DUPLICATE_DEFINITIONS");

@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LostDefinitionDialog } from "features/dfd/components/lost-definition-dialog";
 import type { LostDefinition } from "features/dfd/services/leveled";
+import type { LeveledActionError } from "features/dfd/models/leveled-errors";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -33,7 +34,7 @@ const LOST: LostDefinition = {
 };
 
 const handlers = () => ({
-  onReattach: vi.fn(async (_t: string, _c: string): Promise<string | null> => null),
+  onReattach: vi.fn(async (_t: string, _c: string): Promise<LeveledActionError | null> => null),
   onAccept: vi.fn(),
   onLater: vi.fn(),
 });

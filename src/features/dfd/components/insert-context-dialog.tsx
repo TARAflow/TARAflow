@@ -25,6 +25,8 @@ import {
   Typography,
 } from "@mui/material";
 import type { InsertCandidate } from "../services/leveled";
+import type { LeveledActionError } from "../models/leveled-errors";
+import { leveledErrorText } from "./leveled-error-text";
 
 export interface InsertContextDialogProps {
   open: boolean;
@@ -34,7 +36,7 @@ export interface InsertContextDialogProps {
   /** pageId → page name, for "defined on". */
   pageNames: Record<string, string>;
   /** Resolves to an error text, or null on success (then the dialog closes). */
-  onInsert: (candidate: InsertCandidate) => Promise<string | null>;
+  onInsert: (candidate: InsertCandidate) => Promise<LeveledActionError | null>;
   onClose: () => void;
 }
 
@@ -73,7 +75,7 @@ export const InsertContextDialog: React.FC<InsertContextDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const [choice, setChoice] = React.useState<InsertCandidate | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<LeveledActionError | null>(null);
   const [busy, setBusy] = React.useState(false);
   const categories = React.useMemo(() => categoriesOf(candidates), [candidates]);
   const [category, setCategory] = React.useState<string | null>(null);
@@ -179,7 +181,7 @@ export const InsertContextDialog: React.FC<InsertContextDialogProps> = ({
           <Alert severity="error" sx={{ mt: 2 }} data-testid="insert-context-error">
             {t("tabs.dfd.insertContext.error", {
               defaultValue: "Not inserted ({{error}}).",
-              error,
+              error: leveledErrorText(error, t),
             })}
           </Alert>
         )}

@@ -19,6 +19,8 @@ import {
   Typography,
 } from "@mui/material";
 import type { LostDefinition } from "../services/leveled";
+import type { LeveledActionError } from "../models/leveled-errors";
+import { leveledErrorText } from "./leveled-error-text";
 
 export interface LostDefinitionDialogProps {
   /** Waiting decisions; the first one is asked. */
@@ -26,7 +28,7 @@ export interface LostDefinitionDialogProps {
   /** Threats referring to a tfId (from the threats register). */
   threatCountOf?: (tfId: string) => number;
   /** Resolves to an error text, or null on success. */
-  onReattach: (tfId: string, cellId: string) => Promise<string | null>;
+  onReattach: (tfId: string, cellId: string) => Promise<LeveledActionError | null>;
   onAccept: (tfId: string) => void;
   /** Close until a new candidate cell appears. */
   onLater: (tfId: string) => void;
@@ -42,7 +44,7 @@ export const LostDefinitionDialog: React.FC<LostDefinitionDialogProps> = ({
   const { t } = useTranslation();
   const item = lost[0];
   const [cellId, setCellId] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<LeveledActionError | null>(null);
   const [busy, setBusy] = React.useState(false);
   const firstCandidate = item?.candidates[0]?.cellId ?? "";
   React.useEffect(() => {
@@ -116,7 +118,7 @@ export const LostDefinitionDialog: React.FC<LostDefinitionDialogProps> = ({
           <Alert severity="error" sx={{ mt: 2 }} data-testid="lost-definition-error">
             {t("tabs.dfd.lostDefinition.error", {
               defaultValue: "Not re-attached ({{error}}).",
-              error,
+              error: leveledErrorText(error, t),
             })}
           </Alert>
         )}

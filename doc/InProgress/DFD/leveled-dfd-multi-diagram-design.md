@@ -1589,6 +1589,15 @@ Order (Phase 6):
     opened is taken from the first saved state at once (the queue may skip to a newer one).
   - `useChildPages` (98 lines): binds it to React (`useSyncExternalStore`), hands over each saved
     state with the façade's parse.
+- **R2 ✅ error codes, translated in the UI** — `models/leveled-errors`: union
+  `LeveledActionError` (`NOT_AVAILABLE`, `NOT_POSSIBLE`, `DRAWIO_FAILED`, `NOTHING_COPIED`,
+  `PAGE_NOT_DELETED`, `SAVE_FAILED`, `NO_REVIEW`, the adoption refusals and the
+  `LinkEditRefusal` codes); the list derives from a `Record` over the union, so a new code
+  without entry does not compile. Child pages, lost definitions, identity review and the cell
+  identity return codes only; draw.io's technical messages go to the log. The five dialogs show
+  `tabs.dfd.leveledErrors.<CODE>` (en/de, completeness test). The typing found three codes that
+  had passed through as free text (`INVALID_DEFINITION`, `PAGE_NOT_PLACED`, `NO_PAGES` → now
+  `NOT_AVAILABLE`). German texts of 6d aligned to the "Sie" form of the DFD texts.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed

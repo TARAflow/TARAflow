@@ -7,6 +7,7 @@ import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChildPageSection, OrphanPageDialog } from "features/dfd/components/child-page-ui";
+import type { LeveledActionError } from "features/dfd/models/leveled-errors";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -33,10 +34,10 @@ describe("OrphanPageDialog", () => {
   });
 
   it("stays open and shows the error when draw.io did not delete the page", async () => {
-    const onResolve = vi.fn(async () => "page not removed: gw");
+    const onResolve = vi.fn(async (): Promise<LeveledActionError | null> => "PAGE_NOT_DELETED");
     render(<OrphanPageDialog orphans={orphans} onResolve={onResolve} />);
     fireEvent.click(screen.getByTestId("orphan-delete"));
-    expect((await screen.findByTestId("orphan-error")).textContent).toContain("page not removed: gw");
+    expect((await screen.findByTestId("orphan-error")).textContent).toContain("PAGE_NOT_DELETED");
     expect(screen.getByTestId("orphan-page-dialog")).toBeTruthy();
   });
 
@@ -96,14 +97,14 @@ describe("ChildPageSection", () => {
   });
 
   it("says when the context is complete, and shows an error", async () => {
-    const results: (number | string)[] = [0, "busy"];
+    const results: (number | LeveledActionError)[] = [0, "DRAWIO_FAILED"];
     const onSyncContext = vi.fn(async () => results.shift()!);
     render(<ChildPageSection info={{ pageName: "Gateway", onSyncContext }} />);
     fireEvent.click(screen.getByTestId("child-page-sync"));
     expect((await screen.findByTestId("child-page-sync-result")).textContent).toMatch(/already shows/);
     fireEvent.click(screen.getByTestId("child-page-sync"));
     await vi.waitFor(() =>
-      expect(screen.getByTestId("child-page-sync-result").textContent).toMatch(/busy/),
+      expect(screen.getByTestId("child-page-sync-result").textContent).toMatch(/DRAWIO_FAILED/),
     );
   });
 });

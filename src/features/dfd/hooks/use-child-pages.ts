@@ -13,6 +13,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { DFDPage, DFDProjectData, DFDUpdateResult } from "../models/dfd-types";
 import type { OrphanPage } from "../services/leveled";
 import type { ParseResult } from "../services/dfd-parser";
+import type { LeveledActionError } from "../models/leveled-errors";
 import type { DrawioPageSyncResult, DrawioPageSyncSpec } from "../services/drawio-bridge";
 import { ChildPagesOrchestrator } from "../services/leveled/child-pages-orchestrator";
 import { randomPageId } from "../services/leveled/child-pages-steps";
@@ -44,26 +45,26 @@ export interface UseChildPagesReturn {
   orphanPages: OrphanPage[];
   /**
    * Delete the orphan page in draw.io, or keep it (asked once per session).
-   * Resolves to an error text if draw.io did not delete the page — the
+   * Resolves to an error code if draw.io did not delete the page — the
    * question stays then.
    */
-  resolveOrphan: (pageId: string, removePage: boolean) => Promise<string | null>;
+  resolveOrphan: (pageId: string, removePage: boolean) => Promise<LeveledActionError | null>;
   /** "Create child page" for a multiprocess without one; false if impossible. */
   decompose: (tfId: string) => boolean;
   /**
    * "Sync context" (5f): copy what is missing on the child page of this
-   * multiprocess. Resolves to the number of cells copied, or an error text.
+   * multiprocess. Resolves to the number of cells copied, or an error code.
    */
-  syncContext: (tfId: string) => Promise<number | string>;
+  syncContext: (tfId: string) => Promise<number | LeveledActionError>;
   /**
    * "Insert as context…" (5h): a copy of an element / flow on the page.
-   * Resolves to null, or an error text. The copy is marked `manual`.
+   * Resolves to null, or an error code. The copy is marked `manual`.
    */
   insertAsContext: (
     kind: "element" | "connection",
     tfId: string,
     pageId: string,
-  ) => Promise<string | null>;
+  ) => Promise<LeveledActionError | null>;
 }
 
 export function useChildPages(

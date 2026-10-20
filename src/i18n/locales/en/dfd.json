@@ -2653,13 +2653,33 @@
         "notPlaced": "Not in the page tree",
         "findings": "{{errors}} error(s), {{warnings}} warning(s)"
       },
+      "leveledErrors": {
+        "NOT_AVAILABLE": "not available here (draw.io plugin, saved diagram or child page missing)",
+        "NOT_POSSIBLE": "nothing to do for this element on this page",
+        "DRAWIO_FAILED": "draw.io could not carry out the change",
+        "NOTHING_COPIED": "draw.io copied nothing",
+        "PAGE_NOT_DELETED": "draw.io did not delete the page",
+        "SAVE_FAILED": "the change could not be saved",
+        "NO_REVIEW": "the proposal has changed meanwhile — open it again",
+        "INVALID_DEFINITION": "the chosen definition is not valid for this element",
+        "PAGE_NOT_PLACED": "a page details no multiprocess — choose the multiprocess it details",
+        "CELL_NOT_FOUND": "the cell is no longer on its page",
+        "NOT_A_CONTEXT_COPY": "the cell is already the definition",
+        "NOT_DANGLING": "the element still has a definition — use \"Make this the definition\"",
+        "NO_DEFINITION": "the element has no definition — use \"Promote to definition\"",
+        "DUPLICATE_DEFINITIONS": "the element has several definitions — resolve them first",
+        "PAGE_NOT_IN_TREE": "the page is not in the page tree yet",
+        "NOT_A_PLAIN_CELL": "the cell is already linked to an element",
+        "SAME_IDENTITY": "the cell cannot become a copy of itself",
+        "TYPE_MISMATCH": "the cell has another element type than the element"
+      },
       "childPages": {
         "orphan": {
           "title": "Delete the child page too?",
           "text": "The multiprocess detailed on page \"{{page}}\" was deleted. Delete the page as well? Its contents are deleted with it (undo in draw.io).",
           "keep": "Keep page",
           "delete": "Delete page",
-          "error": "draw.io did not delete the page ({{error}}). Delete it in draw.io (right-click on the tab) or keep it."
+          "error": "Not deleted: {{error}}. Delete it in draw.io (right-click on the tab) or keep it."
         },
         "detailedOn": "Detailed on page \"{{page}}\".",
         "open": "Open page",
@@ -2684,7 +2704,7 @@
         "chooseElement": "choose…",
         "apply": "Apply",
         "makeCopyWarning": "This cell then shows the chosen element; its own record (properties, asset relations) is no longer used and its threats become orphans.",
-        "error": "Not possible ({{code}})."
+        "error": "Not possible: {{reason}}."
       },
       "insertContext": {
         "title": "Insert as context on \"{{page}}\"",
@@ -2709,7 +2729,7 @@
       "identityReview": {
         "cancel": "Cancel",
         "later": "Later",
-        "error": "The decision could not be applied ({{code}}).",
+        "error": "The decision could not be applied: {{reason}}.",
         "adoption": {
           "title": "Adopt pages",
           "intro": "This diagram has several pages. Confirm which page details which multiprocess and which cells show the same element. Only the page tree and the identity links are stored; the drawing is not changed.",

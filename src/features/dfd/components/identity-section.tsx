@@ -19,14 +19,16 @@ import {
   Typography,
 } from "@mui/material";
 import type { CellRef, IdentityInfo } from "../services/leveled";
+import type { LeveledActionError } from "../models/leveled-errors";
+import { leveledErrorText } from "./leveled-error-text";
 
 export interface IdentitySectionProps {
   info: IdentityInfo;
   onGoTo: (cell: CellRef) => void;
   /** Resolve to an error code, or null on success. */
-  onMakeDefinition: () => Promise<string | null>;
-  onPromote: () => Promise<string | null>;
-  onLinkAsContextCopy: (tfId: string) => Promise<string | null>;
+  onMakeDefinition: () => Promise<LeveledActionError | null>;
+  onPromote: () => Promise<LeveledActionError | null>;
+  onLinkAsContextCopy: (tfId: string) => Promise<LeveledActionError | null>;
 }
 
 export const IdentitySection: React.FC<IdentitySectionProps> = ({
@@ -38,14 +40,14 @@ export const IdentitySection: React.FC<IdentitySectionProps> = ({
 }) => {
   const { t } = useTranslation();
   const [target, setTarget] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<LeveledActionError | null>(null);
   const [busy, setBusy] = React.useState(false);
   React.useEffect(() => {
     setTarget("");
     setError(null);
   }, [info.tfId, info.occurrences]);
 
-  const run = async (action: () => Promise<string | null>) => {
+  const run = async (action: () => Promise<LeveledActionError | null>) => {
     setBusy(true);
     setError(await action());
     setBusy(false);
@@ -189,8 +191,8 @@ export const IdentitySection: React.FC<IdentitySectionProps> = ({
       {error && (
         <Alert severity="error" sx={{ mt: 1 }} data-testid="identity-error">
           {t("tabs.dfd.identity.error", {
-            defaultValue: "Not possible ({{code}}).",
-            code: error,
+            defaultValue: "Not possible: {{reason}}",
+            reason: leveledErrorText(error, t),
           })}
         </Alert>
       )}
