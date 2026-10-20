@@ -311,6 +311,12 @@ export default class DrawioController {
         // ==================== ZOOM SETTINGS ====================
         zoomWheel: false,
         zoomFactor: 1.2,
+        // draw.io zooms the diagram into the window on load and on every
+        // page switch (Editor.fitDiagramOnLoad / fitDiagramOnPage, default
+        // true). A large diagram — or one loaded before the iframe was laid
+        // out — then opened tiny and needed "Reset view". Open at 100 %.
+        fitDiagramOnLoad: false,
+        fitDiagramOnPage: false,
         // ==================== CSS STYLING ====================
         css: this.isDarkMode ? this.getDarkModeCSS() : this.getLightModeCSS(),
         // ==================== FONTS & UI ====================

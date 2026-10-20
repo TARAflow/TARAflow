@@ -1527,6 +1527,10 @@ Order (Phase 6):
   as out of sequence and the element followed the pointer. Now the plugin reports a selection made
   with the mouse only after the release (graph mouse listener, window pointerup / mouseup /
   pointercancel); the iframe workaround is gone.
+- **Fix (not leveled-specific): diagram opened tiny.** draw.io fits the diagram into the window on
+  load and on every page switch (`Editor.fitDiagramOnLoad` / `fitDiagramOnPage`, default true);
+  a large diagram, or one loaded before the iframe was laid out, opened at a small zoom and needed
+  "Reset view". The configure message now sets both to false: the diagram opens at 100 %.
 - **6e** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10);
 - **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
 
