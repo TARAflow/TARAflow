@@ -212,8 +212,14 @@ export { finalizeDfd } from "./services/dfd-finalize";
 // Leveled DFD (5j): data flows analysed on a parent level, for the threats tab.
 export {
   parentLevelFlowsOf,
+  parentLevelFlowsFrom,
   type ParentLevelFlow,
 } from "./services/leveled/parent-level-flows";
 
 // Leveled DFD (6a, D20): accordion groups of the asset / threat / risk tables.
-export { multiprocessGroupsOf } from "./services/leveled/table-groups";
+export { multiprocessGroupsOf, multiprocessGroupsFrom } from "./services/leveled/table-groups";
+export {
+  analyseLeveled,
+  parseDfd,
+  type LeveledAnalysis,
+} from "./services/leveled/leveled-analysis";

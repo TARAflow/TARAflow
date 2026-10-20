@@ -15,6 +15,7 @@
 //
 // The analyst confirms in the dialog; nothing is merged silently.
 
+import { parseDfd } from "./leveled-analysis";
 import type { DFDPage } from "../../models/dfd-types";
 import { inspectDrawioPages } from "shared";
 import { dfdParser, type ParseResult } from "../dfd-parser";
@@ -124,7 +125,7 @@ export function reviewAdoption(
 ): AdoptionReview | undefined {
   if (!xml || !needsPageReview(xml, pages)) return undefined;
   if (inspectDrawioPages(xml).compressedPageNames.length > 0) return undefined;
-  const parse = dfdParser.parse(xml, pages);
+  const parse = parseDfd(xml, pages);
   // Extra roots and missing pages are proposed anew; their links still
   // apply (parse above) and are kept by applyAdoption.
   const { extraRoots, missing } = misplacedPages(xml, pages);
@@ -153,9 +154,9 @@ export function reviewCopyAssignments(
   if (!xml || !pages || pages.length === 0) return undefined;
   if (!inspectDrawioPages(xml, pages.map((p) => p.pageId)).supported) return undefined;
 
-  const parse = dfdParser.parse(xml, pages);
+  const parse = parseDfd(xml, pages);
   const previous = baseline.xml
-    ? dfdParser.parse(baseline.xml, baseline.pages).occurrences
+    ? parseDfd(baseline.xml, baseline.pages).occurrences
     : [];
   const assignments = proposeCopyAssignments(parse, previous);
   if (!assignments.some((a) => a.proposal === "copy")) return undefined;

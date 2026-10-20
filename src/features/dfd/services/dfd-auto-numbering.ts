@@ -22,7 +22,7 @@ import {
   identityOf,
   type CellIdentity,
 } from "./parsers/identity-reader";
-import { dfdParser } from "./dfd-parser";
+import { parseDfd } from "./leveled/leveled-analysis";
 import { buildPageTree, computeHomePages } from "./leveled";
 
 /**
@@ -227,7 +227,7 @@ export class DFDAutoNumbering {
     pages: readonly DFDPage[] | undefined,
   ): (T & { decomposes?: string; parent?: string })[] {
     if (scopes.length < 2) return scopes;
-    const parse = dfdParser.parse(xml, pages);
+    const parse = parseDfd(xml, pages);
     const homePages = computeHomePages(parse.occurrences);
     const tree = buildPageTree({
       parsedPages: parse.pages,

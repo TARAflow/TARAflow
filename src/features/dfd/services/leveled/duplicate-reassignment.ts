@@ -12,6 +12,7 @@
 // shows the clash; the info finding ID_PASTE_REASSIGNED comes with the
 // leveled findings in Phase 4.
 
+import { parseDfd } from "./leveled-analysis";
 import type { DFDPage } from "../../models/dfd-types";
 import { dfdParser, type ParsedOccurrence } from "../dfd-parser";
 import { computeHomePages } from "./home-pages";
@@ -41,7 +42,7 @@ export function reassignDuplicateDefinitions(
   // Cell ids are unique within a page: duplicates need two adopted pages.
   if (!pages || pages.length < 2) return { pages, reassigned: [] };
 
-  const parse = dfdParser.parse(xml, pages);
+  const parse = parseDfd(xml, pages);
   const tree = buildPageTree({
     parsedPages: parse.pages,
     persistedPages: pages,
@@ -68,7 +69,7 @@ function previousOccurrences(
 ): ParsedOccurrence[] {
   if (!input.previousXml) return [];
   try {
-    return dfdParser.parse(input.previousXml, input.previousPages).occurrences;
+    return parseDfd(input.previousXml, input.previousPages).occurrences;
   } catch {
     // An unreadable previous state means "unknown" — tree order decides.
     return [];

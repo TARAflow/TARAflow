@@ -39,6 +39,7 @@ import {
 import { validatePageLayout } from "./validators/page-layout-validator";
 import { pruneStaleLinks, reassignDuplicateDefinitions } from "./leveled";
 import { reconcileAssetRollup } from "./leveled/asset-rollup";
+import { parseDfd } from "./leveled/leveled-analysis";
 import type { DfdGraphSource } from "./build-dfd-graph";
 
 /** pageIds of dfd.pages — an adopted multi-page DFD is analysable (§11.2.1). */
@@ -194,7 +195,7 @@ class DFDService {
       }
 
       // Parse XML
-      const parseResult = this.parser.parse(project.dfd!.xml!, project.dfd!.pages);
+      const parseResult = parseDfd(project.dfd!.xml!, project.dfd!.pages, this.parser);
       const { elements, connections, unconnectedDataflows } =
         parseResult;
 
@@ -284,14 +285,17 @@ class DFDService {
     parsedElements: DFDElement[],
     existingElements: DFDElement[],
   ): DFDElement[] {
+    // Always new objects with their own properties: the parse is shared
+    // (leveled-analysis cache) and later steps write into properties
+    // (deriveExposureLevels).
     return parsedElements.map((parsed) => {
       const existing = existingElements.find((e) => e.id === parsed.id);
-      if (!existing) return parsed;
+      if (!existing) return { ...parsed, properties: copyProperties(parsed.properties) };
 
       // Keep geometry/name from parser, but preserve user properties
       return {
         ...parsed,
-        properties: existing.properties || parsed.properties,
+        properties: existing.properties || copyProperties(parsed.properties),
         assetRelations: existing.assetRelations || parsed.assetRelations,
       };
     });
@@ -306,11 +310,11 @@ class DFDService {
   ): DFDConnection[] {
     return parsedConnections.map((parsed) => {
       const existing = existingConnections.find((c) => c.id === parsed.id);
-      if (!existing) return parsed;
+      if (!existing) return { ...parsed, properties: copyProperties(parsed.properties) };
 
       return {
         ...parsed,
-        properties: existing.properties || parsed.properties,
+        properties: existing.properties || copyProperties(parsed.properties),
         assetRelations: existing.assetRelations || parsed.assetRelations,
       };
     });
@@ -465,7 +469,7 @@ class DFDService {
 
       // Parse and validate
       const { elements, connections, unconnectedDataflows } =
-        this.parser.parse(xml || "", pages);
+        parseDfd(xml || "", pages, this.parser);
 
       // Merge with existing properties (preserves assetRelations, user descriptions, etc.)
       const mergedConnections = this.mergeConnectionProperties(
@@ -643,7 +647,7 @@ class DFDService {
       const pages = linksForSave(project, xml);
 
       const { elements, connections, unconnectedDataflows } =
-        this.parser.parse(xml, pages);
+        parseDfd(xml, pages, this.parser);
 
       const mergedConnections = this.mergeConnectionProperties(
         connections,
@@ -781,7 +785,7 @@ class DFDService {
     }
 
     const { elements, connections, unconnectedDataflows } =
-      this.parser.parse(xml || "", project.dfd?.pages);
+      parseDfd(xml || "", project.dfd?.pages, this.parser);
 
     const mergedConnections = this.mergeConnectionProperties(
       connections,
@@ -836,7 +840,7 @@ class DFDService {
     adapter.syncFromLegacy();
 
     const xml = adapter.getXml();
-    return this.parser.parse(xml || "").stats;
+    return parseDfd(xml || "", undefined, this.parser).stats;
   }
 
   // ==================== PHASE STATUS ====================
@@ -895,4 +899,9 @@ function previousSourceOf(project: DFDProjectData): DfdGraphSource | undefined {
     connections: dfd.connections ?? [],
     assets: [],
   };
+}
+
+/** A record's own copy of the parsed properties (the parse is shared). */
+function copyProperties<T>(properties: T): T {
+  return properties && typeof properties === "object" ? ({ ...properties } as T) : properties;
 }

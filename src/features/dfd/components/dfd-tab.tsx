@@ -56,7 +56,7 @@ import {
   type CellRef,
   type LinkEditResult,
 } from "../services/leveled";
-import { dfdParser } from "../services/dfd-parser";
+import { parseDfd } from "../services/leveled/leveled-analysis";
 import type { ContextCellMap } from "../services/drawio-bridge";
 
 // Components
@@ -260,20 +260,21 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     ),
     savePages: editor.savePages,
   });
-  // Leveled DFD (5c): draw.io's own page tabs get a tooltip (place in the
-  // page tree) and a finding badge — no second page tree next to them.
-  const pageOutline = usePageOutline(project.dfd, editor.validation);
-
-  // Leveled DFD (5g): the saved DFD parsed once for the identity section
-  // and the context-copy display. Null for a classic project and while
-  // pages wait for adoption.
+  // Leveled DFD (5g): the saved DFD parsed once — the shared parse of the
+  // leveled analysis — for the page outline, the identity section, the
+  // context-copy display and the leveled hooks. Null for a classic project
+  // and while pages wait for adoption.
   const leveledParse = useMemo(() => {
     const xml = project.dfd?.xml;
     const pages = project.dfd?.pages;
     if (!xml || !pages || pages.length === 0) return null;
     if (!inspectDrawioPages(xml, pages.map((p) => p.pageId)).supported) return null;
-    return dfdParser.parse(xml, pages);
+    return parseDfd(xml, pages);
   }, [project.dfd?.xml, project.dfd?.pages]);
+
+  // Leveled DFD (5c): draw.io's own page tabs get a tooltip (place in the
+  // page tree) and a finding badge — no second page tree next to them.
+  const pageOutline = usePageOutline(leveledParse, project.dfd?.pages, editor.validation);
 
   // Context copies are shown faded and dashed in draw.io (display only) —
   // also a copied flow whose free end is not attached yet (link only).

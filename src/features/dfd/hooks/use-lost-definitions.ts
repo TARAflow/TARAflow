@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DFDPage, DFDProjectData, DFDUpdateResult } from "../models/dfd-types";
-import { dfdParser } from "../services/dfd-parser";
+import { parseDfd } from "../services/leveled/leveled-analysis";
 import {
   findLostDefinitions,
   reattachDefinition,
@@ -68,7 +68,7 @@ export function useLostDefinitions(
     if (previous.xml === current.xml && previous.pages === current.pages) return;
     if (!current.pages?.length && !previous.pages?.length) return; // classic DFD
 
-    const parse = dfdParser.parse(current.xml ?? "", current.pages);
+    const parse = parseDfd(current.xml ?? "", current.pages);
     setEntries((open) => {
       // Open questions: still lost? Fresh candidates.
       const kept = open

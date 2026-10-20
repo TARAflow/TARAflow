@@ -1552,6 +1552,23 @@ Order (Phase 6):
   custom marker only.
 - **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
 
+**Review findings (2026-10-20), before Phase 7.** One patch per finding, each runnable and tested.
+- **R1 ✅ shared leveled analysis** — one parse and one effective model per DFD state:
+  - `leveled/leveled-analysis`: `parseDfd(xml, pages, parser?)` caches the parse per (XML, page
+    structure without thumbnails); `analyseLeveled(source)` caches tree, home pages and model per
+    parse plus the structural signature of the records (element types; `excludeFromThreatGen`,
+    `refines`, `abstract` of flows). Records are merged on every call. Small LRU (4 states).
+  - `effectiveModelOf` delegates to it, so save path, validator, asset roll-up, table groups and
+    parent-level flows share one model; the app layout analyses once and derives groups and
+    banner from it (`multiprocessGroupsFrom`, `parentLevelFlowsFrom`).
+  - Every direct `dfdParser.parse` of the feature goes through `parseDfd`; `usePageOutline` takes
+    the DFD tab's parse instead of parsing. Explicit hand-over to the remaining hooks follows with
+    the façade (R4) and the split of `use-child-pages` (R3).
+  - The save path gives every record its own copy of the parsed properties (later steps write
+    into them, `deriveExposureLevels`); the cached parse stays untouched.
+  - Measured: a save parses its XML once, a save without a change of the drawing not at all; a
+    change of an ordinary property neither parses nor rebuilds the model.
+
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
 explicitly.

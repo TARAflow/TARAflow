@@ -8,6 +8,7 @@
 import type { DfdGraphSource } from "../build-dfd-graph";
 import { effectiveModelOf, isLeveled } from "../build-dfd-graph";
 import type { FallbackReason } from "./effective-model";
+import type { LeveledAnalysis } from "./leveled-analysis";
 
 export interface ParentLevelFlow {
   tfId: string;
@@ -23,7 +24,14 @@ export interface ParentLevelFlow {
 /** Empty for a classic DFD (one page) — there is no effective model. */
 export function parentLevelFlowsOf(source: DfdGraphSource): ParentLevelFlow[] {
   if (!isLeveled(source.xml)) return [];
-  const { model, records } = effectiveModelOf(source);
+  return parentLevelFlowsFrom(effectiveModelOf(source));
+}
+
+/** The parent-level flows of an analysed leveled DFD (shared analysis). */
+export function parentLevelFlowsFrom(
+  analysis: Pick<LeveledAnalysis, "model" | "records">,
+): ParentLevelFlow[] {
+  const { model, records } = analysis;
   const label = (r: { id: string; displayId?: string; name?: string } | undefined, id: string) =>
     r ? [r.displayId, r.name].filter(Boolean).join(" ") || r.id : id;
   return model.flows

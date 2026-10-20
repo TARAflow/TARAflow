@@ -31,7 +31,8 @@ import type {
   DFDProjectData,
   DFDUpdateResult,
 } from "../models/dfd-types";
-import { dfdParser } from "../services/dfd-parser";
+import type { ParseResult } from "../services/dfd-parser";
+import { parseDfd } from "../services/leveled/leveled-analysis";
 import { readDrawioPages } from "../services/parsers/page-reader";
 import {
   analysePageGeometry,
@@ -234,7 +235,7 @@ export function useChildPages(
       return skip("page tree needs a review (extra root or missing page) or a new page is on its way");
     }
 
-    const parse = dfdParser.parse(xml, pages);
+    const parse = parseDfd(xml, pages);
     if (!knownRef.current) {
       knownRef.current = new Set(
         parse.elements.filter((e) => e.type === "Multiprocess").map((e) => e.id),
@@ -443,7 +444,7 @@ export function useChildPages(
       if (!(await waitIdle(busyRef))) return "busy";
       busyRef.current = true;
       try {
-        const parse = dfdParser.parse(xml, pages);
+        const parse = parseDfd(xml, pages);
         const spec = planContextCopies({
           parse,
           pageGeometry: analysePageGeometry(parse.pageCells),
@@ -472,7 +473,7 @@ export function useChildPages(
       if (!(await waitIdle(busyRef))) return "busy";
       busyRef.current = true;
       try {
-        const parse = dfdParser.parse(xml, pages);
+        const parse = parseDfd(xml, pages);
         const spec = planInsertAsContext(parse, pages, kind, tfId, pageId);
         if (!spec) return "not possible";
         const result = await callSync(syncPages, { create: [], rename: [], context: [spec] });
@@ -503,7 +504,7 @@ interface ContextRemoval {
  * out (copies on their way, removals sent).
  */
 function autoContextOf(
-  parse: ReturnType<typeof dfdParser.parse>,
+  parse: ParseResult,
   pages: readonly DFDPage[] | undefined,
   requested: ReadonlySet<string>,
 ): { copies: ContextCopySpec[]; removals: ContextRemoval[] } {

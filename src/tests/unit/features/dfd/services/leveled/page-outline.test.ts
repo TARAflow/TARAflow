@@ -81,17 +81,17 @@ describe("buildPageOutline", () => {
 });
 
 describe("usePageOutline", () => {
-  it("is null for a single page and while pages wait for adoption", () => {
-    const single = renderHook(() => usePageOutline({ xml: mxfile(SYSTEM) }, null));
+  it("is null for a single page and while pages wait for adoption (the tab passes no parse)", () => {
+    const singleXml = mxfile(SYSTEM);
+    const single = renderHook(() => usePageOutline(dfdParser.parse(singleXml), undefined, null));
     expect(single.result.current).toBeNull();
-    const unadopted = renderHook(() =>
-      usePageOutline({ xml: XML, pages: LEVELED_PAGES.slice(0, 2) }, null),
-    );
+    const unadopted = renderHook(() => usePageOutline(null, LEVELED_PAGES.slice(0, 2), null));
     expect(unadopted.result.current).toBeNull();
   });
 
-  it("builds the outline of an adopted DFD", () => {
-    const { result } = renderHook(() => usePageOutline({ xml: XML, pages: LEVELED_PAGES }, null));
+  it("builds the outline of an adopted DFD from the shared parse", () => {
+    const parse = dfdParser.parse(XML, LEVELED_PAGES);
+    const { result } = renderHook(() => usePageOutline(parse, LEVELED_PAGES, null));
     expect(result.current?.nodes.map((n) => n.pageId)).toEqual(["sys", "sen", "ctl"]);
   });
 });

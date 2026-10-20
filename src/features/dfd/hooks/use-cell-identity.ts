@@ -4,7 +4,7 @@
 
 import { useMemo } from "react";
 import type { DFDData } from "../models/dfd-types";
-import { dfdParser } from "../services/dfd-parser";
+import { parseDfd } from "../services/leveled/leveled-analysis";
 import {
   buildCellIdentityIndex,
   type CellIdentityIndex,
@@ -26,6 +26,6 @@ export function useCellIdentity(
     const leveled =
       !!pages && (pages.length > 1 || pages.some((p) => (p.links?.length ?? 0) > 0));
     if (!leveled || !xml) return CLASSIC;
-    return buildCellIdentityIndex(pages, dfdParser.parse(xml, pages).occurrences);
+    return buildCellIdentityIndex(pages, parseDfd(xml, pages).occurrences);
   }, [xml, pages]);
 }

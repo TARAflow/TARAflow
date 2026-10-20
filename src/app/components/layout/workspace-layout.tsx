@@ -53,8 +53,10 @@ import {
 } from "features/dfd";
 import {
   addCreatedAssets,
-  multiprocessGroupsOf,
-  parentLevelFlowsOf,
+  analyseLeveled,
+  isLeveled,
+  multiprocessGroupsFrom,
+  parentLevelFlowsFrom,
   translateFinding,
 } from "features/dfd";
 
@@ -662,36 +664,28 @@ export const WorkspaceLayout: React.FC = () => {
     [activeDfdGraph],
   );
 
-  // Leveled DFD (5j): flows analysed on a parent level, for the threats tab.
+  // Leveled DFD: one shared analysis (parse + effective model) for the
+  // parent-level flows (5j) and the table groups (Phase 6, D20).
   const activeDfd = activeProject?.dfd;
-  const memoizedParentLevelFlows = useMemo(
+  const leveledAnalysis = useMemo(
     () =>
-      activeDfd?.xml && activeDfd.pages && activeDfd.pages.length > 1
-        ? parentLevelFlowsOf({
+      activeDfd?.xml && activeDfd.pages && activeDfd.pages.length > 1 && isLeveled(activeDfd.xml)
+        ? analyseLeveled({
             xml: activeDfd.xml,
             pages: activeDfd.pages,
             elements: activeDfd.elements ?? [],
             connections: activeDfd.connections ?? [],
-            assets: [],
           })
-        : [],
+        : null,
     [activeDfd?.xml, activeDfd?.pages, activeDfd?.elements, activeDfd?.connections],
   );
-
-  // Leveled DFD (Phase 6, D20): accordion groups of the asset / threat /
-  // risk tables.
+  const memoizedParentLevelFlows = useMemo(
+    () => (leveledAnalysis ? parentLevelFlowsFrom(leveledAnalysis) : []),
+    [leveledAnalysis],
+  );
   const memoizedTableGroups = useMemo(
-    () =>
-      activeDfd?.xml && activeDfd.pages && activeDfd.pages.length > 1
-        ? multiprocessGroupsOf({
-            xml: activeDfd.xml,
-            pages: activeDfd.pages,
-            elements: activeDfd.elements ?? [],
-            connections: activeDfd.connections ?? [],
-            assets: [],
-          })
-        : undefined,
-    [activeDfd?.xml, activeDfd?.pages, activeDfd?.elements, activeDfd?.connections],
+    () => (leveledAnalysis ? multiprocessGroupsFrom(leveledAnalysis) : undefined),
+    [leveledAnalysis],
   );
 
   const memoizedDFDContext = useMemo(

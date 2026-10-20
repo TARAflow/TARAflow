@@ -22,21 +22,12 @@ import {
   DefaultDFDGraphBuilder,
   type PrecomputedGraphFacts,
 } from "./dfd-graph-builder";
-import { dfdParser } from "./dfd-parser";
-import {
-  analysePageGeometry,
-  buildEffectiveModel,
-  buildPageTree,
-  computeHomePages,
-  type EffectiveModel,
-  type HomePages,
-  type PageTree,
-} from "./leveled";
+import type { EffectiveModel } from "./leveled";
 import {
   collectLeveledFindings,
   type LeveledFindings,
 } from "./leveled/leveled-findings";
-import type { ParseResult } from "./dfd-parser";
+import { analyseLeveled, type LeveledAnalysis } from "./leveled/leveled-analysis";
 
 export interface DfdGraphSource {
   xml?: string;
@@ -94,50 +85,12 @@ export function isLeveled(xml: string | undefined): boolean {
   return !!xml && inspectDrawioPages(xml).pageCount > 1;
 }
 
-/** The effective model of a leveled DFD and the records it refers to. */
-export function effectiveModelOf(source: DfdGraphSource): {
-  model: EffectiveModel;
-  records: {
-    elements: Map<string, DFDElement>;
-    connections: Map<string, DFDConnection>;
-  };
-  parse: ParseResult;
-  tree: PageTree;
-  homePages: HomePages;
-} {
-  const parse = dfdParser.parse(source.xml ?? "", source.pages);
-  const elementRecords = new Map(parse.elements.map((e) => [e.id, e]));
-  for (const e of source.elements) {
-    if (elementRecords.has(e.id)) elementRecords.set(e.id, e);
-  }
-  const connectionRecords = new Map(parse.connections.map((c) => [c.id, c]));
-  for (const c of source.connections) {
-    if (connectionRecords.has(c.id)) connectionRecords.set(c.id, c);
-  }
-
-  const homePages = computeHomePages(parse.occurrences);
-  const tree = buildPageTree({
-    parsedPages: parse.pages,
-    persistedPages: source.pages,
-    elements: [...elementRecords.values()],
-    occurrences: parse.occurrences,
-    homePages,
-  });
-  const model = buildEffectiveModel({
-    elements: [...elementRecords.values()],
-    connections: [...connectionRecords.values()],
-    occurrences: parse.occurrences,
-    tree,
-    homePages,
-    pageGeometry: analysePageGeometry(parse.pageCells),
-  });
-  return {
-    model,
-    records: { elements: elementRecords, connections: connectionRecords },
-    parse,
-    tree,
-    homePages,
-  };
+/**
+ * The effective model of a leveled DFD and the records it refers to — from
+ * the shared analysis (one parse, one model per DFD state; finding 1).
+ */
+export function effectiveModelOf(source: DfdGraphSource): LeveledAnalysis {
+  return analyseLeveled(source);
 }
 
 function graphInputOf(

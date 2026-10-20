@@ -19,6 +19,7 @@
 import { TOP_LEVEL_GROUP, type DfdTableGroups } from "shared";
 import type { DfdGraphSource } from "../build-dfd-graph";
 import { effectiveModelOf, isLeveled } from "../build-dfd-graph";
+import type { LeveledAnalysis } from "./leveled-analysis";
 
 /**
  * Undefined for a classic DFD and for a leveled DFD without a decomposed
@@ -26,7 +27,14 @@ import { effectiveModelOf, isLeveled } from "../build-dfd-graph";
  */
 export function multiprocessGroupsOf(source: DfdGraphSource): DfdTableGroups | undefined {
   if (!isLeveled(source.xml)) return undefined;
-  const { model, records, tree, homePages } = effectiveModelOf(source);
+  return multiprocessGroupsFrom(effectiveModelOf(source));
+}
+
+/** The table groups of an analysed leveled DFD (shared analysis). */
+export function multiprocessGroupsFrom(
+  analysis: Pick<LeveledAnalysis, "model" | "records" | "tree" | "homePages">,
+): DfdTableGroups | undefined {
+  const { model, records, tree, homePages } = analysis;
   const parent = model.containmentParent;
   const decomposed = new Set(parent.values());
   if (decomposed.size === 0) return undefined;
