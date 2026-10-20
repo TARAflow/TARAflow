@@ -9,15 +9,7 @@
 
 import React from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Chip,
-  Typography,
-} from "@mui/material";
-import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
-import { TOP_LEVEL_GROUP, type DfdTableGroups } from "shared";
+import { GroupAccordions, TOP_LEVEL_GROUP, type DfdTableGroups } from "shared";
 import type { Asset } from "../models/asset-types";
 import {
   ASSET_NOT_IN_DFD,
@@ -42,15 +34,16 @@ export const AssetGroupSections: React.FC<AssetGroupSectionsProps> = ({
   renderTable,
 }) => {
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
-
-  React.useEffect(() => {
-    if (!groups || !highlightRequest) return;
-    const asset = assets.find((a) => a.id === highlightRequest.assetId);
-    if (!asset) return;
-    const key = assetGroupOf(groups, asset);
-    setCollapsed((c) => ({ ...c, [key]: false }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // "Show in table" opens the group of the asset — on a new request only,
+  // not on every change of the assets (that would reopen a group the
+  // analyst closed); the current data is read through a ref.
+  const latest = React.useRef({ groups, assets });
+  latest.current = { groups, assets };
+  const openRequest = React.useMemo(() => {
+    const { groups: g, assets: list } = latest.current;
+    if (!g || !highlightRequest) return null;
+    const asset = list.find((a) => a.id === highlightRequest.assetId);
+    return asset ? { key: assetGroupOf(g, asset) } : null;
   }, [highlightRequest]);
 
   if (!groups) return <>{renderTable(assets, "")}</>;
@@ -65,35 +58,20 @@ export const AssetGroupSections: React.FC<AssetGroupSectionsProps> = ({
           : label;
 
   return (
-    <>
-      {assetGroupSections(groups, assets).map((section) => (
-        <Accordion
-          key={section.key}
-          expanded={!collapsed[section.key]}
-          onChange={(_, expanded) => setCollapsed((c) => ({ ...c, [section.key]: !expanded }))}
-          disableGutters
-          data-testid={`asset-group-${section.key}`}
-          sx={{ mb: 1 }}
-        >
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
-              {labelOf(section.key, section.label)}
-            </Typography>
-            {section.key === ASSET_SHARED_GROUP && (
-              <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
-                {t("tabs.assets.groups.sharedHint", {
-                  defaultValue: "held in several multiprocesses",
-                })}
-              </Typography>
-            )}
-            <Chip size="small" label={section.assets.length} sx={{ mr: 1 }} />
-          </AccordionSummary>
-          <AccordionDetails sx={{ p: 0 }}>
-            {!collapsed[section.key] && renderTable(section.assets, section.key)}
-          </AccordionDetails>
-        </Accordion>
-      ))}
-    </>
+    <GroupAccordions
+      testIdPrefix="asset-group"
+      openRequest={openRequest}
+      sections={assetGroupSections(groups, assets).map((section) => ({
+        key: section.key,
+        label: labelOf(section.key, section.label),
+        count: section.assets.length,
+        hint:
+          section.key === ASSET_SHARED_GROUP
+            ? t("tabs.assets.groups.sharedHint", { defaultValue: "held in several multiprocesses" })
+            : undefined,
+        render: () => renderTable(section.assets, section.key),
+      }))}
+    />
   );
 };
 

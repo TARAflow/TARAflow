@@ -1607,6 +1607,12 @@ Order (Phase 6):
   is identical apart from the parameter (checked whitespace-insensitively). A test parses each
   script and runs it without draw.io's API. The small one-off scripts (select cell, context
   cells, page-tab info, scroll) stay inline.
+- **Minor ✅ one group accordion** — `shared/components/group-accordions` (`GroupAccordions`):
+  one accordion per group with label, count and hint, content rendered only while open, summary
+  rows with an "open" link in one group, opening on request from outside. `ThreatGroupSections`,
+  `RiskGroupSections` and `AssetGroupSections` only compute their groups, figures and texts
+  (i18n stays in the features). The asset group of a "Show in table" request is derived on a new
+  request only, via a ref instead of an `exhaustive-deps` suppression.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed

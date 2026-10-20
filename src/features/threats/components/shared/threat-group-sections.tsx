@@ -16,18 +16,14 @@
 
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Typography } from "@mui/material";
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Chip,
-  Link,
-  Stack,
-  Typography,
-} from "@mui/material";
-import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
-import { TOP_LEVEL_GROUP, groupsOfDfdItem, type DfdTableGroups } from "shared";
+  GroupAccordions,
+  TOP_LEVEL_GROUP,
+  groupsOfDfdItem,
+  type DfdTableGroups,
+  type GroupSummaryRow,
+} from "shared";
 import type { Threat, ThreatTable } from "../../models/threat-types";
 
 const NOT_IN_DFD = "__not_in_dfd__";
@@ -70,7 +66,6 @@ export const ThreatGroupSections: React.FC<ThreatGroupSectionsProps> = ({
   renderTable,
 }) => {
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
   if (!groups) return <>{tables.map((table, index) => renderTable(table, index, ""))}</>;
 
   const sections = [
@@ -99,70 +94,38 @@ export const ThreatGroupSections: React.FC<ThreatGroupSectionsProps> = ({
     })
     .filter((section) => section.threats.length > 0);
 
-  const domId = (key: string) => `threat-group-${key}`;
-  const openGroup = (key: string) => {
-    setCollapsed((c) => ({ ...c, [key]: false }));
-    requestAnimationFrame(() =>
-      document.getElementById(domId(key))?.scrollIntoView?.({ block: "start", behavior: "smooth" }),
-    );
-  };
-  const summaries = sections.filter((s) => s.key !== TOP_LEVEL_GROUP && s.key !== NOT_IN_DFD);
+  const rows: GroupSummaryRow[] = sections
+    .filter((s) => s.key !== TOP_LEVEL_GROUP && s.key !== NOT_IN_DFD)
+    .map((s) => ({
+      key: s.key,
+      label: s.label,
+      figures: (
+        <Typography variant="body2" color="text.secondary">
+          {t("tabs.threats.groups.summary", {
+            defaultValue: "{{count}} threat(s) of its parts",
+            count: s.threats.length,
+          })}
+          {" — "}
+          {STRIDE.map((c) => `${c} ${s.threats.filter((x) => x.strideCategory === c).length}`).join(" · ")}
+        </Typography>
+      ),
+    }));
 
   return (
-    <>
-      {sections.map((section) => (
-        <Accordion
-          key={section.key}
-          id={domId(section.key)}
-          expanded={!collapsed[section.key]}
-          onChange={(_, expanded) => setCollapsed((c) => ({ ...c, [section.key]: !expanded }))}
-          disableGutters
-          data-testid={`threat-group-${section.key}`}
-          sx={{ mb: 1 }}
-        >
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
-              {section.label}
-            </Typography>
-            <Chip size="small" label={section.threats.length} sx={{ mr: 1 }} />
-          </AccordionSummary>
-          <AccordionDetails sx={{ p: 0 }}>
-            {section.key === TOP_LEVEL_GROUP && summaries.length > 0 && (
-              <Box sx={{ px: 2, py: 1 }} data-testid="threat-group-summaries">
-                {summaries.map((s) => (
-                  <Stack
-                    key={s.key}
-                    direction="row"
-                    spacing={1}
-                    alignItems="center"
-                    sx={{ py: 0.25 }}
-                    data-testid={`threat-group-summary-${s.key}`}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 500, minWidth: 160 }}>
-                      {s.label}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {t("tabs.threats.groups.summary", {
-                        defaultValue: "{{count}} threat(s) of its parts",
-                        count: s.threats.length,
-                      })}
-                      {" — "}
-                      {STRIDE.map(
-                        (c) => `${c} ${s.threats.filter((x) => x.strideCategory === c).length}`,
-                      ).join(" · ")}
-                    </Typography>
-                    <Link component="button" variant="body2" onClick={() => openGroup(s.key)}>
-                      {t("tabs.threats.groups.details", { defaultValue: "Details" })}
-                    </Link>
-                  </Stack>
-                ))}
-              </Box>
-            )}
-            {section.sectionTables.map(({ table, index }) => renderTable(table, index, section.key))}
-          </AccordionDetails>
-        </Accordion>
-      ))}
-    </>
+    <GroupAccordions
+      testIdPrefix="threat-group"
+      sections={sections.map((section) => ({
+        key: section.key,
+        label: section.label,
+        count: section.threats.length,
+        render: () => section.sectionTables.map(({ table, index }) => renderTable(table, index, section.key)),
+      }))}
+      summaries={{
+        inGroup: TOP_LEVEL_GROUP,
+        rows,
+        openLabel: t("tabs.threats.groups.details", { defaultValue: "Details" }),
+      }}
+    />
   );
 };
 

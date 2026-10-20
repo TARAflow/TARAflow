@@ -175,6 +175,11 @@ export { Button } from "./components/button";
 export { Toast, ToastContainer } from "./components/toast";
 export { Badge } from "./components/badge";
 export { GenericAccordion } from "./components/generic-accordion";
+export {
+  GroupAccordions,
+  type GroupAccordionSection,
+  type GroupSummaryRow,
+} from "./components/group-accordions";
 export { LazyTooltip } from "./components/lazy-tooltip";
 export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";
