@@ -121,23 +121,58 @@ export function registerDrawioHandlers() {
             }, 100);
 
             // Setup selection listener
-            ui.editor.graph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
-              var cells = ui.editor.graph.getSelectionCells();
+            var postSelection = function(cells) {
               var selection = cells.map(function(c) {
-                return { 
-                  id: c.id, 
+                return {
+                  id: c.id,
                   value: c.value,
                   type: c.getAttribute ? c.getAttribute('type') : null
                 };
               });
-              
+
               console.log('[Plugin] Selection changed:', selection);
-              
+
               window.parent.postMessage(JSON.stringify({
                 event: 'selection',
                 selection: selection
               }), '*');
+            };
+            // A selection made by pressing the mouse button is reported
+            // only when the button is released. TARAflow opens its details
+            // panel on a selection; doing that in the middle of the gesture
+            // moved the diagram under the pointer. (The former workaround —
+            // pointer-events:none on the iframe for one frame — let the
+            // pointerup go past draw.io: mxGraph kept isMouseDown, dropped
+            // every further mousedown and the element stuck to the pointer.)
+            var selectionGraph = ui.editor.graph;
+            var selectionPending = false;
+            var flushSelection = function() {
+              if (!selectionPending) return;
+              selectionPending = false;
+              postSelection(selectionGraph.getSelectionCells());
+            };
+            var flushAfterGesture = function() {
+              // After mxGraph has handled the release (handlers first).
+              window.setTimeout(flushSelection, 0);
+            };
+            selectionGraph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
+              if (selectionGraph.isMouseDown) {
+                selectionPending = true;
+                return;
+              }
+              selectionPending = false;
+              postSelection(selectionGraph.getSelectionCells());
             });
+            selectionGraph.addMouseListener({
+              mouseDown: function() {},
+              mouseMove: function() {},
+              mouseUp: flushAfterGesture
+            });
+            // Also when the release happens outside the diagram or the
+            // browser cancels the gesture.
+            window.addEventListener('pointerup', flushAfterGesture, true);
+            window.addEventListener('mouseup', flushAfterGesture, true);
+            window.addEventListener('pointercancel', flushAfterGesture, true);
 
             // Viewport restore handler
             window.addEventListener('message', function(evt) {
