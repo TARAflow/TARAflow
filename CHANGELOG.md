@@ -1,3 +1,70 @@
+## [0.13.4-alpha] - 2026-10-20
+
+A security and bugfix release: all known vulnerabilities in the
+dependencies are closed, enclosures and interfaces get the threats meant
+for them, and two annoyances in the DFD editor are gone.
+
+### Security
+- **simple-git 4.0.2** (critical). simple-git runs the Git operations of
+  the audit workflow and the source version binding in the main process.
+  Versions up to 4.0.1 let a crafted configuration or option run commands
+  (GHSA-g4wm-2vf7-vfgr, GHSA-858h-whjf-mvg5, GHSA-x6jw-m9v5-85vh,
+  GHSA-v5rq-49vh-5v5c). Every Git command TARAflow issues was verified
+  against a real repository with the new version, including commit, push
+  and `ls-remote`.
+- **handlebars 4.7.10** (critical): JavaScript injection through
+  precompiled templates. Installed as a dependency of `asciidoctor`, which
+  is declared but not loaded by the app — no exploitable path, updated
+  anyway.
+- **Build and development tooling** (not shipped with the app):
+  shell-quote / concurrently (critical), axios, undici, brace-expansion,
+  http-cache-semantics, source-map-js (high), and the sprintf-js
+  denial-of-service in the electron-builder chain (moderate; `global-agent`
+  overridden to 4.x). `npm audit` now reports no vulnerabilities.
+
+### Fixed
+- **Enclosures got flow threats with themselves on both ends.** In the
+  per-interaction method a physical boundary received the data-flow
+  templates with sender = receiver ("Attacker impersonates the enclosure
+  to deceive the enclosure"). Both methods now take its threats from the
+  physical boundary templates. Impersonation of personnel (S-008, S-009)
+  and the missing audit trail (R-012) apply only to cabinets, rooms and
+  buildings; a STRIDE category without a matching template produces no
+  threat for an enclosure.
+- **An enclosure inside a trust boundary lost its own table** (per
+  element): its threats landed in the trust boundary's table. Physical and
+  chip boundaries now have their own table, together with the threats of
+  their interfaces — one table per boundary, no second one of the same
+  name.
+- **Interfaces got flow threats with themselves on both ends** (per
+  interaction), like the enclosures. They now get the interface templates,
+  as in the per-element method. The threat identity (element + STRIDE) is
+  unchanged, so ratings are kept on regeneration.
+- **An element stuck to the pointer after a click in the DFD.** Opening the
+  details panel interrupted draw.io's mouse gesture, so the element
+  followed the mouse until the next click. The selection is now reported
+  after the button is released.
+- **The diagram opened tiny.** draw.io fitted the whole diagram into the
+  window on opening; it now opens at 100 %, as after "Reset view".
+
+### Changed
+- **New mitigation M-PB-T-006 "Tamper-resistant enclosure"** (security
+  screws, lockable or sealed cover, vandal-resistant), proposed for opening
+  (T-001) together with active tamper protection, and for destruction
+  (D-007).
+- **Risk tab opens faster.** Tooltips in the risk table are created on
+  first hover instead of up front (on a project with 87 risks the table
+  mounted in 1.2 s instead of 2.8 s).
+- The unused `i18next-parser` development dependency was removed.
+
+### Notes
+- **Existing projects with enclosures or interfaces:** the generation
+  drift banner offers to remove the per-interaction threats that are no
+  longer generated; a regeneration updates the texts and templates of the
+  others. Analyst fields (relevance, status, notes, risk ratings) are
+  kept.
+- No project format change (schema 8).
+
 ## [0.13.3-alpha] - 2026-10-14
 
 A bugfix release for threat regeneration: it lost analyst decisions.
