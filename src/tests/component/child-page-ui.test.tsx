@@ -60,6 +60,19 @@ describe("ChildPageSection", () => {
     expect(screen.queryByTestId("child-page-create")).toBeNull();
   });
 
+  it("opens the child page with a button — a double-click in draw.io edits the label", () => {
+    const onOpen = vi.fn();
+    render(<ChildPageSection info={{ pageName: "Gateway", onOpen }} />);
+    expect(screen.getByTestId("child-page-section").textContent).not.toContain("double-click");
+    fireEvent.click(screen.getByTestId("child-page-open"));
+    expect(onOpen).toHaveBeenCalled();
+  });
+
+  it("has no open button without the draw.io plugin", () => {
+    render(<ChildPageSection info={{ pageName: "Gateway" }} />);
+    expect(screen.queryByTestId("child-page-open")).toBeNull();
+  });
+
   it("offers to create a child page", () => {
     const onCreate = vi.fn();
     render(<ChildPageSection info={{ onCreate }} />);

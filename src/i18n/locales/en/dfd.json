@@ -2661,7 +2661,8 @@
           "delete": "Delete page",
           "error": "draw.io did not delete the page ({{error}}). Delete it in draw.io (right-click on the tab) or keep it."
         },
-        "detailedOn": "Detailed on page \"{{page}}\" — double-click the multiprocess to open it.",
+        "detailedOn": "Detailed on page \"{{page}}\".",
+        "open": "Open page",
         "create": "Create child page",
         "sync": "Sync context",
         "syncFailed": "Context not synced ({{error}}).",

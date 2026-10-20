@@ -14,6 +14,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Stack,
   Typography,
 } from "@mui/material";
 import type { OrphanPage } from "../services/leveled";
@@ -86,6 +87,8 @@ export const OrphanPageDialog: React.FC<OrphanPageDialogProps> = ({ orphans, onR
 export interface ChildPageInfo {
   /** Name of the child page; absent = the multiprocess has none. */
   pageName?: string;
+  /** "Open page" in draw.io; absent = not possible here (no draw.io plugin). */
+  onOpen?: () => void;
   /** "Create child page"; absent = not possible here (no draw.io plugin). */
   onCreate?: () => void;
   /**
@@ -114,15 +117,22 @@ export const ChildPageSection: React.FC<{ info: ChildPageInfo }> = ({ info }) =>
           variant="outlined"
           sx={{ py: 0 }}
           action={
-            info.onSyncContext && (
-              <Button size="small" disabled={busy} onClick={() => void sync()} data-testid="child-page-sync">
-                {t("tabs.dfd.childPages.sync", { defaultValue: "Sync context" })}
-              </Button>
-            )
+            <Stack direction="row" spacing={0.5}>
+              {info.onOpen && (
+                <Button size="small" onClick={info.onOpen} data-testid="child-page-open">
+                  {t("tabs.dfd.childPages.open", { defaultValue: "Open page" })}
+                </Button>
+              )}
+              {info.onSyncContext && (
+                <Button size="small" disabled={busy} onClick={() => void sync()} data-testid="child-page-sync">
+                  {t("tabs.dfd.childPages.sync", { defaultValue: "Sync context" })}
+                </Button>
+              )}
+            </Stack>
           }
         >
           {t("tabs.dfd.childPages.detailedOn", {
-            defaultValue: 'Detailed on page "{{page}}" — double-click the multiprocess to open it.',
+            defaultValue: 'Detailed on page "{{page}}".',
             page: info.pageName,
           })}
           {syncResult !== null && (

@@ -354,6 +354,9 @@ export function registerDrawioHandlers() {
             if (!page) { console.warn('[Main:selectCell] Page not found: ' + pageId); return false; }
             ui.selectPage(page);
           }
+          // An empty cell id only opens the page (e.g. "Open page" of a
+          // decomposed multiprocess).
+          if (cellId === '') return true;
           var graph = ui.editor.graph;
           var cell = graph.model.getCell(cellId);
           if (!cell) { console.warn('[Main:selectCell] Cell not found: ' + cellId); return false; }

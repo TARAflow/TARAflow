@@ -339,8 +339,9 @@ Rules:
 - Every element **defined** on a child page is a **descendant** of the decomposed multiprocess.
   This gives the containment tree: `MP-1 ⊃ {P-1…P-4, DS-1, DS-2, IF-1, IF-2}`.
 - Navigation uses draw.io's native page link on the multiprocess cell
-  (`link="data:page/id,<pageId>"`), so double-click/Ctrl-click opens the child page also in plain
-  draw.io.
+  (`link="data:page/id,<pageId>"`), so the child page can be opened also in plain draw.io via the
+  link. A double-click does not open it: draw.io starts editing the label. In TARAflow the details
+  panel of the multiprocess has an "Open page" button.
 
 The page tree and the identity links live in the JSON (`dfd.pages`), not as custom attributes in
 the XML: draw.io does not guarantee to preserve unknown attributes on the `<diagram>` element, and
@@ -869,8 +870,8 @@ to disk.
 ## 12. UI
 
 - **Automatic child page (D15–D17):** creating a multiprocess creates its child page, named like the
-  MP, linked from the MP cell (`link="data:page/id,<pageId>"`, so double-click opens it — also on
-  its context copies). Until the page has a part of its own, the MP stays a leaf (§6.1). Deleting
+  MP, linked from the MP cell (`link="data:page/id,<pageId>"` — also on its context copies; opened
+  with "Open page" in the details panel, a double-click edits the label). Until the page has a part of its own, the MP stays a leaf (§6.1). Deleting
   the MP asks whether to delete its page as well (lifecycle "Delete a page", §5.2). The root tab is
   *Top*.
 - **Page tree:** no panel of its own — draw.io's page tabs at the bottom are the page list and the

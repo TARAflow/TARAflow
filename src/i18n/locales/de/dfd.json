@@ -2648,7 +2648,8 @@
           "delete": "Seite löschen",
           "error": "draw.io hat die Seite nicht gelöscht ({{error}}). Löschen Sie sie in draw.io (Rechtsklick auf den Tab) oder behalten Sie sie."
         },
-        "detailedOn": "Detailliert auf Seite \"{{page}}\" — Doppelklick auf den Multiprozess öffnet sie.",
+        "detailedOn": "Detailliert auf Seite \"{{page}}\".",
+        "open": "Seite öffnen",
         "create": "Unterseite anlegen",
         "sync": "Kontext aktualisieren",
         "syncFailed": "Kontext nicht aktualisiert ({{error}}).",

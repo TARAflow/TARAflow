@@ -845,8 +845,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     const syncContext = childPages.syncContext;
     if (page) {
       const mpTfId = selectedElement.id;
+      const openPage = editor.openPage;
       return editor.pluginReady
-        ? { pageName: page.name, onSyncContext: () => syncContext(mpTfId) }
+        ? {
+            pageName: page.name,
+            onOpen: () => void openPage(page.pageId),
+            onSyncContext: () => syncContext(mpTfId),
+          }
         : { pageName: page.name };
     }
     const decompose = childPages.decompose;
@@ -858,6 +863,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     childPages.decompose,
     childPages.syncContext,
     editor.pluginReady,
+    editor.openPage,
   ]);
 
   // Leveled DFD (5h): "Insert as context…" on the page draw.io shows (as

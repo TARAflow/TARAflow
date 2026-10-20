@@ -115,6 +115,8 @@ export interface UseDFDEditorReturn {
   setContextCells: (cells: ContextCellMap) => Promise<void>;
   /** Select one particular cell (page + cell), e.g. "Go to definition". */
   selectCellAt: (pageId: string, cellId: string) => Promise<void>;
+  /** Open a draw.io page without selecting a cell (leveled DFD). */
+  openPage: (pageId: string) => Promise<void>;
   /** The draw.io page last reported by the selection events; null before. */
   getCurrentPageId: () => string | null;
   /** One SVG thumbnail per page (leveled DFD 5i, D18). */
@@ -414,6 +416,11 @@ export function useDFDEditor(
   );
 
   const bridgeSelectCell = bridge.selectCell;
+  // An empty cell id makes drawio:selectCell only open the page.
+  const openPage = useCallback(
+    (pageId: string) => bridgeSelectCell("", pageId),
+    [bridgeSelectCell],
+  );
   const selectCell = useCallback(
     async (tfId: string): Promise<void> => {
       const target = cellIdentityRef.current.cellOf(tfId, currentPageIdRef.current);
@@ -631,6 +638,7 @@ export function useDFDEditor(
     syncPages: bridge.syncPages,
     setContextCells: bridge.setContextCells,
     selectCellAt: (pageId: string, cellId: string) => bridgeSelectCell(cellId, pageId),
+    openPage,
     getCurrentPageId: () => currentPageIdRef.current,
     exportPageSvgs: bridge.exportPageSvgs,
     updatePageThumbnails,
