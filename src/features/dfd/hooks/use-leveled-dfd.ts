@@ -127,6 +127,7 @@ export function useLeveledDfd(
     syncPages: editor.syncPages,
     savePages: editor.savePages,
     setNoChildPage,
+    parse,
   });
 
   // Adopted pages the tree cannot use (extra or missing root page) — from

@@ -612,7 +612,7 @@ describe("useChildPages", () => {
     );
     await waitFor(() => expect(syncPages).toHaveBeenCalled());
     await waitFor(() =>
-      expect(warn.mock.calls.some((c) => String(c[0]).includes("[useChildPages]"))).toBe(true),
+      expect(warn.mock.calls.some((c) => String(c[0]).includes("[childPages]"))).toBe(true),
     );
     warn.mockRestore();
   });

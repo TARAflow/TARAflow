@@ -1576,6 +1576,19 @@ Order (Phase 6):
   `useLostDefinitions`; the roll-up of the selection comes from the same model. Its
   dependencies are complete — three `exhaustive-deps` suppressions are gone (`getCurrentPageId`
   and `selectCellAt` are stable callbacks of the editor now).
+- **R3 ✅ child pages split, serial queue** — `use-child-pages.ts` (642 lines, one 230-line
+  effect, twelve refs) becomes:
+  - `utils/serial-queue`: tasks strictly one after another; a failing task does not stop it.
+  - `leveled/child-pages-steps`: the pure steps (deleted pages, arrived links, auto context of
+    pure context pages, remembered copies, `callSync`, page ids).
+  - `leveled/child-pages-orchestrator`: outside React, holds the session state; every step and
+    every analyst action (Sync context, Insert as context, orphan decision) runs through the
+    queue. A saved state that arrives during a running step is reconciled afterwards — once, the
+    newest (fixes: the busy flag returned without rescheduling and the state was lost). Actions
+    wait for their turn instead of polling 50 ms and failing with "busy" after 5 s. The DFD as
+    opened is taken from the first saved state at once (the queue may skip to a newer one).
+  - `useChildPages` (98 lines): binds it to React (`useSyncExternalStore`), hands over each saved
+    state with the façade's parse.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
