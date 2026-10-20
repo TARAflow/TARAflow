@@ -387,7 +387,9 @@ XML, no separate field, no re-derivation on load.
   "highest" = minimal depth among the pages the element occurs on (`EE-1`, `SB` → *Top*). If an
   element was first created on a child page and is later inserted as context on a higher page,
   TARAflow does **not** move the definition automatically; the info finding `BAL_HOME_NOT_HIGHEST`
-  offers the action "Move definition here".
+  offers the action "Move definition here". The opposite direction asks first: "Make this the
+  definition" / "Promote to definition" on a copy below the highest occurrence shows "MP-3 … then
+  becomes part of MP-1 …: its threats and risks are grouped under MP-1 …. Continue?".
 - Properties, asset relations and geometric boundary membership are read from the home page.
 
 ## 6. Effective model (what the threat generators see)
@@ -1613,6 +1615,14 @@ Order (Phase 6):
   `RiskGroupSections` and `AssetGroupSections` only compute their groups, figures and texts
   (i18n stays in the features). The asset group of a "Show in table" request is derived on a new
   request only, via a ref instead of an `exhaustive-deps` suppression.
+- **✅ confirm a definition moved down** (found with the SmokeDetector example: the definition of
+  MP-3 had been moved to the *Sensor Head* page, so MP-3 became part of MP-1 and its threat and
+  risk accordions disappeared under MP-1). `deeperHomeContainer` (identity-info) names the
+  multiprocess whose page holds the selected copy when that page is deeper than the highest
+  occurrence of the element (elements only). The façade passes `becomesPartOf` (labels of element
+  and container) to `IdentitySection`, which asks with `ConfirmDialog` before "Make this the
+  definition" and "Promote to definition"; cancel changes nothing. `BAL_HOME_NOT_HIGHEST` stays
+  info.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed

@@ -2691,7 +2691,12 @@
         "chooseElement": "wählen…",
         "apply": "Übernehmen",
         "makeCopyWarning": "Diese Zelle zeigt dann das gewählte Element; ihr eigener Datensatz (Eigenschaften, Asset-Beziehungen) wird nicht mehr verwendet und ihre Bedrohungen werden verwaist.",
-        "error": "Nicht möglich: {{reason}}."
+        "error": "Nicht möglich: {{reason}}.",
+        "becomesPartOf": {
+          "title": "Definition nach unten verschieben?",
+          "message": "{{element}} wird damit Teil von {{container}}: Seine Bedrohungen und Risiken werden unter {{container}} gruppiert. Möchten Sie fortfahren?",
+          "confirm": "Fortfahren"
+        }
       },
       "insertContext": {
         "title": "Als Kontext einfügen auf \"{{page}}\"",

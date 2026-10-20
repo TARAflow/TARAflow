@@ -128,6 +128,7 @@ export {
 export {
   describeIdentity,
   contextCellsOf,
+  deeperHomeContainer,
   type IdentityInfo,
   type OccurrenceInfo,
 } from "./identity-info";

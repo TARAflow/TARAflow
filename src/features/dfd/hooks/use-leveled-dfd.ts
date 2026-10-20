@@ -17,6 +17,7 @@ import type { ContextCellMap } from "../services/drawio-bridge";
 import {
   buildPageTabInfo,
   contextCellsOf,
+  deeperHomeContainer,
   describeIdentity,
   insertCandidates,
   linkAsContextCopy,
@@ -240,23 +241,35 @@ export function useLeveledDfd(
 
   const { savePages, selectCellAt } = editor;
   const cellRef = selection.cellRef;
+  const tree = analysis?.tree;
   const identity = useMemo(() => {
     if (!parse || !pages || !cellRef) return undefined;
     const info = describeIdentity(parse, pages, cellRef);
     if (!info) return undefined;
+    // A definition below the highest occurrence makes the element part of
+    // the multiprocess of this page — asked before it is applied.
+    const container = tree && deeperHomeContainer(parse.occurrences, pages, tree.depthOf, cellRef);
+    const label = (tfId: string) => {
+      const r = parse.elements.find((e) => e.id === tfId);
+      return [r?.displayId, r?.name].filter(Boolean).join(" ") || tfId;
+    };
+    const becomesPartOf = container
+      ? { element: label(info.tfId), container: label(container) }
+      : undefined;
     const apply = async (result: LinkEditResult): Promise<LeveledActionError | null> => {
       if (!result.ok) return result.reason;
       return (await savePages(result.pages)) ? null : "SAVE_FAILED";
     };
     return {
       info,
+      becomesPartOf,
       onGoTo: (target: CellRef) => void selectCellAt(target.pageId, target.cellId),
       onMakeDefinition: () => apply(makeDefinition(pages, parse.occurrences, cellRef)),
       onPromote: () => apply(promoteToDefinition(pages, parse.occurrences, cellRef)),
       onLinkAsContextCopy: (tfId: string) =>
         apply(linkAsContextCopy(pages, parse.occurrences, recordInfos(parse), cellRef, tfId)),
     };
-  }, [parse, pages, cellRef, savePages, selectCellAt]);
+  }, [parse, pages, cellRef, tree, savePages, selectCellAt]);
 
   return {
     /** Parse + effective model of the saved DFD; null for a classic DFD. */

@@ -2704,7 +2704,12 @@
         "chooseElement": "choose…",
         "apply": "Apply",
         "makeCopyWarning": "This cell then shows the chosen element; its own record (properties, asset relations) is no longer used and its threats become orphans.",
-        "error": "Not possible: {{reason}}."
+        "error": "Not possible: {{reason}}.",
+        "becomesPartOf": {
+          "title": "Move the definition down?",
+          "message": "{{element}} then becomes part of {{container}}: its threats and risks are grouped under {{container}}. Continue?",
+          "confirm": "Continue"
+        }
       },
       "insertContext": {
         "title": "Insert as context on \"{{page}}\"",

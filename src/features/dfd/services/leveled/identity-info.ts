@@ -131,3 +131,30 @@ export function contextCellsOf(
   }
   return byPage;
 }
+
+/**
+ * Making `cell` the definition (or promoting it) moves the element's home
+ * page below the highest page it is shown on — the element then becomes
+ * part of the multiprocess that page details (D5, BAL_HOME_NOT_HIGHEST).
+ * Returns that multiprocess's tfId, or undefined when the cell's page is
+ * the highest occurrence anyway. Elements only; flows have no containment.
+ */
+export function deeperHomeContainer(
+  occurrences: readonly { kind: "element" | "connection"; tfId: string; pageId: string; cellId: string }[],
+  pages: readonly DFDPage[] | undefined,
+  depthOf: ReadonlyMap<string, number>,
+  cell: CellRef,
+): string | undefined {
+  const selected = occurrences.find((o) => o.pageId === cell.pageId && o.cellId === cell.cellId);
+  if (selected?.kind !== "element") return undefined;
+  const depth = depthOf.get(cell.pageId);
+  if (depth === undefined) return undefined;
+  const higher = occurrences.some(
+    (o) =>
+      o.kind === "element" &&
+      o.tfId === selected.tfId &&
+      (depthOf.get(o.pageId) ?? Infinity) < depth,
+  );
+  if (!higher) return undefined;
+  return pages?.find((p) => p.pageId === cell.pageId)?.decomposes;
+}

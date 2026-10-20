@@ -21,9 +21,16 @@ import {
 import type { CellRef, IdentityInfo } from "../services/leveled";
 import type { LeveledActionError } from "../models/leveled-errors";
 import { leveledErrorText } from "./leveled-error-text";
+import { ConfirmDialog } from "./shared/confirm-dialog";
 
 export interface IdentitySectionProps {
   info: IdentityInfo;
+  /**
+   * Set when making this cell the definition moves it below the highest
+   * page the element is shown on: the element then becomes part of
+   * `container`. Making / promoting it asks first.
+   */
+  becomesPartOf?: { element: string; container: string };
   onGoTo: (cell: CellRef) => void;
   /** Resolve to an error code, or null on success. */
   onMakeDefinition: () => Promise<LeveledActionError | null>;
@@ -33,6 +40,7 @@ export interface IdentitySectionProps {
 
 export const IdentitySection: React.FC<IdentitySectionProps> = ({
   info,
+  becomesPartOf,
   onGoTo,
   onMakeDefinition,
   onPromote,
@@ -47,10 +55,20 @@ export const IdentitySection: React.FC<IdentitySectionProps> = ({
     setError(null);
   }, [info.tfId, info.occurrences]);
 
+  const [confirming, setConfirming] = React.useState<
+    (() => Promise<LeveledActionError | null>) | null
+  >(null);
+
   const run = async (action: () => Promise<LeveledActionError | null>) => {
     setBusy(true);
     setError(await action());
     setBusy(false);
+  };
+  // Making / promoting a definition that moves the element into a
+  // multiprocess asks first.
+  const runMoving = (action: () => Promise<LeveledActionError | null>) => {
+    if (becomesPartOf) setConfirming(() => action);
+    else void run(action);
   };
 
   const isCopy = info.role === "ref";
@@ -124,7 +142,7 @@ export const IdentitySection: React.FC<IdentitySectionProps> = ({
             size="small"
             variant="outlined"
             disabled={busy}
-            onClick={() => void run(onMakeDefinition)}
+            onClick={() => runMoving(onMakeDefinition)}
             data-testid="identity-make-definition"
           >
             {t("tabs.dfd.identity.makeDefinition", { defaultValue: "Make this the definition" })}
@@ -136,7 +154,7 @@ export const IdentitySection: React.FC<IdentitySectionProps> = ({
             variant="contained"
             color="error"
             disabled={busy}
-            onClick={() => void run(onPromote)}
+            onClick={() => runMoving(onPromote)}
             data-testid="identity-promote"
           >
             {t("tabs.dfd.identity.promote", { defaultValue: "Promote to definition" })}
@@ -186,6 +204,28 @@ export const IdentitySection: React.FC<IdentitySectionProps> = ({
             </Typography>
           )}
         </Box>
+      )}
+
+      {becomesPartOf && (
+        <ConfirmDialog
+          open={confirming !== null}
+          title={t("tabs.dfd.identity.becomesPartOf.title", {
+            defaultValue: "Move the definition down?",
+          })}
+          message={t("tabs.dfd.identity.becomesPartOf.message", {
+            defaultValue:
+              "{{element}} then becomes part of {{container}}: its threats and risks are grouped under {{container}}. Continue?",
+            ...becomesPartOf,
+          })}
+          confirmLabel={t("tabs.dfd.identity.becomesPartOf.confirm", { defaultValue: "Continue" })}
+          confirmColor="warning"
+          onConfirm={() => {
+            const action = confirming;
+            setConfirming(null);
+            if (action) void run(action);
+          }}
+          onCancel={() => setConfirming(null)}
+        />
       )}
 
       {error && (

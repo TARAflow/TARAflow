@@ -2,7 +2,7 @@
 // details panel offers (design §5.2, §12).
 import { describe, it, expect } from "vitest";
 import { dfdParser } from "features/dfd/services/dfd-parser";
-import { contextCellsOf, describeIdentity } from "features/dfd/services/leveled";
+import { contextCellsOf, deeperHomeContainer, describeIdentity } from "features/dfd/services/leveled";
 import type { DFDPage } from "features/dfd/models/dfd-types";
 import {
   CONTROLLER,
@@ -73,6 +73,31 @@ describe("describeIdentity", () => {
 
   it("is undefined for a cell that is no element or flow", () => {
     expect(describe_(XML, LEVELED_PAGES, "sys", "nope")).toBeUndefined();
+  });
+});
+
+describe("deeperHomeContainer", () => {
+  // Page depths of LEVELED_PAGES: System on top, the module pages below.
+  const depthOf = new Map([
+    ["sys", 0],
+    ["sen", 1],
+    ["ctl", 1],
+  ]);
+  const occurrences = dfdParser.parse(XML, LEVELED_PAGES).occurrences;
+
+  it("names the multiprocess a copy below the highest occurrence would become part of", () => {
+    // MP-2 is shown on System; its copy on Sensor Module lies deeper.
+    expect(deeperHomeContainer(occurrences, LEVELED_PAGES, depthOf, { pageId: "sen", cellId: "sen_mp2" })).toBe("mp1");
+  });
+
+  it("is undefined for a cell on the highest page and for an unknown cell", () => {
+    expect(deeperHomeContainer(occurrences, LEVELED_PAGES, depthOf, { pageId: "sys", cellId: "mp2" })).toBeUndefined();
+    expect(deeperHomeContainer(occurrences, LEVELED_PAGES, depthOf, { pageId: "sys", cellId: "nope" })).toBeUndefined();
+  });
+
+  it("is undefined when the higher occurrence is gone", () => {
+    const sensorOnly = dfdParser.parse(mxfile(SENSOR, CONTROLLER), LEVELED_PAGES).occurrences;
+    expect(deeperHomeContainer(sensorOnly, LEVELED_PAGES, depthOf, { pageId: "sen", cellId: "sen_mp2" })).toBeUndefined();
   });
 });
 

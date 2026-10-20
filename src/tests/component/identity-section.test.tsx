@@ -98,4 +98,29 @@ describe("IdentitySection", () => {
     fireEvent.click(screen.getByTestId("identity-make-copy"));
     await vi.waitFor(() => expect(h.onLinkAsContextCopy).toHaveBeenCalledWith("sen_p2"));
   });
+
+  it("asks before a definition moves the element into a multiprocess", async () => {
+    const h = handlers();
+    const becomesPartOf = { element: "MP-2 Controller", container: "MP-1 Sensor Module" };
+    render(<IdentitySection info={COPY} becomesPartOf={becomesPartOf} {...h} />);
+    fireEvent.click(screen.getByTestId("identity-make-definition"));
+    expect(screen.getByText(/MP-2 Controller then becomes part of MP-1 Sensor Module/)).toBeTruthy();
+    expect(h.onMakeDefinition).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(h.onMakeDefinition).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("identity-make-definition"));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await vi.waitFor(() => expect(h.onMakeDefinition).toHaveBeenCalledTimes(1));
+  });
+
+  it("makes the definition without asking when it stays on the highest page", async () => {
+    const h = handlers();
+    render(<IdentitySection info={COPY} {...h} />);
+    fireEvent.click(screen.getByTestId("identity-make-definition"));
+    await vi.waitFor(() => expect(h.onMakeDefinition).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 });
