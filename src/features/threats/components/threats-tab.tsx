@@ -52,6 +52,8 @@ import {
 } from "shared";
 import { StrategyIndicator } from "./shared/strategy-indicator";
 import { ParentLevelFlowsBanner } from "./parent-level-flows-banner";
+import { ThreatReconciliationSummary } from "./shared/threat-reconciliation-summary";
+import { reconcileForProject } from "../services/threat-reconciliation";
 
 // ==================== HELPER ====================
 
@@ -290,6 +292,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       activeHook.updateThreat(selectedThreat.tableIndex, {
         ...source,
         ...updates,
+        // Saving is the analyst's review (6e): the flag ends here.
+        review: undefined,
       });
     },
     [selectedThreat, activeHook],
@@ -427,6 +431,17 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         dfdPageIds: project.dfdPageIds,
       }) !== null,
     [project.dfdXml, project.dfdPageIds],
+  );
+
+  // ── Reconciliation (6e, §10): what "Regenerate" would do ─────────────────
+  // Computed only while the dialog is open (it runs the generator).
+  const reconciliation = useMemo(
+    () =>
+      showGenerateConfirm && hasDFD
+        ? reconcileForProject(project, dfdContext, configuration, activeMethod)
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showGenerateConfirm, hasDFD, activeMethod],
   );
 
   // ── Generation drift ────────────────────────────────────────────────────
@@ -753,7 +768,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           })}
           message={t("tabs.threats.generateConfirmMessage", {
             defaultValue:
-              "This will replace all existing threats for the current method. Consider using 'Sync' to only add new threats. Continue?",
+              "Threats generated again keep their rating; threats whose references changed are flagged for review. Continue?",
           })}
           variant="warning"
           confirmLabel={t("tabs.threats.regenerate", {
@@ -766,6 +781,9 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             setDeleteManualThreats(false);
           }}
         >
+          {reconciliation && (
+            <ThreatReconciliationSummary reconciliation={reconciliation} />
+          )}
           {drift.obsolete.length > 0 && (
             <div className="mb-3 text-sm text-amber-800">
               <p>

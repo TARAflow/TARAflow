@@ -55,6 +55,7 @@ import {
   MissingChip,
   ActorCell,
   SourceBadge,
+  ReviewBadge,
   compareThreatsByLabel,
 } from "../../components/shared/threat-table-utils";
 import { ImpactCell } from "../../components/shared/impact-cell";
@@ -367,6 +368,7 @@ const ThreatRows: React.FC<{
                         initialImpact={threat.initialImpact}
                         retainedAt={threat.retainedAfterRuleChange?.at}
                       />
+                      <ReviewBadge review={threat.review} />
                     </Stack>
                   </TableCell>
 

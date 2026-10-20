@@ -71,7 +71,7 @@ import {
 } from "../../services/threat-catalog-service";
 import { MitigationCoverageBadge, STRIDE_COLORS, formatAssetLabel } from "shared";
 import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
-import { SourceBadge } from "../../components/shared/threat-table-utils";
+import { ReviewBadge, SourceBadge } from "../../components/shared/threat-table-utils";
 import { releaseRetainedThreat } from "../../services/threat-generation-drift";
 
 // ==================== PROPS ====================
@@ -578,6 +578,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             retainedAt={currentThreat.retainedAfterRuleChange?.at}
             chipStyle
           />
+          <ReviewBadge review={currentThreat.review} />
           {/* Undo a drift-review Keep — the threat returns to its generated
               source and reappears in the drift review if still not produced */}
           {currentThreat.retainedAfterRuleChange && (

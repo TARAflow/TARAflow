@@ -80,6 +80,12 @@ export interface ThreatReference {
    * Phase 3b: used to pre-fill matching Risk impact factor.
    */
   initialImpact?: CIANAAALevel;
+  /**
+   * Leveled DFD Phase 6e: a regeneration changed the threat's references
+   * (flow endpoint, trust boundary, template); its rating is kept but needs
+   * a review. Absent = nothing to review.
+   */
+  review?: { reasons: string[]; since: string };
 }
 
 // ==================== THREAT → GOAL LINK ====================

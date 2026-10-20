@@ -34,6 +34,7 @@
 
 import type {
   Threat,
+  ThreatReviewReason,
   ThreatTable,
   MitigationDraft,
   VerificationDraft,
@@ -206,6 +207,40 @@ export function mergeProposedVerifications(
  * system action, not an analyst edit, and analyst edits set lastModified
  * through the dialog save path.
  */
+/**
+ * What a regenerated threat refers to differently than its predecessor with
+ * the same generator key (Phase 6e, §10 "reference changed"):
+ *
+ *   endpoint  the resolved source or target of its data flow (e.g. the flow
+ *             now ends at a part instead of the fallback multiprocess)
+ *   boundary  its trust boundary, or whether its flow crosses one
+ *   template  the catalog template that produced it
+ *
+ * Empty = unchanged. Pure.
+ */
+export function referenceChanges(
+  previous: Threat,
+  fresh: Threat,
+): ThreatReviewReason[] {
+  const reasons: ThreatReviewReason[] = [];
+  const pf = previous.dataFlow;
+  const ff = fresh.dataFlow;
+  if (pf && ff && (pf.sourceId !== ff.sourceId || pf.targetId !== ff.targetId)) {
+    reasons.push("endpoint");
+  }
+  const crosses = (t: Threat) => t.interactionContext?.crossesTrustBoundary;
+  if (
+    (previous.trustBoundaryId ?? null) !== (fresh.trustBoundaryId ?? null) ||
+    crosses(previous) !== crosses(fresh)
+  ) {
+    reasons.push("boundary");
+  }
+  if (previous.templateId && fresh.templateId && previous.templateId !== fresh.templateId) {
+    reasons.push("template");
+  }
+  return reasons;
+}
+
 export function mergeGeneratedThreat(
   existing: Threat | undefined,
   fresh: Threat,
@@ -244,6 +279,9 @@ export function mergeGeneratedThreat(
       existing.proposedVerifications,
       fresh.proposedVerifications,
     ),
+
+    // ── Phase 6e: changed references are flagged, never silently kept ────
+    review: reviewAfterRegeneration(existing, fresh),
 
     // ── Timestamps: preserved so a no-op regen produces no diff ──────────
     created: existing.created ?? fresh.created,
@@ -376,4 +414,12 @@ function reattachManualThreats(
   }
 
   return withManual;
+}
+
+/** The review flag after a regeneration: new reasons are added, the flag stays until the analyst saves. */
+function reviewAfterRegeneration(existing: Threat, fresh: Threat): Threat["review"] {
+  const reasons = referenceChanges(existing, fresh);
+  if (reasons.length === 0) return existing.review;
+  const all = [...new Set([...(existing.review?.reasons ?? []), ...reasons])];
+  return { reasons: all, since: existing.review?.since ?? fresh.created ?? new Date().toISOString() };
 }

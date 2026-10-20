@@ -741,10 +741,13 @@ re-generation produces a reconciliation result with four categories, shown befor
 | **reference changed** | same generator key, but a resolved endpoint/interface changed | kept but flagged **"review"**; never silently confirmed |
 | **obsolete** | existing threat without a generated counterpart | becomes orphan (existing orphan handling) |
 
-Generator key = (element or flow `tfId`, STRIDE category, template id, interface `tfId` for
-interface-bound flow threats). Because the key contains the logical `tfId`, not the resolved
+Generator key = (element or flow `tfId`, STRIDE category, direction for flow threats) — the
+natural key of the merge. Because the key contains the logical `tfId`, not the resolved
 endpoint, a flow whose endpoint moves from fallback `MP-2` to `P-5` keeps its threats as
-**reference changed**.
+**reference changed**. *Revised in 6e:* the template id is **not** part of the key — a new
+catalog template would otherwise discard the analyst's rating (obsolete + new); it is a
+**reference changed (template)** instead. Interface-bound flow threats do not exist (interfaces
+have element threats of their own, patch 54), so there is no interface part either.
 
 | Model change | Result |
 |---|---|
@@ -1531,7 +1534,17 @@ Order (Phase 6):
   load and on every page switch (`Editor.fitDiagramOnLoad` / `fitDiagramOnPage`, default true);
   a large diagram, or one loaded before the iframe was laid out, opened at a small zoom and needed
   "Reset view". The configure message now sets both to false: the diagram opens at 100 %.
-- **6e** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10);
+- **6e ✅** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10):
+  - `threat-reconciliation`: `reconcileThreats(stored, fresh, keyFn)` / `reconcileForProject`
+    (runs the generator on a copy); manual threats take no part.
+  - `referenceChanges(previous, fresh)` (threat-identity): `endpoint` (resolved source/target of
+    the flow), `boundary` (trust boundary or crossing), `template`. `mergeGeneratedThreat` sets
+    `Threat.review = { reasons, since }` on such a threat — id, relevance and risk stay; further
+    reasons are added, the date stays. Saving the threat in its dialog ends the flag.
+  - "Regenerate" dialog: the four counts, the flagged threats with their reasons, the new ones
+    (`ThreatReconciliationSummary`); the existing drift link for obsolete threats stays.
+  - "Review" badge in both threat tables and the threat dialog; in the risk tables the T-ID chip of
+    a risk whose threat is flagged is outlined (`ThreatReference.review`).
 - **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack, Chip, Tooltip } from "@mui/material";
 import {
@@ -189,7 +189,13 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
     </Stack>
   );
 
+  // Leveled DFD (6e): risks whose threat a regeneration flagged for review.
+  const reviewThreatIds = useMemo(
+    () => new Set(threats.filter((th) => th.review).map((th) => th.id)),
+    [threats],
+  );
   const columns = useRiskColumns({
+    reviewThreatIds,
     configuration,
     onEdit,
     onPriorityChange,

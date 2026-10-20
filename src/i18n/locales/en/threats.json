@@ -38,7 +38,25 @@
       "searchPlaceholder": "Search threats...",
       "threatsFound": "Threats found",
       "generateConfirmTitle": "Regenerate Threats?",
-      "generateConfirmMessage": "This will overwrite all existing threats...",
+      "generateConfirmMessage": "Threats generated again keep their rating; threats whose references changed are flagged for review. Continue?",
+      "reconciliation": {
+        "new": "New — unrated",
+        "unchanged": "Unchanged — rating kept",
+        "changed": "References changed — rating kept, flagged for review",
+        "obsolete": "Obsolete — removed, their risks become orphans",
+        "changedList": "Flagged for review:",
+        "newList": "New:",
+        "more": "… and {{count}} more",
+        "reason": {
+          "endpoint": "flow endpoint",
+          "boundary": "trust boundary",
+          "template": "template"
+        }
+      },
+      "review": {
+        "label": "Review",
+        "tooltip": "Changed by a regeneration on {{date}} ({{reasons}}). Rating kept — check it and save the threat to confirm."
+      },
       "deleteManualOnRegenerate": "Also delete manually created threats (otherwise they are kept)",
       "importConfirmTitle": "Import Threats?",
       "importConfirmMessage": "This will overwrite all existing threats with the imported data. This action cannot be undone.",

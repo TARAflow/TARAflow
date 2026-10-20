@@ -54,6 +54,7 @@
       "rationaleBefore": "Vorher",
       "rationaleAfter": "Nachher",
       "attackPathRisksTitle": "Angriffsbaum-Risiken",
+      "threatReview": "Bedrohung durch eine Neugenerierung geändert: Bewertung prüfen",
       "groups": {
         "topLevel": "Oberste Ebene",
         "notInDfd": "Nicht im DFD",

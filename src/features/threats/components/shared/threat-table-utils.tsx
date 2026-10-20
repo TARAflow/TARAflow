@@ -216,6 +216,41 @@ const CIANAAA_SOURCES = new Set(["generated:cianaaa", "generated:full", "relatio
  * generated:full       → ★ blue  — both modules + impact dot
  * manual               → M blue  — analyst created
  */
+/**
+ * Leveled DFD Phase 6e (§10): the threat was generated again but its
+ * references changed — rating kept, flagged until the analyst saves it.
+ */
+export const ReviewBadge: React.FC<{ review?: Threat["review"] }> = ({ review }) => {
+  const { t } = useTranslation();
+  if (!review) return null;
+  const reasons = review.reasons
+    .map((r) =>
+      t(`tabs.threats.reconciliation.reason.${r}`, {
+        defaultValue: { endpoint: "flow endpoint", boundary: "trust boundary", template: "template" }[r],
+      }),
+    )
+    .join(", ");
+  return (
+    <Tooltip
+      title={t("tabs.threats.review.tooltip", {
+        defaultValue:
+          "Changed by a regeneration on {{date}} ({{reasons}}). Rating kept — check it and save the threat to confirm.",
+        date: new Date(review.since).toLocaleDateString(),
+        reasons,
+      })}
+    >
+      <Chip
+        size="small"
+        color="warning"
+        variant="outlined"
+        label={t("tabs.threats.review.label", { defaultValue: "Review" })}
+        sx={{ height: 18, fontSize: "0.65rem" }}
+        data-testid="threat-review-badge"
+      />
+    </Tooltip>
+  );
+};
+
 export const SourceBadge: React.FC<{
   source: ThreatSource;
   initialImpact?: CIANAAALevel;

@@ -96,7 +96,13 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
   const groupsForRender = useMemo(() => {
     return [...groupedByTrustBoundary].reverse();
   }, [groupedByTrustBoundary]);
+  // Leveled DFD (6e): risks whose threat a regeneration flagged for review.
+  const reviewThreatIds = useMemo(
+    () => new Set(threats.filter((th) => th.review).map((th) => th.id)),
+    [threats],
+  );
   const columns = useRiskColumns({
+    reviewThreatIds,
     configuration,
     onEdit,
     onPriorityChange,

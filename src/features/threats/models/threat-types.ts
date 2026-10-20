@@ -81,6 +81,9 @@ export type ThreatRelevance =
  * Workflow state — where is the threat in the processing pipeline?
  * Transitions: open → reviewed (Threat Eval) → closed (Risk Tab)
  */
+/** Why a regenerated threat needs a review (Phase 6e, §10). */
+export type ThreatReviewReason = "endpoint" | "boundary" | "template";
+
 export type ThreatWorkflowStatus =
   | "open"      // not yet fully processed
   | "reviewed"  // analyst has evaluated, relevance decision recorded
@@ -413,6 +416,19 @@ export interface Threat {
   retainedAfterRuleChange?: {
     at: string;
     previousSource: ThreatSource;
+  };
+
+  /**
+   * Leveled DFD Phase 6e (§10, "reference changed"): a regeneration produced
+   * this threat again (same generator key) but what it refers to changed —
+   * the resolved endpoint of its flow, its trust boundary or its catalog
+   * template. Relevance and risk rating are kept, never silently confirmed:
+   * the threat is flagged until the analyst saves it again.
+   */
+  review?: {
+    reasons: ThreatReviewReason[];
+    /** When the change was first found. */
+    since: string;
   };
 
   /**

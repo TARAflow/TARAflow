@@ -213,6 +213,8 @@ interface UseRiskColumnsProps {
   onImplementationClick?: (risk: Risk) => void;
   readOnly?: boolean;
   showJustification?: boolean;
+  /** Leveled DFD (6e): threats flagged for review after a regeneration. */
+  reviewThreatIds?: ReadonlySet<string>;
 }
 
 export const useRiskColumns = ({
@@ -224,6 +226,7 @@ export const useRiskColumns = ({
   onImplementationClick,
   readOnly = false,
   showJustification = false,
+  reviewThreatIds,
 }: UseRiskColumnsProps): RiskColumn[] => {
   const { t } = useTranslation();
 
@@ -280,11 +283,24 @@ export const useRiskColumns = ({
         header: t("tabs.risks.columns.threatId", { defaultValue: "T-ID" }),
         width: 80,
         renderCell: (risk) => (
-          <Tooltip title={risk.threatDisplayId} placement="top">
+          <Tooltip
+            title={
+              reviewThreatIds?.has(risk.threatId)
+                ? `${risk.threatDisplayId} — ${t("tabs.risks.threatReview", {
+                    defaultValue: "threat changed by a regeneration: review the rating",
+                  })}`
+                : risk.threatDisplayId
+            }
+            placement="top"
+          >
             <Chip
               label={risk.threatDisplayId}
               size="small"
+              data-testid={reviewThreatIds?.has(risk.threatId) ? "risk-threat-review" : undefined}
               sx={{
+                ...(reviewThreatIds?.has(risk.threatId)
+                  ? { outline: "2px solid #d97706", outlineOffset: 1 }
+                  : {}),
                 bgcolor: STRIDE_COLORS[risk.strideCategory] ?? "#9ca3af",
                 color: "white",
                 fontWeight: "bold",
@@ -851,5 +867,6 @@ export const useRiskColumns = ({
     onImplementationClick,
     readOnly,
     showJustification,
+    reviewThreatIds,
   ]);
 };

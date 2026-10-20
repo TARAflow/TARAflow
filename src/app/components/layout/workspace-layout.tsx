@@ -890,6 +890,7 @@ export const WorkspaceLayout: React.FC = () => {
           causeDescription: threat.causeDescription,
           linkedAssetIds,
           relevance: threat.relevance ?? "unrated",
+          ...(threat.review ? { review: threat.review } : {}),
           proposedMitigations: resolveMitigationDrafts(
             threat.proposedMitigations ?? [],
           ).map((m) => ({
