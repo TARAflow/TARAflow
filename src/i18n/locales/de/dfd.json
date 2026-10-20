@@ -391,6 +391,15 @@
             "required": "Erforderlich für Auditpfad (IEC 62443-4-1)"
           }
         },
+        "assetRollup": {
+          "info": "Dieser Multiprozess ist zerlegt: Er hält die Assets seiner Teile. Bearbeite die Relationen an den Teilen.",
+          "rollupTitle": "Von seinen Teilen gehalten",
+          "rollupEmpty": "Noch kein Teil hält ein Asset.",
+          "via": "über {{parts}}",
+          "pendingTitle": "Noch keinem Teil zugeordnet",
+          "pendingHint": "Stammt aus der Zeit vor der Zerlegung. Ordne das Asset dem Teil zu, der es hält – der Eintrag verschwindet dann beim nächsten Speichern.",
+          "removePending": "Entfernen – kein Teil hält dieses Asset"
+        },
         "exposure_level": {
           "label": "Expositionsniveau",
           "derived_hint": "Abgeleitet von Trust Boundary",
@@ -2859,6 +2868,7 @@
       "DFD_EE_TO_EE_FLOW": "Fluss {{flow}} verbindet zwei externe Entitäten und liegt außerhalb der Analyse.",
       "BAL_INTERFACE_UNATTRIBUTED": "Fluss {{flow}}: Interface {{interface}} auf Seite \"{{page}}\" lässt sich keiner Seite der Zerlegungsgrenze zuordnen.",
       "BAL_HOME_NOT_HIGHEST": "{{element}} ist auf \"{{page}}\" definiert, erscheint aber auch auf der höheren Seite \"{{highest}}\"; die Definition sollte nach oben wandern.",
+      "BAL_ASSET_NOT_REALISED": "{{element}} hält „{{asset}}“ ({{relation}}) noch aus der Zeit vor der Zerlegung, aber keiner seiner Teile hält es. Ordne es dem Teil zu, der das Asset hält (oft fehlt ein Datenspeicher).",
       "BAL_LABEL_DIVERGENCE": "Die Vorkommen von {{element}} tragen unterschiedliche Bezeichnungen: {{labels}}.",
       "BAL_MISSING_PARENT_FLOW": "Fluss {{flow}} kreuzt die Grenze von {{element}}, ist auf der Elternseite \"{{page}}\" aber nicht gezeichnet.",
       "ID_ADOPTION_PENDING": "Das Diagramm hat {{count}} Seiten; {{pages}} sind noch nicht in den Seitenbaum übernommen. Bis Sie die Übernahme bestätigen (\"Seiten übernehmen…\" über dem Diagramm), werden Änderungen nicht gespeichert und es können keine Bedrohungen generiert werden.",

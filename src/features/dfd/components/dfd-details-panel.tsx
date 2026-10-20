@@ -26,6 +26,7 @@ import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import { ChildPageSection, type ChildPageInfo } from "./child-page-ui";
 import { IdentitySection, type IdentitySectionProps } from "./identity-section";
+import { AssetRollupContext, type AssetRollupContextValue } from "./forms/asset-rollup-view";
 
 // ==================== PROPS ====================
 
@@ -82,6 +83,11 @@ interface DFDDetailsPanelProps {
   childPage?: ChildPageInfo;
   /** Leveled DFD (5g): identity of the selected cell and its actions. */
   identity?: IdentitySectionProps;
+  /**
+   * Leveled DFD (6d): roll-up of the selected decomposed multiprocess; its
+   * "Asset" tab shows it instead of editable relations.
+   */
+  assetRollup?: AssetRollupContextValue;
 }
 
 // ==================== COMPONENT ====================
@@ -112,6 +118,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   refinementCandidates,
   childPage,
   identity,
+  assetRollup,
 }) => {
   const { t } = useTranslation();
 
@@ -318,16 +325,18 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                 {childPage && element?.type === "Multiprocess" && (
                   <ChildPageSection info={childPage} />
                 )}
-                <DFDElementForm
-                  element={element}
-                  connection={connection}
-                  onChange={onChange}
-                  availableAssets={availableAssets}
-                  crossesTrustBoundary={crossesTrustBoundary}
-                  onCreateAsset={onCreateAsset}
-                  graphContext={graphContext}
-                  refinementCandidates={refinementCandidates}
-                />
+                <AssetRollupContext.Provider value={assetRollup ?? null}>
+                  <DFDElementForm
+                    element={element}
+                    connection={connection}
+                    onChange={onChange}
+                    availableAssets={availableAssets}
+                    crossesTrustBoundary={crossesTrustBoundary}
+                    onCreateAsset={onCreateAsset}
+                    graphContext={graphContext}
+                    refinementCandidates={refinementCandidates}
+                  />
+                </AssetRollupContext.Provider>
               </Box>
             )}
 

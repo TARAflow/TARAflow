@@ -36,6 +36,8 @@ import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
 import { useIdentityReview } from "../hooks/use-identity-review";
 import { usePageOutline } from "../hooks/use-page-outline";
 import { useChildPages } from "../hooks/use-child-pages";
+import { assetRollupsOfSource } from "../services/leveled/asset-rollup";
+import type { AssetRollupContextValue } from "./forms/asset-rollup-view";
 import { useLostDefinitions } from "../hooks/use-lost-definitions";
 import { usePageThumbnails } from "../hooks/use-page-thumbnails";
 import { waitForRenderable } from "../utils/wait-for-renderable";
@@ -808,6 +810,33 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     ? editor.elements.find((e) => e.id === selectedElementId)
     : undefined;
 
+  // Leveled DFD (6d): roll-up of the selected multiprocess if it is
+  // decomposed — its "Asset" tab shows what its parts hold.
+  const selectedAssetRollup = useMemo((): AssetRollupContextValue | undefined => {
+    if (selectedElement?.type !== "Multiprocess") return undefined;
+    const dfd = project.dfd;
+    if (!dfd?.xml || !dfd.pages || dfd.pages.length < 2) return undefined;
+    const assets = assetRollupsOfSource({
+      xml: dfd.xml,
+      pages: dfd.pages,
+      elements: dfd.elements ?? [],
+      connections: dfd.connections ?? [],
+      assets: [],
+    }).get(selectedElement.id);
+    if (!assets) return undefined;
+    const labels = new Map(
+      [...(dfd.elements ?? []), ...(dfd.connections ?? [])].map((r) => [
+        r.id,
+        r.displayId || r.name || r.id,
+      ]),
+    );
+    return {
+      elementId: selectedElement.id,
+      assets,
+      partLabel: (tfId) => labels.get(tfId) ?? tfId,
+    };
+  }, [selectedElement, project.dfd]);
+
   // Leveled DFD (5e): child page of the selected multiprocess, or the
   // "Create child page" action (draw.io plugin only).
   const selectedChildPage = useMemo(() => {
@@ -1189,6 +1218,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             graphContext={graphContext}
             refinementCandidates={refinementCandidates}
             childPage={selectedChildPage}
+            assetRollup={selectedAssetRollup}
             identity={selectedIdentity}
             focusAssetRequest={focusAssetRequest}
             assetUsage={assetUsage}

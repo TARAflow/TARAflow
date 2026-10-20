@@ -38,6 +38,8 @@ import {
 } from "../models/asset-relation-types";
 import { validatePageLayout } from "./validators/page-layout-validator";
 import { pruneStaleLinks, reassignDuplicateDefinitions } from "./leveled";
+import { reconcileAssetRollup } from "./leveled/asset-rollup";
+import type { DfdGraphSource } from "./build-dfd-graph";
 
 /** pageIds of dfd.pages — an adopted multi-page DFD is analysable (§11.2.1). */
 /**
@@ -466,15 +468,23 @@ class DFDService {
         this.parser.parse(xml || "", pages);
 
       // Merge with existing properties (preserves assetRelations, user descriptions, etc.)
-      const mergedElements = this.mergeElementProperties(
-        elements,
-        project.dfd?.elements || [],
-      );
-
       const mergedConnections = this.mergeConnectionProperties(
         connections,
         project.dfd?.connections || [],
       );
+      // Leveled DFD (6d, §9): pending asset relations a part now covers
+      // leave the decomposed multiprocess; a decomposition that ended keeps
+      // its roll-up as the multiprocess' own relations.
+      const mergedElements = reconcileAssetRollup(previousSourceOf(project), {
+        xml: xml || undefined,
+        pages,
+        elements: this.mergeElementProperties(
+          elements,
+          project.dfd?.elements || [],
+        ),
+        connections: mergedConnections,
+        assets: [],
+      });
 
       const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
 
@@ -635,14 +645,23 @@ class DFDService {
       const { elements, connections, unconnectedDataflows } =
         this.parser.parse(xml, pages);
 
-      const mergedElements = this.mergeElementProperties(
-        elements,
-        project.dfd?.elements || [],
-      );
       const mergedConnections = this.mergeConnectionProperties(
         connections,
         project.dfd?.connections || [],
       );
+      // Leveled DFD (6d, §9): pending asset relations a part now covers
+      // leave the decomposed multiprocess; a decomposition that ended keeps
+      // its roll-up as the multiprocess' own relations.
+      const mergedElements = reconcileAssetRollup(previousSourceOf(project), {
+        xml: xml,
+        pages,
+        elements: this.mergeElementProperties(
+          elements,
+          project.dfd?.elements || [],
+        ),
+        connections: mergedConnections,
+        assets: [],
+      });
       const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
       const syncedAssets = this.syncAssetLinkedElements(
         mergedElements,
@@ -864,3 +883,16 @@ class DFDService {
 // Export singleton instance with injected dependencies
 export const dfdService = new DFDService(dfdParser, dfdValidator);
 export default dfdService;
+
+/** The persisted DFD before this save, as the source of its analysis. */
+function previousSourceOf(project: DFDProjectData): DfdGraphSource | undefined {
+  const dfd = project.dfd;
+  if (!dfd) return undefined;
+  return {
+    xml: dfd.xml,
+    pages: dfd.pages,
+    elements: dfd.elements ?? [],
+    connections: dfd.connections ?? [],
+    assets: [],
+  };
+}

@@ -10,8 +10,8 @@
 // ambiguous modelling is analysed conservatively (fallback to the parent),
 // never excluded.
 //
-// Not here: BAL_ASSET_NOT_REALISED (Phase 6), BAL_DUPLICATE_DISPLAY_ID
-// (covered by the existing duplicate-id check).
+// Not here: BAL_DUPLICATE_DISPLAY_ID (covered by the existing duplicate-id
+// check).
 
 import type {
   DFDConnection,
@@ -23,6 +23,7 @@ import type { ParseResult } from "../dfd-parser";
 import type { HomePages } from "./home-pages";
 import type { PageTree, PageTreeIssue } from "./page-tree";
 import type { EffectiveFinding, EffectiveModel } from "./effective-model";
+import { assetRollupsOf } from "./asset-rollup";
 
 export type LeveledSeverity = "error" | "warning" | "info";
 
@@ -42,6 +43,8 @@ export interface LeveledFindingsInput {
     elements: ReadonlyMap<string, DFDElement>;
     connections: ReadonlyMap<string, DFDConnection>;
   };
+  /** Asset names for BAL_ASSET_NOT_REALISED; absent → the asset id. */
+  assets?: readonly { id: string; name?: string }[];
 }
 
 const KEY = (code: string) => `dfdValidation.leveled.${code}`;
@@ -71,6 +74,7 @@ export const LEVELED_SEVERITY: Record<string, LeveledSeverity> = {
   BAL_REFINES_INCOMPATIBLE: "warning",
   BAL_ABSTRACT_WITHOUT_REFINEMENT: "warning",
   ID_PASTE_REASSIGNED: "info",
+  BAL_ASSET_NOT_REALISED: "warning",
 };
 
 export function emptyLeveledFindings(): LeveledFindings {
@@ -102,6 +106,7 @@ export function collectLeveledFindings(
   labelDivergence(input, names, push);
   missingParentFlows(input, names, push);
   pasteReassigned(input, names, push);
+  assetNotRealised(input, names, push);
   return out;
 }
 
@@ -421,6 +426,33 @@ function pasteReassigned(
               ? names.element(link.tfId)
               : names.flow(link.tfId),
           page: names.page(page.pageId),
+        },
+      });
+    }
+  }
+}
+
+/**
+ * BAL_ASSET_NOT_REALISED (§9, Phase 6d): a decomposed multiprocess still
+ * holds a relation from before its decomposition that none of its parts
+ * holds. If no single part can hold the asset, the model lacks a holder
+ * (typically a data store) — the finding is the intended outcome.
+ */
+function assetNotRealised(
+  input: LeveledFindingsInput,
+  names: Names,
+  push: Push,
+): void {
+  const assetName = new Map((input.assets ?? []).map((a) => [a.id, a.name || a.id]));
+  for (const [mp, { pending }] of assetRollupsOf(input.model, input.records)) {
+    for (const relation of pending) {
+      push("BAL_ASSET_NOT_REALISED", {
+        elementId: mp,
+        displayId: names.displayId("element", mp),
+        params: {
+          element: names.element(mp),
+          asset: assetName.get(relation.assetId) ?? relation.assetId,
+          relation: relation.relationType,
         },
       });
     }

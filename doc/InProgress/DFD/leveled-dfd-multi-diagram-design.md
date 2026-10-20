@@ -698,8 +698,9 @@ Element→asset relations stay on `dfd.elements[].assetRelations`, keyed by `tfI
 - **Decomposed multiprocess:** its relations are a **derived, read-only roll-up**: the **set** of
   distinct `(assetId, relationType)` pairs held by its descendants (deduplicated, not summed).
   Displayed with provenance ("via P-4, DS-2").
-- **Pending relations:** relations an MP held *before* it was decomposed are kept on the MP with
-  `pending: true` and shown separately ("not yet assigned to a part").
+- **Pending relations:** relations an MP held *before* it was decomposed are kept on the MP and
+  shown separately ("not yet assigned to a part"). No flag is needed: once decomposed, every own
+  relation of an MP is pending — it can no longer be edited, only removed (6d).
   - A pending relation is **removed automatically** as soon as a descendant holds the same
     `(assetId, relationType)` — it is then covered by the roll-up. The diff-service records the
     removal.
@@ -1502,8 +1503,22 @@ Order (Phase 6):
     repeated until the layout has settled — the group accordion may still be opening and the row
     heights are measured after the first paint, so one scroll fell short for a row further down. Assets without any DFD link go to the
     top level instead of "Not in the DFD".
-- **6d** asset roll-up on decomposed MPs with provenance, pending relations,
-  `BAL_ASSET_NOT_REALISED` (§9);
+- **6d ✅** asset roll-up on decomposed MPs with provenance, pending relations,
+  `BAL_ASSET_NOT_REALISED` (§9):
+  - `leveled/asset-rollup`: `assetRollupsOf(model, records)` — per decomposed MP the distinct
+    (asset, relation type) pairs of its leaves and of the flows between its parts, with the
+    holders (`via`); its own relations not covered = pending. A decomposed MP below it contributes
+    nothing (its pending relations are not realised by a part).
+  - `reconcileAssetRollup(before, after)` in both save paths (`saveDFD`, `saveDFDFromXml`): removes
+    pending relations a part now covers; when a decomposition ends (child page deleted, last own
+    part removed) the roll-up of the previous state becomes the MP's own relations. The previous
+    state is analysed only if an MP of the previous page tree is no longer decomposed. A deleted
+    part just leaves the roll-up.
+  - `BAL_ASSET_NOT_REALISED` (warning) per pending relation, with the asset's name.
+  - "Asset" tab of a decomposed MP (`AssetRollupView` via `AssetRollupContext`, computed in the DFD
+    tab): read-only roll-up "via P-1.1, DS-1.1", pending relations with a remove action, no
+    relation selector.
+  - Open: page filter of the asset graph (§9, last bullet) → 6f with the other filters.
 - **6e** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10);
 - **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
 

@@ -73,6 +73,7 @@ export function buildAnalysisView(source: DfdGraphSource): AnalysisView {
     leveledFindings: collectLeveledFindings({
       ...leveled,
       persistedPages: source.pages,
+      assets: source.assets,
     }),
   };
 }

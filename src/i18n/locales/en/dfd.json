@@ -391,6 +391,15 @@
             "required": "Required for audit trail (IEC 62443-4-1)"
           }
         },
+        "assetRollup": {
+          "info": "This multiprocess is decomposed: it holds the assets of its parts. Edit the relations on the parts.",
+          "rollupTitle": "Held by its parts",
+          "rollupEmpty": "No part holds an asset yet.",
+          "via": "via {{parts}}",
+          "pendingTitle": "Not yet assigned to a part",
+          "pendingHint": "Held before the decomposition. Assign the asset to the part that holds it — the entry then disappears with the next save.",
+          "removePending": "Remove — no part holds this asset"
+        },
         "exposure_level": {
           "label": "Exposure Level",
           "derived_hint": "Derived from Trust Boundary",
@@ -2872,6 +2881,7 @@
       "DFD_EE_TO_EE_FLOW": "Flow {{flow}} connects two external entities and is out of the analysis scope.",
       "BAL_INTERFACE_UNATTRIBUTED": "Flow {{flow}}: interface {{interface}} on page \"{{page}}\" cannot be attributed to a side of the decomposition border.",
       "BAL_HOME_NOT_HIGHEST": "{{element}} is defined on \"{{page}}\" but also appears on the higher page \"{{highest}}\"; consider moving its definition up.",
+      "BAL_ASSET_NOT_REALISED": "{{element}} still holds \"{{asset}}\" ({{relation}}) from before its decomposition, but none of its parts holds it. Assign it to the part that holds the asset (often a data store is missing).",
       "BAL_LABEL_DIVERGENCE": "The occurrences of {{element}} carry different labels: {{labels}}.",
       "BAL_MISSING_PARENT_FLOW": "Flow {{flow}} crosses the border of {{element}} but is not drawn on the parent page \"{{page}}\".",
       "ID_ADOPTION_PENDING": "The diagram has {{count}} pages; {{pages}} are not adopted into the page tree yet. Until you confirm the adoption (\"Adopt pages…\" above the diagram), changes are not saved and threats cannot be generated.",

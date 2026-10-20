@@ -142,3 +142,10 @@ export {
   type LostDefinition,
   type DfdState,
 } from "./lost-definitions";
+export {
+  assetRollupsOf,
+  assetRollupsOfSource,
+  reconcileAssetRollup,
+  type MultiprocessAssets,
+  type RollupEntry,
+} from "./asset-rollup";
