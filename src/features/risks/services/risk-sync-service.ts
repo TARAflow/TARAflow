@@ -89,6 +89,29 @@ export interface RiskSyncStatus {
   safetySourceRemoved: boolean;
 }
 
+// ==================== DRAFT COMPARISON ====================
+
+/**
+ * Whether two proposed mitigation / verification lists are the same:
+ * catalog id, analyst note and the custom marker, in order. Not compared:
+ * the display text (resolved from the catalog in the UI language) and the
+ * key order — the project file is written with sorted keys, so a
+ * JSON.stringify comparison reported every risk as changed after the
+ * project was opened again.
+ */
+type DraftLike = { id?: string; notes?: string; isCustom?: boolean; text?: string };
+
+export function sameDrafts(
+  a: readonly DraftLike[] | undefined,
+  b: readonly DraftLike[] | undefined,
+): boolean {
+  const norm = (list: typeof a) =>
+    (list ?? []).map((d) => `${d.id ?? ""}\u0000${d.notes ?? ""}\u0000${d.isCustom === true || !d.id}`);
+  const x = norm(a);
+  const y = norm(b);
+  return x.length === y.length && x.every((v, i) => v === y[i]);
+}
+
 // ==================== ELIGIBLE THREATS ====================
 
 export function getEligibleThreats(threats: ThreatReference[]): ThreatReference[] {
@@ -399,10 +422,7 @@ export function checkRiskSyncStatus(
   const changedMitigations = riskData.risks.filter((risk) => {
     const threat = allThreats.find((t) => t.id === risk.threatId);
     if (!threat) return false;
-    return (
-      JSON.stringify(threat.proposedMitigations) !==
-      JSON.stringify(risk.proposedMitigations)
-    );
+    return !sameDrafts(threat.proposedMitigations, risk.proposedMitigations);
   }).length;
 
   // EN 50742 EL drift: the DFD's exposure level changed on the anchor
@@ -614,11 +634,9 @@ export function syncRisksFromThreats(
     const descChanged = threat.threatDescription !== risk.threatDescription;
     const attackChanged = threat.attackDescription !== risk.attackDescription;
     const mitigationsChanged =
-      JSON.stringify(threat.proposedMitigations) !==
-      JSON.stringify(risk.proposedMitigations);
+      !sameDrafts(threat.proposedMitigations, risk.proposedMitigations);
     const verificationsChanged =
-      JSON.stringify(threat.proposedVerifications) !==
-      JSON.stringify(risk.proposedVerifications);
+      !sameDrafts(threat.proposedVerifications, risk.proposedVerifications);
     const relevanceChanged = threat.relevance !== risk.threatRelevance;
     const displayChanged = threat.displayId !== risk.threatDisplayId;
 
