@@ -19,7 +19,8 @@
 // produces a runnable dev build (esbuild does not type-check at all).
 
 import { build } from "esbuild";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 
 const OUT_DIR = "dist-electron";
 
@@ -52,6 +53,27 @@ const ALIAS = {
   audit: "./src/features/audit",
 };
 
+/**
+ * `import text from "./file.js?raw"` — the file's text, read at build time
+ * (the Vite convention; Vite and Vitest support it natively). Used for the
+ * scripts that run inside the draw.io frame: they live in .js files so lint
+ * and syntax checks apply, and reach executeJavaScript as strings.
+ */
+const rawText = {
+  name: "raw-text",
+  setup(b) {
+    b.onResolve({ filter: /\?raw$/ }, (args) => ({
+      path: resolve(args.resolveDir, args.path.replace(/\?raw$/, "")),
+      namespace: "raw-text",
+    }));
+    b.onLoad({ filter: /.*/, namespace: "raw-text" }, (args) => ({
+      contents: readFileSync(args.path, "utf8"),
+      loader: "text",
+      resolveDir: dirname(args.path),
+    }));
+  },
+};
+
 const shared = {
   bundle: true,
   platform: "node",
@@ -62,6 +84,7 @@ const shared = {
   external: EXTERNAL,
   alias: ALIAS,
   outExtension: { ".js": ".cjs" },
+  plugins: [rawText],
 };
 
 await build({

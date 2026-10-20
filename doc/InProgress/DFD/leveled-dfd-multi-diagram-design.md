@@ -1598,6 +1598,15 @@ Order (Phase 6):
   `tabs.dfd.leveledErrors.<CODE>` (en/de, completeness test). The typing found three codes that
   had passed through as free text (`INVALID_DEFINITION`, `PAGE_NOT_PLACED`, `NO_PAGES` → now
   `NOT_AVAILABLE`). German texts of 6d aligned to the "Sie" form of the DFD texts.
+- **R5 ✅ draw.io scripts in .js files** — the plugin (selection listener, page tabs, context
+  copies, viewport), `syncPages` and `exportPageSvgs` moved from template strings in
+  `electron/ipc/drawio-handlers.ts` (735 → 264 lines) to `electron/drawio-scripts/*.js`. Each file
+  is one function expression; the handler imports it with `?raw` (Vite / Vitest natively,
+  esbuild via the `raw-text` plugin in `scripts/build-electron.mjs`, `electron/types/raw-imports.d.ts`
+  for tsc) and runs `(script)(<JSON literal>)` — the JSON-literal hand-over stays. The executed code
+  is identical apart from the parameter (checked whitespace-insensitively). A test parses each
+  script and runs it without draw.io's API. The small one-off scripts (select cell, context
+  cells, page-tab info, scroll) stay inline.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
