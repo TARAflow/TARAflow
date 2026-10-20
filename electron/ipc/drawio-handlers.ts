@@ -232,9 +232,42 @@ export function registerDrawioHandlers() {
                 pageId: currentPageId()
               }), '*');
             };
-            ui.editor.graph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
-              postSelection(ui.editor.graph.getSelectionCells());
+            // A selection made by pressing the mouse button is reported
+            // only when the button is released. TARAflow opens its details
+            // panel on a selection; doing that in the middle of the gesture
+            // moved the diagram under the pointer. (The former workaround —
+            // pointer-events:none on the iframe for one frame — let the
+            // pointerup go past draw.io: mxGraph kept isMouseDown, dropped
+            // every further mousedown and the element stuck to the pointer.)
+            var selectionGraph = ui.editor.graph;
+            var selectionPending = false;
+            var flushSelection = function() {
+              if (!selectionPending) return;
+              selectionPending = false;
+              postSelection(selectionGraph.getSelectionCells());
+            };
+            var flushAfterGesture = function() {
+              // After mxGraph has handled the release (handlers first).
+              window.setTimeout(flushSelection, 0);
+            };
+            selectionGraph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
+              if (selectionGraph.isMouseDown) {
+                selectionPending = true;
+                return;
+              }
+              selectionPending = false;
+              postSelection(selectionGraph.getSelectionCells());
             });
+            selectionGraph.addMouseListener({
+              mouseDown: function() {},
+              mouseMove: function() {},
+              mouseUp: flushAfterGesture
+            });
+            // Also when the release happens outside the diagram or the
+            // browser cancels the gesture.
+            window.addEventListener('pointerup', flushAfterGesture, true);
+            window.addEventListener('mouseup', flushAfterGesture, true);
+            window.addEventListener('pointercancel', flushAfterGesture, true);
             // A page switch empties the selection; report it with the new page
             // so TARAflow knows which page the user is looking at.
             ui.editor.addListener('pageSelected', function() {

@@ -1520,6 +1520,13 @@ Order (Phase 6):
     tab): read-only roll-up "via P-1.1, DS-1.1", pending relations with a remove action, no
     relation selector.
   - Open: page filter of the asset graph (§9, last bullet) → 6f with the other filters.
+- **Fix (not leveled-specific): element stuck to the pointer after a click in draw.io.** A selection
+  is made on mouse down; TARAflow set `pointer-events: none` on the draw.io iframe for one frame
+  on every selection (to keep the opening details panel from moving the diagram mid-gesture). The
+  pointerup then went past draw.io, mxGraph kept `isMouseDown`, dropped every further mousedown
+  as out of sequence and the element followed the pointer. Now the plugin reports a selection made
+  with the mouse only after the release (graph mouse listener, window pointerup / mouseup /
+  pointercancel); the iframe workaround is gone.
 - **6e** reconciliation on re-generation — new / unchanged / reference changed / obsolete (§10);
 - **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
 
