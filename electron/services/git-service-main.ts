@@ -2,7 +2,7 @@
 // Git operations using simple-git
 // Handles: status, commit, push, branch management
 
-import simpleGit, { SimpleGit, SimpleGitOptions } from "simple-git";
+import { simpleGit, type SimpleGit, type SimpleGitOptions } from "simple-git";
 import type {
   GitStatus,
   GitCommitResult,

@@ -2,7 +2,7 @@
 // ==================== GIT SERVICE ====================
 
 import { ipcMain } from "electron";
-import simpleGit from "simple-git";
+import { simpleGit } from "simple-git";
 import { GitService } from "../services/git-service-main";
 
 let gitService: GitService;
