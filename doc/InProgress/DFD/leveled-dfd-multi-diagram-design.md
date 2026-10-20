@@ -1545,6 +1545,11 @@ Order (Phase 6):
     (`ThreatReconciliationSummary`); the existing drift link for obsolete threats stays.
   - "Review" badge in both threat tables and the threat dialog; in the risk tables the T-ID chip of
     a risk whose threat is flagged is outlined (`ThreatReference.review`).
+- **Fix (not leveled-specific): every risk "mitigations changed" after reopening.** The risk sync
+  compared the proposed mitigations / verifications of risk and threat with `JSON.stringify`; the
+  project file is written with sorted keys, the threat references list `{ id, text, notes,
+  isCustom }`, and `text` follows the UI language. Now `sameDrafts` compares id, note and the
+  custom marker only.
 - **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
