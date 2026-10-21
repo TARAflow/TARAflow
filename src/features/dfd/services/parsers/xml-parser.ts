@@ -9,6 +9,21 @@ export function parseXmlString(xml: string): Document {
   return parser.parseFromString(xml, "text/xml");
 }
 
+// The parsers use DOM Level 2 Core only (getElementsByTagName, getAttribute,
+// parentNode) — no selectors — so the CLI reporter can run them with
+// @xmldom/xmldom instead of the browser's DOMParser (Phase 7).
+
+/** First descendant element with this tag, in document order. */
+export function firstByTag(parent: Element, tag: string): Element | null {
+  return parent.getElementsByTagName(tag)[0] ?? null;
+}
+
+/** Whether the node's parent is an element with this tag (case-insensitive). */
+export function parentHasTag(node: Node, tag: string): boolean {
+  const parent = node.parentNode as Element | null;
+  return !!parent && parent.nodeType === 1 && parent.tagName.toLowerCase() === tag;
+}
+
 /**
  * Extract XML from DrawioMsg JSON format
  */
@@ -50,7 +65,9 @@ export function extractPoint(
   as: string
 ): { x: number; y: number } | undefined {
   if (!geometry) return undefined;
-  const p = geometry.querySelector(`mxPoint[as="${as}"]`);
+  const p = Array.from(geometry.getElementsByTagName("mxPoint")).find(
+    (point) => point.getAttribute("as") === as,
+  );
   if (!p) return undefined;
   return {
     x: parseFloat(p.getAttribute("x") || "0"),

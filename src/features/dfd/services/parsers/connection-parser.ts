@@ -7,6 +7,7 @@ import {
   getGeometry,
   getElementType as getXmlElementType,
   extractPoint,
+  parentHasTag,
   parseCurved,
   parseArrow,
   getWaypoints,
@@ -138,8 +139,7 @@ export function parseConnectionFromCell(cell: Element): {
   }
 
   // Skip mxCells that are children of <object> elements (already parsed)
-  const parent = cell.parentElement;
-  if (parent && parent.tagName.toLowerCase() === "object") {
+  if (parentHasTag(cell, "object")) {
     return { connection: null, unconnected: null };
   }
 
@@ -333,8 +333,7 @@ function filterValidConnectionCells(cells: HTMLCollectionOf<Element>): Element[]
     }
 
     // Skip mxCells that are children of <object> elements (already parsed)
-    const parent = cell.parentElement;
-    if (parent && parent.tagName.toLowerCase() === "object") {
+    if (parentHasTag(cell, "object")) {
       console.info(`Skipping mxCell ${id} - already parsed as part of object`);
       return;
     }

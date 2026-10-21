@@ -1682,6 +1682,17 @@ Order (Phase 6):
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
 explicitly.
+- **7.0 ✅ same analysis in the CLI** (decided 2026-10-21): the project file stores records and
+  pages, but which page shows which element, the parts of a multiprocess and the flows analysed on
+  parent level are derived from `dfd.xml`, as in the app. The CLI runs under Node, which has no
+  `DOMParser` / `XMLSerializer`; `@xmldom/xmldom` (^0.8.15, MIT, already in the tree via
+  electron-builder, now a direct dependency, bundled by esbuild) provides both
+  (`taraflow-reporter/cli/dom-parser-node.ts`, `installDomParser`, installed as a pair and only
+  where no DOM exists). The parsers use DOM Level 2 Core only (`firstByTag`, `parentHasTag`
+  instead of `querySelector` / `parentElement`, which xmldom 0.8 lacks). A parity test analyses
+  the leveled SmokeDetector with the browser DOM and with xmldom and requires identical parse,
+  tree, home pages, effective model, groups and parent-level flows; a Node-environment test runs
+  the analysis without any browser DOM. So CLI and app reports are the same.
 
 ## 14. Testing
 

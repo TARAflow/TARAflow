@@ -9,6 +9,7 @@ import type {
 } from "../../models/element-properties";
 import {
   cleanLabel,
+  firstByTag,
   getGeometry,
   getElementType as getXmlElementType,
 } from "./xml-parser";
@@ -29,7 +30,7 @@ function collectGroupPositions(doc: Document): Map<string, { x: number; y: numbe
     const id = obj.getAttribute("id");
     if (!id) return;
 
-    const cell = obj.querySelector("mxCell");
+    const cell = firstByTag(obj, "mxCell");
     if (!cell) return;
 
     const style = cell.getAttribute("style") || "";
@@ -54,7 +55,7 @@ function collectLegendGroupIds(doc: Document): Set<string> {
   const objects = doc.getElementsByTagName("object");
   Array.from(objects).forEach((obj) => {
     if (obj.getAttribute("type") !== "legend") return;
-    const cell = obj.querySelector("mxCell");
+    const cell = firstByTag(obj, "mxCell");
     const parentId = cell?.getAttribute("parent");
     if (parentId && parentId !== "0" && parentId !== "1") {
       legendGroupIds.add(parentId);
@@ -137,7 +138,7 @@ export function parseElementFromObject(
     return null;
   }
 
-  const objCell = obj.querySelector("mxCell");
+  const objCell = firstByTag(obj, "mxCell");
   const objParentId = objCell?.getAttribute("parent");
   if (objParentId && legendGroupIds?.has(objParentId)) return null;
 
