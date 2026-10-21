@@ -1634,6 +1634,22 @@ Order (Phase 6):
   `proposalsOf(review)`; "Insert as context" resets when it opens by adjusting state during render
   (a save while it is open keeps the chosen category). The suppressions that remain in the code
   base predate the leveled DFD.
+- **Process ✅ general fixes marked** — fixes on this branch that are not leveled-specific and
+  belong on `main` as well (cherry-picked by hand; each is self-contained):
+
+  | Fix | Branch | `main` |
+  |-----|--------|--------|
+  | Physical boundary (enclosure) threats from the physical templates | `8fd3e1c` | `0205520` |
+  | One per-element table per physical boundary | `1c37730` | `0d408d0` |
+  | Interface threats from the interface templates | `20ca0bb` | `aed33a3` |
+  | Element no longer sticks to the pointer after a click | `aa1212c` | `057bcfb` |
+  | Diagram opens at 100 % instead of a tiny fit | `0827daf` | `310b185` |
+  | No false "mitigations changed" after reopening (`sameDrafts`) | `7018e7e` | open |
+  | Assets warning banner no longer covered by the DFD preview | `5530047` | open |
+
+  Not general despite the `fix` prefix: page-sync rejection (`75aada9`), multi-page layout refusal
+  (`dd43982`, `9d7b362`), child page by button (`82875cd`), group toolbar (`89318c8`) — they fix
+  leveled code.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
