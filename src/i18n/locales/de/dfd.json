@@ -40,6 +40,8 @@
         "noMatch": "Kein Asset passt zu „{{query}}“.",
         "hitHiddenLayer": "{{asset}} liegt in der ausgeblendeten Ebene {{layer}}.",
         "hitOutsideFocus": "{{asset}} liegt ausserhalb des Fokus (Tiefe {{depth}}).",
+        "showAllPages": "Alle Seiten zeigen",
+        "hitOutsidePage": "{{asset}} gehört zu keinem Element auf der gewählten Seite.",
         "history": {
           "undo": "Rückgängig (Strg+Z)",
           "redo": "Wiederholen (Strg+Umschalt+Z)",

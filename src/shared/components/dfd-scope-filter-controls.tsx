@@ -21,12 +21,15 @@ export interface DfdScopeFilterControlsProps {
   index?: DfdScopeIndex;
   filter: DfdScopeFilter;
   onChange: (filter: DfdScopeFilter) => void;
+  /** Offer "only flows analysed on parent level" (default: when there are such flows). */
+  showParentLevel?: boolean;
 }
 
 export const DfdScopeFilterControls: React.FC<DfdScopeFilterControlsProps> = ({
   index,
   filter,
   onChange,
+  showParentLevel = true,
 }) => {
   const { t } = useTranslation();
   if (!index) return null;
@@ -69,7 +72,7 @@ export const DfdScopeFilterControls: React.FC<DfdScopeFilterControlsProps> = ({
           }
         />
       )}
-      {(parentLevelCount > 0 || filter.parentLevelOnly) && (
+      {showParentLevel && (parentLevelCount > 0 || filter.parentLevelOnly) && (
         <FormControlLabel
           control={
             <Checkbox

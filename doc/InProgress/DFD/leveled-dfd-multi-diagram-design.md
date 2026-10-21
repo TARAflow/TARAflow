@@ -1552,7 +1552,8 @@ Order (Phase 6):
   project file is written with sorted keys, the threat references list `{ id, text, notes,
   isCustom }`, and `text` follows the UI language. Now `sameDrafts` compares id, note and the
   custom marker only.
-- **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
+- **6f ✅** filters by page and analysis state, risk matrix per group (§10), asset-graph page
+  filter (§9).
   - **✅ page and analysis-state filter** in the filter bars of the threat tables (both methods)
     and the risk table. "Page": the elements and flows shown on the page — definitions and
     context copies — optionally "with sub-pages" (offered when the page has some; the subtree
@@ -1572,7 +1573,14 @@ Order (Phase 6):
     "All" (no DFD item). `RiskMatrixGroupSelect`, `RiskMatrix.headerControls`. Pure view; the
     choice falls back to "All" when its group disappears. §10's "roll-up per decomposed
     multiprocess" is replaced by this.
-  - Open: page filter of the asset graph.
+  - **✅ page filter of the asset graph** (§9, last bullet): the same "Page" / "with sub-pages"
+    controls in the graph's context bar. The graph then shows the elements and flows on the
+    page(s), the assets they hold, and the asset links among those assets (`sourceOnPages`).
+    Only the drawing is filtered — search, cards and edits keep every asset; a search hit
+    outside the filter says so ("held by no element on the selected page", "Show all pages"),
+    and going to such an asset from a card ends the filter (`assetVisibility` state
+    `outsidePage`). The index comes from the façade (`useLeveledDfd().pageScope`); a page that
+    is gone ends the filter.
 
 **Review findings (2026-10-20), before Phase 7.** One patch per finding, each runnable and tested.
 - **R1 ✅ shared leveled analysis** — one parse and one effective model per DFD state:

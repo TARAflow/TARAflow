@@ -31,6 +31,7 @@ import {
   type LostDefinition,
 } from "../services/leveled";
 import { analyseLeveled } from "../services/leveled/leveled-analysis";
+import { dfdScopeFrom } from "../services/leveled/dfd-scope";
 import { assetRollupsOf } from "../services/leveled/asset-rollup";
 import { ValidationMessages } from "../services/validators/validator-utils";
 import { refinementCandidatesOf } from "../utils/refinement-candidates";
@@ -74,6 +75,8 @@ export function useLeveledDfd(
     });
   }, [xml, pages, dfd?.elements, dfd?.connections]);
   const parse = analysis?.parse ?? null;
+  // Pages for the page filter of the asset graph (§9, 6f).
+  const pageScope = useMemo(() => (analysis ? dfdScopeFrom(analysis) : undefined), [analysis]);
 
   // ── 4b: flows a data flow may refine ────────────────────────────────────
   const connections = dfd?.connections;
@@ -276,6 +279,7 @@ export function useLeveledDfd(
     /** Parse + effective model of the saved DFD; null for a classic DFD. */
     analysis,
     parse,
+    pageScope,
     refinementCandidates,
     identityReview,
     pageOutline,

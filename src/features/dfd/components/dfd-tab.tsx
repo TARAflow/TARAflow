@@ -911,6 +911,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               // No side panel in the graph view — it has its own cards.
               rightInset={0}
               darkMode={darkMode}
+              pageScope={leveled.pageScope}
             />
           </Box>
 

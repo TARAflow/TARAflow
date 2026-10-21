@@ -117,4 +117,16 @@ describe("useLeveledDfd", () => {
       }),
     );
   });
+
+  it("hands the asset graph the pages for its page filter; none for a classic DFD", () => {
+    const leveled = renderHook(() => useLeveledDfd(projectOf(XML, LEVELED_PAGES), editorMock(), NONE));
+    expect(leveled.result.current.pageScope?.pages.map((p) => p.name)).toEqual([
+      "System",
+      "Sensor Module",
+      "Controller Module",
+    ]);
+    const classic = mxfile(page("p1", "Page-1", node("a", "process", "A", "P-1", 10)));
+    const plain = renderHook(() => useLeveledDfd(projectOf(classic), editorMock(), NONE));
+    expect(plain.result.current.pageScope).toBeUndefined();
+  });
 });
