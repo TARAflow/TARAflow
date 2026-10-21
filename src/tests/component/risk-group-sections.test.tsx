@@ -72,6 +72,26 @@ const CONFIG = { scale: "4-level", roundingMethod: "round" } as unknown as RiskC
 const ids = (risks: Risk[]) => risks.map((r) => r.id);
 
 describe("riskGroupSections", () => {
+  it("puts the risk of a per-interaction flow threat between multiprocesses on the attacked side", () => {
+    const side = (id: string, victimRole: "source" | "target") =>
+      ({
+        id,
+        linkedElement: null,
+        dataFlow: { connectionId: "df7", sourceId: "p2", targetId: "p5" },
+        interactionContext: { victimRole },
+      }) as unknown as ThreatReference;
+    const sections = riskGroupSections(
+      GROUPS,
+      [risk("r-in", "t-in"), risk("r-out", "t-out")],
+      [side("t-in", "target"), side("t-out", "source")],
+    );
+    // IN at the receiver P-5 (MP-2), OUT at the sender P-2 (MP-1); none on the top level.
+    expect(sections.map((s) => [s.key, s.risks.map((r) => r.id)])).toEqual([
+      ["mp1", ["r-out"]],
+      ["mp2", ["r-in"]],
+    ]);
+  });
+
   it("puts every risk into its threat's group, top level first", () => {
     const sections = riskGroupSections(GROUPS, RISKS, THREATS);
     expect(sections.map((s) => [s.key, ids(s.risks)])).toEqual([

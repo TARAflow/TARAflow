@@ -5,7 +5,7 @@
 // gone or whose element / flow is no longer in the DFD gets the group
 // "Not in the DFD".
 
-import { TOP_LEVEL_GROUP, groupsOfDfdItem, type DfdTableGroups } from "shared";
+import { TOP_LEVEL_GROUP, dfdItemRefOfThreat, groupsOfDfdItem, type DfdTableGroups } from "shared";
 import type { ThreatReference } from "shared";
 import type { Risk } from "../models/risk-assessment-types";
 
@@ -31,12 +31,7 @@ export function riskGroupSections(
   const byKey = new Map<string, Risk[]>();
   for (const risk of risks) {
     const threat = threatById.get(risk.threatId);
-    const keys = threat
-      ? groupsOfDfdItem(groups, {
-          elementId: threat.linkedElement?.elementId,
-          connectionId: threat.dataFlow?.connectionId,
-        })
-      : [];
+    const keys = threat ? groupsOfDfdItem(groups, dfdItemRefOfThreat(threat)) : [];
     // Every threat lies in one group (D20); take the first to be safe.
     const key = keys[0] ?? RISK_NOT_IN_DFD;
     byKey.set(key, [...(byKey.get(key) ?? []), risk]);

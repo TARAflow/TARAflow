@@ -6,6 +6,7 @@ import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category"
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { reportGroupsOf } from "../dfd-report-groups";
+import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -1262,10 +1263,9 @@ export abstract class BaseDocumentGenerator {
       });
 
     // Leveled DFD (7d): one table per group, as the app's accordions.
-    const groups = reportGroupsOf(project.dfd, this.ctx.lang, threats, (threat) => ({
-      elementId: threat.linkedElement?.elementId,
-      connectionId: threat.dataFlow?.connectionId,
-    }));
+    const groups = reportGroupsOf(project.dfd, this.ctx.lang, threats, (threat) =>
+      dfdItemRefOfThreat(threat),
+    );
     let content = this.getThreatsHeaderTemplate(method);
     content += groups
       ? groups.map((g) => this.formatReportGroup(g.title, threatTable(g.items))).join("")
@@ -1430,9 +1430,7 @@ export abstract class BaseDocumentGenerator {
     );
     const groups = reportGroupsOf(project.dfd, this.ctx.lang, risks, (risk) => {
       const threat = threatById.get(risk.threatId);
-      return threat
-        ? { elementId: threat.linkedElement?.elementId, connectionId: threat.dataFlow?.connectionId }
-        : undefined;
+      return threat ? dfdItemRefOfThreat(threat) : undefined;
     });
 
     let content = replacePlaceholders(this.getRisksHeaderTemplate(method), {

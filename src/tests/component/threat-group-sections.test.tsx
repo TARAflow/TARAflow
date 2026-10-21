@@ -26,7 +26,7 @@ afterEach(cleanup);
 
 const threat = (
   id: string,
-  ref: { elementId?: string; connectionId?: string },
+  ref: { elementId?: string; connectionId?: string; victim?: "source" | "target" },
   strideCategory = "S",
 ) =>
   ({
@@ -34,7 +34,9 @@ const threat = (
     displayId: id,
     strideCategory,
     linkedElement: ref.elementId ? { elementId: ref.elementId } : null,
-    dataFlow: ref.connectionId ? { connectionId: ref.connectionId } : null,
+    // DF-7 runs P-2 (MP-1) → P-5 (MP-2).
+    dataFlow: ref.connectionId ? { connectionId: ref.connectionId, sourceId: "p2", targetId: "p5" } : null,
+    ...(ref.victim ? { interactionContext: { victimRole: ref.victim } } : {}),
   }) as unknown as Threat;
 
 const table = (name: string, threats: Threat[]): ThreatTable => ({
@@ -101,12 +103,28 @@ describe("ThreatGroupSections", () => {
     expect(mp1.querySelector('[aria-expanded="true"]')).not.toBeNull();
   });
 
-  it("labels flow ends inside a multiprocess on the top level only", () => {
+  it("puts a per-interaction threat of a flow between multiprocesses on the side it attacks", () => {
+    const tables = [
+      table("CB", [threat("T-in", { connectionId: "df7", victim: "target" })]),
+      table("SB", [threat("T-out", { connectionId: "df7", victim: "source" })]),
+    ];
+    render(<ThreatGroupSections groups={GROUPS} tables={tables} renderTable={renderTable} />);
+    // IN at the receiver P-5 (MP-2), OUT at the sender P-2 (MP-1).
+    expect(within(screen.getByTestId("threat-group-mp2")).getByTestId("table-mp2-0").textContent).toBe("T-in");
+    expect(within(screen.getByTestId("threat-group-mp1")).getByTestId("table-mp1-1").textContent).toBe("T-out");
+    expect(screen.queryByTestId(`threat-group-${TOP_LEVEL_GROUP}`)).toBeNull();
+  });
+
+  it("labels a flow end that lies in another multiprocess", () => {
     const top = endpointLabelFor(GROUPS, TOP_LEVEL_GROUP)!;
     expect(top("p2", "P-1.1")).toBe("P-1.1 (in MP-1 Sensor)");
     expect(top("ee1", "EE-1")).toBe("EE-1");
-    expect(endpointLabelFor(GROUPS, "mp1")).toBeUndefined();
+    const mp1 = endpointLabelFor(GROUPS, "mp1")!;
+    expect(mp1("p5", "P-3.1")).toBe("P-3.1 (in MP-2 Controller)");
+    expect(mp1("p2", "P-1.1")).toBe("P-1.1");
+    expect(mp1("ee1", "EE-1")).toBe("EE-1");
     expect(endpointLabelFor(undefined, TOP_LEVEL_GROUP)).toBeUndefined();
+    expect(endpointLabelFor(GROUPS, "")).toBeUndefined();
   });
 
   it("collects threats of elements no longer in the DFD", () => {

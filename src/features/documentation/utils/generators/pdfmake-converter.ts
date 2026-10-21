@@ -9,6 +9,7 @@ import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { reportGroupsOf } from "../dfd-report-groups";
+import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import {
@@ -804,10 +805,9 @@ export class PdfMakeConverter {
     };
 
     // Leveled DFD (7d): one table per group, as the app's accordions.
-    const groups = reportGroupsOf(this.project.dfd, this.lang, threats, (threat) => ({
-      elementId: threat.linkedElement?.elementId,
-      connectionId: threat.dataFlow?.connectionId,
-    }));
+    const groups = reportGroupsOf(this.project.dfd, this.lang, threats, (threat) =>
+      dfdItemRefOfThreat(threat),
+    );
     if (groups) {
       for (const group of groups) {
         content.push({ text: group.title, style: "h2" }, threatTable(group.items));
@@ -1034,9 +1034,7 @@ export class PdfMakeConverter {
     );
     const groups = reportGroupsOf(this.project.dfd, this.lang, risks, (risk) => {
       const threat = threatById.get(risk.threatId);
-      return threat
-        ? { elementId: threat.linkedElement?.elementId, connectionId: threat.dataFlow?.connectionId }
-        : undefined;
+      return threat ? dfdItemRefOfThreat(threat) : undefined;
     });
     if (groups) {
       for (const group of groups) {

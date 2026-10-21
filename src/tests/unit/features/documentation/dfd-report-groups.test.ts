@@ -4,6 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { dfdParser } from "features/dfd/services/dfd-parser";
 import { reportGroupsOf, type DfdItemRef } from "features/documentation/utils/dfd-report-groups";
+import { dfdItemRefOfThreat } from "shared";
 import {
   CONTROLLER,
   LEVELED_PAGES,
@@ -56,6 +57,20 @@ describe("reportGroupsOf", () => {
   it("leaves out empty groups", () => {
     const only = reportGroupsOf(dfd, "en", [ITEMS[0]], (i) => i.ref)!;
     expect(only.map((g) => g.title)).toEqual(["MP-1 Sensor Module"]);
+  });
+
+  it("puts a per-interaction threat of DF-7 (MP-1 → MP-2) on the attacked side, as the app", () => {
+    const side = (id: string, victimRole: string) => ({
+      id,
+      linkedElement: null,
+      dataFlow: { connectionId: "df7", sourceId: "sen_p2", targetId: "ctl_p5" },
+      interactionContext: { victimRole },
+    });
+    const groups = reportGroupsOf(dfd, "en", [side("in", "target"), side("out", "source")], dfdItemRefOfThreat)!;
+    expect(groups.map((g) => [g.title, g.items.map((i) => i.id)])).toEqual([
+      ["MP-1 Sensor Module", ["out"]],
+      ["MP-2 Controller Module", ["in"]],
+    ]);
   });
 
   it("is undefined for a classic DFD (flat tables)", () => {

@@ -20,6 +20,7 @@ import { Typography } from "@mui/material";
 import {
   GroupAccordions,
   TOP_LEVEL_GROUP,
+  dfdItemRefOfThreat,
   groupsOfDfdItem,
   type DfdTableGroups,
   type GroupSummaryRow,
@@ -31,25 +32,25 @@ const STRIDE = ["S", "T", "R", "I", "D", "E"] as const;
 
 /** Group keys of a threat (element or flow); empty if not in the DFD. */
 export function threatGroups(groups: DfdTableGroups, threat: Threat): string[] {
-  return groupsOfDfdItem(groups, {
-    elementId: threat.linkedElement?.elementId,
-    connectionId: threat.dataFlow?.connectionId,
-  });
+  return groupsOfDfdItem(groups, dfdItemRefOfThreat(threat));
 }
 
 /**
- * Label of a flow end shown in a group: in the top level an end that lies
- * in a multiprocess says so ("P-1.1 (in MP-1 Sensor)"); elsewhere the name.
+ * Label of a flow end shown in a group: an end that lies in another
+ * multiprocess says so ("P-3.1 (in MP-3 Controller)") — in the top level,
+ * and in a multiprocess for a flow from or to another one; else the name.
  */
 export function endpointLabelFor(
   groups: DfdTableGroups | undefined,
   sectionKey: string,
 ): ((elementId: string, name: string) => string) | undefined {
-  if (!groups || sectionKey !== TOP_LEVEL_GROUP) return undefined;
+  if (!groups || !sectionKey) return undefined;
   const labels = new Map(groups.groups.map((g) => [g.key, g.label]));
   return (elementId, name) => {
     const key = groups.elementGroup[elementId];
-    return key && key !== TOP_LEVEL_GROUP ? `${name} (in ${labels.get(key) ?? key})` : name;
+    return key && key !== TOP_LEVEL_GROUP && key !== sectionKey
+      ? `${name} (in ${labels.get(key) ?? key})`
+      : name;
   };
 }
 

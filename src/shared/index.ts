@@ -186,7 +186,9 @@ export { InnerHeader } from "./components/inner-header";
 export { DFDPreviewPanel } from "./components/dfd-preview-panel";
 export {
   TOP_LEVEL_GROUP,
+  dfdItemRefOfThreat,
   groupsOfDfdItem,
+  type DfdItemRef,
   type DfdTableGroup,
   type DfdTableGroups,
 } from "./models/dfd-table-groups";

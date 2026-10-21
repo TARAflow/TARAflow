@@ -914,6 +914,10 @@ export const WorkspaceLayout: React.FC = () => {
           // to resolve and EN 50742 EL silently stays 0 in the Risk tab.
           linkedElement: threat.linkedElement ?? null,
           dataFlow: threat.dataFlow ?? null,
+          // Table group of a flow between multiprocesses (D20): the attacked side.
+          ...(threat.interactionContext?.victimRole
+            ? { interactionContext: { victimRole: threat.interactionContext.victimRole } }
+            : {}),
         });
       }
     }

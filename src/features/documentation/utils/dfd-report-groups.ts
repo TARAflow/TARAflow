@@ -3,7 +3,8 @@
 // the threat and risk tables of the report grouped like the app's
 // accordions — "Top level", one group per top-level decomposed
 // multiprocess, "Not in the DFD" last. Every item lies in exactly one group
-// (the app's table groups decide). Undefined for a classic DFD and a leveled
+// (the app's table groups decide; a per-interaction threat of a flow between
+// multiprocesses goes to the side it attacks). Undefined for a classic DFD and a leveled
 // DFD without a decomposed multiprocess — the tables stay flat.
 
 import type { DFDConnection, DFDElement, DFDPage } from "../../dfd/models/dfd-types";
@@ -12,15 +13,18 @@ import type { DocLanguage } from "../models/doc-types";
 import { isLeveled } from "../../dfd/services/build-dfd-graph";
 import { analyseLeveled } from "../../dfd/services/leveled/leveled-analysis";
 import { multiprocessGroupsFrom } from "../../dfd/services/leveled/table-groups";
-import { TOP_LEVEL_GROUP, groupsOfDfdItem } from "../../../shared/models/dfd-table-groups";
+import {
+  TOP_LEVEL_GROUP,
+  groupsOfDfdItem,
+  type DfdItemRef,
+} from "../../../shared/models/dfd-table-groups";
 
 export interface ReportGroup<T> {
   title: string;
   items: T[];
 }
 
-/** The DFD item a threat (or a risk's threat) refers to. */
-export type DfdItemRef = { elementId?: string | null; connectionId?: string | null };
+export type { DfdItemRef };
 
 const TITLE = {
   en: { top: "Top level", notInDfd: "Not in the DFD" },

@@ -1434,6 +1434,18 @@ drawn on *Top*, multiprocesses that are not decomposed). The subtree filter of �
     leaf endpoints (DF-7: P-1.1 → P-2.1, with the interfaces crossed, §6.2) — there is no second
     set "MP-1 → MP-2", which would double the register and the risk (§10). On the top level a
     flow end inside a multiprocess is labelled ("P-1.1 (in MP-1 …)").
+  - **Revised 2026-10-21 (analyst, after the report):** for two teams, "top level" is the wrong
+    answer to "which threats are mine". A **per-interaction** threat of a flow between groups
+    belongs to the **side it attacks** — IN (victim = target) at the receiver, OUT (victim =
+    source) at the sender: `CB-DF3-T-IN-1` (DF-3 MP-1 → MP-3) under MP-3, `SB-DF3-T-OUT-1` under
+    MP-1; an EE's side stays top level. Still every threat once, the sums unchanged; risks follow
+    their threats. Per-element threats (no side) keep the flow rule. `groupsOfDfdItem` with
+    `DfdItemRef.victimElementId`, `dfdItemRefOfThreat` (shared; from `interactionContext.
+    victimRole` and the flow's resolved ends) used by the threat and risk tabs and the report;
+    `ThreatReference.interactionContext.victimRole` carries the side to the risks tab. A flow end
+    in another multiprocess is labelled in every group. Leveled SmokeDetector per interaction:
+    threats 76 / 35 / 103 → 33 / 44 / 137, risks 47 / 11 / 25 → 21 / 17 / 45 (top / MP-1 /
+    MP-3).
   - **Summary row** per decomposed multiprocess in the top-level group: threats of its parts per
     STRIDE category, "Details" opens its group. A view — the multiprocess has no threats of its
     own once decomposed (§6.1).
@@ -1828,7 +1840,7 @@ Diff and audit
 | D17 | Name of the root page | **Always *Top*** — from the second page on, and for new projects from the start (2026-10-16) | Recognisable entry point; classic projects do not churn (§5.3) |
 | D18 | Thumbnails of a leveled DFD | **One thumbnail per page in `dfd.pages[].thumbnail`; `dfd.thumbnail` = *Top*; the preview panel lets the user pick the page** (2026-10-17) | Preview and reports no longer depend on the tab active at save time; the reporter gets one figure per page without a headless draw.io; existing consumers unchanged (§12.1) |
 | D19 | Numbering of a leveled DFD | **Hierarchical: root page `1..n`, child page of `MP-m` numbers its own definitions `m.1..m.n` per prefix; copies show their definition's number; no high-water mark** (2026-10-17) | IDs show where an element lives; a change on one page never shifts the numbers of another; renumbering *Top* cascades to the pages below; dotted IDs accepted everywhere (§8) |
-| D20 | Tables of a leveled DFD | **Assets, threats and risks grouped in one accordion per top-level decomposed multiprocess plus "Top level"; a multiprocess shows only what lies entirely inside it, flows across groups are top level (every threat once); summary row per MP on the top level; assets of several groups under "Shared"; trust-boundary tables kept inside each group; risks follow their threats** (2026-10-19, flow rule revised the same day) | The subtree view of §10 as a layout; nothing is filtered away or doubled (Phase 6) |
+| D20 | Tables of a leveled DFD | **Assets, threats and risks grouped in one accordion per top-level decomposed multiprocess plus "Top level"; a multiprocess shows only what lies entirely inside it, flows across groups are top level (every threat once) — per-interaction threats of such a flow on the side they attack (IN receiver, OUT sender; 2026-10-21); summary row per MP on the top level; assets of several groups under "Shared"; trust-boundary tables kept inside each group; risks follow their threats** (2026-10-19, flow rule revised the same day) | The subtree view of §10 as a layout; nothing is filtered away or doubled (Phase 6) |
 
 ## 16. End-to-end example: `DF-7 stream sensor data`
 
