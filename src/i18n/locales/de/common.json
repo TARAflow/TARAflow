@@ -1,5 +1,11 @@
 {
   "common": {
+    "dfdScope": {
+      "page": "Seite",
+      "allPages": "Alle Seiten",
+      "withSubPages": "mit Unterseiten",
+      "parentLevelOnly": "Nur auf Elternebene analysierte Flüsse ({{count}})"
+    },
     "ok": "Ok",
     "save": "Speichern",
     "cancel": "Abbrechen",

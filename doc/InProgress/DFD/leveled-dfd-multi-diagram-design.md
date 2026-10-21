@@ -1553,6 +1553,18 @@ Order (Phase 6):
   isCustom }`, and `text` follows the UI language. Now `sameDrafts` compares id, note and the
   custom marker only.
 - **6f** filters by page and analysis state, risk roll-up per decomposed MP (§10).
+  - **✅ page and analysis-state filter** in the filter bars of the threat tables (both methods)
+    and the risk table. "Page": the elements and flows shown on the page — definitions and
+    context copies — optionally "with sub-pages" (offered when the page has some; the subtree
+    filter of §10 below the top-level MPs, which the D20 accordions cover). "Only flows analysed
+    on parent level (N)": threats of flows in state `fallback` (§6.5), offered while there are
+    such flows. A flow threat is decided by its flow, not by the element it also names; a risk
+    by its threat. Attack-path risks are not filtered (no DFD item, like the other risk
+    filters). `DfdTableGroups.scope` (`DfdScopeIndex`: pages in tree order with depth, items per
+    page, child pages, parent-level flows) is built with the groups (`dfdScopeFrom`); the filter
+    is `dfdScopePredicate` (shared), the controls `DfdScopeFilterControls` (shared), held by
+    `useThreatFilters` / `useRiskFilters`; "clear" resets it.
+  - Open: risk-matrix roll-up per decomposed MP, page filter of the asset graph.
 
 **Review findings (2026-10-20), before Phase 7.** One patch per finding, each runnable and tested.
 - **R1 ✅ shared leveled analysis** — one parse and one effective model per DFD state:
@@ -1644,8 +1656,8 @@ Order (Phase 6):
   | Interface threats from the interface templates | `20ca0bb` | `aed33a3` |
   | Element no longer sticks to the pointer after a click | `aa1212c` | `057bcfb` |
   | Diagram opens at 100 % instead of a tiny fit | `0827daf` | `310b185` |
-  | No false "mitigations changed" after reopening (`sameDrafts`) | `7018e7e` | open |
-  | Assets warning banner no longer covered by the DFD preview | `5530047` | open |
+  | No false "mitigations changed" after reopening (`sameDrafts`) | `7018e7e` | `b06a151` |
+  | Assets warning banner no longer covered by the DFD preview | `5530047` | `8a03a6f` |
 
   Not general despite the `fix` prefix: page-sync rejection (`75aada9`), multi-page layout refusal
   (`dd43982`, `9d7b362`), child page by button (`82875cd`), group toolbar (`89318c8`) — they fix

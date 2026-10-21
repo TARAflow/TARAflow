@@ -47,6 +47,23 @@ describe("multiprocessGroupsOf", () => {
     expect(groups.elementGroup.ee1).toBe(TOP_LEVEL_GROUP);
   });
 
+  it("indexes the pages for the page and analysis-state filters (6f)", () => {
+    const scope = groups.scope!;
+    expect(scope.pages).toEqual([
+      { pageId: "sys", name: "System", depth: 0 },
+      { pageId: "sen", name: "Sensor Module", depth: 1 },
+      { pageId: "ctl", name: "Controller Module", depth: 1 },
+    ]);
+    expect(scope.childPages).toEqual({ sys: ["sen", "ctl"] });
+    // Definitions and context copies: MP-2 is shown on the sensor page too.
+    expect(scope.itemsOnPage.sen).toEqual(expect.arrayContaining(["sen_p2", "mp2"]));
+    expect(scope.itemsOnPage.sys).toEqual(expect.arrayContaining(["mp1", "mp2", "ee1", "df7", "df8"]));
+    expect(scope.itemsOnPage.sys).not.toContain("sen_p2");
+    // DF-8 ends at MP-1 with no refinement below: analysed on parent level.
+    expect(scope.parentLevelFlows).toContain("df8");
+    expect(scope.parentLevelFlows).not.toContain("df7");
+  });
+
   it("puts a flow between groups into Top level only — every threat once (D20)", () => {
     // DF-7 resolves P-2 (in MP-1) → P-5 (in MP-2): between two MPs.
     expect(groups.flowGroups.df7).toEqual([TOP_LEVEL_GROUP]);

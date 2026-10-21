@@ -366,13 +366,14 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     setSearchText,
     setPriorityFilter,
     setRiskLevelFilter,
+    setScopeFilter,
     clearFilters,
     filterRisks,
     hasActiveFilters,
-  } = useRiskFilters();
+  } = useRiskFilters(project.dfdTableGroups?.scope);
   const filteredActiveRisks = useMemo(
-    () => filterRisks(activeRisks, riskData.configuration),
-    [activeRisks, filterRisks, riskData.configuration],
+    () => filterRisks(activeRisks, riskData.configuration, currentThreats),
+    [activeRisks, filterRisks, riskData.configuration, currentThreats],
   );
 
   // ==================== EFFECTS ====================
@@ -1026,6 +1027,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onPriorityFilterChange={setPriorityFilter}
                 onRiskLevelFilterChange={setRiskLevelFilter}
                 onClearFilters={clearFilters}
+                onScopeFilterChange={setScopeFilter}
                 filteredCount={filteredActiveRisks.length}
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}

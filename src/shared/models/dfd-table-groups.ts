@@ -5,6 +5,8 @@
 // (multiprocessGroupsOf), consumed by the tabs — a plain structure, so the
 // tabs import nothing from the DFD feature.
 
+import type { DfdScopeIndex } from "./dfd-scope";
+
 /** Key of the group of everything not inside a decomposed multiprocess. */
 export const TOP_LEVEL_GROUP = "__top__";
 
@@ -25,6 +27,8 @@ export interface DfdTableGroups {
    * the top level (exactly one entry — every threat in one group, D20).
    */
   flowGroups: Record<string, string[]>;
+  /** Page and analysis-state filter of the tables (6f). */
+  scope?: DfdScopeIndex;
 }
 
 /** Groups of a DFD element or flow; empty if it is not in the DFD. */

@@ -1,5 +1,11 @@
 {
   "common": {
+    "dfdScope": {
+      "page": "Page",
+      "allPages": "All pages",
+      "withSubPages": "with sub-pages",
+      "parentLevelOnly": "Only flows analysed on parent level ({{count}})"
+    },
     "ok": "Ok",
     "save": "Save",
     "cancel": "Cancel",

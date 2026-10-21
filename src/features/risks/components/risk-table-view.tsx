@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { MoSCoWPriority, RiskTreatment } from "../models/risk-scale-types";
 import { Risk } from "../models/risk-assessment-types";
 import { RiskConfiguration } from "../models/risk-config-types";
-import type { DfdTableGroups, StrideMethod, ThreatReference } from "shared";
+import type { DfdScopeFilter, DfdTableGroups, StrideMethod, ThreatReference } from "shared";
 import { GenericAccordion, OuterHeader } from "shared";
 import { AccountTree as AttackTreeSectionIcon } from "@mui/icons-material";
 import { ElementRiskView } from "./element-risk-view";
@@ -38,11 +38,14 @@ interface RiskTableViewProps {
     treatmentFilter: RiskTreatment | "";
     /** Selected risk level (RiskScaleLevel.value, 1..N) or "" for all. */
     riskLevelFilter: number | "";
+    /** Leveled DFD: page and analysis state (6f). */
+    scope?: DfdScopeFilter;
   };
   onSearchTextChange: (text: string) => void;
   onPriorityFilterChange: (priority: MoSCoWPriority | "") => void;
   onRiskLevelFilterChange: (level: number | "") => void;
   onClearFilters: () => void;
+  onScopeFilterChange?: (scope: DfdScopeFilter) => void;
   filteredCount: number;
 
   onEdit: (risk: Risk) => void;
@@ -139,6 +142,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
     onPriorityFilterChange,
     onRiskLevelFilterChange,
     onClearFilters,
+    onScopeFilterChange,
     filteredCount,
     onEdit,
     onPriorityChange,
@@ -201,6 +205,9 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
           onRiskLevelFilterChange={onRiskLevelFilterChange}
           onClear={onClearFilters}
           show={showFilters}
+          scopeIndex={groups?.scope}
+          scope={filters.scope}
+          onScopeChange={onScopeFilterChange}
           filteredCount={filteredCount}
           totalCount={risks.length}
         />

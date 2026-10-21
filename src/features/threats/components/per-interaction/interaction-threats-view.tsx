@@ -62,10 +62,11 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
       setStrideFilter,
       setRelevanceFilter,
       setSearchText,
+      setScopeFilter,
       clearFilters,
       filterThreats,
       hasActiveFilters,
-    } = useThreatFilters();
+    } = useThreatFilters(groups?.scope);
 
     const filteredTables = React.useMemo(() => {
       if (!hasActiveFilters) return tables;
@@ -127,6 +128,9 @@ export const InteractionThreatsView = React.memo<InteractionThreatsViewProps>(
               onSearchTextChange={setSearchText}
               onClear={clearFilters}
               show={showFilters}
+              scopeIndex={groups?.scope}
+              scope={filters.scope}
+              onScopeChange={setScopeFilter}
               reviewedCount={reviewedCount}
               totalCount={totalThreats}
             />
