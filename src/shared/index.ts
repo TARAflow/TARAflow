@@ -192,11 +192,13 @@ export {
 } from "./models/dfd-table-groups";
 export {
   NO_DFD_SCOPE_FILTER,
+  dfdItemOf,
   dfdScopePredicate,
   isDfdScopeFilterActive,
   pageWithSubPages,
   type DfdScopeFilter,
   type DfdScopeIndex,
+  type DfdScopeMultiprocess,
   type DfdScopePage,
 } from "./models/dfd-scope";
 export { DfdScopeFilterControls } from "./components/dfd-scope-filter-controls";

@@ -50,6 +50,8 @@ import {
   applySafetyRemovalDecision,
 } from "../services/risk-sync-service";
 import { useRiskFilters } from "../hooks/shared/use-risk-filters";
+import { riskRollupRows } from "../utils/risk-rollup";
+import { RiskRollupSection } from "./risk-rollup-section";
 import { RiskSyncBanner } from "./risk-sync-banner";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
@@ -371,6 +373,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     filterRisks,
     hasActiveFilters,
   } = useRiskFilters(project.dfdTableGroups?.scope);
+  // Leveled DFD (6f): roll-up per decomposed multiprocess below the matrix.
+  const rollupMultiprocesses = project.dfdTableGroups?.scope?.multiprocesses ?? [];
   const filteredActiveRisks = useMemo(
     () => filterRisks(activeRisks, riskData.configuration, currentThreats),
     [activeRisks, filterRisks, riskData.configuration, currentThreats],
@@ -899,6 +903,23 @@ export const RisksTab: React.FC<RiskTabProps> = ({
               ]}
               configuration={riskData.configuration}
               onRiskClick={handleEditRisk}
+              renderBelow={
+                rollupMultiprocesses.length > 0
+                  ? (mode) => (
+                      <RiskRollupSection
+                        rows={riskRollupRows(
+                          rollupMultiprocesses,
+                          [...activeRisks, ...wontRisks],
+                          currentThreats,
+                          riskData.configuration,
+                          mode,
+                        )}
+                        configuration={riskData.configuration}
+                        mode={mode}
+                      />
+                    )
+                  : undefined
+              }
             />
           ) : !hasAnyThreats ? (
             <Box

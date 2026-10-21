@@ -23,6 +23,7 @@ const INDEX: DfdScopeIndex = {
   itemsOnPage: { top: [], sen: [] },
   childPages: { top: ["sen"] },
   parentLevelFlows: ["df1", "df2"],
+  multiprocesses: [],
 };
 
 describe("DfdScopeFilterControls", () => {

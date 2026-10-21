@@ -13,6 +13,17 @@ export interface DfdScopePage {
   depth: number;
 }
 
+/** A decomposed multiprocess and what lies inside it (risk roll-up, 6f). */
+export interface DfdScopeMultiprocess {
+  tfId: string;
+  /** displayId and name */
+  label: string;
+  /** 0 for a multiprocess on the root page, 1 inside it, … */
+  depth: number;
+  /** tfIds of its parts at any depth and of the flows between them. */
+  items: string[];
+}
+
 export interface DfdScopeIndex {
   /** Placed pages in page-tree order. */
   pages: DfdScopePage[];
@@ -22,6 +33,8 @@ export interface DfdScopeIndex {
   childPages: Record<string, string[]>;
   /** tfIds of the flows analysed on a parent level (state "fallback"). */
   parentLevelFlows: string[];
+  /** Decomposed multiprocesses in page-tree order. */
+  multiprocesses: DfdScopeMultiprocess[];
 }
 
 export interface DfdScopeFilter {
@@ -52,6 +65,12 @@ export function pageWithSubPages(index: DfdScopeIndex, pageId: string): string[]
   return out;
 }
 
+/** The DFD item of a threat: its flow, else its element (as for the groups). */
+export const dfdItemOf = (ref: {
+  elementId?: string | null;
+  connectionId?: string | null;
+}): string | undefined => ref.connectionId || ref.elementId || undefined;
+
 /**
  * Whether a DFD item (the element or flow of a threat) passes the filter;
  * undefined when nothing is filtered. A flow reference wins over the
@@ -70,7 +89,7 @@ export function dfdScopePredicate(
   const shown = pages && new Set(pages.flatMap((p) => index.itemsOnPage[p] ?? []));
   const parentLevel = filter.parentLevelOnly ? new Set(index.parentLevelFlows) : undefined;
   return (ref) => {
-    const id = ref.connectionId || ref.elementId;
+    const id = dfdItemOf(ref);
     if (!id) return false;
     if (shown && !shown.has(id)) return false;
     if (parentLevel && !parentLevel.has(id)) return false;

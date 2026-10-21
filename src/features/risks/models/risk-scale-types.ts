@@ -182,7 +182,7 @@ export function generateRiskMatrix(scale: RiskScaleType): RiskMatrixCell[][] {
 
 // ==================== RISK COLOR / LABEL HELPERS ====================
 
-function calculateLevelIndex(
+export function calculateLevelIndex(
   value: number,
   maxLevels: number,
   roundingMethod: RiskRoundingMethod = "round",

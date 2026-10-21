@@ -293,6 +293,16 @@
         "addFactorLocked": "The active regulation defines the factor set — remove the norm tag in the Overview to add custom factors.",
         "resetToDefault": "Reset to default"
       },
+      "rollup": {
+        "title": "Roll-up per multiprocess",
+        "before": "(before mitigation)",
+        "after": "(after mitigation)",
+        "hint": "Risks of the parts and inner flows of each decomposed multiprocess; each threat counted once with its highest risk.",
+        "multiprocess": "Multiprocess",
+        "highest": "Highest",
+        "threats": "Threats",
+        "unrated": "not rated"
+      },
       "matrix": {
         "title": "Risk Matrix",
         "impact": "Impact",

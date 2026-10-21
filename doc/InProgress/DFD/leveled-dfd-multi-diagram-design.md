@@ -1564,7 +1564,15 @@ Order (Phase 6):
     page, child pages, parent-level flows) is built with the groups (`dfdScopeFrom`); the filter
     is `dfdScopePredicate` (shared), the controls `DfdScopeFilterControls` (shared), held by
     `useThreatFilters` / `useRiskFilters`; "clear" resets it.
-  - Open: risk-matrix roll-up per decomposed MP, page filter of the asset graph.
+  - **✅ risk-matrix roll-up per decomposed multiprocess:** below the matrix, collapsed by
+    default, one row per decomposed MP in page-tree order (nested MPs indented): rated threats per
+    risk level of its subtree (parts at any depth and the flows between them), the highest level,
+    the number of threats. Each threat counts once with its highest risk; it follows the matrix's
+    before / after view ("after" = after mitigation where rated, else before). Active and Won't
+    risks of the current STRIDE method; attack-path risks have no DFD item. The subtrees come
+    with the scope index (`DfdScopeIndex.multiprocesses`); `riskRollupRows` (risks/utils),
+    `RiskRollupSection`; `RiskMatrix.renderBelow` hands over the view mode. Pure view.
+  - Open: page filter of the asset graph.
 
 **Review findings (2026-10-20), before Phase 7.** One patch per finding, each runnable and tested.
 - **R1 ✅ shared leveled analysis** — one parse and one effective model per DFD state:

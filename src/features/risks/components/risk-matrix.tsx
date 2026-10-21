@@ -43,6 +43,8 @@ interface RiskMatrixProps {
   risks: Risk[];
   configuration: RiskConfiguration;
   onRiskClick?: (risk: Risk) => void;
+  /** Content below the matrix that follows its before / after view. */
+  renderBelow?: (viewMode: ViewMode) => React.ReactNode;
   assetDataRef?: {
     assets: Array<{
       id: string;
@@ -102,7 +104,7 @@ function getWorstImpactForRisk(
 // ==================== COMPONENT ====================
 
 export const RiskMatrix = React.memo<RiskMatrixProps>(
-  ({ risks, configuration, onRiskClick, assetDataRef }) => {
+  ({ risks, configuration, onRiskClick, renderBelow, assetDataRef }) => {
     const { t } = useTranslation();
     const [selectedCell, setSelectedCell] = useState<{
       impact: number;
@@ -934,7 +936,12 @@ export const RiskMatrix = React.memo<RiskMatrixProps>(
 
     // ==================== RENDER ====================
 
-    return renderComplexView();
+    return (
+      <>
+        {renderComplexView()}
+        {renderBelow?.(viewMode)}
+      </>
+    );
   },
 );
 
