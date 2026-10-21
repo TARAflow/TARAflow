@@ -156,6 +156,51 @@ Betreiber:
 
 TARAflow integriert Safety-Aspekte durch einen **optionalen Annotation Layer**, der keine neue Modellierungslogik einführt, sondern bestehende Beziehungen mit Safety-Kontext anreichert.
 
+### Zwei Modellierungspfade: Annotation und Hazard Item
+
+Safety lässt sich in TARAflow auf zwei Wegen modellieren. Beide sind gültig und
+koexistieren im selben Projekt:
+
+| | Safety-Annotation | Hazard Item |
+|---|---|---|
+| Ort | `safety` an einer Element→Asset-Relation | eigener Knoten mit `contributes_to` / `endangers` |
+| Ursachen | **eine** Relation = **eine** Einzelursache | beliebig viele Ursachen, explizit kombiniert |
+| Kombinatorik | nur **ANY** (implizit: Maximum über alle Relationen) | `combinationType`: **ANY** oder **ALL** |
+| Schutzziel | implizit (das Asset der Relation) | explizit (`endangers` → Human/Environment/Infrastructure) |
+| Einsatz | Einstieg, einfache Einzelursachen ohne Hazard-Register | Kombinatorik, mehrere Schutzziele, Import aus FMEA/Hazard-Register |
+
+**Annotation = Einzelursache mit ANY-Semantik.** Jede annotierte Relation wirkt so,
+als würde sie den Schaden allein auslösen. Mehrere Annotationen an einem Asset werden
+über das Maximum aggregiert. Eine **ALL**-Gefährdung (erst A *und* B zusammen lösen aus)
+ist mit Annotationen **nicht ausdrückbar** — modelliert man sie trotzdem mit zwei
+Annotationen, überschätzt das Modell jede Einzelursache (konservativ, aber ungenau).
+Kombinatorische Gefährdungen brauchen ein Hazard Item.
+
+**Vorrang bei der Bewertung eines Assets** (`resolveAssetPhysicalImpact`):
+
+1. `manual` — Analysten-Override mit Begründung
+2. `hazard` — schlimmste Schwere aus der Hazard-Item-Kette (Ursachenseite)
+3. `annotation` — aus den Safety-Annotationen abgeleitet
+
+> **Kein eingeklappter Hazard-Knoten.** Eine direkte Element→Human-Kante (`endangers`)
+> mit Annotation erzeugt **kein** internes Hazard Item. Annotation und Hazard Item sind
+> zwei getrennte Datenquellen, die über die obige Vorrangregel zusammengeführt werden.
+
+#### Geplanter Folgeschritt: strikte Trennung pro Asset
+
+Eine strengere Variante macht die Doppelbewertung unmöglich statt sie nur zu behandeln:
+
+- Sobald ein Asset per `contributes_to` an einem Hazard Item hängt, werden die
+  Safety-Annotationen seiner Relationen **read-only** angezeigt.
+- Eine Aktion **"In Hazard Item überführen"** legt aus den Annotationen ein Hazard Item
+  an (ein `contributes_to` je annotierter Relation, `relevance` übernommen,
+  `combinationType: ANY`) und entfernt die Annotationen.
+- Das Schutzziel der `endangers`-Kante muss der Analyst dabei wählen — die Annotation
+  kennt es nicht. Es wird **nicht** automatisch erzeugt.
+
+Diese Variante ist bewusst nicht umgesetzt (UI-Aufwand); sie ist die Zielrichtung, falls
+die Koexistenz in Projekten zu Verwirrung führt.
+
 **Prinzip:**
 
 - ✅ **Optional** - Nur bei safety-relevanten Systemen nötig
@@ -266,31 +311,15 @@ eine direkte Element→Asset-Relation auf die betroffene Kategorie:
 - **Actuator** — `endangers` Human, `endangers`/`contaminates` Environment,
   `damages` Physical/Infrastructure (die Wirkung *ist* die Gefährdung).
 
-Diese direkte Relation ist der **Schnell-Pfad** für den Ein-Ursachen-Fall. Für
-mehrstufige oder kombinatorische Gefährdungen (mehrere `contributes_to`-Eingänge,
-ANY/ALL) wird **zusätzlich** ein Hazard Item als Konvergenzpunkt modelliert. Beide
-Darstellungen koexistieren — die direkte Relation für den einfachen Fall, das
-Hazard Item für die explizite Bowtie-Kombinatorik. Entsprechend liefert
+Diese direkte Relation (mit Safety-Annotation) ist der **Schnell-Pfad** für den
+Ein-Ursachen-Fall. Für mehrstufige oder kombinatorische Gefährdungen (mehrere
+`contributes_to`-Eingänge, ANY/ALL) wird ein Hazard Item als Konvergenzpunkt
+modelliert. Beide Darstellungen koexistieren als **getrennte Datenquellen** — siehe
+"Zwei Modellierungspfade". Entsprechend liefert
 `getAllowedRelations` für `environment` neu die Transducer-Relationen (statt `[]`);
 für alle übrigen Elementtypen bleibt Environment ausschliesslich Schutzziel.
 
-#### Darstellung: immer im Modell, optional sichtbar
-
-Das Hazard Item existiert **immer im Datenmodell** — aber nicht immer sichtbar.
-Dies entspricht dem Prinzip der Worst-Case-Hazardous-Situation (siehe oben):
-konzeptuell immer vorhanden, nicht immer als Feld ausgeprägt.
-
-**Eingeklappt** (Default bei genau einem Eingang mit ableitbarer Gefährdung):
-
-```txt
-Robot Arm ──endangers──► Einrichter
-```
-
-Der Analyst zeichnet die direkte Kante. Das Tool legt intern automatisch
-ein Hazard Item an (ableitbar aus Asset-Typ und Kontext, z.B. "Kollision/Quetschung").
-`relevance` und `impact` werden auf die implizite Struktur gemappt.
-
-**Aufgeklappt** (automatisch bei mehreren Eingängen — Kombinatorik muss sichtbar sein):
+#### Kombinatorik am Hazard Item
 
 ```txt
 Natrium-Dosierventil ─┐
@@ -298,7 +327,6 @@ Natrium-Dosierventil ─┐
 Wasser-Einlassventil ─┘
 ```
 
-Sobald ein zweiter `contributes_to` auf dasselbe Hazard Item zeigt, klappt es auf.
 Bei `combinationType: 'ALL'` entsteht ein **AND** — die Beiträge konvergieren als
 gemeinsame Bedingung auf denselben Gefährdungsknoten. Bei `combinationType: 'ANY'`
 sind es unabhängige Ursachen (OR). Kein expliziter Boolean-Operator auf den Kanten,
@@ -306,10 +334,10 @@ keine Fault-Tree-Algebra — die Logik sitzt als ein Feld am Hazard Item.
 (Auditoren, die FTA kennen: ALL entspricht einem AND-Gate, ANY einem OR-Gate.)
 
 **Regeln:**
-- Ein Eingang + ableitbares Hazard → eingeklappt darstellbar
-- Mehrere Eingänge → immer aufgeklappt
 - `relevance` lebt auf `contributes_to`, `impact` auf `endangers`
 - `physicalHazardPotential` + ISO 12100-Felder leben am Hazard Item
+- Für den Ein-Ursachen-Fall ohne Hazard Item genügt die Safety-Annotation
+  (siehe "Zwei Modellierungspfade")
 
 #### Beispiel: kombinatorische Gefährdung (Natrium/Wasser)
 
@@ -368,9 +396,9 @@ Threat → Impact → [Hazardous Situation] → Injury / Harm
 
 **Erläuterung der Klammern:**  
 Die *Hazardous Situation* ist konzeptuell zwischen `impact` und `injury` verortet.
-Sie wird als **Hazard Item** modelliert (siehe Abschnitt "Hazard Item"),
-das im einfachsten Fall (ein Eingang, ableitbare Gefährdung) eingeklappt bleibt
-und nicht als eigenes Feld ausgeprägt werden muss.
+Sie wird als **Hazard Item** modelliert (siehe Abschnitt "Hazard Item").
+Im einfachsten Fall (eine Ursache, ein Schutzziel) genügt die Safety-Annotation;
+die Hazardous Situation bleibt dann implizit (Worst-Case-Annahme, siehe unten).
 
 #### Worst-Case-Annahme
 
@@ -539,12 +567,17 @@ Safety-annotierte Beziehungen beeinflussen die Threat-Priorisierung:
 Threat-Scoring ohne Safety:
 Risk = Likelihood × Impact
 
-Threat-Scoring mit Safety:
-If (asset.safety.relevance === 'direct' || asset.safety.impact === 'fatality')
-  → Risk Priority = CRITICAL (unabhängig von Business Impact)
-  → Erfordert zusätzliche Mitigations
-  → Explizite Dokumentation in Safety-Kapitel
+Threat-Scoring mit Safety (Safety Override Rule, deriveAggregatedImpact):
+If (relevance === 'direct' && impact ∈ {irreversible_injury, fatality})
+  → aggregatedImpact = CRITICAL (unabhängig von Business Impact)
+If (relevance === 'indirect' && impact ∈ {irreversible_injury, fatality})
+  → aggregatedImpact = HIGH+ (kein automatischer Override)
+If (impact === reversible_injury)
+  → HIGH (direct) bzw. MED+ (indirect)
 ```
+
+`relevance: 'direct'` allein löst den Override **nicht** aus — es braucht zusätzlich
+eine schwere Verletzungsfolge. Umgekehrt löst `fatality` bei `indirect` nur HIGH+ aus.
 
 ### Was Safety-Annotation NICHT ist
 

@@ -47,9 +47,9 @@ Beziehungen mit **`[KERN]`** decken die meisten Projekte ab.
 
 > **Safety-Modellierung:** Die frühere direkte Kante `affects_safety` (Process/Function → Human)
 > wird durch das Hazard-Item-Muster ersetzt: `Asset ─contributes_to─► Hazard Item ─endangers─► Schutzziel`.
-> Bei einfachen Fällen (ein Eingang) kann das Hazard Item eingeklappt dargestellt werden —
-> der Analyst zeichnet dann direkt `Asset ─endangers─► Human`, das Tool ergänzt das Hazard Item intern.
-> Details siehe Safety Annotation Layer im Dokument "Asset-Beziehungen".
+> Für einfache Einzelursachen ohne Hazard Item bleibt die Safety-Annotation an der
+> Element→Asset-Relation. Beide Pfade sind getrennte Datenquellen (kein eingeklappter
+> Hazard-Knoten). Details siehe "Zwei Modellierungspfade" im Dokument "Asset-Beziehungen".
 
 > Alle anderen Beziehungen sind valide — sie werden genutzt wenn das Modell es verlangt,
 > nicht weil das Dokument sie aufführt.
@@ -86,9 +86,11 @@ die Umwelt als schützenswertes Gut (Gewässer, Boden, Luft), ohne Personenbezug
 
 **Hazard Item** ist **kein Asset**, sondern die explizite Gefährdung. Es ist der
 Konvergenzpunkt zwischen gefährdungsverursachenden Assets (`contributes_to`) und
-gefährdeten Schutzzielen (`endangers`). Mehrere `contributes_to`-Eingänge auf dasselbe
-Hazard Item bilden ein implizites AND (kombinatorische Gefährdung). Details siehe
-Abschnitt "Hazard Item" im Dokument "Asset-Beziehungen".
+gefährdeten Schutzzielen (`endangers`). Wie mehrere `contributes_to`-Eingänge auf dasselbe
+Hazard Item zusammenwirken, legt `combinationType` explizit fest: **ANY** (Default, OR —
+jede Ursache allein genügt) oder **ALL** (AND — erst alle zusammen). Mehrere Eingänge
+implizieren keine Kombinatorik. Details siehe Abschnitt "Hazard Item" im Dokument
+"Asset-Beziehungen".
 
 Ebene 2 ist ein **heterogener Graph**. Die erlaubten
 Beziehungstypen sind abhängig von der Kombination **Quell-Kategorie × Ziel-Kategorie**:
@@ -275,9 +277,8 @@ Stufe 2: Domain Extensions
 | `operated_by` | Function wird von Mensch ausgelöst oder überwacht | Spoofing, Repudiation | indirect |
 
 > **Safety-Pfad:** `Function ─contributes_to─► Hazard Item ─endangers─► Human`.
-> Bei einem einzelnen Eingang mit ableitbarer Gefährdung kann das Hazard Item
-> eingeklappt werden (`Function ─endangers─► Human`). Die frühere direkte Kante
-> `affects_safety` entspricht diesem eingeklappten Fall.
+> Ohne Hazard Item trägt die Safety-Annotation an der Element→Asset-Relation die
+> Einzelursache (ANY-Semantik).
 
 **Process → Function:**
 
@@ -306,8 +307,8 @@ Stufe 2: Domain Extensions
 | `operated_by` | Prozess wird von Mensch bedient | Spoofing, Repudiation | indirect |
 
 > **Safety-Pfad:** `Process ─contributes_to─► Hazard Item ─endangers─► Human`.
-> Eingeklappt bei einem Eingang: `Process ─endangers─► Human`. Entspricht der
-> früheren direkten Kante `affects_safety`.
+> Ohne Hazard Item trägt die Safety-Annotation an der Element→Asset-Relation die
+> Einzelursache (ANY-Semantik).
 
 **System → Function:**
 
@@ -407,8 +408,8 @@ Stufe 2: Domain Extensions
 > Ein Physical Asset (z.B. übersteuertes Ventil, Roboterarm) trägt via `contributes_to`
 > zum Hazard Item bei. Vollständiger Pfad:
 > `Physical ─contributes_to─► Hazard Item ─endangers─► Human`.
-> Bei einem einzelnen Eingang kann das Hazard Item eingeklappt dargestellt werden
-> (`Physical ─endangers─► Human`) — intern existiert es trotzdem.
+> Für eine Einzelursache ohne Hazard Item genügt die Safety-Annotation an der
+> Element→Asset-Relation (kein internes Hazard Item).
 
 **Service → Human:**
 
