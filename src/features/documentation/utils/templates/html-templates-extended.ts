@@ -115,26 +115,15 @@ export const HTML_EXTENDED_TEMPLATES = {
 
 `,
 
-  // Leveled DFD (7b): the element overview as one table per page.
-  dfdElementOverviewByPage: (lang: DocLanguage) =>
-    lang === "de"
-      ? `<h3>Elementübersicht</h3>
+  // Leveled DFD (7b): one section per page — heading, figure, element table.
+  dfdPageSection: `  <h3>{{pageTitle}}</h3>
+  {{pageFigure}}
+{{pageTable}}`,
 
-<p>Die folgenden Tabellen geben einen schnellen Überblick über die DFD-Elemente, eine Tabelle pro Seite: jedes Element steht auf der Seite, auf der es definiert ist.</p>
-
-{{pageTables}}`
-      : `<h3>Element Overview</h3>
-
-<p>The following tables provide a quick overview of the DFD elements, one table per page: each element is listed on the page where it is defined.</p>
-
-{{pageTables}}`,
-
-  // Leveled DFD (7b): the table of one page ({{pageTitle}} = its caption).
+  // Leveled DFD (7b): the element table of one page section.
   dfdElementOverviewPageTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `<h4>{{pageTitle}}</h4>
-
-<table class="data-table">
+      ? `<table class="data-table">
   <thead>
     <tr>
       <th>ID</th>
@@ -148,11 +137,8 @@ export const HTML_EXTENDED_TEMPLATES = {
 {{elementRows}}
   </tbody>
 </table>
-
 `
-      : `<h4>{{pageTitle}}</h4>
-
-<table class="data-table">
+      : `<table class="data-table">
   <thead>
     <tr>
       <th>ID</th>
@@ -166,7 +152,6 @@ export const HTML_EXTENDED_TEMPLATES = {
 {{elementRows}}
   </tbody>
 </table>
-
 `,
 
   elementOverviewRow: `    <tr>

@@ -8,7 +8,6 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
-import type { DfdFigure } from "../dfd-figures";
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
@@ -123,15 +122,8 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return ADOC_TEMPLATES.dfd(this.ctx.lang);
   }
 
-  formatDfdFigures(figures: DfdFigure[], alt: string): string {
-    return figures
-      .map((f) => {
-        // A block title (".caption") numbers the figure ("Figure 1. …").
-        const image = f.image ? `image::${f.image}[${alt}]` : `_${this.noDfdImage()}_`;
-        return f.caption ? `.${f.caption}\n${image}` : image;
-      })
-      // An empty paragraph keeps the pages apart.
-      .join("\n\n{nbsp}\n\n");
+  formatDfdFigure(image: string | undefined, alt: string): string {
+    return image ? `image::${image}[${alt}]` : `_${this.noDfdImage()}_`;
   }
 
   getDfdDescriptionsTemplate(): string {
@@ -250,8 +242,8 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return ADOC_EXTENDED_TEMPLATES.elementOverviewRow;
   }
 
-  getDfdElementOverviewByPageTemplate(): string {
-    return ADOC_EXTENDED_TEMPLATES.dfdElementOverviewByPage(this.ctx.lang);
+  getDfdPageSectionTemplate(): string {
+    return ADOC_EXTENDED_TEMPLATES.dfdPageSection;
   }
 
   getDfdElementOverviewPageTableTemplate(): string {

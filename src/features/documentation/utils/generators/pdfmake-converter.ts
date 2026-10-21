@@ -6,8 +6,7 @@
 // pdfMake Documentation: http://pdfmake.org/
 
 import { impactAggregationSentence } from "../impact-aggregation-text";
-import { dfdFiguresOf, noDfdImageText } from "../dfd-figures";
-import { elementsByPageOf } from "../dfd-element-pages";
+import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import {
@@ -541,24 +540,43 @@ export class PdfMakeConverter {
       tocItem: true,
     });
 
-    // Classic DFD: the one thumbnail. Leveled DFD (7a): one captioned
-    // figure per page in page-tree order.
-    const figures = dfdFiguresOf(this.project.dfd, this.lang);
-    if (figures.length === 1 && figures[0].caption === undefined) {
-      content.push(
-        figures[0].image
-          ? { image: figures[0].image, width: 500, margin: [0, 0, 0, 20] }
-          : { text: this.label("dfdNoDiagram"), style: "placeholder", margin: [0, 0, 0, 20] },
-      );
-    } else {
-      for (const figure of figures) {
-        content.push(
-          figure.image
-            ? { image: figure.image, width: 500, margin: [0, 0, 0, 4] }
-            : { text: noDfdImageText(this.lang), style: "placeholder", margin: [0, 0, 0, 4] },
-          { text: figure.caption ?? "", italics: true, alignment: "center", margin: [0, 0, 0, 36] },
-        );
+    // Leveled DFD (7a/7b): one section per page — heading, figure, the
+    // elements defined on it.
+    const sections = dfdPageSectionsOf(this.project.dfd, this.lang);
+    if (sections) {
+      for (const section of sections) {
+        content.push({ text: section.title, style: "h2" });
+        if (section.isPage) {
+          content.push(
+            section.image
+              ? { image: section.image, width: 500, margin: [0, 0, 0, 12] }
+              : { text: noDfdImageText(this.lang), style: "placeholder", margin: [0, 0, 0, 12] },
+          );
+        }
+        for (const element of section.elements) {
+          content.push(
+            { text: element.name, style: "h3", margin: [0, 6, 0, 2] },
+            { text: element.description || "-", margin: [0, 0, 0, 6] },
+          );
+        }
       }
+      content.push({ text: "", pageBreak: "after" });
+      return content;
+    }
+
+    // DFD image placeholder
+    if (this.project.dfd?.thumbnail) {
+      content.push({
+        image: this.project.dfd.thumbnail,
+        width: 500,
+        margin: [0, 0, 0, 20],
+      });
+    } else {
+      content.push({
+        text: this.label("dfdNoDiagram"),
+        style: "placeholder",
+        margin: [0, 0, 0, 20],
+      });
     }
 
     // DFD Elements
@@ -569,30 +587,16 @@ export class PdfMakeConverter {
         style: "h2",
       });
 
-      // Leveled DFD (7b): grouped by the page each element is defined on.
-      const byPage = elementsByPageOf(this.project.dfd, this.lang);
-      if (byPage) {
-        for (const page of byPage) {
-          content.push({ text: page.title, style: "h3", margin: [0, 14, 0, 6] });
-          for (const element of page.elements) {
-            content.push(
-              { text: element.name, bold: true, margin: [10, 6, 0, 2] },
-              { text: element.description || "-", margin: [10, 0, 0, 8] },
-            );
-          }
-        }
-      } else {
-        for (const element of elements) {
-          content.push({
-            text: element.name,
-            style: "h3",
-            margin: [0, 10, 0, 5],
-          });
-          content.push({
-            text: element.description || "-",
-            margin: [0, 0, 0, 10],
-          });
-        }
+      for (const element of elements) {
+        content.push({
+          text: element.name,
+          style: "h3",
+          margin: [0, 10, 0, 5],
+        });
+        content.push({
+          text: element.description || "-",
+          margin: [0, 0, 0, 10],
+        });
       }
     }
 

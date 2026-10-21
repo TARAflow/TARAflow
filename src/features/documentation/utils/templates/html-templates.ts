@@ -219,7 +219,7 @@ export const HTML_TEMPLATES = {
     <tr><td>Trust Boundaries</td><td>{{trustBoundaries}}</td></tr>
     <tr><td><strong>Gesamt</strong></td><td><strong>{{totalElements}}</strong></td></tr>
   </table>
-</section>
+{{dfdPages}}</section>
 
 `
       : `<section id="data-flow-diagram">
@@ -238,7 +238,7 @@ export const HTML_TEMPLATES = {
     <tr><td>Trust Boundaries</td><td>{{trustBoundaries}}</td></tr>
     <tr><td><strong>Total</strong></td><td><strong>{{totalElements}}</strong></td></tr>
   </table>
-</section>
+{{dfdPages}}</section>
 
 `,
 

@@ -8,7 +8,6 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
-import type { DfdFigure } from "../dfd-figures";
 import { HTML_TEMPLATES } from "../templates/html-templates";
 import { replacePlaceholders, processConditionals } from "../templates";
 
@@ -190,19 +189,10 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return HTML_TEMPLATES.dfd(this.ctx.lang);
   }
 
-  formatDfdFigures(figures: DfdFigure[], alt: string): string {
-    return figures
-      .map((f) => {
-        const image = f.image
-          ? `<img src="${f.image}" alt="${alt}" class="dfd-image">`
-          : `<p class="dfd-no-image">${this.escapeHtml(this.noDfdImage())}</p>`;
-        if (!f.caption) return image;
-        return `<figure class="dfd-figure">
-    ${image}
-    <figcaption>${this.escapeHtml(f.caption)}</figcaption>
-  </figure>`;
-      })
-      .join("\n  ");
+  formatDfdFigure(image: string | undefined, alt: string): string {
+    return image
+      ? `<img src="${image}" alt="${alt}" class="dfd-image">`
+      : `<p class="dfd-no-image">${this.escapeHtml(this.noDfdImage())}</p>`;
   }
 
   getDfdDescriptionsTemplate(): string {
@@ -317,8 +307,8 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return HTML_TEMPLATES.elementOverviewRow;
   }
 
-  getDfdElementOverviewByPageTemplate(): string {
-    return HTML_TEMPLATES.dfdElementOverviewByPage(this.ctx.lang);
+  getDfdPageSectionTemplate(): string {
+    return HTML_TEMPLATES.dfdPageSection;
   }
 
   getDfdElementOverviewPageTableTemplate(): string {

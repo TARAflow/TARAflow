@@ -15,7 +15,6 @@ import {
   type DocumentGeneratorResult,
   type ChapterContent,
 } from "./base-generator";
-import type { DfdFigure } from "../dfd-figures";
 import { HtmlGenerator } from "./html-generator";
 
 // ==================== PDF OPTIONS ====================
@@ -298,8 +297,8 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return this.htmlGenerator.getDfdTemplate();
   }
 
-  formatDfdFigures(figures: DfdFigure[], alt: string): string {
-    return this.htmlGenerator.formatDfdFigures(figures, alt);
+  formatDfdFigure(image: string | undefined, alt: string): string {
+    return this.htmlGenerator.formatDfdFigure(image, alt);
   }
 
   getDfdDescriptionsTemplate(): string {
@@ -394,8 +393,8 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return this.htmlGenerator.getElementOverviewRowTemplate();
   }
 
-  getDfdElementOverviewByPageTemplate(): string {
-    return this.htmlGenerator.getDfdElementOverviewByPageTemplate();
+  getDfdPageSectionTemplate(): string {
+    return this.htmlGenerator.getDfdPageSectionTemplate();
   }
 
   getDfdElementOverviewPageTableTemplate(): string {

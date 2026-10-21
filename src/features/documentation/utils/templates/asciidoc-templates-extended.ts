@@ -100,26 +100,17 @@ The following table provides a quick overview of all DFD elements.
 
 `,
 
-  // Leveled DFD (7b): the element overview as one table per page.
-  dfdElementOverviewByPage: (lang: DocLanguage) =>
-    lang === "de"
-      ? `=== Elementübersicht
+  // Leveled DFD (7b): one section per page — heading, figure, element table.
+  dfdPageSection: `=== {{pageTitle}}
 
-Die folgenden Tabellen geben einen schnellen Überblick über die DFD-Elemente, eine Tabelle pro Seite: jedes Element steht auf der Seite, auf der es definiert ist.
+{{pageFigure}}
 
-{{pageTables}}`
-      : `=== Element Overview
+{{pageTable}}`,
 
-The following tables provide a quick overview of the DFD elements, one table per page: each element is listed on the page where it is defined.
-
-{{pageTables}}`,
-
-  // Leveled DFD (7b): the table of one page ({{pageTitle}} = its caption).
+  // Leveled DFD (7b): the element table of one page section.
   dfdElementOverviewPageTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `==== {{pageTitle}}
-
-[cols="1,2,2,3,2", options="header"]
+      ? `[cols="1,2,2,3,2", options="header"]
 |===
 | ID | Name | Typ | Beschreibung | Assets
 
@@ -127,9 +118,7 @@ The following tables provide a quick overview of the DFD elements, one table per
 |===
 
 `
-      : `==== {{pageTitle}}
-
-[cols="1,2,2,3,2", options="header"]
+      : `[cols="1,2,2,3,2", options="header"]
 |===
 | ID | Name | Type | Description | Assets
 

@@ -8,7 +8,6 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
-import type { DfdFigure } from "../dfd-figures";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -146,14 +145,8 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return MD_TEMPLATES.dfd(this.ctx.lang);
   }
 
-  formatDfdFigures(figures: DfdFigure[], alt: string): string {
-    return figures
-      .map((f) => {
-        const image = f.image ? `![${alt}](${f.image})` : `_${this.noDfdImage()}_`;
-        return f.caption ? `${image}\n\n*${f.caption}*` : image;
-      })
-      // Markdown has no spacing; an empty paragraph keeps the pages apart.
-      .join("\n\n&nbsp;\n\n");
+  formatDfdFigure(image: string | undefined, alt: string): string {
+    return image ? `![${alt}](${image})` : `_${this.noDfdImage()}_`;
   }
 
   getDfdDescriptionsTemplate(): string {
@@ -272,8 +265,8 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return MD_EXTENDED_TEMPLATES.elementOverviewRow;
   }
 
-  getDfdElementOverviewByPageTemplate(): string {
-    return MD_EXTENDED_TEMPLATES.dfdElementOverviewByPage(this.ctx.lang);
+  getDfdPageSectionTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdPageSection;
   }
 
   getDfdElementOverviewPageTableTemplate(): string {

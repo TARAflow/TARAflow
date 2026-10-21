@@ -467,11 +467,7 @@ li {
   white-space: nowrap;
 }
 
-/* DFD figures — leveled DFD: one per page, captioned */
-.dfd-figure { margin: 3em 0; page-break-inside: avoid; }
-.dfd-figure + .dfd-figure { padding-top: 2em; border-top: 1px solid var(--color-border); }
-.dfd-figure img { max-width: 100%; height: auto; }
-.dfd-figure figcaption { margin-top: 0.4em; text-align: center; font-style: italic; color: var(--color-text-muted); }
+/* Leveled DFD: a page section whose page has no stored image */
 .dfd-no-image { padding: 1em; border: 1px dashed var(--color-border); color: var(--color-text-muted); font-style: italic; }
 
 /* Print Styles for Extended Elements */

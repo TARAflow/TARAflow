@@ -1699,33 +1699,23 @@ explicitly.
   shown text is unchanged); the CLI's `package.json` declares `"type": "module"` (the bundle is
   ESM) and is shipped next to it in the Debian package, so Node no longer warns
   `MODULE_TYPELESS_PACKAGE_JSON`.
-- **7a ✅ one figure per page** (§12.1, item 4): the DFD chapter shows the pages in page-tree
-  order, each captioned `Page "Sensor Head" (decomposes MP-1 Sensor Head)` / `Seite „Sensor
-  Head“ (zerlegt MP-1 Sensor Head)`; a page without a stored thumbnail says so ("open the project
-  in TARAflow and save it once"). The root page falls back to `dfd.thumbnail`. A classic project
-  renders its single uncaptioned figure exactly as before. `reportPagesOf` (dfd, leveled; order
-  and depth from the page tree, the page itself from the input — the analysis is cached per page
-  structure, not per thumbnail), `dfdFiguresOf` (documentation; captions per language), template
-  placeholder `{{dfdFigures}}` with `formatDfdFigures` per format: Markdown image + italic
-  caption, AsciiDoc block title + `image::`, HTML `<figure>` + `<figcaption>`, StrictDoc RST
-  `.. figure::`; pdfmake an image + caption per page. The browser PDF converts every page
-  thumbnail to PNG (`createProjectWithPng`; a failing one is left out, the others stay); the CLI
-  PDF rasterises every SVG image as before. The CLI note now only says that the element and flow
-  lists are not grouped by page yet.
-- **7b ✅ element overview per page** (revised after first use, 2026-10-21: a separate
-  decomposition tree after the figures — page, decomposed MP, "defined here: …" — was not helpful
-  and is gone; the analyst wants to see in the overview which elements are where). The "Element
-  Overview" of a leveled DFD is one table per page in page-tree order, titled with the page's
-  figure caption (`Page "Sensor Head" (decomposes MP-1 Sensor Head)`); each element once, on the
-  page its definition is on, in record order; records without a drawn cell last ("Not on any
-  page"). `ReportPage.defined` (tfIds from the home pages), `elementsByPageOf` (documentation),
-  templates `dfdElementOverviewByPage` / `dfdElementOverviewPageTable` per format (StrictDoc: one
-  nested section per page); pdfmake groups its element list the same way. A classic DFD keeps the
-  one table.
-  - After first use: more space between the page figures — Markdown `&nbsp;` and AsciiDoc
-    `{nbsp}` paragraphs, an empty RST line block in StrictDoc (the formats have no spacing of
-    their own), HTML `.dfd-figure` margin 3em plus a thin rule between figures, pdfmake 36 pt
-    after each caption.
+- **7a/7b ✅ DFD chapter per page** (§12.1, item 4; reworked twice after first use, 2026-10-21 —
+  first captioned figures one after another plus a decomposition tree, then the element overview
+  split by page; the analyst wants each page as a unit). A leveled DFD's DFD chapter reads:
+  title and intro → statistics → one section per page in page-tree order, each with the heading
+  `Page "Sensor Head" (decomposes MP-1 Sensor Head)` / `Seite „Sensor Head“ (zerlegt MP-1 Sensor
+  Head)`, the page's figure (root page falls back to `dfd.thumbnail`; a page without stored image
+  says "open the project in TARAflow and save it once") and the table of the elements defined on
+  that page (each element once, record order; records on no drawn cell close in "Not on any
+  page"). The element descriptions chapter keeps its detailed sections but no longer repeats the
+  overview. A classic project renders exactly as before (figure, statistics, one overview).
+  - `reportPagesOf` (dfd; order and depth from the page tree, the page itself from the input —
+    the analysis is cached per page structure, not per thumbnail; `defined` from the home pages),
+    `dfdPageSectionsOf` (documentation), template placeholder `{{dfdPages}}` at the end of the DFD
+    chapter, templates `dfdPageSection` / `dfdElementOverviewPageTable` per format (StrictDoc: a
+    nested section per page), `formatDfdFigure` per format; pdfmake the same order. The browser PDF
+    converts every page thumbnail to PNG (`createProjectWithPng`; a failing one is left out); the
+    CLI PDF rasterises every SVG image as before.
   - The app's document preview converts Markdown / AsciiDoc / StrictDoc with its own small
     converters (`doc-preview-converters`), which knew neither nested lists nor figures: the then
     decomposition tree showed as raw "  - Seite …" lines, AsciiDoc captions as ".Seite …",

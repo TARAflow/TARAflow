@@ -37,7 +37,6 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
-import type { DfdFigure } from "../dfd-figures";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -267,16 +266,8 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return SDOC_TEMPLATES.dfd(this.ctx.lang);
   }
 
-  formatDfdFigures(figures: DfdFigure[], alt: string): string {
-    return figures
-      .map((f) => {
-        if (!f.image) return `**${f.caption ?? ""}**: ${this.noDfdImage()}`;
-        if (!f.caption) return `.. image:: ${f.image}\n   :alt: ${alt}`;
-        // An RST figure: the indented paragraph after the options is its caption.
-        return `.. figure:: ${f.image}\n   :alt: ${alt}\n\n   ${f.caption}`;
-      })
-      // An empty RST line block keeps the pages apart.
-      .join("\n\n|\n\n");
+  formatDfdFigure(image: string | undefined, alt: string): string {
+    return image ? `.. image:: ${image}\n   :alt: ${alt}` : this.noDfdImage();
   }
 
   getDfdDescriptionsTemplate(): string {
@@ -363,8 +354,8 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return SDOC_EXTENDED_TEMPLATES.elementOverviewRow;
   }
 
-  getDfdElementOverviewByPageTemplate(): string {
-    return SDOC_EXTENDED_TEMPLATES.dfdElementOverviewByPage(this.ctx.lang);
+  getDfdPageSectionTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdPageSection;
   }
 
   getDfdElementOverviewPageTableTemplate(): string {

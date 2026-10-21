@@ -206,7 +206,7 @@ Das folgende Diagramm zeigt die Datenflüsse und Vertrauensgrenzen des Systems.
 | Trust Boundaries | {{trustBoundaries}} |
 | **Gesamt** | **{{totalElements}}** |
 
-`
+{{dfdPages}}`
       : `## Data Flow Diagram
 
 The following diagram shows the data flows and trust boundaries of the system.
@@ -224,7 +224,7 @@ The following diagram shows the data flows and trust boundaries of the system.
 | Trust Boundaries | {{trustBoundaries}} |
 | **Total** | **{{totalElements}}** |
 
-`,
+{{dfdPages}}`,
 
   // ==================== DFD DESCRIPTIONS ====================
   dfdDescriptions: (lang: DocLanguage) =>

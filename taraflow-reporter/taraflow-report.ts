@@ -116,14 +116,14 @@ async function main() {
     );
   }
 
-  // Leveled DFD (leveled-dfd-multi-diagram-design.md, Phase 7): one figure
-  // per page (7a). The element and flow lists are still the flat ones, with
-  // the endpoints their definition draws; the leveled tables follow (7b–7d).
+  // Leveled DFD (leveled-dfd-multi-diagram-design.md, Phase 7): one section
+  // per page with figure and elements (7a/7b). Flows analysed on parent
+  // level and the threat tables per page follow (7c, 7d).
   const pageCount = inspectDrawioPages(project.dfd?.xml).pageCount;
   if (pageCount > 1) {
     console.warn(
-      `Note: the DFD has ${pageCount} pages. The report shows one figure per page; ` +
-        `element and flow lists are not yet grouped by page — that follows in a later version.`,
+      `Note: the DFD has ${pageCount} pages. The report shows one section per page; ` +
+        `flows analysed on parent level are not listed yet — that follows in a later version.`,
     );
   }
 

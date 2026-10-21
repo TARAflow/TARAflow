@@ -358,7 +358,7 @@ DFD-Statistiken:
      - **{{totalElements}}**
 [/FREETEXT]
 
-[/SECTION]
+{{dfdPages}}[/SECTION]
 
 `
       : `[SECTION]
@@ -391,7 +391,7 @@ DFD Statistics:
      - **{{totalElements}}**
 [/FREETEXT]
 
-[/SECTION]
+{{dfdPages}}[/SECTION]
 
 `,
 
