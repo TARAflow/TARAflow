@@ -7,7 +7,7 @@
 
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdFiguresOf, noDfdImageText } from "../dfd-figures";
-import { dfdDecompositionOf } from "../dfd-decomposition";
+import { elementsByPageOf } from "../dfd-element-pages";
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import {
@@ -561,19 +561,6 @@ export class PdfMakeConverter {
       }
     }
 
-    // Leveled DFD (7b): the decomposition tree, indented by depth.
-    const decomposition = dfdDecompositionOf(this.project.dfd, this.lang);
-    if (decomposition) {
-      content.push(
-        { text: decomposition.title, style: "h2" },
-        { text: decomposition.intro, margin: [0, 0, 0, 6] },
-        ...decomposition.items.map(
-          (item): Content => ({ text: `• ${item.text}`, margin: [item.depth * 15, 0, 0, 3] }),
-        ),
-        { text: "", margin: [0, 0, 0, 14] },
-      );
-    }
-
     // DFD Elements
     const elements = this.project.dfd?.elements ?? [];
     if (elements.length > 0) {
@@ -582,16 +569,30 @@ export class PdfMakeConverter {
         style: "h2",
       });
 
-      for (const element of elements) {
-        content.push({
-          text: element.name,
-          style: "h3",
-          margin: [0, 10, 0, 5],
-        });
-        content.push({
-          text: element.description || "-",
-          margin: [0, 0, 0, 10],
-        });
+      // Leveled DFD (7b): grouped by the page each element is defined on.
+      const byPage = elementsByPageOf(this.project.dfd, this.lang);
+      if (byPage) {
+        for (const page of byPage) {
+          content.push({ text: page.title, style: "h3", margin: [0, 14, 0, 6] });
+          for (const element of page.elements) {
+            content.push(
+              { text: element.name, bold: true, margin: [10, 6, 0, 2] },
+              { text: element.description || "-", margin: [10, 0, 0, 8] },
+            );
+          }
+        }
+      } else {
+        for (const element of elements) {
+          content.push({
+            text: element.name,
+            style: "h3",
+            margin: [0, 10, 0, 5],
+          });
+          content.push({
+            text: element.description || "-",
+            margin: [0, 0, 0, 10],
+          });
+        }
       }
     }
 

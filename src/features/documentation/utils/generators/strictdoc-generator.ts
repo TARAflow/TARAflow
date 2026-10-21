@@ -38,7 +38,6 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
-import type { DfdDecomposition } from "../dfd-decomposition";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -280,13 +279,6 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
       .join("\n\n|\n\n");
   }
 
-  formatDfdDecomposition(d: DfdDecomposition): string {
-    // RST: list items separated by blank lines, a nested item indented to
-    // its parent's text (two spaces per level).
-    const items = d.items.map((i) => `${"  ".repeat(i.depth)}- ${i.text}`).join("\n\n");
-    return `\n\n${d.title}:\n\n${d.intro}\n\n${items}`;
-  }
-
   getDfdDescriptionsTemplate(): string {
     return SDOC_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }
@@ -369,6 +361,14 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
 
   getElementOverviewRowTemplate(): string {
     return SDOC_EXTENDED_TEMPLATES.elementOverviewRow;
+  }
+
+  getDfdElementOverviewByPageTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdElementOverviewByPage(this.ctx.lang);
+  }
+
+  getDfdElementOverviewPageTableTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }
 
   getDfdElementDetailedEntryTemplate(): string {

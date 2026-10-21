@@ -4,7 +4,7 @@
 
 import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
 import { dfdFiguresOf, noDfdImageText, type DfdFigure } from "../dfd-figures";
-import { dfdDecompositionOf, type DfdDecomposition } from "../dfd-decomposition";
+import { elementsByPageOf } from "../dfd-element-pages";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -280,11 +280,6 @@ export abstract class BaseDocumentGenerator {
    * that the page has no stored image yet (leveled DFD, Phase 7a).
    */
   abstract formatDfdFigures(figures: DfdFigure[], alt: string): string;
-  /**
-   * The decomposition tree of a leveled DFD (7b), rendered right after the
-   * figures — so it starts with its own separator.
-   */
-  abstract formatDfdDecomposition(decomposition: DfdDecomposition): string;
   abstract getDfdDescriptionsTemplate(): string;
   abstract getDfdElementTypeHeaderTemplate(): string;
   abstract getDfdElementEntryTemplate(): string;
@@ -343,6 +338,10 @@ export abstract class BaseDocumentGenerator {
   abstract getFooterTemplate(): string;
   abstract getDfdElementOverviewTableTemplate(): string;
   abstract getElementOverviewRowTemplate(): string;
+  /** Leveled DFD (7b): heading and intro of the per-page overview ({{pageTables}}). */
+  abstract getDfdElementOverviewByPageTemplate(): string;
+  /** Leveled DFD (7b): the table of one page ({{pageTitle}}, {{elementRows}}). */
+  abstract getDfdElementOverviewPageTableTemplate(): string;
   abstract getDfdElementDetailedEntryTemplate(): string;
   abstract getDfdConnectionDetailedEntryTemplate(): string;
   abstract getPropertyGroupTemplate(): string;
@@ -678,12 +677,8 @@ export abstract class BaseDocumentGenerator {
     );
     const alt = this.ctx.lang === "de" ? "Datenflussdiagramm" : "Data Flow Diagram";
 
-    const decomposition = dfdDecompositionOf(dfd, this.ctx.lang);
-
     const values = {
-      dfdFigures:
-        this.formatDfdFigures(figures, alt) +
-        (decomposition ? this.formatDfdDecomposition(decomposition) : ""),
+      dfdFigures: this.formatDfdFigures(figures, alt),
       externalEntities: stats.externalEntities,
       processes: stats.processes,
       dataStores: stats.dataStores,
@@ -728,31 +723,35 @@ export abstract class BaseDocumentGenerator {
     const elements = project.dfd.elements;
     const connections = project.dfd.connections ?? [];
 
-    // Generate overview table
-    const elementRows = elements
-      .map((element) => {
-        const values = {
-          displayId: element.displayId || element.id,
-          name: this.escapeTableText(element.name),
-          type: getDFDElementTypeText(element.type, this.ctx.t),
-          description: this.escapeTableText(
-            truncateText(element.description ?? "-", 60),
-          ),
-          assets: this.escapeTableText(getAssetIdList(element, this.resolveAssetName)),
-        };
-        return replacePlaceholders(
-          this.getElementOverviewRowTemplate(),
-          values,
-        );
-      })
-      .join("");
+    // Overview table — leveled DFD (7b): one table per page.
+    const overviewRow = (element: DFDElement) => {
+      const values = {
+        displayId: element.displayId || element.id,
+        name: this.escapeTableText(element.name),
+        type: getDFDElementTypeText(element.type, this.ctx.t),
+        description: this.escapeTableText(
+          truncateText(element.description ?? "-", 60),
+        ),
+        assets: this.escapeTableText(getAssetIdList(element, this.resolveAssetName)),
+      };
+      return replacePlaceholders(this.getElementOverviewRowTemplate(), values);
+    };
 
-    let content = replacePlaceholders(
-      this.getDfdElementOverviewTableTemplate(),
-      {
-        elementRows,
-      },
-    );
+    const pages = elementsByPageOf(project.dfd, this.ctx.lang);
+    let content = pages
+      ? replacePlaceholders(this.getDfdElementOverviewByPageTemplate(), {
+          pageTables: pages
+            .map((page) =>
+              replacePlaceholders(this.getDfdElementOverviewPageTableTemplate(), {
+                pageTitle: this.escapeTableText(page.title),
+                elementRows: page.elements.map(overviewRow).join(""),
+              }),
+            )
+            .join(""),
+        })
+      : replacePlaceholders(this.getDfdElementOverviewTableTemplate(), {
+          elementRows: elements.map(overviewRow).join(""),
+        });
 
     // Group elements by type
     const elementsByType = new Map<DFDElementType, DFDElement[]>();

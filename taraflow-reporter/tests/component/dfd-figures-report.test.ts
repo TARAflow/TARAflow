@@ -112,37 +112,32 @@ describe("DFD figures per page (leveled DFD, 7a)", () => {
   });
 });
 
-describe("decomposition tree (leveled DFD, 7b)", () => {
+describe("element overview per page (leveled DFD, 7b)", () => {
   const data = leveledDocData();
-  const TOP_ITEM = 'Page "Top" — defined here: CB, CTE';
-  const SEN_ITEM = 'Page "Sensor Head" (decomposes MP-1 Sensor Head) — defined here: DS-1';
+  const TOP = 'Page "Top"';
+  const SEN = 'Page "Sensor Head" (decomposes MP-1 Sensor Head)';
+  const CTL = 'Page "Smoke Detector Controller" (decomposes MP-2 Smoke Detector Controller)';
 
-  it("markdown: a nested list after the figures", () => {
+  it("markdown: one titled table per page, each element in its page's table", () => {
     const out = generate(data, "markdown");
-    inOrder(out, ['*Page "Smoke Detector Controller"', "### Decomposition", `- ${TOP_ITEM}`, `  - ${SEN_ITEM}`]);
+    expect(out).toContain("one table per page");
+    inOrder(out, [`#### ${TOP}`, "[EE-1](#element-EE-1)", `#### ${SEN}`, "[P-1](#element-P-1)", `#### ${CTL}`, "[P-5](#element-P-5)"]);
+    expect(out).not.toContain("quick overview of all DFD elements");
   });
 
-  it("asciidoc: list levels by asterisks", () => {
-    const out = generate(data, "asciidoc");
-    inOrder(out, ["=== Decomposition", `* ${TOP_ITEM}`, `** ${SEN_ITEM}`]);
-  });
-
-  it("html: nested ul, escaped", () => {
-    const out = generate(data, "html");
-    expect(out).toContain("<h3>Decomposition</h3>");
-    expect(out).toContain(
-      '<div class="dfd-decomposition"><ul><li>Page &quot;Top&quot; — defined here: CB',
-    );
-    expect(out).toMatch(/SHE<ul><li>Page &quot;Sensor Head&quot;.*<\/li><li>Page &quot;Smoke Detector Controller&quot;.*<\/li><\/ul><\/li><\/ul><\/div>/s);
-  });
-
-  it("strictdoc: RST list items separated by blank lines, nested by indentation", () => {
-    const out = generate(data, "strictdoc");
-    inOrder(out, ["Decomposition:", `- ${TOP_ITEM}`, `\n\n  - ${SEN_ITEM}`]);
+  it("asciidoc, html, strictdoc: the same order of page tables", () => {
+    inOrder(generate(data, "asciidoc"), [`==== ${TOP}`, "<<element-EE-1,EE-1>>", `==== ${SEN}`, "<<element-P-1,P-1>>"]);
+    inOrder(generate(data, "html"), [
+      "<h4>Page &quot;Top&quot;</h4>",
+      '<a href="#element-EE-1">EE-1</a>',
+      "<h4>Page &quot;Sensor Head&quot; (decomposes MP-1 Sensor Head)</h4>",
+      '<a href="#element-P-1">P-1</a>',
+    ]);
+    inOrder(generate(data, "strictdoc"), [`TITLE: ${TOP}`, "[EE-1](#element-EE-1)", `TITLE: ${SEN}`, "[P-1](#element-P-1)"]);
   });
 
   it("German", () => {
-    expect(generate(data, "markdown", "de")).toContain("### Zerlegung");
+    expect(generate(data, "markdown", "de")).toContain("#### Seite „Sensor Head“ (zerlegt MP-1 Sensor Head)");
   });
 });
 
@@ -159,6 +154,7 @@ describe("DFD figure of a classic project (unchanged)", () => {
     const out = generate(data, format);
     expect(out).toContain(line);
     expect(out).not.toContain("Page \"");
-    expect(out).not.toContain("Decomposition");
+    // The one overview table as before.
+    expect(out).not.toContain("one table per page");
   });
 });

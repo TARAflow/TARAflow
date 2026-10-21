@@ -18,7 +18,6 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
-import type { DfdDecomposition } from "../dfd-decomposition";
 import { HtmlGenerator } from "./html-generator";
 import { PdfMakeConverter } from "./pdfmake-converter";
 
@@ -410,10 +409,6 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
     return this.htmlGenerator.formatDfdFigures(figures, alt);
   }
 
-  formatDfdDecomposition(decomposition: DfdDecomposition): string {
-    return this.htmlGenerator.formatDfdDecomposition(decomposition);
-  }
-
   getDfdDescriptionsTemplate(): string {
     return this.htmlGenerator.getDfdDescriptionsTemplate();
   }
@@ -492,6 +487,14 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
   getElementOverviewRowTemplate(): string {
     return this.htmlGenerator.getElementOverviewRowTemplate();
+  }
+
+  getDfdElementOverviewByPageTemplate(): string {
+    return this.htmlGenerator.getDfdElementOverviewByPageTemplate();
+  }
+
+  getDfdElementOverviewPageTableTemplate(): string {
+    return this.htmlGenerator.getDfdElementOverviewPageTableTemplate();
   }
 
   getDfdElementDetailedEntryTemplate(): string {

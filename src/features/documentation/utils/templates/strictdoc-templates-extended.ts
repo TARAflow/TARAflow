@@ -136,6 +136,72 @@ The following table provides a quick overview of all DFD elements.
 `,
 
   // RST list-table row for element overview (4-space indent for continuation rows)
+  // Leveled DFD (7b): the element overview as one table per page.
+  dfdElementOverviewByPage: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: Elementübersicht
+
+[FREETEXT]
+Die folgenden Tabellen geben einen schnellen Überblick über die DFD-Elemente, eine Tabelle pro Seite: jedes Element steht auf der Seite, auf der es definiert ist.
+[/FREETEXT]
+
+{{pageTables}}[/SECTION]
+
+`
+      : `[SECTION]
+TITLE: Element Overview
+
+[FREETEXT]
+The following tables provide a quick overview of the DFD elements, one table per page: each element is listed on the page where it is defined.
+[/FREETEXT]
+
+{{pageTables}}[/SECTION]
+
+`,
+
+  // Leveled DFD (7b): the table of one page ({{pageTitle}} = its caption).
+  dfdElementOverviewPageTable: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: {{pageTitle}}
+
+[FREETEXT]
+.. list-table::
+   :header-rows: 1
+   :widths: 10 20 20 35 15
+
+   * - ID
+     - Name
+     - Typ
+     - Beschreibung
+     - Assets
+{{elementRows}}
+[/FREETEXT]
+
+[/SECTION]
+
+`
+      : `[SECTION]
+TITLE: {{pageTitle}}
+
+[FREETEXT]
+.. list-table::
+   :header-rows: 1
+   :widths: 10 20 20 35 15
+
+   * - ID
+     - Name
+     - Type
+     - Description
+     - Assets
+{{elementRows}}
+[/FREETEXT]
+
+[/SECTION]
+
+`,
+
   elementOverviewRow: `   * - [{{displayId}}](#element-{{displayId}})
      - {{name}}
      - {{type}}

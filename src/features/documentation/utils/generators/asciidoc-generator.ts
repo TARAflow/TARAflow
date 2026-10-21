@@ -9,7 +9,6 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
-import type { DfdDecomposition } from "../dfd-decomposition";
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
@@ -135,11 +134,6 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
       .join("\n\n{nbsp}\n\n");
   }
 
-  formatDfdDecomposition(d: DfdDecomposition): string {
-    const items = d.items.map((i) => `${"*".repeat(i.depth + 1)} ${i.text}`).join("\n");
-    return `\n\n=== ${d.title}\n\n${d.intro}\n\n${items}`;
-  }
-
   getDfdDescriptionsTemplate(): string {
     return ADOC_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }
@@ -254,6 +248,14 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
 
   getElementOverviewRowTemplate(): string {
     return ADOC_EXTENDED_TEMPLATES.elementOverviewRow;
+  }
+
+  getDfdElementOverviewByPageTemplate(): string {
+    return ADOC_EXTENDED_TEMPLATES.dfdElementOverviewByPage(this.ctx.lang);
+  }
+
+  getDfdElementOverviewPageTableTemplate(): string {
+    return ADOC_EXTENDED_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }
 
   getDfdElementDetailedEntryTemplate(): string {

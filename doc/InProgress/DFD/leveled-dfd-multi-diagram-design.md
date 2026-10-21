@@ -1680,7 +1680,8 @@ Order (Phase 6):
   leveled code.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
-consolidated element/threat tables, decomposition tree, flows analysed on parent level listed
+consolidated element/threat tables, decomposition tree (became the element overview per page,
+7b), flows analysed on parent level listed
 explicitly.
 - **7.0 ✅ same analysis in the CLI** (decided 2026-10-21): the project file stores records and
   pages, but which page shows which element, the parts of a multiprocess and the flows analysed on
@@ -1711,21 +1712,24 @@ explicitly.
   thumbnail to PNG (`createProjectWithPng`; a failing one is left out, the others stay); the CLI
   PDF rasterises every SVG image as before. The CLI note now only says that the element and flow
   lists are not grouped by page yet.
-- **7b ✅ decomposition tree:** right after the figures, a section "Decomposition" / "Zerlegung":
-  one entry per page in page-tree order, indented by depth, captioned like its figure and listing
-  the elements defined on the page in display order (`Page "Sensor Head" (decomposes MP-1 Sensor
-  Head) — defined here: DS-1, DS-2, IF-1, …`). `ReportPage.defined` (from the home pages),
-  `dfdDecompositionOf` (documentation), `formatDfdDecomposition` per format: Markdown and
-  AsciiDoc nested lists, HTML nested `<ul>`, StrictDoc RST list (blank-line separated, nested by
-  indentation), pdfmake indented bullets. Absent for a classic DFD.
+- **7b ✅ element overview per page** (revised after first use, 2026-10-21: a separate
+  decomposition tree after the figures — page, decomposed MP, "defined here: …" — was not helpful
+  and is gone; the analyst wants to see in the overview which elements are where). The "Element
+  Overview" of a leveled DFD is one table per page in page-tree order, titled with the page's
+  figure caption (`Page "Sensor Head" (decomposes MP-1 Sensor Head)`); each element once, on the
+  page its definition is on, in record order; records without a drawn cell last ("Not on any
+  page"). `ReportPage.defined` (tfIds from the home pages), `elementsByPageOf` (documentation),
+  templates `dfdElementOverviewByPage` / `dfdElementOverviewPageTable` per format (StrictDoc: one
+  nested section per page); pdfmake groups its element list the same way. A classic DFD keeps the
+  one table.
   - After first use: more space between the page figures — Markdown `&nbsp;` and AsciiDoc
     `{nbsp}` paragraphs, an empty RST line block in StrictDoc (the formats have no spacing of
     their own), HTML `.dfd-figure` margin 3em plus a thin rule between figures, pdfmake 36 pt
     after each caption.
   - The app's document preview converts Markdown / AsciiDoc / StrictDoc with its own small
-    converters (`doc-preview-converters`), which knew neither nested lists nor figures: the tree
-    showed as raw "  - Seite …" lines, AsciiDoc captions as ".Seite …", StrictDoc figures were
-    dropped. Now: Markdown lists nested by indentation, `&nbsp;` kept; AsciiDoc block title +
+    converters (`doc-preview-converters`), which knew neither nested lists nor figures: the then
+    decomposition tree showed as raw "  - Seite …" lines, AsciiDoc captions as ".Seite …",
+    StrictDoc figures were dropped. Now: Markdown lists nested by indentation, `&nbsp;` kept; AsciiDoc block title +
     `image::` → `<figure>` with caption, other block titles as caption lines, `{nbsp}`; StrictDoc
     `.. figure::` with alt and caption, the empty line block, blank-line separated lists nested
     by indentation (`nestedListWriter`). The written files were right; only the preview was off.

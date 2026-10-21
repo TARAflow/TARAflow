@@ -2,11 +2,10 @@
 // Leveled-DFD Phase 7a (leveled-dfd-multi-diagram-design.md §12.1, item 4):
 // the pages of a leveled DFD as the report shows them — one figure per page
 // in page-tree order, each with its stored thumbnail and, for a child page,
-// the multiprocess it decomposes, and (7b, decomposition tree) the elements
-// defined on it. Undefined for a classic DFD (one page).
+// the multiprocess it decomposes, and the elements defined on it (the
+// element overview per page). Undefined for a classic DFD (one page).
 
 import type { DFDConnection, DFDElement, DFDPage } from "../../models/dfd-types";
-import { compareDisplayIds } from "../../../../shared/utils/display-order";
 import { isLeveled } from "../build-dfd-graph";
 import { analyseLeveled } from "./leveled-analysis";
 
@@ -19,7 +18,7 @@ export interface ReportPage {
   image?: string;
   /** displayId and name of the multiprocess this page decomposes. */
   decomposes?: string;
-  /** displayIds (else names) of the elements defined on this page, in display order. */
+  /** tfIds of the elements whose definition is on this page. */
   defined: string[];
 }
 
@@ -38,10 +37,6 @@ export function reportPagesOf(dfd: ReportPagesSource | null | undefined): Report
     const e = elements.find((x) => x.id === tfId);
     return e ? [e.displayId, e.name].filter(Boolean).join(" ") || tfId : tfId;
   };
-  const shortLabel = (tfId: string) => {
-    const e = elements.find((x) => x.id === tfId);
-    return e?.displayId || e?.name || tfId;
-  };
   const toPage = (
     page: DFDPage,
     depth: number,
@@ -55,7 +50,7 @@ export function reportPagesOf(dfd: ReportPagesSource | null | undefined): Report
       depth,
       ...(image ? { image } : {}),
       ...(page.decomposes ? { decomposes: label(page.decomposes) } : {}),
-      defined: defined.map(shortLabel).sort(compareDisplayIds),
+      defined: [...defined],
     };
   };
 

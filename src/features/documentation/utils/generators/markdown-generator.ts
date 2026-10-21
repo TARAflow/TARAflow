@@ -9,7 +9,6 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
-import type { DfdDecomposition } from "../dfd-decomposition";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -157,11 +156,6 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
       .join("\n\n&nbsp;\n\n");
   }
 
-  formatDfdDecomposition(d: DfdDecomposition): string {
-    const items = d.items.map((i) => `${"  ".repeat(i.depth)}- ${i.text}`).join("\n");
-    return `\n\n### ${d.title}\n\n${d.intro}\n\n${items}`;
-  }
-
   getDfdDescriptionsTemplate(): string {
     return MD_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }
@@ -276,6 +270,14 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
 
   getElementOverviewRowTemplate(): string {
     return MD_EXTENDED_TEMPLATES.elementOverviewRow;
+  }
+
+  getDfdElementOverviewByPageTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdElementOverviewByPage(this.ctx.lang);
+  }
+
+  getDfdElementOverviewPageTableTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }
 
   getDfdElementDetailedEntryTemplate(): string {
