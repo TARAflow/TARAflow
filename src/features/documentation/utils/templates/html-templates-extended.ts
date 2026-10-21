@@ -154,6 +154,49 @@ export const HTML_EXTENDED_TEMPLATES = {
 </table>
 `,
 
+  // Leveled DFD (7c): the flows analysed on a parent level ({{title}}, {{intro}}, {{rows}}).
+  dfdParentLevelFlows: (lang: DocLanguage) =>
+    lang === "de"
+      ? `  <h3>{{title}}</h3>
+  <p>{{intro}}</p>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Fluss</th>
+      <th>Von</th>
+      <th>Nach</th>
+      <th>Grund</th>
+    </tr>
+  </thead>
+  <tbody>
+{{rows}}  </tbody>
+</table>
+`
+      : `  <h3>{{title}}</h3>
+  <p>{{intro}}</p>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Flow</th>
+      <th>From</th>
+      <th>To</th>
+      <th>Reason</th>
+    </tr>
+  </thead>
+  <tbody>
+{{rows}}  </tbody>
+</table>
+`,
+
+  // Leveled DFD (7c): one flow analysed on a parent level.
+  dfdParentLevelFlowRow: `    <tr>
+      <td>{{flow}}</td>
+      <td>{{from}}</td>
+      <td>{{to}}</td>
+      <td>{{reason}}</td>
+    </tr>
+`,
+
   elementOverviewRow: `    <tr>
       <td><a href="#element-{{displayId}}">{{displayId}}</a></td>
       <td>{{name}}</td>

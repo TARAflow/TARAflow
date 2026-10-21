@@ -7,6 +7,7 @@
 
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
+import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import {
@@ -559,6 +560,26 @@ export class PdfMakeConverter {
             { text: element.description || "-", margin: [0, 0, 0, 6] },
           );
         }
+      }
+      // 7c: the flows analysed on a parent level.
+      const parentLevel = dfdParentLevelFlowsOf(this.project.dfd, this.lang);
+      if (parentLevel) {
+        const header = this.lang === "de" ? ["Fluss", "Von", "Nach", "Grund"] : ["Flow", "From", "To", "Reason"];
+        content.push(
+          { text: parentLevel.title, style: "h2" },
+          { text: parentLevel.intro, margin: [0, 0, 0, 8] },
+          {
+            table: {
+              headerRows: 1,
+              widths: ["auto", "auto", "auto", "*"],
+              body: [
+                header.map((h): TableCell => ({ text: h, bold: true })),
+                ...parentLevel.rows.map((r): TableCell[] => [r.flow, r.from, r.to, r.reason]),
+              ],
+            },
+            margin: [0, 0, 0, 12],
+          },
+        );
       }
       content.push({ text: "", pageBreak: "after" });
       return content;

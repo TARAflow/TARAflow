@@ -18,6 +18,16 @@ import {
   type DocProjectData,
 } from "../../../src/features/documentation/models/doc-types";
 import fixture from "../../../src/tests/fixtures/leveled/smoke-detector-leveled.json";
+import { dfdParser } from "../../../src/features/dfd/services/dfd-parser";
+import {
+  CONTROLLER,
+  LEVELED_PAGES,
+  SENSOR,
+  SYSTEM,
+  flow,
+  mxfile,
+  node,
+} from "../../../src/tests/fixtures/leveled-dfd-xml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const project = JSON.parse(
@@ -132,6 +142,54 @@ describe("DFD chapter of a leveled DFD (7a/7b)", () => {
     const out = generate(data, "markdown", "de");
     inOrder(out, ["### DFD-Statistiken", "### Seite „Top“", "### Seite „Sensor Head“ (zerlegt MP-1 Sensor Head)"]);
     expect(out).toContain("Für diese Seite ist noch kein Bild gespeichert");
+  });
+});
+
+describe("flows analysed on a parent level (7c)", () => {
+  // Top additionally holds EE-1 → MP-1 (DF-8), not drawn below MP-1.
+  const xml = mxfile(
+    SYSTEM.replace(
+      "</root>",
+      node("ee1", "externalentity", "Debugger", "EE-1", 900) + flow("df8", "debug", "DF-8", "ee1", "mp1") + "</root>",
+    ),
+    SENSOR,
+    CONTROLLER,
+  );
+  const base = toDocProjectData(project, "en");
+  const { elements, connections } = dfdParser.parse(xml, LEVELED_PAGES);
+  const data: DocProjectData = {
+    ...base,
+    dfd: { ...base.dfd!, xml, pages: LEVELED_PAGES, elements, connections } as unknown as DocProjectData["dfd"],
+  };
+  const TITLE = "Data flows analysed on a parent level";
+  const REASON = "not drawn on the child page of the multiprocess";
+
+  it("markdown: after the page sections, a table with flow, ends and reason", () => {
+    inOrder(generate(data, "markdown"), [
+      '### Page "Controller Module"',
+      `### ${TITLE}`,
+      "Their threats are provisional",
+      "| Flow | From | To | Reason |",
+      `| DF-8 debug | EE-1 Debugger | MP-1 Sensor Module | ${REASON} |`,
+    ]);
+  });
+
+  it("asciidoc, html, strictdoc", () => {
+    inOrder(generate(data, "asciidoc"), [`=== ${TITLE}`, `| DF-8 debug | EE-1 Debugger | MP-1 Sensor Module | ${REASON}`]);
+    inOrder(generate(data, "html"), [`<h3>${TITLE}</h3>`, "<td>DF-8 debug</td>", `<td>${REASON}</td>`, "</section>"]);
+    inOrder(generate(data, "strictdoc"), [`TITLE: ${TITLE}`, "   * - DF-8 debug\n     - EE-1 Debugger", REASON]);
+  });
+
+  it("German", () => {
+    inOrder(generate(data, "markdown", "de"), [
+      "### Auf Elternebene analysierte Datenflüsse",
+      "| Fluss | Von | Nach | Grund |",
+      "nicht auf der Unterseite des Multiprozesses gezeichnet",
+    ]);
+  });
+
+  it("is absent when every flow is resolved", () => {
+    expect(generate(leveledDocData(), "markdown")).not.toContain(TITLE);
   });
 });
 

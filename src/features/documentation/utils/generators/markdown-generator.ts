@@ -269,6 +269,14 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return MD_EXTENDED_TEMPLATES.dfdPageSection;
   }
 
+  getDfdParentLevelFlowsTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdParentLevelFlows(this.ctx.lang);
+  }
+
+  getDfdParentLevelFlowRowTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdParentLevelFlowRow;
+  }
+
   getDfdElementOverviewPageTableTemplate(): string {
     return MD_EXTENDED_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }

@@ -4,6 +4,7 @@
 
 import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
+import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -340,6 +341,10 @@ export abstract class BaseDocumentGenerator {
   abstract getDfdPageSectionTemplate(): string;
   /** Leveled DFD (7b): the element table of a page section ({{elementRows}}). */
   abstract getDfdElementOverviewPageTableTemplate(): string;
+  /** Leveled DFD (7c): flows analysed on a parent level ({{title}}, {{intro}}, {{rows}}). */
+  abstract getDfdParentLevelFlowsTemplate(): string;
+  /** Leveled DFD (7c): one such flow ({{flow}}, {{from}}, {{to}}, {{reason}}). */
+  abstract getDfdParentLevelFlowRowTemplate(): string;
   abstract getDfdElementDetailedEntryTemplate(): string;
   abstract getDfdConnectionDetailedEntryTemplate(): string;
   abstract getPropertyGroupTemplate(): string;
@@ -688,9 +693,28 @@ export abstract class BaseDocumentGenerator {
       )
       .join("");
 
+    // Leveled DFD (7c): the flows analysed on a parent level, after the pages.
+    const parentLevel = dfdParentLevelFlowsOf(dfd, this.ctx.lang);
+    const dfdParentLevel = parentLevel
+      ? replacePlaceholders(this.getDfdParentLevelFlowsTemplate(), {
+          title: this.escapeTableText(parentLevel.title),
+          intro: this.escapeTableText(parentLevel.intro),
+          rows: parentLevel.rows
+            .map((row) =>
+              replacePlaceholders(this.getDfdParentLevelFlowRowTemplate(), {
+                flow: this.escapeTableText(row.flow),
+                from: this.escapeTableText(row.from),
+                to: this.escapeTableText(row.to),
+                reason: this.escapeTableText(row.reason),
+              }),
+            )
+            .join(""),
+        })
+      : "";
+
     const values = {
       dfdFigures: sections ? "" : this.formatDfdFigure(dfd.thumbnail || "dfd.png", alt),
-      dfdPages,
+      dfdPages: dfdPages + dfdParentLevel,
       externalEntities: stats.externalEntities,
       processes: stats.processes,
       dataStores: stats.dataStores,

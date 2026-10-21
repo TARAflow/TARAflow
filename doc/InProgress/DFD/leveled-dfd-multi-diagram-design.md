@@ -1716,6 +1716,13 @@ explicitly.
     nested section per page), `formatDfdFigure` per format; pdfmake the same order. The browser PDF
     converts every page thumbnail to PNG (`createProjectWithPng`; a failing one is left out); the
     CLI PDF rasterises every SVG image as before.
+- **7c ✅ flows analysed on parent level:** at the end of the DFD chapter (after the page sections)
+  a section "Data flows analysed on a parent level" / "Auf Elternebene analysierte Datenflüsse":
+  the note that their threats are provisional and refine when the flows are drawn on the child
+  page, and a table flow / from / to / reason — the endpoints the flow is analysed with and the
+  reason of the threats tab's banner (unresolved / ambiguous / dangling). Only when there are such
+  flows. `dfdParentLevelFlowsOf` (documentation, on `parentLevelFlowsFrom`), templates
+  `dfdParentLevelFlows` / `dfdParentLevelFlowRow` per format; pdfmake a table.
   - The app's document preview converts Markdown / AsciiDoc / StrictDoc with its own small
     converters (`doc-preview-converters`), which knew neither nested lists nor figures: the then
     decomposition tree showed as raw "  - Seite …" lines, AsciiDoc captions as ".Seite …",

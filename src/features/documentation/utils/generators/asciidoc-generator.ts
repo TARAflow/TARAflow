@@ -246,6 +246,14 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return ADOC_EXTENDED_TEMPLATES.dfdPageSection;
   }
 
+  getDfdParentLevelFlowsTemplate(): string {
+    return ADOC_EXTENDED_TEMPLATES.dfdParentLevelFlows(this.ctx.lang);
+  }
+
+  getDfdParentLevelFlowRowTemplate(): string {
+    return ADOC_EXTENDED_TEMPLATES.dfdParentLevelFlowRow;
+  }
+
   getDfdElementOverviewPageTableTemplate(): string {
     return ADOC_EXTENDED_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }

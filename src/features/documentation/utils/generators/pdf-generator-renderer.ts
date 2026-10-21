@@ -397,6 +397,14 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return this.htmlGenerator.getDfdPageSectionTemplate();
   }
 
+  getDfdParentLevelFlowsTemplate(): string {
+    return this.htmlGenerator.getDfdParentLevelFlowsTemplate();
+  }
+
+  getDfdParentLevelFlowRowTemplate(): string {
+    return this.htmlGenerator.getDfdParentLevelFlowRowTemplate();
+  }
+
   getDfdElementOverviewPageTableTemplate(): string {
     return this.htmlGenerator.getDfdElementOverviewPageTableTemplate();
   }

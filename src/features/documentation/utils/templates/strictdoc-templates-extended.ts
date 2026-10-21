@@ -175,6 +175,55 @@ TITLE: {{pageTitle}}
 {{elementRows}}
 `,
 
+  // Leveled DFD (7c): the flows analysed on a parent level ({{title}}, {{intro}}, {{rows}}).
+  dfdParentLevelFlows: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: {{title}}
+
+[FREETEXT]
+{{intro}}
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 20 20 40
+
+   * - Fluss
+     - Von
+     - Nach
+     - Grund
+{{rows}}[/FREETEXT]
+
+[/SECTION]
+
+`
+      : `[SECTION]
+TITLE: {{title}}
+
+[FREETEXT]
+{{intro}}
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 20 20 40
+
+   * - Flow
+     - From
+     - To
+     - Reason
+{{rows}}[/FREETEXT]
+
+[/SECTION]
+
+`,
+
+  // Leveled DFD (7c): one flow analysed on a parent level.
+  dfdParentLevelFlowRow: `   * - {{flow}}
+     - {{from}}
+     - {{to}}
+     - {{reason}}
+`,
+
   elementOverviewRow: `   * - [{{displayId}}](#element-{{displayId}})
      - {{name}}
      - {{type}}

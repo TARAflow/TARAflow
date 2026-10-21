@@ -117,6 +117,30 @@ The following table provides a quick overview of all DFD elements.
 
 `,
 
+  // Leveled DFD (7c): the flows analysed on a parent level ({{title}}, {{intro}}, {{rows}}).
+  dfdParentLevelFlows: (lang: DocLanguage) =>
+    lang === "de"
+      ? `### {{title}}
+
+{{intro}}
+
+| Fluss | Von | Nach | Grund |
+|-------|-----|------|-------|
+{{rows}}
+`
+      : `### {{title}}
+
+{{intro}}
+
+| Flow | From | To | Reason |
+|------|------|----|--------|
+{{rows}}
+`,
+
+  // Leveled DFD (7c): one flow analysed on a parent level.
+  dfdParentLevelFlowRow: `| {{flow}} | {{from}} | {{to}} | {{reason}} |
+`,
+
   elementOverviewRow: `| [{{displayId}}](#element-{{displayId}}) | {{name}} | {{type}} | {{description}} | {{assets}} |
 `,
 

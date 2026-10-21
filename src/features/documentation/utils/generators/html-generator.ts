@@ -311,6 +311,14 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return HTML_TEMPLATES.dfdPageSection;
   }
 
+  getDfdParentLevelFlowsTemplate(): string {
+    return HTML_TEMPLATES.dfdParentLevelFlows(this.ctx.lang);
+  }
+
+  getDfdParentLevelFlowRowTemplate(): string {
+    return HTML_TEMPLATES.dfdParentLevelFlowRow;
+  }
+
   getDfdElementOverviewPageTableTemplate(): string {
     return HTML_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }

@@ -358,6 +358,14 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return SDOC_EXTENDED_TEMPLATES.dfdPageSection;
   }
 
+  getDfdParentLevelFlowsTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdParentLevelFlows(this.ctx.lang);
+  }
+
+  getDfdParentLevelFlowRowTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdParentLevelFlowRow;
+  }
+
   getDfdElementOverviewPageTableTemplate(): string {
     return SDOC_EXTENDED_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }

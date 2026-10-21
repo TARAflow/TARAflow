@@ -117,13 +117,13 @@ async function main() {
   }
 
   // Leveled DFD (leveled-dfd-multi-diagram-design.md, Phase 7): one section
-  // per page with figure and elements (7a/7b). Flows analysed on parent
-  // level and the threat tables per page follow (7c, 7d).
+  // per page with figure and elements (7a/7b), flows analysed on parent
+  // level (7c). The threat and risk tables per multiprocess follow (7d).
   const pageCount = inspectDrawioPages(project.dfd?.xml).pageCount;
   if (pageCount > 1) {
     console.warn(
       `Note: the DFD has ${pageCount} pages. The report shows one section per page; ` +
-        `flows analysed on parent level are not listed yet — that follows in a later version.`,
+        `threat and risk tables are not yet grouped by multiprocess — that follows in a later version.`,
     );
   }
 

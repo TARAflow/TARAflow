@@ -19,6 +19,16 @@ import {
   type DocProjectData,
 } from "../../../src/features/documentation/models/doc-types";
 import fixture from "../../../src/tests/fixtures/leveled/smoke-detector-leveled.json";
+import { dfdParser } from "../../../src/features/dfd/services/dfd-parser";
+import {
+  CONTROLLER,
+  LEVELED_PAGES,
+  SENSOR,
+  SYSTEM,
+  flow,
+  mxfile,
+  node,
+} from "../../../src/tests/fixtures/leveled-dfd-xml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const project = JSON.parse(
@@ -60,5 +70,29 @@ describe("CLI PDF with one figure per page", () => {
     expect(three.subarray(0, 5).toString()).toBe("%PDF-");
     expect(two - one).toBeGreaterThan(0);
     expect(imageCount(three) - two).toBe(two - one);
+  });
+
+  it("renders the table of flows analysed on a parent level (7c)", async () => {
+    installDomParser();
+    const xml = mxfile(
+      SYSTEM.replace(
+        "</root>",
+        node("ee1", "externalentity", "Debugger", "EE-1", 900) + flow("df8", "debug", "DF-8", "ee1", "mp1") + "</root>",
+      ),
+      SENSOR,
+      CONTROLLER,
+    );
+    const base = toDocProjectData(project, "en");
+    const { elements, connections } = dfdParser.parse(xml, LEVELED_PAGES);
+    const data = {
+      ...base,
+      dfd: { ...base.dfd!, xml, pages: LEVELED_PAGES, elements, connections },
+    } as unknown as DocProjectData;
+    const pdf = await generatePdfBufferCli(
+      data,
+      { ...DEFAULT_DOC_CONFIGURATION, format: "pdf" as const },
+      (key: string, defaultValue?: string) => defaultValue ?? key,
+    );
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
   });
 });
