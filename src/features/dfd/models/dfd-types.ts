@@ -9,6 +9,7 @@ import type { A2AOp } from "shared";
 import type { ControlInstance, PhaseStatusMap } from "shared";
 import type {
   ProcessProperties,
+  MultiprocessProperties,
   ExternalEntityProperties,
   DataStoreProperties,
   DataFlowProperties,
@@ -153,6 +154,7 @@ export interface DFDElement extends DFDBaseEntity {
   /** Element-specific properties (type depends on element.type) */
   properties:
     | ProcessProperties
+    | MultiprocessProperties
     | ExternalEntityProperties
     | DataStoreProperties
     | InterfaceProperties

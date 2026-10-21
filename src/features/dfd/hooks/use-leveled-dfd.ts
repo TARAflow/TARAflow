@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { inspectDrawioPages } from "shared";
 import type { DFDElement, DFDProjectData } from "../models/dfd-types";
+import type { MultiprocessProperties } from "../models/element-properties";
 import type { ContextCellMap } from "../services/drawio-bridge";
 import {
   buildPageTabInfo,
@@ -115,12 +116,12 @@ export function useLeveledDfd(
   const setNoChildPage = useCallback(
     (tfId: string, noChildPage: boolean) => {
       const mp = projectElements?.find((e) => e.id === tfId);
-      if (!mp) return;
-      updateElementDescription(tfId, {
-        // MultiprocessProperties.noChildPage; the element's union type has
-        // no multiprocess member of its own.
-        properties: { ...mp.properties, noChildPage } as unknown as typeof mp.properties,
-      });
+      if (mp?.type !== "Multiprocess") return;
+      const properties: MultiprocessProperties = {
+        ...(mp.properties as MultiprocessProperties),
+        noChildPage,
+      };
+      updateElementDescription(tfId, { properties });
     },
     [projectElements, updateElementDescription],
   );

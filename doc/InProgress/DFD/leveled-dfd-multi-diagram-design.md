@@ -1623,6 +1623,10 @@ Order (Phase 6):
   and container) to `IdentitySection`, which asks with `ConfirmDialog` before "Make this the
   definition" and "Promote to definition"; cancel changes nothing. `BAL_HOME_NOT_HIGHEST` stays
   info.
+- **Minor ✅ `noChildPage` typed** — `DFDElement.properties` now includes `MultiprocessProperties`
+  (it already was in `ElementProperties`). The façade's `setNoChildPage` checks the element type and
+  writes `MultiprocessProperties` without the `as unknown as` cast; the orchestrator narrows with
+  `"noChildPage" in properties` instead of a structural cast.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed

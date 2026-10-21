@@ -105,4 +105,16 @@ describe("useLeveledDfd", () => {
     const cells = (editor.setContextCells as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
     expect(Object.keys(cells)).toEqual(expect.arrayContaining(["sen", "ctl"]));
   });
+
+  it("marks a multiprocess whose child page was deleted as keeping no page", async () => {
+    // The Controller Module page (child of MP-2) is gone from the XML.
+    const project = projectOf(mxfile(SYSTEM, SENSOR), LEVELED_PAGES);
+    const editor = editorMock(true);
+    renderHook(() => useLeveledDfd(project, editor, NONE));
+    await waitFor(() =>
+      expect(editor.updateElementDescription).toHaveBeenCalledWith("mp2", {
+        properties: expect.objectContaining({ noChildPage: true }),
+      }),
+    );
+  });
 });

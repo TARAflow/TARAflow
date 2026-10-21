@@ -74,7 +74,7 @@ export interface ChildPagesSnapshot {
 }
 
 const isOptedOut = (e: DFDElement) =>
-  e.type === "Multiprocess" && !!(e.properties as { noChildPage?: boolean } | undefined)?.noChildPage;
+  e.type === "Multiprocess" && !!e.properties && "noChildPage" in e.properties && !!e.properties.noChildPage;
 
 export class ChildPagesOrchestrator {
   private readonly queue = new SerialQueue();
