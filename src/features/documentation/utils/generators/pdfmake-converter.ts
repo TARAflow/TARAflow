@@ -556,7 +556,7 @@ export class PdfMakeConverter {
           figure.image
             ? { image: figure.image, width: 500, margin: [0, 0, 0, 4] }
             : { text: noDfdImageText(this.lang), style: "placeholder", margin: [0, 0, 0, 4] },
-          { text: figure.caption ?? "", italics: true, alignment: "center", margin: [0, 0, 0, 20] },
+          { text: figure.caption ?? "", italics: true, alignment: "center", margin: [0, 0, 0, 36] },
         );
       }
     }

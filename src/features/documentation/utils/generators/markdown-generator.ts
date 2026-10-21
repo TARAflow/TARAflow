@@ -153,7 +153,8 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
         const image = f.image ? `![${alt}](${f.image})` : `_${this.noDfdImage()}_`;
         return f.caption ? `${image}\n\n*${f.caption}*` : image;
       })
-      .join("\n\n");
+      // Markdown has no spacing; an empty paragraph keeps the pages apart.
+      .join("\n\n&nbsp;\n\n");
   }
 
   formatDfdDecomposition(d: DfdDecomposition): string {

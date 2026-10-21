@@ -276,7 +276,8 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
         // An RST figure: the indented paragraph after the options is its caption.
         return `.. figure:: ${f.image}\n   :alt: ${alt}\n\n   ${f.caption}`;
       })
-      .join("\n\n");
+      // An empty RST line block keeps the pages apart.
+      .join("\n\n|\n\n");
   }
 
   formatDfdDecomposition(d: DfdDecomposition): string {

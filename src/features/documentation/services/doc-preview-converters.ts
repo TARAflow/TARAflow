@@ -49,6 +49,9 @@ export function convertMarkdownToHtml(markdown: string): string {
 
   // Restore intentional <br> line breaks (e.g. multi-line table cells)
   html = html.replace(/&lt;br\s*\/?&gt;/gi, "<br>");
+  // …and the non-breaking space of an intentionally empty paragraph
+  // (spacing between the DFD page figures)
+  html = html.replace(/&amp;nbsp;/g, "&nbsp;");
 
   // Headers
   html = html.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
@@ -154,28 +157,53 @@ function convertMarkdownTableRows(rows: string[]): string {
 function convertMarkdownLists(html: string): string {
   const lines = html.split("\n");
   const result: string[] = [];
-  let inList = false;
+  const nested = nestedListWriter(result);
 
   for (const line of lines) {
-    const bulletMatch = line.match(/^[-*] (.+)$/);
+    // Nesting by indentation, two spaces per level (decomposition tree).
+    const bulletMatch = line.match(/^( *)[-*] (.+)$/);
     if (bulletMatch) {
-      if (!inList) {
-        result.push("<ul>");
-        inList = true;
-      }
-      result.push(`<li>${bulletMatch[1]}</li>`);
+      nested.item(Math.floor(bulletMatch[1].length / 2) + 1, bulletMatch[2]);
     } else {
-      if (inList) {
-        result.push("</ul>");
-        inList = false;
-      }
+      nested.close();
       result.push(line);
     }
   }
 
-  if (inList) result.push("</ul>");
-
+  nested.close();
   return result.join("\n");
+}
+
+/**
+ * Writes nested <ul> lists into `out`: item(level, html) opens and closes
+ * levels as needed (level 1 = outermost), close() ends the list. A nested
+ * list sits inside its parent's <li>.
+ */
+function nestedListWriter(out: string[]) {
+  let depth = 0;
+  return {
+    item(level: number, content: string) {
+      if (level > depth) {
+        while (depth < level) {
+          out.push("<ul><li>");
+          depth++;
+        }
+      } else {
+        while (depth > level) {
+          out.push("</li></ul>");
+          depth--;
+        }
+        out.push("</li><li>");
+      }
+      out.push(content);
+    },
+    close() {
+      while (depth > 0) {
+        out.push("</li></ul>");
+        depth--;
+      }
+    },
+  };
 }
 
 // ==================== ASCIIDOC ====================
@@ -204,6 +232,8 @@ export function convertAsciiDocToHtml(asciidoc: string): string {
 
   // Restore intentional <br> line breaks (e.g. multi-line table cells)
   html = html.replace(/&lt;br\s*\/?&gt;/gi, "<br>");
+  // {nbsp}: an intentionally empty paragraph (spacing between DFD figures)
+  html = html.replace(/\{nbsp\}/g, "&nbsp;");
 
   // Document title and section headers
   html = html.replace(/^= (.+)$/gm, "<h1>$1</h1>");
@@ -233,11 +263,17 @@ export function convertAsciiDocToHtml(asciidoc: string): string {
     '<div class="warning"><strong>⚠️ Warning:</strong> $1</div>',
   );
 
-  // Images
+  // Images; a block title (".Caption") right above one is its caption
+  html = html.replace(
+    /^\.([^.\s].*)\nimage::([^\[]+)\[([^\]]*)\]/gm,
+    '<figure><img src="$2" alt="$3" /><figcaption>$1</figcaption></figure>',
+  );
   html = html.replace(
     /^image::([^\[]+)\[([^\]]*)\]/gm,
     '<img src="$1" alt="$2" />',
   );
+  // Any other block title: a caption line
+  html = html.replace(/^\.([^.\s].*)$/gm, '<p class="block-title"><em>$1</em></p>');
 
   // Horizontal rule
   html = html.replace(/^'''$/gm, "<hr>");
@@ -588,6 +624,59 @@ function convertFreetextBlock(lines: string[]): string {
       } else {
         i++;
       }
+      continue;
+    }
+
+    // RST figure directive: image, options, then the indented caption
+    if (line.trim().startsWith(".. figure::")) {
+      const src = line.trim().replace(/^\.\. figure::\s*/, "");
+      let alt = "";
+      let j = i + 1;
+      while (j < lines.length && lines[j].match(/^\s+:/)) {
+        const altM = lines[j].match(/^\s+:alt:\s*(.+)/);
+        if (altM) alt = esc(altM[1].trim());
+        j++;
+      }
+      while (j < lines.length && lines[j].trim() === "") j++;
+      const caption: string[] = [];
+      while (j < lines.length && lines[j].match(/^\s+\S/)) {
+        caption.push(lines[j].trim());
+        j++;
+      }
+      output.push(
+        `<figure><img src="${esc(src)}" alt="${alt}" />` +
+          (caption.length > 0 ? `<figcaption>${inlineMarkup(esc(caption.join(" ")))}</figcaption>` : "") +
+          "</figure>",
+      );
+      i = j;
+      continue;
+    }
+
+    // An empty RST line block ("|"): an empty line (spacing between figures)
+    if (line.trim() === "|") {
+      output.push("<p>&nbsp;</p>");
+      i++;
+      continue;
+    }
+
+    // Bullet list, also blank-line separated and nested by indentation
+    // (two spaces per level, the decomposition tree)
+    if (line.match(/^\s*[-*]\s+/)) {
+      const html: string[] = [];
+      const nested = nestedListWriter(html);
+      while (i < lines.length) {
+        const m = lines[i].match(/^(\s*)[-*]\s+(.+)$/);
+        if (m) {
+          nested.item(Math.floor(m[1].length / 2) + 1, inlineMarkup(esc(m[2])));
+          i++;
+        } else if (lines[i].trim() === "" && lines[i + 1]?.match(/^\s*[-*]\s+/)) {
+          i++;
+        } else {
+          break;
+        }
+      }
+      nested.close();
+      output.push(html.join(""));
       continue;
     }
 

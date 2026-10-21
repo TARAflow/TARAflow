@@ -99,6 +99,12 @@ describe("DFD figures per page (leveled DFD, 7a)", () => {
     ]);
   });
 
+  it("keeps the page figures apart (empty paragraph / line block)", () => {
+    expect(generate(data, "markdown")).toContain(`*Page "Top"*\n\n&nbsp;\n\n![Data Flow Diagram](${SEN})`);
+    expect(generate(data, "asciidoc")).toContain(`[Data Flow Diagram]\n\n{nbsp}\n\n.Page "Sensor Head"`);
+    expect(generate(data, "strictdoc")).toContain(`   Page "Top"\n\n|\n\n.. figure:: ${SEN}`);
+  });
+
   it("captions in German", () => {
     const out = generate(data, "markdown", "de");
     expect(out).toContain("*Seite „Sensor Head“ (zerlegt MP-1 Sensor Head)*");

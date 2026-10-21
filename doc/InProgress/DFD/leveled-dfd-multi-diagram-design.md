@@ -1718,6 +1718,17 @@ explicitly.
   `dfdDecompositionOf` (documentation), `formatDfdDecomposition` per format: Markdown and
   AsciiDoc nested lists, HTML nested `<ul>`, StrictDoc RST list (blank-line separated, nested by
   indentation), pdfmake indented bullets. Absent for a classic DFD.
+  - After first use: more space between the page figures — Markdown `&nbsp;` and AsciiDoc
+    `{nbsp}` paragraphs, an empty RST line block in StrictDoc (the formats have no spacing of
+    their own), HTML `.dfd-figure` margin 3em plus a thin rule between figures, pdfmake 36 pt
+    after each caption.
+  - The app's document preview converts Markdown / AsciiDoc / StrictDoc with its own small
+    converters (`doc-preview-converters`), which knew neither nested lists nor figures: the tree
+    showed as raw "  - Seite …" lines, AsciiDoc captions as ".Seite …", StrictDoc figures were
+    dropped. Now: Markdown lists nested by indentation, `&nbsp;` kept; AsciiDoc block title +
+    `image::` → `<figure>` with caption, other block titles as caption lines, `{nbsp}`; StrictDoc
+    `.. figure::` with alt and caption, the empty line block, blank-line separated lists nested
+    by indentation (`nestedListWriter`). The written files were right; only the preview was off.
 
 ## 14. Testing
 

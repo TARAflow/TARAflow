@@ -131,7 +131,8 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
         const image = f.image ? `image::${f.image}[${alt}]` : `_${this.noDfdImage()}_`;
         return f.caption ? `.${f.caption}\n${image}` : image;
       })
-      .join("\n\n");
+      // An empty paragraph keeps the pages apart.
+      .join("\n\n{nbsp}\n\n");
   }
 
   formatDfdDecomposition(d: DfdDecomposition): string {
