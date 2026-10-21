@@ -21,8 +21,6 @@ import { loadProject } from "./cli/load-project";
 import { toDocProjectData } from "./cli/to-doc-project-data";
 import { initI18nNode, i18n } from "./cli/i18n-node";
 import { installDomParser } from "./cli/dom-parser-node";
-// Deep import: the shared barrel pulls UI components; this module is pure.
-import { inspectDrawioPages } from "../src/shared/utils/drawio-page-layout";
 import {
   createCliGenerator,
   generatePdfBufferCli,
@@ -113,17 +111,6 @@ async function main() {
     console.warn(
       `Note: project schema was migrated from v${fromVersion} during load ` +
         `(in-memory only — this CLI does not write the migrated file back to disk).`,
-    );
-  }
-
-  // Leveled DFD (leveled-dfd-multi-diagram-design.md, Phase 7): one section
-  // per page with figure and elements (7a/7b), flows analysed on parent
-  // level (7c). The threat and risk tables per multiprocess follow (7d).
-  const pageCount = inspectDrawioPages(project.dfd?.xml).pageCount;
-  if (pageCount > 1) {
-    console.warn(
-      `Note: the DFD has ${pageCount} pages. The report shows one section per page; ` +
-        `threat and risk tables are not yet grouped by multiprocess — that follows in a later version.`,
     );
   }
 

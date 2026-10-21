@@ -195,6 +195,10 @@ export class HtmlGenerator extends BaseDocumentGenerator {
       : `<p class="dfd-no-image">${this.escapeHtml(this.noDfdImage())}</p>`;
   }
 
+  formatReportGroup(title: string, body: string): string {
+    return `<h3>${this.escapeHtml(title)}</h3>\n${body}`;
+  }
+
   getDfdDescriptionsTemplate(): string {
     return HTML_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }

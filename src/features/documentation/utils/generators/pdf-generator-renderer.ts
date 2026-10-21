@@ -301,6 +301,10 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return this.htmlGenerator.formatDfdFigure(image, alt);
   }
 
+  formatReportGroup(title: string, body: string): string {
+    return this.htmlGenerator.formatReportGroup(title, body);
+  }
+
   getDfdDescriptionsTemplate(): string {
     return this.htmlGenerator.getDfdDescriptionsTemplate();
   }

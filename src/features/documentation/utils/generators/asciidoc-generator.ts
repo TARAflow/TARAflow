@@ -126,6 +126,10 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return image ? `image::${image}[${alt}]` : `_${this.noDfdImage()}_`;
   }
 
+  formatReportGroup(title: string, body: string): string {
+    return `=== ${title}\n\n${body}`;
+  }
+
   getDfdDescriptionsTemplate(): string {
     return ADOC_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }

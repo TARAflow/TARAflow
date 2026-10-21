@@ -270,6 +270,11 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return image ? `.. image:: ${image}\n   :alt: ${alt}` : this.noDfdImage();
   }
 
+  formatReportGroup(title: string, body: string): string {
+    // A nested section inside the chapter's (closed after the content).
+    return `[SECTION]\nTITLE: ${title}\n\n${body}[/SECTION]\n\n`;
+  }
+
   getDfdDescriptionsTemplate(): string {
     return SDOC_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }

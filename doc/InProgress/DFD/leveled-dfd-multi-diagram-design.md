@@ -1723,6 +1723,18 @@ explicitly.
   reason of the threats tab's banner (unresolved / ambiguous / dangling). Only when there are such
   flows. `dfdParentLevelFlowsOf` (documentation, on `parentLevelFlowsFrom`), templates
   `dfdParentLevelFlows` / `dfdParentLevelFlowRow` per format; pdfmake a table.
+- **7d ✅ threat and risk tables grouped:** in both threat chapters and both risk chapters, one
+  table per group as the app's accordions (D20) — "Top level" / "Oberste Ebene", one group per
+  top-level decomposed multiprocess in page order, "Not in the DFD" / "Nicht im DFD" last; every
+  item in exactly one group (the app's `multiprocessGroupsFrom` + `groupsOfDfdItem` decide), a
+  risk follows its threat. `reportGroupsOf` (documentation), `formatReportGroup` per format (a
+  heading one level below the chapter; StrictDoc a nested section); pdfmake the same. A classic
+  DFD keeps one table per chapter. Checked against the leveled SmokeDetector: 229 per-element and
+  214 per-interaction threats, the same split as the accordions.
+  - The CLI no longer warns about multi-page DFDs: the report covers them (Phase 7 complete).
+  - Found on the way, not leveled-specific, open: the StrictDoc "DFD element descriptions"
+    chapter leaves one `[SECTION]` per element type unclosed (`closeInnerSections`; classic
+    SmokeDetector 83 open / 75 closed).
   - The app's document preview converts Markdown / AsciiDoc / StrictDoc with its own small
     converters (`doc-preview-converters`), which knew neither nested lists nor figures: the then
     decomposition tree showed as raw "  - Seite …" lines, AsciiDoc captions as ".Seite …",

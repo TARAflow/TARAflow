@@ -149,6 +149,10 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return image ? `![${alt}](${image})` : `_${this.noDfdImage()}_`;
   }
 
+  formatReportGroup(title: string, body: string): string {
+    return `### ${title}\n\n${body}`;
+  }
+
   getDfdDescriptionsTemplate(): string {
     return MD_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }
