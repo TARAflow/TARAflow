@@ -1744,6 +1744,15 @@ explicitly.
   DFD keeps one table per chapter. Checked against the leveled SmokeDetector: 229 per-element and
   214 per-interaction threats, the same split as the accordions.
   - The CLI no longer warns about multi-page DFDs: the report covers them (Phase 7 complete).
+  - **Statistics** (2026-10-22, analyst; classic and leveled alike): below the intro of each
+    threat chapter a table per element type (data flow, interface, physical boundary, process,
+    …; a flow threat counts as data flow) with the threats per STRIDE category and a total row;
+    below the intro of each risk chapter the same per risk level before mitigation (highest
+    first, "Not rated" only when there are). Leveled: below each group heading one line,
+    "44 threats — S 2 · T 13 · …" / "17 risks — Critical 15 · High 2". `threat-risk-stats`
+    (documentation), `formatStatsTable` per format (StrictDoc: a section "Statistics" with a
+    list-table, as a section holds one free text), `formatReportGroup(title, body, summary)`;
+    pdfmake a small table and the summary line.
   - Found on the way, not leveled-specific, open: the StrictDoc "DFD element descriptions"
     chapter leaves one `[SECTION]` per element type unclosed (`closeInnerSections`; classic
     SmokeDetector 83 open / 75 closed).

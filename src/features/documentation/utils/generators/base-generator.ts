@@ -6,6 +6,14 @@ import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category"
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { reportGroupsOf } from "../dfd-report-groups";
+import {
+  riskGroupSummary,
+  riskStatsTable,
+  threatElementType,
+  threatGroupSummary,
+  threatStatsTable,
+  type StatsTable,
+} from "../threat-risk-stats";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
@@ -349,9 +357,11 @@ export abstract class BaseDocumentGenerator {
   abstract getDfdParentLevelFlowRowTemplate(): string;
   /**
    * Leveled DFD (7d): one group of a threat / risk chapter — a heading one
-   * level below the chapter and its table.
+   * level below the chapter, its summary line and its table.
    */
-  abstract formatReportGroup(title: string, body: string): string;
+  abstract formatReportGroup(title: string, body: string, summary?: string): string;
+  /** The statistics table below a threat / risk chapter's intro. */
+  abstract formatStatsTable(table: StatsTable): string;
   abstract getDfdElementDetailedEntryTemplate(): string;
   abstract getDfdConnectionDetailedEntryTemplate(): string;
   abstract getPropertyGroupTemplate(): string;
@@ -1266,9 +1276,15 @@ export abstract class BaseDocumentGenerator {
     const groups = reportGroupsOf(project.dfd, this.ctx.lang, threats, (threat) =>
       dfdItemRefOfThreat(threat),
     );
+    const typeLabel = (type: string) => getDFDElementTypeText(type as DFDElementType, this.ctx.t);
     let content = this.getThreatsHeaderTemplate(method);
+    content += this.formatStatsTable(threatStatsTable(threats, this.ctx.lang, typeLabel));
     content += groups
-      ? groups.map((g) => this.formatReportGroup(g.title, threatTable(g.items))).join("")
+      ? groups
+          .map((g) =>
+            this.formatReportGroup(g.title, threatTable(g.items), threatGroupSummary(g.items, this.ctx.lang)),
+          )
+          .join("")
       : threatTable(threats);
 
     return {
@@ -1439,8 +1455,24 @@ export abstract class BaseDocumentGenerator {
         this.ctx.lang,
       ),
     });
+    const scale = {
+      scale: project.risks?.configuration?.scale ?? "4-level",
+      roundingMethod: project.risks?.configuration?.roundingMethod,
+    } as const;
+    const typeLabel = (type: string) => getDFDElementTypeText(type as DFDElementType, this.ctx.t);
+    const riskType = (risk: (typeof risks)[number]) => {
+      const threat = threatById.get(risk.threatId);
+      return threat ? threatElementType(threat) : "-";
+    };
+    content += this.formatStatsTable(
+      riskStatsTable(risks, riskType, scale, this.ctx.lang, typeLabel),
+    );
     content += groups
-      ? groups.map((g) => this.formatReportGroup(g.title, riskTable(g.items))).join("")
+      ? groups
+          .map((g) =>
+            this.formatReportGroup(g.title, riskTable(g.items), riskGroupSummary(g.items, scale, this.ctx.lang)),
+          )
+          .join("")
       : riskTable(risks);
 
     return {

@@ -8,6 +8,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { StatsTable } from "../threat-risk-stats";
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
@@ -126,8 +127,21 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return image ? `image::${image}[${alt}]` : `_${this.noDfdImage()}_`;
   }
 
-  formatReportGroup(title: string, body: string): string {
-    return `=== ${title}\n\n${body}`;
+  formatReportGroup(title: string, body: string, summary?: string): string {
+    return `=== ${title}\n\n${summary ? `${summary}\n\n` : ""}${body}`;
+  }
+
+  formatStatsTable(table: StatsTable): string {
+    const row = (cells: string[]) => `| ${cells.join(" | ")}`;
+    return [
+      `[cols="3,${table.headers.slice(1).map(() => "1").join(",")}", options="header"]`,
+      "|===",
+      row(table.headers),
+      "",
+      ...table.rows.map(row),
+      row(table.total.map((c) => `*${c}*`)),
+      "|===",
+    ].join("\n") + "\n\n";
   }
 
   getDfdDescriptionsTemplate(): string {

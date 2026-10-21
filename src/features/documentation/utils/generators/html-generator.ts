@@ -8,6 +8,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { StatsTable } from "../threat-risk-stats";
 import { HTML_TEMPLATES } from "../templates/html-templates";
 import { replacePlaceholders, processConditionals } from "../templates";
 
@@ -195,8 +196,20 @@ export class HtmlGenerator extends BaseDocumentGenerator {
       : `<p class="dfd-no-image">${this.escapeHtml(this.noDfdImage())}</p>`;
   }
 
-  formatReportGroup(title: string, body: string): string {
-    return `<h3>${this.escapeHtml(title)}</h3>\n${body}`;
+  formatReportGroup(title: string, body: string, summary?: string): string {
+    return `<h3>${this.escapeHtml(title)}</h3>\n${summary ? `<p>${this.escapeHtml(summary)}</p>\n` : ""}${body}`;
+  }
+
+  formatStatsTable(table: StatsTable): string {
+    const cells = (tag: "th" | "td", list: string[], strong = false) =>
+      list.map((c) => `<${tag}>${strong ? `<strong>${this.escapeHtml(c)}</strong>` : this.escapeHtml(c)}</${tag}>`).join("");
+    return [
+      '<table class="stats-table">',
+      `  <tr>${cells("th", table.headers)}</tr>`,
+      ...table.rows.map((r) => `  <tr>${cells("td", r)}</tr>`),
+      `  <tr>${cells("td", table.total, true)}</tr>`,
+      "</table>",
+    ].join("\n") + "\n";
   }
 
   getDfdDescriptionsTemplate(): string {

@@ -8,6 +8,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { StatsTable } from "../threat-risk-stats";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -149,8 +150,18 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return image ? `![${alt}](${image})` : `_${this.noDfdImage()}_`;
   }
 
-  formatReportGroup(title: string, body: string): string {
-    return `### ${title}\n\n${body}`;
+  formatReportGroup(title: string, body: string, summary?: string): string {
+    return `### ${title}\n\n${summary ? `${summary}\n\n` : ""}${body}`;
+  }
+
+  formatStatsTable(table: StatsTable): string {
+    const row = (cells: string[]) => `| ${cells.join(" | ")} |`;
+    return [
+      row(table.headers),
+      `|${table.headers.map(() => "---").join("|")}|`,
+      ...table.rows.map(row),
+      row(table.total.map((c) => `**${c}**`)),
+    ].join("\n") + "\n\n";
   }
 
   getDfdDescriptionsTemplate(): string {

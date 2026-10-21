@@ -37,6 +37,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { StatsTable } from "../threat-risk-stats";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -270,9 +271,31 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return image ? `.. image:: ${image}\n   :alt: ${alt}` : this.noDfdImage();
   }
 
-  formatReportGroup(title: string, body: string): string {
+  formatReportGroup(title: string, body: string, summary?: string): string {
     // A nested section inside the chapter's (closed after the content).
-    return `[SECTION]\nTITLE: ${title}\n\n${body}[/SECTION]\n\n`;
+    const text = summary ? `[FREETEXT]\n${summary}\n[/FREETEXT]\n\n` : "";
+    return `[SECTION]\nTITLE: ${title}\n\n${text}${body}[/SECTION]\n\n`;
+  }
+
+  formatStatsTable(table: StatsTable): string {
+    // RST list-table in a section of its own (a section holds one free text).
+    const row = (cells: string[]) =>
+      cells.map((c, i) => `${i === 0 ? "   * - " : "     - "}${c}`).join("\n");
+    return [
+      "[SECTION]",
+      `TITLE: ${table.title}`,
+      "",
+      "[FREETEXT]",
+      ".. list-table::",
+      "   :header-rows: 1",
+      "",
+      row(table.headers),
+      ...table.rows.map(row),
+      row(table.total.map((c) => `**${c}**`)),
+      "[/FREETEXT]",
+      "",
+      "[/SECTION]",
+    ].join("\n") + "\n\n";
   }
 
   getDfdDescriptionsTemplate(): string {

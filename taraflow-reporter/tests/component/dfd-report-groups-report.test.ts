@@ -140,10 +140,49 @@ describe("threat and risk chapters grouped (leveled DFD, 7d)", () => {
   });
 });
 
-describe("threat and risk chapters of a classic project (unchanged)", () => {
+describe("statistics of the threat and risk chapters", () => {
+  const data = leveledDocData();
+
+  it("markdown: a table below the intro, a summary line below each group heading", () => {
+    const out = generate(data, "markdown");
+    const threats = out.indexOf("## Threat Analysis (STRIDE per Element)");
+    inOrder(
+      out,
+      [
+        "| Element type | Threats | S | T | R | I | D | E |",
+        "| **Total** | **4** |",
+        "### Top level",
+        "1 threat — S",
+        "T-TOP",
+        "### MP-1 Sensor Module",
+        "1 threat — S",
+      ],
+      threats,
+    );
+    const risks = out.indexOf("## Risk Assessment (STRIDE per Element)");
+    inOrder(out, ["| Element type | Risks |", "| **Total** | **4** |", "### Top level", "1 risk"], risks);
+  });
+
+  it("asciidoc, html, strictdoc", () => {
+    inOrder(generate(data, "asciidoc"), ['options="header"]', "| Element type | Threats | S", "| *Total* | *4*", "=== Top level", "1 threat"]);
+    inOrder(generate(data, "html"), ['<table class="stats-table">', "<th>Element type</th>", "<strong>4</strong>", "<h3>Top level</h3>", "<p>1 threat"]);
+    inOrder(generate(data, "strictdoc"), ["TITLE: Statistics", ".. list-table::", "   * - Element type", "**Total**", "TITLE: Top level", "[FREETEXT]\n1 threat"]);
+  });
+
+  it("German", () => {
+    inOrder(generate(data, "markdown", "de"), ["| Element-Typ | Bedrohungen |", "| **Gesamt** |", "### Oberste Ebene", "1 Bedrohung —"]);
+  });
+});
+
+describe("threat and risk chapters of a classic project", () => {
   it("has no group headings", () => {
     const out = generate(toDocProjectData(project, "en"), "markdown");
     expect(out).not.toContain("### Top level");
     expect(out).not.toContain("### Not in the DFD");
+  });
+
+  it("has the statistics table too", () => {
+    const out = generate(toDocProjectData(project, "en"), "markdown");
+    inOrder(out, ["## Threat Analysis (STRIDE per Element)", "| Element type | Threats | S | T | R | I | D | E |", "| **Total** | **44** |"]);
   });
 });

@@ -15,6 +15,7 @@ import {
   type DocumentGeneratorResult,
   type ChapterContent,
 } from "./base-generator";
+import type { StatsTable } from "../threat-risk-stats";
 import { HtmlGenerator } from "./html-generator";
 
 // ==================== PDF OPTIONS ====================
@@ -301,8 +302,12 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return this.htmlGenerator.formatDfdFigure(image, alt);
   }
 
-  formatReportGroup(title: string, body: string): string {
-    return this.htmlGenerator.formatReportGroup(title, body);
+  formatReportGroup(title: string, body: string, summary?: string): string {
+    return this.htmlGenerator.formatReportGroup(title, body, summary);
+  }
+
+  formatStatsTable(table: StatsTable): string {
+    return this.htmlGenerator.formatStatsTable(table);
   }
 
   getDfdDescriptionsTemplate(): string {

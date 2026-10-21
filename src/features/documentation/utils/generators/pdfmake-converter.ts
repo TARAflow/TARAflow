@@ -10,6 +10,16 @@ import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { reportGroupsOf } from "../dfd-report-groups";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
+import {
+  riskGroupSummary,
+  riskStatsTable,
+  threatElementType,
+  threatGroupSummary,
+  threatStatsTable,
+  type StatsTable,
+} from "../threat-risk-stats";
+import { getDFDElementTypeText } from "../../../dfd/models/dfd-formatters";
+import type { DFDElementType } from "../../../dfd/models/dfd-types";
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import {
@@ -158,6 +168,27 @@ export class PdfMakeConverter {
   }
 
   // ==================== LABEL HELPER (Phase 6 fix) ====================
+
+  private typeLabel(type: string): string {
+    return getDFDElementTypeText(type as DFDElementType, this.t);
+  }
+
+  /** The statistics of a threat / risk chapter as a small table. */
+  private statsTable(table: StatsTable): Content {
+    return {
+      table: {
+        headerRows: 1,
+        widths: ["*", ...table.headers.slice(1).map(() => "auto" as const)],
+        body: [
+          table.headers.map((h): TableCell => ({ text: h, style: "tableHeader" })),
+          ...table.rows.map((r) => r.map((c, i): TableCell => ({ text: c, alignment: i === 0 ? "left" : "center" }))),
+          table.total.map((c, i): TableCell => ({ text: c, bold: true, alignment: i === 0 ? "left" : "center" })),
+        ],
+      },
+      layout: "lightHorizontalLines",
+      margin: [0, 0, 0, 14],
+    };
+  }
 
   private label(key: PdfLabelKey): string {
     return PDF_LABELS[this.lang]?.[key] ?? PDF_LABELS.en[key];
@@ -808,9 +839,14 @@ export class PdfMakeConverter {
     const groups = reportGroupsOf(this.project.dfd, this.lang, threats, (threat) =>
       dfdItemRefOfThreat(threat),
     );
+    content.push(this.statsTable(threatStatsTable(threats, this.lang, (type) => this.typeLabel(type))));
     if (groups) {
       for (const group of groups) {
-        content.push({ text: group.title, style: "h2" }, threatTable(group.items));
+        content.push(
+          { text: group.title, style: "h2" },
+          { text: threatGroupSummary(group.items, this.lang), margin: [0, 0, 0, 6] },
+          threatTable(group.items),
+        );
       }
     } else {
       content.push(threatTable(threats));
@@ -1036,9 +1072,26 @@ export class PdfMakeConverter {
       const threat = threatById.get(risk.threatId);
       return threat ? dfdItemRefOfThreat(threat) : undefined;
     });
+    const scale = {
+      scale: this.project.risks?.configuration?.scale ?? "4-level",
+      roundingMethod: this.project.risks?.configuration?.roundingMethod,
+    } as const;
+    const riskType = (risk: (typeof risks)[number]) => {
+      const threat = threatById.get(risk.threatId);
+      return threat ? threatElementType(threat) : "-";
+    };
+    content.push(
+      this.statsTable(
+        riskStatsTable(risks, riskType, scale, this.lang, (type) => this.typeLabel(type)),
+      ),
+    );
     if (groups) {
       for (const group of groups) {
-        content.push({ text: group.title, style: "h2" }, riskTable(group.items));
+        content.push(
+          { text: group.title, style: "h2" },
+          { text: riskGroupSummary(group.items, scale, this.lang), margin: [0, 0, 0, 6] },
+          riskTable(group.items),
+        );
       }
     } else {
       content.push(riskTable(risks));
