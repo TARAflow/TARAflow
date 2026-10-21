@@ -19,44 +19,43 @@ import { convertSvgToPngForPdf } from './svg-to-png-converter';
 export async function createProjectWithPng(
   project: DocProjectData
 ): Promise<DocProjectData> {
+  const dfd = project.dfd;
   // No DFD or no thumbnail - nothing to convert
-  if (!project.dfd?.thumbnail) {
+  if (!dfd?.thumbnail && !dfd?.pages?.some((p) => p.thumbnail)) {
     console.log('No DFD thumbnail to convert');
     return project;
   }
 
-  try {
-    console.log('Converting DFD thumbnail from SVG to PNG...');
-    const pngDataUrl = await convertSvgToPngForPdf(project.dfd.thumbnail);
+  // Each image on its own: one that fails is left out (better no image than
+  // a broken PDF), the others stay. Leveled DFD (7a): every page thumbnail.
+  const toPng = async (svg: string | undefined): Promise<string | undefined> => {
+    if (!svg) return undefined;
+    try {
+      return await convertSvgToPngForPdf(svg);
+    } catch (error) {
+      console.error('DFD thumbnail conversion failed:', error);
+      return undefined;
+    }
+  };
 
-    const processedProject: DocProjectData = {
-      ...project,
-      dfd: {
-        ...project.dfd,
-        thumbnail: pngDataUrl,
-      },
-    };
+  console.log('Converting DFD thumbnails from SVG to PNG...');
+  const thumbnail = await toPng(dfd.thumbnail);
+  const pages = dfd.pages
+    ? await Promise.all(
+        dfd.pages.map(async (page) =>
+          page.thumbnail ? { ...page, thumbnail: await toPng(page.thumbnail) } : page,
+        ),
+      )
+    : undefined;
 
-    console.log('DFD thumbnail converted successfully');
-    console.log('PNG preview:', pngDataUrl.substring(0, 50) + '...');
-    
-    return processedProject;
-  } catch (error) {
-    console.error('DFD thumbnail conversion failed:', error);
-    
-    // Fallback: Return project without thumbnail
-    // Better to have no image than a broken PDF
-    const fallbackProject: DocProjectData = {
-      ...project,
-      dfd: {
-        ...project.dfd,
-        thumbnail: undefined,
-      },
-    };
-    
-    console.warn('Continuing without DFD thumbnail');
-    return fallbackProject;
-  }
+  return {
+    ...project,
+    dfd: {
+      ...dfd,
+      thumbnail,
+      ...(pages ? { pages } : {}),
+    },
+  };
 }
 
 /**

@@ -8,6 +8,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { DfdFigure } from "../dfd-figures";
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
@@ -120,6 +121,16 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
 
   getDfdTemplate(): string {
     return ADOC_TEMPLATES.dfd(this.ctx.lang);
+  }
+
+  formatDfdFigures(figures: DfdFigure[], alt: string): string {
+    return figures
+      .map((f) => {
+        // A block title (".caption") numbers the figure ("Figure 1. …").
+        const image = f.image ? `image::${f.image}[${alt}]` : `_${this.noDfdImage()}_`;
+        return f.caption ? `.${f.caption}\n${image}` : image;
+      })
+      .join("\n\n");
   }
 
   getDfdDescriptionsTemplate(): string {

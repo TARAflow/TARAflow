@@ -1698,6 +1698,19 @@ explicitly.
   shown text is unchanged); the CLI's `package.json` declares `"type": "module"` (the bundle is
   ESM) and is shipped next to it in the Debian package, so Node no longer warns
   `MODULE_TYPELESS_PACKAGE_JSON`.
+- **7a ✅ one figure per page** (§12.1, item 4): the DFD chapter shows the pages in page-tree
+  order, each captioned `Page "Sensor Head" (decomposes MP-1 Sensor Head)` / `Seite „Sensor
+  Head“ (zerlegt MP-1 Sensor Head)`; a page without a stored thumbnail says so ("open the project
+  in TARAflow and save it once"). The root page falls back to `dfd.thumbnail`. A classic project
+  renders its single uncaptioned figure exactly as before. `reportPagesOf` (dfd, leveled; order
+  and depth from the page tree, the page itself from the input — the analysis is cached per page
+  structure, not per thumbnail), `dfdFiguresOf` (documentation; captions per language), template
+  placeholder `{{dfdFigures}}` with `formatDfdFigures` per format: Markdown image + italic
+  caption, AsciiDoc block title + `image::`, HTML `<figure>` + `<figcaption>`, StrictDoc RST
+  `.. figure::`; pdfmake an image + caption per page. The browser PDF converts every page
+  thumbnail to PNG (`createProjectWithPng`; a failing one is left out, the others stay); the CLI
+  PDF rasterises every SVG image as before. The CLI note now only says that the element and flow
+  lists are not grouped by page yet.
 
 ## 14. Testing
 

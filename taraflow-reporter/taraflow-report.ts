@@ -116,16 +116,14 @@ async function main() {
     );
   }
 
-  // Leveled DFD (leveled-dfd-multi-diagram-design.md, Phase 7 open): the CLI
-  // has no DOM parser and does not read the pages. Threat and risk tables are
-  // the stored ones and correct; the DFD figure is the stored thumbnail and
-  // flows are listed with the endpoints their definition draws (top level).
+  // Leveled DFD (leveled-dfd-multi-diagram-design.md, Phase 7): one figure
+  // per page (7a). The element and flow lists are still the flat ones, with
+  // the endpoints their definition draws; the leveled tables follow (7b–7d).
   const pageCount = inspectDrawioPages(project.dfd?.xml).pageCount;
   if (pageCount > 1) {
     console.warn(
-      `Note: the DFD has ${pageCount} pages. Threat and risk tables are complete; ` +
-        `the DFD figure and flow list show the stored top-level view — ` +
-        `per-page figures follow in a later version.`,
+      `Note: the DFD has ${pageCount} pages. The report shows one figure per page; ` +
+        `element and flow lists are not yet grouped by page — that follows in a later version.`,
     );
   }
 

@@ -207,7 +207,7 @@ export const HTML_TEMPLATES = {
   <h2>Datenflussdiagramm</h2>
   <p>Das folgende Diagramm zeigt die Datenflüsse und Vertrauensgrenzen des Systems.</p>
   
-  <img src="{{imagePath}}" alt="Datenflussdiagramm" class="dfd-image">
+  {{dfdFigures}}
   
   <h3>DFD-Statistiken</h3>
   <table class="stats-table">
@@ -226,7 +226,7 @@ export const HTML_TEMPLATES = {
   <h2>Data Flow Diagram</h2>
   <p>The following diagram shows the data flows and trust boundaries of the system.</p>
   
-  <img src="{{imagePath}}" alt="Data Flow Diagram" class="dfd-image">
+  {{dfdFigures}}
   
   <h3>DFD Statistics</h3>
   <table class="stats-table">

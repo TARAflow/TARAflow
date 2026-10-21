@@ -334,8 +334,7 @@ TITLE: Datenflussdiagramm
 [FREETEXT]
 Das folgende Diagramm zeigt die Datenflüsse und Vertrauensgrenzen des Systems.
 
-.. image:: {{imagePath}}
-   :alt: Datenflussdiagramm
+{{dfdFigures}}
 
 DFD-Statistiken:
 
@@ -368,8 +367,7 @@ TITLE: Data Flow Diagram
 [FREETEXT]
 The following diagram shows the data flows and trust boundaries of the system.
 
-.. image:: {{imagePath}}
-   :alt: Data Flow Diagram
+{{dfdFigures}}
 
 DFD Statistics:
 

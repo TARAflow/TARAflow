@@ -15,6 +15,7 @@ import {
   type DocumentGeneratorResult,
   type ChapterContent,
 } from "./base-generator";
+import type { DfdFigure } from "../dfd-figures";
 import { HtmlGenerator } from "./html-generator";
 
 // ==================== PDF OPTIONS ====================
@@ -295,6 +296,10 @@ export class PdfGenerator extends BaseDocumentGenerator {
 
   getDfdTemplate(): string {
     return this.htmlGenerator.getDfdTemplate();
+  }
+
+  formatDfdFigures(figures: DfdFigure[], alt: string): string {
+    return this.htmlGenerator.formatDfdFigures(figures, alt);
   }
 
   getDfdDescriptionsTemplate(): string {

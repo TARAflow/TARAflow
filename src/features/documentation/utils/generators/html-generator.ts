@@ -8,6 +8,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { DfdFigure } from "../dfd-figures";
 import { HTML_TEMPLATES } from "../templates/html-templates";
 import { replacePlaceholders, processConditionals } from "../templates";
 
@@ -187,6 +188,21 @@ export class HtmlGenerator extends BaseDocumentGenerator {
 
   getDfdTemplate(): string {
     return HTML_TEMPLATES.dfd(this.ctx.lang);
+  }
+
+  formatDfdFigures(figures: DfdFigure[], alt: string): string {
+    return figures
+      .map((f) => {
+        const image = f.image
+          ? `<img src="${f.image}" alt="${alt}" class="dfd-image">`
+          : `<p class="dfd-no-image">${this.escapeHtml(this.noDfdImage())}</p>`;
+        if (!f.caption) return image;
+        return `<figure class="dfd-figure">
+    ${image}
+    <figcaption>${this.escapeHtml(f.caption)}</figcaption>
+  </figure>`;
+      })
+      .join("\n  ");
   }
 
   getDfdDescriptionsTemplate(): string {

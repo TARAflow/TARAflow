@@ -3,6 +3,7 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
+import { dfdFiguresOf, noDfdImageText, type DfdFigure } from "../dfd-figures";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -271,6 +272,13 @@ export abstract class BaseDocumentGenerator {
   abstract getRegulationEntryTemplate(): string;
   abstract getSystemOverviewTemplate(): string;
   abstract getDfdTemplate(): string;
+  /**
+   * The figures of the DFD chapter in the format's syntax (placeholder
+   * {{dfdFigures}}). A figure without caption is the single figure of a
+   * classic DFD and renders exactly as before; a figure without image says
+   * that the page has no stored image yet (leveled DFD, Phase 7a).
+   */
+  abstract formatDfdFigures(figures: DfdFigure[], alt: string): string;
   abstract getDfdDescriptionsTemplate(): string;
   abstract getDfdElementTypeHeaderTemplate(): string;
   abstract getDfdElementEntryTemplate(): string;
@@ -658,8 +666,14 @@ export abstract class BaseDocumentGenerator {
       trustBoundaries: 0,
     };
 
+    // Leveled DFD (7a): one figure per page; classic: the one thumbnail.
+    const figures = dfdFiguresOf(dfd, this.ctx.lang).map((f) =>
+      f.caption === undefined ? { image: f.image || "dfd.png" } : f,
+    );
+    const alt = this.ctx.lang === "de" ? "Datenflussdiagramm" : "Data Flow Diagram";
+
     const values = {
-      imagePath: dfd.thumbnail || "dfd.png",
+      dfdFigures: this.formatDfdFigures(figures, alt),
       externalEntities: stats.externalEntities,
       processes: stats.processes,
       dataStores: stats.dataStores,
@@ -676,6 +690,11 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  /** Text in place of a page figure without a stored image (7a). */
+  protected noDfdImage(): string {
+    return noDfdImageText(this.ctx.lang);
   }
 
   // ==================== DFD DESCRIPTIONS ====================

@@ -8,6 +8,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { DfdFigure } from "../dfd-figures";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -143,6 +144,15 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
 
   getDfdTemplate(): string {
     return MD_TEMPLATES.dfd(this.ctx.lang);
+  }
+
+  formatDfdFigures(figures: DfdFigure[], alt: string): string {
+    return figures
+      .map((f) => {
+        const image = f.image ? `![${alt}](${f.image})` : `_${this.noDfdImage()}_`;
+        return f.caption ? `${image}\n\n*${f.caption}*` : image;
+      })
+      .join("\n\n");
   }
 
   getDfdDescriptionsTemplate(): string {

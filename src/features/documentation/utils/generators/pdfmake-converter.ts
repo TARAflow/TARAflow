@@ -6,6 +6,7 @@
 // pdfMake Documentation: http://pdfmake.org/
 
 import { impactAggregationSentence } from "../impact-aggregation-text";
+import { dfdFiguresOf, noDfdImageText } from "../dfd-figures";
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import {
@@ -539,19 +540,24 @@ export class PdfMakeConverter {
       tocItem: true,
     });
 
-    // DFD image placeholder
-    if (this.project.dfd?.thumbnail) {
-      content.push({
-        image: this.project.dfd.thumbnail,
-        width: 500,
-        margin: [0, 0, 0, 20],
-      });
+    // Classic DFD: the one thumbnail. Leveled DFD (7a): one captioned
+    // figure per page in page-tree order.
+    const figures = dfdFiguresOf(this.project.dfd, this.lang);
+    if (figures.length === 1 && figures[0].caption === undefined) {
+      content.push(
+        figures[0].image
+          ? { image: figures[0].image, width: 500, margin: [0, 0, 0, 20] }
+          : { text: this.label("dfdNoDiagram"), style: "placeholder", margin: [0, 0, 0, 20] },
+      );
     } else {
-      content.push({
-        text: this.label("dfdNoDiagram"),
-        style: "placeholder",
-        margin: [0, 0, 0, 20],
-      });
+      for (const figure of figures) {
+        content.push(
+          figure.image
+            ? { image: figure.image, width: 500, margin: [0, 0, 0, 4] }
+            : { text: noDfdImageText(this.lang), style: "placeholder", margin: [0, 0, 0, 4] },
+          { text: figure.caption ?? "", italics: true, alignment: "center", margin: [0, 0, 0, 20] },
+        );
+      }
     }
 
     // DFD Elements
