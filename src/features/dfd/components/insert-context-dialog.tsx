@@ -79,15 +79,17 @@ export const InsertContextDialog: React.FC<InsertContextDialogProps> = ({
   const [busy, setBusy] = React.useState(false);
   const categories = React.useMemo(() => categoriesOf(candidates), [candidates]);
   const [category, setCategory] = React.useState<string | null>(null);
-  React.useEffect(() => {
+  // Reset when the dialog opens — not when the candidates change with a save.
+  // Adjusted during render (React: "storing information from previous renders").
+  const [wasOpen, setWasOpen] = React.useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) {
       setChoice(null);
       setError(null);
       setCategory(categories[0] ?? null);
     }
-    // Only when the dialog opens; the candidates change with every save.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }
   const activeCategory = category && categories.includes(category) ? category : categories[0];
   const inCategory = React.useMemo(
     () => candidates.filter((c) => c.type === activeCategory),

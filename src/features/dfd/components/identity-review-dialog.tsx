@@ -406,21 +406,22 @@ const AdoptionContent: React.FC<
 
 // ==================== ASSIGNMENT ====================
 
+/** The proposed decision per pasted cell. */
+const proposalsOf = (review: AssignmentReview): Record<string, "copy" | "new"> =>
+  Object.fromEntries(review.assignments.map((a) => [cellKey(a.cell), a.proposal]));
+
 const AssignmentContent: React.FC<
   Omit<IdentityReviewDialogProps, "review"> & { review: AssignmentReview }
 > = ({ review, onClose, onApplyAssignment, onDismissAssignment }) => {
   const { t } = useTranslation();
   const { label, page } = useLabels(review);
 
-  const initial = () =>
-    Object.fromEntries(review.assignments.map((a) => [cellKey(a.cell), a.proposal]));
-  const [choice, setChoice] = useState<Record<string, "copy" | "new">>(initial);
+  const [choice, setChoice] = useState(() => proposalsOf(review));
   const [error, setError] = useState<LeveledActionError | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    setChoice(initial());
+    setChoice(proposalsOf(review));
     setError(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [review]);
 
   const handleApply = async () => {

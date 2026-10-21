@@ -1627,6 +1627,13 @@ Order (Phase 6):
   (it already was in `ElementProperties`). The façade's `setNoChildPage` checks the element type and
   writes `MultiprocessProperties` without the `as unknown as` cast; the orchestrator narrows with
   `"noChildPage" in properties` instead of a structural cast.
+- **Minor ✅ no `exhaustive-deps` suppression left from the leveled work** — the last four:
+  the "Regenerate" confirmation computes its reconciliation once when it opens (state instead of a
+  memo keyed on the dialog flag); the assets tab lifts the review filter once per "Show in table"
+  request (request remembered in a ref); the paste assignment derives its proposals with a pure
+  `proposalsOf(review)`; "Insert as context" resets when it opens by adjusting state during render
+  (a save while it is open keeps the chosen category). The suppressions that remain in the code
+  base predate the leveled DFD.
 
 **Phase 7 — Reporter.** One figure per page from the stored page thumbnails (§12.1; app and CLI),
 consolidated element/threat tables, decomposition tree, flows analysed on parent level listed

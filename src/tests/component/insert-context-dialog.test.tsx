@@ -89,6 +89,30 @@ describe("InsertContextDialog", () => {
     ]);
   });
 
+  it("keeps the category when a save changes the candidates, resets it on reopening", () => {
+    const props = {
+      pageName: "MyProcess",
+      pageNames: { sys: "Top" },
+      onInsert: vi.fn(async (): Promise<LeveledActionError | null> => null),
+      onClose: vi.fn(),
+    };
+    const selected = () =>
+      within(screen.getByTestId("insert-context-categories"))
+        .getAllByRole("tab")
+        .find((t) => t.getAttribute("aria-selected") === "true")?.textContent;
+    const { rerender } = render(<InsertContextDialog open candidates={CANDIDATES} {...props} />);
+    fireEvent.click(screen.getByTestId("insert-context-category-Process"));
+    expect(selected()).toBe("Process (1)");
+
+    // A save while the dialog is open: new candidate list, same choice.
+    rerender(<InsertContextDialog open candidates={CANDIDATES.slice(1)} {...props} />);
+    expect(selected()).toBe("Process (1)");
+
+    rerender(<InsertContextDialog open={false} candidates={CANDIDATES} {...props} />);
+    rerender(<InsertContextDialog open candidates={CANDIDATES} {...props} />);
+    expect(selected()).toBe("ExternalEntity (2)");
+  });
+
   it("stays open and shows why nothing was inserted", async () => {
     const { onClose } = renderDialog(vi.fn(async (): Promise<LeveledActionError | null> => "DRAWIO_FAILED"));
     fireEvent.mouseDown(screen.getByRole("combobox"));

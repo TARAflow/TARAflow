@@ -53,7 +53,10 @@ import {
 import { StrategyIndicator } from "./shared/strategy-indicator";
 import { ParentLevelFlowsBanner } from "./parent-level-flows-banner";
 import { ThreatReconciliationSummary } from "./shared/threat-reconciliation-summary";
-import { reconcileForProject } from "../services/threat-reconciliation";
+import {
+  reconcileForProject,
+  type ThreatReconciliation,
+} from "../services/threat-reconciliation";
 
 // ==================== HELPER ====================
 
@@ -154,7 +157,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   } | null>(null);
   const [showThreatDialog, setShowThreatDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
-  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+  // Open "Regenerate" confirmation with the reconciliation of that moment
+  // (6e, §10); null while closed.
+  const [generateConfirm, setGenerateConfirm] = useState<{
+    reconciliation: ThreatReconciliation | null;
+  } | null>(null);
+  const showGenerateConfirm = generateConfirm !== null;
   const [deleteManualThreats, setDeleteManualThreats] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
@@ -249,7 +257,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   );
 
   const handleGenerateConfirm = useCallback(async () => {
-    setShowGenerateConfirm(false);
+    setGenerateConfirm(null);
     const keepManual = !deleteManualThreats;
 
     let success = false;
@@ -434,15 +442,17 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   );
 
   // ── Reconciliation (6e, §10): what "Regenerate" would do ─────────────────
-  // Computed only while the dialog is open (it runs the generator).
-  const reconciliation = useMemo(
+  // Computed once when the confirmation opens (it runs the generator).
+  const openGenerateConfirm = useCallback(
     () =>
-      showGenerateConfirm && hasDFD
-        ? reconcileForProject(project, dfdContext, configuration, activeMethod)
-        : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [showGenerateConfirm, hasDFD, activeMethod],
+      setGenerateConfirm({
+        reconciliation: hasDFD
+          ? reconcileForProject(project, dfdContext, configuration, activeMethod)
+          : null,
+      }),
+    [hasDFD, project, dfdContext, configuration, activeMethod],
   );
+  const reconciliation = generateConfirm?.reconciliation ?? null;
 
   // ── Generation drift ────────────────────────────────────────────────────
   // Stored threats vs. what the current rules / security goals would produce.
@@ -527,7 +537,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         onMethodChange={(_, method) => {
           if (method) handleMethodChange(method);
         }}
-        onGenerate={() => setShowGenerateConfirm(true)}
+        onGenerate={openGenerateConfirm}
         onSync={() =>
           activeHook.synchronizeThreats({
             updateReferences: true,
@@ -588,7 +598,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             drift={drift}
             riskAttachments={project.riskAttachments}
             onReview={() => setShowDriftDialog(true)}
-            onRegenerate={() => setShowGenerateConfirm(true)}
+            onRegenerate={openGenerateConfirm}
             onDismiss={() => setShowDriftWarning(false)}
           />
         </Box>
@@ -777,7 +787,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
           onConfirm={handleGenerateConfirm}
           onCancel={() => {
-            setShowGenerateConfirm(false);
+            setGenerateConfirm(null);
             setDeleteManualThreats(false);
           }}
         >
@@ -798,7 +808,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 type="button"
                 className="mt-1 underline"
                 onClick={() => {
-                  setShowGenerateConfirm(false);
+                  setGenerateConfirm(null);
                   setDeleteManualThreats(false);
                   setShowDriftDialog(true);
                 }}

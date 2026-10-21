@@ -714,13 +714,16 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         : assetData.assets,
     [reviewFilterActive, assetData.assets, needsReview],
   );
-  // "Show in table" for an asset the review filter hides lifts the filter.
+  // "Show in table" for an asset the review filter hides lifts the filter —
+  // once per request; a later change of the findings does not lift it again.
+  const handledHighlight = useRef<AssetTabProps["tableHighlightRequest"]>(null);
   useEffect(() => {
-    if (grouped && tableHighlightRequest && !needsReview.has(tableHighlightRequest.assetId)) {
+    if (!grouped || !tableHighlightRequest || handledHighlight.current === tableHighlightRequest) return;
+    handledHighlight.current = tableHighlightRequest;
+    if (!needsReview.has(tableHighlightRequest.assetId)) {
       setTableView((v) => (v.reviewOnly ? { ...v, reviewOnly: false } : v));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableHighlightRequest]);
+  }, [grouped, tableHighlightRequest, needsReview]);
 
   const handleOpenFinding = useCallback(
     (finding: AssetFinding) => {
