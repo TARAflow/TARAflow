@@ -198,7 +198,6 @@ export {
   pageWithSubPages,
   type DfdScopeFilter,
   type DfdScopeIndex,
-  type DfdScopeMultiprocess,
   type DfdScopePage,
 } from "./models/dfd-scope";
 export { DfdScopeFilterControls } from "./components/dfd-scope-filter-controls";

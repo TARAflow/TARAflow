@@ -729,8 +729,8 @@ Element→asset relations stay on `dfd.elements[].assetRelations`, keyed by `tfI
 - Every threat references logical elements by `tfId`; the UI derives the page(s) for navigation.
 - New filters in the threat and risk tables: **by page**, **by subtree** (all threats below `MP-2`)
   and **by analysis state** (`fallback`).
-- The risk matrix gains an optional roll-up per decomposed multiprocess (max / count per risk level
-  of its subtree, each threat counted once). Pure view, no stored data.
+- The risk matrix can be narrowed to one group — top level or a top-level decomposed multiprocess
+  (revised in 6f; first planned as a roll-up table per MP). Pure view, no stored data.
 - Attack trees anchor on assets (unchanged) and may reference leaf elements on any page.
 
 **Lifecycle.** Threat identity (UUID), threat generation and risk rating are kept separate. Every
@@ -1564,14 +1564,14 @@ Order (Phase 6):
     page, child pages, parent-level flows) is built with the groups (`dfdScopeFrom`); the filter
     is `dfdScopePredicate` (shared), the controls `DfdScopeFilterControls` (shared), held by
     `useThreatFilters` / `useRiskFilters`; "clear" resets it.
-  - **✅ risk-matrix roll-up per decomposed multiprocess:** below the matrix, collapsed by
-    default, one row per decomposed MP in page-tree order (nested MPs indented): rated threats per
-    risk level of its subtree (parts at any depth and the flows between them), the highest level,
-    the number of threats. Each threat counts once with its highest risk; it follows the matrix's
-    before / after view ("after" = after mitigation where rated, else before). Active and Won't
-    risks of the current STRIDE method; attack-path risks have no DFD item. The subtrees come
-    with the scope index (`DfdScopeIndex.multiprocesses`); `riskRollupRows` (risks/utils),
-    `RiskRollupSection`; `RiskMatrix.renderBelow` hands over the view mode. Pure view.
+  - **✅ risk matrix per group** (revised after first use: a roll-up table below the matrix —
+    counts per level per decomposed MP — was not helpful; the analyst wants to see the matrix
+    itself for one part of the system): a drop-down next to Before / After — "All", "Top level",
+    one entry per top-level decomposed multiprocess (the groups of the tables, D20). The matrix
+    then shows only the risks of that group (`riskGroupSections`); attack-path risks only under
+    "All" (no DFD item). `RiskMatrixGroupSelect`, `RiskMatrix.headerControls`. Pure view; the
+    choice falls back to "All" when its group disappears. §10's "roll-up per decomposed
+    multiprocess" is replaced by this.
   - Open: page filter of the asset graph.
 
 **Review findings (2026-10-20), before Phase 7.** One patch per finding, each runnable and tested.

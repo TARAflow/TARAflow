@@ -64,18 +64,6 @@ describe("multiprocessGroupsOf", () => {
     expect(scope.parentLevelFlows).not.toContain("df7");
   });
 
-  it("lists each decomposed multiprocess with its parts and inner flows (risk roll-up)", () => {
-    const mps = groups.scope!.multiprocesses;
-    expect(mps.map((m) => [m.tfId, m.label, m.depth])).toEqual([
-      ["mp1", "MP-1 Sensor Module", 0],
-      ["mp2", "MP-2 Controller Module", 0],
-    ]);
-    expect(mps[0].items).toContain("sen_p2");
-    expect(mps[1].items).toContain("ctl_p5");
-    // DF-7 runs between the two multiprocesses: inside neither.
-    expect(mps.flatMap((m) => m.items)).not.toContain("df7");
-  });
-
   it("puts a flow between groups into Top level only — every threat once (D20)", () => {
     // DF-7 resolves P-2 (in MP-1) → P-5 (in MP-2): between two MPs.
     expect(groups.flowGroups.df7).toEqual([TOP_LEVEL_GROUP]);

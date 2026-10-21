@@ -294,17 +294,8 @@
         "addFactorLocked": "Die aktive Regulierung definiert den Faktorensatz — entferne den Norm-Tag im Overview, um eigene Faktoren hinzuzufügen.",
         "resetToDefault": "Auf Standard zurücksetzen"
       },
-      "rollup": {
-        "title": "Roll-up pro Multiprozess",
-        "before": "(vor Mitigation)",
-        "after": "(nach Mitigation)",
-        "hint": "Risiken der Teile und inneren Flüsse jedes zerlegten Multiprozesses; jede Bedrohung einmal gezählt, mit ihrem höchsten Risiko.",
-        "multiprocess": "Multiprozess",
-        "highest": "Höchstes",
-        "threats": "Bedrohungen",
-        "unrated": "nicht bewertet"
-      },
       "matrix": {
+        "group": "Teil des DFD",
         "title": "Risikomatrix",
         "impact": "Auswirkung",
         "likelihood": "Wahrscheinlichkeit",

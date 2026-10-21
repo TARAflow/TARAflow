@@ -16,7 +16,6 @@ const INDEX: DfdScopeIndex = {
   itemsOnPage: { top: ["ee1", "mp1", "df1"], sen: ["p1"] },
   childPages: { top: ["sen"] },
   parentLevelFlows: ["df1"],
-  multiprocesses: [],
 };
 
 const threat = (id: string, ref: { elementId?: string; connectionId?: string }) =>

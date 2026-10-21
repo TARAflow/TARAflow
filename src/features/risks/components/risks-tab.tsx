@@ -50,8 +50,8 @@ import {
   applySafetyRemovalDecision,
 } from "../services/risk-sync-service";
 import { useRiskFilters } from "../hooks/shared/use-risk-filters";
-import { riskRollupRows } from "../utils/risk-rollup";
-import { RiskRollupSection } from "./risk-rollup-section";
+import { riskGroupSections } from "../utils/risk-groups";
+import { RiskMatrixGroupSelect } from "./risk-matrix-group-select";
 import { RiskSyncBanner } from "./risk-sync-banner";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
@@ -373,8 +373,25 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     filterRisks,
     hasActiveFilters,
   } = useRiskFilters(project.dfdTableGroups?.scope);
-  // Leveled DFD (6f): roll-up per decomposed multiprocess below the matrix.
-  const rollupMultiprocesses = project.dfdTableGroups?.scope?.multiprocesses ?? [];
+  // Leveled DFD (6f): the matrix shows all risks or those of one group
+  // (top level / a top-level decomposed multiprocess, like the tables).
+  const [matrixGroupChoice, setMatrixGroup] = useState("");
+  const tableGroups = project.dfdTableGroups;
+  const matrixGroup = tableGroups?.groups.some((g) => g.key === matrixGroupChoice)
+    ? matrixGroupChoice
+    : "";
+  const matrixRisks = useMemo(() => {
+    if (!tableGroups || !matrixGroup) {
+      return [...activeRisks, ...wontRisks, ...attackPathActiveRisks, ...attackPathWontRisks];
+    }
+    // Attack-path risks have no DFD item: in no group.
+    return (
+      riskGroupSections(tableGroups, [...activeRisks, ...wontRisks], currentThreats).find(
+        (s) => s.key === matrixGroup,
+      )?.risks ?? []
+    );
+  }, [tableGroups, matrixGroup, activeRisks, wontRisks, attackPathActiveRisks, attackPathWontRisks, currentThreats]);
+
   const filteredActiveRisks = useMemo(
     () => filterRisks(activeRisks, riskData.configuration, currentThreats),
     [activeRisks, filterRisks, riskData.configuration, currentThreats],
@@ -895,30 +912,15 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto", px: 2, pt: 1 }}>
           {mainView === "matrix" ? (
             <RiskMatrix
-              risks={[
-                ...activeRisks,
-                ...wontRisks,
-                ...attackPathActiveRisks,
-                ...attackPathWontRisks,
-              ]}
+              risks={matrixRisks}
               configuration={riskData.configuration}
               onRiskClick={handleEditRisk}
-              renderBelow={
-                rollupMultiprocesses.length > 0
-                  ? (mode) => (
-                      <RiskRollupSection
-                        rows={riskRollupRows(
-                          rollupMultiprocesses,
-                          [...activeRisks, ...wontRisks],
-                          currentThreats,
-                          riskData.configuration,
-                          mode,
-                        )}
-                        configuration={riskData.configuration}
-                        mode={mode}
-                      />
-                    )
-                  : undefined
+              headerControls={
+                <RiskMatrixGroupSelect
+                  groups={project.dfdTableGroups}
+                  value={matrixGroup}
+                  onChange={setMatrixGroup}
+                />
               }
             />
           ) : !hasAnyThreats ? (

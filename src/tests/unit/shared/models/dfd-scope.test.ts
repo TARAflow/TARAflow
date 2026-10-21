@@ -21,7 +21,6 @@ const INDEX: DfdScopeIndex = {
   },
   childPages: { top: ["mp1"], mp1: ["mp11"] },
   parentLevelFlows: ["df1"],
-  multiprocesses: [],
 };
 
 describe("dfdScopePredicate", () => {
