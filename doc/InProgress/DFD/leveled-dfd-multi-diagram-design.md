@@ -1693,6 +1693,11 @@ explicitly.
   the leveled SmokeDetector with the browser DOM and with xmldom and requires identical parse,
   tree, home pages, effective model, groups and parent-level flows; a Node-environment test runs
   the analysis without any browser DOM. So CLI and app reports are the same.
+  Build warnings removed on the way (not leveled-specific): the duplicate key
+  `treatmentJustificationRequired` in `de/risks.json` (the overridden first entry dropped, the
+  shown text is unchanged); the CLI's `package.json` declares `"type": "module"` (the bundle is
+  ESM) and is shipped next to it in the Debian package, so Node no longer warns
+  `MODULE_TYPELESS_PACKAGE_JSON`.
 
 ## 14. Testing
 

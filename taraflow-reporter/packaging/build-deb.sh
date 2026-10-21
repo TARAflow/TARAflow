@@ -38,6 +38,11 @@ EOF
 cp dist-cli/taraflow-report.js "$PKGROOT/usr/lib/tara-report/taraflow-report.js"
 chmod 644 "$PKGROOT/usr/lib/tara-report/taraflow-report.js"
 
+# package.json mit "type": "module": das Bundle ist ESM (esbuild --format=esm);
+# ohne sie liest Node es erst als CommonJS und warnt (MODULE_TYPELESS_PACKAGE_JSON).
+cp dist-cli/package.json "$PKGROOT/usr/lib/tara-report/package.json"
+chmod 644 "$PKGROOT/usr/lib/tara-report/package.json"
+
 # @resvg/resvg-js ist eine native Bibliothek (kompilierte .node-Datei) —
 # esbuild kann sie nicht ins Bundle einbetten (siehe build:cli-Script:
 # --external:@resvg/resvg-js + Kopier-Schritt nach dist-cli/node_modules).

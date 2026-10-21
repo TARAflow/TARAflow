@@ -130,7 +130,6 @@
         "residualIncomplete": "Alle fünf Faktoren bewerten, um die Restmachbarkeit zu berechnen",
         "residualLikelihoodTooltip": "Restmachbarkeit nach Umsetzung der Massnahme. Eine Massnahme, die den Angriffspfad erschwert, senkt die Eintrittswahrscheinlichkeit — wähle die Stufe, auf die sie fällt.",
         "transferredNote": "Risiko wird transferiert — keine internen Massnahmen erforderlich. Risiko Nachher entspricht Risiko Vorher.",
-        "treatmentJustificationRequired": "Erforderlich bei Akzeptieren / Transferieren / Teilen",
         "feasibility": {
           "high": "Hoch",
           "medium": "Mittel",
