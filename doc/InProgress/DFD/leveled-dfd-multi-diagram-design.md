@@ -1711,6 +1711,13 @@ explicitly.
   thumbnail to PNG (`createProjectWithPng`; a failing one is left out, the others stay); the CLI
   PDF rasterises every SVG image as before. The CLI note now only says that the element and flow
   lists are not grouped by page yet.
+- **7b ✅ decomposition tree:** right after the figures, a section "Decomposition" / "Zerlegung":
+  one entry per page in page-tree order, indented by depth, captioned like its figure and listing
+  the elements defined on the page in display order (`Page "Sensor Head" (decomposes MP-1 Sensor
+  Head) — defined here: DS-1, DS-2, IF-1, …`). `ReportPage.defined` (from the home pages),
+  `dfdDecompositionOf` (documentation), `formatDfdDecomposition` per format: Markdown and
+  AsciiDoc nested lists, HTML nested `<ul>`, StrictDoc RST list (blank-line separated, nested by
+  indentation), pdfmake indented bullets. Absent for a classic DFD.
 
 ## 14. Testing
 

@@ -18,6 +18,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
+import type { DfdDecomposition } from "../dfd-decomposition";
 import { HtmlGenerator } from "./html-generator";
 import { PdfMakeConverter } from "./pdfmake-converter";
 
@@ -407,6 +408,10 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
   formatDfdFigures(figures: DfdFigure[], alt: string): string {
     return this.htmlGenerator.formatDfdFigures(figures, alt);
+  }
+
+  formatDfdDecomposition(decomposition: DfdDecomposition): string {
+    return this.htmlGenerator.formatDfdDecomposition(decomposition);
   }
 
   getDfdDescriptionsTemplate(): string {

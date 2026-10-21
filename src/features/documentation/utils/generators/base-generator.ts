@@ -4,6 +4,7 @@
 
 import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
 import { dfdFiguresOf, noDfdImageText, type DfdFigure } from "../dfd-figures";
+import { dfdDecompositionOf, type DfdDecomposition } from "../dfd-decomposition";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -279,6 +280,11 @@ export abstract class BaseDocumentGenerator {
    * that the page has no stored image yet (leveled DFD, Phase 7a).
    */
   abstract formatDfdFigures(figures: DfdFigure[], alt: string): string;
+  /**
+   * The decomposition tree of a leveled DFD (7b), rendered right after the
+   * figures — so it starts with its own separator.
+   */
+  abstract formatDfdDecomposition(decomposition: DfdDecomposition): string;
   abstract getDfdDescriptionsTemplate(): string;
   abstract getDfdElementTypeHeaderTemplate(): string;
   abstract getDfdElementEntryTemplate(): string;
@@ -672,8 +678,12 @@ export abstract class BaseDocumentGenerator {
     );
     const alt = this.ctx.lang === "de" ? "Datenflussdiagramm" : "Data Flow Diagram";
 
+    const decomposition = dfdDecompositionOf(dfd, this.ctx.lang);
+
     const values = {
-      dfdFigures: this.formatDfdFigures(figures, alt),
+      dfdFigures:
+        this.formatDfdFigures(figures, alt) +
+        (decomposition ? this.formatDfdDecomposition(decomposition) : ""),
       externalEntities: stats.externalEntities,
       processes: stats.processes,
       dataStores: stats.dataStores,

@@ -9,6 +9,7 @@ import type { DocLanguage } from "../models/doc-types";
 // Deep import: the DFD barrel pulls UI components; this module is pure.
 import {
   reportPagesOf,
+  type ReportPage,
   type ReportPagesSource,
 } from "../../dfd/services/leveled/report-pages";
 
@@ -34,6 +35,12 @@ const TEXT = {
   },
 } as const;
 
+/** `Page "Sensor Head" (decomposes MP-1 Sensor Head)` — figure and tree. */
+export function pageCaption(page: Pick<ReportPage, "name" | "decomposes">, lang: DocLanguage): string {
+  const text = TEXT[lang];
+  return text.page(page.name) + (page.decomposes ? text.decomposes(page.decomposes) : "");
+}
+
 /** Text shown in place of a figure whose page has no stored image. */
 export const noDfdImageText = (lang: DocLanguage): string => TEXT[lang].noImage;
 
@@ -43,9 +50,8 @@ export function dfdFiguresOf(
 ): DfdFigure[] {
   const pages = reportPagesOf(dfd);
   if (!pages) return [{ ...(dfd?.thumbnail ? { image: dfd.thumbnail } : {}) }];
-  const text = TEXT[lang];
   return pages.map((p) => ({
     ...(p.image ? { image: p.image } : {}),
-    caption: text.page(p.name) + (p.decomposes ? text.decomposes(p.decomposes) : ""),
+    caption: pageCaption(p, lang),
   }));
 }

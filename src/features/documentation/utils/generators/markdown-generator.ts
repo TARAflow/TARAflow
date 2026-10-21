@@ -9,6 +9,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
+import type { DfdDecomposition } from "../dfd-decomposition";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -153,6 +154,11 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
         return f.caption ? `${image}\n\n*${f.caption}*` : image;
       })
       .join("\n\n");
+  }
+
+  formatDfdDecomposition(d: DfdDecomposition): string {
+    const items = d.items.map((i) => `${"  ".repeat(i.depth)}- ${i.text}`).join("\n");
+    return `\n\n### ${d.title}\n\n${d.intro}\n\n${items}`;
   }
 
   getDfdDescriptionsTemplate(): string {

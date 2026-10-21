@@ -106,6 +106,40 @@ describe("DFD figures per page (leveled DFD, 7a)", () => {
   });
 });
 
+describe("decomposition tree (leveled DFD, 7b)", () => {
+  const data = leveledDocData();
+  const TOP_ITEM = 'Page "Top" — defined here: CB, CTE';
+  const SEN_ITEM = 'Page "Sensor Head" (decomposes MP-1 Sensor Head) — defined here: DS-1';
+
+  it("markdown: a nested list after the figures", () => {
+    const out = generate(data, "markdown");
+    inOrder(out, ['*Page "Smoke Detector Controller"', "### Decomposition", `- ${TOP_ITEM}`, `  - ${SEN_ITEM}`]);
+  });
+
+  it("asciidoc: list levels by asterisks", () => {
+    const out = generate(data, "asciidoc");
+    inOrder(out, ["=== Decomposition", `* ${TOP_ITEM}`, `** ${SEN_ITEM}`]);
+  });
+
+  it("html: nested ul, escaped", () => {
+    const out = generate(data, "html");
+    expect(out).toContain("<h3>Decomposition</h3>");
+    expect(out).toContain(
+      '<div class="dfd-decomposition"><ul><li>Page &quot;Top&quot; — defined here: CB',
+    );
+    expect(out).toMatch(/SHE<ul><li>Page &quot;Sensor Head&quot;.*<\/li><li>Page &quot;Smoke Detector Controller&quot;.*<\/li><\/ul><\/li><\/ul><\/div>/s);
+  });
+
+  it("strictdoc: RST list items separated by blank lines, nested by indentation", () => {
+    const out = generate(data, "strictdoc");
+    inOrder(out, ["Decomposition:", `- ${TOP_ITEM}`, `\n\n  - ${SEN_ITEM}`]);
+  });
+
+  it("German", () => {
+    expect(generate(data, "markdown", "de")).toContain("### Zerlegung");
+  });
+});
+
 describe("DFD figure of a classic project (unchanged)", () => {
   const data = toDocProjectData(project, "en");
   const image = data.dfd?.thumbnail || "dfd.png";
@@ -119,5 +153,6 @@ describe("DFD figure of a classic project (unchanged)", () => {
     const out = generate(data, format);
     expect(out).toContain(line);
     expect(out).not.toContain("Page \"");
+    expect(out).not.toContain("Decomposition");
   });
 });

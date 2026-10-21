@@ -7,6 +7,7 @@
 
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdFiguresOf, noDfdImageText } from "../dfd-figures";
+import { dfdDecompositionOf } from "../dfd-decomposition";
 import type { TDocumentDefinitions, Content, TableCell, Style, PageSize } from "pdfmake/interfaces";
 import type { DocConfiguration, DocProjectData, DocLanguage } from "../../models/doc-types";
 import {
@@ -558,6 +559,19 @@ export class PdfMakeConverter {
           { text: figure.caption ?? "", italics: true, alignment: "center", margin: [0, 0, 0, 20] },
         );
       }
+    }
+
+    // Leveled DFD (7b): the decomposition tree, indented by depth.
+    const decomposition = dfdDecompositionOf(this.project.dfd, this.lang);
+    if (decomposition) {
+      content.push(
+        { text: decomposition.title, style: "h2" },
+        { text: decomposition.intro, margin: [0, 0, 0, 6] },
+        ...decomposition.items.map(
+          (item): Content => ({ text: `• ${item.text}`, margin: [item.depth * 15, 0, 0, 3] }),
+        ),
+        { text: "", margin: [0, 0, 0, 14] },
+      );
     }
 
     // DFD Elements

@@ -9,6 +9,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
+import type { DfdDecomposition } from "../dfd-decomposition";
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
@@ -131,6 +132,11 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
         return f.caption ? `.${f.caption}\n${image}` : image;
       })
       .join("\n\n");
+  }
+
+  formatDfdDecomposition(d: DfdDecomposition): string {
+    const items = d.items.map((i) => `${"*".repeat(i.depth + 1)} ${i.text}`).join("\n");
+    return `\n\n=== ${d.title}\n\n${d.intro}\n\n${items}`;
   }
 
   getDfdDescriptionsTemplate(): string {

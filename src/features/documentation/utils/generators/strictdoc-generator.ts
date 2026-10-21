@@ -38,6 +38,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
+import type { DfdDecomposition } from "../dfd-decomposition";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -276,6 +277,13 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
         return `.. figure:: ${f.image}\n   :alt: ${alt}\n\n   ${f.caption}`;
       })
       .join("\n\n");
+  }
+
+  formatDfdDecomposition(d: DfdDecomposition): string {
+    // RST: list items separated by blank lines, a nested item indented to
+    // its parent's text (two spaces per level).
+    const items = d.items.map((i) => `${"  ".repeat(i.depth)}- ${i.text}`).join("\n\n");
+    return `\n\n${d.title}:\n\n${d.intro}\n\n${items}`;
   }
 
   getDfdDescriptionsTemplate(): string {

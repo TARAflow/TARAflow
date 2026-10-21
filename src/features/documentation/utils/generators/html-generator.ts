@@ -9,6 +9,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { DfdFigure } from "../dfd-figures";
+import type { DfdDecomposition } from "../dfd-decomposition";
 import { HTML_TEMPLATES } from "../templates/html-templates";
 import { replacePlaceholders, processConditionals } from "../templates";
 
@@ -203,6 +204,21 @@ export class HtmlGenerator extends BaseDocumentGenerator {
   </figure>`;
       })
       .join("\n  ");
+  }
+
+  formatDfdDecomposition(d: DfdDecomposition): string {
+    // Nested lists from the depth of each entry (depths step by one).
+    let html = "";
+    let open = 0;
+    for (const item of d.items) {
+      const depth = item.depth + 1;
+      if (depth > open) html += "<ul><li>".repeat(depth - open);
+      else html += "</li></ul>".repeat(open - depth) + "</li><li>";
+      html += this.escapeHtml(item.text);
+      open = depth;
+    }
+    html += "</li></ul>".repeat(open);
+    return `\n  <h3>${this.escapeHtml(d.title)}</h3>\n  <p>${this.escapeHtml(d.intro)}</p>\n  <div class="dfd-decomposition">${html}</div>`;
   }
 
   getDfdDescriptionsTemplate(): string {
