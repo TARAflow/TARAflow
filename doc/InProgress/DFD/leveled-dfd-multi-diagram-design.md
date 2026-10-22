@@ -1151,6 +1151,12 @@ exactly its links and decomposition.
     counts as absent.
   - Data-flow form: section "Leveling" (only when the DFD has several pages) with *Refines* (all
     other flows, natural id order; validity is the validator's job) and *Abstract*.
+  - End to end on the leveled SmokeDetector fixture (§14 "Graph and balancing", review
+    2026-10-22). §16's "DF-19 push alarm relay refines DF-27" is, in the fixture's numbering,
+    DF-21 "push alarm contact" (P-3 → EE-1) and DF-30 "push alarm" (MP-2 → EE-1 on Top). The
+    fixture is balanced as delivered; with DF-21's definition moved to the controller page and its
+    Top cell removed it yields exactly `BAL_MISSING_PARENT_FLOW`, with `refines: DF-30` no finding
+    at all (`leveled-smoke-detector-refines.test.ts`).
 - Moved: `BAL_ASSET_NOT_REALISED` → Phase 6 (asset roll-up); threat-tab banner "N flows analysed
   on parent level" → Phase 5 (UI).
 
