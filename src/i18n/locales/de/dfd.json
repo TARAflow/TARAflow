@@ -2679,6 +2679,10 @@
         "syncDone": "{{count}} Kontextkopien ergänzt.",
         "none": "Keine Unterseite — der Multiprozess wird als Ganzes analysiert."
       },
+      "recordDescription": {
+        "label": "Beschreibung",
+        "helper": "Was das Element oder der Datenfluss tut. Erforderlich für ein vollständiges DFD."
+      },
       "identity": {
         "copy": "Kontextkopie",
         "definition": "Definition",

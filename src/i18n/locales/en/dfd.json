@@ -2692,6 +2692,10 @@
         "syncDone": "{{count}} context copies added.",
         "none": "No child page — the multiprocess is analysed as a whole."
       },
+      "recordDescription": {
+        "label": "Description",
+        "helper": "What the element or flow does. Required for a complete DFD."
+      },
       "identity": {
         "copy": "Context copy",
         "definition": "Definition",

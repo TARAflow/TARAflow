@@ -890,6 +890,14 @@ Structure: Modified"):
   message tags the line (`~ P-1.1: Optical Detection [semantic]`), the audit's change list shows a
   chip. An XML change without any record change is one **graphical** item "Diagram layout
   modified".
+  - Found with it (2026-10-22, not leveled-specific): the DFD's completeness counts the
+    `description` of every element and flow, but since the form redesign (46eddb9) no form wrote it
+    and the save rebuilt the records from the XML keeping only `properties` and `assetRelations` —
+    every description was dropped on the next save, so the DFD phase could never be complete (any
+    project). Now `RecordDescriptionField` above every element and data-flow form (details panel
+    via `DFDElementForm`, "Describe" view per accordion), saved on blur like the asset form's
+    description; `mergeElementProperties` / `mergeConnectionProperties` keep it. The diff showed
+    the loss as 79 semantic "description: … → —" items.
 
 ## 12. UI
 
@@ -1713,6 +1721,7 @@ Order (Phase 6):
   | Diagram opens at 100 % instead of a tiny fit | `0827daf` | `310b185` |
   | No false "mitigations changed" after reopening (`sameDrafts`) | `7018e7e` | `b06a151` |
   | Assets warning banner no longer covered by the DFD preview | `5530047` | `8a03a6f` |
+  | Descriptions of DFD elements and flows editable and kept on save | (patch 93) | open |
 
   Not general despite the `fix` prefix: page-sync rejection (`75aada9`), multi-page layout refusal
   (`dd43982`, `9d7b362`), child page by button (`82875cd`), group toolbar (`89318c8`) — they fix

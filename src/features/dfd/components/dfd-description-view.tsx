@@ -63,6 +63,7 @@ import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form"
 import { SensorDescriptionForm } from "./forms/sensor-description-form";
 import { ActuatorDescriptionForm } from "./forms/actuator-description-form";
 import { AssetDescriptionForm } from "./forms/asset-description-form";
+import { RecordDescriptionField } from "./forms/record-description-field";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 
 // ==================== TYPES ====================
@@ -740,7 +741,16 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
           {/* Render form only when expanded — prevents all Selects/Tooltips from
               creating Popper instances simultaneously (observed: 103+ resize listeners
               from collapsed accordions). Cost: slight re-mount delay on first open. */}
-          {isExpanded && renderForm()}
+          {isExpanded && (
+            <>
+              <RecordDescriptionField
+                recordId={element.id}
+                value={element.description}
+                onCommit={(description) => onUpdate({ description })}
+              />
+              {renderForm()}
+            </>
+          )}
         </AccordionDetails>
       </Accordion>
     );
@@ -751,6 +761,7 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
       prevProps.element.id !== nextProps.element.id ||
       prevProps.element.displayId !== nextProps.element.displayId ||
       prevProps.element.name !== nextProps.element.name ||
+      prevProps.element.description !== nextProps.element.description ||
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
       prevProps.onCreateAsset !== nextProps.onCreateAsset ||
@@ -842,17 +853,24 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
 
         <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
           {isExpanded && (
-            <DataFlowDescriptionForm
-              connection={connection}
-              onChange={onUpdate}
-              crossesTrustBoundary={crossesTrustBoundary}
-              availableAssets={availableAssets}
-              defaultExposureLevel={
-                graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
-                undefined
-              }
-              refinementCandidates={refinementCandidates}
-            />
+            <>
+              <RecordDescriptionField
+                recordId={connection.id}
+                value={connection.description}
+                onCommit={(description) => onUpdate({ description })}
+              />
+              <DataFlowDescriptionForm
+                connection={connection}
+                onChange={onUpdate}
+                crossesTrustBoundary={crossesTrustBoundary}
+                availableAssets={availableAssets}
+                defaultExposureLevel={
+                  graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
+                  undefined
+                }
+                refinementCandidates={refinementCandidates}
+              />
+            </>
           )}
         </AccordionDetails>
       </Accordion>
@@ -865,6 +883,7 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
       prevProps.connection.displayId !== nextProps.connection.displayId ||
       prevProps.connection.from !== nextProps.connection.from ||
       prevProps.connection.to !== nextProps.connection.to ||
+      prevProps.connection.description !== nextProps.connection.description ||
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
       prevProps.onToggle !== nextProps.onToggle ||

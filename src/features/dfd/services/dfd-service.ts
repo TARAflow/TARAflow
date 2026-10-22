@@ -297,6 +297,8 @@ class DFDService {
         ...parsed,
         properties: existing.properties || copyProperties(parsed.properties),
         assetRelations: existing.assetRelations || parsed.assetRelations,
+        // The description lives in the record only (no XML attribute).
+        ...(existing.description ? { description: existing.description } : {}),
       };
     });
   }
@@ -316,6 +318,8 @@ class DFDService {
         ...parsed,
         properties: existing.properties || copyProperties(parsed.properties),
         assetRelations: existing.assetRelations || parsed.assetRelations,
+        // The description lives in the record only (no XML attribute).
+        ...(existing.description ? { description: existing.description } : {}),
       };
     });
   }

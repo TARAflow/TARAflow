@@ -8,6 +8,7 @@ import type { AssetGroup } from "shared";
 import type { DFDElement, DFDConnection } from "../models/dfd-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
+import { RecordDescriptionField } from "./forms/record-description-field";
 
 // Import all element forms
 import { ProcessDescriptionForm } from "./forms/process-description-form";
@@ -41,7 +42,27 @@ interface DFDElementFormProps {
 
 // ==================== COMPONENT ====================
 
-export const DFDElementForm: React.FC<DFDElementFormProps> = ({
+/**
+ * The form of the element or flow, with its description above (the field
+ * the DFD's completeness counts).
+ */
+export const DFDElementForm: React.FC<DFDElementFormProps> = (props) => {
+  const record = props.connection ?? props.element;
+  if (!record) return <DFDElementTypeForm {...props} />;
+  return (
+    <>
+      <RecordDescriptionField
+        recordId={record.id}
+        value={record.description}
+        onCommit={(description) => props.onChange({ description })}
+      />
+      <DFDElementTypeForm {...props} />
+    </>
+  );
+};
+
+/** The type-specific form. */
+const DFDElementTypeForm: React.FC<DFDElementFormProps> = ({
   element,
   connection,
   onChange,
