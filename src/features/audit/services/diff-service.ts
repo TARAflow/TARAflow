@@ -50,6 +50,8 @@ function dfdChangeText(change: DfdChange): string {
       return "Definition moved to another page";
     case "identity":
       return "Cell identity changed";
+    case "analysis":
+      return "Analysis effect";
   }
 }
 

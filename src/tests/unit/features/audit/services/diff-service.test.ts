@@ -350,7 +350,7 @@ describe("DiffService — the drawing of a leveled DFD (§11.3)", () => {
     return { xml, pages, elements, connections, assets: [] };
   };
 
-  it("a page added is a structural line, as the design's example", () => {
+  it("a page added is a structural line, its effect semantic lines — as the design's example", () => {
     const pages = LEVELED_PAGES.filter((p) => p.pageId !== "ctl");
     const changes = svc.detectChanges(
       project({ dfd: leveled(mxfile(SYSTEM, SENSOR, CONTROLLER), LEVELED_PAGES) }),
@@ -365,6 +365,10 @@ describe("DiffService — the drawing of a leveled DFD (§11.3)", () => {
     });
     const message = generateCommitMessage(svc.generateCommitMessageData(changes, "Detail Review", "jm"));
     expect(message).toContain("+ Page: Controller Module (decomposes MP-2) [structural]");
+    expect(message).toContain("~ Analysis: 1 flow now resolved below MP-2 Controller Module [semantic]");
+    expect(message).toContain("~ Analysis: MP-2 Controller Module now analysed through its parts [semantic]");
+    const analysis = changes.find((p) => p.phase === "dfd")!.changes.filter((c) => c.id === "Analysis");
+    expect(analysis.map((c) => c.description)).toEqual(["Analysis effect", "Analysis effect"]);
   });
 });
 

@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.6 — decisions D1–D20 locked (§15) · Phases 0–7 done (identity and occurrences, effective model and schema 9, numbering, findings, UI, assets / threat and risk lifecycle, reports and CLI) · review findings R1–R5 done · open: §11.3 diff-service (graphical / semantic / structural), the asset overlay on child pages (§4)
+Status: rev. 4.6 — decisions D1–D20 locked (§15) · Phases 0–7 done (identity and occurrences, effective model and schema 9, numbering, findings, UI, assets / threat and risk lifecycle, reports and CLI) · review findings R1–R5 done · §11.3 diff-service (semantic / graphical / structural / identity, analysis effect) done · open: the asset overlay on child pages (§4)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -922,6 +922,19 @@ Structure: Modified"):
     endpoints' assets (166 flow threats, e.g. 6 → 2 assets), which feeds risk impact and the risk
     tab's "asset links changed". The unit test used the wrong names too. Fixed; the next sync
     restores the links (checked: 214 of 214 per-interaction threats as generated).
+- **The effect on the analysis ✅** (patch 98, leveled DFDs, both sides with more than one page):
+  `diffDfd` also derives the effective model of both sides (`analyseLeveled`, cached; never
+  stored) and compares it, as separate **semantic** lines "Analysis: …" next to the structure,
+  each with the flows' display ids:
+  - "3 flows now resolved below MP-2 Controller Module" — a flow endpoint moved into the parts of
+    a multiprocess (child page added, flow drawn on it);
+  - "1 flow now analysed on parent level at MP-2 Controller Module" — an endpoint moved out of the
+    parts, or the multiprocess was decomposed but the flow is not drawn on its page (fallback);
+  - "2 flows re-routed" — an endpoint changed otherwise;
+  - "MP-2 Controller Module now analysed through its parts" / "… analysed as a whole again" — the
+    first part on its page, or the page removed / emptied.
+  A layout change, a page rename or a page with context copies only has no analysis line. Audit
+  description "Analysis effect".
 
 ## 12. UI
 

@@ -7,7 +7,7 @@ import { diffDfd, type DfdChange } from "features/dfd/services/dfd-diff";
 import { dfdParser } from "features/dfd/services/dfd-parser";
 import { makeDefinition } from "features/dfd/services/leveled/identity-links";
 import type { DFDPage } from "features/dfd/models/dfd-types";
-import { CONTROLLER, LEVELED_PAGES, SENSOR, SYSTEM, mxfile, node, page, ref } from "../../../../fixtures/leveled-dfd-xml";
+import { CONTROLLER, LEVELED_PAGES, SENSOR, SYSTEM, flow, mxfile, node, page, ref } from "../../../../fixtures/leveled-dfd-xml";
 
 const dfdOf = (xml: string, pages: DFDPage[] | undefined) => {
   const { elements, connections } = dfdParser.parse(xml, pages);
@@ -25,13 +25,21 @@ describe("diffDfd — the drawing of a leveled DFD", () => {
   it("a page deleted: structural, with the multiprocess it decomposed — its copies not listed again", () => {
     const pages = LEVELED_PAGES.filter((p) => p.pageId !== "ctl");
     const changes = drawing(diffDfd(BEFORE, dfdOf(mxfile(SYSTEM, SENSOR), pages)));
-    expect(changes.map(brief)).toEqual(["removed structural Page: Controller Module (decomposes MP-2)"]);
+    expect(changes.map(brief)).toEqual([
+      "removed structural Page: Controller Module (decomposes MP-2)",
+      "modified semantic Analysis: 1 flow now analysed on parent level at MP-2 Controller Module",
+      "modified semantic Analysis: MP-2 Controller Module analysed as a whole again",
+    ]);
   });
 
   it("a page added: structural", () => {
     const pages = LEVELED_PAGES.filter((p) => p.pageId !== "ctl");
     const changes = drawing(diffDfd(dfdOf(mxfile(SYSTEM, SENSOR), pages), BEFORE));
-    expect(changes.map(brief)).toEqual(["added structural Page: Controller Module (decomposes MP-2)"]);
+    expect(changes.map(brief)).toEqual([
+      "added structural Page: Controller Module (decomposes MP-2)",
+      "modified semantic Analysis: 1 flow now resolved below MP-2 Controller Module",
+      "modified semantic Analysis: MP-2 Controller Module now analysed through its parts",
+    ]);
   });
 
   it("a page renamed: graphical", () => {
@@ -74,6 +82,48 @@ describe("diffDfd — the drawing of a leveled DFD", () => {
     const changes = drawing(diffDfd(BEFORE, dfdOf(mxfile(sys, SENSOR, CONTROLLER), LEVELED_PAGES)));
     expect(changes.map(brief)).toEqual(["modified graphical Layout: System"]);
     expect(changes[0].fields).toEqual([{ field: "moved or resized", before: undefined, after: "MP-1" }]);
+  });
+});
+
+describe("diffDfd — the effect on the analysis of a leveled DFD", () => {
+  const analysis = (changes: DfdChange[]) => changes.filter((c) => c.subject === "analysis");
+
+  it("a page added: the flows it resolves, listed by display id", () => {
+    const pages = LEVELED_PAGES.filter((p) => p.pageId !== "ctl");
+    const [resolved] = analysis(diffDfd(dfdOf(mxfile(SYSTEM, SENSOR), pages), BEFORE));
+    expect(resolved).toMatchObject({ kind: "modified", category: "semantic", displayId: "Analysis" });
+    expect(resolved.fields).toEqual([{ field: "flows", before: undefined, after: "DF-7" }]);
+  });
+
+  it("a flow no longer drawn on the child page: analysed on parent level again", () => {
+    const ctl = page(
+      "ctl",
+      "Controller Module",
+      node("ctl_mp1", "multiprocess", "Sensor Module", "MP-1", 10) + node("ctl_p5", "process", "Evaluate Alarm", "P-5", 300),
+    );
+    const pages = LEVELED_PAGES.map((p) => (p.pageId === "ctl" ? { ...p, links: [ref("ctl_mp1", "mp1")] } : p));
+    const changes = analysis(diffDfd(BEFORE, dfdOf(mxfile(SYSTEM, SENSOR, ctl), pages)));
+    expect(changes.map(brief)).toEqual([
+      "modified semantic Analysis: 1 flow now analysed on parent level at MP-2 Controller Module",
+    ]);
+  });
+
+  it("a flow drawn to another part: re-routed", () => {
+    const ctl = page(
+      "ctl",
+      "Controller Module",
+      node("ctl_mp1", "multiprocess", "Sensor Module", "MP-1", 10) +
+        node("ctl_p5", "process", "Evaluate Alarm", "P-5", 300) +
+        node("ctl_p6", "process", "Sound Alarm", "P-6", 600) +
+        flow("ctl_df7", "stream sensor data", "DF-7", "ctl_mp1", "ctl_p6"),
+    );
+    const changes = analysis(diffDfd(BEFORE, dfdOf(mxfile(SYSTEM, SENSOR, ctl), LEVELED_PAGES)));
+    expect(changes.map(brief)).toEqual(["modified semantic Analysis: 1 flow re-routed"]);
+  });
+
+  it("nothing on the analysis when only the layout changed", () => {
+    const sys = SYSTEM.replace(/(id="mp1">\s*<mxCell[^>]*>\s*<mxGeometry x=")10"/, '$1250"');
+    expect(analysis(diffDfd(BEFORE, dfdOf(mxfile(sys, SENSOR, CONTROLLER), LEVELED_PAGES)))).toEqual([]);
   });
 });
 

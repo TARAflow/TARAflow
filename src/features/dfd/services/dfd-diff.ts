@@ -13,7 +13,8 @@
 
 import type { DFDConnection, DFDData, DFDElement, DFDPage } from "../models/dfd-types";
 import { isLeveled } from "./build-dfd-graph";
-import { parseDfd } from "./leveled/leveled-analysis";
+import { analyseLeveled, parseDfd } from "./leveled/leveled-analysis";
+import type { EffectiveModel } from "./leveled/effective-model";
 
 export type DfdChangeCategory = "semantic" | "graphical" | "structural" | "identity";
 
@@ -30,9 +31,18 @@ export interface DfdChange {
   /**
    * element / flow: a logical record; page: a page of the DFD; copies: the
    * context copies of one page; layout: positions and sizes on one page;
-   * definition: an element's or flow's home page; identity: a cell's tfId.
+   * definition: an element's or flow's home page; identity: a cell's tfId;
+   * analysis: what the change does to the effective model (leveled DFD).
    */
-  subject: "element" | "flow" | "page" | "copies" | "layout" | "definition" | "identity";
+  subject:
+    | "element"
+    | "flow"
+    | "page"
+    | "copies"
+    | "layout"
+    | "definition"
+    | "identity"
+    | "analysis";
   /** tfId of the element or flow; pageId of a page; page:cell of a cell. */
   id: string;
   /** displayId, else the tfId; for the drawing subjects their kind. */
@@ -119,6 +129,7 @@ export function diffDfd(
     ...(previous?.xml && current?.xml && drawingChanged(previous, current)
       ? diffDrawing(previous as DrawingSource, current as DrawingSource)
       : []),
+    ...(previous && current ? diffAnalysis(previous, current) : []),
   ];
 }
 
@@ -358,3 +369,105 @@ function diffDrawing(previous: DrawingSource, current: DrawingSource): DfdChange
   }
   return out;
 }
+
+// ==================== THE ANALYSIS (§11.3) ====================
+// "Page added: Controller Module (decomposes MP-2) / Analysis: 3 flows now
+// resolved below MP-2" — the structure and its effect on the analysis are
+// separate lines. Compares the effective models of a leveled DFD (both
+// sides leveled); the analysis is never stored, it is derived here.
+
+function modelOf(source: DiffSource): EffectiveModel | undefined {
+  if (!source.xml || !source.pages || source.pages.length < 2 || !isLeveled(source.xml)) return undefined;
+  try {
+    return analyseLeveled({
+      xml: source.xml,
+      pages: source.pages,
+      elements: source.elements,
+      connections: source.connections,
+    }).model;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Whether element `id` is a (nested) part of multiprocess `mp`. */
+function isInside(model: EffectiveModel, id: string, mp: string): boolean {
+  const seen = new Set<string>();
+  for (let p = model.containmentParent.get(id); p !== undefined && !seen.has(p); p = model.containmentParent.get(p)) {
+    if (p === mp) return true;
+    seen.add(p);
+  }
+  return false;
+}
+
+const decomposedOf = (model: EffectiveModel) => new Set(model.containmentParent.values());
+
+function diffAnalysis(previous: DiffSource, current: DiffSource): DfdChange[] {
+  const before = modelOf(previous);
+  const after = modelOf(current);
+  if (!before || !after) return [];
+
+  const records = new Map<string, { displayId: string; name: string }>();
+  for (const r of [...previous.elements, ...previous.connections, ...current.elements, ...current.connections]) {
+    records.set(r.id, { displayId: r.displayId || r.id, name: r.name ?? "" });
+  }
+  const short = (tfId: string) => records.get(tfId)?.displayId ?? tfId;
+  const full = (tfId: string) => {
+    const r = records.get(tfId);
+    return r ? [r.displayId, r.name].filter(Boolean).join(" ") : tfId;
+  };
+  const flows = (n: number) => `${n} ${n === 1 ? "flow" : "flows"}`;
+  const out: DfdChange[] = [];
+  const line = (key: string, name: string, items?: string[]) =>
+    out.push({
+      kind: "modified",
+      category: "semantic",
+      subject: "analysis",
+      id: key,
+      displayId: "Analysis",
+      name,
+      ...(items ? { fields: [{ field: "flows", before: undefined, after: items.map(short).sort().join(", ") }] } : {}),
+    });
+
+  // Flows: resolved below a multiprocess (an endpoint moved into its parts),
+  // back on its parent level (an endpoint moved out, or the flow was not
+  // refined when the multiprocess was decomposed), re-routed otherwise.
+  const old = new Map(before.flows.map((f) => [f.tfId, f]));
+  const decomposedNow = decomposedOf(after);
+  const resolvedBelow = new Map<string, string[]>();
+  const toParent = new Map<string, string[]>();
+  const rerouted = new Set<string>();
+  const add = (map: Map<string, string[]>, key: string, tfId: string) => {
+    const ids = map.get(key) ?? [];
+    if (!ids.includes(tfId)) map.set(key, [...ids, tfId]);
+  };
+  for (const f of after.flows) {
+    const was = old.get(f.tfId);
+    if (!was || was.state === "excluded" || f.state === "excluded") continue;
+    for (const [from, to] of [[was.from, f.from], [was.to, f.to]]) {
+      if (from === to) {
+        if (was.state === "resolved" && f.state === "fallback" && decomposedNow.has(to)) add(toParent, to, f.tfId);
+      } else if (isInside(after, to, from)) add(resolvedBelow, from, f.tfId);
+      else if (isInside(before, from, to)) add(toParent, to, f.tfId);
+      else rerouted.add(f.tfId);
+    }
+  }
+  for (const [mp, ids] of resolvedBelow) {
+    line(`resolved:${mp}`, `${flows(ids.length)} now resolved below ${full(mp)}`, ids);
+  }
+  for (const [mp, ids] of toParent) {
+    line(`parent:${mp}`, `${flows(ids.length)} now analysed on parent level at ${full(mp)}`, ids);
+  }
+  if (rerouted.size > 0) line("rerouted", `${flows(rerouted.size)} re-routed`, [...rerouted]);
+
+  // A decomposition took effect (its first part) or ended.
+  const wasDecomposed = decomposedOf(before);
+  for (const mp of decomposedNow) {
+    if (!wasDecomposed.has(mp)) line(`parts:${mp}`, `${full(mp)} now analysed through its parts`);
+  }
+  for (const mp of wasDecomposed) {
+    if (!decomposedNow.has(mp)) line(`whole:${mp}`, `${full(mp)} analysed as a whole again`);
+  }
+  return out;
+}
+
