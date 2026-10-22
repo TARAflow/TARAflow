@@ -9,6 +9,7 @@ import { buildDfdGraph } from "features/dfd";
 import { commitAssetSync } from "../utils/commit-asset-sync";
 import { buildAssetHazardLinks } from "../utils/build-asset-hazard-links";
 import { commitHazardSafety } from "../utils/commit-hazard-safety";
+import { commitLoadedPhaseStatus, commitPhaseStatus } from "./phase-status-commit";
 
 // HazardItem safety chokepoint — runs right after commitAssetSync. Re-rates
 // CAUSE assets (physicalImpact / aggregatedImpact) from the bowtie via the
@@ -47,10 +48,12 @@ export function mergeProjectPatch(
     info: { ...p.info, ...patch.info, lastModified: now },
     hasUnsavedChanges: true,
   };
-  return commitProjectSafety(commitAssetSync(p, merged));
+  return commitPhaseStatus(commitProjectSafety(commitAssetSync(p, merged)));
 }
 
-/** Load-side commit: graph, asset mirror re-derived, safety. */
+/** Load-side commit: graph, asset mirror re-derived, safety, phase statuses. */
 export function commitLoadedProject(p: Project): Project {
-  return commitProjectSafety(commitAssetSync(undefined, ensureProjectGraph(p)));
+  return commitLoadedPhaseStatus(
+    commitProjectSafety(commitAssetSync(undefined, ensureProjectGraph(p))),
+  );
 }

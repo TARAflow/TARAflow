@@ -5,6 +5,10 @@
 // ==================== COMPONENTS ====================
 
 export { AttackTreeTab } from "./components/attacktree-tab2";
+export {
+  attackTreePhaseStatus,
+  type AttackPathRiskRef,
+} from "./services/attacktree-phase-status";
 export { AttackTreeEditor } from "./components/attacktree-editor";
 export { AttackTreePreview } from "./components/attacktree-preview";
 export { AttackTreeConfigDialog } from "./components/attacktree-config-dialog";

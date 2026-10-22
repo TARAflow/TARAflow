@@ -4,6 +4,11 @@
 
 // ==================== COMPONENTS ====================
 export { GeneralTab } from "./components/general-tab";
+export {
+  missingGeneralFields,
+  generalPhaseStatus,
+  type GeneralField,
+} from "./services/general-completeness";
 export { ProjectInfo } from "./components/project-info";
 export { ProjectInfoFields } from "./components/project-info-fields";
 export type {

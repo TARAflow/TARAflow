@@ -1789,6 +1789,7 @@ Order (Phase 6):
   | Per-interaction threats keep their endpoints' assets on sync (`refreshLinkedAssets`) | (patch 94) | open |
   | Undo after an autosave brings back an element's description, properties, asset relations | (patch 99) | open |
   | Phase progress: Attack Tree counts only for ISO/SAE 21434; General tab shows progress before the source reference | (patch 103) | open |
+  | Phase statuses derived: General and Attack Tree on every commit (never derived before), Assets and Risk also on load | (patch 104) | open |
 
   Not general despite the `fix` prefix: page-sync rejection (`75aada9`), multi-page layout refusal
   (`dd43982`, `9d7b362`), child page by button (`82875cd`), group toolbar (`89318c8`) — they fix
