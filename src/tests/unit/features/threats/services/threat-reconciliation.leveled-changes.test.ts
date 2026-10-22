@@ -1,7 +1,8 @@
 // Leveled DFD §10, reconciliation table — the model changes besides "leaf
 // MP gets decomposed" (threat-reconciliation.leveled.test.ts):
 //   decomposition undone · flow split into parent + refining flow ·
-//   definition moved to another page · definition deleted, copies dangling.
+//   definition moved to another page (same / changed effective boundaries) ·
+//   definition deleted, copies dangling.
 // Ratings are never transferred; what the reconciliation reports per case is
 // what the table in the design document promises.
 import { describe, expect, it } from "vitest";
@@ -168,6 +169,30 @@ describe("definition of an element moved, or deleted with its copies left", () =
     const ee = (list: ThreatReconciliation["added"]) => list.filter((x) => x.threat.linkedElement?.elementId === "ee");
     expect(ee(r.unchanged).length).toBeGreaterThan(0);
     expect([...ee(r.added), ...ee(r.changed), ...ee(r.obsolete)]).toEqual([]);
+  });
+
+  it("moved into a trust boundary: reference changed (boundary) — the effective boundaries changed", () => {
+    // A process (external entities are never inside a trust boundary): its
+    // definition on the System page is outside any boundary, its copy on
+    // the Sensor page inside one. Same XML before and after.
+    const sys = SYSTEM.replace("</root>", node("pp", "process", "Logger", "P-9", 900) + "</root>");
+    const sen = SENSOR.replace(
+      "</root>",
+      node("sen_pp", "process", "Logger", "P-9", 700) + boundary("stb", 650, 250) + "</root>",
+    );
+    const pages = LEVELED_PAGES.map((p) =>
+      p.pageId === "sen" ? { ...p, links: [...(p.links ?? []), ref("sen_pp", "pp")] } : p,
+    );
+    const xml = mxfile(sys, sen, CONTROLLER);
+    const b = projectOf(xml, pages, "per-element");
+    const moved = makeDefinition(pages, b.parsed.occurrences, { pageId: "sen", cellId: "sen_pp" });
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) return;
+    const r = reconcile(b, (stored) => projectOf(xml, moved.pages, "per-element", stored), "per-element");
+    const pp = (list: ThreatReconciliation["added"]) => list.filter((x) => x.threat.linkedElement?.elementId === "pp");
+    expect(pp(r.changed).length).toBeGreaterThan(0);
+    expect(pp(r.changed).every((x) => x.reasons?.includes("boundary"))).toBe(true);
+    expect([...pp(r.added), ...pp(r.unchanged), ...pp(r.obsolete)]).toEqual([]);
   });
 
   it("deleted with a copy left: the element's threats are kept (dangling, analysed from the copy)", () => {

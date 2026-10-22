@@ -947,6 +947,17 @@ Structure: Modified"):
     deletion of any element or flow lost its description, properties and asset relations — the
     merge on save knew only the last saved records. `RecentRemovals` keeps the records a save
     removed for the session and the merge uses them for a record that is back (same id).
+- **Review 2026-10-22 (patch 102):**
+  - *Language:* the texts of the changes ("Page added", "3 flows now resolved below MP-2", "Layout
+    changed", …) are English on purpose, like the rest of the diff-service ("Asset added", …):
+    they are the lines of the Git commit message, and the audit's change list shows exactly what
+    will be committed. Only the frame of the list (headers, category chips) is translated.
+    Translating the lines themselves would have to cover every phase of the diff-service, not
+    the DFD alone — a topic for `main`, not this branch.
+  - *Dependency audit → dfd:* `diff-service` imports `diffDfd` / `drawingDiffers` from
+    `features/dfd/services/dfd-diff`, not from the barrel — the barrel pulled the whole dfd
+    feature (components and, through them, threats) into the audit's service; types still come
+    from the barrel (type-only).
 
 ## 12. UI
 
@@ -1643,7 +1654,9 @@ Order (Phase 6):
     decomposition undone (the parts' threats obsolete, the MP's new; per interaction the flow
     keeps its threats as "reference changed: endpoint"); flow split into a parent and a refining
     flow (parent kept, refining flow new, nothing obsolete); definition moved to another page
-    (unchanged — same effective boundaries); definition deleted with a copy left (threats kept).
+    (unchanged — same effective boundaries; moved into a trust boundary: "reference changed:
+    boundary", patch 102 — generated per-element threats carry their table's `trustBoundaryId`);
+    definition deleted with a copy left (threats kept).
     `threat-reconciliation.leveled.test.ts`, `threat-reconciliation.leveled-changes.test.ts`.
 - **Fix (not leveled-specific): every risk "mitigations changed" after reopening.** The risk sync
   compared the proposed mitigations / verifications of risk and threat with `JSON.stringify`; the

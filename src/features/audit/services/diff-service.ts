@@ -25,7 +25,10 @@ import type {
   CommitMessageData,
 } from "../models/audit-types";
 import type { AssetData, Asset } from "features/assets";
-import { diffDfd, drawingDiffers, type DFDData, type DfdChange } from "features/dfd";
+import type { DFDData, DfdChange } from "features/dfd";
+// Deep import on purpose: the barrel would load the whole dfd feature (its
+// components and, through them, threats) into the audit's diff-service.
+import { diffDfd, drawingDiffers } from "features/dfd/services/dfd-diff";
 import type { ThreatData, Threat } from "features/threats";
 import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
