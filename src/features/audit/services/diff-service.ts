@@ -25,7 +25,7 @@ import type {
   CommitMessageData,
 } from "../models/audit-types";
 import type { AssetData, Asset } from "features/assets";
-import { diffDfd, type DFDData, type DfdChange } from "features/dfd";
+import { diffDfd, drawingDiffers, type DFDData, type DfdChange } from "features/dfd";
 import type { ThreatData, Threat } from "features/threats";
 import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
@@ -246,8 +246,9 @@ export class DiffService {
         changes.push(this.dfdChangeItem(change));
       }
 
-      // The XML changed but no record did: the drawing alone (layout).
-      if (changes.length === 0 && current.xml !== previous.xml) {
+      // The diagram changed but nothing above says how (e.g. a style): one
+      // graphical item. The editor's view (scroll position) is no change.
+      if (changes.length === 0 && drawingDiffers(previous.xml, current.xml)) {
         changes.push({
           type: "modified",
           id: "DFD",

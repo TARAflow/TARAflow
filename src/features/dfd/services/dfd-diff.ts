@@ -122,13 +122,30 @@ export function diffDfd(
   ];
 }
 
+/**
+ * The XML without what only belongs to the editor's view: the scroll
+ * position of every page (`dx` / `dy` on `<mxGraphModel>`) and the
+ * `<mxfile>` header (host, agent, modified, …). Scrolling, or undoing a
+ * move, changes them without changing the diagram.
+ */
+export function drawingXmlOf(xml: string): string {
+  return xml
+    .replace(/<mxfile\b[^>]*>/g, "<mxfile>")
+    .replace(/<mxGraphModel\b[^>]*>/g, (tag) => tag.replace(/\s(?:dx|dy)="[^"]*"/g, ""));
+}
+
+/** The diagram itself differs (not just the editor's view of it). */
+export const drawingDiffers = (previousXml: string | undefined, currentXml: string | undefined) =>
+  drawingXmlOf(previousXml ?? "") !== drawingXmlOf(currentXml ?? "");
+
 /** The pages without their thumbnails (an export is not a change). */
 const pageStructure = (pages: DiffSource["pages"]) =>
   JSON.stringify((pages ?? []).map(({ thumbnail: _thumbnail, ...page }) => page));
 
 /** The XML or the page structure (links, names, decomposes) differ. */
 const drawingChanged = (previous: DiffSource, current: DiffSource) =>
-  previous.xml !== current.xml || pageStructure(previous.pages) !== pageStructure(current.pages);
+  drawingDiffers(previous.xml, current.xml) ||
+  pageStructure(previous.pages) !== pageStructure(current.pages);
 
 // ==================== THE DRAWING (§11.3) ====================
 

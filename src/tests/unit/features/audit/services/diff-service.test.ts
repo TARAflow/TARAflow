@@ -368,3 +368,26 @@ describe("DiffService — the drawing of a leveled DFD (§11.3)", () => {
   });
 });
 
+describe("DiffService — the editor's view is no change", () => {
+  const xml = (dx: number, style = "ellipse;") =>
+    `<mxfile host="embed.diagrams.net" modified="${dx}"><diagram id="p1" name="Page-1">` +
+    `<mxGraphModel dx="${dx}" dy="${dx / 2}" grid="1"><root><mxCell id="0"/><mxCell id="1" parent="0"/>` +
+    `<mxCell id="n" style="${style}" vertex="1" parent="1"/></root></mxGraphModel></diagram></mxfile>`;
+  const dfd = (x: string) => ({ xml: x, elements: [], connections: [], assets: [] });
+
+  it("scrolling (dx / dy) or a new mxfile header: no DFD change", () => {
+    const changes = svc.detectChanges(project({ dfd: dfd(xml(1415)) }), project({ dfd: dfd(xml(1179)) }));
+    expect(changes.find((p) => p.phase === "dfd")).toBeUndefined();
+  });
+
+  it("a real drawing change the diff cannot name (a style): one graphical item", () => {
+    const changes = svc.detectChanges(
+      project({ dfd: dfd(xml(1415, "rounded=1;")) }),
+      project({ dfd: dfd(xml(1179)) }),
+    );
+    expect(changes.find((p) => p.phase === "dfd")!.changes).toEqual([
+      expect.objectContaining({ id: "DFD", category: "graphical" }),
+    ]);
+  });
+});
+

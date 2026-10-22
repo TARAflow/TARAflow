@@ -170,6 +170,7 @@ export type {
 export { dfdService } from "./services/dfd-service";
 export {
   diffDfd,
+  drawingDiffers,
   type DfdChange,
   type DfdChangeCategory,
   type DfdFieldChange,

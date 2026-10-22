@@ -899,6 +899,10 @@ Structure: Modified"):
   page and **layout** (cells moved or resized) per page (graphical; classic DFDs get the layout
   line too). Copies of a page that itself was added or removed are not listed again. The audit
   change list keys items by id and name (several "Page" / "Layout" items).
+  - After first use: undoing a move (Ctrl+Z) still left "~ DFD: Data Flow Diagram [graphical]"
+    — the XML differed only in what belongs to the editor's view: the scroll position of each
+    page (`dx` / `dy` on `<mxGraphModel>`) and the `<mxfile>` header. `drawingXmlOf` /
+    `drawingDiffers` compare the XML without them; scrolling or an undone change is no change.
   - Found with it (2026-10-22, not leveled-specific): the DFD's completeness counts the
     `description` of every element and flow, but since the form redesign (46eddb9) no form wrote it
     and the save rebuilt the records from the XML keeping only `properties` and `assetRelations` —
