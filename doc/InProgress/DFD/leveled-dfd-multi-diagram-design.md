@@ -1559,6 +1559,12 @@ Order (Phase 6):
     (`ThreatReconciliationSummary`); the existing drift link for obsolete threats stays.
   - "Review" badge in both threat tables and the threat dialog; in the risk tables the T-ID chip of
     a risk whose threat is flagged is outlined (`ThreatReference.review`).
+  - Tested for every model change of the §10 table (review 2026-10-22): leaf MP decomposed;
+    decomposition undone (the parts' threats obsolete, the MP's new; per interaction the flow
+    keeps its threats as "reference changed: endpoint"); flow split into a parent and a refining
+    flow (parent kept, refining flow new, nothing obsolete); definition moved to another page
+    (unchanged — same effective boundaries); definition deleted with a copy left (threats kept).
+    `threat-reconciliation.leveled.test.ts`, `threat-reconciliation.leveled-changes.test.ts`.
 - **Fix (not leveled-specific): every risk "mitigations changed" after reopening.** The risk sync
   compared the proposed mitigations / verifications of risk and threat with `JSON.stringify`; the
   project file is written with sorted keys, the threat references list `{ id, text, notes,
