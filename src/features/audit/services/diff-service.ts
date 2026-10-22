@@ -32,6 +32,27 @@ import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
 import type { A2ARelation } from "shared";
 
+/** The description of a DFD change ("Page added", "Layout changed"). */
+function dfdChangeText(change: DfdChange): string {
+  const verb = change.kind === "added" ? "added" : change.kind === "removed" ? "deleted" : "modified";
+  switch (change.subject) {
+    case "element":
+      return `DFD element ${verb}`;
+    case "flow":
+      return `Data flow ${verb}`;
+    case "page":
+      return `Page ${verb}`;
+    case "copies":
+      return "Context copies changed";
+    case "layout":
+      return "Layout changed";
+    case "definition":
+      return "Definition moved to another page";
+    case "identity":
+      return "Cell identity changed";
+  }
+}
+
 /** valueType of a change detail, from its value. */
 function valueTypeOf(value: unknown): ChangeDetail["valueType"] {
   if (Array.isArray(value)) return "array";
@@ -152,13 +173,11 @@ export class DiffService {
 
   /** A classified DFD change as a change item ("P-1.1: Optical Detection"). */
   private dfdChangeItem(change: DfdChange): ChangeItem {
-    const what = change.subject === "flow" ? "Data flow" : "DFD element";
-    const verb = change.kind === "added" ? "added" : change.kind === "removed" ? "deleted" : "modified";
     return {
       type: change.kind === "removed" ? "deleted" : change.kind,
       id: change.displayId,
       name: change.name,
-      description: `${what} ${verb}`,
+      description: dfdChangeText(change),
       category: change.category,
       ...(change.fields
         ? {

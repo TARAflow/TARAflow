@@ -11,6 +11,14 @@ import { describe, it, expect } from "vitest";
 import { DiffService } from "features/audit/services/diff-service";
 import type { Project } from "app";
 import { generateCommitMessage, type PhaseChanges } from "features/audit/models/audit-types";
+import { dfdParser } from "features/dfd/services/dfd-parser";
+import {
+  CONTROLLER,
+  LEVELED_PAGES,
+  SENSOR,
+  SYSTEM,
+  mxfile,
+} from "../../../../fixtures/leveled-dfd-xml";
 
 const svc = new DiffService();
 
@@ -333,6 +341,30 @@ describe("DiffService — DFD changes per element / flow, classified (§11.3)", 
     const message = generateCommitMessage(svc.generateCommitMessageData(changes, "Detail Review", "jm"));
     expect(message).toContain("~ P1: Sensor [semantic]");
     expect(message).toContain("name: Sensr → Sensor");
+  });
+});
+
+describe("DiffService — the drawing of a leveled DFD (§11.3)", () => {
+  const leveled = (xml: string, pages: any[]) => {
+    const { elements, connections } = dfdParser.parse(xml, pages);
+    return { xml, pages, elements, connections, assets: [] };
+  };
+
+  it("a page added is a structural line, as the design's example", () => {
+    const pages = LEVELED_PAGES.filter((p) => p.pageId !== "ctl");
+    const changes = svc.detectChanges(
+      project({ dfd: leveled(mxfile(SYSTEM, SENSOR, CONTROLLER), LEVELED_PAGES) }),
+      project({ dfd: leveled(mxfile(SYSTEM, SENSOR), pages) }),
+    );
+    const page = changes.find((p) => p.phase === "dfd")!.changes.find((c) => c.id === "Page")!;
+    expect(page).toMatchObject({
+      type: "added",
+      name: "Controller Module (decomposes MP-2)",
+      description: "Page added",
+      category: "structural",
+    });
+    const message = generateCommitMessage(svc.generateCommitMessageData(changes, "Detail Review", "jm"));
+    expect(message).toContain("+ Page: Controller Module (decomposes MP-2) [structural]");
   });
 });
 

@@ -35,6 +35,12 @@ interface PhaseDiffViewerProps {
   changes: PhaseChanges[];
 }
 
+/**
+ * A change's key: the id alone is not unique for DFD changes (several
+ * "Page" or "Layout" items) — id and name are.
+ */
+const changeKey = (change: ChangeItem) => `${change.id}|${change.name}`;
+
 // ==================== COMPONENT ====================
 
 export const PhaseDiffViewer: React.FC<PhaseDiffViewerProps> = ({
@@ -172,14 +178,14 @@ const ChangeItemsTable: React.FC<ChangeItemsTableProps> = ({ changes }) => {
         </TableHead>
         <TableBody>
           {changes.map((change) => (
-            <React.Fragment key={change.id}>
+            <React.Fragment key={changeKey(change)}>
               {/* Main Row */}
               <TableRow
                 sx={{
                   backgroundColor: getChangeColor(change.type),
                   cursor: change.details ? "pointer" : "default",
                 }}
-                onClick={() => change.details && toggleItem(change.id)}
+                onClick={() => change.details && toggleItem(changeKey(change))}
               >
                 <TableCell>{getChangeIcon(change.type)}</TableCell>
                 <TableCell>
@@ -229,7 +235,7 @@ const ChangeItemsTable: React.FC<ChangeItemsTableProps> = ({ changes }) => {
               {/* Details Row (Expandable) */}
               {change.details &&
                 change.details.length > 0 &&
-                expandedItems.includes(change.id) && (
+                expandedItems.includes(changeKey(change)) && (
                   <TableRow>
                     <TableCell colSpan={5} sx={{ py: 0 }}>
                       <Box sx={{ p: 2, backgroundColor: "action.hover" }}>

@@ -2,7 +2,8 @@
 // Single Responsibility: Orchestrate atomic hooks into unified API
 // Follows Facade Pattern - simple interface, complex implementation
 
-import type { A2AOp } from "shared";
+import type { A2AOp, PhaseStatusMap } from "shared";
+import { PHASE_STATUS_KEY } from "shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DFDPage,
@@ -12,6 +13,7 @@ import type {
   DFDConnection,
   DFDStats,
   DFDExportData,
+  DFDData,
 } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ValidationResult } from "../services/dfd-validator";
@@ -34,6 +36,7 @@ import { useDFDExportImport } from "./use-dfd-export-import";
 import { useDFDCompletion } from "./use-dfd-completion";
 import { useCellIdentity } from "./use-cell-identity";
 import { withPageThumbnails } from "../services/leveled/page-thumbnails";
+import { withCompleteness } from "../services/dfd-completeness";
 import type { PageTabInfoMap } from "../services/leveled/page-tab-info";
 import type {
   ContextCellMap,
@@ -159,6 +162,22 @@ export interface UseDFDEditorReturn {
 
   /** Load XML into draw.io and persist to localStorage. Used by import. */
   loadXML: (xml: string) => Promise<void>;
+}
+
+/**
+ * A form edit (description, properties) saves the records only: refresh the
+ * DFD's description counts, isComplete and phase status from them — the
+ * description decides completeness (fix with the record description).
+ */
+function withRecordCompleteness(dfd: DFDData, phaseStatus: PhaseStatusMap) {
+  const done = withCompleteness(dfd);
+  return {
+    dfd: done.dfd,
+    phaseStatus: done.phaseStatus
+      ? { ...phaseStatus, [PHASE_STATUS_KEY.dfd]: done.phaseStatus }
+      : phaseStatus,
+    lastModified: done.dfd.lastModified!,
+  };
 }
 
 // ==================== HOOK ====================
@@ -520,14 +539,9 @@ export function useDFDEditor(
       // edit's still-pending change, and scheduleSave's wholesale replace
       // of the pending save silently discarded it — the same bug fixed in
       // dfd-tab.tsx's handleAssetChange.
-      persistence.scheduleSave((base) => {
-        const updatedDFD = data.updateElement(elementId, updates, base);
-        return {
-          dfd: updatedDFD,
-          phaseStatus: project.phaseStatus,
-          lastModified: updatedDFD.lastModified!,
-        };
-      });
+      persistence.scheduleSave((base) =>
+        withRecordCompleteness(data.updateElement(elementId, updates, base), project.phaseStatus),
+      );
       validation.scheduleValidation(autoValidateInterval);
     },
     [data, project.phaseStatus, persistence, validation, autoValidateInterval],
@@ -555,14 +569,9 @@ export function useDFDEditor(
    */
   const updateConnectionDescription = useCallback(
     (connectionId: string, updates: Partial<DFDConnection>) => {
-      persistence.scheduleSave((base) => {
-        const updatedDFD = data.updateConnection(connectionId, updates, base);
-        return {
-          dfd: updatedDFD,
-          phaseStatus: project.phaseStatus,
-          lastModified: updatedDFD.lastModified!,
-        };
-      });
+      persistence.scheduleSave((base) =>
+        withRecordCompleteness(data.updateConnection(connectionId, updates, base), project.phaseStatus),
+      );
       validation.scheduleValidation(autoValidateInterval);
     },
     [data, project.phaseStatus, persistence, validation, autoValidateInterval],

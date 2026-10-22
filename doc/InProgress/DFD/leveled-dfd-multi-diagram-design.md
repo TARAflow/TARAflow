@@ -890,6 +890,15 @@ Structure: Modified"):
   message tags the line (`~ P-1.1: Optical Detection [semantic]`), the audit's change list shows a
   chip. An XML change without any record change is one **graphical** item "Diagram layout
   modified".
+- **The drawing ✅** (patch 96): when the XML or the page structure (links, names, `decomposes`;
+  not thumbnails) differ, `diffDfd` also parses both sides (`parseDfd`, cached) and reports
+  **pages** added / removed (structural, "Page: Controller Module (decomposes MP-2)"), renamed
+  (graphical), decomposing another MP (structural); a **definition moved** to another page
+  (semantic, "home page: System → Sensor Module"); a cell's **identity** changed (identity,
+  "cell sen_mp2 on Sensor Module — shows: MP-2 → MP-1"); **context copies** added / removed per
+  page and **layout** (cells moved or resized) per page (graphical; classic DFDs get the layout
+  line too). Copies of a page that itself was added or removed are not listed again. The audit
+  change list keys items by id and name (several "Page" / "Layout" items).
   - Found with it (2026-10-22, not leveled-specific): the DFD's completeness counts the
     `description` of every element and flow, but since the form redesign (46eddb9) no form wrote it
     and the save rebuilt the records from the XML keeping only `properties` and `assetRelations` —
@@ -898,6 +907,10 @@ Structure: Modified"):
     via `DFDElementForm`, "Describe" view per accordion), saved on blur like the asset form's
     description; `mergeElementProperties` / `mergeConnectionProperties` keep it. The diff showed
     the loss as 79 semantic "description: … → —" items.
+    The DFD phase status was derived on diagram saves only; a form edit kept the old status, so
+    emptying a description left the phase "complete". Form edits now refresh the description
+    counts, `isComplete` and the status from the records and the last validation's findings
+    (`dfd-completeness`, same rule as `determinePhaseStatus`).
   - Found by the same open-and-save of the Smoke Detector (not leveled-specific, since 1dcb57c):
     `refreshLinkedAssets` re-derives a per-interaction threat's `linkedAssetIds` as flow plus both
     endpoints, but read the ends as `fromElementId` / `toElementId` — the analysis graph's names; a
@@ -1728,7 +1741,7 @@ Order (Phase 6):
   | Diagram opens at 100 % instead of a tiny fit | `0827daf` | `310b185` |
   | No false "mitigations changed" after reopening (`sameDrafts`) | `7018e7e` | `b06a151` |
   | Assets warning banner no longer covered by the DFD preview | `5530047` | `8a03a6f` |
-  | Descriptions of DFD elements and flows editable and kept on save | (patch 93) | open |
+  | Descriptions of DFD elements and flows editable and kept on save | (patches 93, 95) | open |
   | Per-interaction threats keep their endpoints' assets on sync (`refreshLinkedAssets`) | (patch 94) | open |
 
   Not general despite the `fix` prefix: page-sync rejection (`75aada9`), multi-page layout refusal
