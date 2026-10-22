@@ -898,6 +898,13 @@ Structure: Modified"):
     via `DFDElementForm`, "Describe" view per accordion), saved on blur like the asset form's
     description; `mergeElementProperties` / `mergeConnectionProperties` keep it. The diff showed
     the loss as 79 semantic "description: … → —" items.
+  - Found by the same open-and-save of the Smoke Detector (not leveled-specific, since 1dcb57c):
+    `refreshLinkedAssets` re-derives a per-interaction threat's `linkedAssetIds` as flow plus both
+    endpoints, but read the ends as `fromElementId` / `toElementId` — the analysis graph's names; a
+    stored threat's `DataFlowReference` has `sourceId` / `targetId`. Every graph sync dropped the
+    endpoints' assets (166 flow threats, e.g. 6 → 2 assets), which feeds risk impact and the risk
+    tab's "asset links changed". The unit test used the wrong names too. Fixed; the next sync
+    restores the links (checked: 214 of 214 per-interaction threats as generated).
 
 ## 12. UI
 
@@ -1722,6 +1729,7 @@ Order (Phase 6):
   | No false "mitigations changed" after reopening (`sameDrafts`) | `7018e7e` | `b06a151` |
   | Assets warning banner no longer covered by the DFD preview | `5530047` | `8a03a6f` |
   | Descriptions of DFD elements and flows editable and kept on save | (patch 93) | open |
+  | Per-interaction threats keep their endpoints' assets on sync (`refreshLinkedAssets`) | (patch 94) | open |
 
   Not general despite the `fix` prefix: page-sync rejection (`75aada9`), multi-page layout refusal
   (`dd43982`, `9d7b362`), child page by button (`82875cd`), group toolbar (`89318c8`) — they fix
