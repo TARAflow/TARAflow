@@ -9,6 +9,7 @@ import {
   makeDefinition,
   promoteToDefinition,
   pruneStaleLinks,
+  restoreLinks,
 } from "features/dfd/services/leveled";
 import type { DFDPage } from "features/dfd/models/dfd-types";
 import {
@@ -91,7 +92,12 @@ describe("pruneStaleLinks", () => {
       mxfile(SYSTEM, sensorWithoutCopy, CONTROLLER),
     );
     expect(result.removed).toEqual([
-      { pageId: "sen", cellId: "sen_mp2", tfId: "mp2" },
+      {
+        pageId: "sen",
+        cellId: "sen_mp2",
+        tfId: "mp2",
+        link: { cellId: "sen_mp2", tfId: "mp2", role: "ref" },
+      },
     ]);
     expect(linksOf(result.pages, "sen").map((l) => l.cellId)).toEqual([
       "sen_df7",
@@ -128,6 +134,45 @@ describe("pruneStaleLinks", () => {
     const result = pruneStaleLinks(LEVELED_PAGES, mxfile(SYSTEM, CONTROLLER));
     expect(result.removed).toEqual([]);
     expect(linksOf(result.pages, "sen")).toEqual(linksOf(LEVELED_PAGES, "sen"));
+  });
+});
+
+describe("restoreLinks (undo of a deleted linked cell)", () => {
+  const FULL = mxfile(SYSTEM, SENSOR, CONTROLLER);
+  const withoutLink = LEVELED_PAGES.map((p) =>
+    p.pageId === "sen" ? { ...p, links: p.links?.filter((l) => l.cellId !== "sen_mp2") } : p,
+  );
+  const copy = { pageId: "sen", link: { cellId: "sen_mp2", tfId: "mp2", role: "ref" as const }, cellType: "multiprocess" };
+
+  it("gives the link back when the same cell is on its page again", () => {
+    const result = restoreLinks(withoutLink, FULL, [copy]);
+    expect(result.restored).toEqual([copy]);
+    expect(linksOf(result.pages, "sen")).toEqual(linksOf(LEVELED_PAGES, "sen"));
+  });
+
+  it("not while the cell is still gone", () => {
+    const sensorWithoutCopy = page("sen", "Sensor Module", node("sen_p2", "process", "Sample Smoke Sensor", "P-2", 10));
+    const result = restoreLinks(withoutLink, mxfile(SYSTEM, sensorWithoutCopy, CONTROLLER), [copy]);
+    expect(result).toEqual({ pages: withoutLink, restored: [] });
+  });
+
+  it("not to a cell of another type with the same id", () => {
+    const result = restoreLinks(withoutLink, FULL, [{ ...copy, cellType: "process" }]);
+    expect(result.restored).toEqual([]);
+  });
+
+  it("not to a cell that has a link again (e.g. assigned by hand)", () => {
+    const result = restoreLinks(LEVELED_PAGES, FULL, [{ ...copy, link: { ...copy.link, tfId: "mp1" } }]);
+    expect(result).toEqual({ pages: LEVELED_PAGES, restored: [] });
+  });
+
+  it("a definition link not while its element has another definition", () => {
+    const moved = withoutLink.map((p) =>
+      p.pageId === "ctl" ? { ...p, links: [...(p.links ?? []), { cellId: "ctl_p5", tfId: "mp2", role: "definition" as const }] } : p,
+    );
+    const definition = { ...copy, link: { ...copy.link, role: "definition" as const } };
+    expect(restoreLinks(moved, FULL, [definition]).restored).toEqual([]);
+    expect(restoreLinks(withoutLink, FULL, [definition]).restored).toEqual([definition]);
   });
 });
 

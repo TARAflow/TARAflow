@@ -264,7 +264,11 @@ TARAflow stores a link **only** where the identity differs from the cell id. Con
 - draw.io keeps cell ids stable across edits. "Duplicate page" keeps the cell ids on a new `pageId`
   → several definitions with the same `tfId`; that is the reassignment rule below.
 - **Stale links:** on every save, links whose `(pageId, cellId)` no longer exists in the XML are
-  dropped, so a link can never attach to a different cell later. A link whose cell type does not
+  dropped, so a link can never attach to a different cell later. **Undo:** the dropped links are
+  kept for the session (memory only); when the same cell — same id, same `type` — is on its page
+  again without a link (undo / redo in draw.io; a drawn or pasted cell gets a new id), the save
+  gives it its link back (`restoreLinks`, `RecentRemovals`). A definition link returns only while
+  its `tfId` has no other definition. A link whose cell type does not
   match the type of its `tfId`'s definition is ignored for identity and reported (Phase 4).
 - Malformed links (empty ids, a second link for the same cell) are ignored, never guessed into a
   merge. A `ref` link whose `tfId` equals its own cell id is valid: it is the former definition cell
@@ -935,6 +939,14 @@ Structure: Modified"):
     first part on its page, or the page removed / emptied.
   A layout change, a page rename or a page with context copies only has no analysis line. Audit
   description "Analysis effect".
+  - Found with it (patch 99): a context copy deleted, autosaved, Ctrl+Z — the commit showed
+    "+ DF-3", "Identity: cell ctl_DF-1 …", "Context copies … removed: DF-3" and "Analysis: 1 flow
+    now analysed on parent level at MP-3". The save had pruned the copy's link (§5.2 stale links),
+    the undone cell came back as a definition of its own. The project really changed; the diff
+    was right. Now the save restores the link (§5.2 "Undo"). Not leveled-specific: an undone
+    deletion of any element or flow lost its description, properties and asset relations — the
+    merge on save knew only the last saved records. `RecentRemovals` keeps the records a save
+    removed for the session and the merge uses them for a record that is back (same id).
 
 ## 12. UI
 
@@ -1760,6 +1772,7 @@ Order (Phase 6):
   | Assets warning banner no longer covered by the DFD preview | `5530047` | `8a03a6f` |
   | Descriptions of DFD elements and flows editable and kept on save | (patches 93, 95) | open |
   | Per-interaction threats keep their endpoints' assets on sync (`refreshLinkedAssets`) | (patch 94) | open |
+  | Undo after an autosave brings back an element's description, properties, asset relations | (patch 99) | open |
 
   Not general despite the `fix` prefix: page-sync rejection (`75aada9`), multi-page layout refusal
   (`dd43982`, `9d7b362`), child page by button (`82875cd`), group toolbar (`89318c8`) — they fix

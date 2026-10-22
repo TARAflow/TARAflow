@@ -8,6 +8,8 @@
 //
 //   pruneStaleLinks      drop links whose (pageId, cellId) no longer exists
 //                        in the XML — runs on every save
+//   restoreLinks         give a pruned link back to its cell when the cell
+//                        returns (undo, redo) — runs on every save
 //   promoteToDefinition  repair of a dangling element: a chosen context copy
 //                        becomes the definition (BAL_DANGLING_REF)
 //   makeDefinition       "Make this the definition": a context copy becomes
@@ -55,6 +57,16 @@ export type LinkEditRefusal =
 
 export interface PrunedLink extends CellRef {
   tfId: string;
+  /** The link as it was (role, manual). */
+  link: DFDCellLink;
+}
+
+/** A pruned link that may come back, with the type of its cell. */
+export interface RestorableLink {
+  pageId: string;
+  link: DFDCellLink;
+  /** The cell's `type` attribute when it was removed ("" for none). */
+  cellType: string;
 }
 
 /**
@@ -74,17 +86,7 @@ export function pruneStaleLinks(
     return { pages: pages as DFDPage[] | undefined, removed: [] };
   }
 
-  const cellsByPage = new Map<string, Set<string>>();
-  for (const page of readDrawioPages(xml)) {
-    const ids = new Set<string>();
-    for (const tag of ["object", "UserObject", "mxCell"]) {
-      for (const node of Array.from(page.doc.getElementsByTagName(tag))) {
-        const id = node.getAttribute("id");
-        if (id) ids.add(id);
-      }
-    }
-    cellsByPage.set(page.pageId, ids);
-  }
+  const cellsByPage = cellTypesByPage(xml);
 
   const removed: PrunedLink[] = [];
   let changed = false;
@@ -97,6 +99,7 @@ export function pruneStaleLinks(
         pageId: page.pageId,
         cellId: link.cellId,
         tfId: link.tfId,
+        link,
       });
       return false;
     });
@@ -258,6 +261,56 @@ function setIdentity(
   const next = [...pages];
   next[index] = withLinks(page, links);
   return { ok: true, pages: next };
+}
+
+/**
+ * Give pruned links back to their cells (§5.2 "stale links", undo): a link
+ * returns when a cell with the same id and the same type is on its page
+ * again and carries no link. A definition link returns only while its
+ * tfId has no other definition. draw.io gives a drawn or pasted cell a new
+ * id, so only an undo / redo brings a cell id back.
+ */
+export function restoreLinks(
+  pages: readonly DFDPage[] | undefined,
+  xml: string,
+  candidates: readonly RestorableLink[],
+): { pages: DFDPage[] | undefined; restored: RestorableLink[] } {
+  if (!pages || candidates.length === 0) {
+    return { pages: pages as DFDPage[] | undefined, restored: [] };
+  }
+  const cells = cellTypesByPage(xml);
+  const defined = new Set(
+    pages.flatMap((p) => (p.links ?? []).filter((l) => l.role === "definition").map((l) => l.tfId)),
+  );
+  const restored: RestorableLink[] = [];
+  let next = pages as DFDPage[];
+  for (const candidate of candidates) {
+    const { pageId, link } = candidate;
+    const page = next.find((p) => p.pageId === pageId);
+    if (!page || cells.get(pageId)?.get(link.cellId) !== candidate.cellType) continue;
+    if (page.links?.some((l) => l.cellId === link.cellId)) continue;
+    if (link.role === "definition" && defined.has(link.tfId)) continue;
+    if (link.role === "definition") defined.add(link.tfId);
+    next = next.map((p) => (p === page ? withLinks(p, [...(p.links ?? []), link]) : p));
+    restored.push(candidate);
+  }
+  return { pages: next, restored };
+}
+
+/** pageId → cell id → the cell's `type` attribute ("" for none). */
+export function cellTypesByPage(xml: string): Map<string, Map<string, string>> {
+  const byPage = new Map<string, Map<string, string>>();
+  for (const page of readDrawioPages(xml)) {
+    const cells = new Map<string, string>();
+    for (const tag of ["object", "UserObject", "mxCell"]) {
+      for (const node of Array.from(page.doc.getElementsByTagName(tag))) {
+        const id = node.getAttribute("id");
+        if (id && !cells.has(id)) cells.set(id, node.getAttribute("type") ?? "");
+      }
+    }
+    byPage.set(page.pageId, cells);
+  }
+  return byPage;
 }
 
 function withLinks(page: DFDPage, links: DFDCellLink[]): DFDPage {

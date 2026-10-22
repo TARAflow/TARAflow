@@ -37,23 +37,25 @@ import {
   isInfraAccessesRelation,
 } from "../models/asset-relation-types";
 import { validatePageLayout } from "./validators/page-layout-validator";
-import { pruneStaleLinks, reassignDuplicateDefinitions } from "./leveled";
+import { reassignDuplicateDefinitions } from "./leveled";
+import { RecentRemovals } from "./recent-removals";
 import { reconcileAssetRollup } from "./leveled/asset-rollup";
 import { parseDfd } from "./leveled/leveled-analysis";
 import type { DfdGraphSource } from "./build-dfd-graph";
 
 /** pageIds of dfd.pages — an adopted multi-page DFD is analysable (§11.2.1). */
 /**
- * dfd.pages for a save of `xml` (leveled DFDs, §5.2): stale links pruned,
- * duplicated definitions (draw.io "Duplicate page") reassigned to fresh
+ * dfd.pages for a save of `xml` (leveled DFDs, §5.2): links of returned
+ * cells restored (undo), stale links pruned, duplicated definitions (draw.io "Duplicate page") reassigned to fresh
  * identities against the last saved state. Same array when nothing changes;
  * undefined for classic projects.
  */
 function linksForSave(
   project: DFDProjectData,
   xml: string,
+  removals: RecentRemovals,
 ): DFDPage[] | undefined {
-  const { pages } = pruneStaleLinks(project.dfd?.pages, xml);
+  const pages = removals.linksForSave(project.id, project.dfd?.pages, project.dfd?.xml, xml);
   return reassignDuplicateDefinitions({
     xml,
     pages,
@@ -137,6 +139,8 @@ function refuseSave(
 class DFDService {
   private parser: DFDParser;
   private validator: DFDValidator;
+  /** What saves removed, for undo / redo in draw.io (session only). */
+  private removals = new RecentRemovals();
 
   constructor(parser: DFDParser, validator: DFDValidator) {
     this.parser = parser;
@@ -469,16 +473,23 @@ class DFDService {
       // Leveled DFD (§5.2): drop identity links whose cell is gone, so a
       // link can never attach to a different cell later. No-op without links.
       // Then give duplicated definitions their own identity (Phase 3.3).
-      const pages = linksForSave(project, xml || "");
+      const pages = linksForSave(project, xml || "", this.removals);
 
       // Parse and validate
       const { elements, connections, unconnectedDataflows } =
         parseDfd(xml || "", pages, this.parser);
 
+      // An undone deletion gets its record back (properties, asset
+      // relations, description), not only what the last save kept.
+      const saved = {
+        elements: project.dfd?.elements ?? [],
+        connections: project.dfd?.connections ?? [],
+      };
+      const known = this.removals.recordsFor(project.id, saved);
       // Merge with existing properties (preserves assetRelations, user descriptions, etc.)
       const mergedConnections = this.mergeConnectionProperties(
         connections,
-        project.dfd?.connections || [],
+        known.connections,
       );
       // Leveled DFD (6d, §9): pending asset relations a part now covers
       // leave the decomposed multiprocess; a decomposition that ended keeps
@@ -486,12 +497,13 @@ class DFDService {
       const mergedElements = reconcileAssetRollup(previousSourceOf(project), {
         xml: xml || undefined,
         pages,
-        elements: this.mergeElementProperties(
-          elements,
-          project.dfd?.elements || [],
-        ),
+        elements: this.mergeElementProperties(elements, known.elements),
         connections: mergedConnections,
         assets: [],
+      });
+      this.removals.remember(project.id, saved, {
+        elements: mergedElements,
+        connections: mergedConnections,
       });
 
       const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
@@ -648,14 +660,21 @@ class DFDService {
     try {
       // Leveled DFD (§5.2): drop identity links whose cell is gone, then
       // give duplicated definitions their own identity (Phase 3.3).
-      const pages = linksForSave(project, xml);
+      const pages = linksForSave(project, xml, this.removals);
 
       const { elements, connections, unconnectedDataflows } =
         parseDfd(xml, pages, this.parser);
 
+      // An undone deletion gets its record back (properties, asset
+      // relations, description), not only what the last save kept.
+      const saved = {
+        elements: project.dfd?.elements ?? [],
+        connections: project.dfd?.connections ?? [],
+      };
+      const known = this.removals.recordsFor(project.id, saved);
       const mergedConnections = this.mergeConnectionProperties(
         connections,
-        project.dfd?.connections || [],
+        known.connections,
       );
       // Leveled DFD (6d, §9): pending asset relations a part now covers
       // leave the decomposed multiprocess; a decomposition that ended keeps
@@ -663,12 +682,13 @@ class DFDService {
       const mergedElements = reconcileAssetRollup(previousSourceOf(project), {
         xml: xml,
         pages,
-        elements: this.mergeElementProperties(
-          elements,
-          project.dfd?.elements || [],
-        ),
+        elements: this.mergeElementProperties(elements, known.elements),
         connections: mergedConnections,
         assets: [],
+      });
+      this.removals.remember(project.id, saved, {
+        elements: mergedElements,
+        connections: mergedConnections,
       });
       const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
       const syncedAssets = this.syncAssetLinkedElements(
@@ -862,6 +882,7 @@ class DFDService {
    * Clear DFD data when switching projects
    */
   clearForProjectSwitch(projectId: string): void {
+    this.removals.clear(projectId);
     const adapter = createDFDStorageAdapter(projectId);
     adapter.clearLocalStorage();
     DFDStorageAdapter.clearLegacyStorage();

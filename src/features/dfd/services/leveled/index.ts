@@ -15,12 +15,15 @@ export {
 export { findDanglingReferences, type DanglingReference } from "./dangling";
 export {
   pruneStaleLinks,
+  restoreLinks,
+  cellTypesByPage,
   promoteToDefinition,
   makeDefinition,
   type CellRef,
   type LinkEditResult,
   type LinkEditRefusal,
   type PrunedLink,
+  type RestorableLink,
 } from "./identity-links";
 export {
   linkAsContextCopy,
