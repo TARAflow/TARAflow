@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.5 — decisions D1–D19 locked (§15) · Phase 0 done · Phase 1 done (identity, occurrences, adoption logic) · Phase 2 done (effective model, analysis graph, adopted multi-page DFDs analysable, schema 9) · Phase 3 done (hierarchical numbering, duplicate reassignment) · Phase 4 done (leveled findings, refines / abstract) · Phase 5 done (UI, 5a–5l) · Phase 6 next
+Status: rev. 4.6 — decisions D1–D20 locked (§15) · Phases 0–7 done (identity and occurrences, effective model and schema 9, numbering, findings, UI, assets / threat and risk lifecycle, reports and CLI) · review findings R1–R5 done · open: §11.3 diff-service (graphical / semantic / structural), the asset overlay on child pages (§4)
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -23,6 +23,10 @@ Revision history (short):
 - rev. 4.3 — D15–D17: a child page is created automatically with every multiprocess, but the
   decomposition takes effect only with the page's first own part; tab name = multiprocess name;
   the root page is *Top* (§5.3, §6.1, §12).
+- rev. 4.6 (2026-10-22) — Phases 6 and 7 done; D20 revised twice after use (every threat in one
+  group; per-interaction threats of a flow between multiprocesses on the attacked side); the
+  report's DFD chapter as one section per page; §4 and §12.1 brought to the implemented state;
+  Phase 0's inventory script dropped.
 
 ## 1. Goal
 
@@ -116,25 +120,27 @@ What the example shows:
 7. **EE→EE.** `DF-39` (WiFi gateway → update server) runs between two external entities: kept in
    the model and the report, no threats (§6.2).
 
-## 4. Current state of the code (why this is not "just add pages")
+## 4. Starting point of the code (why this was not "just add pages")
 
-| Area | Today | Consequence with several pages |
-|---|---|---|
-| `element-parser` / `connection-parser` | `doc.getElementsByTagName("object")` over the whole mxfile (fixed in Phase 1.1) | all pages merged into one element list; context copies become duplicate elements (`EE-1` × 3) |
-| Element identity | `DFDElement.id` = draw.io cell id | the same logical element has a different cell id per page |
-| Connection model | one `from`/`to` per connection | cannot represent a flow with different endpoints per page |
-| Boundary membership and interfaces (`dfd-graph-builder`) | geometric overlap / crossing | coordinates of different pages overlap → wrong memberships and interfaces |
-| `dfd-auto-numbering` | positional sort over the whole XML | renumbers context copies independently; the cross-page IDs are destroyed |
-| `dfd-overlay-builder` | uses the first `<diagram>` only | other pages are ignored for overlays |
-| Compressed pages | not readable | a compressed page is silently invisible |
-| Threat display ids | derived from element displayId (`P1-S-1`) | require globally unique displayIds |
+The state before the work (2026-10-13) and what became of it:
+
+| Area | Before | Consequence with several pages | Now |
+|---|---|---|---|
+| `element-parser` / `connection-parser` | `doc.getElementsByTagName("object")` over the whole mxfile | all pages merged into one element list; context copies become duplicate elements (`EE-1` × 3) | parsed per page, copies merged into their definition (1.1, 1.2) |
+| Element identity | `DFDElement.id` = draw.io cell id | the same logical element has a different cell id per page | `tfId` per logical record, `dfd.pages[].links` (1.2, rev. 4.1) |
+| Connection model | one `from`/`to` per connection | cannot represent a flow with different endpoints per page | endpoints per occurrence, stitched in the effective model (§6.2, Phase 2) |
+| Boundary membership and interfaces (`dfd-graph-builder`) | geometric overlap / crossing | coordinates of different pages overlap → wrong memberships and interfaces | per page, inherited boundaries, interface chain (§6.3, Phase 2) |
+| `dfd-auto-numbering` | positional sort over the whole XML | renumbers context copies independently; the cross-page IDs are destroyed | hierarchical numbering per page, copies keep their number (Phase 3, 5l) |
+| `dfd-overlay-builder` | uses the first `<diagram>` only | other pages are ignored for overlays | **still open** — the asset overlay works on the first page only |
+| Compressed pages | not readable | a compressed page is silently invisible | refused with a visible error, never read as empty (Phase 0, §11.1) |
+| Threat display ids | derived from element displayId (`P1-S-1`) | require globally unique displayIds | hierarchical display ids accepted everywhere (`P-1.3`) |
 
 The first row was a **latent bug**: a user who added a second page in the embedded draw.io got a
 silently wrong model. → Phase 0 (guard) and Phase 1.1 (per-page parsing).
 
-The good news: threat generators consume `DFDGraphReference` only. If the builder produces a
-correct **effective graph** from all pages, `element-generator` / `interaction-generator` and the
-risk feature need no structural change (except an interface list per flow, §6.2.1).
+The threat generators consume `DFDGraphReference` only; the builder produces the **effective
+graph** from all pages, so `element-generator` / `interaction-generator` and the risk feature
+needed no structural change (except an interface list per flow, §6.2.1).
 
 ## 5. Concept
 
@@ -905,33 +911,27 @@ to disk.
 
 ### 12.1 Thumbnails per page (D18)
 
-**Today:** one `dfd.thumbnail` (base64 SVG data URL), produced by draw.io's embed export
-(`{action: "export", format: "svg"}`) after an autosave and normalised in `prepareForDisk`. Consumers:
-the DFD preview panel in the other tabs (`dfdPreviewImage`), the documentation generators
-(`base-generator`, `pdfmake-converter`, PNG conversion in `pdf-helpers`) and the CLI reporter (resvg
-rasterisation, no headless draw.io). The export renders the **current page only**, so in a
-multi-page file the stored thumbnail is whichever tab was active at the last save — today's leveled
-projects can therefore show a child page as "the DFD" in preview and report. Until Phase 5 this is a
-known limitation.
+**Before:** one `dfd.thumbnail` (base64 SVG data URL) from draw.io's embed export after an
+autosave, normalised in `prepareForDisk`. The export renders the **current page only**, so a
+multi-page file stored whichever tab was active at the last save — preview and report could show a
+child page as "the DFD". Consumers: the DFD preview panel in the other tabs, the documentation
+generators (`base-generator`, `pdfmake-converter`, PNG conversion in `pdf-helpers`) and the CLI
+reporter (resvg rasterisation, no headless draw.io).
 
-**Target:**
-1. **Persistence:** `dfd.pages[].thumbnail?` — one SVG data URL per page, next to the page it shows
-   (the page's identity is its `pageId`, §5.3). `dfd.thumbnail` stays and always holds the **root
-   page (*Top*)**, so classic projects, older readers and every existing consumer keep working
-   unchanged. Classic single-page projects have no `dfd.pages` and keep exactly today's format. The
-   field is optional and additive inside schema 9; `prepareForDisk` normalises every page thumbnail
-   like `dfd.thumbnail` (pinned `ge-svg-*` id) so the TCS diff stays stable.
-2. **Generation:** after a save, export each page whose content changed (per-page XML hash) — not
-   only the active one. To verify in Phase 5: whether the embed export can address a page directly
-   (page id / index in the export message) or whether the bridge must select each page, export and
-   restore the user's tab. Either way the user's view must not visibly jump. A page without a
-   thumbnail yet shows a placeholder plus the existing "regenerate" action.
-3. **Preview panel:** a page selector (tabs or dropdown with the page tree order and names, *Top*
-   first) above the image; default *Top*; the selection is a per-viewer convenience (not persisted
-   in the project). Single-page projects show no selector.
-4. **Reports (Phase 7):** one figure per page in tree order, captioned with the page name and — for
-   child pages — the decomposed MP (`MP-1 Sensor Head`). The CLI reporter needs nothing new: it
-   rasterises stored SVGs exactly as today, so per-page figures come without a headless draw.io.
+**Implemented (5i, 7a/7b):**
+1. **Persistence:** `dfd.pages[].thumbnail?` — one SVG data URL per page. `dfd.thumbnail` mirrors
+   the **root page (*Top*)**, so classic projects, older readers and every existing consumer keep
+   working; classic single-page projects have no `dfd.pages`. `prepareForDisk` pins the random
+   `ge-svg-*` id of every page thumbnail so the TCS diff stays stable.
+2. **Generation:** after every save, each page without thumbnail or changed since its export
+   (FNV fingerprint per `<diagram>`) is exported — without switching the user's page: a page that
+   is not shown is rendered in a temporary graph, as draw.io does itself (`drawio:exportPageSvgs`,
+   5i). The single-thumbnail export is skipped for a leveled DFD.
+3. **Preview panel:** a page selector in page-tree order, *Top* first, per viewer, not persisted;
+   single-page projects show none.
+4. **Reports:** the DFD chapter of a leveled DFD has one section per page in tree order — heading
+   `Page "Sensor Head" (decomposes MP-1 Sensor Head)`, the page's figure, the table of the elements
+   defined on it (7a/7b). The CLI rasterises the stored SVGs as before; no headless draw.io.
 
 **Size:** n pages = n SVGs in the project file. Acceptable (a thumbnail is typically tens of kB);
 regenerating only changed pages keeps the TCS diff to the pages actually edited.
@@ -940,11 +940,13 @@ regenerating only changed pages keeps the TCS diff to the pages actually edited.
 
 **Phase 0 — Guard and inventory (small, ship first). ✅ Guard done** (commits "fix(dfd): refuse
 multi-page and compressed draw.io layouts" and "fix(threats): block generation and sync on
-multi-page DFD layouts"); the inventory script is still open. On load, before any parse result
-reaches the threat or risk feature: detect more than one `<diagram>` or a compressed one; show a
-blocking message "multiple pages / compressed pages are not supported yet" and do **not** run
-threat generation on a partial model. Inventory script over `TARAflow_Examples` to find files that
-already contain several pages.
+multi-page DFD layouts"). On load, before any parse result reaches the threat or risk feature:
+detect more than one `<diagram>` or a compressed one; show a blocking message "multiple pages /
+compressed pages are not supported yet" and do **not** run threat generation on a partial model
+(superseded for multiple pages by Phases 1–2; compressed pages are still refused). ~~Inventory
+script over `TARAflow_Examples` to find files that already contain several pages.~~ **Dropped**
+(2026-10-22): the leveled Smoke Detector example is the reference case; other example projects
+may follow later.
 
 **Phase 1 — Identity and occurrence model.** Split into commits:
 
@@ -1542,7 +1544,7 @@ Order (Phase 6):
   - "Asset" tab of a decomposed MP (`AssetRollupView` via `AssetRollupContext`, computed in the DFD
     tab): read-only roll-up "via P-1.1, DS-1.1", pending relations with a remove action, no
     relation selector.
-  - Open: page filter of the asset graph (§9, last bullet) → 6f with the other filters.
+  - Page filter of the asset graph (§9, last bullet): done in 6f with the other filters.
 - **Fix (not leveled-specific): element stuck to the pointer after a click in draw.io.** A selection
   is made on mouse down; TARAflow set `pointer-events: none` on the draw.io iframe for one frame
   on every selection (to keep the opening details panel from moving the diagram mid-gesture). The
