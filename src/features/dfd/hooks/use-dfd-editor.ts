@@ -158,7 +158,7 @@ export interface UseDFDEditorReturn {
   graphContext: DFDGraph | null;
 
   /** Send XML to draw.io without persisting — for transient overlay only. */
-  loadXMLTransient: (xml: string, viewport?: DrawioViewport) => void;
+  loadXMLTransient: (xml: string, viewport?: DrawioViewport, pageId?: string | null) => void;
 
   /** Load XML into draw.io and persist to localStorage. Used by import. */
   loadXML: (xml: string) => Promise<void>;

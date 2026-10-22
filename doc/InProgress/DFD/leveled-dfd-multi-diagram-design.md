@@ -1,6 +1,6 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.6 — decisions D1–D20 locked (§15) · Phases 0–7 done (identity and occurrences, effective model and schema 9, numbering, findings, UI, assets / threat and risk lifecycle, reports and CLI) · review findings R1–R5 done · §11.3 diff-service (semantic / graphical / structural / identity, analysis effect) done · open: the asset overlay on child pages (§4)
+Status: rev. 4.6 — decisions D1–D20 locked (§15) · Phases 0–7 done (identity and occurrences, effective model and schema 9, numbering, findings, UI, assets / threat and risk lifecycle, reports and CLI) · review findings R1–R5 done · §11.3 diff-service (semantic / graphical / structural / identity, analysis effect) done · asset overlay on all pages done (§4) · nothing open on this branch
 Author: (Juergen) · Date: 2026-10-13
 Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
@@ -131,7 +131,7 @@ The state before the work (2026-10-13) and what became of it:
 | Connection model | one `from`/`to` per connection | cannot represent a flow with different endpoints per page | endpoints per occurrence, stitched in the effective model (§6.2, Phase 2) |
 | Boundary membership and interfaces (`dfd-graph-builder`) | geometric overlap / crossing | coordinates of different pages overlap → wrong memberships and interfaces | per page, inherited boundaries, interface chain (§6.3, Phase 2) |
 | `dfd-auto-numbering` | positional sort over the whole XML | renumbers context copies independently; the cross-page IDs are destroyed | hierarchical numbering per page, copies keep their number (Phase 3, 5l) |
-| `dfd-overlay-builder` | uses the first `<diagram>` only | other pages are ignored for overlays | **still open** — the asset overlay works on the first page only |
+| `dfd-overlay-builder` | uses the first `<diagram>` only | other pages are ignored for overlays; the overlay replaced the file with the first page | every page kept and highlighted; a record by all its cells (definition and context copies, `occurrencesOf`); the page the user is on is opened again after the transient load (patch 100) |
 | Compressed pages | not readable | a compressed page is silently invisible | refused with a visible error, never read as empty (Phase 0, §11.1) |
 | Threat display ids | derived from element displayId (`P1-S-1`) | require globally unique displayIds | hierarchical display ids accepted everywhere (`P-1.3`) |
 
@@ -1261,7 +1261,9 @@ page selector in the preview panel (§12.1, D18).
   - Scope check against the list above: the forms write only the JSON records (keyed by `tfId`),
     never the XML, so they needed no change. `useIdLabelVisibility` is unused (no caller), left
     alone. Still cell-id / first-page based: the asset overlay (`dfd-overlay-builder`, first
-    `<diagram>` only, §4) — with the page tree.
+    `<diagram>` only, §4) — with the page tree. Done later (patch 100, §4 table): every page,
+    the cells from the identity index, the current page reopened after the transient load
+    (`loadXmlTransient(xml, viewport, pageId)`, before the viewport is restored).
 - **5b ✅** adoption / assignment dialog (§11.2.1, §5.2 lifecycle, D8, D13) on top of the 1.5 logic.
   - `leveled/identity-review`, pure: `reviewAdoption(xml, pages)` (only while pages are
     unadopted), `reviewCopyAssignments(current, baseline)` (adopted DFDs only, and only if at

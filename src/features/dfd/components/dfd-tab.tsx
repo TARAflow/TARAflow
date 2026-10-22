@@ -33,6 +33,7 @@ import { useAssetAssignment } from "../hooks/use-asset-assignment";
 import { useDFDData } from "../hooks/use-dfd-data";
 import { useDFDPersistence } from "../hooks/use-dfd-persistence";
 import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
+import { useCellIdentity } from "../hooks/use-cell-identity";
 import { useLeveledDfd } from "../hooks/use-leveled-dfd";
 import type { InsertCandidate, CellRef } from "../services/leveled";
 
@@ -296,9 +297,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   // ==================== OVERLAY HOOK ==========================
   // Overlay hook — transient asset highlighting on the draw.io canvas
+  // Leveled DFD: highlight every cell that shows a record, on every page.
+  const cellIdentity = useCellIdentity(dfd);
   const overlay = useDrawioOverlay({
     exportXML: editor.exportXML,
     loadXMLTransient: editor.loadXMLTransient,
+    cellsOf: cellIdentity.occurrencesOf,
+    getCurrentPageId: editor.getCurrentPageId,
   });
 
   // Visibility state: per AssetGroup, which assetId is shown in the DFD (null = none)

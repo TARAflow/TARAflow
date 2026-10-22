@@ -63,7 +63,7 @@ export interface UseDrawioBridgeReturn {
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
-  loadXMLTransient: (xml: string, viewport?: DrawioViewport) => void;
+  loadXMLTransient: (xml: string, viewport?: DrawioViewport, pageId?: string | null) => void;
 }
 
 // ==================== HOOK ====================
@@ -275,14 +275,14 @@ export function useDrawioBridge(
   }, []);
 
   const loadXMLTransient = useCallback(
-    (xml: string, viewport?: DrawioViewport): void => {
+    (xml: string, viewport?: DrawioViewport, pageId?: string | null): void => {
       if (!bridgeRef.current) {
         console.warn(
           "[useDrawioBridge] loadXMLTransient: bridge not initialized",
         );
         return;
       }
-      bridgeRef.current.loadXmlTransient(xml, viewport);
+      bridgeRef.current.loadXmlTransient(xml, viewport, pageId);
     },
     [],
   );

@@ -290,9 +290,10 @@ export class DrawioBridge implements IDrawioBridge {
    * Used exclusively for transient overlay display (asset inspection mode).
    *
    * If a viewport is provided, the plugin will restore it after draw.io
-   * finishes loading (which resets the viewport internally).
+   * finishes loading (which resets the viewport internally). A load opens
+   * the first page: `pageId` (leveled DFD) is opened again first.
    */
-  loadXmlTransient(xml: string, viewport?: DrawioViewport): void {
+  loadXmlTransient(xml: string, viewport?: DrawioViewport, pageId?: string | null): void {
     if (!this.iframe.contentWindow) {
       console.warn("[DrawioBridge] loadXmlTransient: no contentWindow");
       return;
@@ -302,10 +303,15 @@ export class DrawioBridge implements IDrawioBridge {
       JSON.stringify({ action: "load", xml }),
       "*",
     );
-    if (viewport) {
+    const reopenPage = pageId && window.electronAPI?.selectDrawioCell ? pageId : null;
+    if (viewport || reopenPage) {
       // Delay allows draw.io to finish its internal load + viewport reset
       // before we restore via IPC (which sets graph.view directly)
-      setTimeout(() => void this.setViewport(viewport), 300);
+      setTimeout(async () => {
+        // An empty cell id only opens the page.
+        if (reopenPage) await this.selectCell("", reopenPage);
+        if (viewport) await this.setViewport(viewport);
+      }, 300);
     }
   }
 
