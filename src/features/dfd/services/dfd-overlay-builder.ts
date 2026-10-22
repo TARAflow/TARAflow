@@ -9,9 +9,7 @@
 //   • Element:    colored stroke (asset group color) + floating badge above the cell
 //                 Badge position is read from mxGeometry in the XML DOM — not from
 //                 DFD React state — so it stays correct after unsaved moves.
-//   • Connection: colored stroke; a filled badge on the middle of the line
-//                 only when the flow IS the asset (is_an) — "transports",
-//                 the common case, would clutter the diagram
+//   • Connection: colored stroke only (no stable anchor point for badge)
 //
 // Leveled DFD (design §4): every page is kept and highlighted — a record
 // is shown by its cells on all pages (definition and context copies, from
@@ -104,7 +102,6 @@ function buildBadgeXml(
   elementY: number,
   elementWidth: number,
   parentId: string,
-  filled = false,
 ): string {
   const badgeId = `taraflow-overlay-badge-${targetCellId}-${assetId.replace(/[^a-z0-9]/gi, "")}`;
   const badgeWidth = Math.max(
@@ -120,8 +117,8 @@ function buildBadgeXml(
     "align=center",
     "verticalAlign=middle",
     `strokeColor=${color}`,
-    `fontColor=${filled ? "#ffffff" : color}`,
-    `fillColor=${filled ? color : "none"}`,
+    `fontColor=${color}`,
+    "fillColor=none",
     "rounded=1",
     "arcSize=50",
     "fontSize=9",
@@ -313,15 +310,7 @@ async function overlayPage(
     cell.setAttribute("style", injectStroke(currentStyle, color));
 
     // 2. Badge — position from mxGeometry, always inside mxCell
-    if (target.isConnection) {
-      if (!target.relationTypes.includes("is_an")) continue;
-      const middle = edgeMiddle(root, cell);
-      if (middle) {
-        // Centred on the line: the badge sits BADGE_HEIGHT + 3 above "y".
-        const y = middle.y + BADGE_HEIGHT / 2 + 3;
-        badgesToAppend.push(buildBadgeXml(cellId, assetId, "is_an", color, middle.x, y, 0, "1", true));
-      }
-    } else {
+    if (!target.isConnection) {
       const geo = cell.querySelector("mxGeometry");
       if (geo) {
         const x = parseFloat(geo.getAttribute("x") ?? "0");
@@ -355,80 +344,3 @@ async function overlayPage(
   // draw.io rejects this inside <diagram> text content.
   return serializer.serializeToString(graphDoc).replace(/^<\?xml[^?]*\?>\s*/i, "");
 }
-
-// ==================== EDGE GEOMETRY ====================
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-const num = (el: Element | null | undefined, name: string) => parseFloat(el?.getAttribute(name) ?? "0") || 0;
-
-function cellById(root: Element, id: string | null): Element | null {
-  if (!id) return null;
-  const container = root.querySelector(`[id="${id}"]`);
-  if (!container) return null;
-  return container.tagName === "mxCell" ? container : container.querySelector("mxCell");
-}
-
-/** Absolute offset of a cell's parent (vertices inside groups / containers). */
-function parentOffset(root: Element, cell: Element): Point {
-  const offset = { x: 0, y: 0 };
-  const seen = new Set<string>();
-  let parentId = cell.getAttribute("parent");
-  while (parentId && parentId !== "0" && parentId !== "1" && !seen.has(parentId)) {
-    seen.add(parentId);
-    const parent = cellById(root, parentId);
-    if (!parent) break;
-    const geo = parent.querySelector("mxGeometry");
-    offset.x += num(geo, "x");
-    offset.y += num(geo, "y");
-    parentId = parent.getAttribute("parent");
-  }
-  return offset;
-}
-
-/** Centre of a vertex in absolute coordinates. */
-function centreOf(root: Element, id: string | null): Point | null {
-  const cell = cellById(root, id);
-  const geo = cell?.querySelector("mxGeometry");
-  if (!cell || !geo) return null;
-  const offset = parentOffset(root, cell);
-  return {
-    x: offset.x + num(geo, "x") + num(geo, "width") / 2,
-    y: offset.y + num(geo, "y") + num(geo, "height") / 2,
-  };
-}
-
-/**
- * The point at half the length of an edge: source centre → waypoints →
- * target centre (or the edge's own source / target point when unconnected).
- */
-function edgeMiddle(root: Element, edge: Element): Point | null {
-  const geo = edge.querySelector("mxGeometry");
-  const offset = parentOffset(root, edge);
-  const own = (as: string): Point | null => {
-    const p = geo?.querySelector(`:scope > mxPoint[as="${as}"]`);
-    return p ? { x: offset.x + num(p, "x"), y: offset.y + num(p, "y") } : null;
-  };
-  const start = centreOf(root, edge.getAttribute("source")) ?? own("sourcePoint");
-  const end = centreOf(root, edge.getAttribute("target")) ?? own("targetPoint");
-  if (!start || !end) return null;
-  const waypoints = Array.from(geo?.querySelectorAll(':scope > Array[as="points"] > mxPoint') ?? []).map((p) => ({
-    x: offset.x + num(p, "x"),
-    y: offset.y + num(p, "y"),
-  }));
-  const line = [start, ...waypoints, end];
-  const lengths = line.slice(1).map((p, i) => Math.hypot(p.x - line[i].x, p.y - line[i].y));
-  let rest = lengths.reduce((a, b) => a + b, 0) / 2;
-  for (const [i, length] of lengths.entries()) {
-    if (rest <= length && length > 0) {
-      const t = rest / length;
-      return { x: line[i].x + (line[i + 1].x - line[i].x) * t, y: line[i].y + (line[i + 1].y - line[i].y) * t };
-    }
-    rest -= length;
-  }
-  return start;
-}
-
