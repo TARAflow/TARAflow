@@ -50,6 +50,8 @@ import {
   applySafetyRemovalDecision,
 } from "../services/risk-sync-service";
 import { useRiskFilters } from "../hooks/shared/use-risk-filters";
+import { riskGroupSections } from "../utils/risk-groups";
+import { RiskMatrixGroupSelect } from "./risk-matrix-group-select";
 import { RiskSyncBanner } from "./risk-sync-banner";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
@@ -366,13 +368,33 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     setSearchText,
     setPriorityFilter,
     setRiskLevelFilter,
+    setScopeFilter,
     clearFilters,
     filterRisks,
     hasActiveFilters,
-  } = useRiskFilters();
+  } = useRiskFilters(project.dfdTableGroups?.scope);
+  // Leveled DFD (6f): the matrix shows all risks or those of one group
+  // (top level / a top-level decomposed multiprocess, like the tables).
+  const [matrixGroupChoice, setMatrixGroup] = useState("");
+  const tableGroups = project.dfdTableGroups;
+  const matrixGroup = tableGroups?.groups.some((g) => g.key === matrixGroupChoice)
+    ? matrixGroupChoice
+    : "";
+  const matrixRisks = useMemo(() => {
+    if (!tableGroups || !matrixGroup) {
+      return [...activeRisks, ...wontRisks, ...attackPathActiveRisks, ...attackPathWontRisks];
+    }
+    // Attack-path risks have no DFD item: in no group.
+    return (
+      riskGroupSections(tableGroups, [...activeRisks, ...wontRisks], currentThreats).find(
+        (s) => s.key === matrixGroup,
+      )?.risks ?? []
+    );
+  }, [tableGroups, matrixGroup, activeRisks, wontRisks, attackPathActiveRisks, attackPathWontRisks, currentThreats]);
+
   const filteredActiveRisks = useMemo(
-    () => filterRisks(activeRisks, riskData.configuration),
-    [activeRisks, filterRisks, riskData.configuration],
+    () => filterRisks(activeRisks, riskData.configuration, currentThreats),
+    [activeRisks, filterRisks, riskData.configuration, currentThreats],
   );
 
   // ==================== EFFECTS ====================
@@ -853,7 +875,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 overflow: "hidden",
               }}
             >
-              <DFDPreviewPanel imageSrc={project.dfdPreviewImage} />
+              <DFDPreviewPanel
+              imageSrc={project.dfdPreviewImage}
+              pages={project.dfdPreviewPages}
+            />
             </Box>
             <Box
               onMouseDown={handleMouseDown}
@@ -887,14 +912,16 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto", px: 2, pt: 1 }}>
           {mainView === "matrix" ? (
             <RiskMatrix
-              risks={[
-                ...activeRisks,
-                ...wontRisks,
-                ...attackPathActiveRisks,
-                ...attackPathWontRisks,
-              ]}
+              risks={matrixRisks}
               configuration={riskData.configuration}
               onRiskClick={handleEditRisk}
+              headerControls={
+                <RiskMatrixGroupSelect
+                  groups={project.dfdTableGroups}
+                  value={matrixGroup}
+                  onChange={setMatrixGroup}
+                />
+              }
             />
           ) : !hasAnyThreats ? (
             <Box
@@ -1023,6 +1050,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onPriorityFilterChange={setPriorityFilter}
                 onRiskLevelFilterChange={setRiskLevelFilter}
                 onClearFilters={clearFilters}
+                onScopeFilterChange={setScopeFilter}
                 filteredCount={filteredActiveRisks.length}
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}
@@ -1030,6 +1058,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onImplementationClick={handleImplementationClick}
                 attackPathRisks={attackPathActiveRisks}
                 attackPathThreats={project.perAttackPathThreats ?? []}
+                groups={project.dfdTableGroups}
               />
               {(wontRisks.length > 0 || attackPathWontRisks.length > 0) &&
                 showWontTable && (

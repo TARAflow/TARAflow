@@ -136,6 +136,94 @@ The following table provides a quick overview of all DFD elements.
 `,
 
   // RST list-table row for element overview (4-space indent for continuation rows)
+  // Leveled DFD (7b): one section per page — heading, figure, element table.
+  dfdPageSection: `[SECTION]
+TITLE: {{pageTitle}}
+
+[FREETEXT]
+{{pageFigure}}
+
+{{pageTable}}[/FREETEXT]
+
+[/SECTION]
+
+`,
+
+  // Leveled DFD (7b): the element table of one page section.
+  dfdElementOverviewPageTable: (lang: DocLanguage) =>
+    lang === "de"
+      ? `.. list-table::
+   :header-rows: 1
+   :widths: 10 20 20 35 15
+
+   * - ID
+     - Name
+     - Typ
+     - Beschreibung
+     - Assets
+{{elementRows}}
+`
+      : `.. list-table::
+   :header-rows: 1
+   :widths: 10 20 20 35 15
+
+   * - ID
+     - Name
+     - Type
+     - Description
+     - Assets
+{{elementRows}}
+`,
+
+  // Leveled DFD (7c): the flows analysed on a parent level ({{title}}, {{intro}}, {{rows}}).
+  dfdParentLevelFlows: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: {{title}}
+
+[FREETEXT]
+{{intro}}
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 20 20 40
+
+   * - Fluss
+     - Von
+     - Nach
+     - Grund
+{{rows}}[/FREETEXT]
+
+[/SECTION]
+
+`
+      : `[SECTION]
+TITLE: {{title}}
+
+[FREETEXT]
+{{intro}}
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 20 20 40
+
+   * - Flow
+     - From
+     - To
+     - Reason
+{{rows}}[/FREETEXT]
+
+[/SECTION]
+
+`,
+
+  // Leveled DFD (7c): one flow analysed on a parent level.
+  dfdParentLevelFlowRow: `   * - {{flow}}
+     - {{from}}
+     - {{to}}
+     - {{reason}}
+`,
+
   elementOverviewRow: `   * - [{{displayId}}](#element-{{displayId}})
      - {{name}}
      - {{type}}

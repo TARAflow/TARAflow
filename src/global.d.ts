@@ -101,6 +101,26 @@ declare global {
       }) => Promise<{ success: boolean; error?: string }>;
       selectDrawioCell: (
         cellId: string,
+        pageId?: string | null,
+      ) => Promise<{ success: boolean; error?: string }>;
+      syncDrawioPages?: (spec: Record<string, unknown>) => Promise<{
+        success: boolean;
+        error?: string;
+        created?: string[];
+        errors?: string[];
+        copies?: { pageId: string; from: string; to: string }[];
+      }>;
+      exportDrawioPageSvgs?: (pageIds: string[]) => Promise<{
+        success: boolean;
+        error?: string;
+        svgs?: Record<string, string>;
+        errors?: string[];
+      }>;
+      setDrawioContextCells?: (
+        cells: Record<string, Record<string, true>>,
+      ) => Promise<{ success: boolean; error?: string }>;
+      setDrawioPageTabInfo?: (
+        info: Record<string, unknown>,
       ) => Promise<{ success: boolean; error?: string }>;
       injectDrawioLibraries: (
         dfd1Xml: string,

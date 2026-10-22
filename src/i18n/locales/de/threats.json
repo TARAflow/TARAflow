@@ -17,11 +17,46 @@
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction ist durch das aktive Regulierungs-Preset deaktiviert",
+      "dfdPageLayoutUnsupported": "Das DFD hat eine komprimierte Seite oder Seiten, die noch nicht in den Seitenbaum übernommen sind — Generierung und Synchronisation der Bedrohungen sind deaktiviert, bis alle Seiten unkomprimiert und übernommen sind (\"Seiten übernehmen…\" im DFD-Tab).",
+      "groups": {
+        "topLevel": "Oberste Ebene",
+        "notInDfd": "Nicht im DFD",
+        "summary": "{{count}} Bedrohung(en) seiner Teile",
+        "details": "Details"
+      },
+      "parentLevel": {
+        "summary": "{{count}} Datenfluss/Datenflüsse auf Elternebene analysiert — ihre Bedrohungen beziehen sich auf einen Multiprozess statt auf seine Teile und sind vorläufig. Zeichnen Sie die Flüsse auf der Unterseite, um sie zu verfeinern.",
+        "show": "Anzeigen",
+        "hide": "Ausblenden",
+        "reason": {
+          "ambiguous": "zu verschiedenen Teilen gezeichnet — beim gemeinsamen Elternelement analysiert",
+          "dangling": "ein Endpunkt hat keine Definition",
+          "unresolved": "nicht auf der Unterseite des Multiprozesses gezeichnet"
+        }
+      },
       "configuration": "Konfiguration",
       "searchPlaceholder": "Bedrohungen durchsuchen...",
       "threatsFound": "Bedrohungen gefunden",
       "generateConfirmTitle": "Bedrohungen neu generieren?",
-      "generateConfirmMessage": "Alle bestehenden Bedrohungen werden überschrieben, einschließlich manueller Änderungen. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "generateConfirmMessage": "Erneut erzeugte Bedrohungen behalten ihre Bewertung; Bedrohungen mit geänderten Bezügen werden zur Prüfung markiert. Fortfahren?",
+      "reconciliation": {
+        "new": "Neu – unbewertet",
+        "unchanged": "Unverändert – Bewertung bleibt",
+        "changed": "Bezüge geändert – Bewertung bleibt, zur Prüfung markiert",
+        "obsolete": "Veraltet – werden entfernt, ihre Risiken werden verwaist",
+        "changedList": "Zur Prüfung markiert:",
+        "newList": "Neu:",
+        "more": "… und {{count}} weitere",
+        "reason": {
+          "endpoint": "Fluss-Endpunkt",
+          "boundary": "Trust Boundary",
+          "template": "Vorlage"
+        }
+      },
+      "review": {
+        "label": "Prüfen",
+        "tooltip": "Durch eine Neugenerierung am {{date}} geändert ({{reasons}}). Bewertung bleibt – prüfen und die Bedrohung speichern, um sie zu bestätigen."
+      },
       "deleteManualOnRegenerate": "Manuell erstellte Bedrohungen ebenfalls löschen (sonst bleiben sie erhalten)",
       "importConfirmTitle": "Bedrohungen importieren?",
       "importConfirmMessage": "Alle bestehenden Bedrohungen werden mit den importierten Daten überschrieben. Diese Aktion kann nicht rückgängig gemacht werden.",

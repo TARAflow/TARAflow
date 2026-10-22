@@ -1,5 +1,11 @@
 {
   "common": {
+    "dfdScope": {
+      "page": "Seite",
+      "allPages": "Alle Seiten",
+      "withSubPages": "mit Unterseiten",
+      "parentLevelOnly": "Nur auf Elternebene analysierte Flüsse ({{count}})"
+    },
     "ok": "Ok",
     "save": "Speichern",
     "cancel": "Abbrechen",
@@ -137,7 +143,8 @@
         "v5": "Bedrohungen erhalten eine stabile ID, getrennt von der Anzeige-Nummer — Änderungen gehen beim Neunummerieren nicht mehr verloren.",
         "v6": "Assets erhalten eine stabile ID, getrennt von der Anzeige-Nummer — ein Gruppenwechsel bricht keine Verweise mehr.",
         "v7": "Risiken werden über die stabile Bedrohungs-ID verknüpft statt über die Anzeige-Nummer.",
-        "v8": "Asset-zu-Asset-Beziehungen werden in der Projektdatei gespeichert. Vorher gingen sie beim Speichern verloren."
+        "v8": "Asset-zu-Asset-Beziehungen werden in der Projektdatei gespeichert. Vorher gingen sie beim Speichern verloren.",
+        "v9": "Das DFD kann mehrere Seiten umfassen (Top-Ebene und Unterdiagramme). Am Projekt ändert sich nichts; ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie die Seiten zusammenführen würden."
       }
     },
     "confirmAssetDelete": {

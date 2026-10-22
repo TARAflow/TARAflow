@@ -131,9 +131,8 @@ vi.mock("app/hooks/use-project-file-download", () => ({
 }));
 
 vi.mock("features/dfd", () => ({
-  DefaultDFDGraphBuilder: vi.fn().mockImplementation(() => ({
-    build: vi.fn(),
-  })),
+  // The one graph entry point (leveled DFD Phase 2c).
+  buildDfdGraph: vi.fn(),
 }));
 
 vi.mock("app/utils/commit-asset-sync", () => ({
@@ -271,7 +270,7 @@ vi.mock("app/components/dialogs/close-project-dialog", () => ({
 import { ProjectShell } from "app/components/layout/project-shell";
 import { projectService } from "app/services/project-service";
 import { projectRepository } from "app/services/project-repository";
-import { DefaultDFDGraphBuilder } from "features/dfd";
+import { buildDfdGraph } from "features/dfd";
 import { commitAssetSync } from "app/utils/commit-asset-sync";
 import { commitHazardSafety } from "app/utils/commit-hazard-safety";
 
@@ -901,7 +900,7 @@ describe("ProjectShell lifecycle — activeProjectId reassignment characterizati
 
       // Before the fix, NONE of these three ran for a dialog-based import —
       // see import-path-parity.test.ts's "dialog path" characterization.
-      expect(DefaultDFDGraphBuilder).toHaveBeenCalled();
+      expect(buildDfdGraph).toHaveBeenCalled();
       expect(commitAssetSync).toHaveBeenCalled();
       expect(commitHazardSafety).toHaveBeenCalled();
 

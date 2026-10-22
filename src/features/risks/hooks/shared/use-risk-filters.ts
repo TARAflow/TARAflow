@@ -4,6 +4,13 @@
 // Filter by: searchText, priorityFilter (MoSCoW), treatmentFilter, riskLevelFilter.
 
 import { useState, useCallback, useMemo } from "react";
+import {
+  NO_DFD_SCOPE_FILTER,
+  dfdScopePredicate,
+  type DfdScopeFilter,
+  type DfdScopeIndex,
+  type ThreatReference,
+} from "shared";
 import type { Risk } from "../../models/risk-assessment-types";
 import type {
   MoSCoWPriority,
@@ -21,6 +28,8 @@ export interface RiskFilters {
   treatmentFilter: RiskTreatment | "";
   /** Selected risk level (RiskScaleLevel.value, 1..N) or "" for all. */
   riskLevelFilter: number | "";
+  /** Leveled DFD: page and analysis state of the risk's threat (6f). */
+  scope: DfdScopeFilter;
 }
 
 /** Scale context needed to map a numeric risk score to a discrete level. */
@@ -52,13 +61,19 @@ function riskLevelValue(
 
 // ==================== HOOK ====================
 
-export function useRiskFilters() {
+/** `scopeIndex`: the page index of a leveled DFD; absent for a classic one. */
+export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
   const [filters, setFilters] = useState<RiskFilters>({
     searchText: "",
     priorityFilter: "",
     treatmentFilter: "",
     riskLevelFilter: "",
+    scope: NO_DFD_SCOPE_FILTER,
   });
+  const inScope = useMemo(
+    () => dfdScopePredicate(scopeIndex, filters.scope),
+    [scopeIndex, filters.scope],
+  );
 
   const setSearchText = useCallback((text: string) => {
     setFilters((prev) => ({ ...prev, searchText: text }));
@@ -76,12 +91,17 @@ export function useRiskFilters() {
     setFilters((prev) => ({ ...prev, riskLevelFilter: level }));
   }, []);
 
+  const setScopeFilter = useCallback((scope: DfdScopeFilter) => {
+    setFilters((prev) => ({ ...prev, scope }));
+  }, []);
+
   const clearFilters = useCallback(() => {
     setFilters({
       searchText: "",
       priorityFilter: "",
       treatmentFilter: "",
       riskLevelFilter: "",
+      scope: NO_DFD_SCOPE_FILTER,
     });
   }, []);
 
@@ -91,15 +111,31 @@ export function useRiskFilters() {
         filters.searchText ||
         filters.priorityFilter ||
         filters.treatmentFilter ||
-        filters.riskLevelFilter !== "",
+        filters.riskLevelFilter !== "" ||
+        inScope,
       ),
-    [filters],
+    [filters, inScope],
   );
 
   const filterRisks = useCallback(
-    (risks: Risk[], context?: RiskLevelContext): Risk[] => {
+    /** `threats`: the threats of the risks, for the page filter. */
+    (risks: Risk[], context?: RiskLevelContext, threats?: ThreatReference[]): Risk[] => {
       if (!hasActiveFilters) return risks;
       let filtered = risks;
+
+      if (inScope) {
+        const threatById = new Map((threats ?? []).map((t) => [t.id, t]));
+        filtered = filtered.filter((r) => {
+          const threat = threatById.get(r.threatId);
+          return (
+            !!threat &&
+            inScope({
+              elementId: threat.linkedElement?.elementId,
+              connectionId: threat.dataFlow?.connectionId,
+            })
+          );
+        });
+      }
 
       if (filters.priorityFilter) {
         filtered = filtered.filter(
@@ -140,7 +176,7 @@ export function useRiskFilters() {
       }
       return filtered;
     },
-    [filters, hasActiveFilters],
+    [filters, hasActiveFilters, inScope],
   );
 
   return {
@@ -149,6 +185,7 @@ export function useRiskFilters() {
     setPriorityFilter,
     setTreatmentFilter,
     setRiskLevelFilter,
+    setScopeFilter,
     clearFilters,
     filterRisks,
     hasActiveFilters,

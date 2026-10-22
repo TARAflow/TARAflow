@@ -101,14 +101,20 @@ import { ElementAssetRelationDialog } from "../components/forms/asset-relation-s
 import {
   classifyA2ATargets,
   ConfirmAssetDeleteDialog,
+  DfdScopeFilterControls,
+  NO_DFD_SCOPE_FILTER,
+  pageWithSubPages,
   type A2ATargetClass,
   type AssetUsageLookup,
+  type DfdScopeFilter,
+  type DfdScopeIndex,
 } from "shared";
 import {
   assetVisibility,
   invalidLinks,
   relationTypesIn,
   searchAssets,
+  sourceOnPages,
   type AssetVisibility,
 } from "./asset-graph-query";
 
@@ -146,6 +152,12 @@ export interface AssetGraphViewProps {
    */
   readonly projectId?: string | null;
   readonly darkMode?: boolean;
+  /**
+   * Leveled DFD (§9, 6f): pages of the DFD for the page filter — the assets
+   * of the elements on a page (with or without its sub-pages). Absent for a
+   * classic DFD.
+   */
+  readonly pageScope?: DfdScopeIndex;
 }
 
 interface ViewState {
@@ -190,6 +202,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   projectId,
   rightInset = 0,
   darkMode = false,
+  pageScope,
 }) => {
   const { t, i18n } = useTranslation();
   const [state, setState] = useState<ViewState>(DEFAULT_STATE);
@@ -243,9 +256,25 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     setInspectorOpen(true);
   }, [focusRequest]);
 
+  // ── Page filter (leveled DFD, 6f) ───────────────────────────────────────
+  // Only the graph is filtered; search, cards and edits see every asset. A
+  // page that is gone ends the filter.
+  const [pageFilterChoice, setPageFilter] = useState<DfdScopeFilter>(NO_DFD_SCOPE_FILTER);
+  const pageFilter =
+    pageScope?.pages.some((p) => p.pageId === pageFilterChoice.pageId) ? pageFilterChoice : NO_DFD_SCOPE_FILTER;
+  const shownSource = useMemo(() => {
+    if (!pageScope || !pageFilter.pageId) return source;
+    const pages = pageFilter.withSubPages ? pageWithSubPages(pageScope, pageFilter.pageId) : [pageFilter.pageId];
+    return sourceOnPages(source, new Set(pages.flatMap((p) => pageScope.itemsOnPage[p] ?? [])));
+  }, [source, pageScope, pageFilter.pageId, pageFilter.withSubPages]);
+  const assetsOnPages = useMemo(
+    () => (shownSource === source ? undefined : new Set(shownSource.assets.map((a) => a.id))),
+    [shownSource, source],
+  );
+
   const graph = useMemo(
     () =>
-      buildAssetGraph(source, {
+      buildAssetGraph(shownSource, {
         view: state.view,
         layers: state.layers,
         focusAssetId: state.focusAssetId,
@@ -253,7 +282,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         showAnchors: state.showAnchors,
         relationTypes: state.relationTypes,
       }),
-    [source, state],
+    [shownSource, state],
   );
   const availableTypes = useMemo(() => relationTypesIn(source), [source]);
   // UX-4 stage 4: invalid links get a small symbol (link and source node).
@@ -433,7 +462,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         ? (searchHit.index + direction + matches.length) % matches.length
         : 0;
     const hit = matches[index];
-    const visibility = assetVisibility(graph, source, state, hit.id);
+    const visibility = assetVisibility(graph, source, state, hit.id, assetsOnPages);
     setSearchHit({ assetId: hit.id, index, total: matches.length, visibility });
     if (visibility.state === "visible") {
       onSelectAsset(hit.id);
@@ -442,7 +471,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   };
   // Re-evaluate the hit when the graph changes (e.g. its layer was shown).
   const hitVisibility = searchHit
-    ? assetVisibility(graph, source, state, searchHit.assetId)
+    ? assetVisibility(graph, source, state, searchHit.assetId, assetsOnPages)
     : null;
   const hitAsset = searchHit ? source.assets.find((a) => a.id === searchHit.assetId) : undefined;
 
@@ -462,8 +491,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     setSelectedEdgeId(null);
     setInspectedAssetId(assetId);
     onSelectAsset(assetId);
-    const v = assetVisibility(graph, source, state, assetId);
-    if (v.state === "hiddenLayer") {
+    const v = assetVisibility(graph, source, state, assetId, assetsOnPages);
+    if (v.state === "outsidePage") {
+      setPageFilter(NO_DFD_SCOPE_FILTER);
+      pendingCenterRef.current = assetId;
+    } else if (v.state === "hiddenLayer") {
       showLayer(v.layer);
       pendingCenterRef.current = assetId;
     } else if (v.state === "outsideFocus") {
@@ -1020,6 +1052,13 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           />
         )}
 
+        <DfdScopeFilterControls
+          index={pageScope}
+          filter={pageFilter}
+          onChange={setPageFilter}
+          showParentLevel={false}
+        />
+
         <Tooltip title={t("tabs.dfd.assetGraph.typeFilter", { defaultValue: "Relation types" })}>
           <IconButton size="small" onClick={(e) => setTypeMenu(e.currentTarget)} data-testid="asset-graph-type-filter">
             <Badge color="primary" variant="dot" invisible={state.relationTypes === null}>
@@ -1171,6 +1210,17 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     layer: groupLabel(hitVisibility.layer),
                   })}
                 </Button>
+              ) : hitAsset && hitVisibility?.state === "outsidePage" ? (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setPageFilter(NO_DFD_SCOPE_FILTER);
+                    onSelectAsset(hitAsset.id);
+                    pendingCenterRef.current = hitAsset.id;
+                  }}
+                >
+                  {t("tabs.dfd.assetGraph.showAllPages", { defaultValue: "Show all pages" })}
+                </Button>
               ) : hitAsset && hitVisibility?.state === "outsideFocus" ? (
                 <Button
                   size="small"
@@ -1193,11 +1243,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     asset: `${hitAsset?.displayId ?? ""} ${hitAsset?.name ?? ""}`.trim(),
                     layer: groupLabel((hitVisibility as { layer: string }).layer),
                   })
-                : t("tabs.dfd.assetGraph.hitOutsideFocus", {
-                    defaultValue: "{{asset}} is outside the focus (depth {{depth}}).",
-                    asset: `${hitAsset?.displayId ?? ""} ${hitAsset?.name ?? ""}`.trim(),
-                    depth: state.depth,
-                  })}
+                : hitVisibility?.state === "outsidePage"
+                  ? t("tabs.dfd.assetGraph.hitOutsidePage", {
+                      defaultValue: "{{asset}} is held by no element on the selected page.",
+                      asset: `${hitAsset?.displayId ?? ""} ${hitAsset?.name ?? ""}`.trim(),
+                    })
+                  : t("tabs.dfd.assetGraph.hitOutsideFocus", {
+                      defaultValue: "{{asset}} is outside the focus (depth {{depth}}).",
+                      asset: `${hitAsset?.displayId ?? ""} ${hitAsset?.name ?? ""}`.trim(),
+                      depth: state.depth,
+                    })}
           </Alert>
         )}
         {graph.nodes.length === 0 && (

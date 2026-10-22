@@ -81,6 +81,9 @@ export type ThreatRelevance =
  * Workflow state — where is the threat in the processing pipeline?
  * Transitions: open → reviewed (Threat Eval) → closed (Risk Tab)
  */
+/** Why a regenerated threat needs a review (Phase 6e, §10). */
+export type ThreatReviewReason = "endpoint" | "boundary" | "template";
+
 export type ThreatWorkflowStatus =
   | "open"      // not yet fully processed
   | "reviewed"  // analyst has evaluated, relevance decision recorded
@@ -413,6 +416,19 @@ export interface Threat {
   retainedAfterRuleChange?: {
     at: string;
     previousSource: ThreatSource;
+  };
+
+  /**
+   * Leveled DFD Phase 6e (§10, "reference changed"): a regeneration produced
+   * this threat again (same generator key) but what it refers to changed —
+   * the resolved endpoint of its flow, its trust boundary or its catalog
+   * template. Relevance and risk rating are kept, never silently confirmed:
+   * the threat is flagged until the analyst saves it again.
+   */
+  review?: {
+    reasons: ThreatReviewReason[];
+    /** When the change was first found. */
+    since: string;
   };
 
   /**
@@ -830,6 +846,20 @@ export interface ThreatValidation {
   lastValidated: string;
 }
 
+// ==================== LEVELED DFD ====================
+
+/** A data flow analysed on a parent level (leveled DFD §6.5). */
+export interface ParentLevelFlowInfo {
+  tfId: string;
+  /** displayId and name */
+  label: string;
+  /** Endpoints the flow is analysed with. */
+  from: string;
+  to: string;
+  /** ambiguous | dangling | unresolved */
+  reason: "ambiguous" | "dangling" | "unresolved";
+}
+
 // ==================== PROJECT INTERFACE ====================
 
 export interface ThreatProjectData {
@@ -838,9 +868,26 @@ export interface ThreatProjectData {
   threats: ThreatData | null;
   phaseStatus: PhaseStatusMap;
   dfdXml?: string;
+  /**
+   * pageIds of dfd.pages. A multi-page DFD whose pages are all adopted is
+   * analysable (leveled-dfd-multi-diagram-design.md §11.2.1, Phase 2c-2).
+   */
+  dfdPageIds?: string[];
   dfdElements?: DFDElementReference[];
   dfdConnections?: DFDConnectionReference[];
   dfdPreviewImage?: string;
+  /** Leveled DFD (D18): one thumbnail per page, Top first. */
+  dfdPreviewPages?: import("shared").DFDPreviewPage[];
+  /**
+   * Leveled DFD (§6.5, 5j): data flows analysed on a parent level (state
+   * "fallback") — their threats are provisional. Empty / absent: none.
+   */
+  dfdParentLevelFlows?: ParentLevelFlowInfo[];
+  /**
+   * Leveled DFD (Phase 6, D20): groups of the threat tables — one per
+   * top-level decomposed multiprocess plus "Top level". Absent: as today.
+   */
+  dfdTableGroups?: import("shared").DfdTableGroups;
   assetIds?: string[];
   dfdGraph?: DFDGraphReference;
   assetDataRef?: AssetDataReference;
@@ -970,12 +1017,14 @@ export function isInterfaceTable(table: ThreatTable): boolean {
   // Detect by threat content — not by table name.
   // Interface tables are grouped under PhysicalBoundary or ChipBoundary
   // and can have any boundary name (e.g. "Device Boundary [DB]").
-  // All threats in an interface table have linkedElement set; dataFlow is null.
+  // All threats in an interface table have linkedElement set; dataFlow is
+  // null — interface threats and the threats of the boundary itself.
+  // Every threat is checked, not only the first: a table filtered to a
+  // subset (leveled DFD groups, D20) may start with a boundary threat and
+  // must still render by element, not as an empty flow table.
   if (table.threats.length === 0) return false;
-  const first = table.threats[0];
-  return (
-    first.linkedElement != null &&
-    first.linkedElement.elementType === "Interface"
+  return table.threats.every(
+    (threat) => threat.dataFlow == null && threat.linkedElement != null,
   );
 }
 

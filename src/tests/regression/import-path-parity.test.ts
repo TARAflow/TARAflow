@@ -107,15 +107,13 @@ vi.mock("app/hooks/use-project-file-download", () => ({
 
 // Return a NON-undefined, recognizable graph so we can assert it landed
 // (or didn't) on the resulting project.
-const FAKE_GRAPH = { builtBy: "DefaultDFDGraphBuilder", nodes: [], edges: [] };
+const FAKE_GRAPH = { builtBy: "buildDfdGraph", nodes: [], edges: [] };
 const buildSpy = vi.fn().mockReturnValue(FAKE_GRAPH);
 vi.mock("features/dfd", () => ({
-  // `function`, not an arrow: the code under test calls `new
-  // DefaultDFDGraphBuilder()`, and since Vitest 3 a vi.fn() invoked with `new`
-  // constructs through its implementation — an arrow isn't constructible.
-  DefaultDFDGraphBuilder: vi.fn(function () {
-    return { build: buildSpy };
-  }),
+  // ensureProjectGraph builds through the one graph entry point (leveled
+  // DFD Phase 2c), which picks the single- or multi-page path itself.
+  // Arrow, called lazily: vi.mock is hoisted above the buildSpy declaration.
+  buildDfdGraph: (...args: unknown[]) => buildSpy(...args),
 }));
 
 vi.mock("app/utils/commit-asset-sync", () => ({
@@ -145,7 +143,6 @@ vi.mock("app/services/prepare-for-disk", () => ({
 import { useProjectManager } from "app/hooks/use-project-manager";
 import { commitAssetSync } from "app/utils/commit-asset-sync";
 import { commitHazardSafety } from "app/utils/commit-hazard-safety";
-import { DefaultDFDGraphBuilder } from "features/dfd";
 
 // project-service.ts is the REAL module under test here — only ITS
 // dependencies (storage-service, project-repository, project-registry,
@@ -219,7 +216,6 @@ describe("Import path parity — use-project-manager.handleImportFile vs project
     );
 
     // 1. Graph builder was invoked with the dfd that has elements but no graph.
-    expect(DefaultDFDGraphBuilder).toHaveBeenCalled();
     expect(buildSpy).toHaveBeenCalledWith(
       expect.objectContaining({ elements: raw.dfd!.elements }),
     );
@@ -269,6 +265,6 @@ describe("Import path parity — use-project-manager.handleImportFile vs project
     // here documents that fact at the test level, not just via code reading.
     expect(commitAssetSync).not.toHaveBeenCalled();
     expect(commitHazardSafety).not.toHaveBeenCalled();
-    expect(DefaultDFDGraphBuilder).not.toHaveBeenCalled();
+    expect(buildSpy).not.toHaveBeenCalled();
   });
 });

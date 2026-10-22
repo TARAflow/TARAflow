@@ -33,6 +33,9 @@ import { useAssetAssignment } from "../hooks/use-asset-assignment";
 import { useDFDData } from "../hooks/use-dfd-data";
 import { useDFDPersistence } from "../hooks/use-dfd-persistence";
 import { useDrawioOverlay } from "../hooks/use-drawio-overlay";
+import { useCellIdentity } from "../hooks/use-cell-identity";
+import { useLeveledDfd } from "../hooks/use-leveled-dfd";
+import type { InsertCandidate, CellRef } from "../services/leveled";
 
 // Components
 import DFDPreviewDialog from "./dfd-preview-dialog";
@@ -43,6 +46,13 @@ import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
 import { DFDConfigDialog } from "./dfd-config-dialog";
+import {
+  IdentityReviewDialog,
+  IdentityReviewHints,
+} from "./identity-review-dialog";
+import { OrphanPageDialog } from "./child-page-ui";
+import { InsertContextDialog } from "./insert-context-dialog";
+import { LostDefinitionDialog } from "./lost-definition-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import type { AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
@@ -86,6 +96,11 @@ export interface DFDTabProps {
   securityDrifts?: SecurityDrift[];
   /** Impact lookup for the asset delete confirm dialog (app layer). */
   assetUsage?: AssetUsageLookup;
+  /**
+   * Leveled DFD (5k): threats referring to an element / flow (by tfId), for
+   * the question when a linked definition is lost (app layer).
+   */
+  threatCountOf?: (tfId: string) => number;
 }
 
 // ==================== COMPONENT ====================
@@ -98,6 +113,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   controlInstances,
   securityDrifts,
   assetUsage,
+  threatCountOf,
   graphFocusRequest,
   onShowInTable,
 }) => {
@@ -107,6 +123,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
   );
+  // The selected CELL (leveled DFD 5g): page + cell id, for the identity
+  // section — selectedElementId is the logical record it shows.
+  const [selectedCellRef, setSelectedCellRef] = useState<CellRef | null>(null);
   const [detailsPanelOpen, setDetailsPanelOpen] = useState(false);
   const [showAutoNumberConfig, setShowAutoNumberConfig] = useState(false);
   const [autoNumberingConfig, setAutoNumberingConfig] =
@@ -140,17 +159,25 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // never moves the diagram in the middle of a gesture.
   const handleSelectionChanged = useCallback((cells: any[]) => {
     const selectedCell = cells[0];
-    const cellId = selectedCell?.xmlId || selectedCell?.id;
+    // tfId: the logical record the cell shows (useDFDEditor resolves it,
+    // also for context copies on other pages — leveled DFD §5.2).
+    const elementId = selectedCell?.tfId || selectedCell?.xmlId || selectedCell?.id;
 
-    if (!cellId) {
+    if (!elementId) {
       setSelectedElementId(null);
+      setSelectedCellRef(null);
       setDetailsPanelOpen(false);
       return;
     }
+    setSelectedCellRef(
+      selectedCell?.pageId && selectedCell?.xmlId
+        ? { pageId: selectedCell.pageId, cellId: selectedCell.xmlId }
+        : null,
+    );
 
     // Kein Guard nötig — useDFDEditor stellt sicher dass das
     // Element im State ist bevor dieser Callback feuert.
-    setSelectedElementId(cellId);
+    setSelectedElementId(elementId);
     setDetailsPanelOpen(true);
   }, []);
 
@@ -194,6 +221,16 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const assetAssignment = useAssetAssignment({
     iframeRef: editor.iframeRef,
   });
+
+  // Leveled DFD: analysis and flows of a multi-page DFD (façade, finding 4).
+  const selectedElement = selectedElementId
+    ? editor.elements.find((e) => e.id === selectedElementId)
+    : undefined;
+  const leveled = useLeveledDfd(project, editor, {
+    element: selectedElement,
+    cellRef: selectedCellRef,
+  });
+  const { identityReview, childPages, lostDefinitions, insertContext } = leveled;
 
   const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
     useDFDData(project);
@@ -260,9 +297,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   // ==================== OVERLAY HOOK ==========================
   // Overlay hook — transient asset highlighting on the draw.io canvas
+  // Leveled DFD: highlight every cell that shows a record, on every page.
+  const cellIdentity = useCellIdentity(dfd);
   const overlay = useDrawioOverlay({
     exportXML: editor.exportXML,
     loadXMLTransient: editor.loadXMLTransient,
+    cellsOf: cellIdentity.occurrencesOf,
+    getCurrentPageId: editor.getCurrentPageId,
   });
 
   // Visibility state: per AssetGroup, which assetId is shown in the DFD (null = none)
@@ -378,10 +419,16 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       onImageReady: () => {},
       selectedCells: editor.selectedCells || [],
       selectCell: async () => {},
+      pluginReady: false,
+      setPageTabInfo: async () => {},
+      syncPages: async () => ({ success: false }),
+      setContextCells: async () => {},
+      exportPageSvgs: async () => ({ success: false }),
     },
     {
       isDirty: editor.isDirty,
       save: editor.save,
+      savePages: editor.savePages,
       scheduleSave: () => {},
       scheduleDrawioSave: () => {},
       queueA2AOps: editor.queueA2AOps,
@@ -601,11 +648,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const currentElementType: DFDElementType | undefined =
     currentElement?.type ?? (currentConnection ? "DataFlow" : undefined);
 
-  // Get Selected Item (simplified)
-  const selectedElement = selectedElementId
-    ? editor.elements.find((e) => e.id === selectedElementId)
-    : undefined;
-
   const selectedConnection = selectedElementId
     ? editor.connections.find((c) => c.id === selectedElementId)
     : undefined;
@@ -759,6 +801,18 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onExport={exportImport.downloadExport}
         onImport={exportImport.promptImport}
         onSave={handleSave}
+        onInsertContext={leveled.parse && editor.pluginReady ? insertContext.open : undefined}
+        onAutoNumberPage={leveled.parse ? leveled.page.autoNumberPage : undefined}
+        getCurrentPageName={leveled.page.currentPageName}
+      />
+
+      <IdentityReviewHints
+        adoptionPending={identityReview.adoptionPending}
+        pageRepair={leveled.pageRepair}
+        // Context copies wait for their links (5f): not "pasted" cells.
+        pendingCopies={childPages.settling ? 0 : identityReview.pendingCopies}
+        onOpenAdoption={identityReview.openAdoption}
+        onOpenAssignment={identityReview.openAssignment}
       />
 
       {/* Main Content Container with Drawer */}
@@ -832,6 +886,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onToggleElement={toggleElement}
               onCreateAsset={handleCreateAsset}
               graphContext={graphContext}
+              refinementCandidates={leveled.refinementCandidates}
             />
           </Box>
 
@@ -861,6 +916,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               // No side panel in the graph view — it has its own cards.
               rightInset={0}
               darkMode={darkMode}
+              pageScope={leveled.pageScope}
             />
           </Box>
 
@@ -898,6 +954,10 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onClearAllVisibility={handleClearAllVisibility}
             onAssetChange={handleAssetChange}
             graphContext={graphContext}
+            refinementCandidates={leveled.refinementCandidates}
+            childPage={leveled.selection.childPage}
+            assetRollup={leveled.selection.assetRollup}
+            identity={leveled.selection.identity}
             focusAssetRequest={focusAssetRequest}
             assetUsage={assetUsage}
             onSelectedAssetChange={setPanelAssetId}
@@ -923,6 +983,46 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onClose={() => setShowPreview(false)}
         previewImage={editor.previewImage}
         projectName={project.name}
+      />
+
+      {/* Leveled DFD: a linked definition was lost (5k) */}
+      <LostDefinitionDialog
+        lost={lostDefinitions.lost}
+        threatCountOf={threatCountOf}
+        onReattach={lostDefinitions.reattach}
+        onAccept={lostDefinitions.acceptDeletion}
+        onLater={lostDefinitions.postpone}
+      />
+
+      {/* Leveled DFD: insert a context copy on the current page (5h) */}
+      <InsertContextDialog
+        open={!!insertContext.data}
+        pageName={
+          insertContext.data
+            ? insertContext.data.pageNames[insertContext.data.targetPage] || insertContext.data.targetPage
+            : ""
+        }
+        candidates={insertContext.data?.candidates ?? []}
+        pageNames={insertContext.data?.pageNames ?? {}}
+        onInsert={(c: InsertCandidate) =>
+          childPages.insertAsContext(c.kind, c.tfId, insertContext.data!.targetPage)
+        }
+        onClose={insertContext.close}
+      />
+
+      {/* Leveled DFD: delete the child page of a deleted multiprocess? (5e) */}
+      <OrphanPageDialog
+        orphans={childPages.orphanPages}
+        onResolve={childPages.resolveOrphan}
+      />
+
+      {/* Leveled DFD: adoption / pasted-copy assignment (5b) */}
+      <IdentityReviewDialog
+        review={identityReview.review}
+        onClose={identityReview.close}
+        onApplyAdoption={identityReview.applyAdoption}
+        onApplyAssignment={identityReview.applyAssignment}
+        onDismissAssignment={identityReview.dismissAssignment}
       />
 
       {/* DFD Config Dialog */}

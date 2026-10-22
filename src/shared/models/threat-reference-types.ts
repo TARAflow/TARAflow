@@ -76,10 +76,22 @@ export interface ThreatReference {
   linkedElement?: LinkedDFDElement | null;
   dataFlow?: DataFlowReference | null;
   /**
+   * Per-interaction threat: which flow end it attacks (IN → target, OUT →
+   * source). Decides its table group for a flow between two multiprocesses
+   * (D20, revised 2026-10-21).
+   */
+  interactionContext?: { victimRole?: "source" | "target" } | null;
+  /**
    * Derived CIANAAA impact level from UnifiedStrategy.getInitialImpact().
    * Phase 3b: used to pre-fill matching Risk impact factor.
    */
   initialImpact?: CIANAAALevel;
+  /**
+   * Leveled DFD Phase 6e: a regeneration changed the threat's references
+   * (flow endpoint, trust boundary, template); its rating is kept but needs
+   * a review. Absent = nothing to review.
+   */
+  review?: { reasons: string[]; since: string };
 }
 
 // ==================== THREAT → GOAL LINK ====================

@@ -2,6 +2,8 @@
 // Props-only view — no internal hooks.
 // ThreatsTab is the single source of truth for hook state.
 
+import type { DfdTableGroups } from "shared";
+import { ThreatGroupSections } from "../shared/threat-group-sections";
 import React, { useCallback } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { AutoAwesome as GenerateIcon } from "@mui/icons-material";
@@ -32,6 +34,8 @@ export interface ElementThreatsViewProps {
   onAdd: (tableIndex: number, threat: Threat) => void;
   showFilters?: boolean;
   reviewedCount?: number;
+  /** Leveled DFD (D20): accordion per top-level decomposed multiprocess. */
+  groups?: DfdTableGroups;
 }
 
 // ==================== COMPONENT ====================
@@ -50,6 +54,7 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
     onAdd,
     showFilters = true,
     reviewedCount,
+    groups,
   }) => {
     const { t } = useTranslation();
 
@@ -58,10 +63,11 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
       setStrideFilter,
       setRelevanceFilter,
       setSearchText,
+      setScopeFilter,
       clearFilters,
       filterThreats,
       hasActiveFilters,
-    } = useThreatFilters();
+    } = useThreatFilters(groups?.scope);
 
     const filteredTables = React.useMemo(() => {
       if (!hasActiveFilters) return tables;
@@ -123,6 +129,9 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
               onSearchTextChange={setSearchText}
               onClear={clearFilters}
               show={showFilters}
+              scopeIndex={groups?.scope}
+              scope={filters.scope}
+              onScopeChange={setScopeFilter}
               reviewedCount={reviewedCount}
               totalCount={totalThreats}
             />
@@ -190,20 +199,24 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
           </Box>
         ) : (
           <Box sx={{ flexGrow: 1, overflow: "auto" }}>
-            {filteredTables.map((table, index) => (
-              <ElementThreatTable
-                key={`${table.trustBoundaryId ?? "none"}-${table.trustBoundaryName}`}
-                table={table}
-                allThreats={allThreats}
-                tableIndex={index}
-                configuration={configuration}
-                assetDataRef={assetDataRef}
-                showThreatActor={showThreatActor}
-                onEdit={(threat) => handleEdit(index, threat)}
-                onDelete={(threatId) => handleDelete(index, threatId)}
-                onAdd={(threat) => onAdd(index, threat)}
-              />
-            ))}
+            <ThreatGroupSections
+              groups={groups}
+              tables={filteredTables}
+              renderTable={(table, index, groupKey) => (
+                <ElementThreatTable
+                  key={`${groupKey}-${table.trustBoundaryId ?? "none"}-${table.trustBoundaryName}`}
+                  table={table}
+                  allThreats={allThreats}
+                  tableIndex={index}
+                  configuration={configuration}
+                  assetDataRef={assetDataRef}
+                  showThreatActor={showThreatActor}
+                  onEdit={(threat) => handleEdit(index, threat)}
+                  onDelete={(threatId) => handleDelete(index, threatId)}
+                  onAdd={(threat) => onAdd(index, threat)}
+                />
+              )}
+            />
           </Box>
         )}
       </Box>

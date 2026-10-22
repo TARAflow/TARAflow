@@ -3,6 +3,18 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
+import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
+import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
+import { reportGroupsOf } from "../dfd-report-groups";
+import {
+  riskGroupSummary,
+  riskStatsTable,
+  threatElementType,
+  threatGroupSummary,
+  threatStatsTable,
+  type StatsTable,
+} from "../threat-risk-stats";
+import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -271,6 +283,12 @@ export abstract class BaseDocumentGenerator {
   abstract getRegulationEntryTemplate(): string;
   abstract getSystemOverviewTemplate(): string;
   abstract getDfdTemplate(): string;
+  /**
+   * One DFD figure in the format's syntax: the thumbnail of a classic DFD
+   * ({{dfdFigures}}) or of a page section (leveled DFD, 7a); without image,
+   * the note that the page has no stored image yet.
+   */
+  abstract formatDfdFigure(image: string | undefined, alt: string): string;
   abstract getDfdDescriptionsTemplate(): string;
   abstract getDfdElementTypeHeaderTemplate(): string;
   abstract getDfdElementEntryTemplate(): string;
@@ -329,6 +347,21 @@ export abstract class BaseDocumentGenerator {
   abstract getFooterTemplate(): string;
   abstract getDfdElementOverviewTableTemplate(): string;
   abstract getElementOverviewRowTemplate(): string;
+  /** Leveled DFD (7b): one page section ({{pageTitle}}, {{pageFigure}}, {{pageTable}}). */
+  abstract getDfdPageSectionTemplate(): string;
+  /** Leveled DFD (7b): the element table of a page section ({{elementRows}}). */
+  abstract getDfdElementOverviewPageTableTemplate(): string;
+  /** Leveled DFD (7c): flows analysed on a parent level ({{title}}, {{intro}}, {{rows}}). */
+  abstract getDfdParentLevelFlowsTemplate(): string;
+  /** Leveled DFD (7c): one such flow ({{flow}}, {{from}}, {{to}}, {{reason}}). */
+  abstract getDfdParentLevelFlowRowTemplate(): string;
+  /**
+   * Leveled DFD (7d): one group of a threat / risk chapter — a heading one
+   * level below the chapter, its summary line and its table.
+   */
+  abstract formatReportGroup(title: string, body: string, summary?: string): string;
+  /** The statistics table below a threat / risk chapter's intro. */
+  abstract formatStatsTable(table: StatsTable): string;
   abstract getDfdElementDetailedEntryTemplate(): string;
   abstract getDfdConnectionDetailedEntryTemplate(): string;
   abstract getPropertyGroupTemplate(): string;
@@ -658,8 +691,47 @@ export abstract class BaseDocumentGenerator {
       trustBoundaries: 0,
     };
 
+    // Classic: the one thumbnail after the intro. Leveled DFD (7a/7b): after
+    // the statistics one section per page — heading, figure, element table.
+    const alt = this.ctx.lang === "de" ? "Datenflussdiagramm" : "Data Flow Diagram";
+    const sections = dfdPageSectionsOf(dfd, this.ctx.lang);
+    const dfdPages = (sections ?? [])
+      .map((section) =>
+        replacePlaceholders(this.getDfdPageSectionTemplate(), {
+          pageTitle: this.escapeTableText(section.title),
+          pageFigure: section.isPage ? this.formatDfdFigure(section.image, alt) : "",
+          pageTable:
+            section.elements.length > 0
+              ? replacePlaceholders(this.getDfdElementOverviewPageTableTemplate(), {
+                  elementRows: section.elements.map((e) => this.overviewRow(e)).join(""),
+                })
+              : "",
+        }),
+      )
+      .join("");
+
+    // Leveled DFD (7c): the flows analysed on a parent level, after the pages.
+    const parentLevel = dfdParentLevelFlowsOf(dfd, this.ctx.lang);
+    const dfdParentLevel = parentLevel
+      ? replacePlaceholders(this.getDfdParentLevelFlowsTemplate(), {
+          title: this.escapeTableText(parentLevel.title),
+          intro: this.escapeTableText(parentLevel.intro),
+          rows: parentLevel.rows
+            .map((row) =>
+              replacePlaceholders(this.getDfdParentLevelFlowRowTemplate(), {
+                flow: this.escapeTableText(row.flow),
+                from: this.escapeTableText(row.from),
+                to: this.escapeTableText(row.to),
+                reason: this.escapeTableText(row.reason),
+              }),
+            )
+            .join(""),
+        })
+      : "";
+
     const values = {
-      imagePath: dfd.thumbnail || "dfd.png",
+      dfdFigures: sections ? "" : this.formatDfdFigure(dfd.thumbnail || "dfd.png", alt),
+      dfdPages: dfdPages + dfdParentLevel,
       externalEntities: stats.externalEntities,
       processes: stats.processes,
       dataStores: stats.dataStores,
@@ -676,6 +748,22 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  /** One row of an element overview table (classic, or a page section). */
+  protected overviewRow(element: DFDElement): string {
+    return replacePlaceholders(this.getElementOverviewRowTemplate(), {
+      displayId: element.displayId || element.id,
+      name: this.escapeTableText(element.name),
+      type: getDFDElementTypeText(element.type, this.ctx.t),
+      description: this.escapeTableText(truncateText(element.description ?? "-", 60)),
+      assets: this.escapeTableText(getAssetIdList(element, this.resolveAssetName)),
+    });
+  }
+
+  /** Text in place of a page figure without a stored image (7a). */
+  protected noDfdImage(): string {
+    return noDfdImageText(this.ctx.lang);
   }
 
   // ==================== DFD DESCRIPTIONS ====================
@@ -699,31 +787,13 @@ export abstract class BaseDocumentGenerator {
     const elements = project.dfd.elements;
     const connections = project.dfd.connections ?? [];
 
-    // Generate overview table
-    const elementRows = elements
-      .map((element) => {
-        const values = {
-          displayId: element.displayId || element.id,
-          name: this.escapeTableText(element.name),
-          type: getDFDElementTypeText(element.type, this.ctx.t),
-          description: this.escapeTableText(
-            truncateText(element.description ?? "-", 60),
-          ),
-          assets: this.escapeTableText(getAssetIdList(element, this.resolveAssetName)),
-        };
-        return replacePlaceholders(
-          this.getElementOverviewRowTemplate(),
-          values,
-        );
-      })
-      .join("");
-
-    let content = replacePlaceholders(
-      this.getDfdElementOverviewTableTemplate(),
-      {
-        elementRows,
-      },
-    );
+    // Overview table. Leveled DFD (7b): the overview is the element table of
+    // each page section in the DFD chapter — not repeated here.
+    let content = dfdPageSectionsOf(project.dfd, this.ctx.lang)
+      ? ""
+      : replacePlaceholders(this.getDfdElementOverviewTableTemplate(), {
+          elementRows: elements.map((e) => this.overviewRow(e)).join(""),
+        });
 
     // Group elements by type
     const elementsByType = new Map<DFDElementType, DFDElement[]>();
@@ -1155,55 +1225,67 @@ export abstract class BaseDocumentGenerator {
       };
     }
 
-    const threatRows = threats
-      .map((threat) => {
-        // Get STRIDE name from computed cache
-        const strideName =
-          project.computed.strideNames.get(threat.strideCategory) ??
-          threat.strideCategory;
+    const threatRow = (threat: (typeof threats)[number]) => {
+      // Get STRIDE name from computed cache
+      const strideName =
+        project.computed.strideNames.get(threat.strideCategory) ??
+        threat.strideCategory;
 
-        // Get element or flow name
-        const elementOrFlow =
-          threat.linkedElement?.elementName ||
-          threat.dataFlow?.dataFlowName ||
-          "-";
+      // Get element or flow name
+      const elementOrFlow =
+        threat.linkedElement?.elementName ||
+        threat.dataFlow?.dataFlowName ||
+        "-";
 
-        const values = {
-          id: threat.displayId,
-          strideCategory: threat.strideCategory,
-          strideName,
-          elementOrFlow: this.escapeTableText(elementOrFlow),
-          trustBoundary: this.escapeTableText(threat.trustBoundaryName || "-"),
-          // Full text — no truncation
-          threatDescription: this.escapeTableText(
-            threat.threatDescription || "-",
-          ),
-          attackDescription: this.escapeTableText(
-            threat.attackDescription || "-",
-          ),
-          // Full resolved text, one entry per line. Escape each entry individually
-          // so the <br> separators survive (escapeTableText must not touch them).
-          mitigation: resolveMitigationDrafts(threat.proposedMitigations ?? [])
-            .map((m) => (m.isCustom ? `[custom] ${m.notes ?? ""}` : m.text))
-            .filter(Boolean)
-            .map((s) => `• ${this.escapeTableText(s)}`)
-            .join("<br>"),
-          verification: resolveVerificationDrafts(
-            threat.proposedVerifications ?? [],
-          )
-            .map((v) => (v.isCustom ? `[custom] ${v.notes ?? ""}` : v.text))
-            .filter(Boolean)
-            .map((s) => `• ${this.escapeTableText(s)}`)
-            .join("<br>"),
-        };
-        return replacePlaceholders(this.getThreatRowTemplate(), values);
-      })
-      .join("");
+      const values = {
+        id: threat.displayId,
+        strideCategory: threat.strideCategory,
+        strideName,
+        elementOrFlow: this.escapeTableText(elementOrFlow),
+        trustBoundary: this.escapeTableText(threat.trustBoundaryName || "-"),
+        // Full text — no truncation
+        threatDescription: this.escapeTableText(
+          threat.threatDescription || "-",
+        ),
+        attackDescription: this.escapeTableText(
+          threat.attackDescription || "-",
+        ),
+        // Full resolved text, one entry per line. Escape each entry individually
+        // so the <br> separators survive (escapeTableText must not touch them).
+        mitigation: resolveMitigationDrafts(threat.proposedMitigations ?? [])
+          .map((m) => (m.isCustom ? `[custom] ${m.notes ?? ""}` : m.text))
+          .filter(Boolean)
+          .map((s) => `• ${this.escapeTableText(s)}`)
+          .join("<br>"),
+        verification: resolveVerificationDrafts(
+          threat.proposedVerifications ?? [],
+        )
+          .map((v) => (v.isCustom ? `[custom] ${v.notes ?? ""}` : v.text))
+          .filter(Boolean)
+          .map((s) => `• ${this.escapeTableText(s)}`)
+          .join("<br>"),
+      };
+      return replacePlaceholders(this.getThreatRowTemplate(), values);
+    };
+    const threatTable = (list: typeof threats) =>
+      replacePlaceholders(this.getThreatsTableTemplate(), {
+        threatRows: list.map(threatRow).join(""),
+      });
 
+    // Leveled DFD (7d): one table per group, as the app's accordions.
+    const groups = reportGroupsOf(project.dfd, this.ctx.lang, threats, (threat) =>
+      dfdItemRefOfThreat(threat),
+    );
+    const typeLabel = (type: string) => getDFDElementTypeText(type as DFDElementType, this.ctx.t);
     let content = this.getThreatsHeaderTemplate(method);
-    content += replacePlaceholders(this.getThreatsTableTemplate(), {
-      threatRows,
-    });
+    content += this.formatStatsTable(threatStatsTable(threats, this.ctx.lang, typeLabel));
+    content += groups
+      ? groups
+          .map((g) =>
+            this.formatReportGroup(g.title, threatTable(g.items), threatGroupSummary(g.items, this.ctx.lang)),
+          )
+          .join("")
+      : threatTable(threats);
 
     return {
       id: chapterId,
@@ -1310,46 +1392,62 @@ export abstract class BaseDocumentGenerator {
       };
     }
 
-    const riskRows = risks
-      .map((risk) => {
-        // Get cached labels
-        const riskBeforeLabel =
-          project.computed.riskBeforeLabels.get(risk.id) ??
-          risk.calculatedRiskBeforeMitigation.toString();
-        const riskAfterLabel =
-          project.computed.riskAfterLabels.get(risk.id) ??
-          risk.calculatedRiskAfterMitigation.toString();
-        const moscowLabel =
-          project.computed.moscowLabels.get(risk.moscowPriority) ??
-          risk.moscowPriority;
-        const implStatus = deriveImplementationProgress(
-          risk.selectedMitigations,
-        );
-        const statusLabel = implStatus.replace(/_/g, " ");
+    const riskRow = (risk: (typeof risks)[number]) => {
+      // Get cached labels
+      const riskBeforeLabel =
+        project.computed.riskBeforeLabels.get(risk.id) ??
+        risk.calculatedRiskBeforeMitigation.toString();
+      const riskAfterLabel =
+        project.computed.riskAfterLabels.get(risk.id) ??
+        risk.calculatedRiskAfterMitigation.toString();
+      const moscowLabel =
+        project.computed.moscowLabels.get(risk.moscowPriority) ??
+        risk.moscowPriority;
+      const implStatus = deriveImplementationProgress(
+        risk.selectedMitigations,
+      );
+      const statusLabel = implStatus.replace(/_/g, " ");
 
-        const values = {
-          id: formatRiskLabel(risk),
-          threatId: risk.threatDisplayId,
-          strideCategory: risk.strideCategory,
-          threatDescription: this.escapeTableText(
-            risk.threatDescription || "-",
+      const values = {
+        id: formatRiskLabel(risk),
+        threatId: risk.threatDisplayId,
+        strideCategory: risk.strideCategory,
+        threatDescription: this.escapeTableText(
+          risk.threatDescription || "-",
+        ),
+        riskBeforeLabel,
+        mitigations: this.escapeTableText(
+          formatMitigations(
+            risk.selectedMitigations
+              .filter((m) => m.status !== "rejected")
+              .map((m) => m.notes?.trim() || m.id || "")
+              .filter(Boolean),
           ),
-          riskBeforeLabel,
-          mitigations: this.escapeTableText(
-            formatMitigations(
-              risk.selectedMitigations
-                .filter((m) => m.status !== "rejected")
-                .map((m) => m.notes?.trim() || m.id || "")
-                .filter(Boolean),
-            ),
-          ),
-          riskAfterLabel,
-          moscowLabel,
-          statusLabel,
-        };
-        return replacePlaceholders(this.getRiskRowTemplate(), values);
-      })
-      .join("");
+        ),
+        riskAfterLabel,
+        moscowLabel,
+        statusLabel,
+      };
+      return replacePlaceholders(this.getRiskRowTemplate(), values);
+    };
+    const riskTable = (list: typeof risks) =>
+      replacePlaceholders(this.getRisksTableTemplate(), {
+        riskRows: list.map(riskRow).join(""),
+      });
+
+    // Leveled DFD (7d): one table per group — a risk follows its threat.
+    const threatById = new Map(
+      [
+        ...(project.threats?.perElementTables ?? []),
+        ...(project.threats?.perInteractionTables ?? []),
+      ]
+        .flatMap((table) => table.threats)
+        .map((threat) => [threat.id, threat]),
+    );
+    const groups = reportGroupsOf(project.dfd, this.ctx.lang, risks, (risk) => {
+      const threat = threatById.get(risk.threatId);
+      return threat ? dfdItemRefOfThreat(threat) : undefined;
+    });
 
     let content = replacePlaceholders(this.getRisksHeaderTemplate(method), {
       impactAggregation: impactAggregationSentence(
@@ -1357,7 +1455,25 @@ export abstract class BaseDocumentGenerator {
         this.ctx.lang,
       ),
     });
-    content += replacePlaceholders(this.getRisksTableTemplate(), { riskRows });
+    const scale = {
+      scale: project.risks?.configuration?.scale ?? "4-level",
+      roundingMethod: project.risks?.configuration?.roundingMethod,
+    } as const;
+    const typeLabel = (type: string) => getDFDElementTypeText(type as DFDElementType, this.ctx.t);
+    const riskType = (risk: (typeof risks)[number]) => {
+      const threat = threatById.get(risk.threatId);
+      return threat ? threatElementType(threat) : "-";
+    };
+    content += this.formatStatsTable(
+      riskStatsTable(risks, riskType, scale, this.ctx.lang, typeLabel),
+    );
+    content += groups
+      ? groups
+          .map((g) =>
+            this.formatReportGroup(g.title, riskTable(g.items), riskGroupSummary(g.items, scale, this.ctx.lang)),
+          )
+          .join("")
+      : riskTable(risks);
 
     return {
       id: chapterId,

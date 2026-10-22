@@ -20,6 +20,8 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
 } from "@mui/icons-material";
+import { DfdScopeFilterControls } from "shared";
+import type { DfdScopeFilter, DfdScopeIndex } from "shared";
 import { MOSCOW_PRIORITIES, RISK_SCALES } from "../models/risk-scale-types";
 import type { MoSCoWPriority, RiskScaleType } from "../models/risk-scale-types";
 
@@ -46,6 +48,11 @@ export interface RiskFiltersProps {
   // Stats
   filteredCount: number;
   totalCount: number;
+
+  /** Leveled DFD: page and analysis-state filter; absent for a classic DFD. */
+  scopeIndex?: DfdScopeIndex;
+  scope?: DfdScopeFilter;
+  onScopeChange?: (scope: DfdScopeFilter) => void;
 }
 
 // ==================== COMPONENT ====================
@@ -63,6 +70,9 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
     show,
     filteredCount,
     totalCount,
+    scopeIndex,
+    scope,
+    onScopeChange,
   }) => {
     const { t } = useTranslation();
     const hasFilters =
@@ -183,6 +193,10 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
             }}
             sx={{ minWidth: 200 }}
           />
+
+          {scope && onScopeChange && (
+            <DfdScopeFilterControls index={scopeIndex} filter={scope} onChange={onScopeChange} />
+          )}
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />

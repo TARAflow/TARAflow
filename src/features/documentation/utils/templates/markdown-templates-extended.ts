@@ -96,6 +96,51 @@ The following table provides a quick overview of all DFD elements.
 
 `,
 
+  // Leveled DFD (7b): one section per page — heading, figure, element table.
+  dfdPageSection: `### {{pageTitle}}
+
+{{pageFigure}}
+
+{{pageTable}}`,
+
+  // Leveled DFD (7b): the element table of one page section.
+  dfdElementOverviewPageTable: (lang: DocLanguage) =>
+    lang === "de"
+      ? `| ID | Name | Typ | Beschreibung | Assets |
+|----|------|-----|--------------|--------|
+{{elementRows}}
+
+`
+      : `| ID | Name | Type | Description | Assets |
+|----|------|------|-------------|--------|
+{{elementRows}}
+
+`,
+
+  // Leveled DFD (7c): the flows analysed on a parent level ({{title}}, {{intro}}, {{rows}}).
+  dfdParentLevelFlows: (lang: DocLanguage) =>
+    lang === "de"
+      ? `### {{title}}
+
+{{intro}}
+
+| Fluss | Von | Nach | Grund |
+|-------|-----|------|-------|
+{{rows}}
+`
+      : `### {{title}}
+
+{{intro}}
+
+| Flow | From | To | Reason |
+|------|------|----|--------|
+{{rows}}
+`,
+
+  // Leveled DFD (7c): one flow analysed on a parent level.
+  dfdParentLevelFlowRow: `| {{flow}} | {{from}} | {{to}} | {{reason}} |
+`,
+
   elementOverviewRow: `| [{{displayId}}](#element-{{displayId}}) | {{name}} | {{type}} | {{description}} | {{assets}} |
 `,
 

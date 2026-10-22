@@ -37,6 +37,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { StatsTable } from "../threat-risk-stats";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -266,6 +267,37 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return SDOC_TEMPLATES.dfd(this.ctx.lang);
   }
 
+  formatDfdFigure(image: string | undefined, alt: string): string {
+    return image ? `.. image:: ${image}\n   :alt: ${alt}` : this.noDfdImage();
+  }
+
+  formatReportGroup(title: string, body: string, summary?: string): string {
+    // A nested section inside the chapter's (closed after the content).
+    const text = summary ? `[FREETEXT]\n${summary}\n[/FREETEXT]\n\n` : "";
+    return `[SECTION]\nTITLE: ${title}\n\n${text}${body}[/SECTION]\n\n`;
+  }
+
+  formatStatsTable(table: StatsTable): string {
+    // RST list-table in a section of its own (a section holds one free text).
+    const row = (cells: string[]) =>
+      cells.map((c, i) => `${i === 0 ? "   * - " : "     - "}${c}`).join("\n");
+    return [
+      "[SECTION]",
+      `TITLE: ${table.title}`,
+      "",
+      "[FREETEXT]",
+      ".. list-table::",
+      "   :header-rows: 1",
+      "",
+      row(table.headers),
+      ...table.rows.map(row),
+      row(table.total.map((c) => `**${c}**`)),
+      "[/FREETEXT]",
+      "",
+      "[/SECTION]",
+    ].join("\n") + "\n\n";
+  }
+
   getDfdDescriptionsTemplate(): string {
     return SDOC_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }
@@ -348,6 +380,22 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
 
   getElementOverviewRowTemplate(): string {
     return SDOC_EXTENDED_TEMPLATES.elementOverviewRow;
+  }
+
+  getDfdPageSectionTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdPageSection;
+  }
+
+  getDfdParentLevelFlowsTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdParentLevelFlows(this.ctx.lang);
+  }
+
+  getDfdParentLevelFlowRowTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdParentLevelFlowRow;
+  }
+
+  getDfdElementOverviewPageTableTemplate(): string {
+    return SDOC_EXTENDED_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }
 
   getDfdElementDetailedEntryTemplate(): string {

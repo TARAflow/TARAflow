@@ -201,7 +201,7 @@ The following regulations and standards are applicable to this project and have 
 
 Das folgende Diagramm zeigt die Datenflüsse und Vertrauensgrenzen des Systems.
 
-image::{{imagePath}}[Datenflussdiagramm]
+{{dfdFigures}}
 
 === DFD-Statistiken
 
@@ -217,12 +217,12 @@ image::{{imagePath}}[Datenflussdiagramm]
 | *Gesamt* | *{{totalElements}}*
 |===
 
-`
+{{dfdPages}}`
       : `== Data Flow Diagram
 
 The following diagram shows the data flows and trust boundaries of the system.
 
-image::{{imagePath}}[Data Flow Diagram]
+{{dfdFigures}}
 
 === DFD Statistics
 
@@ -238,7 +238,7 @@ image::{{imagePath}}[Data Flow Diagram]
 | *Total* | *{{totalElements}}*
 |===
 
-`,
+{{dfdPages}}`,
 
   // ==================== DFD DESCRIPTIONS ====================
   dfdDescriptions: (lang: DocLanguage) =>

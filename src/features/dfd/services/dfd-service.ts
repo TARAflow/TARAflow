@@ -5,12 +5,15 @@
 
 import { PhaseStatus, PhaseStatusMap } from "shared";
 import { PHASE_STATUS_KEY } from "shared";
+import { inspectDrawioPages, describeUnsupportedPageLayout } from "shared";
+import type { DrawioPageLayout } from "shared";
 import {
   DFDData,
   DFDStats,
   DFDProjectData,
   DFDElement,
   DFDConnection,
+  DFDPage,
 } from "../models/dfd-types";
 import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
 import { DFDParser, dfdParser } from "./dfd-parser";
@@ -20,6 +23,12 @@ import {
   createDFDStorageAdapter,
 } from "./dfd-storage-adapter";
 import { DefaultDFDGraphBuilder } from "./dfd-graph-builder";
+import {
+  buildAnalysisView,
+  buildDfdGraph,
+  isLeveled,
+  type AnalysisView,
+} from "./build-dfd-graph";
 import { dfdChangeDetector } from "../utils/dfd-change-detector";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import { calculateStats } from "./parsers/stats-calculator";
@@ -27,6 +36,37 @@ import {
   isSystemUsesRelation,
   isInfraAccessesRelation,
 } from "../models/asset-relation-types";
+import { validatePageLayout } from "./validators/page-layout-validator";
+import { reassignDuplicateDefinitions } from "./leveled";
+import { RecentRemovals } from "./recent-removals";
+import { reconcileAssetRollup } from "./leveled/asset-rollup";
+import { parseDfd } from "./leveled/leveled-analysis";
+import type { DfdGraphSource } from "./build-dfd-graph";
+
+/** pageIds of dfd.pages — an adopted multi-page DFD is analysable (§11.2.1). */
+/**
+ * dfd.pages for a save of `xml` (leveled DFDs, §5.2): links of returned
+ * cells restored (undo), stale links pruned, duplicated definitions (draw.io "Duplicate page") reassigned to fresh
+ * identities against the last saved state. Same array when nothing changes;
+ * undefined for classic projects.
+ */
+function linksForSave(
+  project: DFDProjectData,
+  xml: string,
+  removals: RecentRemovals,
+): DFDPage[] | undefined {
+  const pages = removals.linksForSave(project.id, project.dfd?.pages, project.dfd?.xml, xml);
+  return reassignDuplicateDefinitions({
+    xml,
+    pages,
+    previousXml: project.dfd?.xml,
+    previousPages: project.dfd?.pages,
+  }).pages;
+}
+
+function adoptedPageIds(pages: readonly { pageId: string }[] | undefined) {
+  return pages?.map((p) => p.pageId);
+}
 
 export interface DFDSaveResult {
   success: boolean;
@@ -36,6 +76,8 @@ export interface DFDSaveResult {
   lastModified: string;
   validation: ValidationResult;
   error?: string;
+  /** Set when the save was refused because of an unsupported page layout. */
+  unsupportedPageLayout?: DrawioPageLayout;
 }
 
 export interface DFDLoadResult {
@@ -44,6 +86,45 @@ export interface DFDLoadResult {
   stats?: DFDStats;
   error?: string;
   graphContext: DFDGraphAnalysisContext;
+  /**
+   * Set when the stored XML has an unsupported page layout. The XML is still
+   * handed to draw.io (so the extra pages can be seen and removed), but the
+   * model is NOT re-derived from it and project.dfd stays untouched.
+   */
+  unsupportedPageLayout?: DrawioPageLayout;
+}
+
+// ==================== PAGE LAYOUT GUARD ====================
+// Phase 0 of the leveled-DFD design (leveled-dfd-multi-diagram-design.md
+// §13). The parsers merge all <diagram> pages into one model and
+// cannot read compressed pages. Such a layout must never be turned into
+// dfd.elements/connections: the merged model is wrong, and an empty parse of
+// a compressed page would replace the stored elements and drop their
+// properties and asset relations. Every entry point that derives the model
+// from XML checks the layout first and refuses.
+
+function unsupportedLayoutValidation(
+  layout: DrawioPageLayout,
+): ValidationResult {
+  return {
+    isValid: false,
+    isComplete: false,
+    errors: validatePageLayout(layout),
+    warnings: [],
+    scenario: null,
+  };
+}
+
+function refuseSave(
+  emptyResult: DFDSaveResult,
+  layout: DrawioPageLayout,
+): DFDSaveResult {
+  return {
+    ...emptyResult,
+    validation: unsupportedLayoutValidation(layout),
+    error: describeUnsupportedPageLayout(layout),
+    unsupportedPageLayout: layout,
+  };
 }
 
 /**
@@ -58,6 +139,8 @@ export interface DFDLoadResult {
 class DFDService {
   private parser: DFDParser;
   private validator: DFDValidator;
+  /** What saves removed, for undo / redo in draw.io (session only). */
+  private removals = new RecentRemovals();
 
   constructor(parser: DFDParser, validator: DFDValidator) {
     this.parser = parser;
@@ -94,8 +177,29 @@ class DFDService {
         };
       }
 
+      // Phase 0 guard: hand the XML to draw.io (done above) but do not derive
+      // the model from an unsupported page layout.
+      const pageLayout = inspectDrawioPages(
+        project.dfd!.xml,
+        adoptedPageIds(project.dfd!.pages),
+      );
+      if (!pageLayout.supported) {
+        console.error(
+          "[DFDService] loadDFDForEditing:",
+          describeUnsupportedPageLayout(pageLayout),
+        );
+        return {
+          success: true,
+          hasData: true,
+          stats: project.dfd?.stats,
+          error: describeUnsupportedPageLayout(pageLayout),
+          graphContext: emptyContext,
+          unsupportedPageLayout: pageLayout,
+        };
+      }
+
       // Parse XML
-      const parseResult = this.parser.parse(project.dfd!.xml!);
+      const parseResult = parseDfd(project.dfd!.xml!, project.dfd!.pages, this.parser);
       const { elements, connections, unconnectedDataflows } =
         parseResult;
 
@@ -124,26 +228,31 @@ class DFDService {
         syncedAssets,
       );
 
-      // Build DFD graph
-      const graphBuilder = new DefaultDFDGraphBuilder();
-      const graph = graphBuilder.build({
+      // Build DFD graph (leveled DFDs: effective model, §6). Graph and
+      // validation share one analysis view.
+      const graphSource = {
+        xml: project.dfd!.xml,
+        pages: project.dfd!.pages,
         elements: mergedElements,
         connections: mergedConnections,
         assets: syncedAssets,
-      });
+      };
+      const view = buildAnalysisView(graphSource);
+      const graph = buildDfdGraph(graphSource, view);
 
       const graphContext = new DFDGraphAnalysisContext(graph);
 
       // Run initial validation
       const validation = this.validator.validate(
-        mergedElements,
-        mergedConnections,
+        view.elements,
+        view.connections,
         syncedAssets,
         stats,
         graph,
         {
           unconnectedDataflows,
           knownAssets: project.knownAssets,
+          leveledFindings: view.leveledFindings,
         },
       );
 
@@ -180,15 +289,20 @@ class DFDService {
     parsedElements: DFDElement[],
     existingElements: DFDElement[],
   ): DFDElement[] {
+    // Always new objects with their own properties: the parse is shared
+    // (leveled-analysis cache) and later steps write into properties
+    // (deriveExposureLevels).
     return parsedElements.map((parsed) => {
       const existing = existingElements.find((e) => e.id === parsed.id);
-      if (!existing) return parsed;
+      if (!existing) return { ...parsed, properties: copyProperties(parsed.properties) };
 
       // Keep geometry/name from parser, but preserve user properties
       return {
         ...parsed,
-        properties: existing.properties || parsed.properties,
+        properties: existing.properties || copyProperties(parsed.properties),
         assetRelations: existing.assetRelations || parsed.assetRelations,
+        // The description lives in the record only (no XML attribute).
+        ...(existing.description ? { description: existing.description } : {}),
       };
     });
   }
@@ -202,12 +316,14 @@ class DFDService {
   ): DFDConnection[] {
     return parsedConnections.map((parsed) => {
       const existing = existingConnections.find((c) => c.id === parsed.id);
-      if (!existing) return parsed;
+      if (!existing) return { ...parsed, properties: copyProperties(parsed.properties) };
 
       return {
         ...parsed,
-        properties: existing.properties || parsed.properties,
+        properties: existing.properties || copyProperties(parsed.properties),
         assetRelations: existing.assetRelations || parsed.assetRelations,
+        // The description lives in the record only (no XML attribute).
+        ...(existing.description ? { description: existing.description } : {}),
       };
     });
   }
@@ -345,20 +461,50 @@ class DFDService {
       // Get current XML
       const xml = adapter.getXml();
 
+      // Phase 0 guard: never derive the model from an unsupported layout.
+      const pageLayout = inspectDrawioPages(
+        xml,
+        adoptedPageIds(project.dfd?.pages),
+      );
+      if (!pageLayout.supported) {
+        return refuseSave(emptyResult, pageLayout);
+      }
+
+      // Leveled DFD (§5.2): drop identity links whose cell is gone, so a
+      // link can never attach to a different cell later. No-op without links.
+      // Then give duplicated definitions their own identity (Phase 3.3).
+      const pages = linksForSave(project, xml || "", this.removals);
+
       // Parse and validate
       const { elements, connections, unconnectedDataflows } =
-        this.parser.parse(xml || "");
+        parseDfd(xml || "", pages, this.parser);
 
+      // An undone deletion gets its record back (properties, asset
+      // relations, description), not only what the last save kept.
+      const saved = {
+        elements: project.dfd?.elements ?? [],
+        connections: project.dfd?.connections ?? [],
+      };
+      const known = this.removals.recordsFor(project.id, saved);
       // Merge with existing properties (preserves assetRelations, user descriptions, etc.)
-      const mergedElements = this.mergeElementProperties(
-        elements,
-        project.dfd?.elements || [],
-      );
-
       const mergedConnections = this.mergeConnectionProperties(
         connections,
-        project.dfd?.connections || [],
+        known.connections,
       );
+      // Leveled DFD (6d, §9): pending asset relations a part now covers
+      // leave the decomposed multiprocess; a decomposition that ended keeps
+      // its roll-up as the multiprocess' own relations.
+      const mergedElements = reconcileAssetRollup(previousSourceOf(project), {
+        xml: xml || undefined,
+        pages,
+        elements: this.mergeElementProperties(elements, known.elements),
+        connections: mergedConnections,
+        assets: [],
+      });
+      this.removals.remember(project.id, saved, {
+        elements: mergedElements,
+        connections: mergedConnections,
+      });
 
       const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
 
@@ -377,6 +523,16 @@ class DFDService {
         syncedAssets,
       );
 
+      // One analysis view for graph and validation (leveled DFDs: leaves
+      // and stitched flows, §6).
+      const graphSource = {
+        xml: xml || undefined,
+        pages,
+        elements: mergedElements,
+        connections: mergedConnections,
+        assets: syncedAssets,
+      };
+      const view = buildAnalysisView(graphSource);
       const graphBuilder = new DefaultDFDGraphBuilder();
 
       // Detect topology changes — only rebuild graph if structure changed.
@@ -396,13 +552,13 @@ class DFDService {
       );
 
       let dfdGraph;
-      if (changeResult.requiresRebuild || !project.dfd?.graph) {
+      if (
+        changeResult.requiresRebuild ||
+        !project.dfd?.graph ||
+        isLeveled(xml || undefined) // graph holds leaves only: always rebuild
+      ) {
         // Full rebuild — topology changed or no existing graph
-        dfdGraph = graphBuilder.build({
-          elements: mergedElements,
-          connections: mergedConnections,
-          assets: syncedAssets,
-        });
+        dfdGraph = buildDfdGraph(graphSource, view);
       } else {
         // Reuse existing graph — only re-derive exposure levels
         dfdGraph = project.dfd.graph;
@@ -420,13 +576,14 @@ class DFDService {
       const graphContext = new DFDGraphAnalysisContext(dfdGraph);
 
       const validation = this.validator.validate(
-        mergedElements,
-        mergedConnections,
+        view.elements,
+        view.connections,
         syncedAssets,
         stats,
         dfdGraph,
         {
           unconnectedDataflows,
+          leveledFindings: view.leveledFindings,
         },
       );
 
@@ -440,6 +597,7 @@ class DFDService {
         validation: this.validator.createValidationData(validation),
         lastModified: new Date().toISOString(),
         graph: dfdGraph,
+        ...(pages ? { pages } : {}),
       };
 
       // Determine phase status
@@ -490,18 +648,48 @@ class DFDService {
       },
     };
 
-    try {
-      const { elements, connections, unconnectedDataflows } =
-        this.parser.parse(xml);
+    // Phase 0 guard: never derive the model from an unsupported layout.
+    const pageLayout = inspectDrawioPages(
+      xml,
+      adoptedPageIds(project.dfd?.pages),
+    );
+    if (!pageLayout.supported) {
+      return refuseSave(emptyResult, pageLayout);
+    }
 
-      const mergedElements = this.mergeElementProperties(
-        elements,
-        project.dfd?.elements || [],
-      );
+    try {
+      // Leveled DFD (§5.2): drop identity links whose cell is gone, then
+      // give duplicated definitions their own identity (Phase 3.3).
+      const pages = linksForSave(project, xml, this.removals);
+
+      const { elements, connections, unconnectedDataflows } =
+        parseDfd(xml, pages, this.parser);
+
+      // An undone deletion gets its record back (properties, asset
+      // relations, description), not only what the last save kept.
+      const saved = {
+        elements: project.dfd?.elements ?? [],
+        connections: project.dfd?.connections ?? [],
+      };
+      const known = this.removals.recordsFor(project.id, saved);
       const mergedConnections = this.mergeConnectionProperties(
         connections,
-        project.dfd?.connections || [],
+        known.connections,
       );
+      // Leveled DFD (6d, §9): pending asset relations a part now covers
+      // leave the decomposed multiprocess; a decomposition that ended keeps
+      // its roll-up as the multiprocess' own relations.
+      const mergedElements = reconcileAssetRollup(previousSourceOf(project), {
+        xml: xml,
+        pages,
+        elements: this.mergeElementProperties(elements, known.elements),
+        connections: mergedConnections,
+        assets: [],
+      });
+      this.removals.remember(project.id, saved, {
+        elements: mergedElements,
+        connections: mergedConnections,
+      });
       const mergedAssets = this.mergeAssetProperties(project.dfd?.assets || []);
       const syncedAssets = this.syncAssetLinkedElements(
         mergedElements,
@@ -517,6 +705,14 @@ class DFDService {
         syncedAssets,
       );
 
+      const graphSource = {
+        xml,
+        pages,
+        elements: mergedElements,
+        connections: mergedConnections,
+        assets: syncedAssets,
+      };
+      const view = buildAnalysisView(graphSource);
       const graphBuilder = new DefaultDFDGraphBuilder();
       const changeResult = dfdChangeDetector.detect(
         project.dfd?.elements ?? [],
@@ -526,12 +722,12 @@ class DFDService {
       );
 
       let dfdGraph;
-      if (changeResult.requiresRebuild || !project.dfd?.graph) {
-        dfdGraph = graphBuilder.build({
-          elements: mergedElements,
-          connections: mergedConnections,
-          assets: syncedAssets,
-        });
+      if (
+        changeResult.requiresRebuild ||
+        !project.dfd?.graph ||
+        isLeveled(xml) // graph holds leaves only: always rebuild
+      ) {
+        dfdGraph = buildDfdGraph(graphSource, view);
       } else {
         dfdGraph = project.dfd.graph;
         graphBuilder.deriveExposureLevels(
@@ -546,12 +742,15 @@ class DFDService {
 
       const graphContext = new DFDGraphAnalysisContext(dfdGraph);
       const validation = this.validator.validate(
-        mergedElements,
-        mergedConnections,
+        view.elements,
+        view.connections,
         syncedAssets,
         stats,
         dfdGraph,
-        { unconnectedDataflows },
+        {
+          unconnectedDataflows,
+          leveledFindings: view.leveledFindings,
+        },
       );
 
       const dfdData: DFDData = {
@@ -563,6 +762,7 @@ class DFDService {
         validation: this.validator.createValidationData(validation),
         lastModified: new Date().toISOString(),
         graph: dfdGraph,
+        ...(pages ? { pages } : {}),
       };
 
       const phaseStatus = this.determinePhaseStatus(validation);
@@ -596,8 +796,20 @@ class DFDService {
     const adapter = createDFDStorageAdapter(project.id);
     adapter.syncFromLegacy();
     const xml = adapter.getXml();
+
+    // Phase 0 guard: report the unsupported layout instead of validating a
+    // merged multi-page model. This is what makes the refusal visible in the
+    // DFD notification panel.
+    const pageLayout = inspectDrawioPages(
+      xml,
+      adoptedPageIds(project.dfd?.pages),
+    );
+    if (!pageLayout.supported) {
+      return unsupportedLayoutValidation(pageLayout);
+    }
+
     const { elements, connections, unconnectedDataflows } =
-      this.parser.parse(xml || "");
+      parseDfd(xml || "", project.dfd?.pages, this.parser);
 
     const mergedConnections = this.mergeConnectionProperties(
       connections,
@@ -624,20 +836,23 @@ class DFDService {
       syncedAssets,
     );
 
-    const graphBuilder = new DefaultDFDGraphBuilder();
-    const graph = graphBuilder.build({
+    const graphSource = {
+      xml: xml || undefined,
+      pages: project.dfd?.pages,
       elements: mergedElements,
       connections: mergedConnections,
-      assets: syncedAssets, // NEU
-    });
+      assets: syncedAssets,
+    };
+    const view = buildAnalysisView(graphSource);
+    const graph = buildDfdGraph(graphSource, view);
 
     return this.validator.validate(
-      mergedElements,
-      mergedConnections,
+      view.elements,
+      view.connections,
       syncedAssets,
       stats,
       graph,
-      { unconnectedDataflows },
+      { unconnectedDataflows, leveledFindings: view.leveledFindings },
     );
   }
 
@@ -649,7 +864,7 @@ class DFDService {
     adapter.syncFromLegacy();
 
     const xml = adapter.getXml();
-    return this.parser.parse(xml || "").stats;
+    return parseDfd(xml || "", undefined, this.parser).stats;
   }
 
   // ==================== PHASE STATUS ====================
@@ -667,6 +882,7 @@ class DFDService {
    * Clear DFD data when switching projects
    */
   clearForProjectSwitch(projectId: string): void {
+    this.removals.clear(projectId);
     const adapter = createDFDStorageAdapter(projectId);
     adapter.clearLocalStorage();
     DFDStorageAdapter.clearLegacyStorage();
@@ -696,3 +912,21 @@ class DFDService {
 // Export singleton instance with injected dependencies
 export const dfdService = new DFDService(dfdParser, dfdValidator);
 export default dfdService;
+
+/** The persisted DFD before this save, as the source of its analysis. */
+function previousSourceOf(project: DFDProjectData): DfdGraphSource | undefined {
+  const dfd = project.dfd;
+  if (!dfd) return undefined;
+  return {
+    xml: dfd.xml,
+    pages: dfd.pages,
+    elements: dfd.elements ?? [],
+    connections: dfd.connections ?? [],
+    assets: [],
+  };
+}
+
+/** A record's own copy of the parsed properties (the parse is shared). */
+function copyProperties<T>(properties: T): T {
+  return properties && typeof properties === "object" ? ({ ...properties } as T) : properties;
+}

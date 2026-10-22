@@ -8,6 +8,7 @@ import type { AssetGroup } from "shared";
 import type { DFDElement, DFDConnection } from "../models/dfd-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
+import { RecordDescriptionField } from "./forms/record-description-field";
 
 // Import all element forms
 import { ProcessDescriptionForm } from "./forms/process-description-form";
@@ -16,7 +17,10 @@ import { ExternalEntityDescriptionForm } from "./forms/external-entity-form";
 import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
 import { InterfaceDescriptionForm } from "./forms/interface-description-form";
 import { TrustBoundaryDescriptionForm } from "./forms/trust-boundary-form";
-import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
+import {
+  DataFlowDescriptionForm,
+  type RefinementCandidate,
+} from "./forms/dataflow-description-form";
 import { ChipBoundaryDescriptionForm } from "./forms/chip-boundary-form";
 import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form";
 import { SensorDescriptionForm } from "./forms/sensor-description-form";
@@ -32,11 +36,33 @@ interface DFDElementFormProps {
   crossesTrustBoundary?: boolean; // For DataFlow
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   graphContext?: DFDGraphAnalysisContext | null;
+  /** Leveled DFD: flows a data flow may refine (§6.4); absent = single page. */
+  refinementCandidates?: RefinementCandidate[];
 }
 
 // ==================== COMPONENT ====================
 
-export const DFDElementForm: React.FC<DFDElementFormProps> = ({
+/**
+ * The form of the element or flow, with its description above (the field
+ * the DFD's completeness counts).
+ */
+export const DFDElementForm: React.FC<DFDElementFormProps> = (props) => {
+  const record = props.connection ?? props.element;
+  if (!record) return <DFDElementTypeForm {...props} />;
+  return (
+    <>
+      <RecordDescriptionField
+        recordId={record.id}
+        value={record.description}
+        onCommit={(description) => props.onChange({ description })}
+      />
+      <DFDElementTypeForm {...props} />
+    </>
+  );
+};
+
+/** The type-specific form. */
+const DFDElementTypeForm: React.FC<DFDElementFormProps> = ({
   element,
   connection,
   onChange,
@@ -44,6 +70,7 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
   crossesTrustBoundary = false,
   onCreateAsset,
   graphContext,
+  refinementCandidates,
 }) => {
   // ==================== DATA FLOW (Connection) ====================
 
@@ -58,6 +85,7 @@ export const DFDElementForm: React.FC<DFDElementFormProps> = ({
           graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
           undefined
         }
+        refinementCandidates={refinementCandidates}
       />
     );
   }

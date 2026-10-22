@@ -8,6 +8,7 @@ import type {
   ThreatSyncResult,
 } from "../../models/threat-types";
 import type { DFDAnalysisContext, StrideCategory } from "shared";
+import { unsupportedDfdLayoutError } from "../dfd-page-layout-guard";
 import type {
   ThreatService,
   GenerationResult,
@@ -27,6 +28,11 @@ export class ElementThreatService implements ThreatService {
     options?: { keepManual?: boolean },
   ): GenerationResult {
     try {
+      const layoutError = unsupportedDfdLayoutError(project);
+      if (layoutError) {
+        return { success: false, tables: [], error: layoutError };
+      }
+
       if (!project.dfdGraph) {
         return {
           success: false,
@@ -128,6 +134,16 @@ export class ElementThreatService implements ThreatService {
     syncStatus: ThreatSyncStatus,
     options: { updateReferences: boolean; removeOrphaned: boolean },
   ): ThreatSyncResult {
+    const layoutError = unsupportedDfdLayoutError(project);
+    if (layoutError) {
+      return {
+        success: false,
+        added: 0,
+        removed: 0,
+        updated: 0,
+        error: layoutError,
+      };
+    }
     return elementThreatSync.synchronizeThreats(
       project,
       dfdContext,

@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { DFDElement, DFDConnection } from "../models/dfd-types";
 import { buildOverlayXml } from "../services/dfd-overlay-builder";
+import type { CellRef } from "../services/leveled";
 import type { DrawioExportResult, DrawioViewport } from "../models/drawio-types";
 
 // ==================== TYPES ====================
@@ -15,7 +16,16 @@ export interface UseDrawioOverlayOptions {
   // 🔥 WICHTIG: echte CLEAN Quelle (Backend / Store / initial load XML)
   getProjectXml?: () => string;
 
-  loadXMLTransient: (xml: string, viewport?: DrawioViewport) => void;
+  loadXMLTransient: (xml: string, viewport?: DrawioViewport, pageId?: string | null) => void;
+
+  /**
+   * Leveled DFD: the cells that show a record on every page (definition and
+   * context copies). Without it the record id is the cell id (classic).
+   */
+  cellsOf?: (tfId: string) => readonly CellRef[];
+
+  /** The page the user is on — a load opens the first page, this one is opened again. */
+  getCurrentPageId?: () => string | null;
 }
 
 export interface UseDrawioOverlayReturn {
@@ -39,6 +49,14 @@ export function useDrawioOverlay(
   options: UseDrawioOverlayOptions,
 ): UseDrawioOverlayReturn {
   const { exportXML, loadXMLTransient, getProjectXml } = options;
+  // Read at call time: the index follows the saved DFD.
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+  const load = useCallback(
+    (xml: string, viewport?: DrawioViewport) =>
+      loadXMLTransient(xml, viewport, optionsRef.current.getCurrentPageId?.()),
+    [loadXMLTransient],
+  );
 
   const [isOverlayActive, setIsOverlayActive] = useState(false);
 
@@ -93,7 +111,7 @@ export function useDrawioOverlay(
         // empty → restore
         if (assetIds.length === 0) {
           if (baseXmlRef.current) {
-            loadXMLTransient(
+            load(
               baseXmlRef.current,
               viewportRef.current ?? undefined,
             );
@@ -124,6 +142,7 @@ export function useDrawioOverlay(
             elements,
             connections,
             currentXml,
+            optionsRef.current.cellsOf,
           );
 
           if (overlayXml) {
@@ -131,13 +150,13 @@ export function useDrawioOverlay(
           }
         }
 
-        loadXMLTransient(currentXml, viewportRef.current ?? undefined);
+        load(currentXml, viewportRef.current ?? undefined);
         setIsOverlayActive(true);
       } catch (err) {
         console.error("[useDrawioOverlay] showOverlay failed:", err);
       }
     },
-    [exportXML, loadXMLTransient],
+    [exportXML, load],
   );
 
   // ==================== CLEAR ====================
@@ -148,10 +167,10 @@ export function useDrawioOverlay(
       return;
     }
 
-    loadXMLTransient(baseXmlRef.current, viewportRef.current ?? undefined);
+    load(baseXmlRef.current, viewportRef.current ?? undefined);
 
     setIsOverlayActive(false);
-  }, [loadXMLTransient]);
+  }, [load]);
 
   return {
     isOverlayActive,

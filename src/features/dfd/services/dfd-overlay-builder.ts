@@ -10,15 +10,22 @@
 //                 Badge position is read from mxGeometry in the XML DOM — not from
 //                 DFD React state — so it stays correct after unsaved moves.
 //   • Connection: colored stroke only (no stable anchor point for badge)
+//
+// Leveled DFD (design §4): every page is kept and highlighted — a record
+// is shown by its cells on all pages (definition and context copies, from
+// the cell ↔ tfId index); before, only the first <diagram> was read and
+// the overlay replaced the whole file with that one page.
 
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { DFDElement, DFDConnection } from "../models/dfd-types";
 import { getAssetGroupColor } from "../models/dfd-formatters";
+import type { CellRef } from "./leveled";
 
 // ==================== INTERNAL TYPES ====================
 
 interface OverlayTarget {
-  cellId: string;
+  /** Record id (tfId). */
+  id: string;
   /** All relation type strings for this element → asset */
   relationTypes: string[];
   isConnection: boolean;
@@ -140,12 +147,18 @@ function escapeXmlAttr(s: string): string {
 
 // ==================== MAIN EXPORT ====================
 
+/**
+ * Overlay of one asset on every page of `baseXml`. `cellsOf` gives the
+ * cells that show a record (leveled DFD); without it, or when it knows no
+ * cell, the record id is taken as the cell id on every page (classic).
+ */
 export async function buildOverlayXml(
   assetId: string,
   assets: DFDAsset[],
   elements: DFDElement[],
   connections: DFDConnection[],
   baseXml: string,
+  cellsOf?: (tfId: string) => readonly CellRef[],
 ): Promise<string | null> {
   const asset = assets.find((a) => a.id === assetId);
   if (!asset) {
@@ -165,7 +178,7 @@ export async function buildOverlayXml(
     );
     if (matching.length === 0) continue;
     targets.push({
-      cellId: el.id,
+      id: el.id,
       relationTypes: [...new Set(matching.map((r) => r.relationType))],
       isConnection: false,
     });
@@ -177,7 +190,7 @@ export async function buildOverlayXml(
     );
     if (matching.length === 0) continue;
     targets.push({
-      cellId: conn.id,
+      id: conn.id,
       relationTypes: [...new Set(matching.map((r) => r.relationType))],
       isConnection: true,
     });
@@ -187,7 +200,7 @@ export async function buildOverlayXml(
     return null;
   }
 
-  // --- Parse and decompress base XML ---
+  // --- Parse base XML ---
 
   const parser = new DOMParser();
   const mxfileDoc = parser.parseFromString(baseXml, "text/xml");
@@ -198,15 +211,54 @@ export async function buildOverlayXml(
     return null;
   }
 
-  const diagramEl = mxfileDoc.querySelector("diagram");
-  if (!diagramEl) {
+  const diagrams = Array.from(mxfileDoc.getElementsByTagName("diagram"));
+  if (diagrams.length === 0) {
     console.error("[buildOverlayXml] No <diagram> element in base XML");
     return null;
   }
 
-  const diagramId = diagramEl.getAttribute("id") ?? "diagram";
-  const diagramName = diagramEl.getAttribute("name") ?? "Page-1";
+  // The cells of each target per page (a cell id is page-local).
+  const cellsByPage = new Map<string | undefined, { target: OverlayTarget; cellId: string }[]>();
+  for (const target of targets) {
+    const cells = cellsOf?.(target.id) ?? [];
+    if (cells.length === 0) {
+      const all = cellsByPage.get(undefined) ?? [];
+      cellsByPage.set(undefined, [...all, { target, cellId: target.id }]);
+    }
+    for (const cell of cells) {
+      const onPage = cellsByPage.get(cell.pageId) ?? [];
+      cellsByPage.set(cell.pageId, [...onPage, { target, cellId: cell.cellId }]);
+    }
+  }
 
+  const pagesXml: string[] = [];
+  for (const [index, diagramEl] of diagrams.entries()) {
+    const diagramId = diagramEl.getAttribute("id") ?? `diagram-${index}`;
+    const diagramName = diagramEl.getAttribute("name") ?? `Page-${index + 1}`;
+    const graphXml = await overlayPage(
+      parser,
+      diagramEl,
+      [...(cellsByPage.get(undefined) ?? []), ...(cellsByPage.get(diagramId) ?? [])],
+      assetId,
+      color,
+    );
+    if (graphXml === null) return null;
+    pagesXml.push(
+      `<diagram id="${escapeXmlAttr(diagramId)}" name="${escapeXmlAttr(diagramName)}">${graphXml}</diagram>`,
+    );
+  }
+
+  return `<mxfile>${pagesXml.join("")}</mxfile>`;
+}
+
+/** The <mxGraphModel> of one page with the overlay applied, uncompressed. */
+async function overlayPage(
+  parser: DOMParser,
+  diagramEl: Element,
+  cells: { target: OverlayTarget; cellId: string }[],
+  assetId: string,
+  color: string,
+): Promise<string | null> {
   // draw.io export with format:'xml' returns the diagram UNCOMPRESSED —
   // the <diagram> element contains <mxGraphModel> as a direct child element.
   // The autosave/load format uses COMPRESSED base64+deflate text content instead.
@@ -238,18 +290,15 @@ export async function buildOverlayXml(
     return null;
   }
 
-  // --- Apply overlay per target ---
+  // --- Apply overlay per target cell ---
 
   const badgesToAppend: string[] = [];
 
-  for (const target of targets) {
+  for (const { target, cellId } of cells) {
     // draw.io wraps elements as <object id="..."><mxCell .../></object>.
     // The id lives on the <object> tag — mxCell[id=...] finds nothing.
-    const container = root.querySelector(`[id="${target.cellId}"]`);
-    if (!container) {
-      console.warn("[buildOverlayXml] Element not found in XML for id:", target.cellId);
-      continue;
-    }
+    const container = root.querySelector(`[id="${cellId}"]`);
+    if (!container) continue; // not on this page
 
     // mxCell is either the container itself (plain cells) or a child of <object>
     const cell = container.tagName === "mxCell"
@@ -270,7 +319,7 @@ export async function buildOverlayXml(
         const label = target.relationTypes.join(" · ");
         const parentId = cell.getAttribute("parent") ?? "1";
         badgesToAppend.push(
-          buildBadgeXml(target.cellId, assetId, label, color, x, y, width, parentId),
+          buildBadgeXml(cellId, assetId, label, color, x, y, width, parentId),
         );
       }
     }
@@ -288,14 +337,10 @@ export async function buildOverlayXml(
     }
   }
 
-  // --- Serialize and wrap ---
+  // --- Serialize ---
 
   const serializer = new XMLSerializer();
-  let newGraphXml = serializer.serializeToString(graphDoc);
-
   // XMLSerializer prepends <?xml version="1.0"?> on document nodes.
   // draw.io rejects this inside <diagram> text content.
-  newGraphXml = newGraphXml.replace(/^<\?xml[^?]*\?>\s*/i, "");
-
-  return `<mxfile><diagram id="${diagramId}" name="${escapeXmlAttr(diagramName)}">${newGraphXml}</diagram></mxfile>`;
+  return serializer.serializeToString(graphDoc).replace(/^<\?xml[^?]*\?>\s*/i, "");
 }

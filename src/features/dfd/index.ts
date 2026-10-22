@@ -14,6 +14,8 @@ export type {
   DFDValidation,
   DFDStats,
   DFDData,
+  DFDPage,
+  DFDCellLink,
 
   // App integration
   DFDProjectData,
@@ -149,6 +151,13 @@ export { type ICrossingElements } from "./interfaces/drawio-interfaces";
 export { DFDPreviewDialog } from "./components/dfd-preview-dialog";
 export { DFDTab } from "./components/dfd-tab";
 export { DefaultDFDGraphBuilder } from "./services/dfd-graph-builder";
+export {
+  buildDfdGraph,
+  buildAnalysisView,
+  isLeveled,
+  type AnalysisView,
+  type DfdGraphSource,
+} from "./services/build-dfd-graph";
 
 // ==================== HOOKS ====================
 export { useDFDEditor } from "./hooks/use-dfd-editor";
@@ -159,6 +168,13 @@ export type {
 
 // ==================== SERVICES ====================
 export { dfdService } from "./services/dfd-service";
+export {
+  diffDfd,
+  drawingDiffers,
+  type DfdChange,
+  type DfdChangeCategory,
+  type DfdFieldChange,
+} from "./services/dfd-diff";
 export type { DFDSaveResult, DFDLoadResult } from "./services/dfd-service";
 
 export {
@@ -199,3 +215,18 @@ export {
   countDfdAssetReferences,
 } from "./services/dfd-asset-deletion";
 export { finalizeDfd } from "./services/dfd-finalize";
+
+// Leveled DFD (5j): data flows analysed on a parent level, for the threats tab.
+export {
+  parentLevelFlowsOf,
+  parentLevelFlowsFrom,
+  type ParentLevelFlow,
+} from "./services/leveled/parent-level-flows";
+
+// Leveled DFD (6a, D20): accordion groups of the asset / threat / risk tables.
+export { multiprocessGroupsOf, multiprocessGroupsFrom } from "./services/leveled/table-groups";
+export {
+  analyseLeveled,
+  parseDfd,
+  type LeveledAnalysis,
+} from "./services/leveled/leveled-analysis";

@@ -9,6 +9,7 @@ import {
   buildAssetGraph,
   relationTypesIn,
   searchAssets,
+  sourceOnPages,
   type AssetGraphSource,
 } from "features/dfd/asset-graph";
 import type { A2ARelation } from "shared";
@@ -61,6 +62,34 @@ describe("assetVisibility", () => {
     expect(assetVisibility(g, source, options, "h1")).toEqual({ state: "hiddenLayer", layer: "human" });
     expect(assetVisibility(g, source, options, "d2")).toEqual({ state: "outsideFocus" });
     expect(assetVisibility(g, source, options, "zz")).toEqual({ state: "unknown" });
+  });
+});
+
+describe("page filter (leveled DFD, 6f)", () => {
+  const leveled: AssetGraphSource = {
+    ...source,
+    elements: [
+      ...source.elements,
+      { id: "p2", type: "Process", assetRelations: [{ assetId: "d1", relationType: "processes" }] },
+      { id: "p3", type: "Process", assetRelations: [{ assetId: "d2", relationType: "processes" }] },
+    ],
+  };
+
+  it("keeps the elements on the pages, the assets they hold and the links among those", () => {
+    const shown = sourceOnPages(leveled, new Set(["pe", "p2"]));
+    expect(shown.elements.map((e) => e.id)).toEqual(["pe", "p2"]);
+    expect(shown.assets.map((a) => a.id)).toEqual(["d1", "f1"]);
+    expect(shown.relations.map((r) => r.id)).toEqual(["r1"]);
+  });
+
+  it("says an asset is outside the page filter", () => {
+    const options = { view: "layers" as const, layers: ASSET_GRAPH_PRESETS.architecture, focusAssetId: null };
+    const shown = sourceOnPages(leveled, new Set(["pe", "p2"]));
+    const g = buildAssetGraph(shown, options);
+    const onPages = new Set(shown.assets.map((a) => a.id));
+    expect(assetVisibility(g, leveled, options, "d2", onPages)).toEqual({ state: "outsidePage" });
+    expect(assetVisibility(g, leveled, options, "d1", onPages)).toEqual({ state: "visible" });
+    expect(assetVisibility(g, leveled, options, "zz", onPages)).toEqual({ state: "unknown" });
   });
 });
 

@@ -175,10 +175,38 @@ export { Button } from "./components/button";
 export { Toast, ToastContainer } from "./components/toast";
 export { Badge } from "./components/badge";
 export { GenericAccordion } from "./components/generic-accordion";
+export {
+  GroupAccordions,
+  type GroupAccordionSection,
+  type GroupSummaryRow,
+} from "./components/group-accordions";
 export { LazyTooltip } from "./components/lazy-tooltip";
 export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";
 export { DFDPreviewPanel } from "./components/dfd-preview-panel";
+export {
+  TOP_LEVEL_GROUP,
+  dfdItemRefOfThreat,
+  groupsOfDfdItem,
+  type DfdItemRef,
+  type DfdTableGroup,
+  type DfdTableGroups,
+} from "./models/dfd-table-groups";
+export {
+  NO_DFD_SCOPE_FILTER,
+  dfdItemOf,
+  dfdScopePredicate,
+  isDfdScopeFilterActive,
+  pageWithSubPages,
+  type DfdScopeFilter,
+  type DfdScopeIndex,
+  type DfdScopePage,
+} from "./models/dfd-scope";
+export { DfdScopeFilterControls } from "./components/dfd-scope-filter-controls";
+export {
+  dfdPreviewPagesOf,
+  type DFDPreviewPage,
+} from "./utils/dfd-preview-pages";
 export { MitigationCoverageBadge } from "./components/mitigation-coverage-badge";
 export {
   type DataColumn,
@@ -247,6 +275,11 @@ export {
   goalTypesFor,
 } from "./utils/threat-impact";
 export { formatAssetLabel } from "./utils/asset-label";
+export {
+  inspectDrawioPages,
+  describeUnsupportedPageLayout,
+} from "./utils/drawio-page-layout";
+export type { DrawioPageLayout } from "./utils/drawio-page-layout";
 export type { ThreatImpactAssets } from "./utils/threat-impact";
 export {
   ELEMENT_TYPE_ORDER,

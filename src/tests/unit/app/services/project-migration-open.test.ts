@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { settleMigrationOnOpen } from "app/services/project-migration-open";
+import { CURRENT_SCHEMA_VERSION } from "app/services/schema-version";
 
 const base: any = { id: "p", info: { name: "Smoke" }, filePath: "/p/s.tara.json" };
 const migrated: any = {
@@ -27,7 +28,7 @@ describe("settleMigrationOnOpen", () => {
       projectName: "Smoke",
       filePath: "/p/s.tara.json",
       fromVersion: 7,
-      toVersion: 8,
+      toVersion: CURRENT_SCHEMA_VERSION,
       backupPath: "/p/s.tara.v7.backup.json",
     });
     expect(res).toEqual({ status: "cancelled" });

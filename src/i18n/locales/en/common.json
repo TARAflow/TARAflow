@@ -1,5 +1,11 @@
 {
   "common": {
+    "dfdScope": {
+      "page": "Page",
+      "allPages": "All pages",
+      "withSubPages": "with sub-pages",
+      "parentLevelOnly": "Only flows analysed on parent level ({{count}})"
+    },
     "ok": "Ok",
     "save": "Save",
     "cancel": "Cancel",
@@ -139,7 +145,8 @@
         "v5": "Threats get a stable id, separate from the display number — edits survive renumbering.",
         "v6": "Assets get a stable id, separate from the display number — a group change no longer breaks references.",
         "v7": "Risks are linked by the stable threat id instead of the display number.",
-        "v8": "Asset-to-asset relations are stored in the project file. Before, they were lost on save."
+        "v8": "Asset-to-asset relations are stored in the project file. Before, they were lost on save.",
+        "v9": "The DFD can span several pages (top level and sub-diagrams). Nothing in the project changes; older TARAflow versions can no longer open the file, because they would merge the pages."
       }
     },
     "confirmAssetDelete": {

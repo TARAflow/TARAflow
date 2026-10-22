@@ -63,7 +63,7 @@ function validateConnectionIdLabels(
   for (const connection of connections) {
     const hasDisplayId = Boolean(connection.displayId);
     const hasIdInLabel =
-      connection.name && /\[DF-?\d+\]/i.test(connection.name);
+      connection.name && /\[DF-?\d+(?:\.\d+)*\]/i.test(connection.name);
 
     if (!hasDisplayId && !hasIdInLabel) {
       const label = connection.name || `Connection ${connection.id}`;
@@ -96,7 +96,7 @@ export function validateDuplicateConnectionIdLabels(
 
     // Also check for [DF-N] in label
     if (connection.name) {
-      const match = connection.name.match(/\[(DF-?\d+)\]/i);
+      const match = connection.name.match(/\[(DF-?\d+(?:\.\d+)*)\]/i);
       if (match) {
         const id = match[1].toUpperCase();
         if (!idLabels.has(id)) {

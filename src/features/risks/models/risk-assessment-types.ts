@@ -181,6 +181,14 @@ export interface RiskProjectData {
   attackTreeLikelihoods?: AttackTreeLikelihoodReference[];
   assetDataRef?: AssetDataReference;
   dfdPreviewImage?: string;
+  /** Leveled DFD (D18): one thumbnail per page, Top first. */
+  dfdPreviewPages?: import("shared").DFDPreviewPage[];
+  /**
+   * Leveled DFD (Phase 6b, D20): groups per top-level decomposed
+   * multiprocess; a risk follows its threat's group. Undefined for a
+   * classic DFD or without a decomposed multiprocess.
+   */
+  dfdTableGroups?: import("shared").DfdTableGroups;
   dfd?: DFDReference | null;
   /** Integration connection for Jira/ADO ticket linking in RiskMitigationStatusDialog */
   integration?: {

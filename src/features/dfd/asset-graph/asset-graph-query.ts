@@ -56,6 +56,8 @@ export type AssetVisibility =
   | { readonly state: "visible" }
   | { readonly state: "hiddenLayer"; readonly layer: string }
   | { readonly state: "outsideFocus" }
+  /** Leveled DFD (6f): held by no element of the pages the graph is filtered to. */
+  | { readonly state: "outsidePage" }
   | { readonly state: "unknown" };
 
 /** Why an asset is (not) drawn — the answer to "why don't I see X?" (UX-6). */
@@ -64,16 +66,39 @@ export function assetVisibility(
   source: AssetGraphSource,
   options: Pick<AssetGraphOptions, "layers">,
   assetId: string,
+  /** The assets the page filter keeps; absent = no page filter. */
+  onPages?: ReadonlySet<string>,
 ): AssetVisibility {
   if (graph.nodes.some((n) => n.kind === "asset" && n.id === assetId)) {
     return { state: "visible" };
   }
   const asset = source.assets.find((a) => a.id === assetId);
   if (!asset) return { state: "unknown" };
+  if (onPages && !onPages.has(assetId)) return { state: "outsidePage" };
   if (!options.layers.includes(asset.assetGroup as never)) {
     return { state: "hiddenLayer", layer: String(asset.assetGroup) };
   }
   return { state: "outsideFocus" };
+}
+
+// ==================== PAGE FILTER (leveled DFD, 6f) ====================
+
+/**
+ * The part of the source on some pages of a leveled DFD (§9): the elements
+ * and flows shown there (`items`), the assets they hold, and the asset links
+ * among those assets.
+ */
+export function sourceOnPages(
+  source: AssetGraphSource,
+  items: ReadonlySet<string>,
+): AssetGraphSource {
+  const elements = source.elements.filter((e) => items.has(e.id));
+  const held = new Set(elements.flatMap((e) => (e.assetRelations ?? []).map((r) => r.assetId)));
+  return {
+    assets: source.assets.filter((a) => held.has(a.id)),
+    relations: source.relations.filter((r) => held.has(r.sourceAssetId) && held.has(r.targetAssetId)),
+    elements,
+  };
 }
 
 // ==================== DETAIL: RELATIONS GROUPED BY TYPE (FR-V8) ====================

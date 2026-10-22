@@ -18,7 +18,13 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PHASES, getPhaseStatusIcon, getPhaseStatusColor, useToast } from "shared";
+import {
+  PHASES,
+  getPhaseStatusIcon,
+  getPhaseStatusColor,
+  useToast,
+  dfdPreviewPagesOf,
+} from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
 import {
   AssetDataReference,
@@ -45,7 +51,14 @@ import {
   DFDUpdateResult,
   DFDGraphAnalysisContext,
 } from "features/dfd";
-import { addCreatedAssets, translateFinding } from "features/dfd";
+import {
+  addCreatedAssets,
+  analyseLeveled,
+  isLeveled,
+  multiprocessGroupsFrom,
+  parentLevelFlowsFrom,
+  translateFinding,
+} from "features/dfd";
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
@@ -434,6 +447,25 @@ export const WorkspaceLayout: React.FC = () => {
         };
   }, []);
 
+  // Leveled DFD (5k): threats referring to a DFD element / flow (tfId), for
+  // the question when a linked definition is lost.
+  const threatCountLookup = useCallback((tfId: string) => {
+    const threats = activeProjectRef.current?.threats;
+    if (!threats) return 0;
+    let count = 0;
+    for (const table of [...threats.perElementTables, ...threats.perInteractionTables]) {
+      for (const threat of table.threats) {
+        if (
+          threat.linkedElement?.elementId === tfId ||
+          threat.dataFlow?.connectionId === tfId
+        ) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }, []);
+
   const makeAssetDeleteHandler = useCallback(
     (projectId: string) => async (assetId: string) => {
       const current = projectsRef.current.find((p) => p.id === projectId);
@@ -632,6 +664,30 @@ export const WorkspaceLayout: React.FC = () => {
     [activeDfdGraph],
   );
 
+  // Leveled DFD: one shared analysis (parse + effective model) for the
+  // parent-level flows (5j) and the table groups (Phase 6, D20).
+  const activeDfd = activeProject?.dfd;
+  const leveledAnalysis = useMemo(
+    () =>
+      activeDfd?.xml && activeDfd.pages && activeDfd.pages.length > 1 && isLeveled(activeDfd.xml)
+        ? analyseLeveled({
+            xml: activeDfd.xml,
+            pages: activeDfd.pages,
+            elements: activeDfd.elements ?? [],
+            connections: activeDfd.connections ?? [],
+          })
+        : null,
+    [activeDfd?.xml, activeDfd?.pages, activeDfd?.elements, activeDfd?.connections],
+  );
+  const memoizedParentLevelFlows = useMemo(
+    () => (leveledAnalysis ? parentLevelFlowsFrom(leveledAnalysis) : []),
+    [leveledAnalysis],
+  );
+  const memoizedTableGroups = useMemo(
+    () => (leveledAnalysis ? multiprocessGroupsFrom(leveledAnalysis) : undefined),
+    [leveledAnalysis],
+  );
+
   const memoizedDFDContext = useMemo(
     () => (activeDfdGraph ? new DFDGraphAnalysisContext(activeDfdGraph) : null),
     [activeDfdGraph],
@@ -828,6 +884,7 @@ export const WorkspaceLayout: React.FC = () => {
           causeDescription: threat.causeDescription,
           linkedAssetIds,
           relevance: threat.relevance ?? "unrated",
+          ...(threat.review ? { review: threat.review } : {}),
           proposedMitigations: resolveMitigationDrafts(
             threat.proposedMitigations ?? [],
           ).map((m) => ({
@@ -857,6 +914,10 @@ export const WorkspaceLayout: React.FC = () => {
           // to resolve and EN 50742 EL silently stays 0 in the Risk tab.
           linkedElement: threat.linkedElement ?? null,
           dataFlow: threat.dataFlow ?? null,
+          // Table group of a flow between multiprocesses (D20): the attacked side.
+          ...(threat.interactionContext?.victimRole
+            ? { interactionContext: { victimRole: threat.interactionContext.victimRole } }
+            : {}),
         });
       }
     }
@@ -885,6 +946,9 @@ export const WorkspaceLayout: React.FC = () => {
             phases={PHASES}
             progressPhaseIds={getProgressPhaseIds(
               activeProject.info?.safetyRelevant ?? false,
+              regulationPresetFromTags(
+                activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+              ) === "iso-21434",
             )}
             getStatusIcon={getPhaseStatusIcon}
             getStatusColor={getPhaseStatusColor}
@@ -925,6 +989,7 @@ export const WorkspaceLayout: React.FC = () => {
               project={dfdTabProject}
               onUpdate={handleDFDUpdate}
               assetUsage={assetUsageLookup}
+              threatCountOf={threatCountLookup}
               graphFocusRequest={graphFocusRequest}
               onShowInTable={(assetId) => {
                 setTableHighlightRequest({ assetId });
@@ -948,6 +1013,8 @@ export const WorkspaceLayout: React.FC = () => {
               dfdElements: memoizedDFDElements,
               dfdConnections: memoizedDFDConnections,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
+              dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
+              dfdTableGroups: memoizedTableGroups,
               lastModified: activeProject.info?.lastModified || "",
               damageScenarioMode:
                 regulationPresetFromTags(
@@ -980,11 +1047,15 @@ export const WorkspaceLayout: React.FC = () => {
               threats: activeProject.threats ?? null,
               phaseStatus: activeProject.phaseStatus,
               dfdXml: activeProject.dfd?.xml,
+              dfdPageIds: activeProject.dfd?.pages?.map((p) => p.pageId),
+              dfdParentLevelFlows: memoizedParentLevelFlows,
+              dfdTableGroups: memoizedTableGroups,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               dfdElements: (activeProject.dfd?.elements || []) as any[],
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               dfdConnections: activeProject.dfd?.connections as any,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
+              dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               assetIds: activeProject.assets?.assets?.map((a) => a.id),
               lastModified: activeProject.info?.lastModified || "",
               dfdGraph: memoizedDFDGraphRef,
@@ -1043,6 +1114,8 @@ export const WorkspaceLayout: React.FC = () => {
               assetDataRef: memoizedAssetDataRef,
               dfd: memoizedDFDReference,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
+              dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
+              dfdTableGroups: memoizedTableGroups,
               integration: activeProject.integration
                 ? {
                     connection: {
@@ -1091,6 +1164,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdElements: extractDFDElementReferences(activeProject),
               mitigations: extractMitigationReferences(activeProject),
               dfdPreviewImage: activeProject.dfd?.thumbnail,
+              dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handleAttackTreeUpdate}

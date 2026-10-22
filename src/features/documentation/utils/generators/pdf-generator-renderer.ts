@@ -15,6 +15,7 @@ import {
   type DocumentGeneratorResult,
   type ChapterContent,
 } from "./base-generator";
+import type { StatsTable } from "../threat-risk-stats";
 import { HtmlGenerator } from "./html-generator";
 
 // ==================== PDF OPTIONS ====================
@@ -297,6 +298,18 @@ export class PdfGenerator extends BaseDocumentGenerator {
     return this.htmlGenerator.getDfdTemplate();
   }
 
+  formatDfdFigure(image: string | undefined, alt: string): string {
+    return this.htmlGenerator.formatDfdFigure(image, alt);
+  }
+
+  formatReportGroup(title: string, body: string, summary?: string): string {
+    return this.htmlGenerator.formatReportGroup(title, body, summary);
+  }
+
+  formatStatsTable(table: StatsTable): string {
+    return this.htmlGenerator.formatStatsTable(table);
+  }
+
   getDfdDescriptionsTemplate(): string {
     return this.htmlGenerator.getDfdDescriptionsTemplate();
   }
@@ -387,6 +400,22 @@ export class PdfGenerator extends BaseDocumentGenerator {
 
   getElementOverviewRowTemplate(): string {
     return this.htmlGenerator.getElementOverviewRowTemplate();
+  }
+
+  getDfdPageSectionTemplate(): string {
+    return this.htmlGenerator.getDfdPageSectionTemplate();
+  }
+
+  getDfdParentLevelFlowsTemplate(): string {
+    return this.htmlGenerator.getDfdParentLevelFlowsTemplate();
+  }
+
+  getDfdParentLevelFlowRowTemplate(): string {
+    return this.htmlGenerator.getDfdParentLevelFlowRowTemplate();
+  }
+
+  getDfdElementOverviewPageTableTemplate(): string {
+    return this.htmlGenerator.getDfdElementOverviewPageTableTemplate();
   }
 
   getDfdElementDetailedEntryTemplate(): string {

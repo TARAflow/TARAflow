@@ -193,12 +193,20 @@ export interface CommitHistoryEntry {
 
 export type ChangeType = "added" | "modified" | "deleted";
 
+/**
+ * What kind of DFD change (leveled-dfd design §11.3): the logical model
+ * (semantic), the drawing only (graphical), the page tree (structural), or a
+ * cell's identity. Set for DFD changes; other phases leave it out.
+ */
+export type ChangeCategory = "semantic" | "graphical" | "structural" | "identity";
+
 export interface ChangeItem {
   type: ChangeType;
   id: string;
   name: string;
   description: string;
   details?: ChangeDetail[];
+  category?: ChangeCategory;
 }
 
 export interface ChangeDetail {
@@ -361,7 +369,9 @@ export function generateCommitMessage(data: CommitMessageData): string {
     phase.changes.forEach((change) => {
       const prefix =
         change.type === "added" ? "+" : change.type === "deleted" ? "-" : "~";
-      body.push(`    ${prefix} ${change.id}: ${change.name}`);
+      // DFD changes say what kind they are (§11.3): [semantic], [graphical], …
+      const category = change.category ? ` [${change.category}]` : "";
+      body.push(`    ${prefix} ${change.id}: ${change.name}${category}`);
       // Detail deltas (e.g. impact ratings, security goals, and asset<->DFD
       // relations via "Linked DFD Elements") make the message concrete. Skip
       // no-op details so the body stays signal, not noise.

@@ -139,11 +139,15 @@ export function refreshLinkedAssets(
     let ids: string[] | undefined;
     const df = threat.dataFlow;
     if (df?.connectionId) {
+      // A stored flow threat names its ends sourceId / targetId (the
+      // DataFlowReference); reading fromElementId / toElementId — the
+      // analysis graph's names — found nothing and dropped the endpoints'
+      // assets on every sync.
       ids = [
         ...new Set([
           ...(index.get(df.connectionId) ?? []),
-          ...(df.fromElementId ? (index.get(df.fromElementId) ?? []) : []),
-          ...(df.toElementId ? (index.get(df.toElementId) ?? []) : []),
+          ...(df.sourceId ? (index.get(df.sourceId) ?? []) : []),
+          ...(df.targetId ? (index.get(df.targetId) ?? []) : []),
         ]),
       ];
     } else if (threat.linkedElement?.elementId) {

@@ -467,6 +467,9 @@ li {
   white-space: nowrap;
 }
 
+/* Leveled DFD: a page section whose page has no stored image */
+.dfd-no-image { padding: 1em; border: 1px dashed var(--color-border); color: var(--color-text-muted); font-style: italic; }
+
 /* Print Styles for Extended Elements */
 @media print {
   .element-detail,

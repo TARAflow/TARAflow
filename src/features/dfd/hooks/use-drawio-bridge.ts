@@ -4,11 +4,19 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { DFDProjectData } from "../models/dfd-types";
-import { DrawioBridge } from "../services/drawio-bridge";
+import {
+  DrawioBridge,
+  type ContextCellMap,
+  type PageSvgExport,
+  type DrawioPageSyncResult,
+  type DrawioPageSyncSpec,
+} from "../services/drawio-bridge";
 import type {
   DrawioViewport,
   DrawioExportResult,
 } from "../models/drawio-types";
+import type { SelectionCallback } from "../interfaces/dfd-editor-interfaces";
+import type { PageTabInfoMap } from "../services/leveled/page-tab-info";
 import { createDFDStorageAdapter } from "../services/dfd-storage-adapter";
 import dfdService from "../services/dfd-service";
 
@@ -18,7 +26,7 @@ export interface UseDrawioBridgeOptions {
   darkMode?: boolean;
   onDiagramChange?: () => void;
   onDiagramChangeWithXml?: (xml: string) => void; // NEU
-  onSelectionChanged?: (cells: any[]) => void;
+  onSelectionChanged?: SelectionCallback;
   onPluginReady?: () => void;
 }
 
@@ -41,11 +49,21 @@ export interface UseDrawioBridgeReturn {
   getCurrentXML: () => string | null;
   exportImage: () => Promise<string | null>;
   sendAction: (action: string) => void;
-  selectCell: (cellId: string) => Promise<void>;
+  selectCell: (cellId: string, pageId?: string | null) => Promise<void>;
+  /** The TARAflow plugin runs in draw.io (Electron); reset on re-init. */
+  pluginReady: boolean;
+  /** Tooltip and finding badge per page tab (leveled DFD 5c). */
+  setPageTabInfo: (info: PageTabInfoMap) => Promise<void>;
+  /** Child pages, page links, page names in draw.io (leveled DFD 5d). */
+  syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
+  /** Context copies shown faded and dashed (leveled DFD 5g). */
+  setContextCells: (cells: ContextCellMap) => Promise<void>;
+  /** One SVG thumbnail per page (leveled DFD 5i, D18). */
+  exportPageSvgs: (pageIds: string[]) => Promise<PageSvgExport>;
 
   // Event handlers
   onImageReady: (handler: (imageData: string) => void) => void;
-  loadXMLTransient: (xml: string, viewport?: DrawioViewport) => void;
+  loadXMLTransient: (xml: string, viewport?: DrawioViewport, pageId?: string | null) => void;
 }
 
 // ==================== HOOK ====================
@@ -67,6 +85,7 @@ export function useDrawioBridge(
   const [isLoading, setIsLoading] = useState(true);
   const [iframeKey, setIframeKey] = useState(0);
   const [selectedCells, setSelectedCells] = useState<any[]>([]); // ✅ NEU
+  const [pluginReady, setPluginReady] = useState(false);
 
   // ==================== REFS ====================
 
@@ -138,9 +157,9 @@ export function useDrawioBridge(
         });
       }
 
-      bridge.onSelectionChanged((cells) => {
+      bridge.onSelectionChanged((cells, pageId) => {
         setSelectedCells(cells);
-        onSelectionChangedRef.current?.(cells);
+        onSelectionChangedRef.current?.(cells, pageId);
       });
 
       bridge.onDiagramChangeWithXml((xml: string) => {
@@ -165,6 +184,7 @@ export function useDrawioBridge(
         }
       });
 
+      setPluginReady(false);
       const injectPlugin = async () => {
         // Wait until draw.io is fully loaded before injecting the plugin.
         await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -182,6 +202,7 @@ export function useDrawioBridge(
             } else {
               // Plugin is fully ready — draw.io can now respond to exportImage().
               // Notify the caller so an initial thumbnail can be generated.
+              setPluginReady(true);
               onPluginReadyRef.current?.();
             }
           } catch (error) {
@@ -254,14 +275,14 @@ export function useDrawioBridge(
   }, []);
 
   const loadXMLTransient = useCallback(
-    (xml: string, viewport?: DrawioViewport): void => {
+    (xml: string, viewport?: DrawioViewport, pageId?: string | null): void => {
       if (!bridgeRef.current) {
         console.warn(
           "[useDrawioBridge] loadXMLTransient: bridge not initialized",
         );
         return;
       }
-      bridgeRef.current.loadXmlTransient(xml, viewport);
+      bridgeRef.current.loadXmlTransient(xml, viewport, pageId);
     },
     [],
   );
@@ -316,10 +337,36 @@ export function useDrawioBridge(
     bridgeRef.current.sendAction(action);
   }, []);
 
-  const selectCell = useCallback(async (cellId: string): Promise<void> => {
+  const selectCell = useCallback(
+    async (cellId: string, pageId?: string | null): Promise<void> => {
+      if (!bridgeRef.current) return;
+      await bridgeRef.current.selectCell(cellId, pageId);
+    },
+    [],
+  );
+
+  const setPageTabInfo = useCallback(async (info: PageTabInfoMap): Promise<void> => {
     if (!bridgeRef.current) return;
-    await bridgeRef.current.selectCell(cellId);
+    await bridgeRef.current.setPageTabInfo(info);
   }, []);
+
+  const setContextCells = useCallback(async (cells: ContextCellMap): Promise<void> => {
+    if (!bridgeRef.current) return;
+    await bridgeRef.current.setContextCells(cells);
+  }, []);
+
+  const exportPageSvgs = useCallback(async (pageIds: string[]): Promise<PageSvgExport> => {
+    if (!bridgeRef.current) return { success: false, error: "no bridge" };
+    return bridgeRef.current.exportPageSvgs(pageIds);
+  }, []);
+
+  const syncPages = useCallback(
+    async (spec: DrawioPageSyncSpec): Promise<DrawioPageSyncResult> => {
+      if (!bridgeRef.current) return { success: false, error: "no bridge" };
+      return bridgeRef.current.syncPages(spec);
+    },
+    [],
+  );
 
 
   const onImageReady = useCallback((handler: (imageData: string) => void) => {
@@ -385,6 +432,11 @@ export function useDrawioBridge(
     exportImage,
     sendAction,
     selectCell,
+    pluginReady,
+    setPageTabInfo,
+    syncPages,
+    setContextCells,
+    exportPageSvgs,
     onImageReady,
     loadXMLTransient,
   };

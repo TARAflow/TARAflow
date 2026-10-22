@@ -81,7 +81,7 @@ export const useRiskGrouping = (
 
       // For per-element: group by element within trust boundary
       if (isPerElement && threat?.elementName) {
-        const elementIdMatch = (risk.threatDisplayId ?? "").match(/^([A-Z]+\d+)/);
+        const elementIdMatch = (risk.threatDisplayId ?? "").match(/^([A-Z]+\d+(?:\.\d+)*)/);
         const elementId = elementIdMatch
           ? elementIdMatch[1]
           : threat.elementName;
@@ -95,7 +95,7 @@ export const useRiskGrouping = (
           ? "Interface"
           : "Process";
 
-        if (/-IF\d+-/.test(risk.threatId)) {
+        if (/-IF\d+(?:\.\d+)*-/.test(risk.threatId)) {
           elementType = "Interface";
         }
 

@@ -11,7 +11,7 @@ import React, {
   useMemo,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Collapse } from "@mui/material";
+import { Alert, Box, Collapse } from "@mui/material";
 import type {
   Threat,
   ThreatData,
@@ -27,6 +27,7 @@ import { ThreatEvalDialog } from "./shared/threat-dialog";
 import { ThreatConfigDialog } from "./shared/threat-config-dialog";
 import { ThreatSyncBanner } from "./shared/threat-sync-banner";
 import { ThreatDriftBanner } from "./shared/threat-drift-banner";
+import { unsupportedDfdLayoutError } from "../services/dfd-page-layout-guard";
 import { ThreatDriftDialog } from "./shared/threat-drift-dialog";
 import {
   detectGenerationDrift,
@@ -50,6 +51,12 @@ import {
   EMPTY_PROJECT_TAGS,
 } from "shared";
 import { StrategyIndicator } from "./shared/strategy-indicator";
+import { ParentLevelFlowsBanner } from "./parent-level-flows-banner";
+import { ThreatReconciliationSummary } from "./shared/threat-reconciliation-summary";
+import {
+  reconcileForProject,
+  type ThreatReconciliation,
+} from "../services/threat-reconciliation";
 
 // ==================== HELPER ====================
 
@@ -150,7 +157,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   } | null>(null);
   const [showThreatDialog, setShowThreatDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
-  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+  // Open "Regenerate" confirmation with the reconciliation of that moment
+  // (6e, §10); null while closed.
+  const [generateConfirm, setGenerateConfirm] = useState<{
+    reconciliation: ThreatReconciliation | null;
+  } | null>(null);
+  const showGenerateConfirm = generateConfirm !== null;
   const [deleteManualThreats, setDeleteManualThreats] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
@@ -245,7 +257,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   );
 
   const handleGenerateConfirm = useCallback(async () => {
-    setShowGenerateConfirm(false);
+    setGenerateConfirm(null);
     const keepManual = !deleteManualThreats;
 
     let success = false;
@@ -288,6 +300,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       activeHook.updateThreat(selectedThreat.tableIndex, {
         ...source,
         ...updates,
+        // Saving is the analyst's review (6e): the flag ends here.
+        review: undefined,
       });
     },
     [selectedThreat, activeHook],
@@ -415,6 +429,31 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
   const hasDFD = !!project.dfdElements && project.dfdElements.length > 0;
 
+  // Phase 0 guard (leveled-DFD design §13): a multi-page or compressed DFD
+  // layout blocks generation and sync. The services refuse as well; this only
+  // makes the block visible and disables the toolbar actions.
+  const dfdLayoutBlocked = useMemo(
+    () =>
+      unsupportedDfdLayoutError({
+        dfdXml: project.dfdXml,
+        dfdPageIds: project.dfdPageIds,
+      }) !== null,
+    [project.dfdXml, project.dfdPageIds],
+  );
+
+  // ── Reconciliation (6e, §10): what "Regenerate" would do ─────────────────
+  // Computed once when the confirmation opens (it runs the generator).
+  const openGenerateConfirm = useCallback(
+    () =>
+      setGenerateConfirm({
+        reconciliation: hasDFD
+          ? reconcileForProject(project, dfdContext, configuration, activeMethod)
+          : null,
+      }),
+    [hasDFD, project, dfdContext, configuration, activeMethod],
+  );
+  const reconciliation = generateConfirm?.reconciliation ?? null;
+
   // ── Generation drift ────────────────────────────────────────────────────
   // Stored threats vs. what the current rules / security goals would produce.
   // Only evaluated while the DFD sync is clean: threats for new or deleted
@@ -484,7 +523,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         activeMethod={activeMethod}
         disabledMethods={disabledMethods}
         hasThreats={hasThreats}
-        hasDFD={hasDFD}
+        hasDFD={hasDFD && !dfdLayoutBlocked}
         syncStatus={activeHook.syncStatus}
         showDFDPreview={showDFDPreview}
         showFilters={showFilters}
@@ -498,7 +537,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         onMethodChange={(_, method) => {
           if (method) handleMethodChange(method);
         }}
-        onGenerate={() => setShowGenerateConfirm(true)}
+        onGenerate={openGenerateConfirm}
         onSync={() =>
           activeHook.synchronizeThreats({
             updateReferences: true,
@@ -511,10 +550,26 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         onImport={handleImportClick}
       />
 
+      {/* Unsupported DFD page layout — generation and sync blocked */}
+      {dfdLayoutBlocked && (
+        <Box sx={{ px: 2, py: 1 }}>
+          <Alert severity="error">
+            {t("tabs.threats.dfdPageLayoutUnsupported", {
+              defaultValue:
+                "The DFD has pages that are not adopted into the page tree yet, or a compressed page. Threat generation and synchronisation are disabled until the pages are adopted (\"Adopt pages…\" in the DFD tab).",
+            })}
+          </Alert>
+        </Box>
+      )}
+
+      {/* Leveled DFD: flows analysed on a parent level (§6.5, 5j) */}
+      {!dfdLayoutBlocked && <ParentLevelFlowsBanner flows={project.dfdParentLevelFlows} />}
+
       {/* Sync Warning Banner */}
       <Collapse
         in={
           hasDFD &&
+          !dfdLayoutBlocked &&
           hasThreats &&
           activeHook.syncStatus !== null &&
           !activeHook.syncStatus.inSync &&
@@ -543,7 +598,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             drift={drift}
             riskAttachments={project.riskAttachments}
             onReview={() => setShowDriftDialog(true)}
-            onRegenerate={() => setShowGenerateConfirm(true)}
+            onRegenerate={openGenerateConfirm}
             onDismiss={() => setShowDriftWarning(false)}
           />
         </Box>
@@ -577,7 +632,10 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 bgcolor: "background.default",
               }}
             >
-              <DFDPreviewPanel imageSrc={project.dfdPreviewImage} />
+              <DFDPreviewPanel
+              imageSrc={project.dfdPreviewImage}
+              pages={project.dfdPreviewPages}
+            />
             </Box>
 
             {/* Resize Handle */}
@@ -647,6 +705,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               onAdd={elementHook.addThreat}
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
+              groups={project.dfdTableGroups}
             />
           ) : (
             <InteractionThreatsView
@@ -665,6 +724,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               onAdd={interactionHook.addThreat}
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
+              groups={project.dfdTableGroups}
             />
           )}
         </Box>
@@ -718,7 +778,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           })}
           message={t("tabs.threats.generateConfirmMessage", {
             defaultValue:
-              "This will replace all existing threats for the current method. Consider using 'Sync' to only add new threats. Continue?",
+              "Threats generated again keep their rating; threats whose references changed are flagged for review. Continue?",
           })}
           variant="warning"
           confirmLabel={t("tabs.threats.regenerate", {
@@ -727,10 +787,13 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
           onConfirm={handleGenerateConfirm}
           onCancel={() => {
-            setShowGenerateConfirm(false);
+            setGenerateConfirm(null);
             setDeleteManualThreats(false);
           }}
         >
+          {reconciliation && (
+            <ThreatReconciliationSummary reconciliation={reconciliation} />
+          )}
           {drift.obsolete.length > 0 && (
             <div className="mb-3 text-sm text-amber-800">
               <p>
@@ -745,7 +808,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 type="button"
                 className="mt-1 underline"
                 onClick={() => {
-                  setShowGenerateConfirm(false);
+                  setGenerateConfirm(null);
                   setDeleteManualThreats(false);
                   setShowDriftDialog(true);
                 }}

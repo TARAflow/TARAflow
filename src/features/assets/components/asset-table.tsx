@@ -103,7 +103,100 @@ export interface AssetTableProps {
    * offers the "Needs review only" filter.
    */
   needsReview?: ReadonlySet<string>;
+  /**
+   * Leveled DFD (Phase 6c): the table sits in a group accordion and takes
+   * the height of its rows instead of filling the panel.
+   */
+  autoHeight?: boolean;
+  /**
+   * Leveled DFD (Phase 6c): "Show factors" and "Needs review only" set once
+   * for all group tables (AssetTableToolbar above the groups). Given → the
+   * table has no toolbar of its own and follows these settings.
+   */
+  view?: AssetTableView;
 }
+
+/** Settings of the asset table toolbar. */
+export interface AssetTableView {
+  factorsVisible: boolean;
+  reviewOnly: boolean;
+}
+
+// ==================== TOOLBAR ====================
+
+export interface AssetTableToolbarProps {
+  view: AssetTableView;
+  onChange: (view: AssetTableView) => void;
+  /** Ids of assets that need review; given → the review filter is offered. */
+  needsReview?: ReadonlySet<string>;
+  /** Assets counted for the review filter. */
+  reviewCount: number;
+}
+
+/** "Show factors" and "Needs review only" — per table or once above the groups. */
+export const AssetTableToolbar: React.FC<AssetTableToolbarProps> = ({
+  view,
+  onChange,
+  needsReview,
+  reviewCount,
+}) => {
+  const { t } = useTranslation();
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        px: 1,
+        py: 0.5,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        backgroundColor: "grey.50",
+      }}
+      data-testid="asset-table-toolbar"
+    >
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<ShowColumnsIcon />}
+        onClick={() => onChange({ ...view, factorsVisible: !view.factorsVisible })}
+        color={view.factorsVisible ? "primary" : "inherit"}
+        sx={{ fontSize: "0.72rem", py: 0.25, textTransform: "none" }}
+      >
+        {t(
+          view.factorsVisible
+            ? "tabs.assets.tooltips.hideFactors"
+            : "tabs.assets.tooltips.showFactors",
+        )}
+      </Button>
+      {needsReview && (
+        <Tooltip
+          arrow
+          title={t("tabs.assets.reviewFilter.tooltip", {
+            defaultValue:
+              "Show only assets with errors or warnings in the findings",
+          })}
+        >
+          <Button
+            size="small"
+            variant={view.reviewOnly ? "contained" : "outlined"}
+            startIcon={<ReviewFilterIcon />}
+            onClick={() => onChange({ ...view, reviewOnly: !view.reviewOnly })}
+            color={view.reviewOnly ? "warning" : "inherit"}
+            aria-pressed={view.reviewOnly}
+            data-testid="asset-review-filter"
+            sx={{ fontSize: "0.72rem", py: 0.25, textTransform: "none" }}
+          >
+            {t("tabs.assets.reviewFilter.label", {
+              count: reviewCount,
+              defaultValue: "Needs review only ({{count}})",
+            })}
+          </Button>
+        </Tooltip>
+      )}
+    </Box>
+  );
+};
 
 // ==================== CATEGORY ICONS ====================
 // Icons cannot live in shared (React elements) — kept local and merged with ASSET_GROUP_CONFIG
@@ -198,6 +291,13 @@ function getBusinessImpactBg(level: number, maxLevels: number): string {
 /** How long a row stays marked after "Show in table" (FR-V13). */
 export const HIGHLIGHT_MS = 5000;
 
+/**
+ * Times (ms after a "Show in table" request) at which a table with
+ * autoHeight scrolls the row into view: after the first paint, after the
+ * accordion transition and after the row heights were measured.
+ */
+export const SCROLL_RETRY_MS = [50, 350, 800] as const;
+
 export const AssetTable = React.memo<AssetTableProps>(
   ({
     assets,
@@ -210,6 +310,8 @@ export const AssetTable = React.memo<AssetTableProps>(
     onShowInGraph,
     highlightRequest,
     needsReview,
+    autoHeight = false,
+    view,
   }) => {
     const { t, i18n } = useTranslation();
     const apiRef = useGridApiRef();
@@ -217,7 +319,8 @@ export const AssetTable = React.memo<AssetTableProps>(
     const isGerman = i18n.language === "de";
 
     // ── "Needs review only" filter ────────────────────────────────────────
-    const [reviewOnly, setReviewOnly] = useState(false);
+    const [ownReviewOnly, setReviewOnly] = useState(false);
+    const reviewOnly = view ? view.reviewOnly : ownReviewOnly;
     const reviewCount = useMemo(
       () => (needsReview ? assets.filter((a) => needsReview.has(a.id)).length : 0),
       [assets, needsReview],
@@ -239,11 +342,25 @@ export const AssetTable = React.memo<AssetTableProps>(
         api.setPage(Math.floor(index / pageSize));
         api.scrollToIndexes({ rowIndex: index % pageSize });
       });
+      // A grid with autoHeight (group accordions) has no scroll area of its
+      // own: bring the row into view in the page. The page is not final yet
+      // — the group accordion may still be opening and the grid measures
+      // its row heights after the first paint — so a single scroll falls
+      // short for a row further down. Repeat until the layout has settled.
+      const scrollTimers = autoHeight
+        ? SCROLL_RETRY_MS.map((ms) =>
+            setTimeout(
+              () => apiRef.current?.getRowElement?.(id)?.scrollIntoView?.({ block: "center" }),
+              ms,
+            ),
+          )
+        : [];
       // The mark is a pointer, not a state: it fades after a few seconds.
       const timer = setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
       return () => {
         cancelAnimationFrame(frame);
         clearTimeout(timer);
+        scrollTimers.forEach(clearTimeout);
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [highlightRequest]);
@@ -263,8 +380,20 @@ export const AssetTable = React.memo<AssetTableProps>(
       Record<string, boolean>
     >(() => Object.fromEntries(factorFields.map((f) => [f, false])));
 
-    const factorsVisible = factorFields.some(
+    const ownFactorsVisible = factorFields.some(
       (f) => columnVisibilityModel[f] !== false,
+    );
+    const factorsVisible = view ? view.factorsVisible : ownFactorsVisible;
+    // Under the shared toolbar the factor columns follow its setting.
+    const effectiveVisibilityModel = useMemo(
+      () =>
+        view
+          ? {
+              ...columnVisibilityModel,
+              ...Object.fromEntries(factorFields.map((f) => [f, view.factorsVisible])),
+            }
+          : columnVisibilityModel,
+      [view, columnVisibilityModel, factorFields],
     );
 
     const handleToggleFactors = () => {
@@ -1509,7 +1638,7 @@ export const AssetTable = React.memo<AssetTableProps>(
     return (
       <Box
         sx={{
-          height: "100%",
+          height: autoHeight ? "auto" : "100%",
           width: "100%",
           display: "flex",
           flexDirection: "column",
@@ -1520,59 +1649,17 @@ export const AssetTable = React.memo<AssetTableProps>(
           overflow: "hidden",
         }}
       >
-        {/* Factor Columns Toggle bar */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            px: 1,
-            py: 0.5,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            backgroundColor: "grey.50",
-          }}
-        >
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<ShowColumnsIcon />}
-            onClick={handleToggleFactors}
-            color={factorsVisible ? "primary" : "inherit"}
-            sx={{ fontSize: "0.72rem", py: 0.25, textTransform: "none" }}
-          >
-            {t(
-              factorsVisible
-                ? "tabs.assets.tooltips.hideFactors"
-                : "tabs.assets.tooltips.showFactors",
-            )}
-          </Button>
-          {needsReview && (
-            <Tooltip
-              arrow
-              title={t("tabs.assets.reviewFilter.tooltip", {
-                defaultValue:
-                  "Show only assets with errors or warnings in the findings",
-              })}
-            >
-              <Button
-                size="small"
-                variant={reviewOnly ? "contained" : "outlined"}
-                startIcon={<ReviewFilterIcon />}
-                onClick={() => setReviewOnly((v) => !v)}
-                color={reviewOnly ? "warning" : "inherit"}
-                aria-pressed={reviewOnly}
-                data-testid="asset-review-filter"
-                sx={{ fontSize: "0.72rem", py: 0.25, textTransform: "none" }}
-              >
-                {t("tabs.assets.reviewFilter.label", {
-                  count: reviewCount,
-                  defaultValue: "Needs review only ({{count}})",
-                })}
-              </Button>
-            </Tooltip>
-          )}
-        </Box>
+        {!view && (
+          <AssetTableToolbar
+            view={{ factorsVisible, reviewOnly }}
+            onChange={(next) => {
+              if (next.factorsVisible !== factorsVisible) handleToggleFactors();
+              if (next.reviewOnly !== reviewOnly) setReviewOnly(next.reviewOnly);
+            }}
+            needsReview={needsReview}
+            reviewCount={reviewCount}
+          />
+        )}
 
         {/* DataGrid */}
         <Box sx={{ flexGrow: 1, minHeight: 0 }}>
@@ -1590,9 +1677,10 @@ export const AssetTable = React.memo<AssetTableProps>(
           ) : (
           <DataGrid
             apiRef={apiRef}
+            autoHeight={autoHeight}
             rows={rows}
             columns={columns}
-            columnVisibilityModel={columnVisibilityModel}
+            columnVisibilityModel={effectiveVisibilityModel}
             onColumnVisibilityModelChange={setColumnVisibilityModel}
             getRowHeight={() => "auto"}
             pageSizeOptions={[10, 25, 50]}

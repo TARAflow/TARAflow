@@ -16,7 +16,7 @@ import React, {
 } from "react";
 import { ConfirmAssetDeleteDialog, type AssetUsageLookup } from "shared";
 import { useTranslation } from "react-i18next";
-import { Box, Alert, Collapse } from "@mui/material";
+import { Box, Alert, Collapse, Typography } from "@mui/material";
 import { Warning as WarningIcon } from "@mui/icons-material";
 
 import {
@@ -35,7 +35,8 @@ import { calculateOverallImpact } from "../services/asset-impact-calculator";
 import { createDefaultAssetData } from "../services/asset-factory";
 import { assetService } from "../services/asset-service";
 import { AssetsToolbar } from "./asset-toolbar";
-import { AssetTable } from "./asset-table";
+import { AssetTable, AssetTableToolbar, type AssetTableView } from "./asset-table";
+import { AssetGroupSections } from "./asset-group-sections";
 import { AssetDialog } from "./asset-dialog";
 import { AssetNotificationPanel } from "./asset-notification-panel";
 import {
@@ -699,6 +700,31 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   );
   const needsReview = useMemo(() => assetIdsNeedingReview(findings), [findings]);
 
+  // Leveled DFD (6c): one toolbar above all group tables.
+  const grouped = !!project.dfdTableGroups;
+  const [tableView, setTableView] = useState<AssetTableView>({
+    factorsVisible: false,
+    reviewOnly: false,
+  });
+  const reviewFilterActive = grouped && tableView.reviewOnly;
+  const groupedAssets = useMemo(
+    () =>
+      reviewFilterActive
+        ? assetData.assets.filter((a) => needsReview.has(a.id))
+        : assetData.assets,
+    [reviewFilterActive, assetData.assets, needsReview],
+  );
+  // "Show in table" for an asset the review filter hides lifts the filter —
+  // once per request; a later change of the findings does not lift it again.
+  const handledHighlight = useRef<AssetTabProps["tableHighlightRequest"]>(null);
+  useEffect(() => {
+    if (!grouped || !tableHighlightRequest || handledHighlight.current === tableHighlightRequest) return;
+    handledHighlight.current = tableHighlightRequest;
+    if (!needsReview.has(tableHighlightRequest.assetId)) {
+      setTableView((v) => (v.reviewOnly ? { ...v, reviewOnly: false } : v));
+    }
+  }, [grouped, tableHighlightRequest, needsReview]);
+
   const handleOpenFinding = useCallback(
     (finding: AssetFinding) => {
       const asset = assetData.assets.find((a) => a.id === finding.assetId);
@@ -791,6 +817,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             >
               <DFDPreviewPanel
                 imageSrc={project.dfdPreviewImage}
+                pages={project.dfdPreviewPages}
                 //assets={assetData.assets}
               />
             </Box>
@@ -830,6 +857,29 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           </>
         )}
 
+        {/* Leveled DFD (6c): one toolbar for all group tables, outside the
+            scroll area so it stays in place. */}
+        {grouped && assetData.assets.length > 0 && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              mx: 2,
+              mt: 1,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              overflow: "hidden",
+            }}
+          >
+            <AssetTableToolbar
+              view={tableView}
+              onChange={setTableView}
+              needsReview={needsReview}
+              reviewCount={assetData.assets.filter((a) => needsReview.has(a.id)).length}
+            />
+          </Box>
+        )}
+
         {/* Asset Table (Bottom) */}
         <Box
           sx={{
@@ -839,16 +889,30 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             minHeight: MIN_PANEL_HEIGHT,
           }}
         >
-          <AssetTable
-            assets={assetData.assets}
-            configuration={assetData.configuration}
-            hazardLinks={hazardLinks}
-            assetLinkRelations={assetData.relations}
-            needsReview={needsReview}
-            onEdit={handleEditAsset}
-            onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
-            onShowInGraph={onShowInGraph ? (a) => onShowInGraph(a.id) : undefined}
+          {reviewFilterActive && groupedAssets.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }} data-testid="asset-review-empty">
+              {t("tabs.assets.reviewFilter.none", { defaultValue: "No asset needs review." })}
+            </Typography>
+          )}
+          <AssetGroupSections
+            groups={project.dfdTableGroups}
+            assets={grouped ? groupedAssets : assetData.assets}
             highlightRequest={tableHighlightRequest}
+            renderTable={(groupAssets, groupKey) => (
+              <AssetTable
+                assets={groupAssets}
+                configuration={assetData.configuration}
+                hazardLinks={hazardLinks}
+                assetLinkRelations={assetData.relations}
+                needsReview={needsReview}
+                onEdit={handleEditAsset}
+                onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
+                onShowInGraph={onShowInGraph ? (a) => onShowInGraph(a.id) : undefined}
+                highlightRequest={tableHighlightRequest}
+                autoHeight={groupKey !== ""}
+                view={groupKey !== "" ? tableView : undefined}
+              />
+            )}
           />
         </Box>
 

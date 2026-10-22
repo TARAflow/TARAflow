@@ -16,8 +16,8 @@ import {
   Typography,
   Chip,
 } from "@mui/material";
-import { STRIDE_COLORS } from "shared";
-import type { StrideCategory } from "shared";
+import { DfdScopeFilterControls, STRIDE_COLORS } from "shared";
+import type { DfdScopeFilter, DfdScopeIndex, StrideCategory } from "shared";
 import type { ThreatRelevanceFilter } from "../../hooks/shared/use-threat-filters";
 
 // ==================== RELEVANCE OPTIONS ====================
@@ -47,6 +47,10 @@ export interface ThreatFiltersProps {
   show: boolean;
   totalCount: number;
   reviewedCount?: number;
+  /** Leveled DFD: page and analysis-state filter; absent for a classic DFD. */
+  scopeIndex?: DfdScopeIndex;
+  scope?: DfdScopeFilter;
+  onScopeChange?: (scope: DfdScopeFilter) => void;
 }
 
 // ==================== COMPONENT ====================
@@ -62,6 +66,9 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
     show,
     totalCount,
     reviewedCount,
+    scopeIndex,
+    scope,
+    onScopeChange,
   }) => {
     const { t } = useTranslation();
 
@@ -153,6 +160,10 @@ export const ThreatFilters = React.memo<ThreatFiltersProps>(
             onChange={(e) => onSearchTextChange(e.target.value)}
             sx={{ width: 200 }}
           />
+
+          {scope && onScopeChange && (
+            <DfdScopeFilterControls index={scopeIndex} filter={scope} onChange={onScopeChange} />
+          )}
 
           <Box sx={{ flexGrow: 1 }} />
 

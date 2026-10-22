@@ -73,13 +73,13 @@ export const NO_DRIFT: GenerationDrift = { obsolete: [], addedCount: 0 };
 
 // ==================== DETECTION ====================
 
-function keyFnFor(method: StrideMethod) {
+export function keyFnFor(method: StrideMethod) {
   return method === "per-element"
     ? elementThreatNaturalKey
     : interactionThreatNaturalKey;
 }
 
-function storedTables(
+export function storedTables(
   project: ThreatProjectData,
   method: StrideMethod,
 ): ThreatTable[] {
@@ -90,7 +90,7 @@ function storedTables(
   );
 }
 
-function generateFresh(
+export function generateFresh(
   project: ThreatProjectData,
   dfdContext: DFDAnalysisContext,
   configuration: ThreatConfiguration,

@@ -50,7 +50,10 @@ import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context"
 // Import element-specific forms
 import { ProcessDescriptionForm } from "./forms/process-description-form";
 import { MultiprocessDescriptionForm } from "./forms/multiprocess-description-form";
-import { DataFlowDescriptionForm } from "./forms/dataflow-description-form";
+import {
+  DataFlowDescriptionForm,
+  type RefinementCandidate,
+} from "./forms/dataflow-description-form";
 import { DataStoreDescriptionForm } from "./forms/datastore-description-form";
 import { ExternalEntityDescriptionForm } from "./forms/external-entity-form";
 import { InterfaceDescriptionForm } from "./forms/interface-description-form";
@@ -60,6 +63,7 @@ import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form"
 import { SensorDescriptionForm } from "./forms/sensor-description-form";
 import { ActuatorDescriptionForm } from "./forms/actuator-description-form";
 import { AssetDescriptionForm } from "./forms/asset-description-form";
+import { RecordDescriptionField } from "./forms/record-description-field";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 
 // ==================== TYPES ====================
@@ -80,6 +84,8 @@ interface DFDDescriptionViewProps {
   expandedElements: string[];
   onToggleElement: (elementId: string) => void;
   graphContext?: DFDGraphAnalysisContext | null;
+  /** Leveled DFD: flows a data flow may refine (§6.4); absent = single page. */
+  refinementCandidates?: RefinementCandidate[];
 }
 
 interface GroupedElements {
@@ -126,7 +132,8 @@ const isConnectionDescribed = (connection: DFDConnection): boolean => {
   return !!connection.description && connection.description.trim().length > 0;
 };
 
-const GENERIC_ID_PATTERN = /^(P|MP|DS|EE|TB|A|IF|PI|DF)-\d+$/i;
+// Numbers may be hierarchical in leveled DFDs ("P-1.3").
+const GENERIC_ID_PATTERN = /^(P|MP|DS|EE|TB|A|IF|PI|DF)-\d+(?:\.\d+)*$/i;
 
 const formatElementLabel = (
   element: DFDElement,
@@ -146,12 +153,12 @@ const formatElementLabel = (
     return { displayId: name, name: element.type };
   }
 
-  const startMatch = name.match(/^((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+)\s+(.+)$/i);
+  const startMatch = name.match(/^((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+(?:\.\d+)*)\s+(.+)$/i);
   if (startMatch) {
     return { displayId: startMatch[1], name: startMatch[2] };
   }
 
-  const endMatch = name.match(/^(.+?)\s+((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+)$/i);
+  const endMatch = name.match(/^(.+?)\s+((?:P|MP|DS|EE|TB|A|IF|PI|DF)-\d+(?:\.\d+)*)$/i);
   if (endMatch) {
     return { displayId: endMatch[2], name: endMatch[1] };
   }
@@ -264,6 +271,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   expandedElements,
   onToggleElement,
   graphContext,
+  refinementCandidates,
 }) => {
   const { t } = useTranslation();
 
@@ -564,6 +572,7 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
                   onToggle={(event, isExpanded) =>
                     onToggleElement(connection.id)
                   } // ✅ Inline callback!
+                  refinementCandidates={refinementCandidates}
                 />
               ))}
             </AccordionDetails>
@@ -732,7 +741,16 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
           {/* Render form only when expanded — prevents all Selects/Tooltips from
               creating Popper instances simultaneously (observed: 103+ resize listeners
               from collapsed accordions). Cost: slight re-mount delay on first open. */}
-          {isExpanded && renderForm()}
+          {isExpanded && (
+            <>
+              <RecordDescriptionField
+                recordId={element.id}
+                value={element.description}
+                onCommit={(description) => onUpdate({ description })}
+              />
+              {renderForm()}
+            </>
+          )}
         </AccordionDetails>
       </Accordion>
     );
@@ -743,6 +761,7 @@ const ElementAccordion: React.FC<ElementAccordionProps> = React.memo(
       prevProps.element.id !== nextProps.element.id ||
       prevProps.element.displayId !== nextProps.element.displayId ||
       prevProps.element.name !== nextProps.element.name ||
+      prevProps.element.description !== nextProps.element.description ||
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
       prevProps.onCreateAsset !== nextProps.onCreateAsset ||
@@ -787,6 +806,7 @@ interface ConnectionAccordionProps {
   isExpanded: boolean;
   onToggle: (event: React.SyntheticEvent, isExpanded: boolean) => void; // ✅ Direct callback
   graphContext?: DFDGraphAnalysisContext | null;
+  refinementCandidates?: RefinementCandidate[];
 }
 
 const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
@@ -798,6 +818,7 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
     isExpanded,
     onToggle,
     graphContext,
+    refinementCandidates,
   }) => {
     const isDescribed = isConnectionDescribed(connection);
     const { displayId, label } = formatConnectionLabel(connection, elements);
@@ -832,16 +853,24 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
 
         <AccordionDetails sx={{ bgcolor: "background.paper", p: 0 }}>
           {isExpanded && (
-            <DataFlowDescriptionForm
-              connection={connection}
-              onChange={onUpdate}
-              crossesTrustBoundary={crossesTrustBoundary}
-              availableAssets={availableAssets}
-              defaultExposureLevel={
-                graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
-                undefined
-              }
-            />
+            <>
+              <RecordDescriptionField
+                recordId={connection.id}
+                value={connection.description}
+                onCommit={(description) => onUpdate({ description })}
+              />
+              <DataFlowDescriptionForm
+                connection={connection}
+                onChange={onUpdate}
+                crossesTrustBoundary={crossesTrustBoundary}
+                availableAssets={availableAssets}
+                defaultExposureLevel={
+                  graphContext?.getEffectiveDefaultExposureLevel(connection.id) ??
+                  undefined
+                }
+                refinementCandidates={refinementCandidates}
+              />
+            </>
           )}
         </AccordionDetails>
       </Accordion>
@@ -854,9 +883,11 @@ const ConnectionAccordion: React.FC<ConnectionAccordionProps> = React.memo(
       prevProps.connection.displayId !== nextProps.connection.displayId ||
       prevProps.connection.from !== nextProps.connection.from ||
       prevProps.connection.to !== nextProps.connection.to ||
+      prevProps.connection.description !== nextProps.connection.description ||
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
       prevProps.onToggle !== nextProps.onToggle ||
+      prevProps.refinementCandidates !== nextProps.refinementCandidates ||
       prevProps.availableAssets.length !== nextProps.availableAssets.length
     ) {
       return false;

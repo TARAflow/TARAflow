@@ -4,11 +4,11 @@ import {
   PhaseDefinition,
   PhaseStatus,
   SourceBinding,
-  flattenProjectTags,
 } from "shared";
 import { ProjectInfo } from "./project-info";
 import { ProjectProgress } from "./project-progress";
 import { ProjectSettings } from "./project-settings";
+import { missingGeneralFields } from "../services/general-completeness";
 import { SourceBindingsSection } from "./source-bindings-section";
 import {
   GeneralTabData,
@@ -24,7 +24,8 @@ import {
 // Layout:
 // 1. Project Info (editable)
 // 2. Phase Progress
-// 3. Project Settings (Validation, Auto Saving)
+// 3. Project Source Reference
+// 4. Project Settings (Validation, Auto Saving)
 
 interface GeneralTabProps {
   /** Project data */
@@ -79,19 +80,8 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   const progressData: ProjectProgressData = React.useMemo(() => {
     const validationInfo: Record<number, PhaseValidationInfo> = {};
 
-    // Phase 0: General - check for missing fields
-    const missingFields: string[] = [];
-    if (!data.info.name || data.info.name.trim().length < 3)
-      missingFields.push("name");
-    if (!data.info.description || data.info.description.trim().length === 0)
-      missingFields.push("description");
-    if (!data.info.version || data.info.version.trim().length === 0)
-      missingFields.push("version");
-    if (!data.info.responsible || data.info.responsible.trim().length === 0)
-      missingFields.push("responsible");
-    const totalTags = flattenProjectTags(data.info.tags).length;
-    if (totalTags === 0) missingFields.push("tags");
-    validationInfo[0] = { errors: 0, warnings: missingFields.length };
+    // Phase 0: General - missing fields (same rule as its phase status)
+    validationInfo[0] = { errors: 0, warnings: missingGeneralFields(data.info).length };
 
     // Phase 1: DFD - use validation from data
     if (data.dfdValidation) {
@@ -146,6 +136,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     <div className="p-6 max-w-6xl">
       <ProjectInfo info={projectInfoData} onUpdate={handleInfoUpdate} />
 
+      <ProjectProgress
+        data={progressData}
+        phases={overviewPhases}
+        getStatusIcon={getStatusIcon}
+        getStatusColor={getStatusColor}
+      />
+
       <SourceBindingsSection
         bindings={data.sourceBindings ?? []}
         scopeLabel={t("sourceBinding.projectScope.title", {
@@ -153,13 +150,6 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
         })}
         scopeDescriptionKey="sourceBinding.projectScope.description"
         onUpdate={handleSourceBindingsUpdate}
-      />
-
-      <ProjectProgress
-        data={progressData}
-        phases={overviewPhases}
-        getStatusIcon={getStatusIcon}
-        getStatusColor={getStatusColor}
       />
 
       <ProjectSettings

@@ -30,6 +30,14 @@ contents:
     file_info:
       mode: 0644
 
+  # package.json mit "type": "module": das Bundle ist ESM (esbuild
+  # --format=esm); ohne sie liest Node es erst als CommonJS und warnt
+  # (MODULE_TYPELESS_PACKAGE_JSON).
+  - src: ./dist-cli/package.json
+    dst: /usr/lib/tara-report/package.json
+    file_info:
+      mode: 0644
+
   # @resvg/resvg-js ist eine native Bibliothek (kompilierte .node-Datei) —
   # esbuild kann sie nicht ins Bundle einbetten (siehe build:cli-Script:
   # --external:@resvg/resvg-js + Kopier-Schritt nach dist-cli/node_modules).

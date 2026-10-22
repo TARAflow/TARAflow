@@ -6,6 +6,7 @@ import type { UseDrawioBridgeReturn } from "./use-drawio-bridge";
 import type { UseDFDValidationReturn } from "./use-dfd-validation";
 import type { UseDFDPersistenceReturn } from "./use-dfd-persistence";
 import { DFDAutoNumbering } from "../services/dfd-auto-numbering";
+import type { DFDPage } from "../models/dfd-types";
 
 // ==================== TYPES ====================
 
@@ -22,6 +23,11 @@ export interface UseDFDAutoNumberingOptions {
   validateAfter?: boolean;
   /** Delay in ms before validation (default: 500) */
   validationDelay?: number;
+  /**
+   * Current dfd.pages (page tree and identity links) of a leveled DFD —
+   * read at the moment of numbering. Absent / undefined = classic project.
+   */
+  getPages?: () => readonly DFDPage[] | undefined;
 }
 
 export interface UseDFDAutoNumberingReturn {
@@ -29,7 +35,11 @@ export interface UseDFDAutoNumberingReturn {
   isNumbering: boolean;
 
   // Actions
-  autoNumber: () => Promise<void>;
+  /**
+   * Renumber the DFD — or, in a leveled DFD, one page and its child pages
+   * (§8, 5l); the root page renumbers everything.
+   */
+  autoNumber: (onlyPageId?: string) => Promise<void>;
 }
 
 // ==================== HOOK ====================
@@ -47,6 +57,7 @@ export function useDFDAutoNumbering(
     weightY = 1.0,
     validateAfter = true,
     validationDelay = 500,
+    getPages,
   } = options;
 
   // ==================== STATE ====================
@@ -58,7 +69,9 @@ export function useDFDAutoNumbering(
   /**
    * Auto-number all elements in the DFD using the configured sort strategy.
    */
-  const autoNumber = useCallback(async () => {
+  const autoNumber = useCallback(async (onlyPageId?: string) => {
+    // A click handler may pass its event: only a string is a page id.
+    const pageId = typeof onlyPageId === "string" ? onlyPageId : undefined;
     if (isNumbering) {
       console.log("[useDFDAutoNumbering] Already numbering, skipping...");
       return;
@@ -84,7 +97,7 @@ export function useDFDAutoNumbering(
       );
 
       // Apply auto-numbering
-      const numberedXml = numbering.autoNumber(currentXml);
+      const numberedXml = numbering.autoNumber(currentXml, getPages?.(), pageId);
 
       // Check if anything changed
       if (numberedXml === currentXml) {
@@ -130,6 +143,7 @@ export function useDFDAutoNumbering(
     weightY,
     validateAfter,
     validationDelay,
+    getPages,
   ]);
 
   // ==================== RETURN ====================

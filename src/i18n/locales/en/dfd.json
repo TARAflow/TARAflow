@@ -40,6 +40,8 @@
         "noMatch": "No asset matches \"{{query}}\".",
         "hitHiddenLayer": "{{asset}} is in the hidden layer {{layer}}.",
         "hitOutsideFocus": "{{asset}} is outside the focus (depth {{depth}}).",
+        "showAllPages": "Show all pages",
+        "hitOutsidePage": "{{asset}} is held by no element on the selected page.",
         "history": {
           "undo": "Undo (Ctrl+Z)",
           "redo": "Redo (Ctrl+Shift+Z)",
@@ -115,6 +117,9 @@
         "redo": "Redo",
         "exportImage": "Export as Image",
         "refresh": "Refresh Validation",
+        "insertContext": "Insert as context…",
+        "autoNumberAll": "Renumber all pages",
+        "autoNumberPage": "Renumber \"{{page}}\" and its child pages",
         "autoNumber": "Auto-Number Labels",
         "darkMode": "Dark Mode",
         "lightMode": "Light mode",
@@ -388,6 +393,15 @@
             "required": "Required for audit trail (IEC 62443-4-1)"
           }
         },
+        "assetRollup": {
+          "info": "This multiprocess is decomposed: it holds the assets of its parts. Edit the relations on the parts.",
+          "rollupTitle": "Held by its parts",
+          "rollupEmpty": "No part holds an asset yet.",
+          "via": "via {{parts}}",
+          "pendingTitle": "Not yet assigned to a part",
+          "pendingHint": "Held before the decomposition. Assign the asset to the part that holds it — the entry then disappears with the next save.",
+          "removePending": "Remove — no part holds this asset"
+        },
         "exposure_level": {
           "label": "Exposure Level",
           "derived_hint": "Derived from Trust Boundary",
@@ -422,6 +436,7 @@
           "context": "Context",
           "security": "Security",
           "documentation": "Documentation",
+          "leveling": "Leveling",
           "hardware_security": "Hardware Security",
           "physical_security": "Physical Security",
           "implemented_controls": "Implemented Controls",
@@ -1386,6 +1401,15 @@
             "hint": "High risk for: Tampering, Information Disclosure, Denial of Service"
           },
           "fields": {
+            "refines": {
+              "label": "Refines",
+              "none": "— none —",
+              "helper": "A further channel of a parent-level flow. Both keep their own threats; a valid refinement balances the parent flow."
+            },
+            "abstract": {
+              "label": "Abstract (umbrella flow, no threats of its own)",
+              "helper": "Takes effect once at least one flow validly refines it; until then the flow keeps its threats."
+            },
             "excludeFromThreatGen": {
               "label": "Exclude from automated threat generation",
               "warning_no_trust": "Excluding a flow without marking it as Assumed Trusted may hide real threats. Add a trust rationale above."
@@ -2624,6 +2648,146 @@
           "notReferenced": "This asset is not yet referenced by any DFD element."
         }
       },
+      "pageTabs": {
+        "root": "Top level",
+        "details": "Details {{element}}",
+        "pendingDecomposition": "No part of its own yet — the multiprocess is analysed as a whole",
+        "notPlaced": "Not in the page tree",
+        "findings": "{{errors}} error(s), {{warnings}} warning(s)"
+      },
+      "leveledErrors": {
+        "NOT_AVAILABLE": "not available here (draw.io plugin, saved diagram or child page missing)",
+        "NOT_POSSIBLE": "nothing to do for this element on this page",
+        "DRAWIO_FAILED": "draw.io could not carry out the change",
+        "NOTHING_COPIED": "draw.io copied nothing",
+        "PAGE_NOT_DELETED": "draw.io did not delete the page",
+        "SAVE_FAILED": "the change could not be saved",
+        "NO_REVIEW": "the proposal has changed meanwhile — open it again",
+        "INVALID_DEFINITION": "the chosen definition is not valid for this element",
+        "PAGE_NOT_PLACED": "a page details no multiprocess — choose the multiprocess it details",
+        "CELL_NOT_FOUND": "the cell is no longer on its page",
+        "NOT_A_CONTEXT_COPY": "the cell is already the definition",
+        "NOT_DANGLING": "the element still has a definition — use \"Make this the definition\"",
+        "NO_DEFINITION": "the element has no definition — use \"Promote to definition\"",
+        "DUPLICATE_DEFINITIONS": "the element has several definitions — resolve them first",
+        "PAGE_NOT_IN_TREE": "the page is not in the page tree yet",
+        "NOT_A_PLAIN_CELL": "the cell is already linked to an element",
+        "SAME_IDENTITY": "the cell cannot become a copy of itself",
+        "TYPE_MISMATCH": "the cell has another element type than the element"
+      },
+      "childPages": {
+        "orphan": {
+          "title": "Delete the child page too?",
+          "text": "The multiprocess detailed on page \"{{page}}\" was deleted. Delete the page as well? Its contents are deleted with it (undo in draw.io).",
+          "keep": "Keep page",
+          "delete": "Delete page",
+          "error": "Not deleted: {{error}}. Delete it in draw.io (right-click on the tab) or keep it."
+        },
+        "detailedOn": "Detailed on page \"{{page}}\".",
+        "open": "Open page",
+        "create": "Create child page",
+        "sync": "Sync context",
+        "syncFailed": "Context not synced ({{error}}).",
+        "syncNothing": "The child page already shows the whole context.",
+        "syncDone": "{{count}} context copies added.",
+        "none": "No child page — the multiprocess is analysed as a whole."
+      },
+      "recordDescription": {
+        "label": "Description",
+        "helper": "What the element or flow does. Required for a complete DFD."
+      },
+      "identity": {
+        "copy": "Context copy",
+        "definition": "Definition",
+        "dangling": "definition missing",
+        "definedOn": "Defined on page \"{{page}}\".",
+        "goToDefinition": "Go to definition",
+        "danglingHint": "The definition was deleted — promote one copy, or delete the element.",
+        "occurrences": "Shown on",
+        "makeDefinition": "Make this the definition",
+        "promote": "Promote to definition",
+        "makeCopyOf": "Make this a context copy of",
+        "chooseElement": "choose…",
+        "apply": "Apply",
+        "makeCopyWarning": "This cell then shows the chosen element; its own record (properties, asset relations) is no longer used and its threats become orphans.",
+        "error": "Not possible: {{reason}}.",
+        "becomesPartOf": {
+          "title": "Move the definition down?",
+          "message": "{{element}} then becomes part of {{container}}: its threats and risks are grouped under {{container}}. Continue?",
+          "confirm": "Continue"
+        }
+      },
+      "insertContext": {
+        "title": "Insert as context on \"{{page}}\"",
+        "intro": "A context copy shows an element or flow that is defined on another page — one element, one set of threats. It is placed where the element is on its own page; move it afterwards.",
+        "none": "Every element and flow of the DFD is already shown on this page.",
+        "definedOn": "defined on {{page}}",
+        "choose": "Element or flow",
+        "error": "Not inserted ({{error}}).",
+        "insert": "Insert"
+      },
+      "lostDefinition": {
+        "title": "Element lost its definition",
+        "text": "\"{{element}}\" on page \"{{page}}\" was deleted or drawn again and is no longer in the model.",
+        "usage": "{{threats}} threat(s) and {{relations}} asset relation(s) refer to it. Re-attach keeps them; accepting the deletion leaves the threats as orphans.",
+        "reattachTo": "Re-attach to the new cell",
+        "noCandidate": "There is no new cell of the same type on that page yet. Choose \"Later\" and draw it again — the question comes back with the new cell — or accept the deletion.",
+        "error": "Not re-attached ({{error}}).",
+        "later": "Later",
+        "accept": "Accept deletion",
+        "reattach": "Re-attach"
+      },
+      "identityReview": {
+        "cancel": "Cancel",
+        "later": "Later",
+        "error": "The decision could not be applied: {{reason}}.",
+        "adoption": {
+          "title": "Adopt pages",
+          "intro": "This diagram has several pages. Confirm which page details which multiprocess and which cells show the same element. Only the page tree and the identity links are stored; the drawing is not changed.",
+          "pages": "Pages",
+          "page": "Page",
+          "details": "Details multiprocess",
+          "root": "— top level —",
+          "status": {
+            "root": "top level",
+            "existing": "adopted",
+            "proposed": "proposed",
+            "ambiguous": "ambiguous — please choose",
+            "unplaced": "no proposal — please choose"
+          },
+          "chooseMultiprocess": "Choose the multiprocess this page details…",
+          "noMultiprocess": "No multiprocess left to detail. Draw the multiprocess this page details on a higher page first, or delete the page in draw.io.",
+          "unplaced": "Every page except the top level details a multiprocess. Choose one for: {{pages}}.",
+          "groups": "Same element on several pages",
+          "noGroups": "No cell appears on more than one page.",
+          "element": "Element",
+          "definition": "Definition on",
+          "copies": "Context copies on",
+          "labelDivergence": "labels differ",
+          "conflict": "conflict — not merged",
+          "tieBreak": "chosen by page order — please check",
+          "apply": "Adopt",
+          "open": "Adopt pages…",
+          "hint": "This diagram has pages that are not adopted yet. Changes are not saved until you adopt them."
+        },
+        "repair": {
+          "open": "Review pages…",
+          "hint": "Some pages have no place in the page tree (several top-level pages, or a page that no longer exists)."
+        },
+        "assignment": {
+          "title": "Assign pasted cells",
+          "intro": "These cells were pasted and carry the ID of an existing element. A context copy shows that element (one element, one set of threats); a new element is analysed on its own and gets its own ID with the next auto-numbering.",
+          "cell": "Pasted cell",
+          "target": "Looks like",
+          "copy": "Context copy",
+          "new": "New element",
+          "allCopies": "All as context copies",
+          "keepNew": "Keep all as new",
+          "apply": "Apply",
+          "open": "Assign…",
+          "hint": "{{count}} pasted cell(s) look like copies of existing elements."
+        }
+      },
       "notifications": {
         "title": "{{count}} notification(s)",
         "heuristic": "Heuristic mapping — confirm before applying",
@@ -2633,6 +2797,7 @@
           "all": "All",
           "errors": "Errors",
           "warnings": "Warnings",
+          "infos": "Notes",
           "apply": "Apply"
         },
         "conflict": {
@@ -2728,7 +2893,36 @@
       "pcie": "PCIe",
       "custom": "Custom"
     },
-    "internalError": "Validation error: {{message}}"
+    "internalError": "Validation error: {{message}}",
+    "compressedPageNotSupported": "Compressed diagram page(s) cannot be read ({{pages}}). Changes are not saved and threats cannot be generated until the page is stored uncompressed.",
+    "leveled": {
+      "PAGE_UNASSIGNED": "Page \"{{page}}\" is not part of the page tree yet (not adopted).",
+      "PAGE_MISSING": "Page \"{{page}}\" is listed in the page tree but no longer exists in the diagram.",
+      "PAGE_NO_ROOT": "The page tree has no root page.",
+      "PAGE_MULTIPLE_ROOTS": "Several pages are root pages ({{pages}}); only the first is used as root.",
+      "PAGE_DECOMPOSES_UNKNOWN": "Page \"{{page}}\" details an element that does not exist ({{element}}).",
+      "PAGE_DECOMPOSES_NOT_MULTIPROCESS": "Page \"{{page}}\" details {{element}}, which is not a multiprocess — only multiprocesses can be decomposed.",
+      "PAGE_DECOMPOSED_TWICE": "{{element}} is detailed by more than one page ({{pages}}).",
+      "PAGE_PARENT_UNRESOLVED": "Page \"{{page}}\" cannot be placed: {{element}} has no definition inside the page tree.",
+      "PAGE_CYCLE": "The pages {{pages}} detail each other in a cycle.",
+      "BAL_DECOMPOSED_ON_OWN_PAGE": "{{element}} appears on its own child page \"{{page}}\".",
+      "BAL_AMBIGUOUS_ENDPOINT": "Flow {{flow}}: its drawn endpoints are not on one decomposition chain ({{candidates}}); analysed at the common parent.",
+      "BAL_UNRESOLVED_ENDPOINT": "Flow {{flow}} is not drawn on the child page of {{element}}; analysed with {{element}} as endpoint.",
+      "BAL_DUPLICATE_OCCURRENCE": "Flow {{flow}} is drawn {{count}} times on page \"{{page}}\".",
+      "BAL_DANGLING_REF": "{{element}} only exists as context copies — its definition is missing.",
+      "DFD_EE_TO_EE_FLOW": "Flow {{flow}} connects two external entities and is out of the analysis scope.",
+      "BAL_INTERFACE_UNATTRIBUTED": "Flow {{flow}}: interface {{interface}} on page \"{{page}}\" cannot be attributed to a side of the decomposition border.",
+      "BAL_HOME_NOT_HIGHEST": "{{element}} is defined on \"{{page}}\" but also appears on the higher page \"{{highest}}\"; consider moving its definition up.",
+      "BAL_ASSET_NOT_REALISED": "{{element}} still holds \"{{asset}}\" ({{relation}}) from before its decomposition, but none of its parts holds it. Assign it to the part that holds the asset (often a data store is missing).",
+      "BAL_LABEL_DIVERGENCE": "The occurrences of {{element}} carry different labels: {{labels}}.",
+      "BAL_MISSING_PARENT_FLOW": "Flow {{flow}} crosses the border of {{element}} but is not drawn on the parent page \"{{page}}\".",
+      "ID_ADOPTION_PENDING": "The diagram has {{count}} pages; {{pages}} are not adopted into the page tree yet. Until you confirm the adoption (\"Adopt pages…\" above the diagram), changes are not saved and threats cannot be generated.",
+      "ID_PASTE_REASSIGNED": "{{element}} on page \"{{page}}\" was pasted and is now an element of its own; run auto-numbering to give it its own ID.",
+      "BAL_REFINES_TARGET_MISSING": "Flow {{flow}} refines \"{{target}}\", which does not exist; the refinement does not count.",
+      "BAL_REFINES_CYCLE": "Flow {{flow}}: the refinements form a cycle ({{cycle}}); the refinement does not count.",
+      "BAL_REFINES_INCOMPATIBLE": "Flow {{flow}} does not fit the flow it refines ({{target}}): its endpoints must equal or lie inside the target's endpoints, same direction. Analysed normally; the refinement does not count.",
+      "BAL_ABSTRACT_WITHOUT_REFINEMENT": "Flow {{flow}} is abstract but has no valid refining flow; it keeps its own threats until a flow refines it."
+    }
   },
   "levels": {
     "security": {

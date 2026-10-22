@@ -42,6 +42,9 @@ export interface ValidationResult {
   isComplete: boolean;
   errors: ValidationFinding[];
   warnings: ValidationFinding[];
+  /** Notes without action pressure (leveled DFDs, §7). Never affect
+   *  isValid / isComplete. Absent = none. */
+  infos?: ValidationFinding[];
   /** Which scenario was detected:
    *  'A' (external entity → TB required),
    *  'B' (no EE, TB present → cross-boundary flow required),
@@ -61,6 +64,17 @@ export interface ValidateOptions {
    * feature store is the single source of truth and never lags.
    */
   knownAssets?: readonly { id: string; name: string; assetGroup?: import("shared").AssetGroup }[];
+  /**
+   * Leveled DFD (leveled-dfd-multi-diagram-design.md §7, Phase 4a): findings
+   * of the page tree and the effective model (AnalysisView.leveledFindings)
+   * plus those of the save itself (ID_PASTE_REASSIGNED). Appended as they
+   * are; errors only mark the phase incomplete, never block (D10).
+   */
+  leveledFindings?: {
+    errors: ValidationFinding[];
+    warnings: ValidationFinding[];
+    infos: ValidationFinding[];
+  };
 }
 
 /**
@@ -87,6 +101,7 @@ export class DFDValidator {
   ): ValidationResult {
     const errors: ValidationFinding[] = [];
     const warnings: ValidationFinding[] = [];
+    const infos: ValidationFinding[] = [];
 
     // Early return if no elements
     if (stats.totalElements === 0) {
@@ -96,6 +111,7 @@ export class DFDValidator {
         isComplete: false,
         errors,
         warnings,
+        infos,
         scenario: null,
       };
     }
@@ -132,6 +148,13 @@ export class DFDValidator {
     // 4b. Asset-to-asset links no longer valid (e.g. after a group change)
     validateAssetLinks(assets, warnings);
 
+    // 4c. Leveled DFD: page tree, balancing, identity (§7)
+    if (options?.leveledFindings) {
+      errors.push(...options.leveledFindings.errors);
+      warnings.push(...options.leveledFindings.warnings);
+      infos.push(...options.leveledFindings.infos);
+    }
+
     // 5. Validate Scenario & Completeness
     const scenario = validateScenario(
       elements,
@@ -156,6 +179,7 @@ export class DFDValidator {
       isComplete: complete,
       errors,
       warnings,
+      infos,
       scenario,
     };
   }
@@ -168,6 +192,9 @@ export class DFDValidator {
       isComplete: result.isComplete,
       errors: result.errors,
       warnings: result.warnings,
+      ...(result.infos && result.infos.length > 0
+        ? { infos: result.infos }
+        : {}),
       lastValidated: new Date().toISOString(),
     };
   }

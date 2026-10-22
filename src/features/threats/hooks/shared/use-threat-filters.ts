@@ -1,8 +1,16 @@
 // ==================== USE THREAT FILTERS ====================
-// Shared hook for filtering threats by STRIDE category and search text
+// Shared hook for filtering threats by STRIDE category and search text;
+// for a leveled DFD also by page and analysis state (6f).
 
 import { useState, useMemo, useCallback } from "react";
-import type { StrideCategory } from "shared";
+import {
+  NO_DFD_SCOPE_FILTER,
+  dfdScopePredicate,
+  isDfdScopeFilterActive,
+  type DfdScopeFilter,
+  type DfdScopeIndex,
+  type StrideCategory,
+} from "shared";
 import type { Threat } from "../../models/threat-types";
 
 // ==================== TYPES ====================
@@ -16,6 +24,8 @@ export interface ThreatFilters {
   strideCategory: StrideCategory | "";
   relevance: ThreatRelevanceFilter;
   searchText: string;
+  /** Leveled DFD: page and analysis state. */
+  scope: DfdScopeFilter;
 }
 
 export interface UseThreatFiltersResult {
@@ -23,6 +33,7 @@ export interface UseThreatFiltersResult {
   setStrideFilter: (category: StrideCategory | "") => void;
   setRelevanceFilter: (relevance: ThreatRelevanceFilter) => void;
   setSearchText: (text: string) => void;
+  setScopeFilter: (scope: DfdScopeFilter) => void;
   clearFilters: () => void;
   filterThreats: (threats: Threat[]) => Threat[];
   hasActiveFilters: boolean;
@@ -30,20 +41,33 @@ export interface UseThreatFiltersResult {
 
 // ==================== HOOK ====================
 
-export function useThreatFilters(): UseThreatFiltersResult {
+/** `scopeIndex`: the page index of a leveled DFD; absent for a classic one. */
+export function useThreatFilters(scopeIndex?: DfdScopeIndex): UseThreatFiltersResult {
   const [strideCategory, setStrideCategory] = useState<StrideCategory | "">("");
   const [relevance, setRelevance] = useState<ThreatRelevanceFilter>("");
   const [searchText, setSearchText] = useState("");
+  const [scope, setScopeFilter] = useState<DfdScopeFilter>(NO_DFD_SCOPE_FILTER);
+  const inScope = useMemo(() => dfdScopePredicate(scopeIndex, scope), [scopeIndex, scope]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return !!strideCategory || !!relevance || !!searchText.trim();
-  }, [strideCategory, relevance, searchText]);
+    return !!strideCategory || !!relevance || !!searchText.trim() || !!inScope;
+  }, [strideCategory, relevance, searchText, inScope]);
 
   // Filter function
   const filterThreats = useCallback(
     (threats: Threat[]): Threat[] => {
       let filtered = threats;
+
+      // Filter by page / analysis state (leveled DFD)
+      if (inScope) {
+        filtered = filtered.filter((t) =>
+          inScope({
+            elementId: t.linkedElement?.elementId,
+            connectionId: t.dataFlow?.connectionId,
+          }),
+        );
+      }
 
       // Filter by STRIDE category
       if (strideCategory) {
@@ -94,7 +118,7 @@ export function useThreatFilters(): UseThreatFiltersResult {
 
       return filtered;
     },
-    [strideCategory, relevance, searchText],
+    [strideCategory, relevance, searchText, inScope],
   );
 
   // Clear all filters
@@ -102,13 +126,15 @@ export function useThreatFilters(): UseThreatFiltersResult {
     setStrideCategory("");
     setRelevance("");
     setSearchText("");
+    setScopeFilter(NO_DFD_SCOPE_FILTER);
   }, []);
 
   return {
-    filters: { strideCategory, relevance, searchText },
+    filters: { strideCategory, relevance, searchText, scope },
     setStrideFilter: setStrideCategory,
     setRelevanceFilter: setRelevance,
     setSearchText,
+    setScopeFilter,
     clearFilters,
     filterThreats,
     hasActiveFilters,

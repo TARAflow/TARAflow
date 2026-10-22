@@ -109,6 +109,12 @@
       }
     },
     "diff": {
+      "category": {
+        "semantic": "semantisch",
+        "graphical": "grafisch",
+        "structural": "strukturell",
+        "identity": "Identität"
+      },
       "noChanges": "Keine Änderungen zum Anzeigen",
       "title": "Detaillierte Änderungen",
       "changes": "Änderungen",

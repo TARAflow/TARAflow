@@ -6,6 +6,11 @@
 // then, it's at least isolated here instead of living inline in main.ts.
 
 import { ipcMain } from "electron";
+// The scripts that run inside the draw.io frame live in .js files (lint and
+// syntax checks apply) and are read as text at build time (review finding 5).
+import pluginScript from "../drawio-scripts/plugin.js?raw";
+import syncPagesScript from "../drawio-scripts/sync-pages.js?raw";
+import exportPageSvgsScript from "../drawio-scripts/export-page-svgs.js?raw";
 
 let cachedDrawioFrame: any = null;
 
@@ -45,160 +50,7 @@ export function registerDrawioHandlers() {
       // once draw.io initialises — ui is guaranteed available at that point.
 
       // Plugin Code
-      const pluginCode = `
-      (function() {
-        console.log('[Plugin Injection] Starting...');
-        console.log('[Plugin Injection] typeof Draw:', typeof Draw);
-        console.log('[Plugin Injection] typeof mxEvent:', typeof mxEvent);
-        
-        if (typeof Draw === 'undefined') {
-          return { 
-            success: false, 
-            error: 'Draw object not found',
-            globals: Object.keys(window).filter(k => k.includes('draw') || k.includes('Draw') || k.includes('mx'))
-          };
-        }
-        
-        if (!Draw.loadPlugin) {
-          return { 
-            success: false, 
-            error: 'Draw.loadPlugin not available',
-            drawKeys: Object.keys(Draw)
-          };
-        }
-        
-        try {
-          Draw.loadPlugin(function(ui) {
-            Draw._taraflowUi = ui;
-            console.log('[Plugin] ✅ Selection Plugin loaded successfully!');
-
-            // Load DFD libraries from customEntries registered via configure message.
-            // drawio-controller.ts owns the data — this code only triggers the load
-            // once ui is guaranteed available inside the loadPlugin callback.
-            setTimeout(function() {
-              try {
-                var sidebar = ui.sidebar;
-                if (!sidebar || !sidebar.customEntries) return;
-
-                // Hide all default palettes from localStorage cache
-                Object.keys(sidebar.palettes).forEach(function(k) {
-                  if (k === 'search') return;
-                  var p = sidebar.palettes[k];
-                  if (p && p[0]) p[0].style.display = 'none';
-                  if (p && p[1]) p[1].style.display = 'none';
-                });
-
-                sidebar.customEntries.forEach(function(group) {
-                  (group.entries || []).forEach(function(entry) {
-                    (entry.libs || []).slice().reverse().forEach(function(libDef) {
-                      if (!libDef.data) return;
-                      var title = (libDef.title && (libDef.title.main || libDef.title)) || entry.id;
-                      var lib = new LocalLibrary(ui, libDef.data, title);
-                      ui.loadLibrary(lib, true);
-
-                      setTimeout(function() {
-                        var hash = lib.getHash();
-                        var p = sidebar.palettes[hash];
-                        if (!p) return;
-                        var container = p[1] && p[1].querySelector('.geSidebar');
-                        var images = JSON.parse(
-                          libDef.data.replace('<mxlibrary>', '').replace('</mxlibrary>', '')
-                        );
-                        if (container && container.children.length === 0) {
-                          ui.addLibraryEntries(images, container);
-                        }
-                        if (p[0]) p[0].style.display = '';
-                        if (p[1]) p[1].style.display = '';
-                      }, 200);
-                    });
-                  });
-                });
-
-                console.log('[Plugin] DFD libraries loaded from customEntries');
-              } catch(libErr) {
-                console.warn('[Plugin] Library load failed:', libErr.message);
-              }
-            }, 100);
-
-            // Setup selection listener
-            var postSelection = function(cells) {
-              var selection = cells.map(function(c) {
-                return {
-                  id: c.id,
-                  value: c.value,
-                  type: c.getAttribute ? c.getAttribute('type') : null
-                };
-              });
-
-              console.log('[Plugin] Selection changed:', selection);
-
-              window.parent.postMessage(JSON.stringify({
-                event: 'selection',
-                selection: selection
-              }), '*');
-            };
-            // A selection made by pressing the mouse button is reported
-            // only when the button is released. TARAflow opens its details
-            // panel on a selection; doing that in the middle of the gesture
-            // moved the diagram under the pointer. (The former workaround —
-            // pointer-events:none on the iframe for one frame — let the
-            // pointerup go past draw.io: mxGraph kept isMouseDown, dropped
-            // every further mousedown and the element stuck to the pointer.)
-            var selectionGraph = ui.editor.graph;
-            var selectionPending = false;
-            var flushSelection = function() {
-              if (!selectionPending) return;
-              selectionPending = false;
-              postSelection(selectionGraph.getSelectionCells());
-            };
-            var flushAfterGesture = function() {
-              // After mxGraph has handled the release (handlers first).
-              window.setTimeout(flushSelection, 0);
-            };
-            selectionGraph.getSelectionModel().addListener(mxEvent.CHANGE, function() {
-              if (selectionGraph.isMouseDown) {
-                selectionPending = true;
-                return;
-              }
-              selectionPending = false;
-              postSelection(selectionGraph.getSelectionCells());
-            });
-            selectionGraph.addMouseListener({
-              mouseDown: function() {},
-              mouseMove: function() {},
-              mouseUp: flushAfterGesture
-            });
-            // Also when the release happens outside the diagram or the
-            // browser cancels the gesture.
-            window.addEventListener('pointerup', flushAfterGesture, true);
-            window.addEventListener('mouseup', flushAfterGesture, true);
-            window.addEventListener('pointercancel', flushAfterGesture, true);
-
-            // Viewport restore handler
-            window.addEventListener('message', function(evt) {
-              try {
-                var msg = (typeof evt.data === 'string') ? JSON.parse(evt.data) : evt.data;
-                if (msg.action === 'taraflow:setViewport') {
-                  var view = ui.editor.graph.view;
-                  view.setScale(msg.scale);
-                  view.setTranslate(msg.translate.x, msg.translate.y);
-                  view.revalidate();
-                }
-              } catch(e) {}
-            }, false);
-          });
-          
-          
-          return { success: true, message: 'Plugin loaded successfully' };
-        } catch (error) {
-          return { 
-            success: false, 
-            error: 'Plugin load failed: ' + error.message,
-            stack: error.stack
-          };
-        }
-      })();
-    `;
+      const pluginCode = `(${pluginScript})()`;
 
       // Execute in DrawIO frame
       const result = await drawioFrame.executeJavaScript(pluginCode);
@@ -261,23 +113,131 @@ export function registerDrawioHandlers() {
     },
   );
 
-  ipcMain.handle("drawio:selectCell", async (_, cellId: string) => {
+  ipcMain.handle(
+    "drawio:selectCell",
+    async (_, cellId: string, pageId?: string | null) => {
+      if (!cachedDrawioFrame)
+        return { success: false, error: "No drawio frame cached" };
+      // Ids go into the script as JSON literals, never spliced into code.
+      const cellIdJs = JSON.stringify(String(cellId));
+      const pageIdJs = JSON.stringify(pageId == null ? null : String(pageId));
+      try {
+        await cachedDrawioFrame.executeJavaScript(`
+        (function() {
+          var ui = Draw._taraflowUi;
+          if (!ui) { console.warn('[Main:selectCell] No taraflowUi'); return false; }
+          var cellId = ${cellIdJs};
+          var pageId = ${pageIdJs};
+          // Cell ids are page-local (leveled DFD, design §5.2): open the page
+          // first if the cell lives on another one.
+          if (pageId !== null && ui.pages && ui.currentPage &&
+              ui.currentPage.getId() !== pageId) {
+            var page = null;
+            for (var i = 0; i < ui.pages.length; i++) {
+              if (ui.pages[i].getId() === pageId) { page = ui.pages[i]; break; }
+            }
+            if (!page) { console.warn('[Main:selectCell] Page not found: ' + pageId); return false; }
+            ui.selectPage(page);
+          }
+          // An empty cell id only opens the page (e.g. "Open page" of a
+          // decomposed multiprocess).
+          if (cellId === '') return true;
+          var graph = ui.editor.graph;
+          var cell = graph.model.getCell(cellId);
+          if (!cell) { console.warn('[Main:selectCell] Cell not found: ' + cellId); return false; }
+          graph.setSelectionCell(cell);
+          graph.scrollCellToVisible(cell, true);
+          return true;
+        })()
+      `);
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+  );
+
+  // Leveled DFD (5g): context copies per page ({ pageId: { cellId: true } }),
+  // shown faded and dashed by the getCellStyle wrapper in the plugin. The
+  // map goes into the script as a JSON literal.
+  ipcMain.handle(
+    "drawio:setContextCells",
+    async (_, cells: Record<string, Record<string, true>> | null) => {
+      if (!cachedDrawioFrame)
+        return { success: false, error: "No drawio frame cached" };
+      const cellsJs = JSON.stringify(cells ?? {});
+      try {
+        await cachedDrawioFrame.executeJavaScript(`
+        (function() {
+          Draw._taraflowContextCells = ${cellsJs};
+          var ui = Draw._taraflowUi;
+          if (ui && ui.editor && ui.editor.graph) ui.editor.graph.refresh();
+          return true;
+        })()
+      `);
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+  );
+
+  // Leveled DFD (5c): tooltip and finding badge per page tab, see the
+  // createTabForPage wrapper in the plugin. The info goes into the script as
+  // a JSON literal.
+  ipcMain.handle(
+    "drawio:setPageTabInfo",
+    async (_, info: Record<string, unknown> | null) => {
+      if (!cachedDrawioFrame)
+        return { success: false, error: "No drawio frame cached" };
+      const infoJs = JSON.stringify(info ?? {});
+      try {
+        await cachedDrawioFrame.executeJavaScript(`
+        (function() {
+          Draw._taraflowPageTabInfo = ${infoJs};
+          var ui = Draw._taraflowUi;
+          if (ui && typeof ui.updateTabContainer === 'function') ui.updateTabContainer();
+          else if (Draw._taraflowDecorateTabs) Draw._taraflowDecorateTabs();
+          return true;
+        })()
+      `);
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+  );
+
+  // Leveled DFD (5d, D15–D17; 5e; 5f): create child pages, copy their
+  // context, set the page link on the multiprocess cells, rename pages,
+  // remove pages. Planned by planPageSync in the
+  // renderer; the spec goes into the script as a JSON literal. Idempotent:
+  // an existing page is not created twice, a page with the wanted name is
+  // not renamed. The user's page is shown again afterwards.
+  ipcMain.handle("drawio:syncPages", async (_, spec: unknown) => {
     if (!cachedDrawioFrame)
       return { success: false, error: "No drawio frame cached" };
+    const specJs = JSON.stringify(spec ?? {});
     try {
-      await cachedDrawioFrame.executeJavaScript(`
-      (function() {
-        var ui = Draw._taraflowUi;
-        if (!ui) { console.warn('[Main:selectCell] No taraflowUi'); return false; }
-        var graph = ui.editor.graph;
-        var cell = graph.model.getCell("${cellId}");
-        if (!cell) { console.warn('[Main:selectCell] Cell not found: ${cellId}'); return false; }
-        graph.setSelectionCell(cell);
-        graph.scrollCellToVisible(cell, true);
-        return true;
-      })()
-    `);
-      return { success: true };
+      const result = await cachedDrawioFrame.executeJavaScript(`(${syncPagesScript})(${specJs})`);
+      return result ?? { success: false, error: "No result" };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  // Leveled DFD (5i, D18): one SVG thumbnail per page, without switching
+  // the page the user sees. draw.io's own SVG export renders the current
+  // page only; for another page this does what draw.io does for a page that
+  // is not shown (EditorUi.getFileData): a temporary graph with the page's
+  // root. The page ids go into the script as a JSON literal.
+  ipcMain.handle("drawio:exportPageSvgs", async (_, pageIds: unknown) => {
+    if (!cachedDrawioFrame)
+      return { success: false, error: "No drawio frame cached" };
+    const idsJs = JSON.stringify(Array.isArray(pageIds) ? pageIds.map(String) : []);
+    try {
+      const result = await cachedDrawioFrame.executeJavaScript(`(${exportPageSvgsScript})(${idsJs})`);
+      return result ?? { success: false, error: "No result" };
     } catch (e: any) {
       return { success: false, error: e.message };
     }

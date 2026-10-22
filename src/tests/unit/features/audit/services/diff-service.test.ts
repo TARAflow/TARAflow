@@ -10,7 +10,15 @@
 import { describe, it, expect } from "vitest";
 import { DiffService } from "features/audit/services/diff-service";
 import type { Project } from "app";
-import type { PhaseChanges } from "features/audit/models/audit-types";
+import { generateCommitMessage, type PhaseChanges } from "features/audit/models/audit-types";
+import { dfdParser } from "features/dfd/services/dfd-parser";
+import {
+  CONTROLLER,
+  LEVELED_PAGES,
+  SENSOR,
+  SYSTEM,
+  mxfile,
+} from "../../../../fixtures/leveled-dfd-xml";
 
 const svc = new DiffService();
 
@@ -279,3 +287,111 @@ describe("DiffService — asset-to-asset relations (AR-9)", () => {
     expect(links(svc.detectChanges(withRel([edge()]), withRel([edge()])))).toEqual([]);
   });
 });
+
+describe("DiffService — DFD changes per element / flow, classified (§11.3)", () => {
+  const el = (id: string, name: string) => ({
+    id,
+    displayId: id.toUpperCase(),
+    name,
+    type: "Process",
+    position: { x: 0, y: 0 },
+    size: { width: 80, height: 60 },
+    properties: {},
+  });
+  const dfd = (elements: any[], xml = "<mxfile/>") => ({ xml, elements, connections: [], assets: [] });
+  const dfdPhase = (changes: PhaseChanges[]) => changes.find((p) => p.phase === "dfd");
+
+  it("one item per changed element, with the field details and the category", () => {
+    const changes = svc.detectChanges(
+      project({ dfd: dfd([el("p1", "Sensor"), el("p2", "Alarm")]) }),
+      project({ dfd: dfd([el("p1", "Sensr")]) }),
+    );
+    expect(dfdPhase(changes)!.changes).toEqual([
+      {
+        type: "modified",
+        id: "P1",
+        name: "Sensor",
+        description: "DFD element modified",
+        category: "semantic",
+        details: [{ field: "name", fieldLabel: "name", oldValue: "Sensr", newValue: "Sensor", valueType: "string" }],
+      },
+      { type: "added", id: "P2", name: "Alarm", description: "DFD element added", category: "semantic" },
+    ]);
+  });
+
+  it("a drawing-only change is one graphical item", () => {
+    const changes = svc.detectChanges(
+      project({ dfd: dfd([el("p1", "Sensor")], "<mxfile>moved</mxfile>") }),
+      project({ dfd: dfd([el("p1", "Sensor")]) }),
+    );
+    expect(dfdPhase(changes)!.changes).toEqual([
+      expect.objectContaining({ id: "DFD", category: "graphical", description: "Diagram layout modified" }),
+    ]);
+  });
+
+  it("no change, no DFD phase", () => {
+    expect(dfdPhase(svc.detectChanges(project({ dfd: dfd([el("p1", "S")]) }), project({ dfd: dfd([el("p1", "S")]) })))).toBeUndefined();
+  });
+
+  it("the commit message names the category", () => {
+    const changes = svc.detectChanges(
+      project({ dfd: dfd([el("p1", "Sensor")]) }),
+      project({ dfd: dfd([el("p1", "Sensr")]) }),
+    );
+    const message = generateCommitMessage(svc.generateCommitMessageData(changes, "Detail Review", "jm"));
+    expect(message).toContain("~ P1: Sensor [semantic]");
+    expect(message).toContain("name: Sensr → Sensor");
+  });
+});
+
+describe("DiffService — the drawing of a leveled DFD (§11.3)", () => {
+  const leveled = (xml: string, pages: any[]) => {
+    const { elements, connections } = dfdParser.parse(xml, pages);
+    return { xml, pages, elements, connections, assets: [] };
+  };
+
+  it("a page added is a structural line, its effect semantic lines — as the design's example", () => {
+    const pages = LEVELED_PAGES.filter((p) => p.pageId !== "ctl");
+    const changes = svc.detectChanges(
+      project({ dfd: leveled(mxfile(SYSTEM, SENSOR, CONTROLLER), LEVELED_PAGES) }),
+      project({ dfd: leveled(mxfile(SYSTEM, SENSOR), pages) }),
+    );
+    const page = changes.find((p) => p.phase === "dfd")!.changes.find((c) => c.id === "Page")!;
+    expect(page).toMatchObject({
+      type: "added",
+      name: "Controller Module (decomposes MP-2)",
+      description: "Page added",
+      category: "structural",
+    });
+    const message = generateCommitMessage(svc.generateCommitMessageData(changes, "Detail Review", "jm"));
+    expect(message).toContain("+ Page: Controller Module (decomposes MP-2) [structural]");
+    expect(message).toContain("~ Analysis: 1 flow now resolved below MP-2 Controller Module [semantic]");
+    expect(message).toContain("~ Analysis: MP-2 Controller Module now analysed through its parts [semantic]");
+    const analysis = changes.find((p) => p.phase === "dfd")!.changes.filter((c) => c.id === "Analysis");
+    expect(analysis.map((c) => c.description)).toEqual(["Analysis effect", "Analysis effect"]);
+  });
+});
+
+describe("DiffService — the editor's view is no change", () => {
+  const xml = (dx: number, style = "ellipse;") =>
+    `<mxfile host="embed.diagrams.net" modified="${dx}"><diagram id="p1" name="Page-1">` +
+    `<mxGraphModel dx="${dx}" dy="${dx / 2}" grid="1"><root><mxCell id="0"/><mxCell id="1" parent="0"/>` +
+    `<mxCell id="n" style="${style}" vertex="1" parent="1"/></root></mxGraphModel></diagram></mxfile>`;
+  const dfd = (x: string) => ({ xml: x, elements: [], connections: [], assets: [] });
+
+  it("scrolling (dx / dy) or a new mxfile header: no DFD change", () => {
+    const changes = svc.detectChanges(project({ dfd: dfd(xml(1415)) }), project({ dfd: dfd(xml(1179)) }));
+    expect(changes.find((p) => p.phase === "dfd")).toBeUndefined();
+  });
+
+  it("a real drawing change the diff cannot name (a style): one graphical item", () => {
+    const changes = svc.detectChanges(
+      project({ dfd: dfd(xml(1415, "rounded=1;")) }),
+      project({ dfd: dfd(xml(1179)) }),
+    );
+    expect(changes.find((p) => p.phase === "dfd")!.changes).toEqual([
+      expect.objectContaining({ id: "DFD", category: "graphical" }),
+    ]);
+  });
+});
+

@@ -8,7 +8,7 @@
 import type { DFDData, DFDElement, DFDConnection } from "../models/dfd-types";
 import type { DFDAsset, ElementRelation } from "../models/dfd-asset-types";
 import { hasQualifier } from "../models/asset-relation-types";
-import { DefaultDFDGraphBuilder } from "./dfd-graph-builder";
+import { buildDfdGraph } from "./build-dfd-graph";
 import { calculateStats } from "./parsers/stats-calculator";
 
 // ==================== HELPER: SYNC LINKED ELEMENTS ====================
@@ -82,10 +82,7 @@ export function finalizeDfd(updated: DFDData): DFDData {
     updated.connections,
     updated.assets,
   );
-  const graph = new DefaultDFDGraphBuilder().build({
-    ...updated,
-    assets: syncedAssets,
-  });
+  const graph = buildDfdGraph({ ...updated, assets: syncedAssets });
   const stats = calculateStats(
     updated.elements,
     updated.connections,

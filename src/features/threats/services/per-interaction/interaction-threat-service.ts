@@ -8,6 +8,7 @@ import type {
   ThreatSyncResult,
 } from "../../models/threat-types";
 import type { DFDAnalysisContext, StrideCategory } from "shared";
+import { unsupportedDfdLayoutError } from "../dfd-page-layout-guard";
 import { regulationPresetFromTags, isThreatGeneratorEnabled } from "shared";
 import type {
   ThreatService,
@@ -40,6 +41,11 @@ export class InteractionThreatService implements ThreatService {
           error:
             "STRIDE per-interaction is disabled by the active regulation preset.",
         };
+      }
+
+      const layoutError = unsupportedDfdLayoutError(project);
+      if (layoutError) {
+        return { success: false, tables: [], error: layoutError };
       }
 
       if (!project.dfdGraph) {
@@ -140,6 +146,16 @@ export class InteractionThreatService implements ThreatService {
     syncStatus: ThreatSyncStatus,
     options: { updateReferences: boolean; removeOrphaned: boolean },
   ): ThreatSyncResult {
+    const layoutError = unsupportedDfdLayoutError(project);
+    if (layoutError) {
+      return {
+        success: false,
+        added: 0,
+        removed: 0,
+        updated: 0,
+        error: layoutError,
+      };
+    }
     return interactionThreatSync.synchronizeThreats(
       project,
       dfdContext,

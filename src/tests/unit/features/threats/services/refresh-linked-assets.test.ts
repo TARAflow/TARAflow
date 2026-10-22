@@ -83,10 +83,11 @@ describe("refreshLinkedAssets — DFD asset-relation change propagates to threat
         {
           id: "t4",
           linkedElement: null,
+          // A stored per-interaction threat: DataFlowReference names.
           dataFlow: {
             connectionId: "7",
-            fromElementId: "3",
-            toElementId: "99",
+            sourceId: "3",
+            targetId: "99",
           },
           linkedAssetIds: [],
         },
@@ -96,6 +97,31 @@ describe("refreshLinkedAssets — DFD asset-relation change propagates to threat
 
     // conn 7 → AC, element 3 → AC (deduped), element 99 → none
     expect(out.perElementTables[0].threats[0].linkedAssetIds).toEqual(["AC"]);
+  });
+
+  it("keeps the endpoints' assets the flow itself does not hold (regression)", () => {
+    // Before the fix only the flow's own assets survived a sync: the
+    // endpoints were read as fromElementId / toElementId, which a stored
+    // threat does not have.
+    const ref = {
+      assets: [
+        { id: "FLOW", name: "Telegram", linkedElementIds: ["df"] },
+        { id: "SRC", name: "Sensor data", linkedElementIds: ["p-src"] },
+        { id: "DST", name: "Alarm config", linkedElementIds: ["p-dst"] },
+      ],
+    } as never;
+    const out = refreshLinkedAssets(
+      bundle([
+        {
+          id: "t6",
+          linkedElement: null,
+          dataFlow: { connectionId: "df", sourceId: "p-src", targetId: "p-dst" },
+          linkedAssetIds: ["FLOW"],
+        },
+      ]),
+      ref,
+    );
+    expect([...out.perElementTables[0].threats[0].linkedAssetIds].sort()).toEqual(["DST", "FLOW", "SRC"]);
   });
 
   it("returns the same threat object when nothing changed (no churn)", () => {

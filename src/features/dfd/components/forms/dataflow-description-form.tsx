@@ -56,6 +56,12 @@ import { computeDataFlowCoverage } from "../../models/dataflow-coverage";
 
 // ==================== PROPS ====================
 
+/** A flow this flow may refine (leveled DFDs, §6.4). */
+export interface RefinementCandidate {
+  tfId: string;
+  label: string;
+}
+
 interface DataFlowFormProps {
   connection: DFDConnection;
   onChange: (updates: Partial<DFDConnection>) => void;
@@ -63,6 +69,11 @@ interface DataFlowFormProps {
   availableAssets?: AvailableAsset[];
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
   defaultExposureLevel?: ExposureLevel;
+  /**
+   * Leveled DFD only: the flows of the project (refines target choice).
+   * Absent = single page, the leveling section is not shown.
+   */
+  refinementCandidates?: RefinementCandidate[];
 }
 
 const EXPOSURE_LEVELS: ExposureLevel[] = ["EL0", "EL1", "EL2", "EL3", "EL4"];
@@ -79,6 +90,7 @@ interface DataFlowGeneralTabProps {
   onChange: (updates: Partial<DFDConnection>) => void;
   crossesTrustBoundary: boolean;
   defaultExposureLevel?: ExposureLevel;
+  refinementCandidates?: RefinementCandidate[];
 }
 
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
@@ -112,6 +124,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   onChange,
   crossesTrustBoundary,
   defaultExposureLevel,
+  refinementCandidates,
 }) => {
   const { t } = useTranslation();
   const form = useConnectionForm<DataFlowProperties>(connection, onChange);
@@ -1282,6 +1295,107 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
         )}
       </Grid>
 
+      {/* ── Leveling (leveled DFDs only, §6.4) ─── */}
+      {refinementCandidates && (
+        <>
+          <SectionLabel
+            label={t("tabs.dfd.element_description.sections.leveling", {
+              defaultValue: "Leveling",
+            })}
+          />
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <FormControl fullWidth size="small">
+                <InputLabel id={`refines-${connection.id}`}>
+                  {t(
+                    "tabs.dfd.element_description.dataflow.fields.refines.label",
+                    { defaultValue: "Refines" },
+                  )}
+                </InputLabel>
+                <Select
+                  labelId={`refines-${connection.id}`}
+                  data-testid="dataflow-refines"
+                  value={props.refines ?? ""}
+                  label={t(
+                    "tabs.dfd.element_description.dataflow.fields.refines.label",
+                    { defaultValue: "Refines" },
+                  )}
+                  onChange={(e) =>
+                    form.handlePropertyChange(
+                      "refines",
+                      e.target.value === "" ? undefined : e.target.value,
+                    )
+                  }
+                >
+                  <MenuItem value="">
+                    <em>
+                      {t(
+                        "tabs.dfd.element_description.dataflow.fields.refines.none",
+                        { defaultValue: "— none —" },
+                      )}
+                    </em>
+                  </MenuItem>
+                  {refinementCandidates
+                    .filter((c) => c.tfId !== connection.id)
+                    .map((c) => (
+                      <MenuItem key={c.tfId} value={c.tfId}>
+                        {c.label}
+                      </MenuItem>
+                    ))}
+                  {props.refines &&
+                    !refinementCandidates.some(
+                      (c) => c.tfId === props.refines,
+                    ) && (
+                      <MenuItem value={props.refines}>{props.refines}</MenuItem>
+                    )}
+                </Select>
+              </FormControl>
+              <Typography variant="caption" color="text.secondary">
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.refines.helper",
+                  {
+                    defaultValue:
+                      "A further channel of a parent-level flow. Both keep their own threats; a valid refinement balances the parent flow.",
+                  },
+                )}
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    data-testid="dataflow-abstract"
+                    checked={props.abstract === true}
+                    onChange={(e) =>
+                      form.handlePropertyChange(
+                        "abstract",
+                        e.target.checked ? true : undefined,
+                      )
+                    }
+                  />
+                }
+                label={t(
+                  "tabs.dfd.element_description.dataflow.fields.abstract.label",
+                  {
+                    defaultValue:
+                      "Abstract (umbrella flow, no threats of its own)",
+                  },
+                )}
+              />
+              <Typography variant="caption" color="text.secondary" display="block">
+                {t(
+                  "tabs.dfd.element_description.dataflow.fields.abstract.helper",
+                  {
+                    defaultValue:
+                      "Takes effect once at least one flow validly refines it; until then the flow keeps its threats.",
+                  },
+                )}
+              </Typography>
+            </Grid>
+          </Grid>
+        </>
+      )}
+
       {/* ── Documentation ───────────────────────── */}
       <SectionLabel
         label={t("tabs.dfd.element_description.sections.documentation", {
@@ -1336,6 +1450,7 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
     availableAssets = [],
     onCreateAsset,
     defaultExposureLevel,
+    refinementCandidates,
   }) => {
     const { t } = useTranslation();
 
@@ -1377,6 +1492,7 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
             onChange={onChange}
             crossesTrustBoundary={crossesTrustBoundary}
             defaultExposureLevel={defaultExposureLevel}
+            refinementCandidates={refinementCandidates}
           />
         }
       />
@@ -1386,7 +1502,8 @@ export const DataFlowDescriptionForm = React.memo<DataFlowFormProps>(
     prev.connection === next.connection &&
     prev.availableAssets === next.availableAssets &&
     prev.crossesTrustBoundary === next.crossesTrustBoundary &&
-    prev.defaultExposureLevel === next.defaultExposureLevel,
+    prev.defaultExposureLevel === next.defaultExposureLevel &&
+    prev.refinementCandidates === next.refinementCandidates,
 );
 
 export default DataFlowDescriptionForm;

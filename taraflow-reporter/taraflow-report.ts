@@ -20,6 +20,7 @@ import fs from "fs/promises";
 import { loadProject } from "./cli/load-project";
 import { toDocProjectData } from "./cli/to-doc-project-data";
 import { initI18nNode, i18n } from "./cli/i18n-node";
+import { installDomParser } from "./cli/dom-parser-node";
 import {
   createCliGenerator,
   generatePdfBufferCli,
@@ -102,6 +103,8 @@ function parseArgs(argv: string[]): CliArgs {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  // The report analyses the DFD like the app does (leveled DFD, Phase 7).
+  installDomParser();
 
   const { project, migrated, fromVersion } = await loadProject(args.input);
   if (migrated) {

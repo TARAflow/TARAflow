@@ -8,6 +8,7 @@ import {
   type TranslationFn,
   type ChapterContent,
 } from "./base-generator";
+import type { StatsTable } from "../threat-risk-stats";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -145,6 +146,24 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return MD_TEMPLATES.dfd(this.ctx.lang);
   }
 
+  formatDfdFigure(image: string | undefined, alt: string): string {
+    return image ? `![${alt}](${image})` : `_${this.noDfdImage()}_`;
+  }
+
+  formatReportGroup(title: string, body: string, summary?: string): string {
+    return `### ${title}\n\n${summary ? `${summary}\n\n` : ""}${body}`;
+  }
+
+  formatStatsTable(table: StatsTable): string {
+    const row = (cells: string[]) => `| ${cells.join(" | ")} |`;
+    return [
+      row(table.headers),
+      `|${table.headers.map(() => "---").join("|")}|`,
+      ...table.rows.map(row),
+      row(table.total.map((c) => `**${c}**`)),
+    ].join("\n") + "\n\n";
+  }
+
   getDfdDescriptionsTemplate(): string {
     return MD_TEMPLATES.dfdDescriptions(this.ctx.lang);
   }
@@ -259,6 +278,22 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
 
   getElementOverviewRowTemplate(): string {
     return MD_EXTENDED_TEMPLATES.elementOverviewRow;
+  }
+
+  getDfdPageSectionTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdPageSection;
+  }
+
+  getDfdParentLevelFlowsTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdParentLevelFlows(this.ctx.lang);
+  }
+
+  getDfdParentLevelFlowRowTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdParentLevelFlowRow;
+  }
+
+  getDfdElementOverviewPageTableTemplate(): string {
+    return MD_EXTENDED_TEMPLATES.dfdElementOverviewPageTable(this.ctx.lang);
   }
 
   getDfdElementDetailedEntryTemplate(): string {

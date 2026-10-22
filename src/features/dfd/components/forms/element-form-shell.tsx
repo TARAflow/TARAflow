@@ -24,6 +24,7 @@ import {
   type AvailableAsset,
 } from "./asset-relation-selector";
 import { SafetySummary } from "./safety-summary";
+import { AssetRollupContext, AssetRollupView } from "./asset-rollup-view";
 
 // ==================== TAB PANEL ====================
 
@@ -88,6 +89,10 @@ export const ElementFormShell: React.FC<ElementFormShellProps> = ({
   };
 
   const assetRels = element.assetRelations ?? [];
+  // Leveled DFD (6d): a decomposed multiprocess shows the roll-up of its
+  // parts instead of editable relations.
+  const rollup = React.useContext(AssetRollupContext);
+  const showRollup = rollup !== null && rollup.elementId === element.id;
 
   // Safety badge: any relation with non-none safety relevance
   const hasSafetyAnnotations = assetRels.some(
@@ -135,19 +140,28 @@ export const ElementFormShell: React.FC<ElementFormShellProps> = ({
 
       {/* Tab 2: Asset — identical for all elements */}
       <TabPanel value={activeTab} index={1}>
-        <Stack spacing={3}>
-          <AssetRelationSelector
-            assetRelations={assetRels}
-            elementType={element.type}
+        {showRollup ? (
+          <AssetRollupView
+            value={rollup}
             availableAssets={availableAssets}
+            ownRelations={assetRels}
             onChange={(relations) => onChange({ assetRelations: relations })}
-            onCreateAsset={onCreateAsset}
           />
-          <SafetySummary
-            assetRelations={assetRels}
-            availableAssets={availableAssets}
-          />
-        </Stack>
+        ) : (
+          <Stack spacing={3}>
+            <AssetRelationSelector
+              assetRelations={assetRels}
+              elementType={element.type}
+              availableAssets={availableAssets}
+              onChange={(relations) => onChange({ assetRelations: relations })}
+              onCreateAsset={onCreateAsset}
+            />
+            <SafetySummary
+              assetRelations={assetRels}
+              availableAssets={availableAssets}
+            />
+          </Stack>
+        )}
       </TabPanel>
     </Box>
   );

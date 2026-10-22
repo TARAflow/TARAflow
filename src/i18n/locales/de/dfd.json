@@ -40,6 +40,8 @@
         "noMatch": "Kein Asset passt zu „{{query}}“.",
         "hitHiddenLayer": "{{asset}} liegt in der ausgeblendeten Ebene {{layer}}.",
         "hitOutsideFocus": "{{asset}} liegt ausserhalb des Fokus (Tiefe {{depth}}).",
+        "showAllPages": "Alle Seiten zeigen",
+        "hitOutsidePage": "{{asset}} gehört zu keinem Element auf der gewählten Seite.",
         "history": {
           "undo": "Rückgängig (Strg+Z)",
           "redo": "Wiederholen (Strg+Umschalt+Z)",
@@ -115,6 +117,9 @@
         "redo": "Wiederholen",
         "exportImage": "Als Bild exportieren",
         "refresh": "Validierung aktualisieren",
+        "insertContext": "Als Kontext einfügen…",
+        "autoNumberAll": "Alle Seiten neu nummerieren",
+        "autoNumberPage": "„{{page}}“ und ihre Unterseiten neu nummerieren",
         "autoNumber": "Labels automatisch nummerieren",
         "darkMode": "Dunkelmodus",
         "lightMode": "Hellmodus",
@@ -388,6 +393,15 @@
             "required": "Erforderlich für Auditpfad (IEC 62443-4-1)"
           }
         },
+        "assetRollup": {
+          "info": "Dieser Multiprozess ist zerlegt: Er hält die Assets seiner Teile. Bearbeiten Sie die Relationen an den Teilen.",
+          "rollupTitle": "Von seinen Teilen gehalten",
+          "rollupEmpty": "Noch kein Teil hält ein Asset.",
+          "via": "über {{parts}}",
+          "pendingTitle": "Noch keinem Teil zugeordnet",
+          "pendingHint": "Stammt aus der Zeit vor der Zerlegung. Ordnen Sie das Asset dem Teil zu, der es hält – der Eintrag verschwindet dann beim nächsten Speichern.",
+          "removePending": "Entfernen – kein Teil hält dieses Asset"
+        },
         "exposure_level": {
           "label": "Expositionsniveau",
           "derived_hint": "Abgeleitet von Trust Boundary",
@@ -422,6 +436,7 @@
           "context": "Kontext",
           "security": "Sicherheit",
           "documentation": "Dokumentation",
+          "leveling": "Leveling",
           "hardware_security": "Hardware-Sicherheit",
           "physical_security": "Physische Sicherheit",
           "implemented_controls": "Implementierte Controls",
@@ -1391,6 +1406,15 @@
             "hint": "Hohes Risiko für: Manipulation, Informationspreisgabe, Denial of Service"
           },
           "fields": {
+            "refines": {
+              "label": "Verfeinert",
+              "none": "— keiner —",
+              "helper": "Ein weiterer Kanal eines Flusses der Elternebene. Beide behalten ihre eigenen Bedrohungen; eine gültige Verfeinerung gleicht den Elternfluss aus."
+            },
+            "abstract": {
+              "label": "Abstrakt (Sammelfluss, keine eigenen Bedrohungen)",
+              "helper": "Wirkt erst, wenn mindestens ein Fluss ihn gültig verfeinert; bis dahin behält der Fluss seine Bedrohungen."
+            },
             "excludeFromThreatGen": {
               "label": "Von automatischer Bedrohungsgenerierung ausschliessen",
               "warning_no_trust": "Einen Flow ausschliessen ohne ihn als 'Vertrauenswürdig angenommen' zu markieren kann echte Bedrohungen verbergen. Vertrauensbegründung oben hinzufügen."
@@ -2611,6 +2635,146 @@
           "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
         }
       },
+      "pageTabs": {
+        "root": "Oberste Ebene",
+        "details": "Detailliert {{element}}",
+        "pendingDecomposition": "Noch kein eigener Teil — der Multiprozess wird als Ganzes analysiert",
+        "notPlaced": "Nicht im Seitenbaum",
+        "findings": "{{errors}} Fehler, {{warnings}} Warnung(en)"
+      },
+      "leveledErrors": {
+        "NOT_AVAILABLE": "hier nicht verfügbar (draw.io-Plugin, gespeichertes Diagramm oder Unterseite fehlt)",
+        "NOT_POSSIBLE": "für dieses Element auf dieser Seite nichts zu tun",
+        "DRAWIO_FAILED": "draw.io konnte die Änderung nicht ausführen",
+        "NOTHING_COPIED": "draw.io hat nichts kopiert",
+        "PAGE_NOT_DELETED": "draw.io hat die Seite nicht gelöscht",
+        "SAVE_FAILED": "die Änderung konnte nicht gespeichert werden",
+        "NO_REVIEW": "der Vorschlag hat sich inzwischen geändert – bitte erneut öffnen",
+        "INVALID_DEFINITION": "die gewählte Definition ist für dieses Element nicht gültig",
+        "PAGE_NOT_PLACED": "eine Seite detailliert keinen Multiprozess – wählen Sie den Multiprozess, den sie detailliert",
+        "CELL_NOT_FOUND": "die Zelle ist nicht mehr auf ihrer Seite",
+        "NOT_A_CONTEXT_COPY": "die Zelle ist bereits die Definition",
+        "NOT_DANGLING": "das Element hat noch eine Definition – verwenden Sie „Zur Definition machen“",
+        "NO_DEFINITION": "das Element hat keine Definition – verwenden Sie „Zur Definition befördern“",
+        "DUPLICATE_DEFINITIONS": "das Element hat mehrere Definitionen – lösen Sie diese zuerst auf",
+        "PAGE_NOT_IN_TREE": "die Seite ist noch nicht im Seitenbaum",
+        "NOT_A_PLAIN_CELL": "die Zelle ist bereits mit einem Element verknüpft",
+        "SAME_IDENTITY": "die Zelle kann keine Kopie ihrer selbst werden",
+        "TYPE_MISMATCH": "die Zelle hat einen anderen Elementtyp als das Element"
+      },
+      "childPages": {
+        "orphan": {
+          "title": "Unterseite auch löschen?",
+          "text": "Der Multiprozess, den die Seite \"{{page}}\" detailliert, wurde gelöscht. Soll die Seite ebenfalls gelöscht werden? Ihr Inhalt wird mit gelöscht (rückgängig in draw.io).",
+          "keep": "Seite behalten",
+          "delete": "Seite löschen",
+          "error": "Nicht gelöscht: {{error}}. Löschen Sie sie in draw.io (Rechtsklick auf den Reiter) oder behalten Sie sie."
+        },
+        "detailedOn": "Detailliert auf Seite \"{{page}}\".",
+        "open": "Seite öffnen",
+        "create": "Unterseite anlegen",
+        "sync": "Kontext aktualisieren",
+        "syncFailed": "Kontext nicht aktualisiert ({{error}}).",
+        "syncNothing": "Die Unterseite zeigt den Kontext bereits vollständig.",
+        "syncDone": "{{count}} Kontextkopien ergänzt.",
+        "none": "Keine Unterseite — der Multiprozess wird als Ganzes analysiert."
+      },
+      "recordDescription": {
+        "label": "Beschreibung",
+        "helper": "Was das Element oder der Datenfluss tut. Erforderlich für ein vollständiges DFD."
+      },
+      "identity": {
+        "copy": "Kontextkopie",
+        "definition": "Definition",
+        "dangling": "Definition fehlt",
+        "definedOn": "Definiert auf Seite \"{{page}}\".",
+        "goToDefinition": "Zur Definition",
+        "danglingHint": "Die Definition wurde gelöscht — eine Kopie zur Definition befördern oder das Element löschen.",
+        "occurrences": "Gezeigt auf",
+        "makeDefinition": "Zur Definition machen",
+        "promote": "Zur Definition befördern",
+        "makeCopyOf": "Zur Kontextkopie machen von",
+        "chooseElement": "wählen…",
+        "apply": "Übernehmen",
+        "makeCopyWarning": "Diese Zelle zeigt dann das gewählte Element; ihr eigener Datensatz (Eigenschaften, Asset-Beziehungen) wird nicht mehr verwendet und ihre Bedrohungen werden verwaist.",
+        "error": "Nicht möglich: {{reason}}.",
+        "becomesPartOf": {
+          "title": "Definition nach unten verschieben?",
+          "message": "{{element}} wird damit Teil von {{container}}: Seine Bedrohungen und Risiken werden unter {{container}} gruppiert. Möchten Sie fortfahren?",
+          "confirm": "Fortfahren"
+        }
+      },
+      "insertContext": {
+        "title": "Als Kontext einfügen auf \"{{page}}\"",
+        "intro": "Eine Kontextkopie zeigt ein Element oder einen Fluss, der auf einer anderen Seite definiert ist — ein Element, ein Satz Bedrohungen. Sie wird an derselben Position wie auf der eigenen Seite eingefügt; danach verschieben.",
+        "none": "Alle Elemente und Flüsse des DFD sind auf dieser Seite schon zu sehen.",
+        "definedOn": "definiert auf {{page}}",
+        "choose": "Element oder Fluss",
+        "error": "Nicht eingefügt ({{error}}).",
+        "insert": "Einfügen"
+      },
+      "lostDefinition": {
+        "title": "Element hat seine Definition verloren",
+        "text": "\"{{element}}\" auf Seite \"{{page}}\" wurde gelöscht oder neu gezeichnet und ist nicht mehr im Modell.",
+        "usage": "{{threats}} Bedrohung(en) und {{relations}} Asset-Beziehung(en) verweisen darauf. Wiederanhängen behält sie; wird die Löschung bestätigt, sind die Bedrohungen verwaist.",
+        "reattachTo": "An die neue Zelle anhängen",
+        "noCandidate": "Auf dieser Seite gibt es noch keine neue Zelle desselben Typs. \"Später\" wählen und neu zeichnen — die Frage kommt mit der neuen Zelle wieder — oder die Löschung bestätigen.",
+        "error": "Nicht angehängt ({{error}}).",
+        "later": "Später",
+        "accept": "Löschung bestätigen",
+        "reattach": "Wiederanhängen"
+      },
+      "identityReview": {
+        "cancel": "Abbrechen",
+        "later": "Später",
+        "error": "Die Entscheidung konnte nicht übernommen werden: {{reason}}.",
+        "adoption": {
+          "title": "Seiten übernehmen",
+          "intro": "Dieses Diagramm hat mehrere Seiten. Bestätigen Sie, welche Seite welchen Multiprozess detailliert und welche Zellen dasselbe Element zeigen. Gespeichert werden nur der Seitenbaum und die Identitätsverknüpfungen; die Zeichnung bleibt unverändert.",
+          "pages": "Seiten",
+          "page": "Seite",
+          "details": "Detailliert Multiprozess",
+          "root": "— oberste Ebene —",
+          "status": {
+            "root": "oberste Ebene",
+            "existing": "übernommen",
+            "proposed": "vorgeschlagen",
+            "ambiguous": "mehrdeutig — bitte wählen",
+            "unplaced": "kein Vorschlag — bitte wählen"
+          },
+          "chooseMultiprocess": "Multiprozess wählen, den diese Seite detailliert…",
+          "noMultiprocess": "Kein Multiprozess mehr frei. Zeichnen Sie den Multiprozess, den diese Seite detailliert, zuerst auf einer höheren Seite, oder löschen Sie die Seite in draw.io.",
+          "unplaced": "Jede Seite außer der obersten Ebene detailliert einen Multiprozess. Bitte wählen für: {{pages}}.",
+          "groups": "Dasselbe Element auf mehreren Seiten",
+          "noGroups": "Keine Zelle erscheint auf mehr als einer Seite.",
+          "element": "Element",
+          "definition": "Definition auf",
+          "copies": "Kontextkopien auf",
+          "labelDivergence": "Beschriftungen unterschiedlich",
+          "conflict": "Konflikt — nicht zusammengeführt",
+          "tieBreak": "nach Seitenreihenfolge gewählt — bitte prüfen",
+          "apply": "Übernehmen",
+          "open": "Seiten übernehmen…",
+          "hint": "Dieses Diagramm hat Seiten, die noch nicht übernommen sind. Änderungen werden erst gespeichert, wenn Sie sie übernehmen."
+        },
+        "repair": {
+          "open": "Seiten prüfen…",
+          "hint": "Einige Seiten haben keinen Platz im Seitenbaum (mehrere oberste Seiten oder eine Seite, die nicht mehr existiert)."
+        },
+        "assignment": {
+          "title": "Eingefügte Zellen zuordnen",
+          "intro": "Diese Zellen wurden eingefügt und tragen die ID eines vorhandenen Elements. Eine Kontextkopie zeigt dieses Element (ein Element, ein Satz Bedrohungen); ein neues Element wird eigenständig analysiert und bekommt mit der nächsten Auto-Nummerierung eine eigene ID.",
+          "cell": "Eingefügte Zelle",
+          "target": "Sieht aus wie",
+          "copy": "Kontextkopie",
+          "new": "Neues Element",
+          "allCopies": "Alle als Kontextkopien",
+          "keepNew": "Alle als neu behalten",
+          "apply": "Übernehmen",
+          "open": "Zuordnen…",
+          "hint": "{{count}} eingefügte Zelle(n) sehen wie Kopien vorhandener Elemente aus."
+        }
+      },
       "notifications": {
         "title": "{{count}} Meldung(en)",
         "heuristic": "Heuristische Zuordnung — vor dem Anwenden prüfen",
@@ -2620,6 +2784,7 @@
           "all": "Alle",
           "errors": "Fehler",
           "warnings": "Warnungen",
+          "infos": "Hinweise",
           "apply": "Anwenden"
         },
         "conflict": {
@@ -2715,7 +2880,36 @@
       "pcie": "PCIe",
       "custom": "Benutzerdefiniert"
     },
-    "internalError": "Validierungsfehler: {{message}}"
+    "internalError": "Validierungsfehler: {{message}}",
+    "compressedPageNotSupported": "Komprimierte Diagrammseite(n) können nicht gelesen werden ({{pages}}). Änderungen werden nicht gespeichert und es können keine Bedrohungen generiert werden, bis die Seite unkomprimiert gespeichert ist.",
+    "leveled": {
+      "PAGE_UNASSIGNED": "Seite \"{{page}}\" ist noch nicht Teil des Seitenbaums (nicht übernommen).",
+      "PAGE_MISSING": "Seite \"{{page}}\" steht im Seitenbaum, existiert im Diagramm aber nicht mehr.",
+      "PAGE_NO_ROOT": "Der Seitenbaum hat keine Wurzelseite.",
+      "PAGE_MULTIPLE_ROOTS": "Mehrere Seiten sind Wurzelseiten ({{pages}}); nur die erste wird als Wurzel verwendet.",
+      "PAGE_DECOMPOSES_UNKNOWN": "Seite \"{{page}}\" detailliert ein Element, das nicht existiert ({{element}}).",
+      "PAGE_DECOMPOSES_NOT_MULTIPROCESS": "Seite \"{{page}}\" detailliert {{element}}, das kein Multiprozess ist — nur Multiprozesse können zerlegt werden.",
+      "PAGE_DECOMPOSED_TWICE": "{{element}} wird von mehr als einer Seite detailliert ({{pages}}).",
+      "PAGE_PARENT_UNRESOLVED": "Seite \"{{page}}\" kann nicht eingeordnet werden: {{element}} hat keine Definition im Seitenbaum.",
+      "PAGE_CYCLE": "Die Seiten {{pages}} detaillieren sich gegenseitig im Kreis.",
+      "BAL_DECOMPOSED_ON_OWN_PAGE": "{{element}} erscheint auf seiner eigenen Unterseite \"{{page}}\".",
+      "BAL_AMBIGUOUS_ENDPOINT": "Fluss {{flow}}: Die gezeichneten Endpunkte liegen nicht auf einer Zerlegungskette ({{candidates}}); analysiert am gemeinsamen Elternelement.",
+      "BAL_UNRESOLVED_ENDPOINT": "Fluss {{flow}} ist auf der Unterseite von {{element}} nicht gezeichnet; analysiert mit {{element}} als Endpunkt.",
+      "BAL_DUPLICATE_OCCURRENCE": "Fluss {{flow}} ist auf Seite \"{{page}}\" {{count}}-mal gezeichnet.",
+      "BAL_DANGLING_REF": "{{element}} existiert nur als Kontextkopie — die Definition fehlt.",
+      "DFD_EE_TO_EE_FLOW": "Fluss {{flow}} verbindet zwei externe Entitäten und liegt außerhalb der Analyse.",
+      "BAL_INTERFACE_UNATTRIBUTED": "Fluss {{flow}}: Interface {{interface}} auf Seite \"{{page}}\" lässt sich keiner Seite der Zerlegungsgrenze zuordnen.",
+      "BAL_HOME_NOT_HIGHEST": "{{element}} ist auf \"{{page}}\" definiert, erscheint aber auch auf der höheren Seite \"{{highest}}\"; die Definition sollte nach oben wandern.",
+      "BAL_ASSET_NOT_REALISED": "{{element}} hält „{{asset}}“ ({{relation}}) noch aus der Zeit vor der Zerlegung, aber keiner seiner Teile hält es. Ordnen Sie es dem Teil zu, der das Asset hält (oft fehlt ein Datenspeicher).",
+      "BAL_LABEL_DIVERGENCE": "Die Vorkommen von {{element}} tragen unterschiedliche Bezeichnungen: {{labels}}.",
+      "BAL_MISSING_PARENT_FLOW": "Fluss {{flow}} kreuzt die Grenze von {{element}}, ist auf der Elternseite \"{{page}}\" aber nicht gezeichnet.",
+      "ID_ADOPTION_PENDING": "Das Diagramm hat {{count}} Seiten; {{pages}} sind noch nicht in den Seitenbaum übernommen. Bis Sie die Übernahme bestätigen (\"Seiten übernehmen…\" über dem Diagramm), werden Änderungen nicht gespeichert und es können keine Bedrohungen generiert werden.",
+      "ID_PASTE_REASSIGNED": "{{element}} auf Seite \"{{page}}\" wurde eingefügt und ist jetzt ein eigenes Element; Auto-Nummerierung ausführen, damit es eine eigene ID bekommt.",
+      "BAL_REFINES_TARGET_MISSING": "Fluss {{flow}} verfeinert \"{{target}}\", das nicht existiert; die Verfeinerung zählt nicht.",
+      "BAL_REFINES_CYCLE": "Fluss {{flow}}: Die Verfeinerungen bilden einen Kreis ({{cycle}}); die Verfeinerung zählt nicht.",
+      "BAL_REFINES_INCOMPATIBLE": "Fluss {{flow}} passt nicht zu dem Fluss, den er verfeinert ({{target}}): Seine Endpunkte müssen denen des Ziels entsprechen oder darin liegen, in derselben Richtung. Wird normal analysiert; die Verfeinerung zählt nicht.",
+      "BAL_ABSTRACT_WITHOUT_REFINEMENT": "Fluss {{flow}} ist abstrakt, hat aber keinen gültigen verfeinernden Fluss; er behält seine eigenen Bedrohungen, bis ein Fluss ihn verfeinert."
+    }
   },
   "levels": {
     "security": {

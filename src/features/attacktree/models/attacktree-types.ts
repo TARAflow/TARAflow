@@ -673,6 +673,8 @@ export interface AttackTreeProjectData {
 
   /** DFD preview */
   dfdPreviewImage?: string;
+  /** Leveled DFD (D18): one thumbnail per page, Top first. */
+  dfdPreviewPages?: import("shared").DFDPreviewPage[];
 
   lastModified: string;
 }

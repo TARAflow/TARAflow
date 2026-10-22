@@ -2,13 +2,61 @@
 // Single Responsibility: Handles all Draw.io iframe communication
 // Abstracts postMessage API and controller interactions
 
-import { IDrawioBridge, IDrawioBridgeFactory } from "../interfaces/dfd-editor-interfaces";
+import {
+  IDrawioBridge,
+  IDrawioBridgeFactory,
+  type SelectionCallback,
+} from "../interfaces/dfd-editor-interfaces";
 import type {
   DrawioViewport,
   DrawioExportResult,
 } from "../models/drawio-types";
 import CORSCommunicator from "../services/cors-communicator";
 import LocalStorageModel from "../services/local-storage-model";
+import type { PageTabInfoMap } from "./leveled/page-tab-info";
+import type {
+  ChildPageCreation,
+  PageLinkFix,
+  PageRename,
+} from "./leveled/child-pages";
+import type { ContextCopySpec } from "./leveled/context-copies";
+
+/** Result of a page thumbnail export (leveled DFD 5i). */
+export interface PageSvgExport {
+  success: boolean;
+  error?: string;
+  /** pageId → SVG data URL */
+  svgs?: Record<string, string>;
+  errors?: string[];
+}
+
+/** Context copies per page: pageId → cellId → true (leveled DFD 5g). */
+export type ContextCellMap = Record<string, Record<string, true>>;
+
+/** What draw.io has to do for a page sync (planPageSync, 5e). */
+export interface DrawioPageSyncSpec {
+  create: readonly ChildPageCreation[];
+  rename: readonly PageRename[];
+  /** Page links on further occurrences of decomposed multiprocesses. */
+  link?: readonly PageLinkFix[];
+  /** Pages to delete (child pages of deleted multiprocesses, on request). */
+  remove?: readonly string[];
+  /** Context copies onto child pages (5f), after the pages are created. */
+  context?: readonly ContextCopySpec[];
+  /** Context copies to remove from pure context pages (5f). */
+  removeCells?: readonly { pageId: string; cellIds: readonly string[] }[];
+}
+
+export interface DrawioPageSyncResult {
+  success: boolean;
+  error?: string;
+  /** pageIds actually created (an existing page is not created again). */
+  created?: string[];
+  /** Cells or pages that were not found for a link. */
+  errors?: string[];
+  /** Context copies made (5f): original cell → clone on the child page. */
+  copies?: { pageId: string; from: string; to: string }[];
+}
 import DrawioController from "../services/drawio-controller";
 
 /**
@@ -24,7 +72,7 @@ export class DrawioBridge implements IDrawioBridge {
   private corsComm: CORSCommunicator;
   private imageReadyCallback: ((imageSrc: string) => void) | null = null;
   private diagramChangeCallback: (() => void) | null = null;
-  private selectionCallback: ((cells: any[]) => void) | null = null;
+  private selectionCallback: SelectionCallback | null = null;
   private disposed = false;
   private diagramChangeWithXmlCallback: ((xml: string) => void) | null = null;
 
@@ -62,9 +110,9 @@ export class DrawioBridge implements IDrawioBridge {
         }
       });
 
-      this.controller.onSelectionChanged((cells: any[]) => {
+      this.controller.onSelectionChanged((cells, pageId) => {
         if (!this.disposed && this.selectionCallback) {
-          this.selectionCallback(cells);
+          this.selectionCallback(cells, pageId);
         }
       });
 
@@ -76,7 +124,7 @@ export class DrawioBridge implements IDrawioBridge {
     }
   }
 
-  onSelectionChanged(callback: (cells: any[]) => void): void {
+  onSelectionChanged(callback: SelectionCallback): void {
     this.selectionCallback = callback;
   }
 
@@ -93,7 +141,11 @@ export class DrawioBridge implements IDrawioBridge {
     this.iframe.contentWindow!.postMessage(msg, "*");
   }
 
-  async selectCell(cellId: string): Promise<void> {
+  /**
+   * Select a cell. With a pageId draw.io first opens that page — cell ids
+   * are page-local (leveled DFD §5.2). Without one the current page is used.
+   */
+  async selectCell(cellId: string, pageId?: string | null): Promise<void> {
     if (!this.isReady()) {
       console.warn(`[DrawioBridge] Cannot select cell "${cellId}" - not ready`);
       return;
@@ -101,7 +153,7 @@ export class DrawioBridge implements IDrawioBridge {
 
     if (window.electronAPI?.selectDrawioCell) {
       // Electron: direkt auf draw.io graph via IPC
-      await window.electronAPI.selectDrawioCell(cellId);
+      await window.electronAPI.selectDrawioCell(cellId, pageId);
     } else {
       // Fallback für non-Electron (z.B. Browser-Dev)
       this.iframe.contentWindow!.postMessage(
@@ -109,6 +161,46 @@ export class DrawioBridge implements IDrawioBridge {
         "*",
       );
     }
+  }
+
+  /**
+   * Create child pages, set page links, rename pages (leveled DFD 5d).
+   * Electron only; elsewhere nothing is done and `success` is false.
+   */
+  async syncPages(spec: DrawioPageSyncSpec): Promise<DrawioPageSyncResult> {
+    if (!this.isReady() || !window.electronAPI?.syncDrawioPages) {
+      return { success: false, error: "not available" };
+    }
+    return window.electronAPI.syncDrawioPages(spec as unknown as Record<string, unknown>);
+  }
+
+  /**
+   * One SVG thumbnail per page (leveled DFD 5i, D18) without switching the
+   * page the user sees. Electron only.
+   */
+  async exportPageSvgs(pageIds: string[]): Promise<PageSvgExport> {
+    if (!this.isReady() || !window.electronAPI?.exportDrawioPageSvgs) {
+      return { success: false, error: "not available" };
+    }
+    return window.electronAPI.exportDrawioPageSvgs(pageIds);
+  }
+
+  /**
+   * Context copies per page, shown faded and dashed (leveled DFD 5g).
+   * Electron only.
+   */
+  async setContextCells(cells: ContextCellMap): Promise<void> {
+    if (!this.isReady() || !window.electronAPI?.setDrawioContextCells) return;
+    await window.electronAPI.setDrawioContextCells(cells);
+  }
+
+  /**
+   * Tooltip and finding badge per draw.io page tab (leveled DFD 5c).
+   * Electron only — the plugin that decorates the tabs is injected there.
+   */
+  async setPageTabInfo(info: PageTabInfoMap): Promise<void> {
+    if (!this.isReady() || !window.electronAPI?.setDrawioPageTabInfo) return;
+    await window.electronAPI.setDrawioPageTabInfo(info);
   }
 
   /**
@@ -198,9 +290,10 @@ export class DrawioBridge implements IDrawioBridge {
    * Used exclusively for transient overlay display (asset inspection mode).
    *
    * If a viewport is provided, the plugin will restore it after draw.io
-   * finishes loading (which resets the viewport internally).
+   * finishes loading (which resets the viewport internally). A load opens
+   * the first page: `pageId` (leveled DFD) is opened again first.
    */
-  loadXmlTransient(xml: string, viewport?: DrawioViewport): void {
+  loadXmlTransient(xml: string, viewport?: DrawioViewport, pageId?: string | null): void {
     if (!this.iframe.contentWindow) {
       console.warn("[DrawioBridge] loadXmlTransient: no contentWindow");
       return;
@@ -210,10 +303,15 @@ export class DrawioBridge implements IDrawioBridge {
       JSON.stringify({ action: "load", xml }),
       "*",
     );
-    if (viewport) {
+    const reopenPage = pageId && window.electronAPI?.selectDrawioCell ? pageId : null;
+    if (viewport || reopenPage) {
       // Delay allows draw.io to finish its internal load + viewport reset
       // before we restore via IPC (which sets graph.view directly)
-      setTimeout(() => void this.setViewport(viewport), 300);
+      setTimeout(async () => {
+        // An empty cell id only opens the page.
+        if (reopenPage) await this.selectCell("", reopenPage);
+        if (viewport) await this.setViewport(viewport);
+      }, 300);
     }
   }
 

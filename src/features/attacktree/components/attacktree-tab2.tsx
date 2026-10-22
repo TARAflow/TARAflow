@@ -899,7 +899,10 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
               overflow: "hidden",
             }}
           >
-            <DFDPreviewPanel imageSrc={project.dfdPreviewImage} />
+            <DFDPreviewPanel
+              imageSrc={project.dfdPreviewImage}
+              pages={project.dfdPreviewPages}
+            />
           </Box>
 
           {/* Resize Handle */}

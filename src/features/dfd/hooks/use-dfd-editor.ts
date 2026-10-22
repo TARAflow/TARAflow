@@ -2,15 +2,18 @@
 // Single Responsibility: Orchestrate atomic hooks into unified API
 // Follows Facade Pattern - simple interface, complex implementation
 
-import type { A2AOp } from "shared";
+import type { A2AOp, PhaseStatusMap } from "shared";
+import { PHASE_STATUS_KEY } from "shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  DFDPage,
   DFDProjectData,
   DFDUpdateResult,
   DFDElement,
   DFDConnection,
   DFDStats,
   DFDExportData,
+  DFDData,
 } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ValidationResult } from "../services/dfd-validator";
@@ -31,6 +34,16 @@ import { useDFDThumbnail } from "./use-dfd-thumbnail";
 import { useDFDAutoNumbering } from "./use-dfd-auto-numbering";
 import { useDFDExportImport } from "./use-dfd-export-import";
 import { useDFDCompletion } from "./use-dfd-completion";
+import { useCellIdentity } from "./use-cell-identity";
+import { withPageThumbnails } from "../services/leveled/page-thumbnails";
+import { withCompleteness } from "../services/dfd-completeness";
+import type { PageTabInfoMap } from "../services/leveled/page-tab-info";
+import type {
+  ContextCellMap,
+  PageSvgExport,
+  DrawioPageSyncResult,
+  DrawioPageSyncSpec,
+} from "../services/drawio-bridge";
 
 import { DFDGraph } from "../models/dfd-graph-types";
 import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context";
@@ -77,6 +90,8 @@ export interface UseDFDEditorReturn {
 
   // Save operations
   save: () => Promise<DFDUpdateResult | null>;
+  /** Save with new dfd.pages (leveled DFD identity review, 5b). */
+  savePages: (pages: DFDPage[]) => Promise<DFDUpdateResult | null>;
 
   // Validation
   validate: () => ValidationResult;
@@ -87,10 +102,37 @@ export interface UseDFDEditorReturn {
 
   // Editor operations
   sendAction: (action: string) => void;
-  selectCell: (cellId: string) => Promise<void>;
+  /**
+   * Select the cell of a logical element / flow (its tfId = record id). In a
+   * leveled DFD this opens the page of the chosen occurrence: the current
+   * page if the element is shown there, otherwise its definition (§5.2).
+   */
+  selectCell: (tfId: string) => Promise<void>;
+  /** The TARAflow plugin runs in draw.io (Electron). */
+  pluginReady: boolean;
+  /** Tooltip and finding badge per draw.io page tab (leveled DFD 5c). */
+  setPageTabInfo: (info: PageTabInfoMap) => Promise<void>;
+  /** Child pages, page links, page names in draw.io (leveled DFD 5d). */
+  syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
+  /** Context copies shown faded and dashed (leveled DFD 5g). */
+  setContextCells: (cells: ContextCellMap) => Promise<void>;
+  /** Select one particular cell (page + cell), e.g. "Go to definition". */
+  selectCellAt: (pageId: string, cellId: string) => Promise<void>;
+  /** Open a draw.io page without selecting a cell (leveled DFD). */
+  openPage: (pageId: string) => Promise<void>;
+  /** The draw.io page last reported by the selection events; null before. */
+  getCurrentPageId: () => string | null;
+  /** One SVG thumbnail per page (leveled DFD 5i, D18). */
+  exportPageSvgs: (pageIds: string[]) => Promise<PageSvgExport>;
+  /**
+   * Store page thumbnails (debounced, JSON only): dfd.pages[].thumbnail,
+   * dfd.thumbnail mirrors the root page.
+   */
+  updatePageThumbnails: (svgs: Record<string, string>) => void;
   exportXML: () => Promise<DrawioExportResult>;
   getCurrentXML: () => Promise<string | null>;
-  autoNumberLabels: () => Promise<void>;
+  /** Renumber; with a page id one page and its child pages (5l). */
+  autoNumberLabels: (onlyPageId?: string) => Promise<void>;
 
   // Description editing (triggers debounced save)
   updateElementDescription: (
@@ -116,10 +158,26 @@ export interface UseDFDEditorReturn {
   graphContext: DFDGraph | null;
 
   /** Send XML to draw.io without persisting — for transient overlay only. */
-  loadXMLTransient: (xml: string, viewport?: DrawioViewport) => void;
+  loadXMLTransient: (xml: string, viewport?: DrawioViewport, pageId?: string | null) => void;
 
   /** Load XML into draw.io and persist to localStorage. Used by import. */
   loadXML: (xml: string) => Promise<void>;
+}
+
+/**
+ * A form edit (description, properties) saves the records only: refresh the
+ * DFD's description counts, isComplete and phase status from them — the
+ * description decides completeness (fix with the record description).
+ */
+function withRecordCompleteness(dfd: DFDData, phaseStatus: PhaseStatusMap) {
+  const done = withCompleteness(dfd);
+  return {
+    dfd: done.dfd,
+    phaseStatus: done.phaseStatus
+      ? { ...phaseStatus, [PHASE_STATUS_KEY.dfd]: done.phaseStatus }
+      : phaseStatus,
+    lastModified: done.dfd.lastModified!,
+  };
 }
 
 // ==================== HOOK ====================
@@ -146,6 +204,28 @@ export function useDFDEditor(
 
   // ==================== SELECTION RESOLUTION ====================
 
+  // Cell ↔ tfId (leveled DFD §5.2): draw.io reports page-local cells, the
+  // records and the side panel use logical identities. Every forwarded cell
+  // gets `tfId`; for classic projects tfId = cell id.
+  const cellIdentity = useCellIdentity(data.dfd);
+  const cellIdentityRef = useRef(cellIdentity);
+  cellIdentityRef.current = cellIdentity;
+  // The draw.io page the user is looking at; navigation prefers it.
+  const currentPageIdRef = useRef<string | null>(null);
+
+  const withTfIds = useCallback(
+    (cells: any[]) =>
+      cells.map((cell) => {
+        const cellId = cell?.xmlId || cell?.id;
+        if (!cellId) return cell;
+        return {
+          ...cell,
+          tfId: cellIdentityRef.current.tfIdOf(cellId, cell?.pageId),
+        };
+      }),
+    [],
+  );
+
   const [pendingCells, setPendingCells] = useState<any[] | null>(null);
 
   /**
@@ -155,7 +235,9 @@ export function useDFDEditor(
    * neu emittiert sobald data.dfd.elements updated.
    */
   const handleSelectionChanged = useCallback(
-    (cells: any[]) => {
+    (rawCells: any[], pageId?: string | null) => {
+      if (pageId !== undefined) currentPageIdRef.current = pageId;
+      const cells = withTfIds(rawCells);
       if (!cells.length) {
         setPendingCells(null);
         onSelectionChanged?.(cells);
@@ -163,7 +245,7 @@ export function useDFDEditor(
       }
 
       const cell = cells[0];
-      const id = cell?.xmlId || cell?.id;
+      const id = cell?.tfId;
       if (!id) {
         onSelectionChanged?.(cells);
         return;
@@ -179,10 +261,10 @@ export function useDFDEditor(
         onSelectionChanged?.(cells);
       } else {
         // Noch nicht synchronisiert → puffern, retry via useEffect
-        setPendingCells(cells);
+        setPendingCells(rawCells);
       }
     },
-    [data.dfd?.elements, data.dfd?.connections, onSelectionChanged],
+    [data.dfd?.elements, data.dfd?.connections, onSelectionChanged, withTfIds],
   );
 
   /**
@@ -192,8 +274,10 @@ export function useDFDEditor(
   useEffect(() => {
     if (!pendingCells?.length) return;
 
-    const cell = pendingCells[0];
-    const id = cell?.xmlId || cell?.id;
+    // Resolve again: the save that brought the record may also have
+    // brought its identity link.
+    const cells = withTfIds(pendingCells);
+    const id = cells[0]?.tfId;
     if (!id) return;
 
     const existsInData =
@@ -201,7 +285,7 @@ export function useDFDEditor(
       data.dfd?.connections.some((c) => c.id === id);
 
     if (existsInData) {
-      onSelectionChanged?.(pendingCells);
+      onSelectionChanged?.(cells);
       setPendingCells(null);
     }
     // Bewusst nur auf elements/connections reagieren, nicht auf pendingCells
@@ -231,6 +315,10 @@ export function useDFDEditor(
     // so the preview stays in sync without requiring a manual save.
     onAfterDrawioSave: generateThumbnailOnSave
       ? async () => {
+          // A leveled DFD has one thumbnail per page (D18, usePageThumbnails);
+          // exporting the page that happens to be shown would put a child
+          // page into dfd.thumbnail.
+          if ((project.dfd?.pages?.length ?? 0) > 1) return;
           try {
             // Same guard as the initial thumbnail: an export from a hidden or
             // not-yet-laid-out iframe persists a broken image. Skip it — the
@@ -288,6 +376,8 @@ export function useDFDEditor(
   const handlePluginReady = useCallback(async () => {
     if (!generateThumbnailOnSave) return;
     if (projectRef.current.dfd?.thumbnail) return;
+    // Leveled DFD: thumbnails per page (D18, usePageThumbnails).
+    if ((projectRef.current.dfd?.pages?.length ?? 0) > 1) return;
 
     // Wait until draw.io can export faithfully (visible, fonts loaded, layout
     // settled) instead of a fixed delay. Never visible → skip; the first
@@ -332,12 +422,47 @@ export function useDFDEditor(
   // without closing over a stale bridge instance.
   bridgeRef.current = bridge;
 
+  // Stable: the child-page sync (5d) runs an effect on it.
+  const persistenceSavePages = persistence.savePages;
+  const validate = validation.validate;
+  const savePages = useCallback(
+    async (pages: DFDPage[]) => {
+      const result = await persistenceSavePages(pages);
+      if (result) validate();
+      return result;
+    },
+    [persistenceSavePages, validate],
+  );
+
+  const bridgeSelectCell = bridge.selectCell;
+  // An empty cell id makes drawio:selectCell only open the page.
+  const selectCellAt = useCallback(
+    (pageId: string, cellId: string) => bridgeSelectCell(cellId, pageId),
+    [bridgeSelectCell],
+  );
+  // Stable: reads the page last reported by the selection events.
+  const getCurrentPageId = useCallback(() => currentPageIdRef.current, []);
+  const openPage = useCallback(
+    (pageId: string) => bridgeSelectCell("", pageId),
+    [bridgeSelectCell],
+  );
+  const selectCell = useCallback(
+    async (tfId: string): Promise<void> => {
+      const target = cellIdentityRef.current.cellOf(tfId, currentPageIdRef.current);
+      // No cell known (classic project, or not parsed yet): the id is the cell id.
+      await bridgeSelectCell(target?.cellId ?? tfId, target?.pageId);
+    },
+    [bridgeSelectCell],
+  );
+
   // Thumbnail layer
   const thumbnail = useDFDThumbnail(bridge, project, {
     restoreFromProject: true,
   });
 
-  // Auto-numbering layer
+  // Auto-numbering layer — reads the current page tree and identity links
+  // (leveled DFDs) at the moment of numbering, not at hook creation.
+  const getProjectPages = useCallback(() => projectRef.current.dfd?.pages, []);
   const autoNumbering = useDFDAutoNumbering(bridge, validation, persistence, {
     tolerance: autoNumberingConfig?.tolerance ?? 50,
     sortStrategy: autoNumberingConfig?.sortStrategy ?? "diagonal",
@@ -345,6 +470,7 @@ export function useDFDEditor(
     weightY: autoNumberingConfig?.weightY ?? 1.0,
     validateAfter: true,
     validationDelay: 500,
+    getPages: getProjectPages,
   });
 
   // Export/Import layer
@@ -413,14 +539,9 @@ export function useDFDEditor(
       // edit's still-pending change, and scheduleSave's wholesale replace
       // of the pending save silently discarded it — the same bug fixed in
       // dfd-tab.tsx's handleAssetChange.
-      persistence.scheduleSave((base) => {
-        const updatedDFD = data.updateElement(elementId, updates, base);
-        return {
-          dfd: updatedDFD,
-          phaseStatus: project.phaseStatus,
-          lastModified: updatedDFD.lastModified!,
-        };
-      });
+      persistence.scheduleSave((base) =>
+        withRecordCompleteness(data.updateElement(elementId, updates, base), project.phaseStatus),
+      );
       validation.scheduleValidation(autoValidateInterval);
     },
     [data, project.phaseStatus, persistence, validation, autoValidateInterval],
@@ -448,17 +569,32 @@ export function useDFDEditor(
    */
   const updateConnectionDescription = useCallback(
     (connectionId: string, updates: Partial<DFDConnection>) => {
-      persistence.scheduleSave((base) => {
-        const updatedDFD = data.updateConnection(connectionId, updates, base);
-        return {
-          dfd: updatedDFD,
-          phaseStatus: project.phaseStatus,
-          lastModified: updatedDFD.lastModified!,
-        };
-      });
+      persistence.scheduleSave((base) =>
+        withRecordCompleteness(data.updateConnection(connectionId, updates, base), project.phaseStatus),
+      );
       validation.scheduleValidation(autoValidateInterval);
     },
     [data, project.phaseStatus, persistence, validation, autoValidateInterval],
+  );
+
+  /**
+   * Store page thumbnails (leveled DFD 5i, D18) on the freshest base, like
+   * the description edits — JSON only, no re-parse.
+   */
+  const scheduleSave = persistence.scheduleSave;
+  const updatePageThumbnails = useCallback(
+    (svgs: Record<string, string>) => {
+      scheduleSave((base) => {
+        const { pages, thumbnail } = withPageThumbnails(base.pages, base.thumbnail, svgs);
+        const lastModified = new Date().toISOString();
+        return {
+          dfd: { ...base, ...(pages ? { pages } : {}), thumbnail, lastModified },
+          phaseStatus: project.phaseStatus,
+          lastModified,
+        };
+      });
+    },
+    [scheduleSave, project.phaseStatus],
   );
 
   /**
@@ -500,6 +636,7 @@ export function useDFDEditor(
 
     // Save operations
     save,
+    savePages,
 
     // Validation
     validate: validation.validate,
@@ -510,7 +647,16 @@ export function useDFDEditor(
 
     // Editor operations
     sendAction: bridge.sendAction,
-    selectCell: bridge.selectCell,
+    selectCell,
+    pluginReady: bridge.pluginReady,
+    setPageTabInfo: bridge.setPageTabInfo,
+    syncPages: bridge.syncPages,
+    setContextCells: bridge.setContextCells,
+    selectCellAt,
+    openPage,
+    getCurrentPageId,
+    exportPageSvgs: bridge.exportPageSvgs,
+    updatePageThumbnails,
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,
     loadXMLTransient: bridge.loadXMLTransient,

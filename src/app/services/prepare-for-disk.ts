@@ -166,7 +166,8 @@ function auditForDisk(audit: NonNullable<Project["audit"]>): AuditDataOnDisk {
  * - `isOpen` / `lastOpened` / `currentPhase`  session + navigation state.
  * Reduced:
  * - `dfd.graph`           derived, rebuilt on load, and large → dropped.
- * - `dfd.thumbnail`       kept but its random id pinned (see normalizeThumbnail).
+ * - `dfd.thumbnail`       kept but its random id pinned (see normalizeThumbnail);
+ *                         the same for every dfd.pages[].thumbnail (D18).
  * - `audit`               audit RESULTS (lastCommitState/commitHistory) and the
  *                         internal lastModified sentinel dropped; config reduced
  *                         to project-level policy (see configForDisk).
@@ -205,6 +206,16 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
             assets: [],
             graph: undefined,
             thumbnail: normalizeThumbnail(project.dfd.thumbnail),
+            // Leveled DFD (D18): one thumbnail per page, pinned the same way.
+            ...(dfdRest.pages
+              ? {
+                  pages: dfdRest.pages.map((page) =>
+                    page.thumbnail
+                      ? { ...page, thumbnail: normalizeThumbnail(page.thumbnail) }
+                      : page,
+                  ),
+                }
+              : {}),
           };
         })()
       : null,
