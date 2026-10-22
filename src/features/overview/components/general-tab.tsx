@@ -24,7 +24,8 @@ import {
 // Layout:
 // 1. Project Info (editable)
 // 2. Phase Progress
-// 3. Project Settings (Validation, Auto Saving)
+// 3. Project Source Reference
+// 4. Project Settings (Validation, Auto Saving)
 
 interface GeneralTabProps {
   /** Project data */
@@ -146,6 +147,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     <div className="p-6 max-w-6xl">
       <ProjectInfo info={projectInfoData} onUpdate={handleInfoUpdate} />
 
+      <ProjectProgress
+        data={progressData}
+        phases={overviewPhases}
+        getStatusIcon={getStatusIcon}
+        getStatusColor={getStatusColor}
+      />
+
       <SourceBindingsSection
         bindings={data.sourceBindings ?? []}
         scopeLabel={t("sourceBinding.projectScope.title", {
@@ -153,13 +161,6 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
         })}
         scopeDescriptionKey="sourceBinding.projectScope.description"
         onUpdate={handleSourceBindingsUpdate}
-      />
-
-      <ProjectProgress
-        data={progressData}
-        phases={overviewPhases}
-        getStatusIcon={getStatusIcon}
-        getStatusColor={getStatusColor}
       />
 
       <ProjectSettings

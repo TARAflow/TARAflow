@@ -946,6 +946,9 @@ export const WorkspaceLayout: React.FC = () => {
             phases={PHASES}
             progressPhaseIds={getProgressPhaseIds(
               activeProject.info?.safetyRelevant ?? false,
+              regulationPresetFromTags(
+                activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+              ) === "iso-21434",
             )}
             getStatusIcon={getPhaseStatusIcon}
             getStatusColor={getPhaseStatusColor}
