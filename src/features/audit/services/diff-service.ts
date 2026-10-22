@@ -25,12 +25,21 @@ import type {
   CommitMessageData,
 } from "../models/audit-types";
 import type { AssetData, Asset } from "features/assets";
-import type { DFDData } from "features/dfd";
+import { diffDfd, type DFDData, type DfdChange } from "features/dfd";
 import type { ThreatData, Threat } from "features/threats";
 import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
 import type { A2ARelation } from "shared";
+
+/** valueType of a change detail, from its value. */
+function valueTypeOf(value: unknown): ChangeDetail["valueType"] {
+  if (Array.isArray(value)) return "array";
+  if (value !== null && typeof value === "object") return "object";
+  if (typeof value === "number") return "number";
+  if (typeof value === "boolean") return "boolean";
+  return "string";
+}
 
 // ==================== DIFF SERVICE ====================
 
@@ -141,6 +150,30 @@ export class DiffService {
 
   // ==================== DFD COMPARISON ====================
 
+  /** A classified DFD change as a change item ("P-1.1: Optical Detection"). */
+  private dfdChangeItem(change: DfdChange): ChangeItem {
+    const what = change.subject === "flow" ? "Data flow" : "DFD element";
+    const verb = change.kind === "added" ? "added" : change.kind === "removed" ? "deleted" : "modified";
+    return {
+      type: change.kind === "removed" ? "deleted" : change.kind,
+      id: change.displayId,
+      name: change.name,
+      description: `${what} ${verb}`,
+      category: change.category,
+      ...(change.fields
+        ? {
+            details: change.fields.map((f) => ({
+              field: f.field,
+              fieldLabel: f.field,
+              oldValue: f.before,
+              newValue: f.after,
+              valueType: valueTypeOf(f.before ?? f.after),
+            })),
+          }
+        : {}),
+    };
+  }
+
   private compareDFD(
     current: DFDData | null,
     previous: DFDData | null,
@@ -187,50 +220,21 @@ export class DiffService {
       return changes;
     }
 
-    // DFD modified
+    // DFD modified — one item per element / flow, classified (leveled-dfd
+    // design §11.3; classic DFDs alike).
     if (current && previous) {
-      const details: ChangeDetail[] = [];
-
-      // Check element count
-      if (current.elements.length !== previous.elements.length) {
-        details.push({
-          field: "elements",
-          fieldLabel: "Elements",
-          oldValue: previous.elements.length,
-          newValue: current.elements.length,
-          valueType: "number",
-        });
+      for (const change of diffDfd(previous, current)) {
+        changes.push(this.dfdChangeItem(change));
       }
 
-      // Check connection count
-      if (current.connections.length !== previous.connections.length) {
-        details.push({
-          field: "connections",
-          fieldLabel: "Data Flows",
-          oldValue: previous.connections.length,
-          newValue: current.connections.length,
-          valueType: "number",
-        });
-      }
-
-      // Check XML changes
-      if (current.xml !== previous.xml) {
-        details.push({
-          field: "diagram",
-          fieldLabel: "Diagram Structure",
-          oldValue: "Modified",
-          newValue: "Modified",
-          valueType: "string",
-        });
-      }
-
-      if (details.length > 0) {
+      // The XML changed but no record did: the drawing alone (layout).
+      if (changes.length === 0 && current.xml !== previous.xml) {
         changes.push({
           type: "modified",
           id: "DFD",
           name: "Data Flow Diagram",
-          description: "DFD modified",
-          details,
+          description: "Diagram layout modified",
+          category: "graphical",
         });
       }
     }

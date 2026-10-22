@@ -206,6 +206,18 @@ const ChangeItemsTable: React.FC<ChangeItemsTableProps> = ({ changes }) => {
                         : "warning"
                     }
                   />
+                  {/* DFD changes: semantic / graphical / structural / identity (§11.3) */}
+                  {change.category && (
+                    <Chip
+                      label={t(`audit.diff.category.${change.category}`, {
+                        defaultValue: change.category,
+                      })}
+                      size="small"
+                      variant="outlined"
+                      sx={{ ml: 0.5 }}
+                      data-testid={`change-category-${change.category}`}
+                    />
+                  )}
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" color="text.secondary">

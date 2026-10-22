@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { DiffService } from "features/audit/services/diff-service";
 import type { Project } from "app";
-import type { PhaseChanges } from "features/audit/models/audit-types";
+import { generateCommitMessage, type PhaseChanges } from "features/audit/models/audit-types";
 
 const svc = new DiffService();
 
@@ -279,3 +279,60 @@ describe("DiffService — asset-to-asset relations (AR-9)", () => {
     expect(links(svc.detectChanges(withRel([edge()]), withRel([edge()])))).toEqual([]);
   });
 });
+
+describe("DiffService — DFD changes per element / flow, classified (§11.3)", () => {
+  const el = (id: string, name: string) => ({
+    id,
+    displayId: id.toUpperCase(),
+    name,
+    type: "Process",
+    position: { x: 0, y: 0 },
+    size: { width: 80, height: 60 },
+    properties: {},
+  });
+  const dfd = (elements: any[], xml = "<mxfile/>") => ({ xml, elements, connections: [], assets: [] });
+  const dfdPhase = (changes: PhaseChanges[]) => changes.find((p) => p.phase === "dfd");
+
+  it("one item per changed element, with the field details and the category", () => {
+    const changes = svc.detectChanges(
+      project({ dfd: dfd([el("p1", "Sensor"), el("p2", "Alarm")]) }),
+      project({ dfd: dfd([el("p1", "Sensr")]) }),
+    );
+    expect(dfdPhase(changes)!.changes).toEqual([
+      {
+        type: "modified",
+        id: "P1",
+        name: "Sensor",
+        description: "DFD element modified",
+        category: "semantic",
+        details: [{ field: "name", fieldLabel: "name", oldValue: "Sensr", newValue: "Sensor", valueType: "string" }],
+      },
+      { type: "added", id: "P2", name: "Alarm", description: "DFD element added", category: "semantic" },
+    ]);
+  });
+
+  it("a drawing-only change is one graphical item", () => {
+    const changes = svc.detectChanges(
+      project({ dfd: dfd([el("p1", "Sensor")], "<mxfile>moved</mxfile>") }),
+      project({ dfd: dfd([el("p1", "Sensor")]) }),
+    );
+    expect(dfdPhase(changes)!.changes).toEqual([
+      expect.objectContaining({ id: "DFD", category: "graphical", description: "Diagram layout modified" }),
+    ]);
+  });
+
+  it("no change, no DFD phase", () => {
+    expect(dfdPhase(svc.detectChanges(project({ dfd: dfd([el("p1", "S")]) }), project({ dfd: dfd([el("p1", "S")]) })))).toBeUndefined();
+  });
+
+  it("the commit message names the category", () => {
+    const changes = svc.detectChanges(
+      project({ dfd: dfd([el("p1", "Sensor")]) }),
+      project({ dfd: dfd([el("p1", "Sensr")]) }),
+    );
+    const message = generateCommitMessage(svc.generateCommitMessageData(changes, "Detail Review", "jm"));
+    expect(message).toContain("~ P1: Sensor [semantic]");
+    expect(message).toContain("name: Sensr → Sensor");
+  });
+});
+

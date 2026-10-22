@@ -168,6 +168,12 @@ export type {
 
 // ==================== SERVICES ====================
 export { dfdService } from "./services/dfd-service";
+export {
+  diffDfd,
+  type DfdChange,
+  type DfdChangeCategory,
+  type DfdFieldChange,
+} from "./services/dfd-diff";
 export type { DFDSaveResult, DFDLoadResult } from "./services/dfd-service";
 
 export {

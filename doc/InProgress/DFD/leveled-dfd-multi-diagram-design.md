@@ -878,6 +878,19 @@ commit dialog shows structure and analysis effect as separate lines, e.g.
 The single-writer / `prepareForDisk` discipline is unchanged; the effective model is never written
 to disk.
 
+**Implementation** (review 2026-10-22: §11.3 had no phase of its own and was missed; before, the
+diff-service compared the DFD by element and flow counts and reported any XML change as "Diagram
+Structure: Modified"):
+- **Elements and flows ✅** (classic and leveled alike): `dfd/services/dfd-diff` (pure,
+  `diffDfd(previous, current)`) compares the records by `tfId` — added / removed, and per field
+  (`properties` per key, so `refines` / `abstract` and a flow's `from` / `to` show as such), all
+  **semantic**; layout fields (`position`, `size`, `waypoints`, …) are not model changes, asset
+  relations are compared in the asset phase. The diff-service turns each change into one
+  `ChangeItem` with `category` (`semantic` / `graphical` / `structural` / `identity`); the commit
+  message tags the line (`~ P-1.1: Optical Detection [semantic]`), the audit's change list shows a
+  chip. An XML change without any record change is one **graphical** item "Diagram layout
+  modified".
+
 ## 12. UI
 
 - **Automatic child page (D15–D17):** creating a multiprocess creates its child page, named like the

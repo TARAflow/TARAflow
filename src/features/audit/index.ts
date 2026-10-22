@@ -37,6 +37,7 @@ export type {
   PhaseChanges,
   ChangeItem,
   ChangeDetail,
+  ChangeCategory,
   ChangeType,
   
   // Validation
