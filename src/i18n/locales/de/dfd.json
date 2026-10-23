@@ -120,6 +120,7 @@
         "insertContext": "Als Kontext einfügen…",
         "autoNumberAll": "Alle Seiten neu nummerieren",
         "autoNumberPage": "„{{page}}“ und ihre Unterseiten neu nummerieren",
+        "autoNumberPageBlocked": "„{{mp}}“ hat noch keine Nummer – nummerieren Sie zuerst alle Seiten neu",
         "autoNumber": "Labels automatisch nummerieren",
         "darkMode": "Dunkelmodus",
         "lightMode": "Hellmodus",

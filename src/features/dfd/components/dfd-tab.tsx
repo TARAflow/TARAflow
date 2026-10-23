@@ -804,6 +804,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onInsertContext={leveled.parse && editor.pluginReady ? insertContext.open : undefined}
         onAutoNumberPage={leveled.parse ? leveled.page.autoNumberPage : undefined}
         getCurrentPageName={leveled.page.currentPageName}
+        getPageNumberingBlocker={leveled.page.pageNumberingBlocker}
       />
 
       <IdentityReviewHints

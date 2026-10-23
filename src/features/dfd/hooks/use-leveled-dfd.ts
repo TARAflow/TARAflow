@@ -32,6 +32,7 @@ import {
 } from "../services/leveled";
 import { analyseLeveled } from "../services/leveled/leveled-analysis";
 import { dfdScopeFrom } from "../services/leveled/dfd-scope";
+import { unnumberedDecomposedMp } from "../services/leveled/page-numbering";
 import { assetRollupsOf } from "../services/leveled/asset-rollup";
 import { ValidationMessages } from "../services/validators/validator-utils";
 import { refinementCandidatesOf } from "../utils/refinement-candidates";
@@ -194,6 +195,13 @@ export function useLeveledDfd(
     const pageId = currentPageOf();
     return parse?.pages.find((p) => p.pageId === pageId)?.name ?? pageId ?? "";
   }, [currentPageOf, parse]);
+  // The page's multiprocess without a number: its parts would get flat
+  // numbers (P-5 instead of P-2.1) — the page cannot be renumbered alone.
+  const elements = dfd?.elements;
+  const pageNumberingBlocker = useCallback(() => {
+    const mp = unnumberedDecomposedMp(pages, elements, currentPageOf());
+    return mp ? mp.name || mp.displayId || mp.id : null;
+  }, [pages, elements, currentPageOf]);
 
   // ── 5h: insert as context on the current page ───────────────────────────
   const [insertTargetPage, setInsertTargetPage] = useState<string | null>(null);
@@ -286,7 +294,7 @@ export function useLeveledDfd(
     childPages,
     pageRepair,
     lostDefinitions,
-    page: { currentPageOf, currentPageName, autoNumberPage },
+    page: { currentPageOf, currentPageName, autoNumberPage, pageNumberingBlocker },
     insertContext: { data: insertContext, open: openInsertContext, close: closeInsertContext },
     selection: { assetRollup, childPage, identity },
   };

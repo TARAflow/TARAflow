@@ -120,6 +120,7 @@
         "insertContext": "Insert as context…",
         "autoNumberAll": "Renumber all pages",
         "autoNumberPage": "Renumber \"{{page}}\" and its child pages",
+        "autoNumberPageBlocked": "\"{{mp}}\" has no number yet — renumber all pages first",
         "autoNumber": "Auto-Number Labels",
         "darkMode": "Dark Mode",
         "lightMode": "Light mode",

@@ -66,4 +66,25 @@ describe("DFDToolbar — numbering", () => {
     fireEvent.click(screen.getByTestId("auto-number-all"));
     expect(props.onAutoNumber).toHaveBeenCalled();
   });
+
+  it("this page is disabled while its multiprocess has no number", () => {
+    const props = base();
+    const onAutoNumberPage = vi.fn();
+    render(
+      <DFDToolbar
+        {...props}
+        onAutoNumberPage={onAutoNumberPage}
+        getCurrentPageName={() => "Controller Module"}
+        getPageNumberingBlocker={() => "Controller Module"}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("toolbar-auto-number"));
+    const item = screen.getByTestId("auto-number-page");
+    expect(item.getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByTestId("auto-number-page-blocked").textContent).toBe(
+      '"Controller Module" has no number yet — renumber all pages first',
+    );
+    fireEvent.click(item);
+    expect(onAutoNumberPage).not.toHaveBeenCalled();
+  });
 });

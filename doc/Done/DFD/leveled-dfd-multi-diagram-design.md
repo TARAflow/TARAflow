@@ -1510,6 +1510,10 @@ page selector in the preview panel (§12.1, D18).
     on other pages follow. Root page or a page the tree cannot place: everything, as before.
   - Toolbar (leveled DFDs): the numbering button opens "Renumber all pages" / "Renumber «page»
     and its child pages" (the page draw.io shows); classic DFDs keep the one-click button.
+  - After use (2026-10-23, on `main`): "this page" is disabled while the multiprocess the page
+    decomposes has no number (label still "MP-xx", or none) — its parts would get flat numbers
+    in the root namespace (P-5 instead of P-2.1). The menu says why: «MP» has no number yet —
+    renumber all pages first (`unnumberedDecomposedMp`, read when the menu opens).
 
 Phase 5 is complete. Moved: per-page grouping of the description view → Phase 7 (with the
 per-page report sections).

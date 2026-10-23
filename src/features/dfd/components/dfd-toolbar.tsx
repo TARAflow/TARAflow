@@ -69,6 +69,12 @@ interface DFDToolbarProps {
   onAutoNumberPage?: () => void;
   /** Name of the page shown, read when the menu opens. */
   getCurrentPageName?: () => string;
+  /**
+   * The multiprocess of the page shown that has no number yet (its name),
+   * read when the menu opens; then "this page" is disabled — its parts
+   * would get flat numbers.
+   */
+  getPageNumberingBlocker?: () => string | null;
 }
 
 // Disables Popper's window resize listener for all Tooltips in this toolbar.
@@ -99,12 +105,14 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
     onInsertContext,
     onAutoNumberPage,
     getCurrentPageName,
+    getPageNumberingBlocker,
   }) => {
     const { t } = useTranslation();
     // Leveled DFD (5l): numbering menu — all pages / this page.
     const [numberMenu, setNumberMenu] = useState<{
       anchor: HTMLElement;
       pageName: string;
+      blocker: string | null;
     } | null>(null);
     React.useEffect(() => {
       console.log("🔥 DFDToolbar MOUNT");
@@ -237,6 +245,7 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
                     ? setNumberMenu({
                         anchor: e.currentTarget,
                         pageName: getCurrentPageName?.() ?? "",
+                        blocker: getPageNumberingBlocker?.() ?? null,
                       })
                     : onAutoNumber()
                 }
@@ -260,15 +269,30 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
               </MenuItem>
               <MenuItem
                 data-testid="auto-number-page"
+                disabled={!!numberMenu?.blocker}
                 onClick={() => {
+                  if (numberMenu?.blocker) return;
                   setNumberMenu(null);
                   onAutoNumberPage?.();
                 }}
+                sx={{ flexDirection: "column", alignItems: "flex-start" }}
               >
                 {t("tabs.dfd.toolbar.autoNumberPage", {
                   defaultValue: 'Renumber "{{page}}" and its child pages',
                   page: numberMenu?.pageName ?? "",
                 })}
+                {numberMenu?.blocker && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    data-testid="auto-number-page-blocked"
+                  >
+                    {t("tabs.dfd.toolbar.autoNumberPageBlocked", {
+                      defaultValue: '"{{mp}}" has no number yet — renumber all pages first',
+                      mp: numberMenu.blocker,
+                    })}
+                  </Typography>
+                )}
               </MenuItem>
             </Menu>
             {onInsertContext && (
