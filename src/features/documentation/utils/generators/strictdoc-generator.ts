@@ -15,8 +15,8 @@
 //
 //   3. DFD element-type headers open a [SECTION] that is NOT closed by the
 //      header template itself — it is closed by a dedicated sentinel emitted
-//      after all elements of that type have been rendered (see
-//      generateDfdDescriptions override below).
+//      after all elements of that type have been rendered
+//      (getDfdSubsectionCloseTemplate).
 //
 //   4. Threat and Risk rows are [REQUIREMENT] nodes, not table rows. The
 //      "threatsTable" and "risksTable" templates are transparent pass-throughs
@@ -102,139 +102,12 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return "";
   }
 
-  // ==================== DFD DESCRIPTIONS OVERRIDE ====================
-  //
-  // The base class calls getDfdElementTypeHeaderTemplate() which opens a
-  // [SECTION] and then appends element entries. In StrictDoc we must close
-  // that section after all elements of each type, and close the data-flows
-  // section as well. We override generateDfdDescriptions to inject the
-  // [/SECTION] sentinels at the right places.
+  // ==================== DFD DESCRIPTIONS ====================
+  // Each element-type header and the data-flows header open a [SECTION];
+  // the base generator closes it after the type's entries.
 
-  protected override generateDfdDescriptions(title: string): ChapterContent {
-    const baseResult = super.generateDfdDescriptions(title);
-    if (!baseResult.hasContent) {
-      return baseResult;
-    }
-
-    // The base implementation has already called getDfdElementTypeHeaderTemplate()
-    // (which opens [SECTION]) and getDfdConnectionEntry() entries.
-    // We need to close:
-    //   - each element-type [SECTION]
-    //   - the data-flows [SECTION]
-    //   - they are all inside the outer [SECTION] opened by getDfdDescriptionsTemplate()
-    //
-    // Strategy: post-process the rendered content by inserting [/SECTION]
-    // before each new element-type [SECTION] header and before [/SECTION]
-    // of the outer wrapper. This is safe because element-type headers always
-    // start with the literal "[SECTION]\nTITLE:" pattern.
-    //
-    // We track open sections by counting occurrences of our sentinel marker
-    // that we embed in the type-header template.
-
-    let content = baseResult.content;
-
-    // The dfdElementTypeHeaderTemplate and dfdDataFlowsHeader each open a
-    // [SECTION] but do NOT close it. We close them by inserting [/SECTION]
-    // immediately before each subsequent type-level [SECTION] open AND once
-    // at the end of the whole element-descriptions block (before the outer
-    // section closes).
-    //
-    // The outer [SECTION] (dfdDescriptionsTemplate) is balanced already by
-    // the template text itself ("[/SECTION]" at the end). So we only need to
-    // close the inner type sections.
-    //
-    // Approach: replace every second-or-later top-level "[SECTION]\nTITLE:"
-    // (i.e. the type headers, NOT the outer wrapper) with "[/SECTION]\n[SECTION]\nTITLE:".
-    // The outer wrapper's [/SECTION] then closes the last open inner section.
-
-    // Markers used by type-header / data-flows header templates
-    const INNER_SECTION_OPEN_MARKER = "__SDOC_INNER_SECTION__";
-
-    // Replace getDfdElementTypeHeaderTemplate calls' output with a marked version
-    // by using a distinguishable placeholder inserted in the template.
-    // Since we cannot modify the base class's loop directly, we post-process
-    // the output string. Type headers always start at column 0 with [SECTION].
-
-    // Split on the inner-section boundary: each type-header and data-flows
-    // header produces "[SECTION]\nTITLE: <typename/Datenflüsse/Data Flows>\n\n"
-    // We close any previously opened inner section before opening a new one.
-    content = this.closeInnerSections(content);
-
-    return { ...baseResult, content };
-  }
-
-  /**
-   * Post-process DFD descriptions content to insert [/SECTION] sentinels
-   * before each inner element-type section and before the outer close.
-   *
-   * The outer wrapper template ends with:
-   *   ...{{elementSections}}\n[/SECTION]\n\n
-   *
-   * After placeholder replacement the content looks like:
-   *   [SECTION]\n               <- outer open (from dfdDescriptionsTemplate)
-   *   TITLE: DFD Element…\n
-   *   [FREETEXT]…[/FREETEXT]\n
-   *   [SECTION]\n               <- inner type open (External Entities)
-   *   TITLE: External Entities\n\n
-   *   [SECTION]\n               <- element detail open
-   *   TITLE: EE-01: Browser\n
-   *   [FREETEXT]…[/FREETEXT]\n
-   *   [/SECTION]\n              <- element detail close (from dfdElementDetailedEntry)
-   *   [SECTION]\n               <- next type open (Processes) — NEEDS prior [/SECTION]
-   *   …
-   *   [/SECTION]\n              <- outer close (from dfdDescriptionsTemplate)
-   *
-   * We insert [/SECTION]\n before each inner-type [SECTION] that is NOT
-   * preceded by another [/SECTION].
-   */
-  private closeInnerSections(content: string): string {
-    // We identify "inner type" section opens by the pattern:
-    //   \n[SECTION]\nTITLE: <word that is NOT preceded by [/SECTION]\n>
-    //
-    // Simpler heuristic that works given our templates:
-    // A type-level [SECTION] is always emitted at the start of a line and
-    // is NOT directly preceded by [/SECTION]. Element-level [SECTION] blocks
-    // are always emitted inside a type section and are always preceded by
-    // content (the header text).
-    //
-    // We count nesting: the outer section counts as depth 1. Every [SECTION]
-    // increments depth, every [/SECTION] decrements. When we see depth go
-    // from 1 to 2 more than once, it's a type section. We want to close depth-2
-    // sections before opening a new depth-2 section.
-    //
-    // For simplicity and robustness, we do a line-by-line pass.
-
-    const lines = content.split("\n");
-    const result: string[] = [];
-    let depth = 0;
-    let pendingTypeClose = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      if (line === "[SECTION]") {
-        depth++;
-        if (depth === 2 && pendingTypeClose) {
-          // Close the previous type section before opening a new one
-          result.push("[/SECTION]", "");
-          pendingTypeClose = false;
-        }
-        if (depth === 2) {
-          pendingTypeClose = true;
-        }
-        result.push(line);
-      } else if (line === "[/SECTION]") {
-        if (depth === 2) {
-          pendingTypeClose = false;
-        }
-        depth--;
-        result.push(line);
-      } else {
-        result.push(line);
-      }
-    }
-
-    return result.join("\n");
+  override getDfdSubsectionCloseTemplate(): string {
+    return SECTION_CLOSE;
   }
 
   // ==================== TEMPLATE GETTERS ====================
@@ -318,8 +191,18 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     return SDOC_TEMPLATES.dfdConnectionEntry(this.ctx.lang);
   }
 
+  /**
+   * The asset chapter stays open for the security-goal table that the base
+   * generator appends ("Schutzziele" is its subsection, as in the other
+   * formats); generateAssets closes it.
+   */
   getAssetsTemplate(): string {
-    return SDOC_TEMPLATES.assets(this.ctx.lang);
+    return SDOC_TEMPLATES.assets(this.ctx.lang).replace(/\[\/SECTION\]\s*$/, "");
+  }
+
+  protected override generateAssets(title: string): ChapterContent {
+    const result = super.generateAssets(title);
+    return result.hasContent ? { ...result, content: result.content + SECTION_CLOSE } : result;
   }
 
   getAssetRowTemplate(): string {

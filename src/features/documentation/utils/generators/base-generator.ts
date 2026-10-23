@@ -293,6 +293,13 @@ export abstract class BaseDocumentGenerator {
   abstract getDfdElementTypeHeaderTemplate(): string;
   abstract getDfdElementEntryTemplate(): string;
   abstract getDfdDataFlowsHeaderTemplate(): string;
+  /**
+   * Closes what a type header or the data-flows header opened — StrictDoc's
+   * [SECTION]; the other formats use headings and need nothing.
+   */
+  getDfdSubsectionCloseTemplate(): string {
+    return "";
+  }
   abstract getDfdConnectionEntryTemplate(): string;
   abstract getAssetsTemplate(): string;
   abstract getAssetRowTemplate(): string;
@@ -820,6 +827,7 @@ export abstract class BaseDocumentGenerator {
       for (const element of typeElements) {
         content += this.generateDfdElementDetailedEntry(element);
       }
+      content += this.getDfdSubsectionCloseTemplate();
     }
 
     // Data Flows section
@@ -829,12 +837,18 @@ export abstract class BaseDocumentGenerator {
       for (const connection of connections) {
         content += this.generateDfdConnectionDetailedEntry(connection);
       }
+      content += this.getDfdSubsectionCloseTemplate();
     }
 
+    // The chapter frame (title, intro) — dropped in 1a64e57: the chapter had
+    // no heading in any format (TOC link without target, StrictDoc's type
+    // sections nested into the DFD chapter).
     return {
       id: "dfd-descriptions",
       title,
-      content,
+      content: replacePlaceholders(this.getDfdDescriptionsTemplate(), {
+        elementSections: content,
+      }),
       hasContent: true,
     };
   }
