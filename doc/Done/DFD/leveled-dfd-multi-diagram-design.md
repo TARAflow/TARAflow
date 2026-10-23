@@ -1,8 +1,8 @@
 # TARAflow — Leveled DFDs (Multiple Diagrams per Project) — Design
 
-Status: rev. 4.6 — decisions D1–D20 locked (§15) · Phases 0–7 done (identity and occurrences, effective model and schema 9, numbering, findings, UI, assets / threat and risk lifecycle, reports and CLI) · review findings R1–R5 done · §11.3 diff-service (semantic / graphical / structural / identity, analysis effect) done · asset overlay on all pages done (§4) · nothing open on this branch
+Status: rev. 4.7 — decisions D1–D20 locked (§15) · Phases 0–7 done (identity and occurrences, effective model and schema 9, numbering, findings, UI, assets / threat and risk lifecycle, reports and CLI) · review findings R1–R5 done · §11.3 diff-service (semantic / graphical / structural / identity, analysis effect) done · asset overlay on all pages done (§4) · **done — merged into `main` (5b1df94, 2026-10-23)**
 Author: (Juergen) · Date: 2026-10-13
-Location: `doc/InProgress/DFD/` (code comments reference the file name only, so moves need no code change)
+Location: `doc/Done/DFD/` (code comments reference the file name only, so moves need no code change)
 Running example: a leveled version of the `SmokeDetector` example project (§3)
 
 Revision history (short):
@@ -27,6 +27,9 @@ Revision history (short):
   group; per-interaction threats of a flow between multiprocesses on the attacked side); the
   report's DFD chapter as one section per page; §4 and §12.1 brought to the implemented state;
   Phase 0's inventory script dropped.
+- rev. 4.7 (2026-10-23) — §11.3 diff-service done (records, drawing, analysis effect); undo after
+  an autosave restores identity links and records; asset overlay on every page; review findings
+  closed; branch merged into `main` (5b1df94); document moved to `doc/Done/DFD/`.
 
 ## 1. Goal
 
@@ -1785,11 +1788,11 @@ Order (Phase 6):
   | Diagram opens at 100 % instead of a tiny fit | `0827daf` | `310b185` |
   | No false "mitigations changed" after reopening (`sameDrafts`) | `7018e7e` | `b06a151` |
   | Assets warning banner no longer covered by the DFD preview | `5530047` | `8a03a6f` |
-  | Descriptions of DFD elements and flows editable and kept on save | (patches 93, 95) | open |
-  | Per-interaction threats keep their endpoints' assets on sync (`refreshLinkedAssets`) | (patch 94) | open |
-  | Undo after an autosave brings back an element's description, properties, asset relations | (patch 99) | open |
-  | Phase progress: Attack Tree counts only for ISO/SAE 21434; General tab shows progress before the source reference | (patch 103) | open |
-  | Phase statuses derived: General and Attack Tree on every commit (never derived before), Assets and Risk also on load | (patch 104) | open |
+  | Descriptions of DFD elements and flows editable and kept on save | (patches 93, 95) | merge `5b1df94` |
+  | Per-interaction threats keep their endpoints' assets on sync (`refreshLinkedAssets`) | (patch 94) | merge `5b1df94` |
+  | Undo after an autosave brings back an element's description, properties, asset relations | (patch 99) | merge `5b1df94` |
+  | Phase progress: Attack Tree counts only for ISO/SAE 21434; General tab shows progress before the source reference | (patch 103) | merge `5b1df94` |
+  | Phase statuses derived: General and Attack Tree on every commit (never derived before), Assets and Risk also on load | (patch 104) | merge `5b1df94` |
 
   Not general despite the `fix` prefix: page-sync rejection (`75aada9`), multi-page layout refusal
   (`dd43982`, `9d7b362`), child page by button (`82875cd`), group toolbar (`89318c8`) — they fix
