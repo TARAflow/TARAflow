@@ -6,8 +6,10 @@
 // the flows and counted multiprocesses, sensors, interfaces … without a row
 // (Headlamp: rows 16, total 20).
 
-import type { DFDData, DFDElementType } from "features/dfd";
-import { getDFDElementTypePluralText } from "features/dfd";
+// Deep paths: the generation path imports no feature barrel (depcruise-doc).
+import type { DFDData } from "../../dfd/models/dfd-types";
+import type { DFDElementType } from "../../dfd/models/dfd-element-types";
+import { getDFDElementTypePluralText } from "../../dfd/models/dfd-formatters";
 import type { DocLanguage } from "../models/doc-types";
 import type { StatsTable } from "./threat-risk-stats";
 
