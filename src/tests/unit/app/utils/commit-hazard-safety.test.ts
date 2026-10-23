@@ -106,6 +106,48 @@ describe("applyHazardSafetyToAsset — Safety Override via bowtie", () => {
     expect(r.aggregatedImpact).toBe("LOW"); // business-only, overallImpact 1
   });
 
+  it("a worse annotation outranks the hazard chain — asset handed back to the annotation pipeline", () => {
+    const a = mkAsset({
+      id: "Valve",
+      physicalImpact: "reversible_major",
+      physicalImpactSource: "hazard",
+      physicalImpactRationale: "old chain",
+      linkedDFDElements: [
+        {
+          elementId: "P1",
+          elementName: "PLC",
+          elementType: "Process",
+          displayId: "P1",
+          relationType: "controls",
+          safety: { relevance: "direct", impact: "fatal" },
+        },
+      ],
+    });
+    const r = applyHazardSafetyToAsset(a, cause("reversible_major", "indirect"));
+    expect(r.physicalImpact).toBe("fatal");
+    expect(r.physicalImpactSource).toBe("derived");
+    expect(r.aggregatedImpact).toBe("CRITICAL"); // annotation is direct
+  });
+
+  it("on a tie, a direct annotation makes the hazard-governed impact direct", () => {
+    const a = mkAsset({
+      id: "Valve",
+      linkedDFDElements: [
+        {
+          elementId: "P1",
+          elementName: "PLC",
+          elementType: "Process",
+          displayId: "P1",
+          relationType: "controls",
+          safety: { relevance: "direct", impact: "irreversible_major" },
+        },
+      ],
+    });
+    const r = applyHazardSafetyToAsset(a, cause("irreversible_major", "indirect"));
+    expect(r.physicalImpactSource).toBe("hazard");
+    expect(r.aggregatedImpact).toBe("CRITICAL");
+  });
+
   it("uninvolved asset is returned unchanged", () => {
     const a = mkAsset({});
     expect(applyHazardSafetyToAsset(a, undefined)).toBe(a);

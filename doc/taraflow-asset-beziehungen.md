@@ -176,11 +176,20 @@ ist mit Annotationen **nicht ausdrückbar** — modelliert man sie trotzdem mit 
 Annotationen, überschätzt das Modell jede Einzelursache (konservativ, aber ungenau).
 Kombinatorische Gefährdungen brauchen ein Hazard Item.
 
-**Vorrang bei der Bewertung eines Assets** (`resolveAssetPhysicalImpact`):
+**Bewertung eines Assets** (`resolveAssetPhysicalImpact`):
 
-1. `manual` — Analysten-Override mit Begründung
-2. `hazard` — schlimmste Schwere aus der Hazard-Item-Kette (Ursachenseite)
-3. `annotation` — aus den Safety-Annotationen abgeleitet
+1. `manual` — Analysten-Override mit Begründung gewinnt immer.
+2. Sonst **Worst-of** aus `hazard` (schlimmste Schwere der Hazard-Item-Kette,
+   Ursachenseite) und `annotation` (schlimmste Safety-Annotation). Bei Gleichstand
+   gilt `hazard` (reichere Audit-Spur); ist eine der beiden Quellen `direct`, gilt
+   die Wirkung als direkt.
+
+**Doppelte Modellierung wird gewarnt.** Hat ein Asset eine Safety-Annotation *und*
+hängt es an einem Hazard Item (als Ursache oder Schutzziel), meldet die
+Asset-Validierung eine Warnung ("nur eines von beiden verwenden"). Bis sie behoben
+ist, gilt die schlechtere Bewertung — das Ignorieren der Warnung führt nie zu einer
+Unterbewertung. Die Herkunft (`hazard` / `annotation`) zeigt der Tooltip der
+Asset-Tabelle.
 
 > **Kein eingeklappter Hazard-Knoten.** Eine direkte Element→Human-Kante (`endangers`)
 > mit Annotation erzeugt **kein** internes Hazard Item. Annotation und Hazard Item sind

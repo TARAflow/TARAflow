@@ -1,27 +1,37 @@
 // app/utils/resolve-asset-physical-impact.ts
 //
-// Resolves an asset's effective physical (safety) impact under the current
-// model, where the HazardItem bowtie is the primary source and the legacy DFD
-// SafetyAnnotation is a fallback.
+// Resolves an asset's effective physical (safety) impact from its two
+// modelling paths — the HazardItem bowtie and the SafetyAnnotation on the
+// asset's DFD relations — plus the analyst's manual override.
 //
-// Precedence (highest wins):
-//   1. manual    — analyst override (physicalImpactSource === "manual"), audit rationale.
-//   2. hazard    — worst severity from the HazardItem bowtie (endangers / inherited cause).
-//   3. annotation — whatever the legacy SafetyAnnotation already derived onto the asset.
+// Rules:
+//   1. manual      — analyst override (physicalImpactSource === "manual") wins,
+//                    with audit rationale. A deliberate, documented decision.
+//   2. worst-of    — otherwise the WORSE of
+//                      hazard:     cause-side severity from the HazardItem chain
+//                      annotation: worst SafetyAnnotation on linkedDFDElements
+//                    Ties go to the hazard (richer audit trail).
 //
-// NOTE (safety policy): manual wins even over a worse hazard severity, matching
-// the existing "manual override" semantics. If the project requires that safety
-// is never under-rated, change rule 1 to keep the WORST of {manual, hazard}.
-// That is a deliberate safety-policy decision — left to the analyst/standard.
+// Both paths present for one asset is a modelling smell (double bookkeeping);
+// the resolver flags it as `conflict` and the asset validator reports a
+// warning. Worst-of guarantees that ignoring the warning never under-rates
+// safety. The stricter follow-up (annotations read-only once the asset is a
+// hazard cause, "convert to Hazard Item") is documented in
+// doc/taraflow-asset-beziehungen.md, "Zwei Modellierungspfade".
 //
 // This resolves the LEVEL only. Whether the level triggers the Safety Override
 // Rule (→ CRITICAL) additionally requires relevance === "direct" — see
-// isSafetyCritical() in shared/models/safety-types.ts. The stored committer that
-// recomputes aggregatedImpact applies that rule using the contributes_to
-// relevance carried on AssetHazardLink.
+// isSafetyCritical() in shared/models/safety-types.ts and the stored committer
+// commit-hazard-safety.ts.
 
-import type { SafetyImpact, ValueSource } from "shared/models/safety-types";
+import {
+  safetyImpactRank,
+  type SafetyImpact,
+  type ValueSource,
+} from "shared/models/safety-types";
 import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
+import type { DFDElementLink } from "features/assets/models/dfd-asset-link-types";
+import { derivePhysicalImpact } from "features/assets/services/asset-physical-impact-deriver";
 
 /** Provenance of the resolved level — richer than ValueSource (adds "hazard"). */
 export type PhysicalImpactSource = "manual" | "hazard" | "annotation";
@@ -29,13 +39,34 @@ export type PhysicalImpactSource = "manual" | "hazard" | "annotation";
 export interface ResolvedPhysicalImpact {
   level?: SafetyImpact;
   source?: PhysicalImpactSource;
+  /** true when hazard chain AND annotation both rate this asset. */
+  conflict?: boolean;
+}
+
+export interface ResolvablePhysicalImpactAsset {
+  physicalImpact?: SafetyImpact;
+  physicalImpactSource?: ValueSource | "hazard";
+  /** Source of the annotation level. Absent → stored non-hazard value. */
+  linkedDFDElements?: readonly DFDElementLink[];
+}
+
+/**
+ * Annotation-derived level of an asset. Derived fresh from the DFD links when
+ * given (the stored physicalImpact may hold a hazard-written value); else the
+ * stored value, unless it was written by the hazard chain.
+ */
+export function annotationPhysicalImpact(
+  asset: ResolvablePhysicalImpactAsset,
+): SafetyImpact | undefined {
+  if (asset.linkedDFDElements) {
+    return derivePhysicalImpact([...asset.linkedDFDElements]).level;
+  }
+  if (asset.physicalImpactSource === "hazard") return undefined;
+  return asset.physicalImpact;
 }
 
 export function resolveAssetPhysicalImpact(
-  asset: {
-    physicalImpact?: SafetyImpact;
-    physicalImpactSource?: ValueSource | "hazard";
-  },
+  asset: ResolvablePhysicalImpactAsset,
   hazard?: AssetHazardSummary,
 ): ResolvedPhysicalImpact {
   // 1. Manual override always wins.
@@ -43,15 +74,20 @@ export function resolveAssetPhysicalImpact(
     return { level: asset.physicalImpact, source: "manual" };
   }
 
-  // 2. HazardItem chain — only the CAUSE side rates the asset as an attack
-  //    surface (a pure protection target has no causeSeverity → no override).
+  // 2. Worst of hazard chain (cause side only — a pure protection target has
+  //    no causeSeverity → no attack-surface rating) and annotation.
   const hz = hazard?.causeSeverity;
-  if (hz && hz !== "none") return { level: hz, source: "hazard" };
+  const fromHazard = hz && hz !== "none" ? hz : undefined;
+  const ann = annotationPhysicalImpact(asset);
+  const fromAnnotation = ann && ann !== "none" ? ann : undefined;
 
-  // 3. Legacy SafetyAnnotation-derived value already on the asset.
-  if (asset.physicalImpact) {
-    return { level: asset.physicalImpact, source: "annotation" };
+  if (fromHazard && fromAnnotation) {
+    return safetyImpactRank(fromAnnotation) > safetyImpactRank(fromHazard)
+      ? { level: fromAnnotation, source: "annotation", conflict: true }
+      : { level: fromHazard, source: "hazard", conflict: true };
   }
+  if (fromHazard) return { level: fromHazard, source: "hazard" };
+  if (fromAnnotation) return { level: fromAnnotation, source: "annotation" };
 
   return {};
 }

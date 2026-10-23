@@ -715,6 +715,16 @@ export const AssetTable = React.memo<AssetTableProps>(
                           )}
                     </Typography>
                   </Stack>
+                  {resolved.conflict && (
+                    <Typography
+                      variant="caption"
+                      display="block"
+                      color="rgba(255,180,120,0.95)"
+                      sx={{ mt: 0.5, maxWidth: 220, whiteSpace: "normal" }}
+                    >
+                      ⚠ {t("tabs.assets.tooltips.safetyImpact.conflict")}
+                    </Typography>
+                  )}
                   {row.physicalImpactRationale && (
                     <Typography
                       variant="caption"

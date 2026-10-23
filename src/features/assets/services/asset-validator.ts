@@ -19,6 +19,7 @@ import {
   type AssetGroup,
 } from "shared";
 import { threatGoalFindings } from "./asset-threat-crosscheck";
+import { hasDoubleSafetyModelling } from "./asset-physical-impact-deriver";
 import { CIANAAA_APPLICABLE } from "../models/asset-security-goals-types";
 
 /**
@@ -148,6 +149,12 @@ export function collectAssetFindings(
       !asset.physicalImpactRationale?.trim()
     ) {
       push("warning", "tabs.assets.validation.noPhysicalImpactRationale", GENERAL);
+    }
+
+    // Safety rated by both paths (annotation AND hazard item) — model it in
+    // one place. The resolver takes the worst of both meanwhile.
+    if (hasDoubleSafetyModelling(asset, hazardLinks?.[asset.id])) {
+      push("warning", "tabs.assets.validation.safetyDoubleModelling", GENERAL);
     }
 
     if (!protectionTarget && asset.linkedDFDElements.length === 0) {

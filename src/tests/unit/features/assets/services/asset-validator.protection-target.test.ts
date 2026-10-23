@@ -96,3 +96,46 @@ describe("pure protection targets", () => {
     expect(validateAssetData(d, { u1: endangered }).isComplete).toBe(true);
   });
 });
+
+describe("double safety modelling (annotation + hazard item)", () => {
+  const KEY = "tabs.assets.validation.safetyDoubleModelling";
+  const withAnnotation = (a: Asset): Asset =>
+    ({
+      ...a,
+      linkedDFDElements: [
+        {
+          elementId: "P1",
+          elementName: "PLC",
+          elementType: "Process",
+          displayId: "P1",
+          relationType: "controls",
+          safety: { relevance: "direct", impact: "fatal" },
+        },
+      ],
+    }) as Asset;
+
+  it("warns when an annotated asset also takes part in a hazard", () => {
+    const a = withAnnotation(human("h1", "HU-001", "Operator"));
+    const keys = keysOf(data(a), { h1: endangered });
+    expect(keys).toContain(`${KEY}:HU-001 (Operator)`);
+  });
+
+  it("does not warn with only one of the two paths", () => {
+    const annotatedOnly = withAnnotation(human("h1", "HU-001", "Operator"));
+    expect(keysOf(data(annotatedOnly), {})).not.toContain(`${KEY}:HU-001 (Operator)`);
+    const hazardOnly = human("h2", "HU-002", "Service");
+    expect(keysOf(data(hazardOnly), { h2: endangered })).not.toContain(
+      `${KEY}:HU-002 (Service)`,
+    );
+  });
+
+  it("does not warn for a manual override", () => {
+    const a = {
+      ...withAnnotation(human("h1", "HU-001", "Operator")),
+      physicalImpact: "fatal",
+      physicalImpactSource: "manual",
+      physicalImpactRationale: "analyst",
+    } as Asset;
+    expect(keysOf(data(a), { h1: endangered })).not.toContain(`${KEY}:HU-001 (Operator)`);
+  });
+});

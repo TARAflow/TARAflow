@@ -13,8 +13,9 @@
 // human is a consequence, not an attack surface. They stay flagged via the
 // projection (isHazardTarget + worstSeverity) for display and EN 50742 docs.
 //
-// Precedence (via resolveAssetPhysicalImpact): manual > hazard > annotation.
-// Manual and annotation assets are left to the normal derivation pipeline.
+// Precedence (via resolveAssetPhysicalImpact): manual, else worst of hazard and
+// annotation (tie → hazard). Manual and annotation-governed assets are left to
+// the normal derivation pipeline.
 //
 // Runs in the project chokepoint AFTER commitAssetSync, on hazard OR asset change
 // (reference-guarded, so a no-op is cheap). Pure — no timestamp churn, so golden
@@ -24,6 +25,7 @@ import type { Asset, AssetData } from "features/assets";
 import {
   deriveAllImpacts,
   deriveAggregatedImpact,
+  isPhysicalImpactDirect,
   overallImpactToBusinessLevel,
   type PhysicalImpactLevel,
 } from "features/assets/services/asset-physical-impact-deriver";
@@ -47,20 +49,19 @@ export function applyHazardSafetyToAsset(
   asset: Asset,
   summary: AssetHazardSummary | undefined,
 ): Asset {
-  const resolved = resolveAssetPhysicalImpact(
-    {
-      physicalImpact: asset.physicalImpact,
-      // resolver only distinguishes "manual"; map hazard/derived alike.
-      physicalImpactSource:
-        asset.physicalImpactSource === "manual" ? "manual" : "derived",
-    },
-    summary,
-  );
+  // Annotation level is derived fresh from linkedDFDElements (worst-of with
+  // the hazard chain, see resolveAssetPhysicalImpact).
+  const resolved = resolveAssetPhysicalImpact(asset, summary);
 
   // ── Hazard governs this asset (cause side only) ─────────────────────────
   if (resolved.source === "hazard" && resolved.level && summary?.causeSeverity) {
     const level = resolved.level as PhysicalImpactLevel;
-    const physicalDirect = !!summary.causeDirect;
+    // Tie with an annotation at the same level: either path being direct
+    // makes the impact direct (conservative).
+    const physicalDirect =
+      !!summary.causeDirect ||
+      (!!resolved.conflict &&
+        isPhysicalImpactDirect(level, "derived", asset.linkedDFDElements));
     const businessLevel = overallImpactToBusinessLevel(asset.overallImpact);
     const aggregatedImpact = deriveAggregatedImpact(
       level,
@@ -89,8 +90,8 @@ export function applyHazardSafetyToAsset(
     };
   }
 
-  // ── Revert: was hazard-sourced, but the hazard is gone ──────────────────
-  // Hand the asset back to the annotation-derived pipeline.
+  // ── Revert: was hazard-sourced, but the hazard is gone or an annotation
+  // now rates worse — hand the asset back to the annotation pipeline.
   if (asset.physicalImpactSource === "hazard") {
     const reverted = deriveAllImpacts({
       ...asset,

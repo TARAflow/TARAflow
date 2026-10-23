@@ -212,6 +212,7 @@
         "noSecurityGoal": "Asset {{id}}: no security goal defined",
         "noSecurityGoalDescription": "Asset {{id}}: security goal {{type}} has no formal description",
         "noPhysicalImpactRationale": "Asset {{id}}: manual safety impact requires rationale",
+        "safetyDoubleModelling": "Asset {{id}}: safety is modelled twice (safety annotation and hazard item). Use one of the two — the worse rating applies meanwhile.",
         "notLinkedToDFD": "Asset {{id}}: not linked to any DFD element",
         "a2a": {
           "type_not_allowed": "Asset {{id}}: asset link \"{{relation}}\" is not allowed for {{sourceGroup}} → {{targetGroup}} (e.g. after a group change) — fix or remove it in the DFD tab, asset panel, Relations tab",
@@ -263,7 +264,8 @@
           "derived": "Derived (Graph)",
           "manual": "Manual (Override)",
           "description": "Derived from DFD SafetyAnnotation via graph traversal. Manual override requires rationale.",
-          "hazard": "Derived from hazard"
+          "hazard": "Derived from hazard",
+          "conflict": "Hazard item and safety annotation both rate this asset — the worse one applies."
         },
         "overallImpact": {
           "title": "Business Impact",

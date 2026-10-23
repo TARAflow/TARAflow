@@ -212,6 +212,7 @@
         "noSecurityGoal": "Asset {{id}}: kein Schutzziel definiert",
         "noSecurityGoalDescription": "Asset {{id}}: Schutzziel {{type}} hat keine formale Beschreibung",
         "noPhysicalImpactRationale": "Asset {{id}}: manueller Safety Impact erfordert Rationale",
+        "safetyDoubleModelling": "Asset {{id}}: Safety ist doppelt modelliert (Safety-Annotation und Hazard Item). Bitte nur eines von beiden verwenden — bis dahin gilt die schlechtere Bewertung.",
         "notLinkedToDFD": "Asset {{id}}: nicht mit DFD-Element verknüpft",
         "a2a": {
           "type_not_allowed": "Asset {{id}}: Asset-Link „{{relation}}“ ist für {{sourceGroup}} → {{targetGroup}} nicht erlaubt (z. B. nach Gruppenwechsel) — im DFD-Tab im Asset-Panel, Reiter „Beziehungen“, korrigieren oder entfernen",
@@ -263,7 +264,8 @@
           "derived": "Abgeleitet (Graph)",
           "manual": "Manuell (Override)",
           "description": "Abgeleitet aus DFD SafetyAnnotation via Graph-Traversierung. Manueller Override erfordert Rationale.",
-          "hazard": "Aus Gefährdung abgeleitet"
+          "hazard": "Aus Gefährdung abgeleitet",
+          "conflict": "Hazard Item und Safety-Annotation bewerten dieses Asset beide — die schlechtere Bewertung gilt."
         },
         "overallImpact": {
           "title": "Business Impact",

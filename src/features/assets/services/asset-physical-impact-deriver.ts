@@ -14,6 +14,7 @@
 
 import type { Asset } from "../models/asset-types";
 import type { DFDElementLink } from "../models/dfd-asset-link-types";
+import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types";
 import {
   isIrreversibleOrWorse,
   isOverrideSeverity,
@@ -117,6 +118,22 @@ export function isPhysicalImpactDirect(
       l.safety?.relevance === "direct" &&
       safetyImpactRank(annotationLevel(l.safety)) >= safetyImpactRank(level),
   );
+}
+
+/**
+ * true when an asset is rated by BOTH safety paths: a SafetyAnnotation on one
+ * of its DFD relations AND a hazard it takes part in (as cause or protection
+ * target). Double bookkeeping of the same harm — the asset validator warns,
+ * the resolver takes the worst of both. Manual overrides are exempt.
+ */
+export function hasDoubleSafetyModelling(
+  asset: Pick<Asset, "physicalImpactSource" | "linkedDFDElements">,
+  hazard: AssetHazardSummary | undefined,
+): boolean {
+  if (asset.physicalImpactSource === "manual" || !hazard) return false;
+  const inHazard =
+    hazard.contributesTo.length > 0 || hazard.endangeredBy.length > 0;
+  return inHazard && derivePhysicalImpact(asset.linkedDFDElements).level !== undefined;
 }
 
 /**
