@@ -187,6 +187,9 @@ contextBridge.exposeInMainWorld("updates", {
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  // Hash of the sources the running Electron part was built from (dev check).
+  getElectronBuildInfo: () => ipcRenderer.invoke("app:getElectronBuildInfo"),
+
   // DrawIO Plugin Injection
   injectDrawioPlugin: () => {
     console.log("[Preload] injectDrawioPlugin called");

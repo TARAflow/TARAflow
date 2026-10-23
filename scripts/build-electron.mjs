@@ -19,7 +19,8 @@
 // produces a runnable dev build (esbuild does not type-check at all).
 
 import { build } from "esbuild";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { BUILD_INFO_PATH, hashInputs, inputsOfMetafile } from "./electron-build-hash.mjs";
 import { dirname, resolve } from "node:path";
 
 const OUT_DIR = "dist-electron";
@@ -85,18 +86,28 @@ const shared = {
   alias: ALIAS,
   outExtension: { ".js": ".cjs" },
   plugins: [rawText],
+  metafile: true,
 };
 
-await build({
+const main = await build({
   ...shared,
   entryPoints: { main: "electron/main.ts" },
   outdir: OUT_DIR,
 });
 
-await build({
+const preload = await build({
   ...shared,
   entryPoints: { preload: "electron/preload.ts" },
   outdir: OUT_DIR,
 });
+
+// The sources of both bundles and their hash: the running Electron part
+// reports it, the Vite dev server compares it with the sources as they are
+// now (src/app/dev/electron-build-notice.tsx).
+const inputs = [...new Set([...inputsOfMetafile(main.metafile), ...inputsOfMetafile(preload.metafile)])].sort();
+writeFileSync(
+  BUILD_INFO_PATH,
+  JSON.stringify({ hash: hashInputs(inputs), builtAt: new Date().toISOString(), inputs }, null, 2) + "\n",
+);
 
 console.log("\n✅ Electron build complete (dist-electron/main.cjs, dist-electron/preload.cjs)");

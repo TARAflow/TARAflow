@@ -15,6 +15,7 @@ import { registerUpdateHandlers } from "./ipc/update-handlers";
 import { registerCredentialHandlers } from "./ipc/credential-handlers";
 import { registerFileHandlers } from "./ipc/file-handlers";
 import { registerMetadataHandlers } from "./ipc/metadata-handlers";
+import { registerBuildInfoHandlers } from "./ipc/build-info-handlers";
 
 // ==================== IPC REGISTRATION ====================
 // Each domain owns its own ipcMain.handle calls (and any private state, e.g.
@@ -32,6 +33,7 @@ registerUpdateHandlers();
 registerCredentialHandlers();
 registerFileHandlers();
 registerMetadataHandlers();
+registerBuildInfoHandlers();
 
 // ==================== WINDOW CREATION ====================
 

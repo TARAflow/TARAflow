@@ -784,5 +784,8 @@
           "unreachable": "Repository nicht erreichbar"
         }
       }
+  },
+  "devBuild": {
+    "electronOutdated": "Der Electron-Teil ist älter als sein Quellcode (electron/ wurde geändert). Bitte beenden Sie die App und starten Sie npm run dev:electron neu."
   }
 }

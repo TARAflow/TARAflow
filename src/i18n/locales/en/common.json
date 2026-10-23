@@ -786,5 +786,8 @@
           "unreachable": "Could not reach the repository"
         }
       }
+  },
+  "devBuild": {
+    "electronOutdated": "The Electron part is older than its sources (electron/ changed). Quit the app and restart npm run dev:electron."
   }
 }

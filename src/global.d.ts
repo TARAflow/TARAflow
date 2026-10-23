@@ -83,6 +83,8 @@ declare global {
 
     // ✅ NEU: ElectronAPI für DrawIO Plugin Injection
     electronAPI?: {
+      /** Absent in an Electron part built before the check existed. */
+      getElectronBuildInfo?: () => Promise<{ hash: string; builtAt?: string } | null>;
       injectDrawioPlugin: () => Promise<{
         success: boolean;
         error?: string;

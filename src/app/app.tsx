@@ -2,6 +2,8 @@ import React from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { MainLayout } from "app/components/layout/main-layout";
 import { UpdateNotifier } from "app/update";
+import { ElectronBuildNotice } from "app/dev/electron-build-notice";
+import { electronSourceHash, onElectronSourceHash } from "app/dev/electron-source-hash";
 
 // Minimal MUI theme — primary purpose is to disable Popper's window resize
 // listener globally. Without this, every Tooltip/Select/Menu re-render
@@ -25,6 +27,7 @@ function App() {
       <div className="App">
         <MainLayout />
         <UpdateNotifier />
+        <ElectronBuildNotice sourceHash={electronSourceHash} subscribe={onElectronSourceHash} />
       </div>
     </ThemeProvider>
   );
