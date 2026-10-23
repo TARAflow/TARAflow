@@ -5,8 +5,8 @@
 #   - Linux  → .deb + .AppImage
 #   - Windows → NSIS .exe installer
 #
-# No code signing (alpha). Windows SmartScreen will show "unknown publisher";
-# expected for an unsigned alpha. A signing step can be inserted later before
+# No code signing (pre-release). Windows SmartScreen will show "unknown
+# publisher"; expected for an unsigned pre-release build. A signing step can be inserted later before
 # `build:electron` without restructuring this workflow.
 
 name: Release
@@ -14,7 +14,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*" # v0.5.0-alpha, v0.5.0, v1.0.0-beta.1, ...
+      - "v*" # v0.13.4-alpha, v0.14.0-beta, v1.0.0, ...
 
 # Needed so the last job can create the GitHub Release and upload assets.
 permissions:
@@ -138,7 +138,7 @@ jobs:
           generate_release_notes: true
           append_body: true
           body: |
-            > **Unsigned alpha build.** TARAflow is open source (GPL-3.0). We don't
+            > **Unsigned pre-release build.** TARAflow is open source (GPL-3.0). We don't
             > code-sign the installers (cost). If you'd rather not run an unsigned
             > build, build it yourself: `npm run build:electron`.
             >

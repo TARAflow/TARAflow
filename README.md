@@ -6,9 +6,9 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.13.4-alpha`
+> **Current version:** `v0.14.0-beta`
 
-TARAflow is currently under active development. The `0.x` version series should therefore be considered experimental and may contain breaking changes.
+TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
 ---
 
@@ -44,6 +44,7 @@ Supported modeling concepts include:
 * Security and contextual properties
 * Validation and consistency checks
 * Asset relationships, restricted to the relation types the element rules allow
+* **Leveled DFDs:** one project can hold several draw.io pages — a top-level diagram plus child pages that decompose individual multiprocesses. Elements keep one identity across pages (definitions and context copies), are numbered hierarchically (`P-2.1` under `MP-2`), and flows drawn on a parent level are resolved to the parts that actually handle them. One element namespace, one asset register, one threat and risk register for the whole project.
 
 Three views of the same model: the **diagram**, a **description** view with one accordion per element, and the **asset graph**.
 
@@ -108,6 +109,8 @@ The threat analysis includes:
 * Relevance-based filtering (unrated / relevant / uncertain / not relevant)
 * A STRIDE category is generated only if it is technically possible for the element **and** violates an active security goal
 * Generation drift detection: threats the current rules no longer produce are shown in a banner and on the phase tab, and are kept (marked as retained, with undo) or removed explicitly — never silently
+* Reconciliation before regenerating: the dialog lists new, unchanged, changed and obsolete threats; a threat whose references changed keeps its rating but is flagged for review
+* Leveled DFDs: threat tables grouped per decomposed multiprocess, filter by page and analysis state; a flow between two multiprocesses belongs to the side it attacks
 
 Threat generation uses contextual information from the modeled system instead of relying exclusively on a flat list of generic threats.
 
@@ -138,6 +141,7 @@ Features include:
 * Explanation of how a risk's impact was formed, in the risk dialog and the report
 * ISO/SAE 21434: risk per impact category (S/F/O/P) next to the register value
 * Likelihood factor levels named by the situation they stand for (e.g. "4 – No technical skills"); ETSI TVRA factors with the norm's levels (e.g. "≤ 1 week (2)")
+* Leveled DFDs: risks grouped per decomposed multiprocess, a risk matrix per DFD group
 
 Risk information remains connected to the underlying threat and asset models.
 
@@ -174,6 +178,12 @@ The safety workflow includes:
 * Hazard management
 * Safety-related project configuration
 * Integration of safety information into the broader project model
+* Two modeling paths: a **safety annotation** on an element→asset relation for a single cause, or a **hazard item** for combined causes (ANY/ALL) and several protection targets
+* One five-level harm scale everywhere — reversible minor/major, irreversible minor/major, fatal (IEC 62061 Se1–Se4, mappable to ISO 26262 S1–S3 and EN 50742)
+* An asset's safety rating is the worse of its annotations and hazard items (a justified manual override wins); rating an asset through both paths raises a warning
+* Safety Override Rule: direct relevance with irreversible-major or fatal harm makes the asset CRITICAL, independent of business impact
+
+Rationale, rules and code locations: [`doc/taraflow-safety-model.md`](doc/taraflow-safety-model.md).
 
 Safety analysis can be enabled as part of a project's workflow.
 
@@ -198,6 +208,7 @@ The audit functionality includes:
 * Commit author verification
 * Offline/local commit handling
 * Audit trail verification
+* Classified DFD diff in the commit dialog — semantic, graphical, structural and identity changes per page, plus the effect of a change on the analysis (e.g. a flow now resolved below a multiprocess)
 
 This makes it possible to use Git not only for source-code versioning but also as part of the **traceability and integrity model of the security analysis itself**.
 
@@ -341,6 +352,7 @@ The documentation workflow supports:
 * Risks
 * Analysis results
 * Other project-specific analysis information
+* Leveled DFDs: one DFD section per page with its figure and element table, the flows analysed on a parent level, and threat and risk tables grouped like the app
 
 The same reporting functionality can be used through the graphical application and the `taraflow-report` CLI.
 
@@ -566,7 +578,7 @@ The project format contains the information required to reconstruct and analyze 
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
-The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **8**, since `v0.13.3-alpha`).
+The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **9**, since `v0.14.0-beta`).
 
 View state such as the positions in the asset graph is not part of the project file.
 
@@ -614,7 +626,7 @@ The purpose of this workflow is to keep the different analysis artifacts connect
 
 ## Releases
 
-TARAflow is currently in the alpha development phase.
+TARAflow is currently in the beta development phase.
 
 Recent development versions include:
 
@@ -627,12 +639,15 @@ Recent development versions include:
 * `v0.12.0-alpha` — security-goal rework, risk impact aggregation, threat generation drift
 * `v0.13.3-alpha` — asset graph with edit mode, persistent asset-to-asset relations (schema 8)
 * `v0.13.4-alpha` — dependency security update, enclosure and interface threat fixes, DFD editor fixes
+* `v0.14.0-beta` — leveled DFDs (several pages per project), five-level safety scale and worst-of safety rating (schema 9)
 
 The current development state is represented by:
 
 ```text
-v0.13.4-alpha
+v0.14.0-beta
 ```
+
+Versions in the beta: `0.14.0-beta`, then `0.14.1-beta`, `0.14.2-beta`, … — the patch number counts, no extra pre-release counter.
 
 See [`CHANGELOG.md`](CHANGELOG.md) for details.
 
@@ -646,7 +661,7 @@ TARAflow is still under active development.
 
 In particular:
 
-* The application is an alpha release.
+* The application is a beta release.
 * Some functionality may still change substantially.
 * Project formats may evolve between versions.
 * Not all workflows have reached a final stable state.
@@ -690,7 +705,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.13.0-alpha**
+**TARAflow 0.14.0-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 

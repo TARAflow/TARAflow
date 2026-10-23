@@ -1,3 +1,118 @@
+## [0.14.0-beta] - 2026-10-23
+
+The first beta. A project can now hold a leveled DFD — a top-level
+diagram plus child pages that decompose multiprocesses — and safety is
+rated on one five-level harm scale, derived from annotations and hazard
+items instead of being typed in on the asset. Opening a project migrates
+it to schema 9 (TARAflow asks first and keeps a backup of the original).
+
+From here on the beta counts its patch number: the next releases are
+`0.14.1-beta`, `0.14.2-beta`, …
+
+### Security
+- **electron ^44.9.3** (GHSA-x562-297c-g43g).
+- **Build and test tooling** (not shipped with the app): vite 7.3.7,
+  vitest 4.1.12 (several advisories), follow-redirects 1.16.1.
+  `npm audit` reports no vulnerabilities.
+
+### Added
+- **Leveled DFDs.** Several draw.io pages per project: a *Top* page and a
+  child page per decomposed multiprocess, created and deleted with the
+  multiprocess. Elements keep one logical identity across pages
+  (definitions and context copies, linked in `dfd.pages`), are numbered
+  hierarchically (`P-2.1` under `MP-2`), and can be renumbered per page.
+- **Effective model.** Threat generation, assets and the report work on
+  the leaves of the decomposition: flows drawn on a parent level are
+  stitched to the parts that handle them, interfaces inherit physical and
+  chip boundaries. `refines` links and abstract flows keep parent and
+  child pages balanced; the DFD validation reports leveled findings
+  (dangling references, unbalanced flows, duplicated definitions).
+- **Working with pages:** adoption dialog for existing multi-page
+  diagrams and pasted copies, *Insert as context* with category tabs,
+  *Sync context*, page info on draw.io's page tabs, a child page opened
+  with a button, one thumbnail per page with a page selector in the
+  previews, confirmation when a definition moves or a linked definition
+  would be lost.
+- **Grouping per decomposed multiprocess** for threats, risks and assets,
+  with a summary per group, filters by page and analysis state, a risk
+  matrix per DFD group, an asset roll-up and a page filter in the asset
+  graph. A flow between two multiprocesses belongs to the side it
+  attacks; a banner lists flows analysed on a parent level.
+- **Reconciliation before regenerating threats:** the dialog shows new,
+  unchanged, changed and obsolete threats; a threat whose references
+  changed keeps its rating and is flagged for review.
+- **Audit: classified DFD diff** (semantic, graphical, structural,
+  identity) per page, definition, copy and layout, plus the effect a
+  change has on the analysis.
+- **Reporter:** in every format the DFD chapter starts with its
+  statistics, then one section per page with its figure and element
+  table, then the flows analysed on a parent level; threat and risk
+  tables are grouped like the app, with statistics in the threat and
+  risk chapters. The `taraflow-report` CLI runs the same DFD analysis
+  (via `@xmldom/xmldom`).
+- **Safety severity scale** with five levels — reversible minor/major,
+  irreversible minor/major, fatal — used by safety annotations, hazard
+  items, asset ratings and the risk factor. Mapped to IEC 62061 Se1–Se4,
+  ISO 26262 S1–S3 and EN 50742.
+- **Safety model reference** `doc/taraflow-safety-model.md`: why there
+  are two paths (annotation for a single cause, hazard item for combined
+  causes), how the rating is derived, where it lives in the code.
+- Development builds show a notice when the running Electron part is
+  older than the source.
+
+### Changed
+- **An asset's safety rating is derived.** The asset properties
+  *Contains safety-relevant data*, *Safety relevant*, *Safety impact* and
+  *Safety rationale* are gone; the asset form explains where the rating
+  comes from. The rating is the worse of the asset's safety annotations
+  and hazard items; a justified manual override still wins.
+- **Both paths on one asset raise a warning** (validation and asset
+  table tooltip) — use one of them. The stricter rating is kept.
+- **Safety Override Rule:** direct relevance with irreversible-major or
+  fatal harm → CRITICAL, irreversible-minor direct or the severe levels
+  indirect → HIGH+, reversible harm direct → HIGH, indirect → MED+.
+- `fatality` is now called `fatal`.
+- The asset and asset-to-asset relationship documents are available in
+  English next to the German versions; the README links them together
+  with the safety model.
+- Threat, risk and asset groups share one accordion; leveled DFD actions
+  report errors as codes with i18n texts.
+
+### Fixed
+- Descriptions of elements and flows are editable and kept on save; a
+  description edit updates the DFD phase status.
+- Per-interaction threats keep the assets of their endpoints.
+- Undo after an autosave restores links and records.
+- No false "mitigations changed" after reopening a project.
+- Phase statuses on the overview are derived from the project data; the
+  attack tree counts toward progress only for ISO/SAE 21434.
+- The asset group toolbar stays in place.
+- The asset overlay in a leveled DFD keeps every page and marks an
+  element on all pages that show it (definition and context copies).
+- *Renumber this page* is disabled while the multiprocess the page
+  decomposes has no number (its parts would get flat numbers).
+- Scrolling or an undone change is no longer recorded as a DFD change.
+- Report: the DFD statistics list every element type present and their
+  total is the sum of the rows; the element descriptions chapter has its
+  title again, and StrictDoc sections are balanced (later chapters no
+  longer nest one level deeper).
+
+### Notes
+- **Project schema 9.** For the DFD the step is a version fence: classic
+  projects keep their data (`dfd.pages` stays absent), but earlier
+  TARAflow versions refuse a schema 9 file instead of silently merging
+  the pages of a multi-page diagram. For safety it renames the levels
+  conservatively (`reversible_injury` / `reversible_moderate` →
+  `reversible_major`, `irreversible_injury` → `irreversible_major`,
+  `fatality` → `fatal`, safety impact rating 3 → 4), drops the old asset
+  safety properties and turns a lone *Safety impact* into a manual
+  override marked `[MIGRATED]`.
+- Projects saved as schema 9 by a development build before this release
+  skip the safety part of the migration; set `schemaVersion` to `8` in
+  the project file before opening them.
+- An existing multi-page draw.io file is analysed after its pages are
+  adopted in the adoption dialog.
+
 ## [0.13.4-alpha] - 2026-10-20
 
 A security and bugfix release: all known vulnerabilities in the
