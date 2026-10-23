@@ -47,5 +47,9 @@
  *       endangers edges, physicalImpact / safetyImpact. Conservative mapping
  *       (reversible_injury → reversible_major, irreversible_injury →
  *       irreversible_major, fatality → fatal); safety ImpactRating 3 → 4.
+ *       Same step: asset-level safety properties become derived —
+ *       AssetProperties drops safetyRelevant, containsSafetyRelevantData,
+ *       safetyImpact and safetyRationale; a safetyImpact on an asset without
+ *       physicalImpact is kept as a manual override ([MIGRATED] rationale).
  */
 export const CURRENT_SCHEMA_VERSION = 9;

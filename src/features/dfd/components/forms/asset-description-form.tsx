@@ -90,7 +90,6 @@ import { AssetToAssetSelector } from "./asset-to-asset-selector";
 import {
   AssetGroup,
   AnyAssetRelationType,
-  SAFETY_IMPACTS,
   isIrreversibleOrWorse,
   safetyImpactI18nKey,
   worstSafetySeverity,
@@ -818,27 +817,6 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                     <MenuItem value="archived">Archived (Long-term)</MenuItem>
                   </Select>
                 </FormControl>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={
-                        asset.properties?.containsSafetyRelevantData || false
-                      }
-                      onChange={(e) =>
-                        handlePropertyChange(
-                          "containsSafetyRelevantData",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.asset.containsSafetyRelevantData",
-                    {
-                      defaultValue: "Contains safety-relevant data (EN 50742)",
-                    },
-                  )}
-                />
               </Stack>
             )}
 
@@ -876,23 +854,6 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                     <MenuItem value="internet">Internet</MenuItem>
                   </Select>
                 </FormControl>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={asset.properties?.safetyRelevant || false}
-                      onChange={(e) =>
-                        handlePropertyChange("safetyRelevant", e.target.checked)
-                      }
-                    />
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.asset.safetyRelevant",
-                    {
-                      defaultValue:
-                        "Safety-relevant system (direct involvement in safety-critical operations)",
-                    },
-                  )}
-                />
               </Stack>
             )}
 
@@ -1409,71 +1370,11 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
               </Stack>
             )}
 
-            {/* shared safety impact — all groups except data */}
-            {category && category !== "data" && (
-              <Stack spacing={1.5}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>
-                    {t("tabs.dfd.element_description.asset.safetyImpact", {
-                      defaultValue: "Safety Impact (ISO 12100)",
-                    })}
-                  </InputLabel>
-                  <Select
-                    value={asset.properties?.safetyImpact || ""}
-                    onChange={(e) =>
-                      handlePropertyChange("safetyImpact", e.target.value)
-                    }
-                    label={t(
-                      "tabs.dfd.element_description.asset.safetyImpact",
-                      {
-                        defaultValue: "Safety Impact (ISO 12100)",
-                      },
-                    )}
-                  >
-                    <MenuItem value="">
-                      <em>Not assessed</em>
-                    </MenuItem>
-                    {SAFETY_IMPACTS.map((impact) => (
-                      <MenuItem key={impact} value={impact}>
-                        {t(safetyImpactI18nKey(impact))}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                {asset.properties?.safetyImpact &&
-                  asset.properties.safetyImpact !== "none" && (
-                    <BufferedTextField
-                      fullWidth
-                      size="small"
-                      multiline
-                      rows={2}
-                      label={t(
-                        "tabs.dfd.element_description.asset.safetyRationale",
-                        {
-                          defaultValue: "Safety Rationale",
-                        },
-                      )}
-                      value={asset.properties?.safetyRationale || ""}
-                      onCommit={(v) =>
-                        handlePropertyChange("safetyRationale", v)
-                      }
-                      placeholder={t(
-                        "tabs.dfd.element_description.asset.safetyRationalePlaceholder",
-                        {
-                          defaultValue:
-                            "e.g. Compromise allows uncontrolled machine motion leading to operator injury",
-                        },
-                      )}
-                      helperText={t(
-                        "tabs.dfd.element_description.asset.safetyRationaleHelper",
-                        {
-                          defaultValue:
-                            "Used in EN 50742 / MVO 2027 audit documentation",
-                        },
-                      )}
-                    />
-                  )}
-              </Stack>
+            {/* Safety relevance / severity is derived, not entered here */}
+            {category && (
+              <Typography variant="caption" color="text.secondary">
+                {t("tabs.dfd.element_description.asset.safetyDerivedHint")}
+              </Typography>
             )}
           </Box>
         </>

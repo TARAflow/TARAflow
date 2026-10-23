@@ -655,6 +655,14 @@ Data Flow "Encrypted Session"
 
 ---
 
+> **Asset-Ebene: abgeleitet, nicht erfasst (Schema v9).** Ein Asset trägt keine
+> eigenen Safety-Felder mehr (`safetyRelevant`, `containsSafetyRelevantData`,
+> `safetyImpact`, `safetyRationale` entfallen). Safety-Relevanz und Schwere eines
+> Assets ergeben sich aus `physicalImpact` — abgeleitet aus Safety-Annotationen und
+> Hazard Items, oder als begründeter manueller Override. Auf **DFD-Element-Ebene**
+> bleibt `safetyRelevant` ein Eingabewert (steuert die Threat-Generierung, hat
+> Registry-Defaults).
+
 ### Safety-relevante Data Stores
 Data Stores erben ihre Safety-Relevanz primär über das verknüpfte Asset. 
 Die Annotation erfolgt am Asset, um Konsistenz über mehrere Instanzen (z. B. Backup-Stores) zu gewährleisten.

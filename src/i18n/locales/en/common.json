@@ -146,7 +146,7 @@
         "v6": "Assets get a stable id, separate from the display number — a group change no longer breaks references.",
         "v7": "Risks are linked by the stable threat id instead of the display number.",
         "v8": "Asset-to-asset relations are stored in the project file. Before, they were lost on save.",
-        "v9": "The DFD can span several pages (top level and sub-diagrams); older TARAflow versions can no longer open the file, because they would merge the pages. Person-harm severity uses a 5-level scale (reversible minor/major, irreversible minor/major, fatal). Old values are mapped to the higher level: irreversible injury becomes irreversible major."
+        "v9": "The DFD can span several pages (top level and sub-diagrams); older TARAflow versions can no longer open the file, because they would merge the pages. Person-harm severity uses a 5-level scale (reversible minor/major, irreversible minor/major, fatal). Old values are mapped to the higher level: irreversible injury becomes irreversible major. Safety relevance of assets is derived from safety annotations and hazard items: the asset fields \"safety-relevant\" and \"Safety Impact\" are removed; a Safety Impact without another rating becomes a manual override."
       }
     },
     "confirmAssetDelete": {

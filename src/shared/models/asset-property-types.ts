@@ -148,7 +148,6 @@ export interface AssetProperties {
   /** Canonical: typed array (the asset-tab side was a loose string). */
   dataType?: AssetDataType[];
   lifecycle?: "transient" | "stored" | "archived";
-  containsSafetyRelevantData?: boolean;
 
   // ---- FUNCTION ----
   isSafetyFunction?: boolean;
@@ -166,7 +165,6 @@ export interface AssetProperties {
   /** Canonical: DFD union (the asset-tab side was a loose string). */
   criticality?: "supporting" | "essential" | "safety_critical";
   exposure?: "internal" | "dmz" | "internet";
-  safetyRelevant?: boolean;
 
   // ---- INFRASTRUCTURE ----
   physicalAccessControl?: PhysicalAccessControl;
@@ -193,8 +191,11 @@ export interface AssetProperties {
   isProtectionTarget?: boolean;
 
   // ---- SHARED SAFETY (all groups) ----
-  safetyImpact?: SafetyImpact;
-  safetyRationale?: string;
+  // Safety relevance and severity of an asset are DERIVED, not stored here:
+  // physicalImpact (Asset) from SafetyAnnotations / Hazard Items / manual
+  // override — see resolveAssetPhysicalImpact. The former properties
+  // safetyRelevant, containsSafetyRelevantData, safetyImpact and
+  // safetyRationale were removed in schema v9.
   physicalHazardPotential?: "low" | "medium" | "high";
 
   // ---- CIANAAA protection goals ----

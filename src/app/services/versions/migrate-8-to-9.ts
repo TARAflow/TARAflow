@@ -11,12 +11,18 @@
  *
  * 2. Person-harm severity on the canonical 5-level scale
  *    (normalizeSafetySeverities, conservative mapping).
+ * 3. Asset-level safety properties become derived (deriveAssetSafety).
+ *    Runs after 2, so a kept safetyImpact is already on the new scale.
  *
  * Runs once per file through the version gate in migration-service.
  */
 
 import { normalizeSafetySeverities } from "./normalize-safety-severity";
+import { deriveAssetSafety } from "./derive-asset-safety";
 
 export function migrate_8_to_9(data: any): any {
-  return { ...normalizeSafetySeverities(data), schemaVersion: 9 };
+  return {
+    ...deriveAssetSafety(normalizeSafetySeverities(data)),
+    schemaVersion: 9,
+  };
 }

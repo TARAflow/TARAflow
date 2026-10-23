@@ -34,7 +34,6 @@ const dfdAssetWithRichProps: DFDAsset = {
     // --- DFD-only category fields (the ones §3.1 says are dropped) ---
     dataType: ["configuration"],
     lifecycle: "stored",
-    containsSafetyRelevantData: true,
     isSafetyFunction: true,
     automationLevel: "fully_automated",
   },
@@ -66,7 +65,6 @@ describe("§3.1 (closed) — DFDAsset.properties now flows to AssetData via sync
 
     expect(props.dataType).toEqual(["configuration"]);
     expect(props.lifecycle).toBe("stored");
-    expect(props.containsSafetyRelevantData).toBe(true);
     expect(props.isSafetyFunction).toBe(true);
     expect(props.automationLevel).toBe("fully_automated");
   });

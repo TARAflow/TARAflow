@@ -2547,8 +2547,6 @@
         },
         "asset": {
           "regulatoryReference": "Regulatory Reference",
-          "containsSafetyRelevantData": "Contains safety-relevant data (EN 50742)",
-          "safetyRelevant": "Safety-relevant system (direct involvement in safety-critical operations)",
           "responsibilityScope": "Responsibility Scope",
           "responsibilityScopeRequired": "Required for third-party (CRA Art. 13 supply chain)",
           "responsibilityScopeHint": "Which security controls are in own vs. provider scope?",
@@ -2619,10 +2617,6 @@
           "isSafetyFunction": "Safety function (ISO 12100 / IEC 61508)",
           "externalRef": "External safety ref (e.g. SF-001)",
           "externalRefHint": "ID from accompanying safety analysis document",
-          "safetyImpact": "Safety Impact (ISO 12100)",
-          "safetyRationale": "Safety Rationale",
-          "safetyRationalePlaceholder": "e.g. Compromise allows uncontrolled machine motion leading to operator injury",
-          "safetyRationaleHelper": "Used in EN 50742 / MVO 2027 audit documentation",
           "domain": "Domain / Regulatory context",
           "isValidatedProcess": "Formally validated / certified process",
           "validationRationale": "Validation rationale (required)",
@@ -2633,7 +2627,8 @@
           "isProtectionTarget": "Protection target per ISO 12100 / EN 50742 (person at risk)",
           "isPhysicalBarrier": "Physical protection barrier (guard, enclosure, fence)",
           "environmentalHazard": "Environmental Hazard",
-          "notReferenced": "This asset is not yet referenced by any DFD element."
+          "notReferenced": "This asset is not yet referenced by any DFD element.",
+          "safetyDerivedHint": "Safety relevance and severity are derived from the safety annotations and hazard items of this asset (asset table: Safety Impact)."
         }
       },
       "pageTabs": {

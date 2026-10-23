@@ -2534,8 +2534,6 @@
         },
         "asset": {
           "regulatoryReference": "Regulatorische Referenz",
-          "containsSafetyRelevantData": "Enthält Safety-relevante Daten (EN 50742)",
-          "safetyRelevant": "Safety-relevantes System (direkte Beteiligung an sicherheitskritischen Operationen)",
           "responsibilityScope": "Verantwortungsumfang",
           "responsibilityScopeRequired": "Erforderlich für Drittanbieter (CRA Art. 13 Lieferkette)",
           "responsibilityScopeHint": "Welche Sicherheitskontrollen liegen im eigenen vs. Anbieter-Bereich?",
@@ -2606,10 +2604,6 @@
           "isSafetyFunction": "Safety-Funktion (ISO 12100 / IEC 61508)",
           "externalRef": "Externe Safety-Referenz (z.B. SF-001)",
           "externalRefHint": "ID aus begleitendem Safety-Analysedokument",
-          "safetyImpact": "Safety-Auswirkung (ISO 12100)",
-          "safetyRationale": "Safety-Begründung",
-          "safetyRationalePlaceholder": "z.B. Kompromittierung ermöglicht unkontrollierte Maschinenbewegung mit Bedienerverletzung",
-          "safetyRationaleHelper": "Verwendet in EN 50742 / MVO 2027 Audit-Dokumentation",
           "domain": "Domäne / Regulatorischer Kontext",
           "isValidatedProcess": "Formal validierter / zertifizierter Prozess",
           "validationRationale": "Validierungsbegründung (erforderlich)",
@@ -2620,7 +2614,8 @@
           "isProtectionTarget": "Schutzziel nach ISO 12100 / EN 50742 (gefährdete Person)",
           "isPhysicalBarrier": "Physische Schutzbarriere (Schutzgitter, Gehäuse, Zaun)",
           "environmentalHazard": "Umweltgefährdung",
-          "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert."
+          "notReferenced": "Dieses Asset wird noch von keinem DFD-Element referenziert.",
+          "safetyDerivedHint": "Safety-Relevanz und Schwere werden aus den Safety-Annotationen und Hazard Items dieses Assets abgeleitet (Asset-Tabelle: Safety Impact)."
         }
       },
       "pageTabs": {

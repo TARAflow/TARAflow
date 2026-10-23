@@ -81,11 +81,26 @@ describe("migrate_8_to_9 — safety severity", () => {
     );
     const a = out.assets.assets[0];
     expect(a.physicalImpact).toBe("irreversible_major");
-    expect(a.properties.safetyImpact).toBe("reversible_major");
+    // asset already rated → the legacy property is dropped (asset-safety part)
+    expect(a.properties.safetyImpact).toBeUndefined();
     expect(a.impactRatings).toEqual([
       { criterionId: "safety", value: 4 },
       { criterionId: "financial_damage", value: 3 },
     ]);
+  });
+
+  it("a lone legacy safetyImpact becomes a manual override on the new scale", () => {
+    const out = migrate_8_to_9(
+      v8({
+        assets: {
+          configuration: {},
+          assets: [{ id: "a", properties: { safetyImpact: "irreversible_injury" } }],
+        },
+      }),
+    );
+    const a = out.assets.assets[0];
+    expect(a.physicalImpact).toBe("irreversible_major");
+    expect(a.physicalImpactSource).toBe("manual");
   });
 
   it("is idempotent on canonical values", () => {
