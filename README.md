@@ -346,6 +346,17 @@ The same reporting functionality can be used through the graphical application a
 
 ---
 
+## Method and Model Documentation
+
+Background on the analysis model behind TARAflow, for readers who want to understand how relationships, threats and ratings come about:
+
+* [TARAflow method](https://taraflow.github.io/method.html) — overview of the method
+* [Safety model](doc/taraflow-safety-model.md) — how harm to persons is modeled (safety annotations and Hazard Items), the 5-level harm scale, the Safety Override Rule and where safety acts in the analysis
+* [Asset relationships](doc/taraflow-asset-relations.md) ([Deutsch](doc/taraflow-asset-beziehungen.md)) — the active-impact model: which relationship a DFD element may have to which asset category, and what it means for threat generation
+* [Asset-to-asset relationships](doc/taraflow-asset-to-asset-relations.md) ([Deutsch](doc/taraflow-asset-zu-asset-beziehungen.md)) — direct relationships between assets, the core set and the domain catalogs
+
+---
+
 ## Internationalization
 
 TARAflow supports multiple languages.

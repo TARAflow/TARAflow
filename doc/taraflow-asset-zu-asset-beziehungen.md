@@ -1,5 +1,7 @@
 # TARAflow: Asset-zu-Asset Beziehungen
 
+> English version: [taraflow-asset-to-asset-relations.md](taraflow-asset-to-asset-relations.md) — beide Fassungen gemeinsam pflegen.
+
 <sub>© Jürgen Messerer · 2026 · Alle Rechte vorbehalten</sub>
 
 > **Zweck dieses Dokuments:** Formale Definition der Asset-zu-Asset Beziehungen in TARAflow.
@@ -747,8 +749,9 @@ Domain-Beziehung "administered_to" (analytisch aktiviert):
 
 > **Hinweis zur Spalte "Analytisch wirksam als":** `safety` bedeutet, dass das
 > Domänen-Verb auf das Hazard-Item-Muster abgebildet wird
-> (`contributes_to → Hazard → endangers`). Bei einem einzelnen Eingang kann das
-> Hazard Item eingeklappt sein. `privacy` bildet auf `affects_privacy` ab.
+> (`contributes_to → Hazard → endangers`). Bei einer einzelnen Ursache kann stattdessen
+> eine Safety-Annotation verwendet werden (kein eingeklappter Hazard-Knoten).
+> `privacy` bildet auf `affects_privacy` ab.
 
 **Medical (IEC 81001-5-1, ISO 14971):**
 

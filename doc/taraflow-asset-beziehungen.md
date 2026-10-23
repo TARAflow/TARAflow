@@ -1,5 +1,7 @@
 # Asset-Beziehungen in TARAflow
 
+> English version: [taraflow-asset-relations.md](taraflow-asset-relations.md) — beide Fassungen gemeinsam pflegen.
+
 ## Konzept
 
 Die Beziehungen zwischen DFD-Elementen und Assets folgen dem **"Active-Impact Modell"** für präzise Bedrohungsanalyse (TARA):
@@ -567,7 +569,7 @@ Process "User Login"
 
 ```txt
 Process "Emergency Stop Logic" 
-└─ Properties: { safetyRelevant: true, safetyImpact: 'fatal' }
+└─ Properties: { safetyRelevant: true }
 └─ modifies → Data Asset "Stop Configuration"
    └─ safety: {
         relevance: 'direct',
@@ -709,7 +711,6 @@ Data Store "Emergency Stop Configuration"
    └─ Properties: {
         containsSafetyRelevantData: true,
         safety: { relevance: 'direct', impact: 'fatal' },
-        safetyImpact: 'fatal',
         rationale: 'Manipulation could disable emergency stop function'
         // Beziehung zu FU-001, FU-003 → Asset-zu-Asset Relation
       }
@@ -722,7 +723,7 @@ Data Store "Machine Calibration Data"
 └─ is_an → Data Asset "Operational Parameters"
    └─ Properties: {
         containsSafetyRelevantData: true,
-        safetyImpact: 'irreversible_major',
+        safety: { relevance: 'indirect', impact: 'irreversible_major' },
         rationale: 'Incorrect calibration can cause uncontrolled movement'
       }
 ```
@@ -1248,8 +1249,9 @@ interface FunctionAssetProperties {
 
   // Safety-spezifisch
   isSafetyFunction?: boolean;
-  safetyImpact?: 'none' | SafetySeverity;
-  safetyRationale?: string;
+  // Die Schwere ist keine Property: sie ist der physicalImpact des Assets,
+  // abgeleitet aus Annotationen / Hazard Items oder als manueller Override
+  // gesetzt (siehe taraflow-safety-model.md).
 
   // Traceability zur externen Safety-Analyse (z.B. ISO 12100, ISO 13849)
   externalRefs?: ExternalSafetyRef[];
@@ -1262,8 +1264,6 @@ interface FunctionAssetProperties {
 Function Asset "Brake Control Function"  [ID: FU-001]
 └─ Properties: {
      isSafetyFunction: true,
-     safetyImpact: 'fatal',
-     safetyRationale: 'Loss of brake control leads to uncontrolled motion',
      externalRefs: [
        {
          id: 'SF-001',
@@ -1273,12 +1273,12 @@ Function Asset "Brake Control Function"  [ID: FU-001]
        }
      ]
    }
+└─ physicalImpact: 'fatal'  (z.B. aus einer Annotation: Verlust der Bremssteuerung
+                             führt zu unkontrollierter Bewegung)
 
 Function Asset "Emergency Stop Logic"  [ID: FU-002]
 └─ Properties: {
      isSafetyFunction: true,
-     safetyImpact: 'fatal',
-     safetyRationale: 'Disabling emergency stop allows uncontrolled machine motion',
      externalRefs: [
        {
          id: 'SF-002',
@@ -1288,6 +1288,8 @@ Function Asset "Emergency Stop Logic"  [ID: FU-002]
        }
      ]
    }
+└─ physicalImpact: 'fatal'  (das Deaktivieren des Not-Halts ermöglicht unkontrollierte
+                             Maschinenbewegung)
 
 System "Safety Controller"
 └─ is_an → Function Asset "Brake Control Function"  [FU-001]
@@ -1451,8 +1453,8 @@ interface ProcessAssetProperties {
 
   // Safety
   isSafetyCritical?: boolean;
-  safetyImpact?: 'none' | SafetySeverity;
-  safetyRationale?: string;
+  // Schwere: physicalImpact des Assets (abgeleitet oder manueller Override),
+  // keine Property — siehe taraflow-safety-model.md
 }
 ```
 
@@ -1562,10 +1564,9 @@ interface SystemAssetProperties {
   // ... Standard Properties
 
   // Safety-spezifisch
-  safetyRelevant?: boolean;
   physicalHazardPotential?: 'low' | 'medium' | 'high';
-  safetyImpact?: SafetySeverity;
-  safetyRationale?: string;
+  // Safety-Relevanz und Schwere werden am Asset abgeleitet (physicalImpact),
+  // nicht hier eingetragen — siehe taraflow-safety-model.md.
   // Verbindung zu betroffenen Function Assets erfolgt über
   // Asset-zu-Asset Beziehungen (implements, depends_on)
 }
@@ -1594,12 +1595,11 @@ Ein USB-Port oder Ethernet-Interface ist nicht nur ein IT-Risiko (Information Di
 ```txt
 System Asset "Safety PLC"
 └─ Properties: {
-     safetyRelevant: true,
      physicalHazardPotential: 'high',
-     safetyImpact: 'fatal',
-     rationale: 'Controls emergency stop and safety interlocks'
      // Beziehung zu FU-001, FU-002, FU-005 → Asset-zu-Asset Relationen
    }
+└─ physicalImpact: 'fatal'  (z.B. aus der Annotation "steuert Not-Halt und
+                             Sicherheitsverriegelungen")
 
 Interface "Maintenance USB Port" (auf Safety PLC)
 └─ Properties: {
@@ -1616,10 +1616,10 @@ Process "Firmware Update Service"
 
 System Asset "HMI Display"
 └─ Properties: {
-     safetyRelevant: false,
      physicalHazardPotential: 'low',
      rationale: 'No direct control over safety functions'
    }
+└─ kein physicalImpact (keine direkte Steuerung von Safety-Funktionen)
 
 Interface "Ethernet Port" (auf Gateway zur Produktionsanlage)
 └─ Properties: {
@@ -1699,8 +1699,8 @@ interface InfrastructureAssetProperties {
   // Safety-spezifisch
   isPhysicalBarrier?: boolean; // z.B. Schutzzäune, Gehäuse
   environmentalHazard?: 'fire' | 'chemical' | 'mechanical' | 'none';
-  safetyImpact?: SafetySeverity;
-  safetyRationale?: string;
+  // Schwere: physicalImpact des Assets (abgeleitet oder manueller Override),
+  // keine Property — siehe taraflow-safety-model.md
 
 // High-Value Asset (finanzieller/operativer Schutz)
   isHighValueAsset?: 'low' | 'medium' | 'high' | 'critical'; // derived — aus Impact-Kriterien + Recoverability-Feldern
@@ -1721,9 +1721,8 @@ interface InfrastructureAssetProperties {
 Infrastructure Asset "CNC Guarding"
 └─ Properties: {
      isPhysicalBarrier: true,
-     safetyImpact: 'fatal',
-     rationale: 'Prevents contact with high-speed cutting tools'
    }
+└─ physicalImpact: 'fatal'  (verhindert den Kontakt mit schnell drehenden Werkzeugen)
 
 Process "Manual Override"
 └─ accesses [internal] → Infrastructure Asset "CNC Guarding"
@@ -1733,9 +1732,8 @@ Process "Manual Override"
 Infrastructure Asset "Chemical Storage Tank"
 └─ Properties: {
      environmentalHazard: 'chemical',
-     safetyImpact: 'irreversible_major',
-     rationale: 'Rupture causes exposure to hazardous substances'
    }
+└─ physicalImpact: 'irreversible_major'  (ein Bersten setzt Gefahrstoffe frei)
 
 Infrastructure Asset "Produktionsrezept-Datenbank"
 └─ Properties: {
@@ -2192,8 +2190,8 @@ interface ServiceAssetProperties {
 
   // Safety
   isSafetyCritical?: boolean;
-  safetyImpact?: 'none' | SafetySeverity;
-  safetyRationale?: string;
+  // Schwere: physicalImpact des Assets (abgeleitet oder manueller Override),
+  // keine Property — siehe taraflow-safety-model.md
 }
 ```
 
@@ -2275,8 +2273,8 @@ interface HumanAssetProperties {
   
   // Safety-spezifisch
   isProtectionTarget?: boolean;  // Person als Schutzgut (Normsprache!)
-  safetyImpact?: SafetySeverity;
-  safetyRationale?: string;
+  // Schwere: physicalImpact des Assets oder die endangers-Kanten eines
+  // Hazard Items — keine Property (siehe taraflow-safety-model.md)
 }
 ```
 
@@ -2284,9 +2282,9 @@ interface HumanAssetProperties {
 - `isProtectionTarget = true` → Person als **Schutzgut** nach ISO 12100 (nicht nur als Asset)
 - Ermöglicht automatische Dokumentation in Normsprache: *"The operator is considered a protection target according to ISO 12100."*
 
-**Safety Impact Klassifizierung:**
-- `reversible_major` - Reversible Verletzungen (z.B. leichte Quetschungen)
-- `irreversible_major` - Irreversible Verletzungen (z.B. Amputation)
+**Safety-Impact-Klassifizierung** (kanonische Skala, siehe `taraflow-safety-model.md`):
+- `reversible_minor` / `reversible_major` - reversible Verletzungen (z.B. leichte Quetschung / Behandlung nötig)
+- `irreversible_minor` / `irreversible_major` - irreversible Verletzungen (z.B. ein Finger / eine Amputation)
 - `fatal` - Todesfolge
 
 
@@ -2299,14 +2297,14 @@ Jedes DFD-Element, das mit diesem Asset via `is_an` verknüpft ist, wird dadurch
 Human Asset "Machine Operator"
 └─ Properties: {
      isProtectionTarget: true,
-     safetyImpact: 'fatal',
-     rationale: 'Physical presence in the hazardous area of the CNC machine'
    }
+   // Schwere z.B. fatal (physische Anwesenheit im Gefahrenbereich der CNC-Maschine),
+   // aus einer Annotation oder einer endangers-Kante
 
 **2. Verknüpfung im DFD (Instanziierung):**
 External Entity "Local Operator"
 └─ is_an → Human Asset "Machine Operator"
-   // Erbt automatisch: fatal impact & protection target status
+   // Erbt automatisch: protection target status
 
 **3. Aktive Wirkung (Physikalische Safety):**
 Process "CNC Axis Control"
@@ -2320,8 +2318,6 @@ External Entity "Machine Operator"
 └─ is_an → Human Asset "Machine Operator"
    └─ Properties: {
         isProtectionTarget: true,
-        safetyImpact: 'fatal',
-        rationale: 'Direct exposure to machinery hazards'
       }
 
 Process "CNC Emergency Stop"
@@ -2336,8 +2332,7 @@ Process "Unauthorized Access"
 └─ exposes → Human Asset "Patients"
    └─ Context: {
         isProtectionTarget: true,
-        safetyImpact: 'irreversible_major',
-        rationale: 'Compromise of medical device control'
+        // Schwere irreversible_major: Kompromittierung der Medizingerätesteuerung
       }
 
 Process "Medical Record Access"
@@ -2512,7 +2507,7 @@ Threat: Manipulation der Not-Halt-Konfiguration
     ├─ Angreifer erhält Zugriff auf Config Manager (Authentication Bypass)
     ├─ Umgeht Autorisierung (Authorization Failure)
     └─ Ändert Safety-Parameter (Integrity Violation)
-        → Safety Impact: Fatality
+        → Safety Impact: fatal
 ```
 
 #### 2. Availability (Verfügbarkeit)
@@ -2533,7 +2528,7 @@ Threat: DoS auf Safety-Kommunikation
 └─ Attack Tree Branch:
     ├─ Angreifer überflutet Netzwerk (Network DoS)
     └─ Safety Signal kommt nicht durch (Availability Violation)
-        → Safety Impact: Irreversible Injury
+        → Safety Impact: irreversible Verletzung
 ```
 
 #### 3. Authentication & Authorization (Zugangsschutz)
@@ -2553,7 +2548,7 @@ Threat: Unbefugter Zugriff auf Safety-Steuerung
     ├─ Angreifer nutzt ungesicherten USB-Port (Authentication: None)
     ├─ Erhält vollen Zugriff (Authorization: Admin)
     └─ Kann nun Integrity und Availability angreifen
-        → Safety Impact: Fatality (potentiell)
+        → Safety Impact: fatal (potentiell)
 ```
 
 ### Automatische Threat-Generierung
@@ -3003,7 +2998,7 @@ function generateAttackTreeBranches(
       path: path,
       feasibility: calculateFeasibility(path),
       barriers: identifyBarriers(path),
-      impact: asset.safetyImpact || asset.businessImpact
+      impact: asset.physicalImpact || asset.businessImpact
     });
   }
   
@@ -3038,7 +3033,7 @@ function getRelevantRelations(
 
 #### Ausgangslage:
 ```
-Asset: "Emergency Stop Configuration" (Safety-kritisch, Impact: Fatality)
+Asset: "Emergency Stop Configuration" (Safety-kritisch, Impact: fatal)
 Schutzziel: Integrity
 ```
 
@@ -3080,14 +3075,14 @@ Resultat:
 │  ├─ Entry Point: External Entity "Maintenance Laptop" [F: Low - physical access]
 │  ├─ Interface "USB Port" [B: Medium - no authentication]
 │  ├─ Process "Configuration Manager" [B: Low - weak access control]
-│  └─ modifies → Asset [I: CRITICAL - Fatality]
+│  └─ modifies → Asset [I: CRITICAL - fatal]
 │     → Overall Risk: HIGH (Low F + Weak B + Critical I)
 │
 └─ [Branch 2: Via Network Update]
    ├─ Entry Point: External Entity "Update Server" [F: Medium - network accessible]
    ├─ Interface "Ethernet" [B: High - strong encryption + auth]
    ├─ Process "Firmware Update" [B: High - signature verification]
-   └─ modifies → Asset [I: CRITICAL - Fatality]
+   └─ modifies → Asset [I: CRITICAL - fatal]
       → Overall Risk: MEDIUM (Medium F + Strong B + Critical I)
 ```
 
@@ -3171,7 +3166,7 @@ Wenn ein DFD-Element (z.B. eine SPS) viele Assets tangiert, gibt es zwei Strateg
 **Separater Attack Tree pro Asset:**
 
 ```txt
-Asset 1: "Emergency Stop Logic" [Safety: Fatality]
+Asset 1: "Emergency Stop Logic" [Safety: fatal]
 └─ Attack Tree 1 (nur für dieses Asset)
 
 Asset 2: "Production Counter" [Business: Low]
@@ -3230,9 +3225,9 @@ Goal: Information Disclosure of "User Credentials"
 **Automatische Priorisierung nach:**
 
 1. **Safety Impact** (höchste Priorität)
-   - Fatality → CRITICAL
-   - Irreversible Injury → HIGH
-   - Reversible Injury → MEDIUM
+   - fatal / irreversible_major → CRITICAL
+   - irreversible_minor → HIGH
+   - reversible_minor / reversible_major → MEDIUM
 
 2. **Feasibility × Barrier Gap**
    - High F + Low B → Sehr wahrscheinlich
@@ -3243,10 +3238,10 @@ Goal: Information Disclosure of "User Credentials"
 
 **Beispiel-Sortierung:**
 ```
-Branch 1: F=High, B=Low,  I=Fatality        → Priority: 1 (CRITICAL)
-Branch 2: F=High, B=High, I=Fatality        → Priority: 2 (HIGH)
+Branch 1: F=High, B=Low,  I=fatal           → Priority: 1 (CRITICAL)
+Branch 2: F=High, B=High, I=fatal           → Priority: 2 (HIGH)
 Branch 3: F=High, B=Low,  I=Business High   → Priority: 3 (MEDIUM)
-Branch 4: F=Low,  B=High, I=Fatality        → Priority: 4 (LOW - aber dokumentieren!)
+Branch 4: F=Low,  B=High, I=fatal           → Priority: 4 (LOW - aber dokumentieren!)
 ```
 
 ### Automatische Mitigations-Vorschläge
@@ -3471,10 +3466,11 @@ function hasSafetyImpact(relation: ExplicitAssetRelation): boolean {
   return relation.safety?.impact !== 'none' && relation.safety?.impact !== undefined;
 }
 
+// Safety Override Rule: direct UND (irreversible_major | fatal)
 function isSafetyCritical(relation: ExplicitAssetRelation): boolean {
-  return relation.safety?.relevance === 'direct' || 
-         relation.safety?.impact === 'fatal' ||
-         relation.safety?.impact === 'irreversible_major';
+  return relation.safety?.relevance === 'direct' &&
+         (relation.safety?.impact === 'fatal' ||
+          relation.safety?.impact === 'irreversible_major');
 }
 
 function detectSafetyBoundaryCrossing(
@@ -3501,9 +3497,10 @@ interface AssetToAssetRelation {
 // ============================================================================
 
 interface DFDElementSafetyProperties {
-  safetyRelevant?: boolean;
-  safetyImpact?: 'none' | SafetySeverity;
+  safetyRelevant?: boolean;       // Eingabe am Element, steuert die Threat-Eskalation
   safetyRationale?: string;
+  // Die Schwere ist keine Element-Property — sie wird am Asset bewertet
+  // (physicalImpact, siehe taraflow-safety-model.md).
   // Verbindung zu betroffenen Function Assets erfolgt über
   // Asset-zu-Asset Beziehungen, nicht als Property-Feld
 }
@@ -3764,7 +3761,7 @@ Bei der Bewertung von Asset Impact könnte ein einfacher Mittelwert aus Physical
 ```
 ❌ FALSCH (Durchschnitt):
 Asset "Emergency Stop Button"
-├─ Physical Factor: Fatality (10/10)
+├─ Physical Factor: fatal (10/10)
 ├─ Business Factor: Low (2/10) - günstige Komponente
 └─ Average Impact: Medium (6/10)
 
@@ -3779,17 +3776,20 @@ Asset "Emergency Stop Button"
 **Regel:**  
 Wenn ein Asset einen Physical Factor >= "Schwere Verletzung" hat:
 ```
-IF safetyImpact ∈ { 'fatal', 'irreversible_major' }
+IF physicalImpact ∈ { 'fatal', 'irreversible_major' }
    AND relevance === 'direct'
 THEN aggregatedCriticality := CRITICAL
      strideDepth            := 'vertieft'
      riskPriority           := 1
 
-IF safetyImpact ∈ { 'fatal', 'irreversible_major' }
+IF physicalImpact ∈ { 'fatal', 'irreversible_major' }
    AND relevance === 'indirect'
 THEN aggregatedCriticality := MAX(businessImpact, HIGH+)
      strideDepth            := 'fokussiert'
      riskPriority           := 2
+
+IF physicalImpact === 'irreversible_minor'
+THEN aggregatedCriticality := HIGH+ (direct) / HIGH (indirect)
 
 Begründung:
   Severity ist eine Eigenschaft des Schadens – nicht des Assets.
@@ -3861,7 +3861,7 @@ Legende: ✅ geeignet · ⚠️ bedingt geeignet · ➖ nicht anwendbar
 ```typescript
 interface AssetImpact {
   physicalFactors: {
-    injury: 'none' | 'reversible' | 'irreversible' | 'fatal';
+    injury: 'none' | SafetySeverity;
     score: number;  // 0-10
   };
   businessFactors: {
@@ -3874,15 +3874,17 @@ interface AssetImpact {
 
 function calculateFinalImpact(impact: AssetImpact): ImpactLevel {
   // Safety Override Check
-  if (impact.physicalFactors.injury === 'fatal') {
+  if (impact.physicalFactors.injury === 'fatal' ||
+      impact.physicalFactors.injury === 'irreversible_major') {
     return 'CRITICAL';
   }
   
-  if (impact.physicalFactors.injury === 'irreversible') {
+  if (impact.physicalFactors.injury === 'irreversible_minor') {
     return 'HIGH';
   }
   
-  if (impact.physicalFactors.injury === 'reversible' && 
+  if ((impact.physicalFactors.injury === 'reversible_minor' ||
+       impact.physicalFactors.injury === 'reversible_major') && 
       impact.physicalFactors.score >= 7) {
     return 'HIGH';
   }
@@ -3919,14 +3921,14 @@ function calculateWeightedImpact(impact: AssetImpact): number {
 #### Beispiel 1: Safety-kritisches Asset
 ```
 Asset "Robot Control Logic"
-├─ Physical Factor: Fatality (10/10)
+├─ Physical Factor: fatal (10/10)
 │  └─ Rationale: "Malfunction can cause uncontrolled robot movement"
 ├─ Business Factor: Medium (5/10)
 │  └─ Rationale: "Production downtime ~4 hours"
 ├─ Reputation Factor: High (8/10)
 │
 └─ Final Impact: CRITICAL
-   └─ Grund: Safety Override (Physical = Fatality)
+   └─ Grund: Safety Override (Physical = fatal)
 ```
 
 **Konsequenzen:**
@@ -3955,32 +3957,34 @@ Asset "Customer Database"
 #### Beispiel 3: Mixed Impact
 ```
 Asset "Machine Calibration Data"
-├─ Physical Factor: Irreversible Injury (8/10)
+├─ Physical Factor: irreversible_major (8/10)
 │  └─ Rationale: "Incorrect calibration → collision risk"
 ├─ Business Factor: Low (3/10)
 │  └─ Rationale: "Easy to recalibrate"
 ├─ Compliance Factor: Medium (5/10)
 │
 └─ Final Impact: HIGH
-   └─ Grund: Safety Override (Physical = Irreversible Injury)
+   └─ Grund: Safety Override (Physical = irreversible Verletzung)
 ```
 
 ### Safety-Asset Flag
 
-Für explizite Kennzeichnung können Assets ein `is_safety_related` Flag erhalten:
+Die Safety-Relevanz eines Assets wird **abgeleitet**, nicht als Flag gesetzt (Schema v9):
+ein Asset ist safety-relevant, wenn es einen `physicalImpact` hat (aus Annotationen, Hazard
+Items oder einem manuellen Override) oder an einem Hazard Item beteiligt ist.
+
 ```typescript
 interface Asset {
   id: string;
   name: string;
   group: AssetGroup;
   
-  // Safety-spezifisch
-  isSafetyRelated?: boolean;  // Explizites Flag
-  safetyImpact?: SafetySeverity;
+  // Safety-spezifisch (abgeleitet / manueller Override mit Begründung)
+  physicalImpact?: SafetySeverity;
 }
 ```
 
-**Wenn gesetzt:**
+**Wenn das Asset safety-relevant ist:**
 - Automatische Priorisierung aller Beziehungen zu diesem Asset
 - Speziell `modifies` und `deletes` Beziehungen erhalten höchste Priorität
 - Tool zeigt deutliche Warnungen bei Änderungen
@@ -4004,7 +4008,7 @@ Die Safety Override Rule ermöglicht automatische Generierung von:
 | Kriterium | Ohne Safety Override | Mit Safety Override |
 |-----------|---------------------|---------------------|
 | **Bewertungsmethode** | Durchschnitt aller Faktoren | Physical Impact dominiert |
-| **Ergebnis bei Fatality** | Kann "Medium" werden | Immer CRITICAL |
+| **Ergebnis bei Todesfolge** | Kann "Medium" werden | Immer CRITICAL (bei direkter Relevanz) |
 | **Normkonformität** | Fragwürdig | ISO 12100 / EN 50742 konform |
 | **Auditor-Akzeptanz** | Niedrig | Hoch |
 | **Implementierung** | Einfach (avg) | IF-Statement (trivial) |
@@ -4418,7 +4422,7 @@ des Systems, einer assistierten STRIDE-Bedrohungsanalyse und der
 **4. Manuelle Bewertung & Priorisierung**
 - Qualitative Threat-Bewertung (High/Medium/Low)
 - **Safety Override Rule:**
-  - Assets mit Physical Impact "Fatality" oder "Irreversible Injury" erhalten automatisch höchste Priorität
+  - Assets mit Physical Impact "irreversible_major" oder "fatal" und direkter Relevanz erhalten automatisch höchste Priorität
   - Ein Menschenleben ist nicht mit Business Impact verrechenbar (ISO 12100)
 - **High-Value Override Rule:**
   - Infrastructure Assets mit `isHighValueAsset === true` und `assetDestructionImpact === "critical"`
@@ -4529,7 +4533,7 @@ Analysebasis für eine automatisierte und reproduzierbare TARA.
 - Attack Tree Generierung nutzt CIANAAA-Mapping
 - External Entities als Threat Sources mit Feasibility-Katalog
 - F × B × I Scoring berücksichtigt Safety Impact automatisch
-- Safety-Override-Rule: Fatality/Irreversible Injury → höchste Priorität
+- Safety-Override-Rule: irreversible_major / fatal (direct) → höchste Priorität
 - Automatische Mitigations-Vorschläge für safety-kritische Branches
 - Vollständig EN 50742 / MVO 2027 konforme Dokumentation
 
