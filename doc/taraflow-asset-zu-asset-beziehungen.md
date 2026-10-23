@@ -562,7 +562,7 @@ bleibt offen und wird vom Analysten funktional vergeben:
 Element→Asset Beziehung mit SafetyAnnotation:
   → darf relevance: 'direct' tragen (Analyst-Entscheidung am DFD-Canvas)
   → hazardDistance: 0
-  → Safety Override Rule greift bei direct + fatality
+  → Safety Override Rule greift bei direct + fatal
   → primäre Quelle für Safety-Kritikalität
 
 contributes_to → Hazard Item:
@@ -640,8 +640,8 @@ THEN Validierungsfehler (blockierend):
 unabhängig davon ob die Verbindung über DFD-Ebene oder Asset-Ebene entstand:
 
 ```
-fatality + relevance: 'direct'    → CRITICAL  (Safety Override greift)
-fatality + relevance: 'indirect'  → HIGH+     (kein automatischer Override)
+fatal + relevance: 'direct'    → CRITICAL  (Safety Override greift)
+fatal + relevance: 'indirect'  → HIGH+     (kein automatischer Override)
 
 HIGH+ kann durch hohe Likelihood in der Risk-Tabelle zu CRITICAL werden –
 aber nicht durch weitere automatische Propagation.
@@ -659,7 +659,7 @@ darf die Asset-Ebene diese nicht überschreiben oder verstärken:
 
 ```
 Asset X hat bereits:
-  Element→Asset: relevance: 'direct', impact: 'fatality'  (aus DFD-Canvas)
+  Element→Asset: relevance: 'direct', impact: 'fatal'  (aus DFD-Canvas)
 
 Asset→Asset Core Rule auf X:
   → ignoriert für Safety-Propagation (bereits höchste Stufe)
@@ -678,7 +678,7 @@ Asset→Asset Domain Extension (analytisch) auf X:
 Mehrere Override Rules können auf dasselbe Asset wirken. Die Rangfolge ist fix:
 
 ```
-1. Safety Override  (fatality / irreversible_injury + relevance: 'direct') → CRITICAL
+1. Safety Override  (fatal / irreversible_major + relevance: 'direct') → CRITICAL
 2. HVA critical                                                             → CRITICAL minimum
 3. HVA high                                                                 → HIGH minimum
 4. HVA medium                                                               → HIGH minimum
@@ -690,14 +690,14 @@ Mehrere Override Rules können auf dasselbe Asset wirken. Die Rangfolge ist fix:
 höheren Bewertungen aus anderen Quellen. Safety Override hat immer Vorrang.
 
 ```
-Beispiel: Asset mit isHighValueAsset: 'high' + fatality + relevance: 'direct'
+Beispiel: Asset mit isHighValueAsset: 'high' + fatal + relevance: 'direct'
 → Safety Override greift → CRITICAL
 → HVA high (HIGH minimum) ist bereits erfüllt — kein Konflikt
 
-Beispiel: Asset mit isHighValueAsset: 'high' + fatality + relevance: 'indirect'
+Beispiel: Asset mit isHighValueAsset: 'high' + fatal + relevance: 'indirect'
 → Safety Override greift NICHT (indirect)
 → HVA high → HIGH minimum
-→ fatality + indirect → HIGH+ (durch Risk-Tabelle ggf. CRITICAL)
+→ fatal + indirect → HIGH+ (durch Risk-Tabelle ggf. CRITICAL)
 ```
 
 ---
@@ -706,9 +706,9 @@ Beispiel: Asset mit isHighValueAsset: 'high' + fatality + relevance: 'indirect'
 
 | Ebene | relevance (funktional) | `direct` möglich? | Override | Max. hazardDistance |
 |---|---|---|---|---|
-| Element→Asset (DFD) | Analyst-Entscheidung | ✅ am Canvas | ✅ bei direct + fatality | 0 |
+| Element→Asset (DFD) | Analyst-Entscheidung | ✅ am Canvas | ✅ bei direct + fatal | 0 |
 | contributes_to → Hazard | Analyst (direct wenn physische Aktion gesteuert) | ✅ | ✅ via Hazard Item | 0 |
-| Asset→Asset Core Rule | Analyst (Tool schlägt vor) | ✅ manual + Rationale Pflicht jenseits Distanz 0 | ✅ nur bei direct + fatality | 1 |
+| Asset→Asset Core Rule | Analyst (Tool schlägt vor) | ✅ manual + Rationale Pflicht jenseits Distanz 0 | ✅ nur bei direct + fatal | 1 |
 | Asset→Asset Domain (dokumentarisch) | – | ❌ | ❌ | – |
 | Asset→Asset Domain (analytisch) | Analyst | ✅ manual + Rationale Pflicht | ✅ nur bei direct + Rationale | 0 (einmalig) |
 
@@ -943,7 +943,7 @@ Data Asset "Medikamenten-Grenzwerte"
 Function Asset "Brake Control Function"  [FU-001]
 └─ implemented_by (Core) → System Asset "Safety Controller"
    → Tampering auf Safety Controller = Tampering auf Brake Control Function
-   → Safety Override Rule greift: fatality → CRITICAL
+   → Safety Override Rule greift: fatal → CRITICAL
 
 Data Asset "Safety Parameters"
 └─ configures (Core) → Function Asset "Brake Control Function"  [FU-001]
@@ -953,7 +953,7 @@ Data Asset "Safety Parameters"
 Physical Asset "Hydraulic Brake Actuator"
 └─ contributes_to (Core) → Hazard Item "unkontrollierte Bremsung"
    → Tampering auf Actuator = direkter Beitrag zur Gefährdung
-   → hazardDistance 0; relevance: direct → Safety Override Rule greift: fatality → CRITICAL
+   → hazardDistance 0; relevance: direct → Safety Override Rule greift: fatal → CRITICAL
 
 Service Asset "Remote Monitoring Service"
 └─ monitors (Core) → System Asset "Safety Controller"
@@ -994,11 +994,11 @@ Data Asset "Safety Parameters"
    → Safety Controller steuert die physische Aktion → hazardDistance 0, relevance: direct
 
 5. endangers → Human "Operator"
-   → Endpunkt: Safety-Impact auf Schutzsubjekt, impact: fatality
+   → Endpunkt: Safety-Impact auf Schutzsubjekt, impact: fatal
 
 Ergebnis:
 → Tampering auf "Safety Parameters" wird zu CRITICAL
-   (Safety Override Rule greift: fatality am Hazard Item)
+   (Safety Override Rule greift: fatal am Hazard Item)
 → Pflicht-Threats: Tampering, DoS auf Safety Parameters
 ```
 

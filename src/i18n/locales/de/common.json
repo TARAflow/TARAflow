@@ -144,7 +144,7 @@
         "v6": "Assets erhalten eine stabile ID, getrennt von der Anzeige-Nummer — ein Gruppenwechsel bricht keine Verweise mehr.",
         "v7": "Risiken werden über die stabile Bedrohungs-ID verknüpft statt über die Anzeige-Nummer.",
         "v8": "Asset-zu-Asset-Beziehungen werden in der Projektdatei gespeichert. Vorher gingen sie beim Speichern verloren.",
-        "v9": "Das DFD kann mehrere Seiten umfassen (Top-Ebene und Unterdiagramme). Am Projekt ändert sich nichts; ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie die Seiten zusammenführen würden."
+        "v9": "Das DFD kann mehrere Seiten umfassen (Top-Ebene und Unterdiagramme); ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie die Seiten zusammenführen würden. Die Schwere von Personenschäden nutzt eine 5-stufige Skala (reversibel leicht/schwer, irreversibel leicht/schwer, tödlich). Alte Werte werden auf die höhere Stufe abgebildet: irreversible Verletzung wird irreversibel schwer."
       }
     },
     "confirmAssetDelete": {
@@ -787,5 +787,14 @@
   },
   "devBuild": {
     "electronOutdated": "Der Electron-Teil ist älter als sein Quellcode (electron/ wurde geändert). Bitte beenden Sie die App und starten Sie npm run dev:electron neu."
+  },
+  "safetySeverity": {
+    "none": "Keine",
+    "reversible_minor": "Reversibel, leicht",
+    "reversible_major": "Reversibel, schwer",
+    "irreversible_minor": "Irreversibel, leicht",
+    "irreversible_major": "Irreversibel, schwer",
+    "fatal": "Tödlich",
+    "tooltip": "Safety: {{severity}}"
   }
 }

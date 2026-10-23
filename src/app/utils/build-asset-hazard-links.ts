@@ -11,32 +11,27 @@
 //   contributes_to: from = assetId  → to = hazardId  (asset is cause)
 
 import type { HazardData } from "features/hazards";
-import type { SafetyImpact, SafetyRelevance } from "shared/models/safety-types";
+import {
+  worseSafetyImpact,
+  type SafetyImpact,
+  type SafetyRelevance,
+} from "shared/models/safety-types";
 import type {
   AssetHazardLink,
   AssetHazardSummary,
 } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
+import type { HazardImpact } from "shared/models/hazard-impact";
 
-// Severity ranking for worstSeverity — aligned with the SafetyImpact order
-// (none < reversible_injury < irreversible_injury < fatality). The hazards
-// domain emits these same values on the endangers edge; if it ever diverges,
-// map HumanHarmSeverity → SafetyImpact here.
-const SEVERITY_RANK: Record<string, number> = {
-  none: 0,
-  reversible_injury: 1,
-  irreversible_injury: 2,
-  fatality: 3,
-};
+// Severity ranking follows the canonical SafetyImpact order (safety-types.ts).
+// The hazards domain emits the same scale on human endangers edges.
+const worse = worseSafetyImpact<SafetyImpact | undefined>;
 
-function worse(
-  current: SafetyImpact | undefined,
-  candidate: SafetyImpact | undefined,
-): SafetyImpact | undefined {
-  if (!current) return candidate;
-  if (!candidate) return current;
-  return (SEVERITY_RANK[candidate] ?? 0) > (SEVERITY_RANK[current] ?? 0)
-    ? candidate
-    : current;
+/**
+ * Person-harm severity of an endangers edge. Environment / infrastructure
+ * impacts use their own scales and carry no person-harm severity.
+ */
+function humanSeverity(impact: HazardImpact | undefined): SafetyImpact | undefined {
+  return impact?.target === "human" ? impact.severity : undefined;
 }
 
 export function buildAssetHazardLinks(
@@ -60,13 +55,13 @@ export function buildAssetHazardLinks(
   };
 
   // Pass 1 — worst endangers severity per hazard. A cause asset inherits this
-  // (bowtie: a robot arm contributing to a fatal collision inherits "fatality").
+  // (bowtie: a robot arm contributing to a fatal collision inherits "fatal").
   const hazardWorstSeverity: Record<string, SafetyImpact | undefined> = {};
   for (const rel of hazards.relations) {
     if (rel.type === "endangers") {
       hazardWorstSeverity[rel.from] = worse(
         hazardWorstSeverity[rel.from],
-        rel.impact?.severity as SafetyImpact | undefined,
+        humanSeverity(rel.impact),
       );
     }
   }
@@ -75,7 +70,7 @@ export function buildAssetHazardLinks(
   for (const rel of hazards.relations) {
     if (rel.type === "endangers") {
       const item = itemsById.get(rel.from);
-      const severity = rel.impact?.severity as SafetyImpact | undefined;
+      const severity = humanSeverity(rel.impact);
       const link: AssetHazardLink = {
         hazardId: rel.from,
         externalRef: item?.externalRef,

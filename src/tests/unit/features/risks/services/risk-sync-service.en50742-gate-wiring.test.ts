@@ -68,7 +68,7 @@ function dfdWithElementEL(elementId: string, exposureLevel: string): DFDReferenc
 
 function asset(
   id: string,
-  physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality",
+  physicalImpact?: "reversible_major" | "irreversible_major" | "fatal",
 ): AssetReference {
   return {
     id,
@@ -120,7 +120,7 @@ describe("syncRisksFromThreats — §11.2 gate wiring, new risks", () => {
     const riskData = riskDataWithConfig(configWithEN50742Enabled);
     const dfd = dfdWithElementEL("if-1", "EL2");
     const threat = perElementThreat("T-1", "if-1", ["A-1"]);
-    const assets = assetDataRef([asset("A-1", "irreversible_injury")]);
+    const assets = assetDataRef([asset("A-1", "irreversible_major")]);
 
     const result = syncRisksFromThreats(riskData, [threat], dfd, assets);
     const risk = riskById(result, "T-1");
@@ -136,7 +136,7 @@ describe("syncRisksFromThreats — §11.2 gate wiring, new risks", () => {
     const riskData = riskDataWithConfig(configWithEN50742Enabled);
     const dfd: DFDReference = { elements: [], connections: [] }; // no EL anywhere
     const threat = perElementThreat("T-2", "if-1", ["A-1"]);
-    const assets = assetDataRef([asset("A-1", "fatality")]);
+    const assets = assetDataRef([asset("A-1", "fatal")]);
 
     const result = syncRisksFromThreats(riskData, [threat], dfd, assets);
     const risk = riskById(result, "T-2");
@@ -150,7 +150,7 @@ describe("syncRisksFromThreats — §11.2 gate wiring, new risks", () => {
     const riskData = createDefaultRiskData(); // likelihoodMethod undefined → "weighted-mean"
     const dfd = dfdWithElementEL("if-1", "EL2");
     const threat = perElementThreat("T-3", "if-1", ["A-1"]);
-    const assets = assetDataRef([asset("A-1", "fatality")]);
+    const assets = assetDataRef([asset("A-1", "fatal")]);
 
     const result = syncRisksFromThreats(riskData, [threat], dfd, assets);
     const risk = riskById(result, "T-3");
@@ -183,7 +183,7 @@ describe("syncRisksFromThreats — §11.2 gate wiring, existing risks (re-sync)"
       risks: [existingRisk],
     };
     const dfd = dfdWithElementEL("if-1", "EL3");
-    const assets = assetDataRef([asset("A-1", "fatality")]);
+    const assets = assetDataRef([asset("A-1", "fatal")]);
 
     const result = syncRisksFromThreats(riskData, [threat], dfd, assets);
     const risk = riskById(result, "T-4");
@@ -211,7 +211,7 @@ describe("syncRisksFromThreats — §11.2 gate wiring, existing risks (re-sync)"
       risks: [existingRisk],
     };
     const dfd = dfdWithElementEL("if-1", "EL4");
-    const assets = assetDataRef([asset("A-1", "fatality")]);
+    const assets = assetDataRef([asset("A-1", "fatal")]);
 
     const result = syncRisksFromThreats(riskData, [threat], dfd, assets);
     const risk = riskById(result, "T-5");

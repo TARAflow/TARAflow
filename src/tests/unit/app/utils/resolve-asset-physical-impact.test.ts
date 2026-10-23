@@ -26,40 +26,40 @@ const target = (severity: SafetyImpact): AssetHazardSummary => ({
 
 describe("resolveAssetPhysicalImpact — precedence", () => {
   it("hazard chain drives the level when nothing manual is set", () => {
-    const r = resolveAssetPhysicalImpact({}, cause("fatality"));
-    expect(r).toEqual({ level: "fatality", source: "hazard" });
+    const r = resolveAssetPhysicalImpact({}, cause("fatal"));
+    expect(r).toEqual({ level: "fatal", source: "hazard" });
   });
 
   it("manual override wins over the hazard chain", () => {
     const r = resolveAssetPhysicalImpact(
-      { physicalImpact: "reversible_injury", physicalImpactSource: "manual" },
-      cause("fatality"),
+      { physicalImpact: "reversible_major", physicalImpactSource: "manual" },
+      cause("fatal"),
     );
-    expect(r).toEqual({ level: "reversible_injury", source: "manual" });
+    expect(r).toEqual({ level: "reversible_major", source: "manual" });
   });
 
   it("falls back to the legacy annotation-derived value when no hazard", () => {
     const r = resolveAssetPhysicalImpact(
       {
-        physicalImpact: "irreversible_injury",
+        physicalImpact: "irreversible_major",
         physicalImpactSource: "derived",
       },
       cause(undefined),
     );
-    expect(r).toEqual({ level: "irreversible_injury", source: "annotation" });
+    expect(r).toEqual({ level: "irreversible_major", source: "annotation" });
   });
 
   it("hazard chain wins over a legacy annotation value", () => {
     const r = resolveAssetPhysicalImpact(
-      { physicalImpact: "reversible_injury", physicalImpactSource: "derived" },
-      cause("fatality"),
+      { physicalImpact: "reversible_major", physicalImpactSource: "derived" },
+      cause("fatal"),
     );
-    expect(r).toEqual({ level: "fatality", source: "hazard" });
+    expect(r).toEqual({ level: "fatal", source: "hazard" });
   });
 
   it("a pure protection target is NOT rated by the hazard chain", () => {
     // endangered with fatality but no cause side → no attack-surface rating
-    expect(resolveAssetPhysicalImpact({}, target("fatality"))).toEqual({});
+    expect(resolveAssetPhysicalImpact({}, target("fatal"))).toEqual({});
   });
 
   it("returns empty when there is no signal at all", () => {

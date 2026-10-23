@@ -5,6 +5,7 @@
 // Consumers import directly from this file.
 
 import type { SecurityGoalReference } from "./cianaaa-reference-types";
+import type { SafetySeverity } from "./safety-types";
 
 // ==================== IMPACT RATING REF ====================
 
@@ -36,7 +37,7 @@ export interface AssetReference {
   description?: string;
   assetGroup: string;
   aggregatedImpact?: "LOW" | "MED" | "MED+" | "HIGH" | "HIGH+" | "CRITICAL";
-  physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";
+  physicalImpact?: SafetySeverity;
   isHighValueAsset?: "low" | "medium" | "high" | "critical";
   hasSafetyAnnotation?: boolean;
   /**
@@ -46,7 +47,7 @@ export interface AssetReference {
    */
   isHazardTarget?: boolean;
   /** Worst endangers severity across hazards targeting this asset. */
-  hazardSeverity?: "reversible_injury" | "irreversible_injury" | "fatality";
+  hazardSeverity?: SafetySeverity;
   linkedElementIds?: string[];
   /** Active security goals (level !== "none") — populated by app layer. */
   securityGoals?: SecurityGoalReference[];

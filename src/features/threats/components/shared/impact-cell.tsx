@@ -3,8 +3,14 @@
 // One chip per linked asset: AssetID + aggregatedImpact color + safety icon.
 // Tooltip shows all 3 contributing values per asset.
 
-import { formatAssetLabel } from "shared";
+import {
+  formatAssetLabel,
+  isIrreversibleOrWorse,
+  safetyImpactI18nKey,
+  safetyImpactRank,
+} from "shared";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Box, Chip, Tooltip, Typography } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import type { Threat } from "../../models/threat-types";
@@ -14,12 +20,6 @@ import { getImpactColor, getPhysicalImpactColor } from "../../utils/threat-asset
 // ==================== CONSTANTS ====================
 
 const IMPACT_ORDER = ["CRITICAL", "HIGH+", "HIGH", "MED+", "MED", "LOW"];
-
-const PHYSICAL_IMPACT_LABELS: Record<string, string> = {
-  fatality: "Fatality",
-  irreversible_injury: "Irreversible injury",
-  reversible_injury: "Reversible injury",
-};
 
 const HVA_LABELS: Record<string, string> = {
   critical: "Critical",
@@ -38,20 +38,17 @@ function impactRank(impact?: string): number {
 
 function sortAssetsByPriority(assets: AssetReference[]): AssetReference[] {
   return [...assets].sort((a, b) => {
-    // Safety first
-    const safetyA = a.physicalImpact === "fatality" ? 0
-      : a.physicalImpact === "irreversible_injury" ? 1
-      : a.physicalImpact === "reversible_injury" ? 2 : 3;
-    const safetyB = b.physicalImpact === "fatality" ? 0
-      : b.physicalImpact === "irreversible_injury" ? 1
-      : b.physicalImpact === "reversible_injury" ? 2 : 3;
-    if (safetyA !== safetyB) return safetyA - safetyB;
+    // Safety first (worst severity first)
+    const safetyA = safetyImpactRank(a.physicalImpact);
+    const safetyB = safetyImpactRank(b.physicalImpact);
+    if (safetyA !== safetyB) return safetyB - safetyA;
     // Then aggregatedImpact
     return impactRank(a.aggregatedImpact) - impactRank(b.aggregatedImpact);
   });
 }
 
 function AssetTooltip({ asset }: { asset: AssetReference }): React.ReactElement {
+  const { t } = useTranslation();
   return (
     <Box sx={{ p: 0.5, minWidth: 160 }}>
       <Typography
@@ -67,7 +64,10 @@ function AssetTooltip({ asset }: { asset: AssetReference }): React.ReactElement 
           display="block"
           sx={{ color: getPhysicalImpactColor(asset.physicalImpact) }}
         >
-          ⚠ Safety: {PHYSICAL_IMPACT_LABELS[asset.physicalImpact]}
+          ⚠{" "}
+          {t("safetySeverity.tooltip", {
+            severity: t(safetyImpactI18nKey(asset.physicalImpact)),
+          })}
         </Typography>
       )}
       {asset.isHighValueAsset && asset.isHighValueAsset !== "low" && (
@@ -104,8 +104,7 @@ export const ImpactCell: React.FC<{
     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
       {sorted.map((asset) => {
         const color = getImpactColor(asset.aggregatedImpact);
-        const hasSafety = asset.physicalImpact === "fatality" ||
-          asset.physicalImpact === "irreversible_injury";
+        const hasSafety = isIrreversibleOrWorse(asset.physicalImpact);
 
         return (
           <Tooltip key={asset.id} title={<AssetTooltip asset={asset} />} arrow>

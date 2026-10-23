@@ -239,7 +239,7 @@ export function averagingWouldBurySafety(
 
   // A safety rating at all is enough to make averaging suspect; a severe one
   // makes it indefensible.
-  return safety.value >= 3; // irreversible injury or fatality
+  return safety.value >= 3; // Se3+: irreversible (minor/major) or fatal
 }
 
 // ==================== EXPORT ====================

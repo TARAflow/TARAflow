@@ -15,6 +15,7 @@ import { calculateOverallImpact } from "./asset-impact-calculator";
 import {
   derivePhysicalImpact,
   deriveAggregatedImpact,
+  isPhysicalImpactDirect,
   overallImpactToBusinessLevel,
   type PhysicalImpactLevel,
 } from "./asset-physical-impact-deriver";
@@ -112,16 +113,11 @@ function deriveAndApplyImpacts(asset: Asset, linkedDFDElements: DFDElementLink[]
 
   if (asset.physicalImpactSource === "manual" && asset.physicalImpact) {
     physicalLevel = asset.physicalImpact as PhysicalImpactLevel;
-    physicalDirect =
-      physicalLevel === "fatality" || physicalLevel === "irreversible_injury";
+    physicalDirect = isPhysicalImpactDirect(physicalLevel, "manual", linkedDFDElements);
   } else {
     const derived = derivePhysicalImpact(linkedDFDElements);
     physicalLevel = derived.level; // undefined if no safety annotations
-    physicalDirect = linkedDFDElements.some(
-      (l) =>
-        l.safety?.relevance === "direct" &&
-        (l.safety.impact === "fatality" || l.safety.impact === "irreversible_injury"),
-    );
+    physicalDirect = isPhysicalImpactDirect(physicalLevel, "derived", linkedDFDElements);
   }
 
   // Step 2 — aggregatedImpact (undefined physicalLevel → purely business-driven)

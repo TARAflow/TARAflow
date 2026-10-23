@@ -17,7 +17,7 @@ const asset = (id: string, displayId: string, name: string, group: Asset["assetG
 const pump = asset("p", "DA-001", "Pump Data", "data", {
   source: "dfd",
   linkedDFDElements: [{ elementId: "e1", elementName: "P", elementType: "Process", displayId: "P-1", relationType: "reads" }],
-  physicalImpact: "fatality",
+  physicalImpact: "fatal",
   physicalImpactSource: "hazard",
 });
 const ctrl = asset("c", "SY-001", "Controller", "system");
@@ -47,13 +47,13 @@ describe("planAssetImport", () => {
 
 describe("applyAssetImport", () => {
   const file = [
-    asset("x1", "DA-001", "Pump Data", "data", { properties: { description: "from file" }, physicalImpactSource: "derived", physicalImpact: "reversible_injury" }),
+    asset("x1", "DA-001", "Pump Data", "data", { properties: { description: "from file" }, physicalImpactSource: "derived", physicalImpact: "reversible_major" }),
     asset("x3", "DA-001", "Sensor Data", "data", {
       linkedDFDElements: [{ elementId: "foreign", elementName: "F", elementType: "Process", displayId: "P-9", relationType: "reads" }],
-      physicalImpact: "fatality",
+      physicalImpact: "fatal",
       physicalImpactSource: "hazard",
     }),
-    asset("x4", "IN-001", "Cabinet", "infrastructure", { physicalImpact: "irreversible_injury", physicalImpactSource: "manual", physicalImpactRationale: "pinch" }),
+    asset("x4", "IN-001", "Cabinet", "infrastructure", { physicalImpact: "irreversible_major", physicalImpactSource: "manual", physicalImpactRationale: "pinch" }),
   ];
 
   it("keep is the default: the project's asset is unchanged, nothing replaced", () => {
@@ -70,7 +70,7 @@ describe("applyAssetImport", () => {
     expect(p.properties?.description).toBe("from file");
     expect([p.displayId, p.assetGroup, p.source]).toEqual(["DA-001", "data", "dfd"]);
     expect(p.linkedDFDElements).toBe(pump.linkedDFDElements);
-    expect([p.physicalImpact, p.physicalImpactSource]).toEqual(["fatality", "hazard"]);
+    expect([p.physicalImpact, p.physicalImpactSource]).toEqual(["fatal", "hazard"]);
     expect(r.idMap.get("x1")).toBe("p");
     expect(r.counts.replaced).toBe(1);
   });
@@ -85,7 +85,7 @@ describe("applyAssetImport", () => {
     expect(sensor.physicalImpact).toBeUndefined();
     const cabinet = r.assets.find((a) => a.id === "x4")!;
     expect(cabinet.displayId).toBe("IN-001");
-    expect([cabinet.physicalImpact, cabinet.physicalImpactSource]).toEqual(["irreversible_injury", "manual"]);
+    expect([cabinet.physicalImpact, cabinet.physicalImpactSource]).toEqual(["irreversible_major", "manual"]);
     expect(r.assets).toHaveLength(4); // nothing deleted
   });
 

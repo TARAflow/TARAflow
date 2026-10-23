@@ -15,27 +15,20 @@
 import type { Asset } from "../models/asset-types";
 import type { DFDElementLink } from "../models/dfd-asset-link-types";
 import {
-  SAFETY_IMPACT_SCALE,
-  SAFETY_CRITERION_ID,
-} from "../models/asset-impact-types";
+  isIrreversibleOrWorse,
+  isOverrideSeverity,
+  safetyImpactRank,
+  safetySeverityToFactor,
+  type SafetySeverity,
+} from "shared";
 
 // ==================== TYPES ====================
 
-// Severity levels — directly from ISO 12100 / EN 50742 SafetyAnnotation.impact
+// Severity levels — the canonical SafetySeverity scale (shared/models/safety-types.ts).
 // undefined = no safety annotation present → shows "–" in asset table
-export type PhysicalImpactLevel =
-  | "reversible_injury"
-  | "irreversible_injury"
-  | "fatality";
+export type PhysicalImpactLevel = SafetySeverity;
 
 export type AggregatedImpact = "LOW" | "MED" | "MED+" | "HIGH" | "HIGH+" | "CRITICAL";
-
-/** Numeric rank for comparing severity levels */
-const PHYSICAL_RANK: Record<PhysicalImpactLevel, number> = {
-  reversible_injury: 0,
-  irreversible_injury: 1,
-  fatality: 2,
-};
 
 /** Business impact from overallImpact (1–4 numeric scale → qualitative) */
 export type BusinessImpactLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -44,49 +37,36 @@ export type BusinessImpactLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 // ==================== SAFETY RATING MAPPER ====================
 
 /**
- * Map numeric safety rating (1–4 from SAFETY_IMPACT_SCALE) to PhysicalImpactLevel.
- * Used when physicalImpact is set manually via the asset-dialog safety dropdown.
- */
-export function safetyRatingToPhysicalLevel(
-  value: number | null | "na",
-): PhysicalImpactLevel | undefined {
-  if (!value || value === "na") return undefined;
-  const level = SAFETY_IMPACT_SCALE.find((l) => l.value === Number(value));
-  if (!level) return undefined;
-  switch (level.severity) {
-    case "fatality":             return "fatality";
-    case "irreversible_injury":  return "irreversible_injury";
-    case "reversible_moderate":
-    case "reversible_minor":     return "reversible_injury";
-  }
-}
-
-/**
- * Map PhysicalImpactLevel → SAFETY_IMPACT_SCALE value (for pre-filling dropdown).
- * Uses the higher of the two reversible levels (2) as default.
+ * Map PhysicalImpactLevel → fixed 4-level safety factor (IEC 62061 Se1–Se4),
+ * stored as the "safety" ImpactRating.value. irreversible_major and fatal
+ * share Se4 — the categorical physicalImpact keeps the distinction.
  */
 export function physicalLevelToSafetyRating(
   level: PhysicalImpactLevel | undefined,
 ): number | null {
-  if (!level) return null;
-  switch (level) {
-    case "fatality":            return 4;
-    case "irreversible_injury": return 3;
-    case "reversible_injury":   return 2;
-  }
+  return level ? safetySeverityToFactor(level) : null;
 }
 
 // ==================== STEP 1: PHYSICAL IMPACT ====================
 
 /**
+ * Severity a single SafetyAnnotation contributes. relevance set but no
+ * explicit impact → reversible_major (conservative worst reversible level).
+ */
+function annotationLevel(
+  safety: DFDElementLink["safety"],
+): PhysicalImpactLevel | undefined {
+  if (!safety || safety.relevance === "none") return undefined;
+  if (safety.impact && safety.impact !== "none") return safety.impact;
+  return "reversible_major";
+}
+
+/**
  * Derive physicalImpact from SafetyAnnotation summaries on linkedDFDElements.
  *
- * Rules (§4.0a Ableitungsregel):
- *   impact: 'fatality' OR 'irreversible_injury'  →  HIGH  (direct path to harm)
- *   relevance: 'indirect'                         →  MED   (systemic influence, Hop 1)
- *   no annotation present                         →  LOW   (default)
- *
- * MAX wins across all relations on the asset.
+ * Each annotated relation is an independent single cause (ANY semantics):
+ * MAX wins across all relations on the asset. Combinatorial (ALL) hazards
+ * cannot be expressed by annotations — they need a Hazard Item.
  *
  * If asset.physicalImpactSource === "manual", the stored value is authoritative —
  * this function is NOT called (caller must check).
@@ -100,31 +80,10 @@ export function derivePhysicalImpact(linkedElements: DFDElementLink[]): {
 
   for (const link of linkedElements) {
     const safety = link.safety;
-    if (!safety || safety.relevance === "none") continue;
+    const level = annotationLevel(safety);
+    if (!level || !safety) continue;
 
-    let level: PhysicalImpactLevel | undefined;
-
-    // Direct mapping from SafetyAnnotation.impact
-    if (safety.impact === "fatality") {
-      level = "fatality";
-    } else if (safety.impact === "irreversible_injury") {
-      level = "irreversible_injury";
-    } else if (safety.impact === "reversible_injury") {
-      level = "reversible_injury";
-    } else if (
-      safety.relevance === "indirect" ||
-      safety.relevance === "direct"
-    ) {
-      // relevance set but no explicit impact → worst-case indirect → reversible_injury
-      level = "reversible_injury";
-    }
-
-    if (!level) continue;
-
-    if (
-      maxLevel === undefined ||
-      PHYSICAL_RANK[level] > PHYSICAL_RANK[maxLevel]
-    ) {
+    if (safetyImpactRank(level) > safetyImpactRank(maxLevel)) {
       maxLevel = level;
     }
 
@@ -137,6 +96,27 @@ export function derivePhysicalImpact(linkedElements: DFDElementLink[]): {
 
   // undefined = no safety annotations → shows "–" in asset table
   return { level: maxLevel, derivedFrom };
+}
+
+/**
+ * Whether the physical impact is reached DIRECTLY (relevance 'direct'), which
+ * selects the upper tier in deriveAggregatedImpact.
+ *
+ *   manual  → conservative: irreversible or worse counts as direct
+ *   derived → a 'direct' annotation reaches the asset's worst level
+ */
+export function isPhysicalImpactDirect(
+  level: PhysicalImpactLevel | undefined,
+  source: Asset["physicalImpactSource"],
+  linkedElements: readonly DFDElementLink[],
+): boolean {
+  if (!level) return false;
+  if (source === "manual") return isIrreversibleOrWorse(level);
+  return linkedElements.some(
+    (l) =>
+      l.safety?.relevance === "direct" &&
+      safetyImpactRank(annotationLevel(l.safety)) >= safetyImpactRank(level),
+  );
 }
 
 /**
@@ -180,12 +160,16 @@ export function deriveAggregatedImpact(
   assetDestructionImpact?: string,
 ): AggregatedImpact {
   // ── Safety Override Rule ───────────────────────────────────────
-  // fatality or irreversible_injury = HIGH severity → CRITICAL (direct) or HIGH+ (indirect)
-  if (physicalLevel === "fatality" || physicalLevel === "irreversible_injury") {
+  // irreversible_major | fatal → CRITICAL (direct) or HIGH+ (indirect)
+  if (isOverrideSeverity(physicalLevel)) {
     return physicalDirect ? "CRITICAL" : "HIGH+";
   }
-  // reversible_injury → HIGH (direct) or MED+ (indirect)
-  if (physicalLevel === "reversible_injury") {
+  // irreversible_minor → HIGH+ (direct) or HIGH (indirect)
+  if (physicalLevel === "irreversible_minor") {
+    return physicalDirect ? "HIGH+" : "HIGH";
+  }
+  // reversible_minor | reversible_major → HIGH (direct) or MED+ (indirect)
+  if (physicalLevel) {
     return physicalDirect ? "HIGH" : "MED+";
   }
 
@@ -234,7 +218,7 @@ export interface PhysicalImpactDerivationResult {
   physicalImpactDerivedFrom: string[];
   physicalImpactDirect: boolean;
   aggregatedImpact: AggregatedImpact;
-  /** true if Safety Override Rule fired (physicalImpact HIGH) */
+  /** true if the physical level is an override severity (irreversible_major | fatal) */
   safetyOverrideActive: boolean;
   /** true if High-Value Override Rule fired */
   highValueOverrideActive: boolean;
@@ -252,16 +236,14 @@ export function deriveAllImpacts(asset: Asset): PhysicalImpactDerivationResult {
   // the (legacy) SafetyAnnotation.
   if (asset.physicalImpactSource === "hazard") {
     const physicalLevel = asset.physicalImpact as PhysicalImpactLevel | undefined;
-    const high =
-      physicalLevel === "fatality" || physicalLevel === "irreversible_injury";
     return {
       physicalImpact: physicalLevel,
       physicalImpactDerivedFrom: [
         `[hazard] ${asset.physicalImpactRationale ?? ""}`,
       ],
-      physicalImpactDirect: high,
+      physicalImpactDirect: isIrreversibleOrWorse(physicalLevel),
       aggregatedImpact: asset.aggregatedImpact ?? "LOW",
-      safetyOverrideActive: high,
+      safetyOverrideActive: isOverrideSeverity(physicalLevel),
       highValueOverrideActive: false,
     };
   }
@@ -274,19 +256,19 @@ export function deriveAllImpacts(asset: Asset): PhysicalImpactDerivationResult {
   if (asset.physicalImpactSource === "manual" && asset.physicalImpact) {
     physicalLevel = asset.physicalImpact as PhysicalImpactLevel;
     derivedFrom = [`[manual] ${asset.physicalImpactRationale ?? ""}`];
-    // Conservative: fatality/irreversible treated as direct
-    physicalDirect =
-      physicalLevel === "fatality" || physicalLevel === "irreversible_injury";
+    physicalDirect = isPhysicalImpactDirect(
+      physicalLevel,
+      "manual",
+      asset.linkedDFDElements,
+    );
   } else {
     const result = derivePhysicalImpact(asset.linkedDFDElements);
     physicalLevel = result.level; // may be undefined
     derivedFrom = result.derivedFrom;
-    // Check if any relation is direct with HIGH impact
-    physicalDirect = asset.linkedDFDElements.some(
-      (l) =>
-        l.safety?.relevance === "direct" &&
-        (l.safety.impact === "fatality" ||
-          l.safety.impact === "irreversible_injury"),
+    physicalDirect = isPhysicalImpactDirect(
+      physicalLevel,
+      "derived",
+      asset.linkedDFDElements,
     );
   }
 
@@ -311,8 +293,7 @@ export function deriveAllImpacts(asset: Asset): PhysicalImpactDerivationResult {
     physicalImpactDerivedFrom: derivedFrom,
     physicalImpactDirect: physicalDirect,
     aggregatedImpact: aggregated,
-    safetyOverrideActive:
-      physicalLevel === "fatality" || physicalLevel === "irreversible_injury",
+    safetyOverrideActive: isOverrideSeverity(physicalLevel),
     highValueOverrideActive: !!isHighValue && destructionImpact === "critical",
   };
 }

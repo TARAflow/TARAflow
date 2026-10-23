@@ -492,13 +492,6 @@
               "high": "High",
               "critical": "Critical"
             },
-            "physicalImpactOptions": {
-              "not_set": "Not set",
-              "none": "None",
-              "reversible_injury": "Reversible Injury",
-              "irreversible_injury": "Irreversible Injury",
-              "fatality": "Fatal"
-            },
             "hazardOptions": {
               "not_set": "Not set",
               "low": "Low",
@@ -832,13 +825,7 @@
                 }
               },
               "impact": {
-                "label": "Worst-Case Impact",
-                "options": {
-                  "none": "None",
-                  "reversible_injury": "Reversible injury",
-                  "irreversible_injury": "Irreversible injury",
-                  "fatality": "Fatal"
-                }
+                "label": "Worst-Case Impact"
               },
               "physicalHazardPotential": {
                 "label": "Physical Hazard Potential (ISO 12100)",

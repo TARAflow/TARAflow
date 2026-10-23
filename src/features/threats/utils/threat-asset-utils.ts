@@ -2,7 +2,13 @@
 // Shared helpers for asset-enriched threat display.
 // Used by ElementThreatTable and InteractionThreatTable.
 
-import type { AssetDataReference, AssetReference } from "shared";
+import {
+  isIrreversibleOrWorse,
+  SAFETY_SEVERITY_COLOR,
+  type AssetDataReference,
+  type AssetReference,
+  type SafetyImpact,
+} from "shared";
 import type { Threat } from "../models/threat-types";
 
 // ==================== COLOR MAPS ====================
@@ -20,11 +26,10 @@ export function getImpactColor(impact?: string): string {
   return impact ? (IMPACT_COLORS[impact] ?? "#6b7280") : "#6b7280";
 }
 
-export function getPhysicalImpactColor(impact?: string): string {
-  if (impact === "fatality") return "#dc2626";
-  if (impact === "irreversible_injury") return "#f97316";
-  if (impact === "reversible_injury") return "#eab308";
-  return "#6b7280";
+export function getPhysicalImpactColor(impact?: SafetyImpact): string {
+  return impact && impact !== "none"
+    ? SAFETY_SEVERITY_COLOR[impact]
+    : "#6b7280";
 }
 
 // ==================== PRIORITY ====================
@@ -35,7 +40,7 @@ export function getPhysicalImpactColor(impact?: string): string {
  *
  * 0 — Safety direct + CRITICAL
  * 1 — CRITICAL (no safety or safety indirect)
- * 2 — Safety direct (fatality / irreversible_injury)
+ * 2 — Safety: irreversible harm or worse (irreversible_minor … fatal)
  * 3 — HIGH / HIGH+
  * 4 — MED+ / MED
  * 5 — LOW or no linked assets
@@ -51,10 +56,8 @@ export function getThreatPriority(
     .filter((a): a is AssetReference => Boolean(a));
 
   const hasCritical = linked.some((a) => a.aggregatedImpact === "CRITICAL");
-  const hasSafetyDirect = linked.some(
-    (a) =>
-      a.physicalImpact === "fatality" ||
-      a.physicalImpact === "irreversible_injury",
+  const hasSafetyDirect = linked.some((a) =>
+    isIrreversibleOrWorse(a.physicalImpact),
   );
   const hasHigh = linked.some(
     (a) => a.aggregatedImpact === "HIGH" || a.aggregatedImpact === "HIGH+",

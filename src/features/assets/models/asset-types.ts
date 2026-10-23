@@ -2,7 +2,13 @@
 // Core data models for the Assets feature
 // NO dependency on app OR dfd - follows Dependency Inversion Principle
 
-import type { AssetGroup, PhaseStatusMap, A2AOp, A2ARelation } from "shared";
+import type {
+  AssetGroup,
+  PhaseStatusMap,
+  A2AOp,
+  A2ARelation,
+  SafetySeverity,
+} from "shared";
 import type { AssetProperties } from "shared/models/asset-property-types";
 import type {
   ImpactRating,
@@ -128,7 +134,7 @@ export interface Asset {
    */
   // Severity levels from ISO 12100 / EN 50742
   // undefined = no safety annotation → "–" in table
-  physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality";
+  physicalImpact?: SafetySeverity;
   /**
    * Provenance of physicalImpact:
    *   derived — from DFD SafetyAnnotation (legacy path)

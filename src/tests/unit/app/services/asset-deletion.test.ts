@@ -24,7 +24,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
       hazards: [{ id: "H-01", label: "Crush" }],
       relations: [
         { type: "contributes_to", from: A, to: "H-01", relevance: "direct", hazardDistance: 1 },
-        { type: "endangers", from: "H-01", to: B, impact: { target: "human", severity: "fatality" } },
+        { type: "endangers", from: "H-01", to: B, impact: { target: "human", severity: "fatal" } },
       ],
       lastModified: "t0",
     },

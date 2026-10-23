@@ -19,7 +19,7 @@
 import type { FactorRating } from "../models/risk-factor-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import { LIKELIHOOD_SCALES } from "../models/risk-scale-types";
-import { normaliseImpactValue } from "shared";
+import { normaliseImpactValue, type SafetySeverity } from "shared";
 import type { WindowOfOpportunity, DFDReference, AssetReference } from "shared";
 import {
   calculateRiskValues,
@@ -302,13 +302,12 @@ export function applyExposureLevelToFactorRatings(
 // safety function relevant to this interface" relation exists in the asset
 // model today (would require new asset-relation modeling, out of scope here).
 
-const PHYSICAL_IMPACT_TO_SEVERITY: Record<
-  "reversible_injury" | "irreversible_injury" | "fatality",
-  Severity
-> = {
-  reversible_injury: "reversible",
-  irreversible_injury: "non_reversible",
-  fatality: "fatal",
+const PHYSICAL_IMPACT_TO_SEVERITY: Record<SafetySeverity, Severity> = {
+  reversible_minor: "reversible",
+  reversible_major: "reversible",
+  irreversible_minor: "non_reversible",
+  irreversible_major: "non_reversible",
+  fatal: "fatal",
 };
 
 /**

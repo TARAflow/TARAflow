@@ -43,7 +43,11 @@ import {
   ThreatTable as ThreatTableType,
   ThreatConfiguration,
 } from "../../models/threat-types";
-import { AssetReference, type AssetDataReference } from "shared";
+import {
+  AssetReference,
+  isIrreversibleOrWorse,
+  type AssetDataReference,
+} from "shared";
 import { sortThreatsByPriority } from "../../utils/threat-asset-utils";
 import {
   ThreatSortField,
@@ -152,7 +156,7 @@ function countImpacts(
       .filter((a): a is AssetReference => Boolean(a));
     // Find worst impact for this threat (safety overrides business impact)
     const hasSafety = linked.some(
-      (a) => a.physicalImpact === "fatality" || a.physicalImpact === "irreversible_injury",
+      (a) => isIrreversibleOrWorse(a.physicalImpact),
     );
     const worstBusiness = linked.reduce<ImpactLevel | undefined>((acc, a) => {
       const imp = a.aggregatedImpact as ImpactLevel | undefined;
@@ -190,7 +194,7 @@ function countCompletedByLevel(
       .map((id) => assetDataRef.assets.find((a) => a.id === id))
       .filter((a): a is AssetReference => Boolean(a));
     const hasSafety = linked.some(
-      (a) => a.physicalImpact === "fatality" || a.physicalImpact === "irreversible_injury",
+      (a) => isIrreversibleOrWorse(a.physicalImpact),
     );
     const worstBusiness = linked.reduce<ImpactLevel | undefined>((acc, a) => {
       const imp = a.aggregatedImpact as ImpactLevel | undefined;

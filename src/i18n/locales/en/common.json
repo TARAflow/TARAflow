@@ -146,7 +146,7 @@
         "v6": "Assets get a stable id, separate from the display number — a group change no longer breaks references.",
         "v7": "Risks are linked by the stable threat id instead of the display number.",
         "v8": "Asset-to-asset relations are stored in the project file. Before, they were lost on save.",
-        "v9": "The DFD can span several pages (top level and sub-diagrams). Nothing in the project changes; older TARAflow versions can no longer open the file, because they would merge the pages."
+        "v9": "The DFD can span several pages (top level and sub-diagrams); older TARAflow versions can no longer open the file, because they would merge the pages. Person-harm severity uses a 5-level scale (reversible minor/major, irreversible minor/major, fatal). Old values are mapped to the higher level: irreversible injury becomes irreversible major."
       }
     },
     "confirmAssetDelete": {
@@ -789,5 +789,14 @@
   },
   "devBuild": {
     "electronOutdated": "The Electron part is older than its sources (electron/ changed). Quit the app and restart npm run dev:electron."
+  },
+  "safetySeverity": {
+    "none": "None",
+    "reversible_minor": "Reversible, minor",
+    "reversible_major": "Reversible, major",
+    "irreversible_minor": "Irreversible, minor",
+    "irreversible_major": "Irreversible, major",
+    "fatal": "Fatal",
+    "tooltip": "Safety: {{severity}}"
   }
 }

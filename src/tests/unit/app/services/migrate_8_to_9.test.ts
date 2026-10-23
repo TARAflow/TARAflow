@@ -1,7 +1,8 @@
 // src/tests/unit/app/services/migrate_8_to_9.test.ts
 //
 // Schema v9: version fence for leveled DFDs (leveled-dfd-multi-diagram-
-// design.md §11.2). The step only bumps the version.
+// design.md §11.2). Without safety data the step only bumps the version;
+// the safety-severity part is covered in migrate_8_to_9.safety-severity.test.ts.
 
 import { describe, it, expect } from "vitest";
 import { migrate_8_to_9 } from "app/services/versions/migrate-8-to-9";

@@ -69,7 +69,12 @@ import {
   resolveVerificationDrafts,
   getAllMitigations,
 } from "../../services/threat-catalog-service";
-import { MitigationCoverageBadge, STRIDE_COLORS, formatAssetLabel } from "shared";
+import {
+  MitigationCoverageBadge,
+  STRIDE_COLORS,
+  formatAssetLabel,
+  isIrreversibleOrWorse,
+} from "shared";
 import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
 import { ReviewBadge, SourceBadge } from "../../components/shared/threat-table-utils";
 import { releaseRetainedThreat } from "../../services/threat-generation-drift";
@@ -109,8 +114,7 @@ function getThreatImpact(
   if (!linked.length) return undefined;
   const hasSafety = linked.some(
     (a) =>
-      a.physicalImpact === "fatality" ||
-      a.physicalImpact === "irreversible_injury",
+      isIrreversibleOrWorse(a.physicalImpact),
   );
   const worstBusiness = linked.reduce<ImpactLevel | undefined>((acc, a) => {
     const imp = a.aggregatedImpact as ImpactLevel | undefined;
@@ -1002,8 +1006,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           ? IMPACT_CHIP_COLORS[aImpact]
                           : null;
                         const hasSafety =
-                          asset.physicalImpact === "fatality" ||
-                          asset.physicalImpact === "irreversible_injury";
+                          isIrreversibleOrWorse(asset.physicalImpact);
                         return (
                           <Chip
                             key={asset.id}

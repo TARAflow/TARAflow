@@ -41,7 +41,7 @@ describe("modifySensorStride (RC-3)", () => {
 
   it("keeps T and D when a physical impact is declared", () => {
     const out = modifySensorStride(SENSOR_BASE, {
-      physicalImpact: "irreversible_injury",
+      physicalImpact: "irreversible_major",
     });
     expect(out).toContain("T");
     expect(out).toContain("D");
@@ -50,7 +50,7 @@ describe("modifySensorStride (RC-3)", () => {
   it("never introduces a category outside the base table", () => {
     const out = modifySensorStride(SENSOR_BASE, {
       safetyRelevant: true,
-      physicalImpact: "fatality",
+      physicalImpact: "fatal",
     });
     for (const c of out) expect(SENSOR_BASE).toContain(c);
   });
@@ -70,7 +70,7 @@ describe("modifyActuatorStride (RC-3)", () => {
   it("never introduces a category outside the base table", () => {
     const out = modifyActuatorStride(ACTUATOR_BASE, {
       safetyRelevant: true,
-      physicalImpact: "fatality",
+      physicalImpact: "fatal",
     });
     for (const c of out) expect(ACTUATOR_BASE).toContain(c);
   });

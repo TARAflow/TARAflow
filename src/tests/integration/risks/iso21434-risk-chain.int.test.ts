@@ -55,7 +55,7 @@ const linkedAsset: AssetReference = {
   id: "AS-001",
   name: "Vehicle location data",
   assetGroup: "data",
-  physicalImpact: "irreversible_injury",
+  physicalImpact: "irreversible_major",
   impactRatings: [
     { criterionId: "financial_damage", value: 3 },
     { criterionId: "operational", value: 2 },

@@ -17,7 +17,7 @@ describe("Phase 3 — buildAssetHazardLinks", () => {
     expect(hu002.endangeredBy).toHaveLength(45);
     expect(hu002.contributesTo).toHaveLength(0);
     expect(hu002.isHazardTarget).toBe(true);
-    expect(hu002.worstSeverity).toBe("fatality");
+    expect(hu002.worstSeverity).toBe("fatal");
     // links carry human-readable hazard metadata + role
     expect(hu002.endangeredBy[0].role).toBe("endangered");
     expect(hu002.endangeredBy[0].externalRef).toBeDefined();
@@ -26,7 +26,7 @@ describe("Phase 3 — buildAssetHazardLinks", () => {
 
   it("worst severity reflects the single edge on HU-006", () => {
     expect(byAsset["HU-006"].endangeredBy).toHaveLength(1);
-    expect(byAsset["HU-006"].worstSeverity).toBe("irreversible_injury");
+    expect(byAsset["HU-006"].worstSeverity).toBe("irreversible_major");
     // pure protection target → no attack-surface (cause) rating
     expect(byAsset["HU-006"].causeSeverity).toBeUndefined();
   });
@@ -38,10 +38,10 @@ describe("Phase 3 — buildAssetHazardLinks", () => {
     // bowtie: SY-001 contributes [indirect] to a hazard that endangers with
     // irreversible_injury → the cause inherits that severity.
     expect(sy001.contributesTo[0].relevance).toBe("indirect");
-    expect(sy001.contributesTo[0].severity).toBe("irreversible_injury");
-    expect(sy001.worstSeverity).toBe("irreversible_injury");
+    expect(sy001.contributesTo[0].severity).toBe("irreversible_major");
+    expect(sy001.worstSeverity).toBe("irreversible_major");
     // cause-side attack-surface rating
-    expect(sy001.causeSeverity).toBe("irreversible_injury");
+    expect(sy001.causeSeverity).toBe("irreversible_major");
     expect(sy001.causeDirect).toBe(false); // contributes [indirect]
     expect(sy001.isHazardTarget).toBe(false);
     expect(sy001.endangeredBy).toHaveLength(0);

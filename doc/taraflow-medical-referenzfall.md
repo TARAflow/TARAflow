@@ -117,7 +117,7 @@ STRIDE-Analyse.
 
 **Safety Annotation Layer:** Safety-Aspekte werden als optionaler Annotation Layer auf
 bestehenden Beziehungen modelliert. Wird an einer Beziehung eine SafetyAnnotation gesetzt
-(`relevance: 'direct'`, `impact: 'fatality'`), signalisiert der Analyst dass dieses Asset über
+(`relevance: 'direct'`, `impact: 'fatal'`), signalisiert der Analyst dass dieses Asset über
 diese Beziehung direkt safety-relevant ist. Der Safety Impact am Asset kann abgeleitet
 (`derived`) oder manuell (`manual`) gesetzt werden – bei manueller Setzung ist eine Begründung
 (`rationale`) Pflicht.
@@ -131,19 +131,19 @@ Alarm-Schwellen, Firmware-Image, Audit-Daten, Patienten-ID.
 ```
 DataStore "Drug Library (lokal)"
 └─ stores → Data Asset "Medikamenten-Grenzwerte"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Falsche Grenzwerte → toxische Überdosierung möglich' }
 
 DataStore "Therapie-Profil"
 ├─ stores → Data Asset "Flussrate"
-│  └─ safety: { relevance: 'direct', impact: 'fatality',
+│  └─ safety: { relevance: 'direct', impact: 'fatal',
 │               rationale: 'Falsche Flussrate → Über-/Unterdosierung' }
 └─ stores → Data Asset "Therapie-Parameter"
-   └─ safety: { relevance: 'direct', impact: 'irreversible_injury' }
+   └─ safety: { relevance: 'direct', impact: 'irreversible_major' }
 
 DataStore "Firmware-Speicher"
 └─ stores → Data Asset "Firmware-Image"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Kompromittierte Firmware → vollständige Systemkontrolle' }
 
 DataStore "Audit-Log"
@@ -158,24 +158,24 @@ Process "Drug-Library-Service"
 
 Process "Alarm-Manager"
 ├─ reads   → Data Asset "Alarm-Schwellen"
-│  └─ safety: { relevance: 'direct', impact: 'irreversible_injury',
+│  └─ safety: { relevance: 'direct', impact: 'irreversible_major',
 │               rationale: 'Falsche Schwellenwerte → Alarm verzögert oder unterdrückt –
 │                           direkter Einfluss auf Patientenschutz via Alarm-Eskalationsablauf' }
 └─ creates → Data Asset "Audit-Daten"
 
 DF "send BolusCommand [cmd]"
 └─ transports → Data Asset "Flussrate"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Manipulation ermöglicht lebensgefährliche Bolusgabe' }
 
 DF "update DrugLibrary [req]"
 └─ transports → Data Asset "Medikamenten-Grenzwerte"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Kompromittiertes Update → falsche Sicherheitsgrenzwerte' }
 
 DF "send FirmwareUpdate [req]"
 └─ transports → Data Asset "Firmware-Image"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Manipuliertes Firmware-Update → vollständige Gerätekontrolle' }
 ```
 
@@ -192,18 +192,18 @@ Alarm-Eskalationsablauf, Wartungs- und Kalibrierungsablauf.
 ```
 Process "Pumpensteuerung"
 └─ is_an → Process Asset "Bolus-Abgabe-Sequenz"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 physicalHazardPotential: 'high',
                 rationale: 'Unkontrollierte Ausführung → Über-/Unterdosierung' }
 
 Process "Drug-Library-Service"
 └─ is_an → Process Asset "Medikamenten-Validierungsablauf"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Bypass der Validierung → Grenzwerte nicht eingehalten' }
 
 Process "Alarm-Manager"
 └─ is_an → Process Asset "Alarm-Eskalationsablauf"
-   └─ safety: { relevance: 'direct', impact: 'irreversible_injury',
+   └─ safety: { relevance: 'direct', impact: 'irreversible_major',
                 rationale: 'Ausfall → keine Warnung bei kritischem Patientenzustand' }
 
 EE "Pflegepersonal"
@@ -225,18 +225,18 @@ Identifizierte System Assets: Infusionspumpe, Drug-Library-Server, Monitoring-Sy
 ```
 Process "Pumpensteuerung"
 └─ is_an → System Asset "Infusionspumpe"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 physicalHazardPotential: 'high' }
 
 Process "Drug-Library-Service"
 └─ depends_on → System Asset "Drug-Library-Server"
-   └─ safety: { relevance: 'indirect', impact: 'fatality',
+   └─ safety: { relevance: 'indirect', impact: 'fatal',
                 rationale: 'Ausfall Server → Drug-Library-Service kann Grenzwerte nicht validieren –
                             indirekter Pfad: Server-Kompromittierung → fehlerhafte Grenzwerte → Überdosierung' }
 
 Process "Alarm-Manager"
 └─ uses [network] → System Asset "Monitoring-System"
-   └─ safety: { relevance: 'indirect', impact: 'fatality',
+   └─ safety: { relevance: 'indirect', impact: 'fatal',
                 rationale: 'Ausfall Monitoring-System → Alarm-Weiterleitung nicht möglich –
                             indirekter Einfluss auf Patientenschutz via Alarm-Eskalationsablauf' }
 
@@ -263,15 +263,15 @@ Patientenzimmer (physischer Zugang), Stromversorgung/USV.
 ```
 Process "Kommunikationsmodul"
 └─ uses [network] → Infrastructure Asset "Klinik-Netzwerk-Infrastruktur"
-   └─ safety: { relevance: 'indirect', impact: 'fatality',
+   └─ safety: { relevance: 'indirect', impact: 'fatal',
                 rationale: 'Netzwerkausfall → Drug-Library-Updates nicht möglich –
-                            fatality weil Fallback-Mechanismus versagen kann (indirect → HIGH+)' }
+                            fatal weil Fallback-Mechanismus versagen kann (indirect → HIGH+)' }
 
 Process "Pumpensteuerung"
 └─ depends_on → Infrastructure Asset "Stromversorgung/USV"
-   └─ safety: { relevance: 'indirect', impact: 'fatality',
+   └─ safety: { relevance: 'indirect', impact: 'fatal',
                 rationale: 'Stromausfall → Therapieunterbrechung –
-                            fatality weil laufende Infusion abrupt stoppt (indirect → HIGH+)' }
+                            fatal weil laufende Infusion abrupt stoppt (indirect → HIGH+)' }
 
 EE "Wartungstechniker"
 └─ accesses [on-site]    → Infrastructure Asset "Dockingstation"
@@ -307,32 +307,32 @@ Identifizierte Human Assets: Patient, Pflegepersonal, Wartungstechniker.
 ```
 EE "Patient"
 └─ is_an → Human Asset "Patient"
-   └─ Properties: { isProtectionTarget: true, safetyImpact: 'fatality',
+   └─ Properties: { isProtectionTarget: true, safetyImpact: 'fatal',
                     rationale: 'Direkte Abhängigkeit von korrekter Medikamentenzufuhr' }
 
 EE "Pflegepersonal"
 └─ is_an → Human Asset "Pflegepersonal"
-   └─ Properties: { isProtectionTarget: true, safetyImpact: 'irreversible_injury',
+   └─ Properties: { isProtectionTarget: true, safetyImpact: 'irreversible_major',
                     rationale: 'Physische Präsenz am Gerät – Fehlfunktion kann zu Verletzung führen' }
 
 Process "Pumpensteuerung"
 └─ affects_safety → Human Asset "Pflegepersonal"
-   └─ safety: { relevance: 'direct', impact: 'irreversible_injury',
+   └─ safety: { relevance: 'direct', impact: 'irreversible_major',
                 rationale: 'Unkontrollierte Fehlfunktion (Leck, Überdruck) im Arbeitsbereich des Pflegepersonals' }
 
 Process "Pumpensteuerung"
 └─ affects_safety → Human Asset "Patient"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Unkontrollierte Flussrate → Über-/Unterdosierung' }
 
 Process "Alarm-Manager"
 └─ affects_safety → Human Asset "Patient"
-   └─ safety: { relevance: 'direct', impact: 'irreversible_injury',
+   └─ safety: { relevance: 'direct', impact: 'irreversible_major',
                 rationale: 'Ausfall Alarmierung → verzögerte Intervention' }
 
 Process "Drug-Library-Service"
 └─ affects_safety → Human Asset "Patient"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Falsche Validierung → Grenzwerte nicht eingehalten' }
 
 EE "Wartungstechniker"
@@ -364,8 +364,8 @@ Die aggregierte Asset-Kritikalität ergibt sich aus zwei unabhängigen Domänen:
 
 | Business Impact | Safety Impact | relevance | Aggregiert |
 |---|---|---|---|
-| beliebig | HIGH (fatality / irreversible_injury) | direct | **CRITICAL** |
-| beliebig | HIGH (fatality / irreversible_injury) | indirect | **HIGH+** |
+| beliebig | HIGH (fatal / irreversible_major) | direct | **CRITICAL** |
+| beliebig | HIGH (fatal / irreversible_major) | indirect | **HIGH+** |
 | CRITICAL | – oder MED | – | **CRITICAL** |
 | HIGH | MED (indirect, Hop 1) | – | **HIGH** |
 | HIGH | – | – | **HIGH** |
@@ -381,13 +381,13 @@ Die aggregierte Asset-Kritikalität ergibt sich aus zwei unabhängigen Domänen:
 
 **Safety Override Rule (ISO 14971 / MDR):**
 ```
-IF safetyImpact ∈ { 'fatality', 'irreversible_injury' }
+IF safetyImpact ∈ { 'fatal', 'irreversible_major' }
    AND relevance === 'direct'
 THEN aggregatedCriticality := CRITICAL
      strideDepth            := 'vertieft'
      riskPriority           := 1
 
-IF safetyImpact ∈ { 'fatality', 'irreversible_injury' }
+IF safetyImpact ∈ { 'fatal', 'irreversible_major' }
    AND relevance === 'indirect'
 THEN aggregatedCriticality := MAX(businessImpact, HIGH+)
      strideDepth            := 'fokussiert'
@@ -400,7 +400,7 @@ zu CRITICAL eskalieren. Assets mit indirektem Einfluss bleiben differenzierbar.
 
 Begründung:
   Severity ist eine Eigenschaft des Schadens – nicht des Assets.
-  Ein Asset das fatality nur systemisch beeinflusst (indirect) hat keinen
+  Ein Asset das fatal nur systemisch beeinflusst (indirect) hat keinen
   unmittelbaren Steuerungseinfluss. Die Override-Regel greift nur dort wo
   das Asset die physische Aktion direkt kontrolliert.
 ```
@@ -410,8 +410,8 @@ Begründung:
 ```
 SafetyAnnotation auf Beziehung             →  physicalImpact am Asset
 ───────────────────────────────────────────────────────────────────────
-impact: 'fatality'                         →  HIGH  (derived)
-impact: 'irreversible_injury'              →  HIGH  (derived)
+impact: 'fatal'                         →  HIGH  (derived)
+impact: 'irreversible_major'              →  HIGH  (derived)
 relevance: 'indirect' (transitiv, Hop 1)   →  MED   (derived)
 keine Annotation                           →  LOW   (derived, default)
 ```
@@ -433,16 +433,16 @@ keine Annotation                           →  LOW   (derived, default)
 ### 4.2 Data Assets
 
 > **Lesehilfe Safety Impact (physicalImpact):** Primär aus der SafetyAnnotation im DFD-Tab
-> abgeleitet (`derived`). HIGH = `fatality` oder `irreversible_injury`,
+> abgeleitet (`derived`). HIGH = `fatal` oder `irreversible_major`,
 > MED = `indirect` (Hop 1), – = keine Annotation.
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Aggregiert |
 |---|---|---|---|---|
-| Medikamenten-Grenzwerte | Integrity, Availability, Authorization | HIGH (Regulatory) | HIGH (fatality) | **CRITICAL** |
-| Flussrate | Integrity, Availability | HIGH (Operational) | HIGH (fatality) | **CRITICAL** |
-| Therapie-Parameter | Integrity, Availability, Authorization | HIGH (Operational) | HIGH (irreversible_injury) | **CRITICAL** |
-| Firmware-Image | Integrity, Availability, Authentication | HIGH (Operational) | HIGH (fatality) | **CRITICAL** |
-| Alarm-Schwellen | Integrity, Availability | HIGH (Operational) | HIGH (irreversible_injury) | **CRITICAL** |
+| Medikamenten-Grenzwerte | Integrity, Availability, Authorization | HIGH (Regulatory) | HIGH (fatal) | **CRITICAL** |
+| Flussrate | Integrity, Availability | HIGH (Operational) | HIGH (fatal) | **CRITICAL** |
+| Therapie-Parameter | Integrity, Availability, Authorization | HIGH (Operational) | HIGH (irreversible_major) | **CRITICAL** |
+| Firmware-Image | Integrity, Availability, Authentication | HIGH (Operational) | HIGH (fatal) | **CRITICAL** |
+| Alarm-Schwellen | Integrity, Availability | HIGH (Operational) | HIGH (irreversible_major) | **CRITICAL** |
 | Patienten-ID | Confidentiality, Integrity, Accountability | MEDIUM (Privacy/MDR) | MED (indirect) | **HIGH** |
 | Audit-Daten | Integrity, Non-Repudiation, Accountability | MEDIUM (Regulatory) | – | **MEDIUM** |
 
@@ -450,16 +450,16 @@ keine Annotation                           →  LOW   (derived, default)
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Aggregiert |
 |---|---|---|---|---|
-| Bolus-Abgabe-Sequenz | Integrity, Availability, Authorization | HIGH (Operational) | HIGH (fatality) | **CRITICAL** |
-| Medikamenten-Validierungsablauf | Integrity, Availability | HIGH (Regulatory) | HIGH (fatality) | **CRITICAL** |
-| Alarm-Eskalationsablauf | Availability, Integrity | HIGH (Operational) | HIGH (irreversible_injury) | **CRITICAL** |
+| Bolus-Abgabe-Sequenz | Integrity, Availability, Authorization | HIGH (Operational) | HIGH (fatal) | **CRITICAL** |
+| Medikamenten-Validierungsablauf | Integrity, Availability | HIGH (Regulatory) | HIGH (fatal) | **CRITICAL** |
+| Alarm-Eskalationsablauf | Availability, Integrity | HIGH (Operational) | HIGH (irreversible_major) | **CRITICAL** |
 | Wartungs- und Kalibrierungsablauf | Integrity, Authorization, Non-Repudiation | MEDIUM (Operational) | MED (indirect) | **HIGH** |
 
 ### 4.4 System Assets
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Aggregiert |
 |---|---|---|---|---|
-| Infusionspumpe | Availability, Integrity, Authorization | HIGH (Operational) | HIGH (fatality) | **CRITICAL** |
+| Infusionspumpe | Availability, Integrity, Authorization | HIGH (Operational) | HIGH (fatal) | **CRITICAL** |
 | Drug-Library-Server | Availability, Integrity | HIGH (Regulatory) | MED (indirect) | **HIGH+** |
 | Monitoring-System | Availability | HIGH (Operational) | MED (indirect) | **High+** |
 
@@ -474,7 +474,7 @@ keine Annotation                           →  LOW   (derived, default)
 
 > **High-Value Asset:** Die Dockingstation ist als `isHighValueAsset: 'high'` klassifiziert.
 > `isHighValueAsset: 'high'` löst den **HIGH minimum Override** aus → Pflicht-Threats: Tampering, DoS, Physical Damage.
-> MINIMUM-Prinzip: Safety Override (fatality/irreversible_injury) hat weiterhin Vorrang.
+> MINIMUM-Prinzip: Safety Override (fatal/irreversible_major) hat weiterhin Vorrang.
 > Klinik-Netzwerk und USV sind Standardkomponenten mit kurzen Lieferzeiten —
 > sie qualifizieren nicht als High-Value Assets trotz hohem Business Impact.
 
@@ -482,15 +482,15 @@ keine Annotation                           →  LOW   (derived, default)
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Protection Target | Aggregiert |
 |---|---|---|---|---|---|
-| Patient | Availability (Safety), Confidentiality | – | HIGH (fatality) | ✅ | **CRITICAL** |
-| Pflegepersonal | Availability (Safety), Confidentiality | MEDIUM (Privacy) | HIGH (irreversible_injury) | ✅ | **CRITICAL** |
+| Patient | Availability (Safety), Confidentiality | – | HIGH (fatal) | ✅ | **CRITICAL** |
+| Pflegepersonal | Availability (Safety), Confidentiality | MEDIUM (Privacy) | HIGH (irreversible_major) | ✅ | **CRITICAL** |
 | Wartungstechniker | Confidentiality, Authorization | MEDIUM (Privacy) | MED (indirect) | – | **HIGH** |
 
 ### 4.7 Ergebnis der Bewertung
 
 Von 18 identifizierten Assets sind 7 als CRITICAL eingestuft – wegen direktem
 Safety-Impact (relevance: 'direct'). Weitere 3 Assets sind als HIGH+ eingestuft
-da sie fatality nur systemisch beeinflussen (relevance: 'indirect').
+da sie fatal nur systemisch beeinflussen (relevance: 'indirect').
 CRITICAL = direkter Steuerungseinfluss auf Patientenschaden,
 HIGH+ = systemischer Einfluss der durch hohe Likelihood zu CRITICAL eskalieren kann.
 Der Patient als Protection Target ist der Endpunkt aller Safety-Ketten. Seine Kritikalität ergibt
@@ -512,9 +512,9 @@ Kein Patientenbezug, keine Priorisierung.
 **TARAflow:**
 ```
 DF "update DrugLibrary [req]"
-└─ transports → Data Asset "Medikamenten-Grenzwerte" [Integrity: CRITICAL, fatality]
+└─ transports → Data Asset "Medikamenten-Grenzwerte" [Integrity: CRITICAL, fatal]
    └─ reads: □ Drug-Library-Service
-   └─ is_an → Process Asset "Medikamenten-Validierungsablauf" [fatality]
+   └─ is_an → Process Asset "Medikamenten-Validierungsablauf" [fatal]
    └─ affects_safety → Human Asset "Patient" [Protection Target]
 
 → Threat: Manipulation des Drug-Library-Updates
@@ -536,8 +536,8 @@ EE "Wartungstechniker"
 └─ accesses [on-site] → Infrastructure Asset "Dockingstation"
    └─ uses [local]  → System Asset "Infusionspumpe" [CRITICAL]
    └─ invokes → Process Asset "Wartungs- und Kalibrierungsablauf"
-   └─ transports → Data Asset "Firmware-Image" [fatality]
-   └─ exposes → Human Asset "Patient" [fatality]
+   └─ transports → Data Asset "Firmware-Image" [fatal]
+   └─ exposes → Human Asset "Patient" [fatal]
 
 → Was sichtbar wird:
   Der Wartungszugang ist nicht nur ein IT-Risiko –
@@ -553,7 +553,7 @@ EE "Wartungstechniker"
 **TARAflow:**
 ```
 Process "Alarm-Manager"
-└─ is_an → Process Asset "Alarm-Eskalationsablauf" [Availability: CRITICAL, irreversible_injury]
+└─ is_an → Process Asset "Alarm-Eskalationsablauf" [Availability: CRITICAL, irreversible_major]
 └─ affects_safety → Human Asset "Patient"
 
 → Was sichtbar wird:
@@ -565,7 +565,7 @@ Process "Alarm-Manager"
 ### 5.4 Warum Klinik-Netzwerk nicht CRITICAL ist – obwohl es fatal sein kann
 
 Ein Auditor könnte fragen:
-  "Das Klinik-Netzwerk kann theoretisch zu fatality führen –
+  "Das Klinik-Netzwerk kann theoretisch zu fatal führen –
    warum ist es nicht CRITICAL?"
 
 Antwort:
@@ -575,7 +575,7 @@ Antwort:
   Der Schaden entsteht nicht durch Kompromittierung des Netzwerks allein,
   sondern durch eine Kette zusätzlicher Systemversagen.
 
-  relevance: 'indirect' + fatality → HIGH+
+  relevance: 'indirect' + fatal → HIGH+
   Kann durch hohe Likelihood in der Risk-Tabelle zu CRITICAL eskalieren –
   aber nicht automatisch durch Safety Override.
 
@@ -590,10 +590,10 @@ Antwort:
 
 | Asset | Business Impact | Safety Impact | Aggregiert | STRIDE-Tiefe |
 |---|---|---|---|---|
-| Medikamenten-Grenzwerte | HIGH (Regulatory) | HIGH (fatality) | CRITICAL | Vertieft |
-| Bolus-Abgabe-Sequenz | HIGH (Operational) | HIGH (fatality) | CRITICAL | Vertieft |
-| Medikamenten-Validierungsablauf | HIGH (Regulatory) | HIGH (fatality) | CRITICAL | Vertieft |
-| Infusionspumpe | HIGH (Operational) | HIGH (fatality) | CRITICAL | Vertieft |
+| Medikamenten-Grenzwerte | HIGH (Regulatory) | HIGH (fatal) | CRITICAL | Vertieft |
+| Bolus-Abgabe-Sequenz | HIGH (Operational) | HIGH (fatal) | CRITICAL | Vertieft |
+| Medikamenten-Validierungsablauf | HIGH (Regulatory) | HIGH (fatal) | CRITICAL | Vertieft |
+| Infusionspumpe | HIGH (Operational) | HIGH (fatal) | CRITICAL | Vertieft |
 | Stromversorgung/USV | HIGH (Operational) | MED (indirect) | CRITICAL | Fokussiert |
 | Klinik-Netzwerk-Infrastruktur | HIGH (Operational) | MED (indirect) | CRITICAL | Fokussiert |
 | Wartungs- und Kalibrierungsablauf | MEDIUM | MED (indirect) | HIGH | Fokussiert |
@@ -601,7 +601,7 @@ Antwort:
 
 ### 6.2 Safety Override Rule
 
-Assets mit `safetyImpact: 'fatality'` oder `safetyImpact: 'irreversible_injury'` erhalten
+Assets mit `safetyImpact: 'fatal'` oder `safetyImpact: 'irreversible_major'` erhalten
 automatisch die höchste Analysepriorität, unabhängig vom Business Impact (ISO 14971).
 
 ---
@@ -618,7 +618,7 @@ automatisch die höchste Analysepriorität, unabhängig vom Business Impact (ISO
 | **CIANAAA-Verletzung** | Integrity, Authentication |
 | **Schutzziel** | Bolus-Befehle nur von autorisiertem Pflegepersonal |
 | **Angriffspfad** | Kompromittierung Zentralstation → unautorisierter Bolus-Befehl → Ausführung ohne Validierungsablauf |
-| **Safety-Konsequenz** | `affects_safety → Human Asset "Patient"` → fatality |
+| **Safety-Konsequenz** | `affects_safety → Human Asset "Patient"` → fatal |
 | **Priorität** | CRITICAL (Safety Override Rule) |
 | **STRIDE-Tiefe** | Vertieft (Trust Boundary + CRITICAL Asset + Safety) |
 
@@ -632,7 +632,7 @@ automatisch die höchste Analysepriorität, unabhängig vom Business Impact (ISO
 | **CIANAAA-Verletzung** | Integrity, Authentication |
 | **Schutzziel** | Drug-Library-Updates nur von verifizierter Klinik-IT mit Integritätsnachweis |
 | **Angriffspfad** | MITM im Klinik-Netz → manipuliertes Update → DERS-Grenzwerte erhöht → toxische Dosen nicht blockiert |
-| **Safety-Konsequenz** | `Medikamenten-Grenzwerte → Medikamenten-Validierungsablauf → Patient` → fatality |
+| **Safety-Konsequenz** | `Medikamenten-Grenzwerte → Medikamenten-Validierungsablauf → Patient` → fatal |
 | **Priorität** | CRITICAL (Safety Override Rule) |
 | **STRIDE-Tiefe** | Vertieft (Trust Boundary + CRITICAL Asset + Safety) |
 
@@ -646,7 +646,7 @@ automatisch die höchste Analysepriorität, unabhängig vom Business Impact (ISO
 | **CIANAAA-Verletzung** | Availability |
 | **Schutzziel** | Alarm-Eskalation muss jederzeit verfügbar sein |
 | **Angriffspfad** | Netzwerk-Flooding → Alarm-Manager nicht erreichbar → kein Alarm bei Okklusion → verzögerte Intervention |
-| **Safety-Konsequenz** | `affects_safety → Patient` → irreversible_injury |
+| **Safety-Konsequenz** | `affects_safety → Patient` → irreversible_major |
 | **Priorität** | CRITICAL (Safety Override Rule) |
 | **STRIDE-Tiefe** | Vertieft (CRITICAL Asset + Safety) |
 
@@ -660,7 +660,7 @@ automatisch die höchste Analysepriorität, unabhängig vom Business Impact (ISO
 | **CIANAAA-Verletzung** | Integrity, Authorization, Non-Repudiation |
 | **Schutzziel** | Firmware-Updates nur signiert und von autorisiertem Personal |
 | **Angriffspfad** | Physischer Zugang zur Dockingstation → unsigniertes Firmware-Image → vollständige Gerätekontrolle |
-| **Safety-Konsequenz** | `indirect via System Asset "Infusionspumpe"` → fatality |
+| **Safety-Konsequenz** | `indirect via System Asset "Infusionspumpe"` → fatal |
 | **Priorität** | CRITICAL (Safety Override Rule) |
 | **STRIDE-Tiefe** | Vertieft (CRITICAL Asset + physischer Zugang) |
 
@@ -670,10 +670,10 @@ automatisch die höchste Analysepriorität, unabhängig vom Business Impact (ISO
 
 | ID | Threat | Likelihood | Impact | Risk | Safety Override | Massnahme | Prio |
 |---|---|---|---|---|---|---|---|
-| T-01 | Bolus-Manipulation | MEDIUM | CRITICAL | HIGH | ✅ fatality | mTLS + Bestätigung kritischer Befehle am Gerät | 1 |
-| T-02 | Drug-Library-Manipulation | MEDIUM | CRITICAL | HIGH | ✅ fatality | Digitale Signatur + Integritätsprüfung vor Import | 1 |
-| T-03 | DoS Alarm-Eskalation | HIGH | CRITICAL | CRITICAL | ✅ irreversible_injury | Offline-Fallback + dedizierter Alarm-Kanal | 1 |
-| T-04 | Firmware via Dockingstation | LOW | CRITICAL | MEDIUM | ✅ fatality | Secure Boot + signierte Firmware + physische Zugangskontrolle | 1 |
+| T-01 | Bolus-Manipulation | MEDIUM | CRITICAL | HIGH | ✅ fatal | mTLS + Bestätigung kritischer Befehle am Gerät | 1 |
+| T-02 | Drug-Library-Manipulation | MEDIUM | CRITICAL | HIGH | ✅ fatal | Digitale Signatur + Integritätsprüfung vor Import | 1 |
+| T-03 | DoS Alarm-Eskalation | HIGH | CRITICAL | CRITICAL | ✅ irreversible_major | Offline-Fallback + dedizierter Alarm-Kanal | 1 |
+| T-04 | Firmware via Dockingstation | LOW | CRITICAL | MEDIUM | ✅ fatal | Secure Boot + signierte Firmware + physische Zugangskontrolle | 1 |
 | T-05 | Patienten-ID Disclosure | MEDIUM | HIGH | HIGH | – | TLS + Authentifizierung HIS-Kommunikation | 2 |
 
 ---

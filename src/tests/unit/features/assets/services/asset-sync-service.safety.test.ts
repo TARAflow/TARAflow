@@ -73,7 +73,7 @@ describe("syncFromDFD — safety propagation (existing asset)", () => {
           elementType: "Process",
           displayId: "P-4",
           relationType: "reads",
-          safety: { relevance: "direct", impact: "fatality" },
+          safety: { relevance: "direct", impact: "fatal" },
         },
       ],
     });
@@ -83,7 +83,7 @@ describe("syncFromDFD — safety propagation (existing asset)", () => {
 
     expect(asset?.linkedDFDElements[0].safety).toEqual({
       relevance: "direct",
-      impact: "fatality",
+      impact: "fatal",
     });
   });
 
@@ -99,7 +99,7 @@ describe("syncFromDFD — safety propagation (existing asset)", () => {
           elementType: "Process",
           displayId: "P-4",
           relationType: "reads",
-          safety: { relevance: "direct", impact: "fatality" },
+          safety: { relevance: "direct", impact: "fatal" },
         },
       ],
     });
@@ -107,7 +107,7 @@ describe("syncFromDFD — safety propagation (existing asset)", () => {
     const { assetData } = syncFromDFD(existing, [dfdAsset], [], []);
     const asset = assetData.assets.find((a) => a.id === "DA-001");
 
-    expect(asset?.physicalImpact).toBe("fatality");
+    expect(asset?.physicalImpact).toBe("fatal");
     expect(asset?.physicalImpactSource).toBe("derived");
     expect(asset?.aggregatedImpact).toBe("CRITICAL");
   });
@@ -124,7 +124,7 @@ describe("syncFromDFD — safety propagation (existing asset)", () => {
           elementType: "Process",
           displayId: "P-4",
           relationType: "reads",
-          safety: { relevance: "indirect", impact: "fatality" },
+          safety: { relevance: "indirect", impact: "fatal" },
         },
       ],
     });
@@ -138,7 +138,7 @@ describe("syncFromDFD — safety propagation (existing asset)", () => {
   it("respects a manual physicalImpact override — does not let DFD safety data overwrite it", () => {
     const existing = makeAssetData([
       makeExistingAsset({
-        physicalImpact: "reversible_injury",
+        physicalImpact: "reversible_major",
         physicalImpactSource: "manual",
         physicalImpactRationale: "Analyst assessment overrides DFD signal",
       }),
@@ -151,7 +151,7 @@ describe("syncFromDFD — safety propagation (existing asset)", () => {
           elementType: "Process",
           displayId: "P-4",
           relationType: "reads",
-          safety: { relevance: "direct", impact: "fatality" },
+          safety: { relevance: "direct", impact: "fatal" },
         },
       ],
     });
@@ -159,7 +159,7 @@ describe("syncFromDFD — safety propagation (existing asset)", () => {
     const { assetData } = syncFromDFD(existing, [dfdAsset], [], []);
     const asset = assetData.assets.find((a) => a.id === "DA-001");
 
-    expect(asset?.physicalImpact).toBe("reversible_injury");
+    expect(asset?.physicalImpact).toBe("reversible_major");
     expect(asset?.physicalImpactSource).toBe("manual");
   });
 });
@@ -181,7 +181,7 @@ describe("syncFromDFD — safety propagation (brand-new asset, first sync)", () 
           elementType: "Process",
           displayId: "P-4",
           relationType: "reads",
-          safety: { relevance: "direct", impact: "fatality" },
+          safety: { relevance: "direct", impact: "fatal" },
         },
       ],
     });
@@ -190,7 +190,7 @@ describe("syncFromDFD — safety propagation (brand-new asset, first sync)", () 
     const asset = assetData.assets.find((a) => a.id === "DA-001");
 
     expect(newAssets).toContain("DA-001");
-    expect(asset?.physicalImpact).toBe("fatality");
+    expect(asset?.physicalImpact).toBe("fatal");
     expect(asset?.physicalImpactSource).toBe("derived");
     expect(asset?.aggregatedImpact).toBe("CRITICAL");
   });
@@ -205,7 +205,7 @@ describe("syncFromDFD — safety propagation (brand-new asset, first sync)", () 
           elementType: "Process",
           displayId: "P-4",
           relationType: "reads",
-          safety: { relevance: "direct", impact: "fatality" },
+          safety: { relevance: "direct", impact: "fatal" },
         },
       ],
     });
@@ -223,7 +223,7 @@ describe("syncFromDFD — safety propagation (brand-new asset, first sync)", () 
     // but the value from the FIRST sync is already right, so there's
     // nothing left to "pick up" the way the old (wrong) test assumed.
     expect(hasChanges).toBe(false);
-    expect(asset?.physicalImpact).toBe("fatality");
+    expect(asset?.physicalImpact).toBe("fatal");
     expect(asset?.aggregatedImpact).toBe("CRITICAL");
   });
 });

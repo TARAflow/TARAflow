@@ -23,7 +23,7 @@
 // the next step.
 
 import type { AssetGroup } from "./asset-group-types";
-import type { ValueSource } from "./safety-types";
+import type { SafetyImpact, ValueSource } from "./safety-types";
 
 // ==================== ASSET ENUM TYPES ====================
 
@@ -193,7 +193,7 @@ export interface AssetProperties {
   isProtectionTarget?: boolean;
 
   // ---- SHARED SAFETY (all groups) ----
-  safetyImpact?: "none" | "reversible_injury" | "irreversible_injury" | "fatality";
+  safetyImpact?: SafetyImpact;
   safetyRationale?: string;
   physicalHazardPotential?: "low" | "medium" | "high";
 
@@ -218,7 +218,7 @@ export interface AssetProperties {
   // ---- IMPACT ----
   businessImpact?: "low" | "medium" | "high" | "critical";
   businessImpactCategory?: "operational" | "financial" | "privacy" | "reputational";
-  physicalImpact?: "none" | "reversible_injury" | "irreversible_injury" | "fatality";
+  physicalImpact?: SafetyImpact;
   physicalImpactSource?: ValueSource;
   physicalImpactRationale?: string;
 

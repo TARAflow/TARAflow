@@ -87,7 +87,15 @@ import {
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { ConfirmDialog } from "../shared/confirm-dialog";
 import { AssetToAssetSelector } from "./asset-to-asset-selector";
-import { AssetGroup, AnyAssetRelationType } from "shared";
+import {
+  AssetGroup,
+  AnyAssetRelationType,
+  SAFETY_IMPACTS,
+  isIrreversibleOrWorse,
+  safetyImpactI18nKey,
+  worstSafetySeverity,
+  type SafetyImpact,
+} from "shared";
 import { MESSAGE_TYPE_OPTIONS } from "../../models/element-properties";
 
 // ==================== TYPES ====================
@@ -117,7 +125,7 @@ interface ElementReference {
     relationType: AnyAssetRelationType;
     qualifier?: string;
     relevance: string;
-    impact?: string;
+    impact?: SafetyImpact;
     rationale?: string;
   }>;
 }
@@ -256,13 +264,10 @@ const SafetySummary: React.FC<SafetySummaryProps> = ({ refs }) => {
           const hasDirect = ref.safetyRelations!.some(
             (s) => s.relevance === "direct",
           );
-          const hasFatality = ref.safetyRelations!.some(
-            (s) => s.impact === "fatality",
+          const worstImpact = worstSafetySeverity(
+            ref.safetyRelations!.map((s) => s.impact),
           );
-          const hasIrreversible = ref.safetyRelations!.some(
-            (s) => s.impact === "irreversible_injury",
-          );
-          const showBadge = hasDirect || hasFatality || hasIrreversible;
+          const showBadge = hasDirect || isIrreversibleOrWorse(worstImpact);
 
           return (
             <Paper key={ref.elementId} variant="outlined" sx={{ p: 1.25 }}>
@@ -284,11 +289,9 @@ const SafetySummary: React.FC<SafetySummaryProps> = ({ refs }) => {
                 {showBadge && (
                   <Chip
                     label={
-                      hasDirect
+                      hasDirect || !worstImpact
                         ? "DIRECT"
-                        : hasFatality
-                          ? "FATALITY"
-                          : "IRREVERSIBLE"
+                        : t(safetyImpactI18nKey(worstImpact)).toUpperCase()
                     }
                     size="small"
                     color="error"
@@ -1430,16 +1433,11 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
                     <MenuItem value="">
                       <em>Not assessed</em>
                     </MenuItem>
-                    <MenuItem value="none">
-                      None — no personal injury possible
-                    </MenuItem>
-                    <MenuItem value="reversible_injury">
-                      Reversible injury
-                    </MenuItem>
-                    <MenuItem value="irreversible_injury">
-                      Irreversible injury / disability
-                    </MenuItem>
-                    <MenuItem value="fatality">Fatality</MenuItem>
+                    {SAFETY_IMPACTS.map((impact) => (
+                      <MenuItem key={impact} value={impact}>
+                        {t(safetyImpactI18nKey(impact))}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
                 {asset.properties?.safetyImpact &&

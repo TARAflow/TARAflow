@@ -48,7 +48,13 @@ import type {
   HazardItemId,
   HazardRelation,
 } from "shared";
-import { isContributesTo, isEndangers } from "shared";
+import {
+  isContributesTo,
+  isEndangers,
+  SAFETY_SEVERITIES,
+  safetySeverityToFactor,
+  type SafetySeverity,
+} from "shared";
 import type { HazardData } from "../models/hazard-data-types";
 
 // ==================== TYPES ====================
@@ -102,15 +108,16 @@ const PHP_COLOR: Record<string, { bg: string; fg: string }> = {
 
 // Cross-target rank so a single "Max Severity" column can rate human, environment
 // and infrastructure edges on one ordinal scale (display heuristic only).
+// Person harm uses the fixed 4-level safety factor (IEC 62061 Se1–Se4).
 function severityRank(sev: string): number {
+  if ((SAFETY_SEVERITIES as readonly string[]).includes(sev)) {
+    return safetySeverityToFactor(sev as SafetySeverity);
+  }
   switch (sev) {
-    case "fatality":
     case "critical":
       return 4;
-    case "irreversible_injury":
     case "high":
       return 3;
-    case "reversible_injury":
     case "medium":
       return 2;
     case "low":

@@ -8,6 +8,11 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { type Threat, type ThreatSource } from "../../models/threat-types";
 import type { AssetDataReference, AssetReference, CIANAAALevel } from "shared";
 import {
+  isIrreversibleOrWorse,
+  safetyImpactI18nKey,
+  worstSafetySeverity,
+} from "shared";
+import {
   getImpactColor,
   getPhysicalImpactColor,
   getThreatPriority,
@@ -155,19 +160,17 @@ export const SafetyCell: React.FC<{
   threat: Threat;
   assetDataRef: AssetDataReference;
 }> = ({ threat, assetDataRef }) => {
+  const { t } = useTranslation();
   const linked = threat.linkedAssetIds
     .map((id) => assetDataRef.assets.find((a) => a.id === id))
     .filter((a): a is AssetReference => Boolean(a));
-  const worst = linked.reduce<string | undefined>((acc, a) => {
-    if (a.physicalImpact === "fatality") return "fatality";
-    if (acc !== "fatality" && a.physicalImpact === "irreversible_injury")
-      return "irreversible_injury";
-    return acc;
-  }, undefined);
-  if (!worst) return null;
+  const worst = worstSafetySeverity(linked.map((a) => a.physicalImpact));
+  if (!worst || !isIrreversibleOrWorse(worst)) return null;
   return (
     <Tooltip
-      title={worst === "fatality" ? "Safety: Fatality risk" : "Safety: Irreversible injury risk"}
+      title={t("safetySeverity.tooltip", {
+        severity: t(safetyImpactI18nKey(worst)),
+      })}
     >
       <WarningAmberIcon fontSize="small" sx={{ color: getPhysicalImpactColor(worst) }} />
     </Tooltip>

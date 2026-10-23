@@ -26,7 +26,7 @@ describe("Phase 2 — commitAssetSync", () => {
     expect(da002.linkedDFDElements[1].displayId).toBe("DF-9");
 
     // Manual safety override must survive the sync.
-    expect(da002.physicalImpact).toBe("fatality");
+    expect(da002.physicalImpact).toBe("fatal");
     expect(da002.physicalImpactSource).toBe("manual");
   });
 

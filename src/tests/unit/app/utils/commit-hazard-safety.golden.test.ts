@@ -36,7 +36,7 @@ describe("commit-hazard-safety — SmokeDetector golden", () => {
 
   it("SY-001 inherits irreversible_injury [indirect] → HIGH+ (no override)", () => {
     const sy = after.find((a) => a.id === "SY-001")!;
-    expect(sy.physicalImpact).toBe("irreversible_injury");
+    expect(sy.physicalImpact).toBe("irreversible_major");
     expect(sy.physicalImpactSource).toBe("hazard");
     expect(sy.aggregatedImpact).toBe("HIGH+");
     expect(sy.physicalImpactRationale).toContain("[indirect]");

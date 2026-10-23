@@ -7,28 +7,28 @@ exports[`Phase 0 — AssetReference projection snapshot > SmokeDetector: id → 
     "assetGroup": "data",
     "hasSafetyAnnotation": false,
     "id": "DA-001",
-    "physicalImpact": "fatality",
+    "physicalImpact": "fatal",
   },
   {
     "aggregatedImpact": "HIGH+",
     "assetGroup": "data",
     "hasSafetyAnnotation": false,
     "id": "DA-002",
-    "physicalImpact": "fatality",
+    "physicalImpact": "fatal",
   },
   {
     "aggregatedImpact": "HIGH+",
     "assetGroup": "data",
     "hasSafetyAnnotation": false,
     "id": "DA-003",
-    "physicalImpact": "fatality",
+    "physicalImpact": "fatal",
   },
   {
     "aggregatedImpact": "HIGH+",
     "assetGroup": "data",
     "hasSafetyAnnotation": false,
     "id": "DA-004",
-    "physicalImpact": "fatality",
+    "physicalImpact": "fatal",
   },
   {
     "aggregatedImpact": undefined,
@@ -190,7 +190,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "name": "smoke meas data",
         "numericId": 1,
         "overallImpact": 4,
-        "physicalImpact": "fatality",
+        "physicalImpact": "fatal",
         "physicalImpactRationale": "Because relations are insufficient",
         "physicalImpactSource": "manual",
         "properties": {
@@ -314,7 +314,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "name": "calibration data",
         "numericId": 2,
         "overallImpact": 4,
-        "physicalImpact": "fatality",
+        "physicalImpact": "fatal",
         "physicalImpactRationale": "Because relations are insufficient",
         "physicalImpactSource": "manual",
         "properties": {
@@ -423,7 +423,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "name": "alarm configuration",
         "numericId": 3,
         "overallImpact": 4,
-        "physicalImpact": "fatality",
+        "physicalImpact": "fatal",
         "physicalImpactRationale": "Because relations are insufficient",
         "physicalImpactSource": "manual",
         "properties": {
@@ -510,7 +510,7 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "name": "controller firmware",
         "numericId": 4,
         "overallImpact": 4,
-        "physicalImpact": "fatality",
+        "physicalImpact": "fatal",
         "physicalImpactRationale": "Because relations are insufficient",
         "physicalImpactSource": "manual",
         "properties": {

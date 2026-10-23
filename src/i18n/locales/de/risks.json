@@ -793,7 +793,7 @@
       },
       "safety": {
         "name": "Safety-Auswirkung",
-        "description": "Welchen potenziellen Personenschaden gibt es? 1 = reversible leichte Verletzung, 2 = reversible moderate Verletzung, 3 = irreversible Verletzung, 4 = Todesfall. Gemäss ISO 12100 / EN 50742.",
+        "description": "Welchen potenziellen Personenschaden gibt es? 1 = reversibel leicht, 2 = reversibel schwer, 3 = irreversibel leicht, 4 = irreversibel schwer oder tödlich (IEC 62061 Se1–Se4).",
         "shortName": "Safety"
       },
       "physical_damage": {

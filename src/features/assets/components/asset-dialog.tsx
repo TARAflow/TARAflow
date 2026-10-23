@@ -49,7 +49,6 @@ import { Asset, AssetConfiguration } from "../models/asset-types";
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
-  SAFETY_IMPACT_SCALE,
   SAFETY_CRITERION_ID,
   IMPACT_CRITERION_KEY_PREFIX,
 } from "../models/asset-impact-types";
@@ -61,10 +60,11 @@ import {
   SECURITY_GOAL_KEY_PREFIX,
 } from "../models/asset-security-goals-types";
 import { calculateOverallImpact } from "../services/asset-impact-calculator";
+import { physicalLevelToSafetyRating } from "../services/asset-physical-impact-deriver";
 import {
-  safetyRatingToPhysicalLevel,
-  physicalLevelToSafetyRating,
-} from "../services/asset-physical-impact-deriver";
+  SafetySeveritySelect,
+  type SafetySeverityValue,
+} from "./safety-severity-select";
 import {
   deriveSecurityGoalSuggestions,
   explainLevel,
@@ -83,7 +83,11 @@ import {
 import { effectiveGoalRatings } from "../services/asset-impact-resolver";
 import { SecurityGoalCard } from "./security-goal-card";
 import { threatsForGoal } from "../services/asset-threat-crosscheck";
-import { compareDisplayIds, type ThreatGoalLink } from "shared";
+import {
+  compareDisplayIds,
+  safetySeverityToFactor,
+  type ThreatGoalLink,
+} from "shared";
 import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
 import type { AssetLink } from "../utils/asset-links";
 import { AssetLinkChips } from "./asset-link-chips";
@@ -306,18 +310,23 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
     }));
   };
 
-  // When safety rating changes in manual mode → also update physicalImpact
-  const handleSafetyRatingChange = (value: number | null | "na") => {
-    handleImpactChange(SAFETY_CRITERION_ID, {
-      target: { value: value === null ? "" : value },
-    } as unknown as SelectChangeEvent<number>);
-    if (isPhysicalManual) {
-      // ← isPhysicalManual statt editedAsset.physicalImpactSource
-      setEditedAsset((prev) => ({
-        ...prev,
-        physicalImpact: safetyRatingToPhysicalLevel(value),
-      }));
-    }
+  // Safety severity (manual mode): the categorical severity is the source of
+  // truth (physicalImpact); the rating stores the derived 4-level factor.
+  const handleSafetySeverityChange = (value: SafetySeverityValue) => {
+    const rating =
+      value === null ? null : value === "na" ? "na" : safetySeverityToFactor(value);
+    setEditedAsset((prev) => ({
+      ...prev,
+      impactRatings: prev.impactRatings.map((r) =>
+        r.criterionId === SAFETY_CRITERION_ID ? { ...r, value: rating } : r,
+      ),
+      ...(isPhysicalManual
+        ? {
+            physicalImpact:
+              value === null || value === "na" ? undefined : value,
+          }
+        : {}),
+    }));
   };
 
   // ── Security goals: explicit analyst actions only (asset-goal-state) ──
@@ -880,9 +889,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                         } else {
                           // Pre-fill safety rating from current derived value
                           const currentDerived = editedAsset.physicalImpact;
-                          const prefilledRating = physicalLevelToSafetyRating(
-                            currentDerived as any,
-                          );
+                          const prefilledRating =
+                            physicalLevelToSafetyRating(currentDerived);
                           setEditedAsset((prev) => ({
                             ...prev,
                             physicalImpactSource: "manual",
@@ -1047,6 +1055,18 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                             <InfoIcon fontSize="small" color="action" />
                           </Tooltip>
                         </Stack>
+                        {rating.criterionId === SAFETY_CRITERION_ID ? (
+                          <SafetySeveritySelect
+                            manual={isPhysicalManual}
+                            value={
+                              rating.value === "na"
+                                ? "na"
+                                : (editedAsset.physicalImpact ?? null)
+                            }
+                            derived={editedAsset.physicalImpact}
+                            onChange={handleSafetySeverityChange}
+                          />
+                        ) : (
                         <Select
                           value={
                             rating.value === null ||
@@ -1056,50 +1076,16 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                               : rating.value
                           }
                           onChange={(e) =>
-                            rating.criterionId === SAFETY_CRITERION_ID
-                              ? handleSafetyRatingChange(
-                                  e.target.value === ""
-                                    ? null
-                                    : (Number(e.target.value) as number | null),
-                                )
-                              : handleImpactChange(
-                                  rating.criterionId,
-                                  e as SelectChangeEvent<number>,
-                                )
+                            handleImpactChange(
+                              rating.criterionId,
+                              e as SelectChangeEvent<number>,
+                            )
                           }
                           size="small"
                           fullWidth
                           displayEmpty
-                          disabled={
-                            rating.criterionId === SAFETY_CRITERION_ID &&
-                            !isPhysicalManual
-                          }
                           renderValue={(val) => {
                             if (!val && val !== 0) {
-                              // Safety: show derived value when not manual
-                              if (
-                                rating.criterionId === SAFETY_CRITERION_ID &&
-                                !isPhysicalManual
-                              ) {
-                                const derivedRating =
-                                  physicalLevelToSafetyRating(
-                                    editedAsset.physicalImpact as any,
-                                  );
-                                const derivedLevel = SAFETY_IMPACT_SCALE.find(
-                                  (l) => l.value === derivedRating,
-                                );
-                                if (derivedLevel) {
-                                  return (
-                                    <em style={{ color: "#9e9e9e" }}>
-                                      {t(derivedLevel.labelKey)} (
-                                      {t(derivedLevel.severityKey)}){" — "}
-                                      {t("tabs.assets.dialog.derivedFromDFD", {
-                                        defaultValue: "derived from DFD",
-                                      })}
-                                    </em>
-                                  );
-                                }
-                              }
                               return (
                                 <em style={{ color: "#9e9e9e" }}>
                                   {t("tabs.assets.dialog.notRated", {
@@ -1128,41 +1114,6 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                                     {t("common.notApplicable", {
                                       defaultValue: "N/A – Not applicable",
                                     })}
-                                  </span>
-                                </Stack>
-                              );
-                            }
-                            // Safety: show severity label with color dot
-                            if (rating.criterionId === SAFETY_CRITERION_ID) {
-                              const safetyLevel = SAFETY_IMPACT_SCALE.find(
-                                (l) => l.value === Number(val),
-                              );
-                              if (!safetyLevel) return String(val);
-                              return (
-                                <Stack
-                                  direction="row"
-                                  spacing={1}
-                                  alignItems="center"
-                                >
-                                  <Box
-                                    sx={{
-                                      width: 12,
-                                      height: 12,
-                                      borderRadius: "50%",
-                                      backgroundColor: safetyLevel.color,
-                                      flexShrink: 0,
-                                    }}
-                                  />
-                                  <span>
-                                    {safetyLevel.value} –{" "}
-                                    {t(safetyLevel.labelKey)}{" "}
-                                    <Typography
-                                      component="span"
-                                      variant="caption"
-                                      color="text.secondary"
-                                    >
-                                      ({t(safetyLevel.severityKey)})
-                                    </Typography>
                                   </span>
                                 </Stack>
                               );
@@ -1225,38 +1176,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                               </span>
                             </Stack>
                           </MenuItem>
-                          {/* Safety criterion uses fixed 4-level severity scale */}
-                          {rating.criterionId === SAFETY_CRITERION_ID
-                            ? SAFETY_IMPACT_SCALE.map((level) => (
-                                <MenuItem key={level.value} value={level.value}>
-                                  <Stack
-                                    direction="row"
-                                    spacing={1}
-                                    alignItems="center"
-                                  >
-                                    <Box
-                                      sx={{
-                                        width: 12,
-                                        height: 12,
-                                        borderRadius: "50%",
-                                        backgroundColor: level.color,
-                                        flexShrink: 0,
-                                      }}
-                                    />
-                                    <span>
-                                      {level.value} – {t(level.labelKey)}{" "}
-                                      <Typography
-                                        component="span"
-                                        variant="caption"
-                                        color="text.secondary"
-                                      >
-                                        ({t(level.severityKey)})
-                                      </Typography>
-                                    </span>
-                                  </Stack>
-                                </MenuItem>
-                              ))
-                            : scale.levels.map((level) => (
+                          {scale.levels.map((level) => (
                                 <MenuItem key={level.value} value={level.value}>
                                   <Stack
                                     direction="row"
@@ -1281,6 +1201,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                                 </MenuItem>
                               ))}
                         </Select>
+                        )}
                       </Paper>
                     </Grid>
                   );

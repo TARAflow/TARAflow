@@ -1,3 +1,10 @@
+import {
+  SAFETY_SEVERITIES,
+  SAFETY_SEVERITY_COLOR,
+  safetySeverityToFactor,
+  type SafetySeverity,
+} from "shared/models/safety-types";
+
 // ==================== IMPACT RATING SCALES ====================
 
 /**
@@ -175,61 +182,38 @@ export const PREDEFINED_IMPACT_CRITERIA: ImpactCriterionDefinition[] = [
 ];
 
 // ==================== SAFETY IMPACT SCALE ====================
-// Fixed 4-level scale for the "safety" criterion — independent of project scale.
-// Maps to ISO 12100 / EN 50742 injury severity categories.
+// The canonical 5-level person-harm scale (shared/models/safety-types.ts),
+// independent of the project impact scale.
 //
-// Values 1–4 are stored as ImpactRating.value and used in overallImpact calculation.
-// The severity label is shown in the UI alongside the numeric level.
+// The categorical severity is the source of truth (asset.physicalImpact).
+// The "safety" ImpactRating.value stores the derived fixed 4-level factor
+// (IEC 62061 Se1–Se4): irreversible_major and fatal share factor 4.
 
 /**
  * Safety impact level — all labels are in i18n.
- * Use t("tabs.assets.safetyScale.{value}.label") and
- *     t("tabs.assets.safetyScale.{value}.severity")
+ * Use t(level.labelKey) for the factor label and
+ *     t(safetyImpactI18nKey(level.severity)) for the severity.
  */
 export interface SafetyImpactLevel {
-  value: number;
-  /** i18n key: tabs.assets.safetyScale.{value}.label */
+  severity: SafetySeverity;
+  /** Fixed 4-level factor stored as ImpactRating.value */
+  factor: number;
+  /** i18n key: tabs.assets.safetyScale.{factor}.label */
   labelKey: string;
-  /** i18n key: tabs.assets.safetyScale.{value}.severity */
-  severityKey: string;
-  severity:
-    | "reversible_minor"
-    | "reversible_moderate"
-    | "irreversible_injury"
-    | "fatality";
   color: string;
 }
 
-export const SAFETY_IMPACT_SCALE: SafetyImpactLevel[] = [
-  {
-    value: 1,
-    labelKey: "tabs.assets.safetyScale.1.label",
-    severityKey: "tabs.assets.safetyScale.1.severity",
-    severity: "reversible_minor",
-    color: "#22c55e",
+export const SAFETY_IMPACT_SCALE: SafetyImpactLevel[] = SAFETY_SEVERITIES.map(
+  (severity) => {
+    const factor = safetySeverityToFactor(severity);
+    return {
+      severity,
+      factor,
+      labelKey: `tabs.assets.safetyScale.${factor}.label`,
+      color: SAFETY_SEVERITY_COLOR[severity],
+    };
   },
-  {
-    value: 2,
-    labelKey: "tabs.assets.safetyScale.2.label",
-    severityKey: "tabs.assets.safetyScale.2.severity",
-    severity: "reversible_moderate",
-    color: "#eab308",
-  },
-  {
-    value: 3,
-    labelKey: "tabs.assets.safetyScale.3.label",
-    severityKey: "tabs.assets.safetyScale.3.severity",
-    severity: "irreversible_injury",
-    color: "#f97316",
-  },
-  {
-    value: 4,
-    labelKey: "tabs.assets.safetyScale.4.label",
-    severityKey: "tabs.assets.safetyScale.4.severity",
-    severity: "fatality",
-    color: "#dc2626",
-  },
-];
+);
 
 /** The criterion ID for the safety impact rating */
 export const SAFETY_CRITERION_ID = "safety";

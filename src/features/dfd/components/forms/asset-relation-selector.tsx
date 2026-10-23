@@ -67,7 +67,14 @@ import {
   hasQualifier,
   isIsAnRelation,
 } from "../../models/asset-relation-types";
-import { AnyAssetRelationType, AssetGroup, SafetyAnnotation } from "shared";
+import {
+  AnyAssetRelationType,
+  AssetGroup,
+  SAFETY_IMPACTS,
+  SafetyAnnotation,
+  safetyImpactI18nKey,
+  worstSafetySeverity,
+} from "shared";
 import { getAllowedRelations } from "../../models/asset-constants";
 import type { DFDElementType } from "../../models/dfd-types";
 
@@ -319,11 +326,8 @@ function worstSafety(rels: AssetRelation[]): SafetyAnnotation["relevance"] {
 }
 
 function worstImpact(rels: AssetRelation[]): SafetyAnnotation["impact"] | undefined {
-  const order: SafetyAnnotation["impact"][] = ["fatality", "irreversible_injury", "reversible_injury", "none"];
-  for (const level of order) {
-    if (rels.some((r) => r.safety?.impact === level)) return level;
-  }
-  return undefined;
+  if (!rels.some((r) => r.safety?.impact)) return undefined;
+  return worstSafetySeverity(rels.map((r) => r.safety?.impact)) ?? "none";
 }
 
 // ==================== MAIN COMPONENT ====================
@@ -488,7 +492,7 @@ export const AssetRelationSelector: React.FC<AssetRelationSelectorProps> = ({
                     defaultValue: "Not allowed for this element type — open to remove",
                   })
                 : relSafety !== "none"
-                  ? `Safety: ${relSafety}${r.safety?.impact ? ` · ${r.safety.impact.replace(/_/g, " ")}` : ""}`
+                  ? `Safety: ${relSafety}${r.safety?.impact ? ` · ${t(safetyImpactI18nKey(r.safety.impact))}` : ""}`
                   : "";
               return (
                 <Tooltip
@@ -1548,7 +1552,7 @@ const RelationDetailCard: React.FC<RelationDetailCardProps> = ({
             >
               ⚠ {config.safety.relevance}
               {config.safety.impact &&
-                ` · ${config.safety.impact.replace(/_/g, " ")}`}
+                ` · ${t(safetyImpactI18nKey(config.safety.impact))}`}
             </Box>
           )}
           {needsQualifier && !qualifierValid && (
@@ -1663,7 +1667,7 @@ const RelationDetailCard: React.FC<RelationDetailCardProps> = ({
                   )}
                   {config.safety.impact && config.safety.impact !== "none" && (
                     <Chip
-                      label={config.safety.impact.replace(/_/g, " ")}
+                      label={t(safetyImpactI18nKey(config.safety.impact))}
                       size="small"
                       color="warning"
                       variant="outlined"
@@ -1737,7 +1741,7 @@ const SafetyAnnotationForm: React.FC<SafetyAnnotationFormProps> = ({
           <FormControl size="small" fullWidth>
             <InputLabel>
               {t(
-                "tabs.dfd.element_description.assetRelations.safetyAnnotation.impact",
+                "tabs.dfd.element_description.assetRelations.safetyAnnotation.impact.label",
                 {
                   defaultValue: "Safety Impact",
                 },
@@ -1749,18 +1753,17 @@ const SafetyAnnotationForm: React.FC<SafetyAnnotationFormProps> = ({
                 set({ impact: e.target.value as SafetyAnnotation["impact"] })
               }
               label={t(
-                "tabs.dfd.element_description.assetRelations.safetyAnnotation.impact",
+                "tabs.dfd.element_description.assetRelations.safetyAnnotation.impact.label",
                 {
                   defaultValue: "Safety Impact",
                 },
               )}
             >
-              <MenuItem value="none">None</MenuItem>
-              <MenuItem value="reversible_injury">Reversible Injury</MenuItem>
-              <MenuItem value="irreversible_injury">
-                Irreversible Injury
-              </MenuItem>
-              <MenuItem value="fatality">Fatality</MenuItem>
+              {SAFETY_IMPACTS.map((impact) => (
+                <MenuItem key={impact} value={impact}>
+                  {t(safetyImpactI18nKey(impact))}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 

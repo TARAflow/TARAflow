@@ -168,7 +168,11 @@ import {
   ATTACKER_CAPABILITY_SCORE,
 } from "../models/en50742-approach-a-core";
 import type { SrslAnchorType } from "../models/en50742-approach-a-core";
-import { WINDOW_OF_OPPORTUNITY_MULTIPLIERS, formatAssetLabel } from "shared";
+import {
+  WINDOW_OF_OPPORTUNITY_MULTIPLIERS,
+  formatAssetLabel,
+  isIrreversibleOrWorse,
+} from "shared";
 import { RiskScorePanel } from "./shared/risk-score-panel";
 import { SrslBadge } from "./shared/srsl-badge";
 import { SrslReferenceTables } from "./shared/srsl-reference-tables";
@@ -1938,8 +1942,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       {linkedAssets.map((asset) => {
                         const aImpact = asset.aggregatedImpact;
                         const hasSafety =
-                          asset.physicalImpact === "fatality" ||
-                          asset.physicalImpact === "irreversible_injury";
+                          isIrreversibleOrWorse(asset.physicalImpact);
                         const groupCfg =
                           ASSET_GROUP_CONFIG[
                             asset.assetGroup as keyof typeof ASSET_GROUP_CONFIG
@@ -2808,8 +2811,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       {linkedAssets.map((asset) => {
                         const aImpact = asset.aggregatedImpact;
                         const hasSafety =
-                          asset.physicalImpact === "fatality" ||
-                          asset.physicalImpact === "irreversible_injury";
+                          isIrreversibleOrWorse(asset.physicalImpact);
                         const groupCfg =
                           ASSET_GROUP_CONFIG[
                             asset.assetGroup as keyof typeof ASSET_GROUP_CONFIG

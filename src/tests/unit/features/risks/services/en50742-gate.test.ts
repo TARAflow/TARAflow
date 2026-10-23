@@ -21,7 +21,7 @@ import type { AssetReference } from "shared";
 
 function asset(
   id: string,
-  physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality",
+  physicalImpact?: "reversible_major" | "irreversible_major" | "fatal",
 ): AssetReference {
   return {
     id,
@@ -124,7 +124,7 @@ describe("calculateGatedRiskValues — en-50742-a projects, EL present (gate act
       elRated(3),
       acRated(4),
     ]; // EL2, basic — worked example
-    const linkedAssets = [asset("A-1", "irreversible_injury")]; // → non_reversible
+    const linkedAssets = [asset("A-1", "irreversible_major")]; // → non_reversible
 
     const result = calculateGatedRiskValues(ratings, config, linkedAssets);
 
@@ -167,7 +167,7 @@ describe("calculateGatedRiskValues — SRSL and R = L × I are separated", () =>
       { factorId: "financial_damage", value: 4, weight: 1 }, // impact
       likRated(3), // the only likelihood input
     ];
-    const linkedAssets = [asset("A-1", "irreversible_injury")];
+    const linkedAssets = [asset("A-1", "irreversible_major")];
 
     const strong = calculateGatedRiskValues(
       [...base, elRated(4), acRated(4)],

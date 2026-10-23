@@ -334,14 +334,14 @@ Infrastructure ← Umgebung / Arena (Wo läuft alles?)
 
 ```
 relevance:              "none" | "indirect" | "direct"
-impact:                 "none" | "reversible_injury" | "irreversible_injury" | "fatality"
+impact:                 "none" | SafetySeverity
 physicalHazardPotential: "low" | "medium" | "high"
 protectionTarget:       true | false  (nur Human Assets)
 affectedSafetyFunctions: string[]
 rationale:              string
 ```
 
-**Safety Override Rule:** `fatality` oder `irreversible_injury` → automatisch höchste Priorität (ISO 12100).
+**Safety Override Rule:** `fatal` oder `irreversible_major` → automatisch höchste Priorität (ISO 12100).
 
 **Derived/Manual Pattern:**
 ```
@@ -395,7 +395,7 @@ isHighValueAsset === 'low'       → kein Override, informativ
 
 **Prioritätshierarchie (absteigend):**
 ```
-1. Safety Override (fatality + direct)  → CRITICAL
+1. Safety Override (fatal + direct)  → CRITICAL
 2. HVA critical                         → CRITICAL minimum
 3. HVA high                             → HIGH minimum
 4. HVA medium / Operational critical   → HIGH minimum

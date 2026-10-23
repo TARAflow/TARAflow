@@ -41,6 +41,7 @@ import {
 } from "./asset-impact-calculator";
 import {
   deriveAggregatedImpact,
+  isPhysicalImpactDirect,
   overallImpactToBusinessLevel,
   type PhysicalImpactLevel,
 } from "./asset-physical-impact-deriver";
@@ -208,11 +209,10 @@ class AssetService {
     const physicalLevel = withHVA.physicalImpact as
       | PhysicalImpactLevel
       | undefined;
-    const physicalDirect = withHVA.linkedDFDElements.some(
-      (l) =>
-        l.safety?.relevance === "direct" &&
-        (l.safety.impact === "fatality" ||
-          l.safety.impact === "irreversible_injury"),
+    const physicalDirect = isPhysicalImpactDirect(
+      physicalLevel,
+      withHVA.physicalImpactSource,
+      withHVA.linkedDFDElements,
     );
     const aggregated = deriveAggregatedImpact(
       physicalLevel,

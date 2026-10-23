@@ -13,6 +13,7 @@
 // a feature (would couple assets to hazards).
 
 import type { Asset } from "features/assets";
+import type { SafetySeverity } from "shared";
 import {
   type AssetReference,
   type AssetDataReference,
@@ -61,9 +62,7 @@ export function buildAssetDataReference(
     // (above) is legacy / override.
     isHazardTarget: hazardLinks[a.id]?.isHazardTarget ?? false,
     hazardSeverity: hazardLinks[a.id]?.worstSeverity as
-      | "reversible_injury"
-      | "irreversible_injury"
-      | "fatality"
+      | SafetySeverity
       | undefined,
     linkedElementIds: [
       ...new Set(a.linkedDFDElements?.map((el) => el.elementId) ?? []),

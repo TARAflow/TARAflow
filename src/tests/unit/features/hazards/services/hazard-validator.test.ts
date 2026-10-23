@@ -22,7 +22,7 @@ const completeHazard = (): HazardData => {
   d = hazardRelationService.addEndangers(d, {
     hazardId: item.id,
     targetAssetId: "HUM-1",
-    impact: { target: "human", severity: "fatality" },
+    impact: { target: "human", severity: "fatal" },
   });
   return d;
 };
@@ -41,7 +41,7 @@ describe("hazardValidator", () => {
     d = hazardRelationService.addEndangers(d, {
       hazardId: item.id,
       targetAssetId: "HUM-1",
-      impact: { target: "human", severity: "fatality" },
+      impact: { target: "human", severity: "fatal" },
     });
     const v = hazardValidator.validate(d);
     expect(v.errors.some((e) => e.includes("contributes_to"))).toBe(true);
@@ -75,7 +75,7 @@ describe("hazardValidator", () => {
     d = hazardRelationService.addEndangers(d, {
       hazardId: item.id,
       targetAssetId: "HUM-1",
-      impact: { target: "human", severity: "fatality" },
+      impact: { target: "human", severity: "fatal" },
     });
     const v = hazardValidator.validate(d);
     expect(v.warnings.some((w) => w.includes("ALL"))).toBe(true);
@@ -101,7 +101,7 @@ describe("hazardValidator", () => {
     d = hazardRelationService.addEndangers(d, {
       hazardId: item.id,
       targetAssetId: "HUM-1",
-      impact: { target: "human", severity: "fatality" },
+      impact: { target: "human", severity: "fatal" },
     });
     const v = hazardValidator.validate(d);
     expect(v.warnings.some((w) => w.includes("ALL"))).toBe(false);

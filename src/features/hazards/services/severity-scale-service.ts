@@ -10,7 +10,7 @@ import type { HazardTargetKind } from "shared";
 
 /**
  * Ordered severity options for a given endangers target kind:
- *   human          -> safety scale (reversible/irreversible/fatality)
+ *   human          -> canonical safety scale (reversible_minor … fatal)
  *   environment    -> low/medium/high/critical
  *   infrastructure -> low/medium/high/critical (destruction)
  *

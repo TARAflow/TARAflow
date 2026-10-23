@@ -41,7 +41,7 @@ const summary = (over: Partial<AssetHazardSummary>): AssetHazardSummary => ({
 
 const endangered = summary({
   isHazardTarget: true,
-  endangeredBy: [{ hazardId: "H-01", label: "Fire not detected", role: "endangered", severity: "fatality" }],
+  endangeredBy: [{ hazardId: "H-01", label: "Fire not detected", role: "endangered", severity: "fatal" }],
 });
 
 const keysOf = (assetData: AssetData, links?: AssetHazardLinks) =>

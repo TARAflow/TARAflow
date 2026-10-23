@@ -58,7 +58,7 @@ describe("mapDFDAssetsToAssetFeature", () => {
           relationType: "reads",
           safety: {
             relevance: "direct",
-            impact: "fatality",
+            impact: "fatal",
             physicalHazardPotential: "high",
             rationale: "test fixture",
           },
@@ -72,7 +72,7 @@ describe("mapDFDAssetsToAssetFeature", () => {
     const link = result[0].linkedElements?.find((l) => l.displayId === "P-4");
     expect(link?.safety).toEqual({
       relevance: "direct",
-      impact: "fatality",
+      impact: "fatal",
       physicalHazardPotential: "high",
       rationale: "test fixture",
     });
@@ -85,7 +85,7 @@ describe("mapDFDAssetsToAssetFeature", () => {
           assetId: "DA-001",
           assetGroup: "data",
           relationType: "transports",
-          safety: { relevance: "indirect", impact: "reversible_injury" },
+          safety: { relevance: "indirect", impact: "reversible_major" },
         } as any,
       ],
     });

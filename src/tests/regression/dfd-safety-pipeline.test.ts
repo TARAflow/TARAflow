@@ -1,7 +1,7 @@
 // src/tests/unit/app/dfd-safety-pipeline.test.ts
 //
 // End-to-end regression test for the DA-001 production bug: a
-// SafetyAnnotation (relevance: "direct", impact: "fatality") set on an
+// SafetyAnnotation (relevance: "direct", impact: "fatal") set on an
 // element→asset relation via the Asset Relation Selector never reached
 // Asset.physicalImpact / aggregatedImpact.
 //
@@ -43,7 +43,7 @@ describe("DFD safety annotation → Asset impact (full pipeline, DA-001 regressi
           relationType: "reads",
           safety: {
             relevance: "direct",
-            impact: "fatality",
+            impact: "fatal",
             physicalHazardPotential: "high",
             rationale: "Regression fixture — see DA-001 production incident",
           },
@@ -99,7 +99,7 @@ describe("DFD safety annotation → Asset impact (full pipeline, DA-001 regressi
     // ---- Assert: the exact regression ----
     const asset = result.assets.find((a) => a.id === "DA-001");
     expect(asset).toBeDefined();
-    expect(asset?.physicalImpact).toBe("fatality");
+    expect(asset?.physicalImpact).toBe("fatal");
     expect(asset?.physicalImpactSource).toBe("derived");
     expect(asset?.aggregatedImpact).toBe("CRITICAL");
 

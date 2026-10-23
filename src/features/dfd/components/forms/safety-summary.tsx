@@ -13,22 +13,19 @@ import {
 import type { AssetRelation } from "../../models/dfd-types";
 import { isIsAnRelation, hasQualifier } from "../../models/asset-relation-types";
 import type { AvailableAsset } from "./asset-relation-selector";
+import {
+  isIrreversibleOrWorse,
+  safetyImpactI18nKey,
+  worstSafetySeverity,
+  type SafetyImpact,
+} from "shared";
 
 // ==================== CONSTANTS ====================
 
-const IMPACT_ORDER = [
-  "fatality",
-  "irreversible_injury",
-  "reversible_injury",
-  "none",
-] as const;
-
-const IMPACT_COLOR: Record<string, "error" | "warning" | "default"> = {
-  fatality: "error",
-  irreversible_injury: "error",
-  reversible_injury: "warning",
-  none: "default",
-};
+function impactColor(impact: SafetyImpact): "error" | "warning" | "default" {
+  if (impact === "none") return "default";
+  return isIrreversibleOrWorse(impact) ? "error" : "warning";
+}
 
 const RELEVANCE_COLOR: Record<string, "error" | "warning" | "default"> = {
   direct: "error",
@@ -76,10 +73,8 @@ export const SafetySummary: React.FC<SafetySummaryProps> = ({
       <Stack spacing={1}>
         {[...byAsset.entries()].map(([assetId, rels]) => {
           const asset = availableAssets.find((a) => a.id === assetId);
-          const worstImpact =
-            IMPACT_ORDER.find((lvl) =>
-              rels.some((r) => r.safety?.impact === lvl),
-            ) ?? "none";
+          const worstImpact: SafetyImpact =
+            worstSafetySeverity(rels.map((r) => r.safety?.impact)) ?? "none";
           const hasDirect = rels.some((r) => r.safety?.relevance === "direct");
 
           return (
@@ -109,9 +104,9 @@ export const SafetySummary: React.FC<SafetySummaryProps> = ({
                         />
                         {impact && impact !== "none" && (
                           <Chip
-                            label={impact.replace(/_/g, " ")}
+                            label={t(safetyImpactI18nKey(impact))}
                             size="small"
-                            color={IMPACT_COLOR[impact] ?? "default"}
+                            color={impactColor(impact)}
                             variant="filled"
                           />
                         )}
@@ -129,9 +124,13 @@ export const SafetySummary: React.FC<SafetySummaryProps> = ({
                     );
                   })}
                 </Box>
-                {(hasDirect || worstImpact === "fatality" || worstImpact === "irreversible_injury") && (
+                {(hasDirect || isIrreversibleOrWorse(worstImpact)) && (
                   <Chip
-                    label={hasDirect ? "DIRECT" : worstImpact.replace(/_/g, " ").toUpperCase()}
+                    label={
+                      hasDirect
+                        ? "DIRECT"
+                        : t(safetyImpactI18nKey(worstImpact)).toUpperCase()
+                    }
                     size="small"
                     color="error"
                     sx={{ fontWeight: 700, fontSize: 10 }}

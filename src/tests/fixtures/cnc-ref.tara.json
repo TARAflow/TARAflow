@@ -29783,7 +29783,7 @@
         "to": "HU-001",
         "impact": {
           "target": "human",
-          "severity": "reversible_injury"
+          "severity": "reversible_major"
         }
       }
     ],

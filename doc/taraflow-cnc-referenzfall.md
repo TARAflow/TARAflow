@@ -234,7 +234,7 @@ Die folgende Tabelle zeigt Properties für sicherheitskritische und repräsentat
 | `exposureLevel` | `EL3` | `EL2` | `EL2` | `EL1` | `EL1` | `EL2` |
 | `safetyRelevant` | `true` | `true` | `false` | `true` | `true` | `false` |
 | `crossesSafetyBoundary` | `false` | `false` | `false` | `true` | `true` | `false` |
-| `safetyRationale` | Manipuliertes NC-Programm → falsche Werkzeugbewegung | Manipuliertes File → falsches NC-Programm auf Share | – | Emergency-Stop-Signal; Unterbrechung = fatality | Safety-Parameter; Manipulation kompromittiert SIS-Logik | – |
+| `safetyRationale` | Manipuliertes NC-Programm → falsche Werkzeugbewegung | Manipuliertes File → falsches NC-Programm auf Share | – | Emergency-Stop-Signal; Unterbrechung = fatal | Safety-Parameter; Manipulation kompromittiert SIS-Logik | – |
 | `dataTypes` | G-Code, Fertigungsrezept | G-Code, Fertigungsrezept | G-Code, Fertigungsrezept | Binäres Steuersignal | Safety-Grenzwerte, PLC-Konfiguration | Achspositionen, Temperaturen, Alarme |
 
 ---
@@ -258,7 +258,7 @@ Die folgenden Tabellen erweitern die Asset-Übersicht aus Kapitel 3 um die struk
 | `confidentialityImpact` | `high` | `high` | `medium` | `low` | `low` | `medium` | `medium` |
 | `integrityImpact` | `critical` | `critical` | `medium` | `medium` | `low` | `critical` | `medium` |
 | `availabilityImpact` | `high` | `high` | `low` | `medium` | `low` | `critical` | `medium` |
-| `physicalImpact` | `fatality` | `irreversible_injury` | `none` | `none` | `none` | `fatality` | `none` |
+| `physicalImpact` | `fatal` | `irreversible_major` | `none` | `none` | `none` | `fatal` | `none` |
 | `businessImpact` | `critical` | `high` | `medium` | `low` | `low` | `critical` | `medium` |
 | `aggregatedCriticality` | `critical` | `critical` | `medium` | `low` | `low` | `critical` | `medium` |
 
@@ -273,12 +273,12 @@ Die folgenden Tabellen erweitern die Asset-Übersicht aus Kapitel 3 um die struk
 | `externalRefs[0].id` | `SF-001` | `SF-002` |
 | `externalRefs[0].standard` | `ISO 13849` | `ISO 12100` |
 | `externalRefs[0].document` | Safety Analysis Rev. 2.3 | Safety Analysis Rev. 2.3 |
-| `safetyImpact` | `fatality` | `fatality` |
+| `safetyImpact` | `fatal` | `fatal` |
 | `safetyRationale` | Unterbrechung verhindert zuverlässiges Stoppen der Maschine | Fehlerhafte Ausführung → unkontrollierte Werkzeugbewegung |
 | `confidentialityImpact` | `low` | `medium` |
 | `integrityImpact` | `critical` | `critical` |
 | `availabilityImpact` | `critical` | `critical` |
-| `physicalImpact` | `fatality` | `fatality` |
+| `physicalImpact` | `fatal` | `fatal` |
 | `aggregatedCriticality` | `critical` | `critical` |
 
 ---
@@ -293,7 +293,7 @@ Die folgenden Tabellen erweitern die Asset-Übersicht aus Kapitel 3 um die struk
 | `domain` | OT-Manufacturing | OT-Manufacturing | OT-Safety | OT-Manufacturing |
 | `isValidatedProcess` | `false` | `false` | `true` | `false` |
 | `validationRationale` | – | – | SIL-2-Validierung gemäss IEC 61508; Abnahmeprotokoll vorhanden | – |
-| `safetyImpact` | `fatality` | `fatality` | `fatality` | `none` |
+| `safetyImpact` | `fatal` | `fatal` | `fatal` | `none` |
 | `safetyRationale` | Unkontrollierter Ablauf → Personengefährdung durch rotierende Werkzeuge | Einrichter im Gefahrenbereich; reduzierter Schutzmodus | Muss zuverlässig stoppen – Ausfall = direkte Gefährdung | Rein qualitätssichernd, kein Sicherheitsbezug |
 | `confidentialityImpact` | `medium` | `low` | `low` | `low` |
 | `integrityImpact` | `critical` | `high` | `critical` | `medium` |
@@ -311,7 +311,7 @@ Die folgenden Tabellen erweitern die Asset-Übersicht aus Kapitel 3 um die struk
 | `exposure` | `internal` | `internal` | `internal` | `internal` | `dmz` |
 | `safetyRelevant` | `true` | `true` | `true` | `true` | `false` |
 | `physicalHazardPotential` | `high` | `high` | `medium` | `high` | `low` |
-| `safetyImpact` | `fatality` | `fatality` | `fatality` | `fatality` | `none` |
+| `safetyImpact` | `fatal` | `fatal` | `fatal` | `fatal` | `none` |
 | `safetyRationale` | Direkte Achsbewegung bei Kompromittierung | Direkte Kollisionsgefahr bei Fehlsteuerung | Steuerungsschicht zu allen Feldgeräten; indirekte Gefährdung | SIS-Ausfall = vollständiger Verlust der Sicherheitsfunktion | Kein direkter Maschinenzugriff |
 | `confidentialityImpact` | `medium` | `medium` | `medium` | `low` | `high` |
 | `integrityImpact` | `critical` | `critical` | `critical` | `critical` | `high` |
@@ -329,7 +329,7 @@ Die folgenden Tabellen erweitern die Asset-Übersicht aus Kapitel 3 um die struk
 | `location` | `factory` | `factory` | `factory` | `factory` |
 | `environmentalHazard` | `mechanical` | `mechanical` | `none` | `none` |
 | `isPhysicalBarrier` | `false` | `true` | `false` | `false` |
-| `safetyImpact` | `fatality` | `fatality` | `irreversible_injury` | `irreversible_injury` |
+| `safetyImpact` | `fatal` | `fatal` | `irreversible_major` | `irreversible_major` |
 | `safetyRationale` | Physische Anwesenheit von Personal im Arbeitsbereich | Primäre physische Schutzbarriere gegen Maschinenkontakt | Steuerungskomponenten; Manipulation = Kontrollverlust | Ausfall blockiert alle Safety-relevanten Kommunikationspfade |
 | `isHighValueAsset` | `critical` | `high` | `high` | `medium` |
 | `isHighValueAssetSource` | `derived` | `derived` | `derived` | `derived` |
@@ -350,7 +350,7 @@ Die folgenden Tabellen erweitern die Asset-Übersicht aus Kapitel 3 um die struk
 | `role` | `operator` | `operator` | `developer` | `external` |
 | `securityRelevant` | `false` | `true` | `true` | `true` |
 | `isProtectionTarget` | `true` | `true` | `false` | `true` |
-| `safetyImpact` | `fatality` | `fatality` | `none` | `fatality` |
+| `safetyImpact` | `fatal` | `fatal` | `none` | `fatal` |
 | `safetyRationale` | Physische Präsenz im Gefahrenbereich der Maschine | Physische Präsenz während Einrichtung; reduzierter Schutzmodus | Erstellt NC-Programme am Schreibtisch; kein physischer Gefahrenbereich | Physische Präsenz bei Wartung; Gefahrenbereich je nach Tätigkeit |
 | `physicalHazardPotential` | `high` | `high` | `low` | `high` |
 | `confidentialityImpact` | `low` | `medium` | `high` | `medium` |
@@ -370,7 +370,7 @@ STRIDE-Analyse.
 
 **Safety Annotation Layer:** Safety-Aspekte werden als optionaler Annotation Layer auf
 bestehenden Beziehungen modelliert – nicht als separates Safety-Modell. Wird an einer Beziehung
-eine SafetyAnnotation gesetzt (`relevance: 'direct'`, `impact: 'fatality'`), signalisiert der
+eine SafetyAnnotation gesetzt (`relevance: 'direct'`, `impact: 'fatal'`), signalisiert der
 Analyst dass dieses Asset über diese Beziehung direkt safety-relevant ist. Die Annotation ist
 der primäre Trigger für den Safety Impact im Asset-Tab. Der Safety Impact am Asset kann
 abgeleitet (`derived`) oder manuell (`manual`) gesetzt werden. Bei manueller Setzung ist eine
@@ -385,7 +385,7 @@ Identifizierte Data Assets: Fertigungsrezepte, Kalibrierungsdaten, Produktionsda
 DataStore "CNC Filesystem"
 ├─ stores → Data Asset "Fertigungsrezepte"
 └─ stores → Data Asset "Kalibrierungsdaten"
-   └─ safety: { relevance: 'direct', impact: 'irreversible_injury',
+   └─ safety: { relevance: 'direct', impact: 'irreversible_major',
                 rationale: 'Falsche Kalibrierung → unkontrollierte Bewegung' }
 
 DataStore "Network Share"
@@ -396,7 +396,7 @@ DataStore "Historian Database"
 
 DataStore "PLC Memory"
 └─ stores → Data Asset "Safety-Parameter"
-   └─ safety: { relevance: 'indirect', impact: 'fatality',
+   └─ safety: { relevance: 'indirect', impact: 'fatal',
                 rationale: 'Manipulation der Safety-Parameter kompromittiert SIS-Logik –
                             indirekter Einfluss über Safety Controller auf Not-Halt-Fähigkeit' }
 
@@ -415,7 +415,7 @@ Process "SCADA System"
 
 DF "push nc program [cmd]"
 └─ transports → Data Asset "Fertigungsrezepte"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Manipuliertes NC-Programm → falsche Werkzeugbewegung → Personengefährdung' }
 
 DF "pull scada diagnostics ext [resp]"
@@ -437,22 +437,22 @@ Identifizierte Function Assets: Not-Halt-Funktion, NC-Programm-Ausführung.
 ```
 DF "send cnc emergency stop [cmd]"
 └─ is_an → Function Asset "Not-Halt-Funktion"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Unterbrechung oder Manipulation des Emergency-Stop-Signals
                             verhindert zuverlässiges Stoppen der Maschine' }
 
 DF "send robot emergency stop [cmd]"
 └─ is_an → Function Asset "Not-Halt-Funktion"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'identisch – gilt für Robot Controller' }
 
 Process "Safety Controller (SIS)"
 └─ executes → Function Asset "Not-Halt-Funktion"
-   └─ safety: { relevance: 'direct', impact: 'fatality' }
+   └─ safety: { relevance: 'direct', impact: 'fatal' }
 
 Process "CNC Controller"
 └─ executes → Function Asset "NC-Programm-Ausführung"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Korrekte Ausführung des NC-Programms ist direkt sicherheitsrelevant' }
 ```
 
@@ -463,7 +463,7 @@ Function Asset "Not-Halt-Funktion"
 
 Function Asset "NC-Programm-Ausführung"
 └─ depends_on → Data Asset "Fertigungsrezepte"
-   └─ safety: { relevance: 'direct', impact: 'fatality' }
+   └─ safety: { relevance: 'direct', impact: 'fatal' }
 ```
 
 ### 3.3 Process Assets
@@ -486,9 +486,9 @@ EE "Maintenance Technician"
 
 Process "Safety Controller (SIS)"
 ├─ executes   → Process Asset "Not-Halt-Prozess"
-│  └─ safety: { relevance: 'direct', impact: 'fatality' }
+│  └─ safety: { relevance: 'direct', impact: 'fatal' }
 └─ terminates → Process Asset "Zerspanungsprozess"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Not-Halt muss zuverlässig stoppen können' }
 ```
 
@@ -500,20 +500,20 @@ Identifizierte System Assets: CNC-Maschine, Roboter, SCADA System, Safety Contro
 ```
 Process "CNC Controller"
 └─ is_an → System Asset "CNC-Maschine"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 physicalHazardPotential: 'high' }
 
 Process "Robot Controller"
 └─ is_an → System Asset "Roboter"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 physicalHazardPotential: 'high' }
 
 Process "SCADA System"
 ├─ controls  → System Asset "CNC-Maschine"
-│  └─ safety: { relevance: 'indirect', impact: 'fatality',
+│  └─ safety: { relevance: 'indirect', impact: 'fatal',
 │               rationale: 'Kompromittiertes SCADA kann Maschinenbewegungen auslösen' }
 ├─ controls  → System Asset "Roboter"
-│  └─ safety: { relevance: 'indirect', impact: 'fatality',
+│  └─ safety: { relevance: 'indirect', impact: 'fatal',
 │               rationale: 'Kompromittiertes SCADA kann Roboterbewegungen auslösen' }
 └─ monitors  → System Asset "Safety Controller (SIS)"
 
@@ -531,7 +531,7 @@ Process "Robot Controller"
 
 Process "Safety Controller (SIS)"
 └─ is_an → System Asset "Safety Controller (SIS)"
-   └─ safety: { relevance: 'direct', impact: 'fatality' }
+   └─ safety: { relevance: 'direct', impact: 'fatal' }
 ```
 
 ### 3.5 Infrastructure Assets
@@ -544,12 +544,12 @@ EE "Maintenance Technician"
 ├─ accesses [on-site]  → Infrastructure Asset "CNC-Maschine (physisch)"
 ├─ accesses [internal] → Infrastructure Asset "Steuerungsschrank"
 └─ damages             → Infrastructure Asset "Schutzumhausung"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Physische Sabotage der Schutzumhausung hebt Personenschutz auf' }
 
 Process "Safety Controller (SIS)"
 ├─ secures  → Infrastructure Asset "Schutzumhausung"
-│  └─ safety: { relevance: 'indirect', isPhysicalBarrier: true, impact: 'fatality',
+│  └─ safety: { relevance: 'indirect', isPhysicalBarrier: true, impact: 'fatal',
 │               rationale: 'Verhindert Kontakt mit rotierenden Werkzeugen –
 │                           relevance: indirect da Schutzumhausung den Schaden nicht steuert
 │                           sondern physisch unterbindet' }
@@ -592,17 +592,17 @@ Identifizierte Human Assets: Maschinenbediener, Einrichter, NC-Programmierer, Wa
 ```
 EE "Operator"
 └─ is_an → Human Asset "Maschinenbediener"
-   └─ Properties: { isProtectionTarget: true, safetyImpact: 'fatality',
+   └─ Properties: { isProtectionTarget: true, safetyImpact: 'fatal',
                     rationale: 'Physische Präsenz im Gefahrenbereich der Maschine' }
 
 Process "CNC Controller"
 └─ affects_safety → Human Asset "Maschinenbediener"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Unkontrollierte Werkzeugbewegung bei Fehlmanipulation' }
 
 Process "Robot Controller"
 └─ affects_safety → Human Asset "Maschinenbediener"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Kollision durch falsche Bewegungsbahn' }
 
 Process "SCADA System"
@@ -611,17 +611,17 @@ Process "SCADA System"
 
 EE "Maintenance Technician"
 └─ is_an → Human Asset "Einrichter"
-   └─ Properties: { isProtectionTarget: true, safetyImpact: 'fatality',
+   └─ Properties: { isProtectionTarget: true, safetyImpact: 'fatal',
                     rationale: 'Physische Präsenz im Gefahrenbereich während Einrichtung/Test' }
 
 Process "CNC Controller"
 └─ affects_safety → Human Asset "Einrichter"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Testablauf im reduzierten Schutzmodus – direkter Gefahrenkontakt möglich' }
 
 Process "Robot Controller"
 └─ affects_safety → Human Asset "Einrichter"
-   └─ safety: { relevance: 'direct', impact: 'fatality',
+   └─ safety: { relevance: 'direct', impact: 'fatal',
                 rationale: 'Einrichter bewegt sich im Arbeitsbereich des Roboters –
                             unkontrollierte Bewegung bei reduziertem Schutzmodus möglich' }
 
@@ -645,8 +645,10 @@ Die aggregierte Asset-Kritikalität ergibt sich aus zwei unabhängigen Dimension
 
 | Business Impact | Safety Impact | relevance | Aggregiert |
 |---|---|---|---|
-| beliebig | HIGH (fatality / irreversible_injury) | direct | **CRITICAL** |
-| beliebig | HIGH (fatality / irreversible_injury) | indirect | **HIGH+** |
+| beliebig | HIGH (fatal / irreversible_major) | direct | **CRITICAL** |
+| beliebig | HIGH (fatal / irreversible_major) | indirect | **HIGH+** |
+| beliebig | irreversible_minor | direct | **HIGH+** |
+| beliebig | irreversible_minor | indirect | **HIGH** |
 | CRITICAL | – oder MED | – | **CRITICAL** |
 | HIGH | MED (indirect, Hop 1) | – | **HIGH** |
 | HIGH | – | – | **HIGH** |
@@ -662,7 +664,7 @@ Die aggregierte Asset-Kritikalität ergibt sich aus zwei unabhängigen Dimension
 
 > **Hinweis:** `Physical Impact` wurde in `Safety Impact (physicalImpact)` umbenannt um die
 > Konsistenz mit ISO 21434 Damage Categories und dem internen Derived/Manual Pattern
-> herzustellen. HIGH entspricht `fatality` oder `irreversible_injury` aus der SafetyAnnotation,
+> herzustellen. HIGH entspricht `fatal` oder `irreversible_major` aus der SafetyAnnotation,
 > MED entspricht `indirect` (transitiv via Graph-Traversierung Hop 1).
 
 Business Impact CRITICAL ist projektspezifisch zu definieren. Im NIS-2-Kontext z.B. bei schwerem volkswirtschaftlichem Schaden oder Verlust kritischer Infrastruktur, im CNC-Kontext z.B. bei totalem Produktionsausfall mit existenzbedrohenden Folgen. Safety-Aspekte führen zwar zwangsläufig zur Einstufung 'CRITICAL', sind jedoch bei weitem nicht der einzige Auslöser.
@@ -670,13 +672,13 @@ Business Impact CRITICAL ist projektspezifisch zu definieren. Im NIS-2-Kontext z
 **Safety Override Rule (formale Definition):**
 
 ```
-IF safetyImpact ∈ { 'fatality', 'irreversible_injury' }
+IF safetyImpact ∈ { 'fatal', 'irreversible_major' }
    AND relevance === 'direct'
 THEN aggregatedCriticality := CRITICAL
      strideDepth            := 'vertieft'
      riskPriority           := 1
 
-IF safetyImpact ∈ { 'fatality', 'irreversible_injury' }
+IF safetyImpact ∈ { 'fatal', 'irreversible_major' }
    AND relevance === 'indirect'
 THEN aggregatedCriticality := HIGH+
      strideDepth            := 'fokussiert'
@@ -718,7 +720,7 @@ Die Gesamtkritikalität pro Domäne ergibt sich nach dem Highest-Impact-Wins Pri
 
 | Faktor | Gewicht | Begründung |
 |---|---|---|
-| Safety Impact | 1.0 | Maximum – entspricht Safety Override Rule; fatality + direct → immer CRITICAL unabhängig von Business Impact |
+| Safety Impact | 1.0 | Maximum – entspricht Safety Override Rule; fatal + direct → immer CRITICAL unabhängig von Business Impact |
 | Operational Impact | 0.8 | Primärer Business-Treiber – Produktionsausfall ist direkter und unmittelbarer Schaden |
 | Recoverability | 0.8 | Multiplikator des Operational Impact – Wiederbeschaffungszeit > 12 Monate macht Ausfall existenzbedrohend |
 | Financial Damage | 0.6 | Weitgehend aus Operational Impact ableitbar, aber explizit quantifizierbar (Vertragsstrafen, Umsatzausfall) |
@@ -741,7 +743,7 @@ Die Gesamtkritikalität pro Domäne ergibt sich nach dem Highest-Impact-Wins Pri
 ```typescript
 safety: {
   relevance: "none" | "indirect" | "direct";
-  impact?: "none" | "reversible_injury" | "irreversible_injury" | "fatality";
+  impact?: "none" | SafetySeverity;
   physicalHazardPotential?: "low" | "medium" | "high";
   protectionTarget?: boolean;        // nur bei Human Assets
   affectedSafetyFunctions?: string[];
@@ -754,8 +756,8 @@ safety: {
 ```
 SafetyAnnotation auf Beziehung (relevance/impact)    →  physicalImpact am Asset
 ─────────────────────────────────────────────────────────────────────────────────
-impact: 'fatality'                                   →  HIGH  (derived)
-impact: 'irreversible_injury'                        →  HIGH  (derived)
+impact: 'fatal'                                   →  HIGH  (derived)
+impact: 'irreversible_major'                        →  HIGH  (derived)
 relevance: 'indirect' (transitiv, Hop 1)             →  MED   (derived)
 keine Annotation                                     →  LOW   (derived, default)
 ```
@@ -973,8 +975,8 @@ wird als `uses [network]` auf das System Asset modelliert.
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Aggregiert |
 |---|---|---|---|---|
-| Fertigungsrezepte | Integrity, Confidentiality, Authentication | HIGH (Operational) | fatality | **CRITICAL** |
-| Kalibrierungsdaten | Integrity, Availability, Authorization | HIGH (Operational) | irreversible_injury | **CRITICAL** |
+| Fertigungsrezepte | Integrity, Confidentiality, Authentication | HIGH (Operational) | fatal | **CRITICAL** |
+| Kalibrierungsdaten | Integrity, Availability, Authorization | HIGH (Operational) | irreversible_major | **CRITICAL** |
 | Produktionsdaten | Availability, Confidentiality, Accountability | MEDIUM (Financial) | – | **MEDIUM** |
 | Maschinenstatus | Integrity, Availability | MEDIUM (Operational) | indirect | **HIGH** |
 | Diagnosedaten | Confidentiality, Authorization | LOW | – | **LOW** |
@@ -985,15 +987,15 @@ wird als `uses [network]` auf das System Asset modelliert.
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Aggregiert |
 |---|---|---|---|---|
-| Not-Halt-Funktion | Availability, Integrity | HIGH (Operational) | fatality | **CRITICAL** |
-| NC-Programm-Ausführung | Integrity, Availability, Authorization | HIGH (Operational) | fatality | **CRITICAL** |
+| Not-Halt-Funktion | Availability, Integrity | HIGH (Operational) | fatal | **CRITICAL** |
+| NC-Programm-Ausführung | Integrity, Availability, Authorization | HIGH (Operational) | fatal | **CRITICAL** |
 
 ### 4.5 Process Assets
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Aggregiert |
 |---|---|---|---|---|
-| Zerspanungsprozess | Availability, Integrity, Authorization | HIGH (Operational) | fatality | **CRITICAL** |
-| Not-Halt-Prozess | Availability, Integrity | HIGH (Operational) | fatality | **CRITICAL** |
+| Zerspanungsprozess | Availability, Integrity, Authorization | HIGH (Operational) | fatal | **CRITICAL** |
+| Not-Halt-Prozess | Availability, Integrity | HIGH (Operational) | fatal | **CRITICAL** |
 | Einrichtbetrieb | Integrity, Authorization, Accountability | MEDIUM (Operational) | indirect | **HIGH+** |
 | Qualitätsprüfung | Integrity, Non-Repudiation | MEDIUM (Financial) | – | **MEDIUM** |
 
@@ -1001,9 +1003,9 @@ wird als `uses [network]` auf das System Asset modelliert.
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Aggregiert |
 |---|---|---|---|---|
-| CNC-Maschine | Availability, Integrity, Authorization | HIGH (Operational) | fatality | **CRITICAL** |
+| CNC-Maschine | Availability, Integrity, Authorization | HIGH (Operational) | fatal | **CRITICAL** |
 | Roboter | Availability, Integrity, Authorization | HIGH (Operational) | indirect | **HIGH+** |
-| Safety Controller (SIS) | Availability, Integrity | HIGH (Operational) | fatality | **CRITICAL** |
+| Safety Controller (SIS) | Availability, Integrity | HIGH (Operational) | fatal | **CRITICAL** |
 | SCADA System | Availability, Authentication, Authorization | HIGH (Operational) | indirect | **HIGH+** |
 | MES | Availability, Authentication, Authorization | HIGH (Operational) | indirect | **HIGH+** |
 
@@ -1019,7 +1021,7 @@ wird als `uses [network]` auf das System Asset modelliert.
 > `isHighValueAsset` klassifiziert.
 > CNC-Maschine: `isHighValueAsset: 'critical'` → **CRITICAL minimum** Override → Pflicht-Threats: Tampering, DoS, Physical Damage.
 > Steuerungsschrank: `isHighValueAsset: 'high'` → **HIGH minimum** Override → Pflicht-Threats: Tampering, DoS, Physical Damage.
-> Beide Werte folgen dem MINIMUM-Prinzip — Safety Override (fatality) hat weiterhin Vorrang.
+> Beide Werte folgen dem MINIMUM-Prinzip — Safety Override (fatal) hat weiterhin Vorrang.
 
 > **Schutzumhausung neu CRITICAL:** Die `damages`-Beziehung von `Maintenance Technician` ist als `direct` annotiert –
 > physische Sabotage der Schutzumhausung hebt den Personenschutz direkt auf. Safety Override greift.
@@ -1028,8 +1030,8 @@ wird als `uses [network]` auf das System Asset modelliert.
 
 | Asset | Schutzziele (CIANAAA) | Business Impact | Safety Impact | Protection Target | Aggregiert |
 |---|---|---|---|---|---|
-| Maschinenbediener | Availability (Safety) | – | fatality | ✅ | **CRITICAL** |
-| Einrichter | Availability (Safety) | – | fatality | ✅ | **CRITICAL** |
+| Maschinenbediener | Availability (Safety) | – | fatal | ✅ | **CRITICAL** |
+| Einrichter | Availability (Safety) | – | fatal | ✅ | **CRITICAL** |
 | NC-Programmierer | Non-Repudiation, Accountability | MEDIUM (Operational) | – | – | **MEDIUM** |
 
 ### 4.9 Ergebnis der Bewertung
@@ -1038,7 +1040,7 @@ Die Bewertung macht zwei Dinge sichtbar die ohne Graph nicht erkennbar wären:
 
 Erstens: Von 24 identifizierten Assets sind 10 als CRITICAL eingestuft – wegen direktem
 Safety-Impact (relevance: 'direct'). Weitere 6 Assets sind als HIGH+ eingestuft
-da sie fatality oder irreversible_injury nur systemisch beeinflussen
+da sie fatal oder irreversible_major nur systemisch beeinflussen
 (relevance: 'indirect'). Die Differenzierung stellt sicher dass Priorisierung
 Trennschärfe behält: CRITICAL = direkter Steuerungseinfluss auf den Schaden,
 HIGH+ = systemischer Einfluss der durch hohe Likelihood zu CRITICAL eskalieren kann.
@@ -1067,13 +1069,13 @@ Kein Schadensbezug, keine Priorisierung, kein Safety-Kontext.
 ```
 DF "push nc program [cmd]"
 └─ transports → Data Asset "Fertigungsrezepte"
-   └─ Integrity: CRITICAL, safety: { impact: 'fatality' }
+   └─ Integrity: CRITICAL, safety: { impact: 'fatal' }
    └─ gelesen von: □ SCADA System → □ CNC Controller (via 🗄 Network Share)
        └─ affects_safety → Human Asset "Maschinenbediener" [Protection Target]
 
 → Threat: Tampering auf NC-Programm
 → Konsequenz: Falsche Werkzeugbewegung → Personengefährdung
-→ Priorität: CRITICAL (Safety Override Rule: fatality → immer höchste Priorität)
+→ Priorität: CRITICAL (Safety Override Rule: fatal → immer höchste Priorität)
 → Massnahme: Digitale Signatur + Integritätsprüfung vor Programmausführung
 ```
 
@@ -1090,7 +1092,7 @@ EE "Remote Support" → uses → SCADA System
 EE "Remote Support"
 └─ uses [network] via VPN Gateway → System Asset "SCADA System" [HIGH+]
    └─ controls → System Asset "CNC-Maschine" [CRITICAL, physicalHazardPotential: high]
-       └─ affects_safety → Human Asset "Maschinenbediener" [fatality]
+       └─ affects_safety → Human Asset "Maschinenbediener" [fatal]
 
 → Was vorher unsichtbar war:
    Remote Support ist nicht nur ein IT-Risiko –
@@ -1106,8 +1108,8 @@ EE "Remote Support"
 **TARAflow:**
 ```
 Process "Safety Controller (SIS)"
-├─ executes   → Function Asset "Not-Halt-Funktion" [Availability: CRITICAL, fatality]
-├─ executes   → Process Asset "Not-Halt-Prozess" [Availability: CRITICAL, fatality]
+├─ executes   → Function Asset "Not-Halt-Funktion" [Availability: CRITICAL, fatal]
+├─ executes   → Process Asset "Not-Halt-Prozess" [Availability: CRITICAL, fatal]
 ├─ terminates → Process Asset "Zerspanungsprozess"
 ├─ secures    → Infrastructure Asset "Schutzumhausung" [isPhysicalBarrier]
 └─ monitors   → Infrastructure Asset "Schutzumhausung"
@@ -1129,12 +1131,12 @@ TARAflow analysiert nicht alle Elemente gleich tief. Die Asset-Kritikalität ste
 
 | Asset | Business Impact | Physical Impact | Aggregiert | STRIDE-Tiefe |
 |---|---|---|---|---|
-| Fertigungsrezepte | HIGH (Operational) | fatality (Safety) | **CRITICAL** | Vertieft |
-| Not-Halt-Funktion | HIGH (Operational) | fatality (Safety) | **CRITICAL** | Vertieft |
-| Not-Halt-Prozess | HIGH (Operational) | fatality (Safety) | **CRITICAL** | Vertieft |
-| CNC-Maschine (System) | HIGH (Operational) | fatality (Safety) | **CRITICAL** | Vertieft |
-| Schutzumhausung | HIGH (Operational) | fatality (Safety) | **CRITICAL** | Vertieft |
-| Kalibrierungsdaten | HIGH (Operational) | irreversible_injury | **CRITICAL** | Vertieft |
+| Fertigungsrezepte | HIGH (Operational) | fatal (Safety) | **CRITICAL** | Vertieft |
+| Not-Halt-Funktion | HIGH (Operational) | fatal (Safety) | **CRITICAL** | Vertieft |
+| Not-Halt-Prozess | HIGH (Operational) | fatal (Safety) | **CRITICAL** | Vertieft |
+| CNC-Maschine (System) | HIGH (Operational) | fatal (Safety) | **CRITICAL** | Vertieft |
+| Schutzumhausung | HIGH (Operational) | fatal (Safety) | **CRITICAL** | Vertieft |
+| Kalibrierungsdaten | HIGH (Operational) | irreversible_major | **CRITICAL** | Vertieft |
 | SCADA System | HIGH (Operational) | indirect | **HIGH+** | Fokussiert |
 | Safety-Parameter | HIGH (Operational) | indirect | **HIGH+** | Fokussiert |
 | Produktionsdaten | MEDIUM (Financial) | – | **MEDIUM** | Hochstufig |
@@ -1154,14 +1156,14 @@ TARAflow analysiert nicht alle Elemente gleich tief. Die Asset-Kritikalität ste
 
 ### 6.3 Safety Override Rule
 
-Assets mit `safetyImpact: 'fatality'` oder `safetyImpact: 'irreversible_injury'` erhalten automatisch die höchste Analysepriorität, unabhängig vom Business Impact. Ein Menschenleben ist nicht mit wirtschaftlichem Schaden verrechenbar (ISO 12100).
+Assets mit `safetyImpact: 'fatal'` oder `safetyImpact: 'irreversible_major'` erhalten automatisch die höchste Analysepriorität, unabhängig vom Business Impact. Ein Menschenleben ist nicht mit wirtschaftlichem Schaden verrechenbar (ISO 12100).
 
 ```
 Beispiel Safety Override:
 Diagnosedaten → Business Impact: LOW → STRIDE-Tiefe: Hochstufig (normal)
 
 Not-Halt-Funktion → Business Impact: HIGH
-                  → Physical Impact: fatality
+                  → Physical Impact: fatal
                   → STRIDE-Tiefe: Vertieft (Safety Override greift!)
 ```
 
@@ -1181,7 +1183,7 @@ Die folgenden Threats zeigen wie Asset-Beziehungen die STRIDE-Analyse direkt ste
 | **CIANAAA-Verletzung** | Integrity, Authentication |
 | **Schutzziel** | Fertigungsrezepte dürfen nicht unautorisiert verändert werden |
 | **Angriffspfad** | NC Programmer Workstation kompromittiert → manipuliertes NC-Programm ins MES hochgeladen → SCADA System liest falsches Programm → CNC Controller führt falsche Bewegungssequenz aus |
-| **Safety-Konsequenz** | `affects_safety → Human Asset "Maschinenbediener"` → fatality |
+| **Safety-Konsequenz** | `affects_safety → Human Asset "Maschinenbediener"` → fatal |
 | **Priorität** | **CRITICAL** (Safety Override Rule) |
 | **STRIDE-Tiefe** | Vertieft (Trust Boundary CNA→ERP + CRITICAL Asset) |
 
@@ -1195,7 +1197,7 @@ Die folgenden Threats zeigen wie Asset-Beziehungen die STRIDE-Analyse direkt ste
 | **CIANAAA-Verletzung** | Authentication, Authorization |
 | **Schutzziel** | Nur autorisierter Remote-Zugriff auf Steuerungsfunktionen |
 | **Angriffspfad** | VPN-Credentials kompromittiert → Angreifer übernimmt Remote-Support-Rolle → Zugang zu SCADA System → Fernsteuerung CNC-Achsen möglich |
-| **Safety-Konsequenz** | `exposes → Human Asset "Maschinenbediener"` → fatality |
+| **Safety-Konsequenz** | `exposes → Human Asset "Maschinenbediener"` → fatal |
 | **Priorität** | **CRITICAL** (Safety Override Rule) |
 | **STRIDE-Tiefe** | Vertieft (Trust Boundary ext→CNA + CRITICAL Asset + Safety) |
 
@@ -1209,7 +1211,7 @@ Die folgenden Threats zeigen wie Asset-Beziehungen die STRIDE-Analyse direkt ste
 | **CIANAAA-Verletzung** | Availability |
 | **Schutzziel** | Not-Halt-Funktion muss jederzeit verfügbar und auslösbar sein |
 | **Angriffspfad** | Netzwerk-Flooding auf OT-Segment → Safety Controller nicht mehr erreichbar → Not-Halt kann nicht ausgelöst werden → Maschine läuft ohne Safety-Funktion |
-| **Safety-Konsequenz** | `terminates → Process Asset "Zerspanungsprozess"` nicht mehr möglich → fatality |
+| **Safety-Konsequenz** | `terminates → Process Asset "Zerspanungsprozess"` nicht mehr möglich → fatal |
 | **Priorität** | **CRITICAL** (Safety Override Rule) |
 | **STRIDE-Tiefe** | Vertieft (CRITICAL Asset + Safety) |
 
@@ -1223,7 +1225,7 @@ Die folgenden Threats zeigen wie Asset-Beziehungen die STRIDE-Analyse direkt ste
 | **CIANAAA-Verletzung** | Integrity, Availability, Authorization, Accountability |
 | **Schutzziel** | Physischer Zugang zu Steuerungshardware nur für autorisiertes Personal |
 | **Angriffspfad** | Ungesicherter Schrank → direkter Hardwarezugang → Manipulation SPS-Konfiguration oder Hardware-Implant einschleusen |
-| **Safety-Konsequenz** | indirect via System Asset "CNC-Maschine" → fatality |
+| **Safety-Konsequenz** | indirect via System Asset "CNC-Maschine" → fatal |
 | **Priorität** | **HIGH** |
 | **STRIDE-Tiefe** | Fokussiert |
 
@@ -1237,8 +1239,8 @@ Die folgenden Threats zeigen wie Asset-Beziehungen die STRIDE-Analyse direkt ste
 | **CIANAAA-Verletzung** | Integrity, Availability |
 | **Schutzziel** | Physische Integrität der Schutzumhausung als Personenschutzbarriere |
 | **Angriffspfad** | Insider-Angriff → physische Manipulation der Schutzumhausung → Schutzfunktion ausgehebelt → Maschinenbereich zugänglich während Betrieb |
-| **Safety-Konsequenz** | `endangers → Human Asset "Maschinenbediener"` → fatality |
-| **Priorität** | **CRITICAL** (Safety Override Rule: direct + fatality) |
+| **Safety-Konsequenz** | `endangers → Human Asset "Maschinenbediener"` → fatal |
+| **Priorität** | **CRITICAL** (Safety Override Rule: direct + fatal) |
 | **STRIDE-Tiefe** | Vertieft |
 
 ---
@@ -1247,15 +1249,15 @@ Die folgenden Threats zeigen wie Asset-Beziehungen die STRIDE-Analyse direkt ste
 
 | ID | Threat | Likelihood | Impact | Risk | Safety Override | Massnahme | Prio |
 |---|---|---|---|---|---|---|---|
-| T-01 | NC-Programm Manipulation | MEDIUM | CRITICAL | HIGH | ✅ fatality | Digitale Signatur NC-Programme, Integritätsprüfung vor Ausführung | **1** |
-| T-02 | Remote-Zugang kompromittiert | HIGH | CRITICAL | CRITICAL | ✅ fatality | MFA, VPN mit Zertifikaten, Session-Monitoring, Least Privilege | **1** |
-| T-03 | DoS Safety Controller | MEDIUM | CRITICAL | HIGH | ✅ fatality | Netzwerksegmentierung SIS, dediziertes Safety-Netzwerk, Redundanz | **1** |
+| T-01 | NC-Programm Manipulation | MEDIUM | CRITICAL | HIGH | ✅ fatal | Digitale Signatur NC-Programme, Integritätsprüfung vor Ausführung | **1** |
+| T-02 | Remote-Zugang kompromittiert | HIGH | CRITICAL | CRITICAL | ✅ fatal | MFA, VPN mit Zertifikaten, Session-Monitoring, Least Privilege | **1** |
+| T-03 | DoS Safety Controller | MEDIUM | CRITICAL | HIGH | ✅ fatal | Netzwerksegmentierung SIS, dediziertes Safety-Netzwerk, Redundanz | **1** |
 | T-04 | Physischer Zugang Schrank | LOW | HIGH | MEDIUM | – | Schloss mit Zugangskontrolle, Versiegelung, Zugangsprotokoll | **2** |
-| T-05 | Sabotage Schutzumhausung | LOW | CRITICAL | HIGH | ✅ fatality | Manipulationsschutz, Sensor-Überwachung, Zugangsprotokoll | **1** |
-| T-06 | Manipulation Kalibrierungsdaten | LOW | CRITICAL | HIGH | ✅ irreversible_injury | Schreibschutz, Versionierung, Änderungsprotokoll mit Signatur | **1** |
+| T-05 | Sabotage Schutzumhausung | LOW | CRITICAL | HIGH | ✅ fatal | Manipulationsschutz, Sensor-Überwachung, Zugangsprotokoll | **1** |
+| T-06 | Manipulation Kalibrierungsdaten | LOW | CRITICAL | HIGH | ✅ irreversible_major | Schreibschutz, Versionierung, Änderungsprotokoll mit Signatur | **1** |
 
 **Safety Override Rule in der Praxis:**
-T-01 hat Likelihood MEDIUM – klassisch wäre das Risk HIGH mit normaler Priorität. Durch die Safety Override Rule (fatality) wird es zu Priorität 1 unabhängig vom Business Impact. Diese Entscheidung ist methodisch begründet und auditierbar nach ISO 12100.
+T-01 hat Likelihood MEDIUM – klassisch wäre das Risk HIGH mit normaler Priorität. Durch die Safety Override Rule (fatal) wird es zu Priorität 1 unabhängig vom Business Impact. Diese Entscheidung ist methodisch begründet und auditierbar nach ISO 12100.
 
 ---
 
@@ -1283,11 +1285,11 @@ Der entscheidende Unterschied zu einem Modellierungswerkzeug ist: TARAflow leite
 | EE mit `uses[network]` + Trust Boundary | Spoofing als Pflicht-Threat |
 | Process mit `is_an` + Asset `Availability: CRITICAL` | DoS als Pflicht-Threat |
 | DF mit `is_an` + Function Asset + Safety direct | Tampering + DoS als Pflicht-Threat |
-| Asset mit `safetyImpact: fatality` | riskPriority := 1, strideDepth := vertieft |
-| Asset mit `safetyImpact: fatality` + Human Asset `isProtectionTarget` | Safety-Sicht Eintrag, Safety-Kette Dokumentation |
+| Asset mit `safetyImpact: fatal` | riskPriority := 1, strideDepth := vertieft |
+| Asset mit `safetyImpact: fatal` + Human Asset `isProtectionTarget` | Safety-Sicht Eintrag, Safety-Kette Dokumentation |
 | DF überschreitet Trust Boundary ohne parentConduit | Validierungsfehler (ERROR) |
-| SafetyAnnotation `impact: 'fatality'` auf Beziehung | `physicalImpact` := HIGH (derived) |
-| SafetyAnnotation `impact: 'irreversible_injury'` auf Beziehung | `physicalImpact` := HIGH (derived) |
+| SafetyAnnotation `impact: 'fatal'` auf Beziehung | `physicalImpact` := HIGH (derived) |
+| SafetyAnnotation `impact: 'irreversible_major'` auf Beziehung | `physicalImpact` := HIGH (derived) |
 | Element Hop-1 zu Asset mit `physicalImpact` HIGH | `physicalImpact` := MED (derived, indirect) |
 | `physicalImpact` manuell gesetzt ohne DFD-Annotation | Validierungswarnung + Rationale-Pflicht |
 | `physicalImpactSource === 'manual'` im Audit-Export | Rationale verbatim dokumentiert |
@@ -1375,7 +1377,7 @@ Die folgenden Sichten sind Filterabfragen auf denselben Graphen. Im DFD-Tab von 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  SAFETY-KRITISCHE PFADE                   🔴 = fatality risk    │
+│  SAFETY-KRITISCHE PFADE                   🔴 = fatal risk    │
 └─────────────────────────────────────────────────────────────────┘
 
 □ CNC Controller    ──affects_safety──→ 👤 Maschinenbediener 🔴
@@ -1514,7 +1516,7 @@ Jeder Schritt dieser Kette ist im Graph explizit modelliert. Daraus folgt automa
 
 ### Safety Override Rule
 
-Assets mit `safetyImpact: 'fatality'` erhalten automatisch die höchste Risikopriorität – unabhängig von Business Impact oder Likelihood. Ein Menschenleben ist nicht mit wirtschaftlichem Schaden verrechenbar (ISO 12100 Prinzip). TARAflow setzt diese Regel automatisch durch und dokumentiert sie für den Audit.
+Assets mit `safetyImpact: 'fatal'` erhalten automatisch die höchste Risikopriorität – unabhängig von Business Impact oder Likelihood. Ein Menschenleben ist nicht mit wirtschaftlichem Schaden verrechenbar (ISO 12100 Prinzip). TARAflow setzt diese Regel automatisch durch und dokumentiert sie für den Audit.
 
 ---
 

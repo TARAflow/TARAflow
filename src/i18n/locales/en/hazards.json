@@ -43,9 +43,11 @@
       },
 
       "severity": {
-        "reversible_injury": "Reversible Injury",
-        "irreversible_injury": "Irreversible Injury",
-        "fatality": "Fatality",
+        "reversible_minor": "Reversible, minor",
+        "reversible_major": "Reversible, major",
+        "irreversible_minor": "Irreversible, minor",
+        "irreversible_major": "Irreversible, major",
+        "fatal": "Fatal",
         "low": "Low",
         "medium": "Medium",
         "high": "High",

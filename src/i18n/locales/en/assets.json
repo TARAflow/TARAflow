@@ -361,20 +361,16 @@
       },
       "safetyScale": {
         "1": {
-          "label": "Low",
-          "severity": "Reversible Injury (minor)"
+          "label": "Low"
         },
         "2": {
-          "label": "Medium",
-          "severity": "Reversible Injury (moderate)"
+          "label": "Medium"
         },
         "3": {
-          "label": "High",
-          "severity": "Irreversible Injury"
+          "label": "High"
         },
         "4": {
-          "label": "Critical",
-          "severity": "Fatal"
+          "label": "Critical"
         }
       },
       "config": {

@@ -36,7 +36,7 @@ describe("hazardService — CRUD + referential integrity", () => {
     d = hazardRelationService.addEndangers(d, {
       hazardId: item.id,
       targetAssetId: "HUM-1",
-      impact: { target: "human", severity: "fatality" },
+      impact: { target: "human", severity: "fatal" },
     });
     return d;
   };
@@ -91,7 +91,7 @@ describe("hazardService — deriveHazardPhaseStatus", () => {
     d = hazardRelationService.addEndangers(d, {
       hazardId: item.id,
       targetAssetId: "HUM-1",
-      impact: { target: "human", severity: "fatality" },
+      impact: { target: "human", severity: "fatal" },
     });
     expect(hazardService.deriveHazardPhaseStatus(d)).toBe("complete");
   });

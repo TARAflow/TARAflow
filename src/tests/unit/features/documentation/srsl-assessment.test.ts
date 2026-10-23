@@ -21,7 +21,7 @@ const project = (likelihoodMethod: string): any => ({
       {
         id: "AC",
         name: "Config Data",
-        physicalImpact: "reversible_injury",
+        physicalImpact: "reversible_major",
       },
     ],
   },
@@ -94,7 +94,7 @@ describe("SRSL Assessment chapter (EN 50742 Approach A)", () => {
     // the anchored risk's row: asset, severity, levels, AP, SRSL
     expect(chapter.content).toContain("DF-3-T-1");
     expect(chapter.content).toContain("Config Data");
-    expect(chapter.content).toContain("reversible_injury");
+    expect(chapter.content).toContain("reversible_major");
     expect(chapter.content).toContain("EL3");
     expect(chapter.content).toContain("moderately_restricted");
     expect(chapter.content).toContain("16.8 (AP3)");

@@ -25,7 +25,7 @@ export interface AssetHazardLink {
    * - role "endangered": the severity on the endangers edge.
    * - role "cause": the worst severity the contributed hazard endangers with
    *   (bowtie propagation — e.g. a robot arm causing a fatal collision
-   *   inherits "fatality").
+   *   inherits "fatal").
    */
   severity?: SafetyImpact;
   /** Causal relevance on the contributes_to edge ("direct" | "indirect").

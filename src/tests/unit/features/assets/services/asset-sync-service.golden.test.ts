@@ -137,7 +137,7 @@ describe("Phase 0 — §3.4 safety-projection gap (sentinel)", () => {
     expect(withPhysical).toHaveLength(4);
     // every one is manual — none derived from a DFD safety annotation
     expect(withPhysical.every((a) => a.physicalImpactSource === "manual")).toBe(true);
-    expect(withPhysical.every((a) => a.physicalImpact === "fatality")).toBe(true);
+    expect(withPhysical.every((a) => a.physicalImpact === "fatal")).toBe(true);
   });
 
   it("hasSafetyData is true via physicalImpact, yet hasSafetyAnnotation is never set", () => {

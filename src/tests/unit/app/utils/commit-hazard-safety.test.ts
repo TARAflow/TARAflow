@@ -63,14 +63,14 @@ const cause = (
 describe("applyHazardSafetyToAsset — Safety Override via bowtie", () => {
   it("a pure protection target (victim only) is left untouched", () => {
     const a = mkAsset({ id: "HU-002", assetGroup: "human" });
-    const r = applyHazardSafetyToAsset(a, endangered("fatality"));
+    const r = applyHazardSafetyToAsset(a, endangered("fatal"));
     expect(r).toBe(a); // human is a consequence, not an attack surface
   });
 
   it("indirect cause inherits severity but does NOT trigger override → HIGH+", () => {
     const a = mkAsset({ id: "SY-001" });
-    const r = applyHazardSafetyToAsset(a, cause("irreversible_injury", "indirect"));
-    expect(r.physicalImpact).toBe("irreversible_injury");
+    const r = applyHazardSafetyToAsset(a, cause("irreversible_major", "indirect"));
+    expect(r.physicalImpact).toBe("irreversible_major");
     expect(r.physicalImpactSource).toBe("hazard");
     expect(r.aggregatedImpact).toBe("HIGH+");
     expect(r.physicalImpactRationale).toContain("[indirect]");
@@ -78,24 +78,24 @@ describe("applyHazardSafetyToAsset — Safety Override via bowtie", () => {
 
   it("direct cause of a fatal hazard → override CRITICAL", () => {
     const a = mkAsset({ id: "RobotArm" });
-    const r = applyHazardSafetyToAsset(a, cause("fatality", "direct"));
-    expect(r.physicalImpact).toBe("fatality");
+    const r = applyHazardSafetyToAsset(a, cause("fatal", "direct"));
+    expect(r.physicalImpact).toBe("fatal");
     expect(r.aggregatedImpact).toBe("CRITICAL");
   });
 
   it("manual override wins — asset is left untouched", () => {
     const a = mkAsset({
-      physicalImpact: "reversible_injury",
+      physicalImpact: "reversible_major",
       physicalImpactSource: "manual",
       physicalImpactRationale: "analyst decision",
     });
-    const r = applyHazardSafetyToAsset(a, endangered("fatality"));
+    const r = applyHazardSafetyToAsset(a, endangered("fatal"));
     expect(r).toBe(a); // same reference, no change
   });
 
   it("reverts to the annotation pipeline when the hazard is removed", () => {
     const a = mkAsset({
-      physicalImpact: "fatality",
+      physicalImpact: "fatal",
       physicalImpactSource: "hazard",
       physicalImpactRationale: "old chain",
       aggregatedImpact: "CRITICAL",
@@ -129,7 +129,7 @@ describe("commitHazardSafety — reference guard", () => {
       lastModified: "t0",
     } as any;
     const out = commitHazardSafety(data, {
-      RobotArm: cause("fatality", "direct"),
+      RobotArm: cause("fatal", "direct"),
     })!;
     expect(out).not.toBe(data);
     expect(out.assets[0].aggregatedImpact).toBe("CRITICAL");

@@ -11,7 +11,7 @@
 //   - qualifier only for uses (System/Service) and accesses (Infra/Physical)
 //   - Marker logic removed (positions, sizes, xmlIds)
 
-import type { AssetGroup, A2ARelationType } from "shared";
+import type { AssetGroup, A2ARelationType, SafetyImpact } from "shared";
 import type { AssetProperties } from "shared/models/asset-property-types";
 
 // ==================== SAFETY ANNOTATION SUMMARY ====================
@@ -26,11 +26,7 @@ export interface SafetyAnnotationSummary {
   /** direct = element directly controls the hazardous action; indirect = systemic influence */
   readonly relevance: "none" | "indirect" | "direct";
   /** Worst-case injury classification from SafetyAnnotation.impact */
-  readonly impact?:
-    | "none"
-    | "reversible_injury"
-    | "irreversible_injury"
-    | "fatality";
+  readonly impact?: SafetyImpact;
   /** True for Human Assets marked as protection targets (ISO 12100) */
   readonly protectionTarget?: boolean;
 }

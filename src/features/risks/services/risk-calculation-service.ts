@@ -36,6 +36,9 @@ import {
   getWorstCriterionValue,
   normaliseImpactValue,
   resolveThreatImpactAssets,
+  safetySeverityToFactor,
+  worstSafetySeverity,
+  type SafetySeverity,
   type StrideCategory,
 } from "shared";
 import {
@@ -336,24 +339,19 @@ export function getWorstAssetImpactValue(
 // ==================== SAFETY FACTOR DERIVATION ====================
 
 /**
- * Maps a physicalImpact annotation to a 4-level safety factor value.
- * Aligned with SAFETY_IMPACT_SCALE in asset-impact-types.ts.
+ * Maps a physicalImpact to the fixed 4-level safety factor value
+ * (IEC 62061 Se1–Se4, see safetySeverityToFactor in safety-types.ts):
  *
- * reversible_injury   → 2  (moderate — covers reversible_minor + reversible_moderate)
- * irreversible_injury → 3
- * fatality            → 4
- *
- * Note: "reversible_injury" maps to 2 (not 1) to be conservative —
- * the Asset model doesn't distinguish minor from moderate at this level.
+ * reversible_minor   → 1
+ * reversible_major   → 2
+ * irreversible_minor → 3
+ * irreversible_major → 4
+ * fatal              → 4
  */
 export function deriveSafetyValueFromPhysicalImpact(
-  physicalImpact: "reversible_injury" | "irreversible_injury" | "fatality",
+  physicalImpact: SafetySeverity,
 ): number {
-  switch (physicalImpact) {
-    case "reversible_injury":   return 2;
-    case "irreversible_injury": return 3;
-    case "fatality":            return 4;
-  }
+  return safetySeverityToFactor(physicalImpact);
 }
 
 /**
@@ -368,22 +366,8 @@ export function deriveSafetyValueFromPhysicalImpact(
  */
 export function worstPhysicalImpact(
   linkedAssets: AssetReference[],
-): "reversible_injury" | "irreversible_injury" | "fatality" | undefined {
-  const ORDER = [
-    "reversible_injury",
-    "irreversible_injury",
-    "fatality",
-  ] as const;
-
-  const physicalImpacts = linkedAssets
-    .map((a) => a.physicalImpact)
-    .filter((p): p is NonNullable<typeof p> => p !== undefined);
-
-  if (physicalImpacts.length === 0) return undefined;
-
-  return physicalImpacts.reduce((acc, cur) =>
-    ORDER.indexOf(cur) > ORDER.indexOf(acc) ? cur : acc,
-  );
+): SafetySeverity | undefined {
+  return worstSafetySeverity(linkedAssets.map((a) => a.physicalImpact));
 }
 
 /**

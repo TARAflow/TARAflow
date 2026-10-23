@@ -6,6 +6,8 @@
 //   import type { DFDReference } from "shared/models/dfd-reference-types"
 //   or via shared barrel: import type { DFDReference } from "shared"
 
+import type { SafetySeverity } from "./safety-types";
+
 // ==================== ELEMENT / CONNECTION REFS ====================
 
 /**
@@ -36,15 +38,8 @@ export interface DataFlowReference {
 
 // ==================== DFD GRAPH SNAPSHOT ====================
 
-/**
- * Safety severity — mirrors SafetyAnnotation.severity in dfd-types.ts.
- * Keep in sync.
- */
-export type SafetySeverityRef =
-  | "reversible_minor"
-  | "reversible_moderate"
-  | "irreversible_injury"
-  | "fatality";
+/** Safety severity — the canonical SafetySeverity scale (safety-types.ts). */
+export type SafetySeverityRef = SafetySeverity;
 
 export interface SafetyAnnotationRef {
   severity: SafetySeverityRef;

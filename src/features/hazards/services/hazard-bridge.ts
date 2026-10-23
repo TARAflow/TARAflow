@@ -30,12 +30,13 @@ import type {
 /**
  * FMEA severity -> human-harm scale (structured, on the endangers edge).
  * "negligible" has no human-harm peer; it maps to the lowest level.
+ * "critical" (severe, irreversible) maps conservatively to irreversible_major.
  */
 const SEVERITY_TO_HUMAN: Record<HazardSeverity, HumanHarmSeverity> = {
-  negligible: "reversible_injury",
-  marginal: "reversible_injury",
-  critical: "irreversible_injury",
-  catastrophic: "fatality",
+  negligible: "reversible_minor",
+  marginal: "reversible_minor",
+  critical: "irreversible_major",
+  catastrophic: "fatal",
 };
 
 function shortLabel(text: string, max = 60): string {

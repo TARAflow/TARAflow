@@ -5,9 +5,11 @@ import { resolveSeverityScale } from "features/hazards";
 describe("resolveSeverityScale", () => {
   it("returns the safety scale for human targets (excludes 'none')", () => {
     expect(resolveSeverityScale("human")).toEqual([
-      "reversible_injury",
-      "irreversible_injury",
-      "fatality",
+      "reversible_minor",
+      "reversible_major",
+      "irreversible_minor",
+      "irreversible_major",
+      "fatal",
     ]);
   });
 

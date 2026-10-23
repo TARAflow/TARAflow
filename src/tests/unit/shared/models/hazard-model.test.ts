@@ -50,7 +50,7 @@ describe("hazard model — Phase 1", () => {
       type: "endangers",
       from: hid("H-01"),
       to: "asset-operator",
-      impact: { target: "human", severity: "fatality" },
+      impact: { target: "human", severity: "fatal" },
     };
 
     expect(isContributesTo(contributes)).toBe(true);
@@ -101,9 +101,11 @@ describe("hazard model — Phase 1", () => {
 
   it("exposes ordered severity scales per target kind", () => {
     expect(HUMAN_HARM_SEVERITY).toEqual([
-      "reversible_injury",
-      "irreversible_injury",
-      "fatality",
+      "reversible_minor",
+      "reversible_major",
+      "irreversible_minor",
+      "irreversible_major",
+      "fatal",
     ]);
     expect(SEVERITY_SCALE_BY_TARGET.environment).toEqual([
       "low",

@@ -5,7 +5,7 @@ exports[`commit-hazard-safety — SmokeDetector golden > audit snapshot of hazar
   {
     "aggregatedImpact": "HIGH+",
     "id": "SY-001",
-    "physicalImpact": "irreversible_injury",
+    "physicalImpact": "irreversible_major",
     "physicalImpactSource": "hazard",
   },
 ]

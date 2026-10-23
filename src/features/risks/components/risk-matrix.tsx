@@ -11,6 +11,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { isIrreversibleOrWorse, type SafetyImpact } from "shared";
 import i18n from "i18next";
 import {
   Box,
@@ -49,7 +50,7 @@ interface RiskMatrixProps {
     assets: Array<{
       id: string;
       aggregatedImpact?: string;
-      physicalImpact?: string;
+      physicalImpact?: SafetyImpact;
     }>;
   };
 }
@@ -78,16 +79,16 @@ const IMPACT_CHIP_COLORS: Record<ImpactLevel, { bg: string; border: string; colo
  */
 function getWorstImpactForRisk(
   risk: Risk,
-  assetDataRef?: { assets: Array<{ id: string; aggregatedImpact?: string; physicalImpact?: string }> },
+  assetDataRef?: { assets: Array<{ id: string; aggregatedImpact?: string; physicalImpact?: SafetyImpact }> },
 ): ImpactLevel | undefined {
   if (!assetDataRef) return undefined;
   const linked = (risk.linkedAssetIds ?? [])
     .map((id) => assetDataRef.assets.find((a) => a.id === id))
-    .filter(Boolean) as Array<{ id: string; aggregatedImpact?: string; physicalImpact?: string }>;
+    .filter(Boolean) as Array<{ id: string; aggregatedImpact?: string; physicalImpact?: SafetyImpact }>;
   if (!linked.length) return undefined;
 
   const hasSafety = linked.some(
-    (a) => a.physicalImpact === "fatality" || a.physicalImpact === "irreversible_injury",
+    (a) => isIrreversibleOrWorse(a.physicalImpact),
   );
   const worstBusiness = linked.reduce<ImpactLevel | undefined>((acc, a) => {
     const imp = a.aggregatedImpact as ImpactLevel | undefined;

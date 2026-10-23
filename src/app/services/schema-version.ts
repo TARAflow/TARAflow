@@ -42,5 +42,10 @@
  *       identity links live in dfd.pages (optional, absent for classic
  *       projects). No data changes — a version fence, so releases that
  *       would merge the pages of a multi-page file refuse it instead.
+ *       Same step: canonical 5-level person-harm severity (reversible_minor …
+ *       irreversible_major, fatal) for SafetyAnnotation.impact, human
+ *       endangers edges, physicalImpact / safetyImpact. Conservative mapping
+ *       (reversible_injury → reversible_major, irreversible_injury →
+ *       irreversible_major, fatality → fatal); safety ImpactRating 3 → 4.
  */
 export const CURRENT_SCHEMA_VERSION = 9;

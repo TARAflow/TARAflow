@@ -34,7 +34,7 @@ import type { AssetReference } from "shared";
 
 function asset(
   id: string,
-  physicalImpact?: "reversible_injury" | "irreversible_injury" | "fatality",
+  physicalImpact?: "reversible_major" | "irreversible_major" | "fatal",
 ): AssetReference {
   return {
     id,
@@ -55,20 +55,20 @@ const identityNormalise = (v: number, s: number, t: number): number => {
 
 describe("resolveEN50742Severity (§3.6/§3.7 — worst-case physicalImpact, mapped)", () => {
   it("maps a single asset's physicalImpact onto the EN 50742 vocabulary", () => {
-    expect(resolveEN50742Severity([asset("A-1", "reversible_injury")])).toBe(
+    expect(resolveEN50742Severity([asset("A-1", "reversible_major")])).toBe(
       "reversible",
     );
-    expect(resolveEN50742Severity([asset("A-1", "irreversible_injury")])).toBe(
+    expect(resolveEN50742Severity([asset("A-1", "irreversible_major")])).toBe(
       "non_reversible",
     );
-    expect(resolveEN50742Severity([asset("A-1", "fatality")])).toBe("fatal");
+    expect(resolveEN50742Severity([asset("A-1", "fatal")])).toBe("fatal");
   });
 
   it("takes the worst across multiple linked assets", () => {
     const linked = [
-      asset("A-1", "reversible_injury"),
-      asset("A-2", "fatality"),
-      asset("A-3", "irreversible_injury"),
+      asset("A-1", "reversible_major"),
+      asset("A-2", "fatal"),
+      asset("A-3", "irreversible_major"),
     ];
     expect(resolveEN50742Severity(linked)).toBe("fatal");
   });
@@ -79,11 +79,11 @@ describe("resolveEN50742Severity (§3.6/§3.7 — worst-case physicalImpact, map
   });
 
   it("shares worst-case selection with the existing Safety Impact factor (same helper)", () => {
-    const linked = [asset("A-1", "irreversible_injury"), asset("A-2", "fatality")];
+    const linked = [asset("A-1", "irreversible_major"), asset("A-2", "fatal")];
     // Both resolvers must agree on WHICH asset wins — they're the same
     // worst-case selection over the same source data, just mapped to
     // different target vocabularies (3-level EN 50742 vs. 4-level business).
-    expect(worstPhysicalImpact(linked)).toBe("fatality");
+    expect(worstPhysicalImpact(linked)).toBe("fatal");
     expect(resolveEN50742Severity(linked)).toBe("fatal");
   });
 });

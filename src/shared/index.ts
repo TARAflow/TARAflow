@@ -145,6 +145,18 @@ export {
   isSafetyCritical,
   hasSafetyRelevance,
   createDefaultSafetyAnnotation,
+  SAFETY_SEVERITIES,
+  SAFETY_IMPACTS,
+  SAFETY_SEVERITY_COLOR,
+  safetyImpactI18nKey,
+  safetyImpactRank,
+  worseSafetyImpact,
+  worstSafetySeverity,
+  isIrreversibleOrWorse,
+  isOverrideSeverity,
+  safetySeverityToFactor,
+  normalizeLegacySafetyImpact,
+  type SafetySeverity,
 } from "./models/safety-types";
 
 // ==================== HAZARD TYPES ====================

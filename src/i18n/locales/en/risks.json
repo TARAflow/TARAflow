@@ -799,7 +799,7 @@
       },
       "safety": {
         "name": "Safety Impact",
-        "description": "What is the potential harm to persons? 1 = reversible minor injury, 2 = reversible moderate, 3 = irreversible injury, 4 = fatality. Aligned with ISO 12100 / EN 50742.",
+        "description": "What is the potential harm to persons? 1 = reversible minor, 2 = reversible major, 3 = irreversible minor, 4 = irreversible major or fatal (IEC 62061 Se1–Se4).",
         "shortName": "Safety"
       },
       "physical_damage": {

@@ -72,7 +72,14 @@ import {
 } from "../services/asset-impact-calculator";
 
 // Import color config from shared — no dependency on dfd-types or relation-types
-import { ASSET_GROUP_CONFIG, type AssetGroup } from "shared";
+import {
+  ASSET_GROUP_CONFIG,
+  SAFETY_SEVERITY_COLOR,
+  isOverrideSeverity,
+  safetyImpactI18nKey,
+  type AssetGroup,
+  type SafetyImpact,
+} from "shared";
 
 // ==================== TYPES ====================
 
@@ -265,16 +272,17 @@ const AGGREGATED_IMPACT_STYLES: Record<
   LOW:      { bg: "#94a3b8", color: "#1e293b", labelKey: "tabs.assets.impactLabels.low" },
 };
 
-// Severity-based colors — aligned with ISO 12100 / EN 50742
-// severityKey maps to existing tabs.assets.safetyScale.{n}.severity i18n entries
-const PHYSICAL_IMPACT_STYLES: Record<
-  string,
-  { bg: string; color: string; severityKey: string }
-> = {
-  fatality:            { bg: "#dc2626", color: "#fff", severityKey: "tabs.assets.safetyScale.4.severity" },
-  irreversible_injury: { bg: "#f97316", color: "#fff", severityKey: "tabs.assets.safetyScale.3.severity" },
-  reversible_injury:   { bg: "#eab308", color: "#fff", severityKey: "tabs.assets.safetyScale.2.severity" },
-};
+// Severity-based colors and labels — the canonical safety scale (safety-types.ts).
+function physicalImpactStyle(
+  impact: SafetyImpact | undefined,
+): { bg: string; color: string; severityKey: string } | undefined {
+  if (!impact || impact === "none") return undefined;
+  return {
+    bg: SAFETY_SEVERITY_COLOR[impact],
+    color: "#fff",
+    severityKey: safetyImpactI18nKey(impact),
+  };
+}
 
 function getBusinessImpactBg(level: number, maxLevels: number): string {
   const palettes: Record<number, string[]> = {
@@ -654,7 +662,7 @@ export const AssetTable = React.memo<AssetTableProps>(
             row,
             hazardLinks?.[row.id],
           );
-          const impact = resolved.level as string | undefined;
+          const impact = resolved.level;
           const fromHazard = resolved.source === "hazard";
           const source: "derived" | "manual" | undefined =
             resolved.source === "manual"
@@ -664,9 +672,10 @@ export const AssetTable = React.memo<AssetTableProps>(
                 : undefined;
           if (!impact) return <Typography color="text.disabled">–</Typography>;
 
-          const style = PHYSICAL_IMPACT_STYLES[impact] ?? {
+          const style = physicalImpactStyle(impact) ?? {
             bg: "#94a3b8",
             color: "#1e293b",
+            severityKey: safetyImpactI18nKey(impact),
           };
           const isManual = source === "manual";
 
@@ -974,8 +983,7 @@ export const AssetTable = React.memo<AssetTableProps>(
           const safetyOverrideActive =
             (row as Asset & { safetyOverrideActive?: boolean })
               .safetyOverrideActive ??
-            ((row.physicalImpact === "fatality" ||
-              row.physicalImpact === "irreversible_injury") &&
+            (isOverrideSeverity(row.physicalImpact) &&
               row.physicalImpactSource !== "manual" &&
               agg === "CRITICAL");
 
@@ -1445,7 +1453,7 @@ export const AssetTable = React.memo<AssetTableProps>(
           }
 
           const worst = summary.worstSeverity;
-          const style = (worst ? PHYSICAL_IMPACT_STYLES[worst] : undefined) ?? {
+          const style = physicalImpactStyle(worst) ?? {
             bg: "#94a3b8",
             color: "#1e293b",
             severityKey: "",
@@ -1464,7 +1472,7 @@ export const AssetTable = React.memo<AssetTableProps>(
               {l.externalRef ? `${l.externalRef} · ` : ""}
               {l.label}
               {l.severity
-                ? ` — ${t(PHYSICAL_IMPACT_STYLES[l.severity]?.severityKey ?? "", { defaultValue: l.severity })}`
+                ? ` — ${t(safetyImpactI18nKey(l.severity))}`
                 : ""}
               {l.relevance ? ` [${l.relevance}]` : ""}
             </Typography>

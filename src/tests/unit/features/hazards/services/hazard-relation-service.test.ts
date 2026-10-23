@@ -7,7 +7,7 @@ import { isContributesTo, isEndangers } from "shared";
 
 const HID = "H-01" as HazardItemId;
 const base = (): HazardData => createEmptyHazardData();
-const fatalHuman: HazardImpact = { target: "human", severity: "fatality" };
+const fatalHuman: HazardImpact = { target: "human", severity: "fatal" };
 
 const assets: AssetReference[] = [
   { id: "HUM-1", name: "Operator", assetGroup: "human", hasSafetyAnnotation: false },

@@ -12,18 +12,14 @@
 // infrastructure share the 4-level magnitude vocabulary already used by
 // isHighValueAsset, to avoid introducing a third vocabulary.
 
-import type { SafetyImpact } from "./safety-types";
+import { SAFETY_SEVERITIES, type SafetySeverity } from "./safety-types";
 
-// --- Human harm: reuse SafetyImpact -------------------------------------------------
-// "none" is excluded on an actual endangers edge (an edge implies harm); the Phase 2
-// validator enforces severity !== "none". The ordered array drives dropdown order;
-// aggregation can reuse aggregateSafetyImpact() from safety-types.
-export type HumanHarmSeverity = Exclude<SafetyImpact, "none">;
-export const HUMAN_HARM_SEVERITY: readonly HumanHarmSeverity[] = [
-  "reversible_injury",
-  "irreversible_injury",
-  "fatality",
-] as const;
+// --- Human harm: the canonical SafetySeverity scale --------------------------------
+// "none" is excluded on an actual endangers edge (an edge implies harm). The ordered
+// array drives dropdown order; aggregation reuses worstSafetySeverity() from
+// safety-types.
+export type HumanHarmSeverity = SafetySeverity;
+export const HUMAN_HARM_SEVERITY: readonly HumanHarmSeverity[] = SAFETY_SEVERITIES;
 
 // --- Environment harm (PROPOSED wording — confirm) ----------------------------------
 // Intent: reversible/local at the low end, persistent/widespread at the top.
