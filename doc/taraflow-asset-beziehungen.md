@@ -152,6 +152,10 @@ Betreiber:
 
 ## Safety Annotation Layer
 
+> **Referenz:** Warum, wie und wo das Safety-Modell umgesetzt ist (Skala,
+> Worst-of, Override-Regel, Migration, Code-Orte): `taraflow-safety-model.md`.
+> Dieser Abschnitt beschreibt die Einbettung in den Asset-Graphen.
+
 ### Konzept
 
 TARAflow integriert Safety-Aspekte durch einen **optionalen Annotation Layer**, der keine neue Modellierungslogik einführt, sondern bestehende Beziehungen mit Safety-Kontext anreichert.
@@ -682,9 +686,10 @@ interface DataStoreProperties {
   // ... Standard Properties
 
   // Safety-spezifisch
-  containsSafetyRelevantData?: boolean;
-  safetyImpact?: 'none' | SafetySeverity;
+  containsSafetyRelevantData?: boolean;   // Element-Eingabe, steuert Threat-Eskalation
   safetyRationale?: string;
+  // Schwere wird nicht am Data Store erfasst, sondern am Asset abgeleitet
+  // (physicalImpact, siehe taraflow-safety-model.md).
   // Verbindung zu betroffenen Function Assets erfolgt über
   // Asset-zu-Asset Beziehungen, nicht als Property-Feld
 }

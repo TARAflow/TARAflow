@@ -49,7 +49,8 @@ Beziehungen mit **`[KERN]`** decken die meisten Projekte ab.
 > wird durch das Hazard-Item-Muster ersetzt: `Asset ─contributes_to─► Hazard Item ─endangers─► Schutzziel`.
 > Für einfache Einzelursachen ohne Hazard Item bleibt die Safety-Annotation an der
 > Element→Asset-Relation. Beide Pfade sind getrennte Datenquellen (kein eingeklappter
-> Hazard-Knoten). Details siehe "Zwei Modellierungspfade" im Dokument "Asset-Beziehungen".
+> Hazard-Knoten). Details siehe "Zwei Modellierungspfade" im Dokument "Asset-Beziehungen",
+> Begründungen und Code-Orte in `taraflow-safety-model.md`.
 
 > Alle anderen Beziehungen sind valide — sie werden genutzt wenn das Modell es verlangt,
 > nicht weil das Dokument sie aufführt.
