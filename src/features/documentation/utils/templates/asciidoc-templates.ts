@@ -205,18 +205,7 @@ Das folgende Diagramm zeigt die Datenflüsse und Vertrauensgrenzen des Systems.
 
 === DFD-Statistiken
 
-[cols="2,1", options="header"]
-|===
-| Element-Typ | Anzahl
-
-| Externe Entitäten | {{externalEntities}}
-| Prozesse | {{processes}}
-| Datenspeicher | {{dataStores}}
-| Datenflüsse | {{dataFlows}}
-| Trust Boundaries | {{trustBoundaries}}
-| *Gesamt* | *{{totalElements}}*
-|===
-
+{{dfdStatsTable}}
 {{dfdPages}}`
       : `== Data Flow Diagram
 
@@ -226,18 +215,7 @@ The following diagram shows the data flows and trust boundaries of the system.
 
 === DFD Statistics
 
-[cols="2,1", options="header"]
-|===
-| Element Type | Count
-
-| External Entities | {{externalEntities}}
-| Processes | {{processes}}
-| Data Stores | {{dataStores}}
-| Data Flows | {{dataFlows}}
-| Trust Boundaries | {{trustBoundaries}}
-| *Total* | *{{totalElements}}*
-|===
-
+{{dfdStatsTable}}
 {{dfdPages}}`,
 
   // ==================== DFD DESCRIPTIONS ====================

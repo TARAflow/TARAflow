@@ -335,30 +335,9 @@ TITLE: Datenflussdiagramm
 Das folgende Diagramm zeigt die Datenflüsse und Vertrauensgrenzen des Systems.
 
 {{dfdFigures}}
-
-DFD-Statistiken:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 40 20
-
-   * - Element-Typ
-     - Anzahl
-   * - Externe Entitäten
-     - {{externalEntities}}
-   * - Prozesse
-     - {{processes}}
-   * - Datenspeicher
-     - {{dataStores}}
-   * - Datenflüsse
-     - {{dataFlows}}
-   * - Trust Boundaries
-     - {{trustBoundaries}}
-   * - **Gesamt**
-     - **{{totalElements}}**
 [/FREETEXT]
 
-{{dfdPages}}[/SECTION]
+{{dfdStatsTable}}{{dfdPages}}[/SECTION]
 
 `
       : `[SECTION]
@@ -368,30 +347,9 @@ TITLE: Data Flow Diagram
 The following diagram shows the data flows and trust boundaries of the system.
 
 {{dfdFigures}}
-
-DFD Statistics:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 40 20
-
-   * - Element Type
-     - Count
-   * - External Entities
-     - {{externalEntities}}
-   * - Processes
-     - {{processes}}
-   * - Data Stores
-     - {{dataStores}}
-   * - Data Flows
-     - {{dataFlows}}
-   * - Trust Boundaries
-     - {{trustBoundaries}}
-   * - **Total**
-     - **{{totalElements}}**
 [/FREETEXT]
 
-{{dfdPages}}[/SECTION]
+{{dfdStatsTable}}{{dfdPages}}[/SECTION]
 
 `,
 

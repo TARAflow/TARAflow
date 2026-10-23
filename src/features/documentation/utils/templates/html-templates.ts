@@ -210,16 +210,7 @@ export const HTML_TEMPLATES = {
   {{dfdFigures}}
   
   <h3>DFD-Statistiken</h3>
-  <table class="stats-table">
-    <tr><th>Element-Typ</th><th>Anzahl</th></tr>
-    <tr><td>Externe Entitäten</td><td>{{externalEntities}}</td></tr>
-    <tr><td>Prozesse</td><td>{{processes}}</td></tr>
-    <tr><td>Datenspeicher</td><td>{{dataStores}}</td></tr>
-    <tr><td>Datenflüsse</td><td>{{dataFlows}}</td></tr>
-    <tr><td>Trust Boundaries</td><td>{{trustBoundaries}}</td></tr>
-    <tr><td><strong>Gesamt</strong></td><td><strong>{{totalElements}}</strong></td></tr>
-  </table>
-{{dfdPages}}</section>
+{{dfdStatsTable}}{{dfdPages}}</section>
 
 `
       : `<section id="data-flow-diagram">
@@ -229,16 +220,7 @@ export const HTML_TEMPLATES = {
   {{dfdFigures}}
   
   <h3>DFD Statistics</h3>
-  <table class="stats-table">
-    <tr><th>Element Type</th><th>Count</th></tr>
-    <tr><td>External Entities</td><td>{{externalEntities}}</td></tr>
-    <tr><td>Processes</td><td>{{processes}}</td></tr>
-    <tr><td>Data Stores</td><td>{{dataStores}}</td></tr>
-    <tr><td>Data Flows</td><td>{{dataFlows}}</td></tr>
-    <tr><td>Trust Boundaries</td><td>{{trustBoundaries}}</td></tr>
-    <tr><td><strong>Total</strong></td><td><strong>{{totalElements}}</strong></td></tr>
-  </table>
-{{dfdPages}}</section>
+{{dfdStatsTable}}{{dfdPages}}</section>
 
 `,
 

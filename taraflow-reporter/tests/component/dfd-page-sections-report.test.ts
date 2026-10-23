@@ -121,7 +121,7 @@ describe("DFD chapter of a leveled DFD (7a/7b)", () => {
   it("strictdoc: a nested section per page", () => {
     inOrder(generate(data, "strictdoc"), [
       "TITLE: Data Flow Diagram",
-      "DFD Statistics:",
+      "TITLE: DFD Statistics",
       `TITLE: ${TOP_T}`,
       `.. image:: ${TOP}\n   :alt: Data Flow Diagram`,
       "[EE-1](#element-EE-1)",
@@ -201,7 +201,7 @@ describe("DFD chapter of a classic project (unchanged)", () => {
     ["markdown", `![Data Flow Diagram](${image})`, "### DFD Statistics"],
     ["asciidoc", `image::${image}[Data Flow Diagram]`, "=== DFD Statistics"],
     ["html", `<img src="${image}" alt="Data Flow Diagram" class="dfd-image">`, "<h3>DFD Statistics</h3>"],
-    ["strictdoc", `.. image:: ${image}\n   :alt: Data Flow Diagram`, "DFD Statistics:"],
+    ["strictdoc", `.. image:: ${image}\n   :alt: Data Flow Diagram`, "TITLE: DFD Statistics"],
   ] as const)("%s: figure, then statistics, then the one overview", (format, figure, stats) => {
     const out = generate(data, format);
     inOrder(out, [figure, stats, "quick overview of all DFD elements"]);

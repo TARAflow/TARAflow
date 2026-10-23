@@ -50,6 +50,7 @@ import {
 } from "../../../risks/models/iso21434-core";
 import { assetImpactResolver } from "../../../assets/services/asset-impact-resolver";
 import { buildSecurityGoalDocRows } from "../security-goal-doc-rows";
+import { dfdStatsTable } from "../dfd-stats-table";
 import {
   getSecurityLevelText,
   getTrustLevelText,
@@ -689,15 +690,6 @@ export abstract class BaseDocumentGenerator {
       };
     }
 
-    const stats = dfd.stats || {
-      totalElements: 0,
-      externalEntities: 0,
-      processes: 0,
-      dataStores: 0,
-      dataFlows: 0,
-      trustBoundaries: 0,
-    };
-
     // Classic: the one thumbnail after the intro. Leveled DFD (7a/7b): after
     // the statistics one section per page — heading, figure, element table.
     const alt = this.ctx.lang === "de" ? "Datenflussdiagramm" : "Data Flow Diagram";
@@ -739,12 +731,7 @@ export abstract class BaseDocumentGenerator {
     const values = {
       dfdFigures: sections ? "" : this.formatDfdFigure(dfd.thumbnail || "dfd.png", alt),
       dfdPages: dfdPages + dfdParentLevel,
-      externalEntities: stats.externalEntities,
-      processes: stats.processes,
-      dataStores: stats.dataStores,
-      dataFlows: stats.dataFlows,
-      trustBoundaries: stats.trustBoundaries,
-      totalElements: stats.totalElements,
+      dfdStatsTable: this.formatStatsTable(dfdStatsTable(dfd, this.ctx.lang, this.ctx.t)),
     };
 
     const content = replacePlaceholders(this.getDfdTemplate(), values);
