@@ -219,7 +219,7 @@ Closes G5, prepares G12.
     bumped by every write, stays a separate point.
 - **Cybersecurity properties explained (decision 18)** in the methodology
   section: the seven CIANAAA goals with their meaning. ISO/SAE 21434 3.1.20
-  names C, I, A only as examples ("attributes include …"), and RQ-15-07 only
+  names C, I, A only as examples ("attributes include …"), and RQ-15-03 only
   asks for the compromised property — so the seven are properties of their own.
   No mapping onto CIA.
 
@@ -383,8 +383,7 @@ the edge value `"none"` (S0) exists in every preset. Normative basis [N]:
 negligible / moderate / major / severe; the footnote of Table F.1 allows
 exposure and controllability "if a rationale is provided"; 15.5.2 NOTE 6 lets
 the functional-safety evaluation be reused. 5.4.1 EXAMPLE 3 (requirement on
-communication between disciplines; RQ number to be confirmed in the standard:
-RQ-05-03 or RQ-05-05) names the exchange threat scenarios ↔ hazards and
+communication between disciplines, **RQ-05-05**) names the exchange threat scenarios ↔ hazards and
 cybersecurity goals ↔ safety goals. ISO 21434 does **not** require an ISO 26262
 analysis first; without a HARA the analyst rates S directly by Table F.1.
 
@@ -906,7 +905,7 @@ Added in rev. 2 (2026-10-24):
     in a separate commit first; `analysisDate` kept when the analysis is
     unchanged (d1, all presets).
 18. **[D] No CIANAAA → CIA mapping (2026-10-24):** ISO/SAE 21434 3.1.20
-    lists C, I, A only as examples of cybersecurity properties; RQ-15-07 asks
+    lists C, I, A only as examples of cybersecurity properties; RQ-15-03 asks
     only for the compromised property. The seven CIANAAA goals are used as
     properties of their own and explained in the methodology chapter (meaning
     of each). The mapping constant of 0b is removed again with 0d.
@@ -937,6 +936,10 @@ Added in rev. 2 (2026-10-24):
 ---
 
 ## 7. Definition of done — "ISO/SAE 21434 work-product complete"
+
+Checked row by row in `iso-21434-rq-coverage.md` (every RQ / RC / PM and WP of
+Clauses 9 and 15, Clause 8 inputs, RQ-05-05): the normative minimum is done
+when every [N] row there is *met* or justified *n/a* / *external*.
 
 An `iso-21434` project in TARAflow:
 
