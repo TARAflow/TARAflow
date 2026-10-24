@@ -194,6 +194,13 @@ Closes G5, prepares G12.
     3a; nothing is recomputed automatically.
   - Schema 10 is global: every project gets `schemaVersion: 10` on the next
     save (one line, as with 9); the stamps only appear in ISO projects.
+  - **Where (2026-10-24):** in the app layer, `commitCalcStamps(prev, next)`
+    in `mergeProjectPatch` (pattern `commitHazardSafety`; `features/risks`
+    stays unaware). Only when `prev` is the same project (open, load and
+    project switch never stamp); only risks that are new in `prev` or whose
+    computed values / `factorRatings` changed, and new or changed path
+    analyses. No stamp = computed before 0c. The risk stamp also carries
+    `FEASIBILITY_CALC_VERSION`.
   - **Prerequisite commit (c):** `canonicalStringify` + `TCS_VERSION` and
     `fnv1a32` move to `src/shared/utils/` (exported; `pathKey` /
     `computeNodeId` bit-identical). `app/services/tcs-serialize.ts` stays as a
@@ -205,7 +212,11 @@ Closes G5, prepares G12.
   - **`analysisDate` churn fix (d1, all presets, no value change):** the
     calculator stays pure; where a new `PathAnalysis` replaces the old one,
     `keepDateIfUnchanged(prev, next)` keeps the old `analysisDate` when the
-    analysis without `analysisDate` (stamp included) is unchanged.
+    analysis without `analysisDate` (stamp included) is unchanged. Same for
+    `tree.lastModified`: a re-parsed tree equal to the previous one apart from
+    the date fields keeps the previous object (canonical comparison without
+    the dates, else the comparison triggers itself). `info.lastModified`,
+    bumped by every write, stays a separate point.
 - **CIANAAA ↔ CIA mapping table** in the methodology section (ISO names C, I, A
   only as examples; the extension must be documented):
   AuthN, N, Acc → I; AuthZ → C or I depending on the access; explain why they
@@ -514,6 +525,12 @@ Closes G1, G4.
   justifications; list every risk whose value class changed as
   *"decision to review"* (banner + filter in the Risk tab). Never change a
   treatment automatically.
+- **Stamp check (from 0c):** a risk whose calculation stamp differs from the
+  current one (or has none) is recomputed in memory first; only a real value
+  difference puts it on the *decision to review* list. Reason: 0c restamps
+  only when a value changed, so a configuration change that leaves a value
+  equal keeps the old stamp — without the recomputation that would be a false
+  alarm.
 - Risk tab grouping in ISO mode: by threat scenario, paths nested.
 
 *Done when:* WP-15-06 (feasibility) and WP-15-07 (risk values) are produced per
@@ -830,7 +847,8 @@ are written against behaviour, not against the report text.
 | 0 | Switching to ISO with a rated 5-level scale → scale unchanged, finding with the number of assets and the ratings outside the scale, no value changed. |
 | 0 | Switching from ISO to another preset keeps the 4-level scale. |
 | 0 | Every ISO risk and every ISO `PathAnalysis` carries `{method, calcVersion, mappingVersion}`; projects under other presets carry none (save diff = `schemaVersion` only). |
-| 0 | Saving without change, and analysing twice with unchanged inputs, yield a byte-identical file; a changed input gives a new `analysisDate`. |
+| 0 | Analysing twice with unchanged inputs leaves `attackTrees` and `risks` byte-identical (`info.lastModified` excluded, separate point); a changed input gives a new `analysisDate`. |
+| 0 | Opening and saving an ISO project without stamps writes no stamp and changes no byte except `schemaVersion`; changing one risk stamps only that risk. |
 | 0 | Changing a G.7 band changes `mappingVersion` of the path and of the risk stamp; changing `impactAggregation` changes only the risk stamp. |
 | 0 | Golden test per calculation core: a changed formula fails with "bump calcVersion". |
 | 0 | After moving the hash helpers: `pathKey` / `computeNodeId` and the TCS output are unchanged; Electron and verifier bundles build. |
