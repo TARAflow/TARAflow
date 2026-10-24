@@ -28,6 +28,7 @@ import type {
   DFDReference,
   ThreatReference,
 } from "shared";
+import { canonicalStringify } from "shared/utils/tcs-canonical";
 import {
   hasSafetyData,
   hasDFDSafetyAnnotations,
@@ -110,6 +111,20 @@ export function sameDrafts(
   const x = norm(a);
   const y = norm(b);
   return x.length === y.length && x.every((v, i) => v === y[i]);
+}
+
+/**
+ * Content equality independent of key order (same reason as sameDrafts: the
+ * project file is written with sorted keys, freshly built objects are not).
+ * Values TCS cannot serialize (NaN, Infinity) fall back to the previous
+ * JSON.stringify comparison.
+ */
+function sameContent(a: unknown, b: unknown): boolean {
+  try {
+    return canonicalStringify(a) === canonicalStringify(b);
+  } catch {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
 }
 
 // ==================== ELIGIBLE THREATS ====================
@@ -437,7 +452,7 @@ export function checkRiskSyncStatus(
       threat,
       dfd,
     );
-    return JSON.stringify(withEl) !== JSON.stringify(risk.factorRatings);
+    return !sameContent(withEl, risk.factorRatings);
   }).length;
 
   // Asset-link drift: the risk's linkedAssetIds no longer match what the DFD
@@ -676,9 +691,7 @@ export function syncRisksFromThreats(
       dfd,
     );
 
-    const ratingsChanged =
-      JSON.stringify(updatedFactorRatings) !==
-      JSON.stringify(reconciledRatings);
+    const ratingsChanged = !sameContent(updatedFactorRatings, reconciledRatings);
 
     // The DFD asset relations changed → the risk must inherit the new asset
     // set (and its severity) from the threat.
@@ -796,6 +809,16 @@ export function syncRisksFromThreats(
       `Removed ${removed} risk(s) (not_relevant / unrated / deleted).`,
     );
 
+  // Nothing changed → the same RiskData (no new lastModified, no write).
+  if (
+    added === 0 &&
+    removed === 0 &&
+    updated === 0 &&
+    sameContent(updatedConfiguration, riskData.configuration)
+  ) {
+    return { success: true, riskData, added, removed, updated, warnings };
+  }
+
   return {
     success: true,
     riskData: {
@@ -886,11 +909,11 @@ export function syncRisksFromAttackTrees(
         }
       : undefined;
 
-    const ratingsChanged =
-      JSON.stringify(newRatings) !== JSON.stringify(risk.factorRatings);
-    const assessmentChanged =
-      JSON.stringify(newAssessment) !==
-      JSON.stringify(risk.attackTreeAssessment);
+    const ratingsChanged = !sameContent(newRatings, risk.factorRatings);
+    const assessmentChanged = !sameContent(
+      newAssessment ?? null,
+      risk.attackTreeAssessment ?? null,
+    );
 
     // No change to this risk at all → leave it exactly as is (keeps object
     // identity stable, so the register doesn't churn on unrelated syncs).

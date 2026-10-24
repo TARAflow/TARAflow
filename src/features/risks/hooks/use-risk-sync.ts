@@ -100,7 +100,8 @@ export function useRiskSync({
         riskData.configuration.treeLikelihoodContribution ?? "factor",
       );
 
-      onUpdate(finalRiskData);
+      // Unchanged → no update, so nothing is marked dirty or re-saved.
+      if (finalRiskData !== riskData) onUpdate(finalRiskData);
       setSyncWarnings(threatSyncResult.warnings);
     } finally {
       setIsSyncing(false);
