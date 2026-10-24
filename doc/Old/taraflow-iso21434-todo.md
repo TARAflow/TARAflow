@@ -1,5 +1,9 @@
 # TARAflow — ISO 21434 Anpassungen
 
+> **Veraltet (2026-10-24).** Frühe Checkliste (Projekt-Tag `Modus_21434`,
+> OR = MIN). Ersetzt durch
+> `doc/InProgress/RegulationCompliance/iso-21434-conformance-implementation-plan.md`.
+
 > Alle Änderungen werden über `Modus_21434` gesteuert.
 > Wird im Projekt-Tag aktiviert — Standard-Modus bleibt unverändert.
 

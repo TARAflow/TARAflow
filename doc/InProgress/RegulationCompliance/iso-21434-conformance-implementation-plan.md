@@ -1,8 +1,8 @@
 # TARAflow — ISO/SAE 21434 Conformance: Implementation Plan
 
-> **Status:** Draft rev. 2, decisions of §6 taken, clarifications open (§9) ·
+> **Status:** Rev. 2, decisions of §6 taken, clarifications of §9 decided ·
 > 2026-10-24 · base: v0.14.0-beta (rev. 1: 2026-10-16, v0.13.3-alpha)
-> **Supersedes in part:** `doc/InProgress/RegulationCompliance/iso-21434-support-design.md`
+> **Supersedes:** `doc/Done/RegulationCompliance/iso-21434-support-design.md`
 > (that document deliberately limited TARAflow to Clause 15 and kept cybersecurity
 > goals as a link stub, DS-6. This plan reverses DS-6 and extends the scope to the
 > work products a TARA tool can carry; see §1).
@@ -549,33 +549,36 @@ Closes G13.
 
 ## 5. Sequencing and releases
 
-> **Rev. 2:** the table below is from rev. 1 (base v0.13.3). 0.14.0-beta has
-> shipped without Phase 0/1 and schema 9 is released, so the release and
-> schema columns are to be revised (§9 K6).
+Rev. 2 (decision 14). Base: v0.14.0-beta, schema 9. Work happens on the
+feature branch `feature/iso21434-conformance`; each step is merged/released on
+its own. Additive steps are the next beta patch; steps that bump the schema or
+change values get their own minor version and a release note.
 
-| Release | Phase | Changes values? | Schema bump |
-|---|---|---|---|
-| 0.14 | 0 + 1 | no | yes (small: ASM objects replace assumption texts) |
-| 0.15 | 2 | no (impact moves, MAX keeps the level) | **yes** |
-| 0.16 | 3 | **yes** (risk values) | **yes** |
-| 0.17 | 4 | no | no (additive) |
-| 0.18 | 5 + 7 | no | no |
-| later | 6, 8 | no | no |
+| Order | Step | Release | Changes values? | Schema |
+|---|---|---|---|---|
+| 1 | Phase 0 — terminology, methodology record, calc stamp | 0.14.x-beta | no | – |
+| 2 | Phase 3a — risk value 1–5, risk per threat scenario | **0.15.0-beta** | **yes** (ISO risks only) | **10** |
+| 3 | Phase 1 — Definition sub-tab, assumptions (stage A) | 0.15.x-beta | no | – (`info.description` stays the storage of *Purpose and functions*) |
+| 4 | Phase 1 stage B — arc42 import | 0.15.x-beta | no | – |
+| 5 | Phase 1H — Hazard Item as single safety source, ISO 26262 fields | **0.16.0-beta** | possibly (worst-of removed) | **11** |
+| 6 | Phase 2 — damage scenarios | **0.17.0-beta** | no (impact moves, MAX keeps the level) | **12** |
+| 7 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria | **0.18.0-beta** | **yes** where 1:n damage scenarios exist | **13** |
+| 8 | Phase 4 — goals, claims, verification record | 0.18.x-beta | no | – |
+| 9 | Phases 5 + 7 — concept traceability, report, readiness | 0.18.x-beta | no | – |
+| later | Phases 6, 8 (stage C of arc42 with 8) | x-beta | no | – |
 
-Phase 3 before 4 is mandatory (acceptance criteria drive the goal/claim
-validators).
+**Why 3a first:** an ISO project (APS) is running in TARAflow under
+`iso-21434`; RQ-15-15/16 are the only normative gaps an assessor stops at
+immediately. 3a: value 1–5 via the formula mapping and risk per threat
+scenario (MAX over paths), using today's impact per asset × security goal; no
+damage-scenario entity needed. 3b (after Phase 2): matrix option, risk per
+threat scenario × damage scenario, acceptance criteria. 3a changes ISO values
+once; 3b changes them again only where 1:n damage scenarios are used. Both
+produce the *decision to review* list and never change a treatment.
 
-**Option — pull the normative part of Phase 3 forward.** G1 and G4 are normative
-gaps (RQ-15-15/16), the other gaps are not. Phase 3 can be split:
-
-- **3a** (with 0.14): value 1–5 via the formula mapping and risk per threat
-  scenario (MAX over paths), using today's impact per asset × security goal. No
-  damage-scenario entity needed. Closes RQ-15-15/16 early.
-- **3b** (after Phase 2): matrix option, risk per threat scenario × damage
-  scenario, acceptance criteria.
-
-3a changes values once; 3b changes them again only where 1:n damage scenarios are
-used. Recommended if ISO projects are delivered before 0.16.
+Phase 3b before 4 is mandatory (acceptance criteria drive the goal/claim
+validators). Schema numbers are in order of the steps; if the order changes,
+the numbers follow it.
 
 ---
 
@@ -645,6 +648,12 @@ Added in rev. 2 (2026-10-24):
     becomes the single safety source, then gets the ISO 26262 fields
     (hazardous event, S/E/C, ASIL, safety goal ref) and a HARA import. Stored
     severity stays the canonical 5-level scale; S0–S3 is a view.
+14. **[D] Order and releases (§5):** 0 → 3a → 1 → 1B → 1H → 2 → 3b → 4 →
+    5+7 → 6, 8, on the branch `feature/iso21434-conformance`. 3a is pulled
+    forward because the APS project runs under `iso-21434`. Schema bumps (3a,
+    1H, 2, 3b) and value changes get their own minor beta; additive steps a
+    beta patch. The superseded support design moved to `doc/Done`, the old
+    `taraflow-iso21434-todo.md` checklist to `doc/Old`.
 
 ---
 
@@ -722,7 +731,7 @@ Discussed one by one before implementation; answers move into §6.
 | K3 | Link to ISO 26262 and extension of the Hazard Items | decided (decision 13, Phase 1H) |
 | K4 | Risk granularity | decided (decision 9) |
 | K5 | Effect on other methods | decided (decision 10, principle 6) |
-| K6 | Releases (0.14.x-beta), schema 10, old support design → `doc/Done` | open |
+| K6 | Releases, schema, order, old documents | decided (decision 14, §5) |
 
 ---
 

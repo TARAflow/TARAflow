@@ -11,7 +11,7 @@
 > `complianceProfile`. This document does not duplicate it.
 >
 > **ISO 21434** rides the same preset rails (see `regulation-presets-design.md`
-> and `taraflow-iso21434-todo.md`); the shared layers below are built once.
+> and `iso-21434-conformance-implementation-plan.md`); the shared layers below are built once.
 >
 > Normative source: prEN 50742:2025 (E), CENELEC CLC/TC 44X (Draft for Enquiry,
 > Dec 2025). Requirement wording below is condensed into implementation form;

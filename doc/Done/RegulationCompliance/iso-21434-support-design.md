@@ -1,5 +1,13 @@
 # TARAflow — ISO/SAE 21434 TARA Support Design
 
+> **Status (2026-10-24): superseded** by
+> `doc/InProgress/RegulationCompliance/iso-21434-conformance-implementation-plan.md`.
+> Done from this design: DS-2 (per-interaction off for `iso-21434`), the SFOP
+> lock, `iso21434-core`, the risk display per impact category. Reversed by the
+> plan: DS-1 (damage scenarios become first-class objects, Phase 2) and DS-6
+> (cybersecurity goals and claims as objects, Phase 4). Kept for the code
+> references (DS-2) and the verification provenance.
+
 > Scope: how TARAflow supports **ISO/SAE 21434 TARA activities (Clause 15) and
 > their traceable work products**, driven by the `iso-21434` regulation preset.
 > This is deliberately **not** a claim of full ISO/SAE 21434 compliance — see §1.
