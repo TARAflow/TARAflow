@@ -33,37 +33,15 @@
 // rather than silently merging two paths if it ever happens.
 
 import type { AttackPath, PathAnalysis } from "../models/attacktree-types";
+import { fnv1aHex12 } from "shared/utils/fnv1a";
 
 // ==================== HASH ====================
 
 /** Unit separator — cannot occur in a node name, so it is an unambiguous delimiter. */
 const CHAIN_SEPARATOR = "\u241F";
 
-const FNV_OFFSET_A = 0x811c9dc5;
-const FNV_OFFSET_B = 0x01000193;
-const FNV_PRIME = 0x01000193;
-
-function fnv1a32(input: string, offset: number): number {
-  let hash = offset >>> 0;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    // hash *= FNV_PRIME, in 32-bit space, without overflowing to float
-    hash = Math.imul(hash, FNV_PRIME) >>> 0;
-  }
-  return hash >>> 0;
-}
-
-/**
- * 64-bit FNV-1a rendered as 16 lowercase hex chars, truncated to 12.
- * Two independently-seeded 32-bit lanes give a wider key than a single lane
- * without pulling in a hashing dependency.
- */
-function hash64(input: string): string {
-  const a = fnv1a32(input, FNV_OFFSET_A);
-  const b = fnv1a32(input, FNV_OFFSET_B);
-  const hex = a.toString(16).padStart(8, "0") + b.toString(16).padStart(8, "0");
-  return hex.slice(0, 12);
-}
+/** 64-bit FNV-1a, truncated to 12 hex chars (moved to shared/utils/fnv1a.ts). */
+const hash64 = fnv1aHex12;
 
 // ==================== PATH KEY ====================
 

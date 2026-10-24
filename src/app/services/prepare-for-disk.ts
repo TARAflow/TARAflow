@@ -81,7 +81,8 @@ import type { SourceBinding } from "shared";
 import { sortA2ARelations } from "shared";
 
 // The canonical TCS serializer lives in its own project-types-free module
-// (./tcs-serialize) so the Electron main process and the CLI can import it
+// (shared/utils/tcs-canonical, re-exported by ./tcs-serialize) so the
+// Electron main process and the CLI can import it
 // WITHOUT dragging the Project type graph. Imported for local use below and
 // re-exported so existing callers of prepare-for-disk keep working unchanged.
 import { canonicalStringify } from "./tcs-serialize";
@@ -250,8 +251,9 @@ function sourceBindingForDisk(binding: SourceBinding): SourceBinding {
 }
 
 // ==================== TCS CANONICAL SERIALIZATION ====================
-// The serializer (canonicalStringify / TCS_VERSION) now lives in ./tcs-serialize
-// (project-types-free) and is imported + re-exported at the top of this file.
+// The serializer (canonicalStringify / TCS_VERSION) lives in
+// shared/utils/tcs-canonical (re-exported by ./tcs-serialize) and is imported +
+// re-exported at the top of this file.
 
 /**
  * The canonical on-disk representation of a Project: prepareForDisk + TCS v1.

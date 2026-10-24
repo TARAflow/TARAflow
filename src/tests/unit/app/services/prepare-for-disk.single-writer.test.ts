@@ -13,6 +13,8 @@
 // re-exports it, so every existing caller is unchanged. The guard therefore maps
 // each writer symbol to its OWNING module: still exactly one declaration each,
 // just canonicalStringify now lives in tcs-serialize.ts.
+// 2026-10-24: moved on to src/shared/utils/tcs-canonical.ts (features hash
+// canonical JSON for calculation stamps); tcs-serialize.ts only re-exports.
 //
 // If you use Jest with globals, delete the next import line.
 import { describe, it, expect } from "vitest";
@@ -42,12 +44,12 @@ const WRITER_FILE = "prepare-for-disk.ts";
 
 // Canonical writer symbols → the module each must be declared in, exactly once.
 // prepareForDisk / serialiseProject / serializeTCS own the project reduction;
-// canonicalStringify is the pure serializer, extracted to tcs-serialize.ts.
+// canonicalStringify is the pure serializer, in shared/utils/tcs-canonical.ts.
 const WRITER_DECLS: Record<string, string> = {
   prepareForDisk: "prepare-for-disk.ts",
   serialiseProject: "prepare-for-disk.ts",
   serializeTCS: "prepare-for-disk.ts",
-  canonicalStringify: "tcs-serialize.ts",
+  canonicalStringify: "tcs-canonical.ts",
 };
 
 function walk(dir: string): string[] {
