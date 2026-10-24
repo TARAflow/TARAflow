@@ -88,7 +88,21 @@ export interface RegulationPreset {
    * which realigns each asset's impactRatings. iso-21434 → SFOP (ISO 15.5).
    */
   impactCriteriaIds?: string[];
+
+  /**
+   * Impact scale (Asset Tab) the regime prescribes. Omitted → the project's own
+   * choice. iso-21434 → "4-level" (RQ-15-05: severe / major / moderate /
+   * negligible). Applied silently only while no asset is rated
+   * (threadImpactScale); with ratings nothing is remapped — the asset
+   * validator reports the mismatch and the config dialog only offers this
+   * scale. Leaving the preset keeps whatever scale is set.
+   */
+  requiredImpactScale?: RequiredImpactScale;
 }
+
+/** Same literals as the asset feature's ImpactScaleType (shared stays free of
+ * feature imports). */
+export type RequiredImpactScale = "3-level" | "4-level" | "5-level";
 
 export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = {
   standard: {
@@ -131,6 +145,8 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
     // (only while criteria are still the untouched default — see
     // threadImpactCriteria). Analyst may add further criteria afterwards.
     impactCriteriaIds: ["safety", "financial_damage", "operational", "privacy"],
+    // RQ-15-05: four impact ratings per category.
+    requiredImpactScale: "4-level",
   },
   "en-50742-a": {
     id: "en-50742-a",
@@ -175,6 +191,13 @@ export function getRegulationPreset(
   id: RegulationPresetId | undefined,
 ): RegulationPreset {
   return REGULATION_PRESETS[id ?? DEFAULT_REGULATION_PRESET];
+}
+
+/** Impact scale the preset prescribes; undefined → the project's own choice. */
+export function getRequiredImpactScale(
+  id: RegulationPresetId | undefined,
+): RequiredImpactScale | undefined {
+  return getRegulationPreset(id).requiredImpactScale;
 }
 
 // ==================== THREAT GENERATOR ACTIVATION ====================

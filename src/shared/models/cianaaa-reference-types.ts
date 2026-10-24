@@ -66,3 +66,28 @@ export const CIANAAA_TO_STRIDE: Record<SecurityGoalType, StrideCategory> = {
   AuthZ: "E", // Elevation of Privilege
   Acc: "R", // Repudiation
 };
+// ==================== ISO/SAE 21434 PROPERTY MAPPING ====================
+
+/** The cybersecurity properties ISO/SAE 21434 names (3.1.20 Note 1). */
+export type CiaProperty = "C" | "I" | "A";
+
+/**
+ * CIANAAA → C/I/A, for the methodology record of ISO projects (conformance
+ * plan 0b). ISO/SAE 21434 3.1.20 names confidentiality, integrity and
+ * availability only as examples of cybersecurity properties; TARAflow's four
+ * extra goals are kept separate because each drives its own STRIDE category
+ * (CIANAAA_TO_STRIDE: N/Acc → Repudiation, AuthN → Spoofing, AuthZ →
+ * Elevation of Privilege), which a pure CIA view would hide.
+ *   N, Acc  — integrity of the evidence (who did what)
+ *   AuthN   — integrity of the identity claim
+ *   AuthZ   — confidentiality or integrity, depending on the access gained
+ */
+export const CIANAAA_TO_CIA: Readonly<Record<SecurityGoalType, readonly CiaProperty[]>> = {
+  C: ["C"],
+  I: ["I"],
+  A: ["A"],
+  N: ["I"],
+  AuthN: ["I"],
+  AuthZ: ["C", "I"],
+  Acc: ["I"],
+};

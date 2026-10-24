@@ -207,6 +207,8 @@
         }
       },
       "validation": {
+        "impactScaleRequired": "ISO/SAE 21434 requires the {{required}} impact scale (RQ-15-05); the project uses {{current}}. Values are not converted — {{count}} rated asset(s) to re-rate after switching.",
+        "impactOutsideScale": "Asset {{id}}: impact value(s) {{values}} outside the scale (max. {{max}}) — re-rate",
         "noAssets": "No assets defined",
         "noName": "Asset {{id}}: name is missing",
         "noSecurityGoal": "Asset {{id}}: no security goal defined",
@@ -380,6 +382,8 @@
         "info": "Select 4-6 impact criteria that are relevant for your project. This configuration affects all assets.",
         "impactScale": "Impact Scale",
         "scale3": "3-Level (Low, Medium, High)",
+        "scaleRequiredIso": "ISO/SAE 21434 prescribes four impact ratings per category (RQ-15-05): negligible, moderate, major, severe.",
+        "scaleChangeKeepsValues": "Assets are already rated: values are not converted. Re-rate the assets after saving.",
         "scale4": "4-Level (+ Critical)",
         "scale5": "5-Level (+ Very High)",
         "calculationMethod": "Overall Impact Calculation",
