@@ -174,8 +174,38 @@ Closes G5, prepares G12.
     warns first if ratings exist ("values are not converted").
   - Switching from ISO to another preset keeps the 4-level scale (no reset).
   - Other presets are unaffected.
-- **Calculation stamp** on every computed risk and feasibility:
-  `{ method, calcVersion, mappingVersion }`.
+- **Calculation stamp (decision 17)** — only under `iso-21434`:
+  `CalcStamp { method, calcVersion, mappingVersion }`, type in `src/shared/models`
+  (used by `features/risks` and `features/attacktree`).
+  - **Two stamps.** On `PathAnalysis` (per tree, not per path —
+    `AttackPathAssessment` is an analyst decision, not a calculation):
+    G.6 factor tables + G.7 bands. On the ISO risk: everything the value runs
+    through — G.6 tables, G.7 bands (also the `iso_*` fallback without a tree),
+    feasibility → likelihood mapping, impact scale, `impactAggregation`, risk
+    scale, from 3b the matrix.
+  - `method`: calculation method (e.g. `iso-21434`). `calcVersion`: constant per
+    calculation core, bumped by hand; a golden test per core (fixed inputs →
+    expected outputs) fails with "formula changed → bump calcVersion".
+    `mappingVersion`: short FNV-1a hash over `canonicalStringify` of the
+    tables actually used (key order irrelevant; change detection, not
+    security).
+  - No timestamp in the stamp; recomputing with unchanged inputs leaves the
+    file byte-identical. 0c only writes the stamp; the check on load comes with
+    3a; nothing is recomputed automatically.
+  - Schema 10 is global: every project gets `schemaVersion: 10` on the next
+    save (one line, as with 9); the stamps only appear in ISO projects.
+  - **Prerequisite commit (c):** `canonicalStringify` + `TCS_VERSION` and
+    `fnv1a32` move to `src/shared/utils/` (exported; `pathKey` /
+    `computeNodeId` bit-identical). `app/services/tcs-serialize.ts` stays as a
+    pure re-export (imported by `electron/services/audit-verify-main.ts` and
+    `taraflow-verifier/taraflow-verify.ts`); the single-writer guard
+    (`prepare-for-disk.single-writer.test.ts`) points to the new file. Checked
+    with `build:electron-dev` (incl. `bundle:audit-main`) and the verifier
+    build.
+  - **`analysisDate` churn fix (d1, all presets, no value change):** the
+    calculator stays pure; where a new `PathAnalysis` replaces the old one,
+    `keepDateIfUnchanged(prev, next)` keeps the old `analysisDate` when the
+    analysis without `analysisDate` (stamp included) is unchanged.
 - **CIANAAA ↔ CIA mapping table** in the methodology section (ISO names C, I, A
   only as examples; the extension must be documented):
   AuthN, N, Acc → I; AuthZ → C or I depending on the access; explain why they
@@ -183,7 +213,8 @@ Closes G5, prepares G12.
 
 *Done when:* ISO projects show ISO treatment names; the report has a methodology
 section built from the derived record; ISO projects use the 4-level impact
-scale or carry the finding; every risk carries a calc stamp. Tests: label
+scale or carry the finding; every ISO risk and ISO path analysis carries a
+calc stamp. Tests: label
 mapping, record = configuration, scale lock, stamp present, default mode
 unchanged.
 
@@ -749,6 +780,13 @@ Added in rev. 2 (2026-10-24):
     does not remap: silent 4-level only while nothing is rated, otherwise a
     finding incl. ratings outside the scale; the dialog warns before the
     switch; leaving ISO keeps 4-level.
+17. **[D] Phase 0c calculation stamp (2026-10-24):** ISO only; type in
+    shared; two stamps (path analysis per tree: G.6 + G.7; risk: everything
+    the value runs through); `calcVersion` by hand + golden test,
+    `mappingVersion` = FNV-1a over `canonicalStringify`; no timestamp, no
+    churn; check on load with 3a. Hash helpers move to `src/shared/utils/`
+    in a separate commit first; `analysisDate` kept when the analysis is
+    unchanged (d1, all presets).
 
 ---
 
@@ -791,7 +829,11 @@ are written against behaviour, not against the report text.
 | 0 | Switching to ISO without ratings → the impact scale is 4-level, silently. |
 | 0 | Switching to ISO with a rated 5-level scale → scale unchanged, finding with the number of assets and the ratings outside the scale, no value changed. |
 | 0 | Switching from ISO to another preset keeps the 4-level scale. |
-| 0 | Every computed risk and feasibility carries `{method, calcVersion, mappingVersion}`; recomputing with the same inputs yields a byte-identical result. |
+| 0 | Every ISO risk and every ISO `PathAnalysis` carries `{method, calcVersion, mappingVersion}`; projects under other presets carry none (save diff = `schemaVersion` only). |
+| 0 | Saving without change, and analysing twice with unchanged inputs, yield a byte-identical file; a changed input gives a new `analysisDate`. |
+| 0 | Changing a G.7 band changes `mappingVersion` of the path and of the risk stamp; changing `impactAggregation` changes only the risk stamp. |
+| 0 | Golden test per calculation core: a changed formula fails with "bump calcVersion". |
+| 0 | After moving the hash helpers: `pathKey` / `computeNodeId` and the TCS output are unchanged; Electron and verifier bundles build. |
 | 1 | An ISO project without item definition, or with a boundary interface missing from it, produces a finding. |
 | 1 | An external system named in the boundary section without matching external entity / interface in the DFD produces a finding. |
 | 1 (B) | Importing an arc42 AsciiDoc and a Markdown document (German and English headings) pre-fills boundary, functions, architecture and environment; pre-filled sections count as unfilled until reviewed. |
