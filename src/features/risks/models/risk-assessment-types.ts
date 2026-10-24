@@ -23,6 +23,7 @@ import type {
   ThreatReference,
   ThreatRelevanceRef,
   ImpactAggregation,
+  CalcStamp,
 } from "shared";
 import type { FactorRating, RiskFactorDefinition } from "./risk-factor-types";
 import {
@@ -68,6 +69,12 @@ export interface Risk {
   calculatedImpact: number;
   calculatedLikelihood: number;
   calculatedRiskBeforeMitigation: number;
+  /**
+   * ISO/SAE 21434 (conformance plan 0c): with what the calculated values were
+   * computed. Written by the app layer (commitCalcStamps) only under
+   * iso-21434 and only when the values changed; absent = before 0c.
+   */
+  calcStamp?: CalcStamp;
   /**
    * EN 50742 Approach A (§2.2 Output Model C; routed via the §11.2 gate,
    * calculateGatedRiskValues in en50742-risk-calculation.ts) — the primary,

@@ -218,6 +218,14 @@ type FeasibilityQuantity =
   | { kind: "probability"; value: number }
   | { kind: "ordinal"; value: FeasibilityLevel };
 
+/**
+ * Version of the attack-tree feasibility core (attack potential, banding,
+ * gate rules, path feasibility). Bump by hand when a formula changes — the
+ * ISO calculation stamps (conformance plan 0c) carry it, and the golden test
+ * iso21434-calc-golden.test.ts fails with "bump FEASIBILITY_CALC_VERSION" first.
+ */
+export const FEASIBILITY_CALC_VERSION = 1;
+
 /** How the children of a gate combine. */
 export type GateRule = "sum" | "min" | "max" | "product" | "union";
 

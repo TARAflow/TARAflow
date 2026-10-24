@@ -9,6 +9,7 @@ import { buildDfdGraph } from "features/dfd";
 import { commitAssetSync } from "../utils/commit-asset-sync";
 import { buildAssetHazardLinks } from "../utils/build-asset-hazard-links";
 import { commitHazardSafety } from "../utils/commit-hazard-safety";
+import { commitCalcStamps } from "../utils/commit-calc-stamps";
 import { commitLoadedPhaseStatus, commitPhaseStatus } from "./phase-status-commit";
 
 // HazardItem safety chokepoint — runs right after commitAssetSync. Re-rates
@@ -34,8 +35,9 @@ export function ensureProjectGraph(p: Project): Project {
 
 /**
  * Merges a partial patch onto the freshest project state and runs the commit
- * chain (asset sync, then safety). Every top-level field not in the patch is
- * taken from `p`.
+ * chain (asset sync, safety, then ISO calculation stamps + attack-tree date
+ * churn fix against `p`). Every top-level field not in the patch is taken
+ * from `p`.
  */
 export function mergeProjectPatch(
   p: Project,
@@ -48,7 +50,9 @@ export function mergeProjectPatch(
     info: { ...p.info, ...patch.info, lastModified: now },
     hasUnsavedChanges: true,
   };
-  return commitPhaseStatus(commitProjectSafety(commitAssetSync(p, merged)));
+  return commitPhaseStatus(
+    commitCalcStamps(p, commitProjectSafety(commitAssetSync(p, merged))),
+  );
 }
 
 /** Load-side commit: graph, asset mirror re-derived, safety, phase statuses. */

@@ -7,3 +7,4 @@ export { migrate_5_to_6 } from "./migrate-5-to-6";
 export { migrate_6_to_7 } from "./migrate-6-to-7";
 export { migrate_7_to_8 } from "./migrate-7-to-8";
 export { migrate_8_to_9 } from "./migrate-8-to-9";
+export { migrate_9_to_10 } from "./migrate-9-to-10";

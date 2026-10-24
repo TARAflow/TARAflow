@@ -10,6 +10,7 @@ import type {
   PhaseStatusMap,
   StrideCategory,
   ThreatRelevanceRef,
+  CalcStamp,
 } from "shared";
 import type {
   AttackPotentialFactors,
@@ -626,6 +627,12 @@ export interface PathAnalysis {
   cheapestPath?: AttackPath;
   goalSummary: Record<AttackGoalCategory, number>;
   analysisDate: string;
+  /**
+   * ISO/SAE 21434 (conformance plan 0c): method, feasibility calc version and
+   * hash of the G.6 / G.7 tables this analysis ran through. Written by the
+   * app layer (commitCalcStamps) only under iso-21434.
+   */
+  calcStamp?: CalcStamp;
 }
 
 // ==================== EXPORT FORMAT ====================

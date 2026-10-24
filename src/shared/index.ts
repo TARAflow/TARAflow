@@ -54,6 +54,9 @@ export {
   toGraphReference,
 } from "./models/dfd-reference-types";
 
+// Calculation stamp (ISO/SAE 21434 conformance plan 0c)
+export type { CalcStamp } from "./models/calc-stamp";
+
 // CIANAAA
 export type {
   CIANAAALevel,

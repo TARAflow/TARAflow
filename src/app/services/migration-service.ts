@@ -25,6 +25,7 @@ import {
   migrate_6_to_7,
   migrate_7_to_8,
   migrate_8_to_9,
+  migrate_9_to_10,
 } from "./versions";
 import { normalizeThreatTables } from "../../features/threats/services/threat-table-normalize";
 
@@ -227,6 +228,11 @@ export function applyMigrations(raw: any): {
 
   if ((data.schemaVersion ?? 0) < 9) {
     data = migrate_8_to_9(data);
+    migrated = true;
+  }
+
+  if ((data.schemaVersion ?? 0) < 10) {
+    data = migrate_9_to_10(data);
     migrated = true;
   }
 

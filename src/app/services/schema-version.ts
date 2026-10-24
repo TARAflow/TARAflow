@@ -51,5 +51,10 @@
  *       AssetProperties drops safetyRelevant, containsSafetyRelevantData,
  *       safetyImpact and safetyRationale; a safetyImpact on an asset without
  *       physicalImpact is kept as a manual override ([MIGRATED] rationale).
+ *  10 = Version fence, no data change (ISO/SAE 21434 conformance plan 0c,
+ *       decision 15: one fence per release that stores new fields). Adds the
+ *       optional calculation stamps Risk.calcStamp and PathAnalysis.calcStamp
+ *       ({ method, calcVersion, mappingVersion }), written only in iso-21434
+ *       projects when a value is (re)computed; absent = computed before.
  */
-export const CURRENT_SCHEMA_VERSION = 9;
+export const CURRENT_SCHEMA_VERSION = 10;

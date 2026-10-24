@@ -128,6 +128,13 @@ vi.mock("app/utils/commit-hazard-safety", () => ({
   commitHazardSafety: vi.fn((assets: unknown) => assets),
 }));
 
+// ISO calculation stamps (conformance plan 0c) — passthrough like the other
+// commit steps; covered by commit-calc-stamps.test.ts. The real module pulls
+// in feature models that need the full "shared", which is mocked here.
+vi.mock("app/utils/commit-calc-stamps", () => ({
+  commitCalcStamps: vi.fn((_prev: unknown, next: unknown) => next),
+}));
+
 // ---- deps only used by the project-service (importProjectAsCopy) side ----
 
 vi.mock("app/services/migration-service", () => ({

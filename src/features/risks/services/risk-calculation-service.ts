@@ -43,6 +43,7 @@ import {
 } from "shared";
 import {
   ISO21434_FACTOR_LEVELS,
+  ISO21434_FEASIBILITY_BANDS,
   ISO21434_ELAPSED_TIME_POINTS,
   ISO21434_EXPERTISE_POINTS,
   ISO21434_KNOWLEDGE_POINTS,
@@ -104,6 +105,26 @@ const ISO_FEASIBILITY_ORDINAL: Record<string, number> = {
   low: 2,
   "very-low": 1,
 };
+
+/**
+ * Version of the risk calculation core (calculateRiskValues incl. the ISO
+ * score-table likelihood). Bump by hand when a formula changes — the ISO risk
+ * calculation stamp (conformance plan 0c) carries it, and the golden test
+ * iso21434-calc-golden.test.ts fails with "bump RISK_CALC_VERSION" first.
+ */
+export const RISK_CALC_VERSION = 1;
+
+/**
+ * The fixed ISO/SAE 21434 tables the risk core applies to iso_* factors
+ * (Annex G.6 points, G.7 bands, band → likelihood ordinal) — hashed into the
+ * risk calculation stamp so a table change shows on the stamp.
+ */
+export const ISO_RISK_CALC_TABLES = {
+  points: ISO_POINTS,
+  factorLevels: ISO21434_FACTOR_LEVELS,
+  bands: ISO21434_FEASIBILITY_BANDS,
+  feasibilityOrdinal: ISO_FEASIBILITY_ORDINAL,
+} as const;
 
 function sumScoreTablePoints(
   ratings: FactorRating[],
