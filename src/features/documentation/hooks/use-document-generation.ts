@@ -182,6 +182,14 @@ export const useDocumentGeneration = ({
       ),
       "risks-per-element": risks.perElement > 0,
       "risks-per-interaction": risks.perInteraction > 0,
+      // ISO/SAE 21434 (plan F4): attack-path risks per threat scenario — only
+      // for iso-21434 projects.
+      "risks-attack-path":
+        project.risks?.configuration?.likelihoodMethod === "iso-21434" &&
+        (project.risks?.risks ?? []).some(
+          (r: any) =>
+            r.sourceStrideMethod === "attack-path" && r.moscowPriority !== "wont",
+        ),
       // EN 50742 SRSL chapter — only for en-50742-a projects (the generator
       // additionally auto-hides when no risk carries an exposure anchor).
       "srsl-assessment":

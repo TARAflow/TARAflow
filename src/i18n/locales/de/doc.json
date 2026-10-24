@@ -180,7 +180,10 @@
       },
       "iso": {
         "impact": "Impact",
-        "feasibilityShort": "AF"
+        "feasibilityShort": "AF",
+        "scenarioRisk": "Risikowert",
+        "scenarioResidual": "Restrisiko",
+        "scenarioTreatment": "Behandlung"
       }
     }
   }

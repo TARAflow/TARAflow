@@ -59,7 +59,7 @@ describe("risk chapter: impact aggregation sentence", () => {
     const conv = new PdfMakeConverter(project("max"), cfg("en"), t) as any;
     conv.getRisksPerElement = () => [risk];
     conv.getRisksPerInteraction = () => [];
-    const texts = JSON.stringify(conv.createRisks());
+    const texts = JSON.stringify(conv.createRisks("per-element"));
     expect(texts).toContain("Impact aggregation: maximum");
   });
 });

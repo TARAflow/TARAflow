@@ -696,6 +696,26 @@ The following risks were assessed for threats from the STRIDE-per-Interaction an
 
 `,
 
+  // ISO/SAE 21434 (plan F4): attack-path risks per threat scenario.
+  attackPathRisksHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `[SECTION]
+TITLE: Risikobewertung (Bedrohungsszenarien)
+
+[FREETEXT]
+Die folgenden Tabellen zeigen die Risikobewertung je Bedrohungsszenario (Angriffsbaum), eine Zeile je Angriffspfad. Der Szenariowert ist der höchste Wert seiner Pfade, das Restrisiko das höchste Restrisiko (ISO/SAE 21434, 15.8 NOTE 2); Risikowerte 1–5 nach Anhang H.8.
+[/FREETEXT]
+
+`
+      : `[SECTION]
+TITLE: Risk Assessment (Threat Scenarios)
+
+[FREETEXT]
+The following tables show the risk assessment per threat scenario (attack tree), one row per attack path. The scenario value is the highest value of its paths, the residual the highest residual (ISO/SAE 21434, 15.8 NOTE 2); risk values 1–5 per Annex H.8.
+[/FREETEXT]
+
+`,
+
   risksTable: (_lang: DocLanguage) => `{{riskRows}}`,
 
   // Risk row — RELATIONS back to the parent threat requirement.

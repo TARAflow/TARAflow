@@ -6,6 +6,8 @@
 // pdfMake Documentation: http://pdfmake.org/
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
+import { isoScenarioSummary, isoScenarioTitle } from "../iso-scenario-text";
+import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
@@ -100,6 +102,8 @@ const PDF_LABELS = {
     risksTableMitigation: "Mitigation",
     risksTableRiskAfter: "Risk (After)",
     risksTableMoscow: "MoSCoW",
+    attackPathRisksIntro:
+      "The following tables show the risk assessment per threat scenario (attack tree), one row per attack path. The scenario value is the highest value of its paths, the residual the highest residual (ISO/SAE 21434, 15.8 NOTE 2); risk values 1–5 per Annex H.8.",
     acceptedRisksTableId: "T-ID",
     acceptedRisksTableDescription: "Threat",
     acceptedRisksTableJustification: "Justification",
@@ -140,6 +144,8 @@ const PDF_LABELS = {
     risksTableMitigation: "Mitigation",
     risksTableRiskAfter: "Risiko (nachher)",
     risksTableMoscow: "MoSCoW",
+    attackPathRisksIntro:
+      "Die folgenden Tabellen zeigen die Risikobewertung je Bedrohungsszenario (Angriffsbaum), eine Zeile je Angriffspfad. Der Szenariowert ist der höchste Wert seiner Pfade, das Restrisiko das höchste Restrisiko (ISO/SAE 21434, 15.8 NOTE 2); Risikowerte 1–5 nach Anhang H.8.",
     acceptedRisksTableId: "T-ID",
     acceptedRisksTableDescription: "Bedrohung",
     acceptedRisksTableJustification: "Begründung",
@@ -148,6 +154,7 @@ const PDF_LABELS = {
 } as const;
 
 type PdfLabelKey = keyof (typeof PDF_LABELS)["en"];
+type DocRisk = NonNullable<DocProjectData["risks"]>["risks"][number];
 
 // ==================== PDFMAKE CONVERTER ====================
 
@@ -253,6 +260,14 @@ export class PdfMakeConverter {
     );
   }
 
+  private getRisksAttackPath() {
+    const allRisks = this.project.risks?.risks ?? [];
+    return allRisks.filter(
+      (r) =>
+        r.sourceStrideMethod === "attack-path" && r.moscowPriority !== "wont",
+    );
+  }
+
   private getWontRisks() {
     const allRisks = this.project.risks?.risks ?? [];
     return allRisks.filter((r) => r.moscowPriority === "wont");
@@ -299,10 +314,20 @@ export class PdfMakeConverter {
             content.push(...this.createThreats());
           }
           break;
+        // One chapter per method, each only with its own risks.
         case "risks-per-element":
+          if (this.getRisksPerElement().length > 0) {
+            content.push(...this.createRisks("per-element"));
+          }
+          break;
         case "risks-per-interaction":
-          if (this.hasRisks()) {
-            content.push(...this.createRisks());
+          if (this.getRisksPerInteraction().length > 0) {
+            content.push(...this.createRisks("per-interaction"));
+          }
+          break;
+        case "risks-attack-path":
+          if (isIsoReport(this.project.risks?.configuration) && this.getRisksAttackPath().length > 0) {
+            content.push(...this.createAttackPathRisks());
           }
           break;
         case "srsl-assessment":
@@ -972,17 +997,121 @@ export class PdfMakeConverter {
     return content;
   }
 
-  private createRisks(): Content[] {
+  /**
+   * ISO/SAE 21434 (plan F4): attack-path risks per threat scenario, same
+   * structure as the template generators (base-generator
+   * generateAttackPathRisks).
+   */
+  private createAttackPathRisks(): Content[] {
+    const config = this.project.risks?.configuration;
+    const risks = this.getRisksAttackPath();
+    const content: Content[] = [
+      { text: this.chapterTitle("risks-attack-path"), style: "h1", tocItem: true },
+      {
+        text: this.label("attackPathRisksIntro"),
+        margin: [0, 0, 0, 8],
+      },
+    ];
+    const assetLabel = (id: string) => {
+      const asset = this.project.assets?.assets?.find((a) => a.id === id);
+      return asset ? `${asset.displayId ?? asset.id} ${asset.name}` : id;
+    };
+    const scale = {
+      iso: true,
+      scale: config?.scale ?? "4-level",
+      roundingMethod: config?.roundingMethod,
+    } as const;
+    content.push(
+      this.statsTable(
+        riskStatsTable(risks, (r) => r.linkedAssetIds?.[0] ?? "-", scale, this.lang, assetLabel, "asset"),
+      ),
+    );
+    for (const sc of groupIsoScenarios(risks)) {
+      content.push(
+        { text: isoScenarioTitle(sc, this.project.attackTree), style: "h2" },
+        { text: isoScenarioSummary(sc, this.t, config), margin: [0, 0, 0, 6] },
+        this.riskTable(sc.risks),
+      );
+    }
+    content.push({ text: "", pageBreak: "after" });
+    return content;
+  }
+
+  /** A risk table (per-element, per-interaction and attack-path chapters). */
+  private riskTable(list: readonly DocRisk[]): Content {
+    const riskHeader: TableCell[] = [
+      { text: this.label("risksTableId"), style: "tableHeader" },
+      { text: this.label("risksTableThreat"), style: "tableHeader" },
+      { text: this.label("risksTableRiskBefore"), style: "tableHeader" },
+      { text: this.label("risksTableMitigation"), style: "tableHeader" },
+      { text: this.label("risksTableRiskAfter"), style: "tableHeader" },
+      { text: this.label("risksTableMoscow"), style: "tableHeader" },
+    ];
+    const tableBody: TableCell[][] = [riskHeader];
+    for (const risk of list) {
+      // Get labels from cache
+      // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2, decision 23).
+      const iso = isIsoReport(this.project.risks?.configuration);
+      const riskBeforeLabel = iso
+        ? isoRiskLabel(risk, this.t, false)
+        : (this.project.computed.riskBeforeLabels.get(risk.id) ??
+          risk.calculatedRiskBeforeMitigation.toString());
+      const riskAfterLabel = iso
+        ? isoRiskLabel(risk, this.t, true)
+        : (this.project.computed.riskAfterLabels.get(risk.id) ??
+          risk.calculatedRiskAfterMitigation.toString());
+      const moscowLabel =
+        this.project.computed.moscowLabels.get(risk.moscowPriority) ??
+        risk.moscowPriority;
+
+      // Format mitigations (mirrors base-generator.ts: notes take priority,
+      // fall back to the raw catalog ID — no catalog-text resolution here,
+      // unlike the Threats table's proposedMitigations)
+      const mitigations =
+        risk.selectedMitigations
+          .filter((m) => m.status !== "rejected")
+          .map((m) => m.notes?.trim() || m.id || "")
+          .filter(Boolean)
+          .join(", ") || "-";
+
+      tableBody.push([
+        { text: formatRiskLabel(risk) },
+        { text: risk.threatDisplayId },
+        {
+          text: riskBeforeLabel,
+          alignment: "center",
+          fillColor: iso
+            ? this.getIsoRiskFill(risk.isoRisk?.value)
+            : this.getRiskColorByValue(risk.calculatedRiskBeforeMitigation),
+        },
+        { text: mitigations },
+        {
+          text: riskAfterLabel,
+          alignment: "center",
+          fillColor: iso
+            ? this.getIsoRiskFill(risk.isoRisk?.residual?.value)
+            : this.getRiskColorByValue(risk.calculatedRiskAfterMitigation),
+        },
+        { text: moscowLabel, alignment: "center" },
+      ]);
+    }
+    return {
+      table: {
+        headerRows: 1,
+        widths: [50, 60, 50, "*", 50, 50],
+        body: tableBody,
+      },
+      layout: "lightHorizontalLines",
+      margin: [0, 0, 0, 20],
+    };
+  }
+
+  private createRisks(method: "per-element" | "per-interaction"): Content[] {
     const content: Content[] = [];
-
-    // Determine which method has risks
-    const risksPerElement = this.getRisksPerElement();
-    const risksPerInteraction = this.getRisksPerInteraction();
-
-    const method =
-      risksPerElement.length > 0 ? "per-element" : "per-interaction";
     const risks =
-      method === "per-element" ? risksPerElement : risksPerInteraction;
+      method === "per-element"
+        ? this.getRisksPerElement()
+        : this.getRisksPerInteraction();
 
     content.push({
       text: this.chapterTitle(
@@ -1000,74 +1129,6 @@ export class PdfMakeConverter {
       ),
       margin: [0, 0, 0, 8],
     });
-
-    const riskHeader: TableCell[] = [
-      { text: this.label("risksTableId"), style: "tableHeader" },
-      { text: this.label("risksTableThreat"), style: "tableHeader" },
-      { text: this.label("risksTableRiskBefore"), style: "tableHeader" },
-      { text: this.label("risksTableMitigation"), style: "tableHeader" },
-      { text: this.label("risksTableRiskAfter"), style: "tableHeader" },
-      { text: this.label("risksTableMoscow"), style: "tableHeader" },
-    ];
-    const riskTable = (list: typeof risks): Content => {
-      const tableBody: TableCell[][] = [riskHeader];
-      for (const risk of list) {
-        // Get labels from cache
-        // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2, decision 23).
-        const iso = isIsoReport(this.project.risks?.configuration);
-        const riskBeforeLabel = iso
-          ? isoRiskLabel(risk, this.t, false)
-          : (this.project.computed.riskBeforeLabels.get(risk.id) ??
-            risk.calculatedRiskBeforeMitigation.toString());
-        const riskAfterLabel = iso
-          ? isoRiskLabel(risk, this.t, true)
-          : (this.project.computed.riskAfterLabels.get(risk.id) ??
-            risk.calculatedRiskAfterMitigation.toString());
-        const moscowLabel =
-          this.project.computed.moscowLabels.get(risk.moscowPriority) ??
-          risk.moscowPriority;
-
-        // Format mitigations (mirrors base-generator.ts: notes take priority,
-        // fall back to the raw catalog ID — no catalog-text resolution here,
-        // unlike the Threats table's proposedMitigations)
-        const mitigations =
-          risk.selectedMitigations
-            .filter((m) => m.status !== "rejected")
-            .map((m) => m.notes?.trim() || m.id || "")
-            .filter(Boolean)
-            .join(", ") || "-";
-
-        tableBody.push([
-          { text: formatRiskLabel(risk) },
-          { text: risk.threatDisplayId },
-          {
-            text: riskBeforeLabel,
-            alignment: "center",
-            fillColor: iso
-              ? this.getIsoRiskFill(risk.isoRisk?.value)
-              : this.getRiskColorByValue(risk.calculatedRiskBeforeMitigation),
-          },
-          { text: mitigations },
-          {
-            text: riskAfterLabel,
-            alignment: "center",
-            fillColor: iso
-              ? this.getIsoRiskFill(risk.isoRisk?.residual?.value)
-              : this.getRiskColorByValue(risk.calculatedRiskAfterMitigation),
-          },
-          { text: moscowLabel, alignment: "center" },
-        ]);
-      }
-      return {
-        table: {
-          headerRows: 1,
-          widths: [50, 60, 50, "*", 50, 50],
-          body: tableBody,
-        },
-        layout: "lightHorizontalLines",
-        margin: [0, 0, 0, 20],
-      };
-    };
 
     // Leveled DFD (7d): one table per group — a risk follows its threat.
     const threatById = new Map(
@@ -1096,11 +1157,11 @@ export class PdfMakeConverter {
         content.push(
           { text: group.title, style: "h2" },
           { text: riskGroupSummary(group.items, scale, this.lang), margin: [0, 0, 0, 6] },
-          riskTable(group.items),
+          this.riskTable(group.items),
         );
       }
     } else {
-      content.push(riskTable(risks));
+      content.push(this.riskTable(risks));
     }
 
     content.push({ text: "", pageBreak: "after" });

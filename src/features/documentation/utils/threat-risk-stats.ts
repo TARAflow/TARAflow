@@ -52,6 +52,7 @@ const TEXT = {
   en: {
     statistics: "Statistics",
     type: "Element type",
+    asset: "Asset",
     threats: "Threats",
     risks: "Risks",
     total: "Total",
@@ -63,6 +64,7 @@ const TEXT = {
   de: {
     statistics: "Statistik",
     type: "Element-Typ",
+    asset: "Asset",
     threats: "Bedrohungen",
     risks: "Risiken",
     total: "Gesamt",
@@ -164,6 +166,8 @@ export function riskStatsTable<R extends StatsRisk>(
   scale: RiskScale,
   lang: DocLanguage,
   typeLabel: (type: string) => string,
+  /** What `typeOf` groups by — the attack-path risks group by asset (F4). */
+  groupBy: "type" | "asset" = "type",
 ): StatsTable {
   const text = TEXT[lang];
   const all = levelCounts(risks, scale, lang);
@@ -175,7 +179,7 @@ export function riskStatsTable<R extends StatsRisk>(
   return {
     title: text.statistics,
     headers: [
-      text.type,
+      groupBy === "asset" ? text.asset : text.type,
       text.risks,
       ...all.levels.map(text.level),
       ...(withUnrated ? [text.unrated] : []),

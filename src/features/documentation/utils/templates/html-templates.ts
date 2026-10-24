@@ -545,6 +545,20 @@ export const HTML_TEMPLATES = {
   
 `,
 
+  // ISO/SAE 21434 (plan F4): attack-path risks per threat scenario.
+  attackPathRisksHeader: (lang: DocLanguage) =>
+    lang === "de"
+      ? `<section id="risikobewertung-attack-path">
+  <h2>Risikobewertung (Bedrohungsszenarien)</h2>
+  <p>Die folgenden Tabellen zeigen die Risikobewertung je Bedrohungsszenario (Angriffsbaum), eine Zeile je Angriffspfad. Der Szenariowert ist der höchste Wert seiner Pfade, das Restrisiko das höchste Restrisiko (ISO/SAE 21434, 15.8 NOTE 2); Risikowerte 1–5 nach Anhang H.8.</p>
+  
+`
+      : `<section id="risk-assessment-attack-path">
+  <h2>Risk Assessment (Threat Scenarios)</h2>
+  <p>The following tables show the risk assessment per threat scenario (attack tree), one row per attack path. The scenario value is the highest value of its paths, the residual the highest residual (ISO/SAE 21434, 15.8 NOTE 2); risk values 1–5 per Annex H.8.</p>
+  
+`,
+
   risksTable: (lang: DocLanguage) =>
     lang === "de"
       ? `  <table>

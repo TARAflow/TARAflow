@@ -293,6 +293,10 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return HTML_TEMPLATES.risksHeader(this.ctx.lang, method);
   }
 
+  getAttackPathRisksHeaderTemplate(): string {
+    return HTML_TEMPLATES.attackPathRisksHeader(this.ctx.lang);
+  }
+
   getRisksTableTemplate(): string {
     return HTML_TEMPLATES.risksTable(this.ctx.lang);
   }

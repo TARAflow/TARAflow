@@ -40,6 +40,7 @@ export type DocChapterId =
   | "threats-attack-path"
   | "risks-per-element"
   | "risks-per-interaction"
+  | "risks-attack-path"
   | "srsl-assessment"
   | "accepted-risks"
   | "traceability-matrix"
@@ -92,6 +93,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Risk Assessment (STRIDE per Interaction)",
     de: "Risikobewertung (STRIDE pro Interaktion)",
   },
+  "risks-attack-path": {
+    en: "Risk Assessment (Threat Scenarios)",
+    de: "Risikobewertung (Bedrohungsszenarien)",
+  },
   "srsl-assessment": {
     en: "SRSL Assessment (EN 50742 Approach A)",
     de: "SRSL-Bewertung (EN 50742 Approach A)",
@@ -123,6 +128,7 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "threats-attack-path", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-interaction", enabled: true, autoHideIfEmpty: true },
+  { id: "risks-attack-path", enabled: true, autoHideIfEmpty: true },
   { id: "srsl-assessment", enabled: true, autoHideIfEmpty: true },
   { id: "accepted-risks", enabled: true, autoHideIfEmpty: true },
   { id: "traceability-matrix", enabled: true, autoHideIfEmpty: true },

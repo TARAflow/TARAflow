@@ -3,6 +3,12 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
+import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
+import {
+  isoScenarioSummary,
+  isoScenarioTitle,
+  resolveAttackPathChain,
+} from "../iso-scenario-text";
 import { isoFeasibilityFromFactors } from "../../../risks/models/iso-risk-matrix";
 import {
   treatmentFallbackLabel,
@@ -188,27 +194,6 @@ function resolveTreeFeasibility(
   return null;
 }
 
-/**
- * Resolve the attack-path node chain (root goal → … → leaf) a risk was raised
- * for, for human-readable display. Reads the same tree + pathKey as
- * resolveTreeFeasibility; falls back to the cheapest path. Returns null when no
- * path is found, so the caller can fall back to the plain threat description.
- */
-function resolveAttackPathChain(
-  attackTree: DocProjectData["attackTree"],
-  assessment: { treeId: string; pathKey: string } | undefined,
-): string[] | null {
-  if (!attackTree || !assessment) return null;
-  const tree = attackTree.trees?.find((tr) => tr.id === assessment.treeId);
-  const analysis = tree?.pathAnalysis;
-  if (!analysis) return null;
-  const path =
-    analysis.paths?.find((p) => p.pathKey === assessment.pathKey) ??
-    analysis.cheapestPath;
-  const chain = path?.path;
-  return chain && chain.length > 0 ? chain : null;
-}
-
 // ==================== ABSTRACT BASE CLASS ====================
 export abstract class BaseDocumentGenerator {
   protected ctx: GenerationContext;
@@ -286,6 +271,7 @@ export abstract class BaseDocumentGenerator {
   abstract getRisksHeaderTemplate(
     method: "per-element" | "per-interaction",
   ): string;
+  abstract getAttackPathRisksHeaderTemplate(): string;
   abstract getRisksTableTemplate(): string;
   abstract getRiskRowTemplate(): string;
   // Security-goal table (asset × active goal) appended to the assets chapter.
@@ -457,6 +443,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateRisks(title, "per-element");
       case "risks-per-interaction":
         return this.generateRisks(title, "per-interaction");
+      case "risks-attack-path":
+        return this.generateAttackPathRisks(title);
       case "srsl-assessment":
         return this.generateSRSLAssessment(title);
       case "accepted-risks":
@@ -1352,6 +1340,52 @@ export abstract class BaseDocumentGenerator {
 
   // ==================== RISKS ====================
 
+  /** One row of a risk table (all risk chapters share it). */
+  protected riskRow(
+    risk: NonNullable<DocProjectData["risks"]>["risks"][number],
+    threatDescription = risk.threatDescription || "-",
+  ): string {
+    const { project } = this.ctx;
+    // Get cached labels
+    // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2).
+    const isoReport = project.risks?.configuration?.likelihoodMethod === "iso-21434";
+    const riskBeforeLabel = isoReport
+      ? isoRiskLabel(risk, this.ctx.t, false)
+      : (project.computed.riskBeforeLabels.get(risk.id) ??
+        risk.calculatedRiskBeforeMitigation.toString());
+    const riskAfterLabel = isoReport
+      ? isoRiskLabel(risk, this.ctx.t, true)
+      : (project.computed.riskAfterLabels.get(risk.id) ??
+        risk.calculatedRiskAfterMitigation.toString());
+    const moscowLabel =
+      project.computed.moscowLabels.get(risk.moscowPriority) ??
+      risk.moscowPriority;
+    const implStatus = deriveImplementationProgress(
+      risk.selectedMitigations,
+    );
+    const statusLabel = implStatus.replace(/_/g, " ");
+
+    const values = {
+      id: formatRiskLabel(risk),
+      threatId: risk.threatDisplayId,
+      strideCategory: risk.strideCategory,
+      threatDescription: this.escapeTableText(threatDescription),
+      riskBeforeLabel,
+      mitigations: this.escapeTableText(
+        formatMitigations(
+          risk.selectedMitigations
+            .filter((m) => m.status !== "rejected")
+            .map((m) => m.notes?.trim() || m.id || "")
+            .filter(Boolean),
+        ),
+      ),
+      riskAfterLabel,
+      moscowLabel,
+      statusLabel,
+    };
+    return replacePlaceholders(this.getRiskRowTemplate(), values);
+  }
+
   protected generateRisks(
     title: string,
     method: "per-element" | "per-interaction",
@@ -1376,48 +1410,7 @@ export abstract class BaseDocumentGenerator {
       };
     }
 
-    const riskRow = (risk: (typeof risks)[number]) => {
-      // Get cached labels
-      // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2).
-      const isoReport = project.risks?.configuration?.likelihoodMethod === "iso-21434";
-      const riskBeforeLabel = isoReport
-        ? isoRiskLabel(risk, this.ctx.t, false)
-        : (project.computed.riskBeforeLabels.get(risk.id) ??
-          risk.calculatedRiskBeforeMitigation.toString());
-      const riskAfterLabel = isoReport
-        ? isoRiskLabel(risk, this.ctx.t, true)
-        : (project.computed.riskAfterLabels.get(risk.id) ??
-          risk.calculatedRiskAfterMitigation.toString());
-      const moscowLabel =
-        project.computed.moscowLabels.get(risk.moscowPriority) ??
-        risk.moscowPriority;
-      const implStatus = deriveImplementationProgress(
-        risk.selectedMitigations,
-      );
-      const statusLabel = implStatus.replace(/_/g, " ");
-
-      const values = {
-        id: formatRiskLabel(risk),
-        threatId: risk.threatDisplayId,
-        strideCategory: risk.strideCategory,
-        threatDescription: this.escapeTableText(
-          risk.threatDescription || "-",
-        ),
-        riskBeforeLabel,
-        mitigations: this.escapeTableText(
-          formatMitigations(
-            risk.selectedMitigations
-              .filter((m) => m.status !== "rejected")
-              .map((m) => m.notes?.trim() || m.id || "")
-              .filter(Boolean),
-          ),
-        ),
-        riskAfterLabel,
-        moscowLabel,
-        statusLabel,
-      };
-      return replacePlaceholders(this.getRiskRowTemplate(), values);
-    };
+    const riskRow = (risk: (typeof risks)[number]) => this.riskRow(risk);
     const riskTable = (list: typeof risks) =>
       replacePlaceholders(this.getRisksTableTemplate(), {
         riskRows: list.map(riskRow).join(""),
@@ -1470,6 +1463,63 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  // ==================== RISKS (ATTACK PATH, ISO/SAE 21434) ====================
+
+  /**
+   * ISO/SAE 21434 (plan F4): the risk register of the attack-path risks, one
+   * group per threat scenario (attack tree) as in the risk tab — the group
+   * summary carries the scenario value and residual (MAX over the paths) and
+   * the treatment options. Only for iso-21434 projects; other methods keep
+   * their attack-path risks out of the risk chapters, as before.
+   */
+  protected generateAttackPathRisks(title: string): ChapterContent {
+    const { project, t, lang } = this.ctx;
+    const chapterId: DocChapterId = "risks-attack-path";
+    const config = project.risks?.configuration;
+    const risks = (project.risks?.risks ?? []).filter(
+      (r) => r.sourceStrideMethod === "attack-path" && r.moscowPriority !== "wont",
+    );
+    if (!isIsoReport(config) || risks.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+
+    const pathText = (risk: (typeof risks)[number]) => {
+      const chain = resolveAttackPathChain(project.attackTree, risk.attackTreeAssessment);
+      return chain ? chain.join(" → ") : risk.threatDescription || "-";
+    };
+    const riskTable = (list: typeof risks) =>
+      replacePlaceholders(this.getRisksTableTemplate(), {
+        riskRows: list.map((r) => this.riskRow(r, pathText(r))).join(""),
+      });
+
+    const assetOf = (risk: (typeof risks)[number]) => risk.linkedAssetIds?.[0] ?? "-";
+    const assetLabel = (id: string) => {
+      const asset = project.assets?.assets?.find((a) => a.id === id);
+      return asset ? `${asset.displayId ?? asset.id} ${asset.name}` : id;
+    };
+    const scale = {
+      scale: config?.scale ?? "4-level",
+      roundingMethod: config?.roundingMethod,
+      iso: true,
+    } as const;
+
+    // No impact-aggregation sentence: the ISO impact is the highest rated
+    // category of the damage scenario (methodology chapter), not I × L.
+    let content = this.getAttackPathRisksHeaderTemplate();
+    content += this.formatStatsTable(riskStatsTable(risks, assetOf, scale, lang, assetLabel, "asset"));
+    content += groupIsoScenarios(risks)
+      .map((sc) =>
+        this.formatReportGroup(
+          isoScenarioTitle(sc, project.attackTree),
+          riskTable(sc.risks),
+          isoScenarioSummary(sc, t, config),
+        ),
+      )
+      .join("");
+
+    return { id: chapterId, title, content, hasContent: true };
   }
 
   // ==================== SRSL ASSESSMENT (EN 50742 A) ====================

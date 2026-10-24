@@ -479,6 +479,10 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
     return this.htmlGenerator.getRisksHeaderTemplate(method);
   }
 
+  getAttackPathRisksHeaderTemplate(): string {
+    return this.htmlGenerator.getAttackPathRisksHeaderTemplate();
+  }
+
   getRisksTableTemplate(): string {
     return this.htmlGenerator.getRisksTableTemplate();
   }
