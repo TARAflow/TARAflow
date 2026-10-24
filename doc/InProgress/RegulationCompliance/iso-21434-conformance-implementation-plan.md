@@ -1,6 +1,6 @@
 # TARAflow — ISO/SAE 21434 Conformance: Implementation Plan
 
-> **Status:** Rev. 2, decisions of §6 taken, §9 K7 open ·
+> **Status:** Rev. 2, decisions of §6 taken, §9 decided ·
 > 2026-10-24 · base: v0.14.0-beta (rev. 1: 2026-10-16, v0.13.3-alpha)
 > **Supersedes:** `doc/Done/RegulationCompliance/iso-21434-support-design.md`
 > (that document deliberately limited TARAflow to Clause 15 and kept cybersecurity
@@ -298,7 +298,8 @@ section marks that section as changed.
 
 ### Phase 1H — ISO 26262 fields and HARA import (prerequisite of Phase 2)
 
-Decision 13. Only for `iso-21434`, only additive. Normative basis [N]:
+Decision 13. Additive; the ISO 26262 fields are shown only under `iso-21434`,
+the edge value `"none"` (S0) exists in every preset. Normative basis [N]:
 **RQ-15-06** (15.5.2) — safety impact ratings are derived from ISO 26262-3:2018,
 6.4.3 (severity classification of the HARA); Table F.1 maps S0–S3 onto
 negligible / moderate / major / severe; the footnote of Table F.1 allows
@@ -320,25 +321,53 @@ point of `doc/taraflow-safety-model.md` §11 (point 1), as does the duplicate
 `physicalHazardPotential` (point 3). No step of this plan changes safety values
 in any preset.
 
-1. **ISO 26262 fields on the Hazard Item** (shown under `iso-21434`, optional):
-   `hazardousEvent` (operational situation), `s26262` S0–S3, `exposure` E0–E4,
-   `controllability` C0–C3, `asil` (imported or derived), `safetyGoalRef`
-   (id/text of the safety team's goal). `externalRef` keeps the HARA id.
-2. **Scale:** the stored value stays the canonical 5-level person-harm scale
-   (`safety-types.ts`); S0–S3 is a view with the mapping documented there.
-   Importing an S class maps conservatively: S0 → `SafetyImpact = "none"`
-   (rated, no injuries → negligible by Table F.1), S1 → `reversible_major`,
-   S2 → `irreversible_major`, S3 → `fatal`. An empty S stays *not rated*;
-   `none` and *not rated* remain distinguishable.
-3. **HARA import** as a new import profile of the existing hazard importer
+1. **Severity stays on the `endangers` edge** (`shared/models/hazard-impact.ts`),
+   as today — no UI change, no change of the edge model. Under `iso-21434`
+   S0–S3 is only the display of that edge value (mapping in
+   `safety-types.ts`). There is **no** separate S field on the Hazard Item, so
+   there is one severity, not two.
+2. **New optional fields on the Hazard Item** (shown under `iso-21434`):
+   `hazardousEvent` (operational situation), `exposure` E0–E4,
+   `controllability` C0–C3, `asil`, `safetyGoalRef` (id/text of the safety
+   team's goal). `externalRef` keeps the HARA id. `asil` is imported or derived
+   from the edge S + E + C — never a third, independent severity source.
+3. **S0 is a rating on the edge** (decision 13 C): the hazard endangers the
+   person, the analyst rates the severity S0 (no injuries → negligible by
+   Table F.1). `HumanHarmSeverity` widens from `SafetySeverity` to
+   `SafetyImpact` (adds `"none"`); under `iso-21434` `"none"` shows as S0. The
+   comment "an edge implies harm" in `hazard-impact.ts` is adjusted. *Not
+   rated* = no `endangers` edge to a person → finding "not rated". The value
+   `"none"` is preset-independent, additive and changes no value. Required code
+   changes so that principle 6 holds:
+   - `build-asset-hazard-links.ts`: `link.severity` keeps the raw edge value
+     (incl. `"none"`) for display and the *rated* status; the aggregation
+     (pass 1 `hazardWorstSeverity`, `worstSeverity`, hence `causeSeverity`)
+     goes through `humanSeverity()` with `"none"` → `undefined`;
+     `isHazardTarget` is set only when the aggregated person severity, or the
+     severity of a non-person edge, is defined — a pure `"none"` edge does
+     not set it. Otherwise the asset would become safety-relevant
+     (`hasSafetyData`, `hasSafetySignal` in `stride-modifier.ts`), the
+     validator in `asset-validator.ts` would fire, and via `causeSeverity`
+     `commit-hazard-safety.ts` would write `physicalImpact = "none"` with
+     source `hazard`.
+   - `build-asset-data-reference.ts`: the cast of `worstSeverity` to
+     `SafetySeverity` stays valid because `"none"` no longer reaches it.
+   - `hazard-table.tsx`: start value `worstRank = -1`; `severityRank()`
+     handles `"none"` explicitly (→ 0), only for person edges — unknown values
+     on environment / infrastructure edges stay below the display;
+     `_worstRank` defaults to −1 so *not rated* sorts below S0.
+   - i18n `tabs.hazards.severity.none` (en, de); under `iso-21434` "S0".
+4. **Import:** S0 → edge `"none"`, S1 → `reversible_major`, S2 →
+   `irreversible_major`, S3 → `fatal`, no S → no edge.
+5. **HARA import** as a new import profile of the existing hazard importer
    (`features/hazards/services/importer/csv-importer.ts`, `xlsx-ods-importer.ts`,
    `apply-import-profile.ts`).
-4. Used by Phase 2 (`DamageScenario.hazardRefs` → S = MAX over the linked
-   hazards, analyst override with rationale) and Phase 4 (safety goal ↔
-   cybersecurity goal link).
+6. Used by Phase 2 (`DamageScenario.hazardRefs` → S = MAX over the linked
+   hazards' edge severities, analyst override with rationale) and Phase 4
+   (safety goal ↔ cybersecurity goal link).
 
-*Done when:* an ISO project shows and imports S/E/C/ASIL; S0 is imported as
-`none`; projects under every other preset show and compute as before.
+*Done when:* an ISO project shows and imports S/E/C/ASIL; S0 is imported as an
+edge `"none"`; projects under every other preset show and compute as before.
 
 ### Phase 2 — Damage scenarios as first-class objects (15.3, 15.4, 15.5) (medium–large, schema bump)
 
@@ -561,21 +590,32 @@ Closes G13.
 
 Rev. 2 (decision 14). Base: v0.14.0-beta, schema 9. Work happens on the
 feature branch `feature/iso21434-conformance`; each step is merged/released on
-its own. Additive steps are the next beta patch; steps that bump the schema or
-change values get their own minor version and a release note.
+its own. Steps that only add data are the next beta patch; steps that migrate
+data or change values get their own minor version and a release note.
+
+**Schema (decision 15, K7):** every release that stores new fields bumps the
+schema — one number per release, not per step. For a purely additive release
+the step is a *version fence, no data change* (marked so in the
+`schema-version.ts` history), like schema 9. Reason: an older release refuses a
+newer file only through the version (`applyMigrations` throws on
+`schemaVersion > CURRENT_SCHEMA_VERSION`), and without a bump it would open the
+file and can drop the new fields on save (e.g. `buildGeneralTabPatch` replaces
+`info` / `settings` as a whole). Accepted drawback: a file of 0.15.1 does not
+open in 0.15.0. The numbers below assume one release per row and shift if rows
+are combined.
 
 | Order | Step | Release | Changes values? | Schema |
 |---|---|---|---|---|
-| 1 | Phase 0 — terminology, methodology record, calc stamp | 0.14.x-beta | no | – |
-| 2 | Phase 3a — risk value 1–5, risk per threat scenario | **0.15.0-beta** | **yes** (ISO risks only) | **10** |
-| 3 | Phase 1 — Definition sub-tab, assumptions (stage A) | 0.15.x-beta | no | – (`info.description` stays the storage of *Purpose and functions*) |
-| 4 | Phase 1 stage B — arc42 import | 0.15.x-beta | no | – |
-| 5 | Phase 1H — ISO 26262 fields and HARA import (ISO only, additive) | 0.15.x-beta | no | – (open, §9 K7) |
-| 6 | Phase 2 — damage scenarios | **0.16.0-beta** | no (impact moves, MAX keeps the level) | **11** |
-| 7 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria | **0.17.0-beta** | **yes** where 1:n damage scenarios exist | **12** |
-| 8 | Phase 4 — goals, claims, verification record | 0.17.x-beta | no | – |
-| 9 | Phases 5 + 7 — concept traceability, report, readiness | 0.17.x-beta | no | – |
-| later | Phases 6, 8 (stage C of arc42 with 8) | x-beta | no | – |
+| 1 | Phase 0 — terminology, methodology record, calc stamp | 0.14.x-beta | no | 10 (fence) |
+| 2 | Phase 3a — risk value 1–5, risk per threat scenario | **0.15.0-beta** | **yes** (ISO risks only) | **11** (migration) |
+| 3 | Phase 1 — Definition sub-tab, assumptions (stage A) | 0.15.x-beta | no | 12 (fence; `info.description` stays the storage of *Purpose and functions*) |
+| 4 | Phase 1 stage B — arc42 import | 0.15.x-beta | no | 13 (fence) |
+| 5 | Phase 1H — ISO 26262 fields and HARA import (ISO only, additive) | 0.15.x-beta | no | 14 (fence) |
+| 6 | Phase 2 — damage scenarios | **0.16.0-beta** | no (impact moves, MAX keeps the level) | **15** (migration) |
+| 7 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria | **0.17.0-beta** | **yes** where 1:n damage scenarios exist | **16** (migration) |
+| 8 | Phase 4 — goals, claims, verification record | 0.17.x-beta | no | 17 (fence) |
+| 9 | Phases 5 + 7 — concept traceability, report, readiness | 0.17.x-beta | no | 18 (fence) |
+| later | Phases 6, 8 (stage C of arc42 with 8) | x-beta | no | fence if new fields are stored |
 
 **Why 3a first:** an ISO project (APS) is running in TARAflow under
 `iso-21434`; RQ-15-15/16 are the only normative gaps an assessor stops at
@@ -652,8 +692,8 @@ Added in rev. 2 (2026-10-24):
     (Phase 1), B import of a local file with section hashes (right after
     Phase 1), C drift from the repository (with Phase 8).
 12. **[D] Assumptions additive:** ASM objects plus `assumptionIds` on the trust
-    boundary; the free text stays; conversion only on request. No schema bump
-    for this.
+    boundary; the free text stays; conversion only on request. No migration
+    (schema fence only, decision 15).
 13. **[D] ISO 26262 link via Hazard Items (Phase 1H, rev. 2026-10-24):**
     A. The safety source stays as today (worst-of plus warning); the Hazard
     Item as single safety source is not part of this plan (open point in
@@ -661,14 +701,21 @@ Added in rev. 2 (2026-10-24):
     event, S/E/C, ASIL, safety goal ref; `externalRef` = HARA id), a HARA
     import profile of the existing hazard importer and S0–S3 as a view on the
     canonical scale — ISO only, additive, prerequisite of Phase 2.
-    C. S0 is imported as `SafetyImpact = "none"` (rated, negligible); an
-    empty S stays *not rated*.
+    C (replaced 2026-10-24): S0 is a rating on the existing `endangers`
+    edge — `HumanHarmSeverity` gains `"none"`, shown as S0 under
+    `iso-21434`; no marker on the Hazard Item and no separate S field. *Not
+    rated* = no person edge → finding. A `"none"` edge feeds no safety
+    aggregation and does not set `isHazardTarget` (Phase 1H point 3).
 14. **[D] Order and releases (§5):** 0 → 3a → 1 → 1 stage B → 1H → 2 → 3b → 4 →
     5+7 → 6, 8, on the branch `feature/iso21434-conformance`. 3a is pulled
-    forward because the APS project runs under `iso-21434`. Schema bumps (3a,
-    2, 3b) and value changes get their own minor beta; additive steps a
-    beta patch. The superseded support design moved to `doc/Done`, the old
+    forward because the APS project runs under `iso-21434`. Migrations (3a,
+    2, 3b) and value changes get their own minor beta; additive releases stay
+    a beta patch even though they bump the schema (decision 15). The superseded support design moved to `doc/Done`, the old
     `taraflow-iso21434-todo.md` checklist to `doc/Old`.
+15. **[D] Schema fence per release (K7, 2026-10-24):** every release that
+    stores new fields bumps the schema, one number per release; purely
+    additive bumps are marked "version fence, no data change" in
+    `schema-version.ts`. A file of a newer beta does not open in an older one.
 
 ---
 
@@ -715,9 +762,13 @@ are written against behaviour, not against the report text.
 | 1 | A project with trust-boundary `securityAssumptions` texts opens unchanged; *Convert to assumption* creates one ASM object linked from the boundary with the same text; setting it `invalid` flags the boundary. |
 | 1 | The General tab switches between Project / Definition / Methodology / Sources; each view's badge equals its number of open findings; the Methodology view shows the risk method read-only and links to the Risk configuration dialog. |
 | 1 | An assumption referenced by a trust boundary and a claim is one object; editing it changes both views. |
-| 1H | A HARA CSV with S0 / S1 / S2 / S3 imports as `none` / `reversible_major` / `irreversible_major` / `fatal`; a row without S stays *not rated*. |
+| 1H | A HARA CSV with S0 / S1 / S2 / S3 / empty imports as edge `none` / `reversible_major` / `irreversible_major` / `fatal` / no edge. |
+| 1H | An asset endangered only through a `none` edge: `isHazardTarget = false`, `worstSeverity` undefined, no finding from `asset-validator.ts`, threats unchanged; the link shows `none`. |
+| 1H | A cause asset of a hazard with only `none` edges keeps its `physicalImpact` and `physicalImpactSource`. |
+| 1H | A Hazard Item without a person edge produces the finding "not rated". |
+| 1H | Hazard table: a hazard with only a `none` edge shows "none" (under ISO "S0"); a hazard without a person edge shows "–"; sorted by severity, *not rated* is below S0. |
 | 1H | Projects under every other preset show and compute the same safety values as before. |
-| 2 | Migration: a file with the schema before Phase 2 (10 per §5) with `consequence` + `impactRatings` opens, saves and reopens with one damage scenario per goal, identical text and ratings, unchanged goal level. |
+| 2 | Migration: a file with the schema before Phase 2 (14 per §5) with `consequence` + `impactRatings` opens, saves and reopens with one damage scenario per goal, identical text and ratings, unchanged goal level. |
 | 2 | Two damage scenarios on the same asset × property are rated independently; the goal level is the MAX. |
 | 2 | A relevant threat without a damage-scenario link, and a damage scenario reached by no threat (without reason), each produce a finding. |
 | 2 | Switching the preset ISO ↔ EN 50742 relabels the safety scale and flags every safety rating for review; no value changes silently. |
@@ -749,7 +800,7 @@ Discussed one by one before implementation; answers move into §6.
 | K4 | Risk granularity | decided (decision 9) |
 | K5 | Effect on other methods | decided (decision 10, principle 6) |
 | K6 | Releases, schema, order, old documents | decided (decision 14, §5) |
-| K7 | Schema bump for additive steps: `schema-version.ts` says "increment for every breaking **or additive** change", and an older release refuses newer files only through the version. Without a bump, an older beta opens a file with new fields (methodology record, Item Definition, ASM, ISO 26262 fields, goals …) and may drop them on save. Bump per additive step, or keep §5 (bumps only for 3a, 2, 3b)? | open |
+| K7 | Schema bump for additive steps | decided (decision 15, §5): one fence per release that stores new fields |
 
 ---
 
