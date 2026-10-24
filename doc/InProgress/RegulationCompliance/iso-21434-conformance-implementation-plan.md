@@ -170,8 +170,8 @@ Overview tab, for every project. The current project description
 functions* (migration, text unchanged). The preset only decides which sections
 are mandatory (validator findings): `iso-21434` → RQ-09-01/02,
 `en-50742-a`/`en-50742-b`/`etsi-tvra` → open, `standard` → none. IEC 62443-4-1
-(SRM-2/3) has no preset today; the rule applies once one exists. Open: scope of the arc42
-import and drift detection (§9 K1b), shape of the assumptions (§9 K2).
+(SRM-2/3) has no preset today; the rule applies once one exists. arc42 in
+three stages (decision 11), assumptions additive (decision 12).
 
 Normative basis [N]: **RQ-09-01** item boundary (a), functions over the lifecycle
 (b), preliminary architecture (c); **RQ-09-02** operational environment relevant
@@ -223,15 +223,30 @@ SRM-3 (security context).
   }
   ```
 
-  `Assumption` replaces copied text in trust-boundary `securityAssumptions`
-  (link instead of copy; migration turns existing texts into ASM objects).
+  **Additive, no migration (decision 12).** Assumptions are listed in the
+  Definition sub-tab, for every preset. A trust boundary gets
+  `assumptionIds: string[]` in addition to its free text
+  `securityAssumptions`, which stays as it is. A button *Convert to assumption*
+  creates an ASM object from the text and links it; nothing is converted
+  automatically. An assumption set to `invalid` flags every boundary and (from
+  Phase 4) every claim that references it.
 
 - **arc42 as source, not copy [D].** Each section records its `SourceRef`; the
   text is the analyst's summary or an excerpt. The arc42 document stays the
   master for the architecture description.
-- **arc42 import [D].** The arc42 template headings are standardised, so an
+- **arc42 in three stages [D] (decision 11):**
+  - **Stage A (Phase 1):** sections filled by hand, `SourceRef` as reference
+    (document, section, version). No import.
+  - **Stage B (right after Phase 1):** import of a *local* arc42 file, see next
+    bullet; re-import compares the section hashes.
+  - **Stage C (with Phase 8):** drift from the repository itself. Today's drift
+    check only sees that the bound commit SHA moved (`git ls-remote`); reading
+    a file at a commit needs a new IPC (auth, network consent, security
+    review).
+- **arc42 import [D] (stage B).** The arc42 template headings are standardised, so an
   import of an AsciiDoc or Markdown arc42 document (German and English
-  headings) pre-fills the sections: §1 → functions, §3 → boundary,
+  headings; also split chapter files joined with `include::`) pre-fills the
+  sections: §1 → functions, §3 → boundary,
   §5 → architecture, §7 → environment, §2 → constraints/assumption candidates.
   The analyst reviews each pre-filled section before it counts as filled.
   Import stores `contentHash` per section.
@@ -240,13 +255,14 @@ SRM-3 (security context).
   DFD is mentioned in the boundary section, and every external system named
   there exists as external entity or interface — mismatches are findings both
   ways.
-- **Reuse the existing source bindings [D].** When the arc42 document lives in a
+- **Reuse the existing source bindings [D] (stage C).** When the arc42 document lives in a
   repository (docs-as-code), the `SourceRef` points to an existing
   `SourceBinding` plus the file path. The binding's pinned commit and its drift
   check (`source-binding-drift.ts`) then tell when the documentation moved on —
   no second versioning mechanism. For documents outside a repository the
   `version` field and the content hash are used.
-- **Change detection → re-assessment [D]** (feeds Phase 8): binding drift or a
+- **Change detection → re-assessment [D]** (stage B for re-import, stage C
+  for binding drift; the trigger as data is Phase 8): binding drift or a
   re-import of the arc42 document compares `contentHash` per section. A changed section marks
   the item-definition section *changed since import*, creates a re-assessment
   trigger ("architecture change", with the section and old/new version) and
@@ -274,9 +290,45 @@ The General tab gets sub-tabs instead of a growing stack of sections:
   description**, which moves to *Definition* for every project (decision 8).
   Methodology is optional there.
 
-*Done when:* the General tab has the four sub-tabs; the Definition sub-tab produces WP-09-01 as a report chapter with
-source references; assumptions are referenceable objects; an arc42 re-import
-with a changed section raises a re-assessment trigger.
+*Done when:* the General tab has the four sub-tabs; the Definition sub-tab
+produces WP-09-01 as a report chapter with source references; assumptions are
+referenceable objects. Stage B is done when an arc42 re-import with a changed
+section marks that section as changed.
+
+### Phase 1H — Safety source and ISO 26262 link (prerequisite of Phase 2)
+
+Decision 13. Normative basis [N]: **RQ-15-06** (15.5.2) — safety impact ratings
+are derived from ISO 26262-3:2018, 6.4.3 (severity classification of the HARA);
+Table F.1 maps S0–S3 onto negligible / moderate / major / severe; Annex F allows
+exposure and controllability with a rationale; 15.5.2 NOTE 6 lets the
+functional-safety evaluation be reused. RQ-05-03 EXAMPLE 3 names the exchange
+threat scenarios ↔ hazards and cybersecurity goals ↔ safety goals. ISO 21434
+does **not** require an ISO 26262 analysis first; without a HARA the analyst
+rates S directly by Table F.1.
+
+Same pattern as ISO 12100 → EN 50742: the safety analysis supplies the
+severity, the security analysis uses it. Unlike EN 50742 there is no SRSL
+table; S only enters the impact.
+
+1. **Hazard Item as the single safety source** (open follow-up of the beta):
+   the safety annotation stays a UI shortcut that creates/edits a one-cause
+   Hazard Item; worst-of, the double-modelling warning and the duplicate
+   `physicalHazardPotential` go away. Applies to all presets.
+2. **ISO 26262 fields on the Hazard Item** (shown under `iso-21434`):
+   `hazardousEvent` (operational situation), `s26262` S0–S3, `exposure` E0–E4,
+   `controllability` C0–C3, `asil` (imported or derived), `safetyGoalRef`
+   (id/text of the safety team's goal). `externalRef` keeps the HARA id.
+3. **Scale:** the stored value stays the canonical 5-level person-harm scale
+   (`safety-types.ts`); S0–S3 is a view with the mapping documented there.
+   Importing an S class maps conservatively (S1 → `reversible_major`,
+   S2 → `irreversible_major`, S3 → `fatal`).
+4. **HARA import** (CSV), same pattern as the FMEA hazard import.
+5. Used by Phase 2 (`DamageScenario.hazardRefs` → S = MAX over the linked
+   hazards, analyst override with rationale) and Phase 4 (safety goal ↔
+   cybersecurity goal link).
+
+*Done when:* safety data lives only in Hazard Items; an ISO project shows and
+imports S/E/C/ASIL; `standard` and `en-50742-a` show and compute as before.
 
 ### Phase 2 — Damage scenarios as first-class objects (15.3, 15.4, 15.5) (medium–large, schema bump)
 
@@ -310,7 +362,8 @@ Closes G2, G3, G10.
   scenario is reached by ≥ 1 threat or marked "no threat identified" with reason.
 - **Impact scale (Annex F):** ISO labels *negligible / moderate / major / severe*
   per category. Safety scale follows the preset (§6.1): ISO 26262 severity
-  classes for `iso-21434`, ISO 12100 for `en-50742-a`.
+  classes for `iso-21434`, ISO 12100 for `en-50742-a` — both as views on the
+  canonical scale; S comes from the linked Hazard Items (Phase 1H).
 - **Structured consequence (not EARS — a damage scenario describes harm, not a
   required behaviour).** Store the parts, render the sentence:
 
@@ -571,7 +624,7 @@ used. Recommended if ISO projects are delivered before 0.16.
 
 Added in rev. 2 (2026-10-24):
 
-8. **[D] Item Definition is preset-independent** (Phase 1, sub-tab "Definition"). Sub-tab
+8. **[D] Item Definition is preset-independent** (Phase 1). Sub-tab
    "Definition" in the Overview tab for every project; the project description
    becomes the section *Purpose and functions*. Presets only make sections
    mandatory.
@@ -582,6 +635,16 @@ Added in rev. 2 (2026-10-24):
    per impact category (15.8 NOTE 1, v0.13) stays as information.
 10. **[D] Risk value 1–5 only for `iso-21434`.** Other presets keep their risk
     scale and matrix; no shared code path changes their values.
+11. **[D] arc42 in three stages:** A manual sections with source reference
+    (Phase 1), B import of a local file with section hashes (right after
+    Phase 1), C drift from the repository (with Phase 8).
+12. **[D] Assumptions additive:** ASM objects plus `assumptionIds` on the trust
+    boundary; the free text stays; conversion only on request. No schema bump
+    for this.
+13. **[D] ISO 26262 link via Hazard Items (Phase 1H):** the Hazard Item first
+    becomes the single safety source, then gets the ISO 26262 fields
+    (hazardous event, S/E/C, ASIL, safety goal ref) and a HARA import. Stored
+    severity stays the canonical 5-level scale; S0–S3 is a view.
 
 ---
 
@@ -623,9 +686,9 @@ are written against behaviour, not against the report text.
 | 0 | Every computed risk and feasibility carries `{method, calcVersion, mappingVersion}`; recomputing with the same inputs yields a byte-identical result. |
 | 1 | An ISO project without item definition, or with a boundary interface missing from it, produces a finding. |
 | 1 | An external system named in the boundary section without matching external entity / interface in the DFD produces a finding. |
-| 1 | Importing an arc42 AsciiDoc and a Markdown document (German and English headings) pre-fills boundary, functions, architecture and environment; pre-filled sections count as unfilled until reviewed. |
-| 1 | Re-importing an arc42 document with one changed section marks only that section as changed and creates one re-assessment trigger; no TARA object changes. |
-| 1 | Migration: existing trust-boundary `securityAssumptions` texts become ASM objects linked from the boundary; the text is unchanged. |
+| 1 (B) | Importing an arc42 AsciiDoc and a Markdown document (German and English headings) pre-fills boundary, functions, architecture and environment; pre-filled sections count as unfilled until reviewed. |
+| 1 (B) | Re-importing an arc42 document with one changed section marks only that section as changed and creates one re-assessment trigger; no TARA object changes. |
+| 1 | A project with trust-boundary `securityAssumptions` texts opens unchanged; *Convert to assumption* creates one ASM object linked from the boundary with the same text; setting it `invalid` flags the boundary. |
 | 1 | The General tab switches between Project / Definition / Methodology / Sources; each view's badge equals its number of open findings; the Methodology view shows the risk method read-only and links to the Risk configuration dialog. |
 | 1 | An assumption referenced by a trust boundary and a claim is one object; editing it changes both views. |
 | 2 | Migration: a v0.13 file with `consequence` + `impactRatings` opens, saves and reopens with one damage scenario per goal, identical text and ratings, unchanged goal level. |
@@ -654,9 +717,9 @@ Discussed one by one before implementation; answers move into §6.
 | # | Topic | State |
 |---|---|---|
 | K1 | Item Definition preset-independent, description → *Purpose and functions* | decided (decision 8) |
-| K1b | arc42 import and drift detection: scope and stage | open |
-| K2 | Assumptions as ASM objects instead of trust-boundary text (all presets, schema 10) | open |
-| K3 | Link to ISO 26262 (HARA, hazards, safety goals) and extension of the Hazard Items; S0–S3 as view on the canonical 5-level scale | open |
+| K1b | arc42 import and drift detection: scope and stage | decided (decision 11) |
+| K2 | Assumptions as ASM objects | decided (decision 12) |
+| K3 | Link to ISO 26262 and extension of the Hazard Items | decided (decision 13, Phase 1H) |
 | K4 | Risk granularity | decided (decision 9) |
 | K5 | Effect on other methods | decided (decision 10, principle 6) |
 | K6 | Releases (0.14.x-beta), schema 10, old support design → `doc/Done` | open |
