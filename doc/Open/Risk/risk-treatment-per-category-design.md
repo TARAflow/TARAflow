@@ -1,6 +1,11 @@
 # Risk treatment per impact category — design
 
-**Status:** Draft rev. 1 — open for review, nothing implemented
+**Status:** Superseded (2026-10-24) — not implemented. The ISO 21434
+conformance plan decides one risk per threat scenario × damage scenario and no
+treatment per impact category
+(`doc/InProgress/RegulationCompliance/iso-21434-conformance-implementation-plan.md`
+§6, decision 9). Kept for the analysis of options A/B/C.
+Previous status: Draft rev. 1 — open for review, nothing implemented
 **Scope:** TARAflow risk model, risk dialog, risk register, report
 **Origin:** risk-impact-aggregation design §5.6, phase 5 scope B; the parked
 1:n damage-scenario strand (attack-tree threat generator design §4, §11 Q1;

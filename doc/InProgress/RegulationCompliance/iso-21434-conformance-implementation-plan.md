@@ -1,6 +1,7 @@
 # TARAflow — ISO/SAE 21434 Conformance: Implementation Plan
 
-> **Status:** Draft, decisions of §6 taken · 2026-10-16 · base: v0.13.3-alpha
+> **Status:** Draft rev. 2, decisions of §6 taken, clarifications open (§9) ·
+> 2026-10-24 · base: v0.14.0-beta (rev. 1: 2026-10-16, v0.13.3-alpha)
 > **Supersedes in part:** `doc/InProgress/RegulationCompliance/iso-21434-support-design.md`
 > (that document deliberately limited TARAflow to Clause 15 and kept cybersecurity
 > goals as a link stub, DS-6. This plan reverses DS-6 and extends the scope to the
@@ -69,6 +70,15 @@ does not manage them.
 | G12 | Work products and methodology in the report | traceability matrix exists; no WP structure, no methodology section, no calc stamp | medium |
 | G13 | Continual TARA (Clause 8) | re-assessment triggers only in the workflow diagram | low |
 
+**Already in v0.14.0-beta** (from the earlier support design, not repeated in
+the phases): STRIDE-per-interaction off for `iso-21434`
+(`RegulationPreset.disabledThreatGenerators`), SFOP hard-lock on the asset side,
+`iso21434-core` (18045 attack potential, Table G.7 bands), and the *display* of
+the risk per impact category (15.8 NOTE 1) in the risk dialog and the ISO
+traceability matrix. Not yet in the code: everything of Phase 0 onwards (no
+`calcVersion`, no `ItemDefinition`, no `DamageScenario`; `RISK_TREATMENTS`
+still eliminate/reduce/accept/transfer/share).
+
 Repo hygiene: the former `iso-21434-support-design-addon.md` was a committed
 symlink to a local download path (dangling for everyone else); it is replaced
 by this file.
@@ -80,8 +90,15 @@ by this file.
 1. **Additive where possible.** Every phase except Phase 3 adds data; existing
    projects open unchanged. Phase 3 recomputes risk values and therefore needs a
    schema bump, a migration and a "decisions to review" list.
-2. **One project, two modes.** All new objects are visible only under the
-   `iso-21434` preset. The TARAflow default mode keeps its behaviour.
+2. **One project, two modes.** ISO-specific objects and rules (treatment
+   names, scale lock, risk value 1–5, goals, claims, CAL) are visible only under
+   the `iso-21434` preset. The TARAflow default mode and EN 50742 keep their
+   behaviour. Exception: the **Item Definition** (Phase 1) is
+   preset-independent; the preset only decides which sections are mandatory
+   (decision 8, §6).
+6. **No side effects on other methods.** Every phase has a test that a
+   `standard` and an `en-50742-a` project compute and display exactly what they
+   did before.
 3. **Analyst decisions are never overwritten.** Same rule as for security goals
    (`source: "manual"`) and the relevance override (fixed in 0.13.3): derived
    values may change, decisions are kept and flagged when their basis changed.
@@ -146,6 +163,15 @@ default mode unchanged.
 
 Closes G8; provides the assumptions used by claims in Phase 4.
 
+**Rev. 2 (decision 8):** the Item Definition is a **preset-independent
+feature**, not an ISO add-on. It lives in a sub-tab **"Definition"** of the
+Overview tab, for every project. The current project description
+(`GeneralTabData.info.description`) moves into the section *Purpose and
+functions* (migration, text unchanged). The preset only decides which sections
+are mandatory (validator findings): `iso-21434` → RQ-09-01/02, IEC 62443 →
+SRM-2/3, `en-50742-a` → open, `standard` → none. Open: scope of the arc42
+import and drift detection (§9 K1b), shape of the assumptions (§9 K2).
+
 Normative basis [N]: **RQ-09-01** item boundary (a), functions over the lifecycle
 (b), preliminary architecture (c); **RQ-09-02** operational environment relevant
 to cybersecurity, including assumptions (NOTE 8) → **WP-09-01**. The same content
@@ -160,7 +186,7 @@ SRM-3 (security context).
   | Section | ISO | arc42 source (typical) | Link into the model |
   |---|---|---|---|
   | Item boundary | RQ-09-01 a) | §3 Context and scope (business + technical) | DFD physical boundaries, interfaces, external entities |
-  | Functions | RQ-09-01 b) | §1 Introduction and goals, §6 Runtime view | function assets |
+  | Purpose and functions (takes over the project description) | RQ-09-01 b) | §1 Introduction and goals, §6 Runtime view | function assets |
   | Preliminary architecture | RQ-09-01 c) | §5 Building block view (level 1) | top-level DFD / leveled DFD page |
   | Operational environment | RQ-09-02 | §7 Deployment view, §2 Constraints | trust boundaries, external entities |
   | Assumptions | RQ-09-02 NOTE 8 | §2 Constraints, §11 Risks | `Assumption` objects |
@@ -228,13 +254,12 @@ SRM-3 (security context).
 
 #### Overview rework (part of Phase 1) [D]
 
-The General tab gets a view switch in its toolbar (`ToggleButtonGroup`, same
-pattern as the DFD and Risk toolbars) instead of a growing stack of sections:
+The General tab gets sub-tabs instead of a growing stack of sections:
 
 | View | Content | Today |
 |---|---|---|
-| **Project** | name, version, roles, tags, progress | `ProjectInfo`, `ProjectProgress` |
-| **Item Definition** | boundary, functions, architecture, environment, assumptions (ASM) | new (this phase) |
+| **Project** | name, version, roles, tags, progress (without the description) | `ProjectInfo`, `ProjectProgress` |
+| **Definition** | purpose and functions (former description), boundary, architecture, environment, constraints, assumptions (ASM) | new (this phase); description from `ProjectInfo` |
 | **Methodology** | preset, locked scales, risk method and acceptance criteria (read-only summary), CIANAAA ↔ CIA mapping, `requireCal` | `ProjectSettings` + Phase 0 record |
 | **Sources** | source bindings, arc42 references, drift status | `SourceBindingsSection` |
 
@@ -247,7 +272,7 @@ pattern as the DFD and Risk toolbars) instead of a growing stack of sections:
 - Non-ISO projects see the same content as today under *Project*; Item
   Definition and Methodology are optional there.
 
-*Done when:* the General tab has the four views; the Item Definition view produces WP-09-01 as a report chapter with
+*Done when:* the General tab has the four sub-tabs; the Definition sub-tab produces WP-09-01 as a report chapter with
 source references; assumptions are referenceable objects; an arc42 re-import
 with a changed section raises a re-assessment trigger.
 
@@ -312,6 +337,8 @@ Tests: migration round-trip (old file → new → save → reopen), 1:n, validat
 Closes G1, G4.
 
 - **Risk value 1–5 [N]** (RQ-15-16: value between 1 and 5, 1 = minimal risk).
+  **Only for `iso-21434` (decision 10).** `standard` and `en-50742-a` keep the
+  current `RiskScaleType` 3/4/5-level matrix and SRSL unchanged.
   The **method is free [K]** — the standard names risk matrices and risk formulas
   as examples. TARAflow offers both:
   - matrix impact (4 levels) × feasibility (4 levels: very low / low / medium /
@@ -467,6 +494,10 @@ Closes G13.
 
 ## 5. Sequencing and releases
 
+> **Rev. 2:** the table below is from rev. 1 (base v0.13.3). 0.14.0-beta has
+> shipped without Phase 0/1 and schema 9 is released, so the release and
+> schema columns are to be revised (§9 K6).
+
 | Release | Phase | Changes values? | Schema bump |
 |---|---|---|---|
 | 0.14 | 0 + 1 | no | yes (small: ASM objects replace assumption texts) |
@@ -536,6 +567,20 @@ used. Recommended if ISO projects are delivered before 0.16.
 7. **[D] Damage scenarios use a structured sentence, not EARS** (Phase 2): behaviour,
    harm, affected party as fields; the sentence is rendered.
 
+Added in rev. 2 (2026-10-24):
+
+8. **[D] Item Definition is preset-independent** (Phase 1). Sub-tab
+   "Definition" in the Overview tab for every project; the project description
+   becomes the section *Purpose and functions*. Presets only make sections
+   mandatory.
+9. **[D] Risk granularity per §6.2 confirmed.** One risk per *threat scenario ×
+   damage scenario*; no treatment per impact category. The draft
+   `doc/Open/Risk/risk-treatment-per-category-design.md` (rev. 1, option A
+   `categoryDecisions`) is superseded by this decision. The display of the risk
+   per impact category (15.8 NOTE 1, v0.13) stays as information.
+10. **[D] Risk value 1–5 only for `iso-21434`.** Other presets keep their risk
+    scale and matrix; no shared code path changes their values.
+
 ---
 
 ## 7. Definition of done — "ISO/SAE 21434 work-product complete"
@@ -562,6 +607,9 @@ and the cybersecurity case argument. TARAflow supplies the TARA and concept
 evidence for it.
 
 ## 8. Acceptance tests
+
+Every phase additionally passes the principle-6 test: a `standard` and an
+`en-50742-a` project compute and display the same values as before.
 
 Each phase is done when its tests pass in addition to the existing suite. Tests
 are written against behaviour, not against the report text.
@@ -593,6 +641,22 @@ are written against behaviour, not against the report text.
 | 7 | The exported report contains WP-09-01 … 09-05 and WP-15-01 … 15-08 as sections, with the same IDs as in the project; the coverage matrix lists every open finding of the readiness checker. |
 | 7 | The readiness view and the report both state the checker's limit (structural completeness ≠ approval). |
 | 8 | Linking a vulnerability to an attack-tree leaf recomputes feasibility and flags the affected risks; nothing else changes. |
+
+---
+
+## 9. Open clarifications (rev. 2, 2026-10-24)
+
+Discussed one by one before implementation; answers move into §6.
+
+| # | Topic | State |
+|---|---|---|
+| K1 | Item Definition preset-independent, description → *Purpose and functions* | decided (decision 8) |
+| K1b | arc42 import and drift detection: scope and stage | open |
+| K2 | Assumptions as ASM objects instead of trust-boundary text (all presets, schema 10) | open |
+| K3 | Link to ISO 26262 (HARA, hazards, safety goals) and extension of the Hazard Items; S0–S3 as view on the canonical 5-level scale | open |
+| K4 | Risk granularity | decided (decision 9) |
+| K5 | Effect on other methods | decided (decision 10, principle 6) |
+| K6 | Releases (0.14.x-beta), schema 10, old support design → `doc/Done` | open |
 
 ---
 
