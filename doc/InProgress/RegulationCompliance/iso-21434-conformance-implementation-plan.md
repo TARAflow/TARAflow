@@ -1110,7 +1110,8 @@ Branch `feature/iso21434-conformance`.
 | Step | Content | Patch | State |
 |---|---|---|---|
 | 0a | ISO treatment names (G5): `risk-treatment-vocabulary.ts` — Avoid / Reduce / Share / Retain for the `iso-21434` risk method, stored values unchanged; `transfer` not offered, a stored one shows as "Share (transfer)" with a review hint (dialog), a dashed chip (register) and a validation warning; traceability matrix uses the ISO names. Other methods unchanged (test). | 114 | done |
-| 0b | Methodology record, scale lock in the ISO preset | – | open |
+| 0b | Methodology record and ISO impact scale lock (decision 16): `app/services/methodology-record.ts` derives the record (preset, impact scale/criteria/aggregation, likelihood and feasibility method, treatment options, gate rules, CIANAAA ↔ CIA); `FEASIBILITY_GATE_RULES` exported and applied by the attack-tree calculator (potential AND = sum / OR = min, probability product / union, ordinal min / max — the "OR = MAX / AND = MIN" of Phase 0 holds only for ordinal levels); `CIANAAA_TO_CIA` in shared. Preset field `requiredImpactScale` (iso-21434 → 4-level); `threadImpactScale` sets it only while nothing is rated; asset findings `impactScaleRequired` / `impactOutsideScale`; config dialog offers only 4-level under ISO and warns that values are not converted. Nothing stored, no schema fence. | 118 | done |
+| 0b2 | ISO labels for the 4-level impact scale (negligible / moderate / major / severe, Phase 0 scale table) | – | open |
 | 0c | Calculation stamp `{method, calcVersion, mappingVersion}` | – | open |
 | 0d | Methodology chapter in the report, CIANAAA ↔ CIA mapping | – | open |
 

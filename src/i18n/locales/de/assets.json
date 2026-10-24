@@ -207,6 +207,8 @@
         }
       },
       "validation": {
+        "impactScaleRequired": "ISO/SAE 21434 verlangt die Impact-Skala {{required}} (RQ-15-05); das Projekt verwendet {{current}}. Werte werden nicht umgerechnet — {{count}} bewertete(s) Asset(s) nach dem Wechsel neu bewerten.",
+        "impactOutsideScale": "Asset {{id}}: Impact-Wert(e) {{values}} ausserhalb der Skala (max. {{max}}) — neu bewerten",
         "noAssets": "Keine Assets definiert",
         "noName": "Asset {{id}}: Name fehlt",
         "noSecurityGoal": "Asset {{id}}: kein Schutzziel definiert",
@@ -379,6 +381,8 @@
         "info": "Wählen Sie 4-6 Impact-Kriterien, die für Ihr Projekt relevant sind. Diese Konfiguration gilt für alle Assets.",
         "impactScale": "Impact-Skala",
         "scale3": "3-stufig (Niedrig, Mittel, Hoch)",
+        "scaleRequiredIso": "ISO/SAE 21434 schreibt vier Impact-Stufen pro Kategorie vor (RQ-15-05): vernachlässigbar, moderat, erheblich, schwerwiegend.",
+        "scaleChangeKeepsValues": "Assets sind bereits bewertet: Die Werte werden nicht umgerechnet. Assets nach dem Speichern neu bewerten.",
         "scale4": "4-stufig (+ Kritisch)",
         "scale5": "5-stufig (+ Sehr Hoch)",
         "calculationMethod": "Gesamt-Impact-Berechnung",

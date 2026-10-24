@@ -58,6 +58,13 @@ interface AssetConfigDialogProps {
   hasSafetyAnnotations?: boolean;
   /** Impact criteria the regulation preset makes mandatory — locked (not removable) */
   mandatoryCriteriaIds?: string[];
+  /** Impact scale the regulation prescribes (iso-21434 → 4-level) — the only
+   * scale offered; absent → free choice. */
+  requiredImpactScale?: ImpactScaleType;
+  /** Scale stored in the project (to warn before a change with ratings). */
+  savedImpactScale?: ImpactScaleType;
+  /** Any asset carries an impact value — a scale change does not convert it. */
+  hasImpactRatings?: boolean;
   onChange: (config: AssetConfiguration) => void;
   onSave: () => void;
   onClose: () => void;
@@ -90,6 +97,9 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
   configuration,
   hasSafetyAnnotations = false,
   mandatoryCriteriaIds = [],
+  requiredImpactScale,
+  savedImpactScale,
+  hasImpactRatings = false,
   onChange,
   onSave,
   onClose,
@@ -142,6 +152,17 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
     );
     onChange({ ...configuration, impactCriteria: newCriteria });
   };
+
+  // Under a prescribed scale only that scale can be chosen (the current one
+  // stays visible as selected until the analyst switches).
+  const isScaleLocked = (scale: ImpactScaleType) =>
+    !!requiredImpactScale && scale !== requiredImpactScale;
+  // Values are never converted on a scale change — warn before saving it.
+  const scaleChangeKeepsValues =
+    !!requiredImpactScale &&
+    hasImpactRatings &&
+    savedImpactScale !== undefined &&
+    configuration.impactScale !== savedImpactScale;
 
   const handleScaleChange = (scale: ImpactScaleType) => {
     onChange({ ...configuration, impactScale: scale });
@@ -347,6 +368,14 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
                   defaultValue: "Impact Scale",
                 })}
               </FormLabel>
+              {requiredImpactScale && (
+                <Alert severity="info" sx={{ mb: 1.5 }}>
+                  {t("tabs.assets.config.scaleRequiredIso", {
+                    defaultValue:
+                      "ISO/SAE 21434 prescribes four impact ratings per category (RQ-15-05): negligible, moderate, major, severe.",
+                  })}
+                </Alert>
+              )}
               <RadioGroup
                 row
                 value={configuration.impactScale}
@@ -356,6 +385,7 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
               >
                 <FormControlLabel
                   value="3-level"
+                  disabled={isScaleLocked("3-level")}
                   control={<Radio />}
                   label={t("tabs.assets.config.scale3", {
                     defaultValue: "3-Level (Low, Medium, High)",
@@ -363,6 +393,7 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
                 />
                 <FormControlLabel
                   value="4-level"
+                  disabled={isScaleLocked("4-level")}
                   control={<Radio />}
                   label={t("tabs.assets.config.scale4", {
                     defaultValue: "4-Level (+ Critical)",
@@ -370,12 +401,22 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
                 />
                 <FormControlLabel
                   value="5-level"
+                  disabled={isScaleLocked("5-level")}
                   control={<Radio />}
                   label={t("tabs.assets.config.scale5", {
                     defaultValue: "5-Level (+ Very High)",
                   })}
                 />
               </RadioGroup>
+
+              {scaleChangeKeepsValues && (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+                  {t("tabs.assets.config.scaleChangeKeepsValues", {
+                    defaultValue:
+                      "Assets are already rated: values are not converted. Re-rate the assets after saving.",
+                  })}
+                </Alert>
+              )}
 
               {/* Scale preview chips */}
               <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>

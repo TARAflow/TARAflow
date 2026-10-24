@@ -42,6 +42,7 @@ import { AssetNotificationPanel } from "./asset-notification-panel";
 import {
   assetIdsNeedingReview,
   collectAssetFindings,
+  hasImpactRatings,
   type AssetFinding,
 } from "../services/asset-validator";
 import type { SecurityGoalType } from "../models/asset-security-goals-types";
@@ -695,8 +696,14 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   // Validation findings, structured — for the panel below the table.
   const findings = useMemo(
-    () => collectAssetFindings(assetData, threatLinks, hazardLinks),
-    [assetData, threatLinks, hazardLinks],
+    () =>
+      collectAssetFindings(
+        assetData,
+        threatLinks,
+        hazardLinks,
+        project.requiredImpactScale,
+      ),
+    [assetData, threatLinks, hazardLinks, project.requiredImpactScale],
   );
   const needsReview = useMemo(() => assetIdsNeedingReview(findings), [findings]);
 
@@ -950,6 +957,9 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         configuration={tempConfig || assetData.configuration}
         hasSafetyAnnotations={hasSafetyAnnotations}
         mandatoryCriteriaIds={project.mandatoryImpactCriteriaIds ?? []}
+        requiredImpactScale={project.requiredImpactScale}
+        savedImpactScale={assetData.configuration.impactScale}
+        hasImpactRatings={hasImpactRatings(assetData)}
         onChange={handleConfigChange}
         onSave={handleSaveConfig}
         onClose={handleCloseConfig}

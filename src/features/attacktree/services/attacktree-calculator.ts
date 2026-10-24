@@ -218,6 +218,49 @@ type FeasibilityQuantity =
   | { kind: "probability"; value: number }
   | { kind: "ordinal"; value: FeasibilityLevel };
 
+/** How the children of a gate combine. */
+export type GateRule = "sum" | "min" | "max" | "product" | "union";
+
+/**
+ * The gate rules per kind of rating — the table above as data. The calculator
+ * applies exactly these (aggregateChildren), and the methodology record
+ * (conformance plan 0b) reads them from here, so the report cannot describe a
+ * rule the calculator does not apply. ROOT combines like OR.
+ *   potential   — attack potential (effort): lower = easier
+ *   probability — 0..1
+ *   ordinal     — feasibility level only (rank: higher = easier)
+ */
+export const FEASIBILITY_GATE_RULES: Readonly<
+  Record<FeasibilityQuantity["kind"], { readonly AND: GateRule; readonly OR: GateRule }>
+> = {
+  potential: { AND: "sum", OR: "min" },
+  probability: { AND: "product", OR: "union" },
+  ordinal: { AND: "min", OR: "max" },
+};
+
+function applyGateRule(rule: GateRule, values: number[]): number {
+  switch (rule) {
+    case "sum":
+      return values.reduce((a, b) => a + b, 0);
+    case "min":
+      return Math.min(...values);
+    case "max":
+      return Math.max(...values);
+    case "product":
+      // independent events multiply
+      return values.reduce((a, b) => a * b, 1);
+    case "union":
+      // union of independent events
+      return 1 - values.reduce((acc, p) => acc * (1 - p), 1);
+  }
+}
+
+const LEVEL_BY_RANK = new Map(
+  (Object.entries(FEASIBILITY_RANK) as [FeasibilityLevel, number][]).map(
+    ([level, rank]) => [rank, level],
+  ),
+);
+
 /** Aggregate children of the same kind. Mixed kinds are rejected by the caller. */
 function aggregateChildren(
   children: FeasibilityQuantity[],
@@ -227,41 +270,22 @@ function aggregateChildren(
   if (children.length === 1) return children[0];
 
   const kind = children[0].kind;
-  const isAnd = gate === "AND";
+  const rule = FEASIBILITY_GATE_RULES[kind][gate === "AND" ? "AND" : "OR"];
 
-  if (kind === "potential") {
-    const values = children.map((c) => c.value as number);
+  if (kind === "ordinal") {
+    // No arithmetic on levels: min / max over their rank.
+    const ranks = children.map((c) => FEASIBILITY_RANK[c.value as FeasibilityLevel]);
     return {
-      kind: "potential",
-      // AND: effort accumulates. OR: the attacker takes the cheapest branch.
-      value: isAnd
-        ? values.reduce((a, b) => a + b, 0)
-        : Math.min(...values),
+      kind: "ordinal",
+      value: LEVEL_BY_RANK.get(applyGateRule(rule, ranks))!,
     };
   }
-
-  if (kind === "probability") {
-    const values = children.map((c) => c.value as number);
-    return {
-      kind: "probability",
-      // AND: independent events multiply. OR: union of independent events.
-      value: isAnd
-        ? values.reduce((a, b) => a * b, 1)
-        : 1 - values.reduce((acc, p) => acc * (1 - p), 1),
-    };
-  }
-
-  // Ordinal: no arithmetic available, fall back to the bottleneck heuristic.
-  const levels = children.map((c) => c.value as FeasibilityLevel);
   return {
-    kind: "ordinal",
-    value: isAnd
-      ? levels.reduce((worst, l) =>
-          FEASIBILITY_RANK[l] < FEASIBILITY_RANK[worst] ? l : worst,
-        )
-      : levels.reduce((best, l) =>
-          FEASIBILITY_RANK[l] > FEASIBILITY_RANK[best] ? l : best,
-        ),
+    kind,
+    value: applyGateRule(
+      rule,
+      children.map((c) => c.value as number),
+    ),
   };
 }
 

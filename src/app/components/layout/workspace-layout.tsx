@@ -124,6 +124,7 @@ import { buildGeneralTabPatch } from "app/services/general-tab-update";
 import {
   getRegulationConflicts,
   regulationPresetFromTags,
+  getRequiredImpactScale,
   EMPTY_PROJECT_TAGS,
   getDisabledThreatGenerators,
   getRegulationPreset,
@@ -1021,6 +1022,11 @@ export const WorkspaceLayout: React.FC = () => {
                   activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
                 ) === "iso-21434",
               mandatoryImpactCriteriaIds: getMandatoryAssetCriteriaIds(
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ),
+              ),
+              requiredImpactScale: getRequiredImpactScale(
                 regulationPresetFromTags(
                   activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
                 ),

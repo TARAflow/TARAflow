@@ -273,6 +273,13 @@ export interface AssetProjectData {
    */
   mandatoryImpactCriteriaIds?: string[];
 
+  /**
+   * Impact scale the active regulation preset prescribes (iso-21434 → 4-level,
+   * RQ-15-05). Derived at the app layer; the config dialog offers only this
+   * scale and the validator reports a mismatch. Absent → free choice.
+   */
+  requiredImpactScale?: ImpactScaleType;
+
   /** DFD assets for asset synchronization and linking */
   dfdAssets?: AssetDFDAsset[];
 

@@ -11,12 +11,13 @@
 import type { Project } from "../models/project-types";
 import type { RegulationPresetId, WindowOfOpportunity } from "shared";
  import { regulationPresetFromTags, EMPTY_PROJECT_TAGS } from "shared";
-import { getRegulationPreset } from "shared";
+import { getRegulationPreset, getRequiredImpactScale } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { isAssetImpactMandatory } from "features/risks/services/regulation-preset-service";
 import { getMandatoryAssetCriteriaIds } from "features/risks/services/regulation-preset-service";
 import type { ActiveFactor } from "features/risks";
 import { assetService } from "features/assets/services/asset-service";
+import { hasImpactRatings } from "features/assets/services/asset-validator";
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import { SAFETY_CRITERION_ID } from "features/assets/models/asset-impact-types";
 import { riskService } from "features/risks/services/risk-service";
@@ -232,6 +233,32 @@ export function threadImpactCriteria(
 }
  
 /**
+ * Set the impact scale the preset prescribes (iso-21434 → 4-level, RQ-15-05) —
+ * but only while nothing is rated (conformance plan 0b, decision 16). With
+ * ratings nothing is remapped: assetService.updateConfiguration neither
+ * converts nor clamps values, so the mismatch is left to the asset validator
+ * (finding) and the analyst. Leaving the preset keeps the scale. Pure and
+ * idempotent — returns the SAME project when nothing changes.
+ */
+export function threadImpactScale(
+  project: Project,
+  presetId: RegulationPresetId,
+): Project {
+  if (!project.assets) return project;
+  const required = getRequiredImpactScale(presetId);
+  if (!required) return project;
+  if (project.assets.configuration.impactScale === required) return project;
+  if (hasImpactRatings(project.assets)) return project;
+  return {
+    ...project,
+    assets: assetService.updateConfiguration(project.assets, {
+      ...project.assets.configuration,
+      impactScale: required,
+    }),
+  };
+}
+
+/**
  * Data backstop for the asset-side SFOP lock: ensures every mandatory impact
  * criterion is present on the asset config (self-correcting on import / legacy
  * / tag-change), mirroring enforceMandatoryImpactFactors on the risk side.
@@ -292,8 +319,9 @@ export function applyRegulationFromTags(
   const withWoo = threadWindowOfOpportunity(applied.project, woo);
   const withImpact = threadUseAssetImpact(withWoo, presetId);
   const withCriteria = threadImpactCriteria(withImpact, presetId);
+  const withScale = threadImpactScale(withCriteria, presetId);
   return {
     ...applied,
-    project: enforceMandatoryAssetCriteria(withCriteria, presetId),
+    project: enforceMandatoryAssetCriteria(withScale, presetId),
   };
 }

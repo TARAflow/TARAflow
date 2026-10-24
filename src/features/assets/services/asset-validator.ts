@@ -21,6 +21,7 @@ import {
 import { threatGoalFindings } from "./asset-threat-crosscheck";
 import { hasDoubleSafetyModelling } from "./asset-physical-impact-deriver";
 import { CIANAAA_APPLICABLE } from "../models/asset-security-goals-types";
+import { IMPACT_SCALES, type ImpactScaleType } from "../models/asset-impact-types";
 
 /**
  * How a validation message names an asset: display id plus name, e.g.
@@ -96,6 +97,9 @@ export function collectAssetFindings(
   assetData: AssetData,
   threatLinks?: readonly ThreatGoalLink[],
   hazardLinks?: AssetHazardLinks,
+  /** Impact scale the regulation prescribes (iso-21434 → 4-level); derived by
+   * the app layer from the preset. Absent → any scale is fine. */
+  requiredImpactScale?: ImpactScaleType,
 ): AssetFinding[] {
   const out: AssetFinding[] = [];
   const impactScale = assetData.configuration?.impactScale ?? "4-level";
@@ -103,6 +107,8 @@ export function collectAssetFindings(
   if (assetData.assets.length === 0) {
     out.push({ severity: "error", key: "tabs.assets.validation.noAssets", dialogTab: GENERAL });
   }
+
+  out.push(...impactScaleFindings(assetData, impactScale, requiredImpactScale));
 
   for (const asset of assetData.assets) {
     const at = {
@@ -252,6 +258,67 @@ export function collectAssetFindings(
           : {}),
       });
     }
+  }
+  return out;
+}
+
+/**
+ * Impact values on the scale that an asset carries — asset ratings and
+ * per-goal ratings above 0. "na" / null / 0 are no values on a scale.
+ */
+export function ratedImpactValues(asset: AssetData["assets"][number]): number[] {
+  const onScale = (v: unknown): number[] =>
+    typeof v === "number" && v > 0 ? [v] : [];
+  return [
+    ...asset.impactRatings.flatMap((r) => onScale(r.value)),
+    ...(asset.securityGoals ?? []).flatMap((g) =>
+      (g.impactRatings ?? []).flatMap((r) => onScale(r.value)),
+    ),
+  ];
+}
+
+/** True once any asset carries an impact value on the scale. */
+export function hasImpactRatings(assetData: AssetData): boolean {
+  return assetData.assets.some((a) => ratedImpactValues(a).length > 0);
+}
+
+/**
+ * The project's impact scale differs from the one the regulation prescribes
+ * (ISO/SAE 21434 RQ-15-05: four ratings). Nothing is remapped (conformance
+ * plan 0b): one project-level warning with the number of rated assets to
+ * re-rate, plus one warning per asset whose ratings lie outside the required
+ * scale (e.g. a 5 after 5-level → 4-level; updateConfiguration does not clamp).
+ */
+function impactScaleFindings(
+  assetData: AssetData,
+  impactScale: ImpactScaleType,
+  required: ImpactScaleType | undefined,
+): AssetFinding[] {
+  const out: AssetFinding[] = [];
+  const max = required
+    ? Math.max(...IMPACT_SCALES[required].levels.map((l) => l.value))
+    : Infinity;
+  const rated = assetData.assets.filter((a) => ratedImpactValues(a).length > 0);
+
+  if (required && impactScale !== required) {
+    out.push({
+      severity: "warning",
+      key: "tabs.assets.validation.impactScaleRequired",
+      dialogTab: GENERAL,
+      params: { required, current: impactScale, count: rated.length },
+    });
+  }
+  for (const asset of rated) {
+    const outside = ratedImpactValues(asset).filter((v) => v > max);
+    if (outside.length === 0) continue;
+    out.push({
+      severity: "warning",
+      key: "tabs.assets.validation.impactOutsideScale",
+      dialogTab: GENERAL,
+      assetId: asset.id,
+      assetLabel: assetLabel(asset),
+      params: { values: [...new Set(outside)].join(", "), max },
+    });
   }
   return out;
 }
