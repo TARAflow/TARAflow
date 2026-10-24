@@ -23,6 +23,7 @@ import {
 import { DfdScopeFilterControls } from "shared";
 import type { DfdScopeFilter, DfdScopeIndex } from "shared";
 import { MOSCOW_PRIORITIES, RISK_SCALES } from "../models/risk-scale-types";
+import { isoRiskValueColor } from "../models/iso-risk-display";
 import type { MoSCoWPriority, RiskScaleType } from "../models/risk-scale-types";
 
 // ==================== TYPES ====================
@@ -35,6 +36,8 @@ export interface RiskFiltersProps {
   riskLevelFilter: number | "";
   /** Active risk scale — drives which level options are shown. */
   scale: RiskScaleType;
+  /** ISO/SAE 21434: the options are the risk values 5 … 1 (plan 3a-2). */
+  isoValues?: boolean;
 
   // Callbacks
   onSearchTextChange: (text: string) => void;
@@ -63,6 +66,7 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
     priorityFilter,
     riskLevelFilter,
     scale,
+    isoValues = false,
     onSearchTextChange,
     onPriorityFilterChange,
     onRiskLevelFilterChange,
@@ -82,7 +86,14 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
 
     // Level options come from the active scale so 3-/4-/5-level all work
     // (4-level -> Low / Medium / High / Critical). Highest severity first.
-    const levelOptions = [...RISK_SCALES[scale].levels].reverse();
+    const levelOptions = isoValues
+      ? [5, 4, 3, 2, 1].map((v) => ({
+          value: v,
+          label: t("tabs.risks.iso.valueOption", { value: v, defaultValue: `Risk value ${v}` }),
+          color: isoRiskValueColor(v),
+          iso: true,
+        }))
+      : [...RISK_SCALES[scale].levels].reverse().map((l) => ({ ...l, iso: false }));
 
     return (
       <Collapse in={show} timeout={300}>
@@ -163,12 +174,14 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
                       }}
                     />
                     <span>
-                      {t(
-                        `risks.scales.impact.${lvl.label
-                          .toLowerCase()
-                          .replace(/\s+/g, "_")}`,
-                        { defaultValue: lvl.label },
-                      )}
+                      {lvl.iso
+                        ? lvl.label
+                        : t(
+                            `risks.scales.impact.${lvl.label
+                              .toLowerCase()
+                              .replace(/\s+/g, "_")}`,
+                            { defaultValue: lvl.label },
+                          )}
                     </span>
                   </Stack>
                 </MenuItem>

@@ -545,12 +545,12 @@ This matrix is a coverage check over the chain **Asset (AS) → Damage Scenario 
 
   traceabilityMatrixTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `| AS | DS | TS | AF | Risiko (R=I×L) | Behandlung (RT) | Restrisiko (RR) |
+      ? `| AS | DS | TS | AF | Risikowert (1–5) | Behandlung (RT) | Restrisiko (RR) |
 |----|----|----|----|-----------------|-----------------|-------------------|
 {{traceabilityRows}}
 
 `
-      : `| AS | DS | TS | AF | Risk (R=I×L) | Treatment (RT) | Residual (RR) |
+      : `| AS | DS | TS | AF | Risk value (1–5) | Treatment (RT) | Residual (RR) |
 |----|----|----|----|--------------|-----------------|------------------|
 {{traceabilityRows}}
 

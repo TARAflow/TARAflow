@@ -64,10 +64,12 @@ describe("risk chapter: impact aggregation sentence", () => {
   });
 });
 
-// Phase 5 scope A: the ISO traceability matrix shows the risk per impact
-// category behind the register value.
-describe("ISO traceability: risk per impact category", () => {
-  it("register label plus S/F/O/P levels", () => {
+// Phase 5 scope A showed the `I × L` risk per impact category in the ISO
+// traceability matrix. Superseded by conformance plan 3a (decision 20 E4):
+// the matrix shows the ISO risk value 1–5 with its Annex H.8 inputs instead,
+// and no per-category `I × L` split.
+describe("ISO traceability: risk value 1–5 instead of I × L per category", () => {
+  it("shows value and matrix inputs, no S/F/O/P split", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const p: any = project("max");
     p.risks.configuration = {
@@ -83,25 +85,22 @@ describe("ISO traceability: risk per impact category", () => {
         ...risk,
         linkedAssetIds: [],
         treatment: "reduce",
-        factorRatings: [
-          { factorId: "safety", value: 4, weight: 1 },
-          { factorId: "financial_damage", value: 1, weight: 1 },
-          // ISO/IEC 18045 attack potential: all lowest → high feasibility
-          { factorId: "iso_elapsed_time", value: 1, weight: 1 },
-          { factorId: "iso_expertise", value: 1, weight: 1 },
-          { factorId: "iso_knowledge", value: 1, weight: 1 },
-          { factorId: "iso_window_of_opportunity", value: 1, weight: 1 },
-          { factorId: "iso_equipment", value: 1, weight: 1 },
-        ],
+        factorRatings: [{ factorId: "safety", value: 4, weight: 1 }],
+        isoRisk: {
+          impact: "severe",
+          feasibility: "high",
+          value: 5,
+          residual: { feasibility: "low", value: 3 },
+        },
       },
     ];
     p.computed.riskBeforeLabels = new Map([["r1", "High"]]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gen = new MarkdownGenerator(p, cfg("en"), t) as any;
     const { content } = gen.generateTraceabilityMatrix("Traceability");
-    const m = content.match(/High \(S ([^ ·)]+) · F ([^ ·)]+)\)/);
-    expect(m).not.toBeNull();
-    expect(m![1]).not.toBe("-");
-    expect(m![1]).not.toBe(m![2]); // safety 4 vs financial 1
+    expect(content).toContain("| 5 (risks.iso.impact.severe × risks.iso.feasibility.high) |");
+    expect(content).toContain("| 3 (risks.iso.impact.severe × risks.iso.feasibility.low) |");
+    expect(content).not.toMatch(/\(S [^)]* · F /);
+    expect(content).not.toContain("High (");
   });
 });

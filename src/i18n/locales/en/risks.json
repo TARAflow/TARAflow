@@ -87,7 +87,10 @@
         "implementation": "Implementation",
         "assessmentRationale": "Rationale",
         "srsl": "SRSL",
-        "srslPending": "Not yet determined (no exposure anchor or severity)"
+        "srslPending": "Not yet determined (no exposure anchor or severity)",
+        "feasibility": "Feasibility",
+        "riskValue": "Risk (1–5)",
+        "riskValueAfter": "Residual (1–5)"
       },
       "dialog": {
         "title": "Risk Assessment: {{id}}",
@@ -365,6 +368,15 @@
         "rejectionPlaceholder": "Reason for not implementing this mitigation...",
         "rejectionRequired": "Required for audit trail",
         "verifications": "Verifications (for testing reference)"
+      },
+      "iso": {
+        "explain": "{{impact}} × {{feasibility}} → {{value}} (ISO/SAE 21434 Annex H.8)",
+        "valueOption": "Risk value {{value}}",
+        "matrixTitle": "Risk matrix (ISO/SAE 21434, Annex H.8)",
+        "axes": "Rows: impact (15.5) · columns: attack feasibility (15.7)",
+        "unrated": "{{count}} without risk value",
+        "panelNote": "ISO/SAE 21434 risk value (RQ-15-16) from the matrix of Annex H.8. Impact comes from the damage scenario (asset × property), feasibility from the attack tree.",
+        "panelMissing": "No risk value yet: rate the impact of the damage scenario and the attack feasibility (attack tree or ISO factors)."
       }
     }
   },
@@ -913,6 +925,20 @@
       "etsi_intensity": {
         "name": "Intensity Factor",
         "description": "Number of attack instances required — single, moderate, or heavy repetition (ETSI TS 102 165-1 Table 3)."
+      }
+    },
+    "iso": {
+      "impact": {
+        "negligible": "Negligible",
+        "moderate": "Moderate",
+        "major": "Major",
+        "severe": "Severe"
+      },
+      "feasibility": {
+        "very-low": "Very low",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
       }
     }
   }

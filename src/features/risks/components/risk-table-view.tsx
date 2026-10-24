@@ -200,6 +200,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
           priorityFilter={filters.priorityFilter}
           riskLevelFilter={filters.riskLevelFilter}
           scale={configuration.scale}
+          isoValues={configuration.likelihoodMethod === "iso-21434"}
           onSearchTextChange={onSearchTextChange}
           onPriorityFilterChange={onPriorityFilterChange}
           onRiskLevelFilterChange={onRiskLevelFilterChange}

@@ -22,6 +22,14 @@ import {
 } from "../../models/risk-scale-types";
 import { RiskConfiguration } from "../../models/risk-config-types";
 import {
+  ISO_FEASIBILITY_FALLBACK,
+  ISO_IMPACT_FALLBACK,
+  isIsoRiskMode,
+  isoFeasibilityI18nKey,
+  isoImpactI18nKey,
+  isoRiskValueColor,
+} from "../../models/iso-risk-display";
+import {
   isTreatmentToReview,
   treatmentFallbackLabel,
   treatmentI18nKey,
@@ -44,7 +52,7 @@ import {
   formatMandatedControlLabel,
   clauseFromMandatedId,
 } from "../../models/en50742-approach-a-core";
-import type { StrideCategory, DataColumn } from "shared";
+import type { StrideCategory, DataColumn, FeasibilityBandLevel } from "shared";
 // ~10 tooltips per row: mount them on first hover only (see lazy-tooltip.tsx).
 import { LazyTooltip as Tooltip } from "shared";
 
@@ -166,6 +174,49 @@ const RiskChipCell: React.FC<RiskChipProps> = ({
     />
   </Tooltip>
 );
+
+// ISO/SAE 21434 cells (conformance plan 3a-2): risk value 1–5 and the two
+// level inputs of matrix H.8 instead of `I × L` (decision 20 E4).
+const IsoValueCell: React.FC<{
+  value?: number;
+  explanation?: string;
+  testId?: string;
+}> = ({ value, explanation, testId }) => {
+  if (!value) {
+    return (
+      <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.8rem" }}>
+        –
+      </Typography>
+    );
+  }
+  return (
+    <Tooltip title={explanation ?? ""} arrow>
+      <Chip
+        data-testid={testId}
+        label={value}
+        size="small"
+        sx={{
+          bgcolor: isoRiskValueColor(value),
+          color: "white",
+          fontWeight: "bold",
+          cursor: "help",
+          minWidth: 32,
+        }}
+      />
+    </Tooltip>
+  );
+};
+
+const IsoLevelCell: React.FC<{ label?: string }> = ({ label }) =>
+  label ? (
+    <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>
+      {label}
+    </Typography>
+  ) : (
+    <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.8rem" }}>
+      –
+    </Typography>
+  );
 
 // EN 50742 SRSL cell — categorical Table B.6 output (band × severity), shown
 // only for en-50742-a projects. `null` (project is en-50742-a but SRSL not yet
@@ -344,7 +395,62 @@ export const useRiskColumns = ({
       },
     ];
 
-    cols.push(
+    const iso = isIsoRiskMode(configuration);
+    const isoImpact = (risk: Risk) =>
+      risk.isoRisk
+        ? t(isoImpactI18nKey(risk.isoRisk.impact), {
+            defaultValue: ISO_IMPACT_FALLBACK[risk.isoRisk.impact],
+          })
+        : undefined;
+    const isoFeas = (level?: FeasibilityBandLevel) =>
+      level
+        ? t(isoFeasibilityI18nKey(level), { defaultValue: ISO_FEASIBILITY_FALLBACK[level] })
+        : undefined;
+    const isoExplain = (risk: Risk, residual: boolean) => {
+      const r = risk.isoRisk;
+      if (!r) return undefined;
+      const f = residual ? r.residual?.feasibility : r.feasibility;
+      const v = residual ? r.residual?.value : r.value;
+      if (!f || !v) return undefined;
+      return t("tabs.risks.iso.explain", {
+        impact: isoImpact(risk),
+        feasibility: isoFeas(f),
+        value: v,
+        defaultValue: `${isoImpact(risk)} × ${isoFeas(f)} → ${v} (ISO/SAE 21434 Annex H.8)`,
+      });
+    };
+
+    if (iso) {
+      cols.push(
+        {
+          id: "impact",
+          header: t("tabs.risks.columns.impact", { defaultValue: "Impact" }),
+          width: 90,
+          align: "center",
+          renderCell: (risk) => <IsoLevelCell label={isoImpact(risk)} />,
+        },
+        {
+          id: "likelihood",
+          header: t("tabs.risks.columns.feasibility", { defaultValue: "Feasibility" }),
+          width: 90,
+          align: "center",
+          renderCell: (risk) => <IsoLevelCell label={isoFeas(risk.isoRisk?.feasibility)} />,
+        },
+        {
+          id: "riskBefore",
+          header: t("tabs.risks.columns.riskValue", { defaultValue: "Risk (1–5)" }),
+          width: 80,
+          align: "center",
+          renderCell: (risk) => (
+            <IsoValueCell
+              value={risk.isoRisk?.value}
+              explanation={isoExplain(risk, false)}
+              testId="iso-risk-value"
+            />
+          ),
+        },
+      );
+    } else cols.push(
       {
         id: "impact",
         header: t("tabs.risks.columns.impact", { defaultValue: "Impact" }),
@@ -495,7 +601,20 @@ export const useRiskColumns = ({
     });
 
     // ── Risk after ──────────────────────────────────────────────────────────
-    cols.push({
+    if (iso) cols.push({
+      id: "riskAfter",
+      header: t("tabs.risks.columns.riskValueAfter", { defaultValue: "Residual (1–5)" }),
+      width: 80,
+      align: "center",
+      renderCell: (risk) => (
+        <IsoValueCell
+          value={risk.isoRisk?.residual?.value}
+          explanation={isoExplain(risk, true)}
+          testId="iso-risk-residual"
+        />
+      ),
+    });
+    else cols.push({
       id: "riskAfter",
       header: t("tabs.risks.columns.riskAfter", {
         defaultValue: "Risk (After)",

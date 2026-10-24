@@ -171,6 +171,7 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
         priorityFilter={filters.priorityFilter}
         riskLevelFilter={filters.riskLevelFilter}
         scale={configuration.scale}
+          isoValues={configuration.likelihoodMethod === "iso-21434"}
         onSearchTextChange={onSearchTextChange}
         onPriorityFilterChange={onPriorityFilterChange}
         onRiskLevelFilterChange={onRiskLevelFilterChange}

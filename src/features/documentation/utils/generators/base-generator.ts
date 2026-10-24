@@ -2,7 +2,13 @@
 // Abstract base class for document generators
 // Location: features/documentation/utils/generators/base-generator.ts
 
-import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
+import type { IsoRisk } from "../../../risks/models/iso-risk-matrix";
+import {
+  ISO_FEASIBILITY_FALLBACK,
+  ISO_IMPACT_FALLBACK,
+  isoFeasibilityI18nKey,
+  isoImpactI18nKey,
+} from "../../../risks/models/iso-risk-display";
 import { isoFeasibilityFromFactors } from "../../../risks/models/iso-risk-matrix";
 import {
   treatmentFallbackLabel,
@@ -1377,12 +1383,16 @@ export abstract class BaseDocumentGenerator {
 
     const riskRow = (risk: (typeof risks)[number]) => {
       // Get cached labels
-      const riskBeforeLabel =
-        project.computed.riskBeforeLabels.get(risk.id) ??
-        risk.calculatedRiskBeforeMitigation.toString();
-      const riskAfterLabel =
-        project.computed.riskAfterLabels.get(risk.id) ??
-        risk.calculatedRiskAfterMitigation.toString();
+      // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2).
+      const isoReport = project.risks?.configuration?.likelihoodMethod === "iso-21434";
+      const riskBeforeLabel = isoReport
+        ? isoRiskLabel(risk, this.ctx.t, false)
+        : (project.computed.riskBeforeLabels.get(risk.id) ??
+          risk.calculatedRiskBeforeMitigation.toString());
+      const riskAfterLabel = isoReport
+        ? isoRiskLabel(risk, this.ctx.t, true)
+        : (project.computed.riskAfterLabels.get(risk.id) ??
+          risk.calculatedRiskAfterMitigation.toString());
       const moscowLabel =
         project.computed.moscowLabels.get(risk.moscowPriority) ??
         risk.moscowPriority;
@@ -1675,23 +1685,15 @@ export abstract class BaseDocumentGenerator {
           tsDescription: this.escapeTableText(risk.threatDescription || "-"),
           afStatus,
           afLabel,
-          // 15.8 NOTE 1: the risk per impact category behind the register
-          // value (risk-impact-aggregation design §5.6, phase 5 scope A).
-          riskBefore: this.escapeTableText(
-            withCategoryRisks(
-              project.computed.riskBeforeLabels.get(risk.id) ??
-                risk.calculatedRiskBeforeMitigation.toString(),
-              isoRiskByCategory(risk.factorRatings ?? [], config),
-            ),
-          ),
+          // ISO risk value 1–5 with its matrix inputs (3a-2, decision 20 E4);
+          // `I × L` and its per-category split are no longer shown.
+          riskBefore: this.escapeTableText(isoRiskLabel(risk, t, false)),
           // ISO 15.9 names (Avoid / Reduce / Share / Retain).
           treatment: t(
             `${treatmentI18nKey(risk.treatment, treatmentVocabulary(config))}.label`,
             treatmentFallbackLabel(risk.treatment, treatmentVocabulary(config)),
           ),
-          riskAfter:
-            project.computed.riskAfterLabels.get(risk.id) ??
-            risk.calculatedRiskAfterMitigation.toString(),
+          riskAfter: this.escapeTableText(isoRiskLabel(risk, t, true)),
         };
         return replacePlaceholders(this.getTraceabilityRowTemplate(), values);
       })
@@ -1744,10 +1746,12 @@ export abstract class BaseDocumentGenerator {
 
     const wontRiskRows = wontRisks
       .map((risk) => {
-        // Get cached label
+        // Get cached label (ISO: risk value 1–5, 3a-2)
         const riskBeforeLabel =
-          project.computed.riskBeforeLabels.get(risk.id) ??
-          risk.calculatedRiskBeforeMitigation.toString();
+          project.risks?.configuration?.likelihoodMethod === "iso-21434"
+            ? isoRiskLabel(risk, this.ctx.t, false)
+            : (project.computed.riskBeforeLabels.get(risk.id) ??
+              risk.calculatedRiskBeforeMitigation.toString());
 
         const values = {
           id: formatRiskLabel(risk),
@@ -1830,12 +1834,21 @@ export abstract class BaseDocumentGenerator {
   }
 }
 
-/** "High (S High · F Low · P Medium)" — register value plus the per-category risks. */
-function withCategoryRisks(
-  label: string,
-  categories: readonly { short: string; level: string }[],
+/**
+ * "4 (Severe × Medium)" — ISO/SAE 21434 risk value 1–5 with its matrix inputs
+ * (conformance plan 3a-2); the residual uses the feasibility after
+ * mitigation. "–" while no value can be determined.
+ */
+function isoRiskLabel(
+  risk: { isoRisk?: IsoRisk },
+  t: TranslationFn,
+  residual: boolean,
 ): string {
-  return categories.length === 0
-    ? label
-    : `${label} (${categories.map((c) => `${c.short} ${c.level}`).join(" · ")})`;
+  const r = risk.isoRisk;
+  const feasibility = residual ? r?.residual?.feasibility : r?.feasibility;
+  const value = residual ? r?.residual?.value : r?.value;
+  if (!r || !feasibility || !value) return "–";
+  const impact = t(isoImpactI18nKey(r.impact), ISO_IMPACT_FALLBACK[r.impact]);
+  const feas = t(isoFeasibilityI18nKey(feasibility), ISO_FEASIBILITY_FALLBACK[feasibility]);
+  return `${value} (${impact} × ${feas})`;
 }

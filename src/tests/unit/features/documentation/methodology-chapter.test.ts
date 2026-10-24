@@ -119,6 +119,60 @@ describe("methodology chapter — markdown", () => {
   });
 });
 
+describe("methodology chapter — risk value (3a-2)", () => {
+  const c = chapter(MarkdownGenerator, ISO());
+
+  it("states the Annex H.8 matrix", () => {
+    expect(c.content).toContain("### Risk value (15.8): matrix of Annex H.8");
+    expect(c.content).toContain("| Severe | 2 | 3 | 4 | 5 |");
+    expect(c.content).toContain("| Negligible | 1 | 1 | 1 | 1 |");
+  });
+
+  it("explains that the safety number is the Se factor", () => {
+    expect(c.content).toContain("unlike the other categories, 1 is not negligible here");
+  });
+});
+
+describe("risk tables of an ISO report (3a-2)", () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const withRisk = (p: Project): any => {
+    const doc = transformProjectToDocData(p, "en");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (doc.risks as any).risks = [
+      {
+        id: "R1",
+        threatId: "T1",
+        threatDisplayId: "P1-T-1",
+        threatDescription: "x",
+        sourceStrideMethod: "per-element",
+        moscowPriority: "should",
+        treatment: "reduce",
+        selectedMitigations: [],
+        calculatedRiskBeforeMitigation: 12,
+        calculatedRiskAfterMitigation: 6,
+        isoRisk: { impact: "major", feasibility: "high", value: 4, residual: { feasibility: "low", value: 2 } },
+      },
+    ];
+    return doc;
+  };
+
+  it("ISO: risk value with its inputs instead of I × L", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gen = new MarkdownGenerator(withRisk(ISO()), { language: "en" } as any, t) as any;
+    const content = gen.generateRisks("Risks", "per-element").content as string;
+    expect(content).toContain("4 (Major × High)");
+    expect(content).toContain("2 (Major × Low)");
+    expect(content).not.toContain("| 12 |");
+  });
+
+  it("other methods: unchanged", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gen = new MarkdownGenerator(withRisk(project([], undefined)), { language: "en" } as any, t) as any;
+    const content = gen.generateRisks("Risks", "per-element").content as string;
+    expect(content).not.toContain("Major ×");
+  });
+});
+
 describe("methodology chapter — other presets and formats", () => {
   it("is hidden for every other preset (principle 6)", () => {
     for (const [reg, m] of [[[], undefined], [["EN 50742"], "en-50742-a"], [["ETSI TVRA"], "etsi-tvra"]] as const) {

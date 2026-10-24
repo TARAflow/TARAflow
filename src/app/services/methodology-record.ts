@@ -37,6 +37,7 @@ import {
   type TreatmentVocabulary,
 } from "features/risks/models/risk-treatment-vocabulary";
 import type { RiskTreatment } from "features/risks/models/risk-scale-types";
+import { ISO_RISK_MATRIX_H8 } from "features/risks/models/iso-risk-matrix";
 
 export interface MethodologyRecord {
   /** Regulation preset (from the project tags) and its i18n name key. */
@@ -75,6 +76,8 @@ export interface MethodologyRecord {
   /** The calculation stamps a value computed NOW would carry (iso-21434
    * only) — what the report cites for reproducibility (plan 0c / 0d). */
   calcStamps?: { risk: CalcStamp; path: CalcStamp };
+  /** Risk value method (iso-21434): the matrix of Annex H.8 (3a). */
+  riskMatrix?: typeof ISO_RISK_MATRIX_H8;
 }
 
 export function buildMethodologyRecord(project: Project): MethodologyRecord {
@@ -119,6 +122,7 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
     securityProperties: Object.keys(CIANAAA_TO_STRIDE) as SecurityGoalType[],
     ...(presetId === "iso-21434"
       ? {
+          riskMatrix: ISO_RISK_MATRIX_H8,
           calcStamps: {
             risk: riskCalcStamp(project),
             path: pathCalcStamp(feasibilityConfig),

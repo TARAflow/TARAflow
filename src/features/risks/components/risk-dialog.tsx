@@ -104,7 +104,8 @@ function isoFactorPoints(factorId: string, value: number): number {
 import { RiskConfiguration } from "../models/risk-config-types";
 import { factorLevelOptions } from "../utils/factor-level-options";
 import { impactBasisText } from "../utils/impact-basis-text";
-import { isoRiskByCategory } from "../services/iso-risk-by-category";
+import { IsoRiskPanel } from "./shared/iso-risk-panel";
+import { liveIsoRisk } from "../models/iso-risk-display";
 import {
   isTreatmentToReview,
   offeredTreatments,
@@ -967,6 +968,16 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   const passiveTreatment = ["accept", "transfer", "share"].includes(
     local.treatment,
   );
+  // ISO/SAE 21434 risk value 1–5 (3a-2): stored inputs, dialog edits live.
+  const liveIso = isISO
+    ? liveIsoRisk(
+        currentRisk.isoRisk,
+        local.factorRatings,
+        local.mitigatedFactorRatings,
+        configuration,
+        !!currentRisk.attackTreeAssessment,
+      )
+    : undefined;
 
   // ── Factor row renderer ───────────────────────────────────────────────────
   const renderFactorRow = (
@@ -2265,12 +2276,21 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   sx={{ width: "100%" }}
                   justifyContent="stretch"
                 >
-                  <RiskScorePanel
-                    impact={beforeValues.impact}
-                    likelihood={beforeValues.likelihood}
-                    risk={beforeValues.risk}
-                    configuration={configuration}
-                  />
+                  {isISO ? (
+                    <IsoRiskPanel
+                      impact={liveIso?.impact}
+                      feasibility={liveIso?.feasibility}
+                      value={liveIso?.value}
+                      testId="iso-risk-panel-before"
+                    />
+                  ) : (
+                    <RiskScorePanel
+                      impact={beforeValues.impact}
+                      likelihood={beforeValues.likelihood}
+                      risk={beforeValues.risk}
+                      configuration={configuration}
+                    />
+                  )}
                 </Stack>
 
                 {/* Assessment rationale — why these likelihood/impact factors */}
@@ -2353,37 +2373,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             {line}
                           </Typography>
                         ) : null;
-                      })()}
-                      {isISO && (() => {
-                        const rows = isoRiskByCategory(local?.factorRatings ?? [], configuration);
-                        if (rows.length === 0) return null;
-                        return (
-                          <Box
-                            data-testid="iso-risk-by-category-before"
-                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}
-                          >
-                            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-                              {t("tabs.risks.dialog.riskByCategory", {
-                                defaultValue: "Risk per impact category:",
-                              })}
-                            </Typography>
-                            {rows.map((c) => (
-                              <Tooltip
-                                key={c.factorId}
-                                title={`${t(`risks.factors.${c.factorId}.name`, {
-                                  defaultValue: c.factorId,
-                                })}: ${t("tabs.risks.dialog.impact", { defaultValue: "Impact" })} ${c.impact} · ${c.risk}`}
-                              >
-                                <Chip
-                                  size="small"
-                                  variant="outlined"
-                                  label={`${c.short}: ${c.level}`}
-                                  sx={{ height: 20, fontSize: "0.7rem" }}
-                                />
-                              </Tooltip>
-                            ))}
-                          </Box>
-                        );
                       })()}
 
                       <Box
@@ -3009,12 +2998,21 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   sx={{ width: "100%" }}
                   justifyContent="stretch"
                 >
-                  <RiskScorePanel
-                    impact={afterValues.impact}
-                    likelihood={afterValues.likelihood}
-                    risk={afterValues.risk}
-                    configuration={configuration}
-                  />
+                  {isISO ? (
+                    <IsoRiskPanel
+                      impact={liveIso?.impact}
+                      feasibility={liveIso?.residual?.feasibility}
+                      value={liveIso?.residual?.value}
+                      testId="iso-risk-panel-after"
+                    />
+                  ) : (
+                    <RiskScorePanel
+                      impact={afterValues.impact}
+                      likelihood={afterValues.likelihood}
+                      risk={afterValues.risk}
+                      configuration={configuration}
+                    />
+                  )}
                 </Stack>
 
                 {/* Residual risk rationale — why L/I changed after mitigation */}
@@ -3140,37 +3138,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             {line}
                           </Typography>
                         ) : null;
-                      })()}
-                      {isISO && (() => {
-                        const rows = isoRiskByCategory(local?.mitigatedFactorRatings ?? [], configuration);
-                        if (rows.length === 0) return null;
-                        return (
-                          <Box
-                            data-testid="iso-risk-by-category-after"
-                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}
-                          >
-                            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-                              {t("tabs.risks.dialog.riskByCategory", {
-                                defaultValue: "Risk per impact category:",
-                              })}
-                            </Typography>
-                            {rows.map((c) => (
-                              <Tooltip
-                                key={c.factorId}
-                                title={`${t(`risks.factors.${c.factorId}.name`, {
-                                  defaultValue: c.factorId,
-                                })}: ${t("tabs.risks.dialog.impact", { defaultValue: "Impact" })} ${c.impact} · ${c.risk}`}
-                              >
-                                <Chip
-                                  size="small"
-                                  variant="outlined"
-                                  label={`${c.short}: ${c.level}`}
-                                  sx={{ height: 20, fontSize: "0.7rem" }}
-                                />
-                              </Tooltip>
-                            ))}
-                          </Box>
-                        );
                       })()}
 
                       <Box

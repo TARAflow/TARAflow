@@ -30,6 +30,7 @@ const K = "tabs.doc.methodology";
 
 /** English fallbacks of the ISO impact level names (RQ-15-05), 1..4. */
 const ISO_IMPACT_FALLBACK = ["Negligible", "Moderate", "Major", "Severe"];
+const IMPACT_INDEX: Record<string, number> = { negligible: 1, moderate: 2, major: 3, severe: 4 };
 const FEASIBILITY_FALLBACK: Record<string, string> = {
   high: "High",
   medium: "Medium",
@@ -62,6 +63,13 @@ export function methodologyContent(m: DocMethodology, t: TranslateFn): Methodolo
         m.impact.criteriaIds
           .map((id) => t(`tabs.assets.impactCriteria.${id}.name`, id))
           .join(", "),
+      ],
+      [
+        t(`${K}.safetyLevel`, "Safety impact (15.5, Table F.1)"),
+        t(
+          `${K}.safetyLevelText`,
+          "from the categorical severity: none → negligible, reversible → moderate, irreversible → major, fatal → severe. A safety rating given as a number is the Se factor: 1 and 2 → moderate, 3 → major, 4 → severe (4 stands for irreversible major or fatal) — unlike the other categories, 1 is not negligible here.",
+        ),
       ],
       [
         t(`${K}.impactAggregation`, "Impact of a risk"),
@@ -145,6 +153,27 @@ export function methodologyContent(m: DocMethodology, t: TranslateFn): Methodolo
   };
 
   const sections = [overview, bandSection, gateSection, treatmentSection, propertySection];
+
+  // ── Risk value (15.8), matrix Annex H.8 ──────────────────────────────────
+  if (m.riskMatrix) {
+    const cols = ["very-low", "low", "medium", "high"];
+    const impacts = ["severe", "major", "moderate", "negligible"];
+    sections.splice(3, 0, {
+      title: t(`${K}.riskMatrix`, "Risk value (15.8): matrix of Annex H.8"),
+      intro: t(
+        `${K}.riskMatrixIntro`,
+        "The risk value 1–5 of a threat scenario (RQ-15-16) is read from this matrix: impact of the damage scenario (highest rated category) × attack feasibility. It is the informative example of ISO/SAE 21434 Annex H, Table H.8, used unchanged.",
+      ),
+      headers: [
+        t(`${K}.impactFeasibility`, "Impact / feasibility"),
+        ...cols.map((c) => t(`tabs.doc.traceability.feasibility.${c}`, FEASIBILITY_FALLBACK[c] ?? c)),
+      ],
+      rows: impacts.map((i) => [
+        t(`tabs.assets.impactScaleIso.${IMPACT_INDEX[i]}.label`, ISO_IMPACT_FALLBACK[IMPACT_INDEX[i] - 1]),
+        ...cols.map((c) => String(m.riskMatrix![i]?.[c] ?? "")),
+      ]),
+    });
+  }
 
   // ── Calculation stamps ────────────────────────────────────────────────────
   if (m.calcStamps) {

@@ -87,7 +87,10 @@
         "implementation": "Implementierung",
         "assessmentRationale": "Begründung",
         "srsl": "SRSL",
-        "srslPending": "Noch nicht bestimmt (kein Exposure-Anker oder keine Severity)"
+        "srslPending": "Noch nicht bestimmt (kein Exposure-Anker oder keine Severity)",
+        "feasibility": "Angriffsmöglichkeit",
+        "riskValue": "Risiko (1–5)",
+        "riskValueAfter": "Rest (1–5)"
       },
       "dialog": {
         "title": "Risikobewertung: {{id}}",
@@ -365,6 +368,15 @@
         "rejectionPlaceholder": "Begründung, warum diese Massnahme nicht umgesetzt wird...",
         "rejectionRequired": "Für Audit erforderlich",
         "verifications": "Verifikationen (zur Testreferenz)"
+      },
+      "iso": {
+        "explain": "{{impact}} × {{feasibility}} → {{value}} (ISO/SAE 21434 Annex H.8)",
+        "valueOption": "Risikowert {{value}}",
+        "matrixTitle": "Risikomatrix (ISO/SAE 21434, Annex H.8)",
+        "axes": "Zeilen: Impact (15.5) · Spalten: Angriffsmöglichkeit (15.7)",
+        "unrated": "{{count}} ohne Risikowert",
+        "panelNote": "Risikowert nach ISO/SAE 21434 (RQ-15-16) aus der Matrix in Annex H.8. Der Impact stammt aus dem Schadensszenario (Asset × Eigenschaft), die Angriffsmöglichkeit aus dem Angriffsbaum.",
+        "panelMissing": "Noch kein Risikowert: Impact des Schadensszenarios und Angriffsmöglichkeit bewerten (Angriffsbaum oder ISO-Faktoren)."
       }
     }
   },
@@ -907,6 +919,20 @@
       "etsi_intensity": {
         "name": "Intensitäts-Faktor",
         "description": "Anzahl der benötigten Angriffsinstanzen — einzeln, moderat oder stark wiederholt (ETSI TS 102 165-1 Tabelle 3)."
+      }
+    },
+    "iso": {
+      "impact": {
+        "negligible": "Vernachlässigbar",
+        "moderate": "Moderat",
+        "major": "Erheblich",
+        "severe": "Schwerwiegend"
+      },
+      "feasibility": {
+        "very-low": "Sehr niedrig",
+        "low": "Niedrig",
+        "medium": "Mittel",
+        "high": "Hoch"
       }
     }
   }

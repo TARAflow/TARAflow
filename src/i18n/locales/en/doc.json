@@ -118,7 +118,12 @@
           "AuthN": "The identity of a communication partner, user or message source is proven.",
           "AuthZ": "Only permitted subjects can perform an action or reach a resource.",
           "Acc": "Actions can be traced back to whoever performed them."
-        }
+        },
+        "safetyLevel": "Safety impact (15.5, Table F.1)",
+        "safetyLevelText": "from the categorical severity: none → negligible, reversible → moderate, irreversible → major, fatal → severe. A safety rating given as a number is the Se factor: 1 and 2 → moderate, 3 → major, 4 → severe (4 stands for irreversible major or fatal) — unlike the other categories, 1 is not negligible here.",
+        "riskMatrix": "Risk value (15.8): matrix of Annex H.8",
+        "riskMatrixIntro": "The risk value 1–5 of a threat scenario (RQ-15-16) is read from this matrix: impact of the damage scenario (highest rated category) × attack feasibility. It is the informative example of ISO/SAE 21434 Annex H, Table H.8, used unchanged.",
+        "impactFeasibility": "Impact / feasibility"
       },
       "traceability": {
         "resolved": "resolved",

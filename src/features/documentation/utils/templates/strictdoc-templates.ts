@@ -777,7 +777,7 @@ Normative Basis: ISO/SAE 21434:2021 - Attack-Potential-Faktoren nach Annex G.2 (
      - DS
      - TS
      - AF
-     - Risiko (R=IxL)
+     - Risikowert (1-5)
      - Behandlung (RT)
      - Restrisiko (RR)
 `
@@ -797,7 +797,7 @@ Normative basis: ISO/SAE 21434:2021 - attack-potential factors per Annex G.2 (IS
      - DS
      - TS
      - AF
-     - Risk (R=IxL)
+     - Risk value (1-5)
      - Treatment (RT)
      - Residual (RR)
 `,

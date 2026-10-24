@@ -118,7 +118,12 @@
           "AuthN": "Die Identität eines Kommunikationspartners, Benutzers oder einer Nachrichtenquelle ist nachgewiesen.",
           "AuthZ": "Nur berechtigte Subjekte können eine Aktion ausführen oder eine Ressource erreichen.",
           "Acc": "Handlungen lassen sich dem zuordnen, der sie ausgeführt hat."
-        }
+        },
+        "safetyLevel": "Safety-Impact (15.5, Tabelle F.1)",
+        "safetyLevelText": "aus der kategorialen Schwere: keine → vernachlässigbar, reversibel → moderat, irreversibel → erheblich, tödlich → schwerwiegend. Eine als Zahl erfasste Safety-Bewertung ist der Se-Faktor: 1 und 2 → moderat, 3 → erheblich, 4 → schwerwiegend (4 steht für irreversibel schwer oder tödlich) — anders als bei den übrigen Kategorien bedeutet 1 hier nicht vernachlässigbar.",
+        "riskMatrix": "Risikowert (15.8): Matrix aus Annex H.8",
+        "riskMatrixIntro": "Der Risikowert 1–5 eines Bedrohungsszenarios (RQ-15-16) wird aus dieser Matrix abgelesen: Impact des Schadensszenarios (höchste bewertete Kategorie) × Angriffsmöglichkeit. Es ist das informative Beispiel aus ISO/SAE 21434 Annex H, Tabelle H.8, unverändert übernommen.",
+        "impactFeasibility": "Impact / Angriffsmöglichkeit"
       },
       "traceability": {
         "resolved": "aufgelöst",

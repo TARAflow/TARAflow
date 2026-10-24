@@ -267,6 +267,8 @@ export interface DocMethodology {
   };
   securityProperties: readonly string[];
   calcStamps?: { risk: CalcStamp; path: CalcStamp };
+  /** iso-21434: risk matrix (impact → feasibility → value 1–5), Annex H.8. */
+  riskMatrix?: Readonly<Record<string, Readonly<Record<string, number>>>>;
 }
 
 // ==================== COMPLETE PROJECT DATA ====================

@@ -11,6 +11,8 @@
 
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { IsoRiskMatrix } from "./iso-risk-matrix";
+import { isIsoRiskMode } from "../models/iso-risk-display";
 import { isIrreversibleOrWorse, type SafetyImpact } from "shared";
 import i18n from "i18next";
 import {
@@ -104,7 +106,20 @@ function getWorstImpactForRisk(
 
 // ==================== COMPONENT ====================
 
-export const RiskMatrix = React.memo<RiskMatrixProps>(
+/** ISO/SAE 21434: the Annex H.8 matrix instead of the `I × L` grid (3a-2). */
+export const RiskMatrix = React.memo<RiskMatrixProps>((props) =>
+  isIsoRiskMode(props.configuration) ? (
+    <IsoRiskMatrix
+      risks={props.risks}
+      onRiskClick={props.onRiskClick}
+      headerControls={props.headerControls}
+    />
+  ) : (
+    <GenericRiskMatrix {...props} />
+  ),
+);
+
+const GenericRiskMatrix = React.memo<RiskMatrixProps>(
   ({ risks, configuration, onRiskClick, headerControls, assetDataRef }) => {
     const { t } = useTranslation();
     const [selectedCell, setSelectedCell] = useState<{

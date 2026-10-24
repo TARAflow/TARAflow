@@ -36,6 +36,8 @@ export interface RiskFilters {
 export interface RiskLevelContext {
   scale: RiskScaleType;
   roundingMethod: RiskRoundingMethod;
+  /** iso-21434: the filter compares the ISO risk value 1–5 (plan 3a-2). */
+  likelihoodMethod?: string;
 }
 
 // ==================== HELPERS ====================
@@ -150,7 +152,9 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
       // Risk-level filter needs the scale/rounding to map the score to a level.
       // Skipped when no context is supplied (keeps the filter a no-op rather
       // than guessing a scale).
-      if (filters.riskLevelFilter !== "" && context) {
+      if (filters.riskLevelFilter !== "" && context?.likelihoodMethod === "iso-21434") {
+        filtered = filtered.filter((r) => r.isoRisk?.value === filters.riskLevelFilter);
+      } else if (filters.riskLevelFilter !== "" && context) {
         filtered = filtered.filter(
           (r) =>
             riskLevelValue(
