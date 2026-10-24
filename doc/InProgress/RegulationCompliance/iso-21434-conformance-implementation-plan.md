@@ -548,6 +548,62 @@ threat scenario with values 1–5; existing projects migrate with a review list.
 **Risk:** the only phase that changes numbers in existing ISO projects. Release
 it alone, with a clear release note.
 
+#### 3a as decided (decision 20, 2026-10-24)
+
+Supersedes the 3a parts above where they differ (formula mapping of `I × L`,
+review list by value class).
+
+- **E1 — Matrix H.8, inputs as levels.** Fixed default matrix (Annex H, Table
+  H.8, informative example, labelled so in the methodology chapter; editable
+  from 3b on):
+
+  | Impact \ Feasibility | Very low | Low | Medium | High |
+  |---|---|---|---|---|
+  | Severe | 2 | 3 | 4 | 5 |
+  | Major | 1 | 2 | 3 | 4 |
+  | Moderate | 1 | 2 | 2 | 3 |
+  | Negligible | 1 | 1 | 1 | 1 |
+
+  - Impact level: the highest S/F/O/P rating of the damage scenario
+    (asset × property — before Phase 2) on the ISO 4-level scale, read through
+    the resolver (`asset-impact-resolver.ts`: security-goal override before
+    asset), not `overallImpact`, and independent of `impactAggregation`.
+  - Safety via Table F.1 onto the four ISO levels — fixed constant with test:
+    `none` → negligible (S0), `reversible_*` → moderate (S1),
+    `irreversible_*` → major (S2), `fatal` → severe (S3).
+  - Feasibility as `FeasibilityLevel` (tree path level, G.7; else the `iso_*`
+    fallback), never via `levelToRiskScale`.
+  - Checked against the standard: H.8 as above (extremes 1 and 5). The formula
+    of H.10 (R = 1 + I × F, I and F ∈ {0, 1, 1.5, 2}) does **not** match H.8 in
+    every cell (Severe × Very low: formula 1, matrix 2; rounding of 2.5 open) —
+    not used in 3a.
+- **E2 — Threat scenario:** an attack tree anchored at asset × property; a
+  threat-anchored tree belongs to its threat; a STRIDE threat without a tree is
+  a scenario of its own (`iso_*` fallback).
+- **E3 — Value per path, scenario derived, treatment per path.** Every ISO risk
+  (per path) stores `isoRiskValue` 1–5. The scenario value is derived: MAX
+  feasibility over its paths (15.8 NOTE 2) with the scenario's impact; its
+  residual is the MAX of the residual values of its paths. The scenario's
+  treatment options are the union of its paths' options (15.9 "one or more").
+  No scenario object of its own. Register heatmap, sorting and filters use
+  `isoRiskValue` and the 4 × 4 matrix under ISO.
+- **E4 — Display:** under `iso-21434` 1–5 is the risk value in register,
+  dialog and report (incl. the traceability matrix); `I × L` is not shown.
+  Other presets unchanged.
+- **E5 — Migration and review list.** `isoRiskValue` is stored. The migration
+  computes it for every ISO risk, changes no treatment and **stamps** the
+  recomputed risks — a deliberate exception to "loading never stamps" (0c):
+  the value was just computed with the current configuration. Review list:
+  *Retain* at value ≥ 4 (warning), *Reduce* at value 1 (info). *Avoid* and
+  *Share* never (Avoid is the strongest treatment; sharing with the OEM /
+  integrator is often legitimate). Hard rules come with the acceptance
+  criteria of 3b.
+- **Tests:** golden test from the Annex H inputs (all 16 cells of H.8, the two
+  cases of H.9: High × Severe → 5, Low × Moderate → 2); a Headlamp test with
+  the values today's example data give (the example deviates from Annex H: the
+  spoofing scenario is rated *medium* via attack potential, Annex H rates it
+  *high* attack-vector based; the DoS scenario is *high*, Annex H *low*).
+
 ### Phase 4 — Treatment → cybersecurity goals and claims (15.9 → 9.4) (medium–large, additive)
 
 Normative basis [N]: RQ-09-05 — a goal for every threat scenario whose treatment
@@ -701,24 +757,34 @@ one release per row.
 
 | Order | Step | Norm | Release | Changes values? | Schema |
 |---|---|---|---|---|---|
-| done | 0a — ISO treatment names | RQ-15-17 | 0.14.x-beta | no | – |
-| done | 0b — ISO impact scale lock (4 levels), methodology record | RQ-15-05 | 0.14.x-beta | no | – |
-| done | 0c — calculation stamp ([D], already built) | – | 0.14.x-beta | no | 10 (fence) |
-| done | 0d — methodology chapter | – (documents the method) | 0.14.x-beta | no | – |
-| 1 | 3a — risk value 1–5, risk per threat scenario | RQ-15-15/16 | **0.15.0-beta** | **yes** (ISO risks only) | **11** (migration) |
-| 2 | 1H-S — S0–S3 on the person edge under ISO | RQ-15-06 | 0.15.x-beta | no | 12 (fence: `"none"` on the edge) |
-| 3 | Phase 1 stage A — Definition sub-tab, assumptions (ASM) | RQ-09-01/02 | 0.15.x-beta | no | 13 (fence) |
-| 4 | Phase 4 minimal — goal for every Reduce, claim for Retain/Share, Avoid justification, verification record | RQ-09-05/06, WP-09-05 | 0.15.x-beta | no | 14 (fence) |
+| done | 0a — ISO treatment names | RQ-15-17 | **0.15.0-beta** | no | – |
+| done | 0b — ISO impact scale lock (4 levels), methodology record | RQ-15-05 | **0.15.0-beta** | no | – |
+| done | 0c — calculation stamp ([D], already built) | – | **0.15.0-beta** | no | **10** (shared with the fix and 3a) |
+| done | 0d — methodology chapter | – (documents the method) | **0.15.0-beta** | no | – |
+| 0 | Fix `levelToRiskScale` — mapping derived from the risk scale (decision 21) | – (bug) | **0.15.0-beta** | **yes** (all presets with attack trees on a 3- or 4-level scale) | **10** |
+| 1 | 3a — risk value 1–5, risk per threat scenario | RQ-15-15/16 | **0.15.0-beta** | **yes** (ISO risks only) | **10** (migration) |
+| 2 | 1H-S — S0–S3 on the person edge under ISO | RQ-15-06 | 0.15.x-beta | no | 11 (fence: `"none"` on the edge) |
+| 3 | Phase 1 stage A — Definition sub-tab, assumptions (ASM) | RQ-09-01/02 | 0.15.x-beta | no | 12 (fence) |
+| 4 | Phase 4 minimal — goal for every Reduce, claim for Retain/Share, Avoid justification, verification record | RQ-09-05/06, WP-09-05 | 0.15.x-beta | no | 13 (fence) |
 
 Assumptions (stage A) come before Phase 4 because claims refer to them; the
 norm itself only requires the claim (RQ-09-06).
+
+**0.15.0-beta = Phase 0 + fix + 3a, schema 10 (decisions 20, 21).** Schema 10 is
+on the feature branch only, never released, so migration 9 → 10 takes all
+three: the version fence of 0c, the correction of the stored
+`attack_tree_likelihood` / `I × L` values (fix) and `isoRiskValue` (3a). One
+release note explains both value changes. Consequence: none of the three may be
+released before the others — otherwise the next one needs its own number.
+Local test files saved as schema 10 by a branch build are not migrated again;
+discard them or set them back to `schemaVersion: 9` before the release.
 
 **After the minimum [D]/[K]**
 
 | Order | Step | Release | Changes values? | Schema |
 |---|---|---|---|---|
-| 5 | Phase 2 — damage scenarios 1:n | **0.16.0-beta** | no (impact moves, MAX keeps the level) | **15** (migration) |
-| 6 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria [K] | **0.17.0-beta** | **yes** where 1:n damage scenarios exist | **16** (migration) |
+| 5 | Phase 2 — damage scenarios 1:n | **0.16.0-beta** | no (impact moves, MAX keeps the level) | **14** (migration) |
+| 6 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria [K] | **0.17.0-beta** | **yes** where 1:n damage scenarios exist | **15** (migration) |
 | 7 | 1H-HARA — E, C, ASIL, hazardous event, safety goal ref, HARA import | x-beta | no | fence |
 | 8 | Phase 1 stage B — arc42 import | x-beta | no | fence |
 | 9 | Phases 5 + 7 — concept traceability, report by work product, readiness check | x-beta | no | fence |
@@ -851,6 +917,22 @@ Added in rev. 2 (2026-10-24):
     Phases 5 + 7, later 6 and 8. 1H is split into 1H-S [N] and 1H-HARA [D].
     3b is no longer a prerequisite of Phase 4 (acceptance criteria are [K]).
     0c stays as built; it is not required by the norm.
+20. **[D] 3a (2026-10-24):** E1 matrix H.8 with level inputs (impact through
+    the resolver, safety via Table F.1, feasibility as `FeasibilityLevel`);
+    E2 threat scenario = tree / threat; E3 `isoRiskValue` per path, scenario
+    value and residual derived (MAX), treatment per path, register views on
+    1–5; E4 1–5 replaces `I × L` under ISO; E5 stored, migrated and stamped
+    (exception to 0c's load rule), narrow review list (Retain ≥ 4, Reduce = 1).
+    Golden test from the Annex H inputs; H.10 not used.
+21. **[D] Fix `levelToRiskScale` (2026-10-24):** the feasibility → risk scale
+    mapping (Mapping B) is derived at runtime from `RiskScaleType`: 3 levels
+    → 1/1/2/3, 4 levels → 1/2/3/4, 5 levels → 1/2/3/5 (unchanged). The stored
+    `FeasibilityConfiguration.levelToRiskScale` is ignored — no dialog ever
+    wrote it, so every project carried the 5-level default `{1, 2, 3, 5}`;
+    the risk dialog's fallback uses the same function. Own commit before 3a;
+    the stored values are corrected in migration 9 → 10. Changes `I × L` in
+    all presets with attack trees on a 3- or 4-level scale — deliberate
+    exception to principle 6, release note. Shipped with 3a as 0.15.0-beta.
 
 ---
 
@@ -912,11 +994,14 @@ are written against behaviour, not against the report text.
 | 1H | A Hazard Item without a person edge produces the finding "not rated". |
 | 1H | Hazard table: a hazard with only a `none` edge shows "none" (under ISO "S0"); a hazard without a person edge shows "–"; sorted by severity, *not rated* is below S0. |
 | 1H | Projects under every other preset show and compute the same safety values as before. |
-| 2 | Migration: a file with the schema before Phase 2 (14 per §5) with `consequence` + `impactRatings` opens, saves and reopens with one damage scenario per goal, identical text and ratings, unchanged goal level. |
+| 2 | Migration: a file with the schema before Phase 2 (13 per §5) with `consequence` + `impactRatings` opens, saves and reopens with one damage scenario per goal, identical text and ratings, unchanged goal level. |
 | 2 | Two damage scenarios on the same asset × property are rated independently; the goal level is the MAX. |
 | 2 | A relevant threat without a damage-scenario link, and a damage scenario reached by no threat (without reason), each produce a finding. |
 | 2 | Switching the preset ISO ↔ EN 50742 relabels the safety scale and flags every safety rating for review; no value changes silently. |
 | 3 | Every ISO risk value is an integer 1–5 (RQ-15-16); impact × feasibility at both extremes gives 1 and 5 with the default matrix. |
+| 3a | Golden test: all 16 cells of H.8; the H.9 cases High × Severe → 5 and Low × Moderate → 2; Headlamp gives the values of today's example data. |
+| 3a | Migration 9 → 10 computes and stamps `isoRiskValue` for every ISO risk, changes no treatment; the review list holds only Retain at ≥ 4 (warning) and Reduce at 1 (info). |
+| fix | A 4-level project with an attack tree: a *high* path gives likelihood 4, not 5; a 5-level project is unchanged; stored values are corrected by migration 9 → 10. |
 | 3 | A threat scenario with three attack paths has one feasibility (MAX) and one risk per linked damage scenario; the per-path values stay visible as drill-down. |
 | 3 | Changing the matrix (or the formula table) flags every risk whose value changed as *decision to review* and changes **no** treatment, MoSCoW priority or justification. |
 | 4 | A risk treated *Reduce* without a goal, *Retain/Share* without a claim, *Avoid* without justification — each produces a finding. |
