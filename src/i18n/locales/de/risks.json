@@ -376,7 +376,13 @@
         "axes": "Zeilen: Impact (15.5) · Spalten: Angriffsmöglichkeit (15.7)",
         "unrated": "{{count}} ohne Risikowert",
         "panelNote": "Risikowert nach ISO/SAE 21434 (RQ-15-16) aus der Matrix in Annex H.8. Der Impact stammt aus dem Schadensszenario (Asset × Eigenschaft), die Angriffsmöglichkeit aus dem Angriffsbaum.",
-        "panelMissing": "Noch kein Risikowert: Impact des Schadensszenarios und Angriffsmöglichkeit bewerten (Angriffsbaum oder ISO-Faktoren)."
+        "panelMissing": "Noch kein Risikowert: Impact des Schadensszenarios und Angriffsmöglichkeit bewerten (Angriffsbaum oder ISO-Faktoren).",
+        "reviewOnly": "Nur diese",
+        "reviewTitle": "Zu prüfende Entscheidungen (ISO/SAE 21434): {{count}}",
+        "reviewRetain": "Beibehalten bei Risikowert 4 oder 5 — ist der Claim begründet?",
+        "reviewReduce": "Reduziert bei Risikowert 1 — ist der Aufwand nötig?",
+        "scenarioRisk": "Risiko",
+        "scenarioResidual": "Rest"
       }
     }
   },

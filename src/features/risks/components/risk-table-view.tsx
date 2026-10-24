@@ -9,7 +9,14 @@
 // Leveled DFD (Phase 6b): with multiprocess groups the view is rendered once
 // per group (RiskGroupSections); the filters are shown once above them.
 
-import React, { useState } from "react";
+import { Box, Chip, Stack, Typography } from "@mui/material";
+import { isIsoRiskMode, isoRiskValueColor } from "../models/iso-risk-display";
+import { groupIsoScenarios } from "../models/iso-scenarios";
+import {
+  treatmentFallbackLabel,
+  treatmentI18nKey,
+} from "../models/risk-treatment-vocabulary";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MoSCoWPriority, RiskTreatment } from "../models/risk-scale-types";
 import { Risk } from "../models/risk-assessment-types";
@@ -96,7 +103,71 @@ const AttackPathRiskSection: React.FC<{
     onImplementationClick,
   });
 
+  const iso = isIsoRiskMode(configuration);
+  const scenarios = useMemo(() => (iso ? groupIsoScenarios(risks) : []), [iso, risks]);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
   if (risks.length === 0) return null;
+
+  // ISO/SAE 21434 (3a-3): one inner section per threat scenario, the paths
+  // as rows; the header carries the derived scenario value, residual and
+  // treatment options (MAX over the paths, union of the options).
+  const valueChip = (value: number | undefined, label: string) => (
+    <Chip
+      size="small"
+      label={`${label} ${value ?? "–"}`}
+      sx={{
+        height: 20,
+        fontSize: "0.7rem",
+        bgcolor: value ? isoRiskValueColor(value) : undefined,
+        color: value ? "white" : undefined,
+        fontWeight: "bold",
+      }}
+    />
+  );
+  const isoBody = (
+    <Box data-testid="iso-scenarios">
+      {scenarios.map((sc) => (
+        <GenericAccordion
+          key={sc.key}
+          id={`iso-scenario-${sc.key}`}
+          level="inner"
+          expanded={!collapsed.has(sc.key)}
+          onToggle={() =>
+            setCollapsed((prev) => {
+              const next = new Set(prev);
+              if (next.has(sc.key)) next.delete(sc.key);
+              else next.add(sc.key);
+              return next;
+            })
+          }
+          title={
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ width: "100%" }} data-testid={`iso-scenario-${sc.displayId}`}>
+              <Typography variant="body2" fontWeight="bold">
+                {sc.displayId}
+              </Typography>
+              <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                {sc.label}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {sc.treatments
+                  .map((tr) =>
+                    t(`${treatmentI18nKey(tr, "iso-21434")}.label`, {
+                      defaultValue: treatmentFallbackLabel(tr, "iso-21434"),
+                    }),
+                  )
+                  .join(" · ")}
+              </Typography>
+              {valueChip(sc.value, t("tabs.risks.iso.scenarioRisk", { defaultValue: "Risk" }))}
+              {valueChip(sc.residual, t("tabs.risks.iso.scenarioResidual", { defaultValue: "Residual" }))}
+            </Stack>
+          }
+        >
+          <RiskTable risks={sc.risks} columns={columns} configuration={configuration} onEdit={onEdit} />
+        </GenericAccordion>
+      ))}
+    </Box>
+  );
 
   return (
     <GenericAccordion
@@ -118,14 +189,17 @@ const AttackPathRiskSection: React.FC<{
         />
       }
     >
-      {expanded && (
-        <RiskTable
-          risks={risks}
-          columns={columns}
-          configuration={configuration}
-          onEdit={onEdit}
-        />
-      )}
+      {expanded &&
+        (iso ? (
+          isoBody
+        ) : (
+          <RiskTable
+            risks={risks}
+            columns={columns}
+            configuration={configuration}
+            onEdit={onEdit}
+          />
+        ))}
     </GenericAccordion>
   );
 };

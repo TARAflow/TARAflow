@@ -7,6 +7,8 @@ import { cleanup, fireEvent, render, renderHook, screen, within } from "@testing
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RiskMatrix } from "features/risks/components/risk-matrix";
 import { useRiskColumns } from "features/risks/components/shared/risk-columns";
+import { RiskTableView } from "features/risks/components/risk-table-view";
+import { IsoReviewBanner } from "features/risks/components/iso-review-banner";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
 
 vi.mock("react-i18next", () => ({
@@ -96,5 +98,63 @@ describe("register columns under iso-21434", () => {
 
   it("other methods keep I × L headers", () => {
     expect(cols(undefined).find((x) => x.id === "riskBefore")!.header).toBe("Risk");
+  });
+});
+
+// ── Scenario view and review banner (3a-3) ────────────────────────────────
+describe("attack-tree section under iso-21434", () => {
+  const iso = { ...DEFAULT_CONFIGURATION, likelihoodMethod: "iso-21434" as const };
+  const pathRisk = (id: string, tree: string, value: number, residual?: number) => ({
+    ...risk(id, {
+      impact: "major",
+      feasibility: "high",
+      value,
+      ...(residual ? { residual: { feasibility: "low", value: residual } } : {}),
+    }),
+    sourceStrideMethod: "attack-path",
+    treatment: "reduce",
+    threatDescription: "Compromise Integrity",
+    attackTreeAssessment: { treeId: tree, pathKey: id },
+  });
+
+  it("groups the paths by threat scenario with MAX value and residual", () => {
+    render(
+      <RiskTableView
+        risks={[]}
+        threats={[]}
+        configuration={iso}
+        strideMethod="per-element"
+        filters={{ searchText: "", priorityFilter: "", treatmentFilter: "", riskLevelFilter: "", scope: {} } as never}
+        onSearchTextChange={vi.fn()}
+        onPriorityFilterChange={vi.fn()}
+        onRiskLevelFilterChange={vi.fn()}
+        onClearFilters={vi.fn()}
+        filteredCount={0}
+        onEdit={vi.fn()}
+        onPriorityChange={vi.fn()}
+        onTreatmentChange={vi.fn()}
+        attackPathRisks={[pathRisk("AT-2.1", "t2", 3, 2), pathRisk("AT-2.4", "t2", 4)] as never}
+      />,
+    );
+    const header = screen.getByTestId("iso-scenario-AT-2");
+    expect(header.textContent).toContain("Risk 4");
+    expect(header.textContent).toContain("Residual 2");
+    expect(screen.getAllByText("AT-2.1").length).toBeGreaterThan(0);
+  });
+
+  it("the review banner lists the decisions and toggles the filter", () => {
+    const onToggle = vi.fn();
+    const items = [{ risk: { ...risk("AT-9.1"), isoRisk: { value: 5 } }, kind: "retain-high", severity: "warning" }];
+    render(<IsoReviewBanner items={items as never} reviewOnly={false} onReviewOnlyChange={onToggle} onOpen={vi.fn()} />);
+    expect(screen.getByTestId("iso-review-banner").textContent).toContain("AT-9.1 · 5");
+    fireEvent.click(screen.getByRole("checkbox"));
+    expect(onToggle).toHaveBeenCalledWith(true);
+  });
+
+  it("no banner without decisions to review", () => {
+    const { container } = render(
+      <IsoReviewBanner items={[]} reviewOnly={false} onReviewOnlyChange={vi.fn()} onOpen={vi.fn()} />,
+    );
+    expect(container.innerHTML).toBe("");
   });
 });

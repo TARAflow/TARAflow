@@ -3,6 +3,7 @@
 // RiskStatus removed — risks no longer have a status field.
 // Filter by: searchText, priorityFilter (MoSCoW), treatmentFilter, riskLevelFilter.
 
+import { isoReviewItems } from "../../models/iso-scenarios";
 import { useState, useCallback, useMemo } from "react";
 import {
   NO_DFD_SCOPE_FILTER,
@@ -30,6 +31,8 @@ export interface RiskFilters {
   riskLevelFilter: number | "";
   /** Leveled DFD: page and analysis state of the risk's threat (6f). */
   scope: DfdScopeFilter;
+  /** ISO/SAE 21434: only the decisions to review (plan 3a-3, E5). */
+  isoReviewOnly?: boolean;
 }
 
 /** Scale context needed to map a numeric risk score to a discrete level. */
@@ -71,6 +74,7 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
     treatmentFilter: "",
     riskLevelFilter: "",
     scope: NO_DFD_SCOPE_FILTER,
+    isoReviewOnly: false,
   });
   const inScope = useMemo(
     () => dfdScopePredicate(scopeIndex, filters.scope),
@@ -97,6 +101,10 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
     setFilters((prev) => ({ ...prev, scope }));
   }, []);
 
+  const setIsoReviewOnly = useCallback((isoReviewOnly: boolean) => {
+    setFilters((prev) => ({ ...prev, isoReviewOnly }));
+  }, []);
+
   const clearFilters = useCallback(() => {
     setFilters({
       searchText: "",
@@ -104,6 +112,7 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
       treatmentFilter: "",
       riskLevelFilter: "",
       scope: NO_DFD_SCOPE_FILTER,
+      isoReviewOnly: false,
     });
   }, []);
 
@@ -114,18 +123,31 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
         filters.priorityFilter ||
         filters.treatmentFilter ||
         filters.riskLevelFilter !== "" ||
+        filters.isoReviewOnly ||
         inScope,
       ),
     [filters, inScope],
   );
 
   const filterRisks = useCallback(
-    /** `threats`: the threats of the risks, for the page filter. */
-    (risks: Risk[], context?: RiskLevelContext, threats?: ThreatReference[]): Risk[] => {
+    /** `threats`: the threats of the risks, for the page filter.
+     *  `ignoreScope`: risks without a DFD item (attack-path risks) — the page
+     *  filter does not apply to them. */
+    (
+      risks: Risk[],
+      context?: RiskLevelContext,
+      threats?: ThreatReference[],
+      ignoreScope = false,
+    ): Risk[] => {
       if (!hasActiveFilters) return risks;
       let filtered = risks;
 
-      if (inScope) {
+      if (filters.isoReviewOnly) {
+        const review = new Set(isoReviewItems(filtered).map((i) => i.risk.id));
+        filtered = filtered.filter((r) => review.has(r.id));
+      }
+
+      if (inScope && !ignoreScope) {
         const threatById = new Map((threats ?? []).map((t) => [t.id, t]));
         filtered = filtered.filter((r) => {
           const threat = threatById.get(r.threatId);
@@ -190,6 +212,7 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
     setTreatmentFilter,
     setRiskLevelFilter,
     setScopeFilter,
+    setIsoReviewOnly,
     clearFilters,
     filterRisks,
     hasActiveFilters,

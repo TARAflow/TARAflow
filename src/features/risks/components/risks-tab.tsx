@@ -53,6 +53,9 @@ import { useRiskFilters } from "../hooks/shared/use-risk-filters";
 import { riskGroupSections } from "../utils/risk-groups";
 import { RiskMatrixGroupSelect } from "./risk-matrix-group-select";
 import { RiskSyncBanner } from "./risk-sync-banner";
+import { IsoReviewBanner } from "./iso-review-banner";
+import { isoReviewItems } from "../models/iso-scenarios";
+import { isIsoRiskMode } from "../models/iso-risk-display";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
 import { RiskMitigationStatusDialog } from "./risk-mitigation-status-dialog";
@@ -369,6 +372,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     setPriorityFilter,
     setRiskLevelFilter,
     setScopeFilter,
+    setIsoReviewOnly,
     clearFilters,
     filterRisks,
     hasActiveFilters,
@@ -396,6 +400,28 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     () => filterRisks(activeRisks, riskData.configuration, currentThreats),
     [activeRisks, filterRisks, riskData.configuration, currentThreats],
   );
+
+  // ISO/SAE 21434 (3a-3): the filters apply to the attack-path risks too
+  // (minus the page filter — they have no DFD item); the decisions to review
+  // (E5) cover every risk, the won't list included (Retain → Won't).
+  const isoMode = isIsoRiskMode(riskData.configuration);
+  const filteredAttackPathRisks = useMemo(
+    () =>
+      isoMode
+        ? filterRisks(attackPathActiveRisks, riskData.configuration, undefined, true)
+        : attackPathActiveRisks,
+    [isoMode, attackPathActiveRisks, filterRisks, riskData.configuration],
+  );
+  const isoReview = useMemo(
+    () => (isoMode ? isoReviewItems(riskData.risks) : []),
+    [isoMode, riskData.risks],
+  );
+  const shownWontRisks = useMemo(() => {
+    const all = [...wontRisks, ...attackPathWontRisks];
+    if (!filters.isoReviewOnly) return all;
+    const ids = new Set(isoReview.map((i) => i.risk.id));
+    return all.filter((r) => ids.has(r.id));
+  }, [wontRisks, attackPathWontRisks, filters.isoReviewOnly, isoReview]);
 
   // ==================== EFFECTS ====================
 
@@ -850,6 +876,17 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         syncStatus={syncStatus}
         onSync={handleSyncClick}
       />
+      {isoMode && (
+        <IsoReviewBanner
+          items={isoReview}
+          reviewOnly={!!filters.isoReviewOnly}
+          onReviewOnlyChange={(on) => {
+            setIsoReviewOnly(on);
+            if (on) setShowWontTable(true);
+          }}
+          onOpen={(risk) => handleEditRisk(risk)}
+        />
+      )}
 
       {/* Main Content - Split View */}
       <Box
@@ -1056,15 +1093,15 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onPriorityChange={handlePriorityChange}
                 onTreatmentChange={handleTreatmentChange}
                 onImplementationClick={handleImplementationClick}
-                attackPathRisks={attackPathActiveRisks}
+                attackPathRisks={filteredAttackPathRisks}
                 attackPathThreats={project.perAttackPathThreats ?? []}
                 groups={project.dfdTableGroups}
               />
-              {(wontRisks.length > 0 || attackPathWontRisks.length > 0) &&
+              {shownWontRisks.length > 0 &&
                 showWontTable && (
                   <Box sx={{ mt: 2 }}>
                     <WontRiskTable
-                      risks={[...wontRisks, ...attackPathWontRisks]}
+                      risks={shownWontRisks}
                       threats={[
                         ...currentThreats,
                         ...(project.perAttackPathThreats ?? []),
