@@ -21,6 +21,12 @@ import {
   RISK_TREATMENTS,
 } from "../../models/risk-scale-types";
 import { RiskConfiguration } from "../../models/risk-config-types";
+import {
+  isTreatmentToReview,
+  treatmentFallbackLabel,
+  treatmentI18nKey,
+  treatmentVocabulary,
+} from "../../models/risk-treatment-vocabulary";
 import { Risk, getFactorDefinition } from "../../models/risk-assessment-types";
 import {
   MITIGATION_STATUS_CONFIGS,
@@ -530,24 +536,32 @@ export const useRiskColumns = ({
       renderCell: (risk) => {
         const tr = TREATMENT_MAP.get(risk.treatment);
         if (!tr) return null;
-        const label = t(`risks.treatment.${risk.treatment}.label`, {
-          defaultValue: tr.label,
+        const vocabulary = treatmentVocabulary(configuration);
+        const key = treatmentI18nKey(risk.treatment, vocabulary);
+        const label = t(`${key}.label`, {
+          defaultValue: treatmentFallbackLabel(risk.treatment, vocabulary),
         });
+        // ISO: a stored "transfer" is a decision to review (dashed border).
+        const toReview = isTreatmentToReview(risk.treatment, vocabulary);
         return (
           <Tooltip
-            title={t(`risks.treatment.${risk.treatment}.description`, {
+            title={t(`${key}.description`, {
               defaultValue: tr.description,
             })}
           >
             <Chip
               label={label}
               size="small"
+              data-testid={toReview ? "treatment-to-review" : undefined}
               sx={{
                 bgcolor: tr.color,
                 color: "white",
                 fontSize: "0.65rem",
                 height: 20,
                 cursor: "default",
+                ...(toReview
+                  ? { outline: "2px dashed #d97706", outlineOffset: 1 }
+                  : {}),
               }}
             />
           </Tooltip>

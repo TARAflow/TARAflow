@@ -3,6 +3,11 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
+import {
+  treatmentFallbackLabel,
+  treatmentI18nKey,
+  treatmentVocabulary,
+} from "../../../risks/models/risk-treatment-vocabulary";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { reportGroupsOf } from "../dfd-report-groups";
@@ -1702,9 +1707,10 @@ export abstract class BaseDocumentGenerator {
               isoRiskByCategory(risk.factorRatings ?? [], config),
             ),
           ),
+          // ISO 15.9 names (Avoid / Reduce / Share / Retain).
           treatment: t(
-            `risks.treatment.${risk.treatment}.label`,
-            risk.treatment,
+            `${treatmentI18nKey(risk.treatment, treatmentVocabulary(config))}.label`,
+            treatmentFallbackLabel(risk.treatment, treatmentVocabulary(config)),
           ),
           riskAfter:
             project.computed.riskAfterLabels.get(risk.id) ??

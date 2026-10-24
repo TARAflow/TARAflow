@@ -22,6 +22,10 @@ import type {
 } from "../models/risk-config-types";
 import type { FactorRating } from "../models/risk-factor-types";
 import { ALL_PREDEFINED_FACTORS } from "../models/risk-factor-types";
+import {
+  isTreatmentToReview,
+  treatmentVocabulary,
+} from "../models/risk-treatment-vocabulary";
 import type { MoSCoWPriority, RiskTreatment } from "../models/risk-scale-types";
 import type { SelectedMitigation } from "../models/risk-mitigation-types";
 import { calculateRiskValues } from "./risk-calculation-service";
@@ -264,6 +268,17 @@ export const riskService = {
     if (treatmentNoJustification.length > 0)
       errors.push(
         `${treatmentNoJustification.length} risk(s) with accept/transfer/share treatment require a justification`,
+      );
+
+    // ISO/SAE 21434 15.9 has no "transfer" option: a stored transfer is a
+    // decision to review (confirm as share), never changed automatically.
+    const vocabulary = treatmentVocabulary(riskData.configuration);
+    const transferToReview = riskData.risks.filter((r) =>
+      isTreatmentToReview(r.treatment, vocabulary),
+    );
+    if (transferToReview.length > 0)
+      warnings.push(
+        `${transferToReview.length} risk(s) with treatment "transfer" — ISO/SAE 21434 offers no transfer option; confirm as share`,
       );
 
     const highUnmitigated = riskData.risks.filter(

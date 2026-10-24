@@ -109,6 +109,13 @@ import { RiskConfiguration } from "../models/risk-config-types";
 import { factorLevelOptions } from "../utils/factor-level-options";
 import { impactBasisText } from "../utils/impact-basis-text";
 import { isoRiskByCategory } from "../services/iso-risk-by-category";
+import {
+  isTreatmentToReview,
+  offeredTreatments,
+  treatmentFallbackLabel,
+  treatmentI18nKey,
+  treatmentVocabulary,
+} from "../models/risk-treatment-vocabulary";
 import { Risk, getFactorDefinition } from "../models/risk-assessment-types";
 import {
   MoSCoWPriority,
@@ -379,6 +386,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   // Hide the editable likelihood factors so the analyst rates feasibility on the
   // tree (attack-potential / 18045), not here.
   const isISO = configuration.likelihoodMethod === "iso-21434";
+  // ISO/SAE 21434 15.9 names for the treatment options (Avoid / Reduce /
+  // Share / Retain); stored values unchanged.
+  const vocabulary = treatmentVocabulary(configuration);
 
   // ── Linked assets — fallback to threatRef if Risk has no linkedAssetIds ────
   // Moved above beforeValues: calculateGatedRiskValues (§11.2 gate) needs
@@ -2396,7 +2406,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                     }}
                   >
                     <Typography variant="body2" color="text.secondary">
-                      {local.treatment === "accept"
+                      {local.treatment === "accept" && vocabulary === "iso-21434"
+                        ? t("tabs.risks.dialog.retainedNote", {
+                            defaultValue:
+                              "Risk is retained — no mitigations required. Risk After equals Risk Before.",
+                          })
+                        : local.treatment === "accept"
                         ? t("tabs.risks.dialog.acceptedNote", {
                             defaultValue:
                               "Risk is accepted — no mitigations required. Risk After equals Risk Before.",
@@ -2418,18 +2433,18 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   </Typography>
 
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {RISK_TREATMENTS.map((tr) => (
+                    {offeredTreatments(vocabulary, currentRisk.treatment).map((tr) => (
                       <Tooltip
                         key={tr.value}
-                        title={t(`risks.treatment.${tr.value}.description`, {
+                        title={t(`${treatmentI18nKey(tr.value, vocabulary)}.description`, {
                           defaultValue: tr.description,
                         })}
                         placement="top"
                         arrow
                       >
                         <Chip
-                          label={t(`risks.treatment.${tr.value}.label`, {
-                            defaultValue: tr.label,
+                          label={t(`${treatmentI18nKey(tr.value, vocabulary)}.label`, {
+                            defaultValue: treatmentFallbackLabel(tr.value, vocabulary),
                           })}
                           onClick={() =>
                             setLocal((prev) => {
@@ -2476,6 +2491,15 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       </Tooltip>
                     ))}
                   </Stack>
+
+                  {isTreatmentToReview(local.treatment, vocabulary) && (
+                    <Alert severity="warning" sx={{ mt: 1.5 }}>
+                      {t("tabs.risks.dialog.transferToReview", {
+                        defaultValue:
+                          "Decision to review: ISO/SAE 21434 offers no \"Transfer\" option. Confirm the decision as Share or choose another option.",
+                      })}
+                    </Alert>
+                  )}
 
                   {/* Justification — contextual to Risk Treatment (accept/transfer/share) */}
                   {passiveTreatment && local.moscowPriority !== "wont" && (
