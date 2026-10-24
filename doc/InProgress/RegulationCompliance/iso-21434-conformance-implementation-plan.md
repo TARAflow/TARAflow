@@ -96,15 +96,15 @@ by this file.
    behaviour. Exception: the **Item Definition** (Phase 1) is
    preset-independent; the preset only decides which sections are mandatory
    (decision 8, §6).
-6. **No side effects on other methods.** Every phase has a test that a
-   `standard` and an `en-50742-a` project compute and display exactly what they
-   did before.
 3. **Analyst decisions are never overwritten.** Same rule as for security goals
    (`source: "manual"`) and the relevance override (fixed in 0.13.3): derived
    values may change, decisions are kept and flagged when their basis changed.
 4. **Every link is checkable.** Each phase adds validator rules to the existing
    completeness validation and rows to the traceability coverage matrix.
 5. **Each phase ships on its own** (own release, own tests, own migration if any).
+6. **No side effects on other methods.** Every phase has a test that projects
+   under every other preset (`standard`, `en-50742-a`, `en-50742-b`,
+   `etsi-tvra`) compute and display exactly what they did before.
 
 ---
 
@@ -168,8 +168,9 @@ feature**, not an ISO add-on. It lives in a sub-tab **"Definition"** of the
 Overview tab, for every project. The current project description
 (`GeneralTabData.info.description`) moves into the section *Purpose and
 functions* (migration, text unchanged). The preset only decides which sections
-are mandatory (validator findings): `iso-21434` → RQ-09-01/02, IEC 62443 →
-SRM-2/3, `en-50742-a` → open, `standard` → none. Open: scope of the arc42
+are mandatory (validator findings): `iso-21434` → RQ-09-01/02,
+`en-50742-a`/`en-50742-b`/`etsi-tvra` → open, `standard` → none. IEC 62443-4-1
+(SRM-2/3) has no preset today; the rule applies once one exists. Open: scope of the arc42
 import and drift detection (§9 K1b), shape of the assumptions (§9 K2).
 
 Normative basis [N]: **RQ-09-01** item boundary (a), functions over the lifecycle
@@ -178,10 +179,10 @@ to cybersecurity, including assumptions (NOTE 8) → **WP-09-01**. The same cont
 is required by IEC 62443-4-1 (prAA) SRM-2 (intended use, functions, data) and
 SRM-3 (security context).
 
-- **"Item Definition" view in the reworked General (Overview) tab [D]** — see
-  *Overview rework* below. Visible in all presets;
-  mandatory (validator findings) in `iso-21434` and the 62443 presets, optional
-  otherwise. Sections follow the requirements, not the arc42 order:
+- **"Definition" sub-tab in the reworked General (Overview) tab [D]** — see
+  *Overview rework* below. Visible in all presets; which sections are mandatory
+  follows the preset (rev. 2 note above). Sections follow the requirements, not
+  the arc42 order:
 
   | Section | ISO | arc42 source (typical) | Link into the model |
   |---|---|---|---|
@@ -269,8 +270,9 @@ The General tab gets sub-tabs instead of a growing stack of sections:
   configuration dialog** (decision 2026-10-16). The Methodology view shows them
   read-only with a link to the dialog. Moving the editor later is possible
   without data changes — the record lives in the project, not in the tab.
-- Non-ISO projects see the same content as today under *Project*; Item
-  Definition and Methodology are optional there.
+- Non-ISO projects see under *Project* what they see today **minus the
+  description**, which moves to *Definition* for every project (decision 8).
+  Methodology is optional there.
 
 *Done when:* the General tab has the four sub-tabs; the Definition sub-tab produces WP-09-01 as a report chapter with
 source references; assumptions are referenceable objects; an arc42 re-import
@@ -569,7 +571,7 @@ used. Recommended if ISO projects are delivered before 0.16.
 
 Added in rev. 2 (2026-10-24):
 
-8. **[D] Item Definition is preset-independent** (Phase 1). Sub-tab
+8. **[D] Item Definition is preset-independent** (Phase 1, sub-tab "Definition"). Sub-tab
    "Definition" in the Overview tab for every project; the project description
    becomes the section *Purpose and functions*. Presets only make sections
    mandatory.
@@ -608,8 +610,9 @@ evidence for it.
 
 ## 8. Acceptance tests
 
-Every phase additionally passes the principle-6 test: a `standard` and an
-`en-50742-a` project compute and display the same values as before.
+Every phase additionally passes the principle-6 test: projects under every
+other preset (`standard`, `en-50742-a`, `en-50742-b`, `etsi-tvra`) compute and
+display the same values as before.
 
 Each phase is done when its tests pass in addition to the existing suite. Tests
 are written against behaviour, not against the report text.
@@ -623,7 +626,7 @@ are written against behaviour, not against the report text.
 | 1 | Importing an arc42 AsciiDoc and a Markdown document (German and English headings) pre-fills boundary, functions, architecture and environment; pre-filled sections count as unfilled until reviewed. |
 | 1 | Re-importing an arc42 document with one changed section marks only that section as changed and creates one re-assessment trigger; no TARA object changes. |
 | 1 | Migration: existing trust-boundary `securityAssumptions` texts become ASM objects linked from the boundary; the text is unchanged. |
-| 1 | The General tab switches between Project / Item Definition / Methodology / Sources; each view's badge equals its number of open findings; the Methodology view shows the risk method read-only and links to the Risk configuration dialog. |
+| 1 | The General tab switches between Project / Definition / Methodology / Sources; each view's badge equals its number of open findings; the Methodology view shows the risk method read-only and links to the Risk configuration dialog. |
 | 1 | An assumption referenced by a trust boundary and a claim is one object; editing it changes both views. |
 | 2 | Migration: a v0.13 file with `consequence` + `impactRatings` opens, saves and reopens with one damage scenario per goal, identical text and ratings, unchanged goal level. |
 | 2 | Two damage scenarios on the same asset × property are rated independently; the goal level is the MAX. |
