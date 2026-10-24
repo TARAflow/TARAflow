@@ -368,6 +368,14 @@ section marks that section as changed.
 
 ### Phase 1H — ISO 26262 fields and HARA import (prerequisite of Phase 2)
 
+**Split (decision 19):** **1H-S** [N] — RQ-15-06: under `iso-21434` the
+person-harm severity on the `endangers` edge is shown and rated as S0–S3
+(point 1 and the S0 rule of point 3 below, incl. the four code changes and the
+hazard-table rank), small, in the normative minimum. **1H-HARA** [D] — the
+further Hazard Item fields (`hazardousEvent`, E, C, ASIL, `safetyGoalRef`) and
+the HARA import profile (points 2, 4, 5), deferred. Without a HARA the analyst
+rates S directly by Table F.1.
+
 Decision 13. Additive; the ISO 26262 fields are shown only under `iso-21434`,
 the edge value `"none"` (S0) exists in every preset. Normative basis [N]:
 **RQ-15-06** (15.5.2) — safety impact ratings are derived from ISO 26262-3:2018,
@@ -587,7 +595,9 @@ Closes G6, G7. Reverses DS-6 of the support design.
   - every risk treated *reduce* → ≥ 1 goal;
   - every risk treated *retain/share* → ≥ 1 claim;
   - every *avoid* → justification (what was removed);
-  - acceptance criteria from Phase 3 respected;
+  - acceptance criteria from Phase 3b respected — only once 3b exists; the
+    norm has no risk acceptance criteria ([K]), so the minimal Phase 4 runs
+    without them (decision 19);
   - every claim has ≥ 1 assumption; overdue `reviewBy` is a finding.
 - Migration helper (optional, manual trigger): parse `CSG-xx` / `CLM-xx`
   prefixes from existing justifications (the workshop convention) into objects.
@@ -680,31 +690,55 @@ file and can drop the new fields on save (e.g. `buildGeneralTabPatch` replaces
 open in 0.15.0. The numbers below assume one release per row and shift if rows
 are combined.
 
+**Rev. 3 (decision 19, 2026-10-24): normative minimum first.** The steps
+are ordered by what ISO/SAE 21434 requires [N]; design decisions [D] and
+configurable methodology [K] follow after the minimum. Releases and schema
+numbers follow decision 15 (one fence per release that stores new fields;
+migrations and value changes get their own minor beta); numbers below assume
+one release per row.
+
+**Normative minimum [N]**
+
+| Order | Step | Norm | Release | Changes values? | Schema |
+|---|---|---|---|---|---|
+| done | 0a — ISO treatment names | RQ-15-17 | 0.14.x-beta | no | – |
+| done | 0b — ISO impact scale lock (4 levels), methodology record | RQ-15-05 | 0.14.x-beta | no | – |
+| done | 0c — calculation stamp ([D], already built) | – | 0.14.x-beta | no | 10 (fence) |
+| done | 0d — methodology chapter | – (documents the method) | 0.14.x-beta | no | – |
+| 1 | 3a — risk value 1–5, risk per threat scenario | RQ-15-15/16 | **0.15.0-beta** | **yes** (ISO risks only) | **11** (migration) |
+| 2 | 1H-S — S0–S3 on the person edge under ISO | RQ-15-06 | 0.15.x-beta | no | 12 (fence: `"none"` on the edge) |
+| 3 | Phase 1 stage A — Definition sub-tab, assumptions (ASM) | RQ-09-01/02 | 0.15.x-beta | no | 13 (fence) |
+| 4 | Phase 4 minimal — goal for every Reduce, claim for Retain/Share, Avoid justification, verification record | RQ-09-05/06, WP-09-05 | 0.15.x-beta | no | 14 (fence) |
+
+Assumptions (stage A) come before Phase 4 because claims refer to them; the
+norm itself only requires the claim (RQ-09-06).
+
+**After the minimum [D]/[K]**
+
 | Order | Step | Release | Changes values? | Schema |
 |---|---|---|---|---|
-| 1 | Phase 0 — terminology, methodology record, calc stamp | 0.14.x-beta | no | 10 (fence) |
-| 2 | Phase 3a — risk value 1–5, risk per threat scenario | **0.15.0-beta** | **yes** (ISO risks only) | **11** (migration) |
-| 3 | Phase 1 — Definition sub-tab, assumptions (stage A) | 0.15.x-beta | no | 12 (fence; `info.description` stays the storage of *Purpose and functions*) |
-| 4 | Phase 1 stage B — arc42 import | 0.15.x-beta | no | 13 (fence) |
-| 5 | Phase 1H — ISO 26262 fields and HARA import (ISO only, additive) | 0.15.x-beta | no | 14 (fence) |
-| 6 | Phase 2 — damage scenarios | **0.16.0-beta** | no (impact moves, MAX keeps the level) | **15** (migration) |
-| 7 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria | **0.17.0-beta** | **yes** where 1:n damage scenarios exist | **16** (migration) |
-| 8 | Phase 4 — goals, claims, verification record | 0.17.x-beta | no | 17 (fence) |
-| 9 | Phases 5 + 7 — concept traceability, report, readiness | 0.17.x-beta | no | 18 (fence) |
+| 5 | Phase 2 — damage scenarios 1:n | **0.16.0-beta** | no (impact moves, MAX keeps the level) | **15** (migration) |
+| 6 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria [K] | **0.17.0-beta** | **yes** where 1:n damage scenarios exist | **16** (migration) |
+| 7 | 1H-HARA — E, C, ASIL, hazardous event, safety goal ref, HARA import | x-beta | no | fence |
+| 8 | Phase 1 stage B — arc42 import | x-beta | no | fence |
+| 9 | Phases 5 + 7 — concept traceability, report by work product, readiness check | x-beta | no | fence |
 | later | Phases 6, 8 (stage C of arc42 with 8) | x-beta | no | fence if new fields are stored |
 
 **Why 3a first:** an ISO project (APS) is running in TARAflow under
-`iso-21434`; RQ-15-15/16 are the only normative gaps an assessor stops at
+`iso-21434`; RQ-15-15/16 are the normative gaps an assessor stops at
 immediately. 3a: value 1–5 via the formula mapping and risk per threat
 scenario (MAX over paths), using today's impact per asset × security goal; no
 damage-scenario entity needed. 3b (after Phase 2): matrix option, risk per
 threat scenario × damage scenario, acceptance criteria. 3a changes ISO values
 once; 3b changes them again only where 1:n damage scenarios are used. Both
-produce the *decision to review* list and never change a treatment.
+produce the *decision to review* list and never change a treatment. The stamp
+check of 3a (recompute in memory on a stamp mismatch) is a convenience, not a
+requirement: TCS and the signed commits already freeze the values.
 
-Phase 3b before 4 is mandatory (acceptance criteria drive the goal/claim
-validators). Schema numbers are in order of the steps; if the order changes,
-the numbers follow it.
+**3b is no longer a prerequisite of Phase 4** (decision 19): the norm defines
+no risk acceptance criteria; the minimal Phase 4 validators (Reduce → goal,
+Retain/Share → claim, Avoid → justification) do not need them. Acceptance
+criteria join the validators once 3b exists.
 
 ---
 
@@ -810,6 +844,13 @@ Added in rev. 2 (2026-10-24):
     only for the compromised property. The seven CIANAAA goals are used as
     properties of their own and explained in the methodology chapter (meaning
     of each). The mapping constant of 0b is removed again with 0d.
+19. **[D] Normative minimum first (2026-10-24):** §5 is ordered by what the
+    norm requires: 3a (RQ-15-15/16) → 1H-S (RQ-15-06, S0–S3 under ISO) →
+    Phase 1 stage A with assumptions (RQ-09-01/02) → Phase 4 minimal
+    (RQ-09-05/06, WP-09-05). Then Phase 2, 3b, 1H-HARA, arc42 stage B,
+    Phases 5 + 7, later 6 and 8. 1H is split into 1H-S [N] and 1H-HARA [D].
+    3b is no longer a prerequisite of Phase 4 (acceptance criteria are [K]).
+    0c stays as built; it is not required by the norm.
 
 ---
 
