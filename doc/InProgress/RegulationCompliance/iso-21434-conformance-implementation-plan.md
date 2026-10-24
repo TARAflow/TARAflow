@@ -114,7 +114,7 @@ by this file.
 Order: foundations first (terminology, item, damage scenarios), then the
 value-changing risk step, then what follows from the treatment.
 
-### Phase 0 — Terminology and method baseline (small, no schema change)
+### Phase 0 — Terminology and method baseline (small; schema fence 10 with the calc stamp)
 
 Closes G5, prepares G12.
 
@@ -133,10 +133,25 @@ Closes G5, prepares G12.
   reinterpret an existing decision: `accept → Retain` is documented as a 1:1
   mapping in the methodology record; `transfer` is shown as such until the
   analyst confirms it as *Share*. See §6.3. [N] RQ-15-17 lists the four options.
-- **Methodology record** in the project configuration:
-  `normativeBasis`, impact scale and labels, feasibility method, risk matrix id,
-  acceptance criteria (filled in Phase 3), aggregation rules (OR = MAX / AND = MIN,
-  max over S/F/O/P or per category).
+- **Methodology record — derived, not stored (decision 16).**
+  `buildMethodologyRecord(project)` in the app layer (`src/app/services/`),
+  because it reads the assets, risks and attack-tree configuration and features
+  must not depend on each other. Sources:
+
+  | Item | Source |
+  |---|---|
+  | `normativeBasis` | regulation preset |
+  | impact scale and labels | `assets.configuration.impactScale` |
+  | feasibility method | `risks.configuration.likelihoodMethod` |
+  | impact aggregation | `risks.configuration.impactAggregation` |
+  | OR = MAX / AND = MIN | constant exported by the attack-tree calculator |
+  | Avoid/Retain ↔ eliminate/accept | ISO treatment vocabulary (0a, `risk-treatment-vocabulary.ts`) |
+  | CIANAAA ↔ CIA | own exported constant, with test |
+  | risk matrix / formula, acceptance criteria | stored from 3a / 3b on |
+
+  Fixed rules are never duplicated as text: the report can only describe the
+  rule the calculator applies. 0b stores nothing (no schema fence); the fence
+  10 of Phase 0 comes with the calculation stamp (0c).
 - **Scale lock in the ISO preset [N]** — the three scales are fixed by the
   standard and must not follow the project's general 3/4/5-level setting:
 
@@ -146,9 +161,19 @@ Closes G5, prepares G12.
   | Attack feasibility | RQ-15-10: high / medium / low / very low (4) | `FeasibilityBandLevel`, 4 levels | unchanged |
   | Risk value | RQ-15-16: 1 … 5 | `RiskScaleType` 3/4/5-level | locked to 1–5 (Phase 3/3a) |
 
-  Validator: an ISO project with a 3- or 5-level impact scale is a finding;
-  switching to the ISO preset with another impact scale asks to remap and
-  flags the ratings for review.
+  Impact scale lock under `iso-21434` (decision 16) — no remapping:
+  - Switching to ISO while no asset is rated (all `impactRatings[].value === 0`)
+    sets the scale silently to 4-level (same pattern as `threadImpactCriteria`).
+  - With rated assets the scale stays as it is and no value changes. Finding:
+    "ISO requires 4 levels (RQ-15-05), N assets to re-rate", listing ratings
+    outside the 4-level scale. Reason: `asset-service.updateConfiguration`
+    neither remaps nor clamps (`existing ?? { value: 0 }`), so 5 → 4 leaves
+    values of 5 outside the scale.
+  - The asset configuration dialog locks the selector to 4-level under ISO;
+    while the scale is not 4-level it only allows the switch to 4-level and
+    warns first if ratings exist ("values are not converted").
+  - Switching from ISO to another preset keeps the 4-level scale (no reset).
+  - Other presets are unaffected.
 - **Calculation stamp** on every computed risk and feasibility:
   `{ method, calcVersion, mappingVersion }`.
 - **CIANAAA ↔ CIA mapping table** in the methodology section (ISO names C, I, A
@@ -157,8 +182,10 @@ Closes G5, prepares G12.
   are kept separate (Spoofing / EoP / Repudiation visibility).
 
 *Done when:* ISO projects show ISO treatment names; the report has a methodology
-section; every risk carries a calc stamp. Tests: label mapping, stamp present,
-default mode unchanged.
+section built from the derived record; ISO projects use the 4-level impact
+scale or carry the finding; every risk carries a calc stamp. Tests: label
+mapping, record = configuration, scale lock, stamp present, default mode
+unchanged.
 
 ### Phase 1 — Item Definition in the General tab (9.3) (medium, additive)
 
@@ -716,6 +743,12 @@ Added in rev. 2 (2026-10-24):
     stores new fields bumps the schema, one number per release; purely
     additive bumps are marked "version fence, no data change" in
     `schema-version.ts`. A file of a newer beta does not open in an older one.
+16. **[D] Phase 0b (2026-10-24):** the methodology record is derived
+    (`buildMethodologyRecord` in the app layer), fixed rules come from
+    exported constants, nothing is stored in 0b. The ISO impact scale lock
+    does not remap: silent 4-level only while nothing is rated, otherwise a
+    finding incl. ratings outside the scale; the dialog warns before the
+    switch; leaving ISO keeps 4-level.
 
 ---
 
@@ -754,6 +787,10 @@ are written against behaviour, not against the report text.
 | Phase | Test |
 |---|---|
 | 0 | An ISO project shows Avoid/Reduce/Share/Retain; a stored `transfer` shows as "Share (transfer)" with a review flag; the default mode shows the old labels unchanged. |
+| 0 | The methodology record equals the configuration it is derived from (preset, impact scale, likelihood method, impact aggregation); the OR/AND rule and the CIANAAA ↔ CIA mapping come from the exported constants. |
+| 0 | Switching to ISO without ratings → the impact scale is 4-level, silently. |
+| 0 | Switching to ISO with a rated 5-level scale → scale unchanged, finding with the number of assets and the ratings outside the scale, no value changed. |
+| 0 | Switching from ISO to another preset keeps the 4-level scale. |
 | 0 | Every computed risk and feasibility carries `{method, calcVersion, mappingVersion}`; recomputing with the same inputs yields a byte-identical result. |
 | 1 | An ISO project without item definition, or with a boundary interface missing from it, produces a finding. |
 | 1 | An external system named in the boundary section without matching external entity / interface in the DFD produces a finding. |
