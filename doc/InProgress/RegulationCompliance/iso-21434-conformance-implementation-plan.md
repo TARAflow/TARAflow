@@ -982,6 +982,20 @@ Added in rev. 2 (2026-10-24):
     of the safety normalisation repeats in 9 → 10; residual feasibility via the
     runtime Mapping B (3-level: higher level), residual impact = scenario
     impact; patches 3a-1 / 3a-2 / 3a-3, released together.
+23. **[D] Words for the risk value (2026-10-24):** next to the number the
+    risk value shows Minimal / Low / Medium / High / Critical (de: Minimal /
+    Niedrig / Mittel / Hoch / Kritisch) — "Minimal" because RQ-15-16 calls 1
+    "minimal risk", and to avoid "very low" of the attack feasibility. Display
+    only: stored, filtered, sorted and reviewed is the number. Own i18n keys,
+    not the labels of the TARAflow 5-level risk scale (there "Low" is 1, here
+    2); the two scales stay separate — renaming the old one would change every
+    preset (principle 6), and they never meet in one project. Every display
+    names all three quantities where they meet ("Impact Major × feasibility
+    High → risk 4 · High"; report "4 – High (Impact Major × AF High)").
+    Colours of the 5-level scale, never without the number. Under
+    `iso-21434` no label of the old risk scale appears: the configuration
+    dialog hides rating scale, thresholds / `I × L` matrix and asset-impact
+    mapping and states that the risk value comes from matrix H.8.
 
 ---
 
@@ -1054,6 +1068,7 @@ are written against behaviour, not against the report text.
 | 3 | Every ISO risk value is an integer 1–5 (RQ-15-16); impact × feasibility at both extremes gives 1 and 5 with the default matrix. |
 | 3a | Golden test: all 16 cells of H.8; the H.9 cases High × Severe → 5 and Low × Moderate → 2; Headlamp gives the values of today's example data. |
 | 3a | Migration 9 → 10 computes and stamps `isoRiskValue` for every ISO risk, changes no treatment; the review list holds only Retain at ≥ 4 (warning) and Reduce at 1 (info). |
+| 3a | An ISO project shows no label of the `I × L` risk scale (e.g. "Very High") in UI or report; a standard project shows the old labels unchanged. Risk words are display only — filter and review list use the number. |
 | 3a | Headlamp safety: DA-001 (fatal) severe, DA-002 (3) major, DA-003 (2) and FU-001 (1) moderate; an asset with safety 4 and no categorical severity gives severe plus the finding "ambiguous". |
 | 3a | After migration 9 → 10 no old safety name is left (assets, annotations, `endangers` edges); a v9 safety rating 3 stays 3. |
 | fix | A 4-level project with an attack tree: a *high* path gives likelihood 4, not 5; a 5-level project is unchanged; stored values are corrected by migration 9 → 10. |
