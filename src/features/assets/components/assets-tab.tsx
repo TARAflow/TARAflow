@@ -702,8 +702,15 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         threatLinks,
         hazardLinks,
         project.requiredImpactScale,
+        project.impactLabelVocabulary === "iso-21434",
       ),
-    [assetData, threatLinks, hazardLinks, project.requiredImpactScale],
+    [
+      assetData,
+      threatLinks,
+      hazardLinks,
+      project.requiredImpactScale,
+      project.impactLabelVocabulary,
+    ],
   );
   const needsReview = useMemo(() => assetIdsNeedingReview(findings), [findings]);
 

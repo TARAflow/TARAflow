@@ -41,13 +41,13 @@ function isObject(v: unknown): v is Record<string, any> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-function migrateNode(node: unknown): unknown {
-  if (Array.isArray(node)) return node.map(migrateNode);
+function migrateNode(node: unknown, ratings: boolean): unknown {
+  if (Array.isArray(node)) return node.map((n) => migrateNode(n, ratings));
   if (!isObject(node)) return node;
 
   const out: Record<string, any> = {};
   for (const [key, value] of Object.entries(node)) {
-    out[key] = migrateNode(value);
+    out[key] = migrateNode(value, ratings);
   }
 
   // SafetyAnnotation
@@ -78,7 +78,7 @@ function migrateNode(node: unknown): unknown {
   }
 
   // Safety ImpactRating: old Se3 ("irreversible injury") → Se4 (irreversible_major)
-  if (out.criterionId === SAFETY_CRITERION_ID && out.value === 3) {
+  if (ratings && out.criterionId === SAFETY_CRITERION_ID && out.value === 3) {
     out.value = 4;
   }
 
@@ -87,5 +87,16 @@ function migrateNode(node: unknown): unknown {
 
 /** Rewrites all persisted person-harm severities; does not touch schemaVersion. */
 export function normalizeSafetySeverities(data: any): any {
-  return migrateNode(data);
+  return migrateNode(data, true);
+}
+
+/**
+ * Only the NAMES (annotations, endangers edges, physicalImpact /
+ * safetyImpact) — idempotent, so it may run again on files that are already
+ * v9 (migration 9 → 10, conformance plan decision 22). The rating step
+ * "safety 3 → 4" is left out: in a v9 file 3 already means
+ * irreversible_minor, and repeating it would raise it to 4.
+ */
+export function normalizeSafetySeverityNames(data: any): any {
+  return migrateNode(data, false);
 }

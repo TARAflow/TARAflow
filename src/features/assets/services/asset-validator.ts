@@ -100,6 +100,9 @@ export function collectAssetFindings(
   /** Impact scale the regulation prescribes (iso-21434 → 4-level); derived by
    * the app layer from the preset. Absent → any scale is fine. */
   requiredImpactScale?: ImpactScaleType,
+  /** ISO/SAE 21434: report a numeric safety 4 without categorical severity
+   * (the ISO risk value reads it as severe, Table F.1 — plan decision 22). */
+  isoSafetyLevels?: boolean,
 ): AssetFinding[] {
   const out: AssetFinding[] = [];
   const impactScale = assetData.configuration?.impactScale ?? "4-level";
@@ -109,6 +112,7 @@ export function collectAssetFindings(
   }
 
   out.push(...impactScaleFindings(assetData, impactScale, requiredImpactScale));
+  if (isoSafetyLevels) out.push(...ambiguousSafetyFindings(assetData));
 
   for (const asset of assetData.assets) {
     const at = {
@@ -321,6 +325,30 @@ function impactScaleFindings(
     });
   }
   return out;
+}
+
+/**
+ * ISO/SAE 21434: safety rated as the number 4 (the Se factor) without a
+ * categorical severity is ambiguous — irreversible major (Table F.1: major)
+ * or fatal (severe). The ISO risk value reads it as severe; the analyst
+ * should rate the severity categorically.
+ */
+function ambiguousSafetyFindings(assetData: AssetData): AssetFinding[] {
+  return assetData.assets
+    .filter(
+      (a) =>
+        !a.physicalImpact &&
+        a.impactRatings.some(
+          (r) => r.criterionId === "safety" && typeof r.value === "number" && r.value >= 4,
+        ),
+    )
+    .map((a) => ({
+      severity: "warning" as const,
+      key: "tabs.assets.validation.safetyAmbiguous",
+      dialogTab: GENERAL,
+      assetId: a.id,
+      assetLabel: assetLabel(a),
+    }));
 }
 
 /**

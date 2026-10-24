@@ -3,6 +3,7 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isoRiskByCategory } from "../../../risks/services/iso-risk-by-category";
+import { isoFeasibilityFromFactors } from "../../../risks/models/iso-risk-matrix";
 import {
   treatmentFallbackLabel,
   treatmentI18nKey,
@@ -46,13 +47,7 @@ import {
   mandatedRequirementsForThreat,
 } from "../../../risks/models/en50742-approach-a-core";
 import type { SrslAnchorType } from "../../../risks/models/en50742-approach-a-core";
-import {
-  ISO21434_FACTOR_LEVELS,
-  iso21434AttackPotential,
-  iso21434Feasibility,
-  type Iso21434Factors,
-  type Iso21434Feasibility as Iso21434FeasibilityLevel,
-} from "../../../risks/models/iso21434-core";
+import type { Iso21434Feasibility as Iso21434FeasibilityLevel } from "../../../risks/models/iso21434-core";
 import { assetImpactResolver } from "../../../assets/services/asset-impact-resolver";
 import { buildSecurityGoalDocRows } from "../security-goal-doc-rows";
 import { dfdStatsTable } from "../dfd-stats-table";
@@ -144,39 +139,7 @@ export interface DocumentGeneratorResult {
 function resolveIso21434Feasibility(
   factorRatings: { factorId: string; value: number }[],
 ): { attackPotential: number; feasibility: Iso21434FeasibilityLevel } | null {
-  const levelFor = <K extends keyof typeof ISO21434_FACTOR_LEVELS>(
-    factorId: K,
-  ): (typeof ISO21434_FACTOR_LEVELS)[K][number] | undefined => {
-    const rating = factorRatings.find((f) => f.factorId === factorId);
-    if (!rating || rating.value <= 0) return undefined;
-    return ISO21434_FACTOR_LEVELS[factorId][rating.value - 1];
-  };
-
-  const elapsedTime = levelFor("iso_elapsed_time");
-  const expertise = levelFor("iso_expertise");
-  const knowledge = levelFor("iso_knowledge");
-  const windowOfOpportunity = levelFor("iso_window_of_opportunity");
-  const equipment = levelFor("iso_equipment");
-
-  if (
-    !elapsedTime ||
-    !expertise ||
-    !knowledge ||
-    !windowOfOpportunity ||
-    !equipment
-  ) {
-    return null;
-  }
-
-  const factors: Iso21434Factors = {
-    elapsedTime,
-    expertise,
-    knowledge,
-    windowOfOpportunity,
-    equipment,
-  };
-  const attackPotential = iso21434AttackPotential(factors);
-  return { attackPotential, feasibility: iso21434Feasibility(attackPotential) };
+  return isoFeasibilityFromFactors(factorRatings);
 }
 
 /**

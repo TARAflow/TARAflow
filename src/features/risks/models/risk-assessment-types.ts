@@ -38,6 +38,7 @@ import { repairCustomMitigationSelections } from "./risk-mitigation-types";
 import type { MoSCoWPriority, RiskTreatment } from "./risk-scale-types";
 import type { RiskIntegrationConnection } from "./risk-integration-types";
 import type { Srsl, AttackPotentialBand } from "./en50742-approach-a-core";
+import type { IsoRisk } from "./iso-risk-matrix";
 
 // ==================== RISK ====================
 export interface RiskUpdateResult {
@@ -75,6 +76,14 @@ export interface Risk {
    * iso-21434 and only when the values changed; absent = before 0c.
    */
   calcStamp?: CalcStamp;
+  /**
+   * ISO/SAE 21434 risk value 1–5 (RQ-15-15/16, conformance plan 3a): impact
+   * level of the damage scenario × attack feasibility of this path, matrix
+   * Annex H.8; with the residual after mitigation. Written by the app layer
+   * (commitIsoRiskValues) only under iso-21434; absent elsewhere and while
+   * impact or feasibility is not rated.
+   */
+  isoRisk?: IsoRisk;
   /**
    * EN 50742 Approach A (§2.2 Output Model C; routed via the §11.2 gate,
    * calculateGatedRiskValues in en50742-risk-calculation.ts) — the primary,

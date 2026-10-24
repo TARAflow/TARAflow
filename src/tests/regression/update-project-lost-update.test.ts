@@ -112,6 +112,12 @@ vi.mock("app/utils/commit-calc-stamps", () => ({
   commitCalcStamps: vi.fn((_prev: unknown, next: unknown) => next),
 }));
 
+// ISO risk values 1–5 (conformance plan 3a) — passthrough, covered by
+// commit-iso-risk-values.test.ts.
+vi.mock("app/utils/commit-iso-risk-values", () => ({
+  commitIsoRiskValues: vi.fn((_prev: unknown, next: unknown) => next),
+}));
+
 // ==================== IMPORTS (after mocks) ====================
 
 import { useProjectManager } from "app/hooks/use-project-manager";

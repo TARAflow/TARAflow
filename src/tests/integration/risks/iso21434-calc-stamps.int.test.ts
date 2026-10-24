@@ -26,7 +26,10 @@ const FIXTURE = readFileSync(
 );
 
 describe("ISO calculation stamps — open, edit, save", () => {
-  it("opening and saving an ISO project writes no stamp; schema is 10", () => {
+  // cnc-ref carries no ISO feasibility (no tree, no iso_* factors), so the
+  // migration computes no ISO risk value and stamps nothing (3a: only risks
+  // that get an isoRisk in migration 9 → 10 are stamped, decision 20 E5).
+  it("opening and saving an ISO project without computable risk values writes no stamp; schema is 10", () => {
     const saved = serialiseProject(open(FIXTURE));
     expect(saved).not.toContain("calcStamp");
     expect(JSON.parse(saved).schemaVersion).toBe(10);

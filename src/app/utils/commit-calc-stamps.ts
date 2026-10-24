@@ -221,6 +221,7 @@ function computedPart(r: Risk): unknown {
     calculatedLikelihood: r.calculatedLikelihood,
     calculatedRiskBeforeMitigation: r.calculatedRiskBeforeMitigation,
     calculatedRiskAfterMitigation: r.calculatedRiskAfterMitigation,
+    isoRisk: r.isoRisk,
   };
 }
 

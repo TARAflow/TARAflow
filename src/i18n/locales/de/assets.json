@@ -221,6 +221,7 @@
         }
       },
       "validation": {
+        "safetyAmbiguous": "Asset {{id}}: Safety ist mit 4 bewertet, ohne Schwere — das bedeutet irreversibel schwer oder tödlich. ISO/SAE 21434 zählt es als schwerwiegend; die Schwere bewerten (Tabelle F.1)",
         "impactScaleRequired": "ISO/SAE 21434 verlangt die Impact-Skala {{required}} (RQ-15-05); das Projekt verwendet {{current}}. Werte werden nicht umgerechnet — {{count}} bewertete(s) Asset(s) nach dem Wechsel neu bewerten.",
         "impactOutsideScale": "Asset {{id}}: Impact-Wert(e) {{values}} ausserhalb der Skala (max. {{max}}) — neu bewerten",
         "noAssets": "Keine Assets definiert",

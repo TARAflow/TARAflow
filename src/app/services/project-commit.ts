@@ -10,6 +10,7 @@ import { commitAssetSync } from "../utils/commit-asset-sync";
 import { buildAssetHazardLinks } from "../utils/build-asset-hazard-links";
 import { commitHazardSafety } from "../utils/commit-hazard-safety";
 import { commitCalcStamps } from "../utils/commit-calc-stamps";
+import { commitIsoRiskValues } from "../utils/commit-iso-risk-values";
 import { commitLoadedPhaseStatus, commitPhaseStatus } from "./phase-status-commit";
 
 // HazardItem safety chokepoint — runs right after commitAssetSync. Re-rates
@@ -35,8 +36,8 @@ export function ensureProjectGraph(p: Project): Project {
 
 /**
  * Merges a partial patch onto the freshest project state and runs the commit
- * chain (asset sync, safety, then ISO calculation stamps + attack-tree date
- * churn fix against `p`). Every top-level field not in the patch is taken
+ * chain (asset sync, safety, ISO risk values 1–5, then ISO calculation
+ * stamps + attack-tree date churn fix — the last two against `p`). Every top-level field not in the patch is taken
  * from `p`.
  */
 export function mergeProjectPatch(
@@ -51,7 +52,10 @@ export function mergeProjectPatch(
     hasUnsavedChanges: true,
   };
   return commitPhaseStatus(
-    commitCalcStamps(p, commitProjectSafety(commitAssetSync(p, merged))),
+    commitCalcStamps(
+      p,
+      commitIsoRiskValues(p, commitProjectSafety(commitAssetSync(p, merged))),
+    ),
   );
 }
 
