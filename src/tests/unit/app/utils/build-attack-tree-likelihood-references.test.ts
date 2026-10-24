@@ -115,6 +115,17 @@ describe("buildAttackTreeLikelihoodReferences", () => {
       }
     });
 
+    it("Mapping B follows the risk scale (decision 21) — never above its top", () => {
+      const tree = makeTree(SIMPLE_TREE, ASSET_ANCHOR);
+      for (const [scale, top] of [["3-level", 3], ["4-level", 4], ["5-level", 5]] as const) {
+        const refs = buildAttackTreeLikelihoodReferences(makeData([tree]), scale);
+        for (const ref of refs) {
+          expect(ref.mappedValue).toBeLessThanOrEqual(top);
+          expect(ref.levelToRiskScale!.high).toBe(top);
+        }
+      }
+    });
+
     it("each reference carries a mappedValue on the risk scale", () => {
       const tree = makeTree(SIMPLE_TREE, ASSET_ANCHOR);
       const refs = buildAttackTreeLikelihoodReferences(makeData([tree]));

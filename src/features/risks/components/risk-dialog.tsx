@@ -90,13 +90,9 @@ const ISO_AP_POINTS_BY_FACTOR: Record<string, Record<string, number>> = {
   iso_equipment: ISO21434_EQUIPMENT_POINTS,
 };
 
-// Fallback band→scale mapping (ISO default) when the tree didn't pass one.
-const DEFAULT_LEVEL_TO_RISK_SCALE: Record<string, number> = {
-  "very-low": 1,
-  low: 2,
-  medium: 3,
-  high: 5,
-};
+// Mapping B (feasibility level → risk scale) comes from the risk scale
+// (shared feasibilityLevelToRiskScale, decision 21) — not from the snapshot
+// stored on the risk, which carried the 5-level default before.
 
 /** Table G.6 points for a factor at a given 1-based rating value. */
 function isoFactorPoints(factorId: string, value: number): number {
@@ -149,6 +145,7 @@ import {
   type AssetGroup,
   MitigationCoverageBadge,
   computeAllMitigationCoverage,
+  feasibilityLevelToRiskScale,
 } from "shared";
 import {
   applyAssetCriteriaToFactorRatings,
@@ -501,7 +498,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       ap += isoFactorPoints(id, v);
     }
     const band = iso21434Feasibility(ap);
-    const map = assessment.levelToRiskScale ?? DEFAULT_LEVEL_TO_RISK_SCALE;
+    const map: Record<string, number> = feasibilityLevelToRiskScale(configuration.scale);
     const derived = map[band] ?? 0;
 
     const current = local.mitigatedFactorRatings.find(
@@ -1223,7 +1220,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       ap += isoFactorPoints(id, v);
     }
     const band = iso21434Feasibility(ap);
-    const map = treeAssessment?.levelToRiskScale ?? DEFAULT_LEVEL_TO_RISK_SCALE;
+    const map: Record<string, number> = feasibilityLevelToRiskScale(configuration.scale);
     return { ap, band, likelihood: map[band] ?? 0 };
   };
 
@@ -1333,33 +1330,46 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
         (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
       );
       const residualValue = residual?.value ?? treeFactorRating?.value ?? 0;
-      // ISO default levelToRiskScale — feasibility band → risk-scale value.
+      // Feasibility band → risk-scale value (Mapping B from the risk scale).
+      const mapB = feasibilityLevelToRiskScale(configuration.scale);
       const residualOptions: Array<{ value: number; label: string }> = [
         {
-          value: 5,
+          value: mapB.high,
           label: t("tabs.risks.dialog.feasibility.high", {
             defaultValue: "High",
           }),
         },
         {
-          value: 3,
+          value: mapB.medium,
           label: t("tabs.risks.dialog.feasibility.medium", {
             defaultValue: "Medium",
           }),
         },
         {
-          value: 2,
+          value: mapB.low,
           label: t("tabs.risks.dialog.feasibility.low", {
             defaultValue: "Low",
           }),
         },
         {
-          value: 1,
+          value: mapB["very-low"],
           label: t("tabs.risks.dialog.feasibility.veryLow", {
             defaultValue: "Very low",
           }),
         },
       ];
+      // A 3-level scale maps low and very low onto the same value — one
+      // option per value, labels joined.
+      for (let i = residualOptions.length - 1; i > 0; i--) {
+        const same = residualOptions.findIndex((o) => o.value === residualOptions[i].value);
+        if (same < i) {
+          residualOptions[same] = {
+            ...residualOptions[same],
+            label: `${residualOptions[same].label} / ${residualOptions[i].label}`,
+          };
+          residualOptions.splice(i, 1);
+        }
+      }
       // Keep the current value selectable even if it is outside the standard
       // bands (e.g. 0 after an "eliminate" treatment, or a custom scale).
       if (!residualOptions.some((o) => o.value === residualValue)) {

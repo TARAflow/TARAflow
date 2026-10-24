@@ -31,11 +31,13 @@
 //     aggregatedLikelihoodLevel (the MAX across paths, ISO 15.8 NOTE 2 — the
 //     attacker takes the easiest route) is the value.
 //
-// Mapping B (FeasibilityLevel → risk scale) happens HERE, via the project's
-// FeasibilityConfiguration.levelToRiskScale. features/risks never sees a
-// FeasibilityLevel.
+// Mapping B (FeasibilityLevel → risk scale) happens HERE, derived from the
+// project's risk scale (shared feasibilityLevelToRiskScale, decision 21 —
+// the stored FeasibilityConfiguration.levelToRiskScale is ignored).
+// features/risks never sees a FeasibilityLevel.
 
-import type { AttackTreeLikelihoodReference } from "shared";
+import type { AttackTreeLikelihoodReference, RiskScaleLevels } from "shared";
+import { feasibilityLevelToRiskScale } from "shared";
 import type {
   AttackTreeData,
   AttackTree,
@@ -43,7 +45,6 @@ import type {
 } from "features/attacktree";
 import {
   buildThreatId,
-  resolveFeasibilityConfiguration,
   generateThreatsFromAttackTree,
 } from "features/attacktree";
 
@@ -65,20 +66,19 @@ function mapLevel(
  * risks. One entry per (risk that a tree feeds).
  *
  * @param attackTrees  project.attackTrees (AttackTreeData, or null)
+ * @param riskScale    project.risks.configuration.scale (Mapping B target)
  * @returns            flat list across all trees; [] when there are no trees or
  *                     none carry a rated pathAnalysis
  */
 export function buildAttackTreeLikelihoodReferences(
   attackTrees: AttackTreeData | null | undefined,
+  riskScale?: RiskScaleLevels,
 ): AttackTreeLikelihoodReference[] {
   const trees = attackTrees?.trees ?? [];
   if (trees.length === 0) return [];
 
-  // Project-wide feasibility config → the Mapping-B table. Resolve once.
-  const feasibilityConfig = resolveFeasibilityConfiguration(
-    attackTrees?.configuration,
-  );
-  const levelToRiskScale = feasibilityConfig.levelToRiskScale;
+  // Mapping B from the risk scale — resolved once.
+  const levelToRiskScale = { ...feasibilityLevelToRiskScale(riskScale) };
 
   const refs: AttackTreeLikelihoodReference[] = [];
 

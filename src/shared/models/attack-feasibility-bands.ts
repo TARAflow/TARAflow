@@ -42,3 +42,34 @@ export function feasibilityBandFor(
   }
   return level;
 }
+
+// ==================== MAPPING B: FEASIBILITY → RISK SCALE ====================
+
+/** The risk scale sizes (same literals as the risk feature's RiskScaleType). */
+export type RiskScaleLevels = "3-level" | "4-level" | "5-level";
+
+const LEVEL_TO_RISK_SCALE: Record<
+  RiskScaleLevels,
+  Readonly<Record<FeasibilityBandLevel, number>>
+> = {
+  "3-level": { "very-low": 1, low: 1, medium: 2, high: 3 },
+  "4-level": { "very-low": 1, low: 2, medium: 3, high: 4 },
+  "5-level": { "very-low": 1, low: 2, medium: 3, high: 5 },
+};
+
+/**
+ * Feasibility level → value on the project's risk scale ("Mapping B"),
+ * derived from the risk scale at runtime (conformance plan decision 21).
+ * Before, every project carried the stored 5-level default {1, 2, 3, 5}
+ * (no dialog ever swapped it), so a 3- or 4-level project got a likelihood
+ * of 5 outside its scale. Unknown / absent scale → 4-level (the default).
+ */
+export function feasibilityLevelToRiskScale(
+  scale: RiskScaleLevels | undefined,
+): Readonly<Record<FeasibilityBandLevel, number>> {
+  return LEVEL_TO_RISK_SCALE[scale ?? "4-level"] ?? LEVEL_TO_RISK_SCALE["4-level"];
+}
+
+/** The mapping every project stored before decision 21 (5-level default). */
+export const LEGACY_LEVEL_TO_RISK_SCALE: Readonly<Record<FeasibilityBandLevel, number>> =
+  LEVEL_TO_RISK_SCALE["5-level"];

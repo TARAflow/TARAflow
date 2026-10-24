@@ -333,33 +333,26 @@ describe("aggregateFeasibility", () => {
 // Mapping B — feasibility → risk scale
 // ──────────────────────────────────────────────────────────────────────────
 
-describe("feasibilityToRiskScale (Mapping B)", () => {
-  it("maps every level onto the risk scale", () => {
-    const config = isoConfig();
-    for (const level of ["very-low", "low", "medium", "high"] as const) {
-      expect(feasibilityToRiskScale(level, config)).toBeGreaterThan(0);
-    }
+describe("feasibilityToRiskScale (Mapping B, decision 21)", () => {
+  const LEVELS = ["very-low", "low", "medium", "high"] as const;
+
+  it("is derived from the risk scale, not from the stored configuration", () => {
+    expect(LEVELS.map((l) => feasibilityToRiskScale(l, "3-level"))).toEqual([1, 1, 2, 3]);
+    expect(LEVELS.map((l) => feasibilityToRiskScale(l, "4-level"))).toEqual([1, 2, 3, 4]);
+    expect(LEVELS.map((l) => feasibilityToRiskScale(l, "5-level"))).toEqual([1, 2, 3, 5]);
+    expect(LEVELS.map((l) => feasibilityToRiskScale(l, undefined))).toEqual([1, 2, 3, 4]);
+  });
+
+  it("never exceeds the scale — high on a 4-level scale is 4, not 5", () => {
+    expect(feasibilityToRiskScale("high", "4-level")).toBe(4);
+    expect(feasibilityToRiskScale("high", "3-level")).toBe(3);
   });
 
   it("is monotonic — more feasible never scores lower", () => {
-    const config = isoConfig();
-    expect(feasibilityToRiskScale("very-low", config)).toBeLessThan(
-      feasibilityToRiskScale("low", config),
-    );
-    expect(feasibilityToRiskScale("low", config)).toBeLessThan(
-      feasibilityToRiskScale("medium", config),
-    );
-    expect(feasibilityToRiskScale("medium", config)).toBeLessThan(
-      feasibilityToRiskScale("high", config),
-    );
-  });
-
-  it("honours a project-specific scale", () => {
-    const threeLevel = isoConfig({
-      levelToRiskScale: { "very-low": 1, low: 1, medium: 2, high: 3 },
-    });
-    expect(feasibilityToRiskScale("high", threeLevel)).toBe(3);
-    expect(feasibilityToRiskScale("very-low", threeLevel)).toBe(1);
+    for (const scale of ["3-level", "4-level", "5-level"] as const) {
+      const v = LEVELS.map((l) => feasibilityToRiskScale(l, scale));
+      for (let i = 1; i < v.length; i++) expect(v[i]).toBeGreaterThanOrEqual(v[i - 1]);
+    }
   });
 });
 

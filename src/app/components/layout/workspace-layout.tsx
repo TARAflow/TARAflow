@@ -1108,6 +1108,7 @@ export const WorkspaceLayout: React.FC = () => {
               ),
               attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
                 activeProject.attackTrees,
+                activeProject.risks?.configuration?.scale,
               ),
               recommendedImpactAggregation: getRegulationPreset(
                 regulationPresetFromTags(

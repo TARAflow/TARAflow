@@ -147,7 +147,7 @@
         "v7": "Risks are linked by the stable threat id instead of the display number.",
         "v8": "Asset-to-asset relations are stored in the project file. Before, they were lost on save.",
         "v9": "The DFD can span several pages (top level and sub-diagrams); older TARAflow versions can no longer open the file, because they would merge the pages. Person-harm severity uses a 5-level scale (reversible minor/major, irreversible minor/major, fatal). Old values are mapped to the higher level: irreversible injury becomes irreversible major. Safety relevance of assets is derived from safety annotations and hazard items: the asset fields \"safety-relevant\" and \"Safety Impact\" are removed; a Safety Impact without another rating becomes a manual override.",
-        "v10": "No data is changed. In ISO/SAE 21434 projects, risks and attack-tree analyses can record with which calculation version and tables their values were computed; older TARAflow versions can no longer open the file, so they do not drop these records on save."
+        "v10": "Risks that take their likelihood from an attack tree are corrected: on a 3- or 4-level risk scale a \"high\" attack path counted as 5, outside the scale; the value now fits the scale (e.g. 4 on a 4-level scale) and the risk is recalculated. 5-level projects are unchanged. In ISO/SAE 21434 projects, risks and attack-tree analyses can record with which calculation version and tables their values were computed; older TARAflow versions can no longer open the file, so they do not drop these records on save."
       }
     },
     "confirmAssetDelete": {

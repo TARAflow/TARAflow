@@ -12,7 +12,7 @@
 //     tables (attack-potential weights, bands).
 //   - Risk: risk + feasibility core versions + hash of everything the value
 //     runs through: risk configuration, asset impact scale, the attack-tree
-//     feasibility configuration (incl. feasibility → risk scale) and the fixed
+//     feasibility configuration, Mapping B (feasibility → risk scale) and the fixed
 //     ISO tables of the iso_* fallback.
 //   A stamp is written only when a value was actually (re)computed: the risk is
 //   new in the same project, or its computed values / factor ratings changed;
@@ -35,6 +35,7 @@
 import type { Project } from "../models/project-types";
 import {
   EMPTY_PROJECT_TAGS,
+  feasibilityLevelToRiskScale,
   regulationPresetFromTags,
   type CalcStamp,
 } from "shared";
@@ -120,7 +121,10 @@ export function riskCalcStamp(project: Project): CalcStamp {
       impactScale: project.assets?.configuration?.impactScale ?? null,
       feasibility: {
         ...pathTables(feasibility),
-        levelToRiskScale: feasibility.levelToRiskScale,
+        // Mapping B as applied: derived from the risk scale (decision 21).
+        levelToRiskScale: feasibilityLevelToRiskScale(
+          project.risks?.configuration?.scale,
+        ),
       },
       isoTables: ISO_RISK_CALC_TABLES,
     }),

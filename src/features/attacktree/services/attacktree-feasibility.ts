@@ -20,6 +20,7 @@
 // callers pass a FeasibilityConfiguration, so the report generator and the app
 // provably agree.
 
+import { feasibilityLevelToRiskScale, type RiskScaleLevels } from "shared";
 import {
   type AttackPotentialFactors,
   type BenefitLevel,
@@ -170,9 +171,10 @@ export const aggregateLikelihood = aggregateFeasibility;
  */
 export function feasibilityToRiskScale(
   level: FeasibilityLevel,
-  config: FeasibilityConfiguration,
+  scale: RiskScaleLevels | undefined,
 ): number {
-  return config.levelToRiskScale[level];
+  // Derived from the risk scale (decision 21), not from the stored config.
+  return feasibilityLevelToRiskScale(scale)[level];
 }
 
 // ==================== COMPARISON HELPERS ====================

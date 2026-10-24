@@ -348,11 +348,14 @@ export interface FeasibilityConfiguration {
   quickBands: QuickFeasibilityBand[];
   benefitShift: Record<BenefitLevel, number>;
   /**
-   * Mapping B: feasibility level → a value on the project's risk scale
-   * (3/4/5-level), so it can be combined with impact per 15.8.
-   * Populated per RiskScaleType, mirroring DEFAULT_ASSET_IMPACT_MAPPINGS.
+   * @deprecated IGNORED (conformance plan decision 21). Mapping B
+   * (feasibility level → risk scale) is derived at runtime from the risk
+   * scale: shared feasibilityLevelToRiskScale(). No dialog ever wrote this
+   * field, so every project stored the 5-level default {1, 2, 3, 5} — on a
+   * 3- or 4-level scale a likelihood outside the scale. Kept optional only so
+   * old files type-check; migration 9 → 10 corrects the stored risk values.
    */
-  levelToRiskScale: Record<FeasibilityLevel, number>;
+  levelToRiskScale?: Record<FeasibilityLevel, number>;
 }
 
 export const DEFAULT_FEASIBILITY_CONFIGURATION: FeasibilityConfiguration = {
@@ -362,11 +365,4 @@ export const DEFAULT_FEASIBILITY_CONFIGURATION: FeasibilityConfiguration = {
   bands: DEFAULT_FEASIBILITY_BANDS,
   quickBands: DEFAULT_QUICK_BANDS,
   benefitShift: DEFAULT_BENEFIT_SHIFT,
-  // 5-level default; the config dialog swaps this per RiskScaleType.
-  levelToRiskScale: {
-    "very-low": 1,
-    low: 2,
-    medium: 3,
-    high: 5,
-  },
 };
