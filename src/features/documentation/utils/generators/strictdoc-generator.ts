@@ -38,6 +38,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
+import type { MethodologySection } from "../methodology-sections";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -148,6 +149,43 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     // A nested section inside the chapter's (closed after the content).
     const text = summary ? `[FREETEXT]\n${summary}\n[/FREETEXT]\n\n` : "";
     return `[SECTION]\nTITLE: ${title}\n\n${text}${body}[/SECTION]\n\n`;
+  }
+
+  // Methodology chapter (ISO/SAE 21434 conformance plan 0d). A section holds
+  // one free text, so every table is a sub-section of its own.
+  formatMethodologyChapter(title: string, intro: string, body: string): string {
+    return [
+      "[SECTION]",
+      `TITLE: ${title}`,
+      "",
+      "[FREETEXT]",
+      intro,
+      "[/FREETEXT]",
+      "",
+      body + "[/SECTION]",
+    ].join("\n") + "\n\n";
+  }
+
+  formatMethodologySection(section: MethodologySection): string {
+    const row = (cells: string[]) =>
+      cells
+        .map((c, i) => `${i === 0 ? "   * - " : "     - "}${this.escapeTableText(c)}`)
+        .join("\n");
+    return [
+      "[SECTION]",
+      `TITLE: ${section.title}`,
+      "",
+      "[FREETEXT]",
+      ...(section.intro ? [section.intro, ""] : []),
+      ".. list-table::",
+      "   :header-rows: 1",
+      "",
+      row(section.headers),
+      ...section.rows.map(row),
+      "[/FREETEXT]",
+      "",
+      "[/SECTION]",
+    ].join("\n") + "\n\n";
   }
 
   formatStatsTable(table: StatsTable): string {

@@ -9,6 +9,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
+import type { MethodologySection } from "../methodology-sections";
 import { HTML_TEMPLATES } from "../templates/html-templates";
 import { replacePlaceholders, processConditionals } from "../templates";
 
@@ -198,6 +199,26 @@ export class HtmlGenerator extends BaseDocumentGenerator {
 
   formatReportGroup(title: string, body: string, summary?: string): string {
     return `<h3>${this.escapeHtml(title)}</h3>\n${summary ? `<p>${this.escapeHtml(summary)}</p>\n` : ""}${body}`;
+  }
+
+  // Methodology chapter (ISO/SAE 21434 conformance plan 0d)
+  formatMethodologyChapter(title: string, intro: string, body: string): string {
+    return `<section id="methodology">\n  <h2>${this.escapeHtml(title)}</h2>\n  <p>${this.escapeHtml(intro)}</p>\n${body}</section>\n\n`;
+  }
+
+  formatMethodologySection(section: MethodologySection): string {
+    const cells = (tag: "th" | "td", list: string[]) =>
+      list.map((c) => `<${tag}>${this.escapeHtml(c)}</${tag}>`).join("");
+    return [
+      `  <h3>${this.escapeHtml(section.title)}</h3>`,
+      ...(section.intro ? [`  <p>${this.escapeHtml(section.intro)}</p>`] : []),
+      "  <table>",
+      `    <thead><tr>${cells("th", section.headers)}</tr></thead>`,
+      "    <tbody>",
+      ...section.rows.map((r) => `      <tr>${cells("td", r)}</tr>`),
+      "    </tbody>",
+      "  </table>",
+    ].join("\n") + "\n";
   }
 
   formatStatsTable(table: StatsTable): string {

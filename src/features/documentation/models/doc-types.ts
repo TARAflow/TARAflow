@@ -2,7 +2,12 @@
 // Direct references to feature types + minimal computed values
 // Location: features/documentation/models/doc-types.ts
 
-import type { PhaseStatusMap, StrideMethod, StrideCategory } from "shared";
+import type {
+  CalcStamp,
+  PhaseStatusMap,
+  StrideMethod,
+  StrideCategory,
+} from "shared";
 
 // ==================== DIRECT IMPORTS FROM FEATURES ====================
 // Single Source of Truth - no duplication!
@@ -24,6 +29,7 @@ export type DocLanguage = "en" | "de";
 export type DocChapterId =
   | "executive-summary"
   | "applicable-regulations"
+  | "methodology"
   | "system-overview"
   | "dfd"
   | "dfd-descriptions"
@@ -54,6 +60,7 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Applicable Regulations",
     de: "Anwendbare Regulierungen",
   },
+  methodology: { en: "Methodology", de: "Methodik" },
   "system-overview": { en: "System Overview", de: "Systemübersicht" },
   dfd: { en: "Data Flow Diagram", de: "Datenflussdiagramm" },
   "dfd-descriptions": {
@@ -105,6 +112,7 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
 export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "executive-summary", enabled: true, autoHideIfEmpty: false },
   { id: "applicable-regulations", enabled: true, autoHideIfEmpty: true },
+  { id: "methodology", enabled: true, autoHideIfEmpty: true },
   { id: "system-overview", enabled: true, autoHideIfEmpty: false },
   { id: "dfd", enabled: true, autoHideIfEmpty: true },
   { id: "dfd-descriptions", enabled: true, autoHideIfEmpty: true },
@@ -225,6 +233,40 @@ export interface DocComputedValues {
 
   /** Cached status labels (status -> label) */
   statusLabels: Map<string, string>;
+
+  /**
+   * Methodology record, derived by the app layer (buildMethodologyRecord,
+   * ISO/SAE 21434 conformance plan 0b/0d) — the report's methodology chapter
+   * renders exactly this, so it cannot describe another method than the one
+   * applied. Absent → no methodology chapter.
+   */
+  methodology?: DocMethodology;
+}
+
+/** What the methodology chapter needs from the app's methodology record. */
+export interface DocMethodology {
+  presetId: string;
+  presetNameKey: string;
+  impact: {
+    scale: string;
+    requiredScale?: string;
+    scaleConforms: boolean;
+    criteriaIds: string[];
+    aggregation: string;
+  };
+  likelihood: {
+    method: string;
+    feasibilityMethod: string;
+    likelihoodModel: string;
+    gateRules: Readonly<Record<string, { readonly AND: string; readonly OR: string }>>;
+    bands: readonly { level: string; minPotential: number }[];
+  };
+  treatment: {
+    vocabulary: string;
+    options: { stored: string; label: string }[];
+  };
+  securityProperties: readonly string[];
+  calcStamps?: { risk: CalcStamp; path: CalcStamp };
 }
 
 // ==================== COMPLETE PROJECT DATA ====================

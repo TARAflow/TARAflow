@@ -9,6 +9,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
+import type { MethodologySection } from "../methodology-sections";
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
@@ -129,6 +130,27 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
 
   formatReportGroup(title: string, body: string, summary?: string): string {
     return `=== ${title}\n\n${summary ? `${summary}\n\n` : ""}${body}`;
+  }
+
+  // Methodology chapter (ISO/SAE 21434 conformance plan 0d)
+  formatMethodologyChapter(title: string, intro: string, body: string): string {
+    return `== ${title}\n\n${intro}\n\n${body}`;
+  }
+
+  formatMethodologySection(section: MethodologySection): string {
+    const row = (cells: string[]) =>
+      `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")}`;
+    return [
+      `=== ${section.title}`,
+      "",
+      ...(section.intro ? [section.intro, ""] : []),
+      `[cols="${section.headers.map(() => "1").join(",")}", options="header"]`,
+      "|===",
+      row(section.headers),
+      "",
+      ...section.rows.map(row),
+      "|===",
+    ].join("\n") + "\n\n";
   }
 
   formatStatsTable(table: StatsTable): string {

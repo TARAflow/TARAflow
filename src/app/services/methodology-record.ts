@@ -10,20 +10,24 @@
 
 import type { Project } from "../models/project-types";
 import {
-  CIANAAA_TO_CIA,
+  CIANAAA_TO_STRIDE,
   EMPTY_PROJECT_TAGS,
   getRegulationPreset,
   regulationPresetFromTags,
   type ImpactAggregation,
   type LikelihoodMethod,
   type RegulationPresetId,
+  type SecurityGoalType,
 } from "shared";
 import { FEASIBILITY_GATE_RULES } from "features/attacktree/services/attacktree-calculator";
 import {
   DEFAULT_FEASIBILITY_CONFIGURATION,
+  type FeasibilityBand,
   type FeasibilityMethod,
   type LikelihoodModel,
 } from "features/attacktree/models/attacktree-feasibility-types";
+import type { CalcStamp } from "shared";
+import { pathCalcStamp, riskCalcStamp } from "../utils/commit-calc-stamps";
 import type { ImpactScaleType } from "features/assets/models/asset-impact-types";
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import {
@@ -56,14 +60,21 @@ export interface MethodologyRecord {
     likelihoodModel: LikelihoodModel;
     /** AND / OR rules per kind of rating, as the attack-tree calculator applies them. */
     gateRules: typeof FEASIBILITY_GATE_RULES;
+    /** Attack potential → feasibility bands (Table G.7) of the project. */
+    bands: readonly FeasibilityBand[];
   };
   treatment: {
     vocabulary: TreatmentVocabulary;
     /** Offered options: stored value → label (Avoid/Retain… under ISO). */
     options: { stored: RiskTreatment; label: string }[];
   };
-  /** CIANAAA → C/I/A (ISO/SAE 21434 3.1.20 names only C, I, A). */
-  cianaaaToCia: typeof CIANAAA_TO_CIA;
+  /** Cybersecurity properties the TARA rates (CIANAAA). ISO/SAE 21434
+   * 3.1.20 names C, I, A only as examples ("include"), so the seven are used
+   * as they are and explained in the report — no mapping onto CIA. */
+  securityProperties: SecurityGoalType[];
+  /** The calculation stamps a value computed NOW would carry (iso-21434
+   * only) — what the report cites for reproducibility (plan 0c / 0d). */
+  calcStamps?: { risk: CalcStamp; path: CalcStamp };
 }
 
 export function buildMethodologyRecord(project: Project): MethodologyRecord {
@@ -87,7 +98,7 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
       scale: assetConfig.impactScale,
       requiredScale,
       scaleConforms: !requiredScale || requiredScale === assetConfig.impactScale,
-      criteriaIds: assetConfig.impactCriteria.map((c) => c.id),
+      criteriaIds: (assetConfig.impactCriteria ?? []).map((c) => c.id),
       aggregation: riskConfig?.impactAggregation ?? "weighted-mean",
     },
     likelihood: {
@@ -95,6 +106,7 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
       feasibilityMethod: feasibilityConfig.method,
       likelihoodModel: feasibilityConfig.likelihoodModel,
       gateRules: FEASIBILITY_GATE_RULES,
+      bands: feasibilityConfig.bands,
     },
     treatment: {
       vocabulary,
@@ -103,6 +115,15 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
         label: treatmentFallbackLabel(tr.value, vocabulary),
       })),
     },
-    cianaaaToCia: CIANAAA_TO_CIA,
+    // Same set and order as the threat generator's CIANAAA_TO_STRIDE.
+    securityProperties: Object.keys(CIANAAA_TO_STRIDE) as SecurityGoalType[],
+    ...(presetId === "iso-21434"
+      ? {
+          calcStamps: {
+            risk: riskCalcStamp(project),
+            path: pathCalcStamp(feasibilityConfig),
+          },
+        }
+      : {}),
   };
 }

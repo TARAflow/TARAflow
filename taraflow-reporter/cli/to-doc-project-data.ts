@@ -16,6 +16,7 @@
 //     draw.io needed).
 
 import type { Project } from "../../src/app/models/project-types";
+import { buildMethodologyRecord } from "../../src/app/services/methodology-record";
 import type {
   DocProjectData,
   DocComputedValues,
@@ -71,7 +72,12 @@ export function toDocProjectData(
     // Plural → singular! (see plan gotcha)
     attackTree: project.attackTrees as DocProjectData["attackTree"],
 
-    computed: createEmptyComputedValues(language),
+    computed: {
+      ...createEmptyComputedValues(language),
+      // Methodology chapter (ISO/SAE 21434 conformance plan 0d) — the same
+      // derived record as in the app, so CLI and app report one method.
+      methodology: buildMethodologyRecord(project),
+    },
 
     documentation: project.documentation as DocProjectData["documentation"],
   };

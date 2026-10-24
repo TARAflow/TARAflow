@@ -9,6 +9,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
+import type { MethodologySection } from "../methodology-sections";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -152,6 +153,24 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
 
   formatReportGroup(title: string, body: string, summary?: string): string {
     return `### ${title}\n\n${summary ? `${summary}\n\n` : ""}${body}`;
+  }
+
+  // Methodology chapter (ISO/SAE 21434 conformance plan 0d)
+  formatMethodologyChapter(title: string, intro: string, body: string): string {
+    return `## ${title}\n\n${intro}\n\n${body}`;
+  }
+
+  formatMethodologySection(section: MethodologySection): string {
+    const row = (cells: string[]) =>
+      `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")} |`;
+    return [
+      `### ${section.title}`,
+      "",
+      ...(section.intro ? [section.intro, ""] : []),
+      row(section.headers),
+      `|${section.headers.map(() => "---").join("|")}|`,
+      ...section.rows.map(row),
+    ].join("\n") + "\n\n";
   }
 
   formatStatsTable(table: StatsTable): string {

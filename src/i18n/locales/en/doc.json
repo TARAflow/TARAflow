@@ -30,6 +30,96 @@
         "traceabilityMatrix": "Traceability Matrix (ISO/SAE 21434)",
         "appendix": "Appendix"
       },
+      "methodology": {
+        "intro": "This chapter documents the method the TARA was computed with. It is generated from the project configuration and from the rules the calculation applies, so it cannot describe another method than the one used.",
+        "overview": "Method",
+        "item": "Item",
+        "value": "Value",
+        "normativeBasis": "Normative basis",
+        "impactScale": "Impact rating (15.5)",
+        "scaleNotConforming": "does not conform: ISO/SAE 21434 requires four impact ratings (RQ-15-05)",
+        "scale": {
+          "3-level": "3 levels",
+          "4-level": "4 levels",
+          "5-level": "5 levels"
+        },
+        "impactCategories": "Impact categories",
+        "impactAggregation": "Impact of a risk",
+        "aggregation": {
+          "max": "highest rated category (no weighting, 15.5 NOTE 1)",
+          "harm-floor": "harm to people / environment as floor, otherwise weighted mean",
+          "weighted-mean": "weighted mean of the rated factors"
+        },
+        "likelihood": "Likelihood (15.7)",
+        "likelihoodMethod": {
+          "iso-21434": "attack feasibility (attack potential, Annex G.2 / ISO/IEC 18045)",
+          "weighted-mean": "weighted mean of likelihood factors",
+          "en-50742-a": "attack potential (EN 50742 Annex B)",
+          "etsi-tvra": "attack potential (ETSI TS 102 165-1)"
+        },
+        "feasibilityMethod": "Attack feasibility rating",
+        "feasibility": {
+          "attack-potential": "attack-potential based (Annex G.2)",
+          "quick": "quick rating (feasibility level per leaf)",
+          "cvss": "CVSS based",
+          "attack-vector": "attack-vector based"
+        },
+        "likelihoodModel": {
+          "feasibility-only": "likelihood = attack feasibility",
+          "feasibility-x-motivation": "likelihood = feasibility combined with attacker benefit"
+        },
+        "bands": "Attack feasibility from attack potential (Table G.7)",
+        "feasibilityLevel": "Attack feasibility",
+        "attackPotential": "Attack potential",
+        "gateRules": "Attack-tree aggregation",
+        "gateRulesIntro": "How the children of an AND / OR node combine, per kind of leaf rating. The attack tree's feasibility is the most feasible path (15.8 NOTE 2).",
+        "ratingKind": "Leaf rating",
+        "kind": {
+          "potential": "Attack potential (effort)",
+          "probability": "Probability",
+          "ordinal": "Feasibility level only"
+        },
+        "rule": {
+          "sum": "sum",
+          "min": "minimum",
+          "max": "maximum",
+          "product": "product",
+          "union": "union (1 − ∏(1 − p))"
+        },
+        "treatment": "Risk treatment options (15.9)",
+        "treatmentIntro": "The options are stored with TARAflow's values; the report shows the ISO names. A stored \"transfer\" is shown as \"Share (transfer)\" and flagged for review.",
+        "isoOption": "ISO option",
+        "storedValue": "Stored value",
+        "goal": "Property",
+        "goalName": {
+          "C": "Confidentiality (C)",
+          "I": "Integrity (I)",
+          "A": "Availability (A)",
+          "N": "Non-repudiation (N)",
+          "AuthZ": "Authorization (AuthZ)",
+          "AuthN": "Authentication (AuthN)",
+          "Acc": "Accountability (Acc)"
+        },
+        "stamps": "Calculation versions",
+        "stampsIntro": "Values computed now carry these stamps. A risk or attack-tree analysis with another stamp was computed with another version or other tables.",
+        "stamp": "Stamp",
+        "calcVersion": "Calculation version",
+        "mappingVersion": "Tables (hash)",
+        "stampRisk": "Risk",
+        "stampPath": "Attack-tree analysis",
+        "properties": "Cybersecurity properties",
+        "propertiesIntro": "Every damage and threat scenario names the compromised property out of these seven. ISO/SAE 21434 (3.1.20) names confidentiality, integrity and availability as examples of cybersecurity properties; the further four are used as properties of their own.",
+        "definition": "Meaning",
+        "propertyDef": {
+          "C": "Information is disclosed only to those entitled to it.",
+          "I": "Data, code and functions are not altered without authorization.",
+          "A": "The asset is usable when needed.",
+          "N": "An action cannot later be denied by whoever performed it.",
+          "AuthN": "The identity of a communication partner, user or message source is proven.",
+          "AuthZ": "Only permitted subjects can perform an action or reach a resource.",
+          "Acc": "Actions can be traced back to whoever performed them."
+        }
+      },
       "traceability": {
         "resolved": "resolved",
         "missing": "missing",

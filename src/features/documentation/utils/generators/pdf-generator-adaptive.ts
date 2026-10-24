@@ -18,6 +18,7 @@ import {
   type ChapterContent,
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
+import type { MethodologySection } from "../methodology-sections";
 import { HtmlGenerator } from "./html-generator";
 import { PdfMakeConverter } from "./pdfmake-converter";
 
@@ -411,6 +412,15 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
   formatReportGroup(title: string, body: string, summary?: string): string {
     return this.htmlGenerator.formatReportGroup(title, body, summary);
+  }
+
+  // Methodology chapter (ISO/SAE 21434 conformance plan 0d) — HTML path.
+  formatMethodologyChapter(title: string, intro: string, body: string): string {
+    return this.htmlGenerator.formatMethodologyChapter(title, intro, body);
+  }
+
+  formatMethodologySection(section: MethodologySection): string {
+    return this.htmlGenerator.formatMethodologySection(section);
   }
 
   formatStatsTable(table: StatsTable): string {

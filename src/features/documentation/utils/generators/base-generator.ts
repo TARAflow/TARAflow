@@ -57,6 +57,10 @@ import { assetImpactResolver } from "../../../assets/services/asset-impact-resol
 import { buildSecurityGoalDocRows } from "../security-goal-doc-rows";
 import { dfdStatsTable } from "../dfd-stats-table";
 import {
+  methodologyContent,
+  type MethodologySection,
+} from "../methodology-sections";
+import {
   getSecurityLevelText,
   getTrustLevelText,
   getDFDElementTypeText,
@@ -354,6 +358,14 @@ export abstract class BaseDocumentGenerator {
   protected getTraceabilityRowTemplate(): string {
     return "";
   }
+  // Methodology chapter (ISO/SAE 21434 conformance plan 0d) — default empty so
+  // a format that has not implemented it produces no chapter (auto-hidden).
+  protected formatMethodologyChapter(_title: string, _intro: string, _body: string): string {
+    return "";
+  }
+  protected formatMethodologySection(_section: MethodologySection): string {
+    return "";
+  }
   abstract getAcceptedRisksTemplate(): string;
   abstract getWontRiskRowTemplate(): string;
   abstract getAppendixTemplate(): string;
@@ -460,6 +472,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateExecutiveSummary(title);
       case "applicable-regulations":
         return this.generateApplicableRegulations(title);
+      case "methodology":
+        return this.generateMethodology(title);
       case "system-overview":
         return this.generateSystemOverview(title);
       case "dfd":
@@ -1724,6 +1738,27 @@ export abstract class BaseDocumentGenerator {
     content += replacePlaceholders(tableTemplate, { traceabilityRows });
 
     return { id: chapterId, title, content, hasContent: true };
+  }
+
+  // ==================== METHODOLOGY ====================
+
+  /**
+   * ISO/SAE 21434 methodology chapter (conformance plan 0d): rendered from the
+   * methodology record the app layer derived (project.computed.methodology),
+   * so it states exactly the configuration and the rules the calculation
+   * applies. Only for iso-21434 projects; auto-hidden otherwise and in formats
+   * that do not implement the methodology formatters.
+   */
+  protected generateMethodology(title: string): ChapterContent {
+    const chapterId: DocChapterId = "methodology";
+    const m = this.ctx.project.computed.methodology;
+    if (!m || m.presetId !== "iso-21434") {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+    const { intro, sections } = methodologyContent(m, this.ctx.t);
+    const body = sections.map((s) => this.formatMethodologySection(s)).join("");
+    const content = this.formatMethodologyChapter(title, intro, body);
+    return { id: chapterId, title, content, hasContent: content !== "" };
   }
 
   // ==================== ACCEPTED RISKS ====================

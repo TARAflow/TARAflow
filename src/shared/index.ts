@@ -62,9 +62,8 @@ export type {
   CIANAAALevel,
   SecurityGoalType,
   SecurityGoalReference,
-  CiaProperty,
 } from "./models/cianaaa-reference-types";
-export { CIANAAA_TO_STRIDE, CIANAAA_TO_CIA } from "./models/cianaaa-reference-types";
+export { CIANAAA_TO_STRIDE } from "./models/cianaaa-reference-types";
 export {
   FEASIBILITY_BAND_MINIMA,
   feasibilityBandFor,

@@ -21,7 +21,7 @@ import type { ImpactScaleType } from "features/assets/models/asset-impact-types"
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
 import type { RiskData } from "features/risks";
 import { FEASIBILITY_GATE_RULES } from "features/attacktree/services/attacktree-calculator";
-import { CIANAAA_TO_CIA, type RegulationPresetId } from "shared";
+import { CIANAAA_TO_STRIDE, type RegulationPresetId } from "shared";
 import type { Project } from "app/models/project-types";
 
 const REGULATION_TAG: Record<RegulationPresetId, string[]> = {
@@ -197,7 +197,6 @@ describe("buildMethodologyRecord — derived, never stored", () => {
   it("fixed rules are the constants the calculation uses, not copies", () => {
     const r = buildMethodologyRecord(project("iso-21434", assetData("4-level")));
     expect(r.likelihood.gateRules).toBe(FEASIBILITY_GATE_RULES);
-    expect(r.cianaaaToCia).toBe(CIANAAA_TO_CIA);
   });
 
   it("reports a non-conforming scale and keeps defaults for a bare project", () => {
@@ -220,14 +219,9 @@ describe("constants behind the record", () => {
     });
   });
 
-  it("CIANAAA → CIA covers every goal and keeps C, I, A as themselves", () => {
-    expect(Object.keys(CIANAAA_TO_CIA).sort()).toEqual(
-      ["A", "Acc", "AuthN", "AuthZ", "C", "I", "N"],
-    );
-    expect(CIANAAA_TO_CIA.C).toEqual(["C"]);
-    expect(CIANAAA_TO_CIA.I).toEqual(["I"]);
-    expect(CIANAAA_TO_CIA.A).toEqual(["A"]);
-    expect(CIANAAA_TO_CIA.AuthZ).toEqual(["C", "I"]);
-    for (const g of ["N", "AuthN", "Acc"] as const) expect(CIANAAA_TO_CIA[g]).toEqual(["I"]);
+  it("the cybersecurity properties are the seven CIANAAA goals of the threat generator", () => {
+    const r = buildMethodologyRecord(project("iso-21434", assetData("4-level")));
+    expect(r.securityProperties).toEqual(Object.keys(CIANAAA_TO_STRIDE));
+    expect(r.securityProperties).toEqual(["C", "I", "A", "N", "AuthN", "AuthZ", "Acc"]);
   });
 });

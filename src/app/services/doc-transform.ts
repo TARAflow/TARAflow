@@ -10,6 +10,7 @@ import type {
 } from "../../features/documentation/models/doc-types";
 import type { StrideCategory } from "../../shared";
 import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../shared";
+import { buildMethodologyRecord } from "./methodology-record";
 
 // ==================== LABEL CALCULATION HELPERS ====================
 
@@ -186,6 +187,8 @@ function computeDocValues(
     strideNames,
     moscowLabels,
     statusLabels,
+    // Methodology chapter (ISO/SAE 21434 conformance plan 0d).
+    methodology: buildMethodologyRecord(project),
   };
 }
 

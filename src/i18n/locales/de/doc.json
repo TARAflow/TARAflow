@@ -30,6 +30,96 @@
         "traceabilityMatrix": "Rückverfolgbarkeitsmatrix (ISO/SAE 21434)",
         "appendix": "Anhang"
       },
+      "methodology": {
+        "intro": "Dieses Kapitel dokumentiert die Methode, mit der die TARA berechnet wurde. Es wird aus der Projektkonfiguration und aus den Regeln erzeugt, die die Berechnung anwendet; es kann daher keine andere Methode beschreiben als die verwendete.",
+        "overview": "Methode",
+        "item": "Punkt",
+        "value": "Wert",
+        "normativeBasis": "Normative Basis",
+        "impactScale": "Impact-Bewertung (15.5)",
+        "scaleNotConforming": "nicht konform: ISO/SAE 21434 verlangt vier Impact-Stufen (RQ-15-05)",
+        "scale": {
+          "3-level": "3 Stufen",
+          "4-level": "4 Stufen",
+          "5-level": "5 Stufen"
+        },
+        "impactCategories": "Impact-Kategorien",
+        "impactAggregation": "Impact eines Risikos",
+        "aggregation": {
+          "max": "höchste bewertete Kategorie (ohne Gewichtung, 15.5 NOTE 1)",
+          "harm-floor": "Schaden an Personen / Umwelt als Untergrenze, sonst gewichtetes Mittel",
+          "weighted-mean": "gewichtetes Mittel der bewerteten Faktoren"
+        },
+        "likelihood": "Wahrscheinlichkeit (15.7)",
+        "likelihoodMethod": {
+          "iso-21434": "Angriffsmöglichkeit (Angriffspotenzial, Annex G.2 / ISO/IEC 18045)",
+          "weighted-mean": "gewichtetes Mittel der Wahrscheinlichkeitsfaktoren",
+          "en-50742-a": "Angriffspotenzial (EN 50742 Annex B)",
+          "etsi-tvra": "Angriffspotenzial (ETSI TS 102 165-1)"
+        },
+        "feasibilityMethod": "Bewertung der Angriffsmöglichkeit",
+        "feasibility": {
+          "attack-potential": "angriffspotenzialbasiert (Annex G.2)",
+          "quick": "Schnellbewertung (Stufe pro Blatt)",
+          "cvss": "CVSS-basiert",
+          "attack-vector": "angriffsvektorbasiert"
+        },
+        "likelihoodModel": {
+          "feasibility-only": "Wahrscheinlichkeit = Angriffsmöglichkeit",
+          "feasibility-x-motivation": "Wahrscheinlichkeit = Angriffsmöglichkeit kombiniert mit Angreifernutzen"
+        },
+        "bands": "Angriffsmöglichkeit aus Angriffspotenzial (Tabelle G.7)",
+        "feasibilityLevel": "Angriffsmöglichkeit",
+        "attackPotential": "Angriffspotenzial",
+        "gateRules": "Aggregation im Angriffsbaum",
+        "gateRulesIntro": "Wie die Kinder eines AND- / OR-Knotens zusammengefasst werden, je Art der Blattbewertung. Die Angriffsmöglichkeit des Baums ist die des am leichtesten durchführbaren Pfads (15.8 NOTE 2).",
+        "ratingKind": "Blattbewertung",
+        "kind": {
+          "potential": "Angriffspotenzial (Aufwand)",
+          "probability": "Wahrscheinlichkeit",
+          "ordinal": "nur Stufe der Angriffsmöglichkeit"
+        },
+        "rule": {
+          "sum": "Summe",
+          "min": "Minimum",
+          "max": "Maximum",
+          "product": "Produkt",
+          "union": "Vereinigung (1 − ∏(1 − p))"
+        },
+        "treatment": "Optionen der Risikobehandlung (15.9)",
+        "treatmentIntro": "Die Optionen werden mit den TARAflow-Werten gespeichert; der Report zeigt die ISO-Bezeichnungen. Ein gespeichertes „Transferieren“ erscheint als „Teilen (Transfer)“ und ist zur Prüfung markiert.",
+        "isoOption": "ISO-Option",
+        "storedValue": "Gespeicherter Wert",
+        "goal": "Eigenschaft",
+        "goalName": {
+          "C": "Vertraulichkeit (C)",
+          "I": "Integrität (I)",
+          "A": "Verfügbarkeit (A)",
+          "N": "Nichtabstreitbarkeit (N)",
+          "AuthZ": "Autorisierung (AuthZ)",
+          "AuthN": "Authentifizierung (AuthN)",
+          "Acc": "Nachvollziehbarkeit (Acc)"
+        },
+        "stamps": "Rechenversionen",
+        "stampsIntro": "Jetzt berechnete Werte tragen diese Stempel. Ein Risiko oder eine Attack-Tree-Analyse mit anderem Stempel wurde mit einer anderen Version oder anderen Tabellen berechnet.",
+        "stamp": "Stempel",
+        "calcVersion": "Rechenversion",
+        "mappingVersion": "Tabellen (Hash)",
+        "stampRisk": "Risiko",
+        "stampPath": "Attack-Tree-Analyse",
+        "properties": "Cybersecurity-Eigenschaften",
+        "propertiesIntro": "Jedes Schadens- und Bedrohungsszenario nennt die verletzte Eigenschaft aus diesen sieben. ISO/SAE 21434 (3.1.20) nennt Vertraulichkeit, Integrität und Verfügbarkeit als Beispiele für Cybersecurity-Eigenschaften; die weiteren vier werden als eigenständige Eigenschaften verwendet.",
+        "definition": "Bedeutung",
+        "propertyDef": {
+          "C": "Informationen werden nur Berechtigten offengelegt.",
+          "I": "Daten, Code und Funktionen werden nicht unbefugt verändert.",
+          "A": "Das Asset ist nutzbar, wenn es gebraucht wird.",
+          "N": "Eine Handlung kann von dem, der sie ausgeführt hat, nicht nachträglich abgestritten werden.",
+          "AuthN": "Die Identität eines Kommunikationspartners, Benutzers oder einer Nachrichtenquelle ist nachgewiesen.",
+          "AuthZ": "Nur berechtigte Subjekte können eine Aktion ausführen oder eine Ressource erreichen.",
+          "Acc": "Handlungen lassen sich dem zuordnen, der sie ausgeführt hat."
+        }
+      },
       "traceability": {
         "resolved": "aufgelöst",
         "missing": "fehlt",

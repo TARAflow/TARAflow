@@ -192,6 +192,9 @@ export const useDocumentGeneration = ({
       "traceability-matrix":
         project.risks?.configuration?.likelihoodMethod === "iso-21434" &&
         (project.risks?.risks?.length ?? 0) > 0,
+      // Methodology chapter (ISO/SAE 21434 conformance plan 0d) — only for
+      // iso-21434 projects, from the record the app layer derived.
+      methodology: project.computed.methodology?.presetId === "iso-21434",
       "attack-trees": (project.attackTree?.trees?.length ?? 0) > 0,
       appendix: true, // Always has content
     };
