@@ -146,7 +146,7 @@ Closes G5, prepares G12.
   | impact aggregation | `risks.configuration.impactAggregation` |
   | attack-tree gate rules per kind of rating (attack potential AND = sum / OR = min; probability AND = product / OR = union; ordinal level AND = min / OR = max) | `FEASIBILITY_GATE_RULES`, exported and applied by the attack-tree calculator |
   | Avoid/Retain ↔ eliminate/accept | ISO treatment vocabulary (0a, `risk-treatment-vocabulary.ts`) |
-  | CIANAAA ↔ CIA | own exported constant, with test |
+  | cybersecurity properties (CIANAAA) | the threat generator's set (`CIANAAA_TO_STRIDE`); explained, not mapped (decision 18) |
   | risk matrix / formula, acceptance criteria | stored from 3a / 3b on |
 
   Fixed rules are never duplicated as text: the report can only describe the
@@ -217,10 +217,11 @@ Closes G5, prepares G12.
     the date fields keeps the previous object (canonical comparison without
     the dates, else the comparison triggers itself). `info.lastModified`,
     bumped by every write, stays a separate point.
-- **CIANAAA ↔ CIA mapping table** in the methodology section (ISO names C, I, A
-  only as examples; the extension must be documented):
-  AuthN, N, Acc → I; AuthZ → C or I depending on the access; explain why they
-  are kept separate (Spoofing / EoP / Repudiation visibility).
+- **Cybersecurity properties explained (decision 18)** in the methodology
+  section: the seven CIANAAA goals with their meaning. ISO/SAE 21434 3.1.20
+  names C, I, A only as examples ("attributes include …"), and RQ-15-07 only
+  asks for the compromised property — so the seven are properties of their own.
+  No mapping onto CIA.
 
 *Done when:* ISO projects show ISO treatment names; the report has a methodology
 section built from the derived record; ISO projects use the 4-level impact
@@ -347,7 +348,7 @@ The General tab gets sub-tabs instead of a growing stack of sections:
 |---|---|---|
 | **Project** | name, version, roles, tags, progress (without the description) | `ProjectInfo`, `ProjectProgress` |
 | **Definition** | purpose and functions (former description), boundary, architecture, environment, constraints, assumptions (ASM) | new (this phase); description from `ProjectInfo` |
-| **Methodology** | preset, locked scales, risk method and acceptance criteria (read-only summary), CIANAAA ↔ CIA mapping, `requireCal` | `ProjectSettings` + Phase 0 record |
+| **Methodology** | preset, locked scales, risk method and acceptance criteria (read-only summary), cybersecurity properties (CIANAAA) explained, `requireCal` | `ProjectSettings` + Phase 0 record |
 | **Sources** | source bindings, arc42 references, drift status | `SourceBindingsSection` |
 
 - Each view shows a badge with its open findings; the last selected view is
@@ -804,6 +805,11 @@ Added in rev. 2 (2026-10-24):
     churn; check on load with 3a. Hash helpers move to `src/shared/utils/`
     in a separate commit first; `analysisDate` kept when the analysis is
     unchanged (d1, all presets).
+18. **[D] No CIANAAA → CIA mapping (2026-10-24):** ISO/SAE 21434 3.1.20
+    lists C, I, A only as examples of cybersecurity properties; RQ-15-07 asks
+    only for the compromised property. The seven CIANAAA goals are used as
+    properties of their own and explained in the methodology chapter (meaning
+    of each). The mapping constant of 0b is removed again with 0d.
 
 ---
 
@@ -842,7 +848,7 @@ are written against behaviour, not against the report text.
 | Phase | Test |
 |---|---|
 | 0 | An ISO project shows Avoid/Reduce/Share/Retain; a stored `transfer` shows as "Share (transfer)" with a review flag; the default mode shows the old labels unchanged. |
-| 0 | The methodology record equals the configuration it is derived from (preset, impact scale, likelihood method, impact aggregation); the OR/AND rule and the CIANAAA ↔ CIA mapping come from the exported constants. |
+| 0 | The methodology record equals the configuration it is derived from (preset, impact scale, likelihood method, impact aggregation); the gate rules come from the exported constant; the report explains the seven cybersecurity properties without a CIA mapping. |
 | 0 | Switching to ISO without ratings → the impact scale is 4-level, silently. |
 | 0 | Switching to ISO with a rated 5-level scale → scale unchanged, finding with the number of assets and the ratings outside the scale, no value changed. |
 | 0 | Switching from ISO to another preset keeps the 4-level scale. |
