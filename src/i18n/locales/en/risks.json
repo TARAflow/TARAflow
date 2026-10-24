@@ -370,8 +370,8 @@
         "verifications": "Verifications (for testing reference)"
       },
       "iso": {
-        "explain": "{{impact}} × {{feasibility}} → {{value}} (ISO/SAE 21434 Annex H.8)",
-        "valueOption": "Risk value {{value}}",
+        "explain": "Impact {{impact}} × feasibility {{feasibility}} → risk {{value}} · {{word}} (ISO/SAE 21434 Annex H.8)",
+        "valueOption": "{{value}} – {{word}}",
         "matrixTitle": "Risk matrix (ISO/SAE 21434, Annex H.8)",
         "axes": "Rows: impact (15.5) · columns: attack feasibility (15.7)",
         "unrated": "{{count}} without risk value",
@@ -382,7 +382,8 @@
         "reviewRetain": "Retained at risk value 4 or 5 — is the claim justified?",
         "reviewReduce": "Reduced at risk value 1 — is the effort needed?",
         "scenarioRisk": "Risk",
-        "scenarioResidual": "Residual"
+        "scenarioResidual": "Residual",
+        "scaleLocked": "ISO/SAE 21434: the risk value is 1–5 from the matrix of Annex H.8; this scale only feeds the internal I × L, which is not shown."
       }
     }
   },
@@ -946,6 +947,13 @@
         "medium": "Medium",
         "high": "High"
       }
+    },
+    "isoRiskValue": {
+      "1": "Minimal",
+      "2": "Low",
+      "3": "Medium",
+      "4": "High",
+      "5": "Critical"
     }
   }
 }

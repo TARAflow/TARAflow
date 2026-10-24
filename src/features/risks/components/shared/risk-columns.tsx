@@ -28,6 +28,8 @@ import {
   isoFeasibilityI18nKey,
   isoImpactI18nKey,
   isoRiskValueColor,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
 } from "../../models/iso-risk-display";
 import {
   isTreatmentToReview,
@@ -182,6 +184,7 @@ const IsoValueCell: React.FC<{
   explanation?: string;
   testId?: string;
 }> = ({ value, explanation, testId }) => {
+  const { t } = useTranslation();
   if (!value) {
     return (
       <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.8rem" }}>
@@ -193,7 +196,7 @@ const IsoValueCell: React.FC<{
     <Tooltip title={explanation ?? ""} arrow>
       <Chip
         data-testid={testId}
-        label={value}
+        label={`${value} · ${t(isoRiskValueI18nKey(value), { defaultValue: isoRiskValueFallback(value) })}`}
         size="small"
         sx={{
           bgcolor: isoRiskValueColor(value),
@@ -201,6 +204,7 @@ const IsoValueCell: React.FC<{
           fontWeight: "bold",
           cursor: "help",
           minWidth: 32,
+          fontSize: "0.7rem",
         }}
       />
     </Tooltip>
@@ -412,11 +416,13 @@ export const useRiskColumns = ({
       const f = residual ? r.residual?.feasibility : r.feasibility;
       const v = residual ? r.residual?.value : r.value;
       if (!f || !v) return undefined;
+      const word = t(isoRiskValueI18nKey(v), { defaultValue: isoRiskValueFallback(v) });
       return t("tabs.risks.iso.explain", {
         impact: isoImpact(risk),
         feasibility: isoFeas(f),
         value: v,
-        defaultValue: `${isoImpact(risk)} × ${isoFeas(f)} → ${v} (ISO/SAE 21434 Annex H.8)`,
+        word,
+        defaultValue: `Impact ${isoImpact(risk)} × feasibility ${isoFeas(f)} → risk ${v} · ${word} (ISO/SAE 21434 Annex H.8)`,
       });
     };
 
@@ -439,7 +445,7 @@ export const useRiskColumns = ({
         {
           id: "riskBefore",
           header: t("tabs.risks.columns.riskValue", { defaultValue: "Risk (1–5)" }),
-          width: 80,
+          width: 100,
           align: "center",
           renderCell: (risk) => (
             <IsoValueCell
@@ -604,7 +610,7 @@ export const useRiskColumns = ({
     if (iso) cols.push({
       id: "riskAfter",
       header: t("tabs.risks.columns.riskValueAfter", { defaultValue: "Residual (1–5)" }),
-      width: 80,
+      width: 100,
       align: "center",
       renderCell: (risk) => (
         <IsoValueCell

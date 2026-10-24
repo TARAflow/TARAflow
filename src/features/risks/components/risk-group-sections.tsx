@@ -22,6 +22,12 @@ import type { RiskConfiguration } from "../models/risk-config-types";
 import { RISK_SCALES } from "../models/risk-scale-types";
 import { RISK_NOT_IN_DFD, riskGroupSections } from "../utils/risk-groups";
 import { ProgressChip } from "./shared/progress-chip";
+import {
+  isIsoRiskMode,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
+  isoValueCounts,
+} from "../models/iso-risk-display";
 
 /** Risks per level of the scale (before mitigation), highest first. */
 function riskLevelCounts(risks: Risk[], configuration: RiskConfiguration) {
@@ -80,7 +86,12 @@ export const RiskGroupSections: React.FC<RiskGroupSectionsProps> = ({
               count: s.risks.length,
             })}
           </Typography>
-          {riskLevelCounts(s.risks, configuration).map((lvl) => (
+          {(isIsoRiskMode(configuration)
+            ? isoValueCounts(s.risks, (v) =>
+                t(isoRiskValueI18nKey(v), { defaultValue: isoRiskValueFallback(v) }),
+              )
+            : riskLevelCounts(s.risks, configuration)
+          ).map((lvl) => (
             <Chip
               key={lvl.label}
               label={`${lvl.label} ×${lvl.count}`}

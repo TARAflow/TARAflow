@@ -370,8 +370,8 @@
         "verifications": "Verifikationen (zur Testreferenz)"
       },
       "iso": {
-        "explain": "{{impact}} × {{feasibility}} → {{value}} (ISO/SAE 21434 Annex H.8)",
-        "valueOption": "Risikowert {{value}}",
+        "explain": "Impact {{impact}} × Angriffsmöglichkeit {{feasibility}} → Risiko {{value}} · {{word}} (ISO/SAE 21434 Annex H.8)",
+        "valueOption": "{{value}} – {{word}}",
         "matrixTitle": "Risikomatrix (ISO/SAE 21434, Annex H.8)",
         "axes": "Zeilen: Impact (15.5) · Spalten: Angriffsmöglichkeit (15.7)",
         "unrated": "{{count}} ohne Risikowert",
@@ -382,7 +382,8 @@
         "reviewRetain": "Beibehalten bei Risikowert 4 oder 5 — ist der Claim begründet?",
         "reviewReduce": "Reduziert bei Risikowert 1 — ist der Aufwand nötig?",
         "scenarioRisk": "Risiko",
-        "scenarioResidual": "Rest"
+        "scenarioResidual": "Rest",
+        "scaleLocked": "ISO/SAE 21434: Der Risikowert ist 1–5 aus der Matrix in Annex H.8; diese Skala speist nur das interne I × L, das nicht angezeigt wird."
       }
     }
   },
@@ -940,6 +941,13 @@
         "medium": "Mittel",
         "high": "Hoch"
       }
+    },
+    "isoRiskValue": {
+      "1": "Minimal",
+      "2": "Niedrig",
+      "3": "Mittel",
+      "4": "Hoch",
+      "5": "Kritisch"
     }
   }
 }

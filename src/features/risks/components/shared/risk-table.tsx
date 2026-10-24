@@ -9,6 +9,7 @@
 // What remains here is the only risk-specific part: the row background derived
 // from the calculated risk score. Call sites are unchanged.
 
+import { isIsoRiskMode } from "../../models/iso-risk-display";
 import React from "react";
 import type { Risk } from "../../models/risk-assessment-types";
 import type { RiskConfiguration } from "../../models/risk-config-types";
@@ -72,11 +73,14 @@ export const RiskTable: React.FC<RiskTableProps> = ({
     group={groupRisks}
     onRowClick={onEdit}
     rowBackground={(risk) =>
-      getRiskRowBg(
-        risk.calculatedRiskBeforeMitigation,
-        configuration.scale,
-        configuration.roundingMethod,
-      )
+      // ISO/SAE 21434: background by the risk value 1–5 (3a-2).
+      isIsoRiskMode(configuration)
+        ? (RISK_ROW_BG[risk.isoRisk?.value ?? 0] ?? "transparent")
+        : getRiskRowBg(
+            risk.calculatedRiskBeforeMitigation,
+            configuration.scale,
+            configuration.roundingMethod,
+          )
     }
   />
 );

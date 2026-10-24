@@ -30,6 +30,8 @@ import {
   isoFeasibilityI18nKey,
   isoImpactI18nKey,
   isoRiskValueColor,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
 } from "../models/iso-risk-display";
 
 type ViewMode = "before" | "after";
@@ -143,7 +145,7 @@ export const IsoRiskMatrix = React.memo<IsoRiskMatrixProps>(
                     }}
                   >
                     <Typography variant="caption" fontWeight="bold" sx={{ color: isoRiskValueColor(value) }}>
-                      {value}
+                      {value} {t(isoRiskValueI18nKey(value), { defaultValue: isoRiskValueFallback(value) })}
                     </Typography>
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                       {cellRisks.slice(0, MAX_CHIPS).map((risk) => (

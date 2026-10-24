@@ -177,6 +177,10 @@
         "internal": "INTERNAL",
         "confidential": "CONFIDENTIAL",
         "restricted": "RESTRICTED"
+      },
+      "iso": {
+        "impact": "Impact",
+        "feasibilityShort": "AF"
       }
     }
   }

@@ -12,6 +12,8 @@ import {
   isoFeasibilityI18nKey,
   isoImpactI18nKey,
   isoRiskValueColor,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
 } from "../../models/iso-risk-display";
 
 interface IsoRiskPanelProps {
@@ -56,7 +58,13 @@ export const IsoRiskPanel = ({ impact, feasibility, value, testId }: IsoRiskPane
             ? t(isoFeasibilityI18nKey(feasibility), { defaultValue: ISO_FEASIBILITY_FALLBACK[feasibility] })
             : "–",
         )}
-        {box(t("tabs.risks.columns.riskValue", { defaultValue: "Risk (1–5)" }), value ? String(value) : "–", true)}
+        {box(
+          t("tabs.risks.columns.riskValue", { defaultValue: "Risk (1–5)" }),
+          value
+            ? `${value} ${t(isoRiskValueI18nKey(value), { defaultValue: isoRiskValueFallback(value) })}`
+            : "–",
+          true,
+        )}
       </Stack>
       <Typography variant="caption" color="text.secondary">
         {value

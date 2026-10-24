@@ -2,13 +2,7 @@
 // Abstract base class for document generators
 // Location: features/documentation/utils/generators/base-generator.ts
 
-import type { IsoRisk } from "../../../risks/models/iso-risk-matrix";
-import {
-  ISO_FEASIBILITY_FALLBACK,
-  ISO_IMPACT_FALLBACK,
-  isoFeasibilityI18nKey,
-  isoImpactI18nKey,
-} from "../../../risks/models/iso-risk-display";
+import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { isoFeasibilityFromFactors } from "../../../risks/models/iso-risk-matrix";
 import {
   treatmentFallbackLabel,
@@ -556,10 +550,11 @@ export abstract class BaseDocumentGenerator {
       (r) => r.moscowPriority === "wont",
     ).length;
 
-    // Count critical risks (before mitigation >= 3.5)
-    const criticalRiskCount = activeRisks.filter(
-      (r) => r.calculatedRiskBeforeMitigation >= 3.5,
-    ).length;
+    // Count critical risks (before mitigation >= 3.5); ISO/SAE 21434: risk
+    // value 5 ("Critical", 3a-2 / decision 23).
+    const criticalRiskCount = isIsoReport(project.risks?.configuration)
+      ? activeRisks.filter((r) => r.isoRisk?.value === 5).length
+      : activeRisks.filter((r) => r.calculatedRiskBeforeMitigation >= 3.5).length;
 
     const values = {
       projectName: project.info.name,
@@ -1451,6 +1446,7 @@ export abstract class BaseDocumentGenerator {
     const scale = {
       scale: project.risks?.configuration?.scale ?? "4-level",
       roundingMethod: project.risks?.configuration?.roundingMethod,
+      iso: isIsoReport(project.risks?.configuration),
     } as const;
     const typeLabel = (type: string) => getDFDElementTypeText(type as DFDElementType, this.ctx.t);
     const riskType = (risk: (typeof risks)[number]) => {
@@ -1834,21 +1830,3 @@ export abstract class BaseDocumentGenerator {
   }
 }
 
-/**
- * "4 (Severe × Medium)" — ISO/SAE 21434 risk value 1–5 with its matrix inputs
- * (conformance plan 3a-2); the residual uses the feasibility after
- * mitigation. "–" while no value can be determined.
- */
-function isoRiskLabel(
-  risk: { isoRisk?: IsoRisk },
-  t: TranslationFn,
-  residual: boolean,
-): string {
-  const r = risk.isoRisk;
-  const feasibility = residual ? r?.residual?.feasibility : r?.feasibility;
-  const value = residual ? r?.residual?.value : r?.value;
-  if (!r || !feasibility || !value) return "–";
-  const impact = t(isoImpactI18nKey(r.impact), ISO_IMPACT_FALLBACK[r.impact]);
-  const feas = t(isoFeasibilityI18nKey(feasibility), ISO_FEASIBILITY_FALLBACK[feasibility]);
-  return `${value} (${impact} × ${feas})`;
-}

@@ -9,6 +9,7 @@ import { RiskMatrix } from "features/risks/components/risk-matrix";
 import { useRiskColumns } from "features/risks/components/shared/risk-columns";
 import { RiskTableView } from "features/risks/components/risk-table-view";
 import { IsoReviewBanner } from "features/risks/components/iso-review-banner";
+import { RiskConfigDialog } from "features/risks/components/risk-config-dialog";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
 
 vi.mock("react-i18next", () => ({
@@ -49,9 +50,9 @@ describe("RiskMatrix under iso-21434", () => {
   it("shows the H.8 matrix with the value of every cell", () => {
     render(<RiskMatrix risks={RISKS} configuration={iso} />);
     expect(screen.getByTestId("iso-risk-matrix")).toBeTruthy();
-    expect(within(screen.getByTestId("iso-cell-severe-very-low")).getByText("2")).toBeTruthy();
-    expect(within(screen.getByTestId("iso-cell-negligible-high")).getByText("1")).toBeTruthy();
-    expect(within(screen.getByTestId("iso-cell-severe-high")).getByText("5")).toBeTruthy();
+    expect(within(screen.getByTestId("iso-cell-severe-very-low")).getByText("2 Low")).toBeTruthy();
+    expect(within(screen.getByTestId("iso-cell-negligible-high")).getByText("1 Minimal")).toBeTruthy();
+    expect(within(screen.getByTestId("iso-cell-severe-high")).getByText("5 Critical")).toBeTruthy();
   });
 
   it("places risks by isoRisk before and by the residual after mitigation", () => {
@@ -92,8 +93,8 @@ describe("register columns under iso-21434", () => {
     expect(c.find((x) => x.id === "riskBefore")!.header).toBe("Risk (1–5)");
     expect(cell("impact")).toBe("Severe");
     expect(cell("likelihood")).toBe("High");
-    expect(cell("riskBefore")).toBe("5");
-    expect(cell("riskAfter")).toBe("3");
+    expect(cell("riskBefore")).toBe("5 · Critical");
+    expect(cell("riskAfter")).toBe("3 · Medium");
   });
 
   it("other methods keep I × L headers", () => {
@@ -156,5 +157,22 @@ describe("attack-tree section under iso-21434", () => {
       <IsoReviewBanner items={[]} reviewOnly={false} onReviewOnlyChange={vi.fn()} onOpen={vi.fn()} />,
     );
     expect(container.innerHTML).toBe("");
+  });
+});
+
+// ── No label of the I × L scale under ISO (decision 23) ────────────────────
+describe("risk configuration under iso-21434", () => {
+  it("locks the rating scale and shows the ISO words, not the RISK_SCALES labels", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const props: any = {
+      open: true,
+      onClose: vi.fn(),
+      onSave: vi.fn(),
+      configuration: { ...DEFAULT_CONFIGURATION, likelihoodMethod: "iso-21434", scale: "5-level" },
+    };
+    render(<RiskConfigDialog {...props} />);
+    expect(screen.getByTestId("iso-scale-locked")).toBeTruthy();
+    expect(document.body.textContent).toContain("5: Critical");
+    expect(document.body.textContent).not.toContain("Very High");
   });
 });

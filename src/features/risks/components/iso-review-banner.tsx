@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Alert, Box, Chip, FormControlLabel, Switch, Typography } from "@mui/material";
 import type { Risk } from "../models/risk-assessment-types";
 import type { IsoReviewItem } from "../models/iso-scenarios";
+import { isoRiskValueFallback, isoRiskValueI18nKey } from "../models/iso-risk-display";
 
 interface IsoReviewBannerProps {
   items: IsoReviewItem[];
@@ -30,7 +31,10 @@ export const IsoReviewBanner = ({ items, reviewOnly, onReviewOnlyChange, onOpen 
           <Chip
             key={i.risk.id}
             size="small"
-            label={`${i.risk.threatDisplayId} · ${i.risk.isoRisk?.value}`}
+            label={`${i.risk.threatDisplayId} · ${i.risk.isoRisk?.value} ${t(
+              isoRiskValueI18nKey(i.risk.isoRisk?.value ?? 1),
+              { defaultValue: isoRiskValueFallback(i.risk.isoRisk?.value ?? 1) },
+            )}`}
             onClick={() => onOpen(i.risk)}
             sx={{ height: 20, fontSize: "0.7rem" }}
           />

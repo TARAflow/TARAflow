@@ -5,6 +5,7 @@
 // This converter transforms our structured data into pdfMake's declarative format
 // pdfMake Documentation: http://pdfmake.org/
 
+import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
@@ -1012,12 +1013,16 @@ export class PdfMakeConverter {
       const tableBody: TableCell[][] = [riskHeader];
       for (const risk of list) {
         // Get labels from cache
-        const riskBeforeLabel =
-          this.project.computed.riskBeforeLabels.get(risk.id) ??
-          risk.calculatedRiskBeforeMitigation.toString();
-        const riskAfterLabel =
-          this.project.computed.riskAfterLabels.get(risk.id) ??
-          risk.calculatedRiskAfterMitigation.toString();
+        // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2, decision 23).
+        const iso = isIsoReport(this.project.risks?.configuration);
+        const riskBeforeLabel = iso
+          ? isoRiskLabel(risk, this.t, false)
+          : (this.project.computed.riskBeforeLabels.get(risk.id) ??
+            risk.calculatedRiskBeforeMitigation.toString());
+        const riskAfterLabel = iso
+          ? isoRiskLabel(risk, this.t, true)
+          : (this.project.computed.riskAfterLabels.get(risk.id) ??
+            risk.calculatedRiskAfterMitigation.toString());
         const moscowLabel =
           this.project.computed.moscowLabels.get(risk.moscowPriority) ??
           risk.moscowPriority;
@@ -1038,17 +1043,17 @@ export class PdfMakeConverter {
           {
             text: riskBeforeLabel,
             alignment: "center",
-            fillColor: this.getRiskColorByValue(
-              risk.calculatedRiskBeforeMitigation,
-            ),
+            fillColor: iso
+              ? this.getIsoRiskFill(risk.isoRisk?.value)
+              : this.getRiskColorByValue(risk.calculatedRiskBeforeMitigation),
           },
           { text: mitigations },
           {
             text: riskAfterLabel,
             alignment: "center",
-            fillColor: this.getRiskColorByValue(
-              risk.calculatedRiskAfterMitigation,
-            ),
+            fillColor: iso
+              ? this.getIsoRiskFill(risk.isoRisk?.residual?.value)
+              : this.getRiskColorByValue(risk.calculatedRiskAfterMitigation),
           },
           { text: moscowLabel, alignment: "center" },
         ]);
@@ -1073,6 +1078,7 @@ export class PdfMakeConverter {
       return threat ? dfdItemRefOfThreat(threat) : undefined;
     });
     const scale = {
+      iso: isIsoReport(this.project.risks?.configuration),
       scale: this.project.risks?.configuration?.scale ?? "4-level",
       roundingMethod: this.project.risks?.configuration?.roundingMethod,
     } as const;
@@ -1425,6 +1431,12 @@ export class PdfMakeConverter {
       Low: "#bbf7d0",
     };
     return colors[riskLevel] || "#f1f5f9";
+  }
+
+  /** ISO risk value 1–5 → pale fill (5 critical … 1 minimal); none → no fill. */
+  private getIsoRiskFill(value: number | undefined): string | undefined {
+    if (!value) return undefined;
+    return ["#bbf7d0", "#fef08a", "#fed7aa", "#fecaca", "#f5d0fe"][value - 1];
   }
 
   private getRiskColorByValue(riskValue: number): string {

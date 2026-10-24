@@ -29,6 +29,17 @@ export function isoRiskValueColor(value: number | undefined): string {
   return RISK_SCALES["5-level"].levels[Math.min(Math.max(value, 1), 5) - 1].color;
 }
 
+/**
+ * Words for the risk value 1–5 — display only (decision 23): stored,
+ * filtered, sorted and reviewed is the number. Own keys, NOT the labels of the
+ * TARAflow 5-level risk scale (there "Low" is 1, here 2): ISO 1 is
+ * "minimal risk" (RQ-15-16).
+ */
+export const ISO_RISK_VALUE_FALLBACK = ["Minimal", "Low", "Medium", "High", "Critical"] as const;
+export const isoRiskValueI18nKey = (value: number) => `risks.isoRiskValue.${value}`;
+export const isoRiskValueFallback = (value: number) =>
+  ISO_RISK_VALUE_FALLBACK[Math.min(Math.max(value, 1), 5) - 1];
+
 export const isoImpactI18nKey = (level: IsoImpactLevel) => `risks.iso.impact.${level}`;
 export const isoFeasibilityI18nKey = (level: FeasibilityBandLevel) =>
   `risks.iso.feasibility.${level}`;
@@ -78,4 +89,22 @@ export function liveIsoRisk(
       ? { residual: { feasibility: residual, value: isoRiskValue(stored.impact, residual) } }
       : {}),
   };
+}
+
+/**
+ * Risks per ISO value, highest first (group headers: "4 · High ×2").
+ * Counts the number, the word is display only.
+ */
+export function isoValueCounts(
+  risks: readonly { isoRisk?: IsoRisk }[],
+  word: (value: number) => string,
+): { label: string; color: string; count: number }[] {
+  const counts = [0, 0, 0, 0, 0];
+  for (const r of risks) {
+    const v = r.isoRisk?.value;
+    if (v) counts[v - 1]++;
+  }
+  return [5, 4, 3, 2, 1]
+    .filter((v) => counts[v - 1] > 0)
+    .map((v) => ({ label: `${v} · ${word(v)}`, color: isoRiskValueColor(v), count: counts[v - 1] }));
 }

@@ -10,7 +10,12 @@
 // per group (RiskGroupSections); the filters are shown once above them.
 
 import { Box, Chip, Stack, Typography } from "@mui/material";
-import { isIsoRiskMode, isoRiskValueColor } from "../models/iso-risk-display";
+import {
+  isIsoRiskMode,
+  isoRiskValueColor,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
+} from "../models/iso-risk-display";
 import { groupIsoScenarios } from "../models/iso-scenarios";
 import {
   treatmentFallbackLabel,
@@ -115,7 +120,11 @@ const AttackPathRiskSection: React.FC<{
   const valueChip = (value: number | undefined, label: string) => (
     <Chip
       size="small"
-      label={`${label} ${value ?? "–"}`}
+      label={
+        value
+          ? `${label} ${value} · ${t(isoRiskValueI18nKey(value), { defaultValue: isoRiskValueFallback(value) })}`
+          : `${label} –`
+      }
       sx={{
         height: 20,
         fontSize: "0.7rem",

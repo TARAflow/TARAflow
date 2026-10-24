@@ -1,4 +1,10 @@
 import React, { useEffect, useMemo } from "react";
+import {
+  isIsoRiskMode,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
+  isoValueCounts,
+} from "../models/iso-risk-display";
 import { useTranslation } from "react-i18next";
 import { Box, Typography, Stack, Chip, Tooltip } from "@mui/material";
 import {
@@ -114,6 +120,12 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
   const rounding = configuration.roundingMethod;
 
   const getTopRiskLevels = (risks: Risk[]) => {
+    // ISO/SAE 21434 (3a-2/136): counts per risk value 1–5 with its word.
+    if (isIsoRiskMode(configuration)) {
+      return isoValueCounts(risks, (v) =>
+        t(isoRiskValueI18nKey(v), { defaultValue: isoRiskValueFallback(v) }),
+      );
+    }
     const scaleConfig = RISK_SCALES[scale];
     const counts = new Array(scaleConfig.levels.length).fill(0);
     for (const r of risks) {

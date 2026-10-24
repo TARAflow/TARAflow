@@ -23,7 +23,11 @@ import {
 import { DfdScopeFilterControls } from "shared";
 import type { DfdScopeFilter, DfdScopeIndex } from "shared";
 import { MOSCOW_PRIORITIES, RISK_SCALES } from "../models/risk-scale-types";
-import { isoRiskValueColor } from "../models/iso-risk-display";
+import {
+  isoRiskValueColor,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
+} from "../models/iso-risk-display";
 import type { MoSCoWPriority, RiskScaleType } from "../models/risk-scale-types";
 
 // ==================== TYPES ====================
@@ -89,7 +93,11 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
     const levelOptions = isoValues
       ? [5, 4, 3, 2, 1].map((v) => ({
           value: v,
-          label: t("tabs.risks.iso.valueOption", { value: v, defaultValue: `Risk value ${v}` }),
+          label: t("tabs.risks.iso.valueOption", {
+            value: v,
+            word: t(isoRiskValueI18nKey(v), { defaultValue: isoRiskValueFallback(v) }),
+            defaultValue: `${v} – ${isoRiskValueFallback(v)}`,
+          }),
           color: isoRiskValueColor(v),
           iso: true,
         }))

@@ -105,7 +105,12 @@ import { RiskConfiguration } from "../models/risk-config-types";
 import { factorLevelOptions } from "../utils/factor-level-options";
 import { impactBasisText } from "../utils/impact-basis-text";
 import { IsoRiskPanel } from "./shared/iso-risk-panel";
-import { liveIsoRisk } from "../models/iso-risk-display";
+import {
+  isoRiskValueColor,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
+  liveIsoRisk,
+} from "../models/iso-risk-display";
 import {
   isTreatmentToReview,
   offeredTreatments,
@@ -1701,13 +1706,37 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 const afterScore = isActive
                   ? afterValues.risk
                   : risk.calculatedRiskAfterMitigation;
-                const riskColor = getRiskColor(
-                  beforeScore,
-                  configuration.scale,
-                  configuration.roundingMethod,
-                );
-                const riskLabel =
-                  beforeScore > 0 ? beforeScore.toFixed(1) : "–";
+                // ISO/SAE 21434: value 1–5 with its word instead of I × L (3a-2, 136).
+                const iso = isISO ? (isActive ? liveIso : risk.isoRisk) : undefined;
+                const isoWord = (v: number) =>
+                  t(isoRiskValueI18nKey(v), { defaultValue: isoRiskValueFallback(v) });
+                const before = isISO
+                  ? {
+                      show: true,
+                      label: iso ? `${iso.value} ${isoWord(iso.value)}` : "–",
+                      color: isoRiskValueColor(iso?.value),
+                      tip: iso ? `${iso.value} · ${isoWord(iso.value)}` : "",
+                    }
+                  : {
+                      show: true,
+                      label: beforeScore > 0 ? beforeScore.toFixed(1) : "–",
+                      color: getRiskColor(beforeScore, configuration.scale, configuration.roundingMethod),
+                      tip: beforeScore > 0 ? getRiskLabel(beforeScore, configuration.scale) : "",
+                    };
+                const residualValue = isISO ? iso?.residual?.value : undefined;
+                const after = isISO
+                  ? {
+                      show: !!residualValue,
+                      label: residualValue ? `${residualValue} ${isoWord(residualValue)}` : "",
+                      color: isoRiskValueColor(residualValue),
+                      tip: residualValue ? `${residualValue} · ${isoWord(residualValue)}` : "",
+                    }
+                  : {
+                      show: afterScore > 0,
+                      label: afterScore.toFixed(1),
+                      color: getRiskColor(afterScore, configuration.scale, configuration.roundingMethod),
+                      tip: getRiskLabel(afterScore, configuration.scale),
+                    };
                 const uncertain = risk.threatRelevance === "uncertain";
                 return (
                   <ListItemButton
@@ -1745,43 +1774,35 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       }}
                     >
                       <Tooltip
-                        title={
-                          beforeScore > 0
-                            ? getRiskLabel(beforeScore, configuration.scale)
-                            : ""
-                        }
+                        title={before.tip}
                         placement="right"
                         arrow
                       >
                         <Chip
-                          label={riskLabel}
+                          label={before.label}
                           size="small"
                           sx={{
                             height: 16,
                             fontSize: 10,
-                            bgcolor: riskColor,
+                            bgcolor: before.color,
                             color: "white",
                             fontWeight: "bold",
                             minWidth: 32,
                           }}
                         />
                       </Tooltip>
-                      {afterScore > 0 ? (
+                      {after.show ? (
                         <Tooltip
-                          title={`${t("tabs.risks.dialog.residualRisk", { defaultValue: "Residual Risk" })}: ${getRiskLabel(afterScore, configuration.scale)}`}
+                          title={`${t("tabs.risks.dialog.residualRisk", { defaultValue: "Residual Risk" })}: ${after.tip}`}
                           placement="right"
                         >
                           <Chip
-                            label={afterScore.toFixed(1)}
+                            label={after.label}
                             size="small"
                             sx={{
                               height: 16,
                               fontSize: 10,
-                              bgcolor: getRiskColor(
-                                afterScore,
-                                configuration.scale,
-                                configuration.roundingMethod,
-                              ),
+                              bgcolor: after.color,
                               color: "white",
                               opacity: 0.85,
                               minWidth: 32,

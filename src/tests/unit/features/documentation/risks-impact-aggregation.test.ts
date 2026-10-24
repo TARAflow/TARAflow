@@ -98,8 +98,10 @@ describe("ISO traceability: risk value 1–5 instead of I × L per category", ()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gen = new MarkdownGenerator(p, cfg("en"), t) as any;
     const { content } = gen.generateTraceabilityMatrix("Traceability");
-    expect(content).toContain("| 5 (risks.iso.impact.severe × risks.iso.feasibility.high) |");
-    expect(content).toContain("| 3 (risks.iso.impact.severe × risks.iso.feasibility.low) |");
+    expect(content).toContain(
+      "| 5 – risks.isoRiskValue.5 (tabs.doc.iso.impact risks.iso.impact.severe × tabs.doc.iso.feasibilityShort risks.iso.feasibility.high) |",
+    );
+    expect(content).toContain("| 3 – risks.isoRiskValue.3 (");
     expect(content).not.toMatch(/\(S [^)]* · F /);
     expect(content).not.toContain("High (");
   });

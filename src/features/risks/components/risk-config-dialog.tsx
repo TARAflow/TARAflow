@@ -9,6 +9,12 @@
 // - handleToggleFactor sets autoEnabled: false on manual toggle
 // - useAssetImpact description updated to reflect per-criterion prefill
 
+import {
+  isIsoRiskMode,
+  isoRiskValueColor,
+  isoRiskValueFallback,
+  isoRiskValueI18nKey,
+} from "../models/iso-risk-display";
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -370,6 +376,9 @@ const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
       method === "weighted-mean" ? "standard" : (method as RegulationPresetId);
     return presetFactorLock(presetId);
   }, [configuration.likelihoodMethod]);
+  // ISO/SAE 21434: the risk value is 1–5 from matrix H.8 (3a); the I × L
+  // scale settings are locked / hidden, no RISK_SCALES label appears.
+  const isoScale = isIsoRiskMode(configuration);
 
   // Exclusive-mode presets (ISO 21434 / ETSI TVRA) lock all impact factors off,
   // so impact MUST come from asset-impact — the toggle is forced on and locked
@@ -930,10 +939,20 @@ const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
                   defaultValue: "Rating Scale",
                 })}
               </FormLabel>
+              {isoScale && (
+                <Alert severity="info" sx={{ mb: 1 }} data-testid="iso-scale-locked">
+                  {t("tabs.risks.iso.scaleLocked", {
+                    defaultValue:
+                      "ISO/SAE 21434: the risk value is 1–5 from the matrix of Annex H.8; this scale only feeds the internal I × L, which is not shown.",
+                  })}
+                </Alert>
+              )}
+              {!isoScale && (
               <RadioGroup
                 row
                 value={scale}
                 onChange={(e) => {
+                  if (isoScale) return;
                   const s = e.target.value as RiskScaleType;
                   setScale(s);
                   setSeverityThresholds(
@@ -945,6 +964,7 @@ const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
               >
                 <FormControlLabel
                   value="3-level"
+                  disabled={isoScale}
                   control={<Radio />}
                   label={t("tabs.risks.config.scale3", {
                     defaultValue: "3-Level (Low, Medium, High)",
@@ -952,6 +972,7 @@ const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
                 />
                 <FormControlLabel
                   value="4-level"
+                  disabled={isoScale}
                   control={<Radio />}
                   label={t("tabs.risks.config.scale4", {
                     defaultValue: "4-Level (+ Critical)",
@@ -959,14 +980,25 @@ const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
                 />
                 <FormControlLabel
                   value="5-level"
+                  disabled={isoScale}
                   control={<Radio />}
                   label={t("tabs.risks.config.scale5", {
                     defaultValue: "5-Level (+ Very High)",
                   })}
                 />
               </RadioGroup>
+              )}
               <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
-                {RISK_SCALES[scale].levels.map((level) => (
+                {isoScale
+                  ? [1, 2, 3, 4, 5].map((v) => (
+                      <Chip
+                        key={v}
+                        label={`${v}: ${t(isoRiskValueI18nKey(v), { defaultValue: isoRiskValueFallback(v) })}`}
+                        size="small"
+                        sx={{ backgroundColor: isoRiskValueColor(v), color: "white" }}
+                      />
+                    ))
+                  : RISK_SCALES[scale].levels.map((level) => (
                   <Chip
                     key={level.value}
                     label={`${level.value}: ${t(
@@ -978,13 +1010,15 @@ const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
                     size="small"
                     sx={{ backgroundColor: level.color, color: "white" }}
                   />
-                ))}
+                    ))}
               </Box>
             </FormControl>
 
             <Divider />
 
-            {/* Severity Thresholds + Matrix — two columns */}
+            {/* Severity Thresholds + Matrix — two columns (not under ISO:
+                they describe the hidden I × L, decision 23) */}
+            {!isoScale && (
             <Box
               sx={{
                 display: "grid",
@@ -1203,6 +1237,7 @@ const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
                 })()}
               </Box>
             </Box>
+            )}
 
             <Divider />
 
@@ -1527,7 +1562,7 @@ const RiskConfigDialogBody: React.FC<RiskConfigDialogProps> = ({
                 }
               />
 
-              {useAssetImpact && (
+              {useAssetImpact && !isoScale && (
                 <Box sx={{ mt: 2, ml: 4 }}>
                   <Typography
                     variant="subtitle2"

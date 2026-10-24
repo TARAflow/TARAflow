@@ -160,9 +160,13 @@ describe("risk tables of an ISO report (3a-2)", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gen = new MarkdownGenerator(withRisk(ISO()), { language: "en" } as any, t) as any;
     const content = gen.generateRisks("Risks", "per-element").content as string;
-    expect(content).toContain("4 (Major × High)");
-    expect(content).toContain("2 (Major × Low)");
+    expect(content).toContain("4 – High (Impact Major × AF High)");
+    expect(content).toContain("2 – Low (Impact Major × AF Low)");
     expect(content).not.toContain("| 12 |");
+    // the statistics count the ISO values, no label of the I × L scale
+    expect(content).toContain("4 – High");
+    expect(content).not.toContain("Very High");
+    expect(content).not.toContain("Critical 1");
   });
 
   it("other methods: unchanged", () => {

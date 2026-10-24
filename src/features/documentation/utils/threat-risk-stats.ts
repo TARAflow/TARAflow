@@ -27,6 +27,8 @@ export interface StatsThreat {
 
 export interface StatsRisk {
   calculatedRiskBeforeMitigation: number;
+  /** ISO/SAE 21434 risk value (3a); used instead of `I × L` when scale.iso. */
+  isoRisk?: { value: number };
 }
 
 const STRIDE = ["S", "T", "R", "I", "D", "E"] as const;
@@ -122,10 +124,29 @@ export function threatGroupSummary(threats: readonly StatsThreat[], lang: DocLan
 interface RiskScale {
   scale: RiskScaleType;
   roundingMethod?: RiskRoundingMethod;
+  /** iso-21434: count the risk values 1–5 (labelled "4 – High"), not `I × L`. */
+  iso?: boolean;
 }
 
+/** ISO risk value words — display only (decision 23); not the RISK_SCALES labels. */
+const ISO_VALUE_WORDS = {
+  en: ["Minimal", "Low", "Medium", "High", "Critical"],
+  de: ["Minimal", "Niedrig", "Mittel", "Hoch", "Kritisch"],
+} as const;
+
 /** Counts per level, highest first, then "not rated". */
-function levelCounts(risks: readonly StatsRisk[], { scale, roundingMethod }: RiskScale) {
+function levelCounts(
+  risks: readonly StatsRisk[],
+  { scale, roundingMethod, iso }: RiskScale,
+  lang: DocLanguage = "en",
+) {
+  if (iso) {
+    const values = [5, 4, 3, 2, 1];
+    const levels = values.map((v) => `${v} – ${ISO_VALUE_WORDS[lang][v - 1]}`);
+    const counts = values.map((v) => risks.filter((r) => r.isoRisk?.value === v).length);
+    const unrated = risks.filter((r) => !r.isoRisk?.value).length;
+    return { levels, counts, unrated };
+  }
   const levels = [...RISK_SCALES[scale].levels].reverse().map((l) => l.label);
   const counts = new Map<string, number>(levels.map((l) => [l, 0]));
   let unrated = 0;
@@ -145,10 +166,10 @@ export function riskStatsTable<R extends StatsRisk>(
   typeLabel: (type: string) => string,
 ): StatsTable {
   const text = TEXT[lang];
-  const all = levelCounts(risks, scale);
+  const all = levelCounts(risks, scale, lang);
   const withUnrated = all.unrated > 0;
   const cells = (list: readonly StatsRisk[]) => {
-    const c = levelCounts(list, scale);
+    const c = levelCounts(list, scale, lang);
     return [...c.counts.map(String), ...(withUnrated ? [String(c.unrated)] : [])];
   };
   return {
@@ -167,7 +188,7 @@ export function riskStatsTable<R extends StatsRisk>(
 /** "17 risks — Critical 2 · High 9 · Medium 6" (levels with risks only). */
 export function riskGroupSummary(risks: readonly StatsRisk[], scale: RiskScale, lang: DocLanguage): string {
   const text = TEXT[lang];
-  const c = levelCounts(risks, scale);
+  const c = levelCounts(risks, scale, lang);
   const parts = c.levels
     .map((l, i) => [text.level(l), c.counts[i]] as const)
     .filter(([, n]) => n > 0)
