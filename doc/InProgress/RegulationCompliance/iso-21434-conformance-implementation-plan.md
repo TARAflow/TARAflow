@@ -1103,5 +1103,18 @@ Discussed one by one before implementation; answers move into §6.
 
 ---
 
+## 10. Implementation status
+
+Branch `feature/iso21434-conformance`.
+
+| Step | Content | Patch | State |
+|---|---|---|---|
+| 0a | ISO treatment names (G5): `risk-treatment-vocabulary.ts` — Avoid / Reduce / Share / Retain for the `iso-21434` risk method, stored values unchanged; `transfer` not offered, a stored one shows as "Share (transfer)" with a review hint (dialog), a dashed chip (register) and a validation warning; traceability matrix uses the ISO names. Other methods unchanged (test). | 114 | done |
+| 0b | Methodology record, scale lock in the ISO preset | – | open |
+| 0c | Calculation stamp `{method, calcVersion, mappingVersion}` | – | open |
+| 0d | Methodology chapter in the report, CIANAAA ↔ CIA mapping | – | open |
+
+---
+
 © Jürgen Messerer · 2026. Normative content derives from ISO/SAE 21434:2021;
 authoritative wording is the standard.

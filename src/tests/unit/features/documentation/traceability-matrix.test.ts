@@ -173,8 +173,35 @@ describe("Traceability Matrix chapter (ISO/SAE 21434)", () => {
     // AF: 20 → Low (the corrected band; old code produced "very-low")
     expect(chapter.content).toContain("resolved: 20 (low)");
     expect(chapter.content).not.toContain("very-low");
-    // Treatment label resolves through i18n (default returns "reduce" here)
-    expect(chapter.content).toContain("reduce");
+    // Treatment label resolves through i18n (default = ISO 15.9 name)
+    expect(chapter.content).toContain("| Reduce |");
+  });
+
+  it("markdown: treatments carry the ISO 15.9 names (Retain, Avoid, Share (transfer))", () => {
+    const risk = (id: string, treatment: string) => ({
+      id,
+      threatDisplayId: id,
+      threatDescription: "x",
+      treatment,
+      linkedAssetIds: ["AS-CFG"],
+      factorRatings: FACTORS_AP20_LOW,
+      calculatedRiskBeforeMitigation: 2,
+      calculatedRiskAfterMitigation: 2,
+    });
+    const gen = new MarkdownGenerator(
+      baseProject("iso-21434", [
+        risk("R-A", "accept"),
+        risk("R-E", "eliminate"),
+        risk("R-T", "transfer"),
+      ]),
+      config,
+      t,
+    );
+    const content = matrix(gen as never).content as string;
+    expect(content).toContain("| Retain |");
+    expect(content).toContain("| Avoid |");
+    expect(content).toContain("| Share (transfer) |");
+    expect(content).not.toContain("| Accept |");
   });
 
   it("markdown: AP 13 lands in High (boundary guard for the corrected Table G.7)", () => {

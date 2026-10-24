@@ -162,6 +162,8 @@
         "cause": "Root Cause",
         "verifications": "Selected Verifications",
         "noMitigationWarning": "No mitigation selected. Please select at least one mitigation for this treatment type.",
+        "retainedNote": "Risk is retained — no mitigations required. Risk After equals Risk Before.",
+        "transferToReview": "Decision to review: ISO/SAE 21434 offers no \"Transfer\" option. Confirm the decision as Share or choose another option.",
         "acceptedNote": "Risk is accepted — no mitigations required. Risk After equals Risk Before.",
         "riskAfterAutoSynced": "Risk After is automatically set equal to Risk Before (no mitigation applied).",
         "factorDerived": "Assets",
@@ -454,6 +456,28 @@
       "share": {
         "label": "Share",
         "description": "Distribute responsibility across multiple parties — e.g. part of the countermeasure is implemented in the product, part in the surrounding system or operator procedures. Justification required."
+      }
+    },
+    "treatmentIso": {
+      "eliminate": {
+        "label": "Avoid",
+        "description": "Avoid the risk by removing the risk source or by not starting or continuing the activity that gives rise to it (ISO/SAE 21434 15.9 a). Justification required: what was removed."
+      },
+      "reduce": {
+        "label": "Reduce",
+        "description": "Reduce the risk through countermeasures (15.9 b). A residual risk remains."
+      },
+      "share": {
+        "label": "Share",
+        "description": "Share the risk, e.g. through contracts or by transferring it via insurance (15.9 c). Justification required; recorded as a cybersecurity claim."
+      },
+      "accept": {
+        "label": "Retain",
+        "description": "Retain the risk without further countermeasures (15.9 d). Justification required; recorded as a cybersecurity claim."
+      },
+      "transfer": {
+        "label": "Share (transfer)",
+        "description": "Stored as \"Transfer\", which ISO/SAE 21434 does not offer as an option. Decision to review: confirm it as Share or choose another option."
       }
     },
     "moscow": {

@@ -162,6 +162,8 @@
         "verifications": "Ausgewählte Verifikationen",
         "treatmentJustificationRequired": "Erforderlich für Akzeptieren / Transfer / Teilen",
         "noMitigationWarning": "Keine Massnahme ausgewählt. Bitte wählen Sie mindestens eine Massnahme für diese Behandlungsart.",
+        "retainedNote": "Risiko wird beibehalten — keine Massnahmen erforderlich. Risiko Nachher entspricht dem Risiko Vorher.",
+        "transferToReview": "Zu prüfende Entscheidung: ISO/SAE 21434 kennt keine Option „Transferieren“. Als Teilen bestätigen oder eine andere Option wählen.",
         "acceptedNote": "Risiko ist akzeptiert — keine Massnahmen erforderlich. Risiko Nachher entspricht dem Risiko Vorher.",
         "riskAfterAutoSynced": "Risiko Nachher wird automatisch auf das Risiko Vorher gesetzt (keine Massnahmen angewendet).",
         "factorDerived": "Assets",
@@ -454,6 +456,28 @@
       "share": {
         "label": "Teilen",
         "description": "Verantwortung auf mehrere Parteien aufteilen — z.B. ein Teil der Massnahme im Produkt, ein Teil im umgebenden System oder in Betreibervorschriften. Begründung erforderlich."
+      }
+    },
+    "treatmentIso": {
+      "eliminate": {
+        "label": "Vermeiden",
+        "description": "Risiko vermeiden, indem die Risikoquelle beseitigt oder die Tätigkeit, aus der es entsteht, nicht begonnen bzw. nicht fortgesetzt wird (ISO/SAE 21434 15.9 a). Begründung erforderlich: was wurde entfernt."
+      },
+      "reduce": {
+        "label": "Reduzieren",
+        "description": "Risiko durch Massnahmen reduzieren (15.9 b). Ein Restrisiko verbleibt."
+      },
+      "share": {
+        "label": "Teilen",
+        "description": "Risiko teilen, z.B. über Verträge oder durch Übertragung per Versicherung (15.9 c). Begründung erforderlich; wird als Cybersecurity-Claim festgehalten."
+      },
+      "accept": {
+        "label": "Beibehalten",
+        "description": "Risiko ohne weitere Massnahmen beibehalten (15.9 d). Begründung erforderlich; wird als Cybersecurity-Claim festgehalten."
+      },
+      "transfer": {
+        "label": "Teilen (Transfer)",
+        "description": "Gespeichert als „Transferieren“; ISO/SAE 21434 bietet diese Option nicht an. Zu prüfende Entscheidung: als Teilen bestätigen oder eine andere Option wählen."
       }
     },
     "moscow": {
