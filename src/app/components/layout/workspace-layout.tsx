@@ -1031,6 +1031,12 @@ export const WorkspaceLayout: React.FC = () => {
                   activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
                 ),
               ),
+              impactLabelVocabulary:
+                regulationPresetFromTags(
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ) === "iso-21434"
+                  ? "iso-21434"
+                  : "default",
             }}
             onUpdate={makeAssetsUpdateHandler(activeProject.id)}
             onDeleteAsset={makeAssetDeleteHandler(activeProject.id)}

@@ -116,6 +116,20 @@
           "critical": "Kritisch"
         }
       },
+      "impactScaleIso": {
+        "1": {
+          "label": "Vernachlässigbar"
+        },
+        "2": {
+          "label": "Moderat"
+        },
+        "3": {
+          "label": "Erheblich"
+        },
+        "4": {
+          "label": "Schwerwiegend"
+        }
+      },
       "impactScale": {
         "3-level": {
           "1": {

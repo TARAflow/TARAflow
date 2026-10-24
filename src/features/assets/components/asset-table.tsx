@@ -63,6 +63,8 @@ import { SecurityGoalChips } from "./security-goal-chips";
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
+  impactScaleFor,
+  type ImpactLabelVocabulary,
   SAFETY_CRITERION_ID,
   IMPACT_CRITERION_KEY_PREFIX,
 } from "../models/asset-impact-types";
@@ -86,6 +88,8 @@ import {
 export interface AssetTableProps {
   assets: Asset[];
   configuration: AssetConfiguration;
+  /** Names of the impact levels (ISO/SAE 21434 under iso-21434). */
+  impactLabelVocabulary?: ImpactLabelVocabulary;
   a2aRelations?: AssetToAssetRelationReference[];
   /**
    * Canonical asset-to-asset relations (assets.relations) for the "Asset
@@ -310,6 +314,7 @@ export const AssetTable = React.memo<AssetTableProps>(
   ({
     assets,
     configuration,
+    impactLabelVocabulary = "default",
     a2aRelations = [],
     assetLinkRelations,
     hazardLinks,
@@ -429,7 +434,7 @@ export const AssetTable = React.memo<AssetTableProps>(
     // ── Columns ───────────────────────────────────────────────────────────
 
     const columns = useMemo<GridColDef<Asset>[]>(() => {
-      const scale = IMPACT_SCALES[configuration.impactScale];
+      const scale = impactScaleFor(configuration.impactScale, impactLabelVocabulary);
 
       // ── ID — colored chip using category color ─────────────────────────
       const idColumn: GridColDef<Asset> = {
@@ -1616,6 +1621,7 @@ export const AssetTable = React.memo<AssetTableProps>(
       ];
     }, [
       configuration,
+      impactLabelVocabulary,
       t,
       isGerman,
       onEdit,

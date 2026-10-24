@@ -230,6 +230,34 @@ export const SAFETY_CRITERION_ID = "safety";
  */
 export const IMPACT_SCALE_KEY_PREFIX = "tabs.assets.impactScale" as const;
 
+// ==================== ISO/SAE 21434 LABELS ====================
+
+/** Which names the impact levels carry. */
+export type ImpactLabelVocabulary = "default" | "iso-21434";
+
+/**
+ * The impact scale as displayed. Under ISO/SAE 21434 the 4-level scale carries
+ * the RQ-15-05 names negligible / moderate / major / severe (conformance plan
+ * 0b2) — display only, values and colours unchanged. Other scales keep their
+ * labels (an ISO project on another scale already has a finding).
+ */
+export function impactScaleFor(
+  scaleType: ImpactScaleType,
+  vocabulary: ImpactLabelVocabulary = "default",
+): ImpactScaleConfig {
+  const scale = IMPACT_SCALES[scaleType];
+  if (vocabulary !== "iso-21434" || scaleType !== "4-level") return scale;
+  return ISO_IMPACT_SCALE;
+}
+
+const ISO_IMPACT_SCALE: ImpactScaleConfig = {
+  ...IMPACT_SCALES["4-level"],
+  levels: IMPACT_SCALES["4-level"].levels.map((l) => ({
+    ...l,
+    labelKey: `tabs.assets.impactScaleIso.${l.value}.label`,
+  })),
+};
+
 /**
  * i18n key prefix for impact criterion translations.
  * Usage: t(`${IMPACT_CRITERION_KEY_PREFIX}.${id}.name`)

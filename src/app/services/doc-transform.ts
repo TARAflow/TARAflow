@@ -9,6 +9,7 @@ import type {
   DocComputedValues,
 } from "../../features/documentation/models/doc-types";
 import type { StrideCategory } from "../../shared";
+import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../shared";
 
 // ==================== LABEL CALCULATION HELPERS ====================
 
@@ -44,6 +45,18 @@ function getScaleLabel(
     default:
       return value.toString();
   }
+}
+
+/**
+ * Impact label on the 4-level scale with the ISO/SAE 21434 RQ-15-05 names
+ * (conformance plan 0b2) — same thresholds as getScaleLabel "4-level".
+ */
+function getIsoImpactLabel(value: number, language: DocLanguage): string {
+  const de = language === "de";
+  if (value >= 4) return de ? "Schwerwiegend" : "Severe";
+  if (value >= 3) return de ? "Erheblich" : "Major";
+  if (value >= 2) return de ? "Moderat" : "Moderate";
+  return de ? "Vernachlässigbar" : "Negligible";
 }
 
 /**
@@ -101,11 +114,18 @@ function computeDocValues(
 ): DocComputedValues {
   const impactScale = project.assets?.configuration?.impactScale ?? "4-level";
   const riskScale = project.risks?.configuration?.scale ?? "4-level";
+  // ISO/SAE 21434 names on the 4-level impact scale (display only).
+  const isoImpactLabels =
+    impactScale === "4-level" &&
+    regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) ===
+      "iso-21434";
 
   // Cache impact labels (asset ID -> label)
   const impactLabels = new Map<string, string>();
   project.assets?.assets?.forEach((asset) => {
-    const label = getScaleLabel(asset.overallImpact, impactScale, language);
+    const label = isoImpactLabels
+      ? getIsoImpactLabel(asset.overallImpact, language)
+      : getScaleLabel(asset.overallImpact, impactScale, language);
     impactLabels.set(asset.id, label);
   });
 

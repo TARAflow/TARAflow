@@ -45,6 +45,8 @@ import {
   ImpactRoundingMethod,
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
+  impactScaleFor,
+  type ImpactLabelVocabulary,
   WeightedImpactCriterion,
   IMPACT_CRITERION_KEY_PREFIX,
 } from "../models/asset-impact-types";
@@ -65,6 +67,8 @@ interface AssetConfigDialogProps {
   savedImpactScale?: ImpactScaleType;
   /** Any asset carries an impact value — a scale change does not convert it. */
   hasImpactRatings?: boolean;
+  /** Names of the impact levels (ISO/SAE 21434 under iso-21434). */
+  impactLabelVocabulary?: ImpactLabelVocabulary;
   onChange: (config: AssetConfiguration) => void;
   onSave: () => void;
   onClose: () => void;
@@ -100,6 +104,7 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
   requiredImpactScale,
   savedImpactScale,
   hasImpactRatings = false,
+  impactLabelVocabulary = "default",
   onChange,
   onSave,
   onClose,
@@ -123,7 +128,7 @@ export const AssetConfigDialog: React.FC<AssetConfigDialogProps> = ({
   const isUnderMinimum = criteriaCount < MIN_CRITERIA;
   const isValidCount = !isUnderMinimum;
 
-  const scale = IMPACT_SCALES[configuration.impactScale];
+  const scale = impactScaleFor(configuration.impactScale, impactLabelVocabulary);
 
   // ==================== HANDLERS ====================
 

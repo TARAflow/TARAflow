@@ -14,6 +14,7 @@ import type {
   ImpactRating,
   WeightedImpactCriterion,
   ImpactScaleType,
+  ImpactLabelVocabulary,
   ImpactCalculationMethod,
   ImpactRoundingMethod,
 } from "./asset-impact-types";
@@ -279,6 +280,11 @@ export interface AssetProjectData {
    * scale and the validator reports a mismatch. Absent → free choice.
    */
   requiredImpactScale?: ImpactScaleType;
+
+  /** Names of the impact levels — "iso-21434" shows negligible / moderate /
+   * major / severe on the 4-level scale (RQ-15-05). Derived at the app layer;
+   * display only. Absent → default names. */
+  impactLabelVocabulary?: ImpactLabelVocabulary;
 
   /** DFD assets for asset synchronization and linking */
   dfdAssets?: AssetDFDAsset[];

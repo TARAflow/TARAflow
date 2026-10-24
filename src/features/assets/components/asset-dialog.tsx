@@ -49,6 +49,8 @@ import { Asset, AssetConfiguration } from "../models/asset-types";
 import {
   PREDEFINED_IMPACT_CRITERIA,
   IMPACT_SCALES,
+  impactScaleFor,
+  type ImpactLabelVocabulary,
   SAFETY_CRITERION_ID,
   IMPACT_CRITERION_KEY_PREFIX,
 } from "../models/asset-impact-types";
@@ -107,6 +109,8 @@ interface AssetDialogProps {
    * Kept for API compatibility with callers.
    */
   damageScenarioMode?: boolean;
+  /** Names of the impact levels (ISO/SAE 21434 under iso-21434). */
+  impactLabelVocabulary?: ImpactLabelVocabulary;
   /** Tab to open on (0 = General, 1 = Security Goals) — e.g. from a finding. */
   initialTab?: 0 | 1;
   /** Goal card to open and scroll to — e.g. from a finding. */
@@ -160,6 +164,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   onSave,
   onClose,
   damageScenarioMode = false,
+  impactLabelVocabulary = "default",
   initialTab = 0,
   focusGoal,
   threatLinks,
@@ -167,7 +172,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const scale = IMPACT_SCALES[configuration.impactScale];
+  const scale = impactScaleFor(configuration.impactScale, impactLabelVocabulary);
   const isNew = asset.name === "";
 
   // ==================== STATE ====================
