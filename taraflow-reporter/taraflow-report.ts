@@ -21,6 +21,7 @@ import { loadProject } from "./cli/load-project";
 import { toDocProjectData } from "./cli/to-doc-project-data";
 import { initI18nNode, i18n } from "./cli/i18n-node";
 import { installDomParser } from "./cli/dom-parser-node";
+import { resolveCliChapters } from "./cli/resolve-chapters";
 import {
   createCliGenerator,
   generatePdfBufferCli,
@@ -30,7 +31,6 @@ import type {
   DocConfiguration,
   DocFormat,
   DocLanguage,
-  DocChapterConfig,
 } from "../src/features/documentation/models/doc-types";
 
 // ==================== ARG PARSING ====================
@@ -124,12 +124,7 @@ async function main() {
 
   const lang: DocLanguage = args.lang ?? baseConfig.language;
 
-  const chapters = args.chapters
-    ? baseConfig.chapters.map((c: DocChapterConfig) => ({
-        ...c,
-        enabled: args.chapters!.includes(c.id),
-      }))
-    : baseConfig.chapters;
+  const chapters = resolveCliChapters(baseConfig.chapters, args.chapters);
 
   const config: DocConfiguration = {
     ...baseConfig,
