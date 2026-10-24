@@ -144,7 +144,7 @@ Closes G5, prepares G12.
   | impact scale and labels | `assets.configuration.impactScale` |
   | feasibility method | `risks.configuration.likelihoodMethod` |
   | impact aggregation | `risks.configuration.impactAggregation` |
-  | OR = MAX / AND = MIN | constant exported by the attack-tree calculator |
+  | attack-tree gate rules per kind of rating (attack potential AND = sum / OR = min; probability AND = product / OR = union; ordinal level AND = min / OR = max) | `FEASIBILITY_GATE_RULES`, exported and applied by the attack-tree calculator |
   | Avoid/Retain ↔ eliminate/accept | ISO treatment vocabulary (0a, `risk-treatment-vocabulary.ts`) |
   | CIANAAA ↔ CIA | own exported constant, with test |
   | risk matrix / formula, acceptance criteria | stored from 3a / 3b on |
