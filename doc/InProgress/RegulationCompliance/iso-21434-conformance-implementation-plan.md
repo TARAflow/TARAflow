@@ -597,6 +597,48 @@ review list by value class).
   *Share* never (Avoid is the strongest treatment; sharing with the OEM /
   integrator is often legitimate). Hard rules come with the acceptance
   criteria of 3b.
+- **Implementation details (decision 22, 2026-10-24):**
+  - **Where:** app layer, `commitIsoRiskValues(prev, next)` in
+    `mergeProjectPatch`, order `commitHazardSafety` → `commitIsoRiskValues` →
+    `commitCalcStamps`. Runs only under `iso-21434`, only when `prev` is the
+    same project (never on open), and only when risks, assets, attack trees,
+    hazards or the asset / risk / feasibility configuration changed. Stored per
+    risk: `isoRisk { impact, feasibility, value, residual? }` (inputs kept so
+    dialog and report can explain the value). A change of `isoRisk` counts as a
+    recomputation for the stamp. Migration 9 → 10 calls the same function.
+  - **Safety level (Table F.1):** if the asset (or the goal) has a categorical
+    severity (`physicalImpact`), F.1: `none` → negligible, `reversible_*` →
+    moderate, `irreversible_*` → major, `fatal` → severe. Otherwise the numeric
+    safety rating (the Se factor of `safetySeverityToFactor`): 1, 2 → moderate,
+    3 → major, 4 → severe — conservative, because 4 is irreversible_major *or*
+    fatal — plus a finding "safety 4 ambiguous, rate it categorically"; 0 = not
+    rated (not negligible). A security-goal override of safety exists only as a
+    number and uses the same numeric rule, so "override before asset" (E1)
+    holds for safety too. Headlamp: DA-001 (fatal) severe, DA-002 (3) major,
+    DA-003 (2) and FU-001 (1) moderate.
+  - **Methodology chapter:** the safety number is the Se factor (1 = reversible
+    minor = *moderate*), while 1 in the other ISO categories is *negligible* —
+    same number, different meaning, stated explicitly.
+  - **Safety names normalised in 9 → 10:** only the name part of
+    `normalize-safety-severity.ts` (annotations, `endangers` edges,
+    `physicalImpact` / `safetyImpact`) runs again — it is idempotent. The rating
+    step "safety rating 3 → 4" (old Se3 = irreversible injury) is **not**
+    idempotent and stays in 8 → 9 only; repeating it would raise every v9
+    safety rating 3 (irreversible_minor) to 4. This closes the open beta point
+    "normalise v9 files" (e.g. `fatality` in Headlamp and on the SmokeDetector
+    edges). The F.1 table reads canonical names only; a test shows that no old
+    name survives the migration and that a v9 rating 3 stays 3.
+  - **Residual per path:** residual feasibility from the ratings after
+    mitigation — the residual `attack_tree_likelihood` translated back with
+    the runtime Mapping B (`feasibilityLevelToRiskScale`, decision 21; not the
+    stored snapshot), ambiguous on a 3-level scale (1/1/2/3) → the higher
+    level; or the mitigated `iso_*` factors. Residual impact = the scenario
+    impact. Nothing rated after mitigation → no residual value.
+  - **Patches:** 3a-1 core (H.8, F.1, `commitIsoRiskValues`, migration incl.
+    name normalisation, golden tests), 3a-2 display (register column /
+    heatmap / sort / filter, dialog, report, `I × L` hidden under ISO), 3a-3
+    scenario view (grouping, scenario value and residual, review list as
+    banner + filter). Released only after 3a-3, as 0.15.0-beta.
 - **Tests:** golden test from the Annex H inputs (all 16 cells of H.8, the two
   cases of H.9: High × Severe → 5, Low × Moderate → 2); a Headlamp test with
   the values today's example data give (the example deviates from Annex H: the
@@ -932,6 +974,14 @@ Added in rev. 2 (2026-10-24):
     the stored values are corrected in migration 9 → 10. Changes `I × L` in
     all presets with attack trees on a 3- or 4-level scale — deliberate
     exception to principle 6, release note. Shipped with 3a as 0.15.0-beta.
+22. **[D] 3a implementation details (2026-10-24):** computed in the app layer
+    (`commitIsoRiskValues`, after `commitHazardSafety`, before the stamps,
+    same-project guard, configuration changes as triggers); safety level from
+    the categorical severity via F.1, else from the Se number (4 → severe +
+    finding); goal overrides use the number rule; only the idempotent name part
+    of the safety normalisation repeats in 9 → 10; residual feasibility via the
+    runtime Mapping B (3-level: higher level), residual impact = scenario
+    impact; patches 3a-1 / 3a-2 / 3a-3, released together.
 
 ---
 
@@ -980,7 +1030,7 @@ are written against behaviour, not against the report text.
 | 0 | Switching from ISO to another preset keeps the 4-level scale. |
 | 0 | Every ISO risk and every ISO `PathAnalysis` carries `{method, calcVersion, mappingVersion}`; projects under other presets carry none (save diff = `schemaVersion` only). |
 | 0 | Analysing twice with unchanged inputs leaves `attackTrees` and `risks` byte-identical (`info.lastModified` excluded, separate point); a changed input gives a new `analysisDate`. |
-| 0 | Opening and saving an ISO project without stamps writes no stamp and changes no byte except `schemaVersion`; changing one risk stamps only that risk. |
+| 0 | Opening and saving a project writes no stamp — except migration 9 → 10, which stamps the ISO risks it gives an `isoRisk` (3a, E5); a project without computable ISO values changes no byte except `schemaVersion`; changing one risk stamps only that risk. |
 | 0 | Changing a G.7 band changes `mappingVersion` of the path and of the risk stamp; changing `impactAggregation` changes only the risk stamp. |
 | 0 | Golden test per calculation core: a changed formula fails with "bump calcVersion". |
 | 0 | After moving the hash helpers: `pathKey` / `computeNodeId` and the TCS output are unchanged; Electron and verifier bundles build. |
@@ -1004,6 +1054,8 @@ are written against behaviour, not against the report text.
 | 3 | Every ISO risk value is an integer 1–5 (RQ-15-16); impact × feasibility at both extremes gives 1 and 5 with the default matrix. |
 | 3a | Golden test: all 16 cells of H.8; the H.9 cases High × Severe → 5 and Low × Moderate → 2; Headlamp gives the values of today's example data. |
 | 3a | Migration 9 → 10 computes and stamps `isoRiskValue` for every ISO risk, changes no treatment; the review list holds only Retain at ≥ 4 (warning) and Reduce at 1 (info). |
+| 3a | Headlamp safety: DA-001 (fatal) severe, DA-002 (3) major, DA-003 (2) and FU-001 (1) moderate; an asset with safety 4 and no categorical severity gives severe plus the finding "ambiguous". |
+| 3a | After migration 9 → 10 no old safety name is left (assets, annotations, `endangers` edges); a v9 safety rating 3 stays 3. |
 | fix | A 4-level project with an attack tree: a *high* path gives likelihood 4, not 5; a 5-level project is unchanged; stored values are corrected by migration 9 → 10. |
 | 3 | A threat scenario with three attack paths has one feasibility (MAX) and one risk per linked damage scenario; the per-path values stay visible as drill-down. |
 | 3 | Changing the matrix (or the formula table) flags every risk whose value changed as *decision to review* and changes **no** treatment, MoSCoW priority or justification. |
