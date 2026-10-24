@@ -1,6 +1,6 @@
 # TARAflow — ISO/SAE 21434 Conformance: Implementation Plan
 
-> **Status:** Rev. 2, decisions of §6 taken, clarifications of §9 decided ·
+> **Status:** Rev. 2, decisions of §6 taken, §9 K7 open ·
 > 2026-10-24 · base: v0.14.0-beta (rev. 1: 2026-10-16, v0.13.3-alpha)
 > **Supersedes:** `doc/Done/RegulationCompliance/iso-21434-support-design.md`
 > (that document deliberately limited TARAflow to Clause 15 and kept cybersecurity
@@ -87,9 +87,10 @@ by this file.
 
 ## 3. Design principles
 
-1. **Additive where possible.** Every phase except Phase 3 adds data; existing
-   projects open unchanged. Phase 3 recomputes risk values and therefore needs a
-   schema bump, a migration and a "decisions to review" list.
+1. **Additive where possible.** Most steps only add data; existing projects
+   open unchanged. Steps that move data or recompute values (3a, 2, 3b — see §5)
+   need a schema bump and a migration; 3a and 3b also a "decisions to review"
+   list.
 2. **One project, two modes.** ISO-specific objects and rules (treatment
    names, scale lock, risk value 1–5, goals, claims, CAL) are visible only under
    the `iso-21434` preset. The TARAflow default mode and EN 50742 keep their
@@ -159,15 +160,15 @@ Closes G5, prepares G12.
 section; every risk carries a calc stamp. Tests: label mapping, stamp present,
 default mode unchanged.
 
-### Phase 1 — Item Definition in the General tab (9.3) (medium, small migration)
+### Phase 1 — Item Definition in the General tab (9.3) (medium, additive)
 
 Closes G8; provides the assumptions used by claims in Phase 4.
 
 **Rev. 2 (decision 8):** the Item Definition is a **preset-independent
 feature**, not an ISO add-on. It lives in a sub-tab **"Definition"** of the
 Overview tab, for every project. The current project description
-(`GeneralTabData.info.description`) moves into the section *Purpose and
-functions* (migration, text unchanged). The preset only decides which sections
+(`GeneralTabData.info.description`) is shown as the section *Purpose and
+functions* (stored in `info.description`, no migration). The preset only decides which sections
 are mandatory (validator findings): `iso-21434` → RQ-09-01/02,
 `en-50742-a`/`en-50742-b`/`etsi-tvra` → open, `standard` → none. IEC 62443-4-1
 (SRM-2/3) has no preset today; the rule applies once one exists. arc42 in
@@ -295,40 +296,49 @@ produces WP-09-01 as a report chapter with source references; assumptions are
 referenceable objects. Stage B is done when an arc42 re-import with a changed
 section marks that section as changed.
 
-### Phase 1H — Safety source and ISO 26262 link (prerequisite of Phase 2)
+### Phase 1H — ISO 26262 fields and HARA import (prerequisite of Phase 2)
 
-Decision 13. Normative basis [N]: **RQ-15-06** (15.5.2) — safety impact ratings
-are derived from ISO 26262-3:2018, 6.4.3 (severity classification of the HARA);
-Table F.1 maps S0–S3 onto negligible / moderate / major / severe; Annex F allows
-exposure and controllability with a rationale; 15.5.2 NOTE 6 lets the
-functional-safety evaluation be reused. RQ-05-03 EXAMPLE 3 names the exchange
-threat scenarios ↔ hazards and cybersecurity goals ↔ safety goals. ISO 21434
-does **not** require an ISO 26262 analysis first; without a HARA the analyst
-rates S directly by Table F.1.
+Decision 13. Only for `iso-21434`, only additive. Normative basis [N]:
+**RQ-15-06** (15.5.2) — safety impact ratings are derived from ISO 26262-3:2018,
+6.4.3 (severity classification of the HARA); Table F.1 maps S0–S3 onto
+negligible / moderate / major / severe; the footnote of Table F.1 allows
+exposure and controllability "if a rationale is provided"; 15.5.2 NOTE 6 lets
+the functional-safety evaluation be reused. 5.4.1 EXAMPLE 3 (requirement on
+communication between disciplines; RQ number to be confirmed in the standard:
+RQ-05-03 or RQ-05-05) names the exchange threat scenarios ↔ hazards and
+cybersecurity goals ↔ safety goals. ISO 21434 does **not** require an ISO 26262
+analysis first; without a HARA the analyst rates S directly by Table F.1.
 
 Same pattern as ISO 12100 → EN 50742: the safety analysis supplies the
 severity, the security analysis uses it. Unlike EN 50742 there is no SRSL
 table; S only enters the impact.
 
-1. **Hazard Item as the single safety source** (open follow-up of the beta):
-   the safety annotation stays a UI shortcut that creates/edits a one-cause
-   Hazard Item; worst-of, the double-modelling warning and the duplicate
-   `physicalHazardPotential` go away. Applies to all presets.
-2. **ISO 26262 fields on the Hazard Item** (shown under `iso-21434`):
+**Not part of this plan:** the Hazard Item as the single safety source. The
+safety source stays as today — worst-of over annotation and Hazard Item plus
+the double-modelling warning. The strict separation per asset stays an open
+point of `doc/taraflow-safety-model.md` §11 (point 1), as does the duplicate
+`physicalHazardPotential` (point 3). No step of this plan changes safety values
+in any preset.
+
+1. **ISO 26262 fields on the Hazard Item** (shown under `iso-21434`, optional):
    `hazardousEvent` (operational situation), `s26262` S0–S3, `exposure` E0–E4,
    `controllability` C0–C3, `asil` (imported or derived), `safetyGoalRef`
    (id/text of the safety team's goal). `externalRef` keeps the HARA id.
-3. **Scale:** the stored value stays the canonical 5-level person-harm scale
+2. **Scale:** the stored value stays the canonical 5-level person-harm scale
    (`safety-types.ts`); S0–S3 is a view with the mapping documented there.
-   Importing an S class maps conservatively (S1 → `reversible_major`,
-   S2 → `irreversible_major`, S3 → `fatal`).
-4. **HARA import** (CSV), same pattern as the FMEA hazard import.
-5. Used by Phase 2 (`DamageScenario.hazardRefs` → S = MAX over the linked
+   Importing an S class maps conservatively: S0 → `SafetyImpact = "none"`
+   (rated, no injuries → negligible by Table F.1), S1 → `reversible_major`,
+   S2 → `irreversible_major`, S3 → `fatal`. An empty S stays *not rated*;
+   `none` and *not rated* remain distinguishable.
+3. **HARA import** as a new import profile of the existing hazard importer
+   (`features/hazards/services/importer/csv-importer.ts`, `xlsx-ods-importer.ts`,
+   `apply-import-profile.ts`).
+4. Used by Phase 2 (`DamageScenario.hazardRefs` → S = MAX over the linked
    hazards, analyst override with rationale) and Phase 4 (safety goal ↔
    cybersecurity goal link).
 
-*Done when:* safety data lives only in Hazard Items; an ISO project shows and
-imports S/E/C/ASIL; `standard` and `en-50742-a` show and compute as before.
+*Done when:* an ISO project shows and imports S/E/C/ASIL; S0 is imported as
+`none`; projects under every other preset show and compute as before.
 
 ### Phase 2 — Damage scenarios as first-class objects (15.3, 15.4, 15.5) (medium–large, schema bump)
 
@@ -560,11 +570,11 @@ change values get their own minor version and a release note.
 | 2 | Phase 3a — risk value 1–5, risk per threat scenario | **0.15.0-beta** | **yes** (ISO risks only) | **10** |
 | 3 | Phase 1 — Definition sub-tab, assumptions (stage A) | 0.15.x-beta | no | – (`info.description` stays the storage of *Purpose and functions*) |
 | 4 | Phase 1 stage B — arc42 import | 0.15.x-beta | no | – |
-| 5 | Phase 1H — Hazard Item as single safety source, ISO 26262 fields | **0.16.0-beta** | possibly (worst-of removed) | **11** |
-| 6 | Phase 2 — damage scenarios | **0.17.0-beta** | no (impact moves, MAX keeps the level) | **12** |
-| 7 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria | **0.18.0-beta** | **yes** where 1:n damage scenarios exist | **13** |
-| 8 | Phase 4 — goals, claims, verification record | 0.18.x-beta | no | – |
-| 9 | Phases 5 + 7 — concept traceability, report, readiness | 0.18.x-beta | no | – |
+| 5 | Phase 1H — ISO 26262 fields and HARA import (ISO only, additive) | 0.15.x-beta | no | – (open, §9 K7) |
+| 6 | Phase 2 — damage scenarios | **0.16.0-beta** | no (impact moves, MAX keeps the level) | **11** |
+| 7 | Phase 3b — matrix option, risk per threat × damage scenario, acceptance criteria | **0.17.0-beta** | **yes** where 1:n damage scenarios exist | **12** |
+| 8 | Phase 4 — goals, claims, verification record | 0.17.x-beta | no | – |
+| 9 | Phases 5 + 7 — concept traceability, report, readiness | 0.17.x-beta | no | – |
 | later | Phases 6, 8 (stage C of arc42 with 8) | x-beta | no | – |
 
 **Why 3a first:** an ISO project (APS) is running in TARAflow under
@@ -644,14 +654,19 @@ Added in rev. 2 (2026-10-24):
 12. **[D] Assumptions additive:** ASM objects plus `assumptionIds` on the trust
     boundary; the free text stays; conversion only on request. No schema bump
     for this.
-13. **[D] ISO 26262 link via Hazard Items (Phase 1H):** the Hazard Item first
-    becomes the single safety source, then gets the ISO 26262 fields
-    (hazardous event, S/E/C, ASIL, safety goal ref) and a HARA import. Stored
-    severity stays the canonical 5-level scale; S0–S3 is a view.
-14. **[D] Order and releases (§5):** 0 → 3a → 1 → 1B → 1H → 2 → 3b → 4 →
+13. **[D] ISO 26262 link via Hazard Items (Phase 1H, rev. 2026-10-24):**
+    A. The safety source stays as today (worst-of plus warning); the Hazard
+    Item as single safety source is not part of this plan (open point in
+    `taraflow-safety-model.md` §11). B. Only the ISO 26262 fields (hazardous
+    event, S/E/C, ASIL, safety goal ref; `externalRef` = HARA id), a HARA
+    import profile of the existing hazard importer and S0–S3 as a view on the
+    canonical scale — ISO only, additive, prerequisite of Phase 2.
+    C. S0 is imported as `SafetyImpact = "none"` (rated, negligible); an
+    empty S stays *not rated*.
+14. **[D] Order and releases (§5):** 0 → 3a → 1 → 1 stage B → 1H → 2 → 3b → 4 →
     5+7 → 6, 8, on the branch `feature/iso21434-conformance`. 3a is pulled
     forward because the APS project runs under `iso-21434`. Schema bumps (3a,
-    1H, 2, 3b) and value changes get their own minor beta; additive steps a
+    2, 3b) and value changes get their own minor beta; additive steps a
     beta patch. The superseded support design moved to `doc/Done`, the old
     `taraflow-iso21434-todo.md` checklist to `doc/Old`.
 
@@ -700,7 +715,9 @@ are written against behaviour, not against the report text.
 | 1 | A project with trust-boundary `securityAssumptions` texts opens unchanged; *Convert to assumption* creates one ASM object linked from the boundary with the same text; setting it `invalid` flags the boundary. |
 | 1 | The General tab switches between Project / Definition / Methodology / Sources; each view's badge equals its number of open findings; the Methodology view shows the risk method read-only and links to the Risk configuration dialog. |
 | 1 | An assumption referenced by a trust boundary and a claim is one object; editing it changes both views. |
-| 2 | Migration: a v0.13 file with `consequence` + `impactRatings` opens, saves and reopens with one damage scenario per goal, identical text and ratings, unchanged goal level. |
+| 1H | A HARA CSV with S0 / S1 / S2 / S3 imports as `none` / `reversible_major` / `irreversible_major` / `fatal`; a row without S stays *not rated*. |
+| 1H | Projects under every other preset show and compute the same safety values as before. |
+| 2 | Migration: a file with the schema before Phase 2 (10 per §5) with `consequence` + `impactRatings` opens, saves and reopens with one damage scenario per goal, identical text and ratings, unchanged goal level. |
 | 2 | Two damage scenarios on the same asset × property are rated independently; the goal level is the MAX. |
 | 2 | A relevant threat without a damage-scenario link, and a damage scenario reached by no threat (without reason), each produce a finding. |
 | 2 | Switching the preset ISO ↔ EN 50742 relabels the safety scale and flags every safety rating for review; no value changes silently. |
@@ -732,6 +749,7 @@ Discussed one by one before implementation; answers move into §6.
 | K4 | Risk granularity | decided (decision 9) |
 | K5 | Effect on other methods | decided (decision 10, principle 6) |
 | K6 | Releases, schema, order, old documents | decided (decision 14, §5) |
+| K7 | Schema bump for additive steps: `schema-version.ts` says "increment for every breaking **or additive** change", and an older release refuses newer files only through the version. Without a bump, an older beta opens a file with new fields (methodology record, Item Definition, ASM, ISO 26262 fields, goals …) and may drop them on save. Bump per additive step, or keep §5 (bumps only for 3a, 2, 3b)? | open |
 
 ---
 
