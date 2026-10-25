@@ -197,6 +197,11 @@ export {
   SEVERITY_SCALE_BY_TARGET,
   isHumanImpact,
 } from "./models/hazard-impact";
+export {
+  HAZARD_SEVERITY_RANK_COLOR,
+  hazardSeverityRank,
+  worstEndangersSeverity,
+} from "./models/hazard-severity-display";
 
 // ==================== UI COMPONENTS ====================
 export { Button } from "./components/button";

@@ -49,11 +49,10 @@ import type {
   HazardRelation,
 } from "shared";
 import {
+  HAZARD_SEVERITY_RANK_COLOR,
+  hazardSeverityRank,
   isContributesTo,
   isEndangers,
-  SAFETY_SEVERITIES,
-  safetySeverityToFactor,
-  type SafetySeverity,
 } from "shared";
 import type { HazardData } from "../models/hazard-data-types";
 
@@ -106,34 +105,10 @@ const PHP_COLOR: Record<string, { bg: string; fg: string }> = {
   high: { bg: "#FEE2E2", fg: "#dc2626" },
 };
 
-// Cross-target rank so a single "Max Severity" column can rate human, environment
-// and infrastructure edges on one ordinal scale (display heuristic only).
-// Person harm uses the fixed 4-level safety factor (IEC 62061 Se1–Se4).
-function severityRank(sev: string): number {
-  if ((SAFETY_SEVERITIES as readonly string[]).includes(sev)) {
-    return safetySeverityToFactor(sev as SafetySeverity);
-  }
-  switch (sev) {
-    case "critical":
-      return 4;
-    case "high":
-      return 3;
-    case "medium":
-      return 2;
-    case "low":
-      return 1;
-    default:
-      return 0;
-  }
-}
-
-const RANK_COLOR: Record<number, string> = {
-  0: "#cbd5e1",
-  1: "#94a3b8",
-  2: "#eab308",
-  3: "#f97316",
-  4: "#ef4444",
-};
+// Rank and colour of the "Max Severity" column: shared with the asset graph
+// (shared/models/hazard-severity-display.ts).
+const severityRank = hazardSeverityRank;
+const RANK_COLOR = HAZARD_SEVERITY_RANK_COLOR;
 
 const SOURCE_META: Record<
   string,

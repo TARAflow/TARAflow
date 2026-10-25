@@ -723,6 +723,16 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── Memoized asset data ───────────────────────────────────────────────────
 
+  // Hazard Items and their edges for the asset graph (FR-V11, read-only); a
+  // stable object so the graph is rebuilt only when the hazard data changes.
+  const memoizedGraphHazards = useMemo(
+    () =>
+      activeProject?.hazards
+        ? { items: activeProject.hazards.hazards, relations: activeProject.hazards.relations }
+        : null,
+    [activeProject?.hazards],
+  );
+
   // Hazard → asset projection (§6): endangeredBy / contributesTo per asset.
   // Read-only; the assets feature never imports features/hazards.
   const memoizedHazardRef = useMemo(
@@ -992,6 +1002,7 @@ export const WorkspaceLayout: React.FC = () => {
               assetUsage={assetUsageLookup}
               threatCountOf={threatCountLookup}
               graphFocusRequest={graphFocusRequest}
+              hazards={memoizedGraphHazards}
               onShowInTable={(assetId) => {
                 setTableHighlightRequest({ assetId });
                 handlePhaseChange(PhaseId.Assets);

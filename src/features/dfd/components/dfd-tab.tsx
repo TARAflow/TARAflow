@@ -41,7 +41,7 @@ import type { InsertCandidate, CellRef } from "../services/leveled";
 import DFDPreviewDialog from "./dfd-preview-dialog";
 import DFDNotificationsPanel from "./dfd-notification-panel";
 import DFDDescriptionView from "./dfd-description-view";
-import { AssetGraphView, assetGraphSourceFromDfd } from "../asset-graph";
+import { AssetGraphView, assetGraphSourceFromDfd, type AssetGraphHazards } from "../asset-graph";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
@@ -77,6 +77,11 @@ export interface DFDTabProps {
    * asset panel.
    */
   graphFocusRequest?: { readonly assetId: string } | null;
+  /**
+   * The project's Hazard Items and their edges for the asset graph (FR-V11,
+   * read-only) — the DFD feature never imports the hazards feature.
+   */
+  hazards?: AssetGraphHazards | null;
   /** "Show in table" from the asset graph (FR-V13, way back). */
   onShowInTable?: (assetId: string) => void;
   onUpdate: (updates: DFDUpdateResult) => void;
@@ -115,6 +120,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   assetUsage,
   threatCountOf,
   graphFocusRequest,
+  hazards,
   onShowInTable,
 }) => {
   // ==================== LOCAL UI STATE ====================
@@ -715,7 +721,10 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     [editor, dfd, viewMode, revealInDescription, setViewMode],
   );
   // ── Asset graph view (D2, phase 2) ──────────────────────────────────────
-  const assetGraphSource = useMemo(() => assetGraphSourceFromDfd(dfd), [dfd]);
+  const assetGraphSource = useMemo(
+    () => ({ ...assetGraphSourceFromDfd(dfd), ...(hazards ? { hazards } : {}) }),
+    [dfd, hazards],
+  );
 
   // Asset properties in the graph's card: the same form and the same write
   // path (handleAssetChange) as the side panel (D9).

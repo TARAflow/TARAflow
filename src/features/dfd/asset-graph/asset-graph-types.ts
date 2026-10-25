@@ -3,7 +3,7 @@
 // Input and output of the asset graph preparation (AR-11). The preparation is
 // a pure function; rendering (D3) only draws what it returns.
 
-import type { A2ARelation, AssetGroup } from "shared";
+import type { A2ARelation, AssetGroup, HazardItem, HazardRelation } from "shared";
 
 // ==================== INPUT ====================
 
@@ -35,6 +35,17 @@ export interface AssetGraphSource {
   readonly relations: readonly A2ARelation[];
   /** DFD elements and data flows (element anchors, FR-V6). */
   readonly elements: readonly GraphElementInput[];
+  /**
+   * Hazard Items and their edges (FR-V11, read-only), from the project's
+   * hazard data — passed by the app layer. Absent: the graph shows no hazards
+   * and behaves as before.
+   */
+  readonly hazards?: AssetGraphHazards;
+}
+
+export interface AssetGraphHazards {
+  readonly items: readonly HazardItem[];
+  readonly relations: readonly HazardRelation[];
 }
 
 export type AssetGraphViewKind = "layers" | "focus";
