@@ -2,7 +2,7 @@
 
 **Status:** Specification, v1
 **Date:** 2026-07-28 (rev. 2026-08-07 — Phase-3 decisions folded in)
-**Owner:** referenced by `audit-tab-rework-design-en.md` §5.D
+**Owner:** referenced by `audit-tab-rework-design.md` §5.D
 
 ## Purpose
 
