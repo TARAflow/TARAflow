@@ -70,4 +70,31 @@ describe("HazardImportProfileDialog — affected persons", () => {
     expect(onSaveProfile).toHaveBeenCalledTimes(1);
     expect(onSaveProfile.mock.calls[0][0]).toMatchObject({ defaultAffectedPersons: ["Operator"] });
   });
+
+  it("a recognised profile is the start and its sheet changes are listed (HI-10)", () => {
+    render(
+      <HazardImportProfileDialog
+        open
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        workbook={fixture as any}
+        fileName="la200.xlsx"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+        recognized={{
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          profile: { id: "p", name: "LA-200", format: "spreadsheet", sheetName: "Risk assessment", headerRow: 2, dataStartRow: 3, columns: [{ field: "id", column: 0 }, { field: "description", column: 4 }], markerGroups: [], metaColumns: [], defaultAffectedPersons: ["Operator"] } as any,
+          name: "LA-200",
+          reason: "header",
+          changes: [{ kind: "added", heading: "Hazard source", column: 3 }],
+        }}
+      />,
+    );
+    const banner = screen.getByTestId("recognized-profile");
+    // mocked t: defaults without interpolation
+    expect(banner.textContent).toContain("(same column headings)");
+    expect(banner.querySelectorAll("li")).toHaveLength(1);
+    expect(banner.textContent).toContain("not mapped");
+    expect((screen.getByTestId("default-persons") as HTMLInputElement).value).toBe("Operator");
+    expect(screen.queryByTestId("no-persons-warning")).toBeNull();
+  });
 });

@@ -179,6 +179,17 @@
           "title": "Map the values of this column",
           "unmapped": "— (as it is)"
         },
+        "recognized": {
+          "byFileName": "Stored profile “{{name}}” (same file name).",
+          "byHeader": "Stored profile “{{name}}” (same column headings).",
+          "noChanges": "The sheet has the same columns.",
+          "changes": "The sheet changed — please check:",
+          "headerRowMoved": "Header row moved from row {{from}} to {{to}}.",
+          "moved": "“{{heading}}” moved from column {{from}} to {{to}} — mapping follows.",
+          "renamed": "Column {{column}}: “{{from}}” is now “{{to}}” — check the mapping.",
+          "removed": "“{{heading}}” (column {{column}}) no longer exists — mapping removed.",
+          "added": "New column {{column}}: “{{heading}}” — not mapped."
+        },
         "defaultPersons": "Default affected persons",
         "defaultPersonsPlaceholder": "e.g. Operator, Setter",
         "listSeparator": "List separator",

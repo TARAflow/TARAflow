@@ -51,6 +51,7 @@ import {
   type ImportProfile, type WorkbookPreview, type CellValue,
 } from "../models/import-profile-types";
 import { ValueMapEditor } from "./value-map-editor";
+import type { ColumnChange } from "../services/import-profile-tracking";
 
 const PREVIEW_ROWS = 25;
 
@@ -78,16 +79,42 @@ export interface HazardImportProfileDialogProps {
   onConfirm: (profile: ImportProfile) => void;
   onCancel: () => void;
   onSaveProfile?: (profile: ImportProfile) => void;
+  /**
+   * A stored profile recognised for this file (HI-10), already following the
+   * sheet's changes; the dialog starts from it instead of the suggestion.
+   */
+  recognized?: {
+    profile: ImportProfile;
+    name: string;
+    reason: "fileName" | "header";
+    changes: ColumnChange[];
+  };
 }
 
 export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps> = ({
-  open, workbook, fileName, savedProfiles, onConfirm, onCancel, onSaveProfile,
+  open, workbook, fileName, savedProfiles, onConfirm, onCancel, onSaveProfile, recognized,
 }) => {
   const { t } = useTranslation();
   const tt = (k: string, o?: Record<string, unknown>) =>
     t(`tabs.hazards.import.${k}`, o);
   const fieldLabel = (f: CanonicalField) =>
     t(`tabs.hazards.import.fields.${f}`, { defaultValue: f });
+  /** One line per change the column tracking found (HI-10). */
+  const columnChangeText = (c: ColumnChange): string => {
+    switch (c.kind) {
+      case "headerRowMoved":
+        return tt("recognized.headerRowMoved", { from: c.from + 1, to: c.to + 1, defaultValue: "Header row moved from row {{from}} to {{to}}." });
+      case "moved":
+        return tt("recognized.moved", { heading: c.heading, from: colLetter(c.from), to: colLetter(c.to), defaultValue: "“{{heading}}” moved from column {{from}} to {{to}} — mapping follows." });
+      case "renamed":
+        return tt("recognized.renamed", { column: colLetter(c.column), from: c.from, to: c.to, defaultValue: "Column {{column}}: “{{from}}” is now “{{to}}” — check the mapping." });
+      case "removed":
+        return tt("recognized.removed", { column: colLetter(c.column), heading: c.heading, defaultValue: "“{{heading}}” (column {{column}}) no longer exists — mapping removed." });
+      case "added":
+        return tt("recognized.added", { column: colLetter(c.column), heading: c.heading, defaultValue: "New column {{column}}: “{{heading}}” — not mapped." });
+    }
+  };
+
   /** Label of a canonical value (HI-1): the app's own wording per field. */
   const optionLabel = (f: CanonicalField, v: string) =>
     f === "severity"
@@ -100,8 +127,8 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
             ? t(`tabs.hazards.imported.measureType.${v}`, { defaultValue: v })
             : v;
 
-  const [profile, setProfile] = useState<ImportProfile>(() =>
-    suggestProfile(workbook),
+  const [profile, setProfile] = useState<ImportProfile>(
+    () => recognized?.profile ?? suggestProfile(workbook),
   );
   const [active, setActive] = useState<ActiveTarget>(null);
   // Free text while typing; parsed into profile.defaultAffectedPersons on blur.
@@ -474,6 +501,29 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
         <Alert severity={banner.sev} sx={{ mb: 1, flexShrink: 0, py: 0 }}>
           {banner.msg}
         </Alert>
+
+        {/* recognised stored profile and what changed in the sheet (HI-10) */}
+        {recognized && (
+          <Alert severity={recognized.changes.length ? "warning" : "success"} sx={{ mb: 1, flexShrink: 0, py: 0 }} data-testid="recognized-profile">
+            {tt(recognized.reason === "fileName" ? "recognized.byFileName" : "recognized.byHeader", {
+              name: recognized.name,
+              defaultValue:
+                recognized.reason === "fileName"
+                  ? "Stored profile “{{name}}” (same file name)."
+                  : "Stored profile “{{name}}” (same column headings).",
+            })}{" "}
+            {recognized.changes.length === 0
+              ? tt("recognized.noChanges", { defaultValue: "The sheet has the same columns." })
+              : tt("recognized.changes", { defaultValue: "The sheet changed — please check:" })}
+            {recognized.changes.length > 0 && (
+              <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                {recognized.changes.map((c, i) => (
+                  <li key={i}>{columnChangeText(c)}</li>
+                ))}
+              </Box>
+            )}
+          </Alert>
+        )}
 
         {/* without an affected person no severity reaches a person (HI-2) */}
         {!isMapped("affectedPersons") && !profile.defaultAffectedPersons?.length && (

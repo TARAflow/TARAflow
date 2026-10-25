@@ -178,6 +178,17 @@
           "title": "Werte dieser Spalte zuordnen",
           "unmapped": "— (unverändert)"
         },
+        "recognized": {
+          "byFileName": "Gespeichertes Profil „{{name}}“ (gleicher Dateiname).",
+          "byHeader": "Gespeichertes Profil „{{name}}“ (gleiche Spaltenüberschriften).",
+          "noChanges": "Die Tabelle hat dieselben Spalten.",
+          "changes": "Die Tabelle hat sich geändert — bitte prüfen:",
+          "headerRowMoved": "Kopfzeile von Zeile {{from}} nach {{to}} verschoben.",
+          "moved": "„{{heading}}“ von Spalte {{from}} nach {{to}} verschoben — Zuordnung folgt.",
+          "renamed": "Spalte {{column}}: „{{from}}“ heißt jetzt „{{to}}“ — Zuordnung prüfen.",
+          "removed": "„{{heading}}“ (Spalte {{column}}) gibt es nicht mehr — Zuordnung entfernt.",
+          "added": "Neue Spalte {{column}}: „{{heading}}“ — nicht zugeordnet."
+        },
         "defaultPersons": "Standard betroffene Personen",
         "defaultPersonsPlaceholder": "z. B. Bediener, Einrichter",
         "listSeparator": "Listentrenner",

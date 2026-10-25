@@ -36,6 +36,7 @@ import {
 import { hazardService } from "../services/hazard-service";
 import { hazardValidator, type HazardValidation } from "../services/hazard-validator";
 import { recordProfileUse, saveProfile } from "../services/import-profile-store";
+import { findMatchingProfile, trackProfileColumns } from "../services/import-profile-tracking";
 
 import { HazardToolbar } from "./hazard-toolbar";
 import { HazardTable } from "./hazard-table";
@@ -129,6 +130,22 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
     () => project.hazards ?? createEmptyHazardData(),
   );
   hazardIdsRef.current = hazardData.hazards.map((h) => h.id);
+
+  // HI-10: a stored profile for the file the dialog is about to map, already
+  // following the sheet's column changes.
+  const recognizedProfile = useMemo(() => {
+    if (!profileRequest) return null;
+    const match = findMatchingProfile(
+      hazardData.importProfiles,
+      profileRequest.req.workbook,
+      profileRequest.req.fileName,
+    );
+    if (!match) return null;
+    const tracked = trackProfileColumns(match.profile, profileRequest.req.workbook);
+    return { ...tracked, name: match.profile.name, reason: match.reason };
+    // only when a request opens — not on every edit of the hazard data
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileRequest]);
   const [isDirty, setIsDirty] = useState(false);
   const [validation, setValidation] = useState<HazardValidation | null>(() =>
     project.hazards ? hazardValidator.validate(project.hazards, assets) : null,
@@ -392,6 +409,7 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
             setProfileRequest(null);
           }}
           savedProfiles={hazardData.importProfiles}
+          recognized={recognizedProfile ?? undefined}
           onSaveProfile={(p) => {
             setHazardData((d) => ({ ...d, importProfiles: saveProfile(d.importProfiles, p) }));
             markDirty();
