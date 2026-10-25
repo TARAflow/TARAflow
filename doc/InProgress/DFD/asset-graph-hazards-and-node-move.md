@@ -130,8 +130,8 @@ as known positions.
 
 | Step | Content | Patch | State |
 |---|---|---|---|
-| 1 | FR-V17a | – | open |
-| 2 | FR-V17, b, c, d, e | – | open |
+| 1 | FR-V17a: the zoom filter excludes ⌘ (metaKey) as well as Ctrl from panning (wheel zoom stays), and never pans during a node move. Steps 1 and 2 in one patch (same place). | 164 | done |
+| 2 | FR-V17: Ctrl / ⌘ + drag on a node (asset or anchor) moves it along its lane — `moveNodeHorizontally` in `layout-asset-graph.ts` (x only, y the lane centre); the moved x overlays the layout while dragging; on release it becomes a known position (AR-12), is stored locally (FR-V15) and the layout is recomputed; the click that ends a move does not select; Esc cancels. b: cursor `ew-resize` while Ctrl / ⌘ is held, the moving node shows the focus ring. c: "Rearrange" discards moved positions. d: a side-column node stops one spacing left of the column. e: Ctrl / ⌘ + Shift + ←/→ moves the focused node by a third of the spacing. | 164 | done |
 | 3 | Hazards in the graph source (app layer, G8 colours to shared) | – | open |
 | 4 | FR-V11, a, c, d, e (+ G9 navigation) | – | open |
 | 5 | FR-V11b | – | open |

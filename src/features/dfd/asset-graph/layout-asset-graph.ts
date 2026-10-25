@@ -224,3 +224,34 @@ export function layoutAssetGraph(
 function round(v: number): number {
   return Math.round(v);
 }
+
+// ==================== MOVING A NODE (FR-V17) ====================
+
+/** How close a side-column node may come to the vertical lanes. */
+const COLUMN_MARGIN = NODE_SPACING;
+
+/**
+ * The positions after moving `id` horizontally by `dx` (graph units): only its
+ * x changes, y stays the lane centre, every other node stays where it is
+ * (FR-V17). A node of the side column (orthogonal lanes) cannot be pushed into
+ * the vertical lanes: its x stays at least one spacing left of the column's
+ * nearest lane centre (FR-V17d). The node keeps its lane, so the moved
+ * position stays a known position for the next layout (AR-12).
+ */
+export function moveNodeHorizontally(
+  positions: Positions,
+  id: string,
+  dx: number,
+  options: { readonly sideColumn: boolean; readonly lanes: readonly AssetGraphLane[] },
+): Map<string, Point> {
+  const next = new Map(positions);
+  const p = positions.get(id);
+  if (!p) return next;
+  let x = p.x + dx;
+  if (options.sideColumn) {
+    const columnXs = options.lanes.filter((l) => l.kind === "orthogonal" && l.x !== undefined).map((l) => l.x!);
+    if (columnXs.length > 0) x = Math.max(x, Math.min(...columnXs) - COLUMN_MARGIN);
+  }
+  next.set(id, { x: round(x), y: p.y });
+  return next;
+}

@@ -59,6 +59,7 @@ import {
   ALL_LAYERS,
   ASSET_GRAPH_PRESETS,
   ASSET_GRAPH_PRESET_ORDER,
+  ORTHOGONAL_LAYERS,
   presetOfLayers,
   type AssetGraphPresetId,
 } from "./asset-graph-layers";
@@ -69,6 +70,7 @@ import {
   NODE_SPACING,
   NODE_RADIUS,
   layoutAssetGraph,
+  moveNodeHorizontally,
   type Point,
 } from "./layout-asset-graph";
 import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
@@ -364,6 +366,92 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     setLayoutEpoch((e) => e + 1);
   }, []);
 
+  // ── Moving a node (FR-V17): Ctrl / ⌘ + drag, horizontally only ───────────
+  // While dragging, the moved x overlays the layout; on release it becomes a
+  // known position (AR-12), is remembered locally (FR-V15) and the layout is
+  // recomputed — every position is then known, so nothing else moves.
+  const [moving, setMoving] = useState<{ id: string; startClientX: number; x: number } | null>(null);
+  const movingRef = useRef(moving);
+  movingRef.current = moving;
+  // A click follows the pointer-up of a move — it must not select the node.
+  const suppressClickRef = useRef(false);
+  const positions = useMemo(() => {
+    if (!moving) return layout.positions;
+    const p = layout.positions.get(moving.id);
+    return p ? new Map(layout.positions).set(moving.id, { x: moving.x, y: p.y }) : layout.positions;
+  }, [layout, moving]);
+  const sideColumnNode = (id: string) => {
+    const node = graph.nodes.find((n) => n.id === id);
+    return node?.kind === "asset" && (ORTHOGONAL_LAYERS as readonly string[]).includes(String(node.group));
+  };
+  const movedPositions = (id: string, dx: number) =>
+    moveNodeHorizontally(layout.positions, id, dx, { sideColumn: sideColumnNode(id), lanes: layout.lanes });
+  const commitMove = (id: string, x: number) => {
+    const p = layout.positions.get(id);
+    if (!p || p.x === x) return;
+    positionsRef.current.set(id, { x, y: p.y });
+    savePositionsRef.current();
+    setLayoutEpoch((e) => e + 1);
+  };
+  const startMove = (id: string, e: React.PointerEvent) => {
+    if (e.button !== 0 || !(e.ctrlKey || e.metaKey)) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const p = layout.positions.get(id);
+    if (p) setMoving({ id, startClientX: e.clientX, x: p.x });
+  };
+  useEffect(() => {
+    if (!moving) return;
+    const k = transform.k || 1;
+    const start = moving.startClientX;
+    const id = moving.id;
+    const move = (e: PointerEvent) => {
+      const x = movedPositions(id, (e.clientX - start) / k).get(id)?.x;
+      if (x !== undefined) setMoving((m) => (m ? { ...m, x } : m));
+    };
+    const up = () => {
+      const m = movingRef.current;
+      setMoving(null);
+      if (m) {
+        suppressClickRef.current = m.x !== layout.positions.get(m.id)?.x;
+        commitMove(m.id, m.x);
+      }
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoving(null);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("keydown", esc);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [moving !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  // FR-V17b: Ctrl / ⌘ held → the move cursor over nodes.
+  const [moveKeyHeld, setMoveKeyHeld] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => setMoveKeyHeld(e.ctrlKey || e.metaKey);
+    const onBlur = () => setMoveKeyHeld(false);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKey);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKey);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+  /** Click handler guard: the click that ends a move does nothing. */
+  const unlessMoved = (fn: () => void) => () => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    fn();
+  };
+
   // ── Zoom / pan (FR-V12) ─────────────────────────────────────────────────
   const svgRef = useRef<SVGSVGElement | null>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -383,11 +471,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       })
       .scaleExtent([0.2, 3])
       // A drag from a connection handle is not a pan.
-      .filter((e: Event & { button?: number; ctrlKey?: boolean; type: string }) => {
-        if (dragRef.current) return false;
+      .filter((e: Event & { button?: number; ctrlKey?: boolean; metaKey?: boolean; type: string }) => {
+        if (dragRef.current || movingRef.current) return false;
         const target = e.target as Element | null;
         if (target?.closest?.("[data-graph-handle]")) return false;
-        return (!e.ctrlKey || e.type === "wheel") && !e.button;
+        // Ctrl / ⌘ + drag moves a node (FR-V17), not the view (FR-V17a).
+        return (!(e.ctrlKey || e.metaKey) || e.type === "wheel") && !e.button;
       })
       .on("zoom", (e) => setTransform({ x: e.transform.x, y: e.transform.y, k: e.transform.k }));
     zoomRef.current = behaviour;
@@ -401,9 +490,9 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
 
   const fit = useCallback(() => {
     const svgEl = svgRef.current;
-    if (!svgEl || !zoomRef.current || layout.positions.size === 0) return;
-    const xs = [...layout.positions.values()].map((p) => p.x);
-    const ys = [...layout.positions.values()].map((p) => p.y);
+    if (!svgEl || !zoomRef.current || positions.size === 0) return;
+    const xs = [...positions.values()].map((p) => p.x);
+    const ys = [...positions.values()].map((p) => p.y);
     const pad = NODE_RADIUS * 3;
     const minX = Math.min(...xs) - pad;
     const maxX = Math.max(...xs) + pad;
@@ -426,7 +515,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   const centerOn = useCallback(
     (nodeId: string) => {
       const svgEl = svgRef.current;
-      const p = layout.positions.get(nodeId);
+      const p = positions.get(nodeId);
       if (!svgEl || !zoomRef.current || !p) {
         pendingCenterRef.current = nodeId;
         return;
@@ -445,7 +534,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   );
   useEffect(() => {
     const id = pendingCenterRef.current;
-    if (id && layout.positions.has(id)) centerOn(id);
+    if (id && positions.has(id)) centerOn(id);
   }, [layout, centerOn]);
 
   // ── Search (FR-V10, UX-6) ───────────────────────────────────────────────
@@ -575,7 +664,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     e.stopPropagation();
     e.preventDefault();
     setConnectNotice(null);
-    const p = layout.positions.get(assetId);
+    const p = positions.get(assetId);
     setDrag({ sourceId: assetId, x: p?.x ?? 0, y: p?.y ?? 0 });
   };
   const dropOn = (assetId: string, e: React.PointerEvent) => {
@@ -682,7 +771,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     }
   };
   const ensureVisible = (id: string) => {
-    const p = layout.positions.get(id);
+    const p = positions.get(id);
     const rect = svgRef.current?.getBoundingClientRect();
     if (!p || !rect || !rect.width) return;
     const x = p.x * transform.k + transform.x;
@@ -703,12 +792,23 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     const edgeId = target.closest?.("[data-edge-id]")?.getAttribute("data-edge-id") ?? null;
     const node = nodeId ? graph.nodes.find((n) => n.id === nodeId) : undefined;
 
+    // FR-V17e: Ctrl / ⌘ + Shift + ←/→ moves the focused node along its lane.
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      const id = nodeId ?? focusedNodeId;
+      if (!id) return;
+      e.preventDefault();
+      const dx = (e.key === "ArrowLeft" ? -1 : 1) * (NODE_SPACING / 3);
+      const x = movedPositions(id, dx).get(id)?.x;
+      if (x !== undefined) commitMove(id, x);
+      return;
+    }
+
     const direction = arrowDirection(e.key);
     if (direction) {
       const ids = graph.nodes.map((n) => n.id);
       if (ids.length === 0) return;
       const from = nodeId ?? focusedNodeId;
-      const next = from ? nearestInDirection(layout.positions, from, direction, ids) : ids[0];
+      const next = from ? nearestInDirection(positions, from, direction, ids) : ids[0];
       e.preventDefault();
       if (next) {
         focusNodeElement(next);
@@ -790,7 +890,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     // Next free place at the end of the lane.
     const xs = graph.nodes
       .filter((n) => n.kind === "asset" && String(n.group) === lane.id)
-      .map((n) => layout.positions.get(n.id)?.x)
+      .map((n) => positions.get(n.id)?.x)
       .filter((x): x is number => x !== undefined);
     const x = xs.length > 0 ? Math.max(...xs) + NODE_SPACING : lane.x ?? 0;
     pendingCreateRef.current = { group: lane.id, x, y: lane.y };
@@ -1323,8 +1423,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
 
             {/* Edges */}
             {graph.edges.map((e) => {
-              const a = layout.positions.get(e.source);
-              const b = layout.positions.get(e.target);
+              const a = positions.get(e.source);
+              const b = positions.get(e.target);
               if (!a || !b) return null;
               // Element anchors are drawn as curves, so their dashed lines do
               // not run through the asset column above them.
@@ -1409,10 +1509,10 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             })}
 
             {/* Connection being dragged */}
-            {drag && layout.positions.get(drag.sourceId) && (
+            {drag && positions.get(drag.sourceId) && (
               <line
-                x1={layout.positions.get(drag.sourceId)!.x}
-                y1={layout.positions.get(drag.sourceId)!.y}
+                x1={positions.get(drag.sourceId)!.x}
+                y1={positions.get(drag.sourceId)!.y}
                 x2={drag.x}
                 y2={drag.y}
                 stroke="#ed6c02"
@@ -1426,15 +1526,20 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
 
             {/* Nodes */}
             {graph.nodes.map((n) => {
-              const p = layout.positions.get(n.id);
+              const p = positions.get(n.id);
               if (!p) return null;
               if (n.kind === "anchor") {
                 return (
                   <g
                     key={n.id}
                     transform={`translate(${p.x},${p.y})`}
-                    style={{ cursor: onShowElement ? "pointer" : "default", outline: "none" }}
-                    onClick={() => onShowElement?.(n.elementId)}
+                    style={{
+                      cursor: moveKeyHeld ? "ew-resize" : onShowElement ? "pointer" : "default",
+                      outline: "none",
+                    }}
+                    onPointerDown={(e) => startMove(n.id, e)}
+                    onClick={unlessMoved(() => onShowElement?.(n.elementId))}
+                    data-moving={moving?.id === n.id ? "" : undefined}
                     data-testid={`asset-graph-node-${n.id}`}
                     data-node-id={n.id}
                     tabIndex={0}
@@ -1443,7 +1548,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     onFocus={() => setFocusedNodeId(n.id)}
                     onBlur={() => setFocusedNodeId((f) => (f === n.id ? null : f))}
                   >
-                    {focusedNodeId === n.id && (
+                    {(focusedNodeId === n.id || moving?.id === n.id) && (
                       <rect
                         x={-NODE_RADIUS * 1.2 - 6}
                         y={-20}
@@ -1497,10 +1602,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 <g
                   key={n.id}
                   transform={`translate(${p.x},${p.y})`}
-                  style={{ cursor: "pointer", opacity: targetClass === "invalid" ? 0.3 : 1, outline: "none" }}
+                  style={{
+                    cursor: moveKeyHeld ? "ew-resize" : "pointer",
+                    opacity: targetClass === "invalid" ? 0.3 : 1,
+                    outline: "none",
+                  }}
                   data-target-class={targetClass ?? undefined}
+                  data-moving={moving?.id === n.id ? "" : undefined}
+                  onPointerDown={(e) => startMove(n.id, e)}
                   onPointerUp={(e) => dropOn(n.id, e)}
-                  onClick={() => selectAssetNode(n.id)}
+                  onClick={unlessMoved(() => selectAssetNode(n.id))}
                   onDoubleClick={() => focusOn(n.id)}
                   data-testid={`asset-graph-node-${n.id}`}
                   data-node-id={n.id}
@@ -1514,7 +1625,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   }}
                   onBlur={() => setFocusedNodeId((f) => (f === n.id ? null : f))}
                 >
-                  {focusedNodeId === n.id && (
+                  {(focusedNodeId === n.id || moving?.id === n.id) && (
                     <circle
                       r={NODE_RADIUS + 10}
                       fill="none"
