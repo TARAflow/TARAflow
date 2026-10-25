@@ -17,6 +17,8 @@ import { attackTreeParser } from "./attacktree-parser";
 import { attackTreeValidator } from "./attacktree-validator";
 import { attackTreeCalculator } from "./attacktree-calculator";
 import { attackTreeService } from "./attacktree-service";
+import type { AttackTreeNode } from "../models/attacktree-types";
+import { canonicalStringify } from "shared/utils/tcs-canonical";
 
 // ==================== PARSE & VALIDATE ====================
 
@@ -101,7 +103,7 @@ export function batchParseAndValidate(
 /**
  * Check whether a tree must be (re-)parsed before it can be used.
  *
- * Two cases:
+ * Three cases (the third: a stale ast, see astLagsDsl below):
  *
  * 1. No AST — the tree was never parsed (freshly loaded from DSL).
  *
@@ -123,7 +125,58 @@ export function needsParsing(tree: AttackTree): boolean {
   const paths = tree.pathAnalysis?.paths;
   if (paths && paths.length > 0 && !paths[0].pathKey) return true;
 
-  return false;
+  return astLagsDsl(tree);
+}
+
+// ==================== STORED AST VS DSL (plan F7) ====================
+//
+// Stale AST: the stored ast no longer states what the DSL states (seen in the
+// Headlamp example: every leaf carried other attack-potential factors than its
+// DSL line, while the path analysis matched the DSL). The tree view draws the
+// ast, so it showed the stale ratings until the DSL was edited. The DSL is
+// what the analyst edits and the analysis runs on, so it wins: re-parse.
+//
+// Compared is only what the DSL states — not node ids (older projects carry
+// random ids) and not the values the calculator writes onto the nodes
+// (riskScore, probability, criticalPath); comparing those would re-parse every
+// older tree, and the calculator's own writes would re-trigger it. Cached per
+// tree object: a tree is checked once until it changes.
+
+/** The part of a node the DSL determines. */
+function dslContent(node: AttackTreeNode): unknown {
+  return {
+    name: node.name,
+    type: node.type,
+    assetRef: node.assetRef,
+    dfdRef: node.dfdRef,
+    threatRef: node.threatRef,
+    attackGoal: node.attackGoal,
+    targetedSecurityGoals: node.targetedSecurityGoals,
+    evaluation: node.evaluation,
+    mitigations: node.mitigations,
+    children: (node.children ?? []).map(dslContent),
+  };
+}
+
+const astCheck = new WeakMap<AttackTree, boolean>();
+
+/** Whether the stored ast differs from what the tree's DSL parses to. */
+export function astLagsDsl(tree: AttackTree): boolean {
+  const cached = astCheck.get(tree);
+  if (cached !== undefined) return cached;
+  let lags = false;
+  if (tree.ast) {
+    const parsed = attackTreeParser.parse(tree.dsl ?? "", tree.configuration?.evaluationMethod ?? "simple");
+    if (parsed.success && parsed.ast) {
+      try {
+        lags = canonicalStringify(dslContent(parsed.ast)) !== canonicalStringify(dslContent(tree.ast));
+      } catch {
+        lags = false; // non-serializable values: leave the tree as it is
+      }
+    }
+  }
+  astCheck.set(tree, lags);
+  return lags;
 }
 
 /**
@@ -414,6 +467,7 @@ export const attackTreeOperations = {
   parseAndValidateTree,
   batchParseAndValidate,
   needsParsing,
+  astLagsDsl,
   parseIfNeeded,
 
   // Tree Creation

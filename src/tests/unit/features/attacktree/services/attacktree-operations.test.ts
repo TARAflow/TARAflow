@@ -298,3 +298,61 @@ describe("needsParsing — legacy pathAnalysis migration", () => {
 
 
 
+
+describe("needsParsing — stored ast lags the DSL (plan F7)", () => {
+  const parsedTree = () =>
+    attackTreeOperations.createTreeFromTemplate(
+      "template-confidentiality",
+      ASSET_ANCHOR,
+      makeProjectData(),
+    )!;
+  /** Deep copy with every node passed through `edit`. */
+  const mapAst = (tree: AttackTree, edit: (n: Record<string, unknown>) => void): AttackTree => {
+    const ast = JSON.parse(JSON.stringify(tree.ast));
+    const walk = (n: Record<string, unknown>) => {
+      edit(n);
+      (n.children as Record<string, unknown>[]).forEach(walk);
+    };
+    walk(ast);
+    return { ...tree, ast };
+  };
+
+  it("REGRESSION: an ast whose content differs from the DSL is re-parsed, and healed", () => {
+    const tree = parsedTree();
+    const stale = mapAst(tree, (n) => {
+      if (n.type === "LEAF") n.name = `${n.name} (old)`;
+    });
+    expect(attackTreeOperations.needsParsing(stale)).toBe(true);
+
+    const healed = attackTreeOperations.parseAndValidateTree(stale, stale.dsl, makeProjectData());
+    expect(attackTreeOperations.needsParsing(healed)).toBe(false); // no re-parse loop
+  });
+
+  it("node ids and calculator values do not count (older projects stay as they are)", () => {
+    const tree = parsedTree();
+    let i = 0;
+    const older = mapAst(tree, (n) => {
+      n.id = `node-legacy-${i++}`;
+      n.riskScore = 99;
+      n.probability = 0.5;
+      n.criticalPath = true;
+    });
+    expect(attackTreeOperations.needsParsing(older)).toBe(false);
+  });
+
+  it("a saved and reopened tree (sorted keys) is not re-parsed", () => {
+    const tree = parsedTree();
+    const sortKeys = (v: unknown): unknown =>
+      Array.isArray(v)
+        ? v.map(sortKeys)
+        : v && typeof v === "object"
+          ? Object.fromEntries(
+              Object.keys(v as object)
+                .sort()
+                .map((k) => [k, sortKeys((v as Record<string, unknown>)[k])]),
+            )
+          : v;
+    const reopened = sortKeys(JSON.parse(JSON.stringify(tree))) as AttackTree;
+    expect(attackTreeOperations.needsParsing(reopened)).toBe(false);
+  });
+});
