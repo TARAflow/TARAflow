@@ -84,6 +84,7 @@ project tags. The existing `TemplateContext.domain` key is used; its
 | `M-PB-*`, `M-CB-*`, `M-IF-T-*`, `M-IF-D-001`, `M-IF-I-002`, `M-T-008`, `M-T-009`, `M-T-015`, `M-D-007` | `physical` |
 | `M-IF-DBG-*`, `M-IF-E-*`, `M-E-006`, `M-IF-POLICY-*` | `physical`, `local` |
 | `M-D-001` … `M-D-005`, `M-D-012`, `M-S-005`, `M-S-007`, `M-I-002`, `M-T-005` | `network`, `adjacent` |
+| `M-IF-S-002` (link-layer authentication, Wi-Fi / Bluetooth pairing) | `adjacent` |
 | signatures, integrity, least privilege, logging, input validation, … | none (all vectors) |
 
 The exact list is fixed in the implementation patch and covered by a test
@@ -149,6 +150,6 @@ Each new control gets a verification (`V-…`) and en/de texts.
 | Step | Content | Patch | State |
 |---|---|---|---|
 | 1 | `av=` parsed on every node (aliases, case-insensitive, comma form on leaves; unknown value → parser warning `unknownAttackVector`, ignored); `AttackVector` type in `shared/models/attack-vector.ts`; `AttackTreeNode.attackVector`, `AttackPath.attackVector` (closest to the leaf wins); editor highlighting; a changed `av=` counts as a stale ast (F7); the report's tree structure shows the vector next to the gate ("(OR · physical)"). Attack potential, feasibility and path keys unchanged (golden test). | 148 | done |
-| 2 | Catalog: `attackVectors`, D5 mapping, new controls and verifications, en/de | – | open |
+| 2 | Catalog: `MitigationEntry.attackVectors`; D5 mapping on 53 existing controls (plus `M-IF-S-002` → adjacent); the 20 controls of §3 with one verification each (`V-NET-001` …), en/de texts, placed in the catalog file of their STRIDE letter; `TemplateContext.domain` documented as the domain gate. Tests: valid vectors, every control's verifications and en/de texts, mapping and new controls pinned. Not yet used for selection (step 3). | 149 | done |
 | 3 | Selection: vector-aware top-up (D3), context filter (D4) | – | open |
 | 4 | Headlamp example | – | open |

@@ -16,5 +16,8 @@
   },
   "V-I-006": {
     "verification": "Verifizieren, dass flüchtiger/geteilter Speicher nach Gebrauch gelöscht wird — Regioninhalt nach Task-Abschluss auf Restgeheimnisse prüfen"
+  },
+  "V-NET-002": {
+    "verification": "Verbindungen zu nicht freigegebenen Zielen vom Gerät aus versuchen; prüfen, dass sie blockiert und protokolliert werden"
   }
 }

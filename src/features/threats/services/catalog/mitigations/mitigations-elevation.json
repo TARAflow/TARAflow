@@ -98,6 +98,7 @@
       "id": "M-E-006",
       "strideCategory": "E",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -156,6 +157,101 @@
       "verifications": [
         "V-T-005"
       ]
+    },
+    {
+      "id": "M-NET-001",
+      "strideCategory": "E",
+      "context": {},
+      "attackVectors": ["network", "adjacent"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-NET-001"]
+    },
+    {
+      "id": "M-NET-003",
+      "strideCategory": "E",
+      "context": {},
+      "attackVectors": ["network", "adjacent", "local"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-NET-003"]
+    },
+    {
+      "id": "M-NET-004",
+      "strideCategory": "E",
+      "context": {},
+      "attackVectors": ["network", "adjacent"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-NET-004"]
+    },
+    {
+      "id": "M-AC-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-AC-001"]
+    },
+    {
+      "id": "M-AC-002",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-AC-002"]
+    },
+    {
+      "id": "M-AC-003",
+      "strideCategory": "E",
+      "context": {},
+      "attackVectors": ["local"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-AC-003"]
+    },
+    {
+      "id": "M-OS-001",
+      "strideCategory": "E",
+      "context": {},
+      "attackVectors": ["local", "network"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-OS-001"]
+    },
+    {
+      "id": "M-OS-002",
+      "strideCategory": "E",
+      "context": {},
+      "attackVectors": ["local", "network"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-OS-002"]
+    },
+    {
+      "id": "M-OS-004",
+      "strideCategory": "E",
+      "context": {},
+      "attackVectors": ["local"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-OS-004"]
+    },
+    {
+      "id": "M-OS-006",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-OS-006"]
+    },
+    {
+      "id": "M-OPS-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-OPS-001"]
     }
   ]
 }

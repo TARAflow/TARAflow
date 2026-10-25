@@ -40,5 +40,17 @@
   },
   "M-S-015": {
     "mitigation": "Verify actuation through an independent measurement / closed-loop feedback rather than trusting the actuator's own status report"
+  },
+  "M-OS-005": {
+    "mitigation": "Allow remote shell access only with keys, without root login, and disable it in production builds"
+  },
+  "M-VEH-001": {
+    "mitigation": "Authenticate in-vehicle messages with freshness values (AUTOSAR SecOC)"
+  },
+  "M-VEH-004": {
+    "mitigation": "Grant diagnostic access only after authentication (UDS 0x27 / 0x29) and only in a safe vehicle state (e.g. standstill)"
+  },
+  "M-VEH-005": {
+    "mitigation": "Harden Bluetooth — Secure Connections pairing only, unused profiles disabled, pairing only on user action"
   }
 }

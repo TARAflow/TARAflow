@@ -10,5 +10,38 @@
   },
   "V-E-004": {
     "verification": "Physical security inspection of debug interfaces"
+  },
+  "V-NET-001": {
+    "verification": "Port scan from each external network zone; compare open ports with the documented allow list"
+  },
+  "V-NET-003": {
+    "verification": "Inventory listening services and enabled protocols of the release build; compare with the required service list"
+  },
+  "V-NET-004": {
+    "verification": "Check the listen addresses of all services; scan the external interfaces for management and debug services"
+  },
+  "V-AC-001": {
+    "verification": "Review the role model and assignments; test that each role can perform only its permitted operations"
+  },
+  "V-AC-002": {
+    "verification": "Test the access policy with attribute combinations at and beyond the permitted limits"
+  },
+  "V-AC-003": {
+    "verification": "List the user and capabilities of every running service; verify none runs as root without a documented reason"
+  },
+  "V-OS-001": {
+    "verification": "Verify enforcing mode and a loaded profile for every service; review denials from an exploitation test"
+  },
+  "V-OS-002": {
+    "verification": "Check that seccomp filters are active for exposed services; test that a disallowed system call is blocked"
+  },
+  "V-OS-004": {
+    "verification": "Compare kernel configuration and runtime settings with the hardening baseline"
+  },
+  "V-OS-006": {
+    "verification": "Run the automated baseline check on the release build; review deviations and their justification"
+  },
+  "V-OPS-001": {
+    "verification": "Check that the SBOM is current and that known vulnerabilities are assessed and patched within the defined time"
   }
 }

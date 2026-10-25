@@ -6,6 +6,7 @@
       "id": "M-IF-S-002",
       "strideCategory": "S",
       "context": {},
+      "attackVectors": ["adjacent"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -21,6 +22,7 @@
       "id": "M-IF-T-001",
       "strideCategory": "T",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -36,6 +38,7 @@
       "id": "M-IF-T-002",
       "strideCategory": "T",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-IF-T-001"]
@@ -44,6 +47,7 @@
       "id": "M-IF-T-003",
       "strideCategory": "T",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -59,6 +63,7 @@
       "id": "M-IF-T-004",
       "strideCategory": "T",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-IF-T-001"]
@@ -91,6 +96,7 @@
       "id": "M-IF-I-002",
       "strideCategory": "I",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -106,6 +112,7 @@
       "id": "M-IF-D-001",
       "strideCategory": "D",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-IF-D-001"]
@@ -152,6 +159,7 @@
       "id": "M-IF-E-001",
       "strideCategory": "E",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -167,6 +175,7 @@
       "id": "M-IF-E-002",
       "strideCategory": "E",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -182,6 +191,7 @@
       "id": "M-IF-E-003",
       "strideCategory": "E",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -197,6 +207,7 @@
       "id": "M-IF-DBG-002",
       "strideCategory": "I",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -212,6 +223,7 @@
       "id": "M-IF-DBG-001",
       "strideCategory": "E",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -227,6 +239,7 @@
       "id": "M-IF-DBG-003",
       "strideCategory": "E",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -242,6 +255,7 @@
       "id": "M-IF-POLICY-001",
       "strideCategory": "T",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -257,6 +271,7 @@
       "id": "M-IF-POLICY-002",
       "strideCategory": "T",
       "context": {},
+      "attackVectors": ["physical", "local"],
       "isCustom": false,
       "affectsProperties": [
         {

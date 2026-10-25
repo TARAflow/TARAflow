@@ -22,5 +22,38 @@
   },
   "M-E-008": {
     "mitigation": "Deploy antivirus / EDR software and keep signatures up to date"
+  },
+  "M-NET-001": {
+    "mitigation": "Configure an inbound firewall with default deny — only explicitly needed ports and peers are reachable"
+  },
+  "M-NET-003": {
+    "mitigation": "Disable unused ports, services and protocols — keep a minimal attack surface per build"
+  },
+  "M-NET-004": {
+    "mitigation": "Bind services to internal interfaces only — no management or debug service on external interfaces"
+  },
+  "M-AC-001": {
+    "mitigation": "Implement role-based access control (RBAC) with defined roles and least-privileged role assignment"
+  },
+  "M-AC-002": {
+    "mitigation": "Implement attribute-based access control (ABAC) — decisions use attributes such as operating state, location, time or vehicle speed"
+  },
+  "M-AC-003": {
+    "mitigation": "Run each service under its own unprivileged account — no root, unneeded capabilities dropped"
+  },
+  "M-OS-001": {
+    "mitigation": "Enforce mandatory access control (SELinux or AppArmor) in enforcing mode with a profile per service"
+  },
+  "M-OS-002": {
+    "mitigation": "Restrict system calls of exposed services with seccomp filters"
+  },
+  "M-OS-004": {
+    "mitigation": "Harden the kernel — no unused modules, lockdown mode, hardened sysctl settings"
+  },
+  "M-OS-006": {
+    "mitigation": "Apply a hardening baseline (e.g. CIS benchmark) and check it automatically for every release"
+  },
+  "M-OPS-001": {
+    "mitigation": "Monitor vulnerabilities and manage patches for all third-party and OS components, based on an SBOM"
   }
 }

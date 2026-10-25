@@ -23,6 +23,7 @@
       "id": "M-I-002",
       "strideCategory": "I",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -167,6 +168,15 @@
       "verifications": [
         "V-I-001"
       ]
+    },
+    {
+      "id": "M-NET-002",
+      "strideCategory": "I",
+      "context": {},
+      "attackVectors": ["network", "adjacent"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-NET-002"]
     }
   ]
 }

@@ -40,5 +40,17 @@
   },
   "M-S-015": {
     "mitigation": "Aktuierung über eine unabhängige Messung / geschlossene Rückführung verifizieren, statt der Statusmeldung des Aktuators selbst zu vertrauen"
+  },
+  "M-OS-005": {
+    "mitigation": "Remote-Shell-Zugang nur mit Schlüsseln und ohne Root-Login erlauben, in Produktions-Builds abschalten"
+  },
+  "M-VEH-001": {
+    "mitigation": "Fahrzeuginterne Nachrichten mit Freshness-Werten authentisieren (AUTOSAR SecOC)"
+  },
+  "M-VEH-004": {
+    "mitigation": "Diagnosezugriff nur nach Authentisierung (UDS 0x27 / 0x29) und nur in einem sicheren Fahrzeugzustand (z. B. Stillstand) gewähren"
+  },
+  "M-VEH-005": {
+    "mitigation": "Bluetooth härten — nur Secure-Connections-Pairing, ungenutzte Profile abgeschaltet, Pairing nur auf Benutzeraktion"
   }
 }

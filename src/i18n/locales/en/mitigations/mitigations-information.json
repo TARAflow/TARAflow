@@ -25,5 +25,8 @@
   },
   "M-I-009": {
     "mitigation": "Implement verifiable secure deletion (crypto erase, factory reset, overwrite) for end-of-life and device return"
+  },
+  "M-NET-002": {
+    "mitigation": "Filter outbound (egress) traffic — only the required destinations and protocols are allowed"
   }
 }

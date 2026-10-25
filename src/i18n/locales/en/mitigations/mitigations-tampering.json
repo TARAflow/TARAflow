@@ -58,5 +58,17 @@
   },
   "M-T-019": {
     "mitigation": "Enforce local safety limits independently of the command channel"
+  },
+  "M-OS-003": {
+    "mitigation": "Use a read-only, integrity-verified root file system (e.g. dm-verity)"
+  },
+  "M-VEH-002": {
+    "mitigation": "Route and filter messages between vehicle domains with a gateway whitelist"
+  },
+  "M-VEH-003": {
+    "mitigation": "Detect intrusions on in-vehicle networks (CAN IDS) and report them to the backend"
+  },
+  "M-OPS-002": {
+    "mitigation": "Deliver over-the-air updates signed and with anti-rollback protection (monotonic version counter)"
   }
 }

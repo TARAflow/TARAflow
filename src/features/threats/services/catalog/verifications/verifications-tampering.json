@@ -74,6 +74,34 @@
       "strideCategory": "T",
       "context": {},
       "isCustom": false
+    },
+    {
+      "id": "V-OS-003",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-VEH-002",
+      "strideCategory": "T",
+      "context": {
+        "domain": ["Automotive"]
+      },
+      "isCustom": false
+    },
+    {
+      "id": "V-VEH-003",
+      "strideCategory": "T",
+      "context": {
+        "domain": ["Automotive"]
+      },
+      "isCustom": false
+    },
+    {
+      "id": "V-OPS-002",
+      "strideCategory": "T",
+      "context": {},
+      "isCustom": false
     }
   ]
 }

@@ -25,6 +25,72 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false
+    },
+    {
+      "id": "V-NET-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-NET-003",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-NET-004",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-AC-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-AC-002",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-AC-003",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-OS-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-OS-002",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-OS-004",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-OS-006",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
+    },
+    {
+      "id": "V-OPS-001",
+      "strideCategory": "E",
+      "context": {},
+      "isCustom": false
     }
   ]
 }

@@ -25,5 +25,8 @@
   },
   "M-I-009": {
     "mitigation": "Verifizierbare sichere Löschung implementieren (Crypto-Erase, Factory-Reset, Überschreiben) für Lebensende und Geräterückgabe"
+  },
+  "M-NET-002": {
+    "mitigation": "Ausgehenden Verkehr (Egress) filtern — nur die benötigten Ziele und Protokolle sind erlaubt"
   }
 }

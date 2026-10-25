@@ -32,6 +32,12 @@
       "context": {},
       "isCustom": false
     },
-    { "id": "V-I-006", "strideCategory": "I", "context": {}, "isCustom": false }
+    { "id": "V-I-006", "strideCategory": "I", "context": {}, "isCustom": false },
+    {
+      "id": "V-NET-002",
+      "strideCategory": "I",
+      "context": {},
+      "isCustom": false
+    }
   ]
 }

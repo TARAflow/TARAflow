@@ -37,5 +37,17 @@
   },
   "V-T-012": {
     "verification": "Test that interlocks reject out-of-range or unsafe commands"
+  },
+  "V-OS-003": {
+    "verification": "Modify the root file system image offline; verify that boot or mount fails"
+  },
+  "V-VEH-002": {
+    "verification": "Send non-whitelisted message IDs into each domain; verify the gateway does not forward them"
+  },
+  "V-VEH-003": {
+    "verification": "Replay known attack patterns on the bus; verify detection and reporting"
+  },
+  "V-OPS-002": {
+    "verification": "Install an unsigned update and an older signed version; verify both are rejected"
   }
 }

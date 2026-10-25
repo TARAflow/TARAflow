@@ -6,6 +6,7 @@
       "id": "M-D-001",
       "strideCategory": "D",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -27,6 +28,7 @@
       "id": "M-D-002",
       "strideCategory": "D",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-D-001", "V-D-002"]
@@ -35,6 +37,7 @@
       "id": "M-D-003",
       "strideCategory": "D",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -56,6 +59,7 @@
       "id": "M-D-004",
       "strideCategory": "D",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -71,6 +75,7 @@
       "id": "M-D-005",
       "strideCategory": "D",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-D-001", "V-D-002"]
@@ -109,6 +114,7 @@
       "id": "M-D-007",
       "strideCategory": "D",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -155,6 +161,7 @@
       "id": "M-D-012",
       "strideCategory": "D",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-D-009"]

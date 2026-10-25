@@ -16,5 +16,8 @@
   },
   "V-I-006": {
     "verification": "Verify volatile/shared memory is cleared after use — inspect region contents after task completion for residual secrets"
+  },
+  "V-NET-002": {
+    "verification": "Attempt connections to non-listed destinations from the device; verify they are blocked and logged"
   }
 }

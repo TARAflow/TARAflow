@@ -10,6 +10,7 @@
           "Embedded"
         ]
       },
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -31,6 +32,7 @@
           "Embedded"
         ]
       },
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -52,6 +54,7 @@
           "Embedded"
         ]
       },
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -73,6 +76,7 @@
           "Embedded"
         ]
       },
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -94,6 +98,7 @@
           "Embedded"
         ]
       },
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -115,6 +120,7 @@
           "Embedded"
         ]
       },
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -136,6 +142,7 @@
           "Embedded"
         ]
       },
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -160,6 +167,7 @@
       "id": "M-CB-SCA-001",
       "strideCategory": "I",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -177,6 +185,7 @@
       "id": "M-CB-SCA-002",
       "strideCategory": "I",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -194,6 +203,7 @@
       "id": "M-CB-SCA-003",
       "strideCategory": "I",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -211,6 +221,7 @@
       "id": "M-CB-SCA-004",
       "strideCategory": "I",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -234,6 +245,7 @@
       "id": "M-CB-I-002",
       "strideCategory": "I",
       "context": {},
+      "attackVectors": ["physical"],
       "isCustom": false,
       "affectsProperties": [
         {

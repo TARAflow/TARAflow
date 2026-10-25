@@ -10,5 +10,38 @@
   },
   "V-E-004": {
     "verification": "Physische Sicherheitsinspektion von Debug-Schnittstellen"
+  },
+  "V-NET-001": {
+    "verification": "Port-Scan aus jeder externen Netzzone; offene Ports mit der dokumentierten Freigabeliste vergleichen"
+  },
+  "V-NET-003": {
+    "verification": "Lauschende Dienste und aktive Protokolle des Release-Builds erfassen; mit der Liste benötigter Dienste vergleichen"
+  },
+  "V-NET-004": {
+    "verification": "Listen-Adressen aller Dienste prüfen; externe Schnittstellen auf Management- und Debug-Dienste scannen"
+  },
+  "V-AC-001": {
+    "verification": "Rollenmodell und Zuordnungen prüfen; testen, dass jede Rolle nur ihre erlaubten Operationen ausführen kann"
+  },
+  "V-AC-002": {
+    "verification": "Zugriffsrichtlinie mit Attributkombinationen an und jenseits der erlaubten Grenzen testen"
+  },
+  "V-AC-003": {
+    "verification": "Benutzer und Capabilities jedes laufenden Dienstes auflisten; prüfen, dass keiner ohne dokumentierten Grund als Root läuft"
+  },
+  "V-OS-001": {
+    "verification": "Enforcing-Modus und geladenes Profil je Dienst prüfen; Ablehnungen aus einem Ausnutzungstest auswerten"
+  },
+  "V-OS-002": {
+    "verification": "Prüfen, dass seccomp-Filter für exponierte Dienste aktiv sind; testen, dass ein nicht erlaubter Systemaufruf blockiert wird"
+  },
+  "V-OS-004": {
+    "verification": "Kernel-Konfiguration und Laufzeiteinstellungen mit der Härtungs-Baseline vergleichen"
+  },
+  "V-OS-006": {
+    "verification": "Automatische Baseline-Prüfung am Release-Build ausführen; Abweichungen und ihre Begründung prüfen"
+  },
+  "V-OPS-001": {
+    "verification": "Prüfen, dass die SBOM aktuell ist und bekannte Schwachstellen in der festgelegten Frist bewertet und gepatcht werden"
   }
 }

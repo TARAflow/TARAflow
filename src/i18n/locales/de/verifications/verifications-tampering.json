@@ -37,5 +37,17 @@
   },
   "V-T-012": {
     "verification": "Testen, dass Verriegelungen unzulässige oder unsichere Kommandos ablehnen"
+  },
+  "V-OS-003": {
+    "verification": "Root-Dateisystem-Image offline verändern; prüfen, dass Boot oder Mount fehlschlägt"
+  },
+  "V-VEH-002": {
+    "verification": "Nicht freigegebene Nachrichten-IDs in jede Domäne senden; prüfen, dass das Gateway sie nicht weiterleitet"
+  },
+  "V-VEH-003": {
+    "verification": "Bekannte Angriffsmuster auf dem Bus abspielen; Erkennung und Meldung prüfen"
+  },
+  "V-OPS-002": {
+    "verification": "Ein unsigniertes Update und eine ältere signierte Version installieren; prüfen, dass beide abgelehnt werden"
   }
 }

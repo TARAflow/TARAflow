@@ -99,6 +99,7 @@
       "id": "M-S-005",
       "strideCategory": "S",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -143,6 +144,7 @@
       "id": "M-S-007",
       "strideCategory": "S",
       "context": {},
+      "attackVectors": ["network", "adjacent"],
       "isCustom": false,
       "affectsProperties": [
         {
@@ -234,6 +236,48 @@
       "isCustom": false,
       "affectsProperties": [],
       "verifications": ["V-S-009"]
+    },
+    {
+      "id": "M-OS-005",
+      "strideCategory": "S",
+      "context": {},
+      "attackVectors": ["network", "adjacent"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-OS-005"]
+    },
+    {
+      "id": "M-VEH-001",
+      "strideCategory": "S",
+      "context": {
+        "domain": ["Automotive"]
+      },
+      "attackVectors": ["adjacent", "physical"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-VEH-001"]
+    },
+    {
+      "id": "M-VEH-004",
+      "strideCategory": "S",
+      "context": {
+        "domain": ["Automotive"]
+      },
+      "attackVectors": ["physical"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-VEH-004"]
+    },
+    {
+      "id": "M-VEH-005",
+      "strideCategory": "S",
+      "context": {
+        "domain": ["Automotive"]
+      },
+      "attackVectors": ["adjacent"],
+      "isCustom": false,
+      "affectsProperties": [],
+      "verifications": ["V-VEH-005"]
     }
   ]
 }

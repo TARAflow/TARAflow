@@ -25,5 +25,17 @@
   },
   "V-S-009": {
     "verification": "Testen, dass gefälschte oder fehlende Aktuator-Rückmeldung über die unabhängige Messung / geschlossene Rückführung erkannt wird"
+  },
+  "V-OS-005": {
+    "verification": "Remote-Shell-Konfiguration des Release-Builds prüfen; Passwort- und Root-Anmeldung versuchen"
+  },
+  "V-VEH-001": {
+    "verification": "Gefälschte und wiederholte Frames auf den Bus einspielen; prüfen, dass der Empfänger sie verwirft und den Fehler meldet"
+  },
+  "V-VEH-004": {
+    "verification": "Geschützte Diagnosedienste ohne Authentisierung und während der Fahrt anfordern; prüfen, dass sie abgelehnt werden"
+  },
+  "V-VEH-005": {
+    "verification": "Bluetooth-Konfiguration prüfen; Legacy-Pairing und Zugriff auf abgeschaltete Profile versuchen"
   }
 }

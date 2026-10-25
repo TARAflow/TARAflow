@@ -4,6 +4,7 @@
 
 import type {
   AssetReference,
+  AttackVector,
   AssetDataReference,
   CIANAAALevel,
   DFDReference,
@@ -507,6 +508,12 @@ export interface MitigationEntry {
   id: string;
   strideCategory: StrideCategory;
   context: TemplateContext;
+  /**
+   * Attack vectors (ISO/SAE 21434 G.9) this control addresses; absent = every
+   * vector. Lets an attack path get controls that fit how it attacks
+   * (mitigation catalog design D2/D3).
+   */
+  attackVectors?: AttackVector[];
   isCustom: boolean;
   /** DFD property effects — drives ControlInstance derivation */
   affectsProperties: MitigationPropertyEffect[];
@@ -642,8 +649,9 @@ export interface TemplateContext {
   platform?: string[];
 
   /**
-   * Project-level: matches project.info.tags.domain.
-   * @deprecated Prefer regulation for domain-specific requirements.
+   * Project-level: matches project.info.tags.domain — the domain gate for
+   * domain-specific templates and controls (e.g. in-vehicle controls:
+   * ["Automotive"]). For regulatory requirements prefer `regulation`.
    */
   domain?: string[];
 

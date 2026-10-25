@@ -25,5 +25,17 @@
   },
   "V-S-009": {
     "verification": "Test that spoofed or absent actuation feedback is detected via the independent measurement / closed-loop check"
+  },
+  "V-OS-005": {
+    "verification": "Check the remote shell configuration of the release build; attempt password and root logins"
+  },
+  "V-VEH-001": {
+    "verification": "Inject forged and replayed frames on the bus; verify the receiver discards them and reports the failure"
+  },
+  "V-VEH-004": {
+    "verification": "Request protected diagnostic services without authentication and while driving; verify they are rejected"
+  },
+  "V-VEH-005": {
+    "verification": "Check the Bluetooth configuration; attempt legacy pairing and access to disabled profiles"
   }
 }

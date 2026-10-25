@@ -22,5 +22,38 @@
   },
   "M-E-008": {
     "mitigation": "Antiviren- / EDR-Software einsetzen und Signaturen aktuell halten"
+  },
+  "M-NET-001": {
+    "mitigation": "Eingehende Firewall mit Default-Deny konfigurieren — nur ausdrücklich benötigte Ports und Gegenstellen sind erreichbar"
+  },
+  "M-NET-003": {
+    "mitigation": "Ungenutzte Ports, Dienste und Protokolle abschalten — minimale Angriffsfläche je Build"
+  },
+  "M-NET-004": {
+    "mitigation": "Dienste nur an interne Schnittstellen binden — kein Management- oder Debug-Dienst an externen Schnittstellen"
+  },
+  "M-AC-001": {
+    "mitigation": "Rollenbasierte Zugriffskontrolle (RBAC) mit definierten Rollen und minimaler Rechtevergabe umsetzen"
+  },
+  "M-AC-002": {
+    "mitigation": "Attributbasierte Zugriffskontrolle (ABAC) umsetzen — Entscheidungen nutzen Attribute wie Betriebszustand, Ort, Zeit oder Fahrzeuggeschwindigkeit"
+  },
+  "M-AC-003": {
+    "mitigation": "Jeden Dienst unter eigenem, unprivilegiertem Konto betreiben — kein Root, nicht benötigte Capabilities entzogen"
+  },
+  "M-OS-001": {
+    "mitigation": "Mandatory Access Control (SELinux oder AppArmor) im Enforcing-Modus mit einem Profil je Dienst durchsetzen"
+  },
+  "M-OS-002": {
+    "mitigation": "Systemaufrufe exponierter Dienste mit seccomp-Filtern einschränken"
+  },
+  "M-OS-004": {
+    "mitigation": "Kernel härten — keine ungenutzten Module, Lockdown-Modus, gehärtete sysctl-Einstellungen"
+  },
+  "M-OS-006": {
+    "mitigation": "Härtungs-Baseline (z. B. CIS-Benchmark) anwenden und für jedes Release automatisch prüfen"
+  },
+  "M-OPS-001": {
+    "mitigation": "Schwachstellen überwachen und Patches für alle Fremd- und Betriebssystemkomponenten verwalten, auf Basis einer SBOM"
   }
 }

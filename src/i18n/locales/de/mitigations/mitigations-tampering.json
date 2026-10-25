@@ -58,5 +58,17 @@
   },
   "M-T-019": {
     "mitigation": "Lokale Sicherheitsgrenzen unabhängig vom Kommandokanal durchsetzen"
+  },
+  "M-OS-003": {
+    "mitigation": "Schreibgeschütztes, integritätsgeprüftes Root-Dateisystem verwenden (z. B. dm-verity)"
+  },
+  "M-VEH-002": {
+    "mitigation": "Nachrichten zwischen Fahrzeugdomänen über eine Gateway-Whitelist routen und filtern"
+  },
+  "M-VEH-003": {
+    "mitigation": "Angriffe auf fahrzeuginterne Netze erkennen (CAN-IDS) und an das Backend melden"
+  },
+  "M-OPS-002": {
+    "mitigation": "Over-the-Air-Updates signiert und mit Rollback-Schutz (monotoner Versionszähler) ausliefern"
   }
 }
