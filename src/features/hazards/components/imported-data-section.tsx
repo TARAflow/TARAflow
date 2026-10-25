@@ -6,15 +6,20 @@
 // the fields and the bowtie above.
 
 import React from "react";
-import { Box, Chip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import type { HazardItem } from "shared";
 import { MULTI_VALUE_IMPORT_KEYS, importedDataRows } from "../utils/imported-data-rows";
 
-export const ImportedDataSection: React.FC<{ item: HazardItem }> = ({ item }) => {
+export const ImportedDataSection: React.FC<{
+  item: HazardItem;
+  /** Clear the re-import flag after the analyst reviewed the item (HI-10). */
+  onReviewed?: () => void;
+}> = ({ item, onReviewed }) => {
   const { t } = useTranslation();
   const rows = importedDataRows(item);
   if (rows.length === 0 && !item.externalRef) return null;
+  const status = item.importMeta?.importStatus;
 
   const value = (key: string, raw: string): React.ReactNode =>
     key === "probability"
@@ -39,6 +44,30 @@ export const ImportedDataSection: React.FC<{ item: HazardItem }> = ({ item }) =>
           defaultValue: "As read from the source file — read-only.",
         })}
       </Typography>
+      {(status === "changed" || status === "removed") && (
+        <Alert
+          severity={status === "removed" ? "warning" : "info"}
+          sx={{ mb: 1, py: 0 }}
+          data-testid="hazard-import-status"
+          action={
+            onReviewed && (
+              <Button size="small" onClick={onReviewed}>
+                {t("tabs.hazards.imported.reviewed", { defaultValue: "Reviewed" })}
+              </Button>
+            )
+          }
+        >
+          {status === "removed"
+            ? t("tabs.hazards.imported.status.removed", {
+                defaultValue: "No longer in the source file (re-import {{since}}). Kept — delete it or keep it on purpose.",
+                since: item.importMeta?.importStatusSince?.slice(0, 10) ?? "",
+              })
+            : t("tabs.hazards.imported.status.changed", {
+                defaultValue: "Changed in the source file (re-import {{since}}) — check the item and its edges.",
+                since: item.importMeta?.importStatusSince?.slice(0, 10) ?? "",
+              })}
+        </Alert>
+      )}
       <Box component="dl" sx={{ display: "grid", gridTemplateColumns: "max-content 1fr", columnGap: 2, rowGap: 0.5, m: 0 }}>
         {item.externalRef && (
           <>

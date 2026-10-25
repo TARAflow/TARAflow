@@ -143,7 +143,28 @@
           "technical": "Technische Schutzmaßnahme",
           "information": "Benutzerinformation",
           "combined": "Kombiniert"
+        },
+        "reviewed": "Geprüft",
+        "status": {
+          "changed": "In der Quelldatei geändert (erneuter Import {{since}}) — Item und Kanten prüfen.",
+          "removed": "Nicht mehr in der Quelldatei (erneuter Import {{since}}). Erhalten — löschen oder bewusst behalten."
+        },
+        "chip": {
+          "changed": "in Quelle geändert",
+          "removed": "aus Quelle entfernt"
         }
+      },
+      "reimport": {
+        "title": "Erneuter Import „{{file}}“",
+        "intro": "Mit dem Profil „{{profile}}“ wurden schon Gefährdungen importiert. Im Vergleich dazu enthält diese Datei:",
+        "added": "Neu",
+        "changed": "Geändert — aktualisiert und zur Prüfung markiert",
+        "removed": "Nicht mehr in der Datei — bleibt erhalten und wird markiert",
+        "unchanged": "Unverändert",
+        "modeUpdate": "Gefährdungen des früheren Imports aktualisieren",
+        "modeAdditional": "Alle Zeilen als zusätzliche Gefährdungen importieren (z. B. weitere Maschine mit derselben Vorlage)",
+        "cancel": "Abbrechen",
+        "confirm": "Übernehmen"
       },
       "import": {
         "title": "Import-Zuordnung",
@@ -252,7 +273,7 @@
           "eintrittswahrscheinlichkeit",
           "eintritt"
         ],
-        "rpn": ["risikobewertung", "risiko"],
+        "rpn": ["risikobewertung", "risiko", "rpz"],
         "sourceNorm": ["norm", "plr", "kategorie / plr"],
         "affectedPersons": [
           "betroffene person",
@@ -260,16 +281,16 @@
           "person",
           "personen"
         ],
-        "notes": ["bemerkung", "bemerkungen", "restrisiken", "auswirkung"],
+        "notes": ["bemerkung", "bemerkungen", "restrisiken", "auswirkung", "restgefahren"],
         "physicalHazardPotential": [
           "physikalisches gefährdungspotenzial",
           "phys. potenzial",
           "potenzial"
         ],
-        "lifecyclePhase": ["lebensphase", "lebensphasen", "lebenszyklusphase"],
+        "lifecyclePhase": ["lebensphase", "lebensphasen", "lebenszyklusphase", "lebensdauerphase"],
         "hazardZone": ["gefahrenstelle", "gefährdungsbereich", "gefahrenbereich"],
         "protectiveMeasures": ["schutzmaßnahmen", "schutzmassnahmen"],
-        "protectiveMeasureType": ["maßnahmenart", "art der maßnahme"],
+        "protectiveMeasureType": ["maßnahmenart", "art der maßnahme", "art der schutzmaßnahme", "art der schutzmassnahme"],
         "plRequired": ["pl erforderlich", "plr erforderlich"],
         "plAchieved": ["pl erreicht"],
         "safetyFunction": ["sicherheitsfunktion"]

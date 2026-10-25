@@ -37,12 +37,14 @@ import { hazardService } from "../services/hazard-service";
 import { hazardValidator, type HazardValidation } from "../services/hazard-validator";
 import { recordProfileUse, saveProfile } from "../services/import-profile-store";
 import { findMatchingProfile, trackProfileColumns } from "../services/import-profile-tracking";
+import { applyReimport, planReimport, type ReimportPlan } from "../services/hazard-reimport";
+import { HazardReimportDialog, type ReimportMode } from "./hazard-reimport-dialog";
 
 import { HazardToolbar } from "./hazard-toolbar";
 import { HazardTable } from "./hazard-table";
 import { HazardDialog } from "./hazard-dialog";
 import { HazardConfigDialog } from "./hazard-config-dialog";
-import { useHazardImport } from "../hooks/use-hazard-import";
+import { useHazardImport, type HazardImportOutcome } from "../hooks/use-hazard-import";
 import { createAsset } from "shared";
 
 import { HazardImportProfileDialog } from "./hazard-import-profile-dialog";
@@ -73,6 +75,13 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
   registerHazardImportAdapters();
 
   // promise-bridged dialog request
+  // HI-10: a re-import waiting for the analyst's choice in the preview.
+  const [reimportRequest, setReimportRequest] = useState<{
+    outcome: HazardImportOutcome;
+    plan: ReimportPlan;
+    defaultMode: ReimportMode;
+  } | null>(null);
+
   const [profileRequest, setProfileRequest] = useState<{
     req: ImportProfileRequest;
     resolve: (p: ImportProfile | null) => void;
@@ -314,44 +323,72 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
     onPhaseComplete?.();
   }, [onPhaseComplete]);
 
+  /** Fold an import into the hazard data — appended, or reconciled (HI-10). */
+  const finishImport = useCallback(
+    (outcome: HazardImportOutcome, plan: ReimportPlan | null) => {
+      if (outcome.createdAssets.length > 0) {
+        setPendingCreatedAssets((prev) => [...prev, ...outcome.createdAssets]);
+      }
+      if (outcome.items.length === 0 && !outcome.profileUse && !plan) return;
+      const now = new Date().toISOString();
+      const base: HazardData = plan
+        ? applyReimport(hazardData, outcome, plan, now)
+        : {
+            ...hazardData,
+            hazards: [...hazardData.hazards, ...outcome.items],
+            relations: [...hazardData.relations, ...outcome.relations],
+          };
+      const merged: HazardData = {
+        ...base,
+        // The profile goes with the project, with the file it read (HI-9).
+        ...(outcome.profileUse
+          ? {
+              importProfiles: recordProfileUse(
+                hazardData.importProfiles,
+                outcome.profileUse.profile,
+                outcome.profileUse.source,
+                now,
+              ),
+            }
+          : {}),
+      };
+      setHazardData(merged);
+      setValidation(hazardValidator.validate(merged, assets));
+      markDirty();
+    },
+    [hazardData, assets, markDirty],
+  );
+
   const handleImport = useCallback(async () => {
     try {
       const outcome = await importHazards();
       if (outcome.cancelled) return;
-
-      if (outcome.createdAssets.length > 0) {
-        setPendingCreatedAssets((prev) => [...prev, ...outcome.createdAssets]);
-      }
-
-      if (outcome.items.length > 0 || outcome.profileUse) {
-        const merged: HazardData = {
-          ...hazardData,
-          hazards: [...hazardData.hazards, ...outcome.items],
-          relations: [...hazardData.relations, ...outcome.relations],
-          // The profile goes with the project, with the file it read (HI-9).
-          ...(outcome.profileUse
-            ? {
-                importProfiles: recordProfileUse(
-                  hazardData.importProfiles,
-                  outcome.profileUse.profile,
-                  outcome.profileUse.source,
-                  new Date().toISOString(),
-                ),
-              }
-            : {}),
-        };
-        setHazardData(merged);
-        setValidation(hazardValidator.validate(merged, assets));
-        markDirty();
-      }
-
       if (outcome.warnings.length > 0) {
         console.warn("Hazard import warnings:", outcome.warnings);
       }
+
+      // HI-10: hazards of an earlier import with this profile → preview first.
+      const use = outcome.profileUse;
+      if (use) {
+        const plan = planReimport(hazardData, outcome, use.profile.id, use.source.fileName);
+        if (plan.changed.length + plan.unchanged.length + plan.removed.length > 0) {
+          const stored = hazardData.importProfiles?.find((p) => p.id === use.profile.id);
+          setReimportRequest({
+            outcome,
+            plan,
+            defaultMode:
+              stored?.source?.fileName?.toLowerCase() === use.source.fileName.toLowerCase()
+                ? "update"
+                : "additional",
+          });
+          return;
+        }
+      }
+      finishImport(outcome, null);
     } catch (err) {
       console.error("Hazard import failed:", err);
     }
-  }, [importHazards, hazardData, assets, markDirty]);
+  }, [importHazards, hazardData, finishImport]);
 
   // ==================== RENDER ====================
 
@@ -392,6 +429,21 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
           assets={assets}
           onSave={handleSaveHazard}
           onClose={handleCloseDialog}
+        />
+      )}
+
+      {reimportRequest && (
+        <HazardReimportDialog
+          open
+          plan={reimportRequest.plan}
+          fileName={reimportRequest.outcome.profileUse?.source.fileName ?? ""}
+          profileName={reimportRequest.outcome.profileUse?.profile.name ?? ""}
+          defaultMode={reimportRequest.defaultMode}
+          onConfirm={(mode) => {
+            finishImport(reimportRequest.outcome, mode === "update" ? reimportRequest.plan : null);
+            setReimportRequest(null);
+          }}
+          onCancel={() => setReimportRequest(null)}
         />
       )}
 

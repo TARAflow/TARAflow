@@ -410,17 +410,37 @@ export const HazardTable = React.memo<HazardTableProps>(
         }),
         flex: 1,
         minWidth: 260,
-        renderCell: (p) => (
-          <Tooltip title={p.row.description ?? ""} placement="top-start">
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              {p.value || (
-                <em style={{ color: "#94a3b8" }}>
-                  {t("tabs.hazards.unnamed", { defaultValue: "(unnamed)" })}
-                </em>
+        renderCell: (p) => {
+          // Re-import flag (HI-10): the source row changed or disappeared.
+          const status = p.row.importMeta?.importStatus;
+          return (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+              <Tooltip title={p.row.description ?? ""} placement="top-start">
+                <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
+                  {p.value || (
+                    <em style={{ color: "#94a3b8" }}>
+                      {t("tabs.hazards.unnamed", { defaultValue: "(unnamed)" })}
+                    </em>
+                  )}
+                </Typography>
+              </Tooltip>
+              {(status === "changed" || status === "removed") && (
+                <Chip
+                  size="small"
+                  color={status === "removed" ? "warning" : "info"}
+                  variant="outlined"
+                  data-testid="hazard-import-status-chip"
+                  label={
+                    status === "removed"
+                      ? t("tabs.hazards.imported.chip.removed", { defaultValue: "removed from source" })
+                      : t("tabs.hazards.imported.chip.changed", { defaultValue: "changed in source" })
+                  }
+                  sx={{ height: 20, fontSize: "0.7rem", flexShrink: 0 }}
+                />
               )}
-            </Typography>
-          </Tooltip>
-        ),
+            </Box>
+          );
+        },
       };
 
       const typeColumn: GridColDef<HazardRow> = {

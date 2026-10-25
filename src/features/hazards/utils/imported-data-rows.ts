@@ -39,7 +39,12 @@ const KNOWN_LABELS: Readonly<Record<string, string>> = {
 };
 
 /** Bookkeeping keys of the import — not shown. */
-const HIDDEN_IMPORT_KEYS: readonly string[] = ["profileId"];
+export const HIDDEN_IMPORT_KEYS: readonly string[] = [
+  "profileId",
+  "sourceFile",
+  "importStatus",
+  "importStatusSince",
+];
 
 /** Keys whose value is a list ("a, b") — shown as separate chips. */
 export const MULTI_VALUE_IMPORT_KEYS: readonly string[] = ["lifecyclePhase"];

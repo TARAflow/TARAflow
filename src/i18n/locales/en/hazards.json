@@ -144,7 +144,28 @@
           "technical": "Technical protective measure",
           "information": "Information for use",
           "combined": "Combined"
+        },
+        "reviewed": "Reviewed",
+        "status": {
+          "changed": "Changed in the source file (re-import {{since}}) — check the item and its edges.",
+          "removed": "No longer in the source file (re-import {{since}}). Kept — delete it or keep it on purpose."
+        },
+        "chip": {
+          "changed": "changed in source",
+          "removed": "removed from source"
         }
+      },
+      "reimport": {
+        "title": "Re-import “{{file}}”",
+        "intro": "Hazards were imported earlier with the profile “{{profile}}”. Compared with them, this file has:",
+        "added": "New",
+        "changed": "Changed — updated and flagged for review",
+        "removed": "No longer in the file — kept and flagged",
+        "unchanged": "Unchanged",
+        "modeUpdate": "Update the hazards of the earlier import",
+        "modeAdditional": "Import all rows as additional hazards (e.g. another machine with the same template)",
+        "cancel": "Cancel",
+        "confirm": "Apply"
       },
       "import": {
         "title": "Import mapping",

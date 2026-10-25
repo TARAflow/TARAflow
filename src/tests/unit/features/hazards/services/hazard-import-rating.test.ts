@@ -104,6 +104,7 @@ describe("HI-4 — the customer's rating survives the import", () => {
       rpn: "12",
       residualRisk: "Overrun after stop", // HI-6
       profileId: "p-la200", // HI-9
+      sourceFile: "la200.xlsx", // HI-10
     });
   });
 

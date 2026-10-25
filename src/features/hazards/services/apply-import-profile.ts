@@ -139,8 +139,10 @@ export function applyImportProfile(
     const importMeta: Record<string, string> = {
       ...sourceRating,
       ...(data.importMeta ?? {}),
-      // The profile this row was read with — the key of a re-import (HI-9 / HI-10).
+      // The profile and file this row was read with — the key of a re-import
+      // (HI-9 / HI-10).
       profileId: profile.id,
+      ...(sourceFile ? { sourceFile } : {}),
     };
     for (const mc of profile.metaColumns ?? []) {
       if (mc.column < 0 || !mc.key.trim()) continue;
@@ -234,7 +236,7 @@ const ALIAS_LANGS = ["en", "de"] as const;
 
 function langAliases(lng: string, field: CanonicalField): string[] {
   const tl = i18n.getFixedT(lng); // default namespace
-  const v = tl(`tabs.hazards.import.aliases.${field}`, {
+  const v = tl(`tabs.hazards.aliases.${field}`, {
     returnObjects: true,
     defaultValue: [],
   });

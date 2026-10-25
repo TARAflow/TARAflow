@@ -17,6 +17,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImportedDataSection } from "./imported-data-section";
+import { clearImportStatus } from "../services/hazard-reimport";
 import {
   Dialog,
   DialogTitle,
@@ -882,7 +883,10 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
                 minRows={2}
               />
 
-              <ImportedDataSection item={item} />
+              <ImportedDataSection
+                item={item}
+                onReviewed={() => patchItem({ importMeta: clearImportStatus(item).importMeta })}
+              />
 
               {!scopeOk ? (
                 <Alert

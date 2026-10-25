@@ -58,7 +58,7 @@ function withImportedRating(h: SafetyHazard): Record<string, string> | undefined
   return Object.keys(meta).length > 0 ? meta : undefined;
 }
 
-function shortLabel(text: string, max = 60): string {
+export function shortLabel(text: string, max = 60): string {
   let s = text.split(/[(\n;]/)[0].trim();
   if (!s) s = text.trim();
   if (s.length > max) s = s.slice(0, max).trim() + "…";
