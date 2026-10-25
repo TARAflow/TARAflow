@@ -1,3 +1,90 @@
+## [0.15.0-beta] - 2026-10-25
+
+ISO/SAE 21434 projects get the risk value 1–5 of the standard, with
+threat scenarios, a review list and a methodology chapter in the report.
+On a 3- or 4-level risk scale, the attack-tree likelihood is corrected
+in every preset. Opening a project migrates it to schema 10 (TARAflow
+asks first and keeps a backup of the original). **Risk values change** —
+see the notes.
+
+### Added
+- **ISO/SAE 21434 risk value 1–5** (clause 15.8): impact × attack
+  feasibility, read from the matrix of Annex H.8, shown with a word
+  (Minimal / Low / Medium / High / Critical) and, in the report, with
+  its inputs ("4 – High (Impact Major × AF High)"). Register, filter,
+  heat map (the 4 × 4 matrix of H.8), risk dialog, report and
+  traceability matrix show it instead of I × L. The residual value is
+  computed from the ratings after mitigation.
+- **Threat scenarios** in the risk register of an ISO project: the
+  attack paths of one tree form one scenario. The scenario's value and
+  residual are the highest of its paths, and its options are the union
+  of theirs.
+- **Review list** (ISO): Retain at a value of 4 or more, Reduce at a
+  value of 1. A banner lists them, and *only these* filters the
+  register. Nothing changes automatically.
+- **ISO treatment names** (15.9): Avoid / Reduce / Share / Retain.
+  Stored values stay the same; a stored *transfer* shows as
+  "Share (transfer)" with a review hint.
+- **ISO impact scale:** four levels named Negligible / Moderate /
+  Major / Severe. An ISO project uses the 4-level scale; it is set while
+  nothing is rated, otherwise a finding asks to re-rate. A safety
+  rating of 4 given only as a number is flagged as ambiguous.
+- **Calculation stamps:** ISO risks and attack-path analyses record the
+  method, the calculation version and a hash of the tables they were
+  computed with.
+- **Report:**
+  - *Methodology* chapter (ISO only): method, attack-potential bands
+    (Table G.7), attack-tree gate rules, the H.8 matrix, treatment names,
+    the seven cybersecurity properties and the calculation stamps.
+  - *Risk Assessment (Threat Scenarios)* chapter (ISO only).
+  - *Attack Trees* chapter (all presets, previously empty): anchor,
+    structure with AND/OR gates and leaf ratings, and paths with attack
+    potential, feasibility and relevance decision.
+
+### Changed
+- **Tree likelihood on the project's risk scale** (all presets with
+  attack trees on a 3- or 4-level risk scale). A path with feasibility
+  *high* gave likelihood 5 — above the scale. The mapping is now 1/1/2/3
+  (3-level), 1/2/3/4 (4-level) and unchanged 1/2/3/5 (5-level). The
+  migration recomputes the affected risks, so their I × L values change;
+  for example, 12.5 → 10 in the Headlamp example.
+- Under ISO, the I × L risk per impact category is no longer shown, and
+  the risk configuration dialog hides the I × L settings.
+- `taraflow-report` completes the stored chapter list the way the app
+  does, so the CLI report of an older project gains the newer chapters,
+  and `--chapters` can select them.
+- An attack tree whose stored structure no longer matches its DSL is
+  parsed again when the project is opened.
+
+### Fixed
+- A risk sync without a change no longer gives every risk a new
+  modification date and no longer marks the project as changed.
+- Re-analysing an attack tree without a change keeps its dates.
+- Report: the table-of-contents links in HTML and Markdown work again
+  (they broke on parentheses, umlauts and custom titles). HTML and the
+  PDF from the app leave out deselected chapters. The CLI PDF shows each
+  STRIDE risk chapter once, with its own risks.
+- The conversion dialog names everything the schema 10 migration does.
+
+### Notes
+- **Project schema 10.** Earlier TARAflow versions refuse a schema 10
+  file. The migration:
+  - normalises old person-harm names again (`fatality` → `fatal`; names
+    only, no rating change);
+  - corrects the attack-tree likelihood on 3- and 4-level risk scales;
+  - computes the ISO risk value for every risk of an ISO project and
+    stamps it.
+
+  Treatments, priorities and justifications stay unchanged.
+- **Values to review after the update:**
+  - ISO projects now show risk values 1–5 instead of I × L; the review
+    list names the decisions worth a second look.
+  - Projects with attack trees on a 3- or 4-level risk scale get
+    corrected I × L values in every preset.
+- Projects saved as schema 10 by a development build before this release
+  are not migrated again. Set `schemaVersion` to `9` in the project file
+  before opening them; the migration can safely run a second time.
+
 ## [0.14.0-beta] - 2026-10-23
 
 The first beta. A project can now hold a leveled DFD — a top-level

@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.14.0-beta`
+> **Current version:** `v0.15.0-beta`
 
 TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
@@ -139,7 +139,7 @@ Features include:
 * Impact aggregation per regulation preset — **harm floor** (safety, physical damage and environment are never diluted by milder consequences), **maximum** (ISO/SAE 21434, ETSI TVRA) or weighted mean — switchable with a preview of every changed risk
 * Asset criterion weights as the default for the impact weights, overridable per factor
 * Explanation of how a risk's impact was formed, in the risk dialog and the report
-* ISO/SAE 21434: risk per impact category (S/F/O/P) next to the register value
+* ISO/SAE 21434: risk value 1–5 from the matrix of Annex H.8 (Minimal … Critical), threat scenarios per attack tree and a review list of treatment decisions
 * Likelihood factor levels named by the situation they stand for (e.g. "4 – No technical skills"); ETSI TVRA factors with the norm's levels (e.g. "≤ 1 week (2)")
 * Leveled DFDs: risks grouped per decomposed multiprocess, a risk matrix per DFD group
 
@@ -253,6 +253,8 @@ TARAflow's TARA pipeline and documentation generator conform to ISO/SAE 21434 en
 In an ISO/SAE 21434 project, threat relevance is derived from the **asset relationship**: a STRIDE per-element/per-interaction threat is relevant when it relates to an asset, and is treated as the enumeration that feeds attack-tree analysis rather than a risk in its own right. The analyst may still override relevance in the threat dialog, with a documented justification. Impact is assessed per **SFOP** (Safety, Financial, Operational, Privacy — ISO 15.5), which is mandatory and locked on both the risk and the asset side.
 
 Attack feasibility follows **Annex G / ISO 18045**: the five attack-potential factors — elapsed time, specialist expertise, knowledge of the item, window of opportunity, equipment — sum to an attack potential that maps to a four-level feasibility band (Table G.7). Attack trees carry these factors per leaf; the resulting attack-path feasibility drives risk, and attack-path threats are enriched with the catalog's STRIDE-category mitigations and verifications.
+
+The **risk value 1–5** (15.8) is read from the matrix of Annex H.8: impact of the damage scenario (4-level scale Negligible / Moderate / Major / Severe) × attack feasibility, shown with a word (Minimal / Low / Medium / High / Critical) instead of I × L. The attack paths of one tree form a **threat scenario**, whose value is the highest of its paths. Treatment options carry the ISO names Avoid / Reduce / Share / Retain (15.9); a review list names Retain at a high value and Reduce at value 1. The report documents the method in a **methodology chapter** generated from the project's configuration, and every ISO risk records the calculation it was computed with.
 
 > Current scope: a structured (dropdown-based) leaf editor for the attack-tree DSL, and generating starter attack trees from confirmed threats, are planned — see the post-release backlog.
 
@@ -578,7 +580,7 @@ The project format contains the information required to reconstruct and analyze 
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
-The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **9**, since `v0.14.0-beta`).
+The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **10**, since `v0.15.0-beta`).
 
 View state such as the positions in the asset graph is not part of the project file.
 
@@ -640,14 +642,15 @@ Recent development versions include:
 * `v0.13.3-alpha` — asset graph with edit mode, persistent asset-to-asset relations (schema 8)
 * `v0.13.4-alpha` — dependency security update, enclosure and interface threat fixes, DFD editor fixes
 * `v0.14.0-beta` — leveled DFDs (several pages per project), five-level safety scale and worst-of safety rating (schema 9)
+* `v0.15.0-beta` — ISO/SAE 21434 risk value 1–5, threat scenarios and methodology chapter; attack-tree likelihood on the project's risk scale (schema 10)
 
 The current development state is represented by:
 
 ```text
-v0.14.0-beta
+v0.15.0-beta
 ```
 
-Versions in the beta: `0.14.0-beta`, then `0.14.1-beta`, `0.14.2-beta`, … — the patch number counts, no extra pre-release counter.
+Versions in the beta: bug-fix releases count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
 
 See [`CHANGELOG.md`](CHANGELOG.md) for details.
 
@@ -705,7 +708,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.14.0-beta**
+**TARAflow 0.15.0-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 
