@@ -96,7 +96,9 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
         ? t(`tabs.hazards.imported.probabilityLevel.${v}`, { defaultValue: v })
         : f === "hazardCategory"
           ? t(`tabs.hazards.category.${v}`, { defaultValue: v })
-          : v;
+          : f === "protectiveMeasureType"
+            ? t(`tabs.hazards.imported.measureType.${v}`, { defaultValue: v })
+            : v;
 
   const [profile, setProfile] = useState<ImportProfile>(() =>
     suggestProfile(workbook),

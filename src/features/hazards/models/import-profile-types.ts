@@ -127,19 +127,32 @@ export const HAZARD_CATEGORY_OPTIONS = [
   "other",
 ] as const;
 
+/** ISO 12100 three-step method (HI-5). */
+export const PROTECTIVE_MEASURE_TYPE_OPTIONS = ["inherent", "technical", "information", "combined"] as const;
+/** EN ISO 13849-1 Annex A risk graph and performance levels (HI-5). */
+export const RISK_GRAPH_S_OPTIONS = ["S1", "S2"] as const;
+export const RISK_GRAPH_F_OPTIONS = ["F1", "F2"] as const;
+export const RISK_GRAPH_P_OPTIONS = ["P1", "P2"] as const;
+export const PERFORMANCE_LEVEL_OPTIONS = ["a", "b", "c", "d", "e"] as const;
+
 /** Fields whose values the dialog maps onto canonical options (value map / x-matrix). */
 export const VALUE_MAPPED_FIELDS: readonly CanonicalField[] = [
   "severity",
   "probability",
   "hazardCategory",
+  "protectiveMeasureType",
+  "riskGraphS",
+  "riskGraphF",
+  "riskGraphP",
+  "plRequired",
+  "plAchieved",
 ];
 
 /** Fields that may be expressed as an "x"-matrix marker group. */
-export const MARKER_CAPABLE_FIELDS: readonly CanonicalField[] = [
-  "severity",
-  "probability",
-  "hazardCategory",
-];
+export const MARKER_CAPABLE_FIELDS: readonly CanonicalField[] = VALUE_MAPPED_FIELDS;
+
+/** Fields holding several values in one cell, split with the list separator (HI-5). */
+export const MULTI_VALUE_FIELDS: readonly CanonicalField[] = ["lifecyclePhase"];
 
 export const PHYSICAL_HAZARD_POTENTIAL_OPTIONS = [
   "low",
@@ -155,6 +168,17 @@ export function markerValueOptions(field: CanonicalField): readonly string[] {
       return PROBABILITY_OPTIONS;
     case "hazardCategory":
       return HAZARD_CATEGORY_OPTIONS;
+    case "protectiveMeasureType":
+      return PROTECTIVE_MEASURE_TYPE_OPTIONS;
+    case "riskGraphS":
+      return RISK_GRAPH_S_OPTIONS;
+    case "riskGraphF":
+      return RISK_GRAPH_F_OPTIONS;
+    case "riskGraphP":
+      return RISK_GRAPH_P_OPTIONS;
+    case "plRequired":
+    case "plAchieved":
+      return PERFORMANCE_LEVEL_OPTIONS;
     default:
       return [];
   }

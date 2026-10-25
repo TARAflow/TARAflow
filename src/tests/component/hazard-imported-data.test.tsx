@@ -36,6 +36,21 @@ describe("ImportedDataSection", () => {
     expect(text).toContain("Severity (source value)4");
   });
 
+  it("ISO 12100 fields: lifecycle phases as chips, measure type by its label key", () => {
+    render(
+      <ImportedDataSection
+        item={item({
+          importMeta: { lifecyclePhase: "Transport, Cleaning", protectiveMeasureType: "technical", plRequired: "d" },
+        })}
+      />,
+    );
+    const block = screen.getByTestId("hazard-imported-data");
+    expect(block.querySelectorAll(".MuiChip-root")).toHaveLength(2);
+    expect(block.textContent).toContain("Lifecycle phase");
+    expect(block.textContent).toContain("technical"); // mocked t: the default (raw value)
+    expect(block.textContent).toContain("PL required");
+  });
+
   it("renders nothing for a hazard that was not imported", () => {
     const { container } = render(<ImportedDataSection item={item({})} />);
     expect(container.firstChild).toBeNull();

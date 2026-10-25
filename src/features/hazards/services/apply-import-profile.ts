@@ -11,10 +11,12 @@ import {
   type RawHazardRow,
   type CanonicalField,
   CANONICAL_FIELDS,
+  ISO12100_META_FIELDS,
 } from "./safety-hazard-importer";
 import type { SafetyHazard } from "../models/safety-hazard-types";
 import {
   DEFAULT_LIST_SEPARATOR,
+  MULTI_VALUE_FIELDS,
   splitList,
   type CellValue,
   type ImportProfile,
@@ -50,6 +52,13 @@ function assignField(
   if (field === "affectedPersons") {
     const roles = splitList(value, separator);
     if (roles.length) data.affectedPersons = roles;
+    return;
+  }
+  // ISO 12100 / 13849 columns (HI-5): importMeta under the field name; a
+  // multi-value cell normalised to "a, b".
+  if ((ISO12100_META_FIELDS as readonly string[]).includes(field)) {
+    const v = MULTI_VALUE_FIELDS.includes(field) ? splitList(value, separator).join(", ") : value;
+    if (v) data.importMeta = { ...(data.importMeta ?? {}), [field]: v };
     return;
   }
   // description | hazardCategory | severity | probability | sourceNorm | notes
@@ -125,8 +134,9 @@ export function applyImportProfile(
       }
     }
 
-    // provenance: extra columns kept as-is, plus the source rating
-    const importMeta: Record<string, string> = { ...sourceRating };
+    // provenance: extra columns kept as-is, plus the source rating and the
+    // ISO 12100 fields assignField put there
+    const importMeta: Record<string, string> = { ...sourceRating, ...(data.importMeta ?? {}) };
     for (const mc of profile.metaColumns ?? []) {
       if (mc.column < 0 || !mc.key.trim()) continue;
       const v = cellStr(row[mc.column]);
@@ -142,7 +152,35 @@ export function applyImportProfile(
     rows.push({ row: r + 1, data });
   }
 
-  return finalizeImport(rows, profile.id, sourceFile);
+  const result = finalizeImport(rows, profile.id, sourceFile);
+  return { ...result, warnings: [...result.warnings, ...severityRiskGraphWarnings(rows)] };
+}
+
+/**
+ * HI-7: severity and risk-graph S of one row should agree (VS 1-2 = S1,
+ * VS 3-4 = S2 in a typical legend): a reversible injury with S2, or an
+ * irreversible / fatal one with S1, gets a warning. Warning only — no value
+ * is changed. Legacy values count by their mapping (negligible / marginal
+ * reversible, critical / catastrophic irreversible).
+ */
+function severityRiskGraphWarnings(rows: RawHazardRow[]): HazardImportResult["warnings"] {
+  const REVERSIBLE = new Set(["reversible_minor", "reversible_major", "negligible", "marginal"]);
+  const IRREVERSIBLE = new Set(["irreversible_minor", "irreversible_major", "fatal", "critical", "catastrophic"]);
+  const out: HazardImportResult["warnings"] = [];
+  for (const { row, data } of rows) {
+    const severity = data.severity;
+    const s = data.importMeta?.riskGraphS?.trim().toUpperCase();
+    if (!severity || (s !== "S1" && s !== "S2")) continue;
+    if ((REVERSIBLE.has(severity) && s === "S2") || (IRREVERSIBLE.has(severity) && s === "S1")) {
+      out.push({
+        row,
+        field: "riskGraphS",
+        message: `"${data.id ?? row}": severity ${severity} contradicts risk graph ${s} — check the rating`,
+        severity: "warning",
+      });
+    }
+  }
+  return out;
 }
 
 /**

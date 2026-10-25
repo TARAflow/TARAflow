@@ -6,20 +6,28 @@
 // the fields and the bowtie above.
 
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Chip, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import type { HazardItem } from "shared";
-import { importedDataRows } from "../utils/imported-data-rows";
+import { MULTI_VALUE_IMPORT_KEYS, importedDataRows } from "../utils/imported-data-rows";
 
 export const ImportedDataSection: React.FC<{ item: HazardItem }> = ({ item }) => {
   const { t } = useTranslation();
   const rows = importedDataRows(item);
   if (rows.length === 0 && !item.externalRef) return null;
 
-  const value = (key: string, raw: string) =>
+  const value = (key: string, raw: string): React.ReactNode =>
     key === "probability"
       ? t(`tabs.hazards.imported.probabilityLevel.${raw}`, { defaultValue: raw })
-      : raw;
+      : key === "protectiveMeasureType"
+        ? t(`tabs.hazards.imported.measureType.${raw}`, { defaultValue: raw })
+        : MULTI_VALUE_IMPORT_KEYS.includes(key)
+          ? raw
+              .split(",")
+              .map((v) => v.trim())
+              .filter(Boolean)
+              .map((v) => <Chip key={v} size="small" label={v} sx={{ mr: 0.5, mb: 0.5 }} />)
+          : raw;
 
   return (
     <Box data-testid="hazard-imported-data" sx={{ border: 1, borderColor: "divider", borderRadius: 1, p: 1.5 }}>

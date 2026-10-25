@@ -247,7 +247,39 @@ export type CanonicalField =
   | "sourceNorm"
   | "notes"
   | "affectedPersons"
-  | "physicalHazardPotential";
+  | "physicalHazardPotential"
+  | Iso12100MetaField;
+
+/**
+ * EN ISO 12100 / EN ISO 13849-1 columns of a risk assessment (hazard import
+ * HI-5). No Hazard Item fields: they are kept in importMeta under these fixed
+ * keys and shown with an i18n label. The residual risk is the existing
+ * `notes` field (stored as importMeta.residualRisk since HI-6).
+ */
+export type Iso12100MetaField =
+  | "lifecyclePhase"
+  | "hazardZone"
+  | "protectiveMeasures"
+  | "protectiveMeasureType"
+  | "riskGraphS"
+  | "riskGraphF"
+  | "riskGraphP"
+  | "plRequired"
+  | "plAchieved"
+  | "safetyFunction";
+
+export const ISO12100_META_FIELDS: readonly Iso12100MetaField[] = [
+  "lifecyclePhase",
+  "hazardZone",
+  "protectiveMeasures",
+  "protectiveMeasureType",
+  "riskGraphS",
+  "riskGraphF",
+  "riskGraphP",
+  "plRequired",
+  "plAchieved",
+  "safetyFunction",
+];
 
 export const CANONICAL_FIELDS: readonly CanonicalField[] = [
   "id",
@@ -260,6 +292,7 @@ export const CANONICAL_FIELDS: readonly CanonicalField[] = [
   "notes",
   "affectedPersons",
   "physicalHazardPotential",
+  ...ISO12100_META_FIELDS,
 ];
 export const REQUIRED_FIELDS: readonly CanonicalField[] = ["id", "description"];
 

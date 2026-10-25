@@ -25,7 +25,21 @@ const KNOWN_LABELS: Readonly<Record<string, string>> = {
   "probability.raw": "Probability (source value)",
   rpn: "RPN (source)",
   residualRisk: "Residual risk (source)",
+  // EN ISO 12100 / 13849-1 columns (HI-5)
+  lifecyclePhase: "Lifecycle phase",
+  hazardZone: "Hazard zone",
+  protectiveMeasures: "Protective measures",
+  protectiveMeasureType: "Type of protective measure",
+  riskGraphS: "Risk graph S",
+  riskGraphF: "Risk graph F",
+  riskGraphP: "Risk graph P",
+  plRequired: "PL required",
+  plAchieved: "PL achieved",
+  safetyFunction: "Safety function",
 };
+
+/** Keys whose value is a list ("a, b") — shown as separate chips. */
+export const MULTI_VALUE_IMPORT_KEYS: readonly string[] = ["lifecyclePhase"];
 export const KNOWN_IMPORT_KEYS: readonly string[] = Object.keys(KNOWN_LABELS);
 
 export function importedDataRows(item: Pick<HazardItem, "importMeta">): ImportedDataRow[] {

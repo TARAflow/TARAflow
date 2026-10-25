@@ -119,7 +119,17 @@
           "probability": "Wahrscheinlichkeit",
           "probability_raw": "Wahrscheinlichkeit (Quellwert)",
           "rpn": "RPZ (Quelle)",
-          "residualRisk": "Restrisiko (Quelle)"
+          "residualRisk": "Restrisiko (Quelle)",
+          "lifecyclePhase": "Lebensphase",
+          "hazardZone": "Gefahrenstelle",
+          "protectiveMeasures": "Schutzmaßnahmen",
+          "protectiveMeasureType": "Art der Schutzmaßnahme",
+          "riskGraphS": "Risikograph S",
+          "riskGraphF": "Risikograph F",
+          "riskGraphP": "Risikograph P",
+          "plRequired": "PL erforderlich",
+          "plAchieved": "PL erreicht",
+          "safetyFunction": "Sicherheitsfunktion"
         },
         "probabilityLevel": {
           "very_low": "Sehr gering",
@@ -127,6 +137,12 @@
           "medium": "Mittel",
           "high": "Hoch",
           "very_high": "Sehr hoch"
+        },
+        "measureType": {
+          "inherent": "Inhärent sichere Konstruktion",
+          "technical": "Technische Schutzmaßnahme",
+          "information": "Benutzerinformation",
+          "combined": "Kombiniert"
         }
       },
       "import": {
@@ -178,7 +194,17 @@
           "sourceNorm": "Norm",
           "notes": "Notizen / Restrisiko",
           "affectedPersons": "Betroffene Personen",
-          "physicalHazardPotential": "Physisches Gefahrenpotential"
+          "physicalHazardPotential": "Physisches Gefahrenpotential",
+          "lifecyclePhase": "Lebensphase",
+          "hazardZone": "Gefahrenstelle",
+          "protectiveMeasures": "Schutzmaßnahmen",
+          "protectiveMeasureType": "Art der Schutzmaßnahme",
+          "riskGraphS": "Risikograph S",
+          "riskGraphF": "Risikograph F",
+          "riskGraphP": "Risikograph P",
+          "plRequired": "PL erforderlich",
+          "plAchieved": "PL erreicht",
+          "safetyFunction": "Sicherheitsfunktion"
         },
         "tooltips": {
           "defaultPersons": "Gilt für Zeilen ohne betroffene Person, z. B. wenn die Tabelle keine solche Spalte hat. Mehrere Personen mit Komma trennen.",
@@ -228,7 +254,14 @@
           "physikalisches gefährdungspotenzial",
           "phys. potenzial",
           "potenzial"
-        ]
+        ],
+        "lifecyclePhase": ["lebensphase", "lebensphasen", "lebenszyklusphase"],
+        "hazardZone": ["gefahrenstelle", "gefährdungsbereich", "gefahrenbereich"],
+        "protectiveMeasures": ["schutzmaßnahmen", "schutzmassnahmen"],
+        "protectiveMeasureType": ["maßnahmenart", "art der maßnahme"],
+        "plRequired": ["pl erforderlich", "plr erforderlich"],
+        "plAchieved": ["pl erreicht"],
+        "safetyFunction": ["sicherheitsfunktion"]
       },
       "review": {
         "scopeTitle": "Cyber-System-Scope",
