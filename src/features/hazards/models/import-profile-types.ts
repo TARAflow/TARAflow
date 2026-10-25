@@ -72,8 +72,29 @@ export interface ImportProfile {
   columns: FieldColumnMapping[];
   /** Multi-column (x-matrix) fields: severity, probability, hazardCategory. */
   markerGroups: MarkerGroup[];
-  // in ImportProfile ergänzen:
+  /** Extra columns kept as provenance in importMeta. */
   metaColumns: MetaColumn[];
+  /**
+   * Affected persons for rows without a value in the person column, or when no
+   * column is mapped (HI-2) — a risk assessment often has no such column.
+   */
+  defaultAffectedPersons?: string[];
+  /**
+   * Characters that separate several values in one cell (HI-3). Default
+   * DEFAULT_LIST_SEPARATOR (",/"); set to "," to keep "Bediener/Einrichter"
+   * as one person.
+   */
+  listSeparator?: string;
+}
+
+/** Today's behaviour: split lists at "," and "/". */
+export const DEFAULT_LIST_SEPARATOR = ",/";
+
+/** Split a cell at any of the separator characters; trimmed, empties dropped. */
+export function splitList(value: string, separator: string = DEFAULT_LIST_SEPARATOR): string[] {
+  const chars = [...(separator || DEFAULT_LIST_SEPARATOR)];
+  const parts = chars.reduce<string[]>((acc, c) => acc.flatMap((p) => p.split(c)), [value]);
+  return parts.map((s) => s.trim()).filter(Boolean);
 }
 
 // ---- canonical value options (for the dialog dropdowns) ---------------------

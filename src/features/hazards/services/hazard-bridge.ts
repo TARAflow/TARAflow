@@ -150,8 +150,9 @@ export function bridgeSafetyHazards(
           from: id,
           to: targetFor(role),
           impact: { target: "human", severity: toHumanSeverity(severity) },
+          // No rationale text: the edge's provenance says it was derived, and
+          // stored data carries no hard-coded wording (HI-6 class, user).
           provenance: "derived",
-          rationale: `Imported affected person: ${role}`,
         };
         relations.push(endangers);
       }

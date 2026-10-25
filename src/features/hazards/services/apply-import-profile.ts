@@ -13,11 +13,13 @@ import {
   CANONICAL_FIELDS,
 } from "./safety-hazard-importer";
 import type { SafetyHazard } from "../models/safety-hazard-types";
-import type {
-  CellValue,
-  ImportProfile,
-  SheetGrid,
-  WorkbookPreview,
+import {
+  DEFAULT_LIST_SEPARATOR,
+  splitList,
+  type CellValue,
+  type ImportProfile,
+  type SheetGrid,
+  type WorkbookPreview,
 } from "../models/import-profile-types";
 
 // ---- cell helpers -----------------------------------------------------------
@@ -32,6 +34,7 @@ function assignField(
   data: Partial<SafetyHazard>,
   field: CanonicalField,
   value: string | undefined,
+  separator: string = DEFAULT_LIST_SEPARATOR,
 ): void {
   if (value === undefined) return;
   if (field === "rpn") {
@@ -45,10 +48,7 @@ function assignField(
     return;
   }
   if (field === "affectedPersons") {
-    const roles = value
-      .split(/[,/]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const roles = splitList(value, separator);
     if (roles.length) data.affectedPersons = roles;
     return;
   }
@@ -106,7 +106,7 @@ export function applyImportProfile(
         raw !== undefined && fc.valueMap?.[raw] !== undefined
           ? fc.valueMap[raw]
           : raw;
-      assignField(data, fc.field, mapped);
+      assignField(data, fc.field, mapped, profile.listSeparator);
       if (raw !== undefined && RATED_FIELDS.has(fc.field)) sourceRating[`${fc.field}.raw`] = raw;
     }
 
@@ -117,7 +117,7 @@ export function applyImportProfile(
         (mc) => cellStr(row[mc.column]) !== undefined,
       );
       if (hit) {
-        assignField(data, mg.field, hit.value);
+        assignField(data, mg.field, hit.value, profile.listSeparator);
         if (RATED_FIELDS.has(mg.field)) {
           sourceRating[`${mg.field}.raw`] =
             cellStr(sheet.rows[profile.headerRow]?.[hit.column]) ?? hit.value;
@@ -133,6 +133,11 @@ export function applyImportProfile(
       if (v !== undefined) importMeta[mc.key.trim()] = v;
     }
     if (Object.keys(importMeta).length) data.importMeta = importMeta;
+
+    // Default affected persons for a row without its own (HI-2).
+    if (!data.affectedPersons?.length && profile.defaultAffectedPersons?.length) {
+      data.affectedPersons = [...profile.defaultAffectedPersons];
+    }
 
     rows.push({ row: r + 1, data });
   }

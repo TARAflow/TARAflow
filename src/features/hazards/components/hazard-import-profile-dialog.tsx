@@ -47,7 +47,7 @@ import {
   suggestProfile,
 } from "../services/apply-import-profile";
 import {
-  MARKER_CAPABLE_FIELDS, VALUE_MAPPED_FIELDS, markerValueOptions,
+  DEFAULT_LIST_SEPARATOR, MARKER_CAPABLE_FIELDS, VALUE_MAPPED_FIELDS, markerValueOptions, splitList,
   type ImportProfile, type WorkbookPreview, type CellValue,
 } from "../models/import-profile-types";
 import { ValueMapEditor } from "./value-map-editor";
@@ -102,6 +102,10 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
     suggestProfile(workbook),
   );
   const [active, setActive] = useState<ActiveTarget>(null);
+  // Free text while typing; parsed into profile.defaultAffectedPersons on blur.
+  const [defaultPersonsText, setDefaultPersonsText] = useState(
+    () => (profile.defaultAffectedPersons ?? []).join(", "),
+  );
 
   const sheet = useMemo(
     () =>
@@ -419,12 +423,65 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
               />
             </Box>
           </Tooltip>
+          <Tooltip title={tt("tooltips.defaultPersons", { defaultValue: "Used for rows without an affected person, e.g. when the sheet has no such column. Several persons separated by commas." })}>
+            <Box>
+              <Typography variant="caption">
+                {tt("defaultPersons", { defaultValue: "Default affected persons" })}
+              </Typography>
+              <TextField
+                size="small"
+                placeholder={tt("defaultPersonsPlaceholder", { defaultValue: "e.g. Operator, Setter" })}
+                value={defaultPersonsText}
+                onChange={(e) => setDefaultPersonsText(e.target.value)}
+                onBlur={() =>
+                  update({
+                    defaultAffectedPersons: splitList(defaultPersonsText, ",").length
+                      ? splitList(defaultPersonsText, ",")
+                      : undefined,
+                  })
+                }
+                sx={{ width: 220, display: "block" }}
+                inputProps={{ "data-testid": "default-persons" }}
+              />
+            </Box>
+          </Tooltip>
+          <Tooltip title={tt("tooltips.listSeparator", { defaultValue: "Characters that separate several values in one cell. Default , and /; use only , to keep \"Operator/Setter\" as one person." })}>
+            <Box>
+              <Typography variant="caption">
+                {tt("listSeparator", { defaultValue: "List separator" })}
+              </Typography>
+              <TextField
+                size="small"
+                value={profile.listSeparator ?? DEFAULT_LIST_SEPARATOR}
+                onChange={(e) =>
+                  update({
+                    listSeparator:
+                      e.target.value && e.target.value !== DEFAULT_LIST_SEPARATOR
+                        ? e.target.value
+                        : undefined,
+                  })
+                }
+                sx={{ width: 90, display: "block" }}
+                inputProps={{ "data-testid": "list-separator" }}
+              />
+            </Box>
+          </Tooltip>
         </Box>
 
         {/* active-target banner */}
         <Alert severity={banner.sev} sx={{ mb: 1, flexShrink: 0, py: 0 }}>
           {banner.msg}
         </Alert>
+
+        {/* without an affected person no severity reaches a person (HI-2) */}
+        {!isMapped("affectedPersons") && !profile.defaultAffectedPersons?.length && (
+          <Alert severity="warning" sx={{ mb: 1, flexShrink: 0, py: 0 }} data-testid="no-persons-warning">
+            {tt("noPersons", {
+              defaultValue:
+                "No affected person: map a column or set a default — without one no severity is imported.",
+            })}
+          </Alert>
+        )}
 
         {/* defaults notice */}
         {categoryUnmapped && (

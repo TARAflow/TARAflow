@@ -163,6 +163,10 @@
           "title": "Map the values of this column",
           "unmapped": "— (as it is)"
         },
+        "defaultPersons": "Default affected persons",
+        "defaultPersonsPlaceholder": "e.g. Operator, Setter",
+        "listSeparator": "List separator",
+        "noPersons": "No affected person: map a column or set a default — without one no severity is imported.",
         "fields": {
           "id": "ID",
           "description": "Description",
@@ -176,6 +180,8 @@
           "affectedPersons": "Affected persons"
         },
         "tooltips": {
+          "defaultPersons": "Used for rows without an affected person, e.g. when the sheet has no such column. Several persons separated by commas.",
+          "listSeparator": "Characters that separate several values in one cell. Default , and /; use only , to keep \"Operator/Setter\" as one person.",
           "field": "Click to make this the active mapping target, then click a column header.",
           "mode": "Single = one column. Matrix = several “x”-marked columns, one per level.",
           "clearField": "Remove this mapping",

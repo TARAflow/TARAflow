@@ -162,6 +162,10 @@
           "title": "Werte dieser Spalte zuordnen",
           "unmapped": "— (unverändert)"
         },
+        "defaultPersons": "Standard betroffene Personen",
+        "defaultPersonsPlaceholder": "z. B. Bediener, Einrichter",
+        "listSeparator": "Listentrenner",
+        "noPersons": "Keine betroffene Person: Spalte zuordnen oder Standard setzen — ohne Person wird keine Schwere importiert.",
         "affectedPersons": "Betroffene Personen",
         "physicalHazardPotential": "Physisches Gefährdungspotenzial",
         "fields": {
@@ -177,6 +181,8 @@
           "physicalHazardPotential": "Physisches Gefahrenpotential"
         },
         "tooltips": {
+          "defaultPersons": "Gilt für Zeilen ohne betroffene Person, z. B. wenn die Tabelle keine solche Spalte hat. Mehrere Personen mit Komma trennen.",
+          "listSeparator": "Zeichen, die mehrere Werte in einer Zelle trennen. Standard , und /; nur , behält \"Bediener/Einrichter\" als eine Person.",
           "field": "Anklicken, um dieses Feld als aktives Ziel zu wählen, dann einen Spaltenkopf anklicken.",
           "mode": "1 Spalte = eine Spalte. Matrix = mehrere „x“-Spalten, eine je Stufe.",
           "clearField": "Zuordnung entfernen",
