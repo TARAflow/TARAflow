@@ -1,3 +1,89 @@
+## [0.15.1-beta] - 2026-10-25
+
+Extensions of existing features, no new project schema: the hazard
+import reads EN ISO 12100 / EN ISO 13849-1 risk assessments completely
+and can re-import a revised sheet, attack paths get controls that fit
+their attack vector, and the asset graph shows hazard items and lets you
+move nodes. Projects stay on schema 10 and open in 0.15.0-beta as well.
+
+### Added
+- **Hazard import for ISO 12100 / 13849 risk assessments:**
+  - severity on the five-level person-harm scale (reversible minor …
+    fatal) instead of a coarser intermediate scale, with a value-map
+    editor for a single severity, probability or category column;
+    profiles with the old values import as before;
+  - default affected persons for sheets without a person column, and a
+    configurable list separator (`,` keeps "Bediener/Einrichter" one
+    person);
+  - fields for lifecycle phase, hazard zone, protective measures and
+    their type (inherent / technical / information / combined), risk
+    graph S/F/P, PLr, PL achieved and safety function, shown in the
+    hazard dialog;
+  - a warning per row when the severity contradicts the risk graph's S
+    (reversible with S2, irreversible or fatal with S1);
+  - the hazard category suggested from free-text hazard types (German
+    and English keywords); ambiguous values are left to the analyst.
+- **Import profiles in the project:** a profile is stored with its
+  source file, sheet and header row and offered again.
+- **Re-import:** a revised sheet is recognised by file name or header
+  row; moved, renamed, added and removed columns are followed. Rows are
+  reconciled by their id — new, changed, unchanged, removed — after a
+  preview; changed and removed hazards are flagged ("changed in source",
+  "removed from source") until marked as reviewed. Nothing the analyst
+  edited is overwritten; removed rows are never deleted.
+- **Attack vector in attack trees:** `av=network|adjacent|local|physical`
+  on any node (ISO/SAE 21434 G.9 vectors, aliases `net/adj/loc/phys`),
+  inherited down the tree. It only selects controls — attack potential,
+  feasibility and path keys stay unchanged.
+- **Controls by attack vector and project context:** attack-path risks
+  get the catalog controls that fit their vector first, then
+  vector-independent ones; in-vehicle controls only in the Automotive
+  domain. 20 new controls with verifications (firewall default deny,
+  egress filtering, RBAC/ABAC, SELinux/AppArmor, seccomp, read-only
+  verified root file system, SecOC, CAN IDS, signed OTA with
+  anti-rollback, SBOM-based patch management and more).
+- **Asset graph:**
+  - hazard items as read-only nodes in their own lane above the
+    protection targets, coloured by their worst severity, with
+    `contributes_to` and `endangers` edges, a read-only card and
+    "Open in Hazard tab";
+  - hazards as neighbours in the focus view, and a hazard as the focus;
+  - "DFD elements" can be switched off in the focus view too.
+
+### Changed
+- **Asset graph mouse as in draw.io:** dragging a node moves it,
+  Ctrl / ⌘ + drag pans (also over a node), dragging the empty canvas
+  pans, the wheel zooms. Nodes of the data … infrastructure lanes move
+  along their lane; side-column nodes snap to a row, including a free
+  row above the top lane. Moved positions are stored locally, never in
+  the project file. The graph starts with the preset *All*, hazards on.
+- Report: controls and verifications appear as "ID — text" in the risk
+  tables of every format, and in the attack-path threat chapter. The
+  attack-trees chapter comes right before the threat scenarios.
+
+### Fixed
+- The hazard import no longer invents data: a missing or unknown
+  severity no longer becomes a minor injury (no person edge is created,
+  with a warning), and no fixed English or German text is written into
+  the project (residual-risk notes stay in the imported data).
+- The imported rating is kept: probability, RPN and the source values
+  ("VS 3", "AW 2") appear in the hazard dialog under *Imported data*.
+- The import's column suggestion found no aliases; it now does, in every
+  available language.
+- The asset graph missed manually created assets, so the protection
+  targets of hazards and their edges were absent.
+- ⌘ + drag on macOS panned the asset graph.
+- An ISO project with stored per-interaction threats no longer shows a
+  "STRIDE per Interaction" chapter; in the PDF, each threat chapter
+  renders its own threats once.
+
+### Notes
+- **No schema change** (still schema 10). The new data — import
+  profiles, re-import flags in the imported data and `av=` in the tree
+  DSL — is passed through unchanged by 0.15.0-beta, which ignores
+  `av=` when parsing; a file saved with 0.15.1-beta can be opened and
+  saved with 0.15.0-beta without losing it.
+
 ## [0.15.0-beta] - 2026-10-25
 
 ISO/SAE 21434 projects get the risk value 1–5 of the standard, with

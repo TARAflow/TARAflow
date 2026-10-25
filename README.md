@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.15.0-beta`
+> **Current version:** `v0.15.1-beta`
 
 TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
@@ -61,7 +61,9 @@ The asset graph shows how assets relate to each other across layers — chains s
 * Links to hidden layers shown as counters on the node; relation type filter and search that explains why a hit is not visible
 * Detail cards for assets and links; "Show in graph" from the asset table and "Show in table" back
 * Edit mode: connect assets by dragging, with every target marked as valid, reverse-only or not allowed and a type chooser that offers only allowed types; create and delete assets; edit link attributes and asset properties; relate DFD elements to assets; undo / redo
-* Stable layout — nodes move only on "Rearrange"; positions are remembered locally per project, never in the project file
+* Hazard items as read-only nodes with their `contributes_to` and `endangers` edges (severity as label), also as neighbours in the focus view; "Open in Hazard tab" from the card
+* Moving nodes as in draw.io: drag a node to move it (along its lane; side-column nodes snap to a row, including a free row above the top lane), Ctrl / ⌘ + drag pans
+* Stable layout — nodes move only when you drag them or on "Rearrange"; positions are remembered locally per project, never in the project file
 * Keyboard operation (Tab / arrow keys, Enter, Delete, Esc)
 
 ---
@@ -106,6 +108,7 @@ The threat analysis includes:
 * Threat synchronization with the DFD
 * Manual threat creation
 * Threat mitigation information
+* Controls proposed per attack path by its attack vector (network / adjacent / local / physical) and the project context (domain, platform); 20 additional catalog controls for networks, access control, Linux hardening, in-vehicle communication and operations
 * Relevance-based filtering (unrated / relevant / uncertain / not relevant)
 * A STRIDE category is generated only if it is technically possible for the element **and** violates an active security goal
 * Generation drift detection: threats the current rules no longer produce are shown in a banner and on the phase tab, and are kept (marked as retained, with undo) or removed explicitly — never silently
@@ -160,6 +163,7 @@ Features include:
 * Feasibility assessment
 * Attack-path synchronization
 * Integration of attack paths with threats and risks
+* Attack vector `av=network|adjacent|local|physical` on any node (ISO/SAE 21434 G.9), inherited down the tree; it selects fitting controls and leaves attack potential and feasibility unchanged
 * Visualization and structured editing
 
 Attack-tree information can be used as an additional input to the risk analysis.
@@ -182,6 +186,9 @@ The safety workflow includes:
 * One five-level harm scale everywhere — reversible minor/major, irreversible minor/major, fatal (IEC 62061 Se1–Se4, mappable to ISO 26262 S1–S3 and EN 50742)
 * An asset's safety rating is the worse of its annotations and hazard items (a justified manual override wins); rating an asset through both paths raises a warning
 * Safety Override Rule: direct relevance with irreversible-major or fatal harm makes the asset CRITICAL, independent of business impact
+* Import of EN ISO 12100 / EN ISO 13849-1 risk assessments from spreadsheets: severity on the five-level scale with a value-map editor, default affected persons, lifecycle phase, hazard zone, protective measures and their type, risk graph S/F/P, PLr and PL, safety function; the customer's rating (probability, RPN, source values) is kept; a warning when the severity contradicts the risk graph
+* Import profiles stored in the project; a re-import of a revised sheet recognises the profile, follows moved or renamed columns and reconciles the rows (new / changed / unchanged / removed) instead of appending them
+* Hazard category suggested from the free-text hazard type (German and English keywords)
 
 Rationale, rules and code locations: [`doc/taraflow-safety-model.md`](doc/taraflow-safety-model.md).
 
@@ -643,14 +650,15 @@ Recent development versions include:
 * `v0.13.4-alpha` — dependency security update, enclosure and interface threat fixes, DFD editor fixes
 * `v0.14.0-beta` — leveled DFDs (several pages per project), five-level safety scale and worst-of safety rating (schema 9)
 * `v0.15.0-beta` — ISO/SAE 21434 risk value 1–5, threat scenarios and methodology chapter; attack-tree likelihood on the project's risk scale (schema 10)
+* `v0.15.1-beta` — hazard import for ISO 12100 / 13849 risk assessments with re-import, controls by attack vector, hazard items and node moving in the asset graph
 
 The current development state is represented by:
 
 ```text
-v0.15.0-beta
+v0.15.1-beta
 ```
 
-Versions in the beta: bug-fix releases count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
+Versions in the beta: releases without a new project schema count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
 
 See [`CHANGELOG.md`](CHANGELOG.md) for details.
 
@@ -708,7 +716,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.15.0-beta**
+**TARAflow 0.15.1-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 
