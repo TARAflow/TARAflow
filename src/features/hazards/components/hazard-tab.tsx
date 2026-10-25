@@ -35,6 +35,7 @@ import {
 } from "../models/hazard-data-types";
 import { hazardService } from "../services/hazard-service";
 import { hazardValidator, type HazardValidation } from "../services/hazard-validator";
+import { recordProfileUse, saveProfile } from "../services/import-profile-store";
 
 import { HazardToolbar } from "./hazard-toolbar";
 import { HazardTable } from "./hazard-table";
@@ -305,11 +306,22 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
         setPendingCreatedAssets((prev) => [...prev, ...outcome.createdAssets]);
       }
 
-      if (outcome.items.length > 0) {
+      if (outcome.items.length > 0 || outcome.profileUse) {
         const merged: HazardData = {
           ...hazardData,
           hazards: [...hazardData.hazards, ...outcome.items],
           relations: [...hazardData.relations, ...outcome.relations],
+          // The profile goes with the project, with the file it read (HI-9).
+          ...(outcome.profileUse
+            ? {
+                importProfiles: recordProfileUse(
+                  hazardData.importProfiles,
+                  outcome.profileUse.profile,
+                  outcome.profileUse.source,
+                  new Date().toISOString(),
+                ),
+              }
+            : {}),
         };
         setHazardData(merged);
         setValidation(hazardValidator.validate(merged, assets));
@@ -379,8 +391,11 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
             profileRequest.resolve(null);
             setProfileRequest(null);
           }}
-          // savedProfiles={...}                         // später: Profil-Store
-          // onSaveProfile={(p) => profileStore.save(p)} // später: Persistenz
+          savedProfiles={hazardData.importProfiles}
+          onSaveProfile={(p) => {
+            setHazardData((d) => ({ ...d, importProfiles: saveProfile(d.importProfiles, p) }));
+            markDirty();
+          }}
         />
       )}
 

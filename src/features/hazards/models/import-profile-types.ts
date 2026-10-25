@@ -87,6 +87,26 @@ export interface ImportProfile {
   listSeparator?: string;
 }
 
+/** Where a stored profile was last used (HI-9) — the basis of a re-import. */
+export interface ImportProfileSource {
+  fileName: string;
+  sheetName?: string;
+  /** Header row as it read at the last import, one entry per column. */
+  header: string[];
+}
+
+/**
+ * A profile stored in the project file (HI-9, `HazardData.importProfiles`).
+ * Optional fields under `hazards`: an older TARAflow keeps them on save (all
+ * hazard write paths spread the existing object), so no schema fence —
+ * guarded by hazard-data-passthrough.test.ts (design D4).
+ */
+export interface StoredImportProfile extends ImportProfile {
+  source?: ImportProfileSource;
+  /** ISO timestamp of the last import with this profile. */
+  lastUsed?: string;
+}
+
 /** Today's behaviour: split lists at "," and "/". */
 export const DEFAULT_LIST_SEPARATOR = ",/";
 

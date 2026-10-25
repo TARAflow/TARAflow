@@ -38,6 +38,9 @@ const KNOWN_LABELS: Readonly<Record<string, string>> = {
   safetyFunction: "Safety function",
 };
 
+/** Bookkeeping keys of the import — not shown. */
+const HIDDEN_IMPORT_KEYS: readonly string[] = ["profileId"];
+
 /** Keys whose value is a list ("a, b") — shown as separate chips. */
 export const MULTI_VALUE_IMPORT_KEYS: readonly string[] = ["lifecyclePhase"];
 export const KNOWN_IMPORT_KEYS: readonly string[] = Object.keys(KNOWN_LABELS);
@@ -51,7 +54,7 @@ export function importedDataRows(item: Pick<HazardItem, "importMeta">): Imported
     value: meta[key],
   }));
   const free = Object.keys(meta)
-    .filter((k) => !KNOWN_IMPORT_KEYS.includes(k))
+    .filter((k) => !KNOWN_IMPORT_KEYS.includes(k) && !HIDDEN_IMPORT_KEYS.includes(k))
     .map((key) => ({ key, defaultLabel: key, value: meta[key] }));
   return [...known, ...free];
 }

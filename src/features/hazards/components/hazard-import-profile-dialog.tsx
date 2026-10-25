@@ -859,6 +859,7 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
                 const p = savedProfiles.find((sp) => sp.id === e.target.value);
                 if (p) {
                   setProfile({ ...p, metaColumns: p.metaColumns ?? [] });
+                  setDefaultPersonsText((p.defaultAffectedPersons ?? []).join(", "));
                   setActive(null);
                 }
               }}

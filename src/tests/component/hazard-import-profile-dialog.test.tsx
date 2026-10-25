@@ -49,4 +49,25 @@ describe("HazardImportProfileDialog — affected persons", () => {
     );
     expect((screen.getByTestId("list-separator") as HTMLInputElement).value).toBe(",/");
   });
+
+  it("save profile hands the current mapping to the project (HI-9)", () => {
+    const onSaveProfile = vi.fn();
+    render(
+      <HazardImportProfileDialog
+        open
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        workbook={fixture as any}
+        fileName="la200.xlsx"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+        onSaveProfile={onSaveProfile}
+      />,
+    );
+    const input = screen.getByTestId("default-persons") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "Operator" } });
+    fireEvent.blur(input);
+    fireEvent.click(screen.getByRole("button", { name: "tabs.hazards.import.saveProfile" }));
+    expect(onSaveProfile).toHaveBeenCalledTimes(1);
+    expect(onSaveProfile.mock.calls[0][0]).toMatchObject({ defaultAffectedPersons: ["Operator"] });
+  });
 });

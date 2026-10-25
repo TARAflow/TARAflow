@@ -14,6 +14,7 @@ import {
   type HazardImportWarning,
 } from "../services/safety-hazard-importer";
 import { applyImportProfile } from "../services/apply-import-profile";
+import { headerSnapshot } from "../services/import-profile-store";
 import {
   bridgeSafetyHazards,
   type BridgeOutput,
@@ -21,6 +22,7 @@ import {
 import type { HazardItemId, CreatedAsset } from "shared";
 import type {
   ImportProfile,
+  ImportProfileSource,
   WorkbookPreview,
 } from "../models/import-profile-types";
 
@@ -34,6 +36,8 @@ export interface HazardImportOutcome extends BridgeOutput {
   sourceFile?: string;
   adapterUsed?: string;
   cancelled?: boolean;
+  /** The profile of a tabular import and where it was used — stored by the tab (HI-9). */
+  profileUse?: { profile: ImportProfile; source: ImportProfileSource };
 }
 
 export interface UseHazardImportOptions {
@@ -83,6 +87,7 @@ export function useHazardImport({
       throw new Error(`No import adapter can handle "${file.name}"`);
 
     let result;
+    let profileUse: HazardImportOutcome["profileUse"];
     if (isProfileAdapter(adapter)) {
       const workbook = await adapter.readWorkbook(file);
       const profile = await requestImportProfile({
@@ -100,6 +105,14 @@ export function useHazardImport({
         };
       }
       result = applyImportProfile(workbook.sheets, profile, file.name);
+      profileUse = {
+        profile,
+        source: {
+          fileName: file.name,
+          ...(profile.sheetName ? { sheetName: profile.sheetName } : {}),
+          header: headerSnapshot(workbook, profile),
+        },
+      };
     } else {
       result = await adapter.parse(file);
     }
@@ -122,6 +135,7 @@ export function useHazardImport({
       warnings,
       sourceFile: result.sourceFile,
       adapterUsed: result.adapterUsed,
+      ...(profileUse ? { profileUse } : {}),
     };
   }, [
     pickFile,

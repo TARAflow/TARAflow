@@ -783,7 +783,9 @@ the step is a *version fence, no data change* (marked so in the
 newer file only through the version (`applyMigrations` throws on
 `schemaVersion > CURRENT_SCHEMA_VERSION`), and without a bump it would open the
 file and can drop the new fields on save (e.g. `buildGeneralTabPatch` replaces
-`info` / `settings` as a whole). Accepted drawback: a file of 0.15.1 does not
+`info` / `settings` as a whole). Refined 2026-10-25 (decision 15): fields that
+every write path of the released version passes through unchanged need no
+fence — checked per field, guarded by a test. Accepted drawback: a file of 0.15.1 does not
 open in 0.15.0. The numbers below assume one release per row and shift if rows
 are combined.
 
@@ -929,10 +931,15 @@ Added in rev. 2 (2026-10-24):
     2, 3b) and value changes get their own minor beta; additive releases stay
     a beta patch even though they bump the schema (decision 15). The superseded support design moved to `doc/Done`, the old
     `taraflow-iso21434-todo.md` checklist to `doc/Old`.
-15. **[D] Schema fence per release (K7, 2026-10-24):** every release that
-    stores new fields bumps the schema, one number per release; purely
+15. **[D] Schema fence per release (K7, 2026-10-24; refined 2026-10-25):**
+    a release bumps the schema — one number per release — when it stores new
+    fields that an older release would drop or misread on save; purely
     additive bumps are marked "version fence, no data change" in
     `schema-version.ts`. A file of a newer beta does not open in an older one.
+    New fields in a container that every write path of the released version
+    passes through unchanged need no fence; this is checked per field and
+    guarded by a test (first case: hazard import profiles under `hazards`,
+    `hazard-data-passthrough.test.ts`).
 16. **[D] Phase 0b (2026-10-24):** the methodology record is derived
     (`buildMethodologyRecord` in the app layer), fixed rules come from
     exported constants, nothing is stored in 0b. The ISO impact scale lock
@@ -1099,7 +1106,7 @@ Discussed one by one before implementation; answers move into §6.
 | K4 | Risk granularity | decided (decision 9) |
 | K5 | Effect on other methods | decided (decision 10, principle 6) |
 | K6 | Releases, schema, order, old documents | decided (decision 14, §5) |
-| K7 | Schema bump for additive steps | decided (decision 15, §5): one fence per release that stores new fields |
+| K7 | Schema bump for additive steps | decided (decision 15, §5): one fence per release that stores new fields an older release would drop or misread; pass-through fields need none (refined 2026-10-25) |
 
 ---
 

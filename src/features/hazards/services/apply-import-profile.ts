@@ -136,7 +136,12 @@ export function applyImportProfile(
 
     // provenance: extra columns kept as-is, plus the source rating and the
     // ISO 12100 fields assignField put there
-    const importMeta: Record<string, string> = { ...sourceRating, ...(data.importMeta ?? {}) };
+    const importMeta: Record<string, string> = {
+      ...sourceRating,
+      ...(data.importMeta ?? {}),
+      // The profile this row was read with — the key of a re-import (HI-9 / HI-10).
+      profileId: profile.id,
+    };
     for (const mc of profile.metaColumns ?? []) {
       if (mc.column < 0 || !mc.key.trim()) continue;
       const v = cellStr(row[mc.column]);

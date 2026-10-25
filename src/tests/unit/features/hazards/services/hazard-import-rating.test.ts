@@ -103,6 +103,7 @@ describe("HI-4 — the customer's rating survives the import", () => {
       probability: "medium",
       rpn: "12",
       residualRisk: "Overrun after stop", // HI-6
+      profileId: "p-la200", // HI-9
     });
   });
 

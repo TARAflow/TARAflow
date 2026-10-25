@@ -11,6 +11,7 @@
 
 import type { HazardCombinationType, HazardItem, HazardRelation } from "shared";
 import { DEFAULT_HAZARD_COMBINATION_TYPE } from "shared";
+import type { StoredImportProfile } from "./import-profile-types";
 
 // ==================== CONFIGURATION ====================
 
@@ -36,6 +37,12 @@ export interface HazardData {
   relations: HazardRelation[];
   /** Optional — absent on pre-UI projects; treat as DEFAULT_HAZARD_CONFIGURATION. */
   configuration?: HazardConfiguration;
+  /**
+   * Import profiles of this project (hazard import HI-9): saved with "save
+   * profile" and on every import, with the source file and its header row.
+   * Absent until the first profile import.
+   */
+  importProfiles?: StoredImportProfile[];
   lastModified: string;
 }
 
