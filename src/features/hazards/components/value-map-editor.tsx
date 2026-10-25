@@ -6,8 +6,13 @@
 // is read as it is (and a severity it does not know creates no edge, HI-11).
 
 import React from "react";
-import { Box, MenuItem, Select, Typography } from "@mui/material";
+import { Box, Chip, MenuItem, Select, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
+
+/** Per value: pre-filled from keywords, or ambiguous and left to the analyst (HI-8). */
+export type ValueHint =
+  | { kind: "suggested" }
+  | { kind: "ambiguous"; candidates: readonly string[] };
 
 export interface ValueMapEditorProps {
   /** Distinct values of the source column. */
@@ -17,6 +22,7 @@ export interface ValueMapEditorProps {
   valueMap: Record<string, string> | undefined;
   onChange: (valueMap: Record<string, string>) => void;
   optionLabel: (option: string) => string;
+  hints?: Readonly<Record<string, ValueHint>>;
 }
 
 export const ValueMapEditor: React.FC<ValueMapEditorProps> = ({
@@ -25,6 +31,7 @@ export const ValueMapEditor: React.FC<ValueMapEditorProps> = ({
   valueMap,
   onChange,
   optionLabel,
+  hints,
 }) => {
   const { t } = useTranslation();
   if (values.length === 0) return null;
@@ -63,6 +70,24 @@ export const ValueMapEditor: React.FC<ValueMapEditorProps> = ({
               </MenuItem>
             ))}
           </Select>
+          {hints?.[v]?.kind === "suggested" && (
+            <Chip
+              size="small"
+              variant="outlined"
+              color="info"
+              label={t("tabs.hazards.import.valueMap.suggested", { defaultValue: "suggested" })}
+              sx={{ height: 20, fontSize: "0.7rem" }}
+              data-testid={`value-hint-${v}`}
+            />
+          )}
+          {hints?.[v]?.kind === "ambiguous" && (
+            <Typography variant="caption" color="warning.main" data-testid={`value-hint-${v}`}>
+              {t("tabs.hazards.import.valueMap.ambiguous", {
+                defaultValue: "ambiguous ({{candidates}}) — assign by hand",
+                candidates: (hints[v] as { candidates: readonly string[] }).candidates.map(optionLabel).join(" / "),
+              })}
+            </Typography>
+          )}
         </Box>
       ))}
     </Box>

@@ -52,4 +52,22 @@ describe("ValueMapEditor", () => {
     );
     expect(container.firstChild).toBeNull();
   });
+
+  it("hints: a suggestion is marked, an ambiguous value names its candidates (HI-8)", () => {
+    render(
+      <ValueMapEditor
+        values={["Quetschen", "Quetschen, Stromschlag"]}
+        options={OPTIONS}
+        valueMap={{ Quetschen: "reversible_minor" }}
+        onChange={() => {}}
+        optionLabel={label}
+        hints={{
+          Quetschen: { kind: "suggested" },
+          "Quetschen, Stromschlag": { kind: "ambiguous", candidates: ["reversible_minor", "fatal"] },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("value-hint-Quetschen").textContent).toBe("suggested");
+    expect(screen.getByTestId("value-hint-Quetschen, Stromschlag").textContent).toContain("assign by hand");
+  });
 });

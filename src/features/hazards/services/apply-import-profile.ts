@@ -230,9 +230,11 @@ function safeRegExp(pattern: string): RegExp | null {
 // ---- auto-suggestion (seed for the dialog) ---------------------------------
 
 import i18n from "i18next"; // configured singleton; use your app i18n module if custom
+import { LANGUAGE_CODES } from "i18n/services/supported_languages";
 
-// Languages whose header words we try to match (independent of the active UI language).
-const ALIAS_LANGS = ["en", "de"] as const;
+// Languages whose header words we try to match (independent of the active UI
+// language): every language the app offers.
+const ALIAS_LANGS = LANGUAGE_CODES;
 
 function langAliases(lng: string, field: CanonicalField): string[] {
   const tl = i18n.getFixedT(lng); // default namespace

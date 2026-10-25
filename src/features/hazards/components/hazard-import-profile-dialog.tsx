@@ -50,7 +50,8 @@ import {
   DEFAULT_LIST_SEPARATOR, MARKER_CAPABLE_FIELDS, VALUE_MAPPED_FIELDS, markerValueOptions, splitList,
   type ImportProfile, type WorkbookPreview, type CellValue,
 } from "../models/import-profile-types";
-import { ValueMapEditor } from "./value-map-editor";
+import { ValueMapEditor, type ValueHint } from "./value-map-editor";
+import { prefillCategoryMap } from "../utils/hazard-category-keywords";
 import type { ColumnChange } from "../services/import-profile-tracking";
 
 const PREVIEW_ROWS = 25;
@@ -127,8 +128,28 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
             ? t(`tabs.hazards.imported.measureType.${v}`, { defaultValue: v })
             : v;
 
-  const [profile, setProfile] = useState<ImportProfile>(
-    () => recognized?.profile ?? suggestProfile(workbook),
+  const sheetOf = (p: ImportProfile) =>
+    workbook.sheets.find((s) => s.name === p.sheetName) ?? workbook.sheets[0];
+
+  // Start: the recognised profile or the suggestion, its hazard-category
+  // values pre-filled from keywords (HI-8; unmapped values only).
+  const [initial] = useState(() => {
+    const start = recognized?.profile ?? suggestProfile(workbook);
+    const col = start.columns.find((c) => c.field === "hazardCategory");
+    if (!col) return { profile: start, suggested: [] as string[] };
+    const pre = prefillCategoryMap(distinctColumnValues(sheetOf(start), start, col.column), col.valueMap);
+    return {
+      profile: {
+        ...start,
+        columns: start.columns.map((c) => (c === col ? { ...c, valueMap: pre.valueMap } : c)),
+      },
+      suggested: pre.suggested,
+    };
+  });
+  const [profile, setProfile] = useState<ImportProfile>(initial.profile);
+  // HI-8: pre-filled category values — shown as "suggested" until changed.
+  const [suggestedCategories, setSuggestedCategories] = useState<ReadonlySet<string>>(
+    () => new Set(initial.suggested),
   );
   const [active, setActive] = useState<ActiveTarget>(null);
   // Free text while typing; parsed into profile.defaultAffectedPersons on blur.
@@ -176,17 +197,50 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
     setActive(null);
   };
 
-  const assignColumn = (field: CanonicalField, column: number) =>
-    setProfile((p) => ({
-      ...p,
-      markerGroups: p.markerGroups.filter((g) => g.field !== field),
-      columns: [
-        ...p.columns.filter((c) => c.field !== field),
-        { field, column },
-      ],
-    }));
+  const assignColumn = (field: CanonicalField, column: number) => {
+    const next: ImportProfile = {
+      ...profile,
+      markerGroups: profile.markerGroups.filter((g) => g.field !== field),
+      columns: [...profile.columns.filter((c) => c.field !== field), { field, column }],
+    };
+    if (field === "hazardCategory") setSuggestedCategories(new Set());
+    setProfile(field === "hazardCategory" ? prefillCategories(next, column) : next);
+  };
 
-  const setValueMap = (field: CanonicalField, valueMap: Record<string, string>) =>
+  /** "suggested" for pre-filled values, "ambiguous" for unmapped ones with several candidates. */
+  const categoryHints = (column: number): Record<string, ValueHint> => {
+    const current = profile.columns.find((c) => c.field === "hazardCategory")?.valueMap;
+    const hints: Record<string, ValueHint> = {};
+    for (const v of suggestedCategories) if (current?.[v] !== undefined) hints[v] = { kind: "suggested" };
+    const pre = prefillCategoryMap(distinctColumnValues(sheet, profile, column), current);
+    for (const [v, candidates] of Object.entries(pre.ambiguous)) hints[v] = { kind: "ambiguous", candidates };
+    return hints;
+  };
+
+  /** Pre-fill the category value map of `column` (unmapped values only). */
+  const prefillCategories = (p: ImportProfile, column: number): ImportProfile => {
+    const current = p.columns.find((c) => c.field === "hazardCategory");
+    const pre = prefillCategoryMap(distinctColumnValues(sheetOf(p), p, column), current?.valueMap);
+    if (pre.suggested.length === 0) return p;
+    setSuggestedCategories((s) => new Set([...s, ...pre.suggested]));
+    return {
+      ...p,
+      columns: p.columns.map((c) => (c.field === "hazardCategory" ? { ...c, valueMap: pre.valueMap } : c)),
+    };
+  };
+
+  const setValueMap = (field: CanonicalField, valueMap: Record<string, string>) => {
+    if (field === "hazardCategory") {
+      // A value the analyst changed is no longer a suggestion.
+      const before = profile.columns.find((c) => c.field === field)?.valueMap ?? {};
+      setSuggestedCategories(
+        (s) => new Set([...s].filter((v) => valueMap[v] !== undefined && valueMap[v] === before[v])),
+      );
+    }
+    setValueMapOnly(field, valueMap);
+  };
+
+  const setValueMapOnly = (field: CanonicalField, valueMap: Record<string, string>) =>
     setProfile((p) => ({
       ...p,
       columns: p.columns.map((c) =>
@@ -679,6 +733,7 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
                   )}
                   {col !== undefined && VALUE_MAPPED_FIELDS.includes(field) && (
                     <ValueMapEditor
+                      hints={field === "hazardCategory" ? categoryHints(col) : undefined}
                       values={distinctColumnValues(sheet, profile, col)}
                       options={markerValueOptions(field)}
                       valueMap={profile.columns.find((c) => c.field === field)?.valueMap}

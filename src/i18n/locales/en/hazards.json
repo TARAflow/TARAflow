@@ -198,7 +198,9 @@
         "unmappedCategory": "Unmapped Category",
         "valueMap": {
           "title": "Map the values of this column",
-          "unmapped": "— (as it is)"
+          "unmapped": "— (as it is)",
+          "suggested": "suggested",
+          "ambiguous": "ambiguous ({{candidates}}) — assign by hand"
         },
         "recognized": {
           "byFileName": "Stored profile “{{name}}” (same file name).",
@@ -255,6 +257,16 @@
           "probability": "probability",
           "persons": "persons"
         }
+      },
+      "categoryKeywords": {
+        "mechanical": ["crush", "shear", "impact", "cut*", "trap*", "drawing-in", "entangle", "pinch", "stabbing", "puncture", "falling", "mechanical"],
+        "electrical": ["electric", "shock", "live part", "short circuit"],
+        "thermal": ["burn*", "scald", "fire", "hot", "heat*", "thermal", "frost", "freezing"],
+        "noise": ["noise", "hearing loss", "hearing damage"],
+        "vibration": ["vibration"],
+        "radiation": ["radiation", "laser", "uv", "infrared", "x-ray", "electromagnetic"],
+        "material_substance": ["breath", "inhal*", "dust", "vapour", "vapor", "fume*", "gas", "gases", "toxic", "chemical", "substance", "solvent", "smoke"],
+        "ergonomic": ["ergonom*", "lifting", "posture", "overstrain", "repetitive"]
       },
       "aliases": {
         "id": ["id", "no", "no.", "hazard id"],

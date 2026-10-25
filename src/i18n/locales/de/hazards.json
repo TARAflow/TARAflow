@@ -197,7 +197,9 @@
         "unmappedCategory": "Nicht zugewiesene Kategorie",
         "valueMap": {
           "title": "Werte dieser Spalte zuordnen",
-          "unmapped": "— (unverändert)"
+          "unmapped": "— (unverändert)",
+          "suggested": "Vorschlag",
+          "ambiguous": "uneindeutig ({{candidates}}) — bitte manuell zuordnen"
         },
         "recognized": {
           "byFileName": "Gespeichertes Profil „{{name}}“ (gleicher Dateiname).",
@@ -257,6 +259,16 @@
           "probability": "Wahrsch.",
           "persons": "Personen"
         }
+      },
+      "categoryKeywords": {
+        "mechanical": ["quetsch", "scher", "stoss", "stoß", "schneid", "einklemm", "einzieh", "fang*", "stichverletz", "stechen", "herabfall", "aufwickel", "mechan"],
+        "electrical": ["stromschlag", "körperdurchström", "elektrisch", "elektrotechn", "berührungsspannung", "kurzschluss", "unter spannung"],
+        "thermal": ["verbrenn", "verbrüh", "brand", "heiße", "heisse", "therm", "kälte", "erfrier", "feuer"],
+        "noise": ["lärm", "schall", "gehörschäd", "gehörschad"],
+        "vibration": ["vibration", "schwingung"],
+        "radiation": ["strahlung", "laser", "uv", "infrarot", "röntgen", "elektromagnet"],
+        "material_substance": ["atem*", "einatm", "staub", "dampf", "dämpfe", "gas", "gase", "giftig", "chemi", "substanz", "gefahrstoff", "lösungsmittel", "rauchgas", "rauchentwickl"],
+        "ergonomic": ["ergonom", "heben", "körperhaltung", "überlastung", "fehlhaltung", "repetitiv"]
       },
       "aliases": {
         "id": ["nr", "nr.", "gefährdung nr.", "gefährdung nr", "sich.fkt.nr."],
