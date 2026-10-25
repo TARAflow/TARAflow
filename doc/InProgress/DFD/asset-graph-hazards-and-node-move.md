@@ -1,6 +1,7 @@
 # TARAflow — Asset graph: show Hazard Items, move nodes with Ctrl
 
-**Status:** Draft v1 · 2026-10-24 · base: `main` after v0.14.0-beta
+**Status:** v2 · 2026-10-25 · decisions taken (§3), implementation on branch
+`feature/asset-graph-hazards` · base: `main` after the hazard import
 **Scope:** `features/dfd/asset-graph`, app layer (data passed to the DFD tab)
 **Related:** `doc/Done/DFD/asset-graph-view-requirements.md` (FR-V1 … FR-V16, AR-10 … AR-12,
 D3), `doc/Open/DFD/asset-graph-process-view-requirements.md` (FR-V11 there as COULD),
@@ -35,6 +36,15 @@ D3), `doc/Open/DFD/asset-graph-process-view-requirements.md` (FR-V11 there as CO
 - Zoom/pan (`asset-graph-view.tsx` ~l. 386): the filter does not let a drag with
   **Ctrl** pressed through as a pan (`!e.ctrlKey || e.type === "wheel"`), so Ctrl + drag
   is free today. **⌘ (metaKey) is not filtered** — ⌘ + drag pans today.
+- Checked 2026-10-25, further:
+  - ISO 26262 S-classes exist only as a comment in `safety-types.ts` (table level → Se / S /
+    EN 50742), no function; S0 comes with ISO plan Phase 1H.
+  - The severity colours of the hazard table (`RANK_COLOR`) are local to
+    `features/hazards`; `features/dfd` may not import that feature.
+  - No way exists to open another tab with an item selected ("Open in Hazard tab").
+  - The SmokeDetector figures (5 / 21 / 10) are those of the leveled example
+    (`SmokeDetector-leveled.tara.json`), not of the committed fixture `SmokeDetector.tara.json`
+    (70 / 1 / 101).
 
 ## 3. Decisions
 
@@ -42,10 +52,14 @@ D3), `doc/Open/DFD/asset-graph-process-view-requirements.md` (FR-V11 there as CO
 |---|---|---|
 | G1 | Where do Hazard Items sit in the layout? | Own lane **`hazards`** in the side column, directly **above `human`** (protection targets). `contributes_to` then runs from the left (vertical lanes) into the column, `endangers` a short way down to human/environment or back to infrastructure. |
 | G2 | Editable in the graph? | **No, read-only** (as in FR-V11). Hazard Items and their edges are edited in the Hazard tab. Clicking a hazard node opens a read-only card with "Open in Hazard tab". |
-| G3 | Show / hide | Toggle "Hazards" like "Anchors" (`showHazards`). Default: on in the **Protection targets** preset, off in the other presets; in the focus view on when the focus asset has hazard edges. |
+| G3 | Show / hide | Toggle "Hazards" like "Anchors" (`showHazards`). Default: on in the **Protection targets** and **All** presets (user, 2026-10-25), off in the other presets; in the focus view on when the focus asset has hazard edges. |
 | G4 | Moving: which direction? | **Horizontal only**, `y` stays the lane centre. The layer semantics are kept, and the stored position stays valid (lane rule from §2). |
 | G5 | Key combination | **Ctrl + drag** (Windows/Linux) **or ⌘ + drag** (macOS). On macOS Ctrl + click is the right click, so ⌘ applies there. Both are accepted. |
 | G6 | Is a move stored? | Like every position: locally per project (FR-V15), **never** in the project file (D3). No entry in the link undo history; "Rearrange" (FR-V12) resets. |
+| G7 | Severity labels under `iso-21434` | **Canonical labels for now** ("Irreversible, major" …); the S-classes S0–S3 come with ISO plan Phase 1H, which defines them (user, 2026-10-25). FR-V11a's "S0–S3" moves there. |
+| G8 | Severity colours | The hazard table's colours per severity move to `shared` and are used by both the hazard table and the graph — one source. |
+| G9 | "Open in Hazard tab" | New wiring in the app layer: the DFD tab reports the hazard id; `workspace-layout` switches to the Hazard phase and hands the id to the Hazard tab, which opens its dialog for that item. |
+| G10 | Test data | A trimmed fixture derived from the leveled SmokeDetector example (assets, Hazard Items, edges only) in `src/tests/fixtures/` (user). |
 
 ## 4. Requirements
 
@@ -54,7 +68,7 @@ D3), `doc/Open/DFD/asset-graph-process-view-requirements.md` (FR-V11 there as CO
 | ID | Requirement | Prio |
 |---|---|---|
 | FR-V11 | **Hazard Items in the graph** (concretised, now MUST): node kind `hazard` (id prefix `hz:`, never collides with asset or anchor ids), own shape (diamond or warning triangle), label `externalRef` or label. Colour by the worst person severity of its `endangers` edges (same colours as the hazard table). | MUST |
-| FR-V11a | **Edges:** `contributes_to` (asset → hazard) dashed in warning colour, `relevance` (direct/indirect) as stroke width; `endangers` (hazard → protection target) solid in warning colour, severity as edge label (`common: safetySeverity.*`; under `iso-21434` as S0–S3). Edges to assets in hidden layers appear as stubs (FR-V4). | MUST |
+| FR-V11a | **Edges:** `contributes_to` (asset → hazard) dashed in warning colour, `relevance` (direct/indirect) as stroke width; `endangers` (hazard → protection target) solid in warning colour, severity as edge label (`common: safetySeverity.*`; S-classes under `iso-21434` follow with ISO Phase 1H, G7). Edges to assets in hidden layers appear as stubs (FR-V4). | MUST |
 | FR-V11b | **Focus view:** Hazard Items count as neighbours. Depth 1 from an asset: the hazards it contributes to or that endanger it; depth 2: also the endangered or contributing assets. A hazard can itself be the focus. | MUST |
 | FR-V11c | **Context bar** (FR-V14): counter "hazards visible / total"; toggle "Hazards". | MUST |
 | FR-V11d | **Read-only card:** clicking shows label, description, category, cause assets, protection targets with severity, `systemRelevance`; action "Open in Hazard tab". In edit mode hazard nodes have no connection handles. | MUST |
@@ -102,12 +116,22 @@ as known positions.
 
 | Req. | Test |
 |---|---|
-| FR-V11 | SmokeDetector example, preset "Protection targets": 5 hazard nodes in the hazard lane, 10 `endangers` edges to HU-001/HU-002/IF-001 (or stubs), `contributes_to` from FU/DA/SY as edges or stubs depending on the visible layers. |
+| FR-V11 | SmokeDetector fixture (G10), presets "Protection targets" and "All": 5 hazard nodes in the hazard lane, 10 `endangers` edges to HU-001/HU-002/IF-001 (or stubs), `contributes_to` from FU/DA/SY as edges or stubs depending on the visible layers. |
 | FR-V11 | Project without Hazard Items: graph unchanged (golden comparison of the preparation). |
-| FR-V11a | Edge label shows the severity; under `iso-21434` "S3" for `fatal`. |
+| FR-V11a | Edge label shows the canonical severity label (S-classes with ISO Phase 1H, G7). |
 | FR-V11b | Focus on FU-001, depth 1: shows the hazards FU-001 contributes to; depth 2: also their protection targets. |
 | FR-V11d | Edit mode: hazard node has no handles; "Open in Hazard tab" switches to the Hazard tab and selects the item. |
 | FR-V17 | Ctrl + drag by 200 px: only the dragged node changes `x` by 200/k, `y` unchanged, all other positions unchanged. Without Ctrl: pan, no position change. |
 | FR-V17a | ⌘ + drag on the canvas does not pan. |
 | FR-V17c | After a move, hiding and showing a layer: position stays. After reopening the project: position stays (localStorage). "Rearrange": deterministic layout. Project file byte-identical. |
 | FR-V17d | A human node cannot be pushed left into the vertical lanes. |
+
+## 8. Implementation status
+
+| Step | Content | Patch | State |
+|---|---|---|---|
+| 1 | FR-V17a | – | open |
+| 2 | FR-V17, b, c, d, e | – | open |
+| 3 | Hazards in the graph source (app layer, G8 colours to shared) | – | open |
+| 4 | FR-V11, a, c, d, e (+ G9 navigation) | – | open |
+| 5 | FR-V11b | – | open |
