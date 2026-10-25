@@ -738,6 +738,25 @@ export const WorkspaceLayout: React.FC = () => {
     [activeProject?.hazards],
   );
 
+  // The asset registry for the asset graph: the manual assets (e.g. hazard
+  // protection targets) are not in the dfd.assets mirror.
+  const memoizedGraphRegistry = useMemo(
+    () =>
+      activeProject?.assets
+        ? {
+            assets: activeProject.assets.assets.map((a) => ({
+              id: a.id,
+              displayId: a.displayId,
+              name: a.name,
+              assetGroup: a.assetGroup,
+              ...(a.properties?.protectionNeed ? { protectionNeed: String(a.properties.protectionNeed) } : {}),
+            })),
+            relations: activeProject.assets.relations ?? [],
+          }
+        : null,
+    [activeProject?.assets],
+  );
+
   // Hazard → asset projection (§6): endangeredBy / contributesTo per asset.
   // Read-only; the assets feature never imports features/hazards.
   const memoizedHazardRef = useMemo(
@@ -1009,6 +1028,7 @@ export const WorkspaceLayout: React.FC = () => {
               threatCountOf={threatCountLookup}
               graphFocusRequest={graphFocusRequest}
               hazards={memoizedGraphHazards}
+              assetRegistry={memoizedGraphRegistry}
               onShowInTable={(assetId) => {
                 setTableHighlightRequest({ assetId });
                 handlePhaseChange(PhaseId.Assets);

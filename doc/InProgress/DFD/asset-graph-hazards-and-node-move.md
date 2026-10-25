@@ -1,6 +1,6 @@
 # TARAflow — Asset graph: show Hazard Items, move nodes with Ctrl
 
-**Status:** v2 · 2026-10-25 · decisions taken (§3), steps 1–5 done (§8), implementation on branch
+**Status:** v2 · 2026-10-25 · decisions taken (§3), steps 1–5b done (§8), implementation on branch
 `feature/asset-graph-hazards` · base: `main` after the hazard import
 **Scope:** `features/dfd/asset-graph`, app layer (data passed to the DFD tab)
 **Related:** `doc/Done/DFD/asset-graph-view-requirements.md` (FR-V1 … FR-V16, AR-10 … AR-12,
@@ -45,6 +45,11 @@ D3), `doc/Open/DFD/asset-graph-process-view-requirements.md` (FR-V11 there as CO
   - The SmokeDetector figures (5 / 21 / 10) are those of the leveled example
     (`SmokeDetector-leveled.tara.json`), not of the committed fixture `SmokeDetector.tara.json`
     (70 / 1 / 101).
+  - Found 2026-10-25 when trying step 5: the graph source is the `dfd.assets` mirror, which holds
+    only DFD-sourced assets. Manual assets — in the SmokeDetector the protection targets HU-001,
+    HU-002 and IF-001 — were missing, so no `endangers` edge could be drawn although the human
+    layer was selected. Fix (step 5b): the app layer passes the canonical registry; the graph adds
+    the assets the mirror lacks, with their links.
 
 ## 3. Decisions
 
@@ -140,3 +145,4 @@ from it; without `hazards` everything behaves as today.
 | 4 | FR-V11: with `showHazards` (layer view) every Hazard Item is a node `hz:<id>` (kind `hazard`, label `externalRef` or label), a diamond in the colour of its worst endangers severity (G8), in the lane `hazards` of the side column directly above human (G1; movable like the column, FR-V17d). a: `contributes_to` dashed orange (direct thicker than indirect), `endangers` solid orange with the canonical severity label (G7; person harm in the pre-v9 vocabulary shown with its canonical value); edges to assets in hidden layers as stubs at the hazard; the relation-type filter does not apply to hazard edges (the toggle does). c: checkbox "Hazards" (only when the project has Hazard Items), on with the presets "Protection targets" and "All", off with the others (G3); counter "x of y hazards". d: click → read-only card (description, category, system relevance, causes with relevance, protection targets with severity; causes and targets navigate to the asset) and "Open in Hazard tab" (G9: DFD tab → `workspace-layout` switches to the Hazard phase → the Hazard tab opens the item's dialog; only for safety-relevant projects); a hazard edge has its own read-only card; no handles, no drop target, no "+" in the hazard lane. e: a hazard without an edge to an existing asset gets the finding mark "not linked" (node and card). Page filter (leveled DFD): hazards keep their edges to the assets on the pages. Positions of hazard nodes are remembered locally like the others. Fixture `src/tests/fixtures/hazards/smoke-detector-hazard-graph.json` (G10, severities canonical); golden test: without Hazard Items graph and layout are unchanged. The focus view shows no hazards until step 5. | 166 | done |
 | 4b | G4 revised after trying it: FR-V17d side-column nodes free in x and snapping to a level row (`moveNode` replaces `moveNodeHorizontally`, no clamp to the column); FR-V17e ↑/↓ a row; FR-V17b cursor `move` for the side column; FR-V17f every node fixed to its row in the layout (vertical lanes at one height, remembered positions snap back), vertical-lane nodes pulled mildly to their slot so links into the side column no longer drag them into it. | 167 | done |
 | 5 | FR-V11b: the focus walk crosses hazard edges (asset of a visible layer ↔ hazard) when hazards are on — depth 1 from an asset: the hazards it contributes to or that endanger it, depth 2: their other assets; a hazard (`hz:` id) can be the focus (double-click, Enter, "Focus" on its card; shown even with the toggle off; chip "Focus: HZ-01 …"); hazard edges into hidden layers end in stubs; G3: focusing an asset with hazard edges (or a hazard) switches hazards on. FR-V11c: toggle in both views, entry "Hazards" in the layer menu. FR-V6a: "DFD elements" toggle in the focus view (own choice, on by default); `buildAssetGraph` draws anchors only with `showAnchors` in both views. | 168 | done |
+| 5b | Fix: the graph source missed manual assets (dfd.assets mirrors DFD-sourced assets only), so the hazards' protection targets (HU-001, HU-002, IF-001) and their `endangers` edges were absent. `workspace-layout` passes the canonical registry (`assets.assets` / `assets.relations`) to the DFD tab; `withRegistryAssets` (`mirror-edges.ts`) adds the assets the mirror lacks and their links (no duplicates). Page filter: a hazard on the pages keeps its protection targets (they have no DFD element). Regression test with the SmokeDetector fixture split into mirror and registry. | 169 | done |

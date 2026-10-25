@@ -41,7 +41,13 @@ import type { InsertCandidate, CellRef } from "../services/leveled";
 import DFDPreviewDialog from "./dfd-preview-dialog";
 import DFDNotificationsPanel from "./dfd-notification-panel";
 import DFDDescriptionView from "./dfd-description-view";
-import { AssetGraphView, assetGraphSourceFromDfd, type AssetGraphHazards } from "../asset-graph";
+import {
+  AssetGraphView,
+  assetGraphSourceFromDfd,
+  withRegistryAssets,
+  type AssetGraphHazards,
+  type AssetGraphRegistry,
+} from "../asset-graph";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
@@ -82,6 +88,11 @@ export interface DFDTabProps {
    * read-only) — the DFD feature never imports the hazards feature.
    */
   hazards?: AssetGraphHazards | null;
+  /**
+   * The canonical asset registry for the asset graph: adds the manual assets
+   * (e.g. hazard protection targets) that the dfd.assets mirror lacks.
+   */
+  assetRegistry?: AssetGraphRegistry | null;
   /** "Show in table" from the asset graph (FR-V13, way back). */
   onShowInTable?: (assetId: string) => void;
   /** "Open in Hazard tab" from a hazard's card in the asset graph (G9). */
@@ -123,6 +134,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   threatCountOf,
   graphFocusRequest,
   hazards,
+  assetRegistry,
   onShowInTable,
   onOpenHazard,
 }) => {
@@ -725,8 +737,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   );
   // ── Asset graph view (D2, phase 2) ──────────────────────────────────────
   const assetGraphSource = useMemo(
-    () => ({ ...assetGraphSourceFromDfd(dfd), ...(hazards ? { hazards } : {}) }),
-    [dfd, hazards],
+    () => ({
+      ...withRegistryAssets(assetGraphSourceFromDfd(dfd), assetRegistry),
+      ...(hazards ? { hazards } : {}),
+    }),
+    [dfd, hazards, assetRegistry],
   );
 
   // Asset properties in the graph's card: the same form and the same write

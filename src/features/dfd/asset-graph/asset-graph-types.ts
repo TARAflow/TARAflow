@@ -43,6 +43,15 @@ export interface AssetGraphSource {
   readonly hazards?: AssetGraphHazards;
 }
 
+/**
+ * The canonical asset registry (assets.assets, assets.relations), passed by
+ * the app layer: it also holds the manual assets the dfd.assets mirror lacks.
+ */
+export interface AssetGraphRegistry {
+  readonly assets: readonly GraphAssetInput[];
+  readonly relations: readonly A2ARelation[];
+}
+
 export interface AssetGraphHazards {
   readonly items: readonly HazardItem[];
   readonly relations: readonly HazardRelation[];

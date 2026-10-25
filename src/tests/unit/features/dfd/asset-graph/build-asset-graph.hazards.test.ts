@@ -17,6 +17,7 @@ import {
   LANE_HEIGHT,
   layoutAssetGraph,
   sourceOnPages,
+  withRegistryAssets,
   type AssetGraphHazardNode,
   type AssetGraphSource,
 } from "features/dfd/asset-graph";
@@ -220,11 +221,13 @@ describe("asset graph — Hazard Items (FR-V11)", () => {
     }
   });
 
-  it("page filter (leveled DFD): hazards keep their edges to assets on the pages", () => {
+  it("page filter (leveled DFD): hazards keep their causes on the pages and their protection targets", () => {
     const source: AssetGraphSource = {
       assets: [
         { id: "d1", displayId: "DA-001", name: "On page", assetGroup: "data" },
         { id: "d2", displayId: "DA-002", name: "Elsewhere", assetGroup: "data" },
+        { id: "u1", displayId: "HU-001", name: "Occupant", assetGroup: "human" },
+        { id: "u2", displayId: "HU-002", name: "Visitor", assetGroup: "human" },
       ],
       relations: [],
       elements: [
@@ -240,12 +243,63 @@ describe("asset graph — Hazard Items (FR-V11)", () => {
           { type: "contributes_to", from: "d1", to: "H1", relevance: "direct", hazardDistance: 0 } as unknown as HazardRelation,
           { type: "contributes_to", from: "d2", to: "H1", relevance: "direct", hazardDistance: 0 } as unknown as HazardRelation,
           { type: "contributes_to", from: "d2", to: "H2", relevance: "direct", hazardDistance: 0 } as unknown as HazardRelation,
+          { type: "endangers", from: "H1", to: "u1", impact: { target: "human", severity: "fatal" } } as HazardRelation,
+          { type: "endangers", from: "H2", to: "u2", impact: { target: "human", severity: "fatal" } } as HazardRelation,
         ],
       },
     };
     const shown = sourceOnPages(source, new Set(["p1"]));
     expect(shown.hazards?.items.map((h) => h.id)).toEqual(["H1"]);
-    expect(shown.hazards?.relations).toHaveLength(1);
+    expect(shown.hazards?.relations).toHaveLength(2);
+    // The protection target of a hazard on the pages stays — it has no element.
+    expect(shown.assets.map((a) => a.id)).toEqual(["d1", "u1"]);
+  });
+});
+
+describe("asset graph — manual assets from the registry", () => {
+  // dfd.assets holds DFD-sourced assets only; the SmokeDetector's persons
+  // (HU-001, HU-002) and the building (IF-001) are manual protection targets.
+  const manual = new Set(["HU-001", "HU-002", "IF-001"]);
+  const registry = () => {
+    const full = smokeDetector();
+    return { assets: full.assets, relations: full.relations };
+  };
+  const mirrorOnly = (): AssetGraphSource => {
+    const full = smokeDetector();
+    const assets = full.assets.filter((a) => !manual.has(a.displayId!));
+    const ids = new Set(assets.map((a) => a.id));
+    return {
+      ...full,
+      assets,
+      relations: full.relations.filter((r) => ids.has(r.sourceAssetId) && ids.has(r.targetAssetId)),
+    };
+  };
+
+  it("without the registry the endangers edges have no target (the reported bug)", () => {
+    const g = buildAssetGraph(mirrorOnly(), { view: "layers", layers: ASSET_GRAPH_PRESETS.all, showHazards: true });
+    expect(g.edges.filter((e) => e.kind === "endangers")).toEqual([]);
+  });
+
+  it("with it HZ-01 endangers HU-001 and IF-001, and the manual assets keep their links", () => {
+    const source = withRegistryAssets(mirrorOnly(), registry());
+    const display = displayOf(source);
+    expect(source.assets.map((a) => a.displayId)).toEqual(expect.arrayContaining([...manual]));
+    expect(source.relations).toHaveLength(smokeDetector().relations.length);
+    const g = buildAssetGraph(source, { view: "layers", layers: ASSET_GRAPH_PRESETS.all, showHazards: true });
+    expect(g.edges.filter((e) => e.kind === "endangers")).toHaveLength(10);
+    expect(
+      g.edges.filter((e) => e.source === "hz:H-01" && e.kind === "endangers").map((e) => display(e.target)).sort(),
+    ).toEqual(["HU-001", "IF-001"]);
+  });
+
+  it("adds nothing the mirror has already — no duplicate assets or links", () => {
+    const full = smokeDetector();
+    expect(withRegistryAssets(full, registry())).toBe(full);
+    expect(withRegistryAssets(full, null)).toBe(full);
+    const mirror = mirrorOnly();
+    const renamed = { ...mirror, relations: mirror.relations.map((r) => ({ ...r, id: `${r.id}#mirror` })) };
+    const merged = withRegistryAssets(renamed, registry());
+    expect(merged.relations).toHaveLength(full.relations.length);
   });
 });
 
