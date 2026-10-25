@@ -180,3 +180,18 @@ and two rows with a VS/S contradiction.
 | HI-10 | Re-import of the fixture with one row changed, one added, one removed and one new column: preview shows 1 new / 1 changed / 1 removed / rest unchanged and the new column as unmapped; after confirming no duplicates, the changed item is flagged, the removed one flagged and kept, a manual edge and a renamed label survive. |
 | HI-11 | A row without severity, with a default person: item imported, no person edge, one warning. |
 | all | Projects without a hazard import, and items already imported, stay byte-identical. |
+
+## 8. Implementation status
+
+| Step | Content | Patch | State |
+|---|---|---|---|
+| 1 | HI-4: the profile import keeps the source values of severity and probability (`severity.raw`, `probability.raw` — the cell before the value map, or the header label of the marked x-matrix column); the bridge keeps `probability` and `rpn` in `importMeta`. Hazard dialog: read-only "Imported data" block (source row, rating, extra columns; i18n en/de). Fixture `src/tests/fixtures/hazards/label-applicator-iso12100.json` (invented machine, structure of §2). | 154 | done |
+| 2 | HI-6 | – | open |
+| 3 | HI-11 | – | open |
+| 4 | HI-1, HI-1a | – | open |
+| 5 | HI-2, HI-3 | – | open |
+| 6 | HI-5, HI-7 | – | open |
+| 7 | HI-9 | – | open |
+| 8 | HI-10 | – | open |
+| 9 | HI-8 | – | open |
+| 10 | HI-1b (after ISO Phase 1H) | – | open |

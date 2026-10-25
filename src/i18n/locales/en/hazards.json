@@ -111,6 +111,24 @@
         "noTargets": "At least one protection target is required.",
         "distance": "Dist."
       },
+      "imported": {
+        "title": "Imported data",
+        "hint": "As read from the source file — read-only.",
+        "key": {
+          "externalRef": "Source row",
+          "severity_raw": "Severity (source value)",
+          "probability": "Probability",
+          "probability_raw": "Probability (source value)",
+          "rpn": "RPN (source)"
+        },
+        "probabilityLevel": {
+          "very_low": "Very low",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High",
+          "very_high": "Very high"
+        }
+      },
       "import": {
         "title": "Import mapping",
         "sheet": "Sheet",

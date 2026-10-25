@@ -39,6 +39,18 @@ const SEVERITY_TO_HUMAN: Record<HazardSeverity, HumanHarmSeverity> = {
   catastrophic: "fatal",
 };
 
+/**
+ * The customer's rating kept with the item (HI-4): probability and RPN are no
+ * Hazard Item fields, so they go into importMeta under fixed keys — after the
+ * import it stays traceable how the source rated the hazard.
+ */
+function withImportedRating(h: SafetyHazard): Record<string, string> | undefined {
+  const meta: Record<string, string> = { ...(h.importMeta ?? {}) };
+  if (h.probability) meta.probability = h.probability;
+  if (typeof h.rpn === "number") meta.rpn = String(h.rpn);
+  return Object.keys(meta).length > 0 ? meta : undefined;
+}
+
 function shortLabel(text: string, max = 60): string {
   let s = text.split(/[(\n;]/)[0].trim();
   if (!s) s = text.trim();
@@ -116,7 +128,7 @@ export function bridgeSafetyHazards(
       source: "imported",
       externalRef: h.originalId ?? h.id,
       rationale: h.notes ? `Restrisiken: ${h.notes}` : undefined,
-      importMeta: h.importMeta,
+      importMeta: withImportedRating(h),
     });
 
     // endangers — one per affected-person role, severity structured on the edge.

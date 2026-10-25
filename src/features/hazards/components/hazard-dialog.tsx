@@ -16,6 +16,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ImportedDataSection } from "./imported-data-section";
 import {
   Dialog,
   DialogTitle,
@@ -880,6 +881,8 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
                 multiline
                 minRows={2}
               />
+
+              <ImportedDataSection item={item} />
 
               {!scopeOk ? (
                 <Alert

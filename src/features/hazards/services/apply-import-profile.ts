@@ -96,6 +96,8 @@ export function applyImportProfile(
     }
 
     const data: Partial<SafetyHazard> = {};
+    // The customer's own rating, before any value map (HI-4): "VS 3", "AW 2".
+    const sourceRating: Record<string, string> = {};
 
     // Single-column fields
     for (const fc of profile.columns) {
@@ -105,18 +107,26 @@ export function applyImportProfile(
           ? fc.valueMap[raw]
           : raw;
       assignField(data, fc.field, mapped);
+      if (raw !== undefined && RATED_FIELDS.has(fc.field)) sourceRating[`${fc.field}.raw`] = raw;
     }
 
-    // Marker groups (x-matrix): the first non-empty column wins.
+    // Marker groups (x-matrix): the first non-empty column wins; its header
+    // label is the source value.
     for (const mg of profile.markerGroups) {
       const hit = mg.columns.find(
         (mc) => cellStr(row[mc.column]) !== undefined,
       );
-      if (hit) assignField(data, mg.field, hit.value);
+      if (hit) {
+        assignField(data, mg.field, hit.value);
+        if (RATED_FIELDS.has(mg.field)) {
+          sourceRating[`${mg.field}.raw`] =
+            cellStr(sheet.rows[profile.headerRow]?.[hit.column]) ?? hit.value;
+        }
+      }
     }
 
-    // provenance: extra columns kept as-is
-    const importMeta: Record<string, string> = {};
+    // provenance: extra columns kept as-is, plus the source rating
+    const importMeta: Record<string, string> = { ...sourceRating };
     for (const mc of profile.metaColumns ?? []) {
       if (mc.column < 0 || !mc.key.trim()) continue;
       const v = cellStr(row[mc.column]);
@@ -129,6 +139,9 @@ export function applyImportProfile(
 
   return finalizeImport(rows, profile.id, sourceFile);
 }
+
+/** Fields whose source value is kept next to the mapped one (HI-4). */
+const RATED_FIELDS: ReadonlySet<CanonicalField> = new Set(["severity", "probability"]);
 
 function safeRegExp(pattern: string): RegExp | null {
   try {

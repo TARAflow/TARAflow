@@ -110,6 +110,24 @@
         "noTargets": "Mindestens ein Schutzziel ist erforderlich.",
         "distance": "Dist."
       },
+      "imported": {
+        "title": "Importierte Daten",
+        "hint": "Wie aus der Quelldatei gelesen — nur lesbar.",
+        "key": {
+          "externalRef": "Quellzeile",
+          "severity_raw": "Schwere (Quellwert)",
+          "probability": "Wahrscheinlichkeit",
+          "probability_raw": "Wahrscheinlichkeit (Quellwert)",
+          "rpn": "RPZ (Quelle)"
+        },
+        "probabilityLevel": {
+          "very_low": "Sehr gering",
+          "low": "Gering",
+          "medium": "Mittel",
+          "high": "Hoch",
+          "very_high": "Sehr hoch"
+        }
+      },
       "import": {
         "title": "Import-Zuordnung",
         "sheet": "Tabellenblatt",
