@@ -19,6 +19,7 @@ import {
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
+import type { AttackTreeReportSection } from "../attack-tree-report";
 import { HtmlGenerator } from "./html-generator";
 import { PdfMakeConverter } from "./pdfmake-converter";
 
@@ -421,6 +422,14 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
   formatMethodologySection(section: MethodologySection): string {
     return this.htmlGenerator.formatMethodologySection(section);
+  }
+
+  formatAttackTreesChapter(title: string, intro: string, body: string): string {
+    return this.htmlGenerator.formatAttackTreesChapter(title, intro, body);
+  }
+
+  formatAttackTreeSection(section: AttackTreeReportSection): string {
+    return this.htmlGenerator.formatAttackTreeSection(section);
   }
 
   formatStatsTable(table: StatsTable): string {

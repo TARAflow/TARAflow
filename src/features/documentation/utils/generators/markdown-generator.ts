@@ -10,6 +10,7 @@ import {
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
+import type { AttackTreeReportSection } from "../attack-tree-report";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -170,6 +171,39 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
       row(section.headers),
       `|${section.headers.map(() => "---").join("|")}|`,
       ...section.rows.map(row),
+    ].join("\n") + "\n\n";
+  }
+
+  // Attack-trees chapter (plan F5)
+  formatAttackTreesChapter(title: string, intro: string, body: string): string {
+    return `## ${title}\n\n${intro}\n\n${body}`;
+  }
+
+  formatAttackTreeSection(section: AttackTreeReportSection): string {
+    const row = (cells: string[]) =>
+      `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")} |`;
+    return [
+      `### ${section.title}`,
+      "",
+      ...section.facts.map(([label, value]) => `**${label}**: ${value}  `),
+      ...(section.facts.length ? [""] : []),
+      ...(section.outline.length
+        ? [
+            `**${section.outlineTitle}**`,
+            "",
+            ...section.outline.map((o) => `${"  ".repeat(o.depth)}- ${o.text}`),
+            "",
+          ]
+        : []),
+      ...(section.rows.length
+        ? [
+            `**${section.pathsTitle}**`,
+            "",
+            row(section.headers),
+            `|${section.headers.map(() => "---").join("|")}|`,
+            ...section.rows.map(row),
+          ]
+        : []),
     ].join("\n") + "\n\n";
   }
 

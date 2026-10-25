@@ -10,6 +10,7 @@ import {
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
+import type { AttackTreeReportSection } from "../attack-tree-report";
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
@@ -150,6 +151,42 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
       "",
       ...section.rows.map(row),
       "|===",
+    ].join("\n") + "\n\n";
+  }
+
+  // Attack-trees chapter (plan F5)
+  formatAttackTreesChapter(title: string, intro: string, body: string): string {
+    return `== ${title}\n\n${intro}\n\n${body}`;
+  }
+
+  formatAttackTreeSection(section: AttackTreeReportSection): string {
+    const row = (cells: string[]) =>
+      `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")}`;
+    const facts = section.facts.map(([label, value], i) =>
+      `*${label}*: ${value}${i < section.facts.length - 1 ? " +" : ""}`,
+    );
+    return [
+      `=== ${section.title}`,
+      "",
+      ...(facts.length ? [...facts, ""] : []),
+      ...(section.outline.length
+        ? [
+            `.${section.outlineTitle}`,
+            ...section.outline.map((o) => `${"*".repeat(o.depth + 1)} ${o.text}`),
+            "",
+          ]
+        : []),
+      ...(section.rows.length
+        ? [
+            `.${section.pathsTitle}`,
+            `[cols="1,4,1,1,1", options="header"]`,
+            "|===",
+            row(section.headers),
+            "",
+            ...section.rows.map(row),
+            "|===",
+          ]
+        : []),
     ].join("\n") + "\n\n";
   }
 

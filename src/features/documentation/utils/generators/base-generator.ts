@@ -5,6 +5,11 @@
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
 import {
+  attackTreeReportSections,
+  attackTreesIntro,
+  type AttackTreeReportSection,
+} from "../attack-tree-report";
+import {
   isoScenarioSummary,
   isoScenarioTitle,
   resolveAttackPathChain,
@@ -315,6 +320,14 @@ export abstract class BaseDocumentGenerator {
   protected formatMethodologySection(_section: MethodologySection): string {
     return "";
   }
+  // Attack-trees chapter (plan F5) — same pattern: a format that has not
+  // implemented it produces no chapter.
+  protected formatAttackTreesChapter(_title: string, _intro: string, _body: string): string {
+    return "";
+  }
+  protected formatAttackTreeSection(_section: AttackTreeReportSection): string {
+    return "";
+  }
   abstract getAcceptedRisksTemplate(): string;
   abstract getWontRiskRowTemplate(): string;
   abstract getAppendixTemplate(): string;
@@ -451,6 +464,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateAcceptedRisks(title);
       case "traceability-matrix":
         return this.generateTraceabilityMatrix(title);
+      case "attack-trees":
+        return this.generateAttackTrees(title);
       case "appendix":
         return this.generateAppendix(title);
       default:
@@ -1520,6 +1535,23 @@ export abstract class BaseDocumentGenerator {
       .join("");
 
     return { id: chapterId, title, content, hasContent: true };
+  }
+
+  // ==================== ATTACK TREES ====================
+
+  /**
+   * Plan F5: one section per attack tree — anchor, structure (AND/OR gates,
+   * leaf ratings) and attack paths. All presets; content in attack-tree-report.
+   */
+  protected generateAttackTrees(title: string): ChapterContent {
+    const chapterId: DocChapterId = "attack-trees";
+    const sections = attackTreeReportSections(this.ctx.project, this.ctx.t);
+    if (sections.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+    const body = sections.map((s) => this.formatAttackTreeSection(s)).join("");
+    const content = this.formatAttackTreesChapter(title, attackTreesIntro(this.ctx.t), body);
+    return { id: chapterId, title, content, hasContent: content !== "" };
   }
 
   // ==================== SRSL ASSESSMENT (EN 50742 A) ====================

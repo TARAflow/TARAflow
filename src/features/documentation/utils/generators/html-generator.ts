@@ -10,6 +10,7 @@ import {
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
+import type { AttackTreeReportSection } from "../attack-tree-report";
 import { HTML_TEMPLATES } from "../templates/html-templates";
 import { replacePlaceholders, processConditionals } from "../templates";
 
@@ -218,6 +219,58 @@ export class HtmlGenerator extends BaseDocumentGenerator {
       ...section.rows.map((r) => `      <tr>${cells("td", r)}</tr>`),
       "    </tbody>",
       "  </table>",
+    ].join("\n") + "\n";
+  }
+
+  // Attack-trees chapter (plan F5)
+  formatAttackTreesChapter(title: string, intro: string, body: string): string {
+    return `<section id="attack-trees">\n  <h2>${this.escapeHtml(title)}</h2>\n  <p>${this.escapeHtml(intro)}</p>\n${body}</section>\n\n`;
+  }
+
+  formatAttackTreeSection(section: AttackTreeReportSection): string {
+    const cells = (tag: "th" | "td", list: string[]) =>
+      list.map((c) => `<${tag}>${this.escapeHtml(c)}</${tag}>`).join("");
+    // Nested lists from the depth-annotated outline.
+    const outline: string[] = [];
+    let depth = -1;
+    for (const item of section.outline) {
+      if (item.depth > depth) {
+        for (let d = depth; d < item.depth; d++) outline.push("<ul>");
+      } else {
+        outline.push("</li>");
+        for (let d = item.depth; d < depth; d++) outline.push("</ul></li>");
+      }
+      outline.push(`<li>${this.escapeHtml(item.text)}`);
+      depth = item.depth;
+    }
+    if (depth >= 0) {
+      outline.push("</li>");
+      for (let d = 0; d < depth; d++) outline.push("</ul></li>");
+      outline.push("</ul>");
+    }
+    return [
+      `  <h3>${this.escapeHtml(section.title)}</h3>`,
+      ...(section.facts.length
+        ? [
+            `  <p>${section.facts
+              .map(([label, value]) => `<strong>${this.escapeHtml(label)}</strong>: ${this.escapeHtml(value)}`)
+              .join("<br>")}</p>`,
+          ]
+        : []),
+      ...(outline.length
+        ? [`  <h4>${this.escapeHtml(section.outlineTitle)}</h4>`, `  ${outline.join("")}`]
+        : []),
+      ...(section.rows.length
+        ? [
+            `  <h4>${this.escapeHtml(section.pathsTitle)}</h4>`,
+            "  <table>",
+            `    <thead><tr>${cells("th", section.headers)}</tr></thead>`,
+            "    <tbody>",
+            ...section.rows.map((r) => `      <tr>${cells("td", r)}</tr>`),
+            "    </tbody>",
+            "  </table>",
+          ]
+        : []),
     ].join("\n") + "\n";
   }
 

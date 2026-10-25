@@ -39,6 +39,7 @@ import {
 } from "./base-generator";
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
+import type { AttackTreeReportSection } from "../attack-tree-report";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -182,6 +183,56 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
       "",
       row(section.headers),
       ...section.rows.map(row),
+      "[/FREETEXT]",
+      "",
+      "[/SECTION]",
+    ].join("\n") + "\n\n";
+  }
+
+  // Attack-trees chapter (plan F5). A section holds one free text, so facts,
+  // structure (RST nested list) and path table share it.
+  formatAttackTreesChapter(title: string, intro: string, body: string): string {
+    return [
+      "[SECTION]",
+      `TITLE: ${title}`,
+      "",
+      "[FREETEXT]",
+      intro,
+      "[/FREETEXT]",
+      "",
+      body + "[/SECTION]",
+    ].join("\n") + "\n\n";
+  }
+
+  formatAttackTreeSection(section: AttackTreeReportSection): string {
+    const row = (cells: string[]) =>
+      cells
+        .map((c, i) => `${i === 0 ? "   * - " : "     - "}${this.escapeTableText(c)}`)
+        .join("\n");
+    return [
+      "[SECTION]",
+      `TITLE: ${section.title}`,
+      "",
+      "[FREETEXT]",
+      ...section.facts.flatMap(([label, value]) => [`**${label}**: ${value}`, ""]),
+      ...(section.outline.length
+        ? [
+            `**${section.outlineTitle}**`,
+            "",
+            ...section.outline.flatMap((o) => [`${"  ".repeat(o.depth)}- ${o.text}`, ""]),
+          ]
+        : []),
+      ...(section.rows.length
+        ? [
+            `**${section.pathsTitle}**`,
+            "",
+            ".. list-table::",
+            "   :header-rows: 1",
+            "",
+            row(section.headers),
+            ...section.rows.map(row),
+          ]
+        : []),
       "[/FREETEXT]",
       "",
       "[/SECTION]",

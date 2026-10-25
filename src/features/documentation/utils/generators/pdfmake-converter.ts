@@ -7,6 +7,11 @@
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { isoScenarioSummary, isoScenarioTitle } from "../iso-scenario-text";
+import {
+  attackTreeReportSections,
+  attackTreesIntro,
+  type AttackTreeOutlineItem,
+} from "../attack-tree-report";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
@@ -332,6 +337,9 @@ export class PdfMakeConverter {
           break;
         case "srsl-assessment":
           content.push(...this.createSRSLAssessment());
+          break;
+        case "attack-trees":
+          content.push(...this.createAttackTrees());
           break;
         case "accepted-risks":
           if (this.getWontRisks().length > 0) {
@@ -1032,6 +1040,59 @@ export class PdfMakeConverter {
         { text: isoScenarioSummary(sc, this.t, config), margin: [0, 0, 0, 6] },
         this.riskTable(sc.risks),
       );
+    }
+    content.push({ text: "", pageBreak: "after" });
+    return content;
+  }
+
+  /** Plan F5: one section per attack tree, same content as the template generators. */
+  private createAttackTrees(): Content[] {
+    const sections = attackTreeReportSections(this.project, this.t);
+    if (sections.length === 0) return [];
+    // Nested pdfmake list from the depth-annotated outline.
+    const nest = (items: AttackTreeOutlineItem[], depth: number): Content[] => {
+      const out: Content[] = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].depth !== depth) continue;
+        out.push(items[i].text);
+        const children: AttackTreeOutlineItem[] = [];
+        for (let j = i + 1; j < items.length && items[j].depth > depth; j++) children.push(items[j]);
+        if (children.length > 0) out.push({ ul: nest(children, depth + 1) });
+      }
+      return out;
+    };
+    const content: Content[] = [
+      { text: this.chapterTitle("attack-trees"), style: "h1", tocItem: true },
+      { text: attackTreesIntro(this.t), margin: [0, 0, 0, 8] },
+    ];
+    for (const section of sections) {
+      content.push({ text: section.title, style: "h2" });
+      for (const [label, value] of section.facts) {
+        content.push({ text: [{ text: `${label}: `, bold: true }, value] });
+      }
+      if (section.outline.length > 0) {
+        content.push(
+          { text: section.outlineTitle, bold: true, margin: [0, 6, 0, 2] },
+          { ul: nest(section.outline, 0) },
+        );
+      }
+      if (section.rows.length > 0) {
+        content.push(
+          { text: section.pathsTitle, bold: true, margin: [0, 6, 0, 2] },
+          {
+            table: {
+              headerRows: 1,
+              widths: ["auto", "*", "auto", "auto", "auto"],
+              body: [
+                section.headers.map((h): TableCell => ({ text: h, style: "tableHeader" })),
+                ...section.rows.map((r) => r.map((c): TableCell => ({ text: c }))),
+              ],
+            },
+            layout: "lightHorizontalLines",
+            margin: [0, 0, 0, 12],
+          },
+        );
+      }
     }
     content.push({ text: "", pageBreak: "after" });
     return content;

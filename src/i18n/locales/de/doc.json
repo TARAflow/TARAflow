@@ -184,6 +184,28 @@
         "scenarioRisk": "Risikowert",
         "scenarioResidual": "Restrisiko",
         "scenarioTreatment": "Behandlung"
+      },
+      "attackTrees": {
+        "intro": "Ein Abschnitt je Angriffsbaum: sein Anker, die Baumstruktur mit den UND/ODER-Gattern und den Bewertungen der Blätter sowie die daraus abgeleiteten Angriffspfade mit Angriffspotenzial, Angriffsmachbarkeit und dem Relevanzentscheid der Analyse.",
+        "description": "Beschreibung",
+        "anchor": "Anker",
+        "scenarioFeasibility": "Angriffsmachbarkeit (Szenario)",
+        "standalone": "eigenständig",
+        "structure": "Struktur",
+        "paths": "Angriffspfade",
+        "potentialShort": "AP",
+        "benefit": "Nutzen",
+        "colPath": "Pfad",
+        "colChain": "Angriffspfad",
+        "colPotential": "Angriffspotenzial",
+        "colFeasibility": "Angriffsmachbarkeit",
+        "colRelevance": "Relevanz",
+        "relevance": {
+          "relevant": "relevant",
+          "not_relevant": "nicht relevant",
+          "uncertain": "unsicher",
+          "unrated": "nicht bewertet"
+        }
       }
     }
   }

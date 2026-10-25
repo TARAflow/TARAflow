@@ -184,6 +184,28 @@
         "scenarioRisk": "Risk value",
         "scenarioResidual": "Residual",
         "scenarioTreatment": "Treatment"
+      },
+      "attackTrees": {
+        "intro": "One section per attack tree: its anchor, the tree structure with the AND/OR gates and the leaf ratings, and the attack paths derived from it with attack potential, attack feasibility and the analyst's relevance decision.",
+        "description": "Description",
+        "anchor": "Anchor",
+        "scenarioFeasibility": "Attack feasibility (scenario)",
+        "standalone": "standalone",
+        "structure": "Structure",
+        "paths": "Attack paths",
+        "potentialShort": "AP",
+        "benefit": "benefit",
+        "colPath": "Path",
+        "colChain": "Attack path",
+        "colPotential": "Attack potential",
+        "colFeasibility": "Attack feasibility",
+        "colRelevance": "Relevance",
+        "relevance": {
+          "relevant": "relevant",
+          "not_relevant": "not relevant",
+          "uncertain": "uncertain",
+          "unrated": "unrated"
+        }
       }
     }
   }
