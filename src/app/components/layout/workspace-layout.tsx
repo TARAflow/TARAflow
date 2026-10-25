@@ -1105,6 +1105,9 @@ export const WorkspaceLayout: React.FC = () => {
                 regulationPresetFromTags(
                   activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
                 ) !== "iso-21434",
+                // Controls are proposed only when their context fits the
+                // project (mitigation catalog design D4).
+                activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
               ),
               attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
                 activeProject.attackTrees,

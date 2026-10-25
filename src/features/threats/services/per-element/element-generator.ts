@@ -45,8 +45,8 @@ import {
   getLocalizedElementThreat,
   getLocalizedElementAttack,
   getLocalizedElementCause,
-  getAllMitigations,
-  getAllVerifications,
+  selectCategoryControls,
+  selectCategoryVerifications,
 } from "../threat-catalog-service";
 import { createStrategy } from "../strategies/strategy-factory";
 import type { IGeneratorStrategy } from "../../models/strategy-types";
@@ -884,20 +884,20 @@ export class ElementThreatGenerator {
         elementProps,
         strideCategory,
       );
+      // Curated cap: never flood a generic (template-less) threat with the
+      // full category list. Analyst refines in the Risk tab. Implemented hints
+      // may still append beyond this via mergeMitigationHints. Only controls
+      // whose context fits the project (catalog design D4).
+      const tags = project.info?.tags;
       threat.proposedMitigations = mergeMitigationHints(
-        getAllMitigations()
-          .filter((m) => m.strideCategory === strideCategory)
-          // Curated cap: never flood a generic (template-less) threat with the
-          // full category list. Analyst refines in the Risk tab. Implemented
-          // hints may still append beyond this via mergeMitigationHints.
-          .slice(0, GENERIC_CATEGORY_CONTROL_CAP)
+        selectCategoryControls(strideCategory, { tags, limit: GENERIC_CATEGORY_CONTROL_CAP })
           .map((m) => ({ id: m.id })),
         hints,
       );
-      threat.proposedVerifications = getAllVerifications()
-        .filter((v) => v.strideCategory === strideCategory)
-        .slice(0, GENERIC_CATEGORY_CONTROL_CAP)
-        .map((v) => ({ id: v.id }));
+      threat.proposedVerifications = selectCategoryVerifications(strideCategory, {
+        tags,
+        limit: GENERIC_CATEGORY_CONTROL_CAP,
+      }).map((v) => ({ id: v.id }));
     }
 
     return threat;

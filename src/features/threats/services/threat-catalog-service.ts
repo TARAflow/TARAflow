@@ -5,7 +5,7 @@
 //   - Mitigation / verification ref resolution (MitigationDraft[] / VerificationDraft[])
 
 import i18n from "i18next";
-import type { StrideCategory } from "shared";
+import type { AttackVector, ProjectTags, StrideCategory } from "shared";
 import type {
   ElementTemplate,
   InteractionTemplate,
@@ -346,6 +346,63 @@ export function getAllMitigations(): MitigationEntry[] {
 
 export function getAllVerifications(): VerificationEntry[] {
   return ALL_VERIFICATIONS;
+}
+
+// ==================== CATEGORY CONTROL SELECTION ====================
+// Mitigation catalog design D3 / D4 (doc/InProgress/Threat/mitigation-
+// catalog-attack-vector.md): the controls a threat without template-specific
+// controls is topped up with — the attack-path threats and the generic
+// element fallback.
+
+export interface CategoryControlSelection {
+  /** Path's attack vector; absent = the vector plays no part (as before). */
+  attackVector?: AttackVector;
+  /** Project tags for the context filter; absent = no filter. */
+  tags?: ProjectTags;
+  /** Ids already proposed — never returned again. */
+  exclude?: ReadonlySet<string>;
+  /** How many to return at most. */
+  limit: number;
+}
+
+/** A catalog context against the project tags only (no element at hand). */
+function fitsProject(ctx: TemplateContext, tags: ProjectTags | undefined): boolean {
+  return !tags || matchesContext(ctx, { info: { tags } } as ThreatProjectData, null);
+}
+
+/**
+ * Controls of one STRIDE category that fit the project (context, D4) and,
+ * for an attack path with a vector, the vector (D3): controls stating the
+ * vector come first, then vector-free ones; controls for other vectors are
+ * left out. Catalog order within each group.
+ */
+export function selectCategoryControls(
+  strideCategory: StrideCategory,
+  selection: CategoryControlSelection,
+): MitigationEntry[] {
+  const { attackVector, tags, exclude, limit } = selection;
+  const fitting = ALL_MITIGATIONS.filter(
+    (m) =>
+      m.strideCategory === strideCategory &&
+      !exclude?.has(m.id) &&
+      fitsProject(m.context, tags) &&
+      (!attackVector || !m.attackVectors || m.attackVectors.includes(attackVector)),
+  );
+  const ordered = attackVector
+    ? [...fitting.filter((m) => m.attackVectors), ...fitting.filter((m) => !m.attackVectors)]
+    : fitting;
+  return ordered.slice(0, Math.max(0, limit));
+}
+
+/** Verifications of one STRIDE category that fit the project (context, D4). */
+export function selectCategoryVerifications(
+  strideCategory: StrideCategory,
+  selection: Omit<CategoryControlSelection, "attackVector">,
+): VerificationEntry[] {
+  const { tags, exclude, limit } = selection;
+  return ALL_VERIFICATIONS.filter(
+    (v) => v.strideCategory === strideCategory && !exclude?.has(v.id) && fitsProject(v.context, tags),
+  ).slice(0, Math.max(0, limit));
 }
 
 export function getApplicableInteractionTemplates(

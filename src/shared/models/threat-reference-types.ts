@@ -7,6 +7,7 @@
 import type { StrideCategory, StrideMethod } from "shared";
 import type { LinkedDFDElement, DataFlowReference } from "./dfd-reference-types";
 import type { CIANAAALevel } from "./cianaaa-reference-types";
+import type { AttackVector } from "./attack-vector";
 
 // ==================== THREAT RELEVANCE ====================
 
@@ -92,6 +93,11 @@ export interface ThreatReference {
    * a review. Absent = nothing to review.
    */
   review?: { reasons: string[]; since: string };
+  /**
+   * Attack-path threat: the path's attack vector (`av=` in the tree), used to
+   * propose controls that fit how the path attacks. Absent elsewhere.
+   */
+  attackVector?: AttackVector;
 }
 
 // ==================== THREAT → GOAL LINK ====================

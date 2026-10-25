@@ -27,7 +27,7 @@
 // trees) to features/risks (the ThreatReference sink). Neither feature imports
 // the other; the app layer wires them, as with buildAssetDataReference.
 
-import type { ThreatReference } from "shared";
+import type { ProjectTags, ThreatReference } from "shared";
 import type { AttackTreeData } from "features/attacktree";
 import {
   generateThreatsFromAttackTree,
@@ -35,7 +35,11 @@ import {
   buildThreatId,
   isReadyForRisk,
 } from "features/attacktree";
-import { getAllMitigations, getAllVerifications } from "features/threats";
+import {
+  getAllMitigations,
+  selectCategoryControls,
+  selectCategoryVerifications,
+} from "features/threats";
 
 /**
  * Cap on total proposed controls after enrichment. The analyst's DSL [M-] refs
@@ -51,29 +55,49 @@ const CATEGORY_CONTROL_CAP = 4;
  * category controls from the catalog, so attack-path threats should too. DSL
  * refs stay first and are never dropped; deduped category controls fill up to
  * CATEGORY_CONTROL_CAP total.
+ *
+ * Mitigation catalog design D3 / D4: only controls whose context fits the
+ * project; with a path attack vector (`av=`), controls for that vector first,
+ * then vector-free ones, none for other vectors — and the verifications follow
+ * the chosen controls before the category fill. Without a vector the choice is
+ * the category order as before.
  */
-function enrichWithCategoryControls(threat: ThreatReference): ThreatReference {
+function enrichWithCategoryControls(
+  threat: ThreatReference,
+  tags: ProjectTags | undefined,
+): ThreatReference {
   const mits = threat.proposedMitigations ?? [];
-  const mitIds = new Set(mits.map((m) => m.id));
-  const mitTopUp = getAllMitigations()
-    .filter(
-      (m) => m.strideCategory === threat.strideCategory && !mitIds.has(m.id),
-    )
-    .slice(0, Math.max(0, CATEGORY_CONTROL_CAP - mits.length))
-    .map((m) => ({ id: m.id }));
+  const mitIds = new Set(mits.flatMap((m) => (m.id ? [m.id] : [])));
+  const mitTopUp = selectCategoryControls(threat.strideCategory, {
+    attackVector: threat.attackVector,
+    tags,
+    exclude: mitIds,
+    limit: CATEGORY_CONTROL_CAP - mits.length,
+  });
 
   const vers = threat.proposedVerifications ?? [];
-  const verIds = new Set(vers.map((v) => v.id));
-  const verTopUp = getAllVerifications()
-    .filter(
-      (v) => v.strideCategory === threat.strideCategory && !verIds.has(v.id),
-    )
+  const verIds = new Set(vers.flatMap((v) => (v.id ? [v.id] : [])));
+  const controlVerifications = threat.attackVector
+    ? [
+        ...mits.map((m) => getAllMitigations().find((c) => c.id === m.id)),
+        ...mitTopUp,
+      ].flatMap((c) => c?.verifications ?? [])
+    : [];
+  const ownIds = [...new Set(controlVerifications)].filter((id) => !verIds.has(id));
+  const verTopUp = [
+    ...ownIds,
+    ...selectCategoryVerifications(threat.strideCategory, {
+      tags,
+      exclude: new Set([...verIds, ...ownIds]),
+      limit: CATEGORY_CONTROL_CAP,
+    }).map((v) => v.id),
+  ]
     .slice(0, Math.max(0, CATEGORY_CONTROL_CAP - vers.length))
-    .map((v) => ({ id: v.id }));
+    .map((id) => ({ id }));
 
   return {
     ...threat,
-    proposedMitigations: [...mits, ...mitTopUp],
+    proposedMitigations: [...mits, ...mitTopUp.map((m) => ({ id: m.id }))],
     proposedVerifications: [...vers, ...verTopUp],
   };
 }
@@ -89,6 +113,7 @@ function enrichWithCategoryControls(threat: ThreatReference): ThreatReference {
 export function buildAttackPathThreatReferences(
   attackTrees: AttackTreeData | null | undefined,
   requireMitigation: boolean = true,
+  tags?: ProjectTags,
 ): ThreatReference[] {
   const trees = attackTrees?.trees ?? [];
   if (trees.length === 0) return [];
@@ -129,7 +154,7 @@ export function buildAttackPathThreatReferences(
           ? a.relevance === "relevant" &&
               (requireMitigation ? isReadyForRisk(a) : true)
           : false;
-      }).map(enrichWithCategoryControls),
+      }).map((threat) => enrichWithCategoryControls(threat, tags)),
     );
   }
 

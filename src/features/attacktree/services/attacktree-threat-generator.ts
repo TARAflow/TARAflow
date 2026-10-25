@@ -226,6 +226,7 @@ function createThreatForPath(
 
     linkedAssetIds: [assetId],
     proposedMitigations: toMitigationDrafts(path.mitigations),
+    ...(path.attackVector ? { attackVector: path.attackVector } : {}),
     // Verifications are resolved from the catalog by the threat/app layer, as for
     // the STRIDE generators. Nothing to seed from the tree.
     proposedVerifications: [],
@@ -421,6 +422,7 @@ function createSecondaryThreatForPath(
     // for the register's per-asset views (mirrors how proposedVerifications
     // are resolved from the catalog at sync time, not here).
     proposedMitigations: toMitigationDrafts(path.mitigations),
+    ...(path.attackVector ? { attackVector: path.attackVector } : {}),
     proposedVerifications: [],
     trustBoundaryId: null,
     trustBoundaryName: null,

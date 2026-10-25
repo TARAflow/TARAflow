@@ -88,6 +88,8 @@ export {
   resolveVerificationDrafts,
   getAllMitigations,
   getAllVerifications,
+  selectCategoryControls,
+  selectCategoryVerifications,
 } from "./services/threat-catalog-service";
 
 export { syncThreatsWithGraph } from "./services/sync-threats-with-graph";

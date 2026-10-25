@@ -66,8 +66,10 @@ every vector.
 **D3 — Vector-aware top-up.** Attack-path threats are topped up from the
 controls with the same STRIDE letter whose `attackVectors` contain the path's
 vector or are absent. Controls with a matching vector come before generic ones;
-within a group, catalog order applies. A path without `av` behaves exactly as
-today, so existing projects are unchanged.
+within a group, catalog order applies. With a vector, the proposed
+verifications are those of the chosen controls first, then the category fill
+(otherwise a physical path would get load-test verifications). A path without
+`av` behaves exactly as today, so existing projects are unchanged.
 
 **D4 — Context applies to controls.** Both top-ups (attack path and generic
 element fallback) apply `matchesContext` to the control's `context` with the
@@ -151,5 +153,5 @@ Each new control gets a verification (`V-…`) and en/de texts.
 |---|---|---|---|
 | 1 | `av=` parsed on every node (aliases, case-insensitive, comma form on leaves; unknown value → parser warning `unknownAttackVector`, ignored); `AttackVector` type in `shared/models/attack-vector.ts`; `AttackTreeNode.attackVector`, `AttackPath.attackVector` (closest to the leaf wins); editor highlighting; a changed `av=` counts as a stale ast (F7); the report's tree structure shows the vector next to the gate ("(OR · physical)"). Attack potential, feasibility and path keys unchanged (golden test). | 148 | done |
 | 2 | Catalog: `MitigationEntry.attackVectors`; D5 mapping on 53 existing controls (plus `M-IF-S-002` → adjacent); the 20 controls of §3 with one verification each (`V-NET-001` …), en/de texts, placed in the catalog file of their STRIDE letter; `TemplateContext.domain` documented as the domain gate. Tests: valid vectors, every control's verifications and en/de texts, mapping and new controls pinned. Not yet used for selection (step 3). | 149 | done |
-| 3 | Selection: vector-aware top-up (D3), context filter (D4) | – | open |
+| 3 | Selection: `selectCategoryControls` / `selectCategoryVerifications` in the threat catalog service (STRIDE category, project context via `matchesContext`, vector order of D3, exclude, limit); the attack-path builder uses them with the project tags and the path vector (`ThreatReference.attackVector`, set by the tree's threat generator), verifications follow the chosen controls; the generic element fallback filters by context. Without `av`, and for projects whose tags match all contexts, the proposals are the same as before. | 150 | done |
 | 4 | Headlamp example | – | open |
