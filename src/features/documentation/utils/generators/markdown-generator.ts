@@ -57,19 +57,19 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
 
   // ==================== TOC ====================
 
+  // Explicit anchor (plan F6): renderers slug headings differently, and the
+  // title-derived slug broke on parentheses, umlauts and custom titles.
+  protected chapterAnchor(chapterId: string): string {
+    return `<a id="chapter-${chapterId}"></a>\n\n`;
+  }
+
   protected generateTocContent(chapters: ChapterContent[]): string {
     const tocLines: string[] = [];
     let chapterNum = 1;
 
-    for (const chapter of chapters) {
-      const chapterConfig = this.ctx.config.chapters.find(
-        (c) => c.id === chapter.id,
-      );
-      if (chapterConfig && chapter.hasContent) {
-        const anchor = chapter.title.toLowerCase().replace(/[^a-z0-9]/g, "-");
-        tocLines.push(`${chapterNum}. [${chapter.title}](#${anchor})`);
-        chapterNum++;
-      }
+    for (const chapter of this.visibleChapters(chapters)) {
+      tocLines.push(`${chapterNum}. [${chapter.title}](#chapter-${chapter.id})`);
+      chapterNum++;
     }
 
     if (tocLines.length === 0) {

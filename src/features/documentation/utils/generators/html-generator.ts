@@ -103,13 +103,10 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     innerContent += this.generateHeader();
     innerContent += this.generateToc(chapters);
 
-    for (const chapter of chapters) {
-      const chapterConfig = this.ctx.config.chapters.find(
-        (c) => c.id === chapter.id,
-      );
-      if (chapterConfig && chapter.hasContent) {
-        innerContent += chapter.content;
-      }
+    // Disabled chapters stay out (plan F6 — this loop used to check only
+    // hasContent).
+    for (const chapter of this.visibleChapters(chapters)) {
+      innerContent += this.chapterAnchor(chapter.id) + chapter.content;
     }
 
     innerContent += this.generateFooter();
@@ -132,25 +129,20 @@ export class HtmlGenerator extends BaseDocumentGenerator {
 
   // ==================== TOC ====================
 
+  protected chapterAnchor(chapterId: string): string {
+    return `<a id="chapter-${chapterId}"></a>\n`;
+  }
+
   protected generateTocContent(chapters: ChapterContent[]): string {
     const tocItems: string[] = [];
 
-    for (const chapter of chapters) {
-      const chapterConfig = this.ctx.config.chapters.find(
-        (c) => c.id === chapter.id,
+    for (const chapter of this.visibleChapters(chapters)) {
+      tocItems.push(
+        replacePlaceholders(HTML_TEMPLATES.tocItem, {
+          anchor: `chapter-${chapter.id}`,
+          title: chapter.title,
+        }),
       );
-      if (chapterConfig && chapter.hasContent) {
-        const anchor = chapter.title
-          .toLowerCase()
-          .replace(/[^a-z0-9äöüß]/g, "-")
-          .replace(/-+/g, "-");
-        tocItems.push(
-          replacePlaceholders(HTML_TEMPLATES.tocItem, {
-            anchor,
-            title: chapter.title,
-          }),
-        );
-      }
     }
 
     if (tocItems.length === 0) {
