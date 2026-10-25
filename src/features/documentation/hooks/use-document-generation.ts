@@ -26,6 +26,7 @@ import {
 } from "../utils/pdf-helpers";
 
 import type { DocTabProps } from "../models/doc-types";
+import { isStrideMethodDisabled } from "../utils/stride-method-scope";
 
 // ==================== TYPES ====================
 
@@ -174,14 +175,20 @@ export const useDocumentGeneration = ({
         (asset: any) =>
           asset.linkedDFDElements && asset.linkedDFDElements.length > 0,
       ),
-      "threats-per-element": threats.perElement > 0,
-      "threats-per-interaction": threats.perInteraction > 0,
+      // A method the preset switches off has no chapter, even with stored
+      // threats (ISO/SAE 21434: per-interaction) — same rule as the report.
+      "threats-per-element":
+        threats.perElement > 0 && !isStrideMethodDisabled(project.info?.tags, "per-element"),
+      "threats-per-interaction":
+        threats.perInteraction > 0 && !isStrideMethodDisabled(project.info?.tags, "per-interaction"),
       "threats-attack-path": (project.risks?.risks ?? []).some(
         (r: any) =>
           r.sourceStrideMethod === "attack-path" && r.moscowPriority !== "wont",
       ),
-      "risks-per-element": risks.perElement > 0,
-      "risks-per-interaction": risks.perInteraction > 0,
+      "risks-per-element":
+        risks.perElement > 0 && !isStrideMethodDisabled(project.info?.tags, "per-element"),
+      "risks-per-interaction":
+        risks.perInteraction > 0 && !isStrideMethodDisabled(project.info?.tags, "per-interaction"),
       // ISO/SAE 21434 (plan F4): attack-path risks per threat scenario — only
       // for iso-21434 projects.
       "risks-attack-path":

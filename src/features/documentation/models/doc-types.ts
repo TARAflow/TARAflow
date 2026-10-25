@@ -125,6 +125,8 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "asset-element-relations", enabled: true, autoHideIfEmpty: true },
   { id: "threats-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "threats-per-interaction", enabled: true, autoHideIfEmpty: true },
+  // Attack trees before the threat scenarios they produce (ISO 21434 plan F10).
+  { id: "attack-trees", enabled: true, autoHideIfEmpty: true },
   { id: "threats-attack-path", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-element", enabled: true, autoHideIfEmpty: true },
   { id: "risks-per-interaction", enabled: true, autoHideIfEmpty: true },
@@ -132,7 +134,6 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "srsl-assessment", enabled: true, autoHideIfEmpty: true },
   { id: "accepted-risks", enabled: true, autoHideIfEmpty: true },
   { id: "traceability-matrix", enabled: true, autoHideIfEmpty: true },
-  { id: "attack-trees", enabled: true, autoHideIfEmpty: true },
   { id: "appendix", enabled: false, autoHideIfEmpty: true },
 ];
 

@@ -7,6 +7,8 @@
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { isoScenarioSummary, isoScenarioTitle } from "../iso-scenario-text";
+import { controlLabels } from "../control-text";
+import { isStrideMethodDisabled } from "../stride-method-scope";
 import {
   attackTreeReportSections,
   attackTreesIntro,
@@ -313,20 +315,26 @@ export class PdfMakeConverter {
             content.push(...this.createAssets());
           }
           break;
+        // One chapter per method, each only with its own threats; none for a
+        // method the preset switches off (ISO/SAE 21434: per-interaction).
         case "threats-per-element":
+          if (this.getThreatsPerElement().length > 0 && !this.methodDisabled("per-element")) {
+            content.push(...this.createThreats("per-element"));
+          }
+          break;
         case "threats-per-interaction":
-          if (this.hasThreats()) {
-            content.push(...this.createThreats());
+          if (this.getThreatsPerInteraction().length > 0 && !this.methodDisabled("per-interaction")) {
+            content.push(...this.createThreats("per-interaction"));
           }
           break;
         // One chapter per method, each only with its own risks.
         case "risks-per-element":
-          if (this.getRisksPerElement().length > 0) {
+          if (this.getRisksPerElement().length > 0 && !this.methodDisabled("per-element")) {
             content.push(...this.createRisks("per-element"));
           }
           break;
         case "risks-per-interaction":
-          if (this.getRisksPerInteraction().length > 0) {
+          if (this.getRisksPerInteraction().length > 0 && !this.methodDisabled("per-interaction")) {
             content.push(...this.createRisks("per-interaction"));
           }
           break;
@@ -800,17 +808,16 @@ export class PdfMakeConverter {
 
   // ==================== THREATS ====================
 
-  private createThreats(): Content[] {
+  private methodDisabled(method: "per-element" | "per-interaction"): boolean {
+    return isStrideMethodDisabled(this.project.info?.tags, method);
+  }
+
+  private createThreats(method: "per-element" | "per-interaction"): Content[] {
     const content: Content[] = [];
-
-    // Determine which method has threats
-    const threatsPerElement = this.getThreatsPerElement();
-    const threatsPerInteraction = this.getThreatsPerInteraction();
-
-    const method =
-      threatsPerElement.length > 0 ? "per-element" : "per-interaction";
     const threats =
-      method === "per-element" ? threatsPerElement : threatsPerInteraction;
+      method === "per-element"
+        ? this.getThreatsPerElement()
+        : this.getThreatsPerInteraction();
 
     content.push({
       text: this.chapterTitle(
@@ -1125,15 +1132,14 @@ export class PdfMakeConverter {
         this.project.computed.moscowLabels.get(risk.moscowPriority) ??
         risk.moscowPriority;
 
-      // Format mitigations (mirrors base-generator.ts: notes take priority,
-      // fall back to the raw catalog ID — no catalog-text resolution here,
-      // unlike the Threats table's proposedMitigations)
+      // "ID — text" per control, one per line (same as base-generator.ts).
       const mitigations =
-        risk.selectedMitigations
-          .filter((m) => m.status !== "rejected")
-          .map((m) => m.notes?.trim() || m.id || "")
-          .filter(Boolean)
-          .join(", ") || "-";
+        controlLabels(
+          risk.selectedMitigations.filter((m) => m.status !== "rejected"),
+          "mitigation",
+        )
+          .map((s) => `• ${s}`)
+          .join("\n") || "-";
 
       tableBody.push([
         { text: formatRiskLabel(risk) },

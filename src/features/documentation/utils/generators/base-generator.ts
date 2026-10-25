@@ -4,6 +4,8 @@
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
+import { controlLabels } from "../control-text";
+import { isStrideMethodDisabled } from "../stride-method-scope";
 import {
   attackTreeReportSections,
   attackTreesIntro,
@@ -77,7 +79,6 @@ import {
   processConditionals,
   truncateText,
   formatSecurityGoals,
-  formatMitigations,
   getYesNoText,
 } from "../templates";
 // NOTE: Adjust import path based on your project structure:
@@ -1208,8 +1209,11 @@ export abstract class BaseDocumentGenerator {
         ? (project.threats?.perElementTables ?? [])
         : (project.threats?.perInteractionTables ?? []);
 
-    // Flatten tables to get all threats
-    const threats = tables.flatMap((table) => table.threats);
+    // Flatten tables to get all threats — none when the preset switches the
+    // method off (ISO/SAE 21434: per-interaction), even if threats are stored.
+    const threats = isStrideMethodDisabled(project.info?.tags, method)
+      ? []
+      : tables.flatMap((table) => table.threats);
 
     const chapterId: DocChapterId =
       method === "per-element"
@@ -1345,9 +1349,17 @@ export abstract class BaseDocumentGenerator {
         strideCategory,
         elementOrFlow: this.escapeTableText(assetLabel(r.linkedAssetIds)),
         threatDescription: this.escapeTableText(threat),
-        // ISO mode: mitigation / verification live on the risk, not the threat.
-        mitigation: "-",
-        verification: "-",
+        // ISO mode: mitigation / verification live on the risk, not the threat —
+        // the ones selected on the risk of this path.
+        mitigation: this.controlList(
+          controlLabels(
+            (r.selectedMitigations ?? []).filter((m) => m.status !== "rejected"),
+            "mitigation",
+          ),
+        ),
+        verification: this.controlList(
+          controlLabels((r.selectedVerifications ?? []).map((id) => ({ id })), "verification"),
+        ),
       };
       rows.push(
         replacePlaceholders(this.getAttackPathThreatRowTemplate(), values),
@@ -1367,6 +1379,13 @@ export abstract class BaseDocumentGenerator {
   }
 
   // ==================== RISKS ====================
+
+  /** "• a<br>• b" with each entry escaped, "-" when empty (threat-table layout). */
+  protected controlList(labels: string[]): string {
+    return labels.length > 0
+      ? labels.map((s) => `• ${this.escapeTableText(s)}`).join("<br>")
+      : "-";
+  }
 
   /** One row of a risk table (all risk chapters share it). */
   protected riskRow(
@@ -1399,12 +1418,11 @@ export abstract class BaseDocumentGenerator {
       strideCategory: risk.strideCategory,
       threatDescription: this.escapeTableText(threatDescription),
       riskBeforeLabel,
-      mitigations: this.escapeTableText(
-        formatMitigations(
-          risk.selectedMitigations
-            .filter((m) => m.status !== "rejected")
-            .map((m) => m.notes?.trim() || m.id || "")
-            .filter(Boolean),
+      // "ID — text" per control, one per line (like the threat tables).
+      mitigations: this.controlList(
+        controlLabels(
+          risk.selectedMitigations.filter((m) => m.status !== "rejected"),
+          "mitigation",
         ),
       ),
       riskAfterLabel,
@@ -1420,8 +1438,11 @@ export abstract class BaseDocumentGenerator {
   ): ChapterContent {
     const { project } = this.ctx;
 
-    // Filter risks by STRIDE method and exclude won't
-    const allRisks = project.risks?.risks ?? [];
+    // Filter risks by STRIDE method and exclude won't; none for a method the
+    // preset switches off.
+    const allRisks = isStrideMethodDisabled(project.info?.tags, method)
+      ? []
+      : (project.risks?.risks ?? []);
     const risks = allRisks.filter(
       (r) => r.sourceStrideMethod === method && r.moscowPriority !== "wont",
     );
