@@ -73,7 +73,7 @@ import {
   NODE_SPACING,
   NODE_RADIUS,
   layoutAssetGraph,
-  moveNodeHorizontally,
+  moveNode,
   type Point,
 } from "./layout-asset-graph";
 import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
@@ -393,27 +393,35 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   // While dragging, the moved x overlays the layout; on release it becomes a
   // known position (AR-12), is remembered locally (FR-V15) and the layout is
   // recomputed — every position is then known, so nothing else moves.
-  const [moving, setMoving] = useState<{ id: string; startClientX: number; x: number } | null>(null);
+  const [moving, setMoving] = useState<{
+    id: string;
+    startClientX: number;
+    startClientY: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const movingRef = useRef(moving);
   movingRef.current = moving;
   // A click follows the pointer-up of a move — it must not select the node.
   const suppressClickRef = useRef(false);
   const positions = useMemo(() => {
     if (!moving) return layout.positions;
-    const p = layout.positions.get(moving.id);
-    return p ? new Map(layout.positions).set(moving.id, { x: moving.x, y: p.y }) : layout.positions;
+    return layout.positions.has(moving.id)
+      ? new Map(layout.positions).set(moving.id, { x: moving.x, y: moving.y })
+      : layout.positions;
   }, [layout, moving]);
   const sideColumnNode = (id: string) => {
     const node = graph.nodes.find((n) => n.id === id);
     if (node?.kind === "hazard") return true;
     return node?.kind === "asset" && (ORTHOGONAL_LAYERS as readonly string[]).includes(String(node.group));
   };
-  const movedPositions = (id: string, dx: number) =>
-    moveNodeHorizontally(layout.positions, id, dx, { sideColumn: sideColumnNode(id), lanes: layout.lanes });
-  const commitMove = (id: string, x: number) => {
+  // Vertical lanes: along the lane; side column: free in x, y onto a row.
+  const movedTo = (id: string, dx: number, dy: number) =>
+    moveNode(layout.positions, id, dx, dy, { sideColumn: sideColumnNode(id), lanes: layout.lanes }).get(id);
+  const commitMove = (id: string, to: Point) => {
     const p = layout.positions.get(id);
-    if (!p || p.x === x) return;
-    positionsRef.current.set(id, { x, y: p.y });
+    if (!p || (p.x === to.x && p.y === to.y)) return;
+    positionsRef.current.set(id, to);
     savePositionsRef.current();
     setLayoutEpoch((e) => e + 1);
   };
@@ -422,23 +430,23 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     e.stopPropagation();
     e.preventDefault();
     const p = layout.positions.get(id);
-    if (p) setMoving({ id, startClientX: e.clientX, x: p.x });
+    if (p) setMoving({ id, startClientX: e.clientX, startClientY: e.clientY, x: p.x, y: p.y });
   };
   useEffect(() => {
     if (!moving) return;
     const k = transform.k || 1;
-    const start = moving.startClientX;
-    const id = moving.id;
+    const { startClientX, startClientY, id } = moving;
     const move = (e: PointerEvent) => {
-      const x = movedPositions(id, (e.clientX - start) / k).get(id)?.x;
-      if (x !== undefined) setMoving((m) => (m ? { ...m, x } : m));
+      const to = movedTo(id, (e.clientX - startClientX) / k, (e.clientY - startClientY) / k);
+      if (to) setMoving((m) => (m ? { ...m, x: to.x, y: to.y } : m));
     };
     const up = () => {
       const m = movingRef.current;
       setMoving(null);
       if (m) {
-        suppressClickRef.current = m.x !== layout.positions.get(m.id)?.x;
-        commitMove(m.id, m.x);
+        const before = layout.positions.get(m.id);
+        suppressClickRef.current = m.x !== before?.x || m.y !== before?.y;
+        commitMove(m.id, { x: m.x, y: m.y });
       }
     };
     const esc = (e: KeyboardEvent) => {
@@ -824,14 +832,20 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     const edgeId = target.closest?.("[data-edge-id]")?.getAttribute("data-edge-id") ?? null;
     const node = nodeId ? graph.nodes.find((n) => n.id === nodeId) : undefined;
 
-    // FR-V17e: Ctrl / ⌘ + Shift + ←/→ moves the focused node along its lane.
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+    // FR-V17e: Ctrl / ⌘ + Shift + arrows move the focused node — ←/→ by a
+    // third of the spacing, ↑/↓ a row (side column only).
+    const moveStep: Record<string, [number, number]> = {
+      ArrowLeft: [-NODE_SPACING / 3, 0],
+      ArrowRight: [NODE_SPACING / 3, 0],
+      ArrowUp: [0, -LANE_HEIGHT],
+      ArrowDown: [0, LANE_HEIGHT],
+    };
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && moveStep[e.key]) {
       const id = nodeId ?? focusedNodeId;
       if (!id) return;
       e.preventDefault();
-      const dx = (e.key === "ArrowLeft" ? -1 : 1) * (NODE_SPACING / 3);
-      const x = movedPositions(id, dx).get(id)?.x;
-      if (x !== undefined) commitMove(id, x);
+      const to = movedTo(id, ...moveStep[e.key]);
+      if (to) commitMove(id, to);
       return;
     }
 
@@ -1701,7 +1715,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   <g
                     key={n.id}
                     transform={`translate(${p.x},${p.y})`}
-                    style={{ cursor: moveKeyHeld ? "ew-resize" : "pointer", outline: "none" }}
+                    style={{ cursor: moveKeyHeld ? "move" : "pointer", outline: "none" }}
                     data-moving={moving?.id === n.id ? "" : undefined}
                     onPointerDown={(e) => startMove(n.id, e)}
                     onClick={unlessMoved(() => selectHazardNode(n.hazardId))}
@@ -1767,7 +1781,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   key={n.id}
                   transform={`translate(${p.x},${p.y})`}
                   style={{
-                    cursor: moveKeyHeld ? "ew-resize" : "pointer",
+                    cursor: moveKeyHeld ? ((ORTHOGONAL_LAYERS as readonly string[]).includes(String(n.group)) ? "move" : "ew-resize") : "pointer",
                     opacity: targetClass === "invalid" ? 0.3 : 1,
                     outline: "none",
                   }}

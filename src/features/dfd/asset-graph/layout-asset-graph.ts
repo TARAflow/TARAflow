@@ -7,8 +7,12 @@
 //     (process, service, physical, human; environment next to human).
 //     Element anchors get their own lane below data. Hazard Items get a lane
 //     in the side column directly above human (G1).
-//   - d3-force with a strong pull to the lane (forceY / forceX for the side
-//     column), weak link forces, collision. Run synchronously to rest.
+//   - Every node sits exactly on a row (fixed y): the nodes of a vertical
+//     lane all at the lane's height, side-column nodes on their row — or, once
+//     moved, on the row they were moved to (FR-V17, rows = lane heights).
+//     d3-force only spreads them horizontally: a pull to the node's slot
+//     (vertical lanes) or to the column (side column), weak link forces,
+//     collision. Run synchronously to rest.
 //   - Deterministic: initial positions come from the (sorted) node order and
 //     d3-force's own random source is a fixed-seed LCG — same input, same
 //     picture (AR-10).
@@ -26,7 +30,6 @@ import {
   forceLink,
   forceSimulation,
   forceX,
-  forceY,
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3";
@@ -144,8 +147,18 @@ function computeLanes(
 
 interface SimNode extends SimulationNodeDatum {
   id: string;
-  laneY: number;
+  /** Column centre (side column) — a strong pull. */
   targetX?: number;
+  /** Start slot in a vertical lane — a mild pull, so lanes stay spread. */
+  slotX?: number;
+}
+
+/** The rows a side-column node can sit on: lane heights, top to bottom lane. */
+function snapToRow(y: number, lanes: readonly AssetGraphLane[]): number {
+  if (lanes.length === 0) return y;
+  const ys = lanes.map((l) => l.y);
+  const row = Math.round(y / LANE_HEIGHT) * LANE_HEIGHT;
+  return Math.min(Math.max(row, Math.min(...ys)), Math.max(...ys));
 }
 
 /**
@@ -179,13 +192,17 @@ export function layoutAssetGraph(
   const simNodes: SimNode[] = graph.nodes.map((n) => {
     const slot = slots.get(laneKey(n))!;
     const laneY = slot.lane.y;
+    const sideColumn = slot.lane.kind === "orthogonal";
     const stored = previous.get(n.id);
     const known =
-      stored && (slot.lane.kind === "orthogonal" || Math.abs(stored.y - laneY) <= LANE_HEIGHT / 2)
+      stored && (sideColumn || Math.abs(stored.y - laneY) <= LANE_HEIGHT / 2)
         ? stored
         : undefined;
     if (known) {
-      return { id: n.id, laneY, targetX: slot.targetX, x: known.x, y: known.y, fx: known.x, fy: known.y };
+      // A vertical lane's nodes share its height; a side-column node keeps
+      // its row. Older remembered positions snap back onto it.
+      const y = sideColumn ? snapToRow(known.y, lanes) : laneY;
+      return { id: n.id, targetX: slot.targetX, x: known.x, y, fx: known.x, fy: y };
     }
     const placedNeighbour = (neighbours.get(n.id) ?? [])
       .map((id) => previous.get(id))
@@ -196,7 +213,14 @@ export function layoutAssetGraph(
       : slot.targetX !== undefined
         ? slot.targetX + (i % 2) * (NODE_SPACING / 2)
         : i * NODE_SPACING;
-    return { id: n.id, laneY, targetX: slot.targetX, x, y: laneY };
+    return {
+      id: n.id,
+      targetX: slot.targetX,
+      slotX: slot.targetX === undefined ? x : undefined,
+      x,
+      y: laneY,
+      fy: laneY,
+    };
   });
 
   const movable = simNodes.some((n) => n.fx === undefined);
@@ -207,11 +231,10 @@ export function layoutAssetGraph(
       .map((e) => ({ source: e.source, target: e.target }));
 
     const sim = forceSimulation<SimNode>(simNodes)
-      .force("lane", forceY<SimNode>((n) => n.laneY).strength(1))
       .force(
         "column",
-        forceX<SimNode>((n) => n.targetX ?? (n.x as number)).strength((n) =>
-          n.targetX !== undefined ? 0.6 : 0,
+        forceX<SimNode>((n) => n.targetX ?? n.slotX ?? (n.x as number)).strength((n) =>
+          n.targetX !== undefined ? 0.6 : n.slotX !== undefined ? 0.2 : 0,
         ),
       )
       .force(
@@ -240,31 +263,25 @@ function round(v: number): number {
 
 // ==================== MOVING A NODE (FR-V17) ====================
 
-/** How close a side-column node may come to the vertical lanes. */
-const COLUMN_MARGIN = NODE_SPACING;
-
 /**
- * The positions after moving `id` horizontally by `dx` (graph units): only its
- * x changes, y stays the lane centre, every other node stays where it is
- * (FR-V17). A node of the side column (orthogonal lanes) cannot be pushed into
- * the vertical lanes: its x stays at least one spacing left of the column's
- * nearest lane centre (FR-V17d). The node keeps its lane, so the moved
- * position stays a known position for the next layout (AR-12).
+ * The positions after moving `id` by (`dx`, `dy`) graph units; every other
+ * node stays where it is (FR-V17). A node of a vertical lane (or an anchor)
+ * moves along its lane only: y stays the lane's height. A side-column node
+ * (orthogonal layers, hazards) moves freely in x and snaps in y to the
+ * nearest row — the lane heights from the top to the bottom lane (FR-V17d).
+ * The result is a known position for the next layout (AR-12).
  */
-export function moveNodeHorizontally(
+export function moveNode(
   positions: Positions,
   id: string,
   dx: number,
+  dy: number,
   options: { readonly sideColumn: boolean; readonly lanes: readonly AssetGraphLane[] },
 ): Map<string, Point> {
   const next = new Map(positions);
   const p = positions.get(id);
   if (!p) return next;
-  let x = p.x + dx;
-  if (options.sideColumn) {
-    const columnXs = options.lanes.filter((l) => l.kind === "orthogonal" && l.x !== undefined).map((l) => l.x!);
-    if (columnXs.length > 0) x = Math.max(x, Math.min(...columnXs) - COLUMN_MARGIN);
-  }
-  next.set(id, { x: round(x), y: p.y });
+  const y = options.sideColumn ? snapToRow(p.y + dy, options.lanes) : p.y;
+  next.set(id, { x: round(p.x + dx), y });
   return next;
 }

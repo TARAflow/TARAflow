@@ -1,8 +1,9 @@
 // src/tests/component/asset-graph-move.test.tsx
 //
 // Asset graph design FR-V17 (doc/InProgress/DFD/asset-graph-hazards-and-node-
-// move.md): Ctrl / ⌘ + drag moves one node horizontally along its lane; y,
-// the other nodes and the project stay as they are; the position is
+// move.md): Ctrl / ⌘ + drag moves one node — a vertical-lane node along its
+// lane, a side-column node freely in x and onto a level row; the other nodes
+// and the project stay as they are; the position is
 // remembered locally (FR-V15) and survives until "Rearrange". The click that
 // ends a move does not select the node.
 
@@ -91,14 +92,36 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     expect(onSelectAsset).toHaveBeenCalledWith("d1");
   });
 
-  it("a side-column node cannot be pushed into the vertical lanes (FR-V17d)", () => {
+  it("a side-column node moves freely in x and snaps onto a level row (FR-V17d)", () => {
     view();
     showAll();
-    const [hx] = at("h1");
-    drag("h1", -5000, { ctrlKey: true });
-    const [moved] = at("h1");
-    expect(moved).toBeGreaterThan(Math.max(at("d1")[0], at("d2")[0]));
-    expect(moved).toBeLessThan(hx);
+    const [hx, hy] = at("h1");
+    const [, dataY] = at("d1");
+    expect(hy).not.toBe(dataY);
+    const node = screen.getByTestId("asset-graph-node-h1");
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100, ctrlKey: true });
+    act(() => {
+      window.dispatchEvent(new PointerEvent("pointermove", { clientX: -400, clientY: 100 + (dataY - hy) + 25 }));
+    });
+    act(() => {
+      window.dispatchEvent(new PointerEvent("pointerup", { clientX: -400, clientY: 100 + (dataY - hy) + 25 }));
+    });
+    // Next to the data assets, exactly on their row.
+    expect(at("h1")).toEqual([hx - 500, dataY]);
+  });
+
+  it("a vertical-lane node does not leave its lane", () => {
+    view();
+    const [x1, y1] = at("d1");
+    const node = screen.getByTestId("asset-graph-node-d1");
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100, ctrlKey: true });
+    act(() => {
+      window.dispatchEvent(new PointerEvent("pointermove", { clientX: 150, clientY: 400 }));
+    });
+    act(() => {
+      window.dispatchEvent(new PointerEvent("pointerup", { clientX: 150, clientY: 400 }));
+    });
+    expect(at("d1")).toEqual([x1 + 50, y1]);
   });
 
   it("the move is remembered locally and kept on reopening; Rearrange discards it", () => {
@@ -121,5 +144,18 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     node.focus();
     fireEvent.keyDown(node, { key: "ArrowRight", ctrlKey: true, shiftKey: true });
     expect(at("d1")).toEqual([x1 + 50, y1]);
+    // ↑/↓ do not move a vertical-lane node.
+    fireEvent.keyDown(node, { key: "ArrowDown", ctrlKey: true, shiftKey: true });
+    expect(at("d1")).toEqual([x1 + 50, y1]);
+  });
+
+  it("Ctrl / ⌘ + Shift + ↓ moves a side-column node one row down", () => {
+    view();
+    showAll();
+    const [hx, hy] = at("h1");
+    const node = screen.getByTestId("asset-graph-node-h1");
+    node.focus();
+    fireEvent.keyDown(node, { key: "ArrowDown", ctrlKey: true, shiftKey: true });
+    expect(at("h1")).toEqual([hx, hy + 140]);
   });
 });

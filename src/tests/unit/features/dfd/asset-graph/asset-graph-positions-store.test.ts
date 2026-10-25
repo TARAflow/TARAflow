@@ -42,7 +42,8 @@ describe("asset graph — local positions", () => {
     const fresh = layoutAssetGraph({ nodes, edges: [] });
     const laneY = fresh.positions.get("d1")!.y;
     const kept = layoutAssetGraph({ nodes, edges: [] }, new Map([["d1", { x: 900, y: laneY + 10 }]]));
-    expect(kept.positions.get("d1")).toEqual({ x: 900, y: laneY + 10 });
+    // Kept, and back on the lane's height (FR-V17: one height per lane).
+    expect(kept.positions.get("d1")).toEqual({ x: 900, y: laneY });
     const stale = layoutAssetGraph({ nodes, edges: [] }, new Map([["d1", { x: 900, y: laneY - LANE_HEIGHT }]]));
     expect(Math.abs(stale.positions.get("d1")!.y - laneY)).toBeLessThan(LANE_HEIGHT / 2);
   });
