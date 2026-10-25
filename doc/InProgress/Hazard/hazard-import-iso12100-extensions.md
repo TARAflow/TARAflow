@@ -1,6 +1,7 @@
 # TARAflow — Hazard import: extensions for ISO 12100 risk assessments
 
-**Status:** Draft v1 · 2026-10-24 · base: `main` after v0.14.0-beta (schema 9)
+**Status:** v2 · 2026-10-25 · decisions taken (§5), implementation on branch
+`feature/hazard-import-iso12100` · base: `main` after v0.15.0-beta (schema 10)
 **Scope:** `features/hazards` (importer, import profile, bridge), `shared/models`
 **Related:** `taraflow-feature-spec-safety-hazard-import-v2.md` (importer architecture),
 `doc/taraflow-safety-model.md` (canonical severity scale),
@@ -89,12 +90,31 @@ The file contains VS (risk assessment, 4 levels) **and** S1/S2 (13849 risk graph
 of 47 rows they contradict the document's own legend (VS 1–2 = S1, VS 3–4 = S2). The
 importer reads only one severity and does not notice the contradiction.
 
+### 3.7 Import profiles are not stored
+
+The profile dialog offers "saved profiles" and "save profile", but neither is wired
+(`hazard-tab.tsx`: `savedProfiles` / `onSaveProfile` commented out, "später:
+Profil-Store"). A profile lives only while the dialog is open; the next import of the
+same customer template starts from scratch.
+
+### 3.8 A second import duplicates everything
+
+`hazard-tab.tsx` appends the imported items and relations to the existing ones
+(`hazards: [...hazardData.hazards, ...outcome.items]`). Re-importing a revised sheet
+yields every hazard twice; changes in the sheet cannot be carried into the project.
+
+### 3.9 A missing severity becomes an injury
+
+`finalizeImport` coerces a missing or unknown severity to `marginal`, which the bridge
+maps to `reversible_minor` — an invented injury on the person edge, with only a warning.
+With a default person (HI-2) this would happen for every row without a severity.
+
 ## 4. Requirements
 
 | ID | Requirement | Prio |
 |---|---|---|
 | HI-1 | **Canonical severity:** the profile field `severity` maps directly onto `SafetyImpact` (`none`, `reversible_minor`, `reversible_major`, `irreversible_minor`, `irreversible_major`, `fatal`). Dropdown and marker groups in the profile dialog offer these six values (i18n labels from `common: safetySeverity.*`). `"none"` only after HI-1b. | MUST |
-| HI-1a | **Backward compatible:** saved profiles and `valueMap`s with the old values (`negligible`, `marginal`, `critical`, `catastrophic`) still load and map as before (`SEVERITY_TO_HUMAN` stays as legacy mapping). When an old profile is loaded the dialog shows a notice "old severity values, please re-map". Hazard Items already imported do not change. | MUST |
+| HI-1a | **Backward compatible:** the old values (`negligible`, `marginal`, `critical`, `catastrophic`) stay valid input — the TARAflow JSON / CSV / spreadsheet adapters read them, and a `valueMap` may still produce them; they map as before (`SEVERITY_TO_HUMAN` stays as legacy mapping). Hazard Items already imported do not change. No "old profile" notice: profiles are stored only from HI-9 on, after HI-1, so no stored profile can contain old values (§3.7). | MUST |
 | HI-1b | **`none` = S0 / "no injury":** only once Phase 1H of the ISO plan has extended `HumanHarmSeverity` by `"none"` (including the `isHazardTarget` change). Then `none` creates a person edge with `severity: "none"`. Until then the dialog does not offer `none`. | MUST (after 1H) |
 | HI-2 | **Default person in the profile:** `ImportProfile.defaultAffectedPersons?: string[]`. Applies to rows without a value in the person column, or when no column is mapped. The dialog warns when neither a column nor a default is set ("without an affected person no severity is imported"). | MUST |
 | HI-3 | **Configurable separator:** `ImportProfile.listSeparator` (default `",/"` = today's behaviour). Applies to `affectedPersons` and the new multi-value fields (HI-5). | SHOULD |
@@ -103,6 +123,9 @@ importer reads only one severity and does not notice the contradiction.
 | HI-6 | **No text in data:** the `Restrisiken:` prefix is dropped; `notes`/`residualRisk` is stored as `importMeta.residualRisk`, the label comes from i18n. Existing `rationale` texts stay unchanged (no migration). | MUST |
 | HI-7 | **Plausibility warning VS ↔ S:** if both `severity` and `riskGraphS` are mapped, the import warns per row when `severity ∈ {reversible_*}` and `S = S2`, or `severity ∈ {irreversible_*, fatal}` and `S = S1`. Warning only — no abort, no value is changed. | SHOULD |
 | HI-8 | **Hazard category:** the profile dialog offers a pre-filled `valueMap` for German and English keywords (quetsch/scher/stoss/schneid/einklemm, crush/shear/impact/cut/trap → `mechanical`; strom, electric → `electrical`; verbrenn/brand, burn/fire → `thermal`; atem/staub/dampf, breath/dust/vapour → `material_substance`; lärm, noise → `noise`; strahlung, radiation → `radiation`); several hits → `combined`. The analyst can change every mapping. | COULD |
+| HI-9 | **Profiles in the project file:** `hazards.importProfiles: ImportProfile[]`. A profile also records its source — file name, sheet and a snapshot of the header row at the last import — and when it was last used. Saved on import (and with "save profile"); the dialog offers the project's profiles. New field → schema fence (K7, §5 D4). Imported Hazard Items record their profile (`importMeta.profileId`). | MUST |
+| HI-10 | **Re-import with reconciliation:** importing a file for which a stored profile matches (same file name or same header signature) proposes that profile and shows how the sheet changed against the header snapshot — columns added, removed or renamed, columns not yet mapped; the analyst adjusts or extends the profile, the change is stored. Rows are reconciled by profile and row id (`externalRef`) instead of appended; a preview shows **new / changed / unchanged / removed** (as the threat regeneration dialog). New → created. Changed → imported fields (description, hazard type, physical hazard potential, `importMeta`) and the import-derived person edges (`provenance: "derived"`) are updated, the item is flagged for review. Unchanged → untouched. Removed from the sheet → kept and flagged "removed from source", never deleted automatically. Analyst-owned data stays: label, rationale, combination type, manual edges, bowtie assignments. | MUST |
+| HI-11 | **No invented severity:** a row with a missing or unknown severity is imported as a Hazard Item **without** a person edge, with one warning per row ("severity missing — assign it in the bowtie"); also when a default person applies. Replaces the coercion to `marginal` (§3.9). | MUST |
 
 **Deliberately out of scope:** safety function and PLr as objects of their own (e.g. a
 safety-function asset carrying the PLr, the protective measure as a mitigation). HI-5
@@ -110,23 +133,30 @@ stores them as structured import metadata so nothing is lost. The modelling (saf
 function = asset per EN 50742 Approach A, protective measure as evidence per
 `safety-feasibility-coupling-design.md`) is a separate decision.
 
-## 5. Open points
+## 5. Decisions (2026-10-25)
 
-| # | Question | Proposal |
+| # | Question | Decision |
 |---|---|---|
-| O1 | Where are import profiles persisted (file export, localStorage, project file)? | Check before HI-2/HI-3. If they live in the project file, K7 (a) applies: new fields → schema fence. |
-| O2 | `importMeta` is `Record<string, string>`. Is that enough for multi-value fields (`lifecyclePhase`)? | Yes: store comma-separated, split for display. No type change. |
-| O3 | Should the import propose affected persons from `lifecyclePhase` (transport → transport staff, maintenance → maintenance staff, …)? | Not automatically. At most as a suggestion in the profile dialog; the mapping belongs to the analyst. |
+| D1 (O1) | Where are import profiles persisted? | Today nowhere (§3.7). From HI-9 on **in the project file** — the profile travels with the project, is versioned and audited, and a re-import of a revised sheet can be compared with it (user). |
+| D2 (O2) | Is `importMeta: Record<string, string>` enough for multi-value fields? | Yes: comma-separated, split for display. New keys in the existing map are no new field — no schema fence for HI-4 / HI-5. |
+| D3 (O3) | Propose affected persons from `lifecyclePhase`? | No. The mapping belongs to the analyst. |
+| D4 | Schema | HI-9 / HI-10 store new fields (`hazards.importProfiles`, the review / removed flags on Hazard Items) → schema fence per K7. The ISO plan reserves schema 11 for 1H-S; one number per release — if both ship together they share 11, otherwise the later release takes 12. |
+| D5 | Missing severity | HI-11: no edge, warning (user). |
+| D6 | HI-8 | In scope, as the last step before HI-1b (user). |
 
 ## 6. Implementation (each commit works on its own)
 
-1. `fix(hazards): keep imported probability and RPN` — HI-4.
+1. `fix(hazards): keep imported probability and RPN` — HI-4, with the "Imported data"
+   section in the hazard dialog (today `importMeta` is shown nowhere).
 2. `fix(hazards): no hard-coded text in imported rationale` — HI-6.
-3. `feat(hazards): default affected persons in the import profile` — HI-2 (+ HI-3 once O1 is settled).
+3. `fix(hazards): no invented severity on import` — HI-11.
 4. `feat(hazards): import severity on the canonical scale` — HI-1, HI-1a.
-5. `feat(hazards): import ISO 12100 / 13849 fields` — HI-5 (+ HI-7).
-6. `feat(hazards): keyword suggestions for the hazard category` — HI-8 (optional).
-7. `feat(hazards): import "none" as no injury` — HI-1b, **after** Phase 1H of the ISO plan.
+5. `feat(hazards): default affected persons and list separator` — HI-2, HI-3.
+6. `feat(hazards): import ISO 12100 / 13849 fields` — HI-5, HI-7.
+7. `feat(hazards): import profiles in the project file` — HI-9, schema fence.
+8. `feat(hazards): re-import with reconciliation` — HI-10.
+9. `feat(hazards): keyword suggestions for the hazard category` — HI-8.
+10. `feat(hazards): import "none" as no injury` — HI-1b, **after** Phase 1H of the ISO plan.
 
 ## 7. Acceptance tests
 
@@ -137,7 +167,7 @@ and two rows with a VS/S contradiction.
 | Req. | Test |
 |---|---|
 | HI-1 | VS mapping 1→`reversible_minor`, 2→`reversible_major`, 3→`irreversible_minor`, 4→`irreversible_major`, 5→`fatal` yields exactly these edge severities. |
-| HI-1a | A profile with `negligible/marginal/critical/catastrophic` loads, shows the notice and imports as before the change (golden comparison). |
+| HI-1a | Input with `negligible/marginal/critical/catastrophic` (JSON adapter and `valueMap`) imports as before the change (golden comparison). |
 | HI-1b | After 1H: `none` yields a person edge `severity: "none"`; the target asset is not safety-relevant. |
 | HI-2 | No person column, default "operator": every hazard has an edge to the asset "operator". No column and no default: dialog notice before the import. |
 | HI-3 | `listSeparator: ","`: "Bediener/Einrichter" stays one person. Default: behaviour as today. |
@@ -145,4 +175,8 @@ and two rows with a VS/S contradiction.
 | HI-5 | All HI-5 fields appear with an i18n label in the hazard dialog; multi-values as separate chips. |
 | HI-6 | Newly imported items contain no "Restrisiken:"; labels en/de exist. |
 | HI-7 | The two contradicting rows of the fixture each produce one warning, no other row does. |
+| HI-8 | "Quetschen, Scheren" → `mechanical`; "electric shock" → `electrical`; a cell with two keyword groups → `combined`; an analyst override of the pre-filled map wins. |
+| HI-9 | After an import the profile is in `hazards.importProfiles` with file name, sheet and header snapshot; reopening the project offers it; an older TARAflow refuses the file (schema fence). |
+| HI-10 | Re-import of the fixture with one row changed, one added, one removed and one new column: preview shows 1 new / 1 changed / 1 removed / rest unchanged and the new column as unmapped; after confirming no duplicates, the changed item is flagged, the removed one flagged and kept, a manual edge and a renamed label survive. |
+| HI-11 | A row without severity, with a default person: item imported, no person edge, one warning. |
 | all | Projects without a hazard import, and items already imported, stay byte-identical. |
