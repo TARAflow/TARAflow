@@ -16,15 +16,26 @@
 //     grouped by the target's layer.
 //   - Anchors (FR-V6): one node per DFD element bound to a visible asset;
 //     always in the focus view, optional in the layer view.
+//   - Hazard Items (FR-V11, layer view): with `showHazards`, every Hazard
+//     Item is a node; its edges to shown assets are drawn, its edges to
+//     assets in hidden layers end in stubs at the hazard (FR-V11a). The focus
+//     view does not show them yet (FR-V11b).
 //   - Nothing is invented (UX-8): only stored edges are drawn.
 
-import { compareDisplayIds, type AssetGroup } from "shared";
+import {
+  compareDisplayIds,
+  isContributesTo,
+  normalizeLegacySafetyImpact,
+  worstEndangersSeverity,
+  type AssetGroup,
+} from "shared";
 import { layerRank } from "./asset-graph-layers";
 import type {
   AssetGraph,
   AssetGraphAnchorNode,
   AssetGraphAssetNode,
   AssetGraphEdge,
+  AssetGraphHazardNode,
   AssetGraphNode,
   AssetGraphOptions,
   AssetGraphSource,
@@ -33,6 +44,7 @@ import type {
 } from "./asset-graph-types";
 
 export const ANCHOR_PREFIX = "el:";
+export const HAZARD_PREFIX = "hz:";
 export const DEFAULT_FOCUS_DEPTH = 1;
 
 const byDisplay = (a: GraphAssetInput, b: GraphAssetInput) =>
@@ -151,6 +163,73 @@ export function buildAssetGraph(
     if (tShown) stubAt(r.targetAssetId, r.sourceAssetId);
   }
 
+  // ── Hazard Items (FR-V11, FR-V11a, FR-V11e) ─────────────────────────────
+  const hazardNodes: AssetGraphHazardNode[] = [];
+  const hazardEdges: AssetGraphEdge[] = [];
+  const hazardItems = source.hazards?.items ?? [];
+  const hazardRelations = source.hazards?.relations ?? [];
+  if (options.view === "layers" && options.showHazards === true) {
+    const seenEdges = new Set<string>();
+    const pushEdge = (edge: AssetGraphEdge) => {
+      if (seenEdges.has(edge.id)) return;
+      seenEdges.add(edge.id);
+      hazardEdges.push(edge);
+    };
+    for (const item of hazardItems) {
+      const nodeId = HAZARD_PREFIX + item.id;
+      let linked = false;
+      for (const r of hazardRelations) {
+        const contributes = isContributesTo(r);
+        if ((contributes ? r.to : r.from) !== item.id) continue;
+        const assetId = contributes ? r.from : r.to;
+        const asset = assetsById.get(assetId);
+        if (!asset) continue; // dangling: nothing is invented
+        linked = true;
+        if (!shown.has(assetId)) {
+          if (visibleLayers.has(asset.assetGroup)) continue;
+          const perLayer = stubCounts.get(nodeId) ?? stubCounts.set(nodeId, new Map()).get(nodeId)!;
+          perLayer.set(asset.assetGroup, (perLayer.get(asset.assetGroup) ?? 0) + 1);
+          continue;
+        }
+        if (contributes) {
+          pushEdge({
+            id: `${assetId}->${nodeId}`,
+            kind: "contributes_to",
+            source: assetId,
+            target: nodeId,
+            relationType: "contributes_to",
+            relevance: r.relevance,
+          });
+        } else {
+          const severity =
+            r.impact.target === "human"
+              ? normalizeLegacySafetyImpact(r.impact.severity) ?? r.impact.severity
+              : r.impact.severity;
+          pushEdge({
+            id: `${nodeId}->${assetId}`,
+            kind: "endangers",
+            source: nodeId,
+            target: assetId,
+            relationType: "endangers",
+            severity,
+          });
+        }
+      }
+      const worst = worstEndangersSeverity(item.id, hazardRelations);
+      hazardNodes.push({
+        kind: "hazard",
+        id: nodeId,
+        hazardId: item.id,
+        displayId: item.externalRef?.trim() || item.label,
+        name: item.label,
+        severity: normalizeLegacySafetyImpact(worst.severity) ?? worst.severity,
+        severityRank: worst.rank,
+        linked,
+      });
+    }
+    hazardNodes.sort((a, b) => compareDisplayIds(a.displayId, b.displayId) || byId(a, b));
+  }
+
   const stubs: Record<string, AssetGraphStub[]> = {};
   for (const [nodeId, perLayer] of [...stubCounts].sort(([a], [b]) => (a < b ? -1 : 1))) {
     stubs[nodeId] = [...perLayer]
@@ -202,8 +281,8 @@ export function buildAssetGraph(
     else assetsOutsideFocus += 1;
   }
 
-  const nodes: AssetGraphNode[] = [...assetNodes, ...anchorNodes];
-  const allEdges = [...a2aEdges.sort(byId), ...anchorEdges.sort(byId)];
+  const nodes: AssetGraphNode[] = [...assetNodes, ...anchorNodes, ...hazardNodes];
+  const allEdges = [...a2aEdges.sort(byId), ...anchorEdges.sort(byId), ...hazardEdges.sort(byId)];
   return {
     nodes,
     edges: allEdges,
@@ -216,6 +295,8 @@ export function buildAssetGraph(
       edgesHiddenByFilter,
       edgesVisible: a2aEdges.length,
       anchorsVisible: anchorNodes.length,
+      hazardsTotal: hazardItems.length,
+      hazardsVisible: hazardNodes.length,
     },
     focusMissing,
   };

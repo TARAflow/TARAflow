@@ -9,12 +9,21 @@
 // it, and features may not import each other.
 
 import { isEndangers, type HazardRelation } from "./hazard-types";
-import { SAFETY_SEVERITIES, safetySeverityToFactor, type SafetySeverity } from "./safety-types";
+import {
+  normalizeLegacySafetyImpact,
+  SAFETY_SEVERITIES,
+  safetySeverityToFactor,
+  type SafetySeverity,
+} from "./safety-types";
 
-/** 0 (none) … 4 (worst) for any endangers severity. */
+/**
+ * 0 (none) … 4 (worst) for any endangers severity. Person harm in the pre-v9
+ * vocabulary ("fatality" …) ranks as its canonical value.
+ */
 export function hazardSeverityRank(severity: string): number {
-  if ((SAFETY_SEVERITIES as readonly string[]).includes(severity)) {
-    return safetySeverityToFactor(severity as SafetySeverity);
+  const person = normalizeLegacySafetyImpact(severity);
+  if (person && (SAFETY_SEVERITIES as readonly string[]).includes(person)) {
+    return safetySeverityToFactor(person as SafetySeverity);
   }
   switch (severity) {
     case "critical":

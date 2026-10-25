@@ -84,6 +84,8 @@ export interface DFDTabProps {
   hazards?: AssetGraphHazards | null;
   /** "Show in table" from the asset graph (FR-V13, way back). */
   onShowInTable?: (assetId: string) => void;
+  /** "Open in Hazard tab" from a hazard's card in the asset graph (G9). */
+  onOpenHazard?: (hazardId: string) => void;
   onUpdate: (updates: DFDUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
@@ -122,6 +124,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   graphFocusRequest,
   hazards,
   onShowInTable,
+  onOpenHazard,
 }) => {
   // ==================== LOCAL UI STATE ====================
 
@@ -917,6 +920,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               onShowElement={handleGraphShowElement}
               focusRequest={graphFocus}
               onShowInTable={onShowInTable}
+              onOpenHazard={onOpenHazard}
               onCreateAsset={handleCreateAssetForGroup}
               assetEditing={assetEditingForGraph}
               elementLinking={elementLinkingForGraph}

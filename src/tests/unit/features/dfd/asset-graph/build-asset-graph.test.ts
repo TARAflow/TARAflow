@@ -137,6 +137,8 @@ describe("layer view", () => {
       edgesHiddenByFilter: 0,
       edgesVisible: 2,
       anchorsVisible: 0,
+      hazardsTotal: 0,
+      hazardsVisible: 0,
     });
   });
 

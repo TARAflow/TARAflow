@@ -1,0 +1,572 @@
+{
+  "_source": "Derived from the leveled SmokeDetector example: assets, asset links, Hazard Items and hazard edges only (asset graph design G10). Person severities in the canonical v9 scale.",
+  "assets": {
+    "assets": [
+      {
+        "id": "93c60669-04b1-46c9-b2ef-8a4c0f981e0d",
+        "displayId": "DA-001",
+        "name": "Smoke measurement",
+        "assetGroup": "data"
+      },
+      {
+        "id": "e4b1e979-e47a-4651-a31d-aeefa9208d2d",
+        "displayId": "DA-002",
+        "name": "Calibration parameters",
+        "assetGroup": "data"
+      },
+      {
+        "id": "e7312fae-5597-4faa-bc9f-95ddf196c71b",
+        "displayId": "DA-003",
+        "name": "Alarm configuration",
+        "assetGroup": "data"
+      },
+      {
+        "id": "2feb1aa0-daa7-4da4-8c0e-a53b711ce1a5",
+        "displayId": "DA-004",
+        "name": "Controller firmware",
+        "assetGroup": "data"
+      },
+      {
+        "id": "249c0a16-6f22-43da-8d86-348d393c006f",
+        "displayId": "DA-005",
+        "name": "Sensor firmware",
+        "assetGroup": "data"
+      },
+      {
+        "id": "ac8e1906-703d-468b-a1df-883c2da2c93b",
+        "displayId": "DA-006",
+        "name": "Device credentials",
+        "assetGroup": "data"
+      },
+      {
+        "id": "997835d4-7e7e-4f6c-8ca8-4531bb96ca03",
+        "displayId": "DA-007",
+        "name": "Device and network configuration",
+        "assetGroup": "data"
+      },
+      {
+        "id": "61ae3794-8934-484f-854f-996912ddc96e",
+        "displayId": "DA-008",
+        "name": "Alarm event",
+        "assetGroup": "data"
+      },
+      {
+        "id": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e01",
+        "displayId": "DA-009",
+        "name": "Detector status and fault signal",
+        "assetGroup": "data"
+      },
+      {
+        "id": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e02",
+        "displayId": "DA-010",
+        "name": "Audit log",
+        "assetGroup": "data"
+      },
+      {
+        "id": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e03",
+        "displayId": "DA-011",
+        "name": "Panel commands",
+        "assetGroup": "data"
+      },
+      {
+        "id": "e520e942-211c-4b76-9a8a-7ce7bd3f7622",
+        "displayId": "FU-001",
+        "name": "Smoke detection",
+        "assetGroup": "function"
+      },
+      {
+        "id": "648586d7-dc7a-4abb-894f-7651c4eda336",
+        "displayId": "FU-002",
+        "name": "Alarm signalling",
+        "assetGroup": "function"
+      },
+      {
+        "id": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e04",
+        "displayId": "FU-003",
+        "name": "Fault monitoring",
+        "assetGroup": "function"
+      },
+      {
+        "id": "4bb34010-1d41-429c-8f91-60aa2ad63978",
+        "displayId": "PR-001",
+        "name": "Firmware update",
+        "assetGroup": "process"
+      },
+      {
+        "id": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e05",
+        "displayId": "PR-002",
+        "name": "Maintenance and configuration",
+        "assetGroup": "process"
+      },
+      {
+        "id": "826ac3f3-6083-42dc-a1dc-0ab870641793",
+        "displayId": "SV-001",
+        "name": "Firmware update server",
+        "assetGroup": "service"
+      },
+      {
+        "id": "2f251758-3ec3-414c-a5f6-d1dc33346020",
+        "displayId": "SY-001",
+        "name": "Controller unit",
+        "assetGroup": "system"
+      },
+      {
+        "id": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e06",
+        "displayId": "SY-002",
+        "name": "Optical sensor head",
+        "assetGroup": "system"
+      },
+      {
+        "id": "edb9b5da-ee30-45e7-9c96-697720b36178",
+        "displayId": "HU-001",
+        "name": "Building occupants",
+        "assetGroup": "human"
+      },
+      {
+        "id": "d4c5b2c4-4531-4157-a80a-2948d69de790",
+        "displayId": "HU-002",
+        "name": "Firefighters",
+        "assetGroup": "human"
+      },
+      {
+        "id": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e07",
+        "displayId": "IF-001",
+        "name": "Protected building",
+        "assetGroup": "infrastructure"
+      }
+    ],
+    "relations": [
+      {
+        "id": "a2a-sd-13",
+        "relationType": "consumed_by",
+        "sourceAssetId": "249c0a16-6f22-43da-8d86-348d393c006f",
+        "targetAssetId": "4bb34010-1d41-429c-8f91-60aa2ad63978"
+      },
+      {
+        "id": "a2a-sd-07",
+        "relationType": "required_by",
+        "sourceAssetId": "249c0a16-6f22-43da-8d86-348d393c006f",
+        "targetAssetId": "e520e942-211c-4b76-9a8a-7ce7bd3f7622"
+      },
+      {
+        "id": "a2a-sd-21",
+        "relationType": "implements",
+        "sourceAssetId": "2f251758-3ec3-414c-a5f6-d1dc33346020",
+        "targetAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e04"
+      },
+      {
+        "id": "a2a-sd-23",
+        "relationType": "depends_on",
+        "sourceAssetId": "2f251758-3ec3-414c-a5f6-d1dc33346020",
+        "targetAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e06"
+      },
+      {
+        "id": "a2a-sd-20",
+        "relationType": "implements",
+        "sourceAssetId": "2f251758-3ec3-414c-a5f6-d1dc33346020",
+        "targetAssetId": "648586d7-dc7a-4abb-894f-7651c4eda336"
+      },
+      {
+        "id": "a2a-sd-12",
+        "relationType": "consumed_by",
+        "sourceAssetId": "2feb1aa0-daa7-4da4-8c0e-a53b711ce1a5",
+        "targetAssetId": "4bb34010-1d41-429c-8f91-60aa2ad63978"
+      },
+      {
+        "id": "a2a-sd-06",
+        "relationType": "required_by",
+        "sourceAssetId": "2feb1aa0-daa7-4da4-8c0e-a53b711ce1a5",
+        "targetAssetId": "648586d7-dc7a-4abb-894f-7651c4eda336"
+      },
+      {
+        "id": "a2a-sd-05",
+        "relationType": "required_by",
+        "sourceAssetId": "2feb1aa0-daa7-4da4-8c0e-a53b711ce1a5",
+        "targetAssetId": "e520e942-211c-4b76-9a8a-7ce7bd3f7622"
+      },
+      {
+        "id": "a2a-sd-10",
+        "relationType": "required_by",
+        "sourceAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e01",
+        "targetAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e04"
+      },
+      {
+        "id": "a2a-sd-11",
+        "relationType": "derives_from",
+        "sourceAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e02",
+        "targetAssetId": "61ae3794-8934-484f-854f-996912ddc96e"
+      },
+      {
+        "id": "a2a-sd-09",
+        "relationType": "configures",
+        "sourceAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e03",
+        "targetAssetId": "648586d7-dc7a-4abb-894f-7651c4eda336"
+      },
+      {
+        "id": "a2a-sd-22",
+        "relationType": "implements",
+        "sourceAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e06",
+        "targetAssetId": "e520e942-211c-4b76-9a8a-7ce7bd3f7622"
+      },
+      {
+        "id": "a2a-sd-08",
+        "relationType": "required_by",
+        "sourceAssetId": "61ae3794-8934-484f-854f-996912ddc96e",
+        "targetAssetId": "648586d7-dc7a-4abb-894f-7651c4eda336"
+      },
+      {
+        "id": "a2a-sd-17",
+        "relationType": "depends_on",
+        "sourceAssetId": "648586d7-dc7a-4abb-894f-7651c4eda336",
+        "targetAssetId": "e520e942-211c-4b76-9a8a-7ce7bd3f7622"
+      },
+      {
+        "id": "a2a-sd-19",
+        "relationType": "exposes",
+        "sourceAssetId": "826ac3f3-6083-42dc-a1dc-0ab870641793",
+        "targetAssetId": "249c0a16-6f22-43da-8d86-348d393c006f"
+      },
+      {
+        "id": "a2a-sd-18",
+        "relationType": "exposes",
+        "sourceAssetId": "826ac3f3-6083-42dc-a1dc-0ab870641793",
+        "targetAssetId": "2feb1aa0-daa7-4da4-8c0e-a53b711ce1a5"
+      },
+      {
+        "id": "a2a-sd-01",
+        "relationType": "derives_from",
+        "sourceAssetId": "93c60669-04b1-46c9-b2ef-8a4c0f981e0d",
+        "targetAssetId": "e4b1e979-e47a-4651-a31d-aeefa9208d2d"
+      },
+      {
+        "id": "a2a-sd-02",
+        "relationType": "required_by",
+        "sourceAssetId": "93c60669-04b1-46c9-b2ef-8a4c0f981e0d",
+        "targetAssetId": "e520e942-211c-4b76-9a8a-7ce7bd3f7622"
+      },
+      {
+        "id": "a2a-sd-16",
+        "relationType": "configures",
+        "sourceAssetId": "997835d4-7e7e-4f6c-8ca8-4531bb96ca03",
+        "targetAssetId": "2f251758-3ec3-414c-a5f6-d1dc33346020"
+      },
+      {
+        "id": "a2a-sd-14",
+        "relationType": "required_by",
+        "sourceAssetId": "ac8e1906-703d-468b-a1df-883c2da2c93b",
+        "targetAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e05"
+      },
+      {
+        "id": "a2a-sd-15",
+        "relationType": "consumed_by",
+        "sourceAssetId": "e7312fae-5597-4faa-bc9f-95ddf196c71b",
+        "targetAssetId": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e05"
+      },
+      {
+        "id": "a2a-sd-04",
+        "relationType": "configures",
+        "sourceAssetId": "e7312fae-5597-4faa-bc9f-95ddf196c71b",
+        "targetAssetId": "648586d7-dc7a-4abb-894f-7651c4eda336"
+      },
+      {
+        "id": "a2a-sd-03",
+        "relationType": "configures",
+        "sourceAssetId": "e7312fae-5597-4faa-bc9f-95ddf196c71b",
+        "targetAssetId": "e520e942-211c-4b76-9a8a-7ce7bd3f7622"
+      }
+    ]
+  },
+  "hazards": {
+    "hazards": [
+      {
+        "id": "H-01",
+        "externalRef": "HZ-01",
+        "label": "Fire not detected",
+        "description": "Smoke is present but the detector does not reach the alarm state (blinded or manipulated measurement, raised threshold, wrong calibration, compromised firmware, out-of-service detector not noticed).",
+        "hazardType": "thermal",
+        "combinationType": "ANY",
+        "systemRelevance": "in_scope",
+        "source": "manual"
+      },
+      {
+        "id": "H-02",
+        "externalRef": "HZ-02",
+        "label": "Alarm not transmitted",
+        "description": "The detector decides on alarm but the fire panel does not receive it (loop message suppressed or spoofed reset/silence, relay path manipulated, panel interface compromised).",
+        "hazardType": "thermal",
+        "combinationType": "ANY",
+        "systemRelevance": "in_scope",
+        "source": "manual"
+      },
+      {
+        "id": "H-03",
+        "externalRef": "HZ-03",
+        "label": "Delayed alarm",
+        "description": "The alarm is raised too late (verification delay or pre-alarm stage extended, alarm held back by the firmware).",
+        "hazardType": "thermal",
+        "combinationType": "ANY",
+        "systemRelevance": "in_scope",
+        "source": "manual"
+      },
+      {
+        "id": "H-04",
+        "externalRef": "HZ-04",
+        "label": "False alarm",
+        "description": "Alarm without fire (threshold lowered, calibration shifted, spoofed test command, manipulated firmware) — unwarranted evacuation, possible release of an automatic extinguishing system, loss of trust in alarms.",
+        "hazardType": "other",
+        "combinationType": "ANY",
+        "systemRelevance": "in_scope",
+        "source": "manual"
+      },
+      {
+        "id": "H-05",
+        "externalRef": "HZ-05",
+        "label": "Wrong fire location reported",
+        "description": "The alarm reaches the panel with a wrong zone/address (manipulated zone assignment, altered alarm message).",
+        "hazardType": "thermal",
+        "combinationType": "ANY",
+        "systemRelevance": "in_scope",
+        "source": "manual"
+      }
+    ],
+    "relations": [
+      {
+        "from": "e520e942-211c-4b76-9a8a-7ce7bd3f7622",
+        "hazardDistance": 1,
+        "relevance": "direct",
+        "to": "H-01",
+        "type": "contributes_to"
+      },
+      {
+        "from": "93c60669-04b1-46c9-b2ef-8a4c0f981e0d",
+        "hazardDistance": 2,
+        "relevance": "direct",
+        "to": "H-01",
+        "type": "contributes_to"
+      },
+      {
+        "from": "e7312fae-5597-4faa-bc9f-95ddf196c71b",
+        "hazardDistance": 2,
+        "relevance": "direct",
+        "to": "H-01",
+        "type": "contributes_to"
+      },
+      {
+        "from": "e4b1e979-e47a-4651-a31d-aeefa9208d2d",
+        "hazardDistance": 3,
+        "relevance": "indirect",
+        "to": "H-01",
+        "type": "contributes_to"
+      },
+      {
+        "from": "2feb1aa0-daa7-4da4-8c0e-a53b711ce1a5",
+        "hazardDistance": 2,
+        "relevance": "indirect",
+        "to": "H-01",
+        "type": "contributes_to"
+      },
+      {
+        "from": "249c0a16-6f22-43da-8d86-348d393c006f",
+        "hazardDistance": 3,
+        "relevance": "indirect",
+        "to": "H-01",
+        "type": "contributes_to"
+      },
+      {
+        "from": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e04",
+        "hazardDistance": 2,
+        "relevance": "indirect",
+        "to": "H-01",
+        "type": "contributes_to"
+      },
+      {
+        "from": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e06",
+        "hazardDistance": 2,
+        "relevance": "indirect",
+        "to": "H-01",
+        "type": "contributes_to"
+      },
+      {
+        "from": "H-01",
+        "impact": {
+          "severity": "fatal",
+          "target": "human"
+        },
+        "to": "edb9b5da-ee30-45e7-9c96-697720b36178",
+        "type": "endangers"
+      },
+      {
+        "from": "H-01",
+        "impact": {
+          "severity": "critical",
+          "target": "infrastructure"
+        },
+        "to": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e07",
+        "type": "endangers"
+      },
+      {
+        "from": "648586d7-dc7a-4abb-894f-7651c4eda336",
+        "hazardDistance": 1,
+        "relevance": "direct",
+        "to": "H-02",
+        "type": "contributes_to"
+      },
+      {
+        "from": "61ae3794-8934-484f-854f-996912ddc96e",
+        "hazardDistance": 2,
+        "relevance": "direct",
+        "to": "H-02",
+        "type": "contributes_to"
+      },
+      {
+        "from": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e03",
+        "hazardDistance": 2,
+        "relevance": "direct",
+        "to": "H-02",
+        "type": "contributes_to"
+      },
+      {
+        "from": "2feb1aa0-daa7-4da4-8c0e-a53b711ce1a5",
+        "hazardDistance": 2,
+        "relevance": "indirect",
+        "to": "H-02",
+        "type": "contributes_to"
+      },
+      {
+        "from": "2f251758-3ec3-414c-a5f6-d1dc33346020",
+        "hazardDistance": 2,
+        "relevance": "indirect",
+        "to": "H-02",
+        "type": "contributes_to"
+      },
+      {
+        "from": "H-02",
+        "impact": {
+          "severity": "fatal",
+          "target": "human"
+        },
+        "to": "edb9b5da-ee30-45e7-9c96-697720b36178",
+        "type": "endangers"
+      },
+      {
+        "from": "H-02",
+        "impact": {
+          "severity": "critical",
+          "target": "infrastructure"
+        },
+        "to": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e07",
+        "type": "endangers"
+      },
+      {
+        "from": "e7312fae-5597-4faa-bc9f-95ddf196c71b",
+        "hazardDistance": 2,
+        "relevance": "direct",
+        "to": "H-03",
+        "type": "contributes_to"
+      },
+      {
+        "from": "2feb1aa0-daa7-4da4-8c0e-a53b711ce1a5",
+        "hazardDistance": 2,
+        "relevance": "indirect",
+        "to": "H-03",
+        "type": "contributes_to"
+      },
+      {
+        "from": "H-03",
+        "impact": {
+          "severity": "irreversible_major",
+          "target": "human"
+        },
+        "to": "edb9b5da-ee30-45e7-9c96-697720b36178",
+        "type": "endangers"
+      },
+      {
+        "from": "H-03",
+        "impact": {
+          "severity": "high",
+          "target": "infrastructure"
+        },
+        "to": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e07",
+        "type": "endangers"
+      },
+      {
+        "from": "648586d7-dc7a-4abb-894f-7651c4eda336",
+        "hazardDistance": 1,
+        "relevance": "direct",
+        "to": "H-04",
+        "type": "contributes_to"
+      },
+      {
+        "from": "e7312fae-5597-4faa-bc9f-95ddf196c71b",
+        "hazardDistance": 2,
+        "relevance": "indirect",
+        "to": "H-04",
+        "type": "contributes_to"
+      },
+      {
+        "from": "e4b1e979-e47a-4651-a31d-aeefa9208d2d",
+        "hazardDistance": 3,
+        "relevance": "indirect",
+        "to": "H-04",
+        "type": "contributes_to"
+      },
+      {
+        "from": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e03",
+        "hazardDistance": 2,
+        "relevance": "indirect",
+        "to": "H-04",
+        "type": "contributes_to"
+      },
+      {
+        "from": "H-04",
+        "impact": {
+          "severity": "reversible_major",
+          "target": "human"
+        },
+        "to": "edb9b5da-ee30-45e7-9c96-697720b36178",
+        "type": "endangers"
+      },
+      {
+        "from": "H-04",
+        "impact": {
+          "severity": "medium",
+          "target": "infrastructure"
+        },
+        "to": "5c1d2a0e-7b3f-4e8a-9d61-0f2c4b7a8e07",
+        "type": "endangers"
+      },
+      {
+        "from": "e7312fae-5597-4faa-bc9f-95ddf196c71b",
+        "hazardDistance": 2,
+        "relevance": "direct",
+        "to": "H-05",
+        "type": "contributes_to"
+      },
+      {
+        "from": "61ae3794-8934-484f-854f-996912ddc96e",
+        "hazardDistance": 2,
+        "relevance": "direct",
+        "to": "H-05",
+        "type": "contributes_to"
+      },
+      {
+        "from": "H-05",
+        "impact": {
+          "severity": "irreversible_major",
+          "target": "human"
+        },
+        "to": "d4c5b2c4-4531-4157-a80a-2948d69de790",
+        "type": "endangers"
+      },
+      {
+        "from": "H-05",
+        "impact": {
+          "severity": "irreversible_major",
+          "target": "human"
+        },
+        "to": "edb9b5da-ee30-45e7-9c96-697720b36178",
+        "type": "endangers"
+      }
+    ]
+  }
+}

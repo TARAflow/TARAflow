@@ -5,7 +5,8 @@
 //   - Vertical layers are horizontal lanes, bottom → top: data, function,
 //     system, infrastructure. Orthogonal layers sit in a side column
 //     (process, service, physical, human; environment next to human).
-//     Element anchors get their own lane below data.
+//     Element anchors get their own lane below data. Hazard Items get a lane
+//     in the side column directly above human (G1).
 //   - d3-force with a strong pull to the lane (forceY / forceX for the side
 //     column), weak link forces, collision. Run synchronously to rest.
 //   - Deterministic: initial positions come from the (sorted) node order and
@@ -47,9 +48,19 @@ const COLUMN_GAP = 2 * NODE_SPACING;
 const TICKS = 300;
 
 export const ANCHOR_LANE = "anchors";
+/** Lane of the Hazard Items (FR-V11, G1) — side column, above human. */
+export const HAZARD_LANE = "hazards";
+
+/** Side column rows, top → bottom; environment shares the human row. */
+const COLUMN_LANES: readonly string[] = [
+  ...ORTHOGONAL_LAYERS.filter((l) => l !== "human" && l !== "environment"),
+  HAZARD_LANE,
+  "human",
+  "environment",
+];
 
 export interface AssetGraphLane {
-  /** Asset group, or ANCHOR_LANE. */
+  /** Asset group, ANCHOR_LANE or HAZARD_LANE (a side-column lane). */
   readonly id: string;
   readonly kind: "vertical" | "orthogonal" | "anchors";
   /** Lane centre. */
@@ -70,7 +81,9 @@ interface LaneSlot {
 }
 
 function laneKey(node: AssetGraphNode): string {
-  return node.kind === "anchor" ? ANCHOR_LANE : String(node.group);
+  if (node.kind === "anchor") return ANCHOR_LANE;
+  if (node.kind === "hazard") return HAZARD_LANE;
+  return String(node.group);
 }
 
 /**
@@ -106,7 +119,7 @@ function computeLanes(
   const columnX = (widest - 1) * NODE_SPACING + COLUMN_GAP;
   // Side column rows; environment shares the human row, one step further out.
   let row = 0;
-  for (const layer of ORTHOGONAL_LAYERS) {
+  for (const layer of COLUMN_LANES) {
     if (!present.has(layer)) continue;
     if (layer === "environment" && present.has("human")) {
       const human = slots.get("human")!;

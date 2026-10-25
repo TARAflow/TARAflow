@@ -4,7 +4,7 @@
 // which relation types exist, which assets match a search, and — for a
 // match that is not drawn — why not.
 
-import { compareDisplayIds, validateA2ARelations, type AssetGroup } from "shared";
+import { compareDisplayIds, isContributesTo, validateA2ARelations, type AssetGroup } from "shared";
 import { layerRank } from "./asset-graph-layers";
 import type { AssetGraph, AssetGraphOptions, AssetGraphSource, GraphAssetInput } from "./asset-graph-types";
 
@@ -86,7 +86,8 @@ export function assetVisibility(
 /**
  * The part of the source on some pages of a leveled DFD (§9): the elements
  * and flows shown there (`items`), the assets they hold, and the asset links
- * among those assets.
+ * among those assets. Hazard Items stay with their edges to those assets;
+ * one without such an edge is not on the pages.
  */
 export function sourceOnPages(
   source: AssetGraphSource,
@@ -94,10 +95,22 @@ export function sourceOnPages(
 ): AssetGraphSource {
   const elements = source.elements.filter((e) => items.has(e.id));
   const held = new Set(elements.flatMap((e) => (e.assetRelations ?? []).map((r) => r.assetId)));
-  return {
+  const onPages: AssetGraphSource = {
     assets: source.assets.filter((a) => held.has(a.id)),
     relations: source.relations.filter((r) => held.has(r.sourceAssetId) && held.has(r.targetAssetId)),
     elements,
+  };
+  if (!source.hazards) return onPages;
+  const hazardRelations = source.hazards.relations.filter((r) =>
+    held.has(isContributesTo(r) ? r.from : r.to),
+  );
+  const hazardIds = new Set(hazardRelations.map((r) => (isContributesTo(r) ? r.to : r.from)));
+  return {
+    ...onPages,
+    hazards: {
+      items: source.hazards.items.filter((h) => hazardIds.has(h.id)),
+      relations: hazardRelations,
+    },
   };
 }
 

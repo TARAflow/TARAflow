@@ -9,6 +9,8 @@
 //     counters (FR-V4). Zoom/pan (FR-V12).
 //   Selection is shared with the asset panel (FR-V8): clicking a node selects
 //     the asset there; selecting in the tree highlights the node here.
+//   Hazard Items (FR-V11): a lane in the side column, read-only — a click
+//     opens their card, they are edited in the Hazard tab (G2).
 //
 // Edit mode (phase 3): asset links through the single A2A write path
 // (A2AOpsContext); assets, their properties and DFD element relations
@@ -52,7 +54,7 @@ import {
   Redo as RedoIcon,
 } from "@mui/icons-material";
 import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
-import type { AssetGroup } from "shared";
+import { HAZARD_SEVERITY_RANK_COLOR, normalizeLegacySafetyImpact, type AssetGroup } from "shared";
 import type { AssetRelation } from "../models/asset-relation-types";
 import { getAssetGroupColor } from "../models/dfd-formatters";
 import {
@@ -63,9 +65,10 @@ import {
   presetOfLayers,
   type AssetGraphPresetId,
 } from "./asset-graph-layers";
-import { ANCHOR_PREFIX, buildAssetGraph, DEFAULT_FOCUS_DEPTH } from "./build-asset-graph";
+import { ANCHOR_PREFIX, buildAssetGraph, DEFAULT_FOCUS_DEPTH, HAZARD_PREFIX } from "./build-asset-graph";
 import {
   ANCHOR_LANE,
+  HAZARD_LANE,
   LANE_HEIGHT,
   NODE_SPACING,
   NODE_RADIUS,
@@ -133,6 +136,8 @@ export interface AssetGraphViewProps {
   readonly focusRequest?: { readonly assetId: string } | null;
   /** "Show in table" from the detail card (FR-V13, way back). */
   readonly onShowInTable?: (assetId: string) => void;
+  /** "Open in Hazard tab" from a hazard's card (FR-V11d, G9). */
+  readonly onOpenHazard?: (hazardId: string) => void;
   /**
    * Pixels on the right covered by the DFD tab's side panel (it overlays the
    * canvas). Detail card, legend and centring keep clear of it.
@@ -168,6 +173,8 @@ interface ViewState {
   focusAssetId: string | null;
   depth: number;
   showAnchors: boolean;
+  /** Hazard Items (FR-V11c); on with the protection and all presets (G3). */
+  showHazards: boolean;
   /** Shown relation types; null = all (FR-V10). */
   relationTypes: string[] | null;
 }
@@ -178,8 +185,12 @@ const DEFAULT_STATE: ViewState = {
   focusAssetId: null,
   depth: DEFAULT_FOCUS_DEPTH,
   showAnchors: false,
+  showHazards: false,
   relationTypes: null,
 };
+
+/** Presets that show the Hazard Items (G3). */
+const HAZARD_PRESETS: readonly AssetGraphPresetId[] = ["protection", "all"];
 
 function groupColor(group: string): { color: string; colorLight: string } {
   try {
@@ -196,6 +207,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   onShowElement,
   focusRequest,
   onShowInTable,
+  onOpenHazard,
   onCreateAsset,
   onDeleteAsset,
   assetUsage,
@@ -219,8 +231,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   // The card's asset: set by a click here, and follows the asset panel's
   // selection. Kept locally so the card works even while the panel is closed.
   const [inspectedAssetId, setInspectedAssetId] = useState<string | null>(null);
+  // A Hazard Item's card (FR-V11d) — the hazard item id; wins over the asset.
+  const [inspectedHazardId, setInspectedHazardId] = useState<string | null>(null);
   useEffect(() => {
-    if (selectedAssetId) setInspectedAssetId(selectedAssetId);
+    if (!selectedAssetId) return;
+    setInspectedAssetId(selectedAssetId);
+    setInspectedHazardId(null);
   }, [selectedAssetId]);
 
   // ── Edit mode (phase 3, FR-E1) ──────────────────────────────────────────
@@ -254,6 +270,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     }));
     // …and its card is open: in the graph, the card is where it is edited.
     setSelectedEdgeId(null);
+    setInspectedHazardId(null);
     setInspectedAssetId(focusRequest.assetId);
     setInspectorOpen(true);
   }, [focusRequest]);
@@ -282,6 +299,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         focusAssetId: state.focusAssetId,
         depth: state.depth,
         showAnchors: state.showAnchors,
+        showHazards: state.showHazards,
         relationTypes: state.relationTypes,
       }),
     [shownSource, state],
@@ -352,7 +370,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   savePositionsRef.current = () => {
     const assets = new Set(source.assets.map((a) => a.id));
     const elements = new Set(source.elements.map((e) => `${ANCHOR_PREFIX}${e.id}`));
-    savePositions(projectId, positionsRef.current, (id) => assets.has(id) || elements.has(id));
+    const hazards = new Set((source.hazards?.items ?? []).map((h) => `${HAZARD_PREFIX}${h.id}`));
+    savePositions(
+      projectId,
+      positionsRef.current,
+      (id) => assets.has(id) || elements.has(id) || hazards.has(id),
+    );
   };
   useEffect(() => {
     if (!projectId) return;
@@ -382,6 +405,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   }, [layout, moving]);
   const sideColumnNode = (id: string) => {
     const node = graph.nodes.find((n) => n.id === id);
+    if (node?.kind === "hazard") return true;
     return node?.kind === "asset" && (ORTHOGONAL_LAYERS as readonly string[]).includes(String(node.group));
   };
   const movedPositions = (id: string, dx: number) =>
@@ -578,6 +602,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   // if it is not (its layer, or the focus moves to it).
   const goToAsset = (assetId: string) => {
     setSelectedEdgeId(null);
+    setInspectedHazardId(null);
     setInspectedAssetId(assetId);
     onSelectAsset(assetId);
     const v = assetVisibility(graph, source, state, assetId, assetsOnPages);
@@ -781,9 +806,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   };
   const selectAssetNode = (id: string) => {
     setSelectedEdgeId(null);
+    setInspectedHazardId(null);
     setInspectedAssetId(id);
     setInspectorOpen(true);
     onSelectAsset(id);
+  };
+  /** A hazard node: its read-only card (FR-V11d); the asset panel is not touched. */
+  const selectHazardNode = (hazardId: string) => {
+    setSelectedEdgeId(null);
+    setInspectedHazardId(hazardId);
+    setInspectorOpen(true);
   };
   const onCanvasKeyDown = (e: React.KeyboardEvent) => {
     if (isTypingTarget(e.target)) return;
@@ -819,6 +851,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     if (e.key === "Enter" && node) {
       e.preventDefault();
       if (node.kind === "anchor") onShowElement?.(node.elementId);
+      else if (node.kind === "hazard") selectHazardNode(node.hazardId);
       else {
         focusOn(node.id);
         pendingCenterRef.current = node.id;
@@ -928,7 +961,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   // ── Context bar actions ─────────────────────────────────────────────────
   const preset = presetOfLayers(state.layers);
   const setPreset = (id: AssetGraphPresetId) =>
-    setState((s) => ({ ...s, layers: [...ASSET_GRAPH_PRESETS[id]] }));
+    setState((s) => ({
+      ...s,
+      layers: [...ASSET_GRAPH_PRESETS[id]],
+      showHazards: HAZARD_PRESETS.includes(id),
+    }));
   const toggleLayer = (layer: AssetGroup) =>
     setState((s) => ({
       ...s,
@@ -978,10 +1015,22 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   };
   const groupOfAsset = (id: string) =>
     source.assets.find((a) => a.id === id)?.assetGroup as string | undefined;
-  const edgeLabel = (e: { kind: string; relationType: string; target: string }) =>
+  // Severity of an endangers edge: canonical labels (G7; S-classes under
+  // iso-21434 follow with ISO Phase 1H).
+  const severityLabel = (severity: string) => {
+    const canonical = normalizeLegacySafetyImpact(severity) ?? severity;
+    return t(`tabs.hazards.severity.${canonical}`, { defaultValue: plain(canonical) });
+  };
+  const edgeLabel = (e: { kind: string; relationType: string; target: string; severity?: string }) =>
     e.kind === "anchor"
       ? elementTypeLabel(e.relationType, groupOfAsset(e.target))
-      : typeLabel(e.relationType);
+      : e.kind === "endangers"
+        ? e.severity
+          ? severityLabel(e.severity)
+          : ""
+        : e.kind === "contributes_to"
+          ? ""
+          : typeLabel(e.relationType);
 
   const focusNode =
     state.focusAssetId ? source.assets.find((a) => a.id === state.focusAssetId) : undefined;
@@ -996,8 +1045,34 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     outsideFocus: c.assetsOutsideFocus,
     filtered: c.edgesHiddenByFilter,
   });
+  const hazardCountsText =
+    state.view === "layers" && state.showHazards && c.hazardsTotal > 0
+      ? t("tabs.dfd.assetGraph.hazard.counts", {
+          defaultValue: "{{visible}} of {{total}} hazards",
+          visible: c.hazardsVisible,
+          total: c.hazardsTotal,
+        })
+      : "";
+  const hazardStroke = "#ed6c02";
 
   const fg = darkMode ? "#eee" : "#222";
+  /** FR-V4: a node's links into hidden layers, as clickable counters. */
+  const stubBadges = (nodeId: string, left: number, top: number) =>
+    (graph.stubs[nodeId] ?? []).map((s, i) => (
+      <g
+        key={s.layer}
+        transform={`translate(${left},${top + i * 18})`}
+        onClick={(ev) => {
+          ev.stopPropagation();
+          showLayer(s.layer);
+        }}
+        data-testid={`asset-graph-stub-${nodeId}-${s.layer}`}
+      >
+        <title>{t("tabs.dfd.assetGraph.stubHint", { defaultValue: "Show layer" })}</title>
+        <rect height={15} width={30 + (String(s.count).length + groupLabel(s.layer).length) * 6.2} rx={7} fill={groupColor(s.layer).colorLight} stroke={groupColor(s.layer).color} />
+        <text x={6} y={11} fontSize={10} fill="#333">{`${s.count} → ${groupLabel(s.layer)}`}</text>
+      </g>
+    ));
   const muted = darkMode ? "#999" : "#666";
   const laneFill = darkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.035)";
 
@@ -1140,16 +1215,32 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             </Select>
           </>
         ) : (
-          <FormControlLabel
-            control={
-              <Checkbox
-                size="small"
-                checked={state.showAnchors}
-                onChange={(e) => setState((s) => ({ ...s, showAnchors: e.target.checked }))}
+          <>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={state.showAnchors}
+                  onChange={(e) => setState((s) => ({ ...s, showAnchors: e.target.checked }))}
+                />
+              }
+              label={<Typography variant="body2">{t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })}</Typography>}
+            />
+            {c.hazardsTotal > 0 && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={state.showHazards}
+                    onChange={(e) => setState((s) => ({ ...s, showHazards: e.target.checked }))}
+                    inputProps={{ "aria-label": t("tabs.dfd.assetGraph.hazard.toggle", { defaultValue: "Hazards" }) }}
+                    data-testid="asset-graph-show-hazards"
+                  />
+                }
+                label={<Typography variant="body2">{t("tabs.dfd.assetGraph.hazard.toggle", { defaultValue: "Hazards" })}</Typography>}
               />
-            }
-            label={<Typography variant="body2">{t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })}</Typography>}
-          />
+            )}
+          </>
         )}
 
         <DfdScopeFilterControls
@@ -1225,6 +1316,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         <Divider orientation="vertical" flexItem />
         <Typography variant="caption" color="text.secondary" data-testid="asset-graph-counts" sx={{ flexGrow: 1 }}>
           {countsText}
+          {hazardCountsText ? ` · ${hazardCountsText}` : ""}
         </Typography>
 
         <Tooltip title={t("tabs.dfd.assetGraph.fit", { defaultValue: "Fit to view" })}>
@@ -1379,6 +1471,9 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             <marker id="ag-arrow" viewBox="0 -5 10 10" refX={10} refY={0} markerWidth={7} markerHeight={7} orient="auto">
               <path d="M0,-5L10,0L0,5" fill={muted} />
             </marker>
+            <marker id="ag-arrow-hazard" viewBox="0 -5 10 10" refX={10} refY={0} markerWidth={7} markerHeight={7} orient="auto">
+              <path d="M0,-5L10,0L0,5" fill={hazardStroke} />
+            </marker>
           </defs>
           <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
             {/* Lanes */}
@@ -1396,9 +1491,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 >
                   {lane.id === ANCHOR_LANE
                     ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
-                    : groupLabel(lane.id)}
+                    : lane.id === HAZARD_LANE
+                      ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
+                      : groupLabel(lane.id)}
                 </text>
-                {canCreate && lane.id !== ANCHOR_LANE && (
+                {canCreate && lane.id !== ANCHOR_LANE && lane.id !== HAZARD_LANE && (
                   <g
                     transform={`translate(${(lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2) + 14},${lane.y - LANE_HEIGHT / 2 + 16})`}
                     style={{ cursor: "pointer" }}
@@ -1447,6 +1544,10 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               const mx = 0.25 * p1.x + 0.5 * cx + 0.25 * p2.x;
               const my = 0.25 * p1.y + 0.5 * cy + 0.25 * p2.y;
               const label = edgeLabel(e);
+              // FR-V11a: hazard edges in the warning colour; a direct
+              // contribution is drawn stronger than an indirect one.
+              const hazardEdge = e.kind === "contributes_to" || e.kind === "endangers";
+              const hazardWidth = e.kind === "contributes_to" && e.relevance !== "direct" ? 1.2 : 2;
               return (
                 <g
                   key={e.id}
@@ -1457,6 +1558,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   style={{ cursor: "pointer", outline: "none" }}
                   onClick={() => {
                     setSelectedEdgeId(e.id);
+                    setInspectedHazardId(null);
                     setInspectorOpen(true);
                   }}
                 >
@@ -1481,11 +1583,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   <path
                     d={`M${p1.x},${p1.y} Q${cx},${cy} ${p2.x},${p2.y}`}
                     fill="none"
-                    stroke={e.id === selectedEdgeId ? (darkMode ? "#90caf9" : "#1976d2") : muted}
-                    strokeWidth={e.id === selectedEdgeId ? 2.6 : 1.4}
+                    stroke={e.id === selectedEdgeId ? (darkMode ? "#90caf9" : "#1976d2") : hazardEdge ? hazardStroke : muted}
+                    strokeWidth={e.id === selectedEdgeId ? 2.6 : hazardEdge ? hazardWidth : 1.4}
                     data-fresh={freshLinkIds.has(e.id) ? "" : undefined}
-                    strokeDasharray={e.kind === "anchor" ? "5 4" : undefined}
-                    markerEnd="url(#ag-arrow)"
+                    strokeDasharray={e.kind === "anchor" || e.kind === "contributes_to" ? "5 4" : undefined}
+                    markerEnd={hazardEdge ? "url(#ag-arrow-hazard)" : "url(#ag-arrow)"}
                   />
                   <text x={mx} y={my - 4} fontSize={10} fill={fg} textAnchor="middle" paintOrder="stroke" stroke={darkMode ? "#1a1a1a" : "#fafafa"} strokeWidth={3}>
                     {findings.has(e.id) ? "⚠ " : ""}
@@ -1589,10 +1691,72 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   </g>
                 );
               }
+              if (n.kind === "hazard") {
+                // FR-V11: a diamond in the colour of the worst severity it
+                // endangers with; read-only — no handles, no drop target.
+                const color = HAZARD_SEVERITY_RANK_COLOR[n.severityRank] ?? HAZARD_SEVERITY_RANK_COLOR[0];
+                const selected = inspectorOpen && !selectedEdgeId && inspectedHazardId === n.hazardId;
+                const r = NODE_RADIUS + 4;
+                return (
+                  <g
+                    key={n.id}
+                    transform={`translate(${p.x},${p.y})`}
+                    style={{ cursor: moveKeyHeld ? "ew-resize" : "pointer", outline: "none" }}
+                    data-moving={moving?.id === n.id ? "" : undefined}
+                    onPointerDown={(e) => startMove(n.id, e)}
+                    onClick={unlessMoved(() => selectHazardNode(n.hazardId))}
+                    data-testid={`asset-graph-node-${n.id}`}
+                    data-node-id={n.id}
+                    data-severity-rank={n.severityRank}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${n.displayId} ${n.name} (${t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })})`}
+                    onFocus={() => setFocusedNodeId(n.id)}
+                    onBlur={() => setFocusedNodeId((f) => (f === n.id ? null : f))}
+                  >
+                    {(focusedNodeId === n.id || moving?.id === n.id) && (
+                      <circle
+                        r={NODE_RADIUS + 10}
+                        fill="none"
+                        stroke={darkMode ? "#90caf9" : "#1976d2"}
+                        strokeWidth={2}
+                        strokeDasharray="3 3"
+                        data-testid={`asset-graph-focus-${n.id}`}
+                      />
+                    )}
+                    <path
+                      d={`M0,${-r} L${r},0 L0,${r} L${-r},0 Z`}
+                      fill={darkMode ? "#2a2a2a" : "#fff"}
+                      stroke={selected ? (darkMode ? "#fff" : "#000") : color}
+                      strokeWidth={selected ? 3.5 : 2.5}
+                      strokeDasharray={n.linked ? undefined : "5 4"}
+                    />
+                    <path d={`M0,${-r + 6} L${r - 6},0 L0,${r - 6} L${-r + 6},0 Z`} fill={color} fillOpacity={0.25} />
+                    <text fontSize={11} fontWeight={600} fill={fg} textAnchor="middle" dy={4}>
+                      {n.displayId.length > 10 ? `${n.displayId.slice(0, 9)}…` : n.displayId}
+                    </text>
+                    <text fontSize={11} fill={fg} textAnchor="middle" dy={r + 14}>
+                      {n.name.length > 22 ? `${n.name.slice(0, 21)}…` : n.name}
+                    </text>
+                    {!n.linked && (
+                      // FR-V11e: presented like a finding (UX-4).
+                      <g transform={`translate(${-r * 0.75},${-r * 0.75})`} data-testid={`asset-graph-not-linked-${n.id}`}>
+                        <title>
+                          {t("tabs.dfd.assetGraph.hazard.notLinked", {
+                            defaultValue: "Not linked — no cause and no protection target. Link them in the Hazard tab.",
+                          })}
+                        </title>
+                        <circle r={8} fill={darkMode ? "#2a2a2a" : "#fff"} stroke="#ed6c02" />
+                        <text fontSize={11} textAnchor="middle" dy={4} fill="#ed6c02">!</text>
+                      </g>
+                    )}
+                    {stubBadges(n.id, r + 6, -r + 4)}
+                  </g>
+                );
+              }
               const { color, colorLight } = groupColor(String(n.group));
               const selected = n.id === selectedAssetId;
               const hit = !selected && searchHit?.assetId === n.id;
-              const stubs = graph.stubs[n.id] ?? [];
               // While dragging a connection: valid / reverse-only / invalid.
               const targetClass: A2ATargetClass | null =
                 drag && n.id !== drag.sourceId
@@ -1700,21 +1864,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                       <text fontSize={11} textAnchor="middle" dy={4} fill="#ed6c02">!</text>
                     </g>
                   )}
-                  {stubs.map((s, i) => (
-                    <g
-                      key={s.layer}
-                      transform={`translate(${NODE_RADIUS + 6},${-NODE_RADIUS + 4 + i * 18})`}
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        showLayer(s.layer);
-                      }}
-                      data-testid={`asset-graph-stub-${n.id}-${s.layer}`}
-                    >
-                      <title>{t("tabs.dfd.assetGraph.stubHint", { defaultValue: "Show layer" })}</title>
-                      <rect height={15} width={30 + (String(s.count).length + groupLabel(s.layer).length) * 6.2} rx={7} fill={groupColor(s.layer).colorLight} stroke={groupColor(s.layer).color} />
-                      <text x={6} y={11} fontSize={10} fill="#333">{`${s.count} → ${groupLabel(s.layer)}`}</text>
-                    </g>
-                  ))}
+                  {stubBadges(n.id, NODE_RADIUS + 6, -NODE_RADIUS + 4)}
                 </g>
               );
             })}
@@ -1790,6 +1940,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           <AssetGraphInspector
             source={source}
             assetId={inspectedAssetId ?? selectedAssetId}
+            hazardId={inspectedHazardId}
             edge={selectedEdge}
             findingOf={(id) => findings.get(id)}
             typeLabel={typeLabel}
@@ -1803,6 +1954,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               pendingCenterRef.current = id;
             }}
             onShowInTable={onShowInTable}
+            onOpenHazard={onOpenHazard}
+            severityLabel={severityLabel}
             rightInset={rightInset}
             onDeleteLink={editing ? deleteLink : undefined}
             onUpdateLink={editing ? updateLink : undefined}
@@ -1829,6 +1982,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             onClose={() => {
               setInspectorOpen(false);
               setSelectedEdgeId(null);
+              setInspectedHazardId(null);
             }}
           />
         )}
@@ -1850,6 +2004,14 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 defaultValue: "Solid: asset link · dashed: DFD element → asset · arrow: direction · number: step order",
               })}
             </Typography>
+            {c.hazardsTotal > 0 && (
+              <Typography variant="caption" sx={{ display: "block", mt: 0.5 }} data-testid="asset-graph-legend-hazards">
+                {t("tabs.dfd.assetGraph.hazard.legend", {
+                  defaultValue:
+                    "Diamond: hazard, coloured by the worst severity it endangers with · orange dashed: asset contributes to hazard (thicker: direct) · orange solid: hazard endangers, with the severity",
+                })}
+              </Typography>
+            )}
             <Typography variant="caption" sx={{ display: "block", mt: 0.5 }} data-testid="asset-graph-legend-keys">
               {t("tabs.dfd.assetGraph.keyboard.legend", {
                 defaultValue: "Keyboard: Tab / arrows select · Enter focuses · Delete removes (edit) · Esc closes",

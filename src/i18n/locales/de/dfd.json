@@ -107,6 +107,25 @@
         "keyboard": {
           "canvas": "Asset-Graph — Tab oder Pfeiltasten: Knoten wählen · Enter: fokussieren · Entf: entfernen (Bearbeiten) · Esc: schliessen",
           "legend": "Tastatur: Tab / Pfeile wählen · Enter fokussiert · Entf entfernt (Bearbeiten) · Esc schliesst"
+        },
+        "hazard": {
+          "toggle": "Gefährdungen",
+          "lane": "Gefährdungen",
+          "counts": "{{visible}} von {{total}} Gefährdungen",
+          "notLinked": "Nicht verknüpft — keine Ursache und kein Schutzziel. Verknüpfung im Hazard-Tab.",
+          "readOnly": "Gefährdung — nur lesbar, bearbeitet im Hazard-Tab",
+          "open": "Im Hazard-Tab öffnen",
+          "contributesTo": "Asset trägt zur Gefährdung bei",
+          "endangers": "Gefährdung gefährdet Schutzziel",
+          "relevance": "Relevanz",
+          "relevanceValue": {
+            "direct": "direkt",
+            "indirect": "indirekt",
+            "none": "keine"
+          },
+          "severity": "Schwere",
+          "systemRelevance": "Systemrelevanz",
+          "legend": "Raute: Gefährdung, eingefärbt nach der schlimmsten Schwere, mit der sie gefährdet · orange gestrichelt: Asset trägt zur Gefährdung bei (dicker: direkt) · orange durchgezogen: Gefährdung gefährdet, mit der Schwere"
         }
       },
       "toolbar": {

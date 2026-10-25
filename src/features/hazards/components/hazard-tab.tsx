@@ -60,6 +60,8 @@ export interface HazardTabProps {
   onUpdate: (updates: HazardUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
+  /** "Open in Hazard tab" from the asset graph: open this item's dialog. */
+  openRequest?: { readonly hazardId: string } | null;
 }
 
 // ==================== COMPONENT ====================
@@ -69,6 +71,7 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
   onUpdate,
   onDirtyChange,
   onPhaseComplete,
+  openRequest,
 }) => {
   const { t } = useTranslation();
 
@@ -165,6 +168,17 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
   const [editingHazardId, setEditingHazardId] = useState<HazardItemId | null>(
     null,
   );
+
+  // "Open in Hazard tab" from the asset graph (asset graph design G9).
+  useEffect(() => {
+    if (!openRequest) return;
+    const item = hazardData.hazards.find((h) => h.id === openRequest.hazardId);
+    if (!item) return;
+    setEditingHazardId(item.id);
+    setShowDialog(true);
+    // once per request, not on every edit of the hazard data
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRequest]);
 
   // Config dialog state
   const [showConfigDialog, setShowConfigDialog] = useState(false);

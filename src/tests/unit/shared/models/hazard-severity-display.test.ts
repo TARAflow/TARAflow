@@ -26,6 +26,13 @@ describe("hazard severity display", () => {
     expect(hazardSeverityRank("unknown")).toBe(0);
   });
 
+  it("person harm in the pre-v9 vocabulary ranks as its canonical value", () => {
+    expect(hazardSeverityRank("fatality")).toBe(4);
+    expect(hazardSeverityRank("irreversible_injury")).toBe(4);
+    expect(hazardSeverityRank("reversible_injury")).toBe(2);
+    expect(hazardSeverityRank("none")).toBe(0);
+  });
+
   it("a colour for every rank", () => {
     for (const r of [0, 1, 2, 3, 4]) expect(HAZARD_SEVERITY_RANK_COLOR[r]).toMatch(/^#[0-9a-f]{6}$/);
   });

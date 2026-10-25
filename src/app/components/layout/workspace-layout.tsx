@@ -201,6 +201,10 @@ export const WorkspaceLayout: React.FC = () => {
   const [tableHighlightRequest, setTableHighlightRequest] = useState<{
     assetId: string;
   } | null>(null);
+  // "Open in Hazard tab" from a hazard's card in the asset graph (G9).
+  const [hazardOpenRequest, setHazardOpenRequest] = useState<{
+    hazardId: string;
+  } | null>(null);
 
   const handlePhaseChange = useCallback(
     (phaseId: number) => {
@@ -226,6 +230,7 @@ export const WorkspaceLayout: React.FC = () => {
       // A "show in table" mark belongs to that one jump; leaving the Assets
       // tab drops it, so a later visit does not mark the row again.
       if (phaseId !== PhaseId.Assets) setTableHighlightRequest(null);
+      if (phaseId !== PhaseId.Hazard) setHazardOpenRequest(null);
       setActivePhase(phaseId);
       updateProject({ id: current.id, currentPhase: phaseId });
     },
@@ -979,6 +984,7 @@ export const WorkspaceLayout: React.FC = () => {
                 lastModified: activeProject.info?.lastModified || "",
               }}
               onUpdate={handleHazardsUpdate}
+              openRequest={hazardOpenRequest}
             />
           )}
 
@@ -1007,6 +1013,14 @@ export const WorkspaceLayout: React.FC = () => {
                 setTableHighlightRequest({ assetId });
                 handlePhaseChange(PhaseId.Assets);
               }}
+              onOpenHazard={
+                activeProject.info?.safetyRelevant
+                  ? (hazardId) => {
+                      handlePhaseChange(PhaseId.Hazard);
+                      setHazardOpenRequest({ hazardId });
+                    }
+                  : undefined
+              }
               controlInstances={controlInstances}
               securityDrifts={securityDrifts}
             />

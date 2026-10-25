@@ -1,7 +1,8 @@
 // features/dfd/asset-graph/asset-graph-inspector.tsx
 //
 // Detail card of the asset graph (FR-V8): the selected asset with its
-// relations grouped by type, or the selected link with its attributes. In
+// relations grouped by type, the selected link with its attributes, or a
+// Hazard Item read-only with its causes and protection targets (FR-V11d). In
 // edit mode (phase 3) it is the graph's place to edit (D9): link attributes,
 // asset properties, DFD element relations (FR-E7), deleting.
 
@@ -13,8 +14,9 @@ import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 import { AssetDescriptionForm } from "../components/forms/asset-description-form";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { DFDConnection, DFDElement } from "../models/dfd-types";
-import { a2aRelationName, type A2ARelationType } from "shared";
+import { a2aRelationName, compareDisplayIds, isContributesTo, isEndangers, type A2ARelationType } from "shared";
 import type { AssetGraphEdge, AssetGraphSource } from "./asset-graph-types";
+import { HAZARD_PREFIX } from "./build-asset-graph";
 import { relationsOfAssetGrouped } from "./asset-graph-query";
 import { LinkAttributesForm } from "./asset-graph-link-form";
 import type { A2ARelationAttributes } from "shared";
@@ -25,6 +27,8 @@ export const CARD_WIDTH = 440;
 export interface AssetGraphInspectorProps {
   readonly source: AssetGraphSource;
   readonly assetId: string | null;
+  /** A Hazard Item's card (read-only, FR-V11d); wins over the asset. */
+  readonly hazardId?: string | null;
   readonly edge: AssetGraphEdge | null;
   /** Finding reason for an asset link (validateA2ARelations), if any. */
   readonly findingOf?: (relationId: string) => string | undefined;
@@ -39,6 +43,10 @@ export interface AssetGraphInspectorProps {
   readonly onGoToElement?: (elementId: string) => void;
   readonly onFocus: (assetId: string) => void;
   readonly onShowInTable?: (assetId: string) => void;
+  /** "Open in Hazard tab" (G9). */
+  readonly onOpenHazard?: (hazardId: string) => void;
+  /** Label of an endangers severity (canonical labels, G7). */
+  readonly severityLabel?: (severity: string) => string;
   readonly onClose: () => void;
   /** Space on the right covered by the side panel. */
   readonly rightInset?: number;
@@ -80,6 +88,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
 export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   source,
   assetId,
+  hazardId = null,
   edge,
   findingOf,
   typeLabel,
@@ -90,6 +99,8 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   onGoToElement,
   onFocus,
   onShowInTable,
+  onOpenHazard,
+  severityLabel = (s) => s,
   onClose,
   rightInset = 0,
   onDeleteLink,
@@ -103,15 +114,61 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   const { t } = useTranslation();
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const assetById = (id: string) => source.assets.find((a) => a.id === id);
+  const hazards = source.hazards;
+  const hazardById = (id: string) => hazards?.items.find((h) => h.id === id);
   const name = (id: string) => {
     const a = assetById(id);
     if (a) return `${a.displayId ?? ""} ${a.name ?? ""}`.trim();
+    if (id.startsWith(HAZARD_PREFIX)) {
+      const h = hazardById(id.slice(HAZARD_PREFIX.length));
+      if (h) return [h.externalRef, h.label].filter(Boolean).join(" ");
+    }
     const el = source.elements.find((e) => e.id === id);
     return el ? `${el.displayId ?? el.id} ${el.name ?? ""}`.trim() : id.slice(0, 8);
   };
 
   let body: React.ReactNode = null;
-  if (edge) {
+  if (edge && (edge.kind === "contributes_to" || edge.kind === "endangers")) {
+    // A hazard edge: read-only, edited in the Hazard tab (G2).
+    const hzId = (edge.kind === "contributes_to" ? edge.target : edge.source).slice(HAZARD_PREFIX.length);
+    const assetEnd = edge.kind === "contributes_to" ? edge.source : edge.target;
+    const rel = hazards?.relations.find((r) =>
+      isContributesTo(r) ? edge.kind === "contributes_to" && r.from === assetEnd && r.to === hzId
+        : edge.kind === "endangers" && r.from === hzId && r.to === assetEnd,
+    );
+    body = (
+      <Box data-testid="asset-graph-inspector-hazard-edge">
+        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+          {edge.kind === "contributes_to"
+            ? t("tabs.dfd.assetGraph.hazard.contributesTo", { defaultValue: "Asset contributes to hazard" })
+            : t("tabs.dfd.assetGraph.hazard.endangers", { defaultValue: "Hazard endangers protection target" })}
+        </Typography>
+        <Row label={t("tabs.dfd.assetGraph.inspector.from", { defaultValue: "From" })}>{name(edge.source)}</Row>
+        <Row label={t("tabs.dfd.assetGraph.inspector.to", { defaultValue: "To" })}>{name(edge.target)}</Row>
+        {edge.relevance && (
+          <Row label={t("tabs.dfd.assetGraph.hazard.relevance", { defaultValue: "Relevance" })}>
+            {t(`tabs.dfd.assetGraph.hazard.relevanceValue.${edge.relevance}`, { defaultValue: edge.relevance })}
+          </Row>
+        )}
+        {edge.severity && (
+          <Row label={t("tabs.dfd.assetGraph.hazard.severity", { defaultValue: "Severity" })}>
+            {severityLabel(edge.severity)}
+          </Row>
+        )}
+        {rel?.rationale && (
+          <Row label={t("tabs.dfd.assetGraph.inspector.rationale", { defaultValue: "Rationale" })}>{rel.rationale}</Row>
+        )}
+        {onOpenHazard && hazardById(hzId) && (
+          <>
+            <Divider sx={{ my: 0.75 }} />
+            <Button size="small" onClick={() => onOpenHazard(hzId)} data-testid="asset-graph-open-hazard">
+              {t("tabs.dfd.assetGraph.hazard.open", { defaultValue: "Open in Hazard tab" })}
+            </Button>
+          </>
+        )}
+      </Box>
+    );
+  } else if (edge) {
     const elementId = edge.kind === "anchor" ? edge.source.replace(/^el:/, "") : null;
     const rel =
       edge.kind === "a2a" ? source.relations.find((r) => r.id === edge.id) : undefined;
@@ -185,6 +242,101 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
             <Divider sx={{ my: 0.75 }} />
             <Button size="small" color="error" onClick={() => onDeleteLink(edge.id)} data-testid="asset-graph-delete-link">
               {t("tabs.dfd.assetGraph.inspector.deleteLink", { defaultValue: "Delete link" })}
+            </Button>
+          </>
+        )}
+      </Box>
+    );
+  } else if (hazardId && hazardById(hazardId)) {
+    const h = hazardById(hazardId)!;
+    const relations = hazards?.relations ?? [];
+    const assetItem = (id: string) => {
+      const a = assetById(id);
+      return { id, displayId: a?.displayId ?? "", label: a ? name(id) : id.slice(0, 8), exists: !!a };
+    };
+    const byDisplay = (a: { displayId: string }, b: { displayId: string }) => compareDisplayIds(a.displayId, b.displayId);
+    const causes = relations
+      .filter(isContributesTo)
+      .filter((r) => r.to === h.id)
+      .map((r) => ({ ...assetItem(r.from), relevance: r.relevance }))
+      .sort(byDisplay);
+    const targets = relations
+      .filter(isEndangers)
+      .filter((r) => r.from === h.id)
+      .map((r) => ({ ...assetItem(r.to), severity: r.impact.severity }))
+      .sort(byDisplay);
+    const assetLink = (item: { id: string; label: string; exists: boolean }, suffix: string) =>
+      item.exists ? (
+        <Link
+          key={item.id}
+          component="button"
+          variant="caption"
+          underline="hover"
+          sx={{ display: "block", textAlign: "left" }}
+          onClick={() => onGoToAsset(item.id)}
+        >
+          {item.label}
+          {suffix}
+        </Link>
+      ) : (
+        <Typography key={item.id} variant="caption" color="text.secondary" sx={{ display: "block" }}>
+          {item.label}
+          {suffix}
+        </Typography>
+      );
+    const relevance = (r: string) =>
+      t(`tabs.dfd.assetGraph.hazard.relevanceValue.${r}`, { defaultValue: r });
+    body = (
+      <Box data-testid="asset-graph-inspector-hazard">
+        <Typography variant="subtitle2">{[h.externalRef, h.label].filter(Boolean).join(" ")}</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+          {t("tabs.dfd.assetGraph.hazard.readOnly", { defaultValue: "Hazard — read-only, edited in the Hazard tab" })}
+        </Typography>
+        {h.description && (
+          <Row label={t("tabs.hazards.dialog.description", { defaultValue: "Description" })}>{h.description}</Row>
+        )}
+        {h.hazardType && (
+          <Row label={t("tabs.hazards.dialog.type", { defaultValue: "Category" })}>
+            {t(`tabs.hazards.category.${h.hazardType}`, { defaultValue: h.hazardType })}
+          </Row>
+        )}
+        {h.systemRelevance && (
+          <Row label={t("tabs.dfd.assetGraph.hazard.systemRelevance", { defaultValue: "System relevance" })}>
+            {t(`tabs.hazards.review.${h.systemRelevance === "in_scope" ? "inScope" : h.systemRelevance === "out_of_scope" ? "outScope" : "unknown"}`, {
+              defaultValue: h.systemRelevance,
+            })}
+            {h.systemRelevanceNote ? ` — ${h.systemRelevanceNote}` : ""}
+          </Row>
+        )}
+        {causes.length === 0 && targets.length === 0 && (
+          <Typography variant="caption" sx={{ display: "block", color: "warning.dark", my: 0.5 }} data-testid="asset-graph-inspector-not-linked">
+            {"⚠ "}
+            {t("tabs.dfd.assetGraph.hazard.notLinked", {
+              defaultValue: "Not linked — no cause and no protection target. Link them in the Hazard tab.",
+            })}
+          </Typography>
+        )}
+        {causes.length > 0 && (
+          <Box sx={{ mt: 0.75 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600, display: "block" }}>
+              {t("tabs.hazards.dialog.causes", { defaultValue: "Causes" })}
+            </Typography>
+            {causes.map((c) => assetLink(c, ` · ${relevance(c.relevance)}`))}
+          </Box>
+        )}
+        {targets.length > 0 && (
+          <Box sx={{ mt: 0.75 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600, display: "block" }}>
+              {t("tabs.hazards.dialog.targets", { defaultValue: "Protection targets" })}
+            </Typography>
+            {targets.map((x) => assetLink(x, ` · ${severityLabel(x.severity)}`))}
+          </Box>
+        )}
+        {onOpenHazard && (
+          <>
+            <Divider sx={{ my: 0.75 }} />
+            <Button size="small" onClick={() => onOpenHazard(h.id)} data-testid="asset-graph-open-hazard">
+              {t("tabs.dfd.assetGraph.hazard.open", { defaultValue: "Open in Hazard tab" })}
             </Button>
           </>
         )}

@@ -62,6 +62,11 @@ export interface AssetGraphOptions {
   readonly relationTypes?: readonly string[] | null;
   /** Element anchors: always in the focus view, optional in the layer view. */
   readonly showAnchors?: boolean;
+  /**
+   * Hazard Items and their edges (FR-V11, layer view). The focus view takes
+   * hazards as neighbours later (FR-V11b).
+   */
+  readonly showHazards?: boolean;
 }
 
 // ==================== OUTPUT ====================
@@ -87,17 +92,44 @@ export interface AssetGraphAnchorNode {
   readonly name: string;
 }
 
-export type AssetGraphNode = AssetGraphAssetNode | AssetGraphAnchorNode;
+/** A Hazard Item (FR-V11) — read-only, edited in the Hazard tab (G2). */
+export interface AssetGraphHazardNode {
+  readonly kind: "hazard";
+  /** "hz:" + hazard item id — never collides with an asset or anchor id. */
+  readonly id: string;
+  readonly hazardId: string;
+  /** `externalRef`, else the label (FR-V11). */
+  readonly displayId: string;
+  readonly name: string;
+  /** Worst severity of its endangers edges ("" without one) and its rank 0–4. */
+  readonly severity: string;
+  readonly severityRank: number;
+  /** False: no edge to an existing asset (FR-V11e, "not linked"). */
+  readonly linked: boolean;
+}
+
+export type AssetGraphNode =
+  | AssetGraphAssetNode
+  | AssetGraphAnchorNode
+  | AssetGraphHazardNode;
 
 export interface AssetGraphEdge {
-  /** A2A: the relation id; anchor: derived, stable. */
+  /** A2A: the relation id; anchor and hazard edges: derived, stable. */
   readonly id: string;
-  /** Solid (A2A) vs dashed (element → asset) — UX-3. */
-  readonly kind: "a2a" | "anchor";
+  /**
+   * Solid (A2A) vs dashed (element → asset) — UX-3. Hazard edges (FR-V11a):
+   * asset → hazard (`contributes_to`), hazard → protection target
+   * (`endangers`); relationType is the same word.
+   */
+  readonly kind: "a2a" | "anchor" | "contributes_to" | "endangers";
   readonly source: string;
   readonly target: string;
   readonly relationType: string;
   readonly stepOrder?: number;
+  /** contributes_to: direct / indirect (stroke width). */
+  readonly relevance?: string;
+  /** endangers: the severity, legacy values normalised (edge label). */
+  readonly severity?: string;
 }
 
 /** Edges to assets in hidden layers, as a counter at the node (FR-V4). */
@@ -118,12 +150,15 @@ export interface AssetGraphCounts {
   readonly edgesHiddenByFilter: number;
   readonly edgesVisible: number;
   readonly anchorsVisible: number;
+  /** Hazard Items in the source / drawn (FR-V11c). */
+  readonly hazardsTotal: number;
+  readonly hazardsVisible: number;
 }
 
 export interface AssetGraph {
   readonly nodes: readonly AssetGraphNode[];
   readonly edges: readonly AssetGraphEdge[];
-  /** Per visible asset node id, sorted by layer. */
+  /** Per visible asset or hazard node id, sorted by layer. */
   readonly stubs: Readonly<Record<string, readonly AssetGraphStub[]>>;
   readonly counts: AssetGraphCounts;
   /** Focus view with an id that is not (or no longer) an asset. */
