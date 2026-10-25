@@ -140,6 +140,32 @@ export function applyImportProfile(
   return finalizeImport(rows, profile.id, sourceFile);
 }
 
+/**
+ * The distinct non-empty values of one column over the data rows, in order of
+ * first appearance — what the value-map editor offers to map (HI-1). Rows the
+ * id filter skips are left out, as in the import.
+ */
+export function distinctColumnValues(
+  sheet: SheetGrid,
+  profile: Pick<ImportProfile, "dataStartRow" | "idPattern" | "columns">,
+  column: number,
+): string[] {
+  const idRe = profile.idPattern ? safeRegExp(profile.idPattern) : null;
+  const idCol = profile.columns.find((c) => c.field === "id")?.column;
+  const seen = new Set<string>();
+  for (let r = profile.dataStartRow; r < sheet.rows.length; r++) {
+    const row = sheet.rows[r];
+    if (!row) continue;
+    if (idRe && idCol !== undefined) {
+      const idVal = cellStr(row[idCol]);
+      if (!idVal || !idRe.test(idVal)) continue;
+    }
+    const v = cellStr(row[column]);
+    if (v !== undefined) seen.add(v);
+  }
+  return [...seen];
+}
+
 /** Fields whose source value is kept next to the mapped one (HI-4). */
 const RATED_FIELDS: ReadonlySet<CanonicalField> = new Set(["severity", "probability"]);
 

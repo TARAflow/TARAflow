@@ -7,7 +7,16 @@
 // NOTE: If these types already exist in `shared` from import-spec Phase 1,
 // delete this file and import from there instead — this is the single source.
 
-export type HazardSeverity =
+/**
+ * Severity as an import reads it (hazard import HI-1 / HI-1a): the canonical
+ * person-harm scale (`SafetySeverity`, as on the endangers edge) — or one of
+ * the four legacy values of the earlier intermediate scale, still accepted as
+ * input (TARAflow JSON / CSV files, value maps) and mapped as before.
+ */
+export type HazardSeverity = SafetySeverity | LegacyHazardSeverity;
+
+/** The earlier intermediate scale — input only, mapped by the bridge. */
+export type LegacyHazardSeverity =
   | "negligible" // no personal injury
   | "marginal" // minor, reversible injury
   | "critical" // severe, irreversible injury
@@ -24,7 +33,7 @@ export type HazardProbability =
 // SINGLE SOURCE is hazard-types.ts (native hazard model). Re-exported here so
 // import-side consumers keep one import path, WITHOUT redefining the union.
 // Do not add categories here — edit hazard-types.ts.
-import type { HazardCategory } from "shared";
+import { SAFETY_SEVERITIES, type HazardCategory, type SafetySeverity } from "shared";
 
 export interface SafetyHazard {
   id: string; // project-unique, e.g. "H-01"
@@ -75,11 +84,17 @@ export const HAZARD_CATEGORIES: ReadonlySet<HazardCategory> = new Set([
   "other",
 ]);
 
-export const HAZARD_SEVERITIES: ReadonlySet<HazardSeverity> = new Set([
+export const LEGACY_HAZARD_SEVERITIES: ReadonlySet<LegacyHazardSeverity> = new Set([
   "negligible",
   "marginal",
   "critical",
   "catastrophic",
+]);
+
+/** Every severity an import accepts: the canonical scale and the legacy values. */
+export const HAZARD_SEVERITIES: ReadonlySet<HazardSeverity> = new Set<HazardSeverity>([
+  ...SAFETY_SEVERITIES,
+  ...LEGACY_HAZARD_SEVERITIES,
 ]);
 
 export const HAZARD_PROBABILITIES: ReadonlySet<HazardProbability> = new Set([

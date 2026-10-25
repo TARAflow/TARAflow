@@ -158,6 +158,10 @@
         "matrix": "Matrix",
         "unnamed": "(unbenannt)",
         "unmappedCategory": "Nicht zugewiesene Kategorie",
+        "valueMap": {
+          "title": "Werte dieser Spalte zuordnen",
+          "unmapped": "— (unverändert)"
+        },
         "affectedPersons": "Betroffene Personen",
         "physicalHazardPotential": "Physisches Gefährdungspotenzial",
         "fields": {

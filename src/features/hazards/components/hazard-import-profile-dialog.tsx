@@ -41,11 +41,16 @@ import {
 import {
   CANONICAL_FIELDS, REQUIRED_FIELDS, type CanonicalField,
 } from "../services/safety-hazard-importer";
-import { applyImportProfile, suggestProfile } from "../services/apply-import-profile";
 import {
-  MARKER_CAPABLE_FIELDS, markerValueOptions,
+  applyImportProfile,
+  distinctColumnValues,
+  suggestProfile,
+} from "../services/apply-import-profile";
+import {
+  MARKER_CAPABLE_FIELDS, VALUE_MAPPED_FIELDS, markerValueOptions,
   type ImportProfile, type WorkbookPreview, type CellValue,
 } from "../models/import-profile-types";
+import { ValueMapEditor } from "./value-map-editor";
 
 const PREVIEW_ROWS = 25;
 
@@ -83,6 +88,15 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
     t(`tabs.hazards.import.${k}`, o);
   const fieldLabel = (f: CanonicalField) =>
     t(`tabs.hazards.import.fields.${f}`, { defaultValue: f });
+  /** Label of a canonical value (HI-1): the app's own wording per field. */
+  const optionLabel = (f: CanonicalField, v: string) =>
+    f === "severity"
+      ? t(`safetySeverity.${v}`, { defaultValue: v })
+      : f === "probability"
+        ? t(`tabs.hazards.imported.probabilityLevel.${v}`, { defaultValue: v })
+        : f === "hazardCategory"
+          ? t(`tabs.hazards.category.${v}`, { defaultValue: v })
+          : v;
 
   const [profile, setProfile] = useState<ImportProfile>(() =>
     suggestProfile(workbook),
@@ -137,6 +151,18 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
         ...p.columns.filter((c) => c.field !== field),
         { field, column },
       ],
+    }));
+
+  const setValueMap = (field: CanonicalField, valueMap: Record<string, string>) =>
+    setProfile((p) => ({
+      ...p,
+      columns: p.columns.map((c) =>
+        c.field === field
+          ? Object.keys(valueMap).length > 0
+            ? { ...c, valueMap }
+            : (({ valueMap: _dropped, ...rest }) => rest)(c)
+          : c,
+      ),
     }));
 
   const clearField = (field: CanonicalField) =>
@@ -528,7 +554,7 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
                           >
                             {markerValueOptions(field).map((v) => (
                               <MenuItem key={v} value={v}>
-                                {v}
+                                {optionLabel(field, v)}
                               </MenuItem>
                             ))}
                           </Select>
@@ -541,6 +567,15 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
                         </Box>
                       ))}
                     </Box>
+                  )}
+                  {col !== undefined && VALUE_MAPPED_FIELDS.includes(field) && (
+                    <ValueMapEditor
+                      values={distinctColumnValues(sheet, profile, col)}
+                      options={markerValueOptions(field)}
+                      valueMap={profile.columns.find((c) => c.field === field)?.valueMap}
+                      onChange={(m) => setValueMap(field, m)}
+                      optionLabel={(o) => optionLabel(field, o)}
+                    />
                   )}
                 </Box>
               );
@@ -739,7 +774,7 @@ export const HazardImportProfileDialog: React.FC<HazardImportProfileDialogProps>
                   <TableRow key={h.id}>
                     <TableCell>{h.id}</TableCell>
                     <TableCell>{h.description}</TableCell>
-                    <TableCell>{h.severity}</TableCell>
+                    <TableCell>{h.severity ? optionLabel("severity", h.severity) : "–"}</TableCell>
                     <TableCell>{h.probability ?? ""}</TableCell>
                     <TableCell>
                       {(h.affectedPersons ?? []).join(", ")}

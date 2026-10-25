@@ -159,6 +159,10 @@
         "matrix": "matrix",
         "unnamed": "(unnamed)",
         "unmappedCategory": "Unmapped Category",
+        "valueMap": {
+          "title": "Map the values of this column",
+          "unmapped": "— (as it is)"
+        },
         "fields": {
           "id": "ID",
           "description": "Description",

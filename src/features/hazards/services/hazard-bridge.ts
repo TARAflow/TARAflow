@@ -14,6 +14,7 @@
 import type {
   SafetyHazard,
   HazardSeverity,
+  LegacyHazardSeverity,
 } from "../models/safety-hazard-types";
 import type { HazardImportWarning } from "./safety-hazard-importer";
 import type {
@@ -28,16 +29,21 @@ import type {
 } from "shared";
 
 /**
- * FMEA severity -> human-harm scale (structured, on the endangers edge).
+ * Legacy intermediate scale -> human-harm scale (HI-1a, unchanged mapping).
  * "negligible" has no human-harm peer; it maps to the lowest level.
  * "critical" (severe, irreversible) maps conservatively to irreversible_major.
  */
-const SEVERITY_TO_HUMAN: Record<HazardSeverity, HumanHarmSeverity> = {
+const SEVERITY_TO_HUMAN: Record<LegacyHazardSeverity, HumanHarmSeverity> = {
   negligible: "reversible_minor",
   marginal: "reversible_minor",
   critical: "irreversible_major",
   catastrophic: "fatal",
 };
+
+/** Canonical values pass through (HI-1); legacy values map as before (HI-1a). */
+function toHumanSeverity(s: HazardSeverity): HumanHarmSeverity {
+  return s in SEVERITY_TO_HUMAN ? SEVERITY_TO_HUMAN[s as LegacyHazardSeverity] : (s as HumanHarmSeverity);
+}
 
 /**
  * The customer's rating kept with the item (HI-4): probability and RPN are no
@@ -143,7 +149,7 @@ export function bridgeSafetyHazards(
           type: "endangers",
           from: id,
           to: targetFor(role),
-          impact: { target: "human", severity: SEVERITY_TO_HUMAN[severity] },
+          impact: { target: "human", severity: toHumanSeverity(severity) },
           provenance: "derived",
           rationale: `Imported affected person: ${role}`,
         };
