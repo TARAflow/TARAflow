@@ -5,7 +5,8 @@
 // the graph — on with the presets "Protection targets" and "All", a toggle
 // and a counter in the context bar, a read-only card with "Open in Hazard
 // tab", no connection handles in edit mode, "not linked" for a hazard
-// without edges.
+// without edges. Focus view (FR-V11b): hazards as neighbours, a hazard as
+// the focus, the "DFD elements" toggle in the focus view too.
 
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -28,7 +29,7 @@ const source: AssetGraphSource = {
     { id: "u1", displayId: "HU-001", name: "Occupants", assetGroup: "human" },
   ],
   relations: [],
-  elements: [],
+  elements: [{ id: "p1", displayId: "P-1", name: "Detector", type: "Process", assetRelations: [{ assetId: "f1", relationType: "implements" }] }],
   hazards: {
     items: [
       {
@@ -54,7 +55,8 @@ const choosePreset = (name: string) => {
   fireEvent.mouseDown(within(screen.getByTestId("asset-graph-preset")).getByRole("combobox"));
   fireEvent.click(within(screen.getByRole("listbox")).getByRole("option", { name }));
 };
-const toggle = () => within(screen.getByTestId("asset-graph-show-hazards")).getByRole("checkbox") as HTMLInputElement;
+// The input itself (an open menu hides the context bar from role queries).
+const toggle = () => screen.getByTestId("asset-graph-show-hazards").querySelector("input") as HTMLInputElement;
 
 afterEach(cleanup);
 
@@ -143,5 +145,52 @@ describe("AssetGraphView — Hazard Items (FR-V11)", () => {
     choosePreset("all");
     expect(screen.queryByTestId("asset-graph-show-hazards")).toBeNull();
     expect(screen.getByTestId("asset-graph-counts").textContent).not.toContain("hazards");
+  });
+
+  it("the layer menu has a Hazards entry (FR-V11c)", () => {
+    render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />);
+    expect(screen.queryByTestId("asset-graph-node-hz:H1")).toBeNull();
+    fireEvent.click(screen.getByLabelText("Layers"));
+    fireEvent.click(screen.getByTestId("asset-graph-layer-hazards"));
+    expect(screen.getByTestId("asset-graph-node-hz:H1")).toBeTruthy();
+    expect(toggle().checked).toBe(true);
+  });
+
+  it("focus on an asset with hazard edges shows its hazards (G3, FR-V11b)", () => {
+    render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />);
+    // Default preset: hazards off, FU-001 visible.
+    fireEvent.doubleClick(screen.getByTestId("asset-graph-node-f1"));
+    expect(screen.getByTestId("asset-graph-node-hz:H1")).toBeTruthy();
+    expect(screen.queryByTestId("asset-graph-node-hz:H2")).toBeNull();
+    expect(screen.queryByTestId("asset-graph-node-u1")).toBeNull(); // depth 2
+  });
+
+  it("a hazard can be the focus — double-click or the card's Focus button", () => {
+    render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />);
+    choosePreset("all");
+    fireEvent.doubleClick(screen.getByTestId("asset-graph-node-hz:H1"));
+    expect(screen.getByText(/Focus: HZ-01 Fire not detected/)).toBeTruthy();
+    expect(screen.getByTestId("asset-graph-node-f1")).toBeTruthy();
+    expect(screen.getByTestId("asset-graph-node-u1")).toBeTruthy();
+    expect(screen.queryByTestId("asset-graph-node-hz:H2")).toBeNull();
+  });
+
+  it("the card's Focus button focuses the hazard", () => {
+    render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />);
+    choosePreset("all");
+    fireEvent.click(screen.getByTestId("asset-graph-node-hz:H1"));
+    fireEvent.click(screen.getByTestId("asset-graph-focus-hazard"));
+    expect(screen.getByText(/Focus: HZ-01 Fire not detected/)).toBeTruthy();
+  });
+
+  it("DFD elements can be hidden in the focus view too", () => {
+    render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />);
+    const anchors = () => within(screen.getByTestId("asset-graph-show-anchors")).getByRole("checkbox") as HTMLInputElement;
+    expect(anchors().checked).toBe(false); // layer view: off
+    fireEvent.doubleClick(screen.getByTestId("asset-graph-node-f1"));
+    expect(anchors().checked).toBe(true); // focus view: on by default
+    expect(screen.getByTestId("asset-graph-node-el:p1")).toBeTruthy();
+    fireEvent.click(anchors());
+    expect(screen.queryByTestId("asset-graph-node-el:p1")).toBeNull();
   });
 });

@@ -14,12 +14,16 @@
 //     directions. Links to hidden layers end in stubs, not in the walk.
 //   - Stubs (FR-V4): per visible asset, its links to assets in hidden layers,
 //     grouped by the target's layer.
-//   - Anchors (FR-V6): one node per DFD element bound to a visible asset;
-//     always in the focus view, optional in the layer view.
-//   - Hazard Items (FR-V11, layer view): with `showHazards`, every Hazard
-//     Item is a node; its edges to shown assets are drawn, its edges to
-//     assets in hidden layers end in stubs at the hazard (FR-V11a). The focus
-//     view does not show them yet (FR-V11b).
+//   - Anchors (FR-V6): one node per DFD element bound to a visible asset,
+//     with `showAnchors` (the view keeps one choice per view: in the focus
+//     view on by default).
+//   - Hazard Items (FR-V11): with `showHazards`, every Hazard Item is a node
+//     in the layer view; its edges to shown assets are drawn, its edges to
+//     assets in hidden layers end in stubs at the hazard (FR-V11a). In the
+//     focus view they are neighbours like assets (FR-V11b): one hop from an
+//     asset to the hazards it contributes to or that endanger it, one more
+//     to the hazard's other assets. A hazard ("hz:" id) can be the focus
+//     itself — then hazards are shown whatever the toggle says.
 //   - Nothing is invented (UX-8): only stored edges are drawn.
 
 import {
@@ -64,10 +68,16 @@ export function buildAssetGraph(
   const typeFilter = options.relationTypes ? new Set(options.relationTypes) : null;
   const passesFilter = (type: string) => !typeFilter || typeFilter.has(type);
 
+  const hazardItems = source.hazards?.items ?? [];
+  const hazardRelations = source.hazards?.relations ?? [];
+  const hazardIds = new Set(hazardItems.map((h) => HAZARD_PREFIX + h.id));
+
   const focusId =
     options.view === "focus" ? options.focusAssetId ?? null : null;
+  const focusIsHazard = !!focusId && hazardIds.has(focusId);
   const focusMissing =
-    options.view === "focus" && (!focusId || !assetsById.has(focusId));
+    options.view === "focus" && (!focusId || (!assetsById.has(focusId) && !focusIsHazard));
+  const hazardsOn = options.showHazards === true || focusIsHazard;
 
   const inVisibleLayer = (a: GraphAssetInput) =>
     visibleLayers.has(a.assetGroup) || a.id === focusId;
@@ -91,6 +101,17 @@ export function buildAssetGraph(
         if (!inVisibleLayer(s) || !inVisibleLayer(t)) continue;
         (neighbours.get(s.id) ?? neighbours.set(s.id, []).get(s.id)!).push(t.id);
         (neighbours.get(t.id) ?? neighbours.set(t.id, []).get(t.id)!).push(s.id);
+      }
+      // FR-V11b: hazard edges link an asset of a visible layer and a hazard.
+      if (hazardsOn) {
+        for (const r of hazardRelations) {
+          const contributes = isContributesTo(r);
+          const asset = assetsById.get(contributes ? r.from : r.to);
+          const hz = HAZARD_PREFIX + (contributes ? r.to : r.from);
+          if (!asset || !hazardIds.has(hz) || !inVisibleLayer(asset)) continue;
+          (neighbours.get(asset.id) ?? neighbours.set(asset.id, []).get(asset.id)!).push(hz);
+          (neighbours.get(hz) ?? neighbours.set(hz, []).get(hz)!).push(asset.id);
+        }
       }
       shown.set(focusId, 0);
       let frontier = [focusId];
@@ -166,9 +187,7 @@ export function buildAssetGraph(
   // ── Hazard Items (FR-V11, FR-V11a, FR-V11e) ─────────────────────────────
   const hazardNodes: AssetGraphHazardNode[] = [];
   const hazardEdges: AssetGraphEdge[] = [];
-  const hazardItems = source.hazards?.items ?? [];
-  const hazardRelations = source.hazards?.relations ?? [];
-  if (options.view === "layers" && options.showHazards === true) {
+  if (hazardsOn) {
     const seenEdges = new Set<string>();
     const pushEdge = (edge: AssetGraphEdge) => {
       if (seenEdges.has(edge.id)) return;
@@ -177,6 +196,9 @@ export function buildAssetGraph(
     };
     for (const item of hazardItems) {
       const nodeId = HAZARD_PREFIX + item.id;
+      // Focus view: only the hazards the walk reached.
+      if (options.view === "focus" && !shown.has(nodeId)) continue;
+      const distance = shown.get(nodeId);
       let linked = false;
       for (const r of hazardRelations) {
         const contributes = isContributesTo(r);
@@ -225,6 +247,7 @@ export function buildAssetGraph(
         severity: normalizeLegacySafetyImpact(worst.severity) ?? worst.severity,
         severityRank: worst.rank,
         linked,
+        ...(distance !== undefined ? { distance } : {}),
       });
     }
     hazardNodes.sort((a, b) => compareDisplayIds(a.displayId, b.displayId) || byId(a, b));
@@ -240,7 +263,7 @@ export function buildAssetGraph(
   // ── Element anchors ─────────────────────────────────────────────────────
   const anchorNodes: AssetGraphAnchorNode[] = [];
   const anchorEdges: AssetGraphEdge[] = [];
-  const withAnchors = options.view === "focus" || options.showAnchors === true;
+  const withAnchors = options.showAnchors === true;
   if (withAnchors) {
     for (const el of [...source.elements].sort(byId)) {
       const links = (el.assetRelations ?? []).filter(

@@ -54,17 +54,17 @@ export interface AssetGraphOptions {
   readonly view: AssetGraphViewKind;
   /** Visible layers (asset groups). */
   readonly layers: readonly AssetGroup[];
-  /** Focus view: the asset in the centre. */
+  /** Focus view: the asset — or the hazard, "hz:" + id — in the centre. */
   readonly focusAssetId?: string | null;
   /** Focus view: hops in both directions (default 1). */
   readonly depth?: number;
   /** Relation types to show; null/undefined = all (FR-V10). */
   readonly relationTypes?: readonly string[] | null;
-  /** Element anchors: always in the focus view, optional in the layer view. */
+  /** Element anchors (FR-V6). */
   readonly showAnchors?: boolean;
   /**
-   * Hazard Items and their edges (FR-V11, layer view). The focus view takes
-   * hazards as neighbours later (FR-V11b).
+   * Hazard Items and their edges (FR-V11); in the focus view hazards are
+   * neighbours (FR-V11b). A hazard as the focus shows them regardless.
    */
   readonly showHazards?: boolean;
 }
@@ -106,6 +106,8 @@ export interface AssetGraphHazardNode {
   readonly severityRank: number;
   /** False: no edge to an existing asset (FR-V11e, "not linked"). */
   readonly linked: boolean;
+  /** Hops from the focus (focus view only). */
+  readonly distance?: number;
 }
 
 export type AssetGraphNode =

@@ -54,7 +54,7 @@ import {
   Redo as RedoIcon,
 } from "@mui/icons-material";
 import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
-import { HAZARD_SEVERITY_RANK_COLOR, normalizeLegacySafetyImpact, type AssetGroup } from "shared";
+import { HAZARD_SEVERITY_RANK_COLOR, isContributesTo, normalizeLegacySafetyImpact, type AssetGroup } from "shared";
 import type { AssetRelation } from "../models/asset-relation-types";
 import { getAssetGroupColor } from "../models/dfd-formatters";
 import {
@@ -172,7 +172,10 @@ interface ViewState {
   layers: AssetGroup[];
   focusAssetId: string | null;
   depth: number;
+  /** DFD element anchors in the layer view (off by default)… */
   showAnchors: boolean;
+  /** …and in the focus view (on by default, FR-V6). */
+  anchorsInFocus: boolean;
   /** Hazard Items (FR-V11c); on with the protection and all presets (G3). */
   showHazards: boolean;
   /** Shown relation types; null = all (FR-V10). */
@@ -185,6 +188,7 @@ const DEFAULT_STATE: ViewState = {
   focusAssetId: null,
   depth: DEFAULT_FOCUS_DEPTH,
   showAnchors: false,
+  anchorsInFocus: true,
   showHazards: false,
   relationTypes: null,
 };
@@ -258,6 +262,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     visibility: AssetVisibility;
   } | null>(null);
 
+  /** A hazard ("hz:" id), or an asset with hazard edges (G3). */
+  const hasHazardEdges = (id: string) =>
+    id.startsWith(HAZARD_PREFIX)
+      ? (source.hazards?.items ?? []).some((h) => HAZARD_PREFIX + h.id === id)
+      : (source.hazards?.relations ?? []).some((r) => (isContributesTo(r) ? r.from : r.to) === id);
+
   // Focus request from outside (asset table "show in graph").
   useEffect(() => {
     if (!focusRequest) return;
@@ -267,6 +277,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       view: "focus",
       focusAssetId: focusRequest.assetId,
       layers: [...ALL_LAYERS],
+      showHazards: s.showHazards || hasHazardEdges(focusRequest.assetId),
     }));
     // …and its card is open: in the graph, the card is where it is edited.
     setSelectedEdgeId(null);
@@ -298,7 +309,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         layers: state.layers,
         focusAssetId: state.focusAssetId,
         depth: state.depth,
-        showAnchors: state.showAnchors,
+        showAnchors: state.view === "focus" ? state.anchorsInFocus : state.showAnchors,
         showHazards: state.showHazards,
         relationTypes: state.relationTypes,
       }),
@@ -865,7 +876,6 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     if (e.key === "Enter" && node) {
       e.preventDefault();
       if (node.kind === "anchor") onShowElement?.(node.elementId);
-      else if (node.kind === "hazard") selectHazardNode(node.hazardId);
       else {
         focusOn(node.id);
         pendingCenterRef.current = node.id;
@@ -998,6 +1008,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       ...s,
       view: "focus",
       focusAssetId: assetId,
+      // G3: hazards on when the focus has hazard edges (or is a hazard).
+      showHazards: s.showHazards || hasHazardEdges(assetId),
       // Entering the focus view from the layer view shows all layers; moving
       // the focus within it keeps the user's layer choice.
       layers: s.view === "focus" ? s.layers : [...ALL_LAYERS],
@@ -1046,8 +1058,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           ? ""
           : typeLabel(e.relationType);
 
-  const focusNode =
-    state.focusAssetId ? source.assets.find((a) => a.id === state.focusAssetId) : undefined;
+  // The focus: an asset, or a hazard ("hz:" id, FR-V11b).
+  const focusNode = (() => {
+    const id = state.focusAssetId;
+    if (!id) return undefined;
+    if (id.startsWith(HAZARD_PREFIX)) {
+      const h = source.hazards?.items.find((x) => HAZARD_PREFIX + x.id === id);
+      return h ? { displayId: h.externalRef || "", name: h.label } : undefined;
+    }
+    return source.assets.find((a) => a.id === id);
+  })();
 
   const c = graph.counts;
   const countsText = t("tabs.dfd.assetGraph.counts", {
@@ -1060,7 +1080,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     filtered: c.edgesHiddenByFilter,
   });
   const hazardCountsText =
-    state.view === "layers" && state.showHazards && c.hazardsTotal > 0
+    state.showHazards && c.hazardsTotal > 0
       ? t("tabs.dfd.assetGraph.hazard.counts", {
           defaultValue: "{{visible}} of {{total}} hazards",
           visible: c.hazardsVisible,
@@ -1201,6 +1221,19 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               <ListItemText primary={groupLabel(g)} />
             </MenuItem>
           ))}
+          {c.hazardsTotal > 0 && <Divider />}
+          {c.hazardsTotal > 0 && (
+            // FR-V11c: the hazard lane is chosen like a layer.
+            <MenuItem
+              dense
+              onClick={() => setState((s) => ({ ...s, showHazards: !s.showHazards }))}
+              data-testid="asset-graph-layer-hazards"
+            >
+              <Checkbox size="small" checked={state.showHazards} sx={{ p: 0.5, mr: 1 }} />
+              <Box sx={{ width: 10, height: 10, transform: "rotate(45deg)", bgcolor: hazardStroke, mr: 1 }} />
+              <ListItemText primary={t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })} />
+            </MenuItem>
+          )}
         </Menu>
 
         {state.view === "focus" ? (
@@ -1228,33 +1261,38 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               ))}
             </Select>
           </>
-        ) : (
-          <>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={state.showAnchors}
-                  onChange={(e) => setState((s) => ({ ...s, showAnchors: e.target.checked }))}
-                />
+        ) : null}
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              // One choice per view: on by default in the focus view.
+              checked={state.view === "focus" ? state.anchorsInFocus : state.showAnchors}
+              onChange={(e) =>
+                setState((s) =>
+                  s.view === "focus"
+                    ? { ...s, anchorsInFocus: e.target.checked }
+                    : { ...s, showAnchors: e.target.checked },
+                )
               }
-              label={<Typography variant="body2">{t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })}</Typography>}
+              data-testid="asset-graph-show-anchors"
             />
-            {c.hazardsTotal > 0 && (
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={state.showHazards}
-                    onChange={(e) => setState((s) => ({ ...s, showHazards: e.target.checked }))}
-                    inputProps={{ "aria-label": t("tabs.dfd.assetGraph.hazard.toggle", { defaultValue: "Hazards" }) }}
-                    data-testid="asset-graph-show-hazards"
-                  />
-                }
-                label={<Typography variant="body2">{t("tabs.dfd.assetGraph.hazard.toggle", { defaultValue: "Hazards" })}</Typography>}
+          }
+          label={<Typography variant="body2">{t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })}</Typography>}
+        />
+        {c.hazardsTotal > 0 && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={state.showHazards}
+                onChange={(e) => setState((s) => ({ ...s, showHazards: e.target.checked }))}
+                inputProps={{ "aria-label": t("tabs.dfd.assetGraph.hazard.toggle", { defaultValue: "Hazards" }) }}
+                data-testid="asset-graph-show-hazards"
               />
-            )}
-          </>
+            }
+            label={<Typography variant="body2">{t("tabs.dfd.assetGraph.hazard.toggle", { defaultValue: "Hazards" })}</Typography>}
+          />
         )}
 
         <DfdScopeFilterControls
@@ -1719,6 +1757,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     data-moving={moving?.id === n.id ? "" : undefined}
                     onPointerDown={(e) => startMove(n.id, e)}
                     onClick={unlessMoved(() => selectHazardNode(n.hazardId))}
+                    onDoubleClick={() => focusOn(n.id)}
                     data-testid={`asset-graph-node-${n.id}`}
                     data-node-id={n.id}
                     data-severity-rank={n.severityRank}

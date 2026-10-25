@@ -332,14 +332,17 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
             {targets.map((x) => assetLink(x, ` · ${severityLabel(x.severity)}`))}
           </Box>
         )}
-        {onOpenHazard && (
-          <>
-            <Divider sx={{ my: 0.75 }} />
+        <Divider sx={{ my: 0.75 }} />
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Button size="small" onClick={() => onFocus(HAZARD_PREFIX + h.id)} data-testid="asset-graph-focus-hazard">
+            {t("tabs.dfd.assetGraph.inspector.focus", { defaultValue: "Focus" })}
+          </Button>
+          {onOpenHazard && (
             <Button size="small" onClick={() => onOpenHazard(h.id)} data-testid="asset-graph-open-hazard">
               {t("tabs.dfd.assetGraph.hazard.open", { defaultValue: "Open in Hazard tab" })}
             </Button>
-          </>
-        )}
+          )}
+        </Stack>
       </Box>
     );
   } else if (assetId) {

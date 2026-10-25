@@ -187,11 +187,14 @@ describe("focus view (FR-V5)", () => {
     ]);
   });
 
-  it("always shows element anchors of the shown assets", () => {
+  it("shows element anchors of the shown assets on request (on by default in the view)", () => {
+    const off = buildAssetGraph(source(), { view: "focus", layers: ASSET_GRAPH_PRESETS.all, focusAssetId: "f1" });
+    expect(off.nodes.filter((n) => n.kind === "anchor")).toEqual([]);
     const g = buildAssetGraph(source(), {
       view: "focus",
       layers: ASSET_GRAPH_PRESETS.all,
       focusAssetId: "f1",
+      showAnchors: true,
     });
     expect(g.nodes.filter((n) => n.kind === "anchor")).toEqual([
       {

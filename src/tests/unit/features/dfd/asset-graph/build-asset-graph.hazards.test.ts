@@ -38,6 +38,9 @@ const displayOf = (source: AssetGraphSource) => {
   return (id: string) => byId.get(id) ?? id;
 };
 
+const idOf = (source: AssetGraphSource, displayId: string) =>
+  source.assets.find((a) => a.displayId === displayId)!.id;
+
 const hazardNodes = (g: ReturnType<typeof buildAssetGraph>) =>
   g.nodes.filter((n): n is AssetGraphHazardNode => n.kind === "hazard");
 
@@ -170,7 +173,7 @@ describe("asset graph — Hazard Items (FR-V11)", () => {
     expect(g.edges.map((e) => e.id)).toEqual(["d->hz:H3"]);
   });
 
-  it("off without showHazards, and not in the focus view yet (FR-V11b comes later)", () => {
+  it("off without showHazards", () => {
     const source = smokeDetector();
     const off = buildAssetGraph(source, { view: "layers", layers: ASSET_GRAPH_PRESETS.all });
     expect(hazardNodes(off)).toEqual([]);
@@ -178,8 +181,7 @@ describe("asset graph — Hazard Items (FR-V11)", () => {
     const focus = buildAssetGraph(source, {
       view: "focus",
       layers: ASSET_GRAPH_PRESETS.all,
-      focusAssetId: source.assets[0].id,
-      showHazards: true,
+      focusAssetId: idOf(source, "FU-001"),
     });
     expect(hazardNodes(focus)).toEqual([]);
   });
@@ -244,5 +246,59 @@ describe("asset graph — Hazard Items (FR-V11)", () => {
     const shown = sourceOnPages(source, new Set(["p1"]));
     expect(shown.hazards?.items.map((h) => h.id)).toEqual(["H1"]);
     expect(shown.hazards?.relations).toHaveLength(1);
+  });
+});
+
+describe("asset graph — hazards in the focus view (FR-V11b)", () => {
+  const focus = (source: AssetGraphSource, focusAssetId: string, depth: number, showHazards = true) =>
+    buildAssetGraph(source, { view: "focus", layers: ASSET_GRAPH_PRESETS.all, focusAssetId, depth, showHazards });
+  const shownDisplay = (source: AssetGraphSource, g: ReturnType<typeof buildAssetGraph>) => {
+    const display = displayOf(source);
+    return g.nodes.filter((n) => n.kind !== "anchor").map((n) => (n.kind === "hazard" ? n.id : display(n.id)));
+  };
+
+  it("depth 1 from FU-001: the hazard it contributes to; depth 2: its causes and protection targets", () => {
+    const source = smokeDetector();
+    const one = focus(source, idOf(source, "FU-001"), 1);
+    expect(hazardNodes(one).map((n) => [n.id, n.distance])).toEqual([["hz:H-01", 1]]);
+    expect(shownDisplay(source, one)).not.toContain("HU-001");
+    // Edges among the shown nodes: FU-001 and its shown neighbours → H-01.
+    const contributes = one.edges.filter((e) => e.kind === "contributes_to");
+    expect(new Set(contributes.map((e) => e.target))).toEqual(new Set(["hz:H-01"]));
+    expect(contributes.map((e) => e.source)).toContain(idOf(source, "FU-001"));
+
+    const two = focus(source, idOf(source, "FU-001"), 2);
+    expect(shownDisplay(source, two)).toEqual(expect.arrayContaining(["HU-001", "IF-001", "DA-001", "SY-002"]));
+    const display = displayOf(source);
+    expect(
+      two.edges.filter((e) => e.kind === "endangers" && e.source === "hz:H-01").map((e) => display(e.target)).sort(),
+    ).toEqual(["HU-001", "IF-001"]);
+  });
+
+  it("a protection target reaches the hazards that endanger it", () => {
+    const source = smokeDetector();
+    const g = focus(source, idOf(source, "HU-002"), 1);
+    expect(hazardNodes(g).map((n) => n.id)).toEqual(["hz:H-05"]);
+  });
+
+  it("a hazard can be the focus — shown even with the toggle off", () => {
+    const source = smokeDetector();
+    const g = focus(source, "hz:H-05", 1, false);
+    expect(g.focusMissing).toBe(false);
+    expect(hazardNodes(g).map((n) => [n.id, n.distance])).toEqual([["hz:H-05", 0]]);
+    expect(shownDisplay(source, g).sort()).toEqual(["DA-003", "DA-008", "HU-001", "HU-002", "hz:H-05"]);
+    expect(focus(source, "hz:gone", 1).focusMissing).toBe(true);
+  });
+
+  it("does not walk into hidden layers; their hazard edges become stubs", () => {
+    const source = smokeDetector();
+    const g = buildAssetGraph(source, {
+      view: "focus",
+      layers: ASSET_GRAPH_PRESETS.protection,
+      focusAssetId: "hz:H-05",
+      depth: 1,
+    });
+    expect(shownDisplay(source, g).sort()).toEqual(["HU-001", "HU-002", "hz:H-05"]);
+    expect(g.stubs["hz:H-05"]).toEqual([{ layer: "data", count: 2 }]);
   });
 });
