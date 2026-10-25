@@ -102,6 +102,7 @@ describe("HI-4 — the customer's rating survives the import", () => {
       "Hazard zone": "Applicator head",
       probability: "medium",
       rpn: "12",
+      residualRisk: "Overrun after stop", // HI-6
     });
   });
 
@@ -120,10 +121,11 @@ describe("HI-4 — the customer's rating survives the import", () => {
       "probability",
       "probability.raw",
       "rpn",
+      "residualRisk",
       "Lifecycle phase",
       "Hazard zone",
     ]);
     expect(rows[0].labelKey).toBe("tabs.hazards.imported.key.severity_raw");
-    expect(rows[4].labelKey).toBeUndefined();
+    expect(rows[5].labelKey).toBeUndefined();
   });
 });

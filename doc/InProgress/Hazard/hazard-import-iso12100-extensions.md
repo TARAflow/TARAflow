@@ -186,8 +186,8 @@ and two rows with a VS/S contradiction.
 | Step | Content | Patch | State |
 |---|---|---|---|
 | 1 | HI-4: the profile import keeps the source values of severity and probability (`severity.raw`, `probability.raw` — the cell before the value map, or the header label of the marked x-matrix column); the bridge keeps `probability` and `rpn` in `importMeta`. Hazard dialog: read-only "Imported data" block (source row, rating, extra columns; i18n en/de). Fixture `src/tests/fixtures/hazards/label-applicator-iso12100.json` (invented machine, structure of §2). | 154 | done |
-| 2 | HI-6 | – | open |
-| 3 | HI-11 | – | open |
+| 2 | HI-6: no `Restrisiken:` prefix — the source's residual-risk note goes to `importMeta.residualRisk` ("Residual risk (source)" in the dialog, en/de); the importer sets no rationale. Existing rationales unchanged. | 155 | done |
+| 3 | HI-11: a missing or unknown severity stays undefined (`SafetyHazard.severity` optional) with a warning "no person edge; assign the severity in the bowtie"; the bridge creates no endangers edge for it (and no "no affected person" hint). Steps 2 and 3 in one patch (user). | 155 | done |
 | 4 | HI-1, HI-1a | – | open |
 | 5 | HI-2, HI-3 | – | open |
 | 6 | HI-5, HI-7 | – | open |

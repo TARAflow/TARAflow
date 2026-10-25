@@ -30,7 +30,11 @@ export interface SafetyHazard {
   id: string; // project-unique, e.g. "H-01"
   description: string;
   hazardCategory: HazardCategory;
-  severity: HazardSeverity;
+  /**
+   * Undefined when the source has no (known) severity — the bridge then creates
+   * no person edge instead of inventing an injury (hazard import HI-11).
+   */
+  severity?: HazardSeverity;
   probability?: HazardProbability;
   rpn?: number; // severity x probability, optionally precomputed
   sourceNorm?: string; // "ISO 12100", "ISO 14971", ...

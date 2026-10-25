@@ -47,6 +47,7 @@ const SEVERITY_TO_HUMAN: Record<HazardSeverity, HumanHarmSeverity> = {
 function withImportedRating(h: SafetyHazard): Record<string, string> | undefined {
   const meta: Record<string, string> = { ...(h.importMeta ?? {}) };
   if (h.probability) meta.probability = h.probability;
+  if (h.notes?.trim()) meta.residualRisk = h.notes.trim();
   if (typeof h.rpn === "number") meta.rpn = String(h.rpn);
   return Object.keys(meta).length > 0 ? meta : undefined;
 }
@@ -127,28 +128,33 @@ export function bridgeSafetyHazards(
       combinationType: "ANY",
       source: "imported",
       externalRef: h.originalId ?? h.id,
-      rationale: h.notes ? `Restrisiken: ${h.notes}` : undefined,
+      // The source's residual-risk note is import metadata, not the analyst's
+      // rationale; its label comes from i18n (HI-6, no text in stored data).
       importMeta: withImportedRating(h),
     });
 
-    // endangers — one per affected-person role, severity structured on the edge.
+    // endangers — one per affected-person role, severity structured on the edge;
+    // none without a severity (HI-11): the importer already warned per row.
+    const severity = h.severity;
     const roles = h.affectedPersons ?? [];
-    for (const role of roles) {
-      const endangers: EndangersRelation = {
-        type: "endangers",
-        from: id,
-        to: targetFor(role),
-        impact: { target: "human", severity: SEVERITY_TO_HUMAN[h.severity] },
-        provenance: "derived",
-        rationale: `Imported affected person: ${role}`,
-      };
-      relations.push(endangers);
-    }
-    if (roles.length === 0) {
-      warnings.push({
-        message: `"${h.id}": no affected person — assign a protection target in the bowtie`,
-        severity: "info",
-      });
+    if (severity) {
+      for (const role of roles) {
+        const endangers: EndangersRelation = {
+          type: "endangers",
+          from: id,
+          to: targetFor(role),
+          impact: { target: "human", severity: SEVERITY_TO_HUMAN[severity] },
+          provenance: "derived",
+          rationale: `Imported affected person: ${role}`,
+        };
+        relations.push(endangers);
+      }
+      if (roles.length === 0) {
+        warnings.push({
+          message: `"${h.id}": no affected person — assign a protection target in the bowtie`,
+          severity: "info",
+        });
+      }
     }
 
     // contributes_to from affectedAssets (usually none on these sheets).

@@ -119,7 +119,8 @@
           "severity_raw": "Severity (source value)",
           "probability": "Probability",
           "probability_raw": "Probability (source value)",
-          "rpn": "RPN (source)"
+          "rpn": "RPN (source)",
+          "residualRisk": "Residual risk (source)"
         },
         "probabilityLevel": {
           "very_low": "Very low",

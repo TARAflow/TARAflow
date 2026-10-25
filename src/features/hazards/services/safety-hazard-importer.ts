@@ -130,8 +130,10 @@ export function finalizeImport(
       });
     }
 
-    // severity — required in the model; coerce unknown to "marginal"
-    let severity: HazardSeverity = "marginal";
+    // severity — missing or unknown stays undefined: the item is imported,
+    // but no person edge is created (hazard import HI-11; it used to be
+    // coerced to "marginal", an invented injury).
+    let severity: HazardSeverity | undefined;
     if (data.severity && HAZARD_SEVERITIES.has(data.severity)) {
       severity = data.severity;
     } else {
@@ -139,8 +141,8 @@ export function finalizeImport(
         row,
         field: "severity",
         message: data.severity
-          ? `Unknown severity "${data.severity}" — coerced to "marginal"`
-          : `Missing severity — coerced to "marginal"`,
+          ? `Unknown severity "${data.severity}" — no person edge; assign the severity in the bowtie`
+          : `Missing severity — no person edge; assign the severity in the bowtie`,
         severity: "warning",
       });
     }

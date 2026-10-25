@@ -24,6 +24,7 @@ const KNOWN_LABELS: Readonly<Record<string, string>> = {
   probability: "Probability",
   "probability.raw": "Probability (source value)",
   rpn: "RPN (source)",
+  residualRisk: "Residual risk (source)",
 };
 export const KNOWN_IMPORT_KEYS: readonly string[] = Object.keys(KNOWN_LABELS);
 

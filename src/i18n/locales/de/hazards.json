@@ -118,7 +118,8 @@
           "severity_raw": "Schwere (Quellwert)",
           "probability": "Wahrscheinlichkeit",
           "probability_raw": "Wahrscheinlichkeit (Quellwert)",
-          "rpn": "RPZ (Quelle)"
+          "rpn": "RPZ (Quelle)",
+          "residualRisk": "Restrisiko (Quelle)"
         },
         "probabilityLevel": {
           "very_low": "Sehr gering",
