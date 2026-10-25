@@ -1,7 +1,7 @@
 // src/tests/component/asset-graph-hazards.test.tsx
 //
 // Asset graph design FR-V11, FR-V11c, FR-V11d, FR-V11e, G3, G9
-// (doc/InProgress/DFD/asset-graph-hazards-and-node-move.md): Hazard Items in
+// (doc/Done/DFD/asset-graph-hazards-and-node-move.md): Hazard Items in
 // the graph — on with the presets "Protection targets" and "All", a toggle
 // and a counter in the context bar, a read-only card with "Open in Hazard
 // tab", no connection handles in edit mode, "not linked" for a hazard

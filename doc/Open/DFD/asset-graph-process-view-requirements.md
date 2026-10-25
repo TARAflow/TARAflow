@@ -127,7 +127,7 @@ Dokumenten — und nichts hält beide gleich. DOC-2 schliesst das.
 |---|---|---|
 | FR-P2 | **Process-Ablaufsicht** (D11; unterliegt UX-8 — keine Semantik zeigen, die das Modell nicht ausdrückt): eigene Darstellung, kein weiteres Layout des allgemeinen Graphen. Auslöser oben, Schritte aus `invokes` und `consists_of` nach `stepOrder` in Leserichtung, je Schritt die aufgerufene Function, zwischen den Schritten die ein- und ausfliessenden Data (`required_by`, `configures [step]`, `creates`/`modifies`), Alternativ- und Fehlerpfade als Abzweig vom jeweiligen Schritt (FR-P7), Endzustand unten. Sub-Processes aufklappbar. | SOLL |
 | FR-P6 | Validierungsbefunde aus FR-P3 … FR-P5 erscheinen als Symbol am Knoten/an der Kante in Graph- und Ablaufsicht (UX-4 Stufe 4, wie die bestehenden Link-Befunde) und in der Detailkarte mit Erläuterung. | KANN |
-| FR-V11 | Hazard Items aus `hazards.relations` können in der Graph-Sicht zugeschaltet werden (read-only, eigene Knotenform, `contributes_to`/`endangers`-Kanten; Preset „Schutzziele“). | KANN |
+| FR-V11 | Hazard Items aus `hazards.relations` können in der Graph-Sicht zugeschaltet werden (read-only, eigene Knotenform, `contributes_to`/`endangers`-Kanten; Preset „Schutzziele“). **Umgesetzt** (2026-10-25, als MUSS): `doc/Done/DFD/asset-graph-hazards-and-node-move.md`. | KANN |
 
 ### 5.3 Validierungen
 

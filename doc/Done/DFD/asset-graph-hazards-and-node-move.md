@@ -1,7 +1,7 @@
 # TARAflow — Asset graph: show Hazard Items, move nodes with Ctrl
 
-**Status:** v2 · 2026-10-25 · decisions taken (§3), steps 1–5d done (§8), implementation on branch
-`feature/asset-graph-hazards` · base: `main` after the hazard import
+**Status:** Done · 2026-10-25 · steps 1–5d implemented (§8), branch
+`feature/asset-graph-hazards` merged into `main`
 **Scope:** `features/dfd/asset-graph`, app layer (data passed to the DFD tab)
 **Related:** `doc/Done/DFD/asset-graph-view-requirements.md` (FR-V1 … FR-V16, AR-10 … AR-12,
 D3), `doc/Open/DFD/asset-graph-process-view-requirements.md` (FR-V11 there as COULD),

@@ -1,7 +1,7 @@
 # TARAflow — Hazard import: extensions for ISO 12100 risk assessments
 
-**Status:** v2 · 2026-10-25 · decisions taken (§5), implementation on branch
-`feature/hazard-import-iso12100` · base: `main` after v0.15.0-beta (schema 10)
+**Status:** v2 · 2026-10-25 · merged into `main`; all steps done except HI-1b (S0 as
+`"none"`, waits for ISO plan Phase 1H) — stays in InProgress until then
 **Scope:** `features/hazards` (importer, import profile, bridge), `shared/models`
 **Related:** `taraflow-feature-spec-safety-hazard-import-v2.md` (importer architecture),
 `doc/taraflow-safety-model.md` (canonical severity scale),
