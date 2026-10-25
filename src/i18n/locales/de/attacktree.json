@@ -275,6 +275,7 @@
           "noRoot": "Kein ROOT-Knoten gefunden. Angriffsbaum muss mit einem ROOT-Knoten beginnen.",
           "invalidSyntax": "Ungültige Syntax. Erwartet: \"Knotenname [Refs];TYPE Bewertung @goal [Mitigations]\"",
           "unknownGoal": "Unbekanntes Angriffsziel \"@{{goal}}\". Gültige Ziele: disclosure, manipulation, service-disruption, privilege-abuse, identity-misuse, accountability-evasion, destruction",
+          "unknownAttackVector": "Unbekannter Angriffsvektor \"av={{value}}\" — ignoriert. Gültig: network, adjacent, local, physical",
           "missingTypeOrEval": "Fehlender Knotentyp oder Bewertung nach Semikolon",
           "gateHasEvaluation": "Gate-Knoten ({{type}}) sollten keine Bewertungen haben. Bewertung ignoriert.",
           "probabilityRange": "Wahrscheinlichkeit muss zwischen 0.0 und 1.0 liegen, erhalten: {{value}}",

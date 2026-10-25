@@ -276,6 +276,7 @@
           "noRoot": "No ROOT node found. Attack tree must start with a ROOT node.",
           "invalidSyntax": "Invalid syntax. Expected: \"Node Name [Refs];TYPE evaluation @goal [Mitigations]\"",
           "unknownGoal": "Unknown attack goal \"@{{goal}}\". Valid goals: disclosure, manipulation, service-disruption, privilege-abuse, identity-misuse, accountability-evasion, destruction",
+          "unknownAttackVector": "Unknown attack vector \"av={{value}}\" — ignored. Valid: network, adjacent, local, physical",
           "missingTypeOrEval": "Missing node type or evaluation after semicolon",
           "gateHasEvaluation": "Gate nodes ({{type}}) should not have evaluations. Evaluation ignored.",
           "probabilityRange": "Probability must be between 0.0 and 1.0, got {{value}}",

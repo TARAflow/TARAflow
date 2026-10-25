@@ -93,7 +93,12 @@ function outlineOf(
   const out: AttackTreeOutlineItem[] = [];
   const walk = (node: AttackTreeNode, depth: number) => {
     let text = node.name;
-    if (node.type === "AND" || node.type === "OR") text += ` (${node.type})`;
+    // Gate and stated attack vector, e.g. "(AND · physical)".
+    const tags = [
+      ...(node.type === "AND" || node.type === "OR" ? [node.type] : []),
+      ...(node.attackVector ? [t(`${K}.vector.${node.attackVector}`, node.attackVector)] : []),
+    ];
+    if (tags.length > 0) text += ` (${tags.join(" · ")})`;
     if (node.type === "LEAF") {
       const rating = leafRating(node, config, t);
       if (rating) text += ` — ${rating}`;

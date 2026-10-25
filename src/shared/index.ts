@@ -95,6 +95,12 @@ export type {
   ThreatGoalLink,
 } from "./models/threat-reference-types";
 export { RELEVANCE_COLORS } from "./models/threat-reference-types";
+export {
+  ATTACK_VECTORS,
+  ATTACK_VECTOR_ALIASES,
+  parseAttackVector,
+} from "./models/attack-vector";
+export type { AttackVector } from "./models/attack-vector";
 
 export type { ControlInstance } from "./models/control-instance";
 

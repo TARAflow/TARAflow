@@ -205,6 +205,12 @@
           "not_relevant": "not relevant",
           "uncertain": "uncertain",
           "unrated": "unrated"
+        },
+        "vector": {
+          "network": "network",
+          "adjacent": "adjacent",
+          "local": "local",
+          "physical": "physical"
         }
       }
     }

@@ -152,6 +152,7 @@ function dslContent(node: AttackTreeNode): unknown {
     threatRef: node.threatRef,
     attackGoal: node.attackGoal,
     targetedSecurityGoals: node.targetedSecurityGoals,
+    attackVector: node.attackVector,
     evaluation: node.evaluation,
     mitigations: node.mitigations,
     children: (node.children ?? []).map(dslContent),

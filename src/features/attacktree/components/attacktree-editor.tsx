@@ -79,6 +79,11 @@ const attackTreeLanguage = StreamLanguage.define({
       return "attributeName";
     }
 
+    // Attack vector: av=network|adjacent|local|physical
+    if (stream.match(/av=[a-z-]+/i)) {
+      return "attributeName";
+    }
+
     // Simple Evaluation: p=0.5, i=3
     if (stream.match(/p=[\d.]+/)) {
       return "number";

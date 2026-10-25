@@ -512,6 +512,11 @@ export function extractAllPaths(
 
       const benefit = node.evaluation?.benefit;
 
+      // Attack vector: stated closest to the leaf wins (a node's `av=` covers
+      // its subtree). Not part of the feasibility — used to pick controls.
+      const attackVector = [...nodesOnPath].reverse().find((n) => n.attackVector)
+        ?.attackVector;
+
       // Benefit folds in only when the project's LikelihoodModel says so
       // (IEC 62443 / classic). In ISO mode this returns feasibility unchanged.
       const likelihoodLevel = feasibilityLevel
@@ -535,6 +540,7 @@ export function extractAllPaths(
         attackPotentialFactors: node.evaluation?.attackPotential,
         likelihoodLevel: likelihoodLevel,
         benefit: benefit,
+        ...(attackVector ? { attackVector } : {}),
         attackGoals: goals,
         mitigations: mitigations,
         isCritical: false, // Will be set later

@@ -1,6 +1,6 @@
 # Mitigation catalog: attack vector and missing controls
 
-**Status:** design agreed 2026-10-25, implementation open
+**Status:** design agreed 2026-10-25, implementation in progress (§6)
 **Scope:** threats / attack trees / risks (all presets)
 **Trigger:** Headlamp example (ISO/SAE 21434). The attack-path risks get
 controls that do not fit the path: a *Physical Access* path for availability is
@@ -119,9 +119,11 @@ Each new control gets a verification (`V-…`) and en/de texts.
 ## 4. Implementation steps
 
 1. **Parser and model** (attack tree): parse the `av=` attribute (case-insensitive,
-   aliases `net`, `adj`, `loc`, `phys`); add `AttackTreeNode.attackVector` and
-   inherit it down the chain into `AttackPath.attackVector`. Add a validator info
-   for an unknown value. Golden test: the attack potential is unchanged.
+   aliases `net`, `adj`, `loc`, `phys`; on a leaf also after the factors,
+   `…,eq=standard,av=physical`); add `AttackTreeNode.attackVector` and
+   inherit it down the chain into `AttackPath.attackVector`. An unknown value
+   gives a parser warning and is ignored. Golden test: the attack potential is
+   unchanged.
 2. **Catalog:** add the `attackVectors` field and the D5 mapping; add the new
    controls and verifications with en/de texts; update the `domain` doc comment.
 3. **Selection:** vector-aware top-up (D3) and the context filter (D4) in both
@@ -141,3 +143,12 @@ Each new control gets a verification (`V-…`) and en/de texts.
   have the element type and its catalog family already).
 - A G.9 attack-vector-based feasibility rating — the vector is used only to
   pick controls.
+
+## 6. Implementation status
+
+| Step | Content | Patch | State |
+|---|---|---|---|
+| 1 | `av=` parsed on every node (aliases, case-insensitive, comma form on leaves; unknown value → parser warning `unknownAttackVector`, ignored); `AttackVector` type in `shared/models/attack-vector.ts`; `AttackTreeNode.attackVector`, `AttackPath.attackVector` (closest to the leaf wins); editor highlighting; a changed `av=` counts as a stale ast (F7); the report's tree structure shows the vector next to the gate ("(OR · physical)"). Attack potential, feasibility and path keys unchanged (golden test). | 148 | done |
+| 2 | Catalog: `attackVectors`, D5 mapping, new controls and verifications, en/de | – | open |
+| 3 | Selection: vector-aware top-up (D3), context filter (D4) | – | open |
+| 4 | Headlamp example | – | open |

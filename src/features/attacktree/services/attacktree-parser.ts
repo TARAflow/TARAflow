@@ -34,6 +34,8 @@ import {
 } from "./attacktree-feasibility-parser";
 import type { SecurityGoalType } from "features/assets/models/asset-security-goals-types";
 import { computeNodeId } from "./attacktree-path-identity";
+// Deep path: the parser also runs in the CLI bundle (no UI barrel).
+import { parseAttackVector } from "shared/models/attack-vector";
 
 // ==================== PARSER ====================
 
@@ -358,6 +360,33 @@ function parseRemainder(
       });
     }
     workingStr = workingStr.replace(/@\w+(?:-\w+)?/, "").trim();
+  }
+
+  // Extract attack vector av=network|adjacent|local|physical (ISO/SAE 21434
+  // G.9) — allowed on every node, inherited down the subtree by the path
+  // analysis. An unknown value is ignored with a warning; it never fails the
+  // line, so a typo cannot drop the node.
+  const vectorMatch = workingStr.match(/(?:^|[\s,])av\s*=\s*([a-z-]+)/i);
+  if (vectorMatch) {
+    const vector = parseAttackVector(vectorMatch[1]);
+    if (vector) {
+      node.attackVector = vector;
+    } else {
+      warnings.push({
+        line: lineNumber,
+        type: "syntax",
+        severity: "warning",
+        messageKey: "tabs.attacktree.validation.parser.unknownAttackVector",
+        params: { value: vectorMatch[1] },
+      });
+    }
+    // Leave the evaluation list intact: "eq=standard,av=physical" → "eq=standard".
+    workingStr = workingStr
+      .replace(vectorMatch[0], " ")
+      .replace(/,\s*,/g, ",")
+      .replace(/,\s*$/, "")
+      .replace(/^\s*,/, "")
+      .trim();
   }
 
   // Now parse TYPE and/or evaluation

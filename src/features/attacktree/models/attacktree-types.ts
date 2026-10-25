@@ -11,6 +11,7 @@ import type {
   StrideCategory,
   ThreatRelevanceRef,
   CalcStamp,
+  AttackVector,
 } from "shared";
 import type {
   AttackPotentialFactors,
@@ -293,6 +294,13 @@ export interface AttackTreeNode {
   // Attack Goal
   attackGoal?: AttackGoalCategory;
   targetedSecurityGoals?: SecurityGoalType[];
+
+  /**
+   * Attack vector stated on this node (`av=` in the DSL, ISO/SAE 21434 G.9).
+   * Applies to the node's subtree unless a node below states its own. Used
+   * only to pick fitting controls — never part of the feasibility.
+   */
+  attackVector?: AttackVector;
 
   // Evaluation
   evaluation?: {
@@ -589,6 +597,11 @@ export interface AttackPath {
 
   /** Attacker benefit stated on the leaf, if any. Analysis-only in ISO mode. */
   benefit?: BenefitLevel;
+  /**
+   * Attack vector of the path: the one stated closest to the leaf on its
+   * chain (`av=`), undefined when no node on the path states one.
+   */
+  attackVector?: AttackVector;
   riskScore: number;
   probability?: number;
   impact?: number;
