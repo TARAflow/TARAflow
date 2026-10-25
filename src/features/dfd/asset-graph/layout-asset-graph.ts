@@ -51,6 +51,11 @@ const COLUMN_GAP = 2 * NODE_SPACING;
 const TICKS = 300;
 
 export const ANCHOR_LANE = "anchors";
+/**
+ * An empty row above the top lane (FR-V17g): a place to move side-column
+ * nodes to, e.g. persons above the infrastructure. Holds no node of its own.
+ */
+export const FREE_LANE = "free";
 /** Lane of the Hazard Items (FR-V11, G1) — side column, above human. */
 export const HAZARD_LANE = "hazards";
 
@@ -63,9 +68,9 @@ const COLUMN_LANES: readonly string[] = [
 ];
 
 export interface AssetGraphLane {
-  /** Asset group, ANCHOR_LANE or HAZARD_LANE (a side-column lane). */
+  /** Asset group, ANCHOR_LANE, HAZARD_LANE (a side-column lane) or FREE_LANE. */
   readonly id: string;
-  readonly kind: "vertical" | "orthogonal" | "anchors";
+  readonly kind: "vertical" | "orthogonal" | "anchors" | "free";
   /** Lane centre. */
   readonly y: number;
   /** Column centre (orthogonal lanes only). */
@@ -141,6 +146,11 @@ function computeLanes(
     };
     slots.set(layer, { lane, targetX: columnX });
     row += 1;
+  }
+  // FR-V17g: with a side column, one free row above everything.
+  if ([...slots.values()].some((s) => s.lane.kind === "orthogonal")) {
+    const topY = Math.min(...[...slots.values()].map((s) => s.lane.y));
+    slots.set(FREE_LANE, { lane: { id: FREE_LANE, kind: "free", y: topY - LANE_HEIGHT } });
   }
   return slots;
 }

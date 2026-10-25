@@ -110,6 +110,23 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     expect(at("h1")).toEqual([hx - 500, dataY]);
   });
 
+  it("the free row above everything takes a side-column node (FR-V17g)", () => {
+    view();
+    showAll();
+    expect(screen.getByTestId("asset-graph-free-row")).toBeTruthy();
+    const [hx] = at("h1");
+    const node = screen.getByTestId("asset-graph-node-h1");
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100, ctrlKey: true });
+    act(() => {
+      window.dispatchEvent(new PointerEvent("pointermove", { clientX: 100, clientY: -5000 }));
+    });
+    act(() => {
+      window.dispatchEvent(new PointerEvent("pointerup", { clientX: 100, clientY: -5000 }));
+    });
+    const freeY = Number(screen.getByTestId("asset-graph-free-row").getAttribute("y")) - 6 + 140 / 2;
+    expect(at("h1")).toEqual([hx, freeY]);
+  });
+
   it("a vertical-lane node does not leave its lane", () => {
     view();
     const [x1, y1] = at("d1");

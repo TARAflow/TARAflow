@@ -108,6 +108,7 @@
           "canvas": "Asset-Graph — Tab oder Pfeiltasten: Knoten wählen · Enter: fokussieren · Entf: entfernen (Bearbeiten) · Esc: schliessen",
           "legend": "Tastatur: Tab / Pfeile wählen · Enter fokussiert · Entf entfernt (Bearbeiten) · Esc schliesst"
         },
+        "freeRow": "Freie Zeile",
         "hazard": {
           "toggle": "Gefährdungen",
           "lane": "Gefährdungen",

@@ -1,6 +1,6 @@
 # TARAflow — Asset graph: show Hazard Items, move nodes with Ctrl
 
-**Status:** v2 · 2026-10-25 · decisions taken (§3), steps 1–5b done (§8), implementation on branch
+**Status:** v2 · 2026-10-25 · decisions taken (§3), steps 1–5c done (§8), implementation on branch
 `feature/asset-graph-hazards` · base: `main` after the hazard import
 **Scope:** `features/dfd/asset-graph`, app layer (data passed to the DFD tab)
 **Related:** `doc/Done/DFD/asset-graph-view-requirements.md` (FR-V1 … FR-V16, AR-10 … AR-12,
@@ -97,6 +97,7 @@ from it; without `hazards` everything behaves as today.
 | FR-V17d | **Side column** (revised, G4): a node of an orthogonal lane or the hazard lane moves freely in x (also into the area of the vertical lanes) and snaps in y to the nearest row — the lane heights, between the top and the bottom lane. It keeps its row in later layouts. | SHOULD |
 | FR-V17e | **Keyboard (NFR-4):** Ctrl/⌘ + Shift + ←/→ moves the focused node by `NODE_SPACING / 3`; ↑/↓ moves a side-column node one row. | COULD |
 | FR-V17f | **Rows in the layout:** every node sits exactly on a row: all nodes of a vertical lane at the lane's height, side-column nodes on their row (a remembered position slightly off snaps back). The layout spreads nodes horizontally only; vertical-lane nodes keep near their slot, so links into the side column do not pull them into it. | MUST |
+| FR-V17g | **Free row** (user 2026-10-25): with a side column, the layout adds one empty row above the top lane (above infrastructure), drawn dashed and labelled "Free row". Side-column nodes can be moved there (it is a row for FR-V17d) and stay; vertical-lane nodes cannot; no node is placed there by the layout, no "+" to create. | SHOULD |
 
 **Implementation:** a pure function `moveNode(positions, id, dx, dy, { sideColumn, lanes })`
 → new positions (vertical lanes: only `x`; side column: `x`, and `y` snapped per FR-V17d) in
@@ -146,3 +147,4 @@ from it; without `hazards` everything behaves as today.
 | 4b | G4 revised after trying it: FR-V17d side-column nodes free in x and snapping to a level row (`moveNode` replaces `moveNodeHorizontally`, no clamp to the column); FR-V17e ↑/↓ a row; FR-V17b cursor `move` for the side column; FR-V17f every node fixed to its row in the layout (vertical lanes at one height, remembered positions snap back), vertical-lane nodes pulled mildly to their slot so links into the side column no longer drag them into it. | 167 | done |
 | 5 | FR-V11b: the focus walk crosses hazard edges (asset of a visible layer ↔ hazard) when hazards are on — depth 1 from an asset: the hazards it contributes to or that endanger it, depth 2: their other assets; a hazard (`hz:` id) can be the focus (double-click, Enter, "Focus" on its card; shown even with the toggle off; chip "Focus: HZ-01 …"); hazard edges into hidden layers end in stubs; G3: focusing an asset with hazard edges (or a hazard) switches hazards on. FR-V11c: toggle in both views, entry "Hazards" in the layer menu. FR-V6a: "DFD elements" toggle in the focus view (own choice, on by default); `buildAssetGraph` draws anchors only with `showAnchors` in both views. | 168 | done |
 | 5b | Fix: the graph source missed manual assets (dfd.assets mirrors DFD-sourced assets only), so the hazards' protection targets (HU-001, HU-002, IF-001) and their `endangers` edges were absent. `workspace-layout` passes the canonical registry (`assets.assets` / `assets.relations`) to the DFD tab; `withRegistryAssets` (`mirror-edges.ts`) adds the assets the mirror lacks and their links (no duplicates). Page filter: a hazard on the pages keeps its protection targets (they have no DFD element). Regression test with the SmokeDetector fixture split into mirror and registry. | 169 | done |
+| 5c | FR-V17g: free row above the top lane (`FREE_LANE`, lane kind `free`) whenever a side column exists; part of the snapping rows, dashed band with label, excluded from creating. | 170 | done |

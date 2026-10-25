@@ -109,7 +109,8 @@ describe("layoutAssetGraph — extra lanes (edit mode)", () => {
     const plain = layoutAssetGraph(g);
     expect(plain.lanes.map((l) => l.id)).toEqual(["data"]);
     const withLanes = layoutAssetGraph(g, new Map(), { extraLanes: ["function", "system", "human"] });
-    expect(withLanes.lanes.map((l) => l.id).sort()).toEqual(["data", "function", "human", "system"]);
+    // A side column brings the free row above everything (FR-V17g).
+    expect(withLanes.lanes.map((l) => l.id).sort()).toEqual(["data", "free", "function", "human", "system"]);
     expect(withLanes.positions.get("d1")).toEqual(plain.positions.get("d1"));
   });
 });

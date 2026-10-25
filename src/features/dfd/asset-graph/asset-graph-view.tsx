@@ -68,6 +68,7 @@ import {
 import { ANCHOR_PREFIX, buildAssetGraph, DEFAULT_FOCUS_DEPTH, HAZARD_PREFIX } from "./build-asset-graph";
 import {
   ANCHOR_LANE,
+  FREE_LANE,
   HAZARD_LANE,
   LANE_HEIGHT,
   NODE_SPACING,
@@ -182,14 +183,16 @@ interface ViewState {
   relationTypes: string[] | null;
 }
 
+// Start (and "Reset"): preset "All" with the Hazard Items — everything is
+// visible at once, the presets narrow it down (G3, user 2026-10-25).
 const DEFAULT_STATE: ViewState = {
   view: "layers",
-  layers: [...ASSET_GRAPH_PRESETS.architecture],
+  layers: [...ASSET_GRAPH_PRESETS.all],
   focusAssetId: null,
   depth: DEFAULT_FOCUS_DEPTH,
   showAnchors: false,
   anchorsInFocus: true,
-  showHazards: false,
+  showHazards: true,
   relationTypes: null,
 };
 
@@ -1531,7 +1534,20 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             {/* Lanes */}
             {layout.lanes.map((lane) => (
               <g key={lane.id}>
-                {lane.kind !== "orthogonal" ? (
+                {lane.kind === "free" ? (
+                  // FR-V17g: a dashed, empty row — a place, not a layer.
+                  <rect
+                    x={-2000}
+                    y={lane.y - LANE_HEIGHT / 2 + 6}
+                    width={8000}
+                    height={LANE_HEIGHT - 12}
+                    fill="none"
+                    stroke={muted}
+                    strokeOpacity={0.4}
+                    strokeDasharray="6 6"
+                    data-testid="asset-graph-free-row"
+                  />
+                ) : lane.kind !== "orthogonal" ? (
                   <rect x={-2000} y={lane.y - LANE_HEIGHT / 2 + 6} width={8000} height={LANE_HEIGHT - 12} fill={laneFill} />
                 ) : null}
                 <text
@@ -1543,11 +1559,13 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 >
                   {lane.id === ANCHOR_LANE
                     ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
-                    : lane.id === HAZARD_LANE
-                      ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
-                      : groupLabel(lane.id)}
+                    : lane.id === FREE_LANE
+                      ? t("tabs.dfd.assetGraph.freeRow", { defaultValue: "Free row" })
+                      : lane.id === HAZARD_LANE
+                        ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
+                        : groupLabel(lane.id)}
                 </text>
-                {canCreate && lane.id !== ANCHOR_LANE && lane.id !== HAZARD_LANE && (
+                {canCreate && lane.id !== ANCHOR_LANE && lane.id !== HAZARD_LANE && lane.id !== FREE_LANE && (
                   <g
                     transform={`translate(${(lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2) + 14},${lane.y - LANE_HEIGHT / 2 + 16})`}
                     style={{ cursor: "pointer" }}

@@ -3,11 +3,12 @@
 // Asset graph design FR-V17 / FR-V17d (doc/InProgress/DFD/asset-graph-
 // hazards-and-node-move.md): moveNode moves a vertical-lane node along its
 // lane only; a side-column node moves freely in x and snaps in y to a row
-// (the lane heights); the moved position stays put in the next layout
-// (AR-12).
+// (the lane heights, plus the free row above the top lane, FR-V17g); the
+// moved position stays put in the next layout (AR-12).
 
 import { describe, it, expect } from "vitest";
 import {
+  FREE_LANE,
   LANE_HEIGHT,
   layoutAssetGraph,
   moveNode,
@@ -106,5 +107,30 @@ describe("layout rows (vertical lanes at one height)", () => {
     const { positions, lanes } = layoutAssetGraph(many);
     const column = lanes.find((l) => l.id === "human")!.x!;
     for (let i = 0; i < 11; i++) expect(positions.get(`d${i}`)!.x).toBeLessThan(column - 100);
+  });
+});
+
+describe("free row above the top lane (FR-V17g)", () => {
+  const layout = layoutAssetGraph(graph);
+  const lane = (id: string) => layout.lanes.find((l) => l.id === id);
+
+  it("sits one row above the topmost lane, holds no node", () => {
+    const top = Math.min(...layout.lanes.filter((l) => l.id !== FREE_LANE).map((l) => l.y));
+    expect(lane(FREE_LANE)).toEqual({ id: FREE_LANE, kind: "free", y: top - LANE_HEIGHT });
+    for (const p of layout.positions.values()) expect(p.y).not.toBe(top - LANE_HEIGHT);
+  });
+
+  it("a side-column node can be moved into it and stays there; a vertical-lane node cannot", () => {
+    const freeY = lane(FREE_LANE)!.y;
+    const moved = moveNode(layout.positions, "h1", 0, -10000, { sideColumn: true, lanes: layout.lanes });
+    expect(moved.get("h1")!.y).toBe(freeY);
+    expect(layoutAssetGraph(graph, moved).positions.get("h1")).toEqual(moved.get("h1"));
+    const d1 = moveNode(layout.positions, "s1", 0, -10000, { sideColumn: false, lanes: layout.lanes });
+    expect(d1.get("s1")).toEqual(layout.positions.get("s1"));
+  });
+
+  it("no free row without a side column", () => {
+    const vertical = layoutAssetGraph({ nodes: [node("d1", "data"), node("s1", "system")], edges: [] });
+    expect(vertical.lanes.map((l) => l.id)).not.toContain(FREE_LANE);
   });
 });
