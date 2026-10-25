@@ -108,6 +108,7 @@
           "canvas": "Asset graph — Tab or arrow keys: select a node · Enter: focus · Delete: remove (edit mode) · Esc: close",
           "legend": "Keyboard: Tab / arrows select · Enter focuses · Delete removes (edit) · Esc closes"
         },
+        "legendMouse": "Mouse: drag a node to move it · Ctrl / ⌘ + drag or drag on empty space: pan · wheel: zoom",
         "freeRow": "Free row",
         "hazard": {
           "toggle": "Hazards",

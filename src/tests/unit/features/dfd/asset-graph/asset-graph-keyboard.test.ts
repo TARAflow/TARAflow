@@ -1,7 +1,11 @@
 // NFR-4: arrow keys lead to the nearest node in that direction.
 
 import { describe, expect, it } from "vitest";
-import { arrowDirection, nearestInDirection } from "features/dfd/asset-graph/asset-graph-keyboard";
+import {
+  allowsZoomOrPan,
+  arrowDirection,
+  nearestInDirection,
+} from "features/dfd/asset-graph/asset-graph-keyboard";
 
 const positions = new Map([
   ["a", { x: 0, y: 280 }], // data lane
@@ -30,5 +34,33 @@ describe("asset graph keyboard", () => {
   it("returns null at the edge or for an unknown node", () => {
     expect(nearestInDirection(positions, "a", "down", ids)).toBeNull();
     expect(nearestInDirection(positions, "zz", "up", ids)).toBeNull();
+  });
+});
+
+describe("allowsZoomOrPan (FR-V17, G5: as in draw.io)", () => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const node = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  node.setAttribute("data-node-id", "d1");
+  const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  node.appendChild(inner);
+  const handle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  handle.setAttribute("data-graph-handle", "");
+  node.appendChild(handle);
+  svg.appendChild(node);
+  const ev = (type: string, target: Element, init: { button?: number; ctrlKey?: boolean; metaKey?: boolean } = {}) =>
+    ({ type, target, button: 0, ...init }) as never;
+
+  it("empty canvas: a drag pans", () => {
+    expect(allowsZoomOrPan(ev("mousedown", svg))).toBe(true);
+  });
+  it("on a node: a drag moves it — no pan; with Ctrl or ⌘ it pans", () => {
+    expect(allowsZoomOrPan(ev("mousedown", inner))).toBe(false);
+    expect(allowsZoomOrPan(ev("mousedown", inner, { ctrlKey: true }))).toBe(true);
+    expect(allowsZoomOrPan(ev("mousedown", inner, { metaKey: true }))).toBe(true);
+  });
+  it("the wheel zooms everywhere; a handle never pans; only the primary button", () => {
+    expect(allowsZoomOrPan(ev("wheel", inner))).toBe(true);
+    expect(allowsZoomOrPan(ev("mousedown", handle, { ctrlKey: true }))).toBe(false);
+    expect(allowsZoomOrPan(ev("mousedown", svg, { button: 2 }))).toBe(false);
   });
 });

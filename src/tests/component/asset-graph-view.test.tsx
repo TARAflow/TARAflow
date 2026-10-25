@@ -4,7 +4,7 @@
 // shares the selection with the asset panel (FR-V8). Read-only.
 
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AssetGraphView, type AssetGraphSource } from "features/dfd/asset-graph";
 import type { A2ARelation } from "shared";
@@ -56,9 +56,22 @@ function view(props: Partial<React.ComponentProps<typeof AssetGraphView>> = {}) 
   return { onSelectAsset, onShowElement };
 }
 
+/** The start preset is "All"; the architecture preset hides process. */
+const architecture = () => {
+  fireEvent.mouseDown(within(screen.getByTestId("asset-graph-preset")).getByRole("combobox"));
+  fireEvent.click(within(screen.getByRole("listbox")).getByRole("option", { name: "architecture" }));
+};
+
 describe("AssetGraphView", () => {
-  it("starts in the layer view with the architecture preset; process is a stub", () => {
+  it("starts in the layer view with all layers", () => {
     view();
+    for (const id of ["d1", "f1", "p1"]) expect(screen.getByTestId(`asset-graph-node-${id}`)).toBeInTheDocument();
+    expect(screen.getByTestId("asset-graph-counts")).toHaveTextContent("3 of 3 assets visible · 0 in hidden layers");
+  });
+
+  it("the architecture preset hides process; its link is a stub", () => {
+    view();
+    architecture();
     expect(screen.getByTestId("asset-graph-node-d1")).toBeInTheDocument();
     expect(screen.getByTestId("asset-graph-node-f1")).toBeInTheDocument();
     expect(screen.queryByTestId("asset-graph-node-p1")).toBeNull();
@@ -71,6 +84,7 @@ describe("AssetGraphView", () => {
 
   it("clicking a stub shows its layer (FR-V4)", () => {
     view();
+    architecture();
     fireEvent.click(screen.getByTestId("asset-graph-stub-f1-process"));
     expect(screen.getByTestId("asset-graph-node-p1")).toBeInTheDocument();
     expect(screen.getByTestId("asset-graph-edge-r2")).toHaveTextContent("1");
@@ -109,6 +123,7 @@ describe("AssetGraphView", () => {
 
   it("search: a visible hit is selected; a hit in a hidden layer says why and offers the layer", () => {
     const { onSelectAsset } = view();
+    architecture();
     const input = screen.getByTestId("asset-graph-search");
     fireEvent.change(input, { target: { value: "FU-001" } });
     fireEvent.keyDown(input, { key: "Enter" });
@@ -149,7 +164,6 @@ describe("AssetGraphView", () => {
 
   it("clicking a link shows its details", () => {
     view();
-    fireEvent.click(screen.getByTestId("asset-graph-stub-f1-process"));
     fireEvent.click(screen.getByTestId("asset-graph-edge-r2"));
     const card = screen.getByTestId("asset-graph-inspector-edge");
     expect(card).toHaveTextContent("PR-001 Shutdown");

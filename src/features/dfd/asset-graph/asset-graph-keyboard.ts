@@ -1,7 +1,7 @@
 // features/dfd/asset-graph/asset-graph-keyboard.ts
 //
-// Keyboard operation of the asset graph (NFR-4), pure part: which node an
-// arrow key leads to. The next node is the nearest one in that direction,
+// Keyboard and mouse operation of the asset graph, pure part: which node an
+// arrow key leads to (NFR-4), and which pointer events zoom or pan (FR-V17). The next node is the nearest one in that direction,
 // with sideways distance weighted double — so "up" from a node goes to the
 // lane above, close to the same x, not to a far node that is slightly higher.
 
@@ -55,4 +55,26 @@ export function nearestInDirection(
 export function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   return !!el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
+}
+
+// ==================== MOUSE: ZOOM / PAN vs. MOVE (FR-V17, G5) ====================
+
+export type PointerLikeEvent = Event & {
+  button?: number;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  type: string;
+};
+
+/**
+ * The zoom behaviour's filter, as in draw.io: the wheel zooms; a drag on the
+ * empty canvas pans; a drag on a node moves the node (not a pan) unless Ctrl
+ * / ⌘ is held — then it pans there too; a drag from a connection handle
+ * connects. Only the primary button.
+ */
+export function allowsZoomOrPan(e: PointerLikeEvent): boolean {
+  const target = e.target as Element | null;
+  if (target?.closest?.("[data-graph-handle]")) return false;
+  if (e.type !== "wheel" && !(e.ctrlKey || e.metaKey) && target?.closest?.("[data-node-id]")) return false;
+  return !e.button;
 }

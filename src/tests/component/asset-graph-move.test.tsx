@@ -1,7 +1,8 @@
 // src/tests/component/asset-graph-move.test.tsx
 //
 // Asset graph design FR-V17 (doc/InProgress/DFD/asset-graph-hazards-and-node-
-// move.md): Ctrl / ⌘ + drag moves one node — a vertical-lane node along its
+// move.md): dragging a node moves it (Ctrl / ⌘ + drag pans, as in
+// draw.io) — a vertical-lane node along its
 // lane, a side-column node freely in x and onto a level row; the other nodes
 // and the project stay as they are; the position is
 // remembered locally (FR-V15) and survives until "Rearrange". The click that
@@ -33,7 +34,7 @@ const source: AssetGraphSource = {
 const onSelectAsset = vi.fn();
 const view = () =>
   render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={onSelectAsset} projectId="proj-1" />);
-/** Preset "All" — the default (architecture) hides the human layer. */
+/** Preset "All" (also the start preset). */
 const showAll = () => {
   fireEvent.mouseDown(within(screen.getByTestId("asset-graph-preset")).getByRole("combobox"));
   fireEvent.click(within(screen.getByRole("listbox")).getByRole("option", { name: "all" }));
@@ -42,7 +43,7 @@ const at = (id: string) =>
   screen.getByTestId(`asset-graph-node-${id}`).getAttribute("transform")!.match(/translate\(([-\d.]+),([-\d.]+)\)/)!
     .slice(1)
     .map(Number);
-const drag = (id: string, dx: number, keys: { ctrlKey?: boolean; metaKey?: boolean }) => {
+const drag = (id: string, dx: number, keys: { ctrlKey?: boolean; metaKey?: boolean } = {}) => {
   const node = screen.getByTestId(`asset-graph-node-${id}`);
   fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100, ...keys });
   act(() => {
@@ -64,30 +65,41 @@ afterEach(() => {
 });
 
 describe("AssetGraphView — moving a node (FR-V17)", () => {
-  it("Ctrl + drag moves only that node, horizontally; the click does not select", () => {
+  it("a drag moves only that node, along its lane; the click does not select", () => {
     view();
     showAll();
     const [x1, y1] = at("d1");
     const d2 = at("d2");
     const h1 = at("h1");
-    drag("d1", 200, { ctrlKey: true });
+    drag("d1", 200);
     expect(at("d1")).toEqual([x1 + 200, y1]); // zoom k = 1
     expect(at("d2")).toEqual(d2);
     expect(at("h1")).toEqual(h1);
     expect(onSelectAsset).not.toHaveBeenCalled();
   });
 
-  it("⌘ + drag does the same (macOS)", () => {
-    view();
-    const [x1, y1] = at("d1");
-    drag("d1", -90, { metaKey: true });
-    expect(at("d1")).toEqual([x1 - 90, y1]);
-  });
-
-  it("without the key: no move, the click selects as before", () => {
+  it("Ctrl + drag and ⌘ + drag on a node pan instead: no move, the click selects", () => {
     view();
     const before = at("d1");
-    drag("d1", 200, {});
+    drag("d1", 200, { ctrlKey: true });
+    expect(at("d1")).toEqual(before);
+    drag("d1", -90, { metaKey: true });
+    expect(at("d1")).toEqual(before);
+    expect(onSelectAsset).toHaveBeenCalledWith("d1");
+  });
+
+  it("a click (or a jitter below the threshold) selects and does not move", () => {
+    view();
+    const before = at("d1");
+    const node = screen.getByTestId("asset-graph-node-d1");
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
+    act(() => {
+      window.dispatchEvent(new PointerEvent("pointermove", { clientX: 102, clientY: 101 }));
+    });
+    act(() => {
+      window.dispatchEvent(new PointerEvent("pointerup", { clientX: 102, clientY: 101 }));
+    });
+    fireEvent.click(node);
     expect(at("d1")).toEqual(before);
     expect(onSelectAsset).toHaveBeenCalledWith("d1");
   });
@@ -99,7 +111,7 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     const [, dataY] = at("d1");
     expect(hy).not.toBe(dataY);
     const node = screen.getByTestId("asset-graph-node-h1");
-    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100, ctrlKey: true });
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
     act(() => {
       window.dispatchEvent(new PointerEvent("pointermove", { clientX: -400, clientY: 100 + (dataY - hy) + 25 }));
     });
@@ -116,7 +128,7 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     expect(screen.getByTestId("asset-graph-free-row")).toBeTruthy();
     const [hx] = at("h1");
     const node = screen.getByTestId("asset-graph-node-h1");
-    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100, ctrlKey: true });
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
     act(() => {
       window.dispatchEvent(new PointerEvent("pointermove", { clientX: 100, clientY: -5000 }));
     });
@@ -131,7 +143,7 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     view();
     const [x1, y1] = at("d1");
     const node = screen.getByTestId("asset-graph-node-d1");
-    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100, ctrlKey: true });
+    fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
     act(() => {
       window.dispatchEvent(new PointerEvent("pointermove", { clientX: 150, clientY: 400 }));
     });
@@ -144,7 +156,7 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
   it("the move is remembered locally and kept on reopening; Rearrange discards it", () => {
     view();
     const [x1, y1] = at("d1");
-    drag("d1", 300, { ctrlKey: true });
+    drag("d1", 300);
     cleanup();
     const stored = JSON.parse(localStorage.getItem(positionsStorageKey("proj-1"))!);
     expect(stored.p.d1).toEqual([x1 + 300, y1]);

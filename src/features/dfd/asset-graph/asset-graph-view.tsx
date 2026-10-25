@@ -80,7 +80,13 @@ import {
 import type { AssetGraphSource, AssetGraphViewKind } from "./asset-graph-types";
 import { AssetGraphInspector, CARD_WIDTH } from "./asset-graph-inspector";
 import { ConnectChooser, type ConnectChoice, type ConnectRequest } from "./asset-graph-connect";
-import { arrowDirection, isTypingTarget, nearestInDirection } from "./asset-graph-keyboard";
+import {
+  allowsZoomOrPan,
+  arrowDirection,
+  isTypingTarget,
+  nearestInDirection,
+  type PointerLikeEvent,
+} from "./asset-graph-keyboard";
 import { loadPositions, savePositions } from "./asset-graph-positions-store";
 import {
   EMPTY_HISTORY,
@@ -125,6 +131,8 @@ import {
 } from "./asset-graph-query";
 
 const MAX_DEPTH = 3;
+/** Pixels a node drag must travel before it moves (a click stays a click). */
+const MOVE_THRESHOLD = 4;
 
 export interface AssetGraphViewProps {
   readonly source: AssetGraphSource;
@@ -403,14 +411,18 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     setLayoutEpoch((e) => e + 1);
   }, []);
 
-  // ── Moving a node (FR-V17): Ctrl / ⌘ + drag, horizontally only ───────────
-  // While dragging, the moved x overlays the layout; on release it becomes a
-  // known position (AR-12), is remembered locally (FR-V15) and the layout is
+  // ── Moving a node (FR-V17): drag a node, like in draw.io (G5) ─────────────
+  // Ctrl / ⌘ + drag pans the view instead, also over a node. A drag starts
+  // only past a few pixels, so a click still selects. While dragging, the
+  // moved position overlays the layout; on release it becomes a known
+  // position (AR-12), is remembered locally (FR-V15) and the layout is
   // recomputed — every position is then known, so nothing else moves.
   const [moving, setMoving] = useState<{
     id: string;
     startClientX: number;
     startClientY: number;
+    /** Past the threshold: the node follows the pointer. */
+    started: boolean;
     x: number;
     y: number;
   } | null>(null);
@@ -440,24 +452,27 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     setLayoutEpoch((e) => e + 1);
   };
   const startMove = (id: string, e: React.PointerEvent) => {
-    if (e.button !== 0 || !(e.ctrlKey || e.metaKey)) return;
+    // Ctrl / ⌘ + drag is a pan (the zoom filter lets it through).
+    if (e.button !== 0 || e.ctrlKey || e.metaKey) return;
     e.stopPropagation();
-    e.preventDefault();
     const p = layout.positions.get(id);
-    if (p) setMoving({ id, startClientX: e.clientX, startClientY: e.clientY, x: p.x, y: p.y });
+    if (p) setMoving({ id, startClientX: e.clientX, startClientY: e.clientY, started: false, x: p.x, y: p.y });
   };
   useEffect(() => {
     if (!moving) return;
     const k = transform.k || 1;
     const { startClientX, startClientY, id } = moving;
     const move = (e: PointerEvent) => {
-      const to = movedTo(id, (e.clientX - startClientX) / k, (e.clientY - startClientY) / k);
-      if (to) setMoving((m) => (m ? { ...m, x: to.x, y: to.y } : m));
+      const dx = e.clientX - startClientX;
+      const dy = e.clientY - startClientY;
+      if (!movingRef.current?.started && Math.hypot(dx, dy) < MOVE_THRESHOLD) return;
+      const to = movedTo(id, dx / k, dy / k);
+      if (to) setMoving((m) => (m ? { ...m, started: true, x: to.x, y: to.y } : m));
     };
     const up = () => {
       const m = movingRef.current;
       setMoving(null);
-      if (m) {
+      if (m?.started) {
         const before = layout.positions.get(m.id);
         suppressClickRef.current = m.x !== before?.x || m.y !== before?.y;
         commitMove(m.id, { x: m.x, y: m.y });
@@ -475,7 +490,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       window.removeEventListener("keydown", esc);
     };
   }, [moving !== null]); // eslint-disable-line react-hooks/exhaustive-deps
-  // FR-V17b: Ctrl / ⌘ held → the move cursor over nodes.
+  // FR-V17b: Ctrl / ⌘ held → the pan cursor, also over nodes.
   const [moveKeyHeld, setMoveKeyHeld] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => setMoveKeyHeld(e.ctrlKey || e.metaKey);
@@ -517,13 +532,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       })
       .scaleExtent([0.2, 3])
       // A drag from a connection handle is not a pan.
-      .filter((e: Event & { button?: number; ctrlKey?: boolean; metaKey?: boolean; type: string }) => {
-        if (dragRef.current || movingRef.current) return false;
-        const target = e.target as Element | null;
-        if (target?.closest?.("[data-graph-handle]")) return false;
-        // Ctrl / ⌘ + drag moves a node (FR-V17), not the view (FR-V17a).
-        return (!(e.ctrlKey || e.metaKey) || e.type === "wheel") && !e.button;
-      })
+      .filter((e: PointerLikeEvent) => !(dragRef.current || movingRef.current) && allowsZoomOrPan(e))
       .on("zoom", (e) => setTransform({ x: e.transform.x, y: e.transform.y, k: e.transform.k }));
     zoomRef.current = behaviour;
     const svg = select(svgRef.current);
@@ -1706,7 +1715,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     key={n.id}
                     transform={`translate(${p.x},${p.y})`}
                     style={{
-                      cursor: moveKeyHeld ? "ew-resize" : onShowElement ? "pointer" : "default",
+                      cursor: moveKeyHeld ? "grab" : "ew-resize",
                       outline: "none",
                     }}
                     onPointerDown={(e) => startMove(n.id, e)}
@@ -1771,7 +1780,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   <g
                     key={n.id}
                     transform={`translate(${p.x},${p.y})`}
-                    style={{ cursor: moveKeyHeld ? "move" : "pointer", outline: "none" }}
+                    style={{ cursor: moveKeyHeld ? "grab" : "move", outline: "none" }}
                     data-moving={moving?.id === n.id ? "" : undefined}
                     onPointerDown={(e) => startMove(n.id, e)}
                     onClick={unlessMoved(() => selectHazardNode(n.hazardId))}
@@ -1838,7 +1847,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   key={n.id}
                   transform={`translate(${p.x},${p.y})`}
                   style={{
-                    cursor: moveKeyHeld ? ((ORTHOGONAL_LAYERS as readonly string[]).includes(String(n.group)) ? "move" : "ew-resize") : "pointer",
+                    // Drag moves (FR-V17b): along the lane, or free in the side column.
+                    cursor: moveKeyHeld
+                      ? "grab"
+                      : (ORTHOGONAL_LAYERS as readonly string[]).includes(String(n.group))
+                        ? "move"
+                        : "ew-resize",
                     opacity: targetClass === "invalid" ? 0.3 : 1,
                     outline: "none",
                   }}
@@ -2083,6 +2097,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 })}
               </Typography>
             )}
+            <Typography variant="caption" sx={{ display: "block", mt: 0.5 }} data-testid="asset-graph-legend-mouse">
+              {t("tabs.dfd.assetGraph.legendMouse", {
+                defaultValue: "Mouse: drag a node to move it · Ctrl / ⌘ + drag or drag on empty space: pan · wheel: zoom",
+              })}
+            </Typography>
             <Typography variant="caption" sx={{ display: "block", mt: 0.5 }} data-testid="asset-graph-legend-keys">
               {t("tabs.dfd.assetGraph.keyboard.legend", {
                 defaultValue: "Keyboard: Tab / arrows select · Enter focuses · Delete removes (edit) · Esc closes",

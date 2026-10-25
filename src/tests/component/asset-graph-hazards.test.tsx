@@ -61,12 +61,8 @@ const toggle = () => screen.getByTestId("asset-graph-show-hazards").querySelecto
 afterEach(cleanup);
 
 describe("AssetGraphView — Hazard Items (FR-V11)", () => {
-  it("off in the default preset; on with All and Protection targets (G3), with a counter", () => {
+  it("on at the start (preset All); off with Architecture, on with Protection targets (G3); counter", () => {
     render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />);
-    expect(screen.queryByTestId("asset-graph-node-hz:H1")).toBeNull();
-    expect(toggle().checked).toBe(false);
-
-    choosePreset("all");
     expect(toggle().checked).toBe(true);
     expect(screen.getByTestId("asset-graph-node-hz:H1")).toBeTruthy();
     expect(screen.getByTestId("asset-graph-node-hz:H1").getAttribute("data-severity-rank")).toBe("4");
@@ -149,6 +145,7 @@ describe("AssetGraphView — Hazard Items (FR-V11)", () => {
 
   it("the layer menu has a Hazards entry (FR-V11c)", () => {
     render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />);
+    choosePreset("architecture");
     expect(screen.queryByTestId("asset-graph-node-hz:H1")).toBeNull();
     fireEvent.click(screen.getByLabelText("Layers"));
     fireEvent.click(screen.getByTestId("asset-graph-layer-hazards"));
@@ -158,7 +155,8 @@ describe("AssetGraphView — Hazard Items (FR-V11)", () => {
 
   it("focus on an asset with hazard edges shows its hazards (G3, FR-V11b)", () => {
     render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} />);
-    // Default preset: hazards off, FU-001 visible.
+    // Architecture: hazards off, FU-001 visible.
+    choosePreset("architecture");
     fireEvent.doubleClick(screen.getByTestId("asset-graph-node-f1"));
     expect(screen.getByTestId("asset-graph-node-hz:H1")).toBeTruthy();
     expect(screen.queryByTestId("asset-graph-node-hz:H2")).toBeNull();

@@ -1,6 +1,6 @@
 # TARAflow — Asset graph: show Hazard Items, move nodes with Ctrl
 
-**Status:** v2 · 2026-10-25 · decisions taken (§3), steps 1–5c done (§8), implementation on branch
+**Status:** v2 · 2026-10-25 · decisions taken (§3), steps 1–5d done (§8), implementation on branch
 `feature/asset-graph-hazards` · base: `main` after the hazard import
 **Scope:** `features/dfd/asset-graph`, app layer (data passed to the DFD tab)
 **Related:** `doc/Done/DFD/asset-graph-view-requirements.md` (FR-V1 … FR-V16, AR-10 … AR-12,
@@ -57,9 +57,9 @@ D3), `doc/Open/DFD/asset-graph-process-view-requirements.md` (FR-V11 there as CO
 |---|---|---|
 | G1 | Where do Hazard Items sit in the layout? | Own lane **`hazards`** in the side column, directly **above `human`** (protection targets). `contributes_to` then runs from the left (vertical lanes) into the column, `endangers` a short way down to human/environment or back to infrastructure. |
 | G2 | Editable in the graph? | **No, read-only** (as in FR-V11). Hazard Items and their edges are edited in the Hazard tab. Clicking a hazard node opens a read-only card with "Open in Hazard tab". |
-| G3 | Show / hide | Toggle "Hazards" like "Anchors" (`showHazards`). Default: on in the **Protection targets** and **All** presets (user, 2026-10-25), off in the other presets; in the focus view on when the focus asset has hazard edges. |
+| G3 | Show / hide | Toggle "Hazards" like "Anchors" (`showHazards`). Default: on in the **Protection targets** and **All** presets (user, 2026-10-25), off in the other presets; in the focus view on when the focus asset has hazard edges. **Start view** (and "Reset"): preset **All** with the hazards on (user 2026-10-25, after the human layer and the hazard edges were missing at the first start with "Architecture"). |
 | G4 | Moving: which direction? | Vertical lanes (data … infrastructure) and anchors: **horizontal only**, `y` stays the lane centre — the layer semantics are kept, and all nodes of a lane sit at one height. **Side column** (process, service, physical, human, environment, hazards; revised 2026-10-25 after trying it with the SmokeDetector): **free in x, and in y snapping to a level row** (the lane heights), so e.g. a hazard can sit at system height next to SY-001 (user). |
-| G5 | Key combination | **Ctrl + drag** (Windows/Linux) **or ⌘ + drag** (macOS). On macOS Ctrl + click is the right click, so ⌘ applies there. Both are accepted. |
+| G5 | Mouse | **As in draw.io** (revised 2026-10-25, user): a **drag on a node moves it**; **Ctrl / ⌘ + drag pans** the view (also over a node); a drag on the empty canvas pans as before; the wheel zooms. A node drag starts only after a few pixels, so a click still selects. (First version: Ctrl / ⌘ + drag moved, a plain drag panned.) |
 | G6 | Is a move stored? | Like every position: locally per project (FR-V15), **never** in the project file (D3). No entry in the link undo history; "Rearrange" (FR-V12) resets. |
 | G7 | Severity labels under `iso-21434` | **Canonical labels for now** ("Irreversible, major" …); the S-classes S0–S3 come with ISO plan Phase 1H, which defines them (user, 2026-10-25). FR-V11a's "S0–S3" moves there. |
 | G8 | Severity colours | The hazard table's colours per severity move to `shared` and are used by both the hazard table and the graph — one source. |
@@ -90,9 +90,9 @@ from it; without `hazards` everything behaves as today.
 
 | ID | Requirement | Prio |
 |---|---|---|
-| FR-V17 | **Move a node:** Ctrl + drag or ⌘ + drag on a node (asset, anchor, hazard) moves only that node — a vertical-lane node or anchor along its lane (`y` fixed), a side-column node per FR-V17d. Edges follow live. Works in view and edit mode. Without the key a drag stays a pan; a drag on a connection handle stays a connect. | MUST |
-| FR-V17a | **Zoom filter:** the pan filter excludes `metaKey` as well as `ctrlKey` (except for wheel zoom), so that ⌘ + drag does not pan. | MUST |
-| FR-V17b | **Feedback:** while the key is held over a node the cursor is `ew-resize` (vertical lanes, anchors) or `move` (side column); during the drag the node stays highlighted. | SHOULD |
+| FR-V17 | **Move a node:** a drag on a node (asset, anchor, hazard) moves only that node — a vertical-lane node or anchor along its lane (`y` fixed), a side-column node per FR-V17d. It starts past 4 px (a click selects). Edges follow live. Works in view and edit mode. A drag on a connection handle stays a connect. | MUST |
+| FR-V17a | **Zoom filter** (`allowsZoomOrPan`): the wheel zooms; a drag on the empty canvas pans; a drag on a node is not a pan unless Ctrl / ⌘ is held — then it pans; a handle never pans; primary button only. | MUST |
+| FR-V17b | **Feedback:** over a node the cursor is `ew-resize` (vertical lanes, anchors) or `move` (side column), `grab` while Ctrl / ⌘ is held; during the drag the node shows the focus ring; the legend explains the mouse. | SHOULD |
 | FR-V17c | **Storage:** the new position is fixed (AR-12) and stored locally through the existing mechanism (FR-V15). No re-layout of other nodes. "Rearrange" also discards moved positions. | MUST |
 | FR-V17d | **Side column** (revised, G4): a node of an orthogonal lane or the hazard lane moves freely in x (also into the area of the vertical lanes) and snaps in y to the nearest row — the lane heights, between the top and the bottom lane. It keeps its row in later layouts. | SHOULD |
 | FR-V17e | **Keyboard (NFR-4):** Ctrl/⌘ + Shift + ←/→ moves the focused node by `NODE_SPACING / 3`; ↑/↓ moves a side-column node one row. | COULD |
@@ -130,8 +130,8 @@ from it; without `hazards` everything behaves as today.
 | FR-V11a | Edge label shows the canonical severity label (S-classes with ISO Phase 1H, G7). |
 | FR-V11b | Focus on FU-001, depth 1: shows the hazards FU-001 contributes to; depth 2: also their protection targets. |
 | FR-V11d | Edit mode: hazard node has no handles; "Open in Hazard tab" switches to the Hazard tab and selects the item. |
-| FR-V17 | Ctrl + drag by 200 px: only the dragged node changes `x` by 200/k, `y` unchanged, all other positions unchanged. Without Ctrl: pan, no position change. |
-| FR-V17a | ⌘ + drag on the canvas does not pan. |
+| FR-V17 | Drag by 200 px: only the dragged node changes `x` by 200/k, `y` unchanged, all other positions unchanged. A 2 px jitter: no move, the click selects. Ctrl / ⌘ + drag on a node: no move. |
+| FR-V17a | Filter: empty canvas pans, node does not, node with Ctrl / ⌘ pans, wheel zooms, handle never pans. |
 | FR-V17c | After a move, hiding and showing a layer: position stays. After reopening the project: position stays (localStorage). "Rearrange": deterministic layout. Project file byte-identical. |
 | FR-V17d | A human node can be moved left next to the data assets and snaps onto the data row; a data node dragged downwards stays on its lane. |
 | FR-V17f | SmokeDetector, preset All: all data nodes at one height, the data lane left of the side column. A remembered position 20 px off its lane comes back onto it. |
@@ -148,3 +148,4 @@ from it; without `hazards` everything behaves as today.
 | 5 | FR-V11b: the focus walk crosses hazard edges (asset of a visible layer ↔ hazard) when hazards are on — depth 1 from an asset: the hazards it contributes to or that endanger it, depth 2: their other assets; a hazard (`hz:` id) can be the focus (double-click, Enter, "Focus" on its card; shown even with the toggle off; chip "Focus: HZ-01 …"); hazard edges into hidden layers end in stubs; G3: focusing an asset with hazard edges (or a hazard) switches hazards on. FR-V11c: toggle in both views, entry "Hazards" in the layer menu. FR-V6a: "DFD elements" toggle in the focus view (own choice, on by default); `buildAssetGraph` draws anchors only with `showAnchors` in both views. | 168 | done |
 | 5b | Fix: the graph source missed manual assets (dfd.assets mirrors DFD-sourced assets only), so the hazards' protection targets (HU-001, HU-002, IF-001) and their `endangers` edges were absent. `workspace-layout` passes the canonical registry (`assets.assets` / `assets.relations`) to the DFD tab; `withRegistryAssets` (`mirror-edges.ts`) adds the assets the mirror lacks and their links (no duplicates). Page filter: a hazard on the pages keeps its protection targets (they have no DFD element). Regression test with the SmokeDetector fixture split into mirror and registry. | 169 | done |
 | 5c | FR-V17g: free row above the top lane (`FREE_LANE`, lane kind `free`) whenever a side column exists; part of the snapping rows, dashed band with label, excluded from creating. | 170 | done |
+| 5d | After trying it (user): G5 revised to draw.io's mouse — drag on a node moves it, Ctrl / ⌘ + drag pans (filter `allowsZoomOrPan` in `asset-graph-keyboard.ts`, 4 px threshold, cursors, legend line "Mouse: …"); G3 start view: preset All with hazards on. | 171 | done |
