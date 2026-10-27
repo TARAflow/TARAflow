@@ -1,7 +1,7 @@
 # TARAflow — ISO/SAE 21434 requirement coverage
 
-**Status:** v1 · 2026-10-24 · code base: branch `feature/iso21434-conformance`
-(0a, 0b, 0b2, 0c, 0d and the `levelToRiskScale` fix committed; 3a open) ·
+**Status:** v2 · 2026-10-27 · code base: `main` 96c9269a (v0.15.1-beta; 0a, 0b, 0b2, 0c,
+0d, the `levelToRiskScale` fix, 3a and the report fixes F1–F10 released) ·
 plan: `main` 6c55d0c
 **Belongs to:** `iso-21434-conformance-implementation-plan.md`. This document is the
 **exit criterion** of that plan: the normative minimum (plan §5) is done when every [N]
@@ -49,8 +49,8 @@ Rules:
 1. A row is **met** only with a test reference. Implemented without a test is **met?**.
 2. Every plan step names the rows it closes; the commit that closes a row updates it here.
 3. A new finding (bug, wrong assumption) adds or changes a row; it does not stay in a chat.
-4. Status refers to the branch `feature/iso21434-conformance` at the commit named in the
-   header; `main` carries no ISO code of this plan before the release.
+4. Status refers to the commit named in the header. Since v0.15.0-beta the ISO work is
+   merged to `main`; each step's branch is merged after its release.
 
 ## 3. Clause 9 — Concept phase
 
@@ -66,8 +66,8 @@ Rules:
 
 | ID | Requirement | Marker | Status | Plan step | Code | Test |
 |---|---|---|---|---|---|---|
-| RQ-09-03 | Analysis based on the item definition: asset identification (15.3), threat scenarios (15.4), impact rating (15.5), attack paths (15.6), attack feasibility (15.7), risk values (15.8). NOTE 1: missing information can be assumed | [N] | **partial** — rows of §4; risk value open | 3a | see §4 | see §4 |
-| RQ-09-04 | Risk treatment options determined for each threat scenario (15.9) | [N] | **partial** — options per path, ISO names met (0a); per threat scenario with 3a (union of the paths' options, decision 20) | 3a | `risk-treatment-vocabulary.ts` | `risk-treatment-vocabulary.test.ts`; §8 3a |
+| RQ-09-03 | Analysis based on the item definition: asset identification (15.3), threat scenarios (15.4), impact rating (15.5), attack paths (15.6), attack feasibility (15.7), risk values (15.8). NOTE 1: missing information can be assumed | [N] | **partial** — rows of §4: risk value met (3a); item definition (RQ-09-01/02) and damage scenarios open | Phase 1, Phase 2 | see §4 | see §4 |
+| RQ-09-04 | Risk treatment options determined for each threat scenario (15.9) | [N] | **met** — ISO names (0a); per threat scenario the union of its paths' options (3a, decision 20) | 0a, 3a | `risk-treatment-vocabulary.ts`, `iso-scenarios.ts` `groupIsoScenarios` | `risk-treatment-vocabulary.test.ts`; `iso-scenarios.test.ts` ("options the union"); `attack-path-risks-chapter.test.ts` ("union of treatments") |
 | RQ-09-05 | If the treatment includes reducing → one or more cybersecurity goals; CAL "if applicable" (NOTE 4, Annex E) | [N] / CAL [K] | **gap** — `SecurityGoal.formalDescription` exists but is not tied to Reduce; no CAL | Phase 4 minimal | `asset-security-goals-types.ts` | §8 Phase 4 |
 | RQ-09-06 | If the treatment includes sharing, or retaining due to assumptions → one or more cybersecurity claims | [N] | **partial** — `treatmentJustification` / `wontJustification` text, no claim object | Phase 4 minimal (+ ASM from Phase 1 A) | `risk-assessment-types.ts` | §8 Phase 4 |
 | RQ-09-07 | Verification confirms a) TARA correct / complete w.r.t. the item definition, b) treatment decisions complete / correct / consistent w.r.t. the TARA, c) goals and claims w.r.t. the treatment decisions, d) consistency of all goals and claims of the item | [N] | **gap** — structural checks partly exist (validators, traceability matrix), no verification record | Phase 4 minimal (verification record), readiness check Phase 7 | – | §8 Phase 4 |
@@ -140,16 +140,16 @@ Rules:
 
 | ID | Requirement | Marker | Status | Plan step | Code | Test |
 |---|---|---|---|---|---|---|
-| RQ-15-15 | Risk value for each threat scenario from the impact of its damage scenarios and the feasibility of its attack paths (NOTE 1: per impact rating allowed; NOTE 2: MAX over paths as example) | [N] | **gap** — one risk per attack path, `I × L` | 3a | `risk-calculation-service.ts` | §8 3a, Annex-H golden |
-| RQ-15-16 | Risk value between 1 and 5, 1 = minimal; method free (matrix / formula) | [N] / method [K] | **gap** — `I × L` on the 3/4/5-level scale; the `levelToRiskScale` fix (decision 21) is done | 3a (matrix H.8) | `feasibilityLevelToRiskScale` (fix) | `fix-tree-likelihood-scale.test.ts` (fix); §8 3a (16 H.8 cells + H.9) |
-| WP-15-07 | Risk values | [N] | **gap** | 3a / 7 | – | §8 3a |
+| RQ-15-15 | Risk value for each threat scenario from the impact of its damage scenarios and the feasibility of its attack paths (NOTE 1: per impact rating allowed; NOTE 2: MAX over paths as example) | [N] | **met** — per path impact × feasibility through H.8, per threat scenario the MAX over its paths (3a, decision 20 E3; NOTE 2). The impact is the asset property's rating until damage scenarios are objects (Phase 2) | 3a | `iso-risk-matrix.ts` `isoRiskValue`, `commit-iso-risk-values.ts`, `iso-scenarios.ts` | `commit-iso-risk-values.test.ts`; `iso-scenarios.test.ts` ("MAX over the paths") |
+| RQ-15-16 | Risk value between 1 and 5, 1 = minimal; method free (matrix / formula) | [N] / method [K] | **met** — matrix H.8 (decision 20), values 1–5, words Minimal … Critical (3a-w); the `levelToRiskScale` fix (decision 21) | 3a | `iso-risk-matrix.ts`, `feasibilityLevelToRiskScale` | `iso-risk-matrix.test.ts` ("all 16 cells", "extremes are 1 and 5", "Table H.9 examples"); `fix-tree-likelihood-scale.test.ts` |
+| WP-15-07 | Risk values | [N] | **met** — register columns (3a-2), threat-scenario view (3a-3), report chapter *Risk Assessment (Threat Scenarios)* (F4) | 3a, F4 | `iso-risk-display.ts`, `iso-scenarios.ts`, `base-generator.ts` | `iso-risk-display.test.ts`; `iso-risk-matrix.test.tsx`; `attack-path-risks-chapter.test.ts` |
 
 ### 15.9 Risk treatment decision
 
 | ID | Requirement | Marker | Status | Plan step | Code | Test |
 |---|---|---|---|---|---|---|
-| RQ-15-17 | For each threat scenario, considering its risk values, one or more options: avoid, reduce, share, retain (NOTE: rationales of share / retain become claims) | [N] | **partial** — ISO names met (0a); per threat scenario with 3a; claims Phase 4 | 3a, Phase 4 | `risk-treatment-vocabulary.ts` | `risk-treatment-vocabulary.test.ts`; §8 3a |
-| WP-15-08 | Risk treatment decisions | [N] | **partial** — treatment column of the register and the traceability matrix | 3a / 7 | `base-generator.ts` | `traceability-matrix.test.ts` |
+| RQ-15-17 | For each threat scenario, considering its risk values, one or more options: avoid, reduce, share, retain (NOTE: rationales of share / retain become claims) | [N] | **partial** — ISO names (0a); per threat scenario with its value and the review list (3a, E5); claims for share / retain open | Phase 4 | `risk-treatment-vocabulary.ts`, `iso-scenarios.ts` | `risk-treatment-vocabulary.test.ts`; `iso-scenarios.test.ts` |
+| WP-15-08 | Risk treatment decisions | [N] | **partial** — per threat scenario in the register, the scenario view and the report (3a, F4), the traceability matrix; rationales as claims open | Phase 4 | `base-generator.ts`, `iso-scenarios.ts` | `traceability-matrix.test.ts`; `attack-path-risks-chapter.test.ts` |
 
 ## 5. Clause 8 — Continual cybersecurity activities (inputs only)
 

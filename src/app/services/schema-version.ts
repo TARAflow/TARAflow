@@ -51,10 +51,19 @@
  *       AssetProperties drops safetyRelevant, containsSafetyRelevantData,
  *       safetyImpact and safetyRationale; a safetyImpact on an asset without
  *       physicalImpact is kept as a manual override ([MIGRATED] rationale).
- *  10 = Version fence, no data change (ISO/SAE 21434 conformance plan 0c,
- *       decision 15: one fence per release that stores new fields). Adds the
- *       optional calculation stamps Risk.calcStamp and PathAnalysis.calcStamp
- *       ({ method, calcVersion, mappingVersion }), written only in iso-21434
- *       projects when a value is (re)computed; absent = computed before.
+ *  10 = 0.15.0-beta (ISO/SAE 21434 conformance plan Phase 0, fix, 3a;
+ *       migrate-9-to-10.ts). Not a pure fence — it changes values:
+ *       - fence for the optional calculation stamps Risk.calcStamp and
+ *         PathAnalysis.calcStamp ({ method, calcVersion, mappingVersion }),
+ *         written only in iso-21434 projects when a value is (re)computed;
+ *         absent = computed before (0c);
+ *       - stored attack-tree likelihoods corrected for 3- and 4-level risk
+ *         scales, all presets (decision 21, fixTreeLikelihoodScale);
+ *       - safety severity names normalised again (decision 22), so v9 files
+ *         with old names (fatality …) get the canonical scale;
+ *       - Risk.isoRisk (value 1–5, matrix H.8) computed and stamped for every
+ *         risk of an iso-21434 project (3a, decision 20).
+ *       Fence rule (decision 15 as refined 2026-10-25): a new number only when
+ *       an older release would drop or misread new fields.
  */
 export const CURRENT_SCHEMA_VERSION = 10;
