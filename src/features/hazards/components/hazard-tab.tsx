@@ -432,6 +432,7 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
           onEdit={handleEdit}
           onDelete={handleDeleteHazard}
           onQuickAdd={handleQuickAdd}
+          labelVocabulary={project.labelVocabulary}
         />
       </Box>
 
@@ -443,6 +444,7 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
           assets={assets}
           onSave={handleSaveHazard}
           onClose={handleCloseDialog}
+          labelVocabulary={project.labelVocabulary}
         />
       )}
 

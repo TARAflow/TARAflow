@@ -26,6 +26,11 @@ export interface HazardProjectData {
    */
   assetDataRef?: AssetDataReference;
   lastModified: string;
+  /**
+   * Label vocabulary of the preset: under "iso-21434" person-harm severities
+   * show their ISO 26262 class (S0–S3, RQ-15-06, conformance plan 1H-S).
+   */
+  labelVocabulary?: "default" | "iso-21434";
 }
 
 /**

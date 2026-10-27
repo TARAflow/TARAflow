@@ -191,4 +191,9 @@ describe("AssetGraphView — Hazard Items (FR-V11)", () => {
     fireEvent.click(anchors());
     expect(screen.queryByTestId("asset-graph-node-el:p1")).toBeNull();
   });
+
+  it("under iso-21434 a person edge shows its ISO 26262 class (G7, 1H-S)", () => {
+    render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={() => {}} labelVocabulary="iso-21434" />);
+    expect(screen.getByTestId("asset-graph-edge-hz:H1->u1").textContent).toContain("S3 · fatal");
+  });
 });

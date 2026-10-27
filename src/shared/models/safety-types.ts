@@ -326,3 +326,42 @@ export function createDerivedIndirectAnnotation(
 ): SafetyAnnotation {
   return { relevance: "indirect", impact, source: "derived", rationale };
 }
+
+// ==================== ISO 26262 SEVERITY CLASS (display) ====================
+
+export type Iso26262SeverityClass = "S0" | "S1" | "S2" | "S3";
+
+const ISO_26262_CLASS: Readonly<Record<SafetyImpact, Iso26262SeverityClass>> = {
+  none: "S0",
+  reversible_minor: "S1",
+  reversible_major: "S1",
+  irreversible_minor: "S2",
+  irreversible_major: "S2",
+  fatal: "S3",
+};
+
+/**
+ * ISO 26262 severity class of a person-harm value (the S column of the table
+ * above; "none" = S0, no injuries). Display only, under the `iso-21434`
+ * preset (ISO/SAE 21434 RQ-15-06, conformance plan 1H-S): the stored value
+ * stays the canonical one. Pre-v9 names count as their canonical value;
+ * anything else (environment / infrastructure scales) has no class.
+ */
+export function iso26262SeverityClass(value: string): Iso26262SeverityClass | undefined {
+  const impact = normalizeLegacySafetyImpact(value);
+  return impact ? ISO_26262_CLASS[impact] : undefined;
+}
+
+/**
+ * A severity label for display: under `iso-21434` a person-harm value gets
+ * its class in front ("S2 · Irreversible, major"); otherwise, and for other
+ * scales, the label as it is.
+ */
+export function withSeverityClass(
+  value: string,
+  label: string,
+  vocabulary: "iso-21434" | "default" | undefined,
+): string {
+  const cls = vocabulary === "iso-21434" ? iso26262SeverityClass(value) : undefined;
+  return cls ? `${cls} · ${label}` : label;
+}

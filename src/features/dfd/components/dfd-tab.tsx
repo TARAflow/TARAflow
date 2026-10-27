@@ -93,6 +93,8 @@ export interface DFDTabProps {
    * (e.g. hazard protection targets) that the dfd.assets mirror lacks.
    */
   assetRegistry?: AssetGraphRegistry | null;
+  /** Label vocabulary of the preset (asset graph: S0–S3 under iso-21434). */
+  labelVocabulary?: "default" | "iso-21434";
   /** "Show in table" from the asset graph (FR-V13, way back). */
   onShowInTable?: (assetId: string) => void;
   /** "Open in Hazard tab" from a hazard's card in the asset graph (G9). */
@@ -135,6 +137,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   graphFocusRequest,
   hazards,
   assetRegistry,
+  labelVocabulary,
   onShowInTable,
   onOpenHazard,
 }) => {
@@ -936,6 +939,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               focusRequest={graphFocus}
               onShowInTable={onShowInTable}
               onOpenHazard={onOpenHazard}
+              labelVocabulary={labelVocabulary}
               onCreateAsset={handleCreateAssetForGroup}
               assetEditing={assetEditingForGraph}
               elementLinking={elementLinkingForGraph}

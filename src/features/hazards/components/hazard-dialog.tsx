@@ -70,6 +70,7 @@ import {
   isEndangers,
   createAsset as createAssetSeed,
   ASSET_GROUP_CONFIG,
+  withSeverityClass,
 } from "shared";
 
 import type { HazardData } from "../models/hazard-data-types";
@@ -231,6 +232,11 @@ interface HazardDialogProps {
   assets: AssetReference[];
   onSave: (data: HazardData, createdAssets: CreatedAsset[]) => void;
   onClose: () => void;
+  /**
+   * Label vocabulary of the preset: under "iso-21434" person-harm severities
+   * show their ISO 26262 class (S0–S3, RQ-15-06, conformance plan 1H-S).
+   */
+  labelVocabulary?: "default" | "iso-21434";
 }
 
 // ==================== COMPONENT ====================
@@ -242,6 +248,7 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
   assets,
   onSave,
   onClose,
+  labelVocabulary,
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -1153,19 +1160,24 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
                                 </Box>
                                 <FormControl
                                   size="small"
-                                  sx={{ minWidth: 140 }}
+                                  sx={{ minWidth: labelVocabulary === "iso-21434" ? 190 : 140 }}
                                 >
                                   <Select
                                     value={e.impact.severity}
                                     onChange={(ev) =>
                                       patchTargetSeverity(e, ev.target.value)
                                     }
+                                    inputProps={{ "data-testid": `hazard-target-severity-${e.to}` }}
                                   >
                                     {scale.map((s) => (
                                       <MenuItem key={s} value={s}>
-                                        {t(`tabs.hazards.severity.${s}`, {
-                                          defaultValue: humanize(s),
-                                        })}
+                                        {withSeverityClass(
+                                          s,
+                                          t(`tabs.hazards.severity.${s}`, {
+                                            defaultValue: humanize(s),
+                                          }),
+                                          labelVocabulary,
+                                        )}
                                       </MenuItem>
                                     ))}
                                   </Select>

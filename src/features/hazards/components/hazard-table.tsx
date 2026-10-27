@@ -52,6 +52,7 @@ import {
   HAZARD_SEVERITY_RANK_COLOR,
   isContributesTo,
   isEndangers,
+  withSeverityClass,
   worstEndangersSeverity,
 } from "shared";
 import type { HazardData } from "../models/hazard-data-types";
@@ -64,6 +65,11 @@ export interface HazardTableProps {
   onEdit: (hazard: HazardItem) => void;
   onDelete: (id: HazardItemId) => void;
   onQuickAdd: (label: string) => void;
+  /**
+   * Label vocabulary of the preset: under "iso-21434" person-harm severities
+   * show their ISO 26262 class (S0–S3, RQ-15-06, conformance plan 1H-S).
+   */
+  labelVocabulary?: "default" | "iso-21434";
 }
 
 interface AssetChip {
@@ -253,7 +259,7 @@ const AssetChips: React.FC<{
 // ==================== COMPONENT ====================
 
 export const HazardTable = React.memo<HazardTableProps>(
-  ({ data, assets, onEdit, onDelete, onQuickAdd }) => {
+  ({ data, assets, onEdit, onDelete, onQuickAdd, labelVocabulary }) => {
     const { t } = useTranslation();
     const [quickLabel, setQuickLabel] = useState("");
     // Row visibility filter. Out-of-scope hazards are hidden by default (they
@@ -573,9 +579,13 @@ export const HazardTable = React.memo<HazardTableProps>(
               })}
             >
               <Chip
-                label={t(`tabs.hazards.severity.${p.row._worstSeverity}`, {
-                  defaultValue: humanize(p.row._worstSeverity),
-                })}
+                label={withSeverityClass(
+                  p.row._worstSeverity,
+                  t(`tabs.hazards.severity.${p.row._worstSeverity}`, {
+                    defaultValue: humanize(p.row._worstSeverity),
+                  }),
+                  labelVocabulary,
+                )}
                 size="small"
                 sx={{
                   height: 20,
@@ -654,7 +664,7 @@ export const HazardTable = React.memo<HazardTableProps>(
         sourceColumn,
         actionsColumn,
       ];
-    }, [t, onEdit, onDelete]);
+    }, [t, onEdit, onDelete, labelVocabulary]);
 
     // ==================== RENDER ====================
 

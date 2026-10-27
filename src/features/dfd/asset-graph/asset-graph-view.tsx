@@ -54,7 +54,13 @@ import {
   Redo as RedoIcon,
 } from "@mui/icons-material";
 import { select, zoom, zoomIdentity, type ZoomBehavior } from "d3";
-import { HAZARD_SEVERITY_RANK_COLOR, isContributesTo, normalizeLegacySafetyImpact, type AssetGroup } from "shared";
+import {
+  HAZARD_SEVERITY_RANK_COLOR,
+  isContributesTo,
+  normalizeLegacySafetyImpact,
+  withSeverityClass,
+  type AssetGroup,
+} from "shared";
 import type { AssetRelation } from "../models/asset-relation-types";
 import { getAssetGroupColor } from "../models/dfd-formatters";
 import {
@@ -147,6 +153,8 @@ export interface AssetGraphViewProps {
   readonly onShowInTable?: (assetId: string) => void;
   /** "Open in Hazard tab" from a hazard's card (FR-V11d, G9). */
   readonly onOpenHazard?: (hazardId: string) => void;
+  /** Label vocabulary of the preset: S0–S3 on person edges under iso-21434 (G7). */
+  readonly labelVocabulary?: "default" | "iso-21434";
   /**
    * Pixels on the right covered by the DFD tab's side panel (it overlays the
    * canvas). Detail card, legend and centring keep clear of it.
@@ -223,6 +231,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   focusRequest,
   onShowInTable,
   onOpenHazard,
+  labelVocabulary,
   onCreateAsset,
   onDeleteAsset,
   assetUsage,
@@ -1053,11 +1062,15 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   };
   const groupOfAsset = (id: string) =>
     source.assets.find((a) => a.id === id)?.assetGroup as string | undefined;
-  // Severity of an endangers edge: canonical labels (G7; S-classes under
-  // iso-21434 follow with ISO Phase 1H).
+  // Severity of an endangers edge: canonical labels, under iso-21434 with
+  // the ISO 26262 class in front (G7, conformance plan 1H-S).
   const severityLabel = (severity: string) => {
     const canonical = normalizeLegacySafetyImpact(severity) ?? severity;
-    return t(`tabs.hazards.severity.${canonical}`, { defaultValue: plain(canonical) });
+    return withSeverityClass(
+      canonical,
+      t(`tabs.hazards.severity.${canonical}`, { defaultValue: plain(canonical) }),
+      labelVocabulary,
+    );
   };
   const edgeLabel = (e: { kind: string; relationType: string; target: string; severity?: string }) =>
     e.kind === "anchor"

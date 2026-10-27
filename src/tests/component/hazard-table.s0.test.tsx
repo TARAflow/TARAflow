@@ -2,7 +2,8 @@
 //
 // ISO/SAE 21434 conformance plan 1H-S (decision 13 C): the hazard table's
 // "Max Severity" shows a person edge rated "none" as "None (no injury)" (S0);
-// a hazard without a rated edge shows "–".
+// a hazard without a rated edge shows "–". Under iso-21434 (1H-S-2) the
+// person severities carry their ISO 26262 class (S0–S3).
 
 import React from "react";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -46,5 +47,14 @@ describe("Hazard table — S0 (1H-S)", () => {
     expect(cell("Pinch S0").textContent).toContain("None");
     expect(cell("Unrated").textContent).toContain("–");
     expect(cell("Crush").textContent).toContain("Fatal");
+  });
+
+  it("under iso-21434 the class comes first: S0 · None, S3 · Fatal", () => {
+    render(<HazardsTab project={{ ...project, labelVocabulary: "iso-21434" }} onUpdate={() => {}} />);
+    const row = (label: string) => screen.getByText(label).closest("[role='row']") as HTMLElement;
+    const cell = (label: string) => within(row(label)).getByText((_, el) => el?.getAttribute("data-field") === "_worstRank");
+    expect(cell("Pinch S0").textContent).toContain("S0 · None");
+    expect(cell("Crush").textContent).toContain("S3 · Fatal");
+    expect(cell("Unrated").textContent).toContain("–");
   });
 });

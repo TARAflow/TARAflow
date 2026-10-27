@@ -757,6 +757,13 @@ export const WorkspaceLayout: React.FC = () => {
     [activeProject?.assets],
   );
 
+  // Label vocabulary of the preset: under iso-21434 person-harm severities
+  // show their ISO 26262 class (S0–S3, conformance plan 1H-S).
+  const labelVocabulary: "default" | "iso-21434" =
+    regulationPresetFromTags(activeProject?.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
+      ? "iso-21434"
+      : "default";
+
   // Hazard → asset projection (§6): endangeredBy / contributesTo per asset.
   // Read-only; the assets feature never imports features/hazards.
   const memoizedHazardRef = useMemo(
@@ -1001,6 +1008,7 @@ export const WorkspaceLayout: React.FC = () => {
                 phaseStatus: activeProject.phaseStatus,
                 assetDataRef: memoizedAssetDataRef,
                 lastModified: activeProject.info?.lastModified || "",
+                labelVocabulary,
               }}
               onUpdate={handleHazardsUpdate}
               openRequest={hazardOpenRequest}
@@ -1029,6 +1037,7 @@ export const WorkspaceLayout: React.FC = () => {
               graphFocusRequest={graphFocusRequest}
               hazards={memoizedGraphHazards}
               assetRegistry={memoizedGraphRegistry}
+              labelVocabulary={labelVocabulary}
               onShowInTable={(assetId) => {
                 setTableHighlightRequest({ assetId });
                 handlePhaseChange(PhaseId.Assets);

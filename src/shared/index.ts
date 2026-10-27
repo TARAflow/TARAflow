@@ -172,6 +172,9 @@ export {
   isOverrideSeverity,
   safetySeverityToFactor,
   normalizeLegacySafetyImpact,
+  iso26262SeverityClass,
+  withSeverityClass,
+  type Iso26262SeverityClass,
   type SafetySeverity,
 } from "./models/safety-types";
 
