@@ -48,16 +48,31 @@ export const HAZARD_SEVERITY_RANK_COLOR: Readonly<Record<number, string>> = {
   4: "#ef4444",
 };
 
-/** The worst severity of a hazard's endangers edges ("" / 0 without one). */
+/**
+ * Rank of one endangers edge: 1–4 for a known severity, 0 for a person edge
+ * rated "none" (no injury, S0 — ISO plan decision 13 C), −1 for a value no
+ * scale knows (stays below the display).
+ */
+export function endangersSeverityRank(impact: { target: string; severity: string }): number {
+  if (impact.target === "human" && normalizeLegacySafetyImpact(impact.severity) === "none") return 0;
+  const rank = hazardSeverityRank(impact.severity);
+  return rank > 0 ? rank : -1;
+}
+
+/**
+ * The worst severity of a hazard's endangers edges. Without a rated edge:
+ * severity "" and rank 0; a hazard whose worst edge is "none" (S0) has
+ * severity "none" and rank 0 — the severity tells the two apart.
+ */
 export function worstEndangersSeverity(
   hazardId: string,
   relations: readonly HazardRelation[],
 ): { severity: string; rank: number } {
-  let worst = { severity: "", rank: 0 };
+  let worst = { severity: "", rank: -1 };
   for (const r of relations) {
     if (!isEndangers(r) || r.from !== hazardId) continue;
-    const rank = hazardSeverityRank(r.impact.severity);
+    const rank = endangersSeverityRank(r.impact);
     if (rank > worst.rank) worst = { severity: r.impact.severity, rank };
   }
-  return worst;
+  return worst.rank < 0 ? { severity: "", rank: 0 } : worst;
 }

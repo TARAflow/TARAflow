@@ -148,6 +148,21 @@ describe("asset graph — Hazard Items (FR-V11)", () => {
     expect(hazardNodes(g)[0]).toMatchObject({ displayId: "Fire", severity: "fatal", severityRank: 4 });
   });
 
+  it("1H-S: a person edge rated 'none' (S0) is drawn with its rating, rank 0", () => {
+    const source: AssetGraphSource = {
+      assets: [{ id: "hu", displayId: "HU-001", name: "Operator", assetGroup: "human" }],
+      relations: [],
+      elements: [],
+      hazards: {
+        items: [{ id: "H1", label: "Pinch", combinationType: "ANY", source: "manual" } as HazardItem],
+        relations: [{ type: "endangers", from: "H1", to: "hu", impact: { target: "human", severity: "none" } } as HazardRelation],
+      },
+    };
+    const g = buildAssetGraph(source, { view: "layers", layers: ASSET_GRAPH_PRESETS.all, showHazards: true });
+    expect(g.edges.map((e) => e.severity)).toEqual(["none"]);
+    expect(hazardNodes(g)[0]).toMatchObject({ severity: "none", severityRank: 0, linked: true });
+  });
+
   it("a hazard without an edge to an existing asset is 'not linked' (FR-V11e)", () => {
     const source: AssetGraphSource = {
       assets: [{ id: "d", displayId: "DA-001", name: "Data", assetGroup: "data" }],

@@ -101,6 +101,7 @@ describe("hazard model — Phase 1", () => {
 
   it("exposes ordered severity scales per target kind", () => {
     expect(HUMAN_HARM_SEVERITY).toEqual([
+      "none", // no injury, S0 — a rating, not harm (ISO plan decision 13 C)
       "reversible_minor",
       "reversible_major",
       "irreversible_minor",

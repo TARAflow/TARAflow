@@ -81,7 +81,7 @@ import {
   HAZARD_CONTRIBUTOR_GROUPS,
   HAZARD_TARGET_GROUPS,
 } from "../services/eligible-assets-service";
-import { resolveSeverityScale } from "../services/severity-scale-service";
+import { defaultSeverityFor, resolveSeverityScale } from "../services/severity-scale-service";
 
 // ==================== CONSTANTS ====================
 
@@ -398,7 +398,7 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
     if (!editingId) return;
     const kind = targetKindForAssetGroup(asset.assetGroup);
     if (!kind) return;
-    const severity = resolveSeverityScale(kind)[0];
+    const severity = defaultSeverityFor(kind);
     setDraft((d) =>
       hazardRelationService.addEndangers(d, {
         hazardId: editingId,

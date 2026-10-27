@@ -199,6 +199,7 @@ export {
 } from "./models/hazard-impact";
 export {
   HAZARD_SEVERITY_RANK_COLOR,
+  endangersSeverityRank,
   hazardSeverityRank,
   worstEndangersSeverity,
 } from "./models/hazard-severity-display";

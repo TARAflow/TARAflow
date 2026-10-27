@@ -12,14 +12,17 @@
 // infrastructure share the 4-level magnitude vocabulary already used by
 // isHighValueAsset, to avoid introducing a third vocabulary.
 
-import { SAFETY_SEVERITIES, type SafetySeverity } from "./safety-types";
+import { SAFETY_IMPACTS, type SafetyImpact } from "./safety-types";
 
-// --- Human harm: the canonical SafetySeverity scale --------------------------------
-// "none" is excluded on an actual endangers edge (an edge implies harm). The ordered
-// array drives dropdown order; aggregation reuses worstSafetySeverity() from
-// safety-types.
-export type HumanHarmSeverity = SafetySeverity;
-export const HUMAN_HARM_SEVERITY: readonly HumanHarmSeverity[] = SAFETY_SEVERITIES;
+// --- Human harm: the canonical SafetyImpact scale ----------------------------------
+// An edge says the hazard reaches the person; its severity is the rating. "none"
+// is a rating too — no injury, S0 under ISO/SAE 21434 (ISO plan decision 13 C) —
+// not "not rated", which is the absence of an edge. It never counts as harm: the
+// aggregation onto assets drops it (build-asset-hazard-links.ts). The ordered
+// array drives dropdown order ("none" first); aggregation reuses
+// worseSafetyImpact() from safety-types.
+export type HumanHarmSeverity = SafetyImpact;
+export const HUMAN_HARM_SEVERITY: readonly HumanHarmSeverity[] = SAFETY_IMPACTS;
 
 // --- Environment harm (PROPOSED wording — confirm) ----------------------------------
 // Intent: reversible/local at the low end, persistent/widespread at the top.
