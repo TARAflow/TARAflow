@@ -40,7 +40,11 @@ const SEVERITY_TO_HUMAN: Record<LegacyHazardSeverity, HumanHarmSeverity> = {
   catastrophic: "fatal",
 };
 
-/** Canonical values pass through (HI-1); legacy values map as before (HI-1a). */
+/**
+ * Canonical values pass through (HI-1), "none" included: a person edge rated
+ * no injury / S0 (HI-1b) — it counts as no harm downstream. Legacy values map
+ * as before (HI-1a).
+ */
 function toHumanSeverity(s: HazardSeverity): HumanHarmSeverity {
   return s in SEVERITY_TO_HUMAN ? SEVERITY_TO_HUMAN[s as LegacyHazardSeverity] : (s as HumanHarmSeverity);
 }

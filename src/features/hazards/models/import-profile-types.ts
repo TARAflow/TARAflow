@@ -6,7 +6,7 @@
 // importer knows exactly where to start and how to read each field, and so the
 // mapping can be saved and reused for the next identical customer template.
 
-import { SAFETY_SEVERITIES } from "shared";
+import { SAFETY_IMPACTS } from "shared";
 import type { CanonicalField } from "../services/safety-hazard-importer";
 export type { CanonicalField } from "../services/safety-hazard-importer";
 
@@ -119,11 +119,11 @@ export function splitList(value: string, separator: string = DEFAULT_LIST_SEPARA
 
 // ---- canonical value options (for the dialog dropdowns) ---------------------
 // Kept here so the dialog and the validator agree. severity is the canonical
-// person-harm scale (HI-1; "none" follows with HI-1b), probability mirrors the
+// person-harm scale with "none" = no injury / S0 first (HI-1, HI-1b), probability mirrors the
 // SafetyHazard enum; hazardCategory mirrors the ISO 12100 list in shared.
 // The legacy severity values stay valid input but are no longer offered.
 
-export const SEVERITY_OPTIONS = SAFETY_SEVERITIES;
+export const SEVERITY_OPTIONS = SAFETY_IMPACTS;
 
 export const PROBABILITY_OPTIONS = [
   "very_low",

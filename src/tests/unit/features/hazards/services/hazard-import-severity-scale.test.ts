@@ -3,7 +3,8 @@
 // Hazard import design HI-1 / HI-1a (doc/InProgress/Hazard/hazard-import-
 // iso12100-extensions.md): the profile maps severity directly onto the
 // canonical person-harm scale; the legacy intermediate values stay valid input
-// and map exactly as before.
+// and map exactly as before. HI-1b: "none" (no injury, S0) imports as a person
+// edge rated "none", which makes nobody safety-relevant.
 
 import { describe, it, expect } from "vitest";
 
@@ -55,8 +56,9 @@ const edgeSeverities = (hazards: SafetyHazard[]) => {
 };
 
 describe("HI-1 — the canonical scale", () => {
-  it("the dialog offers the five canonical levels, neither legacy values nor none", () => {
+  it("the dialog offers 'none' (S0, HI-1b) and the five canonical levels, no legacy values", () => {
     expect([...SEVERITY_OPTIONS]).toEqual([
+      "none",
       "reversible_minor",
       "reversible_major",
       "irreversible_minor",
@@ -114,5 +116,33 @@ describe("value map editor input", () => {
   it("distinct values of a column over the data rows, section rows and empty cells left out", () => {
     expect(distinctColumnValues(sheets[0], profile({}), 7)).toEqual(["3", "2", "4", "1"]);
     expect(distinctColumnValues(sheets[0], profile({}), 3).slice(0, 3)).toEqual(["Crushing", "Drawing-in", "Crushing, shearing"]);
+  });
+});
+
+describe("HI-1b — 'none' = no injury (S0)", () => {
+  it("a value mapped to 'none' gives a person edge rated 'none', not an unknown value", () => {
+    const result = applyImportProfile(sheets, profile({ "1": "none", "2": "reversible_major", "3": "irreversible_minor", "4": "fatal" }));
+    // Only the fixture's row without a severity warns; "none" is a known value.
+    expect(result.warnings.filter((w) => w.field === "severity" && /Unknown/.test(w.message))).toEqual([]);
+    const severities = edgeSeverities(result.hazards);
+    expect(Object.values(severities)).toContain("none");
+    expect(severities["4"]).toBe("none");
+  });
+
+  it("the person of a 'none' edge is not safety-relevant", async () => {
+    const { buildAssetHazardLinks } = await import("app/utils/build-asset-hazard-links");
+    const result = applyImportProfile(sheets, profile({ "1": "none", "2": "none", "3": "none", "4": "none" }));
+    let n = 0;
+    const { items, relations } = bridgeSafetyHazards(
+      result.hazards.map((h) => ({ ...h, affectedPersons: ["Operator"] })),
+      {
+        makeHazardItemId: () => `HZ-${++n}` as never,
+        existingAssets: [],
+        mintHumanAsset: (name: string) => ({ id: "H-1", displayId: "HU-1", name, assetGroup: "human" }) as never,
+      },
+    );
+    const links = buildAssetHazardLinks({ hazards: items, relations } as never);
+    expect(links["H-1"].endangeredBy.length).toBeGreaterThan(0);
+    expect(links["H-1"].isHazardTarget).toBe(false);
   });
 });
