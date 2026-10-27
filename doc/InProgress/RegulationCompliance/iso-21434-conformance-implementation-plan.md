@@ -429,10 +429,11 @@ in any preset.
      source `hazard`.
    - `build-asset-data-reference.ts`: the cast of `worstSeverity` to
      `SafetySeverity` stays valid because `"none"` no longer reaches it.
-   - `hazard-table.tsx`: start value `worstRank = -1`; `severityRank()`
-     handles `"none"` explicitly (→ 0), only for person edges — unknown values
-     on environment / infrastructure edges stay below the display;
-     `_worstRank` defaults to −1 so *not rated* sorts below S0.
+   - Rank and colour (since the asset graph work in
+     `shared/models/hazard-severity-display.ts`, used by the hazard table and
+     the asset graph): `"none"` on a person edge ranks 0 (S0), *not rated*
+     (no edge) ranks −1 and sorts below S0; unknown values on environment /
+     infrastructure edges stay below the display.
    - i18n `tabs.hazards.severity.none` (en, de); under `iso-21434` "S0".
 4. **Import:** S0 → edge `"none"`, S1 → `reversible_major`, S2 →
    `irreversible_major`, S3 → `fatal`, no S → no edge.
@@ -806,9 +807,9 @@ one release per row.
 | done | 0d — methodology chapter | – (documents the method) | **0.15.0-beta** | no | – |
 | 0 | Fix `levelToRiskScale` — mapping derived from the risk scale (decision 21) | – (bug) | **0.15.0-beta** | **yes** (all presets with attack trees on a 3- or 4-level scale) | **10** |
 | 1 | 3a — risk value 1–5, risk per threat scenario | RQ-15-15/16 | **0.15.0-beta** | **yes** (ISO risks only) | **10** (migration) |
-| 2 | 1H-S — S0–S3 on the person edge under ISO | RQ-15-06 | 0.15.x-beta | no | 11 (fence: `"none"` on the edge) |
-| 3 | Phase 1 stage A — Definition sub-tab, assumptions (ASM) | RQ-09-01/02 | 0.15.x-beta | no | 12 (fence) |
-| 4 | Phase 4 minimal — goal for every Reduce, claim for Retain/Share, Avoid justification, verification record | RQ-09-05/06, WP-09-05 | 0.15.x-beta | no | 13 (fence) |
+| 2 | 1H-S — S0–S3 on the person edge under ISO | RQ-15-06 | **0.16.0-beta** (decision 24) | no | **11** (fence: `"none"` on the edge, `itemDefinition`) |
+| 3 | Phase 1 stage A — Definition sub-tab, assumptions (ASM) | RQ-09-01/02 | **0.16.0-beta** (decision 24) | no | **11** (shared with 1H-S) |
+| 4 | Phase 4 minimal — goal for every Reduce, claim for Retain/Share, Avoid justification, verification record | RQ-09-05/06, WP-09-05 | 0.17.0-beta | no | 12 (fence) |
 
 Assumptions (stage A) come before Phase 4 because claims refer to them; the
 norm itself only requires the claim (RQ-09-06).
@@ -1004,6 +1005,28 @@ Added in rev. 2 (2026-10-24):
     dialog hides rating scale, thresholds / `I × L` matrix and asset-impact
     mapping and states that the risk value comes from matrix H.8.
 
+24. **[D] 1H-S and Phase 1 stage A (2026-10-27, user):**
+    - **One release, one fence:** 1H-S and stage A ship together as
+      0.16.0-beta with schema 11 (both store new fields an older release
+      would misread or drop: `"none"` on a person edge would count as a
+      hazard target; `itemDefinition` would be lost on save). Phase 4 minimal
+      follows with 12. Branch `feature/iso21434-item-definition`.
+    - **Storage:** one object `project.itemDefinition = { sections,
+      functions, assumptions }` (Assumption as in Phase 1, inside it); trust
+      boundaries reference assumptions by `assumptionIds`. The description
+      stays in `info.description` (decision 8).
+    - **Overview sub-tabs already in stage A:** Project / Definition /
+      Methodology / Sources. Methodology = today's project settings plus the
+      methodology record (0b) read-only, with a link to the Risk tab's
+      configuration dialog.
+    - **Model links in stage A:** a simple multi-select per section (DFD
+      elements, DFD pages, assets); functions with lifecycle phases and an
+      optional function asset. Lifecycle phases [D]: production, operation,
+      maintenance, decommissioning (RQ-09-01 b NOTE 2: functions over the
+      lifecycle). The boundary ↔ DFD matching validator ("no double
+      modelling") follows with stage B.
+    - Step plan in §10 (1H-S-1 … A-5).
+
 ---
 
 ## 7. Definition of done — "ISO/SAE 21434 work-product complete"
@@ -1137,6 +1160,14 @@ Branch `feature/iso21434-conformance`.
 | F8 | Report showed controls as bare ids (`M-VEH-004; …`) in the risk tables, and no verifications at all in an ISO report (the attack-path threat chapter set both to "-"). Now "ID — text (note)" per control, one per line, in the risk tables of every preset (Markdown, AsciiDoc, HTML, StrictDoc, PDF via HTML, pdfmake), and the attack-path threat chapter shows the controls and verifications selected on the path's risk (`control-text.ts`). | 152 | done |
 | F9 | Doc tab and report showed a *STRIDE per Interaction* chapter in an ISO project that still stores per-interaction threats (Headlamp: 42) — the preset switches the method off and the Threats tab hides it. Threat and risk chapters of a switched-off method now have no content (doc tab, template generators, pdfmake; `stride-method-scope.ts`). Side fix in pdfmake (all presets): both threat chapters rendered the per-element threats; each now renders its own once. | 152 | done |
 | F10 | The attack-trees chapter came last; it now stands right before *Threat Scenarios (Attack Path)* — trees first, then the scenarios they produce, then their risks. Stored chapter lists follow (canonical order via `withDefaultChapters`). | 152 | done |
+| 1H-S-1 | `"none"` (S0) on the person `endangers` edge (decision 13 C, 24): `HumanHarmSeverity` widens to `SafetyImpact`; aggregation guard in `build-asset-hazard-links.ts` (`"none"` → no severity, no `isHazardTarget` from a pure `"none"` edge); hazard dialog offers it; table rank "not rated" below S0 (`hazard-severity-display.ts`); schema 11 fence. | – | open |
+| 1H-S-2 | S0–S3 display under `iso-21434` (mapping in `safety-types.ts`): hazard table, dialog, asset graph edge labels (asset graph G7), report; canonical labels elsewhere. | – | open |
+| HI-1b | Hazard import: S0 → edge `"none"`, S1–S3 → canonical values, value-map suggestions (hazard import design HI-1b). | – | open |
+| A-1 | Overview sub-tabs Project / Definition / Methodology / Sources; description moves to Definition (*Purpose and functions*); `project.itemDefinition` model + pass-through test. | – | open |
+| A-2 | Definition sections (boundary, functions, architecture, environment, constraints) with `SourceRef` and model links; function list with lifecycle phases and function asset. | – | open |
+| A-3 | Assumptions (ASM-nn, status, owner, review date); trust boundary `assumptionIds` + *Convert to assumption*; `invalid` flags the boundary. | – | open |
+| A-4 | Findings per preset (`iso-21434`: RQ-09-01 a–c, RQ-09-02 mandatory) with badges on the sub-tabs; Methodology view (settings + record read-only). | – | open |
+| A-5 | Report chapter *Item Definition* (WP-09-01) in all formats, with sources, functions and assumptions; coverage list RQ-09-01/02, WP-09-01, RQ-15-06. Release 0.16.0-beta. | – | open |
 
 ---
 
