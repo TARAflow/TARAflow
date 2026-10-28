@@ -10,6 +10,7 @@ import {
 import type { ItemModelItem } from "../models/overview-types";
 import { ItemSectionCard } from "./item-section-card";
 import { ItemFunctionsCard } from "./item-functions-card";
+import { ItemAssumptionsCard } from "./item-assumptions-card";
 
 // ==================== ITEM DEFINITION VIEW ====================
 // The "Definition" sub-tab of the Overview (ISO/SAE 21434 9.3, RQ-09-01/02;
@@ -23,13 +24,15 @@ import { ItemFunctionsCard } from "./item-functions-card";
 //   Operational environment RQ-09-02
 //   Constraints             supporting (legal requirements, constraints)
 //
-// Each section: text, source reference, links to the model. Assumptions
-// follow with A-3.
+// Each section: text, source reference, links to the model. Then the
+// assumptions (A-3), which trust boundaries link.
 
 interface ItemDefinitionViewProps {
   description: string;
   itemDefinition: ItemDefinition | undefined;
   modelItems: readonly ItemModelItem[];
+  /** assumption id → boundaries that link it */
+  assumptionUsage?: Readonly<Record<string, readonly string[]>>;
   onChange: (change: { description?: string; itemDefinition: ItemDefinition }) => void;
 }
 
@@ -63,6 +66,7 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
   description,
   itemDefinition,
   modelItems,
+  assumptionUsage = {},
   onChange,
 }) => {
   const { t } = useTranslation();
@@ -124,6 +128,12 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
           }
         />
       ))}
+
+      <ItemAssumptionsCard
+        assumptions={def.assumptions}
+        usage={assumptionUsage}
+        onSave={(assumptions) => onChange({ itemDefinition: { ...def, assumptions } })}
+      />
     </div>
   );
 };

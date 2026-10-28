@@ -1972,6 +1972,11 @@
               "placeholder": "e.g. Inside is trusted, outside is hostile",
               "helper": "What do you assume about each side of this boundary?"
             },
+            "assumptionIds": {
+              "label": "Assumptions (Item Definition)",
+              "convert": "Convert to assumption",
+              "invalid": "{{ids}} marked invalid — review this boundary."
+            },
             "boundaryControls": {
               "label": "Controls at Boundary",
               "placeholder": "e.g. Firewall, API Gateway, Authentication Layer",

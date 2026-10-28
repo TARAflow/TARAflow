@@ -162,4 +162,47 @@ describe("Overview sub-tabs (A-1)", () => {
       expect.objectContaining({ name: "Detect smoke", lifecyclePhases: ["operation", "maintenance"], functionAssetId: "fu1" }),
     ]);
   });
+
+  it("A-3: assumptions — add one, set status and owner", () => {
+    const onUpdate = view();
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    const card = screen.getByTestId("item-definition-assumptions");
+    fireEvent.click(within(card).getByText("Edit"));
+    fireEvent.click(within(card).getByTestId("assumption-add"));
+    const row = within(card).getByTestId("assumption-edit-ASM-01");
+    fireEvent.change(within(row).getByLabelText("Assumption"), { target: { value: "Loop wiring is not accessible" } });
+    fireEvent.change(within(row).getByLabelText("Status"), { target: { value: "confirmed" } });
+    fireEvent.change(within(row).getByLabelText("Owner"), { target: { value: "JM" } });
+    fireEvent.click(within(card).getByText("Save"));
+    const saved = onUpdate.mock.calls.at(-1)![0] as GeneralTabData;
+    expect(saved.itemDefinition?.assumptions).toEqual([
+      expect.objectContaining({ displayId: "ASM-01", text: "Loop wiring is not accessible", status: "confirmed", owner: "JM" }),
+    ]);
+  });
+
+  it("A-3: an invalid assumption shows the boundaries that rely on it", () => {
+    render(
+      <GeneralTab
+        data={{
+          ...data,
+          itemDefinition: {
+            sections: {},
+            functions: [],
+            assumptions: [{ id: "a1", displayId: "ASM-01", text: "Panel locked", status: "invalid" }],
+          },
+        }}
+        phases={PHASES}
+        progressPhaseIds={[0]}
+        getStatusIcon={() => ""}
+        getStatusColor={() => ""}
+        onUpdate={vi.fn()}
+        projectId="P9"
+        assumptionUsage={{ a1: ["TB-1 Device"] }}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    const usage = screen.getByTestId("assumption-usage-ASM-01");
+    expect(usage.textContent).toBe("used by TB-1 Device");
+    expect(usage.className).toContain("text-red-700");
+  });
 });

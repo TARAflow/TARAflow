@@ -138,6 +138,8 @@ export {
   ITEM_SECTION_IDS,
   LIFECYCLE_PHASES,
   emptyItemDefinition,
+  newAssumption,
+  nextAssumptionDisplayId,
   type Assumption,
   type AssumptionStatus,
   type ItemDefinition,

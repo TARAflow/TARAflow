@@ -24,6 +24,9 @@ import {
   getPhaseStatusColor,
   useToast,
   dfdPreviewPagesOf,
+  emptyItemDefinition,
+  newAssumption,
+  type Assumption,
 } from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
 import {
@@ -62,7 +65,7 @@ import {
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
-import { buildItemModelItems } from "app/utils/build-item-model-items";
+import { buildAssumptionUsage, buildItemModelItems } from "app/utils/build-item-model-items";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import {
@@ -285,6 +288,24 @@ export const WorkspaceLayout: React.FC = () => {
       if (conflicts.length > 0) toast.warning(conflicts[0].message);
     },
     [updateProject, toast],
+  );
+
+  // Trust boundary form → a new Item Definition assumption (A-3). Synchronous:
+  // the form links the returned id right away.
+  const handleCreateAssumption = useCallback(
+    (text: string): Assumption => {
+      const current = activeProjectRef.current;
+      const def = current?.itemDefinition ?? emptyItemDefinition();
+      const created = newAssumption(def.assumptions, text);
+      if (current) {
+        updateProject({
+          id: current.id,
+          itemDefinition: { ...def, assumptions: [...def.assumptions, created] },
+        });
+      }
+      return created;
+    },
+    [updateProject],
   );
 
   // ── DFD tab ───────────────────────────────────────────────────────────────
@@ -765,6 +786,11 @@ export const WorkspaceLayout: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [activeProject?.dfd, activeProject?.assets],
   );
+  const memoizedAssumptionUsage = useMemo(
+    () => (activeProject ? buildAssumptionUsage(activeProject) : {}),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProject?.dfd],
+  );
 
   // Label vocabulary of the preset: under iso-21434 person-harm severities
   // show their ISO 26262 class (S0–S3, conformance plan 1H-S).
@@ -1006,6 +1032,7 @@ export const WorkspaceLayout: React.FC = () => {
             onUpdate={handleGeneralTabUpdate}
             projectId={activeProject.id}
             modelItems={memoizedItemModelItems}
+            assumptionUsage={memoizedAssumptionUsage}
           />
         )}
 
@@ -1049,6 +1076,8 @@ export const WorkspaceLayout: React.FC = () => {
               hazards={memoizedGraphHazards}
               assetRegistry={memoizedGraphRegistry}
               labelVocabulary={labelVocabulary}
+              assumptions={activeProject.itemDefinition?.assumptions}
+              onCreateAssumption={handleCreateAssumption}
               onShowInTable={(assetId) => {
                 setTableHighlightRequest({ assetId });
                 handlePhaseChange(PhaseId.Assets);

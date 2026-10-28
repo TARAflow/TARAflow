@@ -46,3 +46,20 @@ export function buildItemModelItems(
     .sort(byLabel);
   return [...elements.map((x) => x.item), ...flows.map((x) => x.item), ...pages, ...assets.map((x) => x.item)];
 }
+
+/**
+ * Which trust boundaries rely on which assumption (A-3): assumption id →
+ * labels of the DFD elements whose properties link it.
+ */
+export function buildAssumptionUsage(project: Pick<Project, "dfd">): Record<string, string[]> {
+  const usage: Record<string, string[]> = {};
+  for (const e of project.dfd?.elements ?? []) {
+    const ids = (e.properties as { assumptionIds?: unknown } | undefined)?.assumptionIds;
+    if (!Array.isArray(ids)) continue;
+    for (const id of ids) {
+      if (typeof id !== "string") continue;
+      (usage[id] ??= []).push(label(e.displayId, e.name, e.id));
+    }
+  }
+  return usage;
+}

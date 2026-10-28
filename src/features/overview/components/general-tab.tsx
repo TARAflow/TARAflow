@@ -71,6 +71,9 @@ interface GeneralTabProps {
 
   /** What Definition sections can link to (DFD, assets), built by the app layer. */
   modelItems?: readonly ItemModelItem[];
+
+  /** assumption id → trust boundaries that link it (A-3), built by the app layer. */
+  assumptionUsage?: Readonly<Record<string, readonly string[]>>;
 }
 
 export const GeneralTab: React.FC<GeneralTabProps> = ({
@@ -82,6 +85,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   onUpdate,
   projectId,
   modelItems = [],
+  assumptionUsage,
 }) => {
   const { t } = useTranslation();
   const [view, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -214,6 +218,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
           description={data.info.description}
           itemDefinition={data.itemDefinition}
           modelItems={modelItems}
+          assumptionUsage={assumptionUsage}
           onChange={({ description, itemDefinition }) =>
             onUpdate({
               ...data,

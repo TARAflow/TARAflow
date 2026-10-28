@@ -100,3 +100,27 @@ export interface ItemDefinition {
 export function emptyItemDefinition(): ItemDefinition {
   return { sections: {}, functions: [], assumptions: [] };
 }
+
+// ==================== ASSUMPTIONS ====================
+
+/** "ASM-01", "ASM-02" … — one more than the highest number in use. */
+export function nextAssumptionDisplayId(assumptions: readonly Assumption[]): string {
+  const max = assumptions.reduce((m, a) => {
+    const n = /^ASM-(\d+)$/.exec(a.displayId)?.[1];
+    return n ? Math.max(m, Number(n)) : m;
+  }, 0);
+  return `ASM-${String(max + 1).padStart(2, "0")}`;
+}
+
+let assumptionSeq = 0;
+
+/** A new open assumption with the next display id (not yet stored). */
+export function newAssumption(assumptions: readonly Assumption[], text: string): Assumption {
+  assumptionSeq += 1;
+  return {
+    id: `asm-${Date.now().toString(36)}-${assumptionSeq.toString(36)}`,
+    displayId: nextAssumptionDisplayId(assumptions),
+    text: text.trim(),
+    status: "open",
+  };
+}

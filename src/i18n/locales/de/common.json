@@ -312,6 +312,22 @@
       "operation": "Betrieb",
       "maintenance": "Wartung",
       "decommissioning": "Stilllegung"
+    },
+    "assumptions": {
+      "title": "Annahmen",
+      "hint": "Was die Analyse über die Umgebung annimmt (9.3, RQ-09-02 NOTE 8). Trust Boundaries verweisen darauf; eine ungültige Annahme markiert jede Grenze, die sich darauf stützt.",
+      "text": "Annahme",
+      "statusLabel": "Status",
+      "status": {
+        "open": "offen",
+        "confirmed": "bestätigt",
+        "invalid": "ungültig"
+      },
+      "owner": "Verantwortlich",
+      "reviewBy": "Prüfen bis",
+      "usedBy": "verwendet von {{list}}",
+      "add": "Annahme hinzufügen",
+      "remove": "Annahme entfernen"
     }
   },
   "projectInfo": {

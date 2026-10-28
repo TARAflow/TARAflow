@@ -3,6 +3,7 @@
 // NO business logic, NO data transformation, just rendering and event delegation
 
 import { A2AOpsProvider } from "../contexts/a2a-ops-context";
+import { AssumptionsProvider } from "../contexts/assumptions-context";
 import React, {
   useState,
   useCallback,
@@ -60,7 +61,7 @@ import { OrphanPageDialog } from "./child-page-ui";
 import { InsertContextDialog } from "./insert-context-dialog";
 import { LostDefinitionDialog } from "./lost-definition-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
-import type { AssetUsageLookup } from "shared";
+import type { Assumption, AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import type {
   DFDAutoNumberingConfig,
@@ -95,6 +96,12 @@ export interface DFDTabProps {
   assetRegistry?: AssetGraphRegistry | null;
   /** Label vocabulary of the preset (asset graph: S0–S3 under iso-21434). */
   labelVocabulary?: "default" | "iso-21434";
+  /**
+   * The Item Definition's assumptions and how to create one (trust boundary
+   * form, A-3). Absent: the form shows the free text only.
+   */
+  assumptions?: readonly Assumption[];
+  onCreateAssumption?: (text: string) => Assumption;
   /** "Show in table" from the asset graph (FR-V13, way back). */
   onShowInTable?: (assetId: string) => void;
   /** "Open in Hazard tab" from a hazard's card in the asset graph (G9). */
@@ -138,6 +145,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   hazards,
   assetRegistry,
   labelVocabulary,
+  assumptions,
+  onCreateAssumption,
   onShowInTable,
   onOpenHazard,
 }) => {
@@ -803,10 +812,20 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     setGraphFocus({ assetId: graphFocusRequest.assetId });
   }, [graphFocusRequest, setViewMode]);
 
+  // Item Definition assumptions for the trust boundary form (A-3).
+  const assumptionsAccess = useMemo(
+    () =>
+      onCreateAssumption
+        ? { assumptions: assumptions ?? [], create: onCreateAssumption }
+        : null,
+    [assumptions, onCreateAssumption],
+  );
+
   // ==================== RENDER ====================
 
   return (
     <A2AOpsProvider commit={commitA2AOps}>
+    <AssumptionsProvider value={assumptionsAccess}>
     <Box
       sx={{
         display: "flex",
@@ -1078,6 +1097,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onSave={handleAssetSave}
       />
     </Box>
+    </AssumptionsProvider>
     </A2AOpsProvider>
   );
 }

@@ -33,3 +33,20 @@ describe("buildItemModelItems", () => {
     expect(buildItemModelItems({ dfd: null, assets: null } as never)).toEqual([]);
   });
 });
+
+describe("buildAssumptionUsage (A-3)", () => {
+  it("assumption id → the boundaries that link it", async () => {
+    const { buildAssumptionUsage } = await import("app/utils/build-item-model-items");
+    expect(
+      buildAssumptionUsage({
+        dfd: {
+          elements: [
+            { id: "tb1", displayId: "TB-1", name: "Device", type: "TrustBoundary", properties: { assumptionIds: ["a1", "a2"] } },
+            { id: "tb2", displayId: "TB-2", name: "Cloud", type: "TrustBoundary", properties: { assumptionIds: ["a1"] } },
+            { id: "p1", displayId: "P-1", name: "Proc", type: "Process", properties: {} },
+          ],
+        },
+      } as never),
+    ).toEqual({ a1: ["TB-1 Device", "TB-2 Cloud"], a2: ["TB-1 Device"] });
+  });
+});

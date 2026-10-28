@@ -314,6 +314,22 @@
       "operation": "Operation",
       "maintenance": "Maintenance",
       "decommissioning": "Decommissioning"
+    },
+    "assumptions": {
+      "title": "Assumptions",
+      "hint": "What the analysis assumes about the environment (9.3, RQ-09-02 NOTE 8). Trust boundaries link them; an invalid assumption flags every boundary that relies on it.",
+      "text": "Assumption",
+      "statusLabel": "Status",
+      "status": {
+        "open": "open",
+        "confirmed": "confirmed",
+        "invalid": "invalid"
+      },
+      "owner": "Owner",
+      "reviewBy": "Review by",
+      "usedBy": "used by {{list}}",
+      "add": "Add assumption",
+      "remove": "Remove assumption"
     }
   },
   "projectInfo": {
