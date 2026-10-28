@@ -147,6 +147,10 @@ export function repairProject(raw: any): Project | null {
     documentation: raw.documentation ?? null,
     audit: raw.audit ?? null,
     integration: raw.integration ?? null,
+    // Optional project-level data — kept as they are (a repair must not
+    // drop what it does not rebuild).
+    ...(raw.sourceBindings ? { sourceBindings: raw.sourceBindings } : {}),
+    ...(raw.itemDefinition ? { itemDefinition: raw.itemDefinition } : {}),
     isOpen: raw.isOpen ?? false,
     hasUnsavedChanges: false,
     filePath: raw.filePath,

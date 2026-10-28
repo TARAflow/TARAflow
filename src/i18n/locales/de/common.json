@@ -146,7 +146,7 @@
         "v8": "Asset-zu-Asset-Beziehungen werden in der Projektdatei gespeichert. Vorher gingen sie beim Speichern verloren.",
         "v9": "Das DFD kann mehrere Seiten umfassen (Top-Ebene und Unterdiagramme); ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie die Seiten zusammenführen würden. Die Schwere von Personenschäden nutzt eine 5-stufige Skala (reversibel leicht/schwer, irreversibel leicht/schwer, tödlich). Alte Werte werden auf die höhere Stufe abgebildet: irreversible Verletzung wird irreversibel schwer. Die Safety-Relevanz von Assets wird aus Safety-Annotationen und Hazard Items abgeleitet: die Asset-Felder \"safety-relevant\" und \"Safety Impact\" entfallen; ein Safety Impact ohne andere Bewertung wird zum manuellen Override.",
         "v10": "Risiken, deren Wahrscheinlichkeit aus einem Angriffsbaum stammt, werden korrigiert: Auf einer 3- oder 4-stufigen Risikoskala zählte ein „hoher“ Angriffspfad als 5, also ausserhalb der Skala; der Wert passt jetzt zur Skala (z. B. 4 bei 4 Stufen) und das Risiko wird neu berechnet. 5-stufige Projekte bleiben unverändert. Alte Namen von Personenschaden-Schweren, die noch in der Datei stehen (z. B. „fatality“), erhalten die aktuellen Namen; keine Bewertung ändert sich. In ISO/SAE-21434-Projekten erhält jedes Risiko seinen Risikowert 1–5 (Impact × Angriffsmöglichkeit, Matrix aus Annex H.8), und Risiken und Attack-Tree-Analysen halten fest, mit welcher Rechenversion und welchen Tabellen ihre Werte berechnet wurden. Behandlungen und Prioritäten werden nicht geändert. Ältere TARAflow-Versionen können die Datei nicht mehr öffnen, damit sie diese Werte beim Speichern nicht verlieren.",
-        "v11": "Eine durch eine Gefährdung betroffene Person kann mit \"Keine (keine Verletzung)\" bewertet werden — S0 nach ISO/SAE 21434. Diese Bewertung zählt nicht als Schaden: Die Person wird kein Gefährdungsziel, ihre Ursachen werden nicht safety-relevant. Ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie die Bewertung als Schaden zählen würden. Es ändern sich keine Werte."
+        "v11": "Eine durch eine Gefährdung betroffene Person kann mit \"Keine (keine Verletzung)\" bewertet werden — S0 nach ISO/SAE 21434. Diese Bewertung zählt nicht als Schaden: Die Person wird kein Gefährdungsziel, ihre Ursachen werden nicht safety-relevant. Ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie die Bewertung als Schaden zählen würden. Es ändern sich keine Werte. Das Projekt kann eine Item Definition enthalten (Grenze, Funktionen, Architektur, Betriebsumgebung, Annahmen), bearbeitet in der Ansicht Definition der Übersicht; die Projektbeschreibung wird zu deren \"Zweck und Funktionen\"."
       }
     },
     "confirmAssetDelete": {
@@ -249,6 +249,21 @@
     "imported": "Projekt importiert",
     "phaseChanged": "Phase {{phase}} → {{status}}",
     "noActivity": "Noch keine Aktivitäten aufgezeichnet"
+  },
+  "overviewViews": {
+    "label": "Übersicht-Ansichten",
+    "project": "Projekt",
+    "definition": "Definition",
+    "methodology": "Methodik",
+    "sources": "Quellen"
+  },
+  "itemDefinition": {
+    "intro": "Was analysiert wird: das Item (ISO/SAE 21434 9.3), seine Grenze, Funktionen, vorläufige Architektur und Betriebsumgebung. Beschreibe es hier oder verweise auf das Architekturdokument, aus dem es stammt.",
+    "purpose": {
+      "title": "Zweck und Funktionen",
+      "hint": "Wofür das Item da ist und was es tut — die bisherige Projektbeschreibung.",
+      "placeholder": "Beschreibe den Zweck des Items und seine wichtigsten Funktionen..."
+    }
   },
   "projectInfo": {
     "title": "Projektinformationen",

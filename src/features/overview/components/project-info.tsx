@@ -85,6 +85,8 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
         value={isEditing ? editData : info}
         editing={isEditing}
         onChange={(patch) => setEditData((d) => ({ ...d, ...patch }))}
+        // The description is "Purpose and functions" in the Definition view.
+        showDescription={false}
         afterDescription={
           /* Created (1/2) | Last Modified (1/2) - always read-only */
           <div className="grid grid-cols-2 gap-4">

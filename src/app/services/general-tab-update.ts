@@ -12,7 +12,8 @@
 // Behaviour must stay identical to the previous inline handler:
 //   edited = { ...current, info, settings, phaseStatus, sourceBindings }
 //   run applyRegulationFromTags(edited, info.windowOfOpportunity)
-//   patch = { id, info, settings, phaseStatus, sourceBindings, ...risks? }
+//   patch = { id, info, settings, phaseStatus, sourceBindings,
+//             ...itemDefinition?, ...risks? }
 // The conflict toast is a side effect and stays in the component.
 
 import type { Project } from "app/models/project-types";
@@ -32,6 +33,7 @@ export function buildGeneralTabPatch(
     settings: data.settings,
     phaseStatus: data.phaseStatus,
     sourceBindings: data.sourceBindings,
+    ...(data.itemDefinition ? { itemDefinition: data.itemDefinition } : {}),
   };
 
   const { project } = applyRegulationFromTags(
@@ -48,6 +50,9 @@ export function buildGeneralTabPatch(
     // straight from the incoming tab data rather than relying on the
     // regulation pass to spread it through.
     sourceBindings: data.sourceBindings,
+    // Item Definition (Phase 1 stage A): only when the tab carries it, so a
+    // caller without it never clears the stored one.
+    ...(data.itemDefinition ? { itemDefinition: data.itemDefinition } : {}),
     ...(project.risks ? { risks: project.risks } : {}),
   };
 }

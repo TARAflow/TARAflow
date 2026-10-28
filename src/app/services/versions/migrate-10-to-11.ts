@@ -9,6 +9,9 @@
  *   endangers edge (1H-S, decision 13 C). An older release would count such
  *   an edge as harm: the person would become a hazard target and its causes
  *   safety-relevant.
+ * - project.itemDefinition (Phase 1 stage A): sections, functions and
+ *   assumptions of the Item Definition. An older release would drop it on
+ *   save (its repair path rebuilds a project from known fields).
  *
  * Runs once per file through the version gate in migration-service.
  */

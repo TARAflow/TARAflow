@@ -3,6 +3,7 @@
 // These define the shape of data this feature works with
 
 import type {
+  ItemDefinition,
   PhaseStatusMap,
   ProjectTags,
   RegulationPresetId,
@@ -119,6 +120,13 @@ export interface GeneralTabData {
    * an optional documentation reference, not a required field.
    */
   sourceBindings?: SourceBinding[];
+
+  /**
+   * Item Definition (ISO/SAE 21434 9.3; conformance plan Phase 1 stage A,
+   * decision 24) — edited in the Definition sub-tab. Its "Purpose and
+   * functions" text is info.description.
+   */
+  itemDefinition?: ItemDefinition;
 
   // Validation results (optional)
   dfdValidation?: ValidationResult;

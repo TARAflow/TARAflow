@@ -256,6 +256,7 @@ export const WorkspaceLayout: React.FC = () => {
         settings: activeProject.settings,
         phaseStatus: activeProject.phaseStatus,
         sourceBindings: activeProject.sourceBindings,
+        itemDefinition: activeProject.itemDefinition,
         dfdValidation: activeProject.dfd?.validation
           ? {
               valid: activeProject.dfd.validation.errors.length === 0,
@@ -995,6 +996,7 @@ export const WorkspaceLayout: React.FC = () => {
             getStatusIcon={getPhaseStatusIcon}
             getStatusColor={getPhaseStatusColor}
             onUpdate={handleGeneralTabUpdate}
+            projectId={activeProject.id}
           />
         )}
 

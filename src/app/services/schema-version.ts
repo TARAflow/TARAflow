@@ -67,6 +67,8 @@
  *       an older release would drop or misread new fields.
  *  11 = 0.16.0-beta, version fence, no data change (ISO plan decision 24):
  *       "none" (no injury, S0) as the severity of a person endangers edge
- *       (1H-S) — an older release would count it as harm.
+ *       (1H-S) — an older release would count it as harm; the Item
+ *       Definition project.itemDefinition (sections, functions, assumptions;
+ *       Phase 1 stage A) — an older release would drop it on save.
  */
 export const CURRENT_SCHEMA_VERSION = 11;

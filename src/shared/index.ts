@@ -133,6 +133,21 @@ export type {
   SourceRefType,
 } from "./models/source-binding-types";
 
+// ==================== ITEM DEFINITION (ISO/SAE 21434 9.3) ====================
+export {
+  ITEM_SECTION_IDS,
+  LIFECYCLE_PHASES,
+  emptyItemDefinition,
+  type Assumption,
+  type AssumptionStatus,
+  type ItemDefinition,
+  type ItemFunction,
+  type ItemSection,
+  type ItemSectionId,
+  type LifecyclePhase,
+  type SourceRef,
+} from "./models/item-definition-types";
+
 // ==================== ASSET RELATION UNION TYPES ====================
 // String union types for asset relations — used by dfd and threats features.
 export type {
