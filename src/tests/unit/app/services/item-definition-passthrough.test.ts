@@ -72,3 +72,18 @@ describe("itemDefinition survives every write path", () => {
     expect(repaired?.sourceBindings).toEqual(bindings);
   });
 });
+
+describe("cybersecurityConcept survives the write paths (Phase 4, decision 25)", () => {
+  const concept = {
+    goals: [{ id: "g1", displayId: "CSG-01", statement: "Protect the loop", riskIds: ["R-1"], assetProperties: [] }],
+    claims: [{ id: "c1", displayId: "CLM-01", statement: "Needs tools", kind: "retain", riskIds: ["R-2"], assumptionIds: ["a1"] }],
+    verifications: [],
+  };
+  it("write channel, disk form, loading and repair", () => {
+    const merged = mergeProjectPatch(project(), { id: "P", cybersecurityConcept: concept } as Any, "t1");
+    expect(merged.cybersecurityConcept).toEqual(concept);
+    const raw: Any = JSON.parse(JSON.stringify(prepareForDisk(merged)));
+    expect(parseAndRepair(raw)?.cybersecurityConcept).toEqual(concept);
+    expect(repairProject(raw)?.cybersecurityConcept).toEqual(concept);
+  });
+});

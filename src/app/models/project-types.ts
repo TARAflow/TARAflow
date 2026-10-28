@@ -2,7 +2,7 @@ import type { ProjectInfoData, ProjectSettingsData } from "features/overview";
 import { HazardData } from "features/hazards";
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
-import { ItemDefinition, PhaseStatus, PhaseStatusMap, ProjectTags, SourceBinding } from "shared";
+import { CybersecurityConcept, ItemDefinition, PhaseStatus, PhaseStatusMap, ProjectTags, SourceBinding } from "shared";
 import { ThreatData } from "features/threats";
 import { RiskData } from "features/risks";
 import { AttackTreeData } from "features/attacktree";
@@ -108,6 +108,12 @@ export interface Project {
    * defined yet. Schema 11.
    */
   itemDefinition?: ItemDefinition;
+  /**
+   * Cybersecurity goals, claims and verification records (ISO/SAE 21434 9.4,
+   * conformance plan Phase 4, decision 25). Optional; absent = none yet.
+   * Schema 11.
+   */
+  cybersecurityConcept?: CybersecurityConcept;
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
   filePath?: string; // Runtime-only (Electron). Stripped by prepareForDisk() before write — never persisted.

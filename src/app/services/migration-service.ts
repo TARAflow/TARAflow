@@ -151,6 +151,7 @@ export function repairProject(raw: any): Project | null {
     // drop what it does not rebuild).
     ...(raw.sourceBindings ? { sourceBindings: raw.sourceBindings } : {}),
     ...(raw.itemDefinition ? { itemDefinition: raw.itemDefinition } : {}),
+    ...(raw.cybersecurityConcept ? { cybersecurityConcept: raw.cybersecurityConcept } : {}),
     isOpen: raw.isOpen ?? false,
     hasUnsavedChanges: false,
     filePath: raw.filePath,

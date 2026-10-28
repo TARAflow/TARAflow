@@ -133,6 +133,33 @@ export type {
   SourceRefType,
 } from "./models/source-binding-types";
 
+// ==================== CYBERSECURITY CONCEPT (ISO/SAE 21434 9.4) ====================
+export {
+  addClaim,
+  addGoal,
+  claimsOfRisk,
+  emptyCybersecurityConcept,
+  goalsOfRisk,
+  linkClaim,
+  linkGoal,
+  newClaim,
+  newGoal,
+  nextConceptDisplayId,
+  unlinkClaim,
+  unlinkGoal,
+  updateClaim,
+  updateGoal,
+  type AssetPropertyRef,
+  type Cal,
+  type ClaimKind,
+  type CybersecurityClaim,
+  type CybersecurityConcept,
+  type CybersecurityGoal,
+  type VerificationEntry,
+  type VerificationResult,
+  type VerificationScope,
+} from "./models/cybersecurity-concept-types";
+
 // ==================== ITEM DEFINITION (ISO/SAE 21434 9.3) ====================
 export {
   ITEM_SECTION_IDS,

@@ -1,0 +1,209 @@
+// shared/models/cybersecurity-concept-types.ts
+//
+// Cybersecurity goals, claims and verification records (ISO/SAE 21434 9.4:
+// RQ-09-05/06/07 → WP-09-03/04/05; conformance plan Phase 4 minimal, decision
+// 25) — stored as ONE object `project.cybersecurityConcept`, not inside
+// `project.risks` (the attack-tree risk sync rebuilds that), so Phase 5
+// (concept → requirements) can extend it.
+//
+// Links per risk, shared texts (decision 25): treatment is stored per risk
+// (attack path); a goal or claim keeps the risks it covers. Every risk treated
+// reduce needs ≥ 1 goal, retain / share ≥ 1 claim; report and overview group
+// by threat scenario, derived from the linked risks.
+//
+// In shared: the Risk tab edits goals and claims, the Audit tab records the
+// verification, the report renders all three.
+
+import type { SecurityGoalType } from "./cianaaa-reference-types";
+
+/** Asset × cybersecurity property a goal protects (the damage scenario). */
+export interface AssetPropertyRef {
+  assetId: string;
+  property: SecurityGoalType;
+}
+
+/** CAL (ISO/SAE 21434 Annex E, informative) — optional. */
+export type Cal = 1 | 2 | 3 | 4;
+
+export interface CybersecurityGoal {
+  id: string;
+  /** "CSG-01" */
+  displayId: string;
+  /** Concept-level requirement to protect the asset property. */
+  statement: string;
+  /** Risks treated "reduce" this goal covers. */
+  riskIds: string[];
+  assetProperties: AssetPropertyRef[];
+  cal?: Cal;
+  calRationale?: string;
+}
+
+export type ClaimKind = "retain" | "share";
+
+export interface CybersecurityClaim {
+  id: string;
+  /** "CLM-01" */
+  displayId: string;
+  statement: string;
+  kind: ClaimKind;
+  /** Risks treated "retain" / "share" this claim covers. */
+  riskIds: string[];
+  /** Assumptions of the Item Definition it relies on (retain: ≥ 1). */
+  assumptionIds: string[];
+  /** Share: who carries the risk. */
+  responsibleParty?: string;
+  /** ISO date by which the claim is to be reviewed (Clause 8 monitoring). */
+  reviewBy?: string;
+}
+
+export type VerificationResult = "passed" | "passed-with-conditions" | "failed";
+
+/** The four points of RQ-09-07. */
+export type VerificationScope = "tara" | "treatment" | "goals-claims" | "consistency";
+
+export interface VerificationEntry {
+  id: string;
+  /** ISO date */
+  date: string;
+  reviewer: string;
+  scope: VerificationScope[];
+  result: VerificationResult;
+  findings?: string;
+  /** Hash of the analysis content the review covered. */
+  stateHash: string;
+  /** Project version at the review. */
+  projectVersion?: string;
+  /** The audit commit that fixed this entry, once committed. */
+  commit?: string;
+}
+
+export interface CybersecurityConcept {
+  goals: CybersecurityGoal[];
+  claims: CybersecurityClaim[];
+  verifications: VerificationEntry[];
+}
+
+export function emptyCybersecurityConcept(): CybersecurityConcept {
+  return { goals: [], claims: [], verifications: [] };
+}
+
+// ==================== IDS ====================
+
+/** "CSG-01", "CLM-07" … — one more than the highest number in use. */
+export function nextConceptDisplayId(prefix: "CSG" | "CLM", items: readonly { displayId: string }[]): string {
+  const re = new RegExp(`^${prefix}-(\\d+)$`);
+  const max = items.reduce((m, x) => {
+    const n = re.exec(x.displayId)?.[1];
+    return n ? Math.max(m, Number(n)) : m;
+  }, 0);
+  return `${prefix}-${String(max + 1).padStart(2, "0")}`;
+}
+
+let conceptSeq = 0;
+const newId = (prefix: string) => {
+  conceptSeq += 1;
+  return `${prefix}-${Date.now().toString(36)}-${conceptSeq.toString(36)}`;
+};
+
+// ==================== GOALS: PURE OPERATIONS ====================
+
+/** A new goal, linked to one risk (not yet stored). */
+export function newGoal(
+  concept: CybersecurityConcept,
+  riskId: string,
+  statement: string,
+  assetProperties: AssetPropertyRef[] = [],
+): CybersecurityGoal {
+  return {
+    id: newId("csg"),
+    displayId: nextConceptDisplayId("CSG", concept.goals),
+    statement: statement.trim(),
+    riskIds: [riskId],
+    assetProperties,
+  };
+}
+
+export function addGoal(concept: CybersecurityConcept, goal: CybersecurityGoal): CybersecurityConcept {
+  return { ...concept, goals: [...concept.goals, goal] };
+}
+
+export function updateGoal(
+  concept: CybersecurityConcept,
+  id: string,
+  change: Partial<Omit<CybersecurityGoal, "id" | "displayId">>,
+): CybersecurityConcept {
+  return { ...concept, goals: concept.goals.map((g) => (g.id === id ? { ...g, ...change } : g)) };
+}
+
+/** Link a goal to a risk (no-op when linked already). */
+export function linkGoal(concept: CybersecurityConcept, goalId: string, riskId: string): CybersecurityConcept {
+  return {
+    ...concept,
+    goals: concept.goals.map((g) =>
+      g.id === goalId && !g.riskIds.includes(riskId) ? { ...g, riskIds: [...g.riskIds, riskId] } : g,
+    ),
+  };
+}
+
+/** Unlink a goal from a risk; the goal itself stays (an unused goal is a finding). */
+export function unlinkGoal(concept: CybersecurityConcept, goalId: string, riskId: string): CybersecurityConcept {
+  return {
+    ...concept,
+    goals: concept.goals.map((g) => (g.id === goalId ? { ...g, riskIds: g.riskIds.filter((r) => r !== riskId) } : g)),
+  };
+}
+
+export function goalsOfRisk(concept: CybersecurityConcept | undefined, riskId: string): CybersecurityGoal[] {
+  return (concept?.goals ?? []).filter((g) => g.riskIds.includes(riskId));
+}
+
+// ==================== CLAIMS: PURE OPERATIONS ====================
+
+/** A new claim, linked to one risk (not yet stored). */
+export function newClaim(
+  concept: CybersecurityConcept,
+  riskId: string,
+  kind: ClaimKind,
+  statement: string,
+): CybersecurityClaim {
+  return {
+    id: newId("clm"),
+    displayId: nextConceptDisplayId("CLM", concept.claims),
+    statement: statement.trim(),
+    kind,
+    riskIds: [riskId],
+    assumptionIds: [],
+  };
+}
+
+export function addClaim(concept: CybersecurityConcept, claim: CybersecurityClaim): CybersecurityConcept {
+  return { ...concept, claims: [...concept.claims, claim] };
+}
+
+export function updateClaim(
+  concept: CybersecurityConcept,
+  id: string,
+  change: Partial<Omit<CybersecurityClaim, "id" | "displayId">>,
+): CybersecurityConcept {
+  return { ...concept, claims: concept.claims.map((c) => (c.id === id ? { ...c, ...change } : c)) };
+}
+
+export function linkClaim(concept: CybersecurityConcept, claimId: string, riskId: string): CybersecurityConcept {
+  return {
+    ...concept,
+    claims: concept.claims.map((c) =>
+      c.id === claimId && !c.riskIds.includes(riskId) ? { ...c, riskIds: [...c.riskIds, riskId] } : c,
+    ),
+  };
+}
+
+export function unlinkClaim(concept: CybersecurityConcept, claimId: string, riskId: string): CybersecurityConcept {
+  return {
+    ...concept,
+    claims: concept.claims.map((c) => (c.id === claimId ? { ...c, riskIds: c.riskIds.filter((r) => r !== riskId) } : c)),
+  };
+}
+
+export function claimsOfRisk(concept: CybersecurityConcept | undefined, riskId: string): CybersecurityClaim[] {
+  return (concept?.claims ?? []).filter((c) => c.riskIds.includes(riskId));
+}

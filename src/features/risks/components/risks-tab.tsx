@@ -6,6 +6,7 @@
 // - Sync calls pass dfd + assetDataRef for asset criteria prefill
 // - pendingSafetySourceRemoval checked on mount and project change
 
+import type { CybersecurityConcept } from "shared";
 import { collectConfiguredImpactCriteria } from "../services/risk-sync-service";
 import React, {
   useState,
@@ -88,6 +89,8 @@ import {
 export interface RiskTabProps {
   project: RiskProjectData;
   onUpdate: (updates: RiskUpdateResult) => void;
+  /** Goals and claims changed (risk dialog, decision 25) — stored by the app layer. */
+  onConceptChange?: (concept: CybersecurityConcept) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
 }
@@ -96,6 +99,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
+  onConceptChange,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
@@ -1128,6 +1132,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           dfdData={project.dfd ?? null}
           onSave={handleSaveRisk}
           onClose={handleCloseRiskDialog}
+          concept={project.cybersecurityConcept}
+          onConceptChange={onConceptChange}
+          allRisks={riskData.risks}
+          assumptions={project.assumptions}
+          isoMode={project.isoMode}
         />
       )}
 

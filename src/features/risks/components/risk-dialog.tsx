@@ -9,6 +9,8 @@
 // Sidebar: All risks in the current accordion group, sorted by risk score desc.
 // Prev/Next navigation, auto-save on switch, uncertain warning.
 
+import { RiskGoalClaimTab } from "./risk-goal-claim-tab";
+import type { Assumption, CybersecurityConcept } from "shared";
 import React, {
   useState,
   useMemo,
@@ -219,6 +221,17 @@ export interface RiskDialogProps {
   dfdData?: DFDReference | null;
   onSave: (riskId: string, updates: Partial<Risk>) => void;
   onClose: () => void;
+  /**
+   * Goals and claims (tab "Goal / Claim", ISO 21434 plan Phase 4, decision
+   * 25). Without onConceptChange the tab is not shown.
+   */
+  concept?: CybersecurityConcept;
+  onConceptChange?: (concept: CybersecurityConcept) => void;
+  /** Every risk of the register — "also on …", scenario order of the reuse list. */
+  allRisks?: readonly Risk[];
+  /** Item Definition assumptions a retain claim relies on. */
+  assumptions?: readonly Assumption[];
+  isoMode?: boolean;
 }
 
 // ==================== LOCAL STATE ====================
@@ -274,6 +287,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   dfdData,
   onSave,
   onClose,
+  concept,
+  onConceptChange,
+  allRisks,
+  assumptions,
+  isoMode,
 }) => {
   const { t } = useTranslation();
 
@@ -1923,6 +1941,14 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   defaultValue: "Risk After",
                 })}
               />
+              {onConceptChange && (
+                <Tab
+                  data-testid="risk-tab-goal-claim"
+                  label={t("tabs.risks.dialog.tabGoalClaim", {
+                    defaultValue: "Goal / Claim",
+                  })}
+                />
+              )}
             </Tabs>
           </Box>
 
@@ -3175,6 +3201,21 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   )}
                 </Box>
               </Stack>
+            )}
+
+            {/* ══ TAB 4: GOAL / CLAIM (ISO 21434 9.4, decision 25) ═════════ */}
+            {tabValue === 3 && onConceptChange && (
+              <RiskGoalClaimTab
+                risk={currentRisk}
+                treatment={local.treatment}
+                treatmentJustification={local.treatmentJustification}
+                allRisks={allRisks ?? risks}
+                concept={concept}
+                onConceptChange={onConceptChange}
+                assetDataRef={assetDataRef}
+                assumptions={assumptions}
+                isoMode={isoMode}
+              />
             )}
           </Box>
         </Box>

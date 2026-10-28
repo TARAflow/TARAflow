@@ -10,8 +10,10 @@
  *   an edge as harm: the person would become a hazard target and its causes
  *   safety-relevant.
  * - project.itemDefinition (Phase 1 stage A): sections, functions and
- *   assumptions of the Item Definition. An older release would drop it on
- *   save (its repair path rebuilds a project from known fields).
+ *   assumptions of the Item Definition, and project.cybersecurityConcept
+ *   (Phase 4, decision 25): goals, claims, verification records. An older
+ *   release would drop them on save (its repair path rebuilds a project
+ *   from known fields).
  *
  * Runs once per file through the version gate in migration-service.
  */

@@ -46,6 +46,12 @@ export interface SecurityGoalReference {
    * every criterion from the asset. See shared/utils/threat-impact.ts.
    */
   impactRatings?: { criterionId: string; value: number | null | "na" }[];
+  /**
+   * The formal requirement statement of the goal (Asset tab) — the proposal
+   * for a cybersecurity goal of a risk treated "reduce" (ISO 21434 plan
+   * Phase 4, decision 25).
+   */
+  formalDescription?: string;
 }
 
 // ==================== STRIDE MAPPING ====================

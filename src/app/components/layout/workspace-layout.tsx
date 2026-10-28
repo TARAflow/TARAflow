@@ -27,6 +27,7 @@ import {
   emptyItemDefinition,
   newAssumption,
   type Assumption,
+  type CybersecurityConcept,
 } from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
 import {
@@ -305,6 +306,15 @@ export const WorkspaceLayout: React.FC = () => {
         });
       }
       return created;
+    },
+    [updateProject],
+  );
+
+  // Risk dialog → goals and claims (ISO 21434 plan Phase 4, decision 25).
+  const handleConceptChange = useCallback(
+    (cybersecurityConcept: CybersecurityConcept) => {
+      const current = activeProjectRef.current;
+      if (current) updateProject({ id: current.id, cybersecurityConcept });
     },
     [updateProject],
   );
@@ -1250,9 +1260,12 @@ export const WorkspaceLayout: React.FC = () => {
                     },
                   }
                 : null,
+              cybersecurityConcept: activeProject.cybersecurityConcept,
+              assumptions: activeProject.itemDefinition?.assumptions,
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handleRisksUpdate}
+            onConceptChange={handleConceptChange}
             onPhaseComplete={() => setActivePhase(5)}
           />
         )}
