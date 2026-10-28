@@ -4,7 +4,10 @@ import {
   PhaseDefinition,
   PhaseStatus,
   SourceBinding,
+  regulationPresetFromTags,
 } from "shared";
+import { itemDefinitionFindings } from "../services/item-definition-findings";
+import { MethodologyView } from "./methodology-view";
 import { ProjectInfo } from "./project-info";
 import { ProjectProgress } from "./project-progress";
 import { ProjectSettings } from "./project-settings";
@@ -18,6 +21,7 @@ import {
   ProjectSettingsData,
   PhaseValidationInfo,
   ItemModelItem,
+  MethodologySummary,
 } from "../models/overview-types";
 
 // ==================== GENERAL TAB ====================
@@ -26,10 +30,12 @@ import {
 //
 //   Project      project info (without the description) + phase progress
 //   Definition   item definition — purpose and functions (the description), …
-//   Methodology  project settings (the methodology record follows, A-4)
+//   Methodology  the methodology record read-only (A-4) + project settings
 //   Sources      project source reference (source bindings)
 //
-// The last view is remembered per project (browser storage).
+// The last view is remembered per project (browser storage). Each view shows
+// the number of its open warnings (A-4): Project the missing project fields,
+// Definition the item definition findings.
 
 export type OverviewView = "project" | "definition" | "methodology" | "sources";
 
@@ -74,6 +80,12 @@ interface GeneralTabProps {
 
   /** assumption id → trust boundaries that link it (A-3), built by the app layer. */
   assumptionUsage?: Readonly<Record<string, readonly string[]>>;
+
+  /** The methodology record, reduced for display (A-4), built by the app layer. */
+  methodology?: MethodologySummary;
+
+  /** Switch to the Risk tab, where the method is configured. */
+  onOpenRiskTab?: () => void;
 }
 
 export const GeneralTab: React.FC<GeneralTabProps> = ({
@@ -86,6 +98,8 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   projectId,
   modelItems = [],
   assumptionUsage,
+  methodology,
+  onOpenRiskTab,
 }) => {
   const { t } = useTranslation();
   const [view, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -175,6 +189,28 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
     });
   };
 
+  // ── Findings (A-4) ─────────────────────────────────────────────────────
+  const modelItemIds = React.useMemo(() => new Set(modelItems.map((m) => m.id)), [modelItems]);
+  const itemFindings = React.useMemo(
+    () =>
+      itemDefinitionFindings({
+        description: data.info.description,
+        itemDefinition: data.itemDefinition,
+        presetId: regulationPresetFromTags(data.info.tags),
+        assumptionUsage,
+        modelItemIds: modelItems.length > 0 ? modelItemIds : undefined,
+        today: new Date().toISOString().slice(0, 10),
+      }),
+    [data.info.description, data.info.tags, data.itemDefinition, assumptionUsage, modelItems, modelItemIds],
+  );
+  const badges: Record<OverviewView, number> = {
+    // The description is counted in Definition, where it is edited.
+    project: missingGeneralFields(data.info).filter((f) => f !== "description").length,
+    definition: itemFindings.filter((f) => f.severity === "warning").length,
+    methodology: methodology && !methodology.impactScaleConforms ? 1 : 0,
+    sources: 0,
+  };
+
   return (
     <div className="p-6 max-w-6xl">
       <div
@@ -196,6 +232,14 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
             }`}
           >
             {t(`overviewViews.${v}`, { defaultValue: v })}
+            {badges[v] > 0 && (
+              <span
+                className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-amber-100 text-amber-800 text-xs"
+                data-testid={`overview-view-${v}-badge`}
+              >
+                {badges[v]}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -219,6 +263,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
           itemDefinition={data.itemDefinition}
           modelItems={modelItems}
           assumptionUsage={assumptionUsage}
+          findings={itemFindings}
           onChange={({ description, itemDefinition }) =>
             onUpdate({
               ...data,
@@ -230,10 +275,13 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
       )}
 
       {view === "methodology" && (
-        <ProjectSettings
-          settings={data.settings}
-          onUpdate={handleSettingsUpdate}
-        />
+        <>
+          {methodology && <MethodologyView summary={methodology} onOpenRiskTab={onOpenRiskTab} />}
+          <ProjectSettings
+            settings={data.settings}
+            onUpdate={handleSettingsUpdate}
+          />
+        </>
       )}
 
       {view === "sources" && (

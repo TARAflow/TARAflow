@@ -29,7 +29,7 @@ const data: GeneralTabData = {
     responsible: "JM",
     created: "2026-10-27T10:00:00.000Z",
     lastModified: "2026-10-27T10:00:00.000Z",
-    tags: { ...EMPTY_PROJECT_TAGS },
+    tags: { ...EMPTY_PROJECT_TAGS, custom: ["demo"] },
     team: [],
     isHighImpact: false,
   },
@@ -204,5 +204,61 @@ describe("Overview sub-tabs (A-1)", () => {
     const usage = screen.getByTestId("assumption-usage-ASM-01");
     expect(usage.textContent).toBe("used by TB-1 Device");
     expect(usage.className).toContain("text-red-700");
+  });
+
+  it("A-4: under iso-21434 the missing sections are findings, counted on the Definition tab", () => {
+    view(vi.fn(), "P1", { ...data, info: { ...data.info, tags: { ...data.info.tags, regulation: ["ISO/SAE 21434"] } } });
+    expect(screen.getByTestId("overview-view-definition-badge").textContent).toBe("3");
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    const codes = [...screen.getByTestId("item-definition-findings").querySelectorAll("li")].map((li) => li.getAttribute("data-code"));
+    expect(codes).toEqual(["ITEM_SECTION_MISSING", "ITEM_SECTION_MISSING", "ITEM_SECTION_MISSING"]);
+  });
+
+  it("A-4: without a preset nothing is mandatory — no badge, no findings", () => {
+    view();
+    expect(screen.queryByTestId("overview-view-definition-badge")).toBeNull();
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    expect(screen.queryByTestId("item-definition-findings")).toBeNull();
+  });
+
+  it("A-4: Methodology shows the record read-only and leads to the Risk tab", () => {
+    const onOpenRiskTab = vi.fn();
+    render(
+      <GeneralTab
+        data={data}
+        phases={PHASES}
+        progressPhaseIds={[0]}
+        getStatusIcon={() => ""}
+        getStatusColor={() => ""}
+        onUpdate={vi.fn()}
+        projectId="P7"
+        methodology={{
+          presetNameKey: "ISO/SAE 21434",
+          impactScale: "5-level",
+          requiredImpactScale: "4-level",
+          impactScaleConforms: false,
+          impactCriteriaIds: ["safety", "financial"],
+          impactAggregation: "max",
+          likelihoodMethod: "iso-21434",
+          feasibilityMethod: "attack-potential",
+          likelihoodModel: "feasibility-only",
+          treatmentOptions: ["Avoid", "Reduce", "Share", "Retain"],
+          securityProperties: ["C", "I", "A"],
+          riskMatrix: true,
+          calcStamps: { risk: "iso-21434 · risk-1 · abc", path: "iso-21434 · feasibility-1 · def" },
+        }}
+        onOpenRiskTab={onOpenRiskTab}
+      />,
+    );
+    expect(screen.getByTestId("overview-view-methodology-badge").textContent).toBe("1");
+    fireEvent.click(screen.getByTestId("overview-view-methodology"));
+    const view_ = screen.getByTestId("methodology-view");
+    expect(view_.textContent).toContain("Avoid · Reduce · Share · Retain");
+    expect(view_.textContent).toContain("iso-21434 · risk-1 · abc");
+    expect(screen.getByTestId("methodology-scale-warning")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("methodology-open-risk"));
+    expect(onOpenRiskTab).toHaveBeenCalled();
+    // The settings stay in this view.
+    expect(screen.getByText("settings.title")).toBeTruthy();
   });
 });

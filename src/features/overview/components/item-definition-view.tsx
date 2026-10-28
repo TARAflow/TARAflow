@@ -11,6 +11,8 @@ import type { ItemModelItem } from "../models/overview-types";
 import { ItemSectionCard } from "./item-section-card";
 import { ItemFunctionsCard } from "./item-functions-card";
 import { ItemAssumptionsCard } from "./item-assumptions-card";
+import { ItemFindingsPanel } from "./item-findings-panel";
+import type { ItemFinding } from "../services/item-definition-findings";
 
 // ==================== ITEM DEFINITION VIEW ====================
 // The "Definition" sub-tab of the Overview (ISO/SAE 21434 9.3, RQ-09-01/02;
@@ -33,6 +35,8 @@ interface ItemDefinitionViewProps {
   modelItems: readonly ItemModelItem[];
   /** assumption id → boundaries that link it */
   assumptionUsage?: Readonly<Record<string, readonly string[]>>;
+  /** What is still missing (A-4), computed by the tab. */
+  findings?: readonly ItemFinding[];
   onChange: (change: { description?: string; itemDefinition: ItemDefinition }) => void;
 }
 
@@ -67,6 +71,7 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
   itemDefinition,
   modelItems,
   assumptionUsage = {},
+  findings = [],
   onChange,
 }) => {
   const { t } = useTranslation();
@@ -91,6 +96,8 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
             "What is analysed: the item (ISO/SAE 21434 9.3), its boundary, functions, preliminary architecture and operational environment. Describe it here or refer to the architecture document it comes from.",
         })}
       </p>
+
+      <ItemFindingsPanel findings={findings} />
 
       <ItemSectionCard
         testId="item-definition-purpose"

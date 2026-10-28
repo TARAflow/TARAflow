@@ -255,7 +255,10 @@
     "project": "Projekt",
     "definition": "Definition",
     "methodology": "Methodik",
-    "sources": "Quellen"
+    "sources": "Quellen",
+    "methodologyTitle": "Methodik (nur lesend)",
+    "methodologyHint": "Aus der Projektkonfiguration abgeleitet — derselbe Record wie im Methodik-Kapitel des Reports. Skalen, Matrix und Akzeptanzkriterien werden in der Konfiguration des Risk-Tabs eingestellt.",
+    "openRiskConfiguration": "Im Risk-Tab ändern"
   },
   "itemDefinition": {
     "intro": "Was analysiert wird: das Item (ISO/SAE 21434 9.3), seine Grenze, Funktionen, vorläufige Architektur und Betriebsumgebung. Beschreibe es hier oder verweise auf das Architekturdokument, aus dem es stammt.",
@@ -328,6 +331,13 @@
       "usedBy": "verwendet von {{list}}",
       "add": "Annahme hinzufügen",
       "remove": "Annahme entfernen"
+    },
+    "findings": {
+      "purposeMissing": "Zweck und Funktionen sind nicht beschrieben.",
+      "sectionMissing": "{{section}} ist nicht beschrieben.",
+      "assumptionInvalidInUse": "{{assumption}} ist ungültig, aber {{boundaries}} stützt sich noch darauf — überprüfen.",
+      "assumptionReviewDue": "{{assumption}} ist nach dem Prüfdatum noch offen.",
+      "linkRemoved": "{{section}}: {{count}} Verweis(e) auf entfernte Modell-Elemente."
     }
   },
   "projectInfo": {

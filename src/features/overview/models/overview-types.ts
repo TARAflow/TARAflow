@@ -112,6 +112,33 @@ export interface ItemModelItem {
   detail?: string;
 }
 
+// ==================== METHODOLOGY SUMMARY ====================
+
+/**
+ * What the Methodology sub-tab shows (conformance plan Phase 1 stage A, A-4):
+ * the methodology record of the app layer (buildMethodologyRecord, 0b),
+ * reduced to values — read-only, the configuration stays in the Risk tab's
+ * dialog (decision 2026-10-16). Values are the record's keys; the view labels
+ * them with the report's methodology texts.
+ */
+export interface MethodologySummary {
+  presetNameKey: string;
+  impactScale: string;
+  requiredImpactScale?: string;
+  impactScaleConforms: boolean;
+  impactCriteriaIds: string[];
+  impactAggregation: string;
+  likelihoodMethod: string;
+  feasibilityMethod: string;
+  likelihoodModel: string;
+  treatmentOptions: string[];
+  securityProperties: string[];
+  /** Risk value from the matrix of Annex H.8 (iso-21434). */
+  riskMatrix: boolean;
+  /** "iso-21434 · risk-1+feasibility-1 · 3f2a…" (iso-21434) */
+  calcStamps?: { risk: string; path: string };
+}
+
 // ==================== GENERAL TAB ====================
 // Main data structure for the General/Overview tab
 

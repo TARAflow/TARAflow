@@ -257,7 +257,10 @@
     "project": "Project",
     "definition": "Definition",
     "methodology": "Methodology",
-    "sources": "Sources"
+    "sources": "Sources",
+    "methodologyTitle": "Methodology (read-only)",
+    "methodologyHint": "Derived from the project's configuration — the same record the report's methodology chapter uses. Scales, matrix and acceptance criteria are set in the Risk tab's configuration.",
+    "openRiskConfiguration": "Change in the Risk tab"
   },
   "itemDefinition": {
     "intro": "What is analysed: the item (ISO/SAE 21434 9.3), its boundary, functions, preliminary architecture and operational environment. Describe it here or refer to the architecture document it comes from.",
@@ -330,6 +333,13 @@
       "usedBy": "used by {{list}}",
       "add": "Add assumption",
       "remove": "Remove assumption"
+    },
+    "findings": {
+      "purposeMissing": "Purpose and functions are not described.",
+      "sectionMissing": "{{section}} is not described.",
+      "assumptionInvalidInUse": "{{assumption}} is invalid but still relied on by {{boundaries}} — review them.",
+      "assumptionReviewDue": "{{assumption}} is still open after its review date.",
+      "linkRemoved": "{{section}}: {{count}} link(s) to removed model items."
     }
   },
   "projectInfo": {

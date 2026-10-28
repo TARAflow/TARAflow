@@ -26,6 +26,7 @@ export type {
   ProjectSettingsData,
   PhaseValidationInfo,
   ItemModelItem,
+  MethodologySummary,
 } from "./models/overview-types";
 
 // ==================== HOOKS ====================

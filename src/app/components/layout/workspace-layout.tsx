@@ -66,6 +66,7 @@ import {
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { buildAssumptionUsage, buildItemModelItems } from "app/utils/build-item-model-items";
+import { buildMethodologySummary } from "app/utils/build-methodology-summary";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import {
@@ -786,6 +787,12 @@ export const WorkspaceLayout: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [activeProject?.dfd, activeProject?.assets],
   );
+  // Methodology sub-tab of the Overview (A-4): the record, read-only.
+  const memoizedMethodologySummary = useMemo(
+    () => (activeProject ? buildMethodologySummary(activeProject) : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProject?.info?.tags, activeProject?.assets?.configuration, activeProject?.risks?.configuration, activeProject?.attackTrees?.configuration],
+  );
   const memoizedAssumptionUsage = useMemo(
     () => (activeProject ? buildAssumptionUsage(activeProject) : {}),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1033,6 +1040,8 @@ export const WorkspaceLayout: React.FC = () => {
             projectId={activeProject.id}
             modelItems={memoizedItemModelItems}
             assumptionUsage={memoizedAssumptionUsage}
+            methodology={memoizedMethodologySummary}
+            onOpenRiskTab={() => handlePhaseChange(PhaseId.Risk)}
           />
         )}
 
