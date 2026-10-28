@@ -96,6 +96,22 @@ export const PROJECT_STATUS_CONFIG = {
   },
 } as const;
 
+// ==================== ITEM DEFINITION: MODEL ITEMS ====================
+
+/**
+ * A model item a Definition section can link to (Phase 1 stage A, A-2):
+ * DFD elements and flows, DFD pages (leveled DFD) and assets. Built by the app
+ * layer — the overview feature imports no other feature.
+ */
+export interface ItemModelItem {
+  id: string;
+  kind: "element" | "flow" | "page" | "asset";
+  /** e.g. "EE-1 Operator", "DF-3 push alarm", "Top level", "FU-001 Smoke detection" */
+  label: string;
+  /** Element type or asset group, for the picker. */
+  detail?: string;
+}
+
 // ==================== GENERAL TAB ====================
 // Main data structure for the General/Overview tab
 

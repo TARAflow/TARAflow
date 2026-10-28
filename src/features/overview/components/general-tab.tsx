@@ -17,6 +17,7 @@ import {
   ProjectProgressData,
   ProjectSettingsData,
   PhaseValidationInfo,
+  ItemModelItem,
 } from "../models/overview-types";
 
 // ==================== GENERAL TAB ====================
@@ -67,6 +68,9 @@ interface GeneralTabProps {
 
   /** Remembers the last sub-tab for this project; without it: Project. */
   projectId?: string;
+
+  /** What Definition sections can link to (DFD, assets), built by the app layer. */
+  modelItems?: readonly ItemModelItem[];
 }
 
 export const GeneralTab: React.FC<GeneralTabProps> = ({
@@ -77,6 +81,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   getStatusColor,
   onUpdate,
   projectId,
+  modelItems = [],
 }) => {
   const { t } = useTranslation();
   const [view, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -207,8 +212,14 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
       {view === "definition" && (
         <ItemDefinitionView
           description={data.info.description}
-          onDescriptionChange={(description) =>
-            onUpdate({ ...data, info: { ...data.info, description } })
+          itemDefinition={data.itemDefinition}
+          modelItems={modelItems}
+          onChange={({ description, itemDefinition }) =>
+            onUpdate({
+              ...data,
+              info: description !== undefined ? { ...data.info, description } : data.info,
+              itemDefinition,
+            })
           }
         />
       )}

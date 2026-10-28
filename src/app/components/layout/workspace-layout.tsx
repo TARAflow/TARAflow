@@ -62,6 +62,7 @@ import {
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
+import { buildItemModelItems } from "app/utils/build-item-model-items";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import {
@@ -758,6 +759,13 @@ export const WorkspaceLayout: React.FC = () => {
     [activeProject?.assets],
   );
 
+  // What the Item Definition can link to (Overview → Definition, A-2).
+  const memoizedItemModelItems = useMemo(
+    () => (activeProject ? buildItemModelItems(activeProject) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProject?.dfd, activeProject?.assets],
+  );
+
   // Label vocabulary of the preset: under iso-21434 person-harm severities
   // show their ISO 26262 class (S0–S3, conformance plan 1H-S).
   const labelVocabulary: "default" | "iso-21434" =
@@ -997,6 +1005,7 @@ export const WorkspaceLayout: React.FC = () => {
             getStatusColor={getPhaseStatusColor}
             onUpdate={handleGeneralTabUpdate}
             projectId={activeProject.id}
+            modelItems={memoizedItemModelItems}
           />
         )}
 

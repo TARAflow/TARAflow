@@ -1,40 +1,83 @@
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
-import { Edit3, Save, X } from "lucide-react";
+import {
+  emptyItemDefinition,
+  type ItemDefinition,
+  type ItemFunction,
+  type ItemSection,
+  type ItemSectionId,
+} from "shared";
+import type { ItemModelItem } from "../models/overview-types";
+import { ItemSectionCard } from "./item-section-card";
+import { ItemFunctionsCard } from "./item-functions-card";
 
 // ==================== ITEM DEFINITION VIEW ====================
 // The "Definition" sub-tab of the Overview (ISO/SAE 21434 9.3, RQ-09-01/02;
 // conformance plan Phase 1 stage A, decisions 8 and 24). Every preset sees it;
 // the preset only decides which sections are mandatory (findings, A-4).
 //
-// "Purpose and functions" is the former project description: stored in
-// info.description, edited here. The further sections (boundary,
-// architecture, environment, constraints), the function list and the
-// assumptions follow with A-2 / A-3.
+//   Purpose and functions   the project description (info.description)
+//   Functions               over the lifecycle, optionally a function asset
+//   Item boundary           RQ-09-01 a)
+//   Preliminary architecture RQ-09-01 c)
+//   Operational environment RQ-09-02
+//   Constraints             supporting (legal requirements, constraints)
+//
+// Each section: text, source reference, links to the model. Assumptions
+// follow with A-3.
 
 interface ItemDefinitionViewProps {
   description: string;
-  onDescriptionChange: (description: string) => void;
+  itemDefinition: ItemDefinition | undefined;
+  modelItems: readonly ItemModelItem[];
+  onChange: (change: { description?: string; itemDefinition: ItemDefinition }) => void;
 }
 
-const CARD = "bg-white rounded-lg border border-gray-200 p-6 mb-6";
+const TEXT_SECTIONS: readonly Exclude<ItemSectionId, "functions">[] = [
+  "boundary",
+  "architecture",
+  "environment",
+  "constraints",
+];
+
+const SECTION_DEFAULTS: Record<Exclude<ItemSectionId, "functions">, { title: string; hint: string }> = {
+  boundary: {
+    title: "Item boundary",
+    hint: "What belongs to the item and what does not; its interfaces to other items and to the environment (9.3 a).",
+  },
+  architecture: {
+    title: "Preliminary architecture",
+    hint: "The item's main building blocks and how they work together (9.3 c) — refer to the DFD instead of redrawing it.",
+  },
+  environment: {
+    title: "Operational environment",
+    hint: "Where and how the item is used, as far as relevant to cybersecurity (9.3, RQ-09-02).",
+  },
+  constraints: {
+    title: "Constraints and legal requirements",
+    hint: "Technical, organisational and legal constraints the analysis has to respect.",
+  },
+};
 
 export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
   description,
-  onDescriptionChange,
+  itemDefinition,
+  modelItems,
+  onChange,
 }) => {
   const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(description);
+  const def = itemDefinition ?? emptyItemDefinition();
 
-  const start = () => {
-    setDraft(description);
-    setEditing(true);
+  const withSection = (id: ItemSectionId, section: ItemSection): ItemDefinition => {
+    const sections = { ...def.sections };
+    if (section.text?.trim() || section.source || section.modelRefs?.length) sections[id] = section;
+    else delete sections[id];
+    return { ...def, sections };
   };
-  const save = () => {
-    onDescriptionChange(draft);
-    setEditing(false);
-  };
+
+  const functionAssets = modelItems.filter(
+    (m) => m.kind === "asset" && (m.detail === "function" || m.detail === "process"),
+  );
 
   return (
     <div data-testid="item-definition-view">
@@ -45,58 +88,42 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
         })}
       </p>
 
-      <div className={CARD} data-testid="item-definition-purpose">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {t("itemDefinition.purpose.title", { defaultValue: "Purpose and functions" })}
-          </h3>
-          {!editing ? (
-            <button
-              onClick={start}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            >
-              <Edit3 className="w-4 h-4" />
-              {t("common.edit", { defaultValue: "Edit" })}
-            </button>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setEditing(false)}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" />
-                {t("common.cancel", { defaultValue: "Cancel" })}
-              </button>
-              <button
-                onClick={save}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                {t("common.save", { defaultValue: "Save" })}
-              </button>
-            </div>
-          )}
-        </div>
-        <p className="text-xs text-gray-500 mb-3">
-          {t("itemDefinition.purpose.hint", {
-            defaultValue: "What the item is for and what it does — the former project description.",
-          })}
-        </p>
-        {editing ? (
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={6}
-            aria-label={t("itemDefinition.purpose.title", { defaultValue: "Purpose and functions" })}
-            placeholder={t("itemDefinition.purpose.placeholder", {
-              defaultValue: "Describe the item's purpose and its main functions...",
-            })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
-          />
-        ) : (
-          <p className="text-gray-900 whitespace-pre-wrap">{description || "-"}</p>
-        )}
-      </div>
+      <ItemSectionCard
+        testId="item-definition-purpose"
+        title={t("itemDefinition.purpose.title", { defaultValue: "Purpose and functions" })}
+        hint={t("itemDefinition.purpose.hint", {
+          defaultValue: "What the item is for and what it does — the former project description.",
+        })}
+        text={description}
+        section={def.sections.functions}
+        modelItems={modelItems}
+        onSave={(text, section) =>
+          onChange({ description: text, itemDefinition: withSection("functions", section) })
+        }
+      />
+
+      <ItemFunctionsCard
+        functions={def.functions}
+        functionAssets={functionAssets}
+        onSave={(functions: ItemFunction[]) => onChange({ itemDefinition: { ...def, functions } })}
+      />
+
+      {TEXT_SECTIONS.map((id) => (
+        <ItemSectionCard
+          key={id}
+          testId={`item-definition-${id}`}
+          title={t(`itemDefinition.sections.${id}.title`, { defaultValue: SECTION_DEFAULTS[id].title })}
+          hint={t(`itemDefinition.sections.${id}.hint`, { defaultValue: SECTION_DEFAULTS[id].hint })}
+          text={def.sections[id]?.text ?? ""}
+          section={def.sections[id]}
+          modelItems={modelItems}
+          onSave={(text, section) =>
+            onChange({
+              itemDefinition: withSection(id, { ...section, ...(text.trim() ? { text } : {}) }),
+            })
+          }
+        />
+      ))}
     </div>
   );
 };

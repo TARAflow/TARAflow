@@ -263,6 +263,55 @@
       "title": "Zweck und Funktionen",
       "hint": "Wofür das Item da ist und was es tut — die bisherige Projektbeschreibung.",
       "placeholder": "Beschreibe den Zweck des Items und seine wichtigsten Funktionen..."
+    },
+    "sections": {
+      "boundary": {
+        "title": "Item-Grenze",
+        "hint": "Was zum Item gehört und was nicht; seine Schnittstellen zu anderen Items und zur Umgebung (9.3 a)."
+      },
+      "architecture": {
+        "title": "Vorläufige Architektur",
+        "hint": "Die wichtigsten Bausteine des Items und ihr Zusammenspiel (9.3 c) — auf das DFD verweisen statt es nachzuzeichnen."
+      },
+      "environment": {
+        "title": "Betriebsumgebung",
+        "hint": "Wo und wie das Item eingesetzt wird, soweit für die Cybersecurity relevant (9.3, RQ-09-02)."
+      },
+      "constraints": {
+        "title": "Randbedingungen und rechtliche Anforderungen",
+        "hint": "Technische, organisatorische und rechtliche Randbedingungen, die die Analyse beachten muss."
+      }
+    },
+    "source": {
+      "label": "Quelle",
+      "document": "Quelldokument (z. B. arc42)",
+      "section": "Abschnitt (z. B. §3 Kontext)",
+      "version": "Version"
+    },
+    "modelRefs": {
+      "label": "Bezieht sich auf (DFD, Assets)",
+      "missing": "entfernt ({{id}})"
+    },
+    "kinds": {
+      "element": "DFD-Elemente",
+      "flow": "Datenflüsse",
+      "page": "DFD-Seiten",
+      "asset": "Assets"
+    },
+    "functions": {
+      "title": "Funktionen über den Lebenszyklus",
+      "hint": "Die Funktionen des Items und die Lebenszyklus-Phasen, in denen sie aktiv sind (ISO/SAE 21434 9.3 b).",
+      "name": "Funktion",
+      "description": "Kurzbeschreibung",
+      "asset": "Function-Asset (optional)",
+      "add": "Funktion hinzufügen",
+      "remove": "Funktion entfernen"
+    },
+    "lifecycle": {
+      "production": "Produktion",
+      "operation": "Betrieb",
+      "maintenance": "Wartung",
+      "decommissioning": "Stilllegung"
     }
   },
   "projectInfo": {

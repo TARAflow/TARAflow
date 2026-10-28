@@ -265,6 +265,55 @@
       "title": "Purpose and functions",
       "hint": "What the item is for and what it does — the former project description.",
       "placeholder": "Describe the item's purpose and its main functions..."
+    },
+    "sections": {
+      "boundary": {
+        "title": "Item boundary",
+        "hint": "What belongs to the item and what does not; its interfaces to other items and to the environment (9.3 a)."
+      },
+      "architecture": {
+        "title": "Preliminary architecture",
+        "hint": "The item's main building blocks and how they work together (9.3 c) — refer to the DFD instead of redrawing it."
+      },
+      "environment": {
+        "title": "Operational environment",
+        "hint": "Where and how the item is used, as far as relevant to cybersecurity (9.3, RQ-09-02)."
+      },
+      "constraints": {
+        "title": "Constraints and legal requirements",
+        "hint": "Technical, organisational and legal constraints the analysis has to respect."
+      }
+    },
+    "source": {
+      "label": "Source",
+      "document": "Source document (e.g. arc42)",
+      "section": "Section (e.g. §3 Context)",
+      "version": "Version"
+    },
+    "modelRefs": {
+      "label": "Refers to (DFD, assets)",
+      "missing": "removed ({{id}})"
+    },
+    "kinds": {
+      "element": "DFD elements",
+      "flow": "Data flows",
+      "page": "DFD pages",
+      "asset": "Assets"
+    },
+    "functions": {
+      "title": "Functions over the lifecycle",
+      "hint": "The item's functions and the lifecycle phases they are active in (ISO/SAE 21434 9.3 b).",
+      "name": "Function",
+      "description": "Short description",
+      "asset": "Function asset (optional)",
+      "add": "Add function",
+      "remove": "Remove function"
+    },
+    "lifecycle": {
+      "production": "Production",
+      "operation": "Operation",
+      "maintenance": "Maintenance",
+      "decommissioning": "Decommissioning"
     }
   },
   "projectInfo": {

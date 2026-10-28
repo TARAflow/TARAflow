@@ -4,6 +4,8 @@
 // 24): the Overview has the sub-tabs Project / Definition / Methodology /
 // Sources; the project description is "Purpose and functions" in Definition
 // (still info.description); the last sub-tab is remembered per project.
+// A-2: the sections with text, source and model links; functions with
+// lifecycle phases and a function asset.
 
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -35,10 +37,17 @@ const data: GeneralTabData = {
   phaseStatus: {},
 } as unknown as GeneralTabData;
 
-const view = (onUpdate = vi.fn(), projectId = "P1") => {
+const MODEL = [
+  { id: "ee1", kind: "element" as const, label: "EE-1 Operator", detail: "ExternalEntity" },
+  { id: "if1", kind: "element" as const, label: "IF-1 Loop interface", detail: "Interface" },
+  { id: "fu1", kind: "asset" as const, label: "FU-001 Detect smoke", detail: "function" },
+];
+
+const view = (onUpdate = vi.fn(), projectId = "P1", d: GeneralTabData = data) => {
   render(
     <GeneralTab
-      data={data}
+      data={d}
+      modelItems={MODEL}
       phases={PHASES}
       progressPhaseIds={[0]}
       getStatusIcon={() => ""}
@@ -73,7 +82,7 @@ describe("Overview sub-tabs (A-1)", () => {
     const purpose = screen.getByTestId("item-definition-purpose");
     expect(purpose.textContent).toContain("Detects smoke and raises the alarm.");
     fireEvent.click(within(purpose).getByText("Edit"));
-    fireEvent.change(within(purpose).getByRole("textbox"), { target: { value: "Detects smoke." } });
+    fireEvent.change(within(purpose).getByLabelText("Purpose and functions"), { target: { value: "Detects smoke." } });
     fireEvent.click(within(purpose).getByText("Save"));
     expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ info: expect.objectContaining({ description: "Detects smoke." }) }));
   });
@@ -96,5 +105,61 @@ describe("Overview sub-tabs (A-1)", () => {
     cleanup();
     view(vi.fn(), "P2");
     expect(screen.getByTestId("overview-view-project").getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("A-2: a section gets its text, source and model links", () => {
+    const onUpdate = view();
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    const card = screen.getByTestId("item-definition-boundary");
+    fireEvent.click(within(card).getByText("Edit"));
+    fireEvent.change(within(card).getByLabelText("Item boundary"), { target: { value: "Detector head and loop" } });
+    fireEvent.change(within(card).getByLabelText("Source document (e.g. arc42)"), { target: { value: "arc42" } });
+    fireEvent.change(within(card).getByLabelText("Section (e.g. §3 Context)"), { target: { value: "§3" } });
+    const refs = within(card).getByTestId("item-definition-boundary-refs");
+    fireEvent.mouseDown(refs);
+    fireEvent.change(refs, { target: { value: "IF-1" } });
+    fireEvent.click(screen.getByText("IF-1 Loop interface (Interface)"));
+    fireEvent.click(within(card).getByText("Save"));
+    const saved = onUpdate.mock.calls.at(-1)![0] as GeneralTabData;
+    expect(saved.itemDefinition?.sections.boundary).toEqual({
+      text: "Detector head and loop",
+      source: { document: "arc42", section: "§3" },
+      modelRefs: ["if1"],
+    });
+    expect(saved.info.description).toBe(data.info.description);
+  });
+
+  it("A-2: shows source and links; a link to a removed item is marked", () => {
+    view(vi.fn(), "P1", {
+      ...data,
+      itemDefinition: {
+        sections: { environment: { text: "Office buildings", source: { document: "arc42", section: "§7", version: "2.1" }, modelRefs: ["ee1", "gone"] } },
+        functions: [],
+        assumptions: [],
+      },
+    });
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    expect(screen.getByTestId("item-definition-environment-source").textContent).toContain("arc42 · §7 · v2.1");
+    const chips = screen.getByTestId("item-definition-environment-refs-view").textContent;
+    expect(chips).toContain("EE-1 Operator");
+    expect(chips).toContain("removed (gone)");
+  });
+
+  it("A-2: functions with lifecycle phases and a function asset", () => {
+    const onUpdate = view();
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    const card = screen.getByTestId("item-definition-functions");
+    fireEvent.click(within(card).getByText("Edit"));
+    fireEvent.click(within(card).getByTestId("item-function-add"));
+    const row = within(card).getByTestId("item-function-0");
+    fireEvent.change(within(row).getByLabelText("Function"), { target: { value: "Detect smoke" } });
+    fireEvent.click(within(row).getByLabelText("maintenance"));
+    fireEvent.mouseDown(within(row).getByLabelText("Function asset (optional)"));
+    fireEvent.click(screen.getByText("FU-001 Detect smoke"));
+    fireEvent.click(within(card).getByText("Save"));
+    const saved = onUpdate.mock.calls.at(-1)![0] as GeneralTabData;
+    expect(saved.itemDefinition?.functions).toEqual([
+      expect.objectContaining({ name: "Detect smoke", lifecyclePhases: ["operation", "maintenance"], functionAssetId: "fu1" }),
+    ]);
   });
 });
