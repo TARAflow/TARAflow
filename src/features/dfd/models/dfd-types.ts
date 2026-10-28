@@ -176,6 +176,15 @@ export interface DFDConnection extends DFDBaseEntity {
   sourcePoint?: { x: number; y: number };
   targetPoint?: { x: number; y: number };
   offset?: { x: number; y: number };
+  /**
+   * draw.io anchors (style exitX/exitY, entryX/entryY): where the flow leaves
+   * its source and enters its target, as fractions of the shape's width and
+   * height. Absent = the shape's centre. Re-read from the XML on every parse.
+   */
+  exitX?: number;
+  exitY?: number;
+  entryX?: number;
+  entryY?: number;
   curved?: boolean;
   arrow?: {
     start?: string;

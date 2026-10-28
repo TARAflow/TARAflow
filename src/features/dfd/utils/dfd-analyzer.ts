@@ -78,13 +78,14 @@ export class DFDAnalyzer {
    * that reflect the last manual drag position — they are NOT the actual rendered
    * line endpoints and must NOT be used as lineStart/lineEnd for intersection checks.
    *
-   * The authoritative source is the exit/entry anchor (exitX/exitY or entryX/entryY)
-   * stored on the connection style. When anchors are present they define the exact
-   * pixel position on the element boundary where the line starts/ends.
+   * The authoritative source is the exit/entry anchor (connection.exitX/exitY,
+   * entryX/entryY — the parser takes them from the draw.io style). When present
+   * they define the point on the element's bounding box where the line
+   * starts/ends.
    *
    * Fallback chain:
-   *   1. Exit/entry anchor from connection style  (most accurate)
-   *   2. Element center                            (safe default when no anchor)
+   *   1. Exit/entry anchor of the connection  (most accurate)
+   *   2. Element center                       (safe default when no anchor)
    *
    * Note: sourcePoint/targetPoint are intentionally ignored here.
    */
@@ -93,29 +94,14 @@ export class DFDAnalyzer {
     type: "exit" | "entry",
     connection: DFDConnection,
   ): { x: number; y: number } {
-    // Parse exit/entry anchor from the connection style string.
-    // draw.io style format: "...;exitX=0.25;exitY=0;exitDx=0;exitDy=0;..."
-    // or "...;entryX=0.175;entryY=0.967;entryDx=0;entryDy=0;..."
-    const style: string = (connection as any).style ?? "";
-
-    const parseAnchor = (prefix: "exit" | "entry") => {
-      const xMatch = style.match(new RegExp(`${prefix}X=([\\d.\\-]+)`));
-      const yMatch = style.match(new RegExp(`${prefix}Y=([\\d.\\-]+)`));
-      const dxMatch = style.match(new RegExp(`${prefix}Dx=([\\d.\\-]+)`));
-      const dyMatch = style.match(new RegExp(`${prefix}Dy=([\\d.\\-]+)`));
-      if (!xMatch || !yMatch) return null;
-      const rx = parseFloat(xMatch[1]);
-      const ry = parseFloat(yMatch[1]);
-      const dx = dxMatch ? parseFloat(dxMatch[1]) : 0;
-      const dy = dyMatch ? parseFloat(dyMatch[1]) : 0;
+    const rx = type === "exit" ? connection.exitX : connection.entryX;
+    const ry = type === "exit" ? connection.exitY : connection.entryY;
+    if (rx !== undefined && ry !== undefined) {
       return {
-        x: element.position.x + rx * element.size.width + dx,
-        y: element.position.y + ry * element.size.height + dy,
+        x: element.position.x + rx * element.size.width,
+        y: element.position.y + ry * element.size.height,
       };
-    };
-
-    const anchor = parseAnchor(type === "exit" ? "exit" : "entry");
-    if (anchor) return anchor;
+    }
 
     // Fallback: element center
     return {

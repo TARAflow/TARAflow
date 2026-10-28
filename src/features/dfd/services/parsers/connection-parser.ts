@@ -229,17 +229,16 @@ function createConnection(
   const exitX = extractStyleValue(style, "exitX");
   const exitY = extractStyleValue(style, "exitY");
 
-  // Store entry/exit fractions as loosely-typed extension fields.
-  // These are internal-only: used by dfd-analyzer.getElementConnectionPoint()
-  // to compute accurate intersection points without requiring mxPoint coords.
-  // Not part of DFDConnection interface — transport only, never persisted.
+  // Kept on the record (DFDConnection.exitX / entryX), read by
+  // dfd-analyzer.getElementConnectionPoint(). Re-read from the XML on every
+  // parse, so the XML stays their single source.
   if (entryX !== undefined && entryY !== undefined) {
-    (connection as any).entryX = entryX;
-    (connection as any).entryY = entryY;
+    connection.entryX = entryX;
+    connection.entryY = entryY;
   }
   if (exitX !== undefined && exitY !== undefined) {
-    (connection as any).exitX = exitX;
-    (connection as any).exitY = exitY;
+    connection.exitX = exitX;
+    connection.exitY = exitY;
   }
 
   // Parse style properties
