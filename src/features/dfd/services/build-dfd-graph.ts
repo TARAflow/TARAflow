@@ -8,7 +8,9 @@
 //                 flow with its stitched endpoints, boundaries / nesting /
 //                 interfaces resolved over all pages and handed to the
 //                 builder as precomputed facts. Excluded flows (EE→EE,
-//                 excludeFromThreatGen) are left out of the graph.
+//                 excludeFromThreatGen, abstract with a valid refinement)
+//                 are left out of the graph — but the validator still gets
+//                 every drawn flow (validationConnections), as on one page.
 //
 // The records (properties, asset relations) are the caller's — persisted or
 // merged — and only fall back to the parsed ones for cells the caller does
@@ -47,7 +49,15 @@ export interface DfdGraphSource {
  */
 export interface AnalysisView {
   elements: DFDElement[];
+  /** The flows the graph and the threat generation use — not the excluded ones. */
   connections: DFDConnection[];
+  /**
+   * Every drawn flow, excluded ones included (EE → EE, abstract with a valid
+   * refinement, excludeFromThreatGen), with the endpoints of the effective
+   * model — what the validator checks, as on a single-page DFD. Single page:
+   * the same list as `connections`.
+   */
+  validationConnections: DFDConnection[];
   facts?: PrecomputedGraphFacts;
   /** Leveled DFD only: findings of the page tree and the effective model
    *  (§7), handed to the validator. */
@@ -56,7 +66,11 @@ export interface AnalysisView {
 
 export function buildAnalysisView(source: DfdGraphSource): AnalysisView {
   if (!isLeveled(source.xml)) {
-    return { elements: source.elements, connections: source.connections };
+    return {
+      elements: source.elements,
+      connections: source.connections,
+      validationConnections: source.connections,
+    };
   }
   const leveled = effectiveModelOf(source);
   return {
@@ -101,13 +115,14 @@ function graphInputOf(
   },
 ): AnalysisView {
   const elements = model.elements.map((e) => records.elements.get(e.tfId)!);
-  const connections = model.flows
-    .filter((f) => f.state !== "excluded")
-    .map((f) => ({
-      ...records.connections.get(f.tfId)!,
-      from: f.from,
-      to: f.to,
-    }));
+  const resolved = (f: EffectiveModel["flows"][number]): DFDConnection => ({
+    ...records.connections.get(f.tfId)!,
+    from: f.from,
+    to: f.to,
+  });
+  const connections = model.flows.filter((f) => f.state !== "excluded").map(resolved);
+  // The validator sees every drawn flow, like on a single page.
+  const validationConnections = model.flows.map(resolved);
 
   const trust = new Map<string, string[]>();
   const chip = new Map<string, string[]>();
@@ -124,6 +139,7 @@ function graphInputOf(
   return {
     elements,
     connections,
+    validationConnections,
     facts: {
       trust,
       chip,

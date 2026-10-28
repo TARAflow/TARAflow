@@ -245,7 +245,7 @@ class DFDService {
       // Run initial validation
       const validation = this.validator.validate(
         view.elements,
-        view.connections,
+        view.validationConnections,
         syncedAssets,
         stats,
         graph,
@@ -577,7 +577,7 @@ class DFDService {
 
       const validation = this.validator.validate(
         view.elements,
-        view.connections,
+        view.validationConnections,
         syncedAssets,
         stats,
         dfdGraph,
@@ -743,7 +743,7 @@ class DFDService {
       const graphContext = new DFDGraphAnalysisContext(dfdGraph);
       const validation = this.validator.validate(
         view.elements,
-        view.connections,
+        view.validationConnections,
         syncedAssets,
         stats,
         dfdGraph,
@@ -848,7 +848,7 @@ class DFDService {
 
     return this.validator.validate(
       view.elements,
-      view.connections,
+      view.validationConnections,
       syncedAssets,
       stats,
       graph,
