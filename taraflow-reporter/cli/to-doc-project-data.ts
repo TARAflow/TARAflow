@@ -72,6 +72,9 @@ export function toDocProjectData(
     // Plural → singular! (see plan gotcha)
     attackTree: project.attackTrees as DocProjectData["attackTree"],
 
+    // Item definition (WP-09-01, ISO 21434 plan A-5) — the same data as in the app.
+    ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
+
     computed: {
       ...createEmptyComputedValues(language),
       // Methodology chapter (ISO/SAE 21434 conformance plan 0d) — the same

@@ -220,6 +220,7 @@ export function transformProjectToDocData(
     threats: project.threats ?? null,
     risks: project.risks ?? null,
     attackTree: project.attackTrees ?? null,
+    ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
 
     // Computed values (performance optimization)
     computed: computeDocValues(project, language),

@@ -9,6 +9,7 @@ import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { isoScenarioSummary, isoScenarioTitle } from "../iso-scenario-text";
 import { controlLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
+import { itemDefinitionIntro, itemDefinitionReportSections } from "../item-definition-report";
 import {
   attackTreeReportSections,
   attackTreesIntro,
@@ -348,6 +349,9 @@ export class PdfMakeConverter {
           break;
         case "attack-trees":
           content.push(...this.createAttackTrees());
+          break;
+        case "item-definition":
+          content.push(...this.createItemDefinition());
           break;
         case "accepted-risks":
           if (this.getWontRisks().length > 0) {
@@ -1099,6 +1103,39 @@ export class PdfMakeConverter {
             margin: [0, 0, 0, 12],
           },
         );
+      }
+    }
+    content.push({ text: "", pageBreak: "after" });
+    return content;
+  }
+
+  /** Plan A-5: the item definition (WP-09-01), same content as the template generators. */
+  private createItemDefinition(): Content[] {
+    const sections = itemDefinitionReportSections(this.project, this.t);
+    if (sections.length === 0) return [];
+    const content: Content[] = [
+      { text: this.chapterTitle("item-definition"), style: "h1", tocItem: true },
+      { text: itemDefinitionIntro(this.t), margin: [0, 0, 0, 8] },
+    ];
+    for (const section of sections) {
+      content.push({ text: section.title, style: "h2" });
+      for (const p of section.paragraphs) content.push({ text: p, margin: [0, 0, 0, 4] });
+      for (const [label, value] of section.facts) {
+        content.push({ text: [{ text: `${label}: `, bold: true }, value] });
+      }
+      if (section.table) {
+        content.push({
+          table: {
+            headerRows: 1,
+            widths: section.table.headers.map((_, i) => (i === 1 ? "*" : "auto")),
+            body: [
+              section.table.headers.map((h): TableCell => ({ text: h, style: "tableHeader" })),
+              ...section.table.rows.map((r) => r.map((c): TableCell => ({ text: c }))),
+            ],
+          },
+          layout: "lightHorizontalLines",
+          margin: [0, 6, 0, 12],
+        });
       }
     }
     content.push({ text: "", pageBreak: "after" });

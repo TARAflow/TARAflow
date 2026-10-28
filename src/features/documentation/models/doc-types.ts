@@ -18,6 +18,7 @@ import type { AssetData } from "features/assets";
 import type { ThreatData } from "features/threats";
 import type { RiskData } from "features/risks";
 import type { AttackTreeData } from "features/attacktree";
+import type { ItemDefinition } from "shared/models/item-definition-types";
 
 // ==================== DOCUMENT FORMAT ====================
 
@@ -31,6 +32,7 @@ export type DocChapterId =
   | "applicable-regulations"
   | "methodology"
   | "system-overview"
+  | "item-definition"
   | "dfd"
   | "dfd-descriptions"
   | "assets"
@@ -63,6 +65,7 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
   },
   methodology: { en: "Methodology", de: "Methodik" },
   "system-overview": { en: "System Overview", de: "Systemübersicht" },
+  "item-definition": { en: "Item Definition", de: "Item-Definition" },
   dfd: { en: "Data Flow Diagram", de: "Datenflussdiagramm" },
   "dfd-descriptions": {
     en: "DFD Element Descriptions",
@@ -119,6 +122,8 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "applicable-regulations", enabled: true, autoHideIfEmpty: true },
   { id: "methodology", enabled: true, autoHideIfEmpty: true },
   { id: "system-overview", enabled: true, autoHideIfEmpty: false },
+  // Item definition (WP-09-01, ISO 21434 plan A-5): what is analysed.
+  { id: "item-definition", enabled: true, autoHideIfEmpty: true },
   { id: "dfd", enabled: true, autoHideIfEmpty: true },
   { id: "dfd-descriptions", enabled: true, autoHideIfEmpty: true },
   { id: "assets", enabled: true, autoHideIfEmpty: true },
@@ -298,6 +303,8 @@ export interface DocProjectData {
   threats: ThreatData | null;
   risks: RiskData | null;
   attackTree: AttackTreeData | null;
+  /** Item Definition (WP-09-01, ISO 21434 plan Phase 1 stage A); absent = none. */
+  itemDefinition?: ItemDefinition;
 
   // Computed values (performance optimization)
   computed: DocComputedValues;

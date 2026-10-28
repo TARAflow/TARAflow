@@ -27,6 +27,7 @@ import {
 
 import type { DocTabProps } from "../models/doc-types";
 import { isStrideMethodDisabled } from "../utils/stride-method-scope";
+import { hasItemDefinitionContent } from "../utils/item-definition-report";
 
 // ==================== TYPES ====================
 
@@ -211,6 +212,8 @@ export const useDocumentGeneration = ({
       // iso-21434 projects, from the record the app layer derived.
       methodology: project.computed.methodology?.presetId === "iso-21434",
       "attack-trees": (project.attackTree?.trees?.length ?? 0) > 0,
+      // Item definition (WP-09-01, plan A-5) — once it holds something.
+      "item-definition": hasItemDefinitionContent(project.itemDefinition),
       appendix: true, // Always has content
     };
     return map;

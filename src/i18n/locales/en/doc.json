@@ -185,6 +185,40 @@
         "scenarioResidual": "Residual",
         "scenarioTreatment": "Treatment"
       },
+      "itemDefinition": {
+        "intro": "What the analysis is about (ISO/SAE 21434 9.3): the item's purpose and functions, its boundary, its preliminary architecture and its operational environment, with the sources they come from and the assumptions the analysis relies on.",
+        "purpose": "Purpose and functions",
+        "section": {
+          "boundary": "Item boundary",
+          "architecture": "Preliminary architecture",
+          "environment": "Operational environment",
+          "constraints": "Constraints and legal requirements"
+        },
+        "source": "Source",
+        "refersTo": "Refers to",
+        "removed": "removed",
+        "colFunction": "Function",
+        "colDescription": "Description",
+        "colLifecycle": "Lifecycle phases",
+        "colAsset": "Function asset",
+        "lifecycle": {
+          "production": "Production",
+          "operation": "Operation",
+          "maintenance": "Maintenance",
+          "decommissioning": "Decommissioning"
+        },
+        "assumptions": "Assumptions",
+        "colId": "ID",
+        "colAssumption": "Assumption",
+        "colStatus": "Status",
+        "colOwner": "Owner / review by",
+        "colUsedBy": "Trust boundaries",
+        "status": {
+          "open": "open",
+          "confirmed": "confirmed",
+          "invalid": "invalid"
+        }
+      },
       "attackTrees": {
         "intro": "One section per attack tree: its anchor, the tree structure with the AND/OR gates and the leaf ratings, and the attack paths derived from it with attack potential, attack feasibility and the analyst's relevance decision.",
         "description": "Description",

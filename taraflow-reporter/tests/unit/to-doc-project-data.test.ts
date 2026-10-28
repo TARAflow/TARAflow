@@ -69,4 +69,11 @@ describe("toDocProjectData", () => {
     expect(doc.risks).toEqual(project.risks);
     expect(doc.documentation).toEqual(project.documentation);
   });
+
+  it("passes the item definition through (WP-09-01, ISO 21434 plan A-5); absent stays absent", () => {
+    const project = loadFixtureProject();
+    expect("itemDefinition" in toDocProjectData(project, "en")).toBe(false);
+    const itemDefinition = { sections: { boundary: { text: "Controller" } }, functions: [], assumptions: [] };
+    expect(toDocProjectData({ ...project, itemDefinition }, "en").itemDefinition).toEqual(itemDefinition);
+  });
 });

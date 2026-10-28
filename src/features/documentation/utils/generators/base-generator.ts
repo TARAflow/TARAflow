@@ -3,6 +3,11 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
+import {
+  itemDefinitionIntro,
+  itemDefinitionReportSections,
+  type ItemDefinitionReportSection,
+} from "../item-definition-report";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
 import { controlLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
@@ -329,6 +334,13 @@ export abstract class BaseDocumentGenerator {
   protected formatAttackTreeSection(_section: AttackTreeReportSection): string {
     return "";
   }
+  // Item-definition chapter (WP-09-01, plan A-5) — same pattern.
+  protected formatItemDefinitionChapter(_title: string, _intro: string, _body: string): string {
+    return "";
+  }
+  protected formatItemDefinitionSection(_section: ItemDefinitionReportSection): string {
+    return "";
+  }
   abstract getAcceptedRisksTemplate(): string;
   abstract getWontRiskRowTemplate(): string;
   abstract getAppendixTemplate(): string;
@@ -431,6 +443,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateMethodology(title);
       case "system-overview":
         return this.generateSystemOverview(title);
+      case "item-definition":
+        return this.generateItemDefinition(title);
       case "dfd":
         return this.generateDfd(title);
       case "dfd-descriptions":
@@ -1585,6 +1599,24 @@ export abstract class BaseDocumentGenerator {
     }
     const body = sections.map((s) => this.formatAttackTreeSection(s)).join("");
     const content = this.formatAttackTreesChapter(title, attackTreesIntro(this.ctx.t), body);
+    return { id: chapterId, title, content, hasContent: content !== "" };
+  }
+
+  // ==================== ITEM DEFINITION (WP-09-01) ====================
+
+  /**
+   * ISO 21434 plan A-5: the item definition — purpose and functions,
+   * boundary, architecture, environment, constraints, assumptions. All
+   * presets, once the Item Definition holds something.
+   */
+  protected generateItemDefinition(title: string): ChapterContent {
+    const chapterId: DocChapterId = "item-definition";
+    const sections = itemDefinitionReportSections(this.ctx.project, this.ctx.t);
+    if (sections.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+    const body = sections.map((s) => this.formatItemDefinitionSection(s)).join("");
+    const content = this.formatItemDefinitionChapter(title, itemDefinitionIntro(this.ctx.t), body);
     return { id: chapterId, title, content, hasContent: content !== "" };
   }
 

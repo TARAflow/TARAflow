@@ -1,7 +1,8 @@
 # TARAflow — ISO/SAE 21434 requirement coverage
 
-**Status:** v2 · 2026-10-27 · code base: `main` 96c9269a (v0.15.1-beta; 0a, 0b, 0b2, 0c,
-0d, the `levelToRiskScale` fix, 3a and the report fixes F1–F10 released) ·
+**Status:** v3 · 2026-10-28 · code base: `main` 96c9269a (v0.15.1-beta; 0a, 0b, 0b2, 0c,
+0d, the `levelToRiskScale` fix, 3a and the report fixes F1–F10 released) and branch
+`feature/iso21434-item-definition` (1H-S, Phase 1 stage A, for 0.16.0-beta) ·
 plan: `main` 6c55d0c
 **Belongs to:** `iso-21434-conformance-implementation-plan.md`. This document is the
 **exit criterion** of that plan: the normative minimum (plan §5) is done when every [N]
@@ -58,15 +59,15 @@ Rules:
 
 | ID | Requirement | Marker | Status | Plan step | Code | Test |
 |---|---|---|---|---|---|---|
-| RQ-09-01 | Information on the item identified: a) item boundary, b) item functions (over the lifecycle phases, NOTE 2), c) preliminary architecture | [N] | **gap** — only the free text `info.description` | Phase 1 stage A | – | §8 Phase 1 |
-| RQ-09-02 | Operational environment relevant to cybersecurity described; may include assumptions (NOTE 8) | [N] | **partial** — trust-boundary `securityAssumptions` as free text | Phase 1 stage A (ASM) | `element-properties.ts` `securityAssumptions` | §8 Phase 1 |
-| WP-09-01 | Item definition | [N] | **gap** | Phase 1 stage A, report Phase 7 | – | §8 Phase 7 |
+| RQ-09-01 | Information on the item identified: a) item boundary, b) item functions (over the lifecycle phases, NOTE 2), c) preliminary architecture | [N] | **met** — Definition sub-tab (stage A): item boundary, purpose and functions (description + function list with lifecycle phases and function asset), preliminary architecture — each with source and model links; mandatory under `iso-21434` (finding); report chapter *Item Definition* | A-1 … A-5 | `item-definition-types.ts`, `item-definition-view.tsx`, `item-definition-findings.ts`, `item-definition-report.ts` | `item-definition-findings.test.ts`; `general-tab.views.test.tsx`; `item-definition-chapter.test.ts` |
+| RQ-09-02 | Operational environment relevant to cybersecurity described; may include assumptions (NOTE 8) | [N] | **met** — section *Operational environment* (mandatory under `iso-21434`); assumptions ASM-nn with status, linked by trust boundaries (`assumptionIds`, *Convert to assumption*), invalid ones flagged; in the report | A-2, A-3, A-4, A-5 | `item-assumptions-card.tsx`, `trust-boundary-assumptions.tsx`, `item-definition-findings.ts` | `item-definition-findings.test.ts`; `trust-boundary-assumptions.test.tsx`; `item-definition-chapter.test.ts` |
+| WP-09-01 | Item definition | [N] | **met** — report chapter *Item Definition* in all formats (Markdown, AsciiDoc, HTML, StrictDoc, PDF) and in the CLI | A-5 | `item-definition-report.ts`, generators, `to-doc-project-data.ts` | `item-definition-chapter.test.ts`; `to-doc-project-data.test.ts` |
 
 ### 9.4 Cybersecurity goals
 
 | ID | Requirement | Marker | Status | Plan step | Code | Test |
 |---|---|---|---|---|---|---|
-| RQ-09-03 | Analysis based on the item definition: asset identification (15.3), threat scenarios (15.4), impact rating (15.5), attack paths (15.6), attack feasibility (15.7), risk values (15.8). NOTE 1: missing information can be assumed | [N] | **partial** — rows of §4: risk value met (3a); item definition (RQ-09-01/02) and damage scenarios open | Phase 1, Phase 2 | see §4 | see §4 |
+| RQ-09-03 | Analysis based on the item definition: asset identification (15.3), threat scenarios (15.4), impact rating (15.5), attack paths (15.6), attack feasibility (15.7), risk values (15.8). NOTE 1: missing information can be assumed | [N] | **partial** — rows of §4: risk value met (3a), item definition met (stage A); damage scenarios open | Phase 2 | see §4 | see §4 |
 | RQ-09-04 | Risk treatment options determined for each threat scenario (15.9) | [N] | **met** — ISO names (0a); per threat scenario the union of its paths' options (3a, decision 20) | 0a, 3a | `risk-treatment-vocabulary.ts`, `iso-scenarios.ts` `groupIsoScenarios` | `risk-treatment-vocabulary.test.ts`; `iso-scenarios.test.ts` ("options the union"); `attack-path-risks-chapter.test.ts` ("union of treatments") |
 | RQ-09-05 | If the treatment includes reducing → one or more cybersecurity goals; CAL "if applicable" (NOTE 4, Annex E) | [N] / CAL [K] | **gap** — `SecurityGoal.formalDescription` exists but is not tied to Reduce; no CAL | Phase 4 minimal | `asset-security-goals-types.ts` | §8 Phase 4 |
 | RQ-09-06 | If the treatment includes sharing, or retaining due to assumptions → one or more cybersecurity claims | [N] | **partial** — `treatmentJustification` / `wontJustification` text, no claim object | Phase 4 minimal (+ ASM from Phase 1 A) | `risk-assessment-types.ts` | §8 Phase 4 |

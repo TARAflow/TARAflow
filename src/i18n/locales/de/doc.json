@@ -185,6 +185,40 @@
         "scenarioResidual": "Restrisiko",
         "scenarioTreatment": "Behandlung"
       },
+      "itemDefinition": {
+        "intro": "Worum es in der Analyse geht (ISO/SAE 21434 9.3): Zweck und Funktionen des Items, seine Grenze, seine vorläufige Architektur und seine Betriebsumgebung, mit den Quellen, aus denen sie stammen, und den Annahmen, auf die sich die Analyse stützt.",
+        "purpose": "Zweck und Funktionen",
+        "section": {
+          "boundary": "Item-Grenze",
+          "architecture": "Vorläufige Architektur",
+          "environment": "Betriebsumgebung",
+          "constraints": "Randbedingungen und rechtliche Anforderungen"
+        },
+        "source": "Quelle",
+        "refersTo": "Bezieht sich auf",
+        "removed": "entfernt",
+        "colFunction": "Funktion",
+        "colDescription": "Beschreibung",
+        "colLifecycle": "Lebenszyklus-Phasen",
+        "colAsset": "Function-Asset",
+        "lifecycle": {
+          "production": "Produktion",
+          "operation": "Betrieb",
+          "maintenance": "Wartung",
+          "decommissioning": "Stilllegung"
+        },
+        "assumptions": "Annahmen",
+        "colId": "ID",
+        "colAssumption": "Annahme",
+        "colStatus": "Status",
+        "colOwner": "Verantwortlich / prüfen bis",
+        "colUsedBy": "Trust Boundaries",
+        "status": {
+          "open": "offen",
+          "confirmed": "bestätigt",
+          "invalid": "ungültig"
+        }
+      },
       "attackTrees": {
         "intro": "Ein Abschnitt je Angriffsbaum: sein Anker, die Baumstruktur mit den UND/ODER-Gattern und den Bewertungen der Blätter sowie die daraus abgeleiteten Angriffspfade mit Angriffspotenzial, Angriffsmachbarkeit und dem Relevanzentscheid der Analyse.",
         "description": "Beschreibung",
