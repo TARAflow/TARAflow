@@ -707,6 +707,79 @@ Closes G6, G7. Reverses DS-6 of the support design.
 in the coverage matrix; no ISO risk ends without a goal, a claim or an avoid
 justification.
 
+#### Phase 4 minimal as decided (decision 25, 2026-10-29)
+
+Supersedes the sketch above where they differ (granularity, place in the UI,
+the verification record).
+
+- **Links per risk, shared texts.** Treatment is stored per risk (attack
+  path); a threat scenario's treatment is the union of its paths' options
+  (3a, decision 20 — "one or more options", RQ-15-17), so one scenario may
+  need a goal *and* a claim. A goal or claim therefore keeps the risks it
+  covers (`riskIds`), not the scenario. Every risk treated *reduce* needs ≥ 1
+  goal, every risk treated *retain* / *share* ≥ 1 claim — stricter than the
+  per-scenario wording of RQ-09-05/06 and covering it. Report and overview
+  group by scenario (derived from the linked risks).
+- **Risk dialog, new fourth tab "Goal / Claim"** after *Risk After*: shows
+  only what is linked to *this* risk, by its treatment — reduce: goal(s)
+  (link an existing one or create; proposal from the anchored asset ×
+  property's `formalDescription`; optional CAL); retain / share: claim(s);
+  avoid: a hint that the justification (tab *Mitigations*) is mandatory
+  under ISO. **One-click reuse with a text preview:** goals / claims of the
+  same scenario and kind are offered first ("CSG-03 · also on AT-2.1"),
+  the full text visible before linking; nothing is copied to a sibling risk
+  automatically (an unrated path shows nothing). Editing a shared statement
+  changes it for every linked risk — the tab says where else it is used.
+- **Risk-tab toolbar dialog "Goals & Claims"** — the overall view: all goals
+  and claims with their risks grouped by scenario; merge duplicates; accept
+  proposals from asset security goals; findings as a badge on the button and
+  as a marker in the risk table.
+- **Storage:** `project.cybersecurityConcept = { goals, claims,
+  verifications }` — not inside `project.risks`, which the attack-tree risk
+  sync rebuilds; Phase 5 (concept → requirements) can extend it.
+- **Claims:** kind *retain* needs ≥ 1 assumption of the Item Definition
+  (stage A); kind *share* a responsible party; both a review date. A button
+  takes the risk's `treatmentJustification` as the claim text.
+- **Avoid:** no object; `treatmentJustification` becomes mandatory under
+  `iso-21434`.
+- **Presets:** visible in every preset; findings mandatory only under
+  `iso-21434` (as the Item Definition, decision 8).
+- **CAL** (Annex E, informative): optional field on the goal, no project
+  setting.
+- **Findings (iso-21434):** reduce without goal; retain / share without
+  claim; avoid without justification; retain claim without assumption;
+  share claim without party; overdue review date; a link to a removed risk;
+  a goal / claim whose risk now has another treatment ("goal linked,
+  treatment is Retain" — the link stays until the analyst decides); a claim
+  relying on an invalid assumption. Unused goal / claim: info.
+- **Verification (RQ-09-07, WP-09-05) in the Audit tab** — it has to be
+  committed and tracked:
+  - entry: date, reviewer, scope a–d of RQ-09-07 with the current findings
+    as a checklist, result (passed / passed with conditions / failed),
+    findings text;
+  - the verified state as a hash of the analysis content (canonical
+    serialization TCS; verifications, audit and document settings
+    excluded) — independent of git;
+  - committed with the project (round "Verification", `Reviewed-by:`
+    trailer, signed); the entry records the commit that fixed it. Without
+    a repository the entry can still be recorded (stays in the project);
+  - later, optionally, the verification engine checks four-eyes (reviewer
+    ≠ author) and hash ↔ commit.
+- **Verification status** (only `iso-21434`), shown in the **Overview**
+  (status line + badge on the Project sub-tab) and in the **document**
+  (status up front, chapter "Verification"), worded alike:
+  ✔ verified, state unchanged · ⚠ changed since the verification (hash
+  differs — always) · ⚠ verification older than *N* days (document creation
+  date, in the Overview today; *N* in the audit configuration, default
+  **90**) · ⚠ not verified · ⚠ verification not committed. Only *passed* /
+  *passed with conditions* counts as verified. The document is **marked,
+  never blocked** (user).
+- **Report:** chapter "Cybersecurity Goals and Claims" (goals, claims with
+  their scenarios and risks; verification entries), a goal / claim column in
+  the traceability matrix; Headlamp example gets goals and claims.
+- **Release:** together with 1H-S and stage A as 0.16.0-beta under schema
+  11 (amends decision 24). Steps in §10.
+
 ### Phase 5 — Concept and requirements traceability (9.5 → 10) (medium, additive)
 
 Normative basis: 9.5 cybersecurity concept (WP-09-06) and its verification
@@ -809,7 +882,7 @@ one release per row.
 | 1 | 3a — risk value 1–5, risk per threat scenario | RQ-15-15/16 | **0.15.0-beta** | **yes** (ISO risks only) | **10** (migration) |
 | 2 | 1H-S — S0–S3 on the person edge under ISO | RQ-15-06 | **0.16.0-beta** (decision 24) | no | **11** (fence: `"none"` on the edge, `itemDefinition`) |
 | 3 | Phase 1 stage A — Definition sub-tab, assumptions (ASM) | RQ-09-01/02 | **0.16.0-beta** (decision 24) | no | **11** (shared with 1H-S) |
-| 4 | Phase 4 minimal — goal for every Reduce, claim for Retain/Share, Avoid justification, verification record | RQ-09-05/06, WP-09-05 | 0.17.0-beta | no | 12 (fence) |
+| 4 | Phase 4 minimal — goal for every Reduce, claim for Retain/Share, Avoid justification, verification record | RQ-09-05/06/07, WP-09-03/04/05 | **0.16.0-beta** (decision 25) | no | **11** (shared with 1H-S and stage A) |
 
 Assumptions (stage A) come before Phase 4 because claims refer to them; the
 norm itself only requires the claim (RQ-09-06).
@@ -1010,7 +1083,8 @@ Added in rev. 2 (2026-10-24):
       0.16.0-beta with schema 11 (both store new fields an older release
       would misread or drop: `"none"` on a person edge would count as a
       hazard target; `itemDefinition` would be lost on save). Phase 4 minimal
-      follows with 12. Branch `feature/iso21434-item-definition`.
+      follows with 12 — *amended by decision 25: Phase 4 joins 0.16.0-beta
+      and schema 11.* Branch `feature/iso21434-item-definition`.
     - **Storage:** one object `project.itemDefinition = { sections,
       functions, assumptions }` (Assumption as in Phase 1, inside it); trust
       boundaries reference assumptions by `assumptionIds`. The description
@@ -1026,6 +1100,19 @@ Added in rev. 2 (2026-10-24):
       lifecycle). The boundary ↔ DFD matching validator ("no double
       modelling") follows with stage B.
     - Step plan in §10 (1H-S-1 … A-5).
+25. **[D] Phase 4 minimal — goals, claims, verification (2026-10-29,
+    user):** links per risk with shared texts (treatment is per risk; a
+    scenario may need a goal and a claim); a fourth tab "Goal / Claim" in
+    the risk dialog with one-click reuse and text preview; a "Goals &
+    Claims" toolbar dialog in the Risk tab as the overall view; storage
+    `project.cybersecurityConcept`; retain claims need an assumption,
+    share claims a party; avoid justification mandatory under ISO; all
+    presets, findings mandatory under ISO; CAL optional. Verification
+    recorded and committed in the Audit tab (hash of the verified state);
+    its status shown in the Overview and in the document (marked, not
+    blocked), warning when the content changed or the verification is
+    older than 90 days (configurable). Joins 0.16.0-beta and schema 11
+    (amends decision 24). Details in Phase 4 "as decided".
 
 ---
 
