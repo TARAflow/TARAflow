@@ -6,6 +6,9 @@
 // - Sync calls pass dfd + assetDataRef for asset criteria prefill
 // - pendingSafetySourceRemoval checked on mount and project change
 
+import { GoalsClaimsDialog } from "./goals-claims-dialog";
+import { ConceptFindingsProvider } from "./concept-findings-context";
+import { conceptFindings, conceptWarningsByRisk } from "../services/concept-findings";
 import type { CybersecurityConcept } from "shared";
 import { collectConfiguredImpactCriteria } from "../services/risk-sync-service";
 import React, {
@@ -814,7 +817,23 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   // ==================== RENDER ====================
 
+  // ── Goals & claims (ISO 21434 plan Phase 4, decision 25) ─────────────────
+  const [showConceptDialog, setShowConceptDialog] = useState(false);
+  const conceptFindingList = useMemo(
+    () =>
+      conceptFindings({
+        risks: riskData.risks,
+        concept: project.cybersecurityConcept,
+        assumptions: project.assumptions,
+        isoMode: project.isoMode ?? false,
+        today: new Date().toISOString().slice(0, 10),
+      }),
+    [riskData.risks, project.cybersecurityConcept, project.assumptions, project.isoMode],
+  );
+  const conceptMarkers = useMemo(() => conceptWarningsByRisk(conceptFindingList), [conceptFindingList]);
+
   return (
+    <ConceptFindingsProvider value={conceptMarkers}>
     <Box
       sx={{
         display: "flex",
@@ -869,6 +888,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         onImport={handleImport}
         onToggleWontTable={() => setShowWontTable(!showWontTable)}
         onToggleFilters={() => setShowFilters(!showFilters)}
+        onOpenConcept={onConceptChange ? () => setShowConceptDialog(true) : undefined}
+        conceptWarningCount={conceptFindingList.filter((f) => f.severity === "warning").length}
       />
 
       {/* Notifications — self-contained accordion (renders nothing when
@@ -1230,8 +1251,27 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {onConceptChange && showConceptDialog && (
+        <GoalsClaimsDialog
+          open
+          onClose={() => setShowConceptDialog(false)}
+          risks={riskData.risks}
+          concept={project.cybersecurityConcept}
+          onConceptChange={onConceptChange}
+          findings={conceptFindingList}
+          assetDataRef={project.assetDataRef}
+          onOpenRisk={(riskId) => {
+            const risk = riskData.risks.find((r) => r.id === riskId);
+            if (!risk) return;
+            setShowConceptDialog(false);
+            handleEditRisk(risk);
+          }}
+        />
+      )}
     </Box>
+    </ConceptFindingsProvider>
   );
-};;;
+};
 
 export default RisksTab;

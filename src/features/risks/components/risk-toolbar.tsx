@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import {
   Settings as SettingsIcon,
+  Flag as GoalsIcon,
   Sync as SyncIcon,
   Warning as WarningIcon,
   Download as ExportIcon,
@@ -75,6 +76,10 @@ export interface RisksToolbarProps {
   onImport: () => void;
   onToggleWontTable: () => void;
   onToggleFilters: () => void;
+  /** Opens "Goals & Claims" (ISO 21434 plan Phase 4); absent = no button. */
+  onOpenConcept?: () => void;
+  /** Open goal / claim warnings — the badge on that button. */
+  conceptWarningCount?: number;
 }
 
 // ==================== COMPONENT ====================
@@ -106,6 +111,8 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   onStrideMethodChange,
   onSync,
   onOpenConfig,
+  onOpenConcept,
+  conceptWarningCount = 0,
   onExport,
   onImport,
   onToggleWontTable,
@@ -290,6 +297,17 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
           </IconButton>
         </span>
       </Tooltip>
+
+      {/* Goals & Claims (ISO 21434 9.4, decision 25) */}
+      {onOpenConcept && (
+        <Tooltip title={t("tabs.risks.goalsClaims.button", { defaultValue: "Goals & Claims" })}>
+          <IconButton onClick={onOpenConcept} size="small" data-testid="risks-open-goals-claims">
+            <Badge color="warning" badgeContent={conceptWarningCount} invisible={conceptWarningCount === 0}>
+              <GoalsIcon />
+            </Badge>
+          </IconButton>
+        </Tooltip>
+      )}
 
       {/* Configuration */}
       <Tooltip

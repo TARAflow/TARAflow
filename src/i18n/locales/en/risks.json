@@ -92,6 +92,31 @@
         "riskValue": "Risk (1–5)",
         "riskValueAfter": "Residual (1–5)"
       },
+      "goalsClaims": {
+        "button": "Goals & Claims",
+        "title": "Cybersecurity goals and claims",
+        "removedRisk": "removed ({{id}})",
+        "mergeInto": "Merge into …",
+        "openRisk": "Open",
+        "proposals": "Proposed goals for risks without a goal",
+        "acceptProposal": "Create goal for {{count}} risk(s)",
+        "goals": "Cybersecurity goals",
+        "claims": "Cybersecurity claims",
+        "remove": "Remove"
+      },
+      "conceptFindings": {
+        "goalMissing": "{{risk}}: Reduce without a cybersecurity goal",
+        "claimMissing": "{{risk}}: Retain / Share without a cybersecurity claim",
+        "avoidUnjustified": "{{risk}}: Avoid without a justification",
+        "treatmentMismatch": "{{risk}}: {{item}} no longer fits the treatment",
+        "emptyStatement": "{{item}} has no statement",
+        "noAssumption": "{{item}}: retained without an assumption",
+        "noParty": "{{item}}: shared without a responsible party",
+        "invalidAssumption": "{{item}} relies on {{list}}, marked invalid",
+        "reviewOverdue": "{{item}}: review date passed",
+        "removedRisk": "{{item}} is linked to a risk that no longer exists",
+        "unused": "{{item}} is not linked to any risk"
+      },
       "concept": {
         "usedOn": "used on {{list}}",
         "alsoOn": "also on {{list}} — a change applies there too",

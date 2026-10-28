@@ -61,6 +61,10 @@ import {
 } from "shared";
 import type { Risk } from "../models/risk-assessment-types";
 import type { RiskTreatment } from "../models/risk-scale-types";
+import { conceptKindFor } from "../models/concept-kind";
+import { goalProposalsForRisk } from "../services/concept-proposals";
+
+export { conceptKindFor };
 
 export interface RiskGoalClaimTabProps {
   risk: Risk;
@@ -74,21 +78,6 @@ export interface RiskGoalClaimTabProps {
   /** The risk's treatment justification (tab Mitigations) — a claim text to take over. */
   treatmentJustification: string;
   isoMode?: boolean;
-}
-
-/** Which object a treatment needs (decision 25). */
-export function conceptKindFor(treatment: RiskTreatment): "goal" | ClaimKind | "avoid" {
-  switch (treatment) {
-    case "reduce":
-      return "goal";
-    case "accept":
-      return "retain";
-    case "share":
-    case "transfer":
-      return "share";
-    case "eliminate":
-      return "avoid";
-  }
 }
 
 /** "AT-2.3" or the threat label, for "also on …". */
@@ -162,20 +151,7 @@ export const RiskGoalClaimTab: React.FC<RiskGoalClaimTabProps> = ({
     });
 
   // ── Goal proposals: asset × property the risk violates, with its formal description
-  const proposals: (AssetPropertyRef & { label: string; statement: string })[] = [];
-  for (const assetId of risk.linkedAssetIds ?? []) {
-    const asset = assetDataRef?.assets.find((a) => a.id === assetId);
-    for (const type of goalTypesFor(risk.strideCategory)) {
-      const goal = asset?.securityGoals?.find((g) => g.type === type && g.level !== "none");
-      if (!asset || !goal) continue;
-      proposals.push({
-        assetId,
-        property: type,
-        label: `${asset.displayId ?? ""} ${asset.name ?? ""} × ${type}`.trim(),
-        statement: goal.formalDescription ?? "",
-      });
-    }
-  }
+  const proposals = goalProposalsForRisk(risk, assetDataRef);
 
   const reuseCard = (item: CybersecurityGoal | CybersecurityClaim, onLink: () => void) => (
     <Paper key={item.id} variant="outlined" sx={{ p: 1 }} data-testid={`reuse-${item.displayId}`}>

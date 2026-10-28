@@ -207,3 +207,59 @@ export function unlinkClaim(concept: CybersecurityConcept, claimId: string, risk
 export function claimsOfRisk(concept: CybersecurityConcept | undefined, riskId: string): CybersecurityClaim[] {
   return (concept?.claims ?? []).filter((c) => c.riskIds.includes(riskId));
 }
+
+// ==================== MERGE / REMOVE (overall view) ====================
+
+const union = <T,>(a: readonly T[], b: readonly T[], key: (x: T) => string) => {
+  const seen = new Set(a.map(key));
+  return [...a, ...b.filter((x) => !seen.has(key(x)))];
+};
+
+/** Merge goal `fromId` into `intoId`: its risks and asset properties move over, it goes. */
+export function mergeGoals(concept: CybersecurityConcept, fromId: string, intoId: string): CybersecurityConcept {
+  const from = concept.goals.find((g) => g.id === fromId);
+  if (!from || fromId === intoId || !concept.goals.some((g) => g.id === intoId)) return concept;
+  return {
+    ...concept,
+    goals: concept.goals
+      .filter((g) => g.id !== fromId)
+      .map((g) =>
+        g.id === intoId
+          ? {
+              ...g,
+              riskIds: union(g.riskIds, from.riskIds, (x) => x),
+              assetProperties: union(g.assetProperties, from.assetProperties, (x) => `${x.assetId}:${x.property}`),
+            }
+          : g,
+      ),
+  };
+}
+
+/** Merge claim `fromId` into `intoId` (same kind only): risks and assumptions move over. */
+export function mergeClaims(concept: CybersecurityConcept, fromId: string, intoId: string): CybersecurityConcept {
+  const from = concept.claims.find((c) => c.id === fromId);
+  const into = concept.claims.find((c) => c.id === intoId);
+  if (!from || !into || fromId === intoId || from.kind !== into.kind) return concept;
+  return {
+    ...concept,
+    claims: concept.claims
+      .filter((c) => c.id !== fromId)
+      .map((c) =>
+        c.id === intoId
+          ? {
+              ...c,
+              riskIds: union(c.riskIds, from.riskIds, (x) => x),
+              assumptionIds: union(c.assumptionIds, from.assumptionIds, (x) => x),
+            }
+          : c,
+      ),
+  };
+}
+
+export function removeGoal(concept: CybersecurityConcept, id: string): CybersecurityConcept {
+  return { ...concept, goals: concept.goals.filter((g) => g.id !== id) };
+}
+
+export function removeClaim(concept: CybersecurityConcept, id: string): CybersecurityConcept {
+  return { ...concept, claims: concept.claims.filter((c) => c.id !== id) };
+}

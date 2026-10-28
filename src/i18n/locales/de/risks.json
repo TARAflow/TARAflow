@@ -92,6 +92,31 @@
         "riskValue": "Risiko (1–5)",
         "riskValueAfter": "Rest (1–5)"
       },
+      "goalsClaims": {
+        "button": "Goals & Claims",
+        "title": "Cybersecurity Goals und Claims",
+        "removedRisk": "entfernt ({{id}})",
+        "mergeInto": "Zusammenführen in …",
+        "openRisk": "Öffnen",
+        "proposals": "Vorgeschlagene Goals für Risiken ohne Goal",
+        "acceptProposal": "Goal für {{count}} Risiko/Risiken anlegen",
+        "goals": "Cybersecurity Goals",
+        "claims": "Cybersecurity Claims",
+        "remove": "Entfernen"
+      },
+      "conceptFindings": {
+        "goalMissing": "{{risk}}: Reduzieren ohne Cybersecurity Goal",
+        "claimMissing": "{{risk}}: Behalten / Teilen ohne Cybersecurity Claim",
+        "avoidUnjustified": "{{risk}}: Vermeiden ohne Begründung",
+        "treatmentMismatch": "{{risk}}: {{item}} passt nicht mehr zur Behandlung",
+        "emptyStatement": "{{item}} hat keine Aussage",
+        "noAssumption": "{{item}}: behalten ohne Annahme",
+        "noParty": "{{item}}: geteilt ohne tragende Partei",
+        "invalidAssumption": "{{item}} stützt sich auf {{list}}, als ungültig markiert",
+        "reviewOverdue": "{{item}}: Prüfdatum überschritten",
+        "removedRisk": "{{item}} ist mit einem Risiko verknüpft, das es nicht mehr gibt",
+        "unused": "{{item}} ist mit keinem Risiko verknüpft"
+      },
       "concept": {
         "usedOn": "verwendet bei {{list}}",
         "alsoOn": "auch bei {{list}} — eine Änderung gilt dort ebenfalls",
