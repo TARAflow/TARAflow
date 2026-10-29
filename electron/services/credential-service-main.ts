@@ -176,6 +176,38 @@ export class CredentialService {
     }
   }
 
+  // ==================== ISSUE TRACKERS ====================
+  // Keychain account "integration:<tool>:<host>:<account>" — host-bound
+  // (issue-tracker adapters design §3.1). Read only by the main process
+  // (integration-request.ts); there is no IPC that returns the secret.
+
+  async saveIntegrationToken(key: string, token: string): Promise<void> {
+    try {
+      await keytar.setPassword(SERVICE_NAME, key, token);
+    } catch (error) {
+      console.error("Failed to save integration token:", error);
+      throw new Error("Failed to save the token securely");
+    }
+  }
+
+  async getIntegrationToken(key: string): Promise<string | null> {
+    try {
+      return await keytar.getPassword(SERVICE_NAME, key);
+    } catch (error) {
+      console.error("Failed to retrieve integration token:", error);
+      return null;
+    }
+  }
+
+  async deleteIntegrationToken(key: string): Promise<boolean> {
+    try {
+      return await keytar.deletePassword(SERVICE_NAME, key);
+    } catch (error) {
+      console.error("Failed to delete integration token:", error);
+      return false;
+    }
+  }
+
   // ==================== UTILITY ====================
 
   /**

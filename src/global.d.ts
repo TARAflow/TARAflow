@@ -128,6 +128,34 @@ declare global {
         dfd1Xml: string,
         dfd2Xml: string,
       ) => Promise<{ success: boolean; error?: string }>;
+      /** Issue trackers — the main process holds and applies the token (adapters design §4.1). */
+      integration: {
+        saveToken: (ref: {
+          tool: string;
+          host: string;
+          account: string;
+          token: string;
+        }) => Promise<{ success: boolean; error?: string }>;
+        hasToken: (ref: {
+          tool: string;
+          host: string;
+          account: string;
+        }) => Promise<{ success: boolean; hasToken: boolean }>;
+        deleteToken: (ref: {
+          tool: string;
+          host: string;
+          account: string;
+        }) => Promise<{ success: boolean }>;
+        request: (req: {
+          tool: string;
+          host: string;
+          account: string;
+          method: "GET" | "POST" | "PUT";
+          path: string;
+          body?: unknown;
+          headers?: Record<string, string>;
+        }) => Promise<{ ok: boolean; status: number; data: unknown; error?: string }>;
+      };
       jiraRequest: (config: { url: string; options: any }) => Promise<any>;
       jira: {
         saveToken: (

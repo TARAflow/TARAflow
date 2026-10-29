@@ -212,6 +212,24 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("drawio:setPageTabInfo", info),
   injectDrawioLibraries: (dfd1Xml: string, dfd2Xml: string) =>
     ipcRenderer.invoke("drawio:injectLibraries", dfd1Xml, dfd2Xml),
+  // Issue trackers (adapters design §4.1): token in the main process only.
+  integration: {
+    saveToken: (ref: { tool: string; host: string; account: string; token: string }) =>
+      ipcRenderer.invoke("integration:saveToken", ref),
+    hasToken: (ref: { tool: string; host: string; account: string }) =>
+      ipcRenderer.invoke("integration:hasToken", ref),
+    deleteToken: (ref: { tool: string; host: string; account: string }) =>
+      ipcRenderer.invoke("integration:deleteToken", ref),
+    request: (req: {
+      tool: string;
+      host: string;
+      account: string;
+      method: string;
+      path: string;
+      body?: unknown;
+      headers?: Record<string, string>;
+    }) => ipcRenderer.invoke("integration:request", req),
+  },
   jiraRequest: (config: { url: string; options: any }) =>
     ipcRenderer.invoke("jira:request", config),
   jira: {

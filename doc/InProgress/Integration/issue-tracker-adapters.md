@@ -129,9 +129,27 @@ every tracker; adapters only map their native fields to `TicketState`.
 - Changes through `onUpdate`; nothing kept only in local state.
 - A mitigation set to `rejected` by its ticket shows the ticket as the reason.
 
-### 4.4 Integration tab
+### 4.4 Integration tab — one tab, one form (user 2026-10-29)
 
-- Jira only in 0.16: URL, e-mail, API token, connection test, project cards. No OAuth.
+Authentication is the same everywhere in substance — instance URL, for some trackers a
+user, and a secret; trackers differ only in the fields and the header scheme. So there is
+**one** Integration tab with a tracker selector and **one** form built from a description
+per tracker (`shared/models/issue-trackers.ts`: label, host label / default host, user
+field, secret label, header scheme). The main process takes the header scheme from the
+same description. A new tracker in 0.17 is a row there plus its adapter — no new tab, no
+new form; the per-tracker tabs and forms (`jira-config.tsx`, `ado-config.tsx`) go.
+
+| Tracker | Fields | Header (main process) |
+|---|---|---|
+| Jira Cloud | URL, e-mail, API token | `Basic base64(email:token)` |
+| Jira Server / DC | URL, PAT | `Bearer <pat>` |
+| Azure DevOps | organization URL, PAT | `Basic base64(:pat)` |
+| GitHub | API URL (default api.github.com), PAT | `Bearer <pat>` |
+| GitLab | URL, PAT | `PRIVATE-TOKEN: <pat>` |
+| Polarion | URL, token | `Bearer <token>` |
+| OpenProject | URL, API key | `Basic base64(apikey:key)` |
+
+- 0.16: Jira Cloud selectable; the others listed with "from 0.17". No OAuth.
 - After the update with an old keychain entry: "Run the connection test once — the token
   is now bound to this Jira instance."
 
@@ -139,8 +157,8 @@ every tracker; adapters only map their native fields to `TicketState`.
 
 | Step | Content | Patch | Status |
 |---|---|---|---|
-| IT-1 | Main process: `integration:*` channel and keychain (host-bound, allowlist, auth set in main), preload / types; old `jira:*` channels removed | – | open |
-| IT-2 | `TicketAdapter`, factory, `JiraAdapter` (from both Jira services), status from category + resolution; old services, OAuth and ADO stub removed | – | open |
+| IT-1 | Main process: `integration:saveToken / hasToken / deleteToken / request` (`electron/ipc/integration-handlers.ts`, `electron/services/integration-request.ts`): keychain `integration:<tool>:<host>:<account>`, https origin only, path on that host, GET / POST / PUT, renderer headers filtered (no Authorization / Cookie), auth header set in main from the tracker description, redirects not followed; tracker descriptions (`shared/models/issue-trackers.ts`, §4.4); preload and `electronAPI.integration` types. No handler returns a token. | 203 | done |
+| IT-2 | `TicketAdapter`, factory, `JiraAdapter` (from both Jira services) on the new channel, status from category + resolution; removed with their callers: the `jira:*` channels and preload bridges, the old Jira services, OAuth (services, hook, deep-link handler `electron/oauth-handler.ts`) and the ADO stub | – | open |
 | IT-3 | Sync: `applyTicketStates` (decision 2), batch, on open + "Sync now", persisted; intervals removed | – | open |
 | IT-4 | Integration tab: Jira form without OAuth, re-test notice; Risk tab and status dialog on the adapter | – | open |
 | IT-5 | Tests across the chain, CHANGELOG / release note (users must run the connection test once) | – | open |
