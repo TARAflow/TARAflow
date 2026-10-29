@@ -9,60 +9,17 @@
 
 import type { MitigationStatus } from "./risk-mitigation-types";
 
-// ==================== TICKET STATUS ====================
-
-/**
- * Status of an external ticket (Jira / ADO).
- * Mirrored here to avoid cross-feature import from integration feature.
- */
-export type TicketStatus =
-  | "OPEN"
-  | "IN_PROGRESS"
-  | "REVIEW"
-  | "CLOSED"
-  | "UNKNOWN";
-
-// ==================== TICKET SUMMARY ====================
-
-/**
- * Compact ticket info returned when listing existing tickets
- * (e.g. via fetchJiraTickets).
- */
-export interface TicketSummary {
-  key: string;
-  summary: string;
-  status: string;
-  ticketStatus: TicketStatus;
-  issueType: string;
-  issueTypeIconUrl?: string;
-  assignee?: string;
-  assigneeAvatarUrl?: string;
-  priority?: string;
-  priorityIconUrl?: string;
-  /** Sprint name — undefined means Backlog */
-  sprint?: string;
-  url: string;
-}
-
-// ==================== TICKET CREATION ====================
-
-export interface CreateTicketInput {
-  projectKey: string;
-  issueType: string;
-  summary: string;
-  description: string;
-  priority?: string;
-  labels?: string[];
-}
-
-export interface CreateTicketResult {
-  success: boolean;
-  /** Created ticket key, e.g. "SCRUM-42" */
-  ticketId?: string;
-  /** Direct URL to the created ticket */
-  ticketUrl?: string;
-  error?: string;
-}
+// ==================== TICKET TYPES ====================
+// In shared (adapters design §4.2) so that the integration feature and this
+// one share them without importing each other; re-exported here.
+import type { TicketStatus } from "shared/models/ticket-types";
+import type { IssueTrackerId } from "shared/models/issue-trackers";
+export type {
+  TicketStatus,
+  TicketSummary,
+  CreateTicketInput,
+  CreateTicketResult,
+} from "shared/models/ticket-types";
 
 // ==================== TICKET SYNC ====================
 
@@ -120,6 +77,8 @@ export function mapTicketStatusToMitigationStatus(
     IN_PROGRESS: "in_progress",
     REVIEW:      "in_review",
     CLOSED:      "implemented",
+    // closed without the fix (adapters design §3.2)
+    DECLINED:    "rejected",
     UNKNOWN:     null,
   };
   return mapping[ticketStatus] ?? null;
@@ -133,7 +92,7 @@ export function mapTicketStatusToMitigationStatus(
  * Populated from IntegrationConnection when passed as prop to RiskMitigationStatusDialog.
  */
 export interface RiskIntegrationConnection {
-  tool: "jira" | "azure-devops";
+  tool: IssueTrackerId;
   status: "connected" | "disconnected" | "error" | "testing";
   projectName?: string;
   credentials?: {

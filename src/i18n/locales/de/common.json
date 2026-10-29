@@ -897,5 +897,18 @@
     "irreversible_major": "Irreversibel, schwer",
     "fatal": "Tödlich",
     "tooltip": "Safety: {{severity}}"
+  },
+  "integration": {
+    "title": "Issue-Tracker",
+    "intro": "Verbinde einen Issue-Tracker, um für Massnahmen Tickets anzulegen und ihren Status zu verfolgen. Das Token liegt im Schlüsselbund des Betriebssystems, gebunden an diese Tracker-Adresse — nie in der Projektdatei.",
+    "retest": "Bitte einmal den Verbindungstest ausführen — das Token ist jetzt an diese Tracker-Adresse gebunden und muss neu eingegeben werden.",
+    "connected": "Verbunden mit {{tracker}} — Projekt {{project}} ({{host}}, {{account}})",
+    "tracker": "Tracker",
+    "from": "ab {{version}}",
+    "secretHelp": "Wird nur für diese Adresse im Schlüsselbund gespeichert.",
+    "test": "Verbindung testen",
+    "disconnect": "Trennen",
+    "project": "Projekt",
+    "projectHint": "Verbindungstest erneut ausführen, um ein anderes Projekt zu wählen."
   }
 }

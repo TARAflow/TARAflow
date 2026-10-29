@@ -1,114 +1,80 @@
 // ==================== INTEGRATION TYPES ====================
-// Types for external ticketing system integration (Azure DevOps, Jira)
+// The issue-tracker connection as stored in the project (`project.integration`)
+// — never a secret: the token lives in the OS keychain of the main process,
+// bound to tool + host + account (adapters design
+// doc/InProgress/Integration/issue-tracker-adapters.md §3.1). Tracker
+// descriptions: shared/models/issue-trackers.ts.
 
-// ==================== TOOL TYPES ====================
+import type { IssueTrackerId } from "shared/models/issue-trackers";
 
-export type IntegrationTool = "azure-devops" | "jira";
+export type { TicketStatus } from "shared/models/ticket-types";
+
+export type IntegrationTool = IssueTrackerId;
 
 export type ConnectionStatus = "disconnected" | "connected" | "error" | "testing";
 
-export type AuthMethod = "pat" | "oauth";
+/** Only tokens / personal access tokens (OAuth removed, design §3.4). */
+export type AuthMethod = "pat";
 
-// ==================== CREDENTIAL TYPES ====================
-
-export interface AzureDevOpsCredentials {
-  authMethod: AuthMethod;
-  // OAuth
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: string;
-  // PAT
-  organizationUrl: string;
-  personalAccessToken?: string;
-  projectName?: string;
-}
-
-export interface JiraCredentials {
-  authMethod: AuthMethod;
+/** What the project stores about a connection — no secret (prepareForDisk strips any). */
+export interface TrackerCredentials {
+  /** Older files may carry "oauth"; such a connection needs a new connection test. */
+  authMethod?: string;
+  /** The tracker's https origin (the token is bound to it). */
   baseUrl: string;
+  /** The user the token belongs to (Jira Cloud: e-mail); absent for token-only trackers. */
   email?: string;
-  /**
-   * Jira account ID — used as keychain key for secure token storage.
-   * Retrieved from /rest/api/3/myself after successful authentication.
-   * Never store apiToken here — use window.electronAPI.jira.getToken(accountId).
-   */
+  /** Tracker-side account id (Jira), for display. */
   accountId?: string;
-  // OAuth fields
-  accessToken?: string;
-  refreshToken?: string;
-  cloudId?: string;
-  expiresAt?: string;
-  // Project selection
+  /** Selected project. */
   projectKey?: string;
 }
 
-export type ToolCredentials = AzureDevOpsCredentials | JiraCredentials;
-
-// ==================== CONNECTION TYPES ====================
+/** Kept for the Risk tab until IT-3 moves it onto the adapter. */
+export type JiraCredentials = TrackerCredentials;
 
 export interface IntegrationConnection {
   tool: IntegrationTool;
   status: ConnectionStatus;
-  credentials: ToolCredentials | null;
+  credentials: TrackerCredentials | null;
   lastTested?: string; // ISO timestamp
   lastError?: string;
-  projectId?: string; // Selected project/board ID
-  projectName?: string; // Selected project/board name
+  projectId?: string;
+  projectName?: string;
 }
 
-// ==================== PROJECT/BOARD TYPES ====================
-
-export interface AzureDevOpsProject {
+export interface IssueType {
   id: string;
   name: string;
-  description?: string;
-  url: string;
+  iconUrl?: string;
 }
 
-export interface JiraProject {
+/** A tracker project as shown on the project cards. */
+export interface TrackerProject {
   id: string;
   key: string;
   name: string;
-  projectTypeKey: string;
-  // Rich details (loaded via expand=insight,description)
+  projectTypeKey?: string;
   description?: string;
-  avatarUrl?: string; // 48x48 icon URL
-  lead?: {
-    displayName: string;
-    avatarUrl?: string;
-  };
-  insight?: {
-    totalIssueCount: number;
-    lastIssueUpdateTime?: string;
-  };
-  issueTypes?: Array<{
-    id: string;
-    name: string;
-    iconUrl?: string;
-  }>;
+  avatarUrl?: string;
+  lead?: { displayName: string; avatarUrl?: string };
+  insight?: { totalIssueCount: number; lastIssueUpdateTime?: string };
+  issueTypes?: IssueType[];
 }
 
-export type ExternalProject = AzureDevOpsProject | JiraProject;
-
-// ==================== MAPPING CONFIGURATION ====================
+/** Kept for the Risk tab until IT-3. */
+export type JiraProject = TrackerProject;
 
 export interface TicketMapping {
-  // MoSCoW to Priority mapping
-  mustPriority: string; // e.g., "1" (ADO) or "High" (Jira)
+  mustPriority: string;
   shouldPriority: string;
   couldPriority: string;
   wontPriority: string;
-
-  // Work item / issue type
-  workItemType: string; // e.g., "Bug", "Task", "Story"
-
-  // Default values
+  workItemType: string; // e.g. "Task", "Bug", "Story"
   defaultAssignee?: string;
   defaultLabels?: string[];
   defaultTags?: string[];
 }
-
-// ==================== INTEGRATION DATA ====================
 
 export interface IntegrationData {
   connection: IntegrationConnection | null;
@@ -116,31 +82,16 @@ export interface IntegrationData {
   lastSync?: string; // ISO timestamp of last sync
 }
 
-// ==================== TICKET STATUS ====================
-
-export type TicketStatus = "OPEN" | "IN_PROGRESS" | "REVIEW" | "CLOSED" | "UNKNOWN";
-
-export interface TicketInfo {
-  id: string; // Work Item ID (ADO) or Issue Key (Jira)
-  url: string; // Direct link to ticket
-  status: TicketStatus;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ==================== API RESPONSE TYPES ====================
-
-export interface ConnectionTestResult {
-  success: boolean;
-  message: string;
-  projects?: ExternalProject[];
-}
-
-export interface TicketCreationResult {
-  success: boolean;
-  ticket?: TicketInfo;
-  error?: string;
+/** Default ticket mapping of a new connection. */
+export function defaultTicketMapping(_tool: IntegrationTool): TicketMapping {
+  return {
+    mustPriority: "High",
+    shouldPriority: "Medium",
+    couldPriority: "Low",
+    wontPriority: "Lowest",
+    workItemType: "Task",
+    defaultLabels: ["security", "threat-model"],
+  };
 }
 
 // ==================== COMPONENT PROPS ====================

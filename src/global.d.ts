@@ -1,12 +1,5 @@
 // ==================== TYPES ====================
 
-export interface OAuthCallbackData {
-  code?: string;
-  state?: string;
-  error?: string;
-  errorDescription?: string;
-}
-
 // Import types for Git and Credentials
 import type {
   GitStatus,
@@ -26,10 +19,6 @@ declare global {
     electron?: {
       shell: {
         openExternal: (url: string) => Promise<void>;
-      };
-      oauth?: {
-        onCallback: (callback: (data: OAuthCallbackData) => void) => void;
-        removeCallback: () => void;
       };
       file?: {
         saveDialog: (

@@ -27,7 +27,7 @@ console.log("Browser zoom disabled, draw.io can handle its own zoom");
 
 // ==================== EXPOSE ELECTRON APIs ====================
 
-// NOTE: window.electron carries only shell / oauth / file / metadata — exactly
+// NOTE: window.electron carries only shell / file / metadata — exactly
 // the shape declared in global.d.ts. Git and credentials moved to their own
 // bridges below (window.git / window.credentials) so they match the renderer
 // services (git-service-renderer.ts, credential-service-renderer.ts). Before
@@ -40,15 +40,6 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.invoke("shell:openExternal", url),
   },
 
-  // OAuth API (für Deep Link Callbacks)
-  oauth: {
-    onCallback: (callback: (data: any) => void) => {
-      ipcRenderer.on("oauth-callback", (_, data) => callback(data));
-    },
-    removeCallback: () => {
-      ipcRenderer.removeAllListeners("oauth-callback");
-    },
-  },
 
   // File I/O API
   file: {

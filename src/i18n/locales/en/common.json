@@ -899,5 +899,18 @@
     "irreversible_major": "Irreversible, major",
     "fatal": "Fatal",
     "tooltip": "Safety: {{severity}}"
+  },
+  "integration": {
+    "title": "Issue tracker",
+    "intro": "Connect an issue tracker to create tickets for mitigations and follow their status. The token is kept in the OS keychain, bound to this tracker address — never in the project file.",
+    "retest": "Run the connection test once — the token is now bound to this tracker address and has to be entered again.",
+    "connected": "Connected to {{tracker}} — project {{project}} ({{host}}, {{account}})",
+    "tracker": "Tracker",
+    "from": "from {{version}}",
+    "secretHelp": "Stored in the OS keychain for this address only.",
+    "test": "Test connection",
+    "disconnect": "Disconnect",
+    "project": "Project",
+    "projectHint": "Run the connection test again to choose another project."
   }
 }

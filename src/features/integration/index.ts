@@ -1,34 +1,27 @@
 // ==================== INTEGRATION FEATURE ====================
-// Public exports for external ticketing system integration
+// Issue-tracker connection and adapters (design
+// doc/InProgress/Integration/issue-tracker-adapters.md).
 
-// Components
 export { IntegrationTab } from "./components/integration-tab";
-export { AdoConfig } from "./components/ado-config";
-export { JiraConfig } from "./components/jira-config";
 
-// Types
 export type {
   IntegrationTool,
   ConnectionStatus,
   AuthMethod,
-  AzureDevOpsCredentials,
+  TrackerCredentials,
   JiraCredentials,
-  ToolCredentials,
   IntegrationConnection,
-  AzureDevOpsProject,
+  IssueType,
+  TrackerProject,
   JiraProject,
-  ExternalProject,
   TicketMapping,
   IntegrationData,
   TicketStatus,
-  TicketInfo,
-  ConnectionTestResult,
-  TicketCreationResult,
   IntegrationTabData,
   IntegrationTabProps,
 } from "./models/integration-types";
+export { defaultTicketMapping } from "./models/integration-types";
 
-// Services
-export * as integrationService from "./services/integration-service";
-export * as adoService from "./services/ado-service";
-export * as jiraService from "./services/jira-service";
+export type { TicketAdapter, ConnectionTestOutcome } from "./adapters/ticket-adapter";
+export type { TrackerRef } from "./adapters/tracker-channel";
+export { createTicketAdapter, trackerRefOf } from "./adapters/create-ticket-adapter";
