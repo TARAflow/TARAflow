@@ -22,6 +22,7 @@ import type {
 } from "features/threats";
 import type { DFDData } from "features/dfd";
 import type { ControlInstance, MitigationPropertyRole } from "shared";
+import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import { mitigationFitsInterface } from "shared/utils/control-applicability";
 
@@ -269,8 +270,10 @@ export function deriveControlInstances(
           effect.expectedValue,
         );
 
+        const done = DONE_MITIGATION_STATUSES.includes(mitigation.status);
         const existing = instances.get(key);
         if (existing) {
+          if (done) existing.planned = false;
           // Keep "implemented" if any source sees it as already satisfied
           if (status === "implemented") existing.status = "implemented";
           // Deduplicate: merge source tracking arrays
@@ -295,6 +298,7 @@ export function deriveControlInstances(
             coversMitigationIds: [mitigationId],
             coversRiskIds: [risk.id],
             coversThreatIds: [risk.threatId],
+            planned: !done,
           });
         }
       }

@@ -71,6 +71,7 @@ type NotificationType =
   | "error"
   | "warning"
   | "info"
+  | "planned"
   | "security"
   | "drift"
   | "conflict";
@@ -87,8 +88,15 @@ interface ValidationNotification extends BaseNotification {
   elementId?: string;
 }
 
+/**
+ * One row per unmet SHOULD (closed-loop review CL-2, decision 1):
+ *   planned   every mitigation behind it is only planned → information
+ *   security  marked done, the DFD does not show it → warning
+ *   conflict  marked done, the DFD holds another value → error
+ * All three offer Apply.
+ */
 interface SecurityNotification extends BaseNotification {
-  type: "security";
+  type: "planned" | "security" | "conflict";
   /** Stable DFD element or connection ID — used for onApply */
   elementId: string;
   /** True when elementId refers to a DFDConnection, false for DFDElement */
@@ -101,8 +109,11 @@ interface SecurityNotification extends BaseNotification {
   inferenceConfidence: "deterministic" | "heuristic";
   coversMitigationIds: string[];
   coversRiskIds: string[];
+  /** conflict only */
+  conflictDetail?: SecurityDrift["conflictDetail"];
 }
 
+/** Applied, then reverted — a warning whatever the status. */
 interface DriftNotification extends BaseNotification {
   type: "drift" | "conflict";
   elementId: string;
@@ -191,6 +202,7 @@ function buildNotifications(
   if (controlInstances.length > 0) {
     const elementById = new Map(elements.map((e) => [e.id, e]));
     const connectionById = new Map(connections.map((c) => [c.id, c]));
+    const driftByKey = new Map(securityDrifts.map((d) => [d.instanceKey, d]));
 
     for (const instance of controlInstances) {
       const element = elementById.get(instance.elementId);
@@ -209,9 +221,27 @@ function buildNotifications(
         continue;
       }
 
+      // One row per instance (CL-2): drift, else planned / conflict / missing.
+      const drift = driftByKey.get(instance.instanceKey);
+      if (drift?.status === "drift") {
+        notifications.push({
+          key: `drift:${instance.instanceKey}`,
+          type: "drift",
+          elementId: instance.elementId,
+          elementDisplayId: target.displayId,
+          elementName: target.name,
+          property: instance.property,
+          currentValue,
+          expectedValue: instance.expectedValue,
+          recordedValue: drift.recordedValue,
+        });
+        continue;
+      }
+
+      const conflict = drift?.status === "conflict";
       notifications.push({
         key: instance.instanceKey,
-        type: "security",
+        type: instance.planned ? "planned" : conflict ? "conflict" : "security",
         elementId: instance.elementId,
         isConnection,
         elementDisplayId: target.displayId,
@@ -222,31 +252,9 @@ function buildNotifications(
         inferenceConfidence: instance.inferenceConfidence,
         coversMitigationIds: instance.coversMitigationIds,
         coversRiskIds: instance.coversRiskIds,
+        ...(conflict && !instance.planned ? { conflictDetail: drift?.conflictDetail } : {}),
       });
     }
-  }
-
-  // Drift / conflict notifications from SecurityDrift
-  for (const drift of securityDrifts) {
-    if (drift.status === "aligned" || drift.status === "missing") continue;
-
-    const el = elements.find((e) => e.id === drift.elementId);
-    const conn = connections.find((c) => c.id === drift.elementId);
-    if (!el && !conn) continue;
-    const target = el ?? conn!;
-
-    notifications.push({
-      key: `${drift.status}:${drift.instanceKey}`,
-      type: drift.status === "conflict" ? "conflict" : "drift",
-      elementId: drift.elementId,
-      elementDisplayId: target.displayId,
-      elementName: target.name,
-      property: drift.property,
-      currentValue: drift.currentValue,
-      expectedValue: drift.expectedValue,
-      recordedValue: drift.recordedValue,
-      conflictDetail: drift.conflictDetail,
-    });
   }
 
   return notifications;
@@ -371,8 +379,9 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   );
 
   const filteredNotifications = useMemo(() => {
+    // Information — validation notes and planned controls — stays out of "all".
     if (activeFilter === "all")
-      return notifications.filter((n) => n.type !== "info");
+      return notifications.filter((n) => n.type !== "info" && n.type !== "planned");
     if (activeFilter === "error")
       return notifications.filter(
         (n) => n.type === "error" || n.type === "conflict",
@@ -382,9 +391,11 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
         (n) => n.type === "warning" || n.type === "drift",
       );
     if (activeFilter === "info")
-      return notifications.filter((n) => n.type === "info");
+      return notifications.filter((n) => n.type === "info" || n.type === "planned");
     if (activeFilter === "security")
-      return notifications.filter((n) => n.type === "security");
+      return notifications.filter(
+        (n) => n.type === "security" || n.type === "conflict" || n.type === "planned",
+      );
     return notifications;
   }, [notifications, activeFilter]);
 
@@ -393,6 +404,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   const errorCount = notifications.filter((n) => n.type === "error").length;
   const warningCount = notifications.filter((n) => n.type === "warning").length;
   const infoCount = notifications.filter((n) => n.type === "info").length;
+  const plannedCount = notifications.filter((n) => n.type === "planned").length;
   const securityCount = notifications.filter(
     (n) => n.type === "security",
   ).length;
@@ -471,7 +483,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
       >
         <Typography variant="body2" fontWeight={600} sx={{ flexGrow: 1 }}>
           {t("tabs.dfd.notifications.title", {
-            count: notifications.length - infoCount,
+            count: notifications.length - infoCount - plannedCount,
             defaultValue: "{{count}} notification(s)",
           })}
         </Typography>
@@ -529,6 +541,25 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
               sx={{ height: 22, fontSize: "0.82rem" }}
             />
           )}
+          {plannedCount > 0 && (
+            <Chip
+              data-testid="dfd-notification-planned-toggle"
+              icon={<SecurityIcon sx={{ fontSize: "0.95rem !important" }} />}
+              label={t("tabs.dfd.notifications.plannedCount", {
+                count: plannedCount,
+                defaultValue: "{{count}} planned",
+              })}
+              size="small"
+              color="info"
+              variant={activeFilter === "info" ? "filled" : "outlined"}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(true);
+                setActiveFilter((f) => (f === "info" ? "all" : "info"));
+              }}
+              sx={{ height: 22, fontSize: "0.82rem" }}
+            />
+          )}
           {driftCount > 0 && (
             <Chip
               label={`${driftCount} drift`}
@@ -569,7 +600,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
           >
             <MenuItem value="all" sx={{ fontSize: "0.85rem" }}>
               {t("tabs.dfd.notifications.filter.all", { defaultValue: "All" })}{" "}
-              ({notifications.length - infoCount})
+              ({notifications.length - infoCount - plannedCount})
             </MenuItem>
             {errorCount + conflictCount > 0 && (
               <MenuItem value="error" sx={{ fontSize: "0.85rem" }}>
@@ -587,20 +618,20 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
                 ({warningCount + driftCount})
               </MenuItem>
             )}
-            {infoCount > 0 && (
+            {infoCount + plannedCount > 0 && (
               <MenuItem value="info" sx={{ fontSize: "0.85rem" }}>
                 {t("tabs.dfd.notifications.filter.infos", {
                   defaultValue: "Notes",
                 })}{" "}
-                ({infoCount})
+                ({infoCount + plannedCount})
               </MenuItem>
             )}
-            {securityCount > 0 && (
+            {securityCount + conflictCount + plannedCount > 0 && (
               <MenuItem value="security" sx={{ fontSize: "0.85rem" }}>
                 {t("tabs.dfd.notifications.filter.apply", {
                   defaultValue: "Apply",
                 })}{" "}
-                ({securityCount})
+                ({securityCount + conflictCount + plannedCount})
               </MenuItem>
             )}
           </Select>
@@ -629,7 +660,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
                 translateMessage={translateMessage}
                 onSelectCell={onSelectCell}
               />
-            ) : n.type === "drift" || n.type === "conflict" ? (
+            ) : n.type === "drift" ? (
               <DriftRow key={n.key} notification={n as DriftNotification} />
             ) : (
               <SecurityRow
@@ -746,6 +777,23 @@ const SecurityRow: React.FC<SecurityRowProps> = ({
   }, [notification.coversMitigationIds]);
 
   const additionalCount = notification.coversMitigationIds.length - 1;
+  const planned = notification.type === "planned";
+  const conflict = notification.type === "conflict";
+  const kindTooltip = planned
+    ? t("tabs.dfd.notifications.plannedTooltip", {
+        defaultValue: "Planned mitigation (open / in progress) — not yet in the DFD",
+      })
+    : conflict
+      ? notification.conflictDetail?.isManualOverride
+        ? t("tabs.dfd.notifications.conflict.doneOther", {
+            defaultValue: "Mitigation marked implemented, but the DFD holds another value",
+          })
+        : t("tabs.dfd.notifications.conflict.staleRecord", {
+            defaultValue: "Applied value no longer matches current requirement",
+          })
+      : t("tabs.dfd.notifications.doneMissing", {
+          defaultValue: "Mitigation marked implemented, but the DFD does not show it",
+        });
 
   const handleApply = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -773,16 +821,31 @@ const SecurityRow: React.FC<SecurityRowProps> = ({
         borderBottom: "1px solid",
         borderColor: "divider",
         "&:last-child": { borderBottom: "none" },
-        bgcolor: "warning.50",
+        bgcolor: planned ? "grey.50" : conflict ? "error.50" : "warning.50",
         flexWrap: "nowrap",
         minWidth: 0,
         cursor: notification.elementId ? "pointer" : "default",
         "&:hover": notification.elementId ? { filter: "brightness(0.96)" } : {},
       }}
     >
-      <SecurityIcon
-        sx={{ fontSize: 18, color: "warning.dark", flexShrink: 0 }}
-      />
+      <Tooltip title={kindTooltip} placement="top">
+        {conflict ? (
+          <ErrorOutlineIcon sx={{ fontSize: 18, color: "error.main", flexShrink: 0 }} />
+        ) : (
+          <SecurityIcon
+            sx={{ fontSize: 18, color: planned ? "info.main" : "warning.dark", flexShrink: 0 }}
+          />
+        )}
+      </Tooltip>
+      {planned && (
+        <Chip
+          label={t("tabs.dfd.notifications.planned", { defaultValue: "planned" })}
+          size="small"
+          color="info"
+          variant="outlined"
+          sx={{ height: 20, fontSize: "0.72rem", flexShrink: 0 }}
+        />
+      )}
 
       <Chip
         label={notification.elementDisplayId}

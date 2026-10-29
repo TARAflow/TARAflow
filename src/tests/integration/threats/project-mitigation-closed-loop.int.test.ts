@@ -87,10 +87,11 @@ describe("project mitigation in the closed loop (SmokeDetector)", () => {
     expect(computeAllMitigationCoverage(["M-C-001"], threat, dfd, getAllMitigations()).get("M-C-001")?.fullyImplemented).toBe(false);
   });
 
-  it("another value already set (the fixture's 'basic'): today a 'conflict' — to be reviewed in the closed-loop step", () => {
+  it("a weaker value already set (the fixture's 'basic'): drift 'conflict'; the panel shows it as information while the mitigation is only planned (closed-loop CL-2)", () => {
     const { threats, risks, dfd } = setup("basic");
     const instances = deriveControlInstances(threats, risks, dfd, getAllMitigations());
     expect(computeSecurityDrifts(instances, dfd).map((d) => [d.status, d.currentValue])).toEqual([["conflict", "basic"]]);
+    expect(instances.map((i) => i.planned)).toEqual([true]);
   });
 
   it("set in the DFD: implemented, aligned, covered", () => {

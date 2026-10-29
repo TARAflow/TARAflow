@@ -50,7 +50,18 @@ export interface ControlInstance {
 
   /** All threat IDs whose mitigations produced this control */
   coversThreatIds: string[];
+
+  /**
+   * Closed-loop review CL-2 (decision 1): true while every mitigation behind
+   * this control is only planned (open / in_progress). Then an unmet SHOULD is
+   * information ("planned, not yet in the DFD"), not a warning. false as soon
+   * as one of them is marked in_review / implemented / verified.
+   */
+  planned: boolean;
 }
+
+/** Mitigation statuses that claim the control is in place (decision 1; in_review counts [D]). */
+export const DONE_MITIGATION_STATUSES: readonly string[] = ["in_review", "implemented", "verified"];
 
 // ==================== HELPERS ====================
 
