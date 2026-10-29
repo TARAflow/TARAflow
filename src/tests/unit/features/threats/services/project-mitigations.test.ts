@@ -12,7 +12,10 @@ import {
   nextProjectMitigationId,
   removeProjectMitigation,
   updateProjectMitigation,
+  effectVocabulary,
+  projectEffect,
 } from "features/threats/services/project-mitigations";
+import { mergeProposedMitigations } from "features/threats/services/threat-identity";
 import {
   getAllMitigations,
   getLocalizedMitigation,
@@ -22,7 +25,11 @@ import {
 } from "features/threats/services/threat-catalog-service";
 import { DEFAULT_THREAT_CONFIGURATION, type ProjectMitigation } from "features/threats/models/threat-types";
 import { deriveControlInstances } from "app/hooks/use-control-instance-derivation";
-import { projectMitigationUsage, isProjectMitigationUsed } from "app/services/project-mitigation-usage";
+import {
+  projectMitigationUsage,
+  isProjectMitigationUsed,
+  mergeProjectMitigationRefs,
+} from "app/services/project-mitigation-usage";
 import { DiffService } from "features/audit/services/diff-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,5 +129,52 @@ describe("usage and audit", () => {
     const changed = updateProjectMitigation(configuration, "M-C-001", { text: "Other" });
     const modified = svc.detectChanges({ ...base, threats: threats(changed) }, { ...base, threats: threats(configuration) });
     expect(modified[0].changes[0]).toMatchObject({ type: "modified", description: "Project mitigation modified: 1 field(s) changed" });
+  });
+});
+
+describe("CM-3: effect vocabulary, regeneration, merge", () => {
+  it("the vocabulary is the built-in catalog's target / property / values; project entries do not extend it", () => {
+    const vocab = effectVocabulary([
+      ...getAllMitigations(),
+      { isCustom: true, affectsProperties: [{ targetType: "Process", property: "madeUp", expectedValue: 1, confidence: "heuristic" }] },
+    ] as Any);
+    const enc = vocab.find((v) => v.targetType === "DataFlow" && v.property === "encryptionInTransit");
+    expect(enc?.values).toEqual(expect.arrayContaining(["tls", "vpn"]));
+    expect(vocab.some((v) => v.property === "madeUp")).toBe(false);
+    expect(projectEffect({ targetType: "DataFlow", role: "channel", property: "encryptionInTransit" }, "tls")).toEqual({
+      targetType: "DataFlow",
+      role: "channel",
+      property: "encryptionInTransit",
+      expectedValue: "tls",
+      confidence: "heuristic",
+    });
+  });
+
+  it("a project mitigation on a generated threat survives regeneration", () => {
+    expect(mergeProposedMitigations([{ id: "M-S-001" }, { id: "M-C-001" }, { notes: "free" }], [{ id: "M-S-001" }])).toEqual([
+      { id: "M-S-001" },
+      { id: "M-C-001" },
+      { notes: "free" },
+    ]);
+  });
+
+  it("merge rewrites threats, risks and attack trees, keeps one, drops the entry", () => {
+    const project: Any = {
+      threats: {
+        configuration: { customMitigations: [{ id: "M-C-001" }, { id: "M-C-002" }] },
+        perElementTables: [{ threats: [{ proposedMitigations: [{ id: "M-C-001", notes: "n" }] }, { proposedMitigations: [{ id: "M-C-001" }, { id: "M-C-002" }] }] }],
+        perInteractionTables: [],
+      },
+      risks: { risks: [{ selectedMitigations: [{ id: "M-C-001", status: "open" }] }] },
+      attackTrees: { trees: [{ dsl: "a [M-C-001]", pathAssessments: [{ mitigationIds: ["M-C-001", "M-C-002"] }] }] },
+    };
+    const out: Any = mergeProjectMitigationRefs(project, "M-C-001", "M-C-002");
+    expect(out.threats.configuration.customMitigations).toEqual([{ id: "M-C-002" }]);
+    expect(out.threats.perElementTables[0].threats.map((t: Any) => t.proposedMitigations)).toEqual([
+      [{ id: "M-C-002", notes: "n" }],
+      [{ id: "M-C-002" }],
+    ]);
+    expect(out.risks.risks[0].selectedMitigations).toEqual([{ id: "M-C-002", status: "open" }]);
+    expect(out.attackTrees.trees[0]).toMatchObject({ dsl: "a [M-C-002]", pathAssessments: [{ mitigationIds: ["M-C-002"] }] });
   });
 });

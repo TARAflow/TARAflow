@@ -16,6 +16,7 @@ import {
   getLocalizedVerification,
 } from "../../services/threat-catalog-service";
 import { catalogMatchFor } from "../../services/catalog-draft-ops";
+import { isProjectMitigationId } from "../../services/project-mitigations";
 import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
 
 interface CatalogEntryPickerProps {
@@ -24,6 +25,8 @@ interface CatalogEntryPickerProps {
   /** Catalog ids already on the threat. */
   presentIds: readonly (string | undefined)[];
   onPick: (id: string) => void;
+  /** "project": only project mitigations M-C-nnn (generated threats, CM-3). */
+  scope?: "all" | "project";
 }
 
 export const CatalogEntryPicker: React.FC<CatalogEntryPickerProps> = ({
@@ -31,6 +34,7 @@ export const CatalogEntryPicker: React.FC<CatalogEntryPickerProps> = ({
   strideCategory,
   presentIds,
   onPick,
+  scope = "all",
 }) => {
   const { t } = useTranslation();
   // Remount after a pick so the field clears.
@@ -42,9 +46,10 @@ export const CatalogEntryPicker: React.FC<CatalogEntryPickerProps> = ({
     const localize = kind === "mitigation" ? getLocalizedMitigation : getLocalizedVerification;
     return entries
       .filter((e) => e.strideCategory === strideCategory && !present.has(e.id))
+      .filter((e) => scope === "all" || isProjectMitigationId(e.id))
       .map((e) => ({ id: e.id, label: `${e.id} — ${localize(e.id)}` }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, strideCategory, presentIds, catalogVersion]);
+  }, [kind, strideCategory, presentIds, catalogVersion, scope]);
 
   if (options.length === 0) return null;
   return (

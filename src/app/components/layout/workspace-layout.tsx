@@ -98,6 +98,10 @@ import {
 } from "features/threats";
 
 import { RisksTab, RiskUpdateResult } from "features/risks";
+import {
+  mergeProjectMitigationRefs,
+  projectMitigationUsage,
+} from "app/services/project-mitigation-usage";
 import { getMandatoryAssetCriteriaIds } from "features/risks/services/regulation-preset-service";
 
 import {
@@ -578,6 +582,26 @@ export const WorkspaceLayout: React.FC = () => {
         phaseStatus: updates.phaseStatus,
       });
     },
+    [updateProject],
+  );
+
+  // Project mitigations M-C-nnn (custom mitigation catalog CM-3): usage and
+  // merge span threats, risks and attack trees.
+  const projectMitigationRefs = useMemo(
+    () => ({
+      usage: (id: string) => {
+        const current = activeProjectRef.current;
+        return current
+          ? projectMitigationUsage(current, id)
+          : { threats: [], risks: [], attackTrees: [] };
+      },
+      merge: (fromId: string, intoId: string) => {
+        const current = activeProjectRef.current;
+        if (!current) return;
+        const merged = mergeProjectMitigationRefs(current, fromId, intoId);
+        void updateProject({ id: current.id, ...merged });
+      },
+    }),
     [updateProject],
   );
 
@@ -1267,6 +1291,7 @@ export const WorkspaceLayout: React.FC = () => {
             }}
             dfdContext={memoizedDFDContext}
             onUpdate={handleThreatsUpdate}
+            projectMitigationRefs={projectMitigationRefs}
           />
         )}
 

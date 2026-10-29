@@ -60,6 +60,8 @@ import {
   getLocalizedVerification,
 } from "../../services/threat-catalog-service";
 import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
+import { ProjectMitigationForm } from "./project-mitigation-form";
+import { useProjectMitigations } from "./project-mitigations-context";
 import { labelStem, nextSequenceNumber } from "../../services/threat-sequence";
 
 // ==================== PROPS ====================
@@ -535,6 +537,9 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
   ]);
 
   const catalogVersion = useMitigationCatalogVersion();
+  // Project mitigation M-C-nnn written right here (CM-3); kept by id.
+  const projectMitigations = useProjectMitigations();
+  const [pmFormOpen, setPmFormOpen] = useState(false);
   const mitigationSuggestions = useMemo(() => {
     if (!strideCategory) return [];
     return getAllMitigations()
@@ -1070,6 +1075,32 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
                 ]);
               }}
             />
+            {projectMitigations && (
+              <Box>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => setPmFormOpen(true)}
+                  data-testid="new-project-mitigation"
+                >
+                  {t("tabs.threats.dialog.newProjectMitigation", {
+                    defaultValue: "New project mitigation",
+                  })}
+                </Button>
+                <ProjectMitigationForm
+                  open={pmFormOpen}
+                  initial={strideCategory ? { strideCategory } : undefined}
+                  onClose={() => setPmFormOpen(false)}
+                  onSave={(input) => {
+                    const newId = projectMitigations.add(input);
+                    const text = input.text.trim();
+                    setMitigations((p) => (p.includes(text) ? p : [...p, text]));
+                    setCatalogIds((p) => ({ ...p, [text]: newId }));
+                    setPmFormOpen(false);
+                  }}
+                />
+              </Box>
+            )}
             {/* Add field at bottom */}
             <Stack direction="row" spacing={1}>
               <TextField

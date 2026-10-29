@@ -51,6 +51,17 @@ import {
   EMPTY_PROJECT_TAGS,
 } from "shared";
 import { StrategyIndicator } from "./shared/strategy-indicator";
+import {
+  ProjectMitigationsProvider,
+  type ProjectMitigationsApi,
+} from "./shared/project-mitigations-context";
+import {
+  addProjectMitigation,
+  removeProjectMitigation,
+  updateProjectMitigation,
+} from "../services/project-mitigations";
+import type { ProjectMitigationRefs } from "./shared/project-mitigation-list";
+import { setProjectMitigations } from "../services/threat-catalog-service";
 import { ParentLevelFlowsBanner } from "./parent-level-flows-banner";
 import { ThreatReconciliationSummary } from "./shared/threat-reconciliation-summary";
 import {
@@ -87,6 +98,12 @@ export interface ThreatTabProps {
   onUpdate: (updates: ThreatUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
+  /**
+   * Project mitigations M-C-nnn (custom mitigation catalog CM-3): where an
+   * entry is used and merging two — both span risks and attack trees, so the
+   * app supplies them.
+   */
+  projectMitigationRefs?: Pick<ProjectMitigationRefs, "usage" | "merge">;
 }
 
 // ==================== COMPONENT ====================
@@ -97,6 +114,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   onUpdate,
   onDirtyChange,
   onPhaseComplete,
+  projectMitigationRefs,
 }) => {
   const { t } = useTranslation();
   // ==================== STATE ====================
@@ -185,6 +203,57 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       setIsDirty(true);
     },
     [activeMethod, onUpdate, onDirtyChange, project.phaseStatus],
+  );
+
+  // ── Project mitigation catalog M-C-nnn (custom mitigation catalog CM-3) ──
+  // The dialogs add / edit entries through context; the latest threat data is
+  // read from a ref so two quick adds do not overwrite each other, and the
+  // entry is registered right away so its text resolves before the project
+  // round trip.
+  const threatDataRef = useRef(threatData);
+  threatDataRef.current = threatData;
+  const projectMitigationsApi = useMemo<ProjectMitigationsApi>(
+    () => ({
+      entries: threatData.configuration.customMitigations ?? [],
+      add: (input) => {
+        const current = threatDataRef.current;
+        const { configuration: nextConfig, id } = addProjectMitigation(current.configuration, input);
+        const next = { ...current, configuration: nextConfig };
+        threatDataRef.current = next;
+        setProjectMitigations(nextConfig.customMitigations);
+        handleUpdate(next);
+        return id;
+      },
+      update: (id, input) => {
+        const current = threatDataRef.current;
+        const nextConfig = updateProjectMitigation(current.configuration, id, {
+          ...input,
+          description: input.description,
+          attackVectors: input.attackVectors,
+        });
+        const next = { ...current, configuration: nextConfig };
+        threatDataRef.current = next;
+        setProjectMitigations(nextConfig.customMitigations);
+        handleUpdate(next);
+      },
+    }),
+    [threatData.configuration.customMitigations, handleUpdate],
+  );
+
+  const configMitigationRefs = useMemo<ProjectMitigationRefs | undefined>(
+    () =>
+      projectMitigationRefs && {
+        ...projectMitigationRefs,
+        remove: (id) => {
+          const current = threatDataRef.current;
+          const nextConfig = removeProjectMitigation(current.configuration, id);
+          const next = { ...current, configuration: nextConfig };
+          threatDataRef.current = next;
+          setProjectMitigations(nextConfig.customMitigations);
+          handleUpdate(next);
+        },
+      },
+    [projectMitigationRefs, handleUpdate],
   );
 
   // Element threats hook
@@ -504,6 +573,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   // ==================== RENDER ====================
 
   return (
+    <ProjectMitigationsProvider value={projectMitigationsApi}>
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Hidden file input */}
       <Box
@@ -766,6 +836,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           configuration={configuration}
           hasExistingThreats={hasThreats}
           onSave={handleSaveConfig}
+          projectMitigations={projectMitigationsApi}
+          projectMitigationRefs={configMitigationRefs}
           onClose={() => setShowConfigDialog(false)}
         />
       )}
@@ -900,6 +972,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         </ConfirmDialog>
       )}
     </Box>
+    </ProjectMitigationsProvider>
   );
 };;;
 

@@ -47,3 +47,74 @@ export function projectMitigationUsage(
 
 export const isProjectMitigationUsed = (u: ProjectMitigationUsage) =>
   u.threats.length + u.risks.length + u.attackTrees.length > 0;
+
+// ==================== MERGE ====================
+
+const swapIds = <T extends { id?: string }>(list: T[] | undefined, from: string, into: string): T[] | undefined => {
+  if (!list || !list.some((x) => x.id === from)) return list;
+  const hasInto = list.some((x) => x.id === into);
+  return hasInto
+    ? list.filter((x) => x.id !== from)
+    : list.map((x) => (x.id === from ? { ...x, id: into } : x));
+};
+
+const swapStrings = (list: string[] | undefined, from: string, into: string) =>
+  list && list.includes(from) ? [...new Set(list.map((x) => (x === from ? into : x)))] : list;
+
+/**
+ * Merge project mitigation `fromId` into `intoId` (design §3: merge rewrites
+ * the ids in threats and risks — and attack trees, which reference them too).
+ * A list holding both keeps `intoId` once. The entry `fromId` leaves the
+ * project catalog. Pure; returns the three changed parts.
+ */
+export function mergeProjectMitigationRefs(
+  project: Pick<Project, "threats" | "risks" | "attackTrees">,
+  fromId: string,
+  intoId: string,
+): Pick<Project, "threats" | "risks" | "attackTrees"> {
+  const threats = project.threats
+    ? {
+        ...project.threats,
+        configuration: {
+          ...project.threats.configuration,
+          customMitigations: (project.threats.configuration.customMitigations ?? []).filter((m) => m.id !== fromId),
+        },
+        perElementTables: project.threats.perElementTables.map((t) => ({
+          ...t,
+          threats: t.threats.map((x) => ({ ...x, proposedMitigations: swapIds(x.proposedMitigations, fromId, intoId) ?? [] })),
+        })),
+        perInteractionTables: project.threats.perInteractionTables.map((t) => ({
+          ...t,
+          threats: t.threats.map((x) => ({ ...x, proposedMitigations: swapIds(x.proposedMitigations, fromId, intoId) ?? [] })),
+        })),
+      }
+    : project.threats;
+  const risks = project.risks
+    ? {
+        ...project.risks,
+        risks: project.risks.risks.map((r) => ({
+          ...r,
+          selectedMitigations: swapIds(r.selectedMitigations, fromId, intoId) ?? [],
+          ...(r.proposedMitigations ? { proposedMitigations: swapIds(r.proposedMitigations, fromId, intoId) } : {}),
+        })),
+      }
+    : project.risks;
+  const attackTrees = project.attackTrees
+    ? {
+        ...project.attackTrees,
+        trees: project.attackTrees.trees.map((tree) => ({
+          ...tree,
+          dsl: (tree.dsl ?? "").split(`[${fromId}]`).join(`[${intoId}]`),
+          ...(tree.pathAssessments
+            ? {
+                pathAssessments: tree.pathAssessments.map((a) => ({
+                  ...a,
+                  ...(a.mitigationIds ? { mitigationIds: swapStrings(a.mitigationIds, fromId, intoId) } : {}),
+                })),
+              }
+            : {}),
+        })),
+      }
+    : project.attackTrees;
+  return { threats, risks, attackTrees };
+}

@@ -87,3 +87,47 @@ export function removeProjectMitigation(configuration: ThreatConfiguration, id: 
     customMitigations: (configuration.customMitigations ?? []).filter((m) => m.id !== id),
   };
 }
+
+// ==================== EFFECT VOCABULARY ====================
+// Design §3: the effects editor offers what the closed loop knows — the
+// target / property / value combinations the built-in catalog uses — so a
+// project mitigation never names a property the DFD and the drift check do
+// not have.
+
+export interface EffectVocabularyEntry {
+  targetType: MitigationPropertyEffect["targetType"];
+  role?: MitigationPropertyEffect["role"];
+  property: string;
+  /** Expected values seen in the catalog (JSON-comparable). */
+  values: unknown[];
+}
+
+export function effectVocabulary(catalog: readonly { affectsProperties?: MitigationPropertyEffect[]; isCustom?: boolean }[]): EffectVocabularyEntry[] {
+  const byKey = new Map<string, EffectVocabularyEntry>();
+  for (const entry of catalog) {
+    if (entry.isCustom) continue;
+    for (const e of entry.affectsProperties ?? []) {
+      const key = `${e.targetType}|${e.role ?? ""}|${e.property}`;
+      const v = byKey.get(key) ?? { targetType: e.targetType, ...(e.role ? { role: e.role } : {}), property: e.property, values: [] };
+      if (!v.values.some((x) => JSON.stringify(x) === JSON.stringify(e.expectedValue))) v.values.push(e.expectedValue);
+      byKey.set(key, v);
+    }
+  }
+  return [...byKey.values()].sort((a, b) =>
+    `${a.targetType}|${a.role ?? ""}|${a.property}`.localeCompare(`${b.targetType}|${b.role ?? ""}|${b.property}`),
+  );
+}
+
+/** Analyst-defined effects are always heuristic (design §3). */
+export function projectEffect(
+  v: Pick<EffectVocabularyEntry, "targetType" | "role" | "property">,
+  expectedValue: unknown,
+): MitigationPropertyEffect {
+  return {
+    targetType: v.targetType,
+    ...(v.role ? { role: v.role } : {}),
+    property: v.property,
+    expectedValue,
+    confidence: "heuristic",
+  };
+}

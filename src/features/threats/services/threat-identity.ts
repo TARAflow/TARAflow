@@ -41,6 +41,7 @@ import type {
 } from "../models/threat-types";
 import { normalizeThreatTables } from "./threat-table-normalize";
 import { refreshImplementedFlags } from "./implemented-controls-mapper";
+import { isProjectMitigationId } from "./project-mitigations";
 
 // ==================== NATURAL KEYS ====================
 
@@ -130,7 +131,8 @@ export function buildThreatIndex(
  * implementedByValue) MUST always be recomputed — they reflect live DFD model
  * state — so they are taken from `fresh`. Only the analyst's free-text `notes`
  * on catalogue (id-bearing) entries are carried over, and any fully custom
- * (no-id) analyst entries are appended unchanged.
+ * (no-id) analyst entries and project mitigations (M-C-nnn) are appended
+ * unchanged.
  */
 export function mergeProposedMitigations(
   existing: MitigationDraft[] | undefined,
@@ -139,7 +141,9 @@ export function mergeProposedMitigations(
   const priorById = new Map<string, MitigationDraft>();
   const priorCustom: MitigationDraft[] = [];
   for (const m of existing ?? []) {
-    if (m.id) priorById.set(m.id, m);
+    // Project mitigations (M-C-nnn) are the analyst's choice, never the
+    // template's: kept like free-text entries (custom mitigation catalog CM-3).
+    if (m.id && !isProjectMitigationId(m.id)) priorById.set(m.id, m);
     else priorCustom.push(m);
   }
 

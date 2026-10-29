@@ -71,6 +71,12 @@ import {
   getAllMitigations,
 } from "../../services/threat-catalog-service";
 import { CatalogEntryPicker, LinkToCatalogButton } from "./catalog-entry-picker";
+import { ProjectMitigationForm } from "./project-mitigation-form";
+import { useProjectMitigations } from "./project-mitigations-context";
+import {
+  isProjectMitigationId,
+  type ProjectMitigationInput,
+} from "../../services/project-mitigations";
 import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
 import {
   addCatalogMitigation,
@@ -367,6 +373,40 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   // Stored as { id } so the closed loop sees them. Only manual threats: a
   // generated threat's catalog list is rebuilt by its template.
   const isManual = currentThreat?.source === "manual";
+
+  // Project mitigations M-C-nnn (CM-3): new, convert free text, edit. On any
+  // threat — they are the analyst's choice and survive regeneration.
+  const projectMitigations = useProjectMitigations();
+  const [pmForm, setPmForm] = useState<
+    | null
+    | { mode: "new" }
+    | { mode: "convert"; index: number; text: string }
+    | { mode: "edit"; id: string }
+  >(null);
+  const pmEntry = pmForm?.mode === "edit"
+    ? projectMitigations?.entries.find((e) => e.id === pmForm.id)
+    : undefined;
+  const pmInitial: Partial<ProjectMitigationInput> | undefined =
+    pmForm?.mode === "edit" && pmEntry
+      ? pmEntry
+      : pmForm?.mode === "convert"
+        ? { text: pmForm.text, strideCategory: currentThreat?.strideCategory }
+        : { strideCategory: currentThreat?.strideCategory };
+
+  const savePmForm = (input: ProjectMitigationInput) => {
+    if (!projectMitigations || !pmForm || !local) return;
+    if (pmForm.mode === "edit") {
+      projectMitigations.update(pmForm.id, input);
+    } else {
+      const id = projectMitigations.add(input);
+      if (pmForm.mode === "convert") {
+        linkMitigation(pmForm.index, id);
+      } else {
+        addMitigationFromCatalog(id);
+      }
+    }
+    setPmForm(null);
+  };
 
   const addMitigationFromCatalog = (id: string) => {
     if (!local) return;
@@ -1105,13 +1145,26 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     defaultValue: "Add custom mitigation",
                   })}
                 </Button>
+                {projectMitigations && (
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => setPmForm({ mode: "new" })}
+                    data-testid="new-project-mitigation"
+                  >
+                    {t("tabs.threats.dialog.newProjectMitigation", {
+                      defaultValue: "New project mitigation",
+                    })}
+                  </Button>
+                )}
               </Stack>
-              {isManual && (
+              {(isManual || (projectMitigations?.entries.length ?? 0) > 0) && (
                 <CatalogEntryPicker
                   kind="mitigation"
                   strideCategory={currentThreat.strideCategory}
                   presentIds={local.proposedMitigations.map((m) => m.id)}
                   onPick={addMitigationFromCatalog}
+                  scope={isManual ? "all" : "project"}
                 />
               )}
 
@@ -1143,6 +1196,19 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           text={m.notes}
                           onLink={(id) => linkMitigation(index, id)}
                         />
+                        {projectMitigations && !!m.notes?.trim() && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+                            onClick={() => setPmForm({ mode: "convert", index, text: m.notes ?? "" })}
+                            data-testid={`convert-mitigation-${index}`}
+                          >
+                            {t("tabs.threats.dialog.convertToProjectMitigation", {
+                              defaultValue: "Convert to project mitigation",
+                            })}
+                          </Button>
+                        )}
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1173,7 +1239,16 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <MitigationCoverageBadge
                             coverage={mitigationCoverage.get(m.id ?? "")}
                           />
-                          {isManual && (
+                          {projectMitigations && isProjectMitigationId(m.id) && (
+                            <Button
+                              size="small"
+                              onClick={() => setPmForm({ mode: "edit", id: m.id! })}
+                              data-testid={`edit-project-mitigation-${m.id}`}
+                            >
+                              {t("common.edit", { defaultValue: "Edit" })}
+                            </Button>
+                          )}
+                          {(isManual || isProjectMitigationId(m.id)) && (
                             <IconButton
                               size="small"
                               sx={{ ml: "auto" }}
@@ -1643,8 +1718,17 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
           </Button>
         </Stack>
       </DialogActions>
+      {projectMitigations && (
+        <ProjectMitigationForm
+          open={pmForm !== null}
+          id={pmForm?.mode === "edit" ? pmForm.id : undefined}
+          initial={pmInitial}
+          onSave={savePmForm}
+          onClose={() => setPmForm(null)}
+        />
+      )}
     </Dialog>
   );
-};;
+};
 
 export default ThreatEvalDialog;
