@@ -665,7 +665,7 @@ Recent development versions include:
 * `v0.14.0-beta` — leveled DFDs (several pages per project), five-level safety scale and worst-of safety rating (schema 9)
 * `v0.15.0-beta` — ISO/SAE 21434 risk value 1–5, threat scenarios and methodology chapter; attack-tree likelihood on the project's risk scale (schema 10)
 * `v0.15.1-beta` — hazard import for ISO 12100 / 13849 risk assessments with re-import, controls by attack vector, hazard items and node moving in the asset graph
-* `v0.15.2-beta` — security fix: issue-tracker tokens (Jira, Azure DevOps) are kept in the OS keychain and never written into the project file
+* `v0.15.2-beta` — security fix: issue-tracker tokens (Jira, Azure DevOps) stay in the OS keychain, never in the project file; secret check for audit-repository commits; DFD interface detection and multi-page validation fixes
 
 The current development state is represented by:
 

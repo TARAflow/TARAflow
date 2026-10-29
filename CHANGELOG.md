@@ -1,6 +1,8 @@
 ## [0.15.2-beta] - 2026-10-29
 
-Security fix, no new project schema (projects stay on schema 10).
+Security fix for the issue-tracker integration and two DFD fixes, no new
+project schema (projects stay on schema 10 and open in 0.15.0-beta and
+0.15.1-beta as well).
 
 ### Security
 - **Issue-tracker tokens no longer reach the project file.** After a
@@ -13,7 +15,9 @@ Security fix, no new project schema (projects stay on schema 10).
   token there is a leak.
   - The Jira form no longer passes the token on; the token stays in the
     OS keychain under the account id.
-  - The Azure DevOps PAT is kept in the OS keychain as well.
+  - The Azure DevOps PAT is kept in the OS keychain as well; Azure
+    DevOps OAuth tokens are kept in memory only (sign in again after
+    reopening the project).
   - Safety net for every writer (save, export, audit commit): secret
     fields (`apiToken`, `personalAccessToken`, `accessToken`,
     `refreshToken`, `token`, `password`, `clientSecret`) are removed
@@ -33,6 +37,22 @@ Security fix, no new project schema (projects stay on schema 10).
   the versioned pre-commit hook (`git config core.hooksPath .githooks`);
   the same patterns as the audit-repository hook, plus local patterns for
   JSON files in a git-ignored `.secret-scan.local`.
+
+### Fixed
+- **Interfaces passed by a data flow:** the DFD analysis drew every flow
+  from the centre of its source to the centre of its target and ignored
+  the draw.io anchors, so a flow could seem to pass an interface it does
+  not pass, or miss the one it does. It now follows exit anchor →
+  waypoints → entry anchor. Projects whose detected interfaces change
+  show the threat generation-drift banner after the update (examples:
+  SmokeDetector "push debug commands" now passes JTAG; Simple Test
+  Project "push register data" passes JTAG only).
+- **Validation of multi-page DFDs:** flows excluded from threat
+  generation (external entity to external entity, "exclude from threat
+  generation", abstract flows with a valid refinement) were left out of
+  the validation, so an element connected only by such flows was
+  reported as unconnected and those flows were not checked at all. A
+  multi-page DFD now gets the same findings as a single page.
 
 ## [0.15.1-beta] - 2026-10-25
 
