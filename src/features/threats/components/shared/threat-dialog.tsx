@@ -35,6 +35,7 @@ import {
   Select,
   MenuItem,
   Stack,
+  Autocomplete,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -69,6 +70,13 @@ import {
   resolveVerificationDrafts,
   getAllMitigations,
 } from "../../services/threat-catalog-service";
+import { CatalogEntryPicker, LinkToCatalogButton } from "./catalog-entry-picker";
+import {
+  addCatalogMitigation,
+  addCatalogVerification,
+  catalogMatchFor,
+  linkDraftToCatalog,
+} from "../../services/catalog-draft-ops";
 import {
   MitigationCoverageBadge,
   STRIDE_COLORS,
@@ -352,6 +360,41 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
         (_, i) => i !== index,
       ),
     });
+  };
+
+  // ── Catalog entries on an analyst-authored threat (CM-1) ──────────────────
+  // Stored as { id } so the closed loop sees them. Only manual threats: a
+  // generated threat's catalog list is rebuilt by its template.
+  const isManual = currentThreat?.source === "manual";
+
+  const addMitigationFromCatalog = (id: string) => {
+    if (!local) return;
+    const next = addCatalogMitigation(local.proposedMitigations, local.proposedVerifications, id);
+    patch({ proposedMitigations: next.mitigations, proposedVerifications: next.verifications });
+  };
+
+  const addVerificationFromCatalog = (id: string) => {
+    if (!local) return;
+    patch({ proposedVerifications: addCatalogVerification(local.proposedVerifications, id) });
+  };
+
+  const linkMitigation = (index: number, id: string) => {
+    if (!local) return;
+    patch({ proposedMitigations: linkDraftToCatalog(local.proposedMitigations, index, id) });
+  };
+
+  const linkVerification = (index: number, id: string) => {
+    if (!local) return;
+    patch({ proposedVerifications: linkDraftToCatalog(local.proposedVerifications, index, id) });
+  };
+
+  const removeCatalogEntry = (kind: "mitigation" | "verification", index: number) => {
+    if (!local) return;
+    if (kind === "mitigation") {
+      patch({ proposedMitigations: local.proposedMitigations.filter((_, i) => i !== index) });
+    } else {
+      patch({ proposedVerifications: local.proposedVerifications.filter((_, i) => i !== index) });
+    }
   };
 
   const confirmAddMitigation = () => {
@@ -1060,6 +1103,14 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   })}
                 </Button>
               </Stack>
+              {isManual && (
+                <CatalogEntryPicker
+                  kind="mitigation"
+                  strideCategory={currentThreat.strideCategory}
+                  presentIds={local.proposedMitigations.map((m) => m.id)}
+                  onPick={addMitigationFromCatalog}
+                />
+              )}
 
               <Stack spacing={1}>
                 {resolvedMitigations.map((m, index) => (
@@ -1083,6 +1134,11 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                               defaultValue: "Describe the mitigation...",
                             },
                           )}
+                        />
+                        <LinkToCatalogButton
+                          kind="mitigation"
+                          text={m.notes}
+                          onLink={(id) => linkMitigation(index, id)}
                         />
                         <Tooltip
                           title={t("common.delete", {
@@ -1114,6 +1170,16 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <MitigationCoverageBadge
                             coverage={mitigationCoverage.get(m.id ?? "")}
                           />
+                          {isManual && (
+                            <IconButton
+                              size="small"
+                              sx={{ ml: "auto" }}
+                              onClick={() => removeCatalogEntry("mitigation", index)}
+                              data-testid={`remove-catalog-${m.id}`}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          )}
                         </Box>
                         <TextField
                           size="small"
@@ -1240,6 +1306,14 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   })}
                 </Button>
               </Stack>
+              {isManual && (
+                <CatalogEntryPicker
+                  kind="verification"
+                  strideCategory={currentThreat.strideCategory}
+                  presentIds={local.proposedVerifications.map((v) => v.id)}
+                  onPick={addVerificationFromCatalog}
+                />
+              )}
 
               <Stack spacing={1}>
                 {resolvedVerifications.map((v, index) => (
@@ -1264,6 +1338,11 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             },
                           )}
                         />
+                        <LinkToCatalogButton
+                          kind="verification"
+                          text={v.notes}
+                          onLink={(id) => linkVerification(index, id)}
+                        />
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1280,9 +1359,20 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                       </Stack>
                     ) : (
                       <>
-                        <Typography variant="body2" fontWeight="medium">
-                          {v.text}
-                        </Typography>
+                        <Stack direction="row" alignItems="center">
+                          <Typography variant="body2" fontWeight="medium" sx={{ flexGrow: 1 }}>
+                            {v.text}
+                          </Typography>
+                          {isManual && (
+                            <IconButton
+                              size="small"
+                              onClick={() => removeCatalogEntry("verification", index)}
+                              data-testid={`remove-catalog-${v.id}`}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Stack>
                         <TextField
                           size="small"
                           fullWidth

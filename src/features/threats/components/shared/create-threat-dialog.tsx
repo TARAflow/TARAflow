@@ -364,7 +364,7 @@ const ContextBox: React.FC<{
 const CatalogList: React.FC<{
   suggestions: { id: string; text: string }[];
   alreadyAdded: string[];
-  onInsert: (text: string) => void;
+  onInsert: (text: string, id: string) => void;
 }> = ({ suggestions, alreadyAdded, onInsert }) => {
   const { t } = useTranslation();
   if (suggestions.length === 0) return null;
@@ -402,7 +402,7 @@ const CatalogList: React.FC<{
               <ListItemButton
                 dense
                 disabled={added}
-                onClick={() => onInsert(s.text)}
+                onClick={() => onInsert(s.text, s.id)}
                 sx={{ py: 0.5, px: 1, opacity: added ? 0.4 : 1 }}
               >
                 <ListItemText
@@ -460,6 +460,9 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
   const [attackDescription, setAttackDescription] = useState("");
   const [causeDescription, setCauseDescription] = useState("");
   const [mitigations, setMitigations] = useState<string[]>([]);
+  // Catalog picks keep their id (custom mitigation catalog design CM-1): text
+  // → catalog id. Text typed by the analyst has no entry and stays free text.
+  const [catalogIds, setCatalogIds] = useState<Record<string, string>>({});
   const [mitigationInput, setMitigationInput] = useState("");
   const [verifications, setVerifications] = useState<string[]>([]);
   const [verificationInput, setVerificationInput] = useState("");
@@ -574,6 +577,7 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
       setAttackDescription("");
       setCauseDescription("");
       setMitigations([]);
+      setCatalogIds({});
       setMitigationInput("");
       setVerifications([]);
       setVerificationInput("");
@@ -649,8 +653,10 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     threat.threatDescription = threatDescription.trim();
     threat.attackDescription = attackDescription.trim();
     threat.causeDescription = causeDescription.trim();
-    threat.proposedMitigations = mitigations.map((notes) => ({ notes }));
-    threat.proposedVerifications = verifications.map((notes) => ({ notes }));
+    const toDraft = (text: string) =>
+      catalogIds[text] ? { id: catalogIds[text] } : { notes: text };
+    threat.proposedMitigations = mitigations.map(toDraft);
+    threat.proposedVerifications = verifications.map(toDraft);
 
     if (isInteractionMode && dataFlowRef) {
       threat.dataFlow = {
@@ -688,6 +694,7 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     causeDescription,
     mitigations,
     verifications,
+    catalogIds,
     elementName,
     elementType,
     onAdd,
@@ -1038,9 +1045,26 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
             <CatalogList
               suggestions={mitigationSuggestions}
               alreadyAdded={mitigations}
-              onInsert={(text) => {
-                if (!mitigations.includes(text))
-                  setMitigations((p) => [...p, text]);
+              onInsert={(text, catalogId) => {
+                if (mitigations.includes(text)) return;
+                setMitigations((p) => [...p, text]);
+                // The catalog entry's verifications follow it, as in the
+                // generated threats and the risk dialog.
+                const linked = (
+                  getAllMitigations().find((m) => m.id === catalogId)
+                    ?.verifications ?? []
+                )
+                  .map((id) => ({ id, text: getLocalizedVerification(id) }))
+                  .filter((v) => !!v.text);
+                setCatalogIds((p) => ({
+                  ...p,
+                  [text]: catalogId,
+                  ...Object.fromEntries(linked.map((v) => [v.text, v.id])),
+                }));
+                setVerifications((p) => [
+                  ...p,
+                  ...linked.map((v) => v.text).filter((v) => !p.includes(v)),
+                ]);
               }}
             />
             {/* Add field at bottom */}
@@ -1087,9 +1111,10 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
             <CatalogList
               suggestions={verificationSuggestions}
               alreadyAdded={verifications}
-              onInsert={(text) => {
-                if (!verifications.includes(text))
-                  setVerifications((p) => [...p, text]);
+              onInsert={(text, catalogId) => {
+                if (verifications.includes(text)) return;
+                setVerifications((p) => [...p, text]);
+                setCatalogIds((p) => ({ ...p, [text]: catalogId }));
               }}
             />
             {/* Add field at bottom */}

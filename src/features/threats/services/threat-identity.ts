@@ -40,6 +40,7 @@ import type {
   VerificationDraft,
 } from "../models/threat-types";
 import { normalizeThreatTables } from "./threat-table-normalize";
+import { refreshImplementedFlags } from "./implemented-controls-mapper";
 
 // ==================== NATURAL KEYS ====================
 
@@ -322,6 +323,13 @@ export interface MergeGeneratedTablesOptions {
    * table so nothing is lost silently. Defaults to false (drop manual threats).
    */
   keepManual?: boolean;
+  /**
+   * "Already implemented" hints for a kept manual threat, from its element's
+   * properties (custom mitigation catalog design CM-1). Generated threats get
+   * their flags from the generator; without this a manual threat's flags would
+   * never follow the DFD.
+   */
+  manualHints?: (threat: Threat) => MitigationDraft[];
 }
 
 export function mergeGeneratedTables(
@@ -355,9 +363,19 @@ export function mergeGeneratedTables(
   //  - re-numbers manual threats that landed on a label the regeneration just
   //    issued (the generator numbers from 1 without seeing manual threats).
   // Identity (UUID) is unaffected.
-  return normalizeThreatTables(
+  const tables = normalizeThreatTables(
     reattachManualThreats(merged, previousTables, mergedIds),
   );
+  const hintsFor = options.manualHints;
+  if (!hintsFor) return tables;
+  return tables.map((table) => ({
+    ...table,
+    threats: table.threats.map((t) =>
+      t.source === "manual"
+        ? { ...t, proposedMitigations: refreshImplementedFlags(t.proposedMitigations ?? [], hintsFor(t)) }
+        : t,
+    ),
+  }));
 }
 
 /** Grouping key for matching a manual threat's previous table to a fresh one. */

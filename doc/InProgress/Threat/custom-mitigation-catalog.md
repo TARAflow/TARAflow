@@ -82,7 +82,7 @@ Further design choices [D] (to confirm in review):
 
 | Step | Content | Patch | Status |
 |---|---|---|---|
-| CM-1 | Bug fix: create dialog stores catalog ids; edit dialog catalog selection; "Link to …" for free text equal to a catalog text; manual threats in the "already implemented" sync | – | open |
+| CM-1 | Bug fix: create dialog stores catalog ids (a picked mitigation brings its catalog verifications); edit dialog: "Add from catalog" (threat's STRIDE category) and remove for catalog entries — manual threats only, a generated threat's list is rebuilt by its template; "Link to …" for free text equal to a catalog text (mitigations and verifications, whitespace-insensitive); manual threats get the "already implemented" flags on regeneration — only for entries on their list, nothing appended; interaction threats: both ends count (the perspective is not stored). `catalog-draft-ops.ts`, `catalog-entry-picker.tsx`, `refreshImplementedFlags`, `mergeGeneratedTables({ manualHints })` | 189 | done |
 | CM-2 | Model and resolution: `customMitigations` entries, `M-C-nnn`, `mitigationCatalogOf(project)` in every consumer (app, CLI); persistence and audit diff | – | open |
 | CM-3 | UI: "New catalog mitigation" (create / edit threat dialog) with effects editor; "Convert to catalog mitigation"; list in the threat configuration dialog (edit, merge, delete unused) | – | open |
 | CM-4 | Closed loop end-to-end: SHOULD / drift / coverage / already implemented for `M-C` ids, report text (all formats, CLI); test with a manual threat on the SmokeDetector | – | open |
