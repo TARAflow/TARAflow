@@ -9,6 +9,7 @@ import "i18n/services/i18n";
 import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
 import { deriveControlInstances } from "app/hooks/use-control-instance-derivation";
 import { getAllMitigations } from "features/threats/services/threat-catalog-service";
+import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -80,4 +81,19 @@ describe("attack-path risks through the anchor", () => {
     const risks: Any = { risks: [{ id: "r1", threatId: "AT-at-1-abc123-T", treatment: "reduce", selectedMitigations: [{ id: flowMitigation.id, status: "open" }] }] };
     expect(deriveControlInstances(null, risks, dfd, getAllMitigations())).toEqual([]);
   });
+
+  it("the coverage badge checks every anchor target (CL-4)", () => {
+    const ref: Any = { linkedElement: null, dataFlow: null, controlTargets: resolve("AT-at-1-abc123-T") };
+    const effect = flowMitigation.affectsProperties.find((e) => e.property === "encryptionInTransit")!;
+    expect(computeAllMitigationCoverage([flowMitigation.id], ref, dfd, getAllMitigations()).get(flowMitigation.id)?.fullyImplemented).toBe(false);
+    const done: Any = {
+      ...dfd,
+      connections: [{ ...dfd.connections[0], properties: { encryptionInTransit: effect.expectedValue } }],
+    };
+    const covered = computeAllMitigationCoverage([flowMitigation.id], ref, done, getAllMitigations()).get(flowMitigation.id);
+    expect(covered?.details.some((d) => d.elementId === "df" && d.isCovered)).toBe(true);
+    // without targets an attack-path reference has nothing to check (as before)
+    expect(computeAllMitigationCoverage([flowMitigation.id], { linkedElement: null, dataFlow: null }, dfd, getAllMitigations()).get(flowMitigation.id)).toBeNull();
+  });
 });
+

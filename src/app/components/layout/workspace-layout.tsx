@@ -1334,7 +1334,12 @@ export const WorkspaceLayout: React.FC = () => {
                 // Controls are proposed only when their context fits the
                 // project (mitigation catalog design D4).
                 activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-              ),
+              ).map((ref) => ({
+                ...ref,
+                // Where the path's controls go, for the coverage badge
+                // (closed-loop review CL-4).
+                controlTargets: anchorTargets(ref.id),
+              })),
               attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
                 activeProject.attackTrees,
                 activeProject.risks?.configuration?.scale,

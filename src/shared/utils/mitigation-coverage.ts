@@ -61,6 +61,8 @@ export interface ThreatForCoverage {
     targetId: string;
     targetType: string;
   } | null;
+  /** Attack-path threat: the anchor's targets (CL-4); checked instead of the fields above. */
+  controlTargets?: readonly ThreatForCoverage[];
 }
 
 // ==================== HELPERS ====================
@@ -127,31 +129,39 @@ export function computeMitigationCoverage(
   if (!entry?.affectsProperties?.length) return null;
 
   const details: MitigationPropertyCoverage[] = [];
+  const seen = new Set<string>();
+  // Attack-path threat: every anchor target (closed-loop review CL-4).
+  const targets = threat.controlTargets?.length ? threat.controlTargets : [threat];
 
-  for (const effect of entry.affectsProperties) {
-    const elementId = resolveTargetElementId(threat, effect);
-    if (!elementId) continue;
-    // Interface: only mitigations whose controls fit its type (CL-1b).
-    if (
-      effect.targetType === "Interface" &&
-      !mitigationFitsInterface(
-        entry.affectsProperties,
-        (dfdData.elements ?? []).find((e) => e.id === elementId)?.properties,
-      )
-    ) {
-      continue;
+  for (const target of targets) {
+    for (const effect of entry.affectsProperties) {
+      const elementId = resolveTargetElementId(target, effect);
+      if (!elementId) continue;
+      const key = `${elementId}::${effect.property}::${JSON.stringify(effect.expectedValue)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // Interface: only mitigations whose controls fit its type (CL-1b).
+      if (
+        effect.targetType === "Interface" &&
+        !mitigationFitsInterface(
+          entry.affectsProperties,
+          (dfdData.elements ?? []).find((e) => e.id === elementId)?.properties,
+        )
+      ) {
+        continue;
+      }
+
+      const currentValue = readProperty(elementId, effect.property, dfdData);
+      const isCovered = meetsExpected(effect.property, currentValue, effect.expectedValue);
+
+      details.push({
+        elementId,
+        property: effect.property,
+        expectedValue: effect.expectedValue,
+        currentValue,
+        isCovered,
+      });
     }
-
-    const currentValue = readProperty(elementId, effect.property, dfdData);
-    const isCovered = meetsExpected(effect.property, currentValue, effect.expectedValue);
-
-    details.push({
-      elementId,
-      property: effect.property,
-      expectedValue: effect.expectedValue,
-      currentValue,
-      isCovered,
-    });
   }
 
   if (details.length === 0) return null;
