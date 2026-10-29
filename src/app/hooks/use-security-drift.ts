@@ -142,67 +142,77 @@ function buildConflictDetail(
  *   Only non-aligned entries are typically relevant for display,
  *   but all are returned for completeness (filter by status at call site).
  *
- * Memoized: recomputes when controlInstances or dfdData changes.
+ * Pure; useSecurityDrift memoizes it.
  */
+export function computeSecurityDrifts(
+  controlInstances: ControlInstance[],
+  dfdData: DFDData | null
+): SecurityDrift[] {
+
+  if (controlInstances.length === 0 || !dfdData) return [];
+
+  // Build DFD lookups
+  const elementById = new Map(
+    (dfdData.elements ?? []).map((e) => [e.id, e])
+  );
+  const connectionById = new Map(
+    (dfdData.connections ?? []).map((c) => [c.id, c])
+  );
+
+  return controlInstances.map((instance) => {
+    // Resolve element or connection
+    const el = elementById.get(instance.elementId);
+    const conn = connectionById.get(instance.elementId);
+
+    const properties: any = el?.properties ?? conn?.properties ?? {};
+
+    // IS — current actual value
+    const currentValue = properties[instance.property];
+
+    // WAS — find matching SecurityControlRecord on element
+    const ownership: SecurityControlRecord[] =
+      properties.securityControlOwnership ?? [];
+    const record = ownership.find(
+      (r) => r.property === instance.property
+    );
+    const recordedValue = record?.value;
+
+    // Compute status
+    const status = computeDriftStatus(
+      currentValue,
+      instance.expectedValue,
+      recordedValue
+    );
+
+    return {
+      instanceKey: instance.instanceKey,
+      elementId: instance.elementId,
+      property: instance.property,
+      expectedValue: instance.expectedValue,
+      currentValue,
+      recordedValue,
+      status,
+      coversMitigationIds: instance.coversMitigationIds,
+      coversRiskIds: instance.coversRiskIds,
+      conflictDetail: buildConflictDetail(
+        status,
+        currentValue,
+        instance.expectedValue,
+        record
+      ),
+    } satisfies SecurityDrift;
+  });
+}
+
+/** Memoized computeSecurityDrifts for the app. */
 export function useSecurityDrift(
   controlInstances: ControlInstance[],
   dfdData: DFDData | null
 ): SecurityDrift[] {
-  return useMemo(() => {
-    if (controlInstances.length === 0 || !dfdData) return [];
-
-    // Build DFD lookups
-    const elementById = new Map(
-      (dfdData.elements ?? []).map((e) => [e.id, e])
-    );
-    const connectionById = new Map(
-      (dfdData.connections ?? []).map((c) => [c.id, c])
-    );
-
-    return controlInstances.map((instance) => {
-      // Resolve element or connection
-      const el = elementById.get(instance.elementId);
-      const conn = connectionById.get(instance.elementId);
-
-      const properties: any = el?.properties ?? conn?.properties ?? {};
-
-      // IS — current actual value
-      const currentValue = properties[instance.property];
-
-      // WAS — find matching SecurityControlRecord on element
-      const ownership: SecurityControlRecord[] =
-        properties.securityControlOwnership ?? [];
-      const record = ownership.find(
-        (r) => r.property === instance.property
-      );
-      const recordedValue = record?.value;
-
-      // Compute status
-      const status = computeDriftStatus(
-        currentValue,
-        instance.expectedValue,
-        recordedValue
-      );
-
-      return {
-        instanceKey: instance.instanceKey,
-        elementId: instance.elementId,
-        property: instance.property,
-        expectedValue: instance.expectedValue,
-        currentValue,
-        recordedValue,
-        status,
-        coversMitigationIds: instance.coversMitigationIds,
-        coversRiskIds: instance.coversRiskIds,
-        conflictDetail: buildConflictDetail(
-          status,
-          currentValue,
-          instance.expectedValue,
-          record
-        ),
-      } satisfies SecurityDrift;
-    });
-  }, [controlInstances, dfdData]);
+  return useMemo(
+    () => computeSecurityDrifts(controlInstances, dfdData),
+    [controlInstances, dfdData],
+  );
 }
 
 // ==================== SELECTORS ====================

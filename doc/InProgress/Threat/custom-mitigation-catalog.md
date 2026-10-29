@@ -1,6 +1,6 @@
 # Custom threats in the closed loop — project mitigation catalog
 
-**Status:** v1 · 2026-10-29 · decisions taken (§3) · branch `feature/iso21434-item-definition`,
+**Status:** v2 · 2026-10-29 · CM-1 … CM-4 done (§4) · branch `feature/iso21434-item-definition`,
 release 0.16.0-beta (schema 11 fence already in place)
 **Origin:** user request 2026-10-27: "self-defined threats need a link to the security
 properties so that the closed loop also works for them".
@@ -43,6 +43,10 @@ catalog entry's `affectsProperties`.
    their expected values — the vocabulary the closed loop knows.
 
 Side findings for the closed-loop step (not part of this design):
+- an element whose property already carries **another non-empty value** (e.g. the
+  default `inputValidation: "basic"`) yields drift status **conflict** for every
+  SHOULD on it, although nothing was ever applied — a likely source of notifications
+  "without any mitigation implemented" (pinned in the CM-4 integration test);
 - the derivation treats `"none"` as empty, so an expected value `"none"` (Interface
   `implementedControls.serviceAccessPolicy`) can never be "implemented";
 - the derivation looks up a risk's threat in the per-element / per-interaction tables
@@ -94,4 +98,4 @@ Further design choices [D] (to confirm in review):
 | CM-1 | Bug fix: create dialog stores catalog ids (a picked mitigation brings its catalog verifications); edit dialog: "Add from catalog" (threat's STRIDE category) and remove for catalog entries — manual threats only, a generated threat's list is rebuilt by its template; "Link to …" for free text equal to a catalog text (mitigations and verifications, whitespace-insensitive); manual threats get the "already implemented" flags on regeneration — only for entries on their list, nothing appended; interaction threats: both ends count (the perspective is not stored). `catalog-draft-ops.ts`, `catalog-entry-picker.tsx`, `refreshImplementedFlags`, `mergeGeneratedTables({ manualHints })` | 189 | done |
 | CM-2 | Model and resolution: `ProjectMitigation`, `M-C-nnn` with `customMitigationSeq`, add / update / remove (`project-mitigations.ts`); registration with the catalog (app, CLI) and `useMitigationCatalogVersion`; usage across threats, risks and attack trees (`app/services/project-mitigation-usage.ts`); audit diff "Project mitigation"; the derivation is a pure `deriveControlInstances` (the hook memoizes it) | 190 | done |
 | CM-3 | UI: "New project mitigation" in the create and edit threat dialogs, form with effects editor (target / property / value from the built-in vocabulary, `effectVocabulary`, always heuristic); "Convert to project mitigation" on free text; edit on the entry; list in the threat configuration dialog (usage, edit, merge, delete only unused; changes apply at once). Project mitigations work on **every** threat [D]: they are the analyst's choice, so regeneration keeps them (`mergeProposedMitigations`), and a generated threat's picker offers project mitigations only. Merge rewrites threats, risks, attack-tree path assessments and DSL refs (`mergeProjectMitigationRefs`). Fix on the way: the configuration dialog's Save rebuilt the configuration field by field and dropped unknown fields (now spreads it). | 191 | done |
-| CM-4 | Closed loop end-to-end: SHOULD / drift / coverage / already implemented for `M-C` ids, report text (all formats, CLI); test with a manual threat on the SmokeDetector | – | open |
+| CM-4 | Closed loop end-to-end, integration test on the SmokeDetector DFD (`project-mitigation-closed-loop.int.test.ts`): a manual threat with M-C-001 and a risk selecting it → SHOULD (`deriveControlInstances`) → drift (`computeSecurityDrifts`, extracted as a pure function like the derivation) → coverage "already implemented" (`computeAllMitigationCoverage`) → usage. The report resolves the text (all formats via `resolveMitigationDrafts` / `getLocalizedMitigation`; CLI checked with a SmokeDetector copy in CM-2). No further code: the stored `MitigationDraft.alreadyImplemented` flag is not read by any view — "already implemented" comes from the coverage, which uses `affectsProperties` and so covers project mitigations. | 192 | done |
