@@ -71,6 +71,7 @@ import {
   getAllMitigations,
 } from "../../services/threat-catalog-service";
 import { CatalogEntryPicker, LinkToCatalogButton } from "./catalog-entry-picker";
+import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
 import {
   addCatalogMitigation,
   addCatalogVerification,
@@ -520,7 +521,9 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
   // ── Mitigation coverage (Rules of Hooks: must be before early return) ───────
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const threatCatalog = useMemo(() => getAllMitigations(), []);
+  const catalogVersion = useMitigationCatalogVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const threatCatalog = useMemo(() => getAllMitigations(), [catalogVersion]);
 
   const mitigationCoverage = useMemo(() => {
     if (!currentThreat || !dfdData || !threatCatalog.length) return new Map();

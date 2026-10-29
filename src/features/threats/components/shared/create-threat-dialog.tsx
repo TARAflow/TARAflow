@@ -59,6 +59,7 @@ import {
   getLocalizedMitigation,
   getLocalizedVerification,
 } from "../../services/threat-catalog-service";
+import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
 import { labelStem, nextSequenceNumber } from "../../services/threat-sequence";
 
 // ==================== PROPS ====================
@@ -533,13 +534,15 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     table.trustBoundaryName,
   ]);
 
+  const catalogVersion = useMitigationCatalogVersion();
   const mitigationSuggestions = useMemo(() => {
     if (!strideCategory) return [];
     return getAllMitigations()
       .filter((m) => m.strideCategory === strideCategory)
       .map((m) => ({ id: m.id, text: getLocalizedMitigation(m.id) }))
       .filter((m) => !!m.text);
-  }, [strideCategory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strideCategory, catalogVersion]);
 
   const verificationSuggestions = useMemo(() => {
     if (!strideCategory) return [];

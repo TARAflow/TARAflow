@@ -10,6 +10,7 @@ import type {
   ElementTemplate,
   InteractionTemplate,
   MitigationEntry,
+  ProjectMitigation,
   VerificationEntry,
   MitigationDraft,
   VerificationDraft,
@@ -340,8 +341,53 @@ export function getAllInteractionTemplates(): InteractionTemplate[] {
   return ALL_INTERACTION_TEMPLATES;
 }
 
+// ==================== PROJECT MITIGATIONS ====================
+// Custom mitigation catalog design CM-2: the project's own mitigations
+// (M-C-nnn) join the built-in catalog for every reader — closed loop, dialogs,
+// report — so they work wherever a catalog id works. The open project
+// registers them (app: workspace layout; CLI: before generating); readers
+// that memoize the catalog depend on getMitigationCatalogVersion().
+// Generation does not use them: a generated threat's controls come from the
+// built-in catalog, project mitigations are chosen by the analyst.
+
+let projectMitigations: readonly ProjectMitigation[] = [];
+let projectMitigationById = new Map<string, ProjectMitigation>();
+let catalogWithProject: MitigationEntry[] = ALL_MITIGATIONS;
+let catalogVersion = 0;
+const catalogListeners = new Set<() => void>();
+
+/** Register the open project's mitigations (undefined / [] = none). */
+export function setProjectMitigations(entries: readonly ProjectMitigation[] | undefined): void {
+  const next = entries ?? [];
+  if (next === projectMitigations || (next.length === 0 && projectMitigations.length === 0)) return;
+  projectMitigations = next;
+  projectMitigationById = new Map(next.map((m) => [m.id, m]));
+  catalogWithProject = next.length > 0 ? [...ALL_MITIGATIONS, ...next] : ALL_MITIGATIONS;
+  catalogVersion += 1;
+  catalogListeners.forEach((listener) => listener());
+}
+
+export function getProjectMitigations(): readonly ProjectMitigation[] {
+  return projectMitigations;
+}
+
+export function getProjectMitigation(id: string): ProjectMitigation | undefined {
+  return projectMitigationById.get(id);
+}
+
+/** Changes whenever the registered project mitigations change. */
+export function getMitigationCatalogVersion(): number {
+  return catalogVersion;
+}
+
+export function subscribeMitigationCatalog(listener: () => void): () => void {
+  catalogListeners.add(listener);
+  return () => catalogListeners.delete(listener);
+}
+
+/** Built-in catalog plus the open project's mitigations. */
 export function getAllMitigations(): MitigationEntry[] {
-  return ALL_MITIGATIONS;
+  return catalogWithProject;
 }
 
 export function getAllVerifications(): VerificationEntry[] {
@@ -607,6 +653,8 @@ export function getLocalizedInteractionCause(
 }
 
 export function getLocalizedMitigation(mitigationId: string): string {
+  const own = projectMitigationById.get(mitigationId);
+  if (own) return own.text;
   return i18n.t(`${mitigationId}.mitigation`, { ns: "mitigations" });
 }
 

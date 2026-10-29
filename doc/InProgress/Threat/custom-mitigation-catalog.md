@@ -42,9 +42,11 @@ catalog entry's `affectsProperties`.
 5. The effects of the 136 catalog mitigations use **56 target type × property pairs** with
    their expected values — the vocabulary the closed loop knows.
 
-Side finding for the closed-loop step (not part of this design): the derivation treats
-`"none"` as empty, so an expected value `"none"` (Interface
-`implementedControls.serviceAccessPolicy`) can never be "implemented".
+Side findings for the closed-loop step (not part of this design):
+- the derivation treats `"none"` as empty, so an expected value `"none"` (Interface
+  `implementedControls.serviceAccessPolicy`) can never be "implemented";
+- the derivation looks up a risk's threat in the per-element / per-interaction tables
+  only, so attack-path risks (threat ids `AT-…`) never yield a SHOULD.
 
 ## 3. Decisions (user 2026-10-29)
 
@@ -66,13 +68,20 @@ Further design choices [D] (to confirm in review):
 
 - **Storage:** `project.threats.configuration.customMitigations` (exists; older releases
   keep the field). Entry = `MitigationEntry` + `text` (and optional `description`),
-  `isCustom: true`. Ids `M-C-nnn`, never reused.
+  `isCustom: true` (`ProjectMitigation`). Ids `M-C-nnn`, never reused
+  (`customMitigationSeq`).
 - **Effects editor:** target (the element itself; for interaction threats channel /
   source / target), property and value chosen from the catalog vocabulary (finding 5).
   Confidence fixed to `heuristic` (analyst-defined). No free property names in this step.
-- **Resolution:** one function `mitigationCatalogOf(project)` = built-in + project entries;
-  the derivation, drift, coverage, mapper, risk dialog, Jira export and report generators
-  (app and CLI) take it instead of `getAllMitigations()`.
+- **Resolution** (revised in CM-2): the open project **registers** its entries with the
+  catalog service (`setProjectMitigations` — app: workspace layout on project change;
+  CLI: before generating). `getAllMitigations`, `getLocalizedMitigation` and
+  `resolveMitigationDrafts` then include them, so the ~17 readers (derivation, drift,
+  coverage, dialogs, Jira export, report generators) need no new parameter; readers that
+  memoize the catalog depend on `useMitigationCatalogVersion()`. Generation keeps using
+  the built-in catalog only (a generated threat's controls come from its template).
+  Chosen over passing `mitigationCatalogOf(project)` to every reader: same result, a
+  fraction of the change; the catalog was a module singleton already.
 - **Delete:** only when no threat and no risk uses the entry; merge rewrites the ids in
   threats and risks.
 - **Custom verifications:** out of scope (no DFD effect).
@@ -83,6 +92,6 @@ Further design choices [D] (to confirm in review):
 | Step | Content | Patch | Status |
 |---|---|---|---|
 | CM-1 | Bug fix: create dialog stores catalog ids (a picked mitigation brings its catalog verifications); edit dialog: "Add from catalog" (threat's STRIDE category) and remove for catalog entries — manual threats only, a generated threat's list is rebuilt by its template; "Link to …" for free text equal to a catalog text (mitigations and verifications, whitespace-insensitive); manual threats get the "already implemented" flags on regeneration — only for entries on their list, nothing appended; interaction threats: both ends count (the perspective is not stored). `catalog-draft-ops.ts`, `catalog-entry-picker.tsx`, `refreshImplementedFlags`, `mergeGeneratedTables({ manualHints })` | 189 | done |
-| CM-2 | Model and resolution: `customMitigations` entries, `M-C-nnn`, `mitigationCatalogOf(project)` in every consumer (app, CLI); persistence and audit diff | – | open |
+| CM-2 | Model and resolution: `ProjectMitigation`, `M-C-nnn` with `customMitigationSeq`, add / update / remove (`project-mitigations.ts`); registration with the catalog (app, CLI) and `useMitigationCatalogVersion`; usage across threats, risks and attack trees (`app/services/project-mitigation-usage.ts`); audit diff "Project mitigation"; the derivation is a pure `deriveControlInstances` (the hook memoizes it) | 190 | done |
 | CM-3 | UI: "New catalog mitigation" (create / edit threat dialog) with effects editor; "Convert to catalog mitigation"; list in the threat configuration dialog (edit, merge, delete unused) | – | open |
 | CM-4 | Closed loop end-to-end: SHOULD / drift / coverage / already implemented for `M-C` ids, report text (all formats, CLI); test with a manual threat on the SmokeDetector | – | open |

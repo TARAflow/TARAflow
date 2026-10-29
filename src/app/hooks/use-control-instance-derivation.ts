@@ -147,159 +147,171 @@ function resolveTargetElementId(
  *   status = "missing" when property is absent or differs.
  *   Empty array when any required input is null/empty.
  *
- * Memoized: only recomputes when threatData, riskData, dfdData or catalog changes.
+ * Pure; useControlInstanceDerivation memoizes it.
  */
+export function deriveControlInstances(
+  threatData: ThreatData | null,
+  riskData: RiskData | null,
+  dfdData: DFDData | null,
+  catalog: MitigationEntry[]
+): ControlInstance[] {
+
+  if (!threatData || !riskData || catalog.length === 0) return [];
+
+  // Build flat threat lookup: threatId → Threat
+  const threatById = new Map<string, {
+    linkedElement: { elementId: string; elementType: string } | null;
+    dataFlow: {
+      connectionId?: string;
+      sourceId: string;
+      sourceType: string;
+      targetId: string;
+      targetType: string;
+    } | null;
+  }>();
+
+  for (const table of threatData.perElementTables) {
+    for (const threat of table.threats) {
+      threatById.set(threat.id, {
+        linkedElement: threat.linkedElement,
+        dataFlow: null,
+      });
+    }
+  }
+  for (const table of threatData.perInteractionTables) {
+    for (const threat of table.threats) {
+      threatById.set(threat.id, {
+        linkedElement: null,
+        dataFlow: threat.dataFlow,
+      });
+    }
+  }
+
+  // Build mitigation catalog lookup: mitigationId → MitigationEntry
+  const catalogById = new Map<string, MitigationEntry>();
+  for (const entry of catalog) {
+    catalogById.set(entry.id, entry);
+  }
+
+  // Build DFD property lookups for status derivation
+  const elementById = new Map<string, { properties?: any }>();
+  const connectionById = new Map<string, { properties?: any }>();
+  if (dfdData) {
+    for (const el of dfdData.elements ?? []) elementById.set(el.id, el);
+    for (const conn of dfdData.connections ?? []) connectionById.set(conn.id, conn);
+  }
+
+  // Accumulator: instanceKey → ControlInstance (for deduplication)
+  const instances = new Map<string, ControlInstance>();
+
+  for (const risk of riskData.risks ?? []) {
+    if (risk.selectedMitigations.length === 0) continue;
+
+    // accept   → risk retained as-is, no control action needed
+    // eliminate → feature/function removed entirely, no DFD property to set
+    // transfer  → risk moved to third party, no internal DFD change
+    // reduce    → mitigate with controls (primary case) → process
+    // share     → distributed responsibility, controls may still apply → process
+    if (
+      risk.treatment === "accept" ||
+      risk.treatment === "eliminate" ||
+      risk.treatment === "transfer"
+    )
+      continue;
+
+    const threat = threatById.get(risk.threatId);
+    if (!threat) continue;
+
+    for (const mitigation of risk.selectedMitigations) {
+      // Skip rejected mitigations — analyst decided not to implement
+      if (mitigation.status === "rejected") continue;
+
+      const mitigationId = mitigation.id;
+      if (!mitigationId) continue; // custom entries have no catalog ID
+
+      const catalogEntry = catalogById.get(mitigationId);
+      if (!catalogEntry || !catalogEntry.affectsProperties?.length) continue;
+
+      for (const effect of catalogEntry.affectsProperties) {
+        // Apply scopeOverride for per-interaction threats:
+        // If analyst restricted scope, skip effects whose role is not included.
+        if (
+          mitigation.scopeOverride !== undefined &&
+          mitigation.scopeOverride.length > 0 &&
+          threat.dataFlow !== null // only applies to per-interaction threats
+        ) {
+          const roleMatches =
+            effect.role === undefined
+              ? true // no role = applies universally regardless of scope
+              : (
+                  mitigation.scopeOverride as MitigationPropertyRole[]
+                ).includes(effect.role as MitigationPropertyRole);
+          if (!roleMatches) continue;
+        }
+
+        const elementId = resolveTargetElementId(threat, effect);
+        if (!elementId) continue;
+
+        // Read current property value from DFD for status derivation
+        const el = elementById.get(elementId);
+        const conn = connectionById.get(elementId);
+        const currentValue =
+          el?.properties?.[effect.property] ??
+          conn?.properties?.[effect.property];
+
+        const status = deriveStatus(currentValue, effect.expectedValue);
+        const key = makeInstanceKey(
+          elementId,
+          effect.property,
+          effect.expectedValue,
+        );
+
+        const existing = instances.get(key);
+        if (existing) {
+          // Keep "implemented" if any source sees it as already satisfied
+          if (status === "implemented") existing.status = "implemented";
+          // Deduplicate: merge source tracking arrays
+          if (!existing.coversMitigationIds.includes(mitigationId)) {
+            existing.coversMitigationIds.push(mitigationId);
+          }
+          if (!existing.coversRiskIds.includes(risk.id)) {
+            existing.coversRiskIds.push(risk.id);
+          }
+          if (!existing.coversThreatIds.includes(risk.threatId)) {
+            existing.coversThreatIds.push(risk.threatId);
+          }
+        } else {
+          instances.set(key, {
+            instanceKey: key,
+            elementId,
+            property: effect.property,
+            expectedValue: effect.expectedValue,
+            status,
+            source: "inferred",
+            inferenceConfidence: effect.confidence,
+            coversMitigationIds: [mitigationId],
+            coversRiskIds: [risk.id],
+            coversThreatIds: [risk.threatId],
+          });
+        }
+      }
+    }
+  }
+
+  return Array.from(instances.values());
+}
+
+/** Memoized deriveControlInstances for the app. */
 export function useControlInstanceDerivation(
   threatData: ThreatData | null,
   riskData: RiskData | null,
   dfdData: DFDData | null,
   catalog: MitigationEntry[]
 ): ControlInstance[] {
-  return useMemo(() => {
-    if (!threatData || !riskData || catalog.length === 0) return [];
-
-    // Build flat threat lookup: threatId → Threat
-    const threatById = new Map<string, {
-      linkedElement: { elementId: string; elementType: string } | null;
-      dataFlow: {
-        connectionId?: string;
-        sourceId: string;
-        sourceType: string;
-        targetId: string;
-        targetType: string;
-      } | null;
-    }>();
-
-    for (const table of threatData.perElementTables) {
-      for (const threat of table.threats) {
-        threatById.set(threat.id, {
-          linkedElement: threat.linkedElement,
-          dataFlow: null,
-        });
-      }
-    }
-    for (const table of threatData.perInteractionTables) {
-      for (const threat of table.threats) {
-        threatById.set(threat.id, {
-          linkedElement: null,
-          dataFlow: threat.dataFlow,
-        });
-      }
-    }
-
-    // Build mitigation catalog lookup: mitigationId → MitigationEntry
-    const catalogById = new Map<string, MitigationEntry>();
-    for (const entry of catalog) {
-      catalogById.set(entry.id, entry);
-    }
-
-    // Build DFD property lookups for status derivation
-    const elementById = new Map<string, { properties?: any }>();
-    const connectionById = new Map<string, { properties?: any }>();
-    if (dfdData) {
-      for (const el of dfdData.elements ?? []) elementById.set(el.id, el);
-      for (const conn of dfdData.connections ?? []) connectionById.set(conn.id, conn);
-    }
-
-    // Accumulator: instanceKey → ControlInstance (for deduplication)
-    const instances = new Map<string, ControlInstance>();
-
-    for (const risk of riskData.risks ?? []) {
-      if (risk.selectedMitigations.length === 0) continue;
-
-      // accept   → risk retained as-is, no control action needed
-      // eliminate → feature/function removed entirely, no DFD property to set
-      // transfer  → risk moved to third party, no internal DFD change
-      // reduce    → mitigate with controls (primary case) → process
-      // share     → distributed responsibility, controls may still apply → process
-      if (
-        risk.treatment === "accept" ||
-        risk.treatment === "eliminate" ||
-        risk.treatment === "transfer"
-      )
-        continue;
-
-      const threat = threatById.get(risk.threatId);
-      if (!threat) continue;
-
-      for (const mitigation of risk.selectedMitigations) {
-        // Skip rejected mitigations — analyst decided not to implement
-        if (mitigation.status === "rejected") continue;
-
-        const mitigationId = mitigation.id;
-        if (!mitigationId) continue; // custom entries have no catalog ID
-
-        const catalogEntry = catalogById.get(mitigationId);
-        if (!catalogEntry || !catalogEntry.affectsProperties?.length) continue;
-
-        for (const effect of catalogEntry.affectsProperties) {
-          // Apply scopeOverride for per-interaction threats:
-          // If analyst restricted scope, skip effects whose role is not included.
-          if (
-            mitigation.scopeOverride !== undefined &&
-            mitigation.scopeOverride.length > 0 &&
-            threat.dataFlow !== null // only applies to per-interaction threats
-          ) {
-            const roleMatches =
-              effect.role === undefined
-                ? true // no role = applies universally regardless of scope
-                : (
-                    mitigation.scopeOverride as MitigationPropertyRole[]
-                  ).includes(effect.role as MitigationPropertyRole);
-            if (!roleMatches) continue;
-          }
-
-          const elementId = resolveTargetElementId(threat, effect);
-          if (!elementId) continue;
-
-          // Read current property value from DFD for status derivation
-          const el = elementById.get(elementId);
-          const conn = connectionById.get(elementId);
-          const currentValue =
-            el?.properties?.[effect.property] ??
-            conn?.properties?.[effect.property];
-
-          const status = deriveStatus(currentValue, effect.expectedValue);
-          const key = makeInstanceKey(
-            elementId,
-            effect.property,
-            effect.expectedValue,
-          );
-
-          const existing = instances.get(key);
-          if (existing) {
-            // Keep "implemented" if any source sees it as already satisfied
-            if (status === "implemented") existing.status = "implemented";
-            // Deduplicate: merge source tracking arrays
-            if (!existing.coversMitigationIds.includes(mitigationId)) {
-              existing.coversMitigationIds.push(mitigationId);
-            }
-            if (!existing.coversRiskIds.includes(risk.id)) {
-              existing.coversRiskIds.push(risk.id);
-            }
-            if (!existing.coversThreatIds.includes(risk.threatId)) {
-              existing.coversThreatIds.push(risk.threatId);
-            }
-          } else {
-            instances.set(key, {
-              instanceKey: key,
-              elementId,
-              property: effect.property,
-              expectedValue: effect.expectedValue,
-              status,
-              source: "inferred",
-              inferenceConfidence: effect.confidence,
-              coversMitigationIds: [mitigationId],
-              coversRiskIds: [risk.id],
-              coversThreatIds: [risk.threatId],
-            });
-          }
-        }
-      }
-    }
-
-    return Array.from(instances.values());
-  }, [threatData, riskData, dfdData, catalog]);
+  return useMemo(
+    () => deriveControlInstances(threatData, riskData, dfdData, catalog),
+    [threatData, riskData, dfdData, catalog],
+  );
 }
 
 // ==================== SELECTOR HELPERS ====================

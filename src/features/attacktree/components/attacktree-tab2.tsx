@@ -81,6 +81,7 @@ import {
   getLocalizedMitigation,
   getLocalizedVerification,
 } from "../../threats/services/threat-catalog-service";
+import { useMitigationCatalogVersion } from "../../threats/hooks/shared/use-mitigation-catalog-version";
 import type { CatalogItem } from "./attacktree-path-dialog";
 
 // ==================== CONSTANTS ====================
@@ -309,6 +310,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   // full STRIDE mitigation/verification catalogue for the path dialog's pickers.
   // Resolved to plain CatalogItem[] here and passed down as data — no
   // features/threats import appears anywhere else in features/attacktree.
+  const catalogVersion = useMitigationCatalogVersion();
   const mitigationCatalog = useMemo<CatalogItem[]>(
     () =>
       getAllMitigations()
@@ -319,7 +321,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
         }))
         .filter((m) => !!m.text),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [i18n.language], // re-resolve localized text on language change
+    [i18n.language, catalogVersion], // re-resolve on language change and project mitigations
   );
   const verificationCatalog = useMemo<CatalogItem[]>(
     () =>

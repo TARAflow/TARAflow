@@ -89,6 +89,7 @@ import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
   getAllMitigations,
+  setProjectMitigations,
   syncThreatsWithGraph,
   type ThreatRiskAttachment,
   type ThreatProjectData,
@@ -168,6 +169,13 @@ export const WorkspaceLayout: React.FC = () => {
 
   const activeProjectRef = useRef<Project | undefined>(undefined);
   activeProjectRef.current = activeProject;
+
+  // Project mitigation catalog M-C-nnn (custom mitigation catalog CM-2):
+  // registered before anything below reads the catalog. Idempotent per
+  // reference, so it is safe in render; readers that memoize the catalog
+  // re-run through useMitigationCatalogVersion / the threats dependency.
+  const customMitigations = activeProject?.threats?.configuration?.customMitigations;
+  useMemo(() => setProjectMitigations(customMitigations), [customMitigations]);
 
   // ── Projects-by-id ref — target-project lookup for late-firing handlers ────
   // activeProjectRef always points at whatever is active NOW. That is wrong
@@ -975,7 +983,11 @@ export const WorkspaceLayout: React.FC = () => {
   // getAllMitigations() is a module-level singleton — memoize to ensure
   // stable reference across renders so useControlInstanceDerivation
   // does not re-run unnecessarily.
-  const mitigationCatalog = useMemo(() => getAllMitigations(), []);
+  const mitigationCatalog = useMemo(
+    () => getAllMitigations(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [customMitigations],
+  );
 
   const controlInstances = useControlInstanceDerivation(
     activeProject?.threats ?? null,

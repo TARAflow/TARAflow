@@ -139,6 +139,7 @@ import {
   resolveVerificationDrafts,
   getAllMitigations,
 } from "../../threats/services/threat-catalog-service";
+import { useMitigationCatalogVersion } from "../../threats/hooks/shared/use-mitigation-catalog-version";
 import { MitigationScopeSelector } from "./mitigation-scope-selector";
 import type {
   StrideCategory,
@@ -904,7 +905,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   }, [local]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const mitigationCatalog = useMemo(() => getAllMitigations(), []);
+  const catalogVersion = useMitigationCatalogVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mitigationCatalog = useMemo(() => getAllMitigations(), [catalogVersion]);
 
   // Custom (non-catalog) mitigations are selected as { notes } WITHOUT an id;
   // only catalog entries carry an id. See mitigationSelectionKey.

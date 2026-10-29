@@ -16,6 +16,7 @@ import {
   getLocalizedVerification,
 } from "../../services/threat-catalog-service";
 import { catalogMatchFor } from "../../services/catalog-draft-ops";
+import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
 
 interface CatalogEntryPickerProps {
   kind: "mitigation" | "verification";
@@ -34,6 +35,7 @@ export const CatalogEntryPicker: React.FC<CatalogEntryPickerProps> = ({
   const { t } = useTranslation();
   // Remount after a pick so the field clears.
   const [round, setRound] = useState(0);
+  const catalogVersion = useMitigationCatalogVersion();
   const options = useMemo(() => {
     const present = new Set(presentIds.filter(Boolean));
     const entries = kind === "mitigation" ? getAllMitigations() : getAllVerifications();
@@ -41,7 +43,8 @@ export const CatalogEntryPicker: React.FC<CatalogEntryPickerProps> = ({
     return entries
       .filter((e) => e.strideCategory === strideCategory && !present.has(e.id))
       .map((e) => ({ id: e.id, label: `${e.id} — ${localize(e.id)}` }));
-  }, [kind, strideCategory, presentIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, strideCategory, presentIds, catalogVersion]);
 
   if (options.length === 0) return null;
   return (
@@ -81,7 +84,9 @@ export const LinkToCatalogButton: React.FC<{
   onLink: (id: string) => void;
 }> = ({ kind, text, onLink }) => {
   const { t } = useTranslation();
-  const id = useMemo(() => catalogMatchFor(kind, text), [kind, text]);
+  const catalogVersion = useMitigationCatalogVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const id = useMemo(() => catalogMatchFor(kind, text), [kind, text, catalogVersion]);
   if (!id) return null;
   return (
     <Button

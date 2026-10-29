@@ -713,6 +713,16 @@ export class DiffService {
       }
     });
 
+    // Project mitigation catalog M-C-nnn (custom mitigation catalog CM-2)
+    changes.push(
+      ...this.compareById(
+        current?.configuration?.customMitigations ?? [],
+        previous?.configuration?.customMitigations ?? [],
+        (m) => `${m.id} ${m.text}`,
+        () => "Project mitigation",
+      ),
+    );
+
     // Modified threats
     Array.from(currentMap.entries()).forEach(([id, currentThreat]) => {
       const previousThreat = previousMap.get(id);
