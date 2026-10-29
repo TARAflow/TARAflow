@@ -414,7 +414,10 @@
       "validation": {
         "required": "Pflichtfeld"
       },
+      "syncTickets": "Ticketstatus synchronisieren",
+      "lastTicketSync": "zuletzt {{time}}",
       "mitigationStatusDialog": {
+        "followsTicket": "folgt {{ticket}}, wenn es sich ändert",
         "title": "Implementierungsstatus",
         "status": "Status",
         "evidence": "Nachweis",

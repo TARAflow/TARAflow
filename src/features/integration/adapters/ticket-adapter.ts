@@ -7,6 +7,7 @@
 import type {
   CreateTicketInput,
   CreateTicketResult,
+  TicketPort,
   TicketState,
   TicketSummary,
 } from "shared/models/ticket-types";
@@ -21,7 +22,7 @@ export interface ConnectionTestOutcome {
   accountId?: string;
 }
 
-export interface TicketAdapter {
+export interface TicketAdapter extends TicketPort {
   readonly ref: TrackerRef;
   testConnection(): Promise<ConnectionTestOutcome>;
   fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]>;

@@ -63,11 +63,8 @@ import { isIsoRiskMode } from "../models/iso-risk-display";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
 import { RiskMitigationStatusDialog } from "./risk-mitigation-status-dialog";
-import { syncAllMitigationTickets } from "../services/jira-mitigation-service";
-import type {
-  JiraCredentials,
-  JiraProject,
-} from "../../integration/models/integration-types";
+import { applyTicketStatesToRisks, linkedTicketKeys } from "../services/ticket-sync";
+import type { TicketPort } from "shared/models/ticket-types";
 
 import { RiskConfigDialog } from "./risk-config-dialog";
 import { RiskMatrix } from "./risk-matrix";
@@ -96,6 +93,8 @@ export interface RiskTabProps {
   onConceptChange?: (concept: CybersecurityConcept) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
+  /** The issue tracker's adapter (adapters design §4.3); absent = none connected. */
+  ticketPort?: TicketPort | null;
 }
 
 export const RisksTab: React.FC<RiskTabProps> = ({
@@ -103,6 +102,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   onUpdate,
   onDirtyChange,
   onConceptChange,
+  ticketPort,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
@@ -466,83 +466,41 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     }
   }, [riskData.configuration.pendingSafetySourceRemoval]);
 
-  // ── Jira project for dialog (resolved from integration connection) ─────────
-  const jiraProjectForDialog = useMemo((): JiraProject | null => {
-    const conn = project.integration?.connection;
-    if (!conn || conn.tool !== "jira" || conn.status !== "connected")
-      return null;
+  // ── Ticket sync (adapters design §3.3) ──────────────────────────────────
+  // One batch on opening the tab and on "Sync tickets" — no polling. Applied
+  // to the current risks (a ref, not a snapshot of an interval) through the
+  // same updateRisk as the status dialog, and persisted by the auto-save.
+  const riskDataRef = useRef(riskData);
+  riskDataRef.current = riskData;
+  const [ticketSync, setTicketSync] = useState<{ running: boolean; at?: string }>({ running: false });
+  const ticketsConnected = !!ticketPort && project.integration?.connection?.status === "connected";
+  const hasLinkedTickets = useMemo(() => linkedTicketKeys(riskData.risks).length > 0, [riskData.risks]);
 
-    // Use issueTypes from stored connection credentials if available
-    // (populated when user tests connection in Integration Tab)
-    const storedIssueTypes = (conn.credentials as any)?.issueTypes as
-      | Array<{ id: string; name: string; iconUrl?: string }>
-      | undefined;
-
-    const issueTypes = storedIssueTypes?.length
-      ? storedIssueTypes.filter(
-          (it) => !it.name.toLowerCase().includes("subtask"),
-        )
-      : [
-          // Fallback with Jira Cloud standard issue type icons
-          { id: "task", name: "Task", iconUrl: undefined },
-          { id: "story", name: "Story", iconUrl: undefined },
-          { id: "bug", name: "Bug", iconUrl: undefined },
-          { id: "feature", name: "Feature", iconUrl: undefined },
-          { id: "epic", name: "Epic", iconUrl: undefined },
-        ];
-
-    return {
-      id: conn.projectName ?? "",
-      key: conn.projectName ?? "",
-      name: conn.projectName ?? "",
-      projectTypeKey: "software",
-      issueTypes,
-    };
-  }, [project.integration?.connection]);
-
-  // ── Auto-sync Jira ticket statuses every 10 seconds ──────────────────────
-  // Only runs when Jira is connected and there are mitigations with linked tickets.
-  useEffect(() => {
-    const conn = project.integration?.connection;
-    if (!conn || conn.tool !== "jira" || conn.status !== "connected") return;
-
-    const hasMitigationTickets = riskData.risks.some((r) =>
-      r.selectedMitigations.some((m) => !!m.ticketId),
-    );
-    if (!hasMitigationTickets) return;
-
-    const credentials = conn.credentials as JiraCredentials;
-
-    const interval = setInterval(async () => {
-      const updatedRisks = await Promise.all(
-        riskData.risks.map(async (risk) => {
-          const updatedMitigations = await syncAllMitigationTickets(
-            credentials,
-            risk.selectedMitigations,
-          );
-          const mitigationsChanged =
-            JSON.stringify(updatedMitigations) !==
-            JSON.stringify(risk.selectedMitigations);
-          return mitigationsChanged
-            ? { ...risk, selectedMitigations: updatedMitigations }
-            : risk;
-        }),
-      );
-
-      const anyChanged = updatedRisks.some((r, i) => r !== riskData.risks[i]);
-      if (anyChanged) {
-        // Only update local state — do not call onUpdate to avoid
-        // triggering main-layout re-render and persistence log every 5s.
-        // Changes will be persisted on next manual save.
-        setRiskData((prev) => ({ ...prev, risks: updatedRisks }));
+  const syncTickets = useCallback(async () => {
+    if (!ticketPort) return;
+    const keys = linkedTicketKeys(riskDataRef.current.risks);
+    if (keys.length === 0) return;
+    setTicketSync((prev) => ({ ...prev, running: true }));
+    try {
+      const states = await ticketPort.fetchTicketStates(keys);
+      const now = new Date().toISOString();
+      const current = riskDataRef.current;
+      const data = applyTicketStatesToRisks(current, states, now, (d, r) => riskService.updateRisk(d, r));
+      if (data !== current) {
+        setRiskData(data);
+        setIsDirty(true);
       }
-    }, 5_000);
+      setTicketSync({ running: false, at: now });
+    } catch {
+      setTicketSync((prev) => ({ ...prev, running: false }));
+    }
+  }, [ticketPort]);
 
-    return () => clearInterval(interval);
-    // Intentionally exclude riskData.risks from deps to avoid resetting interval
-    // on every risk change — stale closure is acceptable for background sync.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.integration?.connection]);
+  useEffect(() => {
+    if (ticketsConnected) void syncTickets();
+  }, [ticketsConnected, syncTickets]);
+
+  const ticketIssueTypes = project.integration?.connection?.issueTypes;
 
   // Auto-save when dirty (debounced)
   useEffect(() => {
@@ -856,6 +814,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
       {/* Toolbar */}
       <RisksToolbar
+        onSyncTickets={ticketsConnected && hasLinkedTickets ? () => void syncTickets() : undefined}
+        ticketSyncing={ticketSync.running}
+        ticketSyncedAt={ticketSync.at}
         isDirty={isDirty}
         isSyncing={isSyncing}
         riskMethod={riskMethod}
@@ -1166,7 +1127,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           open={!!selectedImplementationRisk}
           risk={selectedImplementationRisk}
           integrationConnection={project.integration?.connection ?? null}
-          jiraProject={jiraProjectForDialog}
+          ticketPort={ticketsConnected ? ticketPort : null}
+          issueTypes={ticketIssueTypes}
           onSave={handleSaveImplementation}
           onClose={handleCloseImplementationDialog}
         />

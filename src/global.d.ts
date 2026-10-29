@@ -145,21 +145,6 @@ declare global {
           headers?: Record<string, string>;
         }) => Promise<{ ok: boolean; status: number; data: unknown; error?: string }>;
       };
-      jiraRequest: (config: { url: string; options: any }) => Promise<any>;
-      jira: {
-        saveToken: (
-          account: string,
-          token: string,
-        ) => Promise<{ success: boolean; error?: string }>;
-        getToken: (account: string) => Promise<{
-          success: boolean;
-          token: string | null;
-          error?: string;
-        }>;
-        deleteToken: (
-          account: string,
-        ) => Promise<{ success: boolean; error?: string }>;
-      };
     };
 
     // Git APIs (für Audit Feature)

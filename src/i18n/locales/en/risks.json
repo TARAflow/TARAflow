@@ -414,7 +414,10 @@
       "validation": {
         "required": "Required"
       },
+      "syncTickets": "Sync ticket status",
+      "lastTicketSync": "last {{time}}",
       "mitigationStatusDialog": {
+        "followsTicket": "follows {{ticket}} when it changes",
         "title": "Implementation Status",
         "status": "Status",
         "evidence": "Evidence",

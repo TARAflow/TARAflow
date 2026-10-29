@@ -89,7 +89,12 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
 
   const handleSelect = (project: TrackerProject) => {
     if (!connection?.credentials) return;
-    update({ ...connection, credentials: { ...connection.credentials, projectKey: project.key }, projectName: project.key });
+    update({
+      ...connection,
+      credentials: { ...connection.credentials, projectKey: project.key },
+      projectName: project.key,
+      issueTypes: project.issueTypes ?? [],
+    });
   };
 
   const handleDisconnect = async () => {

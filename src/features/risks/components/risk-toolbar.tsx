@@ -30,6 +30,7 @@ import {
   AccountTree as PerInteractionIcon,
   DoNotDisturb as WontIcon,
   Search as SearchIcon,
+  ConfirmationNumber as TicketIcon,
 } from "@mui/icons-material";
 
 import type { StrideMethod } from "shared";
@@ -80,6 +81,11 @@ export interface RisksToolbarProps {
   onOpenConcept?: () => void;
   /** Open goal / claim warnings — the badge on that button. */
   conceptWarningCount?: number;
+  /** "Sync tickets" (adapters design §3.3); absent = no tracker connected / no linked ticket. */
+  onSyncTickets?: () => void;
+  ticketSyncing?: boolean;
+  /** Time of the last ticket sync, for the tooltip. */
+  ticketSyncedAt?: string;
 }
 
 // ==================== COMPONENT ====================
@@ -112,6 +118,9 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   onSync,
   onOpenConfig,
   onOpenConcept,
+  onSyncTickets,
+  ticketSyncing = false,
+  ticketSyncedAt,
   conceptWarningCount = 0,
   onExport,
   onImport,
@@ -297,6 +306,24 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
           </IconButton>
         </span>
       </Tooltip>
+
+      {/* Ticket sync (adapters design §3.3): on opening the tab and here */}
+      {onSyncTickets && (
+        <Tooltip
+          title={
+            t("tabs.risks.syncTickets", { defaultValue: "Sync ticket status" }) +
+            (ticketSyncedAt
+              ? ` — ${t("tabs.risks.lastTicketSync", { defaultValue: "last {{time}}", time: new Date(ticketSyncedAt).toLocaleTimeString() })}`
+              : "")
+          }
+        >
+          <span>
+            <IconButton onClick={onSyncTickets} size="small" disabled={ticketSyncing} data-testid="risks-sync-tickets">
+              {ticketSyncing ? <CircularProgress size={20} /> : <TicketIcon />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
 
       {/* Goals & Claims (ISO 21434 9.4, decision 25) */}
       {onOpenConcept && (

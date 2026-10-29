@@ -76,7 +76,11 @@ export interface SelectedMitigation {
   /** Last known ticket status synced from Jira / ADO. */
   ticketStatus?: TicketStatus;
 
-  /** ISO timestamp when ticket status was last synced */
+  /**
+   * ISO timestamp when a sync last saw the ticket status change — not every
+   * sync (adapters design §3.3: a sync that changes nothing leaves the
+   * project file and its audit diff untouched).
+   */
   ticketSyncedAt?: string;
 
   // ─────────────────────────────────────────────────────────────────────────

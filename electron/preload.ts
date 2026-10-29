@@ -221,16 +221,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
       headers?: Record<string, string>;
     }) => ipcRenderer.invoke("integration:request", req),
   },
-  jiraRequest: (config: { url: string; options: any }) =>
-    ipcRenderer.invoke("jira:request", config),
-  jira: {
-    saveToken: (account: string, token: string) =>
-      ipcRenderer.invoke("jira:saveToken", { account, token }),
-    getToken: (account: string) =>
-      ipcRenderer.invoke("jira:getToken", { account }),
-    deleteToken: (account: string) =>
-      ipcRenderer.invoke("jira:deleteToken", { account }),
-  },
 });
 
 console.log(

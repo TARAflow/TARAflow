@@ -70,13 +70,9 @@ export type {
   TicketSummary,
   CreateTicketInput,
   CreateTicketResult,
-  TicketSyncResult,
   RiskIntegrationConnection,
 } from "./models/risk-integration-types";
-export {
-  mapRawStatusToTicketStatus,
-  mapTicketStatusToMitigationStatus,
-} from "./models/risk-integration-types";
+export { applyTicketState, applyTicketStates, linkedTicketKeys } from "./services/ticket-sync";
 
 // Configuration
 export type {

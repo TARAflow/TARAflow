@@ -41,6 +41,8 @@ export interface IntegrationConnection {
   lastError?: string;
   projectId?: string;
   projectName?: string;
+  /** Issue types of the chosen project, for creating tickets (no secret). */
+  issueTypes?: IssueType[];
 }
 
 export interface IssueType {

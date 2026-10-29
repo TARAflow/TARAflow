@@ -7,7 +7,6 @@ import { configureDrawioRequests } from "./drawio-requests";
 
 import { registerShellHandlers } from "./ipc/shell-handlers";
 import { registerPdfHandlers } from "./ipc/pdf-handlers";
-import { registerJiraHandlers } from "./ipc/jira-handlers";
 import { registerIntegrationHandlers } from "./ipc/integration-handlers";
 import { registerDrawioHandlers } from "./ipc/drawio-handlers";
 import { registerGitHandlers } from "./ipc/git-handlers";
@@ -26,7 +25,6 @@ import { registerBuildInfoHandlers } from "./ipc/build-info-handlers";
 // handler inline; it's app lifecycle + window creation now.
 registerShellHandlers();
 registerPdfHandlers();
-registerJiraHandlers();
 registerIntegrationHandlers();
 registerDrawioHandlers();
 registerGitHandlers();

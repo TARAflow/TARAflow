@@ -35,6 +35,8 @@ export function registerIntegrationHandlers() {
     if (!key || !ref.token) return { success: false, error: "invalid tracker, host or account" };
     try {
       await credentialService.saveIntegrationToken(key, ref.token);
+      // The former unbound jira:<account> entries go once a bound one exists.
+      if (ref.tool === "jira") await credentialService.deleteLegacyJiraTokens();
       return { success: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : "save failed" };

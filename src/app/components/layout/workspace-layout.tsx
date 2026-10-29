@@ -116,7 +116,7 @@ import {
 } from "features/attacktree";
 
 import { DocTab, DocUpdateResult } from "features/documentation";
-import { IntegrationTab, type IntegrationTabData } from "features/integration";
+import { IntegrationTab, createTicketAdapter, type IntegrationTabData } from "features/integration";
 import { AuditTab } from "features/audit";
 import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
@@ -585,6 +585,11 @@ export const WorkspaceLayout: React.FC = () => {
     },
     [updateProject],
   );
+
+  // The issue tracker's adapter for the Risk tab (adapters design §4.3) —
+  // derived from the stored connection; the main process holds the token.
+  const integrationConnection = activeProject?.integration?.connection ?? null;
+  const ticketPort = useMemo(() => createTicketAdapter(integrationConnection), [integrationConnection]);
 
   // Project mitigations M-C-nnn (custom mitigation catalog CM-3): usage and
   // merge span threats, risks and attack trees.
@@ -1373,6 +1378,7 @@ export const WorkspaceLayout: React.FC = () => {
                         "disconnected",
                       projectName:
                         activeProject.integration.connection?.projectName,
+                      issueTypes: activeProject.integration.connection?.issueTypes,
                       credentials: activeProject.integration.connection
                         ?.credentials as any,
                     },
@@ -1382,6 +1388,7 @@ export const WorkspaceLayout: React.FC = () => {
               assumptions: activeProject.itemDefinition?.assumptions,
               lastModified: activeProject.info?.lastModified || "",
             }}
+            ticketPort={ticketPort}
             onUpdate={handleRisksUpdate}
             onConceptChange={handleConceptChange}
             onPhaseComplete={() => setActivePhase(5)}

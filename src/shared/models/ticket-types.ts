@@ -72,3 +72,16 @@ export interface CreateTicketResult {
   ticketUrl?: string;
   error?: string;
 }
+
+/**
+ * What the Risk tab needs from an issue tracker — the integration feature's
+ * TicketAdapter implements it; the app hands one to the Risk tab (adapters
+ * design §4.3), so neither feature imports the other.
+ */
+export interface TicketPort {
+  fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]>;
+  createTicket(input: CreateTicketInput): Promise<CreateTicketResult>;
+  /** One batch request; keys the tracker does not know are absent. */
+  fetchTicketStates(keys: readonly string[]): Promise<Map<string, TicketState>>;
+  ticketUrl(key: string): string;
+}

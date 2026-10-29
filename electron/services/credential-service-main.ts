@@ -134,45 +134,23 @@ export class CredentialService {
     }
   }
 
-  // ==================== JIRA ====================
+  // ==================== LEGACY JIRA TOKENS ====================
 
   /**
-   * Save Jira API Token
-   * @param account - Account identifier (email address)
-   * @param token - Jira API token
+   * Remove the tokens of the former scheme `jira:<account>` (no host binding,
+   * read by the renderer). Called when a Jira token is stored in the new
+   * scheme (issue-tracker adapters design §3, keychain migration [D]).
    */
-  async saveJiraToken(account: string, token: string): Promise<void> {
+  async deleteLegacyJiraTokens(): Promise<number> {
     try {
-      await keytar.setPassword(SERVICE_NAME, `jira:${account}`, token);
+      const legacy = (await keytar.findCredentials(SERVICE_NAME)).filter((c) =>
+        c.account.startsWith("jira:"),
+      );
+      for (const c of legacy) await keytar.deletePassword(SERVICE_NAME, c.account);
+      return legacy.length;
     } catch (error) {
-      console.error("Failed to save Jira token:", error);
-      throw new Error("Failed to save Jira token securely");
-    }
-  }
-
-  /**
-   * Get Jira API Token
-   * @param account - Account identifier (email address)
-   */
-  async getJiraToken(account: string): Promise<string | null> {
-    try {
-      return await keytar.getPassword(SERVICE_NAME, `jira:${account}`);
-    } catch (error) {
-      console.error("Failed to retrieve Jira token:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Delete Jira API Token
-   * @param account - Account identifier (email address)
-   */
-  async deleteJiraToken(account: string): Promise<boolean> {
-    try {
-      return await keytar.deletePassword(SERVICE_NAME, `jira:${account}`);
-    } catch (error) {
-      console.error("Failed to delete Jira token:", error);
-      return false;
+      console.error("Failed to remove legacy Jira tokens:", error);
+      return 0;
     }
   }
 
