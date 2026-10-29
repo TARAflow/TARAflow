@@ -12,6 +12,7 @@ import React, {
   useRef,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { applyControlSuggestionUpdate } from "../services/apply-control-suggestion";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { AssetGroup } from "shared";
 import type {
@@ -618,34 +619,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       mitigationId?: string,
       riskId?: string,
     ) => {
-      // Build audit record
-      const record: import("features/dfd/models/element-shared-types").SecurityControlRecord =
-        {
-          property,
-          value,
-          setBy: "apply_suggestion",
-          setAt: new Date().toISOString(),
-          ...(mitigationId ? { mitigationId } : {}),
-          ...(riskId ? { riskId } : {}),
-        };
-
-      // Get current ownership records and append (replace existing for same property)
       const target = isConnection
         ? editor.connections.find((c) => c.id === elementId)
         : editor.elements.find((e) => e.id === elementId);
-
-      const existingOwnership: any[] =
-        (target?.properties as any)?.securityControlOwnership ?? [];
-
-      const updatedOwnership = [
-        ...existingOwnership.filter((r: any) => r.property !== property),
-        record,
-      ];
-
-      const updates = {
-        [property]: value,
-        securityControlOwnership: updatedOwnership,
-      } as any;
+      const updates = applyControlSuggestionUpdate(
+        target?.properties as Record<string, unknown> | undefined,
+        property,
+        value,
+        { mitigationId, riskId, at: new Date().toISOString() },
+      ) as never;
 
       if (isConnection) {
         editor.updateConnectionDescription(

@@ -18,6 +18,7 @@
 
 import { useMemo } from "react";
 import type { ControlInstance } from "shared/models/control-instance";
+import { controlValueState, readControlValue } from "shared/utils/control-value-semantics";
 import type { DFDData } from "features/dfd/models/dfd-types";
 import type { SecurityControlRecord } from "features/dfd/models/element-shared-types";
 
@@ -68,12 +69,6 @@ export interface SecurityDrift {
 
 // ==================== HELPERS ====================
 
-const EMPTY_VALUES = new Set([undefined, null, "", "none", "not_specified", false]);
-
-function isEmptyValue(value: unknown): boolean {
-  return EMPTY_VALUES.has(value as any);
-}
-
 /**
  * Compute drift status from the three-way comparison.
  *
@@ -82,18 +77,21 @@ function isEmptyValue(value: unknown): boolean {
  * WAS     = recordedValue (from SecurityControlRecord, may be undefined)
  */
 function computeDriftStatus(
+  property: string,
   currentValue: unknown,
   expectedValue: unknown,
   recordedValue: unknown
 ): DriftStatus {
-  const isCorrect = !isEmptyValue(currentValue) && currentValue === expectedValue;
+  // Shared value semantics (closed-loop review CL-1): stronger values meet,
+  // not_* values are empty.
+  const state = controlValueState(property, currentValue, expectedValue);
 
-  if (isCorrect) return "aligned";
+  if (state === "met") return "aligned";
 
   // Not correct. Was it ever applied?
   if (recordedValue === undefined) {
     // Never applied, and not set correctly either
-    if (isEmptyValue(currentValue)) return "missing";
+    if (state === "empty") return "missing";
     // IS is set to something, but it's wrong and there's no WAS record
     return "conflict";
   }
@@ -110,19 +108,15 @@ function computeDriftStatus(
 
 function buildConflictDetail(
   status: DriftStatus,
-  currentValue: unknown,
-  expectedValue: unknown,
   record: SecurityControlRecord | undefined
 ): SecurityDrift["conflictDetail"] | undefined {
   if (status !== "conflict" && status !== "drift") return undefined;
 
   return {
     isDriftAfterApply: status === "drift",
-    isManualOverride:
-      status === "conflict" &&
-      !isEmptyValue(currentValue) &&
-      currentValue !== expectedValue &&
-      record === undefined,
+    // conflict = set, not meeting SHOULD (shared semantics); without a record
+    // it was set by hand.
+    isManualOverride: status === "conflict" && record === undefined,
     setBy: record?.setBy,
     setAt: record?.setAt,
   };
@@ -166,8 +160,8 @@ export function computeSecurityDrifts(
 
     const properties: any = el?.properties ?? conn?.properties ?? {};
 
-    // IS — current actual value
-    const currentValue = properties[instance.property];
+    // IS — current actual value (nested for implementedControls.*)
+    const currentValue = readControlValue(properties, instance.property);
 
     // WAS — find matching SecurityControlRecord on element
     const ownership: SecurityControlRecord[] =
@@ -179,6 +173,7 @@ export function computeSecurityDrifts(
 
     // Compute status
     const status = computeDriftStatus(
+      instance.property,
       currentValue,
       instance.expectedValue,
       recordedValue
@@ -194,12 +189,7 @@ export function computeSecurityDrifts(
       status,
       coversMitigationIds: instance.coversMitigationIds,
       coversRiskIds: instance.coversRiskIds,
-      conflictDetail: buildConflictDetail(
-        status,
-        currentValue,
-        instance.expectedValue,
-        record
-      ),
+      conflictDetail: buildConflictDetail(status, record),
     } satisfies SecurityDrift;
   });
 }

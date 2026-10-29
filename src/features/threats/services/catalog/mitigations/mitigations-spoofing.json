@@ -82,7 +82,7 @@
           "targetType": "DataFlow",
           "role": "channel",
           "property": "integrityProtection",
-          "expectedValue": true,
+          "expectedValue": "signature",
           "confidence": "deterministic"
         },
         {

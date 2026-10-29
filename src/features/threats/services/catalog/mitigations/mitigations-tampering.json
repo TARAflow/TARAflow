@@ -183,7 +183,7 @@
         {
           "targetType": "Process",
           "property": "failSafeOutputState",
-          "expectedValue": "defined",
+          "expectedValue": "fixed_value",
           "confidence": "deterministic"
         }
       ],

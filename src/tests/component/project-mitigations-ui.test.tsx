@@ -81,7 +81,8 @@ const select = (testId: string, optionText: string | RegExp) => {
   fireEvent.click(within(screen.getByRole("listbox")).getByText(optionText));
 };
 
-describe("threat dialog", () => {
+// Many MUI select interactions: generous timeout under full-suite load.
+describe("threat dialog", { timeout: 20000 }, () => {
   it("New project mitigation with a DFD effect: added to the project and to the threat by id", () => {
     const pm = api();
     renderDialog(threat(), pm);

@@ -22,27 +22,20 @@ import type {
 } from "features/threats";
 import type { DFDData } from "features/dfd";
 import type { ControlInstance, MitigationPropertyRole } from "shared";
+import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 
 // ==================== HELPERS ====================
 
-const EMPTY_VALUES = new Set([undefined, null, "", "none", "not_specified", false]);
-
-function isEmptyValue(value: unknown): boolean {
-  return EMPTY_VALUES.has(value as any);
-}
-
 /**
- * Derive status by comparing the current DFD property value against expected.
- * "implemented" when already set correctly, "missing" otherwise.
+ * "implemented" when the DFD value meets the expected one (closed-loop review
+ * CL-1: stronger values count, an empty word like "none" can be expected).
  */
 function deriveStatus(
+  property: string,
   currentValue: unknown,
   expectedValue: unknown
 ): ControlInstance["status"] {
-  if (!isEmptyValue(currentValue) && currentValue === expectedValue) {
-    return "implemented";
-  }
-  return "missing";
+  return meetsExpected(property, currentValue, expectedValue) ? "implemented" : "missing";
 }
 
 // ==================== IDENTITY KEY ====================
@@ -255,11 +248,12 @@ export function deriveControlInstances(
         // Read current property value from DFD for status derivation
         const el = elementById.get(elementId);
         const conn = connectionById.get(elementId);
-        const currentValue =
-          el?.properties?.[effect.property] ??
-          conn?.properties?.[effect.property];
+        const currentValue = readControlValue(
+          el?.properties ?? conn?.properties,
+          effect.property,
+        );
 
-        const status = deriveStatus(currentValue, effect.expectedValue);
+        const status = deriveStatus(effect.property, currentValue, effect.expectedValue);
         const key = makeInstanceKey(
           elementId,
           effect.property,

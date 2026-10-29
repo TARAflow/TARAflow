@@ -59,6 +59,15 @@ Every selected mitigation counts — whatever its status (only `rejected` is ski
    portable | vehicle_mounted`, so the SHOULD can never be met; `integrityProtection =
    true` (`M-S-004`) on an enum property.
 
+8. **Interface controls were read and applied flat.** The catalog names them
+   `implementedControls.<key>`; derivation, drift, coverage and panel read
+   `properties["implementedControls.<key>"]` instead of the nested value, so an
+   Interface control was never met.
+9. **Apply changed nothing visible.** The panel's Apply spread the update onto the
+   element itself (`{ ...el, ...updates }`), not into `properties` — where the forms,
+   the generator and the closed loop read it — and wrote the WAS record there too, so a
+   later revert could never show as drift. Untested until CL-1.
+
 The user's notification list (2026-10-29) matches findings 1–3, 6 and 7 one to one: 57
 *security* rows, 24 of them again as *Conflict*.
 
@@ -99,7 +108,7 @@ the DFD option lists (finding 7).
 
 | Step | Content | Patch | Status |
 |---|---|---|---|
-| CL-1 | Shared value semantics (`control-value-semantics.ts`): empty set incl. `not_*`, `satisfiesExpected(property, current, expected)` with the strength tables; used by derivation, drift, coverage and panel; `"none"` expected fixed; catalog values corrected and checked against the option lists | – | open |
+| CL-1 | Shared value semantics (`shared/utils/control-value-semantics.ts`): empty set (`none`, `no`, `unknown`, `not_*`, `false`, …), `CONTROL_VALUE_MEETS` (values meeting an expected one), `controlValueState` met / empty / other with equality first; nested read / write for `implementedControls.*`; used by derivation, drift, coverage and panel. Apply writes into `properties`, nested (`apply-control-suggestion.ts`, findings 8, 9). Option register typed against the DFD types (`features/dfd/models/control-property-options.ts`) and a catalog test: every effect a DFD property and an option. Catalog corrected (15 effects) [D]: `M-S-004` `true` → `signature`; `M-T-FSAFE-001` `defined` → `fixed_value` (met also by `unpowered`, `hold_last_value`); `M-IF-POLICY-002` `none` → `maintenance_only`; `M-PB-D-001` `stationary` → `fixed`; `M-CB-I-002` `keyStorage` → `authenticatorStorage`; effects removed where the DFD has no such property or the effect did not fit — `M-R-006` auditLogging, `M-I-009` secureDeletion, `M-D-007` DataFlow connectorType, `M-D-009` islandModeCapable, `M-CB-SCA-001…004` sideChannelProtection, `M-CB-SCA-004` conformal_coating on a DataFlow, `M-PB-T-005` (portable devices) physicalMobility. SmokeDetector: 62 → 56 SHOULD, 57 → 48 unmet, 24 → 12 conflicts (the rest: weaker values). | 194 | done |
 | CL-1b | Interface applicability in the derivation (and coverage) | – | open |
 | CL-2 | Status-aware notifications: *planned* (info) vs *inconsistent* (warning); one row per instance | – | open |
 | CL-3 | Attack-path risks via the anchor (asset / threat / risk) | – | open |

@@ -81,14 +81,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "PhysicalBoundary",
-          "property": "physicalMobility",
-          "expectedValue": "stationary",
-          "confidence": "heuristic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": [
         "V-PB-T-001"
       ]
@@ -193,7 +186,7 @@
         {
           "targetType": "PhysicalBoundary",
           "property": "physicalMobility",
-          "expectedValue": "stationary",
+          "expectedValue": "fixed",
           "confidence": "heuristic"
         }
       ],

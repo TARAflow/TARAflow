@@ -22,6 +22,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import {
   Paper,
   Stack,
@@ -122,19 +123,6 @@ type Notification =
 
 // ==================== VALUE HELPERS ====================
 
-const EMPTY_VALUES = new Set([
-  undefined,
-  null,
-  "",
-  "none",
-  "not_specified",
-  false,
-]);
-
-function isEmptyValue(value: unknown): boolean {
-  return EMPTY_VALUES.has(value as any);
-}
-
 function formatValue(value: unknown): string {
   if (value === undefined || value === null || value === "") return "—";
   if (value === false) return "false";
@@ -211,13 +199,13 @@ function buildNotifications(
 
       const isConnection = !element;
       const target = element ?? connection!;
-      const currentValue = (target.properties as any)?.[instance.property];
+      const currentValue = readControlValue(
+        target.properties as Record<string, unknown> | undefined,
+        instance.property,
+      );
 
-      // Skip already satisfied
-      if (
-        !isEmptyValue(currentValue) &&
-        currentValue === instance.expectedValue
-      ) {
+      // Skip already satisfied (shared value semantics, closed-loop review CL-1)
+      if (meetsExpected(instance.property, currentValue, instance.expectedValue)) {
         continue;
       }
 

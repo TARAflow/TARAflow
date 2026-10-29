@@ -9,6 +9,7 @@
 // Location: src/shared/utils/mitigation-coverage.ts
 
 import type { MitigationPropertyRole, DFDReference } from "shared";
+import { meetsExpected, readControlValue } from "./control-value-semantics";
 
 // ==================== TYPES ====================
 
@@ -63,11 +64,7 @@ export interface ThreatForCoverage {
 
 // ==================== HELPERS ====================
 
-const EMPTY_VALUES = new Set([undefined, null, "", "none", "not_specified", false]);
 
-function isEmptyValue(v: unknown): boolean {
-  return EMPTY_VALUES.has(v as any);
-}
 
 function resolveTargetElementId(
   threat: ThreatForCoverage,
@@ -105,9 +102,9 @@ function readProperty(
   dfd: DFDReference,
 ): unknown {
   const el = (dfd.elements ?? []).find((e) => e.id === elementId);
-  if (el) return el.properties?.[property];
+  if (el) return readControlValue(el.properties, property);
   const conn = (dfd.connections ?? []).find((c) => c.id === elementId);
-  if (conn) return conn.properties?.[property];
+  if (conn) return readControlValue(conn.properties, property);
   return undefined;
 }
 
@@ -135,8 +132,7 @@ export function computeMitigationCoverage(
     if (!elementId) continue;
 
     const currentValue = readProperty(elementId, effect.property, dfdData);
-    const isCovered =
-      !isEmptyValue(currentValue) && currentValue === effect.expectedValue;
+    const isCovered = meetsExpected(effect.property, currentValue, effect.expectedValue);
 
     details.push({
       elementId,
