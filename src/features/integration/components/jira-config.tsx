@@ -47,7 +47,6 @@ interface JiraConfigProps {
 export const JiraConfig: React.FC<JiraConfigProps> = ({
   credentials,
   selectedProject,
-  onCredentialsChange,
   onProjectSelect,
   onTestConnection,
 }) => {
@@ -111,8 +110,11 @@ export const JiraConfig: React.FC<JiraConfigProps> = ({
     setTestResult(result);
 
     if (result.success && result.projects) {
+      // The connection (with accountId, without the token) is stored by the
+      // test handler; the token went to the OS keychain. Do NOT pass
+      // testCredentials on: they carry the token, and this second write put it
+      // into the project file and dropped the accountId (2026-10-29 hotfix).
       setProjects(result.projects as JiraProject[]);
-      onCredentialsChange(testCredentials);
     }
 
     setIsLoading(false);

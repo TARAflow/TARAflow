@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.15.1-beta`
+> **Current version:** `v0.15.2-beta`
 
 TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
@@ -651,11 +651,12 @@ Recent development versions include:
 * `v0.14.0-beta` — leveled DFDs (several pages per project), five-level safety scale and worst-of safety rating (schema 9)
 * `v0.15.0-beta` — ISO/SAE 21434 risk value 1–5, threat scenarios and methodology chapter; attack-tree likelihood on the project's risk scale (schema 10)
 * `v0.15.1-beta` — hazard import for ISO 12100 / 13849 risk assessments with re-import, controls by attack vector, hazard items and node moving in the asset graph
+* `v0.15.2-beta` — security fix: issue-tracker tokens (Jira, Azure DevOps) are kept in the OS keychain and never written into the project file
 
 The current development state is represented by:
 
 ```text
-v0.15.1-beta
+v0.15.2-beta
 ```
 
 Versions in the beta: releases without a new project schema count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
@@ -716,7 +717,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.15.1-beta**
+**TARAflow 0.15.2-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 

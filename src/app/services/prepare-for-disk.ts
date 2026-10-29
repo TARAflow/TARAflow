@@ -72,6 +72,15 @@
 // signing.{enabled,format}, gpg.{enabled}, auth.{method}, and the rest of the
 // config (provider, remoteUrl, branches, author, rounds).
 //
+// INTEGRATION SECRETS (2026-10-29)
+// ---------------------------------
+// Issue-tracker tokens belong in the OS keychain (Jira since May 2026, ADO now),
+// never in the shared file — yet a second write after the Jira connection test
+// put `apiToken` back into integration.connection.credentials, and the ADO tab
+// stored its PAT / OAuth tokens there by design. The file goes into the audit
+// repository, so a token there is a leak. `integrationForDisk` removes every
+// secret-named field anywhere under `integration`, whatever path put it there.
+//
 // IMPORTANT: this is the WRITE half. The OPEN/LOAD path must HYDRATE the stripped
 // signing fields from the credential-service (credentials.getSSHKeyPath), or
 // signing settings won't survive a reload. Ship both halves together.
@@ -150,6 +159,32 @@ function configForDisk(config: AuditConfigShape): AuditConfigShape {
   } as AuditConfigShape;
 }
 
+/** Field names that hold a secret — never written under `integration`. */
+export const INTEGRATION_SECRET_KEYS: readonly string[] = [
+  "apiToken",
+  "personalAccessToken",
+  "accessToken",
+  "refreshToken",
+  "token",
+  "password",
+  "clientSecret",
+];
+
+function withoutSecrets(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withoutSecrets);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => !INTEGRATION_SECRET_KEYS.includes(key))
+      .map(([key, v]) => [key, withoutSecrets(v)]),
+  );
+}
+
+/** The integration block without any secret (see INTEGRATION SECRETS above). */
+function integrationForDisk(integration: Project["integration"]): Project["integration"] {
+  return integration ? (withoutSecrets(integration) as Project["integration"]) : integration;
+}
+
 /** Drop audit RESULTS + the internal lastModified sentinel; reduce the config. */
 function auditForDisk(audit: NonNullable<Project["audit"]>): AuditDataOnDisk {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -172,6 +207,8 @@ function auditForDisk(audit: NonNullable<Project["audit"]>): AuditDataOnDisk {
  * - `audit`               audit RESULTS (lastCommitState/commitHistory) and the
  *                         internal lastModified sentinel dropped; config reduced
  *                         to project-level policy (see configForDisk).
+ * - `integration`         every secret-named field removed (tokens live in the
+ *                         OS keychain, see integrationForDisk).
  *
  * Pure: returns a new object, mutates nothing. The in-memory project keeps all
  * of its fields — filePath is needed for the next save, currentPhase/isOpen for
@@ -221,6 +258,7 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
         })()
       : null,
     audit: audit ? auditForDisk(audit) : null,
+    integration: integrationForDisk(project.integration),
     sourceBindings: project.sourceBindings?.map(sourceBindingForDisk),
   };
 }

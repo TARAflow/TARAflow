@@ -1,3 +1,27 @@
+## [0.15.2-beta] - 2026-10-29
+
+Security fix, no new project schema (projects stay on schema 10).
+
+### Security
+- **Issue-tracker tokens no longer reach the project file.** After a
+  successful Jira connection test the form wrote its test credentials a
+  second time — with the API token — into the project, undoing the
+  keychain-only handling of the token; depending on timing the token ended
+  up in `integration.connection.credentials` (and the account id was lost).
+  The Azure DevOps tab stored its personal access token and OAuth tokens
+  there by design. Project files go into the audit repository, so a
+  token there is a leak.
+  - The Jira form no longer passes the token on; the token stays in the
+    OS keychain under the account id.
+  - The Azure DevOps PAT is kept in the OS keychain as well.
+  - Safety net for every writer (save, export, audit commit): secret
+    fields (`apiToken`, `personalAccessToken`, `accessToken`,
+    `refreshToken`, `token`, `password`, `clientSecret`) are removed
+    from `integration` before a file is written. Files that contain a
+    token are cleaned on their next save.
+  - **Action:** revoke tokens that may have been saved in a project file
+    or an audit repository, and create new ones.
+
 ## [0.15.1-beta] - 2026-10-25
 
 Extensions of existing features, no new project schema: the hazard

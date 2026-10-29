@@ -46,10 +46,30 @@ const mapWorkItemState = (state: string): TicketStatus => {
   return "UNKNOWN";
 };
 
-const getAuthToken = (credentials: AzureDevOpsCredentials): string | null => {
-  return credentials.authMethod === "oauth"
-    ? credentials.accessToken || null
-    : credentials.personalAccessToken || null;
+/**
+ * Keychain account of an ADO personal access token. The PAT never goes into
+ * the project file (hotfix 2026-10-29); it is kept in the OS keychain through
+ * the existing Jira keychain bridge until the integration adapter generalizes
+ * it.
+ */
+export const adoKeychainAccount = (organizationUrl: string): string =>
+  `azure-devops:${organizationUrl.trim().replace(/\/+$/, "").toLowerCase()}`;
+
+/**
+ * OAuth: the access token of this session (never written to disk). PAT: the
+ * one just entered, else the one in the OS keychain.
+ */
+const getAuthToken = async (credentials: AzureDevOpsCredentials): Promise<string | null> => {
+  if (credentials.authMethod === "oauth") return credentials.accessToken || null;
+  if (credentials.personalAccessToken) return credentials.personalAccessToken;
+  try {
+    const result = await (window as any).electronAPI?.jira?.getToken(
+      adoKeychainAccount(credentials.organizationUrl),
+    );
+    return result?.token ?? null;
+  } catch {
+    return null; // no keychain (browser mode)
+  }
 };
 
 // ==================== PUBLIC API ====================
@@ -69,7 +89,7 @@ export const testAdoConnection = async (
       };
     }
 
-    const token = getAuthToken(credentials);
+    const token = await getAuthToken(credentials);
     if (!token) {
       return { success: false, message: "No authentication token available" };
     }
@@ -123,7 +143,7 @@ export const createAdoWorkItem = async (
 ): Promise<TicketCreationResult> => {
   try {
 
-    const token = getAuthToken(credentials);
+    const token = await getAuthToken(credentials);
     if (!token) {
       return { success: false, error: "No authentication token available" };
     }
@@ -215,7 +235,7 @@ export const getAdoWorkItemStatus = async (
   try {
     const url = `${credentials.organizationUrl}/_apis/wit/workitems/${workItemId}?api-version=7.0`;
 
-    const token = getAuthToken(credentials);
+    const token = await getAuthToken(credentials);
     if (!token) {
       return  "UNKNOWN" ;
     }
@@ -253,7 +273,7 @@ export const getAdoWorkItemStatuses = async (
     const ids = workItemIds.join(",");
     const url = `${credentials.organizationUrl}/_apis/wit/workitems?ids=${ids}&api-version=7.0`;
 
-    const token = getAuthToken(credentials);
+    const token = await getAuthToken(credentials);
     if (!token) {
       return statusMap;
     }

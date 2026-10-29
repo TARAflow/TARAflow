@@ -8,6 +8,7 @@ import type {
   JiraCredentials,
 } from "../models/integration-types";
 import * as integrationService from "../services/integration-service";
+import { adoKeychainAccount } from "../services/ado-service";
 
 export const useIntegrationConnection = (
   data: IntegrationTabData,
@@ -62,12 +63,26 @@ export const useIntegrationConnection = (
       const result = await integrationService.testConnection("azure-devops", credentials);
 
       if (result.success) {
+        // The PAT goes to the OS keychain, not into the project (hotfix
+        // 2026-10-29); OAuth tokens stay in memory only — prepareForDisk
+        // strips every secret before the file is written.
+        const { personalAccessToken, ...withoutPat } = credentials;
+        if (personalAccessToken) {
+          try {
+            await (window as any).electronAPI.jira.saveToken(
+              adoKeychainAccount(credentials.organizationUrl),
+              personalAccessToken,
+            );
+          } catch {
+            // Keychain not available in browser mode
+          }
+        }
         onUpdate({
           integration: {
             connection: {
               tool: "azure-devops",
               status: "connected",
-              credentials,
+              credentials: withoutPat,
               lastTested: new Date().toISOString(),
             },
             mapping: integrationService.getDefaultMapping("azure-devops"),
