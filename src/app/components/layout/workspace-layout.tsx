@@ -72,6 +72,7 @@ import { buildAssumptionUsage, buildItemModelItems } from "app/utils/build-item-
 import { buildMethodologySummary } from "app/utils/build-methodology-summary";
 import { buildVerificationChecklist } from "app/utils/build-verification-checklist";
 import { verificationStateHash, verificationStatus } from "app/services/verification-state";
+import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import {
@@ -1013,11 +1014,24 @@ export const WorkspaceLayout: React.FC = () => {
     [customMitigations],
   );
 
+  // Attack-path risks reach the closed loop through their tree's anchor
+  // (closed-loop review CL-3).
+  const anchorTargets = useMemo(
+    () =>
+      attackPathControlTargets(
+        activeProject?.attackTrees,
+        activeProject?.assets?.assets,
+        activeProject?.dfd,
+      ),
+    [activeProject?.attackTrees, activeProject?.assets?.assets, activeProject?.dfd],
+  );
+
   const controlInstances = useControlInstanceDerivation(
     activeProject?.threats ?? null,
     activeProject?.risks ?? null,
     activeProject?.dfd ?? null,
     mitigationCatalog,
+    anchorTargets,
   );
 
   const securityDrifts = useSecurityDrift(

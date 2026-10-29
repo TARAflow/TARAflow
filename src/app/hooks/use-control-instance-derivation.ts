@@ -26,6 +26,20 @@ import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import { mitigationFitsInterface } from "shared/utils/control-applicability";
 
+// ==================== TYPES ====================
+
+/** Where a risk's controls go: a STRIDE threat's element or flow. */
+export interface ControlTarget {
+  linkedElement: { elementId: string; elementType: string } | null;
+  dataFlow: {
+    connectionId?: string;
+    sourceId: string;
+    sourceType: string;
+    targetId: string;
+    targetType: string;
+  } | null;
+}
+
 // ==================== HELPERS ====================
 
 /**
@@ -148,24 +162,21 @@ export function deriveControlInstances(
   threatData: ThreatData | null,
   riskData: RiskData | null,
   dfdData: DFDData | null,
-  catalog: MitigationEntry[]
+  catalog: MitigationEntry[],
+  /**
+   * Closed-loop review CL-3: targets of a risk whose threat is not in the
+   * STRIDE tables (attack-path risks, resolved through the tree's anchor).
+   */
+  resolveAnchorTargets?: (threatId: string) => ControlTarget[],
 ): ControlInstance[] {
 
-  if (!threatData || !riskData || catalog.length === 0) return [];
+  // No STRIDE threats is fine: attack-path risks resolve through the anchor (CL-3).
+  if (!riskData || catalog.length === 0) return [];
 
   // Build flat threat lookup: threatId → Threat
-  const threatById = new Map<string, {
-    linkedElement: { elementId: string; elementType: string } | null;
-    dataFlow: {
-      connectionId?: string;
-      sourceId: string;
-      sourceType: string;
-      targetId: string;
-      targetType: string;
-    } | null;
-  }>();
+  const threatById = new Map<string, ControlTarget>();
 
-  for (const table of threatData.perElementTables) {
+  for (const table of threatData?.perElementTables ?? []) {
     for (const threat of table.threats) {
       threatById.set(threat.id, {
         linkedElement: threat.linkedElement,
@@ -173,7 +184,7 @@ export function deriveControlInstances(
       });
     }
   }
-  for (const table of threatData.perInteractionTables) {
+  for (const table of threatData?.perInteractionTables ?? []) {
     for (const threat of table.threats) {
       threatById.set(threat.id, {
         linkedElement: null,
@@ -214,92 +225,97 @@ export function deriveControlInstances(
     )
       continue;
 
-    const threat = threatById.get(risk.threatId);
-    if (!threat) continue;
+    // STRIDE threat: its element / flow. Attack-path risk (CL-3): the DFD
+    // elements and flows its tree's anchor asset is linked to — heuristic.
+    const own = threatById.get(risk.threatId);
+    const targets = own ? [own] : resolveAnchorTargets?.(risk.threatId) ?? [];
+    const anchored = !own;
 
-    for (const mitigation of risk.selectedMitigations) {
-      // Skip rejected mitigations — analyst decided not to implement
-      if (mitigation.status === "rejected") continue;
+    for (const threat of targets) {
+      for (const mitigation of risk.selectedMitigations) {
+        // Skip rejected mitigations — analyst decided not to implement
+        if (mitigation.status === "rejected") continue;
 
-      const mitigationId = mitigation.id;
-      if (!mitigationId) continue; // custom entries have no catalog ID
+        const mitigationId = mitigation.id;
+        if (!mitigationId) continue; // custom entries have no catalog ID
 
-      const catalogEntry = catalogById.get(mitigationId);
-      if (!catalogEntry || !catalogEntry.affectsProperties?.length) continue;
+        const catalogEntry = catalogById.get(mitigationId);
+        if (!catalogEntry || !catalogEntry.affectsProperties?.length) continue;
 
-      for (const effect of catalogEntry.affectsProperties) {
-        // Apply scopeOverride for per-interaction threats:
-        // If analyst restricted scope, skip effects whose role is not included.
-        if (
-          mitigation.scopeOverride !== undefined &&
-          mitigation.scopeOverride.length > 0 &&
-          threat.dataFlow !== null // only applies to per-interaction threats
-        ) {
-          const roleMatches =
-            effect.role === undefined
-              ? true // no role = applies universally regardless of scope
-              : (
-                  mitigation.scopeOverride as MitigationPropertyRole[]
-                ).includes(effect.role as MitigationPropertyRole);
-          if (!roleMatches) continue;
-        }
-
-        const elementId = resolveTargetElementId(threat, effect);
-        if (!elementId) continue;
-
-        // Read current property value from DFD for status derivation
-        const el = elementById.get(elementId);
-        const conn = connectionById.get(elementId);
-
-        // Interface: only mitigations whose controls fit its type (CL-1b).
-        if (
-          effect.targetType === "Interface" &&
-          !mitigationFitsInterface(catalogEntry.affectsProperties, el?.properties)
-        ) {
-          continue;
-        }
-        const currentValue = readControlValue(
-          el?.properties ?? conn?.properties,
-          effect.property,
-        );
-
-        const status = deriveStatus(effect.property, currentValue, effect.expectedValue);
-        const key = makeInstanceKey(
-          elementId,
-          effect.property,
-          effect.expectedValue,
-        );
-
-        const done = DONE_MITIGATION_STATUSES.includes(mitigation.status);
-        const existing = instances.get(key);
-        if (existing) {
-          if (done) existing.planned = false;
-          // Keep "implemented" if any source sees it as already satisfied
-          if (status === "implemented") existing.status = "implemented";
-          // Deduplicate: merge source tracking arrays
-          if (!existing.coversMitigationIds.includes(mitigationId)) {
-            existing.coversMitigationIds.push(mitigationId);
+        for (const effect of catalogEntry.affectsProperties) {
+          // Apply scopeOverride for per-interaction threats:
+          // If analyst restricted scope, skip effects whose role is not included.
+          if (
+            mitigation.scopeOverride !== undefined &&
+            mitigation.scopeOverride.length > 0 &&
+            threat.dataFlow !== null // only applies to per-interaction threats
+          ) {
+            const roleMatches =
+              effect.role === undefined
+                ? true // no role = applies universally regardless of scope
+                : (
+                    mitigation.scopeOverride as MitigationPropertyRole[]
+                  ).includes(effect.role as MitigationPropertyRole);
+            if (!roleMatches) continue;
           }
-          if (!existing.coversRiskIds.includes(risk.id)) {
-            existing.coversRiskIds.push(risk.id);
+
+          const elementId = resolveTargetElementId(threat, effect);
+          if (!elementId) continue;
+
+          // Read current property value from DFD for status derivation
+          const el = elementById.get(elementId);
+          const conn = connectionById.get(elementId);
+
+          // Interface: only mitigations whose controls fit its type (CL-1b).
+          if (
+            effect.targetType === "Interface" &&
+            !mitigationFitsInterface(catalogEntry.affectsProperties, el?.properties)
+          ) {
+            continue;
           }
-          if (!existing.coversThreatIds.includes(risk.threatId)) {
-            existing.coversThreatIds.push(risk.threatId);
-          }
-        } else {
-          instances.set(key, {
-            instanceKey: key,
+          const currentValue = readControlValue(
+            el?.properties ?? conn?.properties,
+            effect.property,
+          );
+
+          const status = deriveStatus(effect.property, currentValue, effect.expectedValue);
+          const key = makeInstanceKey(
             elementId,
-            property: effect.property,
-            expectedValue: effect.expectedValue,
-            status,
-            source: "inferred",
-            inferenceConfidence: effect.confidence,
-            coversMitigationIds: [mitigationId],
-            coversRiskIds: [risk.id],
-            coversThreatIds: [risk.threatId],
-            planned: !done,
-          });
+            effect.property,
+            effect.expectedValue,
+          );
+
+          const done = DONE_MITIGATION_STATUSES.includes(mitigation.status);
+          const existing = instances.get(key);
+          if (existing) {
+            if (done) existing.planned = false;
+            // Keep "implemented" if any source sees it as already satisfied
+            if (status === "implemented") existing.status = "implemented";
+            // Deduplicate: merge source tracking arrays
+            if (!existing.coversMitigationIds.includes(mitigationId)) {
+              existing.coversMitigationIds.push(mitigationId);
+            }
+            if (!existing.coversRiskIds.includes(risk.id)) {
+              existing.coversRiskIds.push(risk.id);
+            }
+            if (!existing.coversThreatIds.includes(risk.threatId)) {
+              existing.coversThreatIds.push(risk.threatId);
+            }
+          } else {
+            instances.set(key, {
+              instanceKey: key,
+              elementId,
+              property: effect.property,
+              expectedValue: effect.expectedValue,
+              status,
+              source: "inferred",
+              inferenceConfidence: anchored ? "heuristic" : effect.confidence,
+              coversMitigationIds: [mitigationId],
+              coversRiskIds: [risk.id],
+              coversThreatIds: [risk.threatId],
+              planned: !done,
+            });
+          }
         }
       }
     }
@@ -313,11 +329,12 @@ export function useControlInstanceDerivation(
   threatData: ThreatData | null,
   riskData: RiskData | null,
   dfdData: DFDData | null,
-  catalog: MitigationEntry[]
+  catalog: MitigationEntry[],
+  resolveAnchorTargets?: (threatId: string) => ControlTarget[],
 ): ControlInstance[] {
   return useMemo(
-    () => deriveControlInstances(threatData, riskData, dfdData, catalog),
-    [threatData, riskData, dfdData, catalog],
+    () => deriveControlInstances(threatData, riskData, dfdData, catalog, resolveAnchorTargets),
+    [threatData, riskData, dfdData, catalog, resolveAnchorTargets],
   );
 }
 
