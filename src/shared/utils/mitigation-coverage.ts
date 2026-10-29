@@ -10,6 +10,7 @@
 
 import type { MitigationPropertyRole, DFDReference } from "shared";
 import { meetsExpected, readControlValue } from "./control-value-semantics";
+import { mitigationFitsInterface } from "./control-applicability";
 
 // ==================== TYPES ====================
 
@@ -130,6 +131,16 @@ export function computeMitigationCoverage(
   for (const effect of entry.affectsProperties) {
     const elementId = resolveTargetElementId(threat, effect);
     if (!elementId) continue;
+    // Interface: only mitigations whose controls fit its type (CL-1b).
+    if (
+      effect.targetType === "Interface" &&
+      !mitigationFitsInterface(
+        entry.affectsProperties,
+        (dfdData.elements ?? []).find((e) => e.id === elementId)?.properties,
+      )
+    ) {
+      continue;
+    }
 
     const currentValue = readProperty(elementId, effect.property, dfdData);
     const isCovered = meetsExpected(effect.property, currentValue, effect.expectedValue);

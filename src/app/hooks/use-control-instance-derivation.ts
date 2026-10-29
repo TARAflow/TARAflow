@@ -23,6 +23,7 @@ import type {
 import type { DFDData } from "features/dfd";
 import type { ControlInstance, MitigationPropertyRole } from "shared";
 import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
+import { mitigationFitsInterface } from "shared/utils/control-applicability";
 
 // ==================== HELPERS ====================
 
@@ -248,6 +249,14 @@ export function deriveControlInstances(
         // Read current property value from DFD for status derivation
         const el = elementById.get(elementId);
         const conn = connectionById.get(elementId);
+
+        // Interface: only mitigations whose controls fit its type (CL-1b).
+        if (
+          effect.targetType === "Interface" &&
+          !mitigationFitsInterface(catalogEntry.affectsProperties, el?.properties)
+        ) {
+          continue;
+        }
         const currentValue = readControlValue(
           el?.properties ?? conn?.properties,
           effect.property,
