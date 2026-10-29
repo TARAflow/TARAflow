@@ -22,7 +22,9 @@ import {
   PhaseValidationInfo,
   ItemModelItem,
   MethodologySummary,
+  VerificationStatusView,
 } from "../models/overview-types";
+import { VerificationStatusLine } from "./verification-status-line";
 
 // ==================== GENERAL TAB ====================
 // Overview/Info phase component — sub-tabs instead of a growing stack
@@ -86,6 +88,12 @@ interface GeneralTabProps {
 
   /** Switch to the Risk tab, where the method is configured. */
   onOpenRiskTab?: () => void;
+
+  /** TARA verification status (iso-21434 only, plan Phase 4), from the app layer. */
+  verification?: VerificationStatusView;
+
+  /** Switch to the Audit tab, where the verification is recorded. */
+  onOpenAuditTab?: () => void;
 }
 
 export const GeneralTab: React.FC<GeneralTabProps> = ({
@@ -100,6 +108,8 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   assumptionUsage,
   methodology,
   onOpenRiskTab,
+  verification,
+  onOpenAuditTab,
 }) => {
   const { t } = useTranslation();
   const [view, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -205,7 +215,9 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   );
   const badges: Record<OverviewView, number> = {
     // The description is counted in Definition, where it is edited.
-    project: missingGeneralFields(data.info).filter((f) => f !== "description").length,
+    project:
+      missingGeneralFields(data.info).filter((f) => f !== "description").length +
+      (verification && verification.kind !== "verified" ? 1 : 0),
     definition: itemFindings.filter((f) => f.severity === "warning").length,
     methodology: methodology && !methodology.impactScaleConforms ? 1 : 0,
     sources: 0,
@@ -246,6 +258,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
 
       {view === "project" && (
         <>
+          {verification && <VerificationStatusLine status={verification} onOpenAudit={onOpenAuditTab} />}
           <ProjectInfo info={projectInfoData} onUpdate={handleInfoUpdate} />
 
           <ProjectProgress

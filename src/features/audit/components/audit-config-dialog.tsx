@@ -831,6 +831,25 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 </ListItem>
               ))}
             </List>
+
+            {/* TARA verification validity (ISO 21434 plan Phase 4, decision 25) */}
+            <TextField
+              type="number"
+              size="small"
+              label={t("audit.config.verificationMaxAgeDays", {
+                defaultValue: "Verification counts as outdated after (days)",
+              })}
+              value={localConfig.verificationMaxAgeDays ?? 90}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                setLocalConfig((prev) => ({
+                  ...prev,
+                  verificationMaxAgeDays: Number.isFinite(n) && n > 0 ? Math.round(n) : undefined,
+                }));
+              }}
+              inputProps={{ min: 1, "data-testid": "audit-verification-max-age" }}
+              sx={{ maxWidth: 360, mt: 1 }}
+            />
           </Box>
         )}
 

@@ -38,6 +38,7 @@
       "committing": "Committing..."
     },
     "config": {
+      "verificationMaxAgeDays": "Verification counts as outdated after (days)",
       "title": "Audit Configuration",
       "enableSigning": "Sign commits",
       "tabs": {
@@ -295,11 +296,40 @@
         }
       }
     },
+    "verification": {
+      "title": "TARA verification (ISO/SAE 21434 RQ-09-07)",
+      "new": "Record verification",
+      "none": "Not verified yet.",
+      "scope": {
+        "tara": "a) TARA correct and complete with respect to the item definition",
+        "treatment": "b) Risk treatment decisions complete, correct and consistent",
+        "goals-claims": "c) Goals and claims correct with respect to the treatment decisions",
+        "consistency": "d) All goals and claims consistent with each other"
+      },
+      "result": {
+        "passed": "passed",
+        "passed-with-conditions": "passed with conditions",
+        "failed": "failed"
+      },
+      "stateCurrent": "state unchanged",
+      "stateChanged": "changed since",
+      "committed": "committed {{hash}}",
+      "notCommitted": "not committed",
+      "commit": "Commit",
+      "remove": "Remove",
+      "date": "Date",
+      "reviewer": "Reviewer",
+      "checked": "Checked (RQ-09-07)",
+      "openFindings": "{{count}} open finding(s) — see the Definition sub-tab and Goals & Claims",
+      "resultLabel": "Result",
+      "findings": "Findings / conditions"
+    },
     "rounds": {
       "initial": "Initial Assessment",
       "detail": "Detail Review",
       "refinement": "Refinement",
-      "final": "Final Decision"
+      "final": "Final Decision",
+      "verification": "Verification"
     }
   }
 }

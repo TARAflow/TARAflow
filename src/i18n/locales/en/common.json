@@ -252,6 +252,15 @@
     "phaseChanged": "Phase {{phase}} → {{status}}",
     "noActivity": "No activity recorded yet"
   },
+  "verificationStatus": {
+    "label": "TARA verification",
+    "verified": "Verified on {{date}} by {{reviewer}} — state unchanged.",
+    "changed": "Changed since the verification on {{date}} — verify again in the Audit tab.",
+    "outdated": "The verification on {{date}} is older than {{days}} days — verify again in the Audit tab.",
+    "failed": "The verification on {{date}} did not pass.",
+    "none": "Not verified yet — record the verification in the Audit tab.",
+    "openAudit": "Audit tab"
+  },
   "overviewViews": {
     "label": "Overview views",
     "project": "Project",

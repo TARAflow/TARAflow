@@ -3,6 +3,7 @@
 // These define the shape of data this feature works with
 
 import type {
+  VerificationEntry,
   ItemDefinition,
   PhaseStatusMap,
   ProjectTags,
@@ -137,6 +138,19 @@ export interface MethodologySummary {
   riskMatrix: boolean;
   /** "iso-21434 · risk-1+feasibility-1 · 3f2a…" (iso-21434) */
   calcStamps?: { risk: string; path: string };
+}
+
+// ==================== VERIFICATION STATUS ====================
+
+/**
+ * Status of the TARA verification (ISO/SAE 21434 RQ-09-07, plan Phase 4,
+ * decision 25), derived by the app layer; shown under iso-21434 only.
+ */
+export interface VerificationStatusView {
+  kind: "verified" | "changed" | "outdated" | "failed" | "none";
+  latest?: VerificationEntry;
+  ageDays?: number;
+  maxAgeDays: number;
 }
 
 // ==================== GENERAL TAB ====================

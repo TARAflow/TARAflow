@@ -2,6 +2,9 @@
 // Core data models for the Audit/Version Control feature
 // NO dependency on app - follows Dependency Inversion Principle
 
+// Deep paths: the Electron build resolves shared/models/*, not the barrel.
+import type { CybersecurityConcept, VerificationEntry, VerificationScope } from "shared/models/cybersecurity-concept-types";
+import type { ItemDefinition } from "shared/models/item-definition-types";
 import type { PhaseStatusMap } from "shared/models/common-types";
 
 // ==================== GIT PROVIDER ====================
@@ -102,6 +105,8 @@ export const DEFAULT_ROUND_NAMES: RoundName[] = [
   { id: "detail", label: "Detail Review", isCustom: false },
   { id: "refinement", label: "Refinement", isCustom: false },
   { id: "final", label: "Final Decision", isCustom: false },
+  // TARA verification (ISO/SAE 21434 RQ-09-07, plan Phase 4, decision 25)
+  { id: "verification", label: "Verification", isCustom: false },
 ];
 
 // ==================== AUDIT CONFIGURATION ====================
@@ -133,6 +138,12 @@ export interface AuditConfig {
 
   /** Unified signing config (gpg|ssh). Falls back to legacy `gpg` when absent. */
   signing?: SigningSettings;
+
+  /**
+   * After how many days a TARA verification counts as outdated (ISO/SAE 21434
+   * plan Phase 4, decision 25). Absent = 90. Project policy, kept on disk.
+   */
+  verificationMaxAgeDays?: number;
 }
 
 export const DEFAULT_AUDIT_CONFIG: AuditConfig = {
@@ -276,6 +287,20 @@ export interface AuditProjectData {
   threats: any;
   risks: any;
   attackTrees: any;
+  /** Item Definition and goals / claims / verifications — diffed and committed too. */
+  itemDefinition?: ItemDefinition;
+  cybersecurityConcept?: CybersecurityConcept;
+  /**
+   * TARA verification (plan Phase 4, decision 25), derived by the app layer:
+   * the hash of the current analysis content and the open findings per point
+   * of RQ-09-07 (the checklist of a new entry).
+   */
+  verification?: {
+    currentStateHash: string;
+    checklist: { scope: VerificationScope; open: number }[];
+    /** Project version recorded with an entry. */
+    projectVersion?: string;
+  };
 
   lastModified: string;
 
@@ -302,6 +327,8 @@ export interface AuditUpdateResult {
 export interface AuditTabProps {
   project: AuditProjectData;
   onUpdate: (updates: AuditUpdateResult) => void;
+  /** Record / remove TARA verification entries; absent = no verification panel. */
+  onVerificationsChange?: (entries: VerificationEntry[]) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   onPhaseComplete?: () => void;
 }

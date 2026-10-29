@@ -61,6 +61,8 @@ interface CommitDialogProps {
   onClose: () => void;
   /** Local protection status — shows a warning banner when a check fails. */
   protection?: AuditProtection;
+  /** Prefilled reviewer (Reviewed-by trailer), e.g. of a TARA verification. */
+  initialReviewer?: string;
 }
 
 // ==================== COMPONENT ====================
@@ -73,6 +75,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   commitMessageData,
   onCommit,
   onClose,
+  initialReviewer,
   protection,
 }) => {
   const { t } = useTranslation();
@@ -120,12 +123,12 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
       setSelectedBranch(currentBranch);
       setCustomBranchName("");
       setRoundName(commitMessageData.round);
-      setReviewer("");
+      setReviewer(initialReviewer ?? "");
       setPushAfterCommit(!!config.remoteUrl);
       setSignCommit(signingEnabled);
       setError(null);
     }
-  }, [open, currentBranch, commitMessageData.round, config]);
+  }, [open, currentBranch, commitMessageData.round, config, initialReviewer]);
 
   // ==================== HANDLERS ====================
 

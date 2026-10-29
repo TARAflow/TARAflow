@@ -27,6 +27,7 @@ export type {
   PhaseValidationInfo,
   ItemModelItem,
   MethodologySummary,
+  VerificationStatusView,
 } from "./models/overview-types";
 
 // ==================== HOOKS ====================

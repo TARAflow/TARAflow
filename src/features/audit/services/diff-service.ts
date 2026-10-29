@@ -33,7 +33,7 @@ import type { ThreatData, Threat } from "features/threats";
 import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
-import type { A2ARelation } from "shared";
+import type { A2ARelation, CybersecurityConcept, ItemDefinition } from "shared";
 
 /** The description of a DFD change ("Page added", "Layout changed"). */
 function dfdChangeText(change: DfdChange): string {
@@ -147,6 +147,33 @@ export class DiffService {
         changeCount: attackTreeChanges.length,
         changes: attackTreeChanges,
       });
+    }
+
+    // Item Definition, goals / claims, verifications (ISO 21434 plan Phase 1
+    // stage A and Phase 4) — part of the file, so part of the audit diff.
+    const cur = currentProject as Project & { itemDefinition?: ItemDefinition; cybersecurityConcept?: CybersecurityConcept };
+    const prev = previousProject as (Project & { itemDefinition?: ItemDefinition; cybersecurityConcept?: CybersecurityConcept }) | null;
+    const itemChanges = this.compareItemDefinition(cur.itemDefinition, prev?.itemDefinition);
+    if (itemChanges.length > 0) {
+      changes.push({ phase: "item-definition", phaseLabel: "Item Definition", changeCount: itemChanges.length, changes: itemChanges });
+    }
+    const conceptChanges = this.compareById(
+      [...(cur.cybersecurityConcept?.goals ?? []), ...(cur.cybersecurityConcept?.claims ?? [])],
+      [...(prev?.cybersecurityConcept?.goals ?? []), ...(prev?.cybersecurityConcept?.claims ?? [])],
+      (x) => `${x.displayId} ${x.statement}`.trim(),
+      (x) => (x.displayId.startsWith("CSG") ? "Goal" : "Claim"),
+    );
+    if (conceptChanges.length > 0) {
+      changes.push({ phase: "goals-claims", phaseLabel: "Goals & Claims", changeCount: conceptChanges.length, changes: conceptChanges });
+    }
+    const verificationChanges = this.compareById(
+      cur.cybersecurityConcept?.verifications ?? [],
+      prev?.cybersecurityConcept?.verifications ?? [],
+      (v) => `${v.date} ${v.reviewer} (${v.result})`,
+      () => "Verification",
+    );
+    if (verificationChanges.length > 0) {
+      changes.push({ phase: "verification", phaseLabel: "Verification", changeCount: verificationChanges.length, changes: verificationChanges });
     }
 
     return changes;
@@ -889,6 +916,64 @@ export class DiffService {
   }
 
   // ==================== ATTACK TREE COMPARISON ====================
+
+  /** Item Definition: sections by id, functions and assumptions by id. */
+  private compareItemDefinition(
+    current: ItemDefinition | undefined,
+    previous: ItemDefinition | undefined,
+  ): ChangeItem[] {
+    const sections = (d: ItemDefinition | undefined) =>
+      Object.entries(d?.sections ?? {}).map(([id, s]) => ({ id: `section:${id}`, section: id, ...s }));
+    return [
+      ...this.compareById(sections(current), sections(previous), (s) => `Section ${s.section}`, () => "Section"),
+      ...this.compareById(current?.functions ?? [], previous?.functions ?? [], (f) => f.name, () => "Function"),
+      ...this.compareById(
+        current?.assumptions ?? [],
+        previous?.assumptions ?? [],
+        (a) => `${a.displayId} ${a.text}`,
+        () => "Assumption",
+      ),
+    ];
+  }
+
+  /** Added / deleted / modified by id; a modification lists the changed fields. */
+  private compareById<T extends { id: string }>(
+    current: readonly T[],
+    previous: readonly T[],
+    name: (x: T) => string,
+    kind: (x: T) => string,
+  ): ChangeItem[] {
+    const changes: ChangeItem[] = [];
+    const prevMap = new Map(previous.map((x) => [x.id, x]));
+    const curMap = new Map(current.map((x) => [x.id, x]));
+    for (const x of current) {
+      const before = prevMap.get(x.id);
+      if (!before) {
+        changes.push({ type: "added", id: x.id, name: name(x), description: `${kind(x)} added` });
+        continue;
+      }
+      const details: ChangeDetail[] = [];
+      for (const field of new Set([...Object.keys(x), ...Object.keys(before)])) {
+        const a = (before as Record<string, unknown>)[field];
+        const b = (x as Record<string, unknown>)[field];
+        if (JSON.stringify(a) === JSON.stringify(b)) continue;
+        details.push({ field, fieldLabel: field, oldValue: a, newValue: b, valueType: valueTypeOf(b ?? a) });
+      }
+      if (details.length > 0) {
+        changes.push({
+          type: "modified",
+          id: x.id,
+          name: name(x),
+          description: `${kind(x)} modified: ${details.length} field(s) changed`,
+          details,
+        });
+      }
+    }
+    for (const x of previous) {
+      if (!curMap.has(x.id)) changes.push({ type: "deleted", id: x.id, name: name(x), description: `${kind(x)} deleted` });
+    }
+    return changes;
+  }
 
   private compareAttackTrees(
     current: AttackTreeData | null,

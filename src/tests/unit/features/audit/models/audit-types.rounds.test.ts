@@ -22,6 +22,7 @@ describe("round names — canonical commit label, localized display", () => {
       "Detail Review",
       "Refinement",
       "Final Decision",
+      "Verification", // TARA verification (ISO 21434 plan Phase 4)
     ]);
     expect(DEFAULT_ROUND_NAMES.every((r) => !r.isCustom)).toBe(true);
   });

@@ -28,6 +28,8 @@ import {
   newAssumption,
   type Assumption,
   type CybersecurityConcept,
+  emptyCybersecurityConcept,
+  type VerificationEntry,
 } from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
 import {
@@ -68,6 +70,8 @@ import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { buildAssumptionUsage, buildItemModelItems } from "app/utils/build-item-model-items";
 import { buildMethodologySummary } from "app/utils/build-methodology-summary";
+import { buildVerificationChecklist } from "app/utils/build-verification-checklist";
+import { verificationStateHash, verificationStatus } from "app/services/verification-state";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import {
@@ -306,6 +310,17 @@ export const WorkspaceLayout: React.FC = () => {
         });
       }
       return created;
+    },
+    [updateProject],
+  );
+
+  // Audit tab → TARA verification entries (ISO 21434 plan Phase 4, decision 25).
+  const handleVerificationsChange = useCallback(
+    (verifications: VerificationEntry[]) => {
+      const current = activeProjectRef.current;
+      if (!current) return;
+      const concept = current.cybersecurityConcept ?? emptyCybersecurityConcept();
+      updateProject({ id: current.id, cybersecurityConcept: { ...concept, verifications } });
     },
     [updateProject],
   );
@@ -797,6 +812,51 @@ export const WorkspaceLayout: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [activeProject?.dfd, activeProject?.assets],
   );
+  // TARA verification (plan Phase 4, decision 25): the hash of the current
+  // analysis content, the checklist of a new entry, and — under iso-21434 —
+  // the status the Overview shows.
+  const verificationHash = useMemo(
+    () => (activeProject ? verificationStateHash(activeProject) : ""),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      activeProject?.info?.description,
+      activeProject?.itemDefinition,
+      activeProject?.hazards,
+      activeProject?.dfd,
+      activeProject?.assets,
+      activeProject?.threats,
+      activeProject?.attackTrees,
+      activeProject?.risks,
+      activeProject?.cybersecurityConcept,
+    ],
+  );
+  const memoizedVerificationInput = useMemo(
+    () =>
+      activeProject
+        ? {
+            currentStateHash: verificationHash,
+            checklist: buildVerificationChecklist(activeProject, new Date().toISOString().slice(0, 10)),
+            ...(activeProject.info?.version ? { projectVersion: activeProject.info.version } : {}),
+          }
+        : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [verificationHash, activeProject?.info?.version, activeProject?.info?.tags],
+  );
+  const memoizedVerificationStatus = useMemo(
+    () =>
+      activeProject &&
+      regulationPresetFromTags(activeProject.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
+        ? verificationStatus(
+            activeProject.cybersecurityConcept?.verifications,
+            verificationHash,
+            new Date().toISOString().slice(0, 10),
+            activeProject.audit?.config?.verificationMaxAgeDays,
+          )
+        : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [verificationHash, activeProject?.cybersecurityConcept?.verifications, activeProject?.info?.tags, activeProject?.audit?.config?.verificationMaxAgeDays],
+  );
+
   // Methodology sub-tab of the Overview (A-4): the record, read-only.
   const memoizedMethodologySummary = useMemo(
     () => (activeProject ? buildMethodologySummary(activeProject) : undefined),
@@ -1051,6 +1111,8 @@ export const WorkspaceLayout: React.FC = () => {
             modelItems={memoizedItemModelItems}
             assumptionUsage={memoizedAssumptionUsage}
             methodology={memoizedMethodologySummary}
+            verification={memoizedVerificationStatus}
+            onOpenAuditTab={() => handlePhaseChange(PhaseId.Audit)}
             onOpenRiskTab={() => handlePhaseChange(PhaseId.Risk)}
           />
         )}
@@ -1329,9 +1391,13 @@ export const WorkspaceLayout: React.FC = () => {
               threats: activeProject.threats,
               risks: activeProject.risks,
               attackTrees: activeProject.attackTrees,
+              itemDefinition: activeProject.itemDefinition,
+              cybersecurityConcept: activeProject.cybersecurityConcept,
+              verification: memoizedVerificationInput,
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handleAuditUpdate}
+            onVerificationsChange={handleVerificationsChange}
             onDirtyChange={handleAuditDirtyChange}
             onPhaseComplete={() => console.log("Audit phase completed")}
           />

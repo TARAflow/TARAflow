@@ -28,6 +28,8 @@ import { AuditToolbar } from "./audit-toolbar";
 import { AuditSummary } from "./audit-summary";
 import { PhaseDiffViewer } from "./phase-diff-viewer";
 import { CommitDialog } from "./commit-dialog";
+import { VerificationPanel } from "./verification-panel";
+import type { VerificationEntry } from "shared";
 import { AuditConfigDialog } from "./audit-config-dialog";
 import { useAuditRepo } from "../hooks/useAuditRepo";
 import { useAuditProtection } from "../hooks/useAuditProtection";
@@ -54,6 +56,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
+  onVerificationsChange,
   onPhaseComplete,
 }) => {
   const { t } = useTranslation();
@@ -92,6 +95,12 @@ export const AuditTab: React.FC<AuditTabProps> = ({
   const [lastCommitDate, setLastCommitDate] = useState<string | undefined>(
     undefined,
   );
+
+  // TARA verification (plan Phase 4, decision 25): which entry went in with
+  // which commit — from git (pickaxe on the entry id), never stored.
+  const [verificationCommits, setVerificationCommits] = useState<ReadonlyMap<string, string>>(new Map());
+  const [commitReviewer, setCommitReviewer] = useState<string | undefined>(undefined);
+  const verificationEntries = project.cybersecurityConcept?.verifications ?? [];
 
   // ==================== COMPUTED ====================
 
@@ -312,6 +321,46 @@ export const AuditTab: React.FC<AuditTabProps> = ({
     );
   }, [repo.outcome, project.filePath, gitService]);
 
+  const refreshVerificationCommits = useCallback(async () => {
+    const repoRoot =
+      repo.outcome?.kind === "repo-ok" ||
+      repo.outcome?.kind === "repo-needs-attributes"
+        ? repo.outcome.repoRoot
+        : null;
+    const filePath = project.filePath;
+    if (!repoRoot || !filePath || verificationEntries.length === 0) {
+      setVerificationCommits(new Map());
+      return;
+    }
+    const relPath = repoRelativePath(repoRoot, filePath);
+    const found = new Map<string, string>();
+    for (const entry of verificationEntries) {
+      const res = await gitService.raw(["log", "--format=%h", "--reverse", `-S${entry.id}`, "--", relPath]);
+      const hash = res.success ? res.data?.trim().split("\n")[0] : undefined;
+      if (hash) found.set(entry.id, hash);
+    }
+    setVerificationCommits(found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repo.outcome, project.filePath, gitService, verificationEntries.map((e) => e.id).join(",")]);
+
+  useEffect(() => {
+    refreshVerificationCommits();
+  }, [refreshVerificationCommits]);
+
+  /** Commit dialog prefilled for a verification: round "Verification", Reviewed-by. */
+  const handleCommitVerification = useCallback(
+    (entry: VerificationEntry) => {
+      if (!validation.canCommit || !hasChanges || !commitMessageData) {
+        setError("Cannot commit: Configuration incomplete or no changes detected");
+        return;
+      }
+      setCommitMessageData({ ...commitMessageData, round: "Verification" });
+      setCommitReviewer(entry.reviewer);
+      setShowCommitDialog(true);
+    },
+    [validation.canCommit, hasChanges, commitMessageData],
+  );
+
   // ==================== HANDLERS ====================
 
   const handleRefresh = useCallback(() => {
@@ -492,6 +541,8 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         setCurrentBranch(options.branchName);
         await initializeGit();
         detectChanges();
+        refreshVerificationCommits();
+        setCommitReviewer(undefined);
 
         setShowCommitDialog(false);
       } catch (err) {
@@ -509,6 +560,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
       project.phaseStatus,
       onUpdate,
       detectChanges,
+      refreshVerificationCommits,
     ],
   );
 
@@ -692,6 +744,21 @@ export const AuditTab: React.FC<AuditTabProps> = ({
           />
         )}
 
+        {/* TARA verification (ISO/SAE 21434 RQ-09-07, decision 25) */}
+        {onVerificationsChange && project.verification && (
+          <VerificationPanel
+            entries={verificationEntries}
+            currentStateHash={project.verification.currentStateHash}
+            checklist={project.verification.checklist}
+            projectVersion={project.verification.projectVersion}
+            defaultReviewer={auditData.config.author.name}
+            commits={verificationCommits}
+            gitAvailable={isGitInitialized}
+            onChange={onVerificationsChange}
+            onCommit={handleCommitVerification}
+          />
+        )}
+
         {/* Audit trail verification */}
         {auditData.config.signing?.enabled && (
           <AuditVerifyPanel
@@ -724,8 +791,12 @@ export const AuditTab: React.FC<AuditTabProps> = ({
           currentBranch={currentBranch}
           commitMessageData={commitMessageData}
           onCommit={handleCommit}
-          onClose={() => setShowCommitDialog(false)}
+          onClose={() => {
+            setShowCommitDialog(false);
+            setCommitReviewer(undefined);
+          }}
           protection={protection}
+          initialReviewer={commitReviewer}
         />
       )}
     </Box>

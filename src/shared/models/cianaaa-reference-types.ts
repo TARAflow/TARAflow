@@ -5,7 +5,7 @@
 //
 // Consumers import directly from this file.
 
-import type { StrideCategory } from "shared";
+import type { StrideCategory } from "./common-types";
 
 // ==================== LEVEL ====================
 
