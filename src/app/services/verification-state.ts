@@ -21,7 +21,7 @@
 import type { Project } from "../models/project-types";
 import { canonicalStringify } from "shared/utils/tcs-canonical";
 import { fnv1aHex12 } from "shared/utils/fnv1a";
-import type { VerificationEntry } from "shared";
+import { EMPTY_PROJECT_TAGS, regulationPresetFromTags, type VerificationEntry } from "shared";
 
 export const DEFAULT_VERIFICATION_MAX_AGE_DAYS = 90;
 
@@ -105,4 +105,23 @@ export function verificationStatus(
   if (latest.stateHash !== currentHash) return { kind: "changed", ...base };
   if (ageDays > maxAgeDays) return { kind: "outdated", ...base };
   return { kind: "verified", ...base };
+}
+
+/**
+ * The status the document shows (plan Phase 4, decision 25): only under
+ * iso-21434, as of the document's creation date.
+ */
+export function docVerificationOf(
+  project: Partial<Project>,
+  asOf: string,
+): { kind: VerificationStatusKind; latest?: VerificationEntry; maxAgeDays: number; asOf: string } | undefined {
+  const presetId = regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS);
+  if (presetId !== "iso-21434") return undefined;
+  const status = verificationStatus(
+    project.cybersecurityConcept?.verifications,
+    verificationStateHash(project),
+    asOf,
+    project.audit?.config?.verificationMaxAgeDays,
+  );
+  return { kind: status.kind, ...(status.latest ? { latest: status.latest } : {}), maxAgeDays: status.maxAgeDays, asOf };
 }

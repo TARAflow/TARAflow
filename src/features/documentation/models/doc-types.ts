@@ -19,6 +19,7 @@ import type { ThreatData } from "features/threats";
 import type { RiskData } from "features/risks";
 import type { AttackTreeData } from "features/attacktree";
 import type { ItemDefinition } from "shared/models/item-definition-types";
+import type { CybersecurityConcept, VerificationEntry } from "shared/models/cybersecurity-concept-types";
 
 // ==================== DOCUMENT FORMAT ====================
 
@@ -46,6 +47,7 @@ export type DocChapterId =
   | "srsl-assessment"
   | "accepted-risks"
   | "traceability-matrix"
+  | "goals-claims"
   | "attack-trees"
   | "appendix";
 
@@ -113,6 +115,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Traceability Matrix (ISO/SAE 21434)",
     de: "Rückverfolgbarkeitsmatrix (ISO/SAE 21434)",
   },
+  "goals-claims": {
+    en: "Cybersecurity Goals and Claims",
+    de: "Cybersecurity Goals und Claims",
+  },
   "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
   appendix: { en: "Appendix", de: "Anhang" },
 };
@@ -138,6 +144,9 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "risks-attack-path", enabled: true, autoHideIfEmpty: true },
   { id: "srsl-assessment", enabled: true, autoHideIfEmpty: true },
   { id: "accepted-risks", enabled: true, autoHideIfEmpty: true },
+  // Goals, claims, verification (WP-09-03/04/05, plan Phase 4) — the
+  // outcome of the treatment decisions, before the matrix that lists them.
+  { id: "goals-claims", enabled: true, autoHideIfEmpty: true },
   { id: "traceability-matrix", enabled: true, autoHideIfEmpty: true },
   { id: "appendix", enabled: false, autoHideIfEmpty: true },
 ];
@@ -253,6 +262,21 @@ export interface DocComputedValues {
    * applied. Absent → no methodology chapter.
    */
   methodology?: DocMethodology;
+  /**
+   * TARA verification status as of the document's creation (ISO/SAE 21434
+   * RQ-09-07, plan Phase 4, decision 25), derived by the app layer — only
+   * under iso-21434. Absent → no status in the document.
+   */
+  verification?: DocVerification;
+}
+
+/** The verification status the document shows up front. */
+export interface DocVerification {
+  kind: "verified" | "changed" | "outdated" | "failed" | "none";
+  latest?: VerificationEntry;
+  maxAgeDays: number;
+  /** ISO date the status refers to (document creation). */
+  asOf: string;
 }
 
 /** What the methodology chapter needs from the app's methodology record. */
@@ -305,6 +329,8 @@ export interface DocProjectData {
   attackTree: AttackTreeData | null;
   /** Item Definition (WP-09-01, ISO 21434 plan Phase 1 stage A); absent = none. */
   itemDefinition?: ItemDefinition;
+  /** Goals, claims, verifications (WP-09-03/04/05, plan Phase 4); absent = none. */
+  cybersecurityConcept?: CybersecurityConcept;
 
   // Computed values (performance optimization)
   computed: DocComputedValues;

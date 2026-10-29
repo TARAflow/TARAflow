@@ -76,4 +76,21 @@ describe("toDocProjectData", () => {
     const itemDefinition = { sections: { boundary: { text: "Controller" } }, functions: [], assumptions: [] };
     expect(toDocProjectData({ ...project, itemDefinition }, "en").itemDefinition).toEqual(itemDefinition);
   });
+
+  it("passes goals / claims through and adds the verification status under ISO 21434 only (plan Phase 4)", () => {
+    const project = loadFixtureProject();
+    const doc = toDocProjectData(project, "en");
+    expect("cybersecurityConcept" in doc).toBe(false);
+    expect(doc.computed.verification).toBeUndefined();
+
+    const cybersecurityConcept = { goals: [], claims: [], verifications: [] };
+    const iso = {
+      ...project,
+      info: { ...project.info, tags: { ...project.info.tags, regulation: ["ISO/SAE 21434"] } },
+      cybersecurityConcept,
+    } as Project;
+    const isoDoc = toDocProjectData(iso, "en");
+    expect(isoDoc.cybersecurityConcept).toEqual(cybersecurityConcept);
+    expect(isoDoc.computed.verification?.kind).toBe("none");
+  });
 });

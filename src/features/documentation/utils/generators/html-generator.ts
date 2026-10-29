@@ -11,7 +11,7 @@ import {
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
 import type { AttackTreeReportSection } from "../attack-tree-report";
-import type { ItemDefinitionReportSection } from "../item-definition-report";
+import type { ReportSection } from "../report-section";
 import { HTML_TEMPLATES } from "../templates/html-templates";
 import { replacePlaceholders, processConditionals } from "../templates";
 
@@ -102,6 +102,7 @@ export class HtmlGenerator extends BaseDocumentGenerator {
 
     let innerContent = "";
     innerContent += this.generateHeader();
+    innerContent += this.generateVerificationNotice();
     innerContent += this.generateToc(chapters);
 
     // Disabled chapters stay out (plan F6 — this loop used to check only
@@ -216,11 +217,15 @@ export class HtmlGenerator extends BaseDocumentGenerator {
   }
 
   // Attack-trees chapter (plan F5)
-  formatItemDefinitionChapter(title: string, intro: string, body: string): string {
-    return `<section id="item-definition">\n  <h2>${this.escapeHtml(title)}</h2>\n  <p>${this.escapeHtml(intro)}</p>\n${body}</section>\n\n`;
+  formatStatusNotice(text: string, kind: "info" | "warning"): string {
+    return `<p class="status-notice status-${kind}" data-status="${kind}"><strong>${this.escapeHtml(text)}</strong></p>\n\n`;
   }
 
-  formatItemDefinitionSection(section: ItemDefinitionReportSection): string {
+  formatSectionedChapter(chapterId: string, title: string, intro: string, body: string): string {
+    return `<section id="${chapterId}">\n  <h2>${this.escapeHtml(title)}</h2>\n  <p>${this.escapeHtml(intro)}</p>\n${body}</section>\n\n`;
+  }
+
+  formatReportSection(section: ReportSection): string {
     const cells = (tag: "th" | "td", list: string[]) =>
       list.map((c) => `<${tag}>${this.escapeHtml(c)}</${tag}>`).join("");
     return [

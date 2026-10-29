@@ -3,11 +3,15 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
+import { itemDefinitionIntro, itemDefinitionReportSections } from "../item-definition-report";
+import type { ReportSection } from "../report-section";
 import {
-  itemDefinitionIntro,
-  itemDefinitionReportSections,
-  type ItemDefinitionReportSection,
-} from "../item-definition-report";
+  goalsClaimsIntro,
+  goalsClaimsOfRisk,
+  goalsClaimsReportSections,
+  verificationStatusLabel,
+  verificationStatusSentence,
+} from "../cybersecurity-concept-report";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
 import { controlLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
@@ -334,11 +338,16 @@ export abstract class BaseDocumentGenerator {
   protected formatAttackTreeSection(_section: AttackTreeReportSection): string {
     return "";
   }
-  // Item-definition chapter (WP-09-01, plan A-5) — same pattern.
-  protected formatItemDefinitionChapter(_title: string, _intro: string, _body: string): string {
+  // Sectioned chapters (item definition A-5, goals / claims Phase 4) — same
+  // pattern: a format that has not implemented them produces no chapter.
+  protected formatSectionedChapter(_chapterId: string, _title: string, _intro: string, _body: string): string {
     return "";
   }
-  protected formatItemDefinitionSection(_section: ItemDefinitionReportSection): string {
+  protected formatReportSection(_section: ReportSection): string {
+    return "";
+  }
+  /** A status line below the header (verification, plan Phase 4). */
+  protected formatStatusNotice(_text: string, _kind: "info" | "warning"): string {
     return "";
   }
   abstract getAcceptedRisksTemplate(): string;
@@ -381,6 +390,7 @@ export abstract class BaseDocumentGenerator {
 
     let content = "";
     content += this.generateHeader();
+    content += this.generateVerificationNotice();
     content += this.generateToc(chapters);
 
     for (const chapter of this.visibleChapters(chapters)) {
@@ -394,6 +404,19 @@ export abstract class BaseDocumentGenerator {
       format: this.getFormat(),
       filename: this.generateFilename(),
     };
+  }
+
+  /**
+   * ISO/SAE 21434: the verification status up front (plan Phase 4) — the
+   * document is marked, never blocked. Empty outside iso-21434.
+   */
+  protected generateVerificationNotice(): string {
+    const verification = this.ctx.project.computed.verification;
+    if (!verification) return "";
+    return this.formatStatusNotice(
+      `${verificationStatusLabel(this.ctx.t)}: ${verificationStatusSentence(verification, this.ctx.t)}`,
+      verification.kind === "verified" ? "info" : "warning",
+    );
   }
 
   /**
@@ -445,6 +468,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateSystemOverview(title);
       case "item-definition":
         return this.generateItemDefinition(title);
+      case "goals-claims":
+        return this.generateGoalsClaims(title);
       case "dfd":
         return this.generateDfd(title);
       case "dfd-descriptions":
@@ -1615,8 +1640,22 @@ export abstract class BaseDocumentGenerator {
     if (sections.length === 0) {
       return { id: chapterId, title, content: "", hasContent: false };
     }
-    const body = sections.map((s) => this.formatItemDefinitionSection(s)).join("");
-    const content = this.formatItemDefinitionChapter(title, itemDefinitionIntro(this.ctx.t), body);
+    const body = sections.map((s) => this.formatReportSection(s)).join("");
+    const content = this.formatSectionedChapter(chapterId, title, itemDefinitionIntro(this.ctx.t), body);
+    return { id: chapterId, title, content, hasContent: content !== "" };
+  }
+
+  // ==================== GOALS, CLAIMS, VERIFICATION (WP-09-03/04/05) ====================
+
+  /** Plan Phase 4: goals, claims, verification entries; all presets. */
+  protected generateGoalsClaims(title: string): ChapterContent {
+    const chapterId: DocChapterId = "goals-claims";
+    const sections = goalsClaimsReportSections(this.ctx.project, this.ctx.t);
+    if (sections.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+    const body = sections.map((s) => this.formatReportSection(s)).join("");
+    const content = this.formatSectionedChapter(chapterId, title, goalsClaimsIntro(this.ctx.t), body);
     return { id: chapterId, title, content, hasContent: content !== "" };
   }
 
@@ -1838,6 +1877,8 @@ export abstract class BaseDocumentGenerator {
             treatmentFallbackLabel(risk.treatment, treatmentVocabulary(config)),
           ),
           riskAfter: this.escapeTableText(isoRiskLabel(risk, t, true)),
+          // Goal / claim of the risk (plan Phase 4, decision 25).
+          goalsClaims: goalsClaimsOfRisk(project.cybersecurityConcept, risk.id),
         };
         return replacePlaceholders(this.getTraceabilityRowTemplate(), values);
       })

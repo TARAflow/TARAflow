@@ -185,6 +185,43 @@
         "scenarioResidual": "Restrisiko",
         "scenarioTreatment": "Behandlung"
       },
+      "goalsClaims": {
+        "intro": "Das Ergebnis der Behandlungsentscheide (ISO/SAE 21434 9.4, 15.9): ein Cybersecurity Goal für jedes reduzierte Risiko, ein Cybersecurity Claim für jedes behaltene oder geteilte Risiko und die Verifikation von TARA, Goals und Claims.",
+        "removed": "entfernt",
+        "goals": "Cybersecurity Goals",
+        "claims": "Cybersecurity Claims",
+        "verification": "Verifikation",
+        "colId": "ID",
+        "colGoal": "Cybersecurity Goal",
+        "colAssetProperty": "Asset × Schutzziel",
+        "colCal": "CAL",
+        "colRisks": "Bedrohungsszenarien / Risiken",
+        "colClaim": "Cybersecurity Claim",
+        "colKind": "Behandlung",
+        "colBasis": "Annahmen / tragende Partei",
+        "colReview": "Prüfen bis",
+        "colDate": "Datum",
+        "colReviewer": "Reviewer",
+        "colChecked": "Geprüft (RQ-09-07)",
+        "colResult": "Ergebnis",
+        "colFindings": "Befunde / Auflagen",
+        "colState": "Geprüfter Stand",
+        "kind": {
+          "retain": "Behalten",
+          "share": "Teilen"
+        },
+        "scope": {
+          "tara": "a) TARA",
+          "treatment": "b) Behandlungsentscheide",
+          "goals-claims": "c) Goals und Claims",
+          "consistency": "d) Konsistenz"
+        },
+        "result": {
+          "passed": "bestanden",
+          "passed-with-conditions": "bestanden mit Auflagen",
+          "failed": "nicht bestanden"
+        }
+      },
       "itemDefinition": {
         "intro": "Worum es in der Analyse geht (ISO/SAE 21434 9.3): Zweck und Funktionen des Items, seine Grenze, seine vorläufige Architektur und seine Betriebsumgebung, mit den Quellen, aus denen sie stammen, und den Annahmen, auf die sich die Analyse stützt.",
         "purpose": "Zweck und Funktionen",

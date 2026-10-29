@@ -21,19 +21,14 @@ import {
   type SourceRef,
 } from "../../../shared/models/item-definition-types";
 import type { DocProjectData } from "../models/doc-types";
+import type { ReportSection } from "./report-section";
 
 type TranslateFn = (key: string, defaultValue?: string) => string;
 
 const K = "tabs.doc.itemDefinition";
 
-export interface ItemDefinitionReportSection {
-  title: string;
-  /** Text of the section, one entry per paragraph. */
-  paragraphs: string[];
-  /** Label / value lines: source, refers to. */
-  facts: [string, string][];
-  table?: { headers: string[]; rows: string[][] };
-}
+/** A section of the chapter (generic report section). */
+export type ItemDefinitionReportSection = ReportSection;
 
 const SECTION_DEFAULTS: Record<Exclude<ItemSectionId, "functions">, string> = {
   boundary: "Item boundary",

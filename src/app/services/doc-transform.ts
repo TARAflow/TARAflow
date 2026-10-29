@@ -2,6 +2,7 @@
 // Simplified transform - direct references + cached labels only
 // Location: src/app/services/doc-transform.ts (or src/app/utils/doc-transform.ts)
 
+import { docVerificationOf } from "./verification-state";
 import type { Project } from "../models/project-types";
 import type {
   DocProjectData,
@@ -189,6 +190,8 @@ function computeDocValues(
     statusLabels,
     // Methodology chapter (ISO/SAE 21434 conformance plan 0d).
     methodology: buildMethodologyRecord(project),
+    // Verification status as of now, the document's creation (plan Phase 4).
+    verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
   };
 }
 
@@ -221,6 +224,7 @@ export function transformProjectToDocData(
     risks: project.risks ?? null,
     attackTree: project.attackTrees ?? null,
     ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
+    ...(project.cybersecurityConcept ? { cybersecurityConcept: project.cybersecurityConcept } : {}),
 
     // Computed values (performance optimization)
     computed: computeDocValues(project, language),

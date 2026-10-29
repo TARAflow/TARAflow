@@ -118,6 +118,16 @@ p { margin: 0.75em 0; }
 .tag-other { background: #f1f5f9; color: #475569; }
 
 /* TOC */
+/* ISO/SAE 21434 verification status up front (plan Phase 4) */
+.status-notice {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid;
+  border-radius: 0.25rem;
+}
+.status-info { background: #dcfce7; color: #166534; border-color: #16a34a; }
+.status-warning { background: #fef3c7; color: #92400e; border-color: var(--color-warning); }
+
 .toc {
   background: var(--color-bg-alt);
   border: 1px solid var(--color-border);

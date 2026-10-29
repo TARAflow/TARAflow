@@ -185,6 +185,43 @@
         "scenarioResidual": "Residual",
         "scenarioTreatment": "Treatment"
       },
+      "goalsClaims": {
+        "intro": "The outcome of the risk treatment decisions (ISO/SAE 21434 9.4, 15.9): a cybersecurity goal for every risk that is reduced, a cybersecurity claim for every risk that is retained or shared, and the verification of the TARA, the goals and the claims.",
+        "removed": "removed",
+        "goals": "Cybersecurity goals",
+        "claims": "Cybersecurity claims",
+        "verification": "Verification",
+        "colId": "ID",
+        "colGoal": "Cybersecurity goal",
+        "colAssetProperty": "Asset × property",
+        "colCal": "CAL",
+        "colRisks": "Threat scenarios / risks",
+        "colClaim": "Cybersecurity claim",
+        "colKind": "Treatment",
+        "colBasis": "Assumptions / responsible party",
+        "colReview": "Review by",
+        "colDate": "Date",
+        "colReviewer": "Reviewer",
+        "colChecked": "Checked (RQ-09-07)",
+        "colResult": "Result",
+        "colFindings": "Findings / conditions",
+        "colState": "Verified state",
+        "kind": {
+          "retain": "Retain",
+          "share": "Share"
+        },
+        "scope": {
+          "tara": "a) TARA",
+          "treatment": "b) treatment decisions",
+          "goals-claims": "c) goals and claims",
+          "consistency": "d) consistency"
+        },
+        "result": {
+          "passed": "passed",
+          "passed-with-conditions": "passed with conditions",
+          "failed": "failed"
+        }
+      },
       "itemDefinition": {
         "intro": "What the analysis is about (ISO/SAE 21434 9.3): the item's purpose and functions, its boundary, its preliminary architecture and its operational environment, with the sources they come from and the assumptions the analysis relies on.",
         "purpose": "Purpose and functions",

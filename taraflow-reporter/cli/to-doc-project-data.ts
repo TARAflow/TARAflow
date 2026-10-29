@@ -17,6 +17,7 @@
 
 import type { Project } from "../../src/app/models/project-types";
 import { buildMethodologyRecord } from "../../src/app/services/methodology-record";
+import { docVerificationOf } from "../../src/app/services/verification-state";
 import type {
   DocProjectData,
   DocComputedValues,
@@ -74,12 +75,15 @@ export function toDocProjectData(
 
     // Item definition (WP-09-01, ISO 21434 plan A-5) — the same data as in the app.
     ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
+    ...(project.cybersecurityConcept ? { cybersecurityConcept: project.cybersecurityConcept } : {}),
 
     computed: {
       ...createEmptyComputedValues(language),
       // Methodology chapter (ISO/SAE 21434 conformance plan 0d) — the same
       // derived record as in the app, so CLI and app report one method.
       methodology: buildMethodologyRecord(project),
+      // Verification status as of the report's creation (plan Phase 4).
+      verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
     },
 
     documentation: project.documentation as DocProjectData["documentation"],

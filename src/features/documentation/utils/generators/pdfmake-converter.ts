@@ -11,6 +11,13 @@ import { controlLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
 import { itemDefinitionIntro, itemDefinitionReportSections } from "../item-definition-report";
 import {
+  goalsClaimsIntro,
+  goalsClaimsReportSections,
+  verificationStatusLabel,
+  verificationStatusSentence,
+} from "../cybersecurity-concept-report";
+import type { ReportSection } from "../report-section";
+import {
   attackTreeReportSections,
   attackTreesIntro,
   type AttackTreeOutlineItem,
@@ -289,6 +296,18 @@ export class PdfMakeConverter {
     // Cover page
     content.push(...this.createCoverPage());
 
+    // ISO/SAE 21434: the verification status up front (plan Phase 4) —
+    // marked, never blocked.
+    const verification = this.project.computed.verification;
+    if (verification) {
+      content.push({
+        text: `${verificationStatusLabel(this.t)}: ${verificationStatusSentence(verification, this.t)}`,
+        bold: true,
+        color: verification.kind === "verified" ? "#166534" : "#b45309",
+        margin: [0, 0, 0, 12],
+      });
+    }
+
     // Table of contents
     content.push(...this.createTableOfContents());
 
@@ -352,6 +371,9 @@ export class PdfMakeConverter {
           break;
         case "item-definition":
           content.push(...this.createItemDefinition());
+          break;
+        case "goals-claims":
+          content.push(...this.createGoalsClaims());
           break;
         case "accepted-risks":
           if (this.getWontRisks().length > 0) {
@@ -1111,11 +1133,24 @@ export class PdfMakeConverter {
 
   /** Plan A-5: the item definition (WP-09-01), same content as the template generators. */
   private createItemDefinition(): Content[] {
-    const sections = itemDefinitionReportSections(this.project, this.t);
+    return this.sectionedChapter(
+      "item-definition",
+      itemDefinitionIntro(this.t),
+      itemDefinitionReportSections(this.project, this.t),
+    );
+  }
+
+  /** Plan Phase 4: goals, claims, verification (WP-09-03/04/05). */
+  private createGoalsClaims(): Content[] {
+    return this.sectionedChapter("goals-claims", goalsClaimsIntro(this.t), goalsClaimsReportSections(this.project, this.t));
+  }
+
+  /** A chapter of generic report sections (title, paragraphs, facts, table). */
+  private sectionedChapter(id: DocChapterId, intro: string, sections: ReportSection[]): Content[] {
     if (sections.length === 0) return [];
     const content: Content[] = [
-      { text: this.chapterTitle("item-definition"), style: "h1", tocItem: true },
-      { text: itemDefinitionIntro(this.t), margin: [0, 0, 0, 8] },
+      { text: this.chapterTitle(id), style: "h1", tocItem: true },
+      { text: intro, margin: [0, 0, 0, 8] },
     ];
     for (const section of sections) {
       content.push({ text: section.title, style: "h2" });

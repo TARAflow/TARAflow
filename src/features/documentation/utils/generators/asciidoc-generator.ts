@@ -11,7 +11,7 @@ import {
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
 import type { AttackTreeReportSection } from "../attack-tree-report";
-import type { ItemDefinitionReportSection } from "../item-definition-report";
+import type { ReportSection } from "../report-section";
 import { ADOC_TEMPLATES } from "../templates/asciidoc-templates";
 import { escapeAsciidoc, formatTagsGroupedAsciidoc } from "../templates";
 import { ADOC_EXTENDED_TEMPLATES } from "../templates/asciidoc-templates-extended";
@@ -156,11 +156,15 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
   }
 
   // Attack-trees chapter (plan F5)
-  formatItemDefinitionChapter(title: string, intro: string, body: string): string {
+  formatStatusNotice(text: string, kind: "info" | "warning"): string {
+    return `${kind === "warning" ? "WARNING" : "NOTE"}: ${text}\n\n`;
+  }
+
+  formatSectionedChapter(chapterId: string, title: string, intro: string, body: string): string {
     return `== ${title}\n\n${intro}\n\n${body}`;
   }
 
-  formatItemDefinitionSection(section: ItemDefinitionReportSection): string {
+  formatReportSection(section: ReportSection): string {
     const row = (cells: string[]) =>
       `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")}`;
     const facts = section.facts.map(([label, value], i) =>

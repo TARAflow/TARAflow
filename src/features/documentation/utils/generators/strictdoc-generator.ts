@@ -40,7 +40,7 @@ import {
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
 import type { AttackTreeReportSection } from "../attack-tree-report";
-import type { ItemDefinitionReportSection } from "../item-definition-report";
+import type { ReportSection } from "../report-section";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -192,7 +192,11 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
 
   // Attack-trees chapter (plan F5). A section holds one free text, so facts,
   // structure (RST nested list) and path table share it.
-  formatItemDefinitionChapter(title: string, intro: string, body: string): string {
+  formatStatusNotice(text: string, _kind: "info" | "warning"): string {
+    return ["[FREETEXT]", text, "[/FREETEXT]", "", ""].join("\n");
+  }
+
+  formatSectionedChapter(chapterId: string, title: string, intro: string, body: string): string {
     return [
       "[SECTION]",
       `TITLE: ${title}`,
@@ -205,7 +209,7 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     ].join("\n") + "\n\n";
   }
 
-  formatItemDefinitionSection(section: ItemDefinitionReportSection): string {
+  formatReportSection(section: ReportSection): string {
     const row = (cells: string[]) =>
       cells
         .map((c, i) => `${i === 0 ? "   * - " : "     - "}${this.escapeTableText(c)}`)
