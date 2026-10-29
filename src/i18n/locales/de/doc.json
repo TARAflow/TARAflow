@@ -207,7 +207,7 @@
         "colFindings": "Befunde / Auflagen",
         "colState": "Geprüfter Stand",
         "kind": {
-          "retain": "Behalten",
+          "retain": "Beibehalten",
           "share": "Teilen"
         },
         "scope": {

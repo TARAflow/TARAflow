@@ -106,7 +106,7 @@
       },
       "conceptFindings": {
         "goalMissing": "{{risk}}: Reduzieren ohne Cybersecurity Goal",
-        "claimMissing": "{{risk}}: Behalten / Teilen ohne Cybersecurity Claim",
+        "claimMissing": "{{risk}}: Beibehalten / Teilen ohne Cybersecurity Claim",
         "avoidUnjustified": "{{risk}}: Vermeiden ohne Begründung",
         "treatmentMismatch": "{{risk}}: {{item}} passt nicht mehr zur Behandlung",
         "emptyStatement": "{{item}} hat keine Aussage",
@@ -132,11 +132,11 @@
         "noFormal": "Noch keine formale Beschreibung am Asset",
         "emptyGoal": "Leeres Goal",
         "reuseGoal": "Goal wiederverwenden",
-        "retainIntro": "Behandlung Behalten: Das Risiko braucht einen Cybersecurity Claim, warum es behalten wird und auf welchen Annahmen das beruht (ISO/SAE 21434 9.4, RQ-09-06).",
+        "retainIntro": "Behandlung Beibehalten: Das Risiko braucht einen Cybersecurity Claim, warum es beibehalten wird und auf welchen Annahmen das beruht (ISO/SAE 21434 9.4, RQ-09-06).",
         "shareIntro": "Behandlung Teilen: Das Risiko braucht einen Cybersecurity Claim, wer es trägt (ISO/SAE 21434 9.4, RQ-09-06).",
         "claimMissing": "Noch kein Cybersecurity Claim verknüpft.",
         "kind": {
-          "retain": "Behalten",
+          "retain": "Beibehalten",
           "share": "Teilen"
         },
         "kindMismatch": "Art des Claims passt nicht zur Behandlung",
