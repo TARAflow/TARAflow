@@ -481,6 +481,20 @@ Installation only needs the npm registry — no third-party CDN. The one depende
 
 ## Development
 
+### Secret scan
+
+No credential or token may enter the repository. CI runs
+`npm run secret-scan` over every tracked file; activate the same check as a
+pre-commit hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Organisation-specific patterns (e.g. your company's domains) go into a
+git-ignored `.secret-scan.local`, one regular expression per line; they are
+checked in JSON files.
+
 ### Web development server
 
 Start the Vite development server with:

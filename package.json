@@ -11,6 +11,7 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "secret-scan": "node scripts/secret-scan.mjs",
     "preinstall": "node scripts/verify-vendored.mjs",
     "dev": "vite",
     "build": "tsc && vite build",

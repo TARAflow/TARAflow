@@ -92,7 +92,7 @@ describe("runAuditRepoOpenFlow", () => {
     // hooks status now rides along; the fake has none installed → flagged for install
     if (out.kind === "repo-ok") {
       expect(out.hooks.ok).toBe(false);
-      expect(out.hooks.toWrite).toEqual(["commit-msg"]);
+      expect(out.hooks.toWrite).toEqual(["commit-msg", "pre-commit"]);
     }
     expect(setRepoPathCalls).toEqual(["/r"]);
     expect(cacheCalls).toContainEqual(["p2", "/r"]);

@@ -5,3 +5,6 @@ dist/
 dist-cli/
 release/
 diff.txt
+
+# Local secret-scan patterns (organisation domains etc.), see scripts/secret-scan.mjs
+.secret-scan.local

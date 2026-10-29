@@ -35,6 +35,12 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      # No credential or token in any tracked file (2026-10-29: a Jira token
+      # had reached a project file). Node built-ins only — runs before npm ci.
+      - name: Secret scan
+        if: matrix.os == 'ubuntu-latest'
+        run: node scripts/secret-scan.mjs
+
       # npm ci = clean, lockfile-exact install. Fails if package-lock.json is
       # out of sync, which is what you want in CI.
       - name: Install dependencies

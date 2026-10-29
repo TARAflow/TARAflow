@@ -11,13 +11,38 @@
 // The TCS canonicalisation check is NOT here (it needs the real serializer) —
 // that stays with the engine (the authority) + TARAflow's own canonical writes.
 //
+// SECRET SCAN (HOOKS_VERSION 3, 2026-10-29): a managed pre-commit hook blocks a
+// commit that stages a *.tara.json carrying a secret — an issue-tracker token
+// in integration.connection.credentials reached project files until 0.15.2
+// (prepareForDisk now strips them; the hook also guards console commits of
+// files written before the fix). It names file and line, never the value.
+//
 // Mirrors audit-repo-attributes.ts: pure logic + injected side effects.
 
 import type { GitRunner, FileIO } from "./audit-repo-attributes";
 import { REQUIRED_TARA_TRAILERS } from "./verify/message";
 
-export const HOOKS_VERSION = 2;
-export const MANAGED_HOOKS = ["commit-msg"] as const;
+export const HOOKS_VERSION = 3;
+export const MANAGED_HOOKS = ["commit-msg", "pre-commit"] as const;
+
+/**
+ * Secret patterns as POSIX ERE — understood by `grep -E` in the hook and by
+ * JavaScript RegExp (scripts/secret-scan.mjs keeps the same list; a test pins
+ * that). No [[:space:]] / \d: neither dialect would read both.
+ *   KEY    a secret-named field with a value (project files only)
+ *   VALUE  well-known token formats (any file)
+ */
+export const SECRET_KEY_PATTERN =
+  '"(apiToken|personalAccessToken|accessToken|refreshToken|clientSecret|password)"[ \t]*:[ \t]*"[^"]+"';
+export const SECRET_VALUE_PATTERNS: readonly string[] = [
+  "ATATT[A-Za-z0-9_=-]{20,}", // Atlassian API token
+  "gh[pousr]_[A-Za-z0-9]{30,}", // GitHub tokens
+  "github_pat_[A-Za-z0-9_]{30,}", // GitHub fine-grained PAT
+  "glpat-[A-Za-z0-9_-]{20,}", // GitLab PAT
+  "AKIA[0-9A-Z]{16}", // AWS access key id
+  "xox[baprs]-[A-Za-z0-9-]{10,}", // Slack token
+  "-----BEGIN [A-Z ]*PRIVATE KEY-----", // private key
+];
 export type HookName = (typeof MANAGED_HOOKS)[number];
 export const HOOKS_PATH_REL = ".tara/hooks";
 export const MANAGED_MARKER = "taraflow-managed hook";
@@ -34,6 +59,7 @@ export function hookPathOf(repoRoot: string, name: HookName): string { return jo
 /** The managed commit-msg hook: self-contained POSIX sh, generated from the
  *  shared required-trailer set so it always matches the engine's schema. */
 export function hookScript(name: HookName): string {
+  if (name === "pre-commit") return preCommitScript();
   if (name !== "commit-msg") throw new Error(`no template for hook: ${name}`);
   const keys = REQUIRED_TARA_TRAILERS.join(" ");
   return [
@@ -85,6 +111,38 @@ export function hookScript(name: HookName): string {
     "done",
     'if [ -n "$missing" ]; then',
     '  echo "taraflow: [TARA] commit is missing required trailer(s):${missing}." >&2',
+    "  exit 1",
+    "fi",
+    "exit 0",
+    "",
+  ].join("\n");
+}
+
+/** The managed pre-commit hook: no secret in a staged *.tara.json. */
+function preCommitScript(): string {
+  const pattern = [SECRET_KEY_PATTERN, ...SECRET_VALUE_PATTERNS].join("|");
+  return [
+    "#!/bin/sh",
+    `# ${MANAGED_MARKER} — HOOKS_VERSION=${HOOKS_VERSION}`,
+    "# Managed by TARAflow — do not edit; regenerated on update.",
+    "# Blocks a commit that stages a *.tara.json containing a secret (an",
+    "# issue-tracker token, a password, a private key). Prints file and line,",
+    "# never the value. Self-contained POSIX sh.",
+    `pattern='${pattern}'`,
+    "found=0",
+    "set -f",
+    "IFS='",
+    "'",
+    "for f in $(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\\.tara\\.json$'); do",
+    '  lines=$(git show ":$f" 2>/dev/null | grep -nE -- "$pattern" | cut -d: -f1 | tr "\\n" " " | sed "s/ $//")',
+    '  if [ -n "$lines" ]; then',
+    '    echo "taraflow: possible secret in $f (line $lines)" >&2',
+    "    found=1",
+    "  fi",
+    "done",
+    'if [ "$found" -eq 1 ]; then',
+    '  echo "taraflow: commit blocked — tokens belong in the OS keychain, not in the project file." >&2',
+    '  echo "taraflow: open and save the project in TARAflow 0.15.2 or later to remove them." >&2',
     "  exit 1",
     "fi",
     "exit 0",

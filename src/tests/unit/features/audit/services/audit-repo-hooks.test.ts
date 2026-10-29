@@ -86,11 +86,23 @@ describe("audit-repo-hooks (pure-sh)", () => {
       `HOOKS_VERSION=${HOOKS_VERSION}`,
       "HOOKS_VERSION=0",
     );
+    seed[hookPathOf(REPO, "pre-commit")] = hookScript("pre-commit");
     const g = fakeGit(HOOKS_PATH_REL),
       f = fakeIO(seed);
     const st = await inspectAuditRepoHooks(g.run, f.io, REPO);
     expect(st.ok).toBe(false);
     expect(st.toWrite).toEqual(["commit-msg"]);
+  });
+  it("a repo set up before the secret scan (commit-msg v2 only) gets both hooks", async () => {
+    const seed: Record<string, string> = {};
+    seed[hookPathOf(REPO, "commit-msg")] = hookScript("commit-msg").replace(
+      `HOOKS_VERSION=${HOOKS_VERSION}`,
+      "HOOKS_VERSION=2",
+    );
+    const g = fakeGit(HOOKS_PATH_REL),
+      f = fakeIO(seed);
+    const st = await inspectAuditRepoHooks(g.run, f.io, REPO);
+    expect(st.toWrite).toEqual(["commit-msg", "pre-commit"]);
   });
   it("apply sets hooksPath, writes + chmods, then ok", async () => {
     const g = fakeGit(null),

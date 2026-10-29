@@ -21,6 +21,18 @@ Security fix, no new project schema (projects stay on schema 10).
     token are cleaned on their next save.
   - **Action:** revoke tokens that may have been saved in a project file
     or an audit repository, and create new ones.
+- **Secret scan in audit repositories:** TARAflow installs a second
+  managed git hook (`pre-commit`, hooks version 3) next to `commit-msg`.
+  It blocks a commit that stages a `*.tara.json` containing a secret
+  field with a value or a well-known token format (Atlassian, GitHub,
+  GitLab, AWS, Slack, private keys) — also for commits from the console —
+  and names file and line, never the value. Existing audit repositories
+  are offered the update in the Audit tab (hooks version 2 → 3).
+- **Secret scan in this repository:** `npm run secret-scan`
+  (`scripts/secret-scan.mjs`) runs in CI over every tracked file and as
+  the versioned pre-commit hook (`git config core.hooksPath .githooks`);
+  the same patterns as the audit-repository hook, plus local patterns for
+  JSON files in a git-ignored `.secret-scan.local`.
 
 ## [0.15.1-beta] - 2026-10-25
 
