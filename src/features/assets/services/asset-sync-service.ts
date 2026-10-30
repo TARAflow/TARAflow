@@ -21,6 +21,7 @@ import {
 } from "./asset-physical-impact-deriver";
 import { applyHVAToAsset } from "./asset-hva-deriver";
 import { SAFETY_CRITERION_ID } from "../models/asset-impact-types";
+import { isPureProtectionTarget, type AssetHazardLinks } from "./asset-validator";
 
 export interface DFDAssetSyncResult {
   assetData: AssetData;
@@ -333,13 +334,23 @@ export function syncFromDFD(
 /**
  * Return assets that exist in AssetData but are absent from DFD.
  * Used to highlight orphaned manual assets in the UI.
+ *
+ * A pure protection target of the hazard analysis (people, the building —
+ * endangered by a hazard, cause of none) is reached through the hazard
+ * chain and the asset graph, never through the DFD; with the hazard links it
+ * is left out, as the asset validation does (isPureProtectionTarget; user
+ * 2026-10-30).
  */
 export function getAssetsMissingInDFD(
   assetData: AssetData,
   dfdAssets: AssetDFDAsset[],
+  hazardLinks?: AssetHazardLinks,
 ): Asset[] {
   const dfdAssetIds = new Set(dfdAssets.map((a) => a.id));
   return assetData.assets.filter(
-    (asset) => asset.source === "manual" && !dfdAssetIds.has(asset.id),
+    (asset) =>
+      asset.source === "manual" &&
+      !dfdAssetIds.has(asset.id) &&
+      !isPureProtectionTarget(hazardLinks?.[asset.id]),
   );
 }

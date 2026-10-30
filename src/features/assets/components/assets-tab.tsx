@@ -687,8 +687,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   const missingInDFD = useMemo(() => {
     if (!project.dfdAssets) return [];
-    return assetService.getAssetsMissingInDFD(assetData, project.dfdAssets);
-  }, [assetData, project.dfdAssets]);
+    return assetService.getAssetsMissingInDFD(assetData, project.dfdAssets, hazardLinks);
+  }, [assetData, project.dfdAssets, hazardLinks]);
 
   const hasWarnings = syncWarnings.length > 0;
 
