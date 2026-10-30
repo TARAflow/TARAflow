@@ -193,7 +193,17 @@
         "residualFeasibility": "Restmachbarkeit (aus den Faktoren oben)",
         "residualIncomplete": "Alle fünf Faktoren bewerten, um die Restmachbarkeit zu berechnen",
         "residualNotSet": "Nicht gesetzt",
-        "residualStoredLevel": "{{band}} (gespeicherte Rest-Stufe) — alle fünf Faktoren bewerten, um sie aus dem Angriffspotenzial abzuleiten",
+        "isoNote": {
+          "treePath": "Angriffsbaum-Pfad {{path}}",
+          "tree": "Angriffsbaum (höchster Pfad)",
+          "factors": "Fünf Faktoren · AP {{ap}}",
+          "rateFactors": "Alle fünf Faktoren bewerten",
+          "storedLevel": "Gespeicherte Rest-Stufe — alle fünf Faktoren bewerten",
+          "residualLevel": "Rest-Stufe des Angriffsbaums",
+          "setResidualLevel": "Rest-Stufe des Angriffsbaums unten setzen",
+          "damageScenario": "Schadensszenario von {{asset}}",
+          "impactUnchanged": "Unverändert (Schadensszenario)"
+        },
         "impactAfterIso": "Auswirkung (Nachher)",
         "impactAfterIsoNote": "Unverändert: Die Auswirkung wird am Schadensszenario des Assets bewertet, eine Massnahme senkt die Angriffsmachbarkeit. Um die Auswirkung zu senken, das Schadensszenario im Assets-Tab neu bewerten.",
         "residualLikelihoodTooltip": "Restmachbarkeit nach Umsetzung der Massnahme. Eine Massnahme, die den Angriffspfad erschwert, senkt die Eintrittswahrscheinlichkeit — wähle die Stufe, auf die sie fällt.",

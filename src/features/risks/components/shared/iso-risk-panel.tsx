@@ -21,11 +21,22 @@ interface IsoRiskPanelProps {
   feasibility?: FeasibilityBandLevel;
   value?: number;
   testId?: string;
+  /** Where the feasibility comes from (attack tree path, factors, residual level). */
+  feasibilityNote?: string;
+  /** Where the impact comes from (damage scenario). */
+  impactNote?: string;
 }
 
-export const IsoRiskPanel = ({ impact, feasibility, value, testId }: IsoRiskPanelProps) => {
+export const IsoRiskPanel = ({
+  impact,
+  feasibility,
+  value,
+  testId,
+  feasibilityNote,
+  impactNote,
+}: IsoRiskPanelProps) => {
   const { t } = useTranslation();
-  const box = (title: string, content: string, highlight = false) => (
+  const box = (title: string, content: string, highlight = false, note?: string, noteTestId?: string) => (
     <Paper
       variant="outlined"
       sx={{
@@ -43,20 +54,33 @@ export const IsoRiskPanel = ({ impact, feasibility, value, testId }: IsoRiskPane
       <Typography variant="h6" fontWeight="bold">
         {content}
       </Typography>
+      {note && (
+        <Typography variant="caption" color="text.secondary" display="block" data-testid={noteTestId}>
+          {note}
+        </Typography>
+      )}
     </Paper>
   );
   return (
     <Stack spacing={0.5} sx={{ width: "100%" }} data-testid={testId}>
       <Stack direction="row" spacing={3} sx={{ width: "100%" }}>
-        {box(
-          t("tabs.risks.dialog.impact", { defaultValue: "Impact" }),
-          impact ? t(isoImpactI18nKey(impact), { defaultValue: ISO_IMPACT_FALLBACK[impact] }) : "–",
-        )}
+        {/* Feasibility first: the likelihood factors sit below on the left,
+            the impact on the right (same order as RiskScorePanel). */}
         {box(
           t("tabs.risks.columns.feasibility", { defaultValue: "Feasibility" }),
           feasibility
             ? t(isoFeasibilityI18nKey(feasibility), { defaultValue: ISO_FEASIBILITY_FALLBACK[feasibility] })
             : "–",
+          false,
+          feasibilityNote,
+          testId ? `${testId}-feasibility-note` : undefined,
+        )}
+        {box(
+          t("tabs.risks.dialog.impact", { defaultValue: "Impact" }),
+          impact ? t(isoImpactI18nKey(impact), { defaultValue: ISO_IMPACT_FALLBACK[impact] }) : "–",
+          false,
+          impactNote,
+          testId ? `${testId}-impact-note` : undefined,
         )}
         {box(
           t("tabs.risks.columns.riskValue", { defaultValue: "Risk (1–5)" }),

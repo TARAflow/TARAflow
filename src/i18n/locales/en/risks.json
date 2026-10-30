@@ -193,7 +193,17 @@
         "residualFeasibility": "Residual feasibility (from the factors above)",
         "residualIncomplete": "Rate all five factors to compute residual feasibility",
         "residualNotSet": "Not set",
-        "residualStoredLevel": "{{band}} (stored residual level) — rate all five factors to derive it from the attack potential",
+        "isoNote": {
+          "treePath": "Attack tree path {{path}}",
+          "tree": "Attack tree (highest path)",
+          "factors": "Five factors · AP {{ap}}",
+          "rateFactors": "Rate all five factors",
+          "storedLevel": "Stored residual level — rate all five factors",
+          "residualLevel": "Residual attack-tree level",
+          "setResidualLevel": "Set the residual attack-tree level below",
+          "damageScenario": "Damage scenario of {{asset}}",
+          "impactUnchanged": "Unchanged (damage scenario)"
+        },
         "impactAfterIso": "Impact (After)",
         "impactAfterIsoNote": "Unchanged: the impact is rated on the damage scenario of the asset, a control lowers the attack feasibility. To lower the impact, re-rate the damage scenario in the Assets tab.",
         "residualLikelihoodTooltip": "Residual feasibility once the mitigation is in place. A control that makes the attack path harder lowers likelihood — set the level it drops to.",
