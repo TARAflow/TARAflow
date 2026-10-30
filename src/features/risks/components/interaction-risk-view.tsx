@@ -47,6 +47,8 @@ interface InteractionRiskViewProps {
   onRiskLevelFilterChange: (level: number | "") => void;
   onClearFilters: () => void;
   filteredCount: number;
+  /** All risks the tab can show, filters aside (incl. attack-path risks). */
+  totalCount?: number;
 
   onEdit: (risk: Risk) => void;
   onPriorityChange: (
@@ -69,6 +71,7 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
   onRiskLevelFilterChange,
   onClearFilters,
   filteredCount,
+  totalCount,
   onEdit,
   onPriorityChange,
   onTreatmentChange,
@@ -229,7 +232,7 @@ export const InteractionRiskView: React.FC<InteractionRiskViewProps> = ({
         onClear={onClearFilters}
         show={showFilters}
         filteredCount={filteredCount}
-        totalCount={risks.length}
+        totalCount={totalCount ?? risks.length}
       />
 
       {/* Trust Boundary Groups */}

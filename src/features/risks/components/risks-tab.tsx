@@ -1074,7 +1074,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onRiskLevelFilterChange={setRiskLevelFilter}
                 onClearFilters={clearFilters}
                 onScopeFilterChange={setScopeFilter}
-                filteredCount={filteredActiveRisks.length}
+                // "Showing n of m" over every risk the tab shows — the active
+                // STRIDE method and the attack-path risks (user 2026-10-30).
+                filteredCount={filteredActiveRisks.length + filteredAttackPathRisks.length}
+                totalCount={toolbarRisks.length}
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}
                 onTreatmentChange={handleTreatmentChange}
