@@ -12,6 +12,8 @@ import type { CybersecurityConcept } from "../../../shared/models/cybersecurity-
 import type { Assumption } from "../../../shared/models/item-definition-types";
 import type { DocProjectData, DocVerification } from "../models/doc-types";
 import type { ReportSection } from "./report-section";
+import { regulationPresetFromTags } from "../../../shared/services/tag-validator";
+import type { ProjectTags } from "../../../shared/models/project-tags";
 
 type TranslateFn = (key: string, defaultValue?: string) => string;
 
@@ -78,12 +80,21 @@ export function verificationStatusSentence(v: DocVerification, t: TranslateFn): 
 
 export const verificationStatusLabel = (t: TranslateFn) => t("verificationStatus.label", "TARA verification");
 
+/**
+ * Goals, claims and their verification are ISO/SAE 21434 work products: only
+ * an iso-21434 project has the chapter (user 2026-10-30, amends decision 25);
+ * stored data of another preset stays in the file and is not reported.
+ */
+export function isConceptPreset(tags: ProjectTags | undefined): boolean {
+  return !!tags && regulationPresetFromTags(tags) === "iso-21434";
+}
+
 export function goalsClaimsReportSections(
-  project: Pick<DocProjectData, "cybersecurityConcept" | "risks" | "assets" | "itemDefinition" | "computed">,
+  project: Pick<DocProjectData, "cybersecurityConcept" | "risks" | "assets" | "itemDefinition" | "computed" | "info">,
   t: TranslateFn,
 ): ReportSection[] {
   const concept = project.cybersecurityConcept;
-  if (!hasConceptContent(concept)) return [];
+  if (!isConceptPreset(project.info?.tags) || !hasConceptContent(concept)) return [];
   const risks = new Map((project.risks?.risks ?? []).map((r) => [r.id, r]));
   const assets = new Map((project.assets?.assets ?? []).map((a) => [a.id, a]));
   const assumptions = new Map<string, Assumption>((project.itemDefinition?.assumptions ?? []).map((a) => [a.id, a]));

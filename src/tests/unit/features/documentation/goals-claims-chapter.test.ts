@@ -34,7 +34,7 @@ const concept = (): CybersecurityConcept => ({
 });
 
 const project = (verification?: Any, c: CybersecurityConcept | null = concept()): Any => ({
-  info: { name: "P", description: "d", version: "1.2", team: [], created: new Date("2026-01-01"), lastModified: new Date("2026-10-01"), tags: { domain: [], platform: [], regulation: [], custom: [] } },
+  info: { name: "P", description: "d", version: "1.2", team: [], created: new Date("2026-01-01"), lastModified: new Date("2026-10-01"), tags: { domain: [], platform: [], regulation: ["ISO/SAE 21434"], custom: [] } },
   assets: { assets: [{ id: "a1", displayId: "DA-001", name: "Alarm" }] },
   risks: {
     configuration: { likelihoodMethod: "iso-21434", scale: "4-level" },
@@ -84,6 +84,12 @@ describe("goals / claims sections", () => {
     expect(goalsClaimsReportSections(project(undefined, null), t)).toEqual([]);
     expect(goalsClaimsOfRisk(concept(), "R-1")).toBe("CSG-01");
     expect(goalsClaimsOfRisk(concept(), "R-9")).toBe("-");
+  });
+
+  it("another preset has no chapter, even with stored goals and claims (user 2026-10-30)", () => {
+    const other: Any = project();
+    other.info = { ...other.info, tags: { ...other.info.tags, regulation: [] } };
+    expect(goalsClaimsReportSections(other, t)).toEqual([]);
   });
 });
 

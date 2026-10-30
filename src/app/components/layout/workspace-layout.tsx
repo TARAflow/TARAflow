@@ -864,9 +864,12 @@ export const WorkspaceLayout: React.FC = () => {
       activeProject?.cybersecurityConcept,
     ],
   );
+  // TARA verification (RQ-09-07) only under iso-21434 — the Audit tab shows
+  // no verification panel otherwise (user 2026-10-30, amends decision 25).
   const memoizedVerificationInput = useMemo(
     () =>
-      activeProject
+      activeProject &&
+      regulationPresetFromTags(activeProject.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
         ? {
             currentStateHash: verificationHash,
             checklist: buildVerificationChecklist(activeProject, new Date().toISOString().slice(0, 10)),

@@ -742,8 +742,13 @@ the verification record).
   takes the risk's `treatmentJustification` as the claim text.
 - **Avoid:** no object; `treatmentJustification` becomes mandatory under
   `iso-21434`.
-- **Presets:** visible in every preset; findings mandatory only under
-  `iso-21434` (as the Item Definition, decision 8).
+- **Presets:** ~~visible in every preset~~ — *amended 2026-10-30 (user):*
+  only under `iso-21434`. Goals, claims, CAL and the verification record
+  are ISO/SAE 21434 work products; other presets (EN 50742, IEC 62443) get
+  their own concept later. Another preset shows no toolbar button, no tab
+  *Goal / Claim*, no marker, no report chapter and no verification panel in
+  the Audit tab; stored data stays in the file and shows again under
+  `iso-21434`.
 - **CAL** (Annex E, informative): optional field on the goal, no project
   setting.
 - **Findings (iso-21434):** reduce without goal; retain / share without
@@ -1112,7 +1117,8 @@ Added in rev. 2 (2026-10-24):
     Claims" toolbar dialog in the Risk tab as the overall view; storage
     `project.cybersecurityConcept`; retain claims need an assumption,
     share claims a party; avoid justification mandatory under ISO; all
-    presets, findings mandatory under ISO; CAL optional. Verification
+    presets, findings mandatory under ISO *(amended 2026-10-30: shown
+    only under `iso-21434`)*; CAL optional. Verification
     recorded and committed in the Audit tab (hash of the verified state);
     its status shown in the Overview and in the document (marked, not
     blocked), warning when the content changed or the verification is

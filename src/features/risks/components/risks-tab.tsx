@@ -785,15 +785,21 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   // ── Goals & claims (ISO 21434 plan Phase 4, decision 25) ─────────────────
   const [showConceptDialog, setShowConceptDialog] = useState(false);
+  // Goals and claims are ISO/SAE 21434 work products: only an iso-21434
+  // project shows them (user 2026-10-30, amends decision 25 "every preset");
+  // stored data of another preset stays in the file.
+  const conceptChange = project.isoMode ? onConceptChange : undefined;
   const conceptFindingList = useMemo(
     () =>
-      conceptFindings({
-        risks: riskData.risks,
-        concept: project.cybersecurityConcept,
-        assumptions: project.assumptions,
-        isoMode: project.isoMode ?? false,
-        today: new Date().toISOString().slice(0, 10),
-      }),
+      !project.isoMode
+        ? []
+        : conceptFindings({
+            risks: riskData.risks,
+            concept: project.cybersecurityConcept,
+            assumptions: project.assumptions,
+            isoMode: true,
+            today: new Date().toISOString().slice(0, 10),
+          }),
     [riskData.risks, project.cybersecurityConcept, project.assumptions, project.isoMode],
   );
   const conceptMarkers = useMemo(() => conceptWarningsByRisk(conceptFindingList), [conceptFindingList]);
@@ -862,7 +868,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         onImport={handleImport}
         onToggleWontTable={() => setShowWontTable(!showWontTable)}
         onToggleFilters={() => setShowFilters(!showFilters)}
-        onOpenConcept={onConceptChange ? () => setShowConceptDialog(true) : undefined}
+        onOpenConcept={conceptChange ? () => setShowConceptDialog(true) : undefined}
         conceptWarningCount={conceptFindingList.filter((f) => f.severity === "warning").length}
       />
 
@@ -1131,7 +1137,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           onSave={handleSaveRisk}
           onClose={handleCloseRiskDialog}
           concept={project.cybersecurityConcept}
-          onConceptChange={onConceptChange}
+          onConceptChange={conceptChange}
           allRisks={riskData.risks}
           assumptions={project.assumptions}
           isoMode={project.isoMode}
@@ -1230,13 +1236,13 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         </DialogActions>
       </Dialog>
 
-      {onConceptChange && showConceptDialog && (
+      {conceptChange && showConceptDialog && (
         <GoalsClaimsDialog
           open
           onClose={() => setShowConceptDialog(false)}
           risks={riskData.risks}
           concept={project.cybersecurityConcept}
-          onConceptChange={onConceptChange}
+          onConceptChange={conceptChange}
           findings={conceptFindingList}
           assetDataRef={project.assetDataRef}
           onOpenRisk={(riskId) => {
