@@ -62,6 +62,7 @@ import {
 import {
   addCreatedAssets,
   analyseLeveled,
+  dfdService,
   isLeveled,
   multiprocessGroupsFrom,
   parentLevelFlowsFrom,
@@ -75,6 +76,7 @@ import { buildMethodologySummary } from "app/utils/build-methodology-summary";
 import { buildVerificationChecklist } from "app/utils/build-verification-checklist";
 import { notifyProjectMitigations, setProjectMitigations } from "shared/services/project-mitigation-registry";
 import { verificationStateHash, verificationStatus } from "app/services/verification-state";
+import { phaseIndicators } from "app/utils/phase-indicators";
 import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
@@ -284,21 +286,6 @@ export const WorkspaceLayout: React.FC = () => {
         phaseStatus: activeProject.phaseStatus,
         sourceBindings: activeProject.sourceBindings,
         itemDefinition: activeProject.itemDefinition,
-        dfdValidation: activeProject.dfd?.validation
-          ? {
-              valid: activeProject.dfd.validation.errors.length === 0,
-              // GeneralTabData.dfdValidation uses the generic, string-based
-              // ValidationResult (common-types.ts) — it's a plain summary
-              // widget, not the interactive DFD notification panel, so it
-              // doesn't need displayId/elementId, just translated text.
-              errors: activeProject.dfd.validation.errors.map((f) =>
-                translateFinding(t, f),
-              ),
-              warnings: activeProject.dfd.validation.warnings.map((f) =>
-                translateFinding(t, f),
-              ),
-            }
-          : undefined,
       }
     : undefined;
 
@@ -1016,6 +1003,27 @@ export const WorkspaceLayout: React.FC = () => {
     memoizedDFDReference,
   ]);
 
+  // ── Phase indicators (tabs + Overview phase progress) ─────────────────────
+  // One computation keyed by PhaseId; the DFD part validates the stored
+  // diagram now instead of trusting the validation stored in the file.
+  const dfdSavedValidation = useMemo(
+    () => (dfdTabProject ? dfdService.validateSavedState(dfdTabProject) : null),
+    [dfdTabProject],
+  );
+  const memoizedPhaseIndicators = useMemo(
+    () =>
+      activeProject
+        ? phaseIndicators({
+            phaseStatus: activeProject.phaseStatus,
+            info: activeProject.info,
+            dfdValidation: dfdSavedValidation,
+            dfdStatus: dfdSavedValidation ? dfdService.phaseStatusOf(dfdSavedValidation) : undefined,
+            threatDrift: threatDriftCounts,
+          })
+        : null,
+    [activeProject, dfdSavedValidation, threatDriftCounts],
+  );
+
   // ── Control instances + security drift ───────────────────────────────────
 
   // getAllMitigations() is a module-level singleton — memoize to ensure
@@ -1154,6 +1162,7 @@ export const WorkspaceLayout: React.FC = () => {
         activePhase={activePhase}
         onPhaseChange={handlePhaseChange}
         threatDrift={threatDriftCounts}
+        indicators={memoizedPhaseIndicators ?? undefined}
       />
 
       <div className="flex-1 overflow-y-auto">
@@ -1169,6 +1178,7 @@ export const WorkspaceLayout: React.FC = () => {
             )}
             getStatusIcon={getPhaseStatusIcon}
             getStatusColor={getPhaseStatusColor}
+            phaseIndicators={memoizedPhaseIndicators ?? undefined}
             onUpdate={handleGeneralTabUpdate}
             projectId={activeProject.id}
             modelItems={memoizedItemModelItems}

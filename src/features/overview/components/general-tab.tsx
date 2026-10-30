@@ -19,7 +19,7 @@ import {
   ProjectInfoData,
   ProjectProgressData,
   ProjectSettingsData,
-  PhaseValidationInfo,
+  PhaseIndicatorsView,
   ItemModelItem,
   MethodologySummary,
   VerificationStatusView,
@@ -71,6 +71,12 @@ interface GeneralTabProps {
   /** Status color getter (injected from app config) */
   getStatusColor: (status: PhaseStatus) => string;
 
+  /**
+   * Status and error / warning count per phase, derived by the app layer
+   * (the DFD's from its current validation). Without it: the stored status.
+   */
+  phaseIndicators?: PhaseIndicatorsView;
+
   /** Callback when data changes */
   onUpdate: (data: GeneralTabData) => void;
 
@@ -102,6 +108,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   progressPhaseIds,
   getStatusIcon,
   getStatusColor,
+  phaseIndicators,
   onUpdate,
   projectId,
   modelItems = [],
@@ -144,25 +151,14 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   };
 
   // Map data to ProjectProgressData interface
-  const progressData: ProjectProgressData = React.useMemo(() => {
-    const validationInfo: Record<number, PhaseValidationInfo> = {};
-
-    // Phase 0: General - missing fields (same rule as its phase status)
-    validationInfo[0] = { errors: 0, warnings: missingGeneralFields(data.info).length };
-
-    // Phase 1: DFD - use validation from data
-    if (data.dfdValidation) {
-      validationInfo[1] = {
-        errors: data.dfdValidation.errors?.length ?? 0,
-        warnings: data.dfdValidation.warnings?.length ?? 0,
-      };
-    }
-
-    return {
-      phaseStatus: data.phaseStatus,
-      validationInfo,
-    };
-  }, [data]);
+  const progressData: ProjectProgressData = React.useMemo(
+    () => ({
+      phaseStatus: phaseIndicators?.status ?? data.phaseStatus,
+      // Phase 0 (General) without the app: missing fields, same rule as its status.
+      validationInfo: phaseIndicators?.counts ?? { 0: { errors: 0, warnings: missingGeneralFields(data.info).length } },
+    }),
+    [data.phaseStatus, data.info, phaseIndicators],
+  );
 
   // Handle info updates (includes isHighImpact now)
   const handleInfoUpdate = (info: ProjectInfoData) => {

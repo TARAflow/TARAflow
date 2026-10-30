@@ -790,13 +790,32 @@ class DFDService {
   // ==================== VALIDATION ====================
 
   /**
-   * Validate current DFD state (without saving)
+   * Validate current DFD state (without saving) — the editor's diagram in
+   * localStorage, unsaved changes included.
    */
   validateCurrentState(project: DFDProjectData): ValidationResult {
     const adapter = createDFDStorageAdapter(project.id);
     adapter.syncFromLegacy();
-    const xml = adapter.getXml();
+    return this.validateXml(project, adapter.getXml());
+  }
 
+  /**
+   * Validate the DFD as stored in the project (project.dfd.xml) — no editor,
+   * no localStorage. The app derives the DFD indicators of the open project
+   * from it, so they never show a validation stored in the file by an older
+   * version (Overview / tab badge, review 2026-10-30). null without a diagram.
+   */
+  validateSavedState(project: DFDProjectData): ValidationResult | null {
+    const xml = project.dfd?.xml;
+    return xml ? this.validateXml(project, xml) : null;
+  }
+
+  /** The DFD phase status a validation stands for (as the editor sets it on save). */
+  phaseStatusOf(validation: ValidationResult): PhaseStatus {
+    return this.determinePhaseStatus(validation);
+  }
+
+  private validateXml(project: DFDProjectData, xml: string | null | undefined): ValidationResult {
     // Phase 0 guard: report the unsupported layout instead of validating a
     // merged multi-page model. This is what makes the refusal visible in the
     // DFD notification panel.
@@ -852,7 +871,8 @@ class DFDService {
       syncedAssets,
       stats,
       graph,
-      { unconnectedDataflows, leveledFindings: view.leveledFindings },
+      // The canonical asset registry, as on load — not the dfd.assets mirror.
+      { unconnectedDataflows, knownAssets: project.knownAssets, leveledFindings: view.leveledFindings },
     );
   }
 

@@ -9,7 +9,6 @@ import type {
   ProjectTags,
   RegulationPresetId,
   SourceBinding,
-  ValidationResult,
   WindowOfOpportunity,
 } from "shared";
 
@@ -185,8 +184,14 @@ export interface GeneralTabData {
    */
   itemDefinition?: ItemDefinition;
 
-  // Validation results (optional)
-  dfdValidation?: ValidationResult;
-  assetsValidation?: ValidationResult;
-  threatsValidation?: ValidationResult;
+}
+
+/**
+ * The phase progress as the app derives it (app/utils/phase-indicators.ts):
+ * the status per phase — the DFD's from its current validation — and the
+ * error / warning count per phase id.
+ */
+export interface PhaseIndicatorsView {
+  status: PhaseStatusMap;
+  counts: Record<number, PhaseValidationInfo>;
 }

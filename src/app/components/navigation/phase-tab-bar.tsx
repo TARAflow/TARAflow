@@ -5,6 +5,7 @@ import { PHASES, PhaseStatus, PhaseDefinition } from "shared";
 import { PhaseTab } from "./phase-tab";
 import { LanguageSwitcher } from "i18n";
 import { PhaseId } from "../../models/phase-types";
+import type { PhaseIndicators } from "../../utils/phase-indicators";
 
 // ==================== DEFAULT PHASE STATUS ====================
 
@@ -33,6 +34,11 @@ interface PhaseTabsProps {
    * analyst notices it right after changing goals, without opening the tab.
    */
   threatDrift?: { obsolete: number; added: number };
+  /**
+   * Status and error / warning count per phase (app/utils/phase-indicators.ts;
+   * the DFD's from its current validation). Without it: the stored status.
+   */
+  indicators?: PhaseIndicators;
 }
 
 export const PhaseTabs: React.FC<PhaseTabsProps> = ({
@@ -40,9 +46,10 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   activePhase,
   onPhaseChange,
   threatDrift,
+  indicators,
 }) => {
   const { t } = useTranslation();
-  const phaseStatus = project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
+  const phaseStatus = indicators?.status ?? project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
   // Safety gating: the Hazard phase only appears when safety relevance is on
   const safetyRelevant = project?.info?.safetyRelevant ?? false;
 
@@ -74,12 +81,10 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
     return (phaseId: number) => {
       switch (phaseId) {
         case PhaseId.DFD: {
-          // DFD Phase
-          const validation = project?.dfd?.validation;
-          return {
-            errors: validation?.errors?.length ?? 0,
-            warnings: validation?.warnings?.length ?? 0,
-          };
+          // DFD Phase — the current validation (phase indicators), not the
+          // validation stored in the file.
+          const counts = indicators?.counts[PhaseId.DFD];
+          return { errors: counts?.errors ?? 0, warnings: counts?.warnings ?? 0 };
         }
         case PhaseId.Assets:
           // Assets Phase
@@ -123,7 +128,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
           return { errors: 0, warnings: 0 };
       }
     };
-  }, [project?.dfd?.validation, threatDrift?.obsolete, threatDrift?.added, t]);
+  }, [indicators, threatDrift?.obsolete, threatDrift?.added, t]);
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 pt-4">
