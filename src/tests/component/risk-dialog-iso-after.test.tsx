@@ -1,10 +1,11 @@
 // src/tests/component/risk-dialog-iso-after.test.tsx
 //
-// ISO/SAE 21434 "Risk After" tab (user test G, Headlamp AT-1.1): the residual
-// feasibility comes from the residual attack-tree level first, then from the
-// five attack-potential factors (liveIsoRisk / computeIsoRisks). Both sources
-// are shown and the panel names the one in effect; the impact is the damage
-// scenario's (15.5) and is shown read-only instead of empty factor selects.
+// ISO/SAE 21434 "Risk After" tab (user test G, Headlamp AT-1.1): with the
+// tree's ISO factor breakdown the five factors are the input and the residual
+// tree level is derived from them — no select that jumps back; a stored level
+// with fewer than five rated factors is named as such. Without the breakdown
+// the residual level is the input, "not set" selectable. The impact is the
+// damage scenario's (15.5), read-only instead of empty factor selects.
 
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -27,7 +28,7 @@ const ISO_CONFIG: RiskConfiguration = { ...DEFAULT_CONFIGURATION, likelihoodMeth
 const rating = (factorId: string, value: number) => ({ factorId, value, weight: 1 });
 const AP = ["iso_elapsed_time", "iso_expertise", "iso_knowledge", "iso_window_of_opportunity", "iso_equipment"];
 
-const risk = (residualTreeLevel: number): Risk =>
+const risk = (residualTreeLevel: number, opts: { factors?: boolean; residualAp?: number[] } = {}): Risk =>
   ({
     id: "r1",
     threatDisplayId: "AT-1.1",
@@ -40,12 +41,12 @@ const risk = (residualTreeLevel: number): Risk =>
     selectedVerifications: [],
     factorRatings: [
       rating("safety", 4),
-      ...[3, 3, 2, 1, 1].map((v, i) => rating(AP[i], v)),
+      ...(opts.factors === false ? [] : [3, 3, 2, 1, 1].map((v, i) => rating(AP[i], v))),
       { ...rating("attack_tree_likelihood", 4), source: "attack-tree" },
     ],
     mitigatedFactorRatings: [
       rating("safety", 0),
-      ...AP.map((id) => rating(id, 0)),
+      ...AP.map((id, i) => rating(id, opts.residualAp?.[i] ?? 0)),
       rating("attack_tree_likelihood", residualTreeLevel),
     ],
     attackTreeAssessment: {
@@ -73,20 +74,24 @@ Element.prototype.scrollIntoView = () => {};
 afterEach(cleanup);
 
 describe("risk dialog — ISO Risk After", () => {
-  it("a residual tree level is the residual feasibility, the panel says so", () => {
+  it("factor breakdown: no residual-level select, a stored level is named", () => {
     openAfterTab(risk(1));
     expect(screen.getByTestId("residual-feasibility-panel").textContent).toContain(
-      "Very low — from the residual attack-tree level",
+      "Very low (stored residual level) — rate all five factors",
     );
+    expect(screen.queryByText("Not set")).toBeNull();
     expect(screen.getByTestId("iso-risk-panel-after").textContent).toContain("Very low");
   });
 
-  it("no residual level and unrated factors: not rated, the level offers 'not set'", () => {
-    openAfterTab(risk(0));
-    expect(screen.getByTestId("residual-feasibility-panel").textContent).toContain(
-      "Not rated — set the residual attack-tree level or rate all five factors",
-    );
-    expect(screen.getByText("Not set — from the attack-potential factors")).toBeTruthy();
+  it("factor breakdown: five rated factors give the residual", () => {
+    openAfterTab(risk(0, { residualAp: [4, 4, 4, 4, 4] }));
+    expect(screen.getByTestId("residual-feasibility-panel").textContent).toMatch(/AP \d+ → \S+ → L \d/);
+  });
+
+  it("no factor breakdown: the residual level is the input, 'not set' selectable", () => {
+    openAfterTab(risk(0, { factors: false }));
+    expect(screen.queryByTestId("residual-feasibility-panel")).toBeNull();
+    expect(screen.getByText("Not set")).toBeTruthy();
   });
 
   it("the impact is the damage scenario's, read-only — no empty impact selects", () => {

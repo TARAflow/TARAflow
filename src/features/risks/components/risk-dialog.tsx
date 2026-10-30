@@ -1371,9 +1371,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       const residual = local.mitigatedFactorRatings.find(
         (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
       );
-      // ISO: no default — an unset residual level leaves the residual to the
-      // five attack-potential factors (liveIsoRisk / computeIsoRisks read the
-      // level first), so "not set" must be visible and selectable.
+      // ISO: no default — an unset residual level means no residual yet
+      // (liveIsoRisk / computeIsoRisks), so "not set" must be visible and
+      // selectable rather than showing the before level.
       const residualValue = isISO
         ? (residual?.value ?? 0)
         : (residual?.value ?? treeFactorRating?.value ?? 0);
@@ -1420,13 +1420,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       if (isISO) {
         residualOptions.unshift({
           value: 0,
-          label: hasTreeIsoFactors
-            ? t("tabs.risks.dialog.residualNotSetFactors", {
-                defaultValue: "Not set — from the attack-potential factors",
-              })
-            : t("tabs.risks.dialog.residualNotSet", {
-                defaultValue: "Not set",
-              }),
+          label: t("tabs.risks.dialog.residualNotSet", {
+            defaultValue: "Not set",
+          }),
         });
       }
       // Keep the current value selectable even if it is outside the standard
@@ -3133,10 +3129,10 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         gap: 1,
                       }}
                     >
-                      {/* ISO: the residual tree level and the five factors
-                          are both residual sources — the level wins when set
-                          (liveIsoRisk / computeIsoRisks), so both are shown. */}
-                      {(isISO || !hasTreeIsoFactors) && renderTreeFactorRow(true)}
+                      {/* Trees with the ISO factor breakdown: the five
+                          factors are the input, the residual tree level is
+                          derived from them (effect above) — no select. */}
+                      {!hasTreeIsoFactors && renderTreeFactorRow(true)}
                       {hasTreeIsoFactors && (
                         <>
                           {ISO_AP_FACTOR_IDS.map((id) =>
@@ -3146,8 +3142,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             const res = isoResidual(
                               local.mitigatedFactorRatings,
                             );
-                            const treeBand =
-                              isISO && treeAssessment
+                            // Fewer than five factors rated: a stored
+                            // residual level (e.g. an imported file) still
+                            // counts — say so instead of "not rated".
+                            const storedBand =
+                              isISO && !res
                                 ? feasibilityFromRiskScaleValue(
                                     local.mitigatedFactorRatings.find(
                                       (r) =>
@@ -3173,38 +3172,29 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                                   color="text.secondary"
                                   display="block"
                                 >
-                                  {treeBand
-                                    ? t("tabs.risks.dialog.residualFeasibilityEffective", {
-                                        defaultValue: "Residual feasibility",
-                                      })
-                                    : t("tabs.risks.dialog.residualFeasibility", {
-                                        defaultValue:
-                                          "Residual feasibility (from the factors above)",
-                                      })}
+                                  {t("tabs.risks.dialog.residualFeasibility", {
+                                    defaultValue:
+                                      "Residual feasibility (from the factors above)",
+                                  })}
                                 </Typography>
                                 <Typography variant="body2" fontWeight="medium">
-                                  {treeBand
-                                    ? t("tabs.risks.dialog.residualFromTreeLevel", {
-                                        band: t(isoFeasibilityI18nKey(treeBand), {
-                                          defaultValue: ISO_FEASIBILITY_FALLBACK[treeBand],
-                                        }),
-                                        defaultValue:
-                                          "{{band}} — from the residual attack-tree level; the factors are not used while it is set",
-                                      })
-                                    : res
-                                      ? `AP ${res.ap} → ${res.band} → L ${res.likelihood}`
-                                      : isISO && treeAssessment
-                                        ? t("tabs.risks.dialog.residualIncompleteIso", {
+                                  {res
+                                    ? `AP ${res.ap} → ${res.band} → L ${res.likelihood}`
+                                    : storedBand
+                                      ? t("tabs.risks.dialog.residualStoredLevel", {
+                                          band: t(isoFeasibilityI18nKey(storedBand), {
+                                            defaultValue: ISO_FEASIBILITY_FALLBACK[storedBand],
+                                          }),
+                                          defaultValue:
+                                            "{{band}} (stored residual level) — rate all five factors to derive it from the attack potential",
+                                        })
+                                      : t(
+                                          "tabs.risks.dialog.residualIncomplete",
+                                          {
                                             defaultValue:
-                                              "Not rated — set the residual attack-tree level or rate all five factors",
-                                          })
-                                        : t(
-                                            "tabs.risks.dialog.residualIncomplete",
-                                            {
-                                              defaultValue:
-                                                "Rate all five factors to compute residual feasibility",
-                                            },
-                                          )}
+                                              "Rate all five factors to compute residual feasibility",
+                                          },
+                                        )}
                                 </Typography>
                               </Paper>
                             );
