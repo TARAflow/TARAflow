@@ -6,6 +6,8 @@
 //   - combinationType "ALL" with a single input is meaningless       (warning)
 //   - edges must reference an existing Hazard Item (no dangling)      (error)
 //   - edge endpoint/impact consistency                               (error, via relation service)
+//   - no ISO 12100 hazard type, no description, no rationale        (warning —
+//     the hazard is incomplete for the report; user 2026-10-30)
 //
 // Output shape mirrors AssetValidation for UI consistency.
 
@@ -53,6 +55,15 @@ export const hazardValidator = {
     }
     if (endangers.length === 0) {
       errors.push(`Hazard "${labelOf(item)}" endangers no protection target.`);
+    }
+    if (!item.hazardType) {
+      warnings.push(`Hazard "${labelOf(item)}" has no ISO 12100 hazard type.`);
+    }
+    if (!item.description?.trim()) {
+      warnings.push(`Hazard "${labelOf(item)}" has no description.`);
+    }
+    if (!item.rationale?.trim()) {
+      warnings.push(`Hazard "${labelOf(item)}" has no rationale.`);
     }
     if (item.combinationType === "ALL" && contributes.length < 2) {
       warnings.push(

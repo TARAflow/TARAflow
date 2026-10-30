@@ -38,20 +38,25 @@ export const HazardToolbar = React.memo<HazardToolbarProps>(
   }) => {
     const { t } = useTranslation();
 
+    // Warnings show on the chip too — a complete graph with gaps in the
+    // hazard texts is not "all green" (user 2026-10-30).
     const getStatusColor = (): "default" | "success" | "error" | "warning" => {
       if (!validation) return "default";
-      if (validation.isComplete) return "success";
       if (validation.errors.length > 0) return "error";
+      if (validation.warnings.length > 0) return "warning";
+      if (validation.isComplete) return "success";
       return "warning";
     };
 
     const getStatusText = (): string => {
       if (!validation)
         return t("status.inProgress", { defaultValue: "In Progress" });
-      if (validation.isComplete)
-        return t("status.complete", { defaultValue: "Complete" });
       if (validation.errors.length > 0)
         return `${validation.errors.length} ${t("common.errors", { defaultValue: "Errors" })}`;
+      if (validation.warnings.length > 0)
+        return `${validation.warnings.length} ${t("common.warnings", { defaultValue: "Warnings" })}`;
+      if (validation.isComplete)
+        return t("status.complete", { defaultValue: "Complete" });
       return t("status.inProgress", { defaultValue: "In Progress" });
     };
 

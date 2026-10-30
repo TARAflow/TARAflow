@@ -33,6 +33,7 @@
     "continue": "Continue",
     "inProgress": "In Progress",
     "errors": "Errors",
+    "warnings": "Warnings",
     "actions": "Actions",
     "remove": "Remove",
     "showDFD": "Show DFD Preview",
