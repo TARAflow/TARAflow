@@ -24,7 +24,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: ["src/tests/setup-tests.ts"],
+    // setup-component.ts: lets pending DataGrid timers settle before a
+    // file's environment is torn down (CI "window is not defined").
+    setupFiles: ["src/tests/setup-tests.ts", "src/tests/component/setup-component.ts"],
     include: [
       "src/tests/component/**/*.test.ts",
       "src/tests/component/**/*.test.tsx",
