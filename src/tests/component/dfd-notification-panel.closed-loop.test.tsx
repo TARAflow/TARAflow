@@ -12,6 +12,7 @@ import { DFDNotificationsPanel } from "features/dfd/components/dfd-notification-
 import { deriveControlInstances } from "app/hooks/use-control-instance-derivation";
 import { computeSecurityDrifts } from "app/hooks/use-security-drift";
 import { getAllMitigations } from "features/threats/services/threat-catalog-service";
+import { applyControlSuggestionUpdate } from "features/dfd/services/apply-control-suggestion";
 
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
@@ -100,5 +101,40 @@ describe("DFD notification panel — closed loop by mitigation status", () => {
   it("a mitigation marked done but missing in the DFD offers Apply", () => {
     renderPanel();
     expect(screen.getAllByText("Apply").length).toBeGreaterThan(0);
+  });
+
+  it("applied, then reverted (drift): Apply restores the value for a done mitigation, not for a planned one (test plan C4)", () => {
+    const owned = { securityControlOwnership: [{ property: "failSafeOutputState", value: "fixed_value", setBy: "apply_suggestion", setAt: "x" }] };
+    const els: Any[] = [element("d1", "not_defined", owned), element("d2", "not_defined", owned)];
+    const thr: Any = { perElementTables: [{ threats: els.map((e) => ({ id: `t-${e.id}`, linkedElement: { elementId: e.id, elementType: "Process" } })) }], perInteractionTables: [] };
+    const rsk: Any = {
+      risks: [
+        { id: "r-d1", threatId: "t-d1", treatment: "reduce", selectedMitigations: [{ id: "M-T-FSAFE-001", status: "implemented" }] },
+        { id: "r-d2", threatId: "t-d2", treatment: "reduce", selectedMitigations: [{ id: "M-T-FSAFE-001", status: "open" }] },
+      ],
+    };
+    const d: Any = { elements: els, connections: [] };
+    const instances = deriveControlInstances(thr, rsk, d, getAllMitigations());
+    const drifts = computeSecurityDrifts(instances, d);
+    expect(drifts.map((x) => x.status)).toEqual(["drift", "drift"]);
+    const onApply = vi.fn();
+    render(<DFDNotificationsPanel controlInstances={instances} securityDrifts={drifts} elements={els} connections={[]} onApply={onApply} />);
+    expect(screen.getAllByText("Drift")).toHaveLength(2);
+    const buttons = screen.queryAllByTestId("dfd-drift-apply");
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]);
+    expect(onApply).toHaveBeenCalledWith("d1", "failSafeOutputState", "fixed_value", false, "M-T-FSAFE-001", "r-d1");
+  });
+
+  it("Apply on the drift restores the value: aligned again", () => {
+    const el: Any = element("d1", "not_defined", {
+      securityControlOwnership: [{ property: "failSafeOutputState", value: "fixed_value", setBy: "apply_suggestion", setAt: "x" }],
+    });
+    const thr: Any = { perElementTables: [{ threats: [{ id: "t-d1", linkedElement: { elementId: "d1", elementType: "Process" } }] }], perInteractionTables: [] };
+    const rsk: Any = { risks: [{ id: "r-d1", threatId: "t-d1", treatment: "reduce", selectedMitigations: [{ id: "M-T-FSAFE-001", status: "implemented" }] }] };
+    const applied = { ...el, properties: applyControlSuggestionUpdate(el.properties, "failSafeOutputState", "fixed_value", { mitigationId: "M-T-FSAFE-001", riskId: "r-d1", at: "y" }).properties };
+    const d: Any = { elements: [applied], connections: [] };
+    const instances = deriveControlInstances(thr, rsk, d, getAllMitigations());
+    expect(computeSecurityDrifts(instances, d).map((x) => x.status)).toEqual(["aligned"]);
   });
 });

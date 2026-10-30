@@ -117,6 +117,12 @@ interface SecurityNotification extends BaseNotification {
 interface DriftNotification extends BaseNotification {
   type: "drift" | "conflict";
   elementId: string;
+  /** For Apply (restore the value): the record is a flow, and what it covers. */
+  isConnection?: boolean;
+  coversMitigationIds?: string[];
+  coversRiskIds?: string[];
+  /** Every mitigation behind it only planned → no Apply (CL-6). */
+  planned?: boolean;
   elementDisplayId: string;
   elementName: string;
   property: string;
@@ -234,6 +240,10 @@ function buildNotifications(
           currentValue,
           expectedValue: instance.expectedValue,
           recordedValue: drift.recordedValue,
+          isConnection: !element,
+          coversMitigationIds: instance.coversMitigationIds,
+          coversRiskIds: instance.coversRiskIds,
+          planned: instance.planned,
         });
         continue;
       }
@@ -661,7 +671,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
                 onSelectCell={onSelectCell}
               />
             ) : n.type === "drift" ? (
-              <DriftRow key={n.key} notification={n as DriftNotification} />
+              <DriftRow key={n.key} notification={n as DriftNotification} onApply={onApply} />
             ) : (
               <SecurityRow
                 key={n.key}
@@ -979,10 +989,25 @@ export default DFDNotificationsPanel;
 
 interface DriftRowProps {
   notification: DriftNotification;
+  onApply?: DFDNotificationsPanelProps["onApply"];
 }
 
-const DriftRow: React.FC<DriftRowProps> = ({ notification }) => {
+const DriftRow: React.FC<DriftRowProps> = ({ notification, onApply }) => {
   const { t } = useTranslation();
+  // Restore the value after it was reverted — only for a mitigation that
+  // counts as done; a planned one offers no Apply (CL-6, user 2026-10-30).
+  const canApply = !!onApply && !notification.planned;
+  const handleApply = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onApply?.(
+      notification.elementId,
+      notification.property,
+      notification.expectedValue,
+      !!notification.isConnection,
+      notification.coversMitigationIds?.[0],
+      notification.coversRiskIds?.[0],
+    );
+  };
   const isConflict = notification.type === "conflict";
 
   const detail = notification.conflictDetail;
@@ -1111,6 +1136,25 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification }) => {
             defaultValue: "Applied {{date}}",
           })}
         </Typography>
+      )}
+
+      {canApply && (
+        <Tooltip
+          title={t("tabs.dfd.notifications.applyTooltip", { defaultValue: "Apply suggestion to model" })}
+          placement="top"
+        >
+          <Button
+            size="small"
+            variant="outlined"
+            color="success"
+            startIcon={<CheckIcon sx={{ fontSize: "0.95rem !important" }} />}
+            onClick={handleApply}
+            data-testid="dfd-drift-apply"
+            sx={{ height: 22, minWidth: 0, px: 0.75, fontSize: "0.78rem", flexShrink: 0, lineHeight: 1, ml: "auto" }}
+          >
+            {t("tabs.dfd.notifications.applyLabel", { defaultValue: "Apply" })}
+          </Button>
+        </Tooltip>
       )}
     </Box>
   );
