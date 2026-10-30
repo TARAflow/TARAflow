@@ -1,4 +1,4 @@
-## [0.15.2-beta] - 2026-10-29
+## [0.15.2-beta] - 2026-10-30
 
 Security fix for the issue-tracker integration and two DFD fixes, no new
 project schema (projects stay on schema 10 and open in 0.15.0-beta and
@@ -53,6 +53,15 @@ project schema (projects stay on schema 10 and open in 0.15.0-beta and
   the validation, so an element connected only by such flows was
   reported as unconnected and those flows were not checked at all. A
   multi-page DFD now gets the same findings as a single page.
+- **Versioned pre-commit hook of this repository:** `.githooks/pre-commit`
+  (secret scan of the staged contents) was documented but missing from the
+  first build of this release; it is included now.
+- **Windows (CRLF checkout):** `scripts/secret-scan.mjs` no longer starts
+  with a shebang — with CRLF line endings Vite could not parse it and the
+  secret-scan tests failed on Windows (the script is always run via
+  `node`). `.gitattributes` keeps LF for git hooks and shell scripts: with
+  CRLF the pre-commit hook scanned every tracked file instead of the
+  staged contents.
 
 ## [0.15.1-beta] - 2026-10-25
 
