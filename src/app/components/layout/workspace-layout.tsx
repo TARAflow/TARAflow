@@ -123,7 +123,7 @@ import {
 
 import { DocTab, DocUpdateResult } from "features/documentation";
 import { IntegrationTab, createTicketAdapter, type IntegrationTabData } from "features/integration";
-import { AuditTab } from "features/audit";
+import { AuditTab, useAuditHints } from "features/audit";
 import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
@@ -1011,6 +1011,30 @@ export const WorkspaceLayout: React.FC = () => {
     () => (dfdTabProject ? dfdService.validateSavedState(dfdTabProject) : null),
     [dfdTabProject],
   );
+  // Audit entry of the phase bar (user 2026-10-30): no audit repository for
+  // the project file, verification entries not committed — chip + tooltip.
+  const auditHints = useAuditHints({
+    id: activeProject?.id ?? "",
+    filePath: activeProject?.filePath,
+    verificationIds: activeProject?.cybersecurityConcept?.verifications?.map((v) => v.id) ?? [],
+    refreshKey: `${activePhase}|${activeProject?.audit?.lastModified ?? ""}`,
+  });
+  const auditHintLines = useMemo(() => {
+    const lines: string[] = [];
+    if (auditHints?.repoMissing) {
+      lines.push(t("phases.audit.repoMissing", { defaultValue: "No audit repository for this project file — set it up in the Audit tab." }));
+    }
+    if (auditHints && auditHints.uncommittedVerifications > 0) {
+      lines.push(
+        t("phases.audit.uncommitted", {
+          count: auditHints.uncommittedVerifications,
+          defaultValue: "{{count}} TARA verification(s) not committed — commit in the Audit tab.",
+        }),
+      );
+    }
+    return lines;
+  }, [auditHints, t]);
+
   const memoizedPhaseIndicators = useMemo(
     () =>
       activeProject
@@ -1173,6 +1197,7 @@ export const WorkspaceLayout: React.FC = () => {
         onPhaseChange={handlePhaseChange}
         threatDrift={threatDriftCounts}
         indicators={memoizedPhaseIndicators ?? undefined}
+        auditHints={auditHintLines}
       />
 
       <div className="flex-1 overflow-y-auto">

@@ -33,7 +33,7 @@ const entry = (over: Partial<VerificationEntry> = {}): VerificationEntry => ({
 afterEach(cleanup);
 
 describe("verification panel", () => {
-  it("records an entry with the current hash, the author as reviewer and all four points", () => {
+  it("records an entry with the current hash and the author as reviewer; the points start unchecked (user 2026-10-30)", () => {
     const onChange = vi.fn();
     render(
       <VerificationPanel
@@ -50,6 +50,9 @@ describe("verification panel", () => {
     expect(screen.getByText("Not verified yet.")).toBeTruthy();
     fireEvent.click(screen.getByTestId("verification-new"));
     expect(screen.getByTestId("verification-open-goals-claims").textContent).toContain("2 open finding(s)");
+    expect(screen.getAllByRole("checkbox").every((c) => !(c as HTMLInputElement).checked)).toBe(true);
+    expect((screen.getByTestId("verification-save") as HTMLButtonElement).disabled).toBe(true);
+    for (const c of screen.getAllByRole("checkbox")) fireEvent.click(c);
     fireEvent.click(screen.getByTestId("verification-save"));
     expect(onChange.mock.calls[0][0]).toEqual([
       expect.objectContaining({
@@ -76,6 +79,33 @@ describe("verification panel", () => {
     );
     expect(screen.getByTestId("verification-committed").textContent).toBe("committed abc1234");
     expect(screen.queryByTestId("verification-remove")).toBeNull();
+    expect(screen.queryByTestId("verification-edit")).toBeNull();
+  });
+
+  it("an entry not committed can be edited — it then vouches for the current state — and removed, also without git", () => {
+    const onChange = vi.fn();
+    render(
+      <VerificationPanel
+        entries={[entry({ result: "passed-with-conditions", reconfirm: "repair" })]}
+        currentStateHash="h9"
+        checklist={[]}
+        projectVersion="1.3"
+        commits={new Map()}
+        gitAvailable={false}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.queryByTestId("verification-not-committed")).toBeNull();
+    fireEvent.click(screen.getByTestId("verification-edit"));
+    expect(screen.getByText("Edit verification")).toBeTruthy();
+    expect((screen.getByTestId("verification-reviewer") as HTMLInputElement).value).toBe("A. Muster");
+    fireEvent.click(screen.getByTestId("verification-save"));
+    const saved = onChange.mock.calls[0][0];
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ id: "v1", result: "passed-with-conditions", stateHash: "h9", projectVersion: "1.3" });
+    expect(saved[0].reconfirm).toBeUndefined();
+    fireEvent.click(screen.getByTestId("verification-remove"));
+    expect(onChange.mock.calls[1][0]).toEqual([]);
   });
 });
 

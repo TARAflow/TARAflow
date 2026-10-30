@@ -33,4 +33,15 @@ describe("phase bar badges", () => {
     expect(hazardTab.textContent).toContain("1");
     expect(screen.getByLabelText('Hazard "False alarm" has no ISO 12100 hazard type.')).toBeTruthy();
   });
+
+  it("the Audit entry shows its hints as a chip with the lines as tooltip; none, no chip (user 2026-10-30)", () => {
+    const project: Any = { id: "p", info: {}, phaseStatus: {} };
+    const hints = ["No audit repository for this project file — set it up in the Audit tab.", "1 TARA verification not committed — commit it in the Audit tab."];
+    const { unmount } = render(<PhaseTabs project={project} activePhase={0} onPhaseChange={() => {}} auditHints={hints} />);
+    expect(screen.getByTestId("audit-hints").textContent).toBe("2");
+    expect(screen.getByTestId("audit-hints").getAttribute("aria-label")).toBe(hints.join("\n"));
+    unmount();
+    render(<PhaseTabs project={project} activePhase={0} onPhaseChange={() => {}} />);
+    expect(screen.queryByTestId("audit-hints")).toBeNull();
+  });
 });

@@ -32,6 +32,7 @@ import { VerificationPanel } from "./verification-panel";
 import type { VerificationEntry } from "shared";
 import { AuditConfigDialog } from "./audit-config-dialog";
 import { useAuditRepo } from "../hooks/useAuditRepo";
+import { findVerificationCommits } from "../services/verification-commits";
 import { useAuditProtection } from "../hooks/useAuditProtection";
 import {
   loadPreviousProjectFromGit,
@@ -331,14 +332,14 @@ export const AuditTab: React.FC<AuditTabProps> = ({
       setVerificationCommits(new Map());
       return;
     }
-    const relPath = repoRelativePath(repoRoot, filePath);
-    const found = new Map<string, string>();
-    for (const entry of verificationEntries) {
-      const res = await gitService.raw(["log", "--format=%h", "--reverse", `-S${entry.id}`, "--", relPath]);
-      const hash = res.success ? res.data?.trim().split("\n")[0] : undefined;
-      if (hash) found.set(entry.id, hash);
-    }
-    setVerificationCommits(found);
+    setVerificationCommits(
+      await findVerificationCommits(
+        (command) => gitService.raw(command),
+        repoRoot,
+        filePath,
+        verificationEntries.map((e) => e.id),
+      ),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo.outcome, project.filePath, gitService, verificationEntries.map((e) => e.id).join(",")]);
 

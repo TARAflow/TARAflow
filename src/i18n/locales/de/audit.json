@@ -318,6 +318,8 @@
       "notCommitted": "nicht committet",
       "commit": "Committen",
       "remove": "Entfernen",
+      "edit": "Bearbeiten",
+      "editTitle": "Verifikation bearbeiten",
       "date": "Datum",
       "reviewer": "Reviewer",
       "checked": "Geprüft (RQ-09-07)",

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Project } from "../../models/project-types";
 import { PHASES, PhaseStatus, PhaseDefinition } from "shared";
+import { Tooltip } from "@mui/material";
 import { PhaseTab } from "./phase-tab";
 import { LanguageSwitcher } from "i18n";
 import { PhaseId } from "../../models/phase-types";
@@ -38,6 +39,8 @@ interface PhaseTabsProps {
    * the DFD's from its current validation). Without it: the stored status.
    */
   indicators?: PhaseIndicators;
+  /** What the Audit entry points out (repo missing, uncommitted verifications) — chip + tooltip. */
+  auditHints?: readonly string[];
 }
 
 export const PhaseTabs: React.FC<PhaseTabsProps> = ({
@@ -46,6 +49,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   onPhaseChange,
   threatDrift,
   indicators,
+  auditHints = [],
 }) => {
   const phaseStatus = indicators?.status ?? project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
   // Safety gating: the Hazard phase only appears when safety relevance is on
@@ -132,6 +136,21 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
             }`}
           >
             🔍 Audit
+            {auditHints.length > 0 && (
+              <Tooltip
+                title={auditHints.join("\n")}
+                arrow
+                placement="bottom"
+                slotProps={{ tooltip: { sx: { whiteSpace: "pre-line" } } }}
+              >
+                <span
+                  className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-yellow-500 rounded-full"
+                  data-testid="audit-hints"
+                >
+                  {auditHints.length}
+                </span>
+              </Tooltip>
+            )}
           </button>
 
           <button

@@ -84,6 +84,11 @@
     "phaseProgress": "Phase Progress",
     "overallProgress": "Overall Progress",
     "openTab": "Click to open the tab",
+    "audit": {
+      "repoMissing": "No audit repository for this project file — set it up in the Audit tab.",
+      "uncommitted_one": "{{count}} TARA verification not committed — commit it in the Audit tab.",
+      "uncommitted_other": "{{count}} TARA verifications not committed — commit them in the Audit tab."
+    },
     "details": {
       "missing": "Missing: {{fields}}",
       "more": "… {{count}} more",

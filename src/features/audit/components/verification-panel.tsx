@@ -82,6 +82,8 @@ export const VerificationPanel: React.FC<VerificationPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  /** The entry being edited — only an entry not committed yet (user 2026-10-30). */
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Omit<VerificationEntry, "id" | "stateHash">>({
     date: "",
     reviewer: "",
@@ -91,23 +93,31 @@ export const VerificationPanel: React.FC<VerificationPanelProps> = ({
   const scopeLabel = (s: VerificationScope) => t(`audit.verification.scope.${s}`, { defaultValue: SCOPE_DEFAULT[s] });
   const resultLabel = (r: VerificationResult) => t(`audit.verification.result.${r}`, { defaultValue: RESULT_DEFAULT[r] });
 
+  // Nothing checked by default: the reviewer ticks what was checked (user 2026-10-30).
   const start = () => {
-    setDraft({ date: new Date().toISOString().slice(0, 10), reviewer: defaultReviewer, scope: [...SCOPES], result: "passed" });
+    setEditingId(null);
+    setDraft({ date: new Date().toISOString().slice(0, 10), reviewer: defaultReviewer, scope: [], result: "passed" });
     setOpen(true);
   };
+  const edit = (e: VerificationEntry) => {
+    setEditingId(e.id);
+    setDraft({ date: e.date, reviewer: e.reviewer, scope: [...e.scope], result: e.result, findings: e.findings });
+    setOpen(true);
+  };
+  // Saving vouches for the current state — also when an uncommitted entry is
+  // edited: hash, hash version and project version are taken anew.
   const save = () => {
-    onChange([
-      ...entries,
-      {
-        id: newId(),
-        ...draft,
-        reviewer: draft.reviewer.trim(),
-        ...(draft.findings?.trim() ? { findings: draft.findings.trim() } : { findings: undefined }),
-        stateHash: currentStateHash,
-        hashVersion: VERIFICATION_HASH_VERSION,
-        ...(projectVersion ? { projectVersion } : {}),
-      },
-    ]);
+    const entry: VerificationEntry = {
+      id: editingId ?? newId(),
+      ...draft,
+      reviewer: draft.reviewer.trim(),
+      ...(draft.findings?.trim() ? { findings: draft.findings.trim() } : { findings: undefined }),
+      stateHash: currentStateHash,
+      hashVersion: VERIFICATION_HASH_VERSION,
+      ...(projectVersion ? { projectVersion } : {}),
+    };
+    onChange(editingId ? entries.map((x) => (x.id === editingId ? entry : x)) : [...entries, entry]);
+    setEditingId(null);
     setOpen(false);
   };
   const sorted = [...entries].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -149,19 +159,25 @@ export const VerificationPanel: React.FC<VerificationPanelProps> = ({
                   {commit ? (
                     <Chip size="small" variant="outlined" label={t("audit.verification.committed", { defaultValue: "committed {{hash}}", hash: commit })} data-testid="verification-committed" />
                   ) : (
-                    gitAvailable && (
-                      <>
-                        <Chip size="small" color="warning" label={t("audit.verification.notCommitted", { defaultValue: "not committed" })} data-testid="verification-not-committed" />
-                        {onCommit && (
-                          <Button size="small" onClick={() => onCommit(e)} data-testid="verification-commit">
-                            {t("audit.verification.commit", { defaultValue: "Commit" })}
-                          </Button>
-                        )}
-                        <Button size="small" color="error" onClick={() => onChange(entries.filter((x) => x.id !== e.id))} data-testid="verification-remove">
-                          {t("audit.verification.remove", { defaultValue: "Remove" })}
-                        </Button>
-                      </>
-                    )
+                    <>
+                      {gitAvailable && (
+                        <>
+                          <Chip size="small" color="warning" label={t("audit.verification.notCommitted", { defaultValue: "not committed" })} data-testid="verification-not-committed" />
+                          {onCommit && (
+                            <Button size="small" onClick={() => onCommit(e)} data-testid="verification-commit">
+                              {t("audit.verification.commit", { defaultValue: "Commit" })}
+                            </Button>
+                          )}
+                        </>
+                      )}
+                      {/* Not in the audit trail yet: still editable and removable, with or without git. */}
+                      <Button size="small" onClick={() => edit(e)} data-testid="verification-edit">
+                        {t("audit.verification.edit", { defaultValue: "Edit" })}
+                      </Button>
+                      <Button size="small" color="error" onClick={() => onChange(entries.filter((x) => x.id !== e.id))} data-testid="verification-remove">
+                        {t("audit.verification.remove", { defaultValue: "Remove" })}
+                      </Button>
+                    </>
                   )}
                 </Stack>
                 <Typography variant="caption" color="text.secondary" display="block">
@@ -180,7 +196,11 @@ export const VerificationPanel: React.FC<VerificationPanelProps> = ({
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t("audit.verification.new", { defaultValue: "Record verification" })}</DialogTitle>
+        <DialogTitle>
+          {editingId
+            ? t("audit.verification.editTitle", { defaultValue: "Edit verification" })
+            : t("audit.verification.new", { defaultValue: "Record verification" })}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Stack direction="row" spacing={2}>
