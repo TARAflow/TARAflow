@@ -7,7 +7,7 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Button, Chip, MenuItem, Paper, Stack, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import type { ProjectMitigation } from "../../models/threat-types";
 import { ProjectMitigationForm } from "./project-mitigation-form";
 import type { ProjectMitigationsApi } from "./project-mitigations-context";
@@ -20,6 +20,8 @@ export interface ProjectMitigationUsageSummary {
 
 export interface ProjectMitigationRefs {
   usage: (id: string) => ProjectMitigationUsageSummary;
+  /** Risks where the merge would drop contradicting data (status, ticket, …); empty = safe. */
+  mergeConflicts: (fromId: string, intoId: string) => string[];
   merge: (fromId: string, intoId: string) => void;
   remove: (id: string) => void;
 }
@@ -30,6 +32,18 @@ export const ProjectMitigationList: React.FC<{
 }> = ({ api, refs }) => {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<ProjectMitigation | null>(null);
+  const [blocked, setBlocked] = useState<{ fromId: string; intoId: string; risks: string[] } | null>(null);
+
+  const mergeInto = (fromId: string, intoId: string) => {
+    if (!refs) return;
+    const risks = refs.mergeConflicts(fromId, intoId);
+    if (risks.length > 0) {
+      setBlocked({ fromId, intoId, risks });
+      return;
+    }
+    setBlocked(null);
+    refs.merge(fromId, intoId);
+  };
 
   return (
     <Box data-testid="project-mitigation-list">
@@ -43,6 +57,17 @@ export const ProjectMitigationList: React.FC<{
         })}
       </Typography>
       {api.entries.length === 0 && <Typography color="text.secondary">–</Typography>}
+      {blocked && (
+        <Alert severity="warning" sx={{ mb: 1 }} onClose={() => setBlocked(null)} data-testid="pm-merge-blocked">
+          {t("tabs.threats.projectMitigation.mergeBlocked", {
+            defaultValue:
+              "{{from}} cannot be merged into {{into}}: risk {{risks}} uses both with a different status, ticket, evidence or scope. Align the two entries in the risk first.",
+            from: blocked.fromId,
+            into: blocked.intoId,
+            risks: blocked.risks.join(", "),
+          })}
+        </Alert>
+      )}
       <Stack spacing={1}>
         {api.entries.map((m) => {
           const usage = refs?.usage(m.id);
@@ -87,7 +112,7 @@ export const ProjectMitigationList: React.FC<{
                     size="small"
                     value=""
                     label={t("tabs.threats.projectMitigation.mergeInto", { defaultValue: "Merge into …" })}
-                    onChange={(e) => refs.merge(m.id, e.target.value)}
+                    onChange={(e) => mergeInto(m.id, e.target.value)}
                     sx={{ minWidth: 140 }}
                     inputProps={{ "data-testid": `pm-merge-${m.id}` }}
                   >

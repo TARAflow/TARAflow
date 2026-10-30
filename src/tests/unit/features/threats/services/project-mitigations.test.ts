@@ -28,6 +28,7 @@ import { deriveControlInstances } from "app/hooks/use-control-instance-derivatio
 import {
   projectMitigationUsage,
   isProjectMitigationUsed,
+  mergeProjectMitigationConflicts,
   mergeProjectMitigationRefs,
 } from "app/services/project-mitigation-usage";
 import { DiffService } from "features/audit/services/diff-service";
@@ -182,5 +183,35 @@ describe("CM-3: effect vocabulary, regeneration, merge", () => {
     ]);
     expect(out.risks.risks[0].selectedMitigations).toEqual([{ id: "M-C-002", status: "open" }]);
     expect(out.attackTrees.trees[0]).toMatchObject({ dsl: "Root;ROOT\n\tA;p=0.5,i=3 [M-001,M-C-002]\n\tB;p=0.5,i=3 [M-C-002]\n# [M-C-001]", pathAssessments: [{ mitigationIds: ["M-C-002"] }] });
+  });
+
+  it("a risk holding both keeps the dropped entry's ticket and status; notes are joined", () => {
+    const project: Any = {
+      threats: { configuration: { customMitigations: [] }, perElementTables: [], perInteractionTables: [] },
+      risks: {
+        risks: [
+          {
+            threatDisplayId: "P1-S-2",
+            selectedMitigations: [
+              { id: "M-C-001", status: "implemented", ticketId: "SEC-42", ticketUrl: "u", ticketStatus: "done", notes: "a" },
+              { id: "M-C-002", status: "implemented", notes: "b" },
+            ],
+          },
+        ],
+      },
+      attackTrees: null,
+    };
+    expect(mergeProjectMitigationConflicts(project, "M-C-001", "M-C-002")).toEqual([]);
+    const out: Any = mergeProjectMitigationRefs(project, "M-C-001", "M-C-002");
+    expect(out.risks.risks[0].selectedMitigations).toEqual([
+      { id: "M-C-002", status: "implemented", ticketId: "SEC-42", ticketUrl: "u", ticketStatus: "done", notes: "b\na" },
+    ]);
+  });
+
+  it("a different status or two tickets on one risk is a conflict", () => {
+    const risks = (a: Any, b: Any): Any => ({ risks: { risks: [{ threatDisplayId: "P1-S-2", selectedMitigations: [{ id: "M-C-001", ...a }, { id: "M-C-002", ...b }] }] } });
+    expect(mergeProjectMitigationConflicts(risks({ status: "implemented" }, { status: "open" }), "M-C-001", "M-C-002")).toEqual(["P1-S-2"]);
+    expect(mergeProjectMitigationConflicts(risks({ status: "open", ticketId: "SEC-1" }, { status: "open", ticketId: "SEC-2" }), "M-C-001", "M-C-002")).toEqual(["P1-S-2"]);
+    expect(mergeProjectMitigationConflicts(risks({ status: "open", ticketId: "SEC-1" }, { status: "open" }), "M-C-001", "M-C-002")).toEqual([]);
   });
 });

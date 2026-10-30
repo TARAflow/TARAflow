@@ -103,7 +103,7 @@ export interface ThreatTabProps {
    * entry is used and merging two — both span risks and attack trees, so the
    * app supplies them.
    */
-  projectMitigationRefs?: Pick<ProjectMitigationRefs, "usage" | "merge">;
+  projectMitigationRefs?: Pick<ProjectMitigationRefs, "usage" | "mergeConflicts" | "merge">;
 }
 
 // ==================== COMPONENT ====================

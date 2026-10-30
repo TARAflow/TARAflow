@@ -140,6 +140,7 @@ describe("configuration list", () => {
         api={api([entry(), entry({ id: "M-C-002", text: "Other" })])}
         refs={{
           usage: (id) => (id === "M-C-001" ? { threats: ["P1-S-1"], risks: [], attackTrees: [] } : { threats: [], risks: [], attackTrees: [] }),
+          mergeConflicts: () => [],
           merge,
           remove,
         }}
@@ -151,5 +152,23 @@ describe("configuration list", () => {
     expect(remove).toHaveBeenCalledWith("M-C-002");
     select("pm-merge-M-C-001", "M-C-002");
     expect(merge).toHaveBeenCalledWith("M-C-001", "M-C-002");
+  });
+
+  it("a merge with conflicting data is refused and names the risks", () => {
+    const merge = vi.fn();
+    render(
+      <ProjectMitigationList
+        api={api([entry(), entry({ id: "M-C-002", text: "Other" })])}
+        refs={{
+          usage: () => ({ threats: [], risks: [], attackTrees: [] }),
+          mergeConflicts: () => ["P1-S-2"],
+          merge,
+          remove: vi.fn(),
+        }}
+      />,
+    );
+    select("pm-merge-M-C-001", "M-C-002");
+    expect(merge).not.toHaveBeenCalled();
+    expect(screen.getByTestId("pm-merge-blocked").textContent).toContain("risk P1-S-2");
   });
 });

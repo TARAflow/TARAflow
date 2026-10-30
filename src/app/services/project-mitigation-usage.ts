@@ -51,13 +51,78 @@ export const isProjectMitigationUsed = (u: ProjectMitigationUsage) =>
 
 // ==================== MERGE ====================
 
+// A list holding both entries keeps one — nothing may get lost on the way
+// (review 2026-10-30): the kept entry takes over what only the dropped one
+// has (a ticket, evidence, a rejection reason), free-text notes are joined.
+// Fields that would contradict each other are a conflict; the merge is then
+// refused (mergeProjectMitigationConflicts) instead of picking a side.
+
+/** Fields that must agree when both entries carry them. */
+const CONFLICT_FIELDS = ["status", "ticketId", "evidenceRef", "rejectionReason", "scopeOverride"] as const;
+/** Fields that travel with the ticket. */
+const TICKET_FIELDS = ["ticketId", "ticketUrl", "ticketStatus", "ticketSyncedAt"] as const;
+/** Free text: both kept. */
+const JOINED_FIELDS = ["notes", "evidenceNote"] as const;
+
+type Entry = Record<string, unknown>;
+const present = (v: unknown) => v !== undefined && v !== null && v !== "";
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+function entriesConflict(into: Entry, from: Entry): boolean {
+  return CONFLICT_FIELDS.some((k) => {
+    // status always counts (it defaults to "open"); the others only when both have them
+    if (k === "status") return present(into.status) && present(from.status) && into.status !== from.status;
+    return present(into[k]) && present(from[k]) && !same(into[k], from[k]);
+  });
+}
+
+function mergeEntries<T extends { id?: string }>(into: T, from: T): T {
+  const a = into as unknown as Entry;
+  const b = from as unknown as Entry;
+  const out: Entry = { ...b, ...Object.fromEntries(Object.entries(a).filter(([, v]) => present(v))), id: a.id };
+  if (!present(a.ticketId) && present(b.ticketId)) for (const k of TICKET_FIELDS) out[k] = b[k];
+  for (const k of JOINED_FIELDS) {
+    if (present(a[k]) && present(b[k]) && a[k] !== b[k]) out[k] = `${a[k]}\n${b[k]}`;
+  }
+  if (typeof a.statusChangedAt === "string" && typeof b.statusChangedAt === "string") {
+    out.statusChangedAt = a.statusChangedAt > b.statusChangedAt ? a.statusChangedAt : b.statusChangedAt;
+  }
+  if (typeof a.alreadyImplemented === "boolean" || typeof b.alreadyImplemented === "boolean") {
+    out.alreadyImplemented = a.alreadyImplemented === true || b.alreadyImplemented === true;
+  }
+  return out as unknown as T;
+}
+
 const swapIds = <T extends { id?: string }>(list: T[] | undefined, from: string, into: string): T[] | undefined => {
   if (!list || !list.some((x) => x.id === from)) return list;
+  const dropped = list.find((x) => x.id === from)!;
   const hasInto = list.some((x) => x.id === into);
   return hasInto
-    ? list.filter((x) => x.id !== from)
+    ? list.filter((x) => x.id !== from).map((x) => (x.id === into ? mergeEntries(x, dropped) : x))
     : list.map((x) => (x.id === from ? { ...x, id: into } : x));
 };
+
+/**
+ * Risks (display ids) where merging `fromId` into `intoId` would have to drop
+ * contradicting data — different status, two tickets, two evidence refs, two
+ * rejection reasons or scope overrides. Empty = the merge loses nothing.
+ */
+export function mergeProjectMitigationConflicts(
+  project: Pick<Project, "risks">,
+  fromId: string,
+  intoId: string,
+): string[] {
+  return (project.risks?.risks ?? [])
+    .filter((r) => {
+      const lists = [r.selectedMitigations, r.proposedMitigations] as (Entry[] | undefined)[];
+      return lists.some((list) => {
+        const into = list?.find((x) => x.id === intoId);
+        const from = list?.find((x) => x.id === fromId);
+        return !!into && !!from && entriesConflict(into, from);
+      });
+    })
+    .map((r) => r.threatDisplayId ?? r.id);
+}
 
 const swapStrings = (list: string[] | undefined, from: string, into: string) =>
   list && list.includes(from) ? [...new Set(list.map((x) => (x === from ? into : x)))] : list;
@@ -65,8 +130,9 @@ const swapStrings = (list: string[] | undefined, from: string, into: string) =>
 /**
  * Merge project mitigation `fromId` into `intoId` (design §3: merge rewrites
  * the ids in threats and risks — and attack trees, which reference them too).
- * A list holding both keeps `intoId` once. The entry `fromId` leaves the
- * project catalog. Pure; returns the three changed parts.
+ * A list holding both keeps `intoId` once, merged with the dropped entry
+ * (see above; callers refuse a merge with conflicts first). The entry
+ * `fromId` leaves the project catalog. Pure; returns the three changed parts.
  */
 export function mergeProjectMitigationRefs(
   project: Pick<Project, "threats" | "risks" | "attackTrees">,

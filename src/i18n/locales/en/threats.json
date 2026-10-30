@@ -244,6 +244,7 @@
         "usedBy": "Used by",
         "unused": "Not used",
         "mergeInto": "Merge into …",
+        "mergeBlocked": "{{from}} cannot be merged into {{into}}: risk {{risks}} uses both with a different status, ticket, evidence or scope. Align the two entries in the risk first.",
         "deleteUsed": "Still used — remove it from the threats, risks and attack trees first, or merge it."
       },
       "dialog": {

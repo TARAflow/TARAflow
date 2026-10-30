@@ -238,6 +238,7 @@
         "usedBy": "Verwendet von",
         "unused": "Nicht verwendet",
         "mergeInto": "Zusammenführen mit …",
+        "mergeBlocked": "{{from}} lässt sich nicht mit {{into}} zusammenführen: Risiko {{risks}} verwendet beide mit unterschiedlichem Status, Ticket, Nachweis oder Scope. Gleiche die beiden Einträge zuerst im Risiko an.",
         "deleteUsed": "Noch verwendet — zuerst aus Threats, Risks und Angriffsbäumen entfernen oder zusammenführen."
       },
       "dialog": {

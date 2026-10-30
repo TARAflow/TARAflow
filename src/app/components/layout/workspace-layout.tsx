@@ -100,6 +100,7 @@ import {
 
 import { RisksTab, RiskUpdateResult } from "features/risks";
 import {
+  mergeProjectMitigationConflicts,
   mergeProjectMitigationRefs,
   projectMitigationUsage,
 } from "app/services/project-mitigation-usage";
@@ -601,9 +602,13 @@ export const WorkspaceLayout: React.FC = () => {
           ? projectMitigationUsage(current, id)
           : { threats: [], risks: [], attackTrees: [] };
       },
+      mergeConflicts: (fromId: string, intoId: string) => {
+        const current = activeProjectRef.current;
+        return current ? mergeProjectMitigationConflicts(current, fromId, intoId) : [];
+      },
       merge: (fromId: string, intoId: string) => {
         const current = activeProjectRef.current;
-        if (!current) return;
+        if (!current || mergeProjectMitigationConflicts(current, fromId, intoId).length > 0) return;
         const merged = mergeProjectMitigationRefs(current, fromId, intoId);
         void updateProject({ id: current.id, ...merged });
       },
