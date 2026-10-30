@@ -7,7 +7,8 @@
 //
 //   a) tara          the Item Definition the TARA is checked against
 //   b) treatment     treatment decisions: avoid without justification, a
-//                    goal / claim that no longer fits the treatment
+//                    goal / claim that no longer fits the treatment, reduce
+//                    without a mitigation or without a residual rating
 //   c) goals-claims  goals and claims vs. the treatments: missing, empty,
 //                    retain without assumption, share without party
 //   d) consistency   invalid assumptions, links to removed risks, overdue
@@ -21,6 +22,8 @@ import { buildAssumptionUsage } from "./build-item-model-items";
 
 const SCOPE_OF: Record<ConceptFindingCode, VerificationScope | null> = {
   AVOID_UNJUSTIFIED: "treatment",
+  CONTROL_MISSING: "treatment",
+  RESIDUAL_MISSING: "treatment",
   TREATMENT_MISMATCH: "treatment",
   GOAL_MISSING: "goals-claims",
   CLAIM_MISSING: "goals-claims",

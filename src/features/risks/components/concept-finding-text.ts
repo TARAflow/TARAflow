@@ -14,6 +14,10 @@ export function conceptFindingText(f: ConceptFinding, t: T, riskLabel: (riskId: 
       return t(`${K}.goalMissing`, { defaultValue: "{{risk}}: Reduce without a cybersecurity goal", risk });
     case "CLAIM_MISSING":
       return t(`${K}.claimMissing`, { defaultValue: "{{risk}}: Retain / Share without a cybersecurity claim", risk });
+    case "CONTROL_MISSING":
+      return t(`${K}.controlMissing`, { defaultValue: "{{risk}}: Reduce without a selected mitigation", risk });
+    case "RESIDUAL_MISSING":
+      return t(`${K}.residualMissing`, { defaultValue: "{{risk}}: Reduce without a residual risk rating", risk });
     case "AVOID_UNJUSTIFIED":
       return t(`${K}.avoidUnjustified`, { defaultValue: "{{risk}}: Avoid without a justification", risk });
     case "TREATMENT_MISMATCH":

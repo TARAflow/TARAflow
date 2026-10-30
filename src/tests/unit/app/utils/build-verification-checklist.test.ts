@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import { buildVerificationChecklist } from "app/utils/build-verification-checklist";
 
 describe("verification checklist", () => {
-  it("ISO: item definition gaps (a), avoid unjustified (b), missing goal / claim (c), invalid assumption (d)", () => {
+  it("ISO: item definition gaps (a), avoid unjustified / reduce without control (b), missing goal / claim (c), invalid assumption (d)", () => {
     const project = {
       info: { description: "Detects smoke", tags: { domain: [], platform: [], regulation: ["ISO/SAE 21434"], custom: [] } },
       itemDefinition: { sections: {}, functions: [], assumptions: [{ id: "as1", displayId: "ASM-01", text: "x", status: "invalid" }] },
@@ -27,7 +27,7 @@ describe("verification checklist", () => {
     } as never;
     expect(buildVerificationChecklist(project, "2026-10-29")).toEqual([
       { scope: "tara", open: 3 }, // boundary, architecture, environment
-      { scope: "treatment", open: 1 }, // R-2 avoid without justification
+      { scope: "treatment", open: 2 }, // R-2 avoid without justification, R-1 reduce without a mitigation
       { scope: "goals-claims", open: 1 }, // R-1 without goal
       { scope: "consistency", open: 2 }, // CLM-01 invalid assumption, ASM-01 invalid but used by TB-1
     ]);

@@ -21,8 +21,18 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+// With a selected mitigation: these tests are about goals and claims
+// (CONTROL_MISSING is covered in concept-findings.test.ts).
 const risk = (id: string, label: string, treatment: string): Risk =>
-  ({ id, threatDisplayId: label, treatment, treatmentJustification: "", strideCategory: "T", linkedAssetIds: ["a1"] }) as unknown as Risk;
+  ({
+    id,
+    threatDisplayId: label,
+    treatment,
+    treatmentJustification: "",
+    strideCategory: "T",
+    linkedAssetIds: ["a1"],
+    selectedMitigations: [{ id: "M-T-001", status: "open" }],
+  }) as unknown as Risk;
 const RISKS = [risk("R1", "AT-2.1", "reduce"), risk("R2", "AT-2.2", "reduce"), risk("R3", "AT-5.1", "accept")];
 const ASSETS = {
   assets: [{ id: "a1", displayId: "DA-001", name: "Alarm", assetGroup: "data", securityGoals: [{ type: "I", level: "high", formalDescription: "Protect the alarm." }] }],

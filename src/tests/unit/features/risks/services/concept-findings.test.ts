@@ -10,8 +10,18 @@ import { openGoalProposals } from "features/risks/services/concept-proposals";
 import type { Risk } from "features/risks/models/risk-assessment-types";
 import { mergeClaims, mergeGoals, type CybersecurityConcept } from "shared";
 
+// A selected mitigation by default — CONTROL_MISSING has its own test.
 const risk = (id: string, treatment: string, extra: object = {}): Risk =>
-  ({ id, threatDisplayId: id, treatment, treatmentJustification: "", strideCategory: "T", linkedAssetIds: ["a1"], ...extra }) as unknown as Risk;
+  ({
+    id,
+    threatDisplayId: id,
+    treatment,
+    treatmentJustification: "",
+    strideCategory: "T",
+    linkedAssetIds: ["a1"],
+    selectedMitigations: [{ id: "M-T-001", status: "open" }],
+    ...extra,
+  }) as unknown as Risk;
 
 const concept = (c: Partial<CybersecurityConcept>): CybersecurityConcept => ({ goals: [], claims: [], verifications: [], ...c });
 const codes = (f: ReturnType<typeof conceptFindings>) => f.map((x) => `${x.code}:${x.riskId ?? x.item}`);
@@ -25,6 +35,30 @@ describe("concept findings", () => {
       concept: concept({}),
     });
     expect(codes(f)).toEqual(["GOAL_MISSING:R1", "CLAIM_MISSING:R2", "CLAIM_MISSING:R3", "AVOID_UNJUSTIFIED:R4"]);
+  });
+
+  it("reduce: no selected mitigation (rejected ones do not count), no residual rating", () => {
+    const rated = { isoRisk: { impact: "severe", feasibility: "high", value: 5 } };
+    const residual = { isoRisk: { ...rated.isoRisk, residual: { feasibility: "low", value: 3 } } };
+    const goal = { id: "g1", displayId: "CSG-01", statement: "x", riskIds: ["R1", "R2", "R3", "R4"], assetProperties: [] };
+    const f = conceptFindings({
+      ...base,
+      risks: [
+        risk("R1", "reduce", { selectedMitigations: [], ...residual }),
+        risk("R2", "reduce", { selectedMitigations: [{ id: "M-T-001", status: "rejected", rejectionReason: "n/a" }], ...residual }),
+        risk("R3", "reduce", rated),
+        risk("R4", "reduce", residual),
+        // not rated yet: no residual finding (the risk itself is open)
+        risk("R5", "reduce"),
+        // other treatments need neither
+        risk("R6", "accept", { selectedMitigations: [] , ...rated }),
+      ],
+      concept: concept({
+        goals: [goal, { ...goal, id: "g2", displayId: "CSG-02", riskIds: ["R5"] }],
+        claims: [{ id: "c1", displayId: "CLM-01", statement: "y", kind: "retain", riskIds: ["R6"], assumptionIds: ["as1"] }],
+      }),
+    });
+    expect(codes(f)).toEqual(["CONTROL_MISSING:R1", "CONTROL_MISSING:R2", "RESIDUAL_MISSING:R3"]);
   });
 
   it("covered risks are fine; a link that no longer fits the treatment is flagged", () => {

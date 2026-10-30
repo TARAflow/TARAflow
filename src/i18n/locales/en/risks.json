@@ -106,6 +106,8 @@
       },
       "conceptFindings": {
         "goalMissing": "{{risk}}: Reduce without a cybersecurity goal",
+        "controlMissing": "{{risk}}: Reduce without a selected mitigation",
+        "residualMissing": "{{risk}}: Reduce without a residual risk rating",
         "claimMissing": "{{risk}}: Retain / Share without a cybersecurity claim",
         "avoidUnjustified": "{{risk}}: Avoid without a justification",
         "treatmentMismatch": "{{risk}}: {{item}} no longer fits the treatment",

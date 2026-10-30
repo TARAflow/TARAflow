@@ -9,6 +9,11 @@
 //   GOAL_MISSING        reduce without a goal
 //   CLAIM_MISSING       retain / share without a claim of that kind
 //   AVOID_UNJUSTIFIED   avoid without a treatment justification
+//   CONTROL_MISSING     reduce without a selected mitigation (rejected ones
+//                       do not count) — the reduction has no control
+//   RESIDUAL_MISSING    reduce, risk value rated, but no residual after
+//                       mitigation (2026-10-30: the Headlamp example showed
+//                       "–" everywhere and nothing said so)
 //   TREATMENT_MISMATCH  a goal on a risk no longer reduced, a claim whose kind
 //                       no longer fits — the link stays until the analyst
 //                       decides
@@ -29,6 +34,8 @@ export type ConceptFindingCode =
   | "GOAL_MISSING"
   | "CLAIM_MISSING"
   | "AVOID_UNJUSTIFIED"
+  | "CONTROL_MISSING"
+  | "RESIDUAL_MISSING"
   | "TREATMENT_MISMATCH"
   | "EMPTY_STATEMENT"
   | "NO_ASSUMPTION"
@@ -72,6 +79,12 @@ export function conceptFindings(input: ConceptFindingsInput): ConceptFinding[] {
     const myClaims = claims.filter((c) => c.riskIds.includes(risk.id));
     if (kind === "goal" && myGoals.length === 0) {
       out.push({ code: "GOAL_MISSING", severity: "warning", riskId: risk.id });
+    }
+    if (kind === "goal" && !(risk.selectedMitigations ?? []).some((m) => m.status !== "rejected")) {
+      out.push({ code: "CONTROL_MISSING", severity: "warning", riskId: risk.id });
+    }
+    if (kind === "goal" && risk.isoRisk && !risk.isoRisk.residual) {
+      out.push({ code: "RESIDUAL_MISSING", severity: "warning", riskId: risk.id });
     }
     if ((kind === "retain" || kind === "share") && !myClaims.some((c) => c.kind === kind)) {
       out.push({ code: "CLAIM_MISSING", severity: "warning", riskId: risk.id });
