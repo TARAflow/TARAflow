@@ -1,0 +1,6 @@
+#!/bin/sh
+# .githooks/pre-commit — versioned hook of this repository.
+# Activate once per clone:  git config core.hooksPath .githooks
+# Blocks a commit whose staged contents carry a secret (scripts/secret-scan.mjs;
+# organisation-specific patterns in the git-ignored .secret-scan.local).
+exec node scripts/secret-scan.mjs --staged
