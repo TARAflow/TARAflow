@@ -12,7 +12,7 @@ import { ThreatEvalDialog } from "features/threats/components/shared/threat-dial
 import { ProjectMitigationsProvider, type ProjectMitigationsApi } from "features/threats/components/shared/project-mitigations-context";
 import { ProjectMitigationList } from "features/threats/components/shared/project-mitigation-list";
 import { createEmptyThreat, type ProjectMitigation, type Threat } from "features/threats/models/threat-types";
-import { setProjectMitigations } from "features/threats/services/threat-catalog-service";
+import { notifyProjectMitigations, setProjectMitigations } from "shared/services/project-mitigation-registry";
 
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
@@ -40,7 +40,7 @@ const entry = (over: Partial<ProjectMitigation> = {}): ProjectMitigation => ({
   ...over,
 });
 
-/** A provider whose add() registers like the Threats tab does. */
+/** A provider whose add() registers like the app does once the project has the entry. */
 const api = (entries: ProjectMitigation[] = []): ProjectMitigationsApi & { added: unknown[] } => {
   const list = [...entries];
   const added: unknown[] = [];
@@ -51,6 +51,7 @@ const api = (entries: ProjectMitigation[] = []): ProjectMitigationsApi & { added
       const id = `M-C-00${list.length + 1}`;
       list.push(entry({ id, text: input.text.trim(), strideCategory: input.strideCategory, affectsProperties: input.affectsProperties ?? [] }));
       setProjectMitigations([...list]);
+      notifyProjectMitigations();
       added.push(input);
       return id;
     }),

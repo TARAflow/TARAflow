@@ -59,7 +59,7 @@ import {
   getLocalizedMitigation,
   getLocalizedVerification,
 } from "../../services/threat-catalog-service";
-import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
+import { useMitigationCatalogVersion } from "shared/hooks/use-mitigation-catalog-version";
 import { ProjectMitigationForm } from "./project-mitigation-form";
 import { useProjectMitigations } from "./project-mitigations-context";
 import { labelStem, nextSequenceNumber } from "../../services/threat-sequence";

@@ -4,7 +4,7 @@
 // M-C-nnn — ids never reused, registered with the catalog so every reader
 // (closed loop, dialogs, report) sees them like a built-in entry.
 
-import { afterEach, describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import "i18n/services/i18n";
 import {
   addProjectMitigation,
@@ -19,10 +19,14 @@ import { mergeProposedMitigations } from "features/threats/services/threat-ident
 import {
   getAllMitigations,
   getLocalizedMitigation,
-  getMitigationCatalogVersion,
   resolveMitigationDrafts,
-  setProjectMitigations,
 } from "features/threats/services/threat-catalog-service";
+import {
+  getMitigationCatalogVersion,
+  notifyProjectMitigations,
+  setProjectMitigations,
+  subscribeMitigationCatalog,
+} from "shared/services/project-mitigation-registry";
 import { DEFAULT_THREAT_CONFIGURATION, type ProjectMitigation } from "features/threats/models/threat-types";
 import { deriveControlInstances } from "app/hooks/use-control-instance-derivation";
 import {
@@ -89,6 +93,17 @@ describe("registered with the catalog", () => {
     setProjectMitigations(undefined);
     expect(getAllMitigations()).toHaveLength(builtIn);
     expect(getLocalizedMitigation("M-C-001")).not.toBe("Validate the operator badge");
+  });
+
+  it("registering is a plain assignment; subscribers hear of it only through notify (no update during render)", () => {
+    const heard = vi.fn();
+    const unsubscribe = subscribeMitigationCatalog(heard);
+    setProjectMitigations(entries());
+    expect(heard).not.toHaveBeenCalled();
+    expect(getLocalizedMitigation("M-C-001")).toBe("Validate the operator badge");
+    notifyProjectMitigations();
+    expect(heard).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it("the closed loop derives the SHOULD of a project mitigation", () => {

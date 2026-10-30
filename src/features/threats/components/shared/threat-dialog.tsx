@@ -77,7 +77,7 @@ import {
   isProjectMitigationId,
   type ProjectMitigationInput,
 } from "../../services/project-mitigations";
-import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
+import { useMitigationCatalogVersion } from "shared/hooks/use-mitigation-catalog-version";
 import {
   addCatalogMitigation,
   addCatalogVerification,

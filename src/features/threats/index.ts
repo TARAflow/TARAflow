@@ -91,10 +91,7 @@ export {
   getAllVerifications,
   selectCategoryControls,
   selectCategoryVerifications,
-  setProjectMitigations,
   getProjectMitigations,
-  getMitigationCatalogVersion,
-  subscribeMitigationCatalog,
 } from "./services/threat-catalog-service";
 export {
   addProjectMitigation,
@@ -104,7 +101,6 @@ export {
   isProjectMitigationId,
 } from "./services/project-mitigations";
 export type { ProjectMitigationInput } from "./services/project-mitigations";
-export { useMitigationCatalogVersion } from "./hooks/shared/use-mitigation-catalog-version";
 
 export { syncThreatsWithGraph } from "./services/sync-threats-with-graph";
 export {

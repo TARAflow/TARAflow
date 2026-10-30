@@ -17,7 +17,7 @@ import {
 } from "../../services/threat-catalog-service";
 import { catalogMatchFor } from "../../services/catalog-draft-ops";
 import { isProjectMitigationId } from "../../services/project-mitigations";
-import { useMitigationCatalogVersion } from "../../hooks/shared/use-mitigation-catalog-version";
+import { useMitigationCatalogVersion } from "shared/hooks/use-mitigation-catalog-version";
 
 interface CatalogEntryPickerProps {
   kind: "mitigation" | "verification";

@@ -22,7 +22,7 @@ import { toDocProjectData } from "./cli/to-doc-project-data";
 import { initI18nNode, i18n } from "./cli/i18n-node";
 import { installDomParser } from "./cli/dom-parser-node";
 import { resolveCliChapters } from "./cli/resolve-chapters";
-import { setProjectMitigations } from "../src/features/threats/services/threat-catalog-service";
+import { setProjectMitigations } from "../src/shared/services/project-mitigation-registry";
 import {
   createCliGenerator,
   generatePdfBufferCli,

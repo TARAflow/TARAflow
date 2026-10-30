@@ -77,12 +77,14 @@ Further design choices [D] (to confirm in review):
 - **Effects editor:** target (the element itself; for interaction threats channel /
   source / target), property and value chosen from the catalog vocabulary (finding 5).
   Confidence fixed to `heuristic` (analyst-defined). No free property names in this step.
-- **Resolution** (revised in CM-2): the open project **registers** its entries with the
-  catalog service (`setProjectMitigations` — app: workspace layout on project change;
-  CLI: before generating). `getAllMitigations`, `getLocalizedMitigation` and
+- **Resolution** (revised in CM-2, CM-7): the open project **registers** its entries in
+  the shared registry (`shared/services/project-mitigation-registry.ts`,
+  `setProjectMitigations` — one writer: app workspace layout, CLI before generating).
+  Registering is a plain assignment; the app notifies the subscribers in an effect, so
+  no component updates while another renders. `getAllMitigations`, `getLocalizedMitigation` and
   `resolveMitigationDrafts` then include them, so the ~17 readers (derivation, drift,
   coverage, dialogs, Jira export, report generators) need no new parameter; readers that
-  memoize the catalog depend on `useMitigationCatalogVersion()`. Generation keeps using
+  memoize the catalog depend on `useMitigationCatalogVersion()` (`shared/hooks`). Generation keeps using
   the built-in catalog only (a generated threat's controls come from its template).
   Chosen over passing `mitigationCatalogOf(project)` to every reader: same result, a
   fraction of the change; the catalog was a module singleton already.
@@ -103,3 +105,4 @@ Further design choices [D] (to confirm in review):
 | CM-4 | Closed loop end-to-end, integration test on the SmokeDetector DFD (`project-mitigation-closed-loop.int.test.ts`): a manual threat with M-C-001 and a risk selecting it → SHOULD (`deriveControlInstances`) → drift (`computeSecurityDrifts`, extracted as a pure function like the derivation) → coverage "already implemented" (`computeAllMitigationCoverage`) → usage. The report resolves the text (all formats via `resolveMitigationDrafts` / `getLocalizedMitigation`; CLI checked with a SmokeDetector copy in CM-2). No further code: the stored `MitigationDraft.alreadyImplemented` flag is not read by any view — "already implemented" comes from the coverage, which uses `affectsProperties` and so covers project mitigations. | 192 | done |
 | CM-5 | Review 2026-10-30: the usage check found `[M-C-001]` only as a lone list — `[M-001,M-C-001]` let a used entry be deleted, and the merge left the reference behind. Both now go through the parser's list reader (`dslMitigationIds`, `replaceDslMitigation` in `attacktree-parser.ts`, the parser uses the same function); comments and node names never count | 210 | done |
 | CM-6 | Review 2026-10-30: a merge where a risk held both entries dropped the merged-away one with its status and ticket. Now the kept entry takes over what only the dropped one has (ticket fields, evidence, rejection reason; notes joined, later status change). Different status, two tickets, two evidence refs, two rejection reasons or scope overrides are a conflict: the list refuses the merge and names the risks (`mergeProjectMitigationConflicts`; the app checks again before merging) [D] | 211 | done |
+| CM-7 | Review 2026-10-30, coupling: the registry and `useMitigationCatalogVersion` move to shared (risks and attack tree imported the hook from threats); one writer — the Threats tab no longer registers ahead of the project round trip; registering no longer notifies during render (the app notifies in an effect). The catalog service derives its lookups from the registry version. The attack-path threat id format stays in the attacktree feature (`isAttackPathThreatOf`, used by the closed-loop targets and the threat sync). Kept as a registry, not passed to every reader (decision in §3) | 213 | done |

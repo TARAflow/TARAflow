@@ -61,7 +61,6 @@ import {
   updateProjectMitigation,
 } from "../services/project-mitigations";
 import type { ProjectMitigationRefs } from "./shared/project-mitigation-list";
-import { setProjectMitigations } from "../services/threat-catalog-service";
 import { ParentLevelFlowsBanner } from "./parent-level-flows-banner";
 import { ThreatReconciliationSummary } from "./shared/threat-reconciliation-summary";
 import {
@@ -207,9 +206,9 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
   // ── Project mitigation catalog M-C-nnn (custom mitigation catalog CM-3) ──
   // The dialogs add / edit entries through context; the latest threat data is
-  // read from a ref so two quick adds do not overwrite each other, and the
-  // entry is registered right away so its text resolves before the project
-  // round trip.
+  // read from a ref so two quick adds do not overwrite each other. The app
+  // registers the entries with the catalog once the project has them (one
+  // writer, shared/services/project-mitigation-registry.ts).
   const threatDataRef = useRef(threatData);
   threatDataRef.current = threatData;
   const projectMitigationsApi = useMemo<ProjectMitigationsApi>(
@@ -220,7 +219,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         const { configuration: nextConfig, id } = addProjectMitigation(current.configuration, input);
         const next = { ...current, configuration: nextConfig };
         threatDataRef.current = next;
-        setProjectMitigations(nextConfig.customMitigations);
         handleUpdate(next);
         return id;
       },
@@ -233,7 +231,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         });
         const next = { ...current, configuration: nextConfig };
         threatDataRef.current = next;
-        setProjectMitigations(nextConfig.customMitigations);
         handleUpdate(next);
       },
     }),
@@ -249,8 +246,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           const nextConfig = removeProjectMitigation(current.configuration, id);
           const next = { ...current, configuration: nextConfig };
           threatDataRef.current = next;
-          setProjectMitigations(nextConfig.customMitigations);
-          handleUpdate(next);
+            handleUpdate(next);
         },
       },
     [projectMitigationRefs, handleUpdate],

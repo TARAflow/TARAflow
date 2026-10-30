@@ -16,8 +16,8 @@ import "i18n/services/i18n";
 import {
   getAllMitigations,
   resolveMitigationDrafts,
-  setProjectMitigations,
 } from "features/threats/services/threat-catalog-service";
+import { setProjectMitigations } from "shared/services/project-mitigation-registry";
 import { addProjectMitigation, projectEffect } from "features/threats/services/project-mitigations";
 import { DEFAULT_THREAT_CONFIGURATION, createEmptyThreat } from "features/threats/models/threat-types";
 import { deriveControlInstances } from "app/hooks/use-control-instance-derivation";

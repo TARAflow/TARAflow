@@ -81,7 +81,7 @@ import {
   getLocalizedMitigation,
   getLocalizedVerification,
 } from "../../threats/services/threat-catalog-service";
-import { useMitigationCatalogVersion } from "../../threats/hooks/shared/use-mitigation-catalog-version";
+import { useMitigationCatalogVersion } from "shared/hooks/use-mitigation-catalog-version";
 import type { CatalogItem } from "./attacktree-path-dialog";
 
 // ==================== CONSTANTS ====================

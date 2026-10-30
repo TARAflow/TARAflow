@@ -41,6 +41,7 @@ import verificationsElevationData from "./catalog/verifications/verifications-el
 import verificationsInterfaceData from "./catalog/verifications/verifications-interface.json";
 import verificationsChipBoundaryData from "./catalog/verifications/verifications-chipboundary.json";
 import verificationsPhysicalBoundaryData from "./catalog/verifications/verifications-physicalboundary.json";
+import { getMitigationCatalogVersion, registeredProjectMitigations } from "shared/services/project-mitigation-registry";
 
 // ==================== CATALOG SINGLETONS ====================
 
@@ -343,50 +344,39 @@ export function getAllInteractionTemplates(): InteractionTemplate[] {
 
 // ==================== PROJECT MITIGATIONS ====================
 // Custom mitigation catalog design CM-2: the project's own mitigations
-// (M-C-nnn) join the built-in catalog for every reader — closed loop, dialogs,
-// report — so they work wherever a catalog id works. The open project
-// registers them (app: workspace layout; CLI: before generating); readers
-// that memoize the catalog depend on getMitigationCatalogVersion().
+// (M-C-nnn) join the built-in catalog for every reader — closed loop,
+// dialogs, report — so they work wherever a catalog id works. The open
+// project registers them in the shared registry (app: workspace layout; CLI:
+// before generating); the derived lookups below follow its version. Readers
+// that memoize the catalog depend on useMitigationCatalogVersion().
 // Generation does not use them: a generated threat's controls come from the
 // built-in catalog, project mitigations are chosen by the analyst.
 
-let projectMitigations: readonly ProjectMitigation[] = [];
+let derivedVersion = -1;
 let projectMitigationById = new Map<string, ProjectMitigation>();
 let catalogWithProject: MitigationEntry[] = ALL_MITIGATIONS;
-let catalogVersion = 0;
-const catalogListeners = new Set<() => void>();
 
-/** Register the open project's mitigations (undefined / [] = none). */
-export function setProjectMitigations(entries: readonly ProjectMitigation[] | undefined): void {
-  const next = entries ?? [];
-  if (next === projectMitigations || (next.length === 0 && projectMitigations.length === 0)) return;
-  projectMitigations = next;
-  projectMitigationById = new Map(next.map((m) => [m.id, m]));
-  catalogWithProject = next.length > 0 ? [...ALL_MITIGATIONS, ...next] : ALL_MITIGATIONS;
-  catalogVersion += 1;
-  catalogListeners.forEach((listener) => listener());
+function derived(): void {
+  const version = getMitigationCatalogVersion();
+  if (version === derivedVersion) return;
+  derivedVersion = version;
+  const entries = registeredProjectMitigations<ProjectMitigation>();
+  projectMitigationById = new Map(entries.map((m) => [m.id, m]));
+  catalogWithProject = entries.length > 0 ? [...ALL_MITIGATIONS, ...entries] : ALL_MITIGATIONS;
 }
 
 export function getProjectMitigations(): readonly ProjectMitigation[] {
-  return projectMitigations;
+  return registeredProjectMitigations<ProjectMitigation>();
 }
 
 export function getProjectMitigation(id: string): ProjectMitigation | undefined {
+  derived();
   return projectMitigationById.get(id);
-}
-
-/** Changes whenever the registered project mitigations change. */
-export function getMitigationCatalogVersion(): number {
-  return catalogVersion;
-}
-
-export function subscribeMitigationCatalog(listener: () => void): () => void {
-  catalogListeners.add(listener);
-  return () => catalogListeners.delete(listener);
 }
 
 /** Built-in catalog plus the open project's mitigations. */
 export function getAllMitigations(): MitigationEntry[] {
+  derived();
   return catalogWithProject;
 }
 
@@ -653,7 +643,7 @@ export function getLocalizedInteractionCause(
 }
 
 export function getLocalizedMitigation(mitigationId: string): string {
-  const own = projectMitigationById.get(mitigationId);
+  const own = getProjectMitigation(mitigationId);
   if (own) return own.text;
   return i18n.t(`${mitigationId}.mitigation`, { ns: "mitigations" });
 }

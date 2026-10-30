@@ -139,7 +139,7 @@ import {
   resolveVerificationDrafts,
   getAllMitigations,
 } from "../../threats/services/threat-catalog-service";
-import { useMitigationCatalogVersion } from "../../threats/hooks/shared/use-mitigation-catalog-version";
+import { useMitigationCatalogVersion } from "shared/hooks/use-mitigation-catalog-version";
 import { MitigationScopeSelector } from "./mitigation-scope-selector";
 import type {
   StrideCategory,

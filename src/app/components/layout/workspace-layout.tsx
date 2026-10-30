@@ -71,6 +71,7 @@ import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { buildAssumptionUsage, buildItemModelItems } from "app/utils/build-item-model-items";
 import { buildMethodologySummary } from "app/utils/build-methodology-summary";
 import { buildVerificationChecklist } from "app/utils/build-verification-checklist";
+import { notifyProjectMitigations, setProjectMitigations } from "shared/services/project-mitigation-registry";
 import { verificationStateHash, verificationStatus } from "app/services/verification-state";
 import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
@@ -90,7 +91,6 @@ import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
   getAllMitigations,
-  setProjectMitigations,
   syncThreatsWithGraph,
   type ThreatRiskAttachment,
   type ThreatProjectData,
@@ -176,12 +176,13 @@ export const WorkspaceLayout: React.FC = () => {
   const activeProjectRef = useRef<Project | undefined>(undefined);
   activeProjectRef.current = activeProject;
 
-  // Project mitigation catalog M-C-nnn (custom mitigation catalog CM-2):
-  // registered before anything below reads the catalog. Idempotent per
-  // reference, so it is safe in render; readers that memoize the catalog
-  // re-run through useMitigationCatalogVersion / the threats dependency.
+  // Project mitigation catalog M-C-nnn (custom mitigation catalog CM-2): the
+  // one writer of the shared registry. Registered before anything below reads
+  // the catalog — a plain assignment, like activeProjectRef above; the
+  // subscribers (useMitigationCatalogVersion) are told after the render.
   const customMitigations = activeProject?.threats?.configuration?.customMitigations;
-  useMemo(() => setProjectMitigations(customMitigations), [customMitigations]);
+  setProjectMitigations(customMitigations);
+  useEffect(() => notifyProjectMitigations(), [customMitigations]);
 
   // ── Projects-by-id ref — target-project lookup for late-firing handlers ────
   // activeProjectRef always points at whatever is active NOW. That is wrong

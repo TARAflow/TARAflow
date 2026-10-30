@@ -2,8 +2,8 @@
 //
 // Closed-loop review CL-3 (decision 3): attack-path risks join the closed loop
 // through their tree's anchor. Only asset-anchored trees emit attack-path
-// threats (ISO 3.1.33, the generator's rule), so: threat id "AT-<treeId>-…" →
-// tree → anchor asset → the DFD elements and flows the asset is linked to
+// threats (ISO 3.1.33, the generator's rule), so: threat → its tree
+// (isAttackPathThreatOf, attacktree feature) → anchor asset → the DFD elements and flows the asset is linked to
 // (Asset.linkedDFDElements). Every target is offered to the derivation, which
 // keeps the effects whose target type fits:
 //   element      as the threat's element (role ignored, as for STRIDE
@@ -13,7 +13,7 @@
 //                derivation de-duplicates per element × property × value.
 // The derivation marks everything reached this way heuristic.
 
-import type { AttackTreeData } from "features/attacktree";
+import { isAttackPathThreatOf, type AttackTreeData } from "features/attacktree";
 import type { DFDData } from "features/dfd";
 import type { ControlTarget } from "app/hooks/use-control-instance-derivation";
 
@@ -55,12 +55,12 @@ export function attackPathControlTargets(
       const type = elementType.get(link.elementId);
       if (type) targets.push({ linkedElement: { elementId: link.elementId, elementType: type }, dataFlow: null });
     }
-    targetsOfTree.set(`AT-${tree.id}-`, targets);
+    targetsOfTree.set(tree.id, targets);
   }
 
   return (threatId) => {
-    for (const [prefix, targets] of targetsOfTree) {
-      if (threatId.startsWith(prefix)) return targets;
+    for (const [treeId, targets] of targetsOfTree) {
+      if (isAttackPathThreatOf(treeId, threatId)) return targets;
     }
     return [];
   };
