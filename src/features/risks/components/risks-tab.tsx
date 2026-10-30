@@ -371,6 +371,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const hasAnyThreats = allThreats.length > 0;
   const perElementCount = project.perElementThreats.length;
   const perInteractionCount = project.perInteractionThreats.length;
+  // The method buttons show risks, not threats (user 2026-10-30).
+  const risksOfMethod = (method: "per-element" | "per-interaction") =>
+    riskData.risks.filter((r) => r.sourceStrideMethod === method).length;
+  const dismissed = (threats: readonly { relevance?: string }[]) =>
+    threats.filter((th) => th.relevance === "not_relevant").length;
   const needsSync = hasAnyThreats && syncStatus.needsSync;
 
   const {
@@ -827,6 +832,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         wontCount={wontRisks.length}
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}
+        perElementRiskCount={risksOfMethod("per-element")}
+        perInteractionRiskCount={risksOfMethod("per-interaction")}
+        perElementDismissedCount={dismissed(project.perElementThreats)}
+        perInteractionDismissedCount={dismissed(project.perInteractionThreats)}
         canSwitchStrideMethod={canSwitchStrideMethod}
         isoMode={project.isoMode ?? false}
         perInteractionDisabled={(project.disabledStrideMethods ?? []).includes(

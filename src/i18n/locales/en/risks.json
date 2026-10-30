@@ -27,6 +27,7 @@
       "changed": "changed",
       "perElement": "Per-Element",
       "perInteraction": "Per-Interaction",
+      "methodCountTooltip": "{{method}}: {{risks}} risks from {{threats}} threats ({{dismissed}} rated not relevant)",
       "configuration": "Configuration",
       "simpleMethod": "Simple (DREAD)",
       "complexMethod": "Complex (OWASP)",

@@ -27,6 +27,7 @@
       "changed": "geändert",
       "perElement": "Pro-Element",
       "perInteraction": "Pro-Interaktion",
+      "methodCountTooltip": "{{method}}: {{risks}} Risiken aus {{threats}} Threats ({{dismissed}} als nicht relevant bewertet)",
       "configuration": "Konfiguration",
       "simpleMethod": "Simple (DREAD)",
       "complexMethod": "Komplex (OWASP/ETSI)",
