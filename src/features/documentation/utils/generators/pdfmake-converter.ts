@@ -38,6 +38,7 @@ import {
 } from "../threat-risk-stats";
 import { getDFDElementTypePluralText, getDFDElementTypeText } from "../../../dfd/models/dfd-formatters";
 import { methodologyContent } from "../methodology-sections";
+import { riskScoreFill, riskScoreText } from "../risk-score-text";
 import {
   assetRelationSections,
   attackPathThreatRows,
@@ -1398,17 +1399,16 @@ export class PdfMakeConverter {
     ];
     const tableBody: TableCell[][] = [riskHeader];
     for (const risk of list) {
-      // Get labels from cache
-      // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2, decision 23).
-      const iso = isIsoReport(this.project.risks?.configuration);
+      // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2, decision 23);
+      // otherwise "5.3 – Medium" by the scale's thresholds (risk-score-text.ts).
+      const config = this.project.risks?.configuration;
+      const iso = isIsoReport(config);
       const riskBeforeLabel = iso
         ? isoRiskLabel(risk, this.t, false)
-        : (this.project.computed.riskBeforeLabels.get(risk.id) ??
-          risk.calculatedRiskBeforeMitigation.toString());
+        : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.lang);
       const riskAfterLabel = iso
         ? isoRiskLabel(risk, this.t, true)
-        : (this.project.computed.riskAfterLabels.get(risk.id) ??
-          risk.calculatedRiskAfterMitigation.toString());
+        : riskScoreText(risk.calculatedRiskAfterMitigation, config, this.lang);
       const moscowLabel =
         this.project.computed.moscowLabels.get(risk.moscowPriority) ??
         risk.moscowPriority;
@@ -1430,7 +1430,7 @@ export class PdfMakeConverter {
           alignment: "center",
           fillColor: iso
             ? this.getIsoRiskFill(risk.isoRisk?.value)
-            : this.getRiskColorByValue(risk.calculatedRiskBeforeMitigation),
+            : riskScoreFill(risk.calculatedRiskBeforeMitigation, config),
         },
         { text: mitigations },
         {
@@ -1438,7 +1438,7 @@ export class PdfMakeConverter {
           alignment: "center",
           fillColor: iso
             ? this.getIsoRiskFill(risk.isoRisk?.residual?.value)
-            : this.getRiskColorByValue(risk.calculatedRiskAfterMitigation),
+            : riskScoreFill(risk.calculatedRiskAfterMitigation, config),
         },
         { text: moscowLabel, alignment: "center" },
       ]);
@@ -1490,6 +1490,7 @@ export class PdfMakeConverter {
       iso: isIsoReport(this.project.risks?.configuration),
       scale: this.project.risks?.configuration?.scale ?? "4-level",
       roundingMethod: this.project.risks?.configuration?.roundingMethod,
+      severityThresholds: this.project.risks?.configuration?.severityThresholds,
     } as const;
     const riskType = (risk: (typeof risks)[number]) => {
       const threat = threatById.get(risk.threatId);
@@ -1764,62 +1765,10 @@ export class PdfMakeConverter {
     return mm * 2.83465;
   }
 
-  private calculateRiskLevel(likelihood: string, impact: string): string {
-    // Simplified risk calculation
-    const likelihoodValue = this.getLikelihoodValue(likelihood);
-    const impactValue = this.getImpactValue(impact);
-    const riskValue = likelihoodValue * impactValue;
-
-    if (riskValue >= 15) return "Critical";
-    if (riskValue >= 10) return "High";
-    if (riskValue >= 5) return "Medium";
-    return "Low";
-  }
-
-  private getLikelihoodValue(likelihood: string): number {
-    const map: { [key: string]: number } = {
-      rare: 1,
-      unlikely: 2,
-      possible: 3,
-      likely: 4,
-      certain: 5,
-    };
-    return map[likelihood?.toLowerCase()] || 0;
-  }
-
-  private getImpactValue(impact: string): number {
-    const map: { [key: string]: number } = {
-      negligible: 1,
-      minor: 2,
-      moderate: 3,
-      major: 4,
-      catastrophic: 5,
-    };
-    return map[impact?.toLowerCase()] || 0;
-  }
-
-  private getRiskColor(riskLevel: string): string {
-    const colors: { [key: string]: string } = {
-      Critical: "#fecaca",
-      High: "#fed7aa",
-      Medium: "#fef08a",
-      Low: "#bbf7d0",
-    };
-    return colors[riskLevel] || "#f1f5f9";
-  }
-
   /** ISO risk value 1–5 → pale fill (5 critical … 1 minimal); none → no fill. */
   private getIsoRiskFill(value: number | undefined): string | undefined {
     if (!value) return undefined;
     return ["#bbf7d0", "#fef08a", "#fed7aa", "#fecaca", "#f5d0fe"][value - 1];
-  }
-
-  private getRiskColorByValue(riskValue: number): string {
-    // Map numeric risk values to colors
-    if (riskValue >= 4) return "#fecaca"; // Critical/Red
-    if (riskValue >= 3) return "#fed7aa"; // High/Orange
-    if (riskValue >= 2) return "#fef08a"; // Medium/Yellow
-    return "#bbf7d0"; // Low/Green
   }
 
   private getClassificationColor(classification: string): string {

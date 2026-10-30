@@ -31,15 +31,13 @@ import type {
  * generators access it via `project.computed.impactLabels.get(...)`.
  * Empty maps are sufficient because every call site in the generator has
  * a `?? fallback` afterwards (verified in base-generator.ts, e.g.
- * `project.computed.riskBeforeLabels.get(risk.id) ?? risk.calculatedRiskBeforeMitigation.toString()`).
+ * `project.computed.moscowLabels.get(risk.moscowPriority) ?? risk.moscowPriority`).
  */
 function createEmptyComputedValues(language: DocLanguage): DocComputedValues {
   return {
     activeStrideMethods: [],
     language,
     impactLabels: new Map(),
-    riskBeforeLabels: new Map(),
-    riskAfterLabels: new Map(),
     strideNames: new Map(),
     moscowLabels: new Map(),
     statusLabels: new Map(),

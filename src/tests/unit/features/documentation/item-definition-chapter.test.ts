@@ -56,7 +56,7 @@ const project = (itemDefinition?: ItemDefinition): Any => ({
   risks: null,
   attackTree: null,
   ...(itemDefinition ? { itemDefinition } : {}),
-  computed: { riskBeforeLabels: new Map(), riskAfterLabels: new Map(), moscowLabels: new Map(), impactLabels: new Map() },
+  computed: { moscowLabels: new Map(), impactLabels: new Map() },
 });
 const cfg = (): Any => ({ ...createDefaultDocData().configuration, language: "en", chapters: DEFAULT_CHAPTER_CONFIG });
 const chapter = (G: Any, p: Any) => new G(p, cfg(), t).generateItemDefinition("Item Definition");

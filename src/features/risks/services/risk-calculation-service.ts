@@ -257,46 +257,8 @@ export function calculateRiskValues(
 
 // ==================== DISPLAY HELPERS ====================
 
-function getSeverityLevel(
-  severity: number,
-  scale: RiskScaleType,
-  severityThresholds?: Record<number, number>,
-) {
-  const levels = RISK_SCALES[scale].levels;
-  for (const level of levels) {
-    const threshold = severityThresholds?.[level.value] ?? level.threshold;
-    if (severity <= threshold) return level;
-  }
-  return levels[levels.length - 1];
-}
-
-/**
- * Get color for a risk severity value (R = I×L) using threshold mapping.
- * Returns gray (#6b7280) for unrated (value <= 0).
- */
-export function getRiskColor(
-  value: number,
-  scale: RiskScaleType,
-  _roundingMethod?: RiskRoundingMethod,
-  severityThresholds?: Record<number, number>,
-): string {
-  if (value <= 0) return "#6b7280";
-  return getSeverityLevel(value, scale, severityThresholds).color;
-}
-
-/**
- * Get label for a risk severity value (R = I×L) using threshold mapping.
- * Returns "-" for unrated.
- */
-export function getRiskLabel(
-  value: number,
-  scale: RiskScaleType,
-  _roundingMethod?: RiskRoundingMethod,
-  severityThresholds?: Record<number, number>,
-): string {
-  if (value <= 0) return "-";
-  return getSeverityLevel(value, scale, severityThresholds).label;
-}
+// Risk value → level, color, label: one rule in models/risk-scale-types.ts.
+export { getRiskColor, getRiskLabel } from "../models/risk-scale-types";
 
 /**
  * Get color for a factor average value (Impact or Likelihood, range 1–N).

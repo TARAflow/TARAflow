@@ -115,7 +115,6 @@ function computeDocValues(
   language: DocLanguage,
 ): DocComputedValues {
   const impactScale = project.assets?.configuration?.impactScale ?? "4-level";
-  const riskScale = project.risks?.configuration?.scale ?? "4-level";
   // ISO/SAE 21434 names on the 4-level impact scale (display only).
   const isoImpactLabels =
     impactScale === "4-level" &&
@@ -129,24 +128,6 @@ function computeDocValues(
       ? getIsoImpactLabel(asset.overallImpact, language)
       : getScaleLabel(asset.overallImpact, impactScale, language);
     impactLabels.set(asset.id, label);
-  });
-
-  // Cache risk labels (risk ID -> label)
-  const riskBeforeLabels = new Map<string, string>();
-  const riskAfterLabels = new Map<string, string>();
-  project.risks?.risks?.forEach((risk) => {
-    const beforeLabel = getScaleLabel(
-      risk.calculatedRiskBeforeMitigation,
-      riskScale,
-      language,
-    );
-    const afterLabel = getScaleLabel(
-      risk.calculatedRiskAfterMitigation,
-      riskScale,
-      language,
-    );
-    riskBeforeLabels.set(risk.id, beforeLabel);
-    riskAfterLabels.set(risk.id, afterLabel);
   });
 
   // Cache STRIDE names (category -> name)
@@ -183,8 +164,6 @@ function computeDocValues(
     activeStrideMethods,
     language,
     impactLabels,
-    riskBeforeLabels,
-    riskAfterLabels,
     strideNames,
     moscowLabels,
     statusLabels,

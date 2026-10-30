@@ -124,6 +124,7 @@ import {
   resolveVerificationDrafts,
 } from "../../../threats/services/threat-catalog-service";
 import { formatRiskLabel } from "../../../../shared/models/risk-label";
+import { isCriticalRiskScore, riskScoreText } from "../risk-score-text";
 import {
   assetRelationSections,
   attackPathThreatRows,
@@ -555,11 +556,12 @@ export abstract class BaseDocumentGenerator {
       (r) => r.moscowPriority === "wont",
     ).length;
 
-    // Count critical risks (before mitigation >= 3.5); ISO/SAE 21434: risk
-    // value 5 ("Critical", 3a-2 / decision 23).
+    // Count critical risks: the highest level of the risk scale before
+    // mitigation (thresholds, as the risk tab); ISO/SAE 21434: risk value 5
+    // ("Critical", 3a-2 / decision 23).
     const criticalRiskCount = isIsoReport(project.risks?.configuration)
       ? activeRisks.filter((r) => r.isoRisk?.value === 5).length
-      : activeRisks.filter((r) => r.calculatedRiskBeforeMitigation >= 3.5).length;
+      : activeRisks.filter((r) => isCriticalRiskScore(r.calculatedRiskBeforeMitigation, project.risks?.configuration)).length;
 
     const values = {
       projectName: project.info.name,
@@ -1266,17 +1268,16 @@ export abstract class BaseDocumentGenerator {
     threatDescription = risk.threatDescription || "-",
   ): string {
     const { project } = this.ctx;
-    // Get cached labels
-    // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2).
-    const isoReport = project.risks?.configuration?.likelihoodMethod === "iso-21434";
+    // ISO/SAE 21434: risk value 1–5 instead of `I × L` (3a-2); otherwise
+    // "5.3 – Medium" by the scale's thresholds (risk-score-text.ts).
+    const config = project.risks?.configuration;
+    const isoReport = config?.likelihoodMethod === "iso-21434";
     const riskBeforeLabel = isoReport
       ? isoRiskLabel(risk, this.ctx.t, false)
-      : (project.computed.riskBeforeLabels.get(risk.id) ??
-        risk.calculatedRiskBeforeMitigation.toString());
+      : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.ctx.lang);
     const riskAfterLabel = isoReport
       ? isoRiskLabel(risk, this.ctx.t, true)
-      : (project.computed.riskAfterLabels.get(risk.id) ??
-        risk.calculatedRiskAfterMitigation.toString());
+      : riskScoreText(risk.calculatedRiskAfterMitigation, config, this.ctx.lang);
     const moscowLabel =
       project.computed.moscowLabels.get(risk.moscowPriority) ??
       risk.moscowPriority;
@@ -1361,6 +1362,7 @@ export abstract class BaseDocumentGenerator {
     const scale = {
       scale: project.risks?.configuration?.scale ?? "4-level",
       roundingMethod: project.risks?.configuration?.roundingMethod,
+      severityThresholds: project.risks?.configuration?.severityThresholds,
       iso: isIsoReport(project.risks?.configuration),
     } as const;
     const typeLabel = (type: string) => getDFDElementTypeText(type as DFDElementType, this.ctx.t);
@@ -1694,12 +1696,11 @@ export abstract class BaseDocumentGenerator {
 
     const wontRiskRows = wontRisks
       .map((risk) => {
-        // Get cached label (ISO: risk value 1–5, 3a-2)
+        // ISO: risk value 1–5 (3a-2); otherwise "5.3 – Medium"
         const riskBeforeLabel =
           project.risks?.configuration?.likelihoodMethod === "iso-21434"
             ? isoRiskLabel(risk, this.ctx.t, false)
-            : (project.computed.riskBeforeLabels.get(risk.id) ??
-              risk.calculatedRiskBeforeMitigation.toString());
+            : riskScoreText(risk.calculatedRiskBeforeMitigation, project.risks?.configuration, this.ctx.lang);
 
         const values = {
           id: formatRiskLabel(risk),

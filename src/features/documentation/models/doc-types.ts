@@ -242,10 +242,6 @@ export interface DocComputedValues {
   /** Cached impact labels (asset ID -> label) */
   impactLabels: Map<string, string>;
 
-  /** Cached risk labels (risk ID -> label) */
-  riskBeforeLabels: Map<string, string>;
-  riskAfterLabels: Map<string, string>;
-
   /** Cached STRIDE names (category -> name) */
   strideNames: Map<StrideCategory, string>;
 
@@ -475,27 +471,6 @@ export function getImpactLabel(
   if (impact >= 4) return language === "de" ? "Kritisch" : "Critical";
   if (impact >= 3) return language === "de" ? "Hoch" : "High";
   if (impact >= 2) return language === "de" ? "Mittel" : "Medium";
-  return language === "de" ? "Niedrig" : "Low";
-}
-
-/**
- * Get risk label from computed cache or calculate on-demand
- */
-export function getRiskLabel(
-  risk: number,
-  language: DocLanguage,
-  computed?: DocComputedValues,
-): string {
-  // Try cache first
-  if (computed?.riskBeforeLabels) {
-    const cached = computed.riskBeforeLabels.get(risk.toString());
-    if (cached) return cached;
-  }
-
-  // Fallback to calculation
-  if (risk >= 4) return language === "de" ? "Kritisch" : "Critical";
-  if (risk >= 3) return language === "de" ? "Hoch" : "High";
-  if (risk >= 2) return language === "de" ? "Mittel" : "Medium";
   return language === "de" ? "Niedrig" : "Low";
 }
 

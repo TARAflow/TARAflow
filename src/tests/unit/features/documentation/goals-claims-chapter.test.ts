@@ -48,7 +48,7 @@ const project = (verification?: Any, c: CybersecurityConcept | null = concept())
   attackTree: null,
   dfd: null,
   ...(c ? { cybersecurityConcept: c } : {}),
-  computed: { riskBeforeLabels: new Map(), riskAfterLabels: new Map(), moscowLabels: new Map(), impactLabels: new Map(), ...(verification ? { verification } : {}) },
+  computed: { moscowLabels: new Map(), impactLabels: new Map(), ...(verification ? { verification } : {}) },
 });
 // Only the chapters under test — the fixture need not carry a whole project.
 const ONLY = new Set(["goals-claims", "traceability-matrix"]);

@@ -52,8 +52,6 @@ describe("toDocProjectData", () => {
     expect(doc.computed.activeStrideMethods).toEqual([]);
     expect(doc.computed.impactLabels).toBeInstanceOf(Map);
     expect(doc.computed.impactLabels.size).toBe(0);
-    expect(doc.computed.riskBeforeLabels).toBeInstanceOf(Map);
-    expect(doc.computed.riskAfterLabels).toBeInstanceOf(Map);
     expect(doc.computed.strideNames).toBeInstanceOf(Map);
     expect(doc.computed.moscowLabels).toBeInstanceOf(Map);
     expect(doc.computed.statusLabels).toBeInstanceOf(Map);
