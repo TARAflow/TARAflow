@@ -22,7 +22,6 @@ import {
   Warning as WarningIcon,
   Info as InfoIcon,
   Refresh as RefreshIcon,
-  SkipNext as NextIcon,
   FormatListNumbered as AutoNumberIcon,
   Settings as SettingsIcon,
   DarkMode as DarkModeIcon,

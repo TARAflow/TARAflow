@@ -92,7 +92,6 @@ export interface RiskTabProps {
   /** Goals and claims changed (risk dialog, decision 25) — stored by the app layer. */
   onConceptChange?: (concept: CybersecurityConcept) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
   /** The issue tracker's adapter (adapters design §4.3); absent = none connected. */
   ticketPort?: TicketPort | null;
 }

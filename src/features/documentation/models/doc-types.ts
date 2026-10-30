@@ -349,7 +349,6 @@ export interface DocTabProps {
   project: DocProjectData;
   onUpdate: (updates: DocUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
 }
 
 // ==================== HELPER FUNCTIONS ====================

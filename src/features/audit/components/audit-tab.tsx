@@ -57,7 +57,6 @@ export const AuditTab: React.FC<AuditTabProps> = ({
   onUpdate,
   onDirtyChange,
   onVerificationsChange,
-  onPhaseComplete,
 }) => {
   const { t } = useTranslation();
 

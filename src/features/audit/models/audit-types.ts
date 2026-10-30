@@ -330,7 +330,6 @@ export interface AuditTabProps {
   /** Record / remove TARA verification entries; absent = no verification panel. */
   onVerificationsChange?: (entries: VerificationEntry[]) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
 }
 
 // ==================== GIT VALIDATION ====================

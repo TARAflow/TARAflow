@@ -109,7 +109,6 @@ export interface DFDTabProps {
   onOpenHazard?: (hazardId: string) => void;
   onUpdate: (updates: DFDUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
   /**
    * Control gap requirements derived from selected Risk Tab mitigations.
    * Read-only — DFD Tab displays warnings, never writes back.
@@ -137,7 +136,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
-  onPhaseComplete,
   controlInstances,
   securityDrifts,
   assetUsage,
@@ -226,7 +224,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     () => ({
       onUpdate,
       onDirtyChange,
-      onPhaseComplete,
       darkMode,
       autoValidateInterval: 500,
       autoNumberOnSave: false,

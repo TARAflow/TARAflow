@@ -1417,7 +1417,6 @@ export const WorkspaceLayout: React.FC = () => {
             ticketPort={ticketPort}
             onUpdate={handleRisksUpdate}
             onConceptChange={handleConceptChange}
-            onPhaseComplete={() => setActivePhase(5)}
           />
         )}
 
@@ -1451,7 +1450,6 @@ export const WorkspaceLayout: React.FC = () => {
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handleAttackTreeUpdate}
-            onPhaseComplete={() => setActivePhase(6)}
           />
         </div>
 
@@ -1488,7 +1486,6 @@ export const WorkspaceLayout: React.FC = () => {
             onUpdate={handleAuditUpdate}
             onVerificationsChange={handleVerificationsChange}
             onDirtyChange={handleAuditDirtyChange}
-            onPhaseComplete={() => console.log("Audit phase completed")}
           />
         )}
 

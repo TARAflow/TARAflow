@@ -59,7 +59,6 @@ export interface HazardTabProps {
   project: HazardProjectData;
   onUpdate: (updates: HazardUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
   /** "Open in Hazard tab" from the asset graph: open this item's dialog. */
   openRequest?: { readonly hazardId: string } | null;
 }
@@ -70,7 +69,6 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
-  onPhaseComplete,
   openRequest,
 }) => {
   const { t } = useTranslation();
@@ -331,12 +329,6 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
     setShowConfigDialog(false);
   }, []);
 
-  // ── Proceed ────────────────────────────────────────────────────────────────
-
-  const handleProceed = useCallback(() => {
-    onPhaseComplete?.();
-  }, [onPhaseComplete]);
-
   /** Fold an import into the hazard data — appended, or reconciled (HI-10). */
   const finishImport = useCallback(
     (outcome: HazardImportOutcome, plan: ReimportPlan | null) => {
@@ -421,7 +413,6 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
         hazardCount={hazardData.hazards.length}
         onAdd={handleAdd}
         onOpenConfig={handleOpenConfig}
-        onProceed={handleProceed}
         onImport={handleImport}
       />
 

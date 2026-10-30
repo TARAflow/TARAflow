@@ -96,7 +96,6 @@ export interface ThreatTabProps {
   dfdContext: DFDAnalysisContext;
   onUpdate: (updates: ThreatUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
   /**
    * Project mitigations M-C-nnn (custom mitigation catalog CM-3): where an
    * entry is used and merging two — both span risks and attack trees, so the
@@ -112,7 +111,6 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   dfdContext,
   onUpdate,
   onDirtyChange,
-  onPhaseComplete,
   projectMitigationRefs,
 }) => {
   const { t } = useTranslation();

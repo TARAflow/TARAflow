@@ -75,7 +75,6 @@ export interface AssetTabProps {
     updates: { name?: string; description?: string },
   ) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
   /** Per-asset hazard links, projected by the app layer (workspace-layout). */
   hazardLinks?: Record<string, AssetHazardSummary>;
   /**

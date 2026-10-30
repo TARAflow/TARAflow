@@ -1,7 +1,7 @@
 // features/hazards/components/hazard-toolbar.tsx
 //
 // Toolbar for the Hazard tab — same layout idiom as AssetsToolbar.
-// Add | Import | Settings | … | count chip | validation chip | unsaved | Continue.
+// Add | Import | Settings | … | count chip | validation chip | unsaved.
 
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,6 @@ import { Box, Button, IconButton, Tooltip, Divider, Chip, Typography } from "@mu
 import {
   Add as AddIcon,
   Settings as SettingsIcon,
-  SkipNext as NextIcon,
   FileDownload as ImportIcon,
 } from "@mui/icons-material";
 
@@ -24,7 +23,6 @@ export interface HazardToolbarProps {
   onAdd: () => void;
   onImport: () => void;
   onOpenConfig: () => void;
-  onProceed: () => void;
 }
 
 // ==================== COMPONENT ====================
@@ -37,7 +35,6 @@ export const HazardToolbar = React.memo<HazardToolbarProps>(
     onAdd,
     onImport,
     onOpenConfig,
-    onProceed,
   }) => {
     const { t } = useTranslation();
 
@@ -171,19 +168,6 @@ export const HazardToolbar = React.memo<HazardToolbarProps>(
           />
         )}
 
-        <Divider orientation="vertical" flexItem />
-
-        {/* Proceed */}
-        <Button
-          endIcon={<NextIcon />}
-          onClick={onProceed}
-          disabled={!validation?.isComplete}
-          size="small"
-          variant="outlined"
-          color="success"
-        >
-          {t("common.continue", { defaultValue: "Continue" })}
-        </Button>
       </Box>
     );
   },
