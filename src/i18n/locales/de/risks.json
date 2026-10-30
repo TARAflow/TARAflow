@@ -43,6 +43,7 @@
       "wontTableTitle": "Akzeptierte Risiken (Wird nicht umgesetzt)",
       "wontWarning": "⚠️ Einigen akzeptierten Risiken fehlt die Begründung. Bitte geben Sie eine Begründung für die Compliance-Dokumentation an.",
       "progressDone": "{{done}}/{{total}} erledigt",
+      "progressTooltip": "{{done}} von {{total}} Risiken erledigt: Behandlung ohne eigene Umsetzung (akzeptieren, übertragen / teilen, won't) oder alle ausgewählten Mitigations umgesetzt, verifiziert oder abgelehnt.",
       "assessed": "Bewertet",
       "assessedTooltip": "Bewertete Risiken / Gesamtrisiken",
       "wontMissingJustification": "Fehlende Begründung",

@@ -43,6 +43,7 @@
       "wontTableTitle": "Accepted Risks (Won't Address)",
       "wontWarning": "⚠️ Some accepted risks are missing justification. Please provide reasoning for compliance documentation.",
       "progressDone": "{{done}}/{{total}} done",
+      "progressTooltip": "{{done}} of {{total}} risks done: a treatment without implementation of its own (accept, transfer / share, won't) or every selected mitigation implemented, verified or rejected.",
       "assessed": "Assessed",
       "assessedTooltip": "Assessed risks / Total risks",
       "wontMissingJustification": "Missing justification",

@@ -82,6 +82,7 @@ import {
   DEFAULT_TOP_HEIGHT,
   MainView,
 } from "../utils/risks-tab-helpers";
+import { calculateProgress } from "../utils/risk-progress";
 
 // ==================== COMPONENT ====================
 
@@ -326,20 +327,20 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     attackPathActiveRisks.length > 0 ||
     attackPathWontRisks.length > 0;
 
+  // Toolbar counts over every risk the tab shows — the active STRIDE method
+  // and the attack-path risks (ISO/SAE 21434 has only these; user
+  // 2026-10-30: "0/0 Risks, Not Started" with 17 risks). Assessed: a risk
+  // value (ISO) or a calculated score; complete: the progress chip's rule.
+  const toolbarRisks = useMemo(
+    () => [...activeRisks, ...attackPathActiveRisks],
+    [activeRisks, attackPathActiveRisks],
+  );
   const assessedRiskCount = useMemo(
     () =>
-      activeRisks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length,
-    [activeRisks],
+      toolbarRisks.filter((r) => (r.isoRisk?.value ?? 0) > 0 || r.calculatedRiskBeforeMitigation > 0).length,
+    [toolbarRisks],
   );
-  const completedRiskCount = useMemo(
-    () =>
-      activeRisks.filter((r) =>
-        r.selectedMitigations.some(
-          (m) => m.status === "implemented" || m.status === "verified",
-        ),
-      ).length,
-    [activeRisks],
-  );
+  const completedRiskCount = useMemo(() => calculateProgress(toolbarRisks).done, [toolbarRisks]);
 
   const currentThreats = useMemo(
     () =>
@@ -820,7 +821,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         isSyncing={isSyncing}
         riskMethod={riskMethod}
         activeStrideMethod={activeStrideMethod}
-        riskCount={activeRisks.length}
+        riskCount={toolbarRisks.length}
         assessedRiskCount={assessedRiskCount}
         completedRiskCount={completedRiskCount}
         wontCount={wontRisks.length}
