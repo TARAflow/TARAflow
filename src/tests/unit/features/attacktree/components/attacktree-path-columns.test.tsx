@@ -55,13 +55,16 @@ function Harness({
   treeId,
   assessments,
   onAssessmentsChange,
+  treeNumber,
 }: {
   paths: AttackPath[];
+  treeNumber?: number;
   treeId?: string;
   assessments?: AttackPathAssessment[];
   onAssessmentsChange?: (next: AttackPathAssessment[]) => void;
 }) {
   const columns = useAttackTreePathColumns({
+    treeNumber,
     evaluationMethod: "extended",
     likelihoodModel: "feasibility-only",
     treeId,
@@ -159,5 +162,18 @@ describe("relevance column — one control per STRIDE category", () => {
       .getAllByRole("button")
       .filter((b) => b.getAttribute("aria-pressed") === "true");
     expect(pressed).toHaveLength(1);
+  });
+});
+
+describe("ID column (user 2026-10-30)", () => {
+  it("shows the path's AT-n.m with the tree's number — the label of its threat and risk", () => {
+    render(<Harness paths={[makePath({ id: "path-1", pathKey: "k1" }), makePath({ id: "path-2", pathKey: "k2" })]} treeNumber={3} />);
+    expect(screen.getByTestId("path-id-k1").textContent).toBe("AT-3.1");
+    expect(screen.getByTestId("path-id-k2").textContent).toBe("AT-3.2");
+  });
+
+  it("no tree number, no ID column", () => {
+    render(<Harness paths={[makePath({ pathKey: "k1" })]} />);
+    expect(screen.queryByTestId("path-id-k1")).toBeNull();
   });
 });

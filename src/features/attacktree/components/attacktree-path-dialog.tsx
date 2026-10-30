@@ -50,7 +50,7 @@ import { useTranslation } from "react-i18next";
 import type { StrideCategory, ThreatRelevanceRef } from "shared";
 import { RELEVANCE_COLORS } from "shared";
 import type { AttackPath, AttackPathAssessment } from "../models/attacktree-types";
-import { strideCategoriesForPath } from "../services/attacktree-threat-generator";
+import { attackPathDisplayId, strideCategoriesForPath } from "../services/attacktree-threat-generator";
 import { isPathAssessmentComplete } from "../services/attacktree-threat-sync";
 import type { AttackPathDialog, PerStrideDecision } from "../hooks/use-attack-path-dialog";
 
@@ -71,9 +71,13 @@ export interface CatalogItem {
   text: string;
 }
 
-/** Human-readable path label: the leaf node name, falling back to the display id. */
-function pathLabel(p: AttackPath): string {
-  return p.path[p.path.length - 1] || p.id;
+/**
+ * Human-readable path label: the leaf node name, falling back to the display
+ * id — with the tree's number, led by the path's AT-n.m (user 2026-10-30).
+ */
+function pathLabel(p: AttackPath, treeNumber?: number): string {
+  const leaf = p.path[p.path.length - 1] || p.id;
+  return treeNumber === undefined ? leaf : `${attackPathDisplayId(treeNumber, p)} ${leaf}`;
 }
 
 // ==================== CATALOGUE PICKER ====================
@@ -225,6 +229,8 @@ export interface AttackPathDialogProps {
   verificationCatalog: readonly CatalogItem[];
   /** Header context — the tree's display title. */
   title: string;
+  /** The tree's number in the project: "AT-n" before the title, AT-n.m on the paths. */
+  treeNumber?: number;
 }
 
 export const AttackPathAssessmentDialog: React.FC<AttackPathDialogProps> = ({
@@ -234,6 +240,7 @@ export const AttackPathAssessmentDialog: React.FC<AttackPathDialogProps> = ({
   mitigationCatalog,
   verificationCatalog,
   title,
+  treeNumber,
 }) => {
   const { t, i18n } = useTranslation();
   const {
@@ -357,11 +364,11 @@ export const AttackPathAssessmentDialog: React.FC<AttackPathDialogProps> = ({
       <DialogTitle sx={{ py: 1.5, borderBottom: 1, borderColor: "divider" }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography variant="subtitle1" fontWeight={500} noWrap>
-            {title}
+            {treeNumber !== undefined ? `AT-${treeNumber} ${title}` : title}
           </Typography>
           <Chip
             size="small"
-            label={pathLabel(currentPath)}
+            label={pathLabel(currentPath, treeNumber)}
             sx={{ maxWidth: 240 }}
           />
         </Stack>
@@ -422,7 +429,7 @@ export const AttackPathAssessmentDialog: React.FC<AttackPathDialogProps> = ({
                     <Box sx={{ width: 16, mr: 1 }} />
                   )}
                   <ListItemText
-                    primary={pathLabel(p)}
+                    primary={pathLabel(p, treeNumber)}
                     primaryTypographyProps={{ variant: "body2", noWrap: true }}
                   />
                 </ListItemButton>

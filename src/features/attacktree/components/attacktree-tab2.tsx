@@ -67,8 +67,10 @@ import {
 import { AttackTreeDetailView } from "./attacktree-detail-view";
 import {
   securityGoalList,
+  treeDisplayId,
   treeDisplaySubtitle,
   treeDisplayTitle,
+  treeNumberOf,
 } from "../utils/attacktree-labels";
 import type { AttackPathAssessment } from "../models/attacktree-types";
 import { computeDeletionImpact } from "../services/attacktree-threat-sync";
@@ -743,6 +745,15 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                         }}
                       >
                         <Box sx={{ flexGrow: 1, mr: 2 }}>
+                          {/* AT-n, as threats, risks and the report name the tree (user 2026-10-30) */}
+                          <Typography
+                            component="span"
+                            variant="subtitle1"
+                            sx={{ fontWeight: 600, mr: 1 }}
+                            data-testid={`tree-id-${tree.id}`}
+                          >
+                            {treeDisplayId(attackTreeData.trees, tree.id)}
+                          </Typography>
                           {renamingTreeId === tree.id ? (
                             <TextField
                               autoFocus
@@ -841,6 +852,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
                         <AttackTreeTableView
                           pathAnalysis={tree.pathAnalysis}
                           evaluationMethod={tree.configuration.evaluationMethod}
+                          treeNumber={treeNumberOf(attackTreeData.trees, tree.id)}
                           mitigationLookup={mitigationLookup}
                           likelihoodModel={feasibilityConfig.likelihoodModel}
                           treeId={tree.id}
