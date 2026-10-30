@@ -1,5 +1,4 @@
 import React, { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import { Project } from "../../models/project-types";
 import { PHASES, PhaseStatus, PhaseDefinition } from "shared";
 import { PhaseTab } from "./phase-tab";
@@ -48,7 +47,6 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   threatDrift,
   indicators,
 }) => {
-  const { t } = useTranslation();
   const phaseStatus = indicators?.status ?? project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
   // Safety gating: the Hazard phase only appears when safety relevance is on
   const safetyRelevant = project?.info?.safetyRelevant ?? false;
@@ -76,59 +74,20 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
     );
   }, [safetyRelevant]);
 
-  // Extract validation counts for each phase
-  const getPhaseValidationCounts = useMemo(() => {
-    return (phaseId: number) => {
-      switch (phaseId) {
-        case PhaseId.DFD: {
-          // DFD Phase — the current validation (phase indicators), not the
-          // validation stored in the file.
-          const counts = indicators?.counts[PhaseId.DFD];
-          return { errors: counts?.errors ?? 0, warnings: counts?.warnings ?? 0 };
-        }
-        case PhaseId.Assets:
-          // Assets Phase
-          return { errors: 0, warnings: 0 };
-        case PhaseId.Threats: {
-          // Threats Phase — generation drift (not a validation finding)
-          const obsolete = threatDrift?.obsolete ?? 0;
-          const added = threatDrift?.added ?? 0;
-          const hints: string[] = [];
-          if (obsolete > 0) {
-            hints.push(
-              t("tabs.threats.drift.banner.obsolete", {
-                count: obsolete,
-                defaultValue: "{{count}} stored threats would no longer be generated",
-              }),
-            );
-          }
-          if (added > 0) {
-            hints.push(
-              t("tabs.threats.drift.banner.added", {
-                count: added,
-                defaultValue: "{{count}} threats would be added",
-              }),
-            );
-          }
-          return { errors: 0, warnings: obsolete + added, hints };
-        }
-        case PhaseId.Risk:
-          // Risk Phase
-          return { errors: 0, warnings: 0 };
-        case PhaseId.AttackTree:
-          // Attack Tree Phase
-          return { errors: 0, warnings: 0 };
-        case PhaseId.Documentation:
-          // Documentation Phase
-          return { errors: 0, warnings: 0 };
-        case PhaseId.Audit:
-          // Audit Phase
-          return { errors: 0, warnings: 0 };
-        default:
-          return { errors: 0, warnings: 0 };
-      }
-    };
-  }, [indicators, threatDrift?.obsolete, threatDrift?.added, t]);
+  // Badges on the tabs: the DFD's current validation and the threat
+  // generation drift; the tooltip of every tab says what is behind its status
+  // (phase indicators — the same lines the Overview's phase cards show).
+  const getPhaseValidationCounts = (phaseId: number) => {
+    const hints = indicators?.details[phaseId];
+    if (phaseId === PhaseId.DFD || phaseId === PhaseId.Threats) {
+      const fallback =
+        phaseId === PhaseId.Threats
+          ? { errors: 0, warnings: (threatDrift?.obsolete ?? 0) + (threatDrift?.added ?? 0) }
+          : { errors: 0, warnings: 0 };
+      return { ...(indicators?.counts[phaseId] ?? fallback), hints };
+    }
+    return { errors: 0, warnings: 0, hints };
+  };
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 pt-4">
@@ -141,7 +100,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
               "not-started";
             const counts = getPhaseValidationCounts(phase.id);
             const { errors, warnings } = counts;
-            const hints = "hints" in counts ? counts.hints : undefined;
+            const hints = counts.hints;
 
             return (
               <PhaseTab

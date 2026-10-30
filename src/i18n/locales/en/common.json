@@ -81,7 +81,19 @@
     "threats": "Threats",
     "risk": "Risk",
     "phaseProgress": "Phase Progress",
-    "overallProgress": "Overall Progress"
+    "overallProgress": "Overall Progress",
+    "openTab": "Click to open the tab",
+    "details": {
+      "missing": "Missing: {{fields}}",
+      "more": "… {{count}} more",
+      "field": {
+        "name": "Name",
+        "description": "Description",
+        "version": "Version",
+        "responsible": "Responsible",
+        "tags": "Tags"
+      }
+    }
   },
   "status": {
     "notStarted": "Not Started",

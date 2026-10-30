@@ -69,6 +69,8 @@ export interface ProjectProgressData {
   phaseStatus: PhaseStatusMap;
   /** Validation info per phase (optional) */
   validationInfo?: Record<number, PhaseValidationInfo>;
+  /** The lines behind a phase's status, shown in the card tooltip (optional). */
+  details?: Record<number, string[]>;
 }
 
 // ==================== PROJECT STATUS CONFIGURATION ====================
@@ -194,4 +196,6 @@ export interface GeneralTabData {
 export interface PhaseIndicatorsView {
   status: PhaseStatusMap;
   counts: Record<number, PhaseValidationInfo>;
+  /** Why a phase is not complete — translated lines for the card tooltip. */
+  details?: Record<number, string[]>;
 }

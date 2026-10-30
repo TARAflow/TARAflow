@@ -77,6 +77,9 @@ interface GeneralTabProps {
    */
   phaseIndicators?: PhaseIndicatorsView;
 
+  /** Open a phase's tab (click on its card in the phase progress). */
+  onOpenPhase?: (phaseId: number) => void;
+
   /** Callback when data changes */
   onUpdate: (data: GeneralTabData) => void;
 
@@ -109,6 +112,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   getStatusIcon,
   getStatusColor,
   phaseIndicators,
+  onOpenPhase,
   onUpdate,
   projectId,
   modelItems = [],
@@ -156,6 +160,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
       phaseStatus: phaseIndicators?.status ?? data.phaseStatus,
       // Phase 0 (General) without the app: missing fields, same rule as its status.
       validationInfo: phaseIndicators?.counts ?? { 0: { errors: 0, warnings: missingGeneralFields(data.info).length } },
+      details: phaseIndicators?.details,
     }),
     [data.phaseStatus, data.info, phaseIndicators],
   );
@@ -262,6 +267,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
             phases={overviewPhases}
             getStatusIcon={getStatusIcon}
             getStatusColor={getStatusColor}
+            onOpenPhase={onOpenPhase}
           />
         </>
       )}

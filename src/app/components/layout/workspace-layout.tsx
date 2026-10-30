@@ -52,6 +52,7 @@ import {
   HazardsTab,
   type HazardUpdateResult,
   hazardService,
+  hazardValidator,
 } from "features/hazards";
 
 import {
@@ -1018,10 +1019,16 @@ export const WorkspaceLayout: React.FC = () => {
             info: activeProject.info,
             dfdValidation: dfdSavedValidation,
             dfdStatus: dfdSavedValidation ? dfdService.phaseStatusOf(dfdSavedValidation) : undefined,
+            // The Hazard tab's validation, only where the phase is shown.
+            hazardValidation:
+              activeProject.info?.safetyRelevant && activeProject.hazards?.hazards.length
+                ? hazardValidator.validate(activeProject.hazards, memoizedAssetDataRef?.assets)
+                : null,
             threatDrift: threatDriftCounts,
+            t,
           })
         : null,
-    [activeProject, dfdSavedValidation, threatDriftCounts],
+    [activeProject, dfdSavedValidation, threatDriftCounts, memoizedAssetDataRef, t],
   );
 
   // ── Control instances + security drift ───────────────────────────────────
@@ -1179,6 +1186,7 @@ export const WorkspaceLayout: React.FC = () => {
             getStatusIcon={getPhaseStatusIcon}
             getStatusColor={getPhaseStatusColor}
             phaseIndicators={memoizedPhaseIndicators ?? undefined}
+            onOpenPhase={handlePhaseChange}
             onUpdate={handleGeneralTabUpdate}
             projectId={activeProject.id}
             modelItems={memoizedItemModelItems}
