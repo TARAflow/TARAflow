@@ -40,6 +40,8 @@ export interface PhaseIndicatorInput {
   dfdStatus?: PhaseStatus;
   /** The Hazard tab's validation (safety-relevant projects with hazards). */
   hazardValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
+  /** The Risk tab's validation of the current state (riskService.validate). */
+  riskValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   /** Stored threats the current rules would no longer / additionally generate. */
   threatDrift?: { obsolete: number; added: number };
   /**
@@ -100,6 +102,16 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
     warnings: missing.length + (verificationOpen && !verificationFailed ? 1 : 0),
   };
   if (general.length > 0) details[PhaseId.General] = general;
+
+  // Risk: the Risk tab's validation messages (user 2026-10-30).
+  if (input.riskValidation) {
+    counts[PhaseId.Risk] = {
+      errors: input.riskValidation.errors.length,
+      warnings: input.riskValidation.warnings.length,
+    };
+    const lines = [...input.riskValidation.errors, ...input.riskValidation.warnings];
+    if (lines.length > 0) details[PhaseId.Risk] = capped(lines, t);
+  }
 
   // Hazard: the Hazard tab's validation messages.
   if (input.hazardValidation) {

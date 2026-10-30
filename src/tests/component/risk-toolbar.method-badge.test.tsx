@@ -37,4 +37,20 @@ describe("risk toolbar — method buttons", () => {
     expect(screen.queryByText("231")).toBeNull();
     expect(screen.getByLabelText("Per-Element: 119 risks from 231 threats (112 rated not relevant)")).toBeTruthy();
   });
+
+  it("the status chip shows the validation: warnings yellow with their texts as tooltip (user 2026-10-30)", () => {
+    const props: Any = {
+      isDirty: false, isSyncing: false, riskMethod: "complex", activeStrideMethod: "per-element",
+      riskCount: 2, assessedRiskCount: 2, completedRiskCount: 0, wontCount: 0, perElementCount: 2, perInteractionCount: 0,
+      canSwitchStrideMethod: true, hasRisks: true, hasThreatsForMethod: true, hasAnyThreats: true, needsSync: false,
+      showDfdPreview: false, mainView: "table", showWontTable: false, showFilters: false,
+      validation: { errors: [], warnings: ["1 risk(s) to reduce have no mitigation (SHE-T-1)"] },
+      onToggleDfdPreview: noop, onMainViewChange: noop, onStrideMethodChange: noop, onSync: noop, onOpenConfig: noop,
+      onExport: noop, onImport: noop, onToggleWontTable: noop, onToggleFilters: noop,
+    };
+    render(<RiskToolbar {...props} />);
+    const chip = screen.getByTestId("risk-validation-chip");
+    expect(chip.textContent).toBe("1 Warnings");
+    expect(chip.getAttribute("aria-label")).toBe("1 risk(s) to reduce have no mitigation (SHE-T-1)");
+  });
 });

@@ -56,6 +56,12 @@ export interface RisksToolbarProps {
    * shows; and the threats rated not relevant, for its tooltip (user
    * 2026-10-30: the badge showed 231 threats next to 119 risks).
    */
+  /**
+   * The Risk-tab validation (riskService.validate) of the current state —
+   * errors and warnings on the status chip, their texts as tooltip (user
+   * 2026-10-30: it was computed but shown nowhere).
+   */
+  validation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   perElementRiskCount?: number;
   perInteractionRiskCount?: number;
   perElementDismissedCount?: number;
@@ -111,6 +117,7 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   wontCount,
   perElementCount,
   perInteractionCount,
+  validation,
   perElementRiskCount,
   perInteractionRiskCount,
   perElementDismissedCount = 0,
@@ -460,7 +467,25 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
         />
       </Tooltip>
 
-      <Chip label={getStatusText()} size="small" color={getStatusColor()} />
+      {validation && validation.errors.length + validation.warnings.length > 0 ? (
+        <Tooltip
+          title={[...validation.errors, ...validation.warnings].join("\n")}
+          slotProps={{ tooltip: { sx: { whiteSpace: "pre-line" } } }}
+        >
+          <Chip
+            data-testid="risk-validation-chip"
+            label={
+              validation.errors.length > 0
+                ? `${validation.errors.length} ${t("common.errors", { defaultValue: "Errors" })}`
+                : `${validation.warnings.length} ${t("common.warnings", { defaultValue: "Warnings" })}`
+            }
+            size="small"
+            color={validation.errors.length > 0 ? "error" : "warning"}
+          />
+        </Tooltip>
+      ) : (
+        <Chip label={getStatusText()} size="small" color={getStatusColor()} />
+      )}
 
       {isDirty && (
         <Chip

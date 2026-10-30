@@ -97,4 +97,16 @@ describe("phase indicators", () => {
     expect(ok.counts[PhaseId.General]).toEqual({ errors: 0, warnings: 0 });
     expect(ok.details[PhaseId.General]).toBeUndefined();
   });
+
+  it("Risk: the Risk tab's validation, counted and listed (user 2026-10-30)", () => {
+    const { counts, details } = phaseIndicators({
+      phaseStatus: stored,
+      info,
+      dfdValidation: null,
+      riskValidation: { errors: [], warnings: ["1 risk(s) to reduce have no mitigation (SHE-T-1)"] },
+      t,
+    });
+    expect(counts[PhaseId.Risk]).toEqual({ errors: 0, warnings: 1 });
+    expect(details[PhaseId.Risk]).toEqual(["1 risk(s) to reduce have no mitigation (SHE-T-1)"]);
+  });
 });

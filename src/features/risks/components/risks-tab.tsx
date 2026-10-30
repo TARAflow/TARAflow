@@ -371,6 +371,9 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const hasAnyThreats = allThreats.length > 0;
   const perElementCount = project.perElementThreats.length;
   const perInteractionCount = project.perInteractionThreats.length;
+  // The validation of the current state, for the toolbar chip (user
+  // 2026-10-30 — the stored one was never shown, and may be stale).
+  const currentValidation = useMemo(() => riskService.validate(riskData), [riskData]);
   // The method buttons show risks, not threats (user 2026-10-30).
   const risksOfMethod = (method: "per-element" | "per-interaction") =>
     riskData.risks.filter((r) => r.sourceStrideMethod === method).length;
@@ -832,6 +835,7 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         wontCount={wontRisks.length}
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}
+        validation={currentValidation}
         perElementRiskCount={risksOfMethod("per-element")}
         perInteractionRiskCount={risksOfMethod("per-interaction")}
         perElementDismissedCount={dismissed(project.perElementThreats)}

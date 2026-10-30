@@ -103,7 +103,7 @@ import {
   NO_DRIFT,
 } from "features/threats";
 
-import { RisksTab, RiskUpdateResult } from "features/risks";
+import { RisksTab, RiskUpdateResult, riskService } from "features/risks";
 import {
   mergeProjectMitigationConflicts,
   mergeProjectMitigationRefs,
@@ -1048,6 +1048,7 @@ export const WorkspaceLayout: React.FC = () => {
               activeProject.info?.safetyRelevant && activeProject.hazards?.hazards.length
                 ? hazardValidator.validate(activeProject.hazards, memoizedAssetDataRef?.assets)
                 : null,
+            riskValidation: activeProject.risks?.risks?.length ? riskService.validate(activeProject.risks) : null,
             threatDrift: threatDriftCounts,
             verification: memoizedVerificationStatus
               ? { kind: memoizedVerificationStatus.kind, text: verificationStatusText(memoizedVerificationStatus, t) }

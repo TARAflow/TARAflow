@@ -83,7 +83,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   // current validation and the threat generation drift; the tooltip of every
   // tab says what is behind its status (phase indicators — the same lines the
   // Overview's phase cards show).
-  const BADGE_PHASES: readonly number[] = [PhaseId.General, PhaseId.Hazard, PhaseId.DFD, PhaseId.Threats];
+  const BADGE_PHASES: readonly number[] = [PhaseId.General, PhaseId.Hazard, PhaseId.DFD, PhaseId.Threats, PhaseId.Risk];
   const getPhaseValidationCounts = (phaseId: number) => {
     const hints = indicators?.details[phaseId];
     if (BADGE_PHASES.includes(phaseId)) {
