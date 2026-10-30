@@ -2791,7 +2791,7 @@
         "applyTooltip": "Vorschlag auf Modell anwenden",
         "planned": "geplant",
         "plannedCount": "{{count}} geplant",
-        "plannedTooltip": "Geplante Massnahme (offen / in Arbeit) — noch nicht im DFD",
+        "plannedTooltip": "Geplante Massnahme (offen / in Arbeit) — noch nicht im DFD. Apply wird angeboten, sobald die Massnahme umgesetzt ist.",
         "doneMissing": "Massnahme als umgesetzt markiert, aber im DFD nicht gesetzt",
         "filter": {
           "all": "Alle",

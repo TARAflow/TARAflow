@@ -1,7 +1,7 @@
 // src/tests/component/dfd-notification-panel.closed-loop.test.tsx
 //
 // Closed-loop review CL-2 (decision 1): an unmet SHOULD of a mitigation that is
-// only planned is information, not a warning; marked done and the DFD
+// only planned is information, not a warning, and offers no Apply (CL-6); marked done and the DFD
 // disagrees → warning (missing) or error (other value); applied then reverted
 // → drift. One row per SHOULD (the security + conflict duplicate is gone).
 import React from "react";
@@ -88,12 +88,17 @@ describe("DFD notification panel — closed loop by mitigation status", () => {
     expect(screen.getByText("1 planned")).toBeTruthy();
   });
 
-  it("the planned chip shows the planned SHOULD, with Apply", () => {
+  it("the planned chip shows the planned SHOULD, without Apply (the DFD shows the system as it is — user 2026-10-30)", () => {
     renderPanel();
     fireEvent.click(screen.getByTestId("dfd-notification-planned-toggle"));
     expect(screen.getAllByText("P1")).toHaveLength(1);
     expect(screen.getByText("planned")).toBeTruthy();
     expect(screen.queryByText("P2")).toBeNull();
+    expect(screen.queryByText("Apply")).toBeNull();
+  });
+
+  it("a mitigation marked done but missing in the DFD offers Apply", () => {
+    renderPanel();
     expect(screen.getAllByText("Apply").length).toBeGreaterThan(0);
   });
 });

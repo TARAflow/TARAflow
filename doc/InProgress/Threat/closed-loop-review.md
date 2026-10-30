@@ -86,7 +86,8 @@ the problem is the opposite: the closed loop does not work at all for ISO projec
 ## 3. Decisions (user 2026-10-29)
 
 1. **Planned mitigations are information, not warnings.** `open` / `in_progress` →
-   kind *planned* ("planned, not yet in the DFD", with Apply), shown under the *Info* and
+   kind *planned* ("planned, not yet in the DFD"; without Apply since CL-6 — user
+   2026-10-30), shown under the *Info* and
    *Security* filters, not under *All*. A mitigation marked `in_review` / `implemented` /
    `verified` [D: in_review counts as done] whose property the DFD does not show → a
    warning (*inconsistent*). Drift (applied, then reverted) stays a warning for every
@@ -122,6 +123,7 @@ the DFD option lists (finding 7).
 | CL-3 | Attack-path risks via the anchor: only asset-anchored trees emit attack-path threats (ISO 3.1.33), so threat id `AT-<treeId>-…` → tree → anchor asset → `linkedDFDElements` (`app/utils/attack-path-control-targets.ts`). An element is offered as the threat's element; a flow both as a flow element (role-less and channel effects) and as the flow with its endpoints (source / target effects); the derivation de-duplicates. Everything reached this way is heuristic. The derivation no longer needs STRIDE threats at all. Headlamp with all proposed mitigations selected (temporary copy): 0 → 6 SHOULD on DF-9, DF-10 and MP-3, all planned; SmokeDetector unchanged (no attack-path risks). | 197 | done |
 | CL-4 | The coverage badge of the risk dialog checks the anchor targets of an attack-path risk too (`ThreatReference.controlTargets`, set by the app; `computeMitigationCoverage` checks every target, de-duplicated) — risk dialog and DFD panel agree. Regression on the SmokeDetector fixture (`closed-loop-regression.int.test.ts`): all 516 threats with their proposed mitigations, alternately planned / done — one instance per element × property × value, every SHOULD a DFD option, no Interface control on an unfitting type, status and drift agree with the shared semantics, counts pinned (266 SHOULD, 49 met, 76 planned only). Re-check with the user's files: SmokeDetector under All 81 → 1 (the one real inconsistency); Headlamp 0 → 6 SHOULD once mitigations are selected. | 198 | done |
 | CL-5 | DFD effects for the automotive controls `M-VEH-001`, `-003`, `-005` (finding 10); catalog test covers them | 208 | done |
+| CL-6 | No Apply for a planned mitigation (user 2026-10-30, revises decision 1): the DFD describes the system as it is; applying the SHOULD of a mitigation that is still open / in progress would claim the control — the threat generation would treat it as already implemented and the closed loop report it aligned. Apply is offered once the mitigation counts as done (in review / implemented / verified); the planned tooltip says so (en/de). | 223 | done |
 
 The strength tables are proposed in CL-1 for review (properties of finding 3 first).
 

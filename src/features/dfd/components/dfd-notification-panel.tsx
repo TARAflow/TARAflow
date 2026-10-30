@@ -781,7 +781,8 @@ const SecurityRow: React.FC<SecurityRowProps> = ({
   const conflict = notification.type === "conflict";
   const kindTooltip = planned
     ? t("tabs.dfd.notifications.plannedTooltip", {
-        defaultValue: "Planned mitigation (open / in progress) — not yet in the DFD",
+        defaultValue:
+          "Planned mitigation (open / in progress) — not yet in the DFD. Apply is offered once the mitigation is implemented.",
       })
     : conflict
       ? notification.conflictDetail?.isManualOverride
@@ -939,8 +940,10 @@ const SecurityRow: React.FC<SecurityRowProps> = ({
         </Typography>
       </Tooltip>
 
-      {/* Apply button — only rendered when onApply is provided */}
-      {onApply && (
+      {/* Apply button — only when onApply is provided, and never for a planned
+          mitigation: the DFD describes the system as it is, a value applied
+          before the control exists would claim it (user 2026-10-30). */}
+      {onApply && !planned && (
         <Tooltip
           title={t("tabs.dfd.notifications.applyTooltip", {
             defaultValue: "Apply suggestion to model",
