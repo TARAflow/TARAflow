@@ -124,6 +124,15 @@ import {
   resolveVerificationDrafts,
 } from "../../../threats/services/threat-catalog-service";
 import { formatRiskLabel } from "../../../../shared/models/risk-label";
+import {
+  assetRelationSections,
+  attackPathThreatRows,
+  connectionEndpointNames,
+  dfdElementsByType,
+  regulationEntries,
+  traceabilityRows,
+  type AssetRelationSection,
+} from "../report-chapter-data";
 
 // ==================== TYPES ====================
 
@@ -147,66 +156,6 @@ export interface DocumentGeneratorResult {
   content: string;
   format: string;
   filename: string;
-}
-
-// ==================== ISO 21434 FEASIBILITY (TRACEABILITY MATRIX) ====================
-
-/**
- * Resolve a risk's five ISO 21434 Annex G.2 factor ratings (if all five are
- * rated) into an attack potential + feasibility band. Returns null when any
- * factor is unrated — that null IS the "AF-" coverage gap the traceability
- * matrix (§6) is meant to surface, not an error to paper over.
- */
-function resolveIso21434Feasibility(
-  factorRatings: { factorId: string; value: number }[],
-): { attackPotential: number; feasibility: Iso21434FeasibilityLevel } | null {
-  return isoFeasibilityFromFactors(factorRatings);
-}
-
-/**
- * Resolve a risk's attack feasibility from its attack tree — the ISO source of
- * truth for feasibility (feasibility is tree-derived, ISO 15.7/15.8). ISO risks
- * do NOT carry the five Annex G.2 factors on `risk.factorRatings`; those live on
- * the attack-tree leaves and are aggregated into `tree.pathAnalysis`.
- *
- * A risk points at exactly one tree + one path (`risk.attackTreeAssessment`), so
- * we take that path's own feasibility — it is the path the risk was raised for.
- * If the path can't be found or carries no evaluation we fall back to the
- * scenario-level aggregate (cheapest / MAX-feasibility path, 15.8 NOTE 2).
- *
- * Returns null when no tree feasibility resolves at all — that null IS the "AF-"
- * coverage gap the traceability matrix (§6) surfaces, not an error to paper over.
- */
-function resolveTreeFeasibility(
-  attackTree: DocProjectData["attackTree"],
-  assessment: { treeId: string; pathKey: string } | undefined,
-): { attackPotential: number | null; feasibility: Iso21434FeasibilityLevel } | null {
-  if (!attackTree || !assessment) return null;
-  const tree = attackTree.trees?.find((tr) => tr.id === assessment.treeId);
-  const analysis = tree?.pathAnalysis;
-  if (!analysis) return null;
-
-  // 1. The specific path this risk was raised for (stable pathKey).
-  const path = analysis.paths?.find((p) => p.pathKey === assessment.pathKey);
-  if (path?.feasibilityLevel) {
-    return {
-      attackPotential: path.attackPotential ?? null,
-      feasibility: path.feasibilityLevel,
-    };
-  }
-
-  // 2. Fallback: scenario-level aggregate (easiest path / MAX across paths).
-  const cheapest = analysis.cheapestPath;
-  if (cheapest?.feasibilityLevel) {
-    return {
-      attackPotential: cheapest.attackPotential ?? null,
-      feasibility: cheapest.feasibilityLevel,
-    };
-  }
-  if (analysis.aggregatedFeasibility) {
-    return { attackPotential: null, feasibility: analysis.aggregatedFeasibility };
-  }
-  return null;
 }
 
 // ==================== ABSTRACT BASE CLASS ====================
@@ -638,50 +587,22 @@ export abstract class BaseDocumentGenerator {
   // ==================== APPLICABLE REGULATIONS ====================
 
   protected generateApplicableRegulations(title: string): ChapterContent {
-    const { project, t } = this.ctx;
-
-    const regulationTags = getRegulationTags(
-      flattenProjectTags(project.info.tags),
-    );
-
-    if (regulationTags.length === 0) {
-      return {
-        id: "applicable-regulations",
-        title,
-        content: "",
-        hasContent: false,
-      };
+    const entries = regulationEntries(this.ctx.project, this.ctx.t);
+    if (entries.length === 0) {
+      return { id: "applicable-regulations", title, content: "", hasContent: false };
     }
-
-    const regulationEntries = regulationTags
-      .map((tagDef) => {
-        const description = tagDef.docDescriptionKey
-          ? t(tagDef.docDescriptionKey, tagDef.name)
-          : t(
-              `tags.tooltips.${tagDef.name.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
-              tagDef.name,
-            );
-
-        return replacePlaceholders(this.getRegulationEntryTemplate(), {
-          regulationName: tagDef.name,
-          regulationDescription: description,
-        });
-      })
+    const regulationEntriesText = entries
+      .map((entry) =>
+        replacePlaceholders(this.getRegulationEntryTemplate(), {
+          regulationName: entry.name,
+          regulationDescription: entry.description,
+        }),
+      )
       .join("");
-
-    const content = replacePlaceholders(
-      this.getApplicableRegulationsTemplate(),
-      {
-        regulationEntries,
-      },
-    );
-
-    return {
-      id: "applicable-regulations",
-      title,
-      content,
-      hasContent: true,
-    };
+    const content = replacePlaceholders(this.getApplicableRegulationsTemplate(), {
+      regulationEntries: regulationEntriesText,
+    });
+    return { id: "applicable-regulations", title, content, hasContent: true };
   }
 
   // ==================== SYSTEM OVERVIEW ====================
@@ -828,19 +749,8 @@ export abstract class BaseDocumentGenerator {
           elementRows: elements.map((e) => this.overviewRow(e)).join(""),
         });
 
-    // Group elements by type
-    const elementsByType = new Map<DFDElementType, DFDElement[]>();
-    elements.forEach((elem) => {
-      if (!elementsByType.has(elem.type)) {
-        elementsByType.set(elem.type, []);
-      }
-      elementsByType.get(elem.type)!.push(elem);
-    });
-
-    // Generate detailed sections for each type
-    for (const [elementType, typeElements] of elementsByType) {
-      // Skip DataFlow as it's handled separately
-      if (elementType === "DataFlow") continue;
+    // Detailed sections per element type (data flows have their own section)
+    for (const [elementType, typeElements] of dfdElementsByType(elements)) {
 
       const typeHeader = replacePlaceholders(
         this.getDfdElementTypeHeaderTemplate(),
@@ -912,13 +822,7 @@ export abstract class BaseDocumentGenerator {
   ): string {
     const { lang, project } = this.ctx;
 
-    // Lookup element names from IDs
-    const fromElement =
-      project.dfd?.elements?.find((e) => e.id === connection.from)?.name ||
-      connection.from;
-    const toElement =
-      project.dfd?.elements?.find((e) => e.id === connection.to)?.name ||
-      connection.to;
+    const { from: fromElement, to: toElement } = connectionEndpointNames(project, connection);
 
     const propertyGroups = getConnectionPropertiesGrouped(connection, lang);
     const propertyGroupsText = this.formatPropertyGroups(propertyGroups);
@@ -994,12 +898,9 @@ export abstract class BaseDocumentGenerator {
       };
     }
 
-    // Check if any asset has element relations
-    const hasRelations = assets.some(
-      (asset) => asset.linkedDFDElements && asset.linkedDFDElements.length > 0,
-    );
+    const sections = assetRelationSections(project, t, this.ctx.lang);
 
-    if (!hasRelations) {
+    if (sections.length === 0) {
       const content = this.getAssetElementRelationsTemplate().replace(
         "{{assetSections}}",
         this.getNoAssetRelationsTemplate(),
@@ -1012,13 +913,8 @@ export abstract class BaseDocumentGenerator {
       };
     }
 
-    // Generate sections for each asset with relations
-    const assetSections = assets
-      .filter(
-        (asset) =>
-          asset.linkedDFDElements && asset.linkedDFDElements.length > 0,
-      )
-      .map((asset) => this.generateAssetRelationSection(asset))
+    const assetSections = sections
+      .map((section) => this.generateAssetRelationSection(section))
       .join("");
 
     const content = replacePlaceholders(
@@ -1039,28 +935,16 @@ export abstract class BaseDocumentGenerator {
   /**
    * Generate section for one asset's element relations
    */
-  protected generateAssetRelationSection(asset: Asset): string {
-    const { t, lang } = this.ctx;
-
-    const elementRelations = (asset.linkedDFDElements ?? [])
-      .map((elemRel) => {
-        const relationTypes = elemRel.relationType
-          ? getRelationTypeLabel(elemRel.relationType, lang)
-          : "";
-
+  protected generateAssetRelationSection(section: AssetRelationSection): string {
+    const elementRelations = section.relations
+      .map((rel) => {
         const values = {
-          elementDisplayId: elemRel.displayId,
-          elementType: getDFDElementTypeText(
-            elemRel.elementType as DFDElementType,
-            t,
-          ),
-          elementName: this.escapeTableText(elemRel.elementName),
-          relationTypes: this.escapeTableText(relationTypes),
-          notes: elemRel.notes
-            ? this.escapeTableText(elemRel.notes)
-            : undefined,
+          elementDisplayId: rel.elementDisplayId,
+          elementType: rel.elementType,
+          elementName: this.escapeTableText(rel.elementName),
+          relationTypes: this.escapeTableText(rel.relationTypes),
+          notes: rel.notes ? this.escapeTableText(rel.notes) : undefined,
         };
-
         let content = this.getElementRelationEntryTemplate();
         content = processConditionals(content, values);
         return replacePlaceholders(content, values);
@@ -1068,12 +952,10 @@ export abstract class BaseDocumentGenerator {
       .join("");
 
     const values = {
-      assetId: asset.id,
-      assetDisplayId: asset.displayId ?? asset.id,
-      assetName: this.escapeTableText(asset.name),
-      assetDescription: asset.properties?.description
-        ? this.escapeTableText(asset.properties.description)
-        : undefined,
+      assetId: section.asset.id,
+      assetDisplayId: section.displayId,
+      assetName: this.escapeTableText(section.name),
+      assetDescription: section.description ? this.escapeTableText(section.description) : undefined,
       elementRelations,
     };
 
@@ -1112,13 +994,7 @@ export abstract class BaseDocumentGenerator {
   protected generateDfdConnectionEntry(connection: DFDConnection): string {
     const { lang, project, t } = this.ctx;
 
-    // Lookup element names from IDs
-    const fromElement =
-      project.dfd?.elements?.find((e) => e.id === connection.from)?.name ||
-      connection.from;
-    const toElement =
-      project.dfd?.elements?.find((e) => e.id === connection.to)?.name ||
-      connection.to;
+    const { from: fromElement, to: toElement } = connectionEndpointNames(project, connection);
 
     const values = {
       displayId: connection.displayId || connection.id,
@@ -1350,60 +1226,18 @@ export abstract class BaseDocumentGenerator {
    * so the anchor convention (and therefore the links) match exactly.
    */
   protected generateAttackPathThreats(title: string): ChapterContent {
-    const { project } = this.ctx;
     const chapterId: DocChapterId = "threats-attack-path";
-
-    const assets = project.assets?.assets ?? [];
-    const assetLabel = (ids?: string[]): string => {
-      const first = ids?.[0];
-      const asset = first ? assets.find((a) => a.id === first) : undefined;
-      if (!asset) return "-";
-      const extra = (ids?.length ?? 0) > 1 ? ` (+${(ids!.length - 1)})` : "";
-      return `${asset.displayId ?? asset.id} ${asset.name}${extra}`;
-    };
-
-    // One row per unique threatDisplayId; exclude won't-address risks (they are
-    // reported in the accepted-risks chapter). The visible label is TS-<n>,
-    // numbered by position in the full risk list so it matches the traceability
-    // matrix exactly; the long threatDisplayId stays only as the anchor the
-    // #threat-<id> links resolve to.
-    const seen = new Set<string>();
-    const rows: string[] = [];
-    (project.risks?.risks ?? []).forEach((r) => {
-      if (r.sourceStrideMethod !== "attack-path") return;
-      if (r.moscowPriority === "wont") return;
-      if (!r.threatDisplayId || seen.has(r.threatDisplayId)) return;
-      seen.add(r.threatDisplayId);
-
-      const strideCategory = r.attackTreeAssessment?.strideCategory ?? "-";
-      const chain = resolveAttackPathChain(
-        project.attackTree,
-        r.attackTreeAssessment,
-      );
-      const threat = chain ? chain.join(" → ") : r.threatDescription || "-";
-
-      const values = {
-        anchor: r.threatDisplayId, // <a id="threat-{{anchor}}"> — link target
-        tsId: r.threatDisplayId, // AT-<n>.<m> — same label the matrix shows
-        strideCategory,
-        elementOrFlow: this.escapeTableText(assetLabel(r.linkedAssetIds)),
-        threatDescription: this.escapeTableText(threat),
-        // ISO mode: mitigation / verification live on the risk, not the threat —
-        // the ones selected on the risk of this path.
-        mitigation: this.controlList(
-          controlLabels(
-            (r.selectedMitigations ?? []).filter((m) => m.status !== "rejected"),
-            "mitigation",
-          ),
-        ),
-        verification: this.controlList(
-          controlLabels((r.selectedVerifications ?? []).map((id) => ({ id })), "verification"),
-        ),
-      };
-      rows.push(
-        replacePlaceholders(this.getAttackPathThreatRowTemplate(), values),
-      );
-    });
+    const rows = attackPathThreatRows(this.ctx.project).map((row) =>
+      replacePlaceholders(this.getAttackPathThreatRowTemplate(), {
+        anchor: row.anchor, // <a id="threat-{{anchor}}"> — link target
+        tsId: row.tsId, // AT-<n>.<m> — same label the matrix shows
+        strideCategory: row.strideCategory,
+        elementOrFlow: this.escapeTableText(row.asset),
+        threatDescription: this.escapeTableText(row.threat),
+        mitigation: this.controlList(row.mitigations),
+        verification: this.controlList(row.verifications),
+      }),
+    );
 
     if (rows.length === 0) {
       return { id: chapterId, title, content: "", hasContent: false };
@@ -1784,108 +1618,37 @@ export abstract class BaseDocumentGenerator {
    * deferred (DS-1, §11-Q1), not a shortcut introduced here.
    */
   protected generateTraceabilityMatrix(title: string): ChapterContent {
-    const { project, t } = this.ctx;
     const chapterId: DocChapterId = "traceability-matrix";
-    const config = project.risks?.configuration;
     const tableTemplate = this.getTraceabilityMatrixTableTemplate();
-
-    if (config?.likelihoodMethod !== "iso-21434" || !tableTemplate) {
+    const rows = tableTemplate ? traceabilityRows(this.ctx.project, this.ctx.t) : null;
+    if (!rows) {
       return { id: chapterId, title, content: "", hasContent: false };
     }
 
-    const risks = project.risks?.risks ?? [];
-    if (risks.length === 0) {
-      return { id: chapterId, title, content: "", hasContent: false };
-    }
-
-    const assetsById = new Map(
-      (project.assets?.assets ?? []).map((a) => [a.id, a]),
-    );
-    const resolvedText = t("tabs.doc.traceability.resolved", "resolved");
-    const missingText = t("tabs.doc.traceability.missing", "missing");
-
-    const traceabilityRows = risks
-      .map((risk) => {
-        const linkedAssets = (risk.linkedAssetIds ?? [])
-          .map((id) => assetsById.get(id))
-          .filter((a): a is NonNullable<typeof a> => Boolean(a));
-        const primaryAsset = linkedAssets[0];
-
-        // DS: asset-level damage-scenario impact (see scope note above).
-        const resolvedImpact = primaryAsset
-          ? assetImpactResolver.resolveImpactRatings(primaryAsset, undefined)
-          : null;
-        const impactByCategory = resolvedImpact
-          ? assetImpactResolver.deriveImpactByCategory(resolvedImpact.ratings)
-          : null;
-        const dominantCategory = impactByCategory
-          ? assetImpactResolver.findDominantCategory(impactByCategory)
-          : undefined;
-        const dsStatus = dominantCategory ? resolvedText : missingText;
-        const dsLabel = dominantCategory
-          ? t(
-              `tabs.doc.traceability.category.${dominantCategory}`,
-              dominantCategory,
-            )
-          : "-";
-
-        // AF: ISO/IEC 18045 attack-potential feasibility. Primary source is the
-        // risk's attack tree (feasibility is tree-derived, 15.7/15.8); we fall
-        // back to five Annex G.2 factors rated directly on the risk, for the
-        // simple/legacy case. null => neither source resolved (coverage gap).
-        // attackPotential is shown only when known (audit mode); quick-mode
-        // paths yield a feasibility band without a numeric potential.
-        const af =
-          resolveTreeFeasibility(
-            project.attackTree,
-            risk.attackTreeAssessment,
-          ) ?? resolveIso21434Feasibility(risk.factorRatings ?? []);
-        const afStatus = af ? resolvedText : missingText;
-        const afFeasibilityLabel = af
-          ? t(
-              `tabs.doc.traceability.feasibility.${af.feasibility}`,
-              af.feasibility,
-            )
-          : "";
-        const afLabel = !af
-          ? "-"
-          : af.attackPotential != null
-            ? `${af.attackPotential} (${afFeasibilityLabel})`
-            : afFeasibilityLabel;
-
-        const values = {
-          asId: primaryAsset
-            ? (primaryAsset.displayId ?? primaryAsset.id)
-            : "-",
-          asName: primaryAsset ? this.escapeTableText(primaryAsset.name) : "-",
-          dsStatus,
-          dsLabel,
-          // The threat scenario's own display id (AT-<n>.<m> for attack-path
-          // threats, P#-S-# for STRIDE). It doubles as the anchor target, so
-          // label and #threat-<id> link stay in sync.
-          tsAnchor: risk.threatDisplayId,
-          tsId: risk.threatDisplayId,
-          tsDescription: this.escapeTableText(risk.threatDescription || "-"),
-          afStatus,
-          afLabel,
-          // ISO risk value 1–5 with its matrix inputs (3a-2, decision 20 E4);
-          // `I × L` and its per-category split are no longer shown.
-          riskBefore: this.escapeTableText(isoRiskLabel(risk, t, false)),
-          // ISO 15.9 names (Avoid / Reduce / Share / Retain).
-          treatment: t(
-            `${treatmentI18nKey(risk.treatment, treatmentVocabulary(config))}.label`,
-            treatmentFallbackLabel(risk.treatment, treatmentVocabulary(config)),
-          ),
-          riskAfter: this.escapeTableText(isoRiskLabel(risk, t, true)),
-          // Goal / claim of the risk (plan Phase 4, decision 25).
-          goalsClaims: goalsClaimsOfRisk(project.cybersecurityConcept, risk.id),
-        };
-        return replacePlaceholders(this.getTraceabilityRowTemplate(), values);
-      })
+    const traceabilityRowsText = rows
+      .map((row) =>
+        replacePlaceholders(this.getTraceabilityRowTemplate(), {
+          asId: row.asId,
+          asName: row.asName === "-" ? "-" : this.escapeTableText(row.asName),
+          dsStatus: row.dsStatus,
+          dsLabel: row.dsLabel,
+          // The threat scenario's own display id doubles as the anchor target,
+          // so label and #threat-<id> link stay in sync.
+          tsAnchor: row.tsId,
+          tsId: row.tsId,
+          tsDescription: this.escapeTableText(row.tsDescription),
+          afStatus: row.afStatus,
+          afLabel: row.afLabel,
+          riskBefore: this.escapeTableText(row.riskBefore),
+          treatment: row.treatment,
+          riskAfter: this.escapeTableText(row.riskAfter),
+          goalsClaims: row.goalsClaims,
+        }),
+      )
       .join("");
 
     let content = this.getTraceabilityMatrixHeaderTemplate();
-    content += replacePlaceholders(tableTemplate, { traceabilityRows });
+    content += replacePlaceholders(tableTemplate!, { traceabilityRows: traceabilityRowsText });
 
     return { id: chapterId, title, content, hasContent: true };
   }
