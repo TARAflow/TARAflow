@@ -81,6 +81,16 @@ describe("Integration tab — the token stays out of the project", () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
+  it("a form error is shown with the form's labels (i18n key + label params), no token is stored", async () => {
+    render(<IntegrationTab data={{ integration: null }} onUpdate={vi.fn()} />);
+    fireEvent.change(screen.getByTestId("integration-host"), { target: { value: "http://acme.atlassian.net" } });
+    fireEvent.change(screen.getByTestId("integration-user"), { target: { value: "someone@example.com" } });
+    fireEvent.change(screen.getByTestId("integration-secret"), { target: { value: "FAKE-api-token" } });
+    fireEvent.click(screen.getByTestId("integration-test"));
+    expect((await screen.findByTestId("integration-result")).textContent).toBe("Jira URL must be an https address.");
+    expect(api.saveToken).not.toHaveBeenCalled();
+  });
+
   it("an old connection without a token for its address asks for one connection test", async () => {
     api.hasToken.mockResolvedValue({ success: true, hasToken: false });
     render(

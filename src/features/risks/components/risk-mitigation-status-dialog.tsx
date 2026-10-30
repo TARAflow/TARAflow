@@ -62,7 +62,7 @@ import type {
 } from "../models/risk-integration-types";
 import type { TicketPort } from "shared/models/ticket-types";
 import { buildTicketDescription, buildTicketSummary } from "../services/ticket-text";
-import { applyTicketState } from "../services/ticket-sync";
+import { applyTicketState, hasRejectionReason } from "../services/ticket-sync";
 
 import { MitigationDraftRef } from "shared";
 
@@ -170,7 +170,7 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
       ticketStatus: next.ticketStatus,
       ticketSyncedAt: next.ticketSyncedAt,
       status: next.status,
-      ...(next.rejectionReason !== mitigation.rejectionReason ? { rejectionReason: next.rejectionReason } : {}),
+      rejectedByTicket: next.rejectedByTicket,
     });
   };
 
@@ -1068,18 +1068,28 @@ export const RiskMitigationStatusDialog: React.FC<
                             fullWidth
                             variant="outlined"
                             required
-                            placeholder="Reason for not implementing this mitigation..."
+                            placeholder={t("tabs.risks.mitigationStatusDialog.rejectionPlaceholder", {
+                              defaultValue: "Reason for not implementing this mitigation...",
+                            })}
                             value={m.rejectionReason ?? ""}
                             onChange={(e) =>
                               updateMitigation(mitigationSelectionKey(m), {
                                 rejectionReason: e.target.value,
                               })
                             }
-                            error={!m.rejectionReason?.trim()}
+                            error={!hasRejectionReason(m)}
                             helperText={
-                              !m.rejectionReason?.trim()
-                                ? "Required for audit trail"
-                                : undefined
+                              m.rejectedByTicket
+                                ? t("tabs.risks.mitigationStatusDialog.rejectedByTicket", {
+                                    defaultValue: "Ticket {{key}} closed as {{resolution}}",
+                                    key: m.rejectedByTicket.key,
+                                    resolution: m.rejectedByTicket.resolution,
+                                  })
+                                : !hasRejectionReason(m)
+                                  ? t("tabs.risks.mitigationStatusDialog.rejectionRequired", {
+                                      defaultValue: "Required for audit trail",
+                                    })
+                                  : undefined
                             }
                             inputProps={{ style: { fontSize: "0.8rem" } }}
                           />

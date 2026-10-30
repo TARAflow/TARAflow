@@ -60,7 +60,7 @@ export const isProjectMitigationUsed = (u: ProjectMitigationUsage) =>
 /** Fields that must agree when both entries carry them. */
 const CONFLICT_FIELDS = ["status", "ticketId", "evidenceRef", "rejectionReason", "scopeOverride"] as const;
 /** Fields that travel with the ticket. */
-const TICKET_FIELDS = ["ticketId", "ticketUrl", "ticketStatus", "ticketSyncedAt"] as const;
+const TICKET_FIELDS = ["ticketId", "ticketUrl", "ticketStatus", "ticketSyncedAt", "rejectedByTicket"] as const;
 /** Free text: both kept. */
 const JOINED_FIELDS = ["notes", "evidenceNote"] as const;
 

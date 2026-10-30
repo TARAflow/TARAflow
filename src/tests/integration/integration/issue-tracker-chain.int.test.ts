@@ -95,7 +95,7 @@ describe("issue tracker — from the connection test to the mitigation status", 
     }));
     expect(next.risks[0].selectedMitigations).toEqual([
       data.risks[0].selectedMitigations[0],
-      expect.objectContaining({ status: "rejected", ticketStatus: "DECLINED", rejectionReason: "Ticket SCRUM-2 closed as Won't Do" }),
+      expect.objectContaining({ status: "rejected", ticketStatus: "DECLINED", rejectedByTicket: { key: "SCRUM-2", resolution: "Won't Do" } }),
     ]);
     expect(sent.every((s) => s.url.startsWith(`${HOST}/`))).toBe(true);
   });

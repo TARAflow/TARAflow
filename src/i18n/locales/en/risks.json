@@ -428,6 +428,7 @@
         "referencePlaceholder": "Ticket ID, PR link, Jira/ADO reference...",
         "noMitigations": "No mitigations selected. Open the Risk Dialog to select mitigations.",
         "rejectionReason": "Reason*",
+        "rejectedByTicket": "Ticket {{key}} closed as {{resolution}}",
         "rejectionPlaceholder": "Reason for not implementing this mitigation...",
         "rejectionRequired": "Required for audit trail",
         "verifications": "Verifications (for testing reference)"

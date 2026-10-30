@@ -74,7 +74,10 @@ const IMPLEMENTATION_KEYS = new Set([
 function analysisOfSelected(m: Record<string, unknown>): Record<string, unknown> {
   const out = Object.fromEntries(Object.entries(m).filter(([k]) => !IMPLEMENTATION_KEYS.has(k)));
   if (m.status === "rejected") out.rejected = true;
-  else delete out.rejectionReason;
+  else {
+    delete out.rejectionReason;
+    delete out.rejectedByTicket;
+  }
   return out;
 }
 

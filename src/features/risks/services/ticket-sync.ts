@@ -7,7 +7,8 @@
 //     analyst set (verified, rejected, …) stays.
 //   - mapping: to do → open, in progress → in_progress, review → in_review,
 //     done → implemented, done without fix (won't fix / declined / duplicate)
-//     → rejected, with the ticket as the rationale.
+//     → rejected, with the ticket as the rationale (rejectedByTicket — data,
+//     not an English sentence; dropped again when the ticket moves on).
 // Tracker-independent: adapters deliver normalised TicketStates. Pure.
 
 import { ticketStatusOf, type TicketState } from "shared/models/ticket-types";
@@ -31,16 +32,22 @@ export function applyTicketState(
   const ticketStatus = ticketStatusOf(state.category);
   if (mitigation.ticketStatus === ticketStatus) return mitigation;
   const status = STATUS_OF[state.category];
+  const { rejectedByTicket: _previous, ...rest } = mitigation;
   return {
-    ...mitigation,
+    ...rest,
     ticketStatus,
     ticketSyncedAt: now,
     status,
     statusChangedAt: now,
     ...(status === "rejected"
-      ? { rejectionReason: `Ticket ${state.key} closed as ${state.resolution ?? state.raw}` }
+      ? { rejectedByTicket: { key: state.key, resolution: state.resolution ?? state.raw } }
       : {}),
   };
+}
+
+/** Whether a rejected mitigation has its reason — written by the analyst or from the ticket. */
+export function hasRejectionReason(m: Pick<SelectedMitigation, "rejectionReason" | "rejectedByTicket">): boolean {
+  return !!m.rejectionReason?.trim() || !!m.rejectedByTicket;
 }
 
 /** All mitigations of a risk; the same array when nothing changes. */

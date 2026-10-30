@@ -428,6 +428,7 @@
         "referencePlaceholder": "Ticket-ID, PR-Link, Jira/ADO-Referenz...",
         "noMitigations": "Keine Massnahmen ausgewählt. Öffnen Sie den Risiko-Dialog, um Massnahmen auszuwählen.",
         "rejectionReason": "Begründung*",
+        "rejectedByTicket": "Ticket {{key}} geschlossen als {{resolution}}",
         "rejectionPlaceholder": "Begründung, warum diese Massnahme nicht umgesetzt wird...",
         "rejectionRequired": "Für Audit erforderlich",
         "verifications": "Verifikationen (zur Testreferenz)"

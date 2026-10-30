@@ -74,6 +74,9 @@ describe("implementation progress is not analysis content (review 2026-10-30)", 
     expect(rejected).not.toBe(base);
     expect(verificationStateHash(withMitigation({ status: "rejected", rejectionReason: "other" }))).not.toBe(rejected);
     expect(verificationStateHash(withMitigation({ status: "open", rejectionReason: "stale" }))).toBe(base);
+    const byTicket = { key: "SEC-1", resolution: "Won't Fix" };
+    expect(verificationStateHash(withMitigation({ status: "rejected", rejectedByTicket: byTicket }))).not.toBe(base);
+    expect(verificationStateHash(withMitigation({ status: "open", rejectedByTicket: byTicket }))).toBe(base);
     expect(verificationStateHash(withMitigation({ id: "M-S-002", status: "open" }))).not.toBe(base);
   });
 });

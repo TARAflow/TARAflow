@@ -9,6 +9,7 @@ import {
   issueTracker,
   normalizeTrackerHost,
   trackerAccount,
+  type IssueTrackerDescriptor,
   type IssueTrackerId,
 } from "shared/models/issue-trackers";
 import { adapterFor } from "../adapters/create-ticket-adapter";
@@ -23,27 +24,46 @@ export interface ConnectInput {
   secret: string;
 }
 
+/** Why the test did not start — the UI shows integration.error.<code> (labels in the UI language). */
+export type ConnectFailure = "unavailable" | "hostNotHttps" | "userRequired" | "secretRequired" | "keychain";
+
 export type ConnectResult =
   | (ConnectionTestOutcome & { ref: TrackerRef; credentials: TrackerCredentials })
-  | { success: false; message: string; projects: [] };
+  | { success: false; message: string; code?: ConnectFailure; projects: [] };
 
-const fail = (message: string): ConnectResult => ({ success: false, message, projects: [] });
+/** English default of each failure; {{host}} / {{user}} / {{secret}} are the form labels. */
+export const CONNECT_FAILURE_TEXT: Record<ConnectFailure, string> = {
+  unavailable: "This tracker is not available yet.",
+  hostNotHttps: "{{host}} must be an https address.",
+  userRequired: "{{user}} is required.",
+  secretRequired: "{{secret}} is required.",
+  keychain: "The token could not be stored in the OS keychain (desktop app required).",
+};
+
+/** `message` is the English text with the tracker's English labels; the UI translates by `code`. */
+const fail = (code: ConnectFailure, tracker?: IssueTrackerDescriptor): ConnectResult => ({
+  success: false,
+  code,
+  message: CONNECT_FAILURE_TEXT[code]
+    .replace("{{host}}", tracker?.hostLabel ?? "")
+    .replace("{{user}}", tracker?.userField?.label ?? "User")
+    .replace("{{secret}}", tracker?.secretLabel ?? ""),
+  projects: [],
+});
 
 export async function connectTracker(input: ConnectInput): Promise<ConnectResult> {
   const tracker = issueTracker(input.tool);
-  if (!tracker?.available) return fail("This tracker is not available yet.");
+  if (!tracker?.available) return fail("unavailable");
   const host = normalizeTrackerHost(input.host);
-  if (!host) return fail(`${tracker.hostLabel} must be an https address.`);
+  if (!host) return fail("hostNotHttps", tracker);
   const account = trackerAccount(tracker, input.user);
-  if (!account) return fail(`${tracker.userField?.label ?? "User"} is required.`);
-  if (!input.secret.trim()) return fail(`${tracker.secretLabel} is required.`);
+  if (!account) return fail("userRequired", tracker);
+  if (!input.secret.trim()) return fail("secretRequired", tracker);
 
   const ref: TrackerRef = { tool: tracker.id as IssueTrackerId, host, account };
   const adapter = adapterFor(ref);
-  if (!adapter) return fail("This tracker is not available yet.");
-  if (!(await saveTrackerToken(ref, input.secret.trim()))) {
-    return fail("The token could not be stored in the OS keychain (desktop app required).");
-  }
+  if (!adapter) return fail("unavailable");
+  if (!(await saveTrackerToken(ref, input.secret.trim()))) return fail("keychain");
   const outcome = await adapter.testConnection();
   if (!outcome.success) {
     await deleteTrackerToken(ref);

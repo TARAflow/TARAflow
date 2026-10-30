@@ -912,6 +912,36 @@
     "test": "Test connection",
     "disconnect": "Disconnect",
     "project": "Project",
-    "projectHint": "Run the connection test again to choose another project."
+    "projectHint": "Run the connection test again to choose another project.",
+    "host": {
+      "jira": "Jira URL",
+      "jira-server": "Jira URL",
+      "azure-devops": "Organization URL",
+      "github": "API URL",
+      "gitlab": "GitLab URL",
+      "polarion": "Polarion URL",
+      "openproject": "OpenProject URL"
+    },
+    "user": {
+      "email": "E-mail",
+      "username": "User"
+    },
+    "secret": {
+      "jira": "API token",
+      "jira-server": "Personal access token",
+      "azure-devops": "Personal access token",
+      "github": "Personal access token",
+      "gitlab": "Personal access token",
+      "polarion": "Personal access token",
+      "openproject": "API key"
+    },
+    "error": {
+      "unavailable": "This tracker is not available yet.",
+      "hostNotHttps": "{{host}} must be an https address.",
+      "userRequired": "{{user}} is required.",
+      "secretRequired": "{{secret}} is required.",
+      "keychain": "The token could not be stored in the OS keychain (desktop app required)."
+    },
+    "issueCount": "{{count}} issues"
   }
 }

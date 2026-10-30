@@ -24,6 +24,11 @@ export type TrackerAuthScheme =
   | "bearer" // Bearer token — Jira Server / DC, GitHub, Polarion
   | "private-token"; // PRIVATE-TOKEN: token — GitLab
 
+/**
+ * A tracker's description. The labels are the English defaults; the UI shows
+ * them through i18n (integration.host.<id>, integration.user.<kind>,
+ * integration.secret.<id> — features/integration/services/tracker-labels.ts).
+ */
 export interface IssueTrackerDescriptor {
   id: IssueTrackerId;
   label: string;

@@ -9,6 +9,7 @@
 import { describe, it, expect } from "vitest";
 import {
   applyTicketState,
+  hasRejectionReason,
   applyTicketStates,
   applyTicketStatesToRisks,
   linkedTicketKeys,
@@ -54,12 +55,18 @@ describe("applyTicketState", () => {
     expect(applyTicketState(rejected, st("todo"), NOW)).toBe(rejected);
   });
 
-  it("won't fix → rejected with the ticket as the reason; review → in_review", () => {
-    expect(applyTicketState(m({ ticketStatus: "IN_PROGRESS" }), st("done_without_fix", { raw: "Closed", resolution: "Won't Fix" }), NOW)).toMatchObject({
+  it("won't fix → rejected with the ticket as the reason (data, no English text); review → in_review", () => {
+    const rejected = applyTicketState(m({ ticketStatus: "IN_PROGRESS" }), st("done_without_fix", { raw: "Closed", resolution: "Won't Fix" }), NOW);
+    expect(rejected).toMatchObject({
       status: "rejected",
       ticketStatus: "DECLINED",
-      rejectionReason: "Ticket SCRUM-1 closed as Won't Fix",
+      rejectedByTicket: { key: "SCRUM-1", resolution: "Won't Fix" },
     });
+    expect(rejected.rejectionReason).toBeUndefined();
+    expect(hasRejectionReason(rejected)).toBe(true);
+    const reopened = applyTicketState(rejected, st("todo"), NOW);
+    expect(reopened).toMatchObject({ status: "open" });
+    expect(reopened.rejectedByTicket).toBeUndefined();
     expect(applyTicketState(m({ ticketStatus: "IN_PROGRESS" }), st("review"), NOW)).toMatchObject({ status: "in_review", ticketStatus: "REVIEW" });
   });
 

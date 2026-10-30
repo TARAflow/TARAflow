@@ -26,7 +26,8 @@ import {
   type IntegrationTabProps,
   type TrackerProject,
 } from "../models/integration-types";
-import { connectTracker } from "../services/connect-tracker";
+import { CONNECT_FAILURE_TEXT, connectTracker } from "../services/connect-tracker";
+import { trackerLabels } from "../services/tracker-labels";
 import { trackerRefOf } from "../adapters/create-ticket-adapter";
 import { deleteTrackerToken, hasTrackerToken } from "../adapters/tracker-channel";
 import { TrackerProjectCards } from "./tracker-project-cards";
@@ -36,6 +37,7 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
   const connection = data.integration?.connection ?? null;
   const [toolId, setToolId] = useState<string>(connection?.tool ?? "jira");
   const tracker = issueTracker(toolId) ?? ISSUE_TRACKERS[0];
+  const labels = trackerLabels(tracker, t);
   const [host, setHost] = useState(connection?.credentials?.baseUrl ?? tracker.defaultHost ?? "");
   const [user, setUser] = useState(connection?.credentials?.email ?? "");
   const [secret, setSecret] = useState(""); // never prefilled — the token stays in the keychain
@@ -69,7 +71,13 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
     setResult(null);
     const outcome = await connectTracker({ tool: tracker.id, host, user, secret });
     setTesting(false);
-    setResult({ success: outcome.success, message: outcome.message });
+    const code = !outcome.success && "code" in outcome ? outcome.code : undefined;
+    setResult({
+      success: outcome.success,
+      message: code
+        ? t(`integration.error.${code}`, { defaultValue: CONNECT_FAILURE_TEXT[code], ...labels })
+        : outcome.message,
+    });
     if (!outcome.success || !("credentials" in outcome)) return;
     setSecret("");
     setProjects(outcome.projects);
@@ -163,7 +171,7 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
             ))}
           </TextField>
           <TextField
-            label={tracker.hostLabel}
+            label={labels.host}
             value={host}
             placeholder="https://…"
             onChange={(e) => setHost(e.target.value)}
@@ -171,7 +179,7 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
           />
           {tracker.userField && (
             <TextField
-              label={tracker.userField.label}
+              label={labels.user}
               type={tracker.userField.kind === "email" ? "email" : "text"}
               value={user}
               onChange={(e) => setUser(e.target.value)}
@@ -179,7 +187,7 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
             />
           )}
           <TextField
-            label={tracker.secretLabel}
+            label={labels.secret}
             type="password"
             value={secret}
             autoComplete="off"
