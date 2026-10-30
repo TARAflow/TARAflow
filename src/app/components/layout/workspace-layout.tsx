@@ -45,7 +45,7 @@ import { useProjectContext } from "../../contexts/project-context";
 
 import { PhaseTabs } from "../navigation/phase-tab-bar";
 
-import { GeneralTab } from "features/overview";
+import { GeneralTab, verificationStatusText } from "features/overview";
 import type { GeneralTabData } from "features/overview";
 
 import {
@@ -1025,10 +1025,13 @@ export const WorkspaceLayout: React.FC = () => {
                 ? hazardValidator.validate(activeProject.hazards, memoizedAssetDataRef?.assets)
                 : null,
             threatDrift: threatDriftCounts,
+            verification: memoizedVerificationStatus
+              ? { kind: memoizedVerificationStatus.kind, text: verificationStatusText(memoizedVerificationStatus, t) }
+              : undefined,
             t,
           })
         : null,
-    [activeProject, dfdSavedValidation, threatDriftCounts, memoizedAssetDataRef, t],
+    [activeProject, dfdSavedValidation, threatDriftCounts, memoizedAssetDataRef, memoizedVerificationStatus, t],
   );
 
   // ── Control instances + security drift ───────────────────────────────────

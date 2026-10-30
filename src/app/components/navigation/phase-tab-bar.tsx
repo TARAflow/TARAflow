@@ -74,11 +74,12 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
     );
   }, [safetyRelevant]);
 
-  // Badges on the tabs: the Hazard validation (user 2026-10-30), the DFD's
+  // Badges on the tabs: General (missing project information, the TARA
+  // verification under ISO/SAE 21434), the Hazard validation (user 2026-10-30), the DFD's
   // current validation and the threat generation drift; the tooltip of every
   // tab says what is behind its status (phase indicators — the same lines the
   // Overview's phase cards show).
-  const BADGE_PHASES: readonly number[] = [PhaseId.Hazard, PhaseId.DFD, PhaseId.Threats];
+  const BADGE_PHASES: readonly number[] = [PhaseId.General, PhaseId.Hazard, PhaseId.DFD, PhaseId.Threats];
   const getPhaseValidationCounts = (phaseId: number) => {
     const hints = indicators?.details[phaseId];
     if (BADGE_PHASES.includes(phaseId)) {

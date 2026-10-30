@@ -85,4 +85,16 @@ describe("phase indicators", () => {
     expect(details[PhaseId.Hazard]).toHaveLength(MAX_DETAILS + 1);
     expect(details[PhaseId.Hazard].at(-1)).toBe("… 2 more");
   });
+
+  it("ISO/SAE 21434: the TARA verification counts on the General phase — open a warning, failed an error, verified nothing (user 2026-10-30)", () => {
+    const base = { phaseStatus: stored, info, dfdValidation: null, t };
+    const open = phaseIndicators({ ...base, verification: { kind: "none", text: "Not verified yet — record the verification in the Audit tab." } });
+    expect(open.counts[PhaseId.General]).toEqual({ errors: 0, warnings: 1 });
+    expect(open.details[PhaseId.General]).toEqual(["Not verified yet — record the verification in the Audit tab."]);
+    expect(open.status[PhaseId.General]).toBe("complete"); // the phase status stays the project information's
+    expect(phaseIndicators({ ...base, verification: { kind: "failed", text: "did not pass" } }).counts[PhaseId.General]).toEqual({ errors: 1, warnings: 0 });
+    const ok = phaseIndicators({ ...base, verification: { kind: "verified", text: "Verified" } });
+    expect(ok.counts[PhaseId.General]).toEqual({ errors: 0, warnings: 0 });
+    expect(ok.details[PhaseId.General]).toBeUndefined();
+  });
 });

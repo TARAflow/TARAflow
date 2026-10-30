@@ -42,6 +42,12 @@ export interface PhaseIndicatorInput {
   hazardValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   /** Stored threats the current rules would no longer / additionally generate. */
   threatDrift?: { obsolete: number; added: number };
+  /**
+   * TARA verification (iso-21434 only): its kind and the Overview's status
+   * text. Counted on the General phase, where the status line lives — not
+   * verified / changed / reconfirm / outdated a warning, failed an error.
+   */
+  verification?: { kind: "verified" | "changed" | "reconfirm" | "outdated" | "failed" | "none"; text: string };
   t: Translate;
 }
 
@@ -74,17 +80,26 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
   const counts: Record<number, PhaseCounts> = {};
   const details: Record<number, string[]> = {};
 
-  // General: the required project information still missing.
+  // General: the required project information still missing, and the TARA
+  // verification (ISO/SAE 21434; user 2026-10-30) — its status lives here.
   const missing = missingGeneralFields(input.info);
-  counts[PhaseId.General] = { errors: 0, warnings: missing.length };
+  const general: string[] = [];
   if (missing.length > 0) {
-    details[PhaseId.General] = [
+    general.push(
       t("phases.details.missing", {
         fields: missing.map((f) => t(`phases.details.field.${f}`, { defaultValue: FIELD_FALLBACK[f] })).join(", "),
         defaultValue: "Missing: {{fields}}",
       }),
-    ];
+    );
   }
+  const verificationOpen = !!input.verification && input.verification.kind !== "verified";
+  const verificationFailed = input.verification?.kind === "failed";
+  if (verificationOpen) general.push(input.verification!.text);
+  counts[PhaseId.General] = {
+    errors: verificationFailed ? 1 : 0,
+    warnings: missing.length + (verificationOpen && !verificationFailed ? 1 : 0),
+  };
+  if (general.length > 0) details[PhaseId.General] = general;
 
   // Hazard: the Hazard tab's validation messages.
   if (input.hazardValidation) {
