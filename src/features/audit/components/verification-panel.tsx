@@ -139,7 +139,7 @@ export const VerificationPanel: React.FC<VerificationPanelProps> = ({
                   </Typography>
                   <Typography variant="body2">{e.reviewer}</Typography>
                   <Chip size="small" color={RESULT_COLOR[e.result]} label={resultLabel(e.result)} />
-                  {(e.hashVersion ?? 1) !== VERIFICATION_HASH_VERSION ? (
+                  {(e.hashVersion ?? 1) !== VERIFICATION_HASH_VERSION || e.reconfirm ? (
                     <Chip size="small" variant="outlined" color="warning" label={t("audit.verification.stateReconfirm", { defaultValue: "confirm again" })} data-testid="verification-state-reconfirm" />
                   ) : e.stateHash === currentStateHash ? (
                     <Chip size="small" variant="outlined" color="success" label={t("audit.verification.stateCurrent", { defaultValue: "state unchanged" })} />

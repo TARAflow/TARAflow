@@ -57,7 +57,7 @@ export function verificationStatusSentence(v: DocVerification, t: TranslateFn): 
       return fill(
         t(
           "verificationStatus.reconfirm",
-          "The verification on {{date}} was recorded with an earlier TARAflow version — confirm it again in the Audit tab.",
+          "The verification on {{date}} cannot vouch for the current state — recorded with an earlier TARAflow version, or the file was converted on loading. Confirm it again in the Audit tab.",
         ),
         values,
       );

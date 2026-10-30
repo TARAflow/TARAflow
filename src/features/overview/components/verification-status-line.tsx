@@ -24,7 +24,7 @@ export function verificationStatusText(
       });
     case "reconfirm":
       return t("verificationStatus.reconfirm", {
-        defaultValue: "The verification on {{date}} was recorded with an earlier TARAflow version — confirm it again in the Audit tab.",
+        defaultValue: "The verification on {{date}} cannot vouch for the current state — recorded with an earlier TARAflow version, or the file was converted on loading. Confirm it again in the Audit tab.",
         date,
       });
     case "outdated":

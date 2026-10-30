@@ -17,13 +17,17 @@
 //
 // Hash version: VERIFICATION_HASH_VERSION (shared). An entry made with another
 // version cannot be compared and asks to be confirmed again ("reconfirm").
-// Migrations keep verifications valid: loading re-seals an entry whose hash
-// matched the file as read (resealVerifications, migration-service).
+// Loading (carryVerifications, migration-service): an entry whose hash
+// matched the file as read is re-sealed only when every schema migration
+// that ran is declared analysis-preserving and the repair changed nothing
+// the hash covers; otherwise it asks to be confirmed again (entry.reconfirm).
+// A conversion is never trusted silently (review 2026-10-30).
 //
 // Status (shown in the Overview and the document, only under iso-21434):
 //   verified    latest entry passed (with or without conditions), state unchanged
 //   changed     the content differs from the latest entry's state
-//   reconfirm   the latest entry was hashed by another hash version
+//   reconfirm   the latest entry was hashed by another hash version, or the
+//               file was converted on load (migration / repair)
 //   outdated    the latest entry is older than N days (default 90)
 //   failed      the latest entry did not pass
 //   none        no entry yet
@@ -149,7 +153,7 @@ export function verificationStatus(
   const ageDays = Math.max(0, days(latest.date, asOf));
   const base = { latest, ageDays, maxAgeDays };
   if (latest.result === "failed") return { kind: "failed", ...base };
-  if (!sameHashVersion(latest)) return { kind: "reconfirm", ...base };
+  if (!sameHashVersion(latest) || latest.reconfirm) return { kind: "reconfirm", ...base };
   if (latest.stateHash !== currentHash) return { kind: "changed", ...base };
   if (ageDays > maxAgeDays) return { kind: "outdated", ...base };
   return { kind: "verified", ...base };
@@ -174,22 +178,48 @@ export function docVerificationOf(
   return { kind: status.kind, ...(status.latest ? { latest: status.latest } : {}), maxAgeDays: status.maxAgeDays, asOf };
 }
 
+/** The analysis hash at the three steps of loading a file. */
+export interface LoadHashes {
+  /** The file as read. */
+  read: string;
+  /** After the legacy and schema migrations. */
+  migrated: string;
+  /** After validation and repair — the loaded project. */
+  loaded: string;
+}
+
 /**
- * Loading keeps verifications valid across migrations and repairs: an entry
- * whose hash matched the file as read (`before`, hashed before any migration)
- * is re-sealed with the hash of the loaded project. Entries that did not match
- * stay as they are. Returns the project (a copy when something changed).
+ * Carry the verifications of a file over its conversion on load. Entries
+ * whose hash matched the file as read:
+ *   - nothing changed (loaded = read)          → stay as they are;
+ *   - the migrations changed the content and every one of them is declared
+ *     analysis-preserving, the repair changed nothing (loaded = migrated)
+ *                                              → re-sealed with the loaded hash;
+ *   - otherwise                                → reconfirm ("migration" when
+ *     the migrations changed it, else "repair").
+ * Entries that did not match stay as they are. Returns the project (a copy
+ * when something changed).
  */
-export function resealVerifications<P extends Partial<Project>>(project: P, before: string): P {
+export function carryVerifications<P extends Partial<Project>>(
+  project: P,
+  hashes: LoadHashes,
+  migrationsPreserveAnalysis: boolean,
+): P {
   const entries = project.cybersecurityConcept?.verifications;
-  if (!entries?.length) return project;
-  const after = verificationStateHash(project);
-  if (after === before || !entries.some((e) => sameHashVersion(e) && e.stateHash === before)) return project;
+  if (!entries?.length || hashes.loaded === hashes.read) return project;
+  const matches = (e: VerificationEntry) => sameHashVersion(e) && e.stateHash === hashes.read;
+  if (!entries.some(matches)) return project;
+  const migrationChanged = hashes.migrated !== hashes.read;
+  const repairChanged = hashes.loaded !== hashes.migrated;
+  const reseal = migrationChanged && migrationsPreserveAnalysis && !repairChanged;
+  const reason: VerificationEntry["reconfirm"] = migrationChanged && !migrationsPreserveAnalysis ? "migration" : "repair";
   return {
     ...project,
     cybersecurityConcept: {
       ...project.cybersecurityConcept!,
-      verifications: entries.map((e) => (sameHashVersion(e) && e.stateHash === before ? { ...e, stateHash: after } : e)),
+      verifications: entries.map((e) =>
+        !matches(e) ? e : reseal ? { ...e, stateHash: hashes.loaded } : { ...e, reconfirm: reason },
+      ),
     },
   };
 }

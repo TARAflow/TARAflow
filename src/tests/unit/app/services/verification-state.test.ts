@@ -6,8 +6,8 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
-import { resealVerifications, verificationStateHash, verificationStatus } from "app/services/verification-state";
-import { parseAndRepairWithMetadata } from "app/services/migration-service";
+import { carryVerifications, verificationStateHash, verificationStatus } from "app/services/verification-state";
+import { ANALYSIS_PRESERVING_MIGRATIONS, parseAndRepairWithMetadata } from "app/services/migration-service";
 import { VERIFICATION_HASH_VERSION, type VerificationEntry } from "shared";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,8 +81,41 @@ describe("implementation progress is not analysis content (review 2026-10-30)", 
   });
 });
 
-describe("re-sealing on load", () => {
-  it("a verification of the file as read stays verified after the migration", () => {
+describe("carrying verifications over loading (review 2026-10-30)", () => {
+  const entry = (stateHash: string): Any => ({ id: stateHash, date: "2026-10-01", reviewer: "A", scope: ["tara"], result: "passed", stateHash });
+  const withEntries = (...e: Any[]): Any => ({ ...project(), cybersecurityConcept: { goals: [], claims: [], verifications: e } });
+
+  it("nothing changed: the entries stay as they are", () => {
+    const p = withEntries(entry("r"));
+    expect(carryVerifications(p, { read: "r", migrated: "r", loaded: "r" }, false)).toBe(p);
+  });
+
+  it("migrations declared analysis-preserving, repair changed nothing: re-sealed", () => {
+    const out: Any = carryVerifications(withEntries(entry("r")), { read: "r", migrated: "m", loaded: "m" }, true);
+    expect(out.cybersecurityConcept.verifications[0]).toMatchObject({ stateHash: "m" });
+    expect(out.cybersecurityConcept.verifications[0].reconfirm).toBeUndefined();
+  });
+
+  it("a migration not declared preserving: confirm again, never silently verified", () => {
+    const out: Any = carryVerifications(withEntries(entry("r")), { read: "r", migrated: "m", loaded: "m" }, false);
+    expect(out.cybersecurityConcept.verifications[0]).toMatchObject({ stateHash: "r", reconfirm: "migration" });
+    expect(verificationStatus(out.cybersecurityConcept.verifications, "m", "2026-10-30").kind).toBe("reconfirm");
+  });
+
+  it("the repair changed the content: confirm again, even after preserving migrations", () => {
+    const out: Any = carryVerifications(withEntries(entry("r")), { read: "r", migrated: "m", loaded: "x" }, true);
+    expect(out.cybersecurityConcept.verifications[0]).toMatchObject({ reconfirm: "repair" });
+    const repairOnly: Any = carryVerifications(withEntries(entry("r")), { read: "r", migrated: "r", loaded: "x" }, true);
+    expect(repairOnly.cybersecurityConcept.verifications[0]).toMatchObject({ reconfirm: "repair" });
+  });
+
+  it("an entry that did not match the file as read is left alone", () => {
+    const p = withEntries(entry("other"));
+    expect(carryVerifications(p, { read: "r", migrated: "m", loaded: "m" }, false)).toBe(p);
+  });
+
+  it("loading a migrated file: no migration is declared preserving yet, so the verification asks to be confirmed again", () => {
+    expect(ANALYSIS_PRESERVING_MIGRATIONS.size).toBe(0);
     const raw: Any = JSON.parse(readFileSync("src/tests/fixtures/headlamp-iso21434.tara.json", "utf-8"));
     const readHash = verificationStateHash(JSON.parse(JSON.stringify(raw)));
     raw.cybersecurityConcept = {
@@ -90,21 +123,69 @@ describe("re-sealing on load", () => {
       claims: [],
       verifications: [
         { id: "v1", date: "2026-10-01", reviewer: "A", scope: ["tara"], result: "passed", stateHash: readHash, hashVersion: VERIFICATION_HASH_VERSION },
-        { id: "v0", date: "2026-09-01", reviewer: "A", scope: ["tara"], result: "passed", stateHash: "000000000000" },
       ],
     };
     const { project: loaded, migrated }: Any = parseAndRepairWithMetadata(raw);
     expect(migrated).toBe(true);
     const now = verificationStateHash(loaded);
-    expect(now).not.toBe(readHash); // the migration changed the content's form
-    expect(loaded.cybersecurityConcept.verifications.map((v: Any) => v.stateHash)).toEqual([now, "000000000000"]);
-    expect(verificationStatus(loaded.cybersecurityConcept.verifications, now, "2026-10-30").kind).toBe("verified");
+    expect(now).not.toBe(readHash);
+    expect(loaded.cybersecurityConcept.verifications[0]).toMatchObject({ stateHash: readHash, reconfirm: "migration" });
+    expect(verificationStatus(loaded.cybersecurityConcept.verifications, now, "2026-10-30").kind).toBe("reconfirm");
+  });
+});
+
+describe("fixed reference hash (review 2026-10-30)", () => {
+  // Every part the hash covers, written out. If this fails, what the hash
+  // covers (or how it is computed) changed: raise VERIFICATION_HASH_VERSION
+  // in shared/models/cybersecurity-concept-types.ts and add the new hash
+  // here — existing verifications then ask to be confirmed again instead of
+  // reading "changed" (or, worse, "verified").
+  const REFERENCE_HASH: Record<number, string> = { 1: "d75622ac4e88" };
+  const reference = (): Any => ({
+    info: { name: "Ref", description: "Detects smoke", lastModified: "t0", created: "t0" },
+    itemDefinition: {
+      sections: { purpose: { text: "Alarm on smoke" } },
+      functions: [{ id: "f1", name: "Detect" }],
+      assumptions: [{ id: "a1", displayId: "ASM-01", text: "Mounted indoors", status: "open" }],
+    },
+    hazards: { hazards: [{ id: "h1", label: "Fire undetected" }], relations: [] },
+    dfd: {
+      xml: "<mxGraphModel/>",
+      thumbnail: "png",
+      graph: { cached: true },
+      validation: { errors: [] },
+      elements: [{ id: "p1", displayId: "P-1", name: "Controller", type: "Process", properties: { runsAs: "user" } }],
+      connections: [{ id: "f1", displayId: "DF-1", from: "p1", to: "p1", name: "loop", properties: {} }],
+      pages: [{ id: "page-1", name: "Context" }],
+    },
+    assets: { assets: [{ id: "DA-001", name: "Alarm", assetGroup: "data", properties: { protectionNeed: "high" } }] },
+    threats: { perElementTables: [{ threats: [{ id: "t1", displayId: "P1-S-1", proposedMitigations: [{ id: "M-S-001" }] }] }], perInteractionTables: [] },
+    attackTrees: { trees: [{ id: "at1", title: "Silence the alarm", dsl: "Root;ROOT\n\tCut;p=0.5,i=3 [M-S-001]" }] },
+    risks: {
+      configuration: { scale: "4-level" },
+      risks: [
+        {
+          id: "R-1",
+          treatment: "reduce",
+          calcStamp: { method: "x" },
+          selectedMitigations: [
+            { id: "M-S-001", notes: "n", status: "implemented", ticketId: "SEC-1", ticketStatus: "done", evidenceRef: "E" },
+            { id: "M-S-002", status: "rejected", rejectionReason: "not needed" },
+          ],
+        },
+      ],
+    },
+    cybersecurityConcept: {
+      goals: [{ id: "g1", displayId: "CSG-01", statement: "Protect", riskIds: ["R-1"], assetProperties: [] }],
+      claims: [{ id: "c1", displayId: "CLM-01", statement: "Retained", kind: "retain", riskIds: [], assumptionIds: ["a1"] }],
+      verifications: [{ id: "v1", stateHash: "ignored" }],
+      goalSeq: 1,
+    },
   });
 
-  it("an entry that did not match the file as read is left alone", () => {
-    const p = project();
-    p.cybersecurityConcept.verifications = [{ id: "v1", stateHash: "other" }];
-    expect(resealVerifications(p, "read")).toBe(p);
+  it("the reference project hashes to the value recorded for the current hash version", () => {
+    expect(REFERENCE_HASH[VERIFICATION_HASH_VERSION]).toBeDefined();
+    expect(verificationStateHash(reference())).toBe(REFERENCE_HASH[VERIFICATION_HASH_VERSION]);
   });
 });
 
@@ -128,6 +209,10 @@ describe("verification status", () => {
     expect(
       verificationStatus([entry("2026-10-20", "failed"), entry("2026-10-01", "passed")], "h1", "2026-10-29"),
     ).toMatchObject({ kind: "failed", latest: { date: "2026-10-20" } });
+  });
+
+  it("an entry marked on load asks to be confirmed again", () => {
+    expect(verificationStatus([{ ...entry("2026-10-01", "passed"), reconfirm: "repair" }], "h1", "2026-10-29").kind).toBe("reconfirm");
   });
 
   it("an entry hashed by another hash version asks to be confirmed again", () => {

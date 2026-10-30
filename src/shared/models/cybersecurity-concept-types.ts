@@ -79,6 +79,13 @@ export interface VerificationEntry {
    * different version cannot be compared: the entry asks to be confirmed again.
    */
   hashVersion?: number;
+  /**
+   * Set on load when the file was converted in a way not declared to keep
+   * the analysis content (a schema migration not marked as preserving, a
+   * repair): the entry cannot vouch for the converted state and asks to be
+   * confirmed again.
+   */
+  reconfirm?: "migration" | "repair";
   /** Project version at the review. */
   projectVersion?: string;
   /** The audit commit that fixed this entry, once committed. */
