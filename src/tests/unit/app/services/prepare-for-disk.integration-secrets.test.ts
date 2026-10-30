@@ -55,15 +55,27 @@ const jira = {
 describe("prepareForDisk — integration secrets", () => {
   it("removes the Jira token and OAuth tokens, keeps the connection", () => {
     const out = prepareForDisk(project(jira)).integration!;
+    // e-mail and account id are personal (local-user-settings, 2026-10-30).
     expect(out.connection?.credentials).toEqual({
       authMethod: "pat",
       baseUrl: "https://example.atlassian.net/",
-      email: "someone@example.com",
-      accountId: "acc-1",
       projectKey: "SCRUM",
     });
     expect(out.mapping).toEqual(jira.mapping);
     expect(out.connection?.projectName).toBe("SCRUM");
+  });
+
+  it("keeps only what the team shares: no account, no connection state, no last sync", () => {
+    const out = prepareForDisk(project({ ...jira, lastSync: "2026-10-01T10:00:00Z" })).integration!;
+    expect(out.connection).toEqual({
+      tool: "jira",
+      credentials: { authMethod: "pat", baseUrl: "https://example.atlassian.net/", projectKey: "SCRUM" },
+      projectName: "SCRUM",
+    });
+    expect(out).not.toHaveProperty("lastSync");
+    const text = serialiseProject(project(jira));
+    expect(text).not.toContain("someone@example.com");
+    expect(text).not.toContain("acc-1");
   });
 
   it("removes the ADO PAT", () => {

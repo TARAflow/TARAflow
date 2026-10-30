@@ -77,6 +77,11 @@ import { buildMethodologySummary } from "app/utils/build-methodology-summary";
 import { buildVerificationChecklist } from "app/utils/build-verification-checklist";
 import { notifyProjectMitigations, setProjectMitigations } from "shared/services/project-mitigation-registry";
 import { verificationStateHash, verificationStatus } from "app/services/verification-state";
+import {
+  rememberLocalSettings,
+  withLocalAudit,
+  withLocalIntegration,
+} from "app/services/local-user-settings";
 import { phaseIndicators } from "app/utils/phase-indicators";
 import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
@@ -578,9 +583,32 @@ export const WorkspaceLayout: React.FC = () => {
     [updateProject],
   );
 
+  // Personal values (commit author, tracker account and connection state) live
+  // on this machine, not in the file (local-user-settings, user 2026-10-30):
+  // the tabs see the project's blocks with them filled in. A file written
+  // before keeps its values until the next save — adopted once on opening.
+  const activeProjectId = activeProject?.id;
+  const activeAudit = activeProject?.audit ?? null;
+  const activeIntegration = activeProject?.integration ?? null;
+  useEffect(() => {
+    if (activeProjectId) {
+      rememberLocalSettings(activeProjectId, activeAudit, activeIntegration, { onlyMissing: true });
+    }
+    // Once per opened project — later edits go through the update handlers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
+  const localAudit = useMemo(
+    () => (activeProjectId ? withLocalAudit(activeProjectId, activeAudit) : activeAudit),
+    [activeProjectId, activeAudit],
+  );
+  const localIntegration = useMemo(
+    () => (activeProjectId ? withLocalIntegration(activeProjectId, activeIntegration) : activeIntegration),
+    [activeProjectId, activeIntegration],
+  );
+
   // The issue tracker's adapter for the Risk tab (adapters design §4.3) —
   // derived from the stored connection; the main process holds the token.
-  const integrationConnection = activeProject?.integration?.connection ?? null;
+  const integrationConnection = localIntegration?.connection ?? null;
   const ticketPort = useMemo(() => createTicketAdapter(integrationConnection), [integrationConnection]);
 
   // Project mitigations M-C-nnn (custom mitigation catalog CM-3): usage and
@@ -649,6 +677,7 @@ export const WorkspaceLayout: React.FC = () => {
     (updates: AuditUpdateResult) => {
       const current = activeProjectRef.current;
       if (!current) return;
+      rememberLocalSettings(current.id, updates.audit, null);
       updateProject({
         id: current.id,
         audit: updates.audit,
@@ -688,6 +717,7 @@ export const WorkspaceLayout: React.FC = () => {
     (data: IntegrationTabData) => {
       const current = activeProjectRef.current;
       if (!current) return;
+      rememberLocalSettings(current.id, null, data.integration);
       updateProject({
         id: current.id,
         integration: data.integration,
@@ -1426,19 +1456,14 @@ export const WorkspaceLayout: React.FC = () => {
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               dfdTableGroups: memoizedTableGroups,
-              integration: activeProject.integration
+              integration: localIntegration
                 ? {
                     connection: {
-                      tool:
-                        activeProject.integration.connection?.tool ?? "jira",
-                      status:
-                        activeProject.integration.connection?.status ??
-                        "disconnected",
-                      projectName:
-                        activeProject.integration.connection?.projectName,
-                      issueTypes: activeProject.integration.connection?.issueTypes,
-                      credentials: activeProject.integration.connection
-                        ?.credentials as any,
+                      tool: localIntegration.connection?.tool ?? "jira",
+                      status: localIntegration.connection?.status ?? "disconnected",
+                      projectName: localIntegration.connection?.projectName,
+                      issueTypes: localIntegration.connection?.issueTypes,
+                      credentials: localIntegration.connection?.credentials as any,
                     },
                   }
                 : null,
@@ -1501,7 +1526,7 @@ export const WorkspaceLayout: React.FC = () => {
               id: activeProject.id,
               name: activeProject.info?.name || "",
               filePath: activeProject.filePath,
-              audit: activeProject.audit,
+              audit: localAudit,
               phaseStatus: activeProject.phaseStatus,
               info: activeProject.info,
               hazards: activeProject.hazards,
@@ -1523,7 +1548,7 @@ export const WorkspaceLayout: React.FC = () => {
 
         {activePhase === PhaseId.Integration && (
           <IntegrationTab
-            data={{ integration: activeProject.integration ?? null }}
+            data={{ integration: localIntegration }}
             onUpdate={handleIntegrationUpdate}
           />
         )}
