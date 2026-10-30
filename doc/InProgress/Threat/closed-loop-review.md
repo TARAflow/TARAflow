@@ -68,6 +68,14 @@ Every selected mitigation counts — whatever its status (only `rejected` is ski
    the generator and the closed loop read it — and wrote the WAS record there too, so a
    later revert could never show as drift. Untested until CL-1.
 
+10. **Automotive controls without a DFD effect** (found 2026-10-30 on the Headlamp
+    example): the controls of 0.15.1 (`M-VEH-001` … `-005`) had no
+    `affectsProperties`, so the closed loop never checked them. Effects where the DFD
+    has a matching property: SecOC → flow (channel) `integrityProtection = hmac`,
+    Bluetooth hardening → Interface `linkAuthentication = mutual_pairing`, CAN IDS →
+    Interface `monitoringControl = alerted` (all heuristic). Gateway whitelist and UDS
+    authentication stay without one — the DFD has no property for them.
+
 The user's notification list (2026-10-29) matches findings 1–3, 6 and 7 one to one: 57
 *security* rows, 24 of them again as *Conflict*.
 
@@ -113,6 +121,7 @@ the DFD option lists (finding 7).
 | CL-2 | Status-aware notifications: `ControlInstance.planned` (every mitigation behind it `open` / `in_progress`; `DONE_MITIGATION_STATUSES` = in_review, implemented, verified). The panel shows one row per unmet SHOULD: *drift* (applied, then reverted — warning, any status), *planned* (information: under the Notes / planned chip and the Apply filter, not under All), *conflict* (done, another value — error), *security* (done, missing — warning); planned, conflict and security keep Apply. SmokeDetector: under All 1 notification instead of 81 — DF-10 `encryptionInTransit = custom`, expected `tls`, mitigation marked implemented (the one real inconsistency); 45 planned. | 196 | done |
 | CL-3 | Attack-path risks via the anchor: only asset-anchored trees emit attack-path threats (ISO 3.1.33), so threat id `AT-<treeId>-…` → tree → anchor asset → `linkedDFDElements` (`app/utils/attack-path-control-targets.ts`). An element is offered as the threat's element; a flow both as a flow element (role-less and channel effects) and as the flow with its endpoints (source / target effects); the derivation de-duplicates. Everything reached this way is heuristic. The derivation no longer needs STRIDE threats at all. Headlamp with all proposed mitigations selected (temporary copy): 0 → 6 SHOULD on DF-9, DF-10 and MP-3, all planned; SmokeDetector unchanged (no attack-path risks). | 197 | done |
 | CL-4 | The coverage badge of the risk dialog checks the anchor targets of an attack-path risk too (`ThreatReference.controlTargets`, set by the app; `computeMitigationCoverage` checks every target, de-duplicated) — risk dialog and DFD panel agree. Regression on the SmokeDetector fixture (`closed-loop-regression.int.test.ts`): all 516 threats with their proposed mitigations, alternately planned / done — one instance per element × property × value, every SHOULD a DFD option, no Interface control on an unfitting type, status and drift agree with the shared semantics, counts pinned (266 SHOULD, 49 met, 76 planned only). Re-check with the user's files: SmokeDetector under All 81 → 1 (the one real inconsistency); Headlamp 0 → 6 SHOULD once mitigations are selected. | 198 | done |
+| CL-5 | DFD effects for the automotive controls `M-VEH-001`, `-003`, `-005` (finding 10); catalog test covers them | 208 | done |
 
 The strength tables are proposed in CL-1 for review (properties of finding 3 first).
 

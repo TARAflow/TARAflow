@@ -320,7 +320,14 @@
       },
       "attackVectors": ["adjacent", "physical"],
       "isCustom": false,
-      "affectsProperties": [],
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.monitoringControl",
+          "expectedValue": "alerted",
+          "confidence": "heuristic"
+        }
+      ],
       "verifications": ["V-VEH-003"]
     },
     {
