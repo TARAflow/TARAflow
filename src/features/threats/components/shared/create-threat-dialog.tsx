@@ -466,7 +466,6 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
   // Catalog picks keep their id (custom mitigation catalog design CM-1): text
   // → catalog id. Text typed by the analyst has no entry and stays free text.
   const [catalogIds, setCatalogIds] = useState<Record<string, string>>({});
-  const [mitigationInput, setMitigationInput] = useState("");
   const [verifications, setVerifications] = useState<string[]>([]);
   const [verificationInput, setVerificationInput] = useState("");
 
@@ -586,20 +585,11 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
       setCauseDescription("");
       setMitigations([]);
       setCatalogIds({});
-      setMitigationInput("");
       setVerifications([]);
       setVerificationInput("");
       setPerspective("sender");
     }
   }, [open]);
-
-  const handleAddMitigation = () => {
-    const v = mitigationInput.trim();
-    if (v && !mitigations.includes(v)) {
-      setMitigations((p) => [...p, v]);
-      setMitigationInput("");
-    }
-  };
 
   const handleAddVerification = () => {
     const v = verificationInput.trim();
@@ -1101,33 +1091,8 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
                 />
               </Box>
             )}
-            {/* Add field at bottom */}
-            <Stack direction="row" spacing={1}>
-              <TextField
-                size="small"
-                fullWidth
-                label={t("tabs.threats.createDialog.addMitigation", {
-                  defaultValue: "Add mitigation *",
-                })}
-                value={mitigationInput}
-                onChange={(e) => setMitigationInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddMitigation();
-                  }
-                }}
-              />
-              <IconButton
-                onClick={handleAddMitigation}
-                disabled={
-                  !mitigationInput.trim() ||
-                  mitigations.includes(mitigationInput.trim())
-                }
-              >
-                <AddIcon />
-              </IconButton>
-            </Stack>
+            {/* No free-text mitigation (user 2026-10-30): from the catalog or
+                a new project mitigation, so every mitigation has an id. */}
           </Stack>
         )}
 

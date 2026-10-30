@@ -59,7 +59,9 @@ Side findings for the closed-loop step (not part of this design):
    (`affectsProperties`). Reusable across threats; selected by id, so every id-based path
    (SHOULD / drift, already implemented, coverage, Jira, report) works unchanged. Free
    text stays possible; it is marked "no DFD link — not in the closed loop" and offers
-   **Convert to catalog mitigation**.
+   **Convert to catalog mitigation**. *Revised 2026-10-30 (CM-8): no new free-text
+   mitigation; free text written earlier stays editable and convertible. Free-text
+   verifications stay.*
 2. **Maintained at the threat and in a list.** "New catalog mitigation" in the threat
    dialogs (create and edit); an overview in the threat configuration dialog to edit,
    merge and delete unused entries.
@@ -106,3 +108,4 @@ Further design choices [D] (to confirm in review):
 | CM-5 | Review 2026-10-30: the usage check found `[M-C-001]` only as a lone list — `[M-001,M-C-001]` let a used entry be deleted, and the merge left the reference behind. Both now go through the parser's list reader (`dslMitigationIds`, `replaceDslMitigation` in `attacktree-parser.ts`, the parser uses the same function); comments and node names never count | 210 | done |
 | CM-6 | Review 2026-10-30: a merge where a risk held both entries dropped the merged-away one with its status and ticket. Now the kept entry takes over what only the dropped one has (ticket fields, evidence, rejection reason; notes joined, later status change). Different status, two tickets, two evidence refs, two rejection reasons or scope overrides are a conflict: the list refuses the merge and names the risks (`mergeProjectMitigationConflicts`; the app checks again before merging) [D] | 211 | done |
 | CM-7 | Review 2026-10-30, coupling: the registry and `useMitigationCatalogVersion` move to shared (risks and attack tree imported the hook from threats); one writer — the Threats tab no longer registers ahead of the project round trip; registering no longer notifies during render (the app notifies in an effect). The catalog service derives its lookups from the registry version. The attack-path threat id format stays in the attacktree feature (`isAttackPathThreatOf`, used by the closed-loop targets and the threat sync). Kept as a registry, not passed to every reader (decision in §3) | 213 | done |
+| CM-8 | No new free-text mitigation (user 2026-10-30, revises decision 1): "Add custom mitigation" left the threat dialog an untracked entry next to "New project mitigation". A project mitigation needs only its text (the DFD effect is optional), so it covers the free-text case and is tracked by id (report, tickets, merge, reuse). Both threat dialogs (create and edit) offer catalog entries and "New project mitigation" only; free text written earlier stays editable, linkable and convertible. Free-text verifications stay (no closed loop behind them) | 230 | done |

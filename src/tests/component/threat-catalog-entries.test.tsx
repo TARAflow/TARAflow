@@ -40,7 +40,7 @@ const sOther = getAllMitigations().find(
 )!;
 
 describe("Create threat: catalog picks keep their id", () => {
-  it("stores the picked mitigation and its verifications by id, typed text as notes", () => {
+  it("stores the picked mitigation and its verifications by id; no free-text mitigation field (user 2026-10-30)", () => {
     const onAdd = vi.fn();
     render(
       <CreateThreatDialog
@@ -63,14 +63,12 @@ describe("Create threat: catalog picks keep their id", () => {
     fireEvent.change(screen.getAllByRole("textbox")[0], { target: { value: "No authentication" } });
     fireEvent.click(screen.getAllByRole("tab")[3]);
     fireEvent.click(screen.getByText(getLocalizedMitigation(sMitigation.id)));
-    const add = screen.getByLabelText(/Add mitigation/);
-    fireEvent.change(add, { target: { value: "Operator badge check" } });
-    fireEvent.keyDown(add, { key: "Enter" });
+    expect(screen.queryByLabelText(/Add mitigation/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Create Threat/ }));
 
     const threat: Threat = onAdd.mock.calls[0][0];
     expect(threat.source).toBe("manual");
-    expect(threat.proposedMitigations).toEqual([{ id: sMitigation.id }, { notes: "Operator badge check" }]);
+    expect(threat.proposedMitigations).toEqual([{ id: sMitigation.id }]);
     expect(threat.proposedVerifications).toEqual(sMitigation.verifications!.map((id) => ({ id })));
   });
 });

@@ -107,6 +107,13 @@ describe("threat dialog", { timeout: 20000 }, () => {
     expect(screen.getAllByText("Rate-limit the login").length).toBeGreaterThan(0);
   });
 
+  it("no free-text mitigation can be added any more; verifications keep it (user 2026-10-30)", () => {
+    renderDialog(threat(), api());
+    expect(screen.queryByText("Add custom mitigation")).toBeNull();
+    expect(screen.getByTestId("new-project-mitigation")).toBeTruthy();
+    expect(screen.getByText("Add custom verification")).toBeTruthy();
+  });
+
   it("Convert free text: prefilled, the free-text entry becomes the new id", () => {
     const pm = api();
     renderDialog(threat(), pm);

@@ -271,9 +271,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   const [editingAttack, setEditingAttack] = useState(false);
 
   // ── Add-entry forms ───────────────────────────────────────────────────────
-  const [addingMitigation, setAddingMitigation] = useState(false);
   const [addingVerification, setAddingVerification] = useState(false);
-  const [newMitigationText, setNewMitigationText] = useState("");
   const [newVerificationText, setNewVerificationText] = useState("");
 
   // ── Init / reset on open or threat change ────────────────────────────────
@@ -282,9 +280,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
       setLocal(toLocalState(currentThreat));
       setEditingThreat(false);
       setEditingAttack(false);
-      setAddingMitigation(false);
       setAddingVerification(false);
-      setNewMitigationText("");
       setNewVerificationText("");
     }
   }, [open, currentIndex]);
@@ -436,18 +432,6 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
     } else {
       patch({ proposedVerifications: local.proposedVerifications.filter((_, i) => i !== index) });
     }
-  };
-
-  const confirmAddMitigation = () => {
-    if (!newMitigationText.trim() || !local) return;
-    patch({
-      proposedMitigations: [
-        ...local.proposedMitigations,
-        { notes: newMitigationText.trim() },
-      ],
-    });
-    setNewMitigationText("");
-    setAddingMitigation(false);
   };
 
   const confirmAddVerification = () => {
@@ -1135,16 +1119,10 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     defaultValue: "Proposed Mitigations",
                   })}
                 </Typography>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => setAddingMitigation(true)}
-                  disabled={addingMitigation}
-                >
-                  {t("tabs.threats.dialog.addMitigation", {
-                    defaultValue: "Add custom mitigation",
-                  })}
-                </Button>
+                {/* No free-text mitigation any more (user 2026-10-30): a new
+                    one is a project mitigation — tracked by id (report,
+                    tickets, merge), with a DFD effect in the closed loop.
+                    Free text written earlier stays editable and convertible. */}
                 {projectMitigations && (
                   <Button
                     size="small"
@@ -1281,58 +1259,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   </Box>
                 ))}
 
-                {addingMitigation && (
-                  <Box
-                    sx={{
-                      border: 1,
-                      borderColor: "primary.main",
-                      borderRadius: 1,
-                      p: 1.5,
-                    }}
-                  >
-                    <TextField
-                      autoFocus
-                      size="small"
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      placeholder={t(
-                        "tabs.threats.dialog.mitigationPlaceholder",
-                        {
-                          defaultValue: "Describe the mitigation...",
-                        },
-                      )}
-                      value={newMitigationText}
-                      onChange={(e) => setNewMitigationText(e.target.value)}
-                    />
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      justifyContent="flex-end"
-                      sx={{ mt: 1 }}
-                    >
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          setAddingMitigation(false);
-                          setNewMitigationText("");
-                        }}
-                      >
-                        {t("common.cancel", { defaultValue: "Cancel" })}
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        disabled={!newMitigationText.trim()}
-                        onClick={confirmAddMitigation}
-                      >
-                        {t("common.add", { defaultValue: "Add" })}
-                      </Button>
-                    </Stack>
-                  </Box>
-                )}
-
-                {resolvedMitigations.length === 0 && !addingMitigation && (
+                {resolvedMitigations.length === 0 && (
                   <Typography
                     variant="body2"
                     color="text.secondary"
