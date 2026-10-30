@@ -9,11 +9,21 @@
 // save nor a re-layout counts as a change: the verification records
 // themselves, audit and document settings, the draw.io XML and thumbnails
 // (layout), derived caches (graph, validation, calculation stamps) and every
-// timestamp.
+// timestamp. Implementation progress is not analysis content either (review
+// 2026-10-30): a selected mitigation counts with its id, notes and scope, and
+// whether it is rejected (with the reason) — rejecting a control changes the
+// treatment; its status otherwise, evidence and the ticket fields do not, so a
+// ticket moving in the tracker leaves the verification standing.
+//
+// Hash version: VERIFICATION_HASH_VERSION (shared). An entry made with another
+// version cannot be compared and asks to be confirmed again ("reconfirm").
+// Migrations keep verifications valid: loading re-seals an entry whose hash
+// matched the file as read (resealVerifications, migration-service).
 //
 // Status (shown in the Overview and the document, only under iso-21434):
 //   verified    latest entry passed (with or without conditions), state unchanged
 //   changed     the content differs from the latest entry's state
+//   reconfirm   the latest entry was hashed by another hash version
 //   outdated    the latest entry is older than N days (default 90)
 //   failed      the latest entry did not pass
 //   none        no entry yet
@@ -21,7 +31,7 @@
 import type { Project } from "../models/project-types";
 import { canonicalStringify } from "shared/utils/tcs-canonical";
 import { fnv1aHex12 } from "shared/utils/fnv1a";
-import { EMPTY_PROJECT_TAGS, regulationPresetFromTags, type VerificationEntry } from "shared";
+import { EMPTY_PROJECT_TAGS, regulationPresetFromTags, VERIFICATION_HASH_VERSION, type VerificationEntry } from "shared";
 
 export const DEFAULT_VERIFICATION_MAX_AGE_DAYS = 90;
 
@@ -49,6 +59,36 @@ function strip(value: unknown): unknown {
   return out;
 }
 
+/** Fields of a selected mitigation that track its implementation, not the analysis. */
+const IMPLEMENTATION_KEYS = new Set([
+  "status",
+  "statusChangedAt",
+  "evidenceRef",
+  "evidenceNote",
+  "ticketId",
+  "ticketUrl",
+  "ticketStatus",
+  "ticketSyncedAt",
+]);
+
+function analysisOfSelected(m: Record<string, unknown>): Record<string, unknown> {
+  const out = Object.fromEntries(Object.entries(m).filter(([k]) => !IMPLEMENTATION_KEYS.has(k)));
+  if (m.status === "rejected") out.rejected = true;
+  else delete out.rejectionReason;
+  return out;
+}
+
+function analysisOfRisks(risks: Project["risks"] | undefined) {
+  if (!risks) return null;
+  return {
+    ...risks,
+    risks: (risks.risks ?? []).map((r) => ({
+      ...r,
+      selectedMitigations: (r.selectedMitigations ?? []).map((m) => analysisOfSelected(m as unknown as Record<string, unknown>)),
+    })),
+  };
+}
+
 /** 12-hex hash of the analysis content (see header). */
 export function verificationStateHash(project: Partial<Project>): string {
   const concept = project.cybersecurityConcept;
@@ -66,14 +106,18 @@ export function verificationStateHash(project: Partial<Project>): string {
     assets: project.assets ?? null,
     threats: project.threats ?? null,
     attackTrees: project.attackTrees ?? null,
-    risks: project.risks ?? null,
+    risks: analysisOfRisks(project.risks),
     goals: concept?.goals ?? [],
     claims: concept?.claims ?? [],
   };
   return fnv1aHex12(canonicalStringify(strip(content)));
 }
 
-export type VerificationStatusKind = "verified" | "changed" | "outdated" | "failed" | "none";
+export type VerificationStatusKind = "verified" | "changed" | "reconfirm" | "outdated" | "failed" | "none";
+
+/** Whether the entry's hash can be compared with the current one. */
+export const sameHashVersion = (entry: Pick<VerificationEntry, "hashVersion">) =>
+  (entry.hashVersion ?? 1) === VERIFICATION_HASH_VERSION;
 
 export interface VerificationStatus {
   kind: VerificationStatusKind;
@@ -102,6 +146,7 @@ export function verificationStatus(
   const ageDays = Math.max(0, days(latest.date, asOf));
   const base = { latest, ageDays, maxAgeDays };
   if (latest.result === "failed") return { kind: "failed", ...base };
+  if (!sameHashVersion(latest)) return { kind: "reconfirm", ...base };
   if (latest.stateHash !== currentHash) return { kind: "changed", ...base };
   if (ageDays > maxAgeDays) return { kind: "outdated", ...base };
   return { kind: "verified", ...base };
@@ -124,4 +169,24 @@ export function docVerificationOf(
     project.audit?.config?.verificationMaxAgeDays,
   );
   return { kind: status.kind, ...(status.latest ? { latest: status.latest } : {}), maxAgeDays: status.maxAgeDays, asOf };
+}
+
+/**
+ * Loading keeps verifications valid across migrations and repairs: an entry
+ * whose hash matched the file as read (`before`, hashed before any migration)
+ * is re-sealed with the hash of the loaded project. Entries that did not match
+ * stay as they are. Returns the project (a copy when something changed).
+ */
+export function resealVerifications<P extends Partial<Project>>(project: P, before: string): P {
+  const entries = project.cybersecurityConcept?.verifications;
+  if (!entries?.length) return project;
+  const after = verificationStateHash(project);
+  if (after === before || !entries.some((e) => sameHashVersion(e) && e.stateHash === before)) return project;
+  return {
+    ...project,
+    cybersecurityConcept: {
+      ...project.cybersecurityConcept!,
+      verifications: entries.map((e) => (sameHashVersion(e) && e.stateHash === before ? { ...e, stateHash: after } : e)),
+    },
+  };
 }

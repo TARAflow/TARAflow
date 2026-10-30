@@ -313,6 +313,7 @@
       },
       "stateCurrent": "Stand unverändert",
       "stateChanged": "seither geändert",
+      "stateReconfirm": "erneut bestätigen",
       "committed": "committet {{hash}}",
       "notCommitted": "nicht committet",
       "commit": "Committen",

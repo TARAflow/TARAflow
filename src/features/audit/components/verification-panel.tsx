@@ -29,7 +29,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { VerificationEntry, VerificationResult, VerificationScope } from "shared";
+import { VERIFICATION_HASH_VERSION, type VerificationEntry, type VerificationResult, type VerificationScope } from "shared";
 
 const SCOPES: VerificationScope[] = ["tara", "treatment", "goals-claims", "consistency"];
 const RESULTS: VerificationResult[] = ["passed", "passed-with-conditions", "failed"];
@@ -104,6 +104,7 @@ export const VerificationPanel: React.FC<VerificationPanelProps> = ({
         reviewer: draft.reviewer.trim(),
         ...(draft.findings?.trim() ? { findings: draft.findings.trim() } : { findings: undefined }),
         stateHash: currentStateHash,
+        hashVersion: VERIFICATION_HASH_VERSION,
         ...(projectVersion ? { projectVersion } : {}),
       },
     ]);
@@ -138,7 +139,9 @@ export const VerificationPanel: React.FC<VerificationPanelProps> = ({
                   </Typography>
                   <Typography variant="body2">{e.reviewer}</Typography>
                   <Chip size="small" color={RESULT_COLOR[e.result]} label={resultLabel(e.result)} />
-                  {e.stateHash === currentStateHash ? (
+                  {(e.hashVersion ?? 1) !== VERIFICATION_HASH_VERSION ? (
+                    <Chip size="small" variant="outlined" color="warning" label={t("audit.verification.stateReconfirm", { defaultValue: "confirm again" })} data-testid="verification-state-reconfirm" />
+                  ) : e.stateHash === currentStateHash ? (
                     <Chip size="small" variant="outlined" color="success" label={t("audit.verification.stateCurrent", { defaultValue: "state unchanged" })} />
                   ) : (
                     <Chip size="small" variant="outlined" color="warning" label={t("audit.verification.stateChanged", { defaultValue: "changed since" })} data-testid="verification-state-changed" />

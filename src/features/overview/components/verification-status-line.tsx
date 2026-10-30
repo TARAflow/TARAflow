@@ -22,6 +22,11 @@ export function verificationStatusText(
         defaultValue: "Changed since the verification on {{date}} — verify again in the Audit tab.",
         date,
       });
+    case "reconfirm":
+      return t("verificationStatus.reconfirm", {
+        defaultValue: "The verification on {{date}} was recorded with an earlier TARAflow version — confirm it again in the Audit tab.",
+        date,
+      });
     case "outdated":
       return t("verificationStatus.outdated", {
         defaultValue: "The verification on {{date}} is older than {{days}} days — verify again in the Audit tab.",

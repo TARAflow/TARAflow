@@ -147,7 +147,7 @@ export interface MethodologySummary {
  * decision 25), derived by the app layer; shown under iso-21434 only.
  */
 export interface VerificationStatusView {
-  kind: "verified" | "changed" | "outdated" | "failed" | "none";
+  kind: "verified" | "changed" | "reconfirm" | "outdated" | "failed" | "none";
   latest?: VerificationEntry;
   ageDays?: number;
   maxAgeDays: number;

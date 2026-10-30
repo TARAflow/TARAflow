@@ -15,6 +15,7 @@ import { DEFAULT_REGULATION_PRESET } from "shared";
 import type { Project } from "../models/project-types";
 import { migrateRiskData } from "../../features/risks/models/risk-assessment-types";
 import { CURRENT_SCHEMA_VERSION } from "./schema-version";
+import { resealVerifications, verificationStateHash } from "./verification-state";
 import {
   migrate_0_to_1,
   migrate_1_to_2,
@@ -332,19 +333,7 @@ export function applyLegacyMigrations(raw: any): any {
  * Returns null only if the object is fundamentally unrecoverable.
  */
 export function parseAndRepair(raw: any): Project | null {
-  // Step 1: legacy format migrations
-  let data = applyLegacyMigrations(raw);
-
-  // Step 2: schema version migrations
-  const { data: migrated } = applyMigrations(data);
-  data = migrated;
-
-  // Step 3: validate + repair
-  if (isValidProject(data)) {
-    return data as Project;
-  }
-
-  return repairProject(data);
+  return parseAndRepairWithMetadata(raw)?.project ?? null;
 }
 
 /**
@@ -352,6 +341,9 @@ export function parseAndRepair(raw: any): Project | null {
  * to decide whether to write back and show a UI notice.
  */
 export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
+  // Hash of the analysis as read — before anything touches it (step 4).
+  const readHash = raw?.cybersecurityConcept?.verifications?.length ? verificationStateHash(raw) : "";
+
   // Step 1: legacy migrations
   let data = applyLegacyMigrations(raw);
 
@@ -372,6 +364,10 @@ export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
   }
 
   if (!project) return null;
+
+  // Step 4: a verification of the file as read stays valid for the migrated
+  // and repaired project (verification-state.ts, review 2026-10-30).
+  if (readHash) project = resealVerifications(project, readHash);
 
   return { project, migrated: wasMigrated, fromVersion };
 }

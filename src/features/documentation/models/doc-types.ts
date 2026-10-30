@@ -272,7 +272,7 @@ export interface DocComputedValues {
 
 /** The verification status the document shows up front. */
 export interface DocVerification {
-  kind: "verified" | "changed" | "outdated" | "failed" | "none";
+  kind: "verified" | "changed" | "reconfirm" | "outdated" | "failed" | "none";
   latest?: VerificationEntry;
   maxAgeDays: number;
   /** ISO date the status refers to (document creation). */

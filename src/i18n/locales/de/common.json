@@ -254,6 +254,7 @@
     "label": "TARA-Verifikation",
     "verified": "Verifiziert am {{date}} durch {{reviewer}} — Stand unverändert.",
     "changed": "Seit der Verifikation vom {{date}} geändert — im Audit-Tab erneut verifizieren.",
+    "reconfirm": "Die Verifikation vom {{date}} stammt aus einer früheren TARAflow-Version — im Audit-Tab erneut bestätigen.",
     "outdated": "Die Verifikation vom {{date}} ist älter als {{days}} Tage — im Audit-Tab erneut verifizieren.",
     "failed": "Die Verifikation vom {{date}} wurde nicht bestanden.",
     "none": "Noch nicht verifiziert — die Verifikation im Audit-Tab erfassen.",

@@ -53,6 +53,14 @@ export function verificationStatusSentence(v: DocVerification, t: TranslateFn): 
         t("verificationStatus.changed", "Changed since the verification on {{date}} — verify again in the Audit tab."),
         values,
       );
+    case "reconfirm":
+      return fill(
+        t(
+          "verificationStatus.reconfirm",
+          "The verification on {{date}} was recorded with an earlier TARAflow version — confirm it again in the Audit tab.",
+        ),
+        values,
+      );
     case "outdated":
       return fill(
         t(

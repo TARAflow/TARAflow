@@ -61,6 +61,9 @@ export type VerificationResult = "passed" | "passed-with-conditions" | "failed";
 /** The four points of RQ-09-07. */
 export type VerificationScope = "tara" | "treatment" | "goals-claims" | "consistency";
 
+/** Version of verificationStateHash (app/services/verification-state.ts) — raise when what it covers changes. */
+export const VERIFICATION_HASH_VERSION = 1;
+
 export interface VerificationEntry {
   id: string;
   /** ISO date */
@@ -71,6 +74,11 @@ export interface VerificationEntry {
   findings?: string;
   /** Hash of the analysis content the review covered. */
   stateHash: string;
+  /**
+   * Version of the hash function that computed `stateHash` (absent = 1). A
+   * different version cannot be compared: the entry asks to be confirmed again.
+   */
+  hashVersion?: number;
   /** Project version at the review. */
   projectVersion?: string;
   /** The audit commit that fixed this entry, once committed. */

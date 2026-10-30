@@ -759,7 +759,10 @@ the verification record).
     findings text;
   - the verified state as a hash of the analysis content (canonical
     serialization TCS; verifications, audit and document settings
-    excluded) — independent of git;
+    excluded; implementation progress — mitigation status other than
+    rejected, evidence, ticket fields — excluded, P4-7) — independent of
+    git; the entry records the hash version, loading re-seals entries
+    across migrations (P4-7);
   - committed with the project (round "Verification", `Reviewed-by:`
     trailer, signed); the entry records the commit that fixed it. Without
     a repository the entry can still be recorded (stays in the project);
@@ -769,7 +772,8 @@ the verification record).
   (status line + badge on the Project sub-tab) and in the **document**
   (status up front, chapter "Verification"), worded alike:
   ✔ verified, state unchanged · ⚠ changed since the verification (hash
-  differs — always) · ⚠ verification older than *N* days (document creation
+  differs — always) · ⚠ confirm again (entry from another hash version,
+  P4-7) · ⚠ verification older than *N* days (document creation
   date, in the Overview today; *N* in the audit configuration, default
   **90**) · ⚠ not verified · ⚠ verification not committed. Only *passed* /
   *passed with conditions* counts as verified. The document is **marked,
@@ -1261,6 +1265,7 @@ Branch `feature/iso21434-conformance`.
 | P4-4 | Report: verification status up front (as of the document's creation date) and chapter "Cybersecurity Goals and Claims" with the verification entries; goal / claim column in the traceability matrix; coverage RQ-09-05/06/07, WP-09-03/04/05. Format-neutral sections (`cybersecurity-concept-report.ts`, shared `ReportSection` with the Item Definition chapter), status notice in every format (`formatStatusNotice`; HTML / PDF coloured, AsciiDoc `WARNING:` / `NOTE:`), status from `docVerificationOf` (app and CLI, only under `iso-21434`); the chapter appears in every preset once there is a goal, claim or entry. | 186 | done |
 | P4-5 | Headlamp example with goals and claims. The example file (repo root, not committed) is completed to schema 11: Item Definition (boundary, architecture, environment, constraints with Annex H section references; three functions; assumptions ASM-01 … ASM-04, linked by the trust boundaries OE and NECU), formal descriptions on the asset security goals, goals CSG-01 … CSG-06 for the reduced risks (CSG-01, CSG-02 shared by two scenarios; CAL 3 on CSG-01), AT-10.4 (value 1) retained with claim CLM-01 on ASM-03, AT-9.3 (value 2) shared with the ECU supplier, claim CLM-02. No Item Definition or goal / claim findings; the verification is left to the user (Audit tab). Risk ratings unchanged — the Annex H alignment (spoofing, DoS) is separate from Phase 4. German label for retain aligned with the treatment ("Beibehalten"). | 187 | done |
 | P4-6 | Treatment completeness (user 2026-10-30, found on the Headlamp example: every reduce risk without a control and without residual, the report showing "–" with no finding): two more findings under `iso-21434` — CONTROL_MISSING (reduce without a selected mitigation; rejected ones do not count) and RESIDUAL_MISSING (reduce, risk value rated, no residual after mitigation) — as warnings in the risk table marker, the Goals & Claims dialog and point b of the verification checklist. | 207 | done |
+| P4-7 | Verification hash (review 2026-10-30) [D]: implementation progress is not analysis content — a selected mitigation counts with id, notes, scope and whether it is rejected (with the reason); status, evidence and ticket fields do not, so a ticket moving in the tracker leaves the verification standing. `hashVersion` in the entry (`VERIFICATION_HASH_VERSION`, absent = 1): an entry from another hash version shows "confirm again" (status `reconfirm`) instead of "changed". Loading re-seals an entry whose hash matched the file as read, so a schema migration or repair does not void verifications (`resealVerifications`, step 4 of `parseAndRepairWithMetadata`; app and CLI). | 212 | done |
 
 ---
 

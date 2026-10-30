@@ -5,8 +5,10 @@
 // verification records do not change it — and the status of the latest entry.
 
 import { describe, it, expect } from "vitest";
-import { verificationStateHash, verificationStatus } from "app/services/verification-state";
-import type { VerificationEntry } from "shared";
+import { readFileSync } from "fs";
+import { resealVerifications, verificationStateHash, verificationStatus } from "app/services/verification-state";
+import { parseAndRepairWithMetadata } from "app/services/migration-service";
+import { VERIFICATION_HASH_VERSION, type VerificationEntry } from "shared";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -45,6 +47,64 @@ describe("verification state hash", () => {
   });
 });
 
+describe("implementation progress is not analysis content (review 2026-10-30)", () => {
+  const withMitigation = (m: Any): Any => {
+    const p = project();
+    p.risks.risks[0].selectedMitigations = [{ id: "M-S-001", notes: "n", ...m }];
+    return p;
+  };
+  const base = verificationStateHash(withMitigation({ status: "open" }));
+
+  it("status, evidence and ticket fields do not count", () => {
+    const moved = withMitigation({
+      status: "implemented",
+      statusChangedAt: "2026-10-30",
+      evidenceRef: "DOC-1",
+      evidenceNote: "tested",
+      ticketId: "SEC-42",
+      ticketUrl: "https://x.atlassian.net/browse/SEC-42",
+      ticketStatus: "done",
+      ticketSyncedAt: "2026-10-30T10:00:00Z",
+    });
+    expect(verificationStateHash(moved)).toBe(base);
+  });
+
+  it("rejecting a control counts, with its reason; the mitigation itself counts", () => {
+    const rejected = verificationStateHash(withMitigation({ status: "rejected", rejectionReason: "won't fix" }));
+    expect(rejected).not.toBe(base);
+    expect(verificationStateHash(withMitigation({ status: "rejected", rejectionReason: "other" }))).not.toBe(rejected);
+    expect(verificationStateHash(withMitigation({ status: "open", rejectionReason: "stale" }))).toBe(base);
+    expect(verificationStateHash(withMitigation({ id: "M-S-002", status: "open" }))).not.toBe(base);
+  });
+});
+
+describe("re-sealing on load", () => {
+  it("a verification of the file as read stays verified after the migration", () => {
+    const raw: Any = JSON.parse(readFileSync("src/tests/fixtures/headlamp-iso21434.tara.json", "utf-8"));
+    const readHash = verificationStateHash(JSON.parse(JSON.stringify(raw)));
+    raw.cybersecurityConcept = {
+      goals: [],
+      claims: [],
+      verifications: [
+        { id: "v1", date: "2026-10-01", reviewer: "A", scope: ["tara"], result: "passed", stateHash: readHash, hashVersion: VERIFICATION_HASH_VERSION },
+        { id: "v0", date: "2026-09-01", reviewer: "A", scope: ["tara"], result: "passed", stateHash: "000000000000" },
+      ],
+    };
+    const { project: loaded, migrated }: Any = parseAndRepairWithMetadata(raw);
+    expect(migrated).toBe(true);
+    const now = verificationStateHash(loaded);
+    expect(now).not.toBe(readHash); // the migration changed the content's form
+    expect(loaded.cybersecurityConcept.verifications.map((v: Any) => v.stateHash)).toEqual([now, "000000000000"]);
+    expect(verificationStatus(loaded.cybersecurityConcept.verifications, now, "2026-10-30").kind).toBe("verified");
+  });
+
+  it("an entry that did not match the file as read is left alone", () => {
+    const p = project();
+    p.cybersecurityConcept.verifications = [{ id: "v1", stateHash: "other" }];
+    expect(resealVerifications(p, "read")).toBe(p);
+  });
+});
+
 describe("verification status", () => {
   const entry = (date: string, result: VerificationEntry["result"], stateHash = "h1"): VerificationEntry => ({
     id: date,
@@ -65,5 +125,10 @@ describe("verification status", () => {
     expect(
       verificationStatus([entry("2026-10-20", "failed"), entry("2026-10-01", "passed")], "h1", "2026-10-29"),
     ).toMatchObject({ kind: "failed", latest: { date: "2026-10-20" } });
+  });
+
+  it("an entry hashed by another hash version asks to be confirmed again", () => {
+    const old = { ...entry("2026-10-01", "passed"), hashVersion: VERIFICATION_HASH_VERSION + 1 };
+    expect(verificationStatus([old], "h1", "2026-10-29").kind).toBe("reconfirm");
   });
 });

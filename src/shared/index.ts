@@ -153,6 +153,7 @@ export {
   unlinkGoal,
   updateClaim,
   updateGoal,
+  VERIFICATION_HASH_VERSION,
   type AssetPropertyRef,
   type Cal,
   type ClaimKind,
