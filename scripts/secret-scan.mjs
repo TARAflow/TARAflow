@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // scripts/secret-scan.mjs
 //
 // Secret scan for this repository (2026-10-29). Runs in CI over every tracked
@@ -98,4 +97,7 @@ function main() {
 }
 
 // Run when invoked directly (also on Windows), not when imported by a test.
+// No shebang on purpose: it is always started as `node scripts/secret-scan.mjs`,
+// and on a CRLF checkout (Windows, core.autocrlf) Vite's SSR transform misses
+// a "#!...\r\n" line, hoists the imports above it and the suite fails to parse.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
