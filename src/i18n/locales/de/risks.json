@@ -192,6 +192,13 @@
         "isoPointsPerLevel": "{{points}} ISO-18045-Angriffspotenzial-Punkte (höher = mehr Aufwand → geringere Machbarkeit)",
         "residualFeasibility": "Restmachbarkeit (aus den Faktoren oben)",
         "residualIncomplete": "Alle fünf Faktoren bewerten, um die Restmachbarkeit zu berechnen",
+        "residualFeasibilityEffective": "Restmachbarkeit",
+        "residualFromTreeLevel": "{{band}} — aus der Rest-Stufe des Angriffsbaums; die Faktoren gelten nicht, solange sie gesetzt ist",
+        "residualIncompleteIso": "Nicht bewertet — Rest-Stufe des Angriffsbaums setzen oder alle fünf Faktoren bewerten",
+        "residualNotSet": "Nicht gesetzt",
+        "residualNotSetFactors": "Nicht gesetzt — aus den Angriffspotenzial-Faktoren",
+        "impactAfterIso": "Auswirkung (Nachher)",
+        "impactAfterIsoNote": "Unverändert: Die Auswirkung wird am Schadensszenario des Assets bewertet, eine Massnahme senkt die Angriffsmachbarkeit. Um die Auswirkung zu senken, das Schadensszenario im Assets-Tab neu bewerten.",
         "residualLikelihoodTooltip": "Restmachbarkeit nach Umsetzung der Massnahme. Eine Massnahme, die den Angriffspfad erschwert, senkt die Eintrittswahrscheinlichkeit — wähle die Stufe, auf die sie fällt.",
         "transferredNote": "Risiko wird transferiert — keine internen Massnahmen erforderlich. Risiko Nachher entspricht Risiko Vorher.",
         "feasibility": {

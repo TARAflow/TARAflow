@@ -108,11 +108,16 @@ import { factorLevelOptions } from "../utils/factor-level-options";
 import { impactBasisText } from "../utils/impact-basis-text";
 import { IsoRiskPanel } from "./shared/iso-risk-panel";
 import {
+  ISO_FEASIBILITY_FALLBACK,
+  ISO_IMPACT_FALLBACK,
+  isoFeasibilityI18nKey,
+  isoImpactI18nKey,
   isoRiskValueColor,
   isoRiskValueFallback,
   isoRiskValueI18nKey,
   liveIsoRisk,
 } from "../models/iso-risk-display";
+import { feasibilityFromRiskScaleValue } from "../models/iso-risk-matrix";
 import {
   isTreatmentToReview,
   offeredTreatments,
@@ -1366,7 +1371,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       const residual = local.mitigatedFactorRatings.find(
         (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
       );
-      const residualValue = residual?.value ?? treeFactorRating?.value ?? 0;
+      // ISO: no default — an unset residual level leaves the residual to the
+      // five attack-potential factors (liveIsoRisk / computeIsoRisks read the
+      // level first), so "not set" must be visible and selectable.
+      const residualValue = isISO
+        ? (residual?.value ?? 0)
+        : (residual?.value ?? treeFactorRating?.value ?? 0);
       // Feasibility band → risk-scale value (Mapping B from the risk scale).
       const mapB = feasibilityLevelToRiskScale(configuration.scale);
       const residualOptions: Array<{ value: number; label: string }> = [
@@ -1406,6 +1416,18 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           };
           residualOptions.splice(i, 1);
         }
+      }
+      if (isISO) {
+        residualOptions.unshift({
+          value: 0,
+          label: hasTreeIsoFactors
+            ? t("tabs.risks.dialog.residualNotSetFactors", {
+                defaultValue: "Not set — from the attack-potential factors",
+              })
+            : t("tabs.risks.dialog.residualNotSet", {
+                defaultValue: "Not set",
+              }),
+        });
       }
       // Keep the current value selectable even if it is outside the standard
       // bands (e.g. 0 after an "eliminate" treatment, or a custom scale).
@@ -1472,7 +1494,7 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           >
             {residualOptions.map((o) => (
               <MenuItem key={o.value} value={o.value}>
-                {o.label} ({o.value})
+                {isISO && o.value === 0 ? o.label : `${o.label} (${o.value})`}
               </MenuItem>
             ))}
           </Select>
@@ -3111,7 +3133,11 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         gap: 1,
                       }}
                     >
-                      {hasTreeIsoFactors ? (
+                      {/* ISO: the residual tree level and the five factors
+                          are both residual sources — the level wins when set
+                          (liveIsoRisk / computeIsoRisks), so both are shown. */}
+                      {(isISO || !hasTreeIsoFactors) && renderTreeFactorRow(true)}
+                      {hasTreeIsoFactors && (
                         <>
                           {ISO_AP_FACTOR_IDS.map((id) =>
                             renderIsoFactorRow(id, true),
@@ -3120,9 +3146,21 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             const res = isoResidual(
                               local.mitigatedFactorRatings,
                             );
+                            const treeBand =
+                              isISO && treeAssessment
+                                ? feasibilityFromRiskScaleValue(
+                                    local.mitigatedFactorRatings.find(
+                                      (r) =>
+                                        r.factorId ===
+                                        ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
+                                    )?.value,
+                                    configuration.scale,
+                                  )
+                                : undefined;
                             return (
                               <Paper
                                 variant="outlined"
+                                data-testid="residual-feasibility-panel"
                                 sx={{
                                   p: 1.25,
                                   gridColumn: "1 / -1",
@@ -3135,34 +3173,75 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                                   color="text.secondary"
                                   display="block"
                                 >
-                                  {t("tabs.risks.dialog.residualFeasibility", {
-                                    defaultValue:
-                                      "Residual feasibility (from the factors above)",
-                                  })}
+                                  {treeBand
+                                    ? t("tabs.risks.dialog.residualFeasibilityEffective", {
+                                        defaultValue: "Residual feasibility",
+                                      })
+                                    : t("tabs.risks.dialog.residualFeasibility", {
+                                        defaultValue:
+                                          "Residual feasibility (from the factors above)",
+                                      })}
                                 </Typography>
                                 <Typography variant="body2" fontWeight="medium">
-                                  {res
-                                    ? `AP ${res.ap} → ${res.band} → L ${res.likelihood}`
-                                    : t(
-                                        "tabs.risks.dialog.residualIncomplete",
-                                        {
-                                          defaultValue:
-                                            "Rate all five factors to compute residual feasibility",
-                                        },
-                                      )}
+                                  {treeBand
+                                    ? t("tabs.risks.dialog.residualFromTreeLevel", {
+                                        band: t(isoFeasibilityI18nKey(treeBand), {
+                                          defaultValue: ISO_FEASIBILITY_FALLBACK[treeBand],
+                                        }),
+                                        defaultValue:
+                                          "{{band}} — from the residual attack-tree level; the factors are not used while it is set",
+                                      })
+                                    : res
+                                      ? `AP ${res.ap} → ${res.band} → L ${res.likelihood}`
+                                      : isISO && treeAssessment
+                                        ? t("tabs.risks.dialog.residualIncompleteIso", {
+                                            defaultValue:
+                                              "Not rated — set the residual attack-tree level or rate all five factors",
+                                          })
+                                        : t(
+                                            "tabs.risks.dialog.residualIncomplete",
+                                            {
+                                              defaultValue:
+                                                "Rate all five factors to compute residual feasibility",
+                                            },
+                                          )}
                                 </Typography>
                               </Paper>
                             );
                           })()}
                         </>
-                      ) : (
-                        renderTreeFactorRow(true)
                       )}
                       {likelihoodFactors.map((f) => renderFactorRow(f, true))}
                     </Box>
                   </Box>
 
-                  {impactFactors.length > 0 && (
+                  {isISO ? (
+                    // ISO/SAE 21434: the impact is rated on the damage scenario
+                    // (15.5, the asset), not on the risk — the residual keeps
+                    // it; a control lowers the attack feasibility (15.7).
+                    <Box data-testid="iso-impact-after-note">
+                      <Typography variant="subtitle2" gutterBottom>
+                        {t("tabs.risks.dialog.impactAfterIso", {
+                          defaultValue: "Impact (After)",
+                        })}
+                      </Typography>
+                      <Paper variant="outlined" sx={{ p: 1.25, bgcolor: "grey.50" }}>
+                        <Typography variant="body2" fontWeight="medium">
+                          {liveIso?.impact
+                            ? t(isoImpactI18nKey(liveIso.impact), {
+                                defaultValue: ISO_IMPACT_FALLBACK[liveIso.impact],
+                              })
+                            : "–"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {t("tabs.risks.dialog.impactAfterIsoNote", {
+                            defaultValue:
+                              "Unchanged: the impact is rated on the damage scenario of the asset, a control lowers the attack feasibility. To lower the impact, re-rate the damage scenario in the Assets tab.",
+                          })}
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  ) : impactFactors.length > 0 && (
                     <Box>
                       <Typography variant="subtitle2" gutterBottom>
                         {t("tabs.risks.dialog.impactFactorsAfter", {
