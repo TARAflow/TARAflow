@@ -51,6 +51,11 @@ jobs:
 
       - name: Run tests
         run: npm test -- --run
+
+      # Component tests (jsdom, vitest.component.config.ts) — not part of
+      # `npm test`; both platforms, like the unit tests.
+      - name: Run component tests
+        run: npm run test:component
       
       # Integration tests spawn a real git binary (throwaway repos).
       # Linux-only, wie der CLI-Smoke-Test; ubuntu-Runner haben git vorinstalliert.
