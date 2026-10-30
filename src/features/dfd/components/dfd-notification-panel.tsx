@@ -671,7 +671,12 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
                 onSelectCell={onSelectCell}
               />
             ) : n.type === "drift" ? (
-              <DriftRow key={n.key} notification={n as DriftNotification} onApply={onApply} />
+              <DriftRow
+                key={n.key}
+                notification={n as DriftNotification}
+                onApply={onApply}
+                onSelectCell={onSelectCell}
+              />
             ) : (
               <SecurityRow
                 key={n.key}
@@ -990,9 +995,11 @@ export default DFDNotificationsPanel;
 interface DriftRowProps {
   notification: DriftNotification;
   onApply?: DFDNotificationsPanelProps["onApply"];
+  /** Select the element in the diagram (opens its properties), as the other rows do. */
+  onSelectCell?: (cellId: string) => void;
 }
 
-const DriftRow: React.FC<DriftRowProps> = ({ notification, onApply }) => {
+const DriftRow: React.FC<DriftRowProps> = ({ notification, onApply, onSelectCell }) => {
   const { t } = useTranslation();
   // Restore the value after it was reverted — only for a mitigation that
   // counts as done; a planned one offers no Apply (CL-6, user 2026-10-30).
@@ -1026,6 +1033,8 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification, onApply }) => {
 
   return (
     <Box
+      onClick={() => notification.elementId && onSelectCell?.(notification.elementId)}
+      data-testid="dfd-drift-row"
       sx={{
         display: "flex",
         alignItems: "center",
@@ -1038,6 +1047,8 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification, onApply }) => {
         bgcolor: isConflict ? "error.50" : "warning.50",
         flexWrap: "nowrap",
         minWidth: 0,
+        cursor: notification.elementId ? "pointer" : "default",
+        "&:hover": notification.elementId ? { filter: "brightness(0.96)" } : {},
       }}
     >
       {isConflict ? (

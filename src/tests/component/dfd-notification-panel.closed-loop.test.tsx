@@ -118,12 +118,19 @@ describe("DFD notification panel — closed loop by mitigation status", () => {
     const drifts = computeSecurityDrifts(instances, d);
     expect(drifts.map((x) => x.status)).toEqual(["drift", "drift"]);
     const onApply = vi.fn();
-    render(<DFDNotificationsPanel controlInstances={instances} securityDrifts={drifts} elements={els} connections={[]} onApply={onApply} />);
+    const onSelectCell = vi.fn();
+    render(
+      <DFDNotificationsPanel controlInstances={instances} securityDrifts={drifts} elements={els} connections={[]} onApply={onApply} onSelectCell={onSelectCell} />,
+    );
     expect(screen.getAllByText("Drift")).toHaveLength(2);
     const buttons = screen.queryAllByTestId("dfd-drift-apply");
     expect(buttons).toHaveLength(1);
     fireEvent.click(buttons[0]);
     expect(onApply).toHaveBeenCalledWith("d1", "failSafeOutputState", "fixed_value", false, "M-T-FSAFE-001", "r-d1");
+    // Apply does not also select; a click on the row selects the element (user 2026-10-30)
+    expect(onSelectCell).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByTestId("dfd-drift-row")[1]);
+    expect(onSelectCell).toHaveBeenCalledWith("d2");
   });
 
   it("Apply on the drift restores the value: aligned again", () => {
