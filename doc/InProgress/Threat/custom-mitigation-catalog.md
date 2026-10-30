@@ -86,8 +86,10 @@ Further design choices [D] (to confirm in review):
   the built-in catalog only (a generated threat's controls come from its template).
   Chosen over passing `mitigationCatalogOf(project)` to every reader: same result, a
   fraction of the change; the catalog was a module singleton already.
-- **Delete:** only when no threat and no risk uses the entry; merge rewrites the ids in
-  threats and risks.
+- **Delete:** only when no threat, risk or attack tree uses the entry; merge rewrites the
+  ids in threats, risks and attack trees. Attack-tree DSL lists (`[M-001,M-C-001]`) are
+  read and rewritten by the attacktree parser's own list reader (`dslMitigationIds`,
+  `replaceDslMitigation`), never by a string search (review 2026-10-30, CM-5).
 - **Custom verifications:** out of scope (no DFD effect).
 - **Audit:** the audit diff must show added / changed / removed project mitigations.
 
@@ -99,3 +101,4 @@ Further design choices [D] (to confirm in review):
 | CM-2 | Model and resolution: `ProjectMitigation`, `M-C-nnn` with `customMitigationSeq`, add / update / remove (`project-mitigations.ts`); registration with the catalog (app, CLI) and `useMitigationCatalogVersion`; usage across threats, risks and attack trees (`app/services/project-mitigation-usage.ts`); audit diff "Project mitigation"; the derivation is a pure `deriveControlInstances` (the hook memoizes it) | 190 | done |
 | CM-3 | UI: "New project mitigation" in the create and edit threat dialogs, form with effects editor (target / property / value from the built-in vocabulary, `effectVocabulary`, always heuristic); "Convert to project mitigation" on free text; edit on the entry; list in the threat configuration dialog (usage, edit, merge, delete only unused; changes apply at once). Project mitigations work on **every** threat [D]: they are the analyst's choice, so regeneration keeps them (`mergeProposedMitigations`), and a generated threat's picker offers project mitigations only. Merge rewrites threats, risks, attack-tree path assessments and DSL refs (`mergeProjectMitigationRefs`). Fix on the way: the configuration dialog's Save rebuilt the configuration field by field and dropped unknown fields (now spreads it). | 191 | done |
 | CM-4 | Closed loop end-to-end, integration test on the SmokeDetector DFD (`project-mitigation-closed-loop.int.test.ts`): a manual threat with M-C-001 and a risk selecting it → SHOULD (`deriveControlInstances`) → drift (`computeSecurityDrifts`, extracted as a pure function like the derivation) → coverage "already implemented" (`computeAllMitigationCoverage`) → usage. The report resolves the text (all formats via `resolveMitigationDrafts` / `getLocalizedMitigation`; CLI checked with a SmokeDetector copy in CM-2). No further code: the stored `MitigationDraft.alreadyImplemented` flag is not read by any view — "already implemented" comes from the coverage, which uses `affectsProperties` and so covers project mitigations. | 192 | done |
+| CM-5 | Review 2026-10-30: the usage check found `[M-C-001]` only as a lone list — `[M-001,M-C-001]` let a used entry be deleted, and the merge left the reference behind. Both now go through the parser's list reader (`dslMitigationIds`, `replaceDslMitigation` in `attacktree-parser.ts`, the parser uses the same function); comments and node names never count | 210 | done |

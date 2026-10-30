@@ -113,7 +113,7 @@ export {
 
 // ==================== SERVICES ====================
 
-export { attackTreeParser } from "./services/attacktree-parser";
+export { attackTreeParser, dslMitigationIds, replaceDslMitigation } from "./services/attacktree-parser";
 export { attackTreeCalculator } from "./services/attacktree-calculator";
 export { attackTreeValidator } from "./services/attacktree-validator";
 export { attackTreeService } from "./services/attacktree-service";

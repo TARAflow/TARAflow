@@ -4,9 +4,10 @@
 // features, so the check lives in the app layer:
 //   threats       proposedMitigations[].id (both methods)
 //   risks         selectedMitigations[].id, proposedMitigations[].id
-//   attack trees  path assessments mitigationIds[], DSL refs "[M-C-001]"
+//   attack trees  path assessments mitigationIds[], DSL lists "[M-001,M-C-001]" (read by the attacktree parser)
 
 import type { Project } from "../models/project-types";
+import { dslMitigationIds, replaceDslMitigation } from "features/attacktree";
 
 export interface ProjectMitigationUsage {
   /** Threat display ids */
@@ -39,7 +40,7 @@ export function projectMitigationUsage(
     .filter(
       (tree) =>
         (tree.pathAssessments ?? []).some((a) => (a.mitigationIds ?? []).includes(id)) ||
-        (tree.dsl ?? "").includes(`[${id}]`),
+        dslMitigationIds(tree.dsl ?? "").includes(id),
     )
     .map((tree) => tree.customTitle ?? tree.name ?? tree.id);
   return { threats: [...new Set(threats)], risks, attackTrees };
@@ -104,7 +105,7 @@ export function mergeProjectMitigationRefs(
         ...project.attackTrees,
         trees: project.attackTrees.trees.map((tree) => ({
           ...tree,
-          dsl: (tree.dsl ?? "").split(`[${fromId}]`).join(`[${intoId}]`),
+          dsl: replaceDslMitigation(tree.dsl ?? "", fromId, intoId),
           ...(tree.pathAssessments
             ? {
                 pathAssessments: tree.pathAssessments.map((a) => ({

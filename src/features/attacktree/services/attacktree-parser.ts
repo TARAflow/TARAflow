@@ -305,6 +305,65 @@ function parseLine(
   return { node, warnings };
 }
 
+// ==================== MITIGATION LIST ====================
+
+/**
+ * The trailing mitigation list of a line's remainder ("… [M-001,M-C-001]"):
+ * a bracket at the end that starts with "M-" or holds a comma (otherwise it
+ * is a reference). The one reading of the list — the parser, the project
+ * mitigation usage check and the merge all go through it.
+ */
+function readMitigationList(remainder: string): { ids: string[]; index: number; length: number } | null {
+  const match = remainder.match(/\[([^\]]+)\]\s*$/);
+  if (!match || match.index === undefined) return null;
+  const list = match[1];
+  if (!/^M-/i.test(list) && !/,/.test(list)) return null;
+  const ids = list
+    .split(",")
+    .map((m) => m.trim())
+    .filter((m) => m.length > 0);
+  return { ids, index: match.index, length: match[0].trimEnd().length };
+}
+
+/** The remainder of a DSL line (after the first ";"), or null for comments and lines without one. */
+function remainderStart(line: string): number | null {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) return null;
+  const at = line.indexOf(";");
+  return at < 0 ? null : at + 1;
+}
+
+/** Every mitigation id the DSL references, in order of first use. */
+export function dslMitigationIds(dsl: string): string[] {
+  const ids = new Set<string>();
+  for (const line of dsl.split("\n")) {
+    const start = remainderStart(line);
+    if (start === null) continue;
+    readMitigationList(line.slice(start))?.ids.forEach((id) => ids.add(id));
+  }
+  return [...ids];
+}
+
+/**
+ * Replace mitigation `fromId` by `intoId` in every list of the DSL; a list
+ * that already holds `intoId` keeps it once. Everything else stays as written.
+ */
+export function replaceDslMitigation(dsl: string, fromId: string, intoId: string): string {
+  return dsl
+    .split("\n")
+    .map((line) => {
+      const start = remainderStart(line);
+      if (start === null) return line;
+      const remainder = line.slice(start);
+      const list = readMitigationList(remainder);
+      if (!list || !list.ids.includes(fromId)) return line;
+      const ids = [...new Set(list.ids.map((id) => (id === fromId ? intoId : id)))];
+      const at = start + list.index;
+      return `${line.slice(0, at)}[${ids.join(",")}]${line.slice(at + list.length)}`;
+    })
+    .join("\n");
+}
+
 // ==================== REMAINDER PARSER ====================
 
 interface RemainderParseResult {
@@ -324,19 +383,12 @@ function parseRemainder(
   const warnings: ValidationError[] = [];
 
   // Extract mitigations first [M-001,M-002]
-  const mitigationMatch = remainder.match(/\[([^\]]+)\]\s*$/);
+  const mitigationList = readMitigationList(remainder);
   let workingStr = remainder;
 
-  if (mitigationMatch) {
-    const mitigationStr = mitigationMatch[1];
-    // Check if it's actually mitigations (starts with M-) or a reference
-    if (/^M-/i.test(mitigationStr) || /,/.test(mitigationStr)) {
-      node.mitigations = mitigationStr
-        .split(",")
-        .map((m) => m.trim())
-        .filter((m) => m.length > 0);
-      workingStr = remainder.slice(0, mitigationMatch.index).trim();
-    }
+  if (mitigationList) {
+    node.mitigations = mitigationList.ids;
+    workingStr = remainder.slice(0, mitigationList.index).trim();
   }
 
   // Extract attack goal @goal

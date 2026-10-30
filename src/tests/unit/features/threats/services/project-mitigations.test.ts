@@ -110,13 +110,19 @@ describe("usage and audit", () => {
   const project = (): Any => ({
     threats: { configuration: {}, perElementTables: [{ threats: [{ displayId: "P1-S-2", proposedMitigations: [{ id: "M-C-001" }] }] }], perInteractionTables: [] },
     risks: { risks: [{ id: "r1", threatDisplayId: "P1-S-2", selectedMitigations: [{ id: "M-C-001" }], proposedMitigations: [] }] },
-    attackTrees: { trees: [{ id: "at1", name: "Tree", dsl: "leaf [M-C-001]", pathAssessments: [] }] },
+    attackTrees: { trees: [{ id: "at1", name: "Tree", dsl: "Root;ROOT\n\tLeaf;p=0.5,i=3 [M-001,M-C-001]", pathAssessments: [] }] },
   });
 
   it("finds threats, risks and attack trees using an entry", () => {
     const u = projectMitigationUsage(project(), "M-C-001");
     expect(u).toEqual({ threats: ["P1-S-2"], risks: ["P1-S-2"], attackTrees: ["Tree"] });
     expect(isProjectMitigationUsed(projectMitigationUsage(project(), "M-C-002"))).toBe(false);
+  });
+
+  it("an attack tree using the entry in a list with others counts; a comment or a node name does not", () => {
+    const tree = (dsl: string): Any => ({ attackTrees: { trees: [{ name: "T", dsl }] } });
+    expect(projectMitigationUsage(tree("Root;ROOT\n\tLeaf;p=0.5,i=3 [M-C-001, M-001]"), "M-C-001").attackTrees).toEqual(["T"]);
+    expect(projectMitigationUsage(tree("# old: [M-C-001]\nRoot;ROOT"), "M-C-001").attackTrees).toEqual([]);
   });
 
   it("the audit diff shows an added and a changed project mitigation", () => {
@@ -166,7 +172,7 @@ describe("CM-3: effect vocabulary, regeneration, merge", () => {
         perInteractionTables: [],
       },
       risks: { risks: [{ selectedMitigations: [{ id: "M-C-001", status: "open" }] }] },
-      attackTrees: { trees: [{ dsl: "a [M-C-001]", pathAssessments: [{ mitigationIds: ["M-C-001", "M-C-002"] }] }] },
+      attackTrees: { trees: [{ dsl: "Root;ROOT\n\tA;p=0.5,i=3 [M-001,M-C-001]\n\tB;p=0.5,i=3 [M-C-002, M-C-001]\n# [M-C-001]", pathAssessments: [{ mitigationIds: ["M-C-001", "M-C-002"] }] }] },
     };
     const out: Any = mergeProjectMitigationRefs(project, "M-C-001", "M-C-002");
     expect(out.threats.configuration.customMitigations).toEqual([{ id: "M-C-002" }]);
@@ -175,6 +181,6 @@ describe("CM-3: effect vocabulary, regeneration, merge", () => {
       [{ id: "M-C-002" }],
     ]);
     expect(out.risks.risks[0].selectedMitigations).toEqual([{ id: "M-C-002", status: "open" }]);
-    expect(out.attackTrees.trees[0]).toMatchObject({ dsl: "a [M-C-002]", pathAssessments: [{ mitigationIds: ["M-C-002"] }] });
+    expect(out.attackTrees.trees[0]).toMatchObject({ dsl: "Root;ROOT\n\tA;p=0.5,i=3 [M-001,M-C-002]\n\tB;p=0.5,i=3 [M-C-002]\n# [M-C-001]", pathAssessments: [{ mitigationIds: ["M-C-002"] }] });
   });
 });
