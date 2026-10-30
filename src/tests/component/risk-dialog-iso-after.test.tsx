@@ -10,7 +10,7 @@
 // selectable.
 
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RiskDialog } from "features/risks/components/risk-dialog";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
@@ -114,5 +114,25 @@ describe("risk dialog — ISO Risk Before / After", () => {
     expect(screen.getByTestId("iso-risk-panel-after").textContent).toContain("Severe");
     expect(note("iso-impact-after-note")).toContain("re-rate the damage scenario");
     expect(screen.queryByText("Impact Factors (After)")).toBeNull();
+  });
+
+  it("the side list is in ascending display-id order, not by score", () => {
+    const at = (id: string, score: number) =>
+      ({ ...risk(1), id, threatDisplayId: id, calculatedRiskBeforeMitigation: score }) as Risk;
+    render(
+      <RiskDialog
+        open
+        risks={[at("AT-2.1", 5), at("AT-10.2", 9), at("AT-1.1", 1)]}
+        initialIndex={0}
+        configuration={ISO_CONFIG}
+        onSave={() => {}}
+        onClose={() => {}}
+        isoMode
+      />,
+    );
+    // The side list is the dialog's MUI List (<ul>); the header names the open risk.
+    const list = document.querySelector("ul")!;
+    const ids = within(list as HTMLElement).getAllByText(/^AT-\d+\.\d+$/).map((e) => e.textContent);
+    expect(ids).toEqual(["AT-1.1", "AT-2.1", "AT-10.2"]);
   });
 });

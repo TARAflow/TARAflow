@@ -10,7 +10,7 @@
 // Prev/Next navigation, auto-save on switch, uncertain warning.
 
 import { RiskGoalClaimTab } from "./risk-goal-claim-tab";
-import type { Assumption, CybersecurityConcept } from "shared";
+import { compareDisplayIds, type Assumption, type CybersecurityConcept } from "shared";
 import React, {
   useState,
   useMemo,
@@ -298,11 +298,13 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   const { t } = useTranslation();
 
   // ── Sidebar sort: highest risk score first ───────────────────────────────
+  // Ascending display id (AT-1.1 … AT-10.2), as the risk table (user
+  // 2026-10-30). The classic score order looked random under ISO/SAE 21434,
+  // whose risk value is not calculatedRiskBeforeMitigation.
   const sortedRisks = useMemo(
     () =>
-      [...risks].sort(
-        (a, b) =>
-          b.calculatedRiskBeforeMitigation - a.calculatedRiskBeforeMitigation,
+      [...risks].sort((a, b) =>
+        compareDisplayIds(a.threatDisplayId, b.threatDisplayId),
       ),
     [risks],
   );
