@@ -36,4 +36,17 @@ describe("risk validation: a risk to reduce needs a mitigation", () => {
     expect(v.warnings).toContain("2 risk(s) to reduce have no mitigation (SHE-T-1, LOW-1)");
     expect(v.warnings.join(" ")).not.toContain("high-risk");
   });
+
+  it("reduce without a residual rating warns — not under ISO/SAE 21434, where the residual is isoRisk (user 2026-10-30)", () => {
+    const risks: Any[] = [
+      risk("SHE-D-1", "reduce", ["open"], 8.8, { calculatedRiskAfterMitigation: 0 }),
+      risk("OK-2", "reduce", ["open"], 8.8, { calculatedRiskAfterMitigation: 4.2 }),
+      risk("ACC-2", "accept", [], 3, { calculatedRiskAfterMitigation: 0 }),
+      risk("UNRATED", "reduce", ["open"], 0, { calculatedRiskAfterMitigation: 0 }),
+    ];
+    const classic = riskService.validate({ configuration: DEFAULT_CONFIGURATION, risks } as Any);
+    expect(classic.warnings).toContain("1 risk(s) to reduce have no residual risk rating (SHE-D-1)");
+    const iso = riskService.validate({ configuration: { ...DEFAULT_CONFIGURATION, likelihoodMethod: "iso-21434" }, risks } as Any);
+    expect(iso.warnings.join(" ")).not.toContain("residual");
+  });
 });
