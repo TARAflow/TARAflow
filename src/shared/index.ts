@@ -172,6 +172,8 @@ export {
   emptyItemDefinition,
   newAssumption,
   nextAssumptionDisplayId,
+  issuedAssumptionNumber,
+  withAssumptions,
   type Assumption,
   type AssumptionStatus,
   type ItemDefinition,

@@ -26,6 +26,8 @@ import {
   dfdPreviewPagesOf,
   emptyItemDefinition,
   newAssumption,
+  issuedAssumptionNumber,
+  withAssumptions,
   type Assumption,
   type CybersecurityConcept,
   emptyCybersecurityConcept,
@@ -317,11 +319,11 @@ export const WorkspaceLayout: React.FC = () => {
     (text: string): Assumption => {
       const current = activeProjectRef.current;
       const def = current?.itemDefinition ?? emptyItemDefinition();
-      const created = newAssumption(def.assumptions, text);
+      const created = newAssumption(def.assumptions, text, issuedAssumptionNumber(def));
       if (current) {
         updateProject({
           id: current.id,
-          itemDefinition: { ...def, assumptions: [...def.assumptions, created] },
+          itemDefinition: withAssumptions(def, [...def.assumptions, created]),
         });
       }
       return created;

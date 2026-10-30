@@ -15,6 +15,8 @@ import {
   newClaim,
   newGoal,
   nextConceptDisplayId,
+  removeClaim,
+  removeGoal,
   unlinkGoal,
   updateGoal,
 } from "shared";
@@ -23,6 +25,21 @@ describe("cybersecurity concept", () => {
   it("display ids CSG-nn / CLM-nn: one more than the highest", () => {
     expect(nextConceptDisplayId("CSG", [])).toBe("CSG-01");
     expect(nextConceptDisplayId("CLM", [{ displayId: "CLM-03" }, { displayId: "CSG-09" }])).toBe("CLM-04");
+  });
+
+  it("a deleted CSG / CLM number is never issued again (review 2026-10-30)", () => {
+    let c = emptyCybersecurityConcept();
+    c = addGoal(c, newGoal(c, "R-1", "one"));
+    const second = newGoal(c, "R-1", "two");
+    c = addGoal(c, second);
+    expect(c.goalSeq).toBe(2);
+    c = removeGoal(c, second.id);
+    expect(newGoal(c, "R-1", "three").displayId).toBe("CSG-03");
+    const claim = newClaim(c, "R-1", "retain", "x");
+    c = removeClaim(addClaim(c, claim), claim.id);
+    expect(newClaim(c, "R-1", "retain", "y").displayId).toBe("CLM-02");
+    // a file without a counter: the highest number in use
+    expect(nextConceptDisplayId("CSG", [{ displayId: "CSG-04" }], undefined)).toBe("CSG-05");
   });
 
   it("a goal is created for one risk, linked to more, unlinked again", () => {

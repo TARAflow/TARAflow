@@ -95,6 +95,8 @@ export interface ItemDefinition {
   sections: Partial<Record<ItemSectionId, ItemSection>>;
   functions: ItemFunction[];
   assumptions: Assumption[];
+  /** Highest ASM number ever issued — numbers are never reused (like M-C-nnn). */
+  assumptionSeq?: number;
 }
 
 export function emptyItemDefinition(): ItemDefinition {
@@ -103,23 +105,35 @@ export function emptyItemDefinition(): ItemDefinition {
 
 // ==================== ASSUMPTIONS ====================
 
-/** "ASM-01", "ASM-02" … — one more than the highest number in use. */
-export function nextAssumptionDisplayId(assumptions: readonly Assumption[]): string {
-  const max = assumptions.reduce((m, a) => {
-    const n = /^ASM-(\d+)$/.exec(a.displayId)?.[1];
-    return n ? Math.max(m, Number(n)) : m;
-  }, 0);
+const assumptionNumber = (displayId: string) => Number(/^ASM-(\d+)$/.exec(displayId)?.[1] ?? 0);
+
+/** Highest ASM number issued so far: the definition's counter or any in use. */
+export function issuedAssumptionNumber(def: Pick<ItemDefinition, "assumptions" | "assumptionSeq">): number {
+  return Math.max(def.assumptionSeq ?? 0, ...def.assumptions.map((a) => assumptionNumber(a.displayId)));
+}
+
+/**
+ * "ASM-01", "ASM-02" … — one past the highest number ever issued (`issued`)
+ * or in use; a deleted number is never issued again (review 2026-10-30).
+ */
+export function nextAssumptionDisplayId(assumptions: readonly Assumption[], issued = 0): string {
+  const max = Math.max(issued, ...assumptions.map((a) => assumptionNumber(a.displayId)));
   return `ASM-${String(max + 1).padStart(2, "0")}`;
 }
 
-let assumptionSeq = 0;
+/** Store the assumptions; the counter keeps every number issued, deleted ones included. */
+export function withAssumptions(def: ItemDefinition, assumptions: Assumption[]): ItemDefinition {
+  return { ...def, assumptions, assumptionSeq: Math.max(issuedAssumptionNumber(def), issuedAssumptionNumber({ assumptions })) };
+}
+
+let assumptionIdSeq = 0;
 
 /** A new open assumption with the next display id (not yet stored). */
-export function newAssumption(assumptions: readonly Assumption[], text: string): Assumption {
-  assumptionSeq += 1;
+export function newAssumption(assumptions: readonly Assumption[], text: string, issued = 0): Assumption {
+  assumptionIdSeq += 1;
   return {
-    id: `asm-${Date.now().toString(36)}-${assumptionSeq.toString(36)}`,
-    displayId: nextAssumptionDisplayId(assumptions),
+    id: `asm-${Date.now().toString(36)}-${assumptionIdSeq.toString(36)}`,
+    displayId: nextAssumptionDisplayId(assumptions, issued),
     text: text.trim(),
     status: "open",
   };

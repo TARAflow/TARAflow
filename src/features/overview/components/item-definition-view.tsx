@@ -2,6 +2,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   emptyItemDefinition,
+  issuedAssumptionNumber,
+  withAssumptions,
   type ItemDefinition,
   type ItemFunction,
   type ItemSection,
@@ -138,8 +140,9 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
 
       <ItemAssumptionsCard
         assumptions={def.assumptions}
+        issued={issuedAssumptionNumber(def)}
         usage={assumptionUsage}
-        onSave={(assumptions) => onChange({ itemDefinition: { ...def, assumptions } })}
+        onSave={(assumptions) => onChange({ itemDefinition: withAssumptions(def, assumptions) })}
       />
     </div>
   );

@@ -15,6 +15,8 @@ import { CARD, EditButtons, sourceText } from "./item-section-card";
 
 interface ItemAssumptionsCardProps {
   assumptions: readonly Assumption[];
+  /** Highest ASM number issued so far — a number deleted in this edit is not issued again. */
+  issued?: number;
   /** assumption id → labels of the boundaries that link it */
   usage: Readonly<Record<string, readonly string[]>>;
   onSave: (assumptions: Assumption[]) => void;
@@ -30,7 +32,7 @@ const STATUS_COLOR: Record<AssumptionStatus, "default" | "success" | "error"> = 
   invalid: "error",
 };
 
-export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({ assumptions, usage, onSave }) => {
+export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({ assumptions, issued = 0, usage, onSave }) => {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Assumption[]>([]);
@@ -179,7 +181,7 @@ export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({ assump
             </div>
           ))}
           <button
-            onClick={() => setDraft((d) => [...d, newAssumption(d, "")])}
+            onClick={() => setDraft((d) => [...d, newAssumption(d, "", issued)])}
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
             data-testid="assumption-add"
           >

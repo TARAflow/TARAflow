@@ -89,6 +89,10 @@ export interface CybersecurityConcept {
   goals: CybersecurityGoal[];
   claims: CybersecurityClaim[];
   verifications: VerificationEntry[];
+  /** Highest CSG number ever issued — numbers are never reused (like M-C-nnn). */
+  goalSeq?: number;
+  /** Highest CLM number ever issued. */
+  claimSeq?: number;
 }
 
 export function emptyCybersecurityConcept(): CybersecurityConcept {
@@ -97,13 +101,23 @@ export function emptyCybersecurityConcept(): CybersecurityConcept {
 
 // ==================== IDS ====================
 
-/** "CSG-01", "CLM-07" … — one more than the highest number in use. */
-export function nextConceptDisplayId(prefix: "CSG" | "CLM", items: readonly { displayId: string }[]): string {
-  const re = new RegExp(`^${prefix}-(\\d+)$`);
-  const max = items.reduce((m, x) => {
-    const n = re.exec(x.displayId)?.[1];
-    return n ? Math.max(m, Number(n)) : m;
-  }, 0);
+/** The number of a display id ("CSG-07" → 7), 0 when it has another form. */
+export function displayNumber(prefix: string, displayId: string): number {
+  const n = new RegExp(`^${prefix}-(\\d+)$`).exec(displayId)?.[1];
+  return n ? Number(n) : 0;
+}
+
+/**
+ * "CSG-01", "CLM-07" … — one past the highest number ever issued (`issued`,
+ * the concept's counter) or in use; a deleted number is never issued again,
+ * so report and tickets keep pointing at one goal (review 2026-10-30).
+ */
+export function nextConceptDisplayId(
+  prefix: "CSG" | "CLM",
+  items: readonly { displayId: string }[],
+  issued = 0,
+): string {
+  const max = Math.max(issued, ...items.map((x) => displayNumber(prefix, x.displayId)));
   return `${prefix}-${String(max + 1).padStart(2, "0")}`;
 }
 
@@ -124,15 +138,17 @@ export function newGoal(
 ): CybersecurityGoal {
   return {
     id: newId("csg"),
-    displayId: nextConceptDisplayId("CSG", concept.goals),
+    displayId: nextConceptDisplayId("CSG", concept.goals, concept.goalSeq),
     statement: statement.trim(),
     riskIds: [riskId],
     assetProperties,
   };
 }
 
+/** Store a new goal; the counter remembers its number. */
 export function addGoal(concept: CybersecurityConcept, goal: CybersecurityGoal): CybersecurityConcept {
-  return { ...concept, goals: [...concept.goals, goal] };
+  const goalSeq = Math.max(concept.goalSeq ?? 0, displayNumber("CSG", goal.displayId));
+  return { ...concept, goals: [...concept.goals, goal], goalSeq };
 }
 
 export function updateGoal(
@@ -176,7 +192,7 @@ export function newClaim(
 ): CybersecurityClaim {
   return {
     id: newId("clm"),
-    displayId: nextConceptDisplayId("CLM", concept.claims),
+    displayId: nextConceptDisplayId("CLM", concept.claims, concept.claimSeq),
     statement: statement.trim(),
     kind,
     riskIds: [riskId],
@@ -184,8 +200,10 @@ export function newClaim(
   };
 }
 
+/** Store a new claim; the counter remembers its number. */
 export function addClaim(concept: CybersecurityConcept, claim: CybersecurityClaim): CybersecurityConcept {
-  return { ...concept, claims: [...concept.claims, claim] };
+  const claimSeq = Math.max(concept.claimSeq ?? 0, displayNumber("CLM", claim.displayId));
+  return { ...concept, claims: [...concept.claims, claim], claimSeq };
 }
 
 export function updateClaim(
