@@ -34,6 +34,11 @@
       "existingBranch": "Vorhandener Branch:",
       "pushAfterCommit": "Nach dem Commit zum Remote-Repository pushen",
       "signCommit": "Commit signieren (SSH)",
+      "signCommitRequired": "Commit signieren — Pflicht, dieses Repository hat ein Signer-Manifest",
+      "signingRequired": "Dieses Repository hat ein Signer-Manifest: Jeder Commit muss signiert sein. Signieren in der Audit-Konfiguration (Config) einschalten und erneut committen.",
+      "signingKeyMissing": "Signieren ist eingeschaltet, aber kein Signierschlüssel gesetzt. Schlüssel in der Audit-Konfiguration wählen (Config → Signing).",
+      "signerManifestEmpty": "Signieren ist eingeschaltet, aber das Signer-Manifest ist leer. Zuerst dich selbst als Signer eintragen (Config → Signers).",
+      "signerNotAuthorized": "Signieren ist eingeschaltet, aber deine Autor-E-Mail ({{email}}) ist im Signer-Manifest nicht berechtigt. Schlüssel unter dieser E-Mail eintragen (Config → Signers).",
       "commit": "Commit",
       "committing": "Wird committet…"
     },

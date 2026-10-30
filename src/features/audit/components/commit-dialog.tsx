@@ -80,8 +80,11 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // A repository with a signer manifest (anchor) verifies every later commit:
+  // there signing is required — the box is on and locked.
+  const signingRequired = !!protection?.anchor;
   const signingEnabled =
-    config.signing?.enabled ?? config.gpg?.enabled ?? false;
+    signingRequired || (config.signing?.enabled ?? config.gpg?.enabled ?? false);
   const signingFormat = config.signing?.format ?? "gpg";
 
   // ==================== STATE ====================
@@ -107,14 +110,17 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 
   // Generate commit message when round name changes
   useEffect(() => {
+    // The author as configured now — the message data is built when the tab
+    // opens, possibly before the author was set ("Author: Unknown").
     const updatedData = {
       ...commitMessageData,
+      author: config.author?.name || commitMessageData.author,
       round: roundName,
       reviewer: reviewer || undefined,
     };
     const message = generateCommitMessage(updatedData);
     setCommitMessage(message);
-  }, [roundName, reviewer, commitMessageData]);
+  }, [roundName, reviewer, commitMessageData, config.author?.name]);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -167,7 +173,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
         createBranch,
         message: commitMessage,
         roundName,
-        signCommit,
+        signCommit: signingRequired || signCommit,
         pushAfterCommit: pushAfterCommit && !!config.remoteUrl,
         reviewer: reviewer || undefined,
       };
@@ -382,13 +388,21 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={signCommit}
+                    checked={signingRequired || signCommit}
+                    disabled={signingRequired}
                     onChange={(e) => setSignCommit(e.target.checked)}
+                    data-testid="commit-sign-checkbox"
                   />
                 }
-                label={t("audit.commit.signCommit", {
-                  defaultValue: `Sign commit (${signingFormat.toUpperCase()})`,
-                })}
+                label={
+                  signingRequired
+                    ? t("audit.commit.signCommitRequired", {
+                        defaultValue: "Sign commit — required, this repository has a signer manifest",
+                      })
+                    : t("audit.commit.signCommit", {
+                        defaultValue: `Sign commit (${signingFormat.toUpperCase()})`,
+                      })
+                }
               />
             )}
           </Box>

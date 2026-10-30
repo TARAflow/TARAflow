@@ -34,6 +34,11 @@
       "existingBranch": "Existing Branch:",
       "pushAfterCommit": "Push to remote after commit",
       "signCommit": "Sign commit (SSH)",
+      "signCommitRequired": "Sign commit — required, this repository has a signer manifest",
+      "signingRequired": "This repository has a signer manifest: every commit must be signed. Turn signing on in the audit configuration (Config) and commit again.",
+      "signingKeyMissing": "Signing is on, but no signing key is set. Choose your key in the audit configuration (Config → Signing).",
+      "signerManifestEmpty": "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers).",
+      "signerNotAuthorized": "Signing is enabled but your author email ({{email}}) is not authorized in the signer manifest. Add your key under this email (Config → Signers).",
       "commit": "Commit",
       "committing": "Committing..."
     },

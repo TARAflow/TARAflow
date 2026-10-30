@@ -43,7 +43,7 @@ import {
   allowedSignersPathOf,
   parseAllowedSigners,
 } from "../services/audit-signer-manifest";
-import { checkSigningIdentity } from "../services/audit-signing-identity";
+import { checkSigningIdentity, signingGuard } from "../services/audit-signing-identity";
 import { diffService } from "../services/diff-service";
 import { createGitService } from "../services/git-service-renderer";
 import { credentialService } from "../services/credential-service-renderer";
@@ -436,13 +436,42 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         }
         const relPath = repoRelativePath(repoRoot, filePath);
 
-        // Signing-identity guard: if this commit will be signed, the author
+        // Signing guard. A repository with a signer manifest verifies every
+        // commit after it (SIG_UNSIGNED is an error), so there a commit must be
+        // signed — no unchecked box, no project with signing off, no missing
+        // key (git-signing would commit unsigned without one). And the author
         // email must be authorized in the manifest — otherwise git produces a
         // signature that fails verification later ("No principal matched").
-        // Block before committing rather than shipping a worthless signature.
+        // Block before committing rather than ship a trail that fails.
+        const io = createIpcFileIO();
+        const manifestText = await io.read(allowedSignersPathOf(repoRoot));
+        const hasManifest = !!manifestText && manifestText.trim() !== "";
+        const signing = auditData.config.signing;
+        const problem = signingGuard({
+          hasManifest,
+          signCommit: options.signCommit,
+          signingEnabled: signing?.enabled ?? auditData.config.gpg?.enabled ?? false,
+          format: signing?.format ?? "gpg",
+          sshSigningKeyPath: signing?.sshSigningKeyPath,
+          keyId: signing?.keyId ?? auditData.config.gpg?.keyId,
+        });
+        if (problem === "signing-required") {
+          throw new Error(
+            t("audit.commit.signingRequired", {
+              defaultValue:
+                "This repository has a signer manifest: every commit must be signed. Turn signing on in the audit configuration (Config) and commit again.",
+            }),
+          );
+        }
+        if (problem === "key-missing") {
+          throw new Error(
+            t("audit.commit.signingKeyMissing", {
+              defaultValue:
+                "Signing is on, but no signing key is set. Choose your key in the audit configuration (Config → Signing).",
+            }),
+          );
+        }
         if (options.signCommit) {
-          const io = createIpcFileIO();
-          const manifestText = await io.read(allowedSignersPathOf(repoRoot));
           const ident = checkSigningIdentity({
             authorEmail: auditData.config.author.email,
             manifestEntries: manifestText
@@ -452,8 +481,15 @@ export const AuditTab: React.FC<AuditTabProps> = ({
           if (!ident.ok) {
             throw new Error(
               ident.reason === "empty-manifest"
-                ? "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers)."
-                : `Signing is enabled but your author email (${auditData.config.author.email}) is not authorized in the signer manifest. Add your key under this email (Config → Signers).`,
+                ? t("audit.commit.signerManifestEmpty", {
+                    defaultValue:
+                      "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers).",
+                  })
+                : t("audit.commit.signerNotAuthorized", {
+                    email: auditData.config.author.email,
+                    defaultValue:
+                      "Signing is enabled but your author email ({{email}}) is not authorized in the signer manifest. Add your key under this email (Config → Signers).",
+                  }),
             );
           }
         }
@@ -561,6 +597,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
       onUpdate,
       detectChanges,
       refreshVerificationCommits,
+      t,
     ],
   );
 

@@ -47,3 +47,25 @@ export function checkSigningIdentity(input: {
     ? { ok: true }
     : { ok: false, reason: "email-not-authorized" };
 }
+
+/**
+ * Whether this commit may go ahead unsigned / without a key (review
+ * 2026-10-31). A repository with a signer manifest verifies every later
+ * commit — SIG_UNSIGNED is an error — so there the commit must be signed: the
+ * per-commit toggle on, signing on in the config, and a key for the format
+ * (without one git-signing commits unsigned). Without a manifest only a
+ * missing key for an intended signature is a problem.
+ */
+export function signingGuard(input: {
+  hasManifest: boolean;
+  signCommit: boolean;
+  signingEnabled: boolean;
+  format: "ssh" | "gpg";
+  sshSigningKeyPath?: string;
+  keyId?: string;
+}): "signing-required" | "key-missing" | null {
+  if (input.hasManifest && (!input.signCommit || !input.signingEnabled)) return "signing-required";
+  const key = input.format === "ssh" ? input.sshSigningKeyPath : input.keyId;
+  if (input.signCommit && input.signingEnabled && !key) return "key-missing";
+  return null;
+}
