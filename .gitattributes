@@ -1,0 +1,4 @@
+# Shell scripts and git hooks must keep LF on every checkout: a CRLF
+# "#!/bin/sh\r" or a trailing "\r" on an argument breaks them.
+.githooks/** text eol=lf
+*.sh text eol=lf
