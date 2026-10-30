@@ -74,12 +74,14 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
     );
   }, [safetyRelevant]);
 
-  // Badges on the tabs: the DFD's current validation and the threat
-  // generation drift; the tooltip of every tab says what is behind its status
-  // (phase indicators — the same lines the Overview's phase cards show).
+  // Badges on the tabs: the Hazard validation (user 2026-10-30), the DFD's
+  // current validation and the threat generation drift; the tooltip of every
+  // tab says what is behind its status (phase indicators — the same lines the
+  // Overview's phase cards show).
+  const BADGE_PHASES: readonly number[] = [PhaseId.Hazard, PhaseId.DFD, PhaseId.Threats];
   const getPhaseValidationCounts = (phaseId: number) => {
     const hints = indicators?.details[phaseId];
-    if (phaseId === PhaseId.DFD || phaseId === PhaseId.Threats) {
+    if (BADGE_PHASES.includes(phaseId)) {
       const fallback =
         phaseId === PhaseId.Threats
           ? { errors: 0, warnings: (threatDrift?.obsolete ?? 0) + (threatDrift?.added ?? 0) }
