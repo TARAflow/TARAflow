@@ -7,6 +7,9 @@ import type { MigrationPrompt } from "../../services/project-migration-open";
 // ==================== MIGRATE PROJECT DIALOG ====================
 // Shown when opening a project saved with an older schema. Nothing on disk
 // changes before the user confirms; then a backup is written first.
+// The reasons of a jump over many schema versions can be long: the box is
+// limited to the window height, the text scrolls and the buttons stay
+// visible below it (0.16.1-beta — before, they were pushed off screen).
 
 /** Target schema versions a conversion from → to passes through. */
 export function migrationSteps(fromVersion: number, toVersion: number): number[] {
@@ -36,8 +39,11 @@ export const MigrateProjectDialog: React.FC<MigrateProjectDialogProps> = ({
       aria-labelledby="migrate-project-title"
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
-        <div className="flex items-start gap-3 mb-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] flex flex-col">
+        <div
+          className="flex items-start gap-3 p-6 pb-4 overflow-y-auto min-h-0"
+          data-testid="migrate-project-content"
+        >
           <RefreshCw className="w-6 h-6 text-blue-600 flex-shrink-0" />
           <div className="min-w-0">
             <h3
@@ -78,7 +84,7 @@ export const MigrateProjectDialog: React.FC<MigrateProjectDialogProps> = ({
             </p>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 px-6 pb-6 pt-4 border-t border-gray-200 flex-shrink-0" data-testid="migrate-project-actions">
           <Button variant="secondary" onClick={onCancel} className="flex-1">
             {t("common.cancel")}
           </Button>

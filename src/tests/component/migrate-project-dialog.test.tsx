@@ -37,4 +37,16 @@ describe("MigrateProjectDialog", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it("a long list of reasons scrolls; the buttons stay outside the scrolling area (0.16.1-beta)", () => {
+    render(<MigrateProjectDialog prompt={{ ...prompt, fromVersion: 0, toVersion: 11 }} onConfirm={() => {}} onCancel={() => {}} />);
+    const content = screen.getByTestId("migrate-project-content");
+    const actions = screen.getByTestId("migrate-project-actions");
+    expect(content.className).toContain("overflow-y-auto");
+    expect(content.contains(screen.getByText("dialogs.migrateProject.reasons.v11"))).toBe(true);
+    expect(content.contains(screen.getByText("dialogs.migrateProject.confirm"))).toBe(false);
+    expect(actions.contains(screen.getByText("dialogs.migrateProject.confirm"))).toBe(true);
+    expect(actions.className).toContain("flex-shrink-0");
+    expect(content.parentElement!.className).toContain("max-h-[90vh]");
+  });
 });
