@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v6 · 2026-10-31 (decisions D-1 … D-17 in §7.1, §9 aligned with them; K8 done — classic sibling
+**Status:** v7 · 2026-10-31 (decisions D-1 … D-21 in §7.1, §9 aligned with them; K8 done — classic sibling
 `iec-62443-4-2-2019-coverage.md`; nothing implemented yet; target 0.17.0-beta before 2026-11-30; release plan: `doc/InProgress/Release/release-0.17-plan.md`) ·
 code base: `main` 90e5a52a (v0.16.0-beta, schema 11)
 **Roadmap:** item 1 of the road to 1.0.0 (IEC 62443 compliance matrix for the CRA).
@@ -325,6 +325,10 @@ Per project, from one model (consistency per EA-6-1):
 | D-15 (K-E4) | **Type-level conformance check** of every rule path and value against the element property types, as a file in `src/tests` compiled by `tsc` (the feature itself stays free of `features/dfd`); rules declared with `satisfies`. | Part of IEC-2a. |
 | D-16 (K-E5) | A mitigation reference counts only if the mitigation is chosen for a risk whose threat concerns an element **in the component scope**. | IEC-3. |
 | D-17 (K-E6) | A statement stores the **model result at the time of the statement**; a later difference shows "model changed — review statement". | Schema 12 field of the statement (D-8). |
+| D-18 (K-E7) | Rules are declared **`as const satisfies EvidenceRule`** — `satisfies` alone widens `property` to `string` and the conformance test (D-15) checks nothing (reproduced with tsc 5.x). | §9.2. |
+| D-19 (K-E8) | For **`all` rules, elements with applicability `unknown` count as `unknown`**, never skipped: an applicable element that clearly fails → `gap` naming it; otherwise any `unknown` → the row is not met by the model and ends as `unknown` (step 9). | §9.4 steps 4, 5. |
+| D-20 (K-E9) | **Supporting measures are derived automatically only for `any` rules** (e.g. backup or update by an external system). For `all` rules a supporting measure needs an analyst statement naming it; a derivation along paths (e.g. an upstream gateway) may come later. | §9.4 step 7 — evaluating `all` over scope ∪ environment would be stricter, not looser. |
+| D-21 (K-E10) | In the **achieved** run a mitigation reference counts **only where the model does not decide** (rule without model evidence, or elements `unknown`). Against a clear model `no` the row is a `gap` with the note "mitigation marked done, model shows not met". In the **planned** run the mitigation may overlay. | §9.4 step 6. |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -358,6 +362,10 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | K-E4 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-15** |
 | K-E5 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-16** |
 | K-E6 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-17** |
+| K-E7 | Review of §9 v2 — review 2026-10-31 (reviewer) | — | **decided, D-18** |
+| K-E8 | Review of §9 v2 — review 2026-10-31 (reviewer) | — | **decided, D-19** |
+| K-E9 | Review of §9 v2 — review 2026-10-31 (reviewer) | — | **decided, D-20** |
+| K-E10 | Review of §9 v2 — review 2026-10-31 (reviewer) | — | **decided, D-21** |
 
 ## 8. Next steps
 
@@ -433,8 +441,9 @@ interface EvidenceRule {
 }
 ```
 
-Rules are declared with `satisfies EvidenceRule` so literal values stay visible to the
-type-level conformance test in `src/tests` (D-15): every `elementTypes` × `property`
+Rules are declared **`as const satisfies EvidenceRule`** (D-18) — `satisfies` alone widens
+`property` to `string` — so literal paths and values stay visible to the type-level
+conformance test in `src/tests` (D-15): every `elementTypes` × `property`
 path exists on that element type's properties interface and every `in` / `notIn` value is
 assignable to the property's type. The test may import `features/dfd`; the compliance
 feature itself does not. Type C rules have no `satisfiedIf`.
@@ -471,18 +480,28 @@ holds).
    statement stores the model result at the time it was made; a different current result
    shows "model changed — review statement" (D-17).
 4. **Applicability** over the elements in scope: no target element `yes` and at least one
-   `unknown` → **`unknown`** (D-12); every target element `no` (or no element of the target
-   types exists, while the model's element types are set) → `n/a` with the derived reasoning.
-   A rule without targets is always applicable.
+   `unknown` → **`unknown`** (D-12); every target element `no`, or no element of the target
+   types in scope → `n/a` with the derived reasoning. A rule without targets is always
+   applicable. *Accepted limit:* a target type that does not occur at all (e.g. no
+   Interface drawn) gives `n/a` — an unfinished DFD that lacks the type cannot be told
+   apart from a component without it; the reasoning names the missing type so the
+   analyst sees it.
 5. **Satisfaction in scope** with the rule's quantifier (D-13): `all` — every applicable
-   element `yes`; `any` — at least one `yes`. Met → `met`, source `model` (type B adds the
-   checklist). Elements that are `no` or `unknown` are listed in the result.
+   element `yes` **and no element with applicability `unknown`** (D-19); `any` — at least
+   one applicable element `yes`. Met → `met`, source `model` (type B adds the checklist).
+   Elements that are `no` or `unknown` (applicability or satisfaction) are listed in the
+   result.
 6. **Mitigation** with the requirement id, chosen for a risk whose threat concerns an
-   element in scope (D-16) → `met`, source `mitigation` (achieved run: only mitigations in a
-   done status).
-7. **Supporting measure:** the rule holds when the environment is included (step 5 over
-   scope ∪ environment) but not over the scope alone → `met`, source
-   `supporting-measure`, the environment elements named (D-7).
+   element in scope (D-16) → `met`, source `mitigation`. **Achieved run** (D-21): only
+   mitigations in a done status, and only where the model does not decide — the rule has
+   no model evidence (type C) or the listed elements are `unknown`; if step 5 found an
+   element `no`, the row stays a `gap` with the note "mitigation marked done, model shows
+   not met". **Planned run:** the mitigation may overlay a model `no`.
+7. **Supporting measure** — automatically **only for `any` rules** (D-20): the rule holds
+   on an element of the environment but on none in scope → `met`, source
+   `supporting-measure`, the environment element named (D-7). For `all` rules a
+   supporting measure needs a statement naming it (step 3); deriving it along paths
+   (e.g. an upstream gateway) is a later extension.
 8. **Claim** covering the row → `claimed` (D-5).
 9. Otherwise: any listed element `unknown` → `unknown`; type C → `needs-statement`;
    else `gap` with the failing elements.
@@ -507,8 +526,9 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 
 - **Completeness per edition (D-11):** every row has an evidence rule or is void; every
   requirement id resolves; type C rules have no `satisfiedIf`; no silent fallback.
-- **Conformance (D-15):** type-level test in `src/tests` — every path and value against the
-  element property types; compiled by `tsc` in `npm run build`.
+- **Conformance (D-15, D-18):** type-level test in `src/tests` — every path and value against
+  the element property types; compiled by `tsc` in `npm run build`. Includes a negative
+  case (`@ts-expect-error`): a rule with a non-existent literal path or value is rejected.
 - **Row lists:** SL-C and rows reproduce §4 here and §3 of the classic document (counts).
 - **Evaluator (IEC-3)** on small graphs:
   - `unknown` vs `n/a`: unset property → `unknown`; all set, none matching → `n/a`;
@@ -521,7 +541,12 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
   - statement override and "model changed" after an edit (D-17);
   - device category pending / changed, statements on dropped device rows kept as n/a
     (K-C1);
-  - vector rule: one non-counting row caps the FR at the level below its lowest SL-C.
+  - vector rule: one non-counting row caps the FR at the level below its lowest SL-C;
+  - `all` rule: an element with applicability `unknown` prevents `met` (D-19);
+  - supporting measure on an `all` rule only via a statement naming it; automatic on an
+    `any` rule (D-20);
+  - achieved run: a done mitigation against a model `no` → `gap` with the contradiction
+    note; planned run: overlay → `met` (D-21).
 
 ### 9.6 Steps
 
