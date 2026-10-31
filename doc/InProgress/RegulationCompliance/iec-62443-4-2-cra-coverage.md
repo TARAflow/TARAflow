@@ -1,8 +1,9 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v7 · 2026-10-31 (decisions D-1 … D-21 in §7.1, §9 aligned with them; K8 done — classic sibling
-`iec-62443-4-2-2019-coverage.md`; nothing implemented yet; target 0.17.0-beta before 2026-11-30; release plan: `doc/InProgress/Release/release-0.17-plan.md`) ·
-code base: `main` 90e5a52a (v0.16.0-beta, schema 11)
+**Status:** v8 · 2026-10-31 (decisions D-1 … D-21 in §7.1, §9 aligned with them; IEC-2a done;
+classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
+release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
+branch `feature/iec62443-cra-matrix`
 **Roadmap:** item 1 of the road to 1.0.0 (IEC 62443 compliance matrix for the CRA).
 **Related:** `doc/Open/RegulationCompliance/taraflow-compliance-architecture.md`
 (architecture from 2026-05, based on IEC 62443-4-2:2019 — see §2 for what changes),
@@ -157,7 +158,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 2.2 (l. 1458) | wireless usage authorization, monitoring, restriction | 1 | d | wireless IF / DF (as CR 1.6) | IF.ic.`monitoringControl` ≠ none, IF.ic.`serviceAccessPolicy` | B | — |
 | CR 2.3 (l. 1497) | *no component requirement (SR 2.3 is system level)* | — | — | — | — | n/a | — |
 | CR 2.4 (l. 1500) | policy for mobile code (execution, transfer, …) | 1 | j | component uses mobile code | — | C | "uses mobile code" flag |
-| CR 2.4 RE(1) (l. 1544) | authenticity check before executing mobile code | 2 | j | as CR 2.4 | Proc / MP.`malwareProtection` = code_signing (partly) | B | — |
+| CR 2.4 RE(1) (l. 1544) | authenticity check before executing mobile code | 2 | j | as CR 2.4 | — (`malwareProtection` = code_signing does not show that mobile code is checked) | C | "uses mobile code" flag |
 | CR 2.5 (l. 1575) | session lock after inactivity / on demand | 1 | d, j | human UI, local or remote | Proc.`sessionControl.sessionLockEnabled` | A | not on MP |
 | CR 2.6 (l. 1622) | terminate remote sessions (timeout / manual) | 2 | d, j | remote sessions (MP.`remoteAccessEnabled`) | Proc.`sessionControl.remoteTerminationEnabled` | A | not on MP |
 | CR 2.7 (l. 1664) | limit concurrent sessions per interface and user | 3 | h | every external interface with sessions | Proc.`sessionControl.maxConcurrentSessions` | A | not on MP |
@@ -264,15 +265,15 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | | A | B | C | n/a |
 |---|---|---|---|---|
 | FR 1 (22 rows) | 6 | 7 | 7 | 2 |
-| FR 2 (24) | 9 | 4 | 10 | 1 |
+| FR 2 (24) | 9 | 3 | 11 | 1 |
 | FR 3 (23) | 12 | 6 | 4 | 1 |
 | FR 4 (6) | 4 | 0 | 2 | 0 |
 | FR 5 (7) | 4 | 1 | 0 | 2 |
 | FR 6 (3) | 0 | 2 | 1 | 0 |
 | FR 7 (12) | 2 | 4 | 5 | 1 |
-| **Total (97)** | **37** | **24** | **29** | **7** |
+| **Total (97)** | **37** | **23** | **30** | **7** |
 
-About two thirds of the 90 live rows (61) can be pre-filled from the model (A + B). The C rows
+About two thirds of the 90 live rows (60) can be pre-filled from the model (A + B). The C rows
 need an analyst statement (applicable / met / not met / n/a + reasoning + evidence
 reference) — that is what makes the matrix a complete SoA.
 
@@ -286,6 +287,8 @@ Per project, from one model (consistency per EA-6-1):
    column, or the analyst's) · status (met / partial / gap / n/a / manual) · evidence
    (element ids + property values, analyst evidence ref) · supporting measure (CCSC 2)
    · CRA letter · linked risks (risks whose treatment sets the evidence property).
+   The status names its **source** — model, mitigation, supporting measure, statement,
+   claim — so a row met by a measure marked done (D-21) is never read as model evidence.
 3. **CRA view:** Annex I Part I (1)–(2)(m) with the CR rows behind each letter and an
    overall state; Part II and the 62443-4-1 rows listed as "process — external".
 4. **Gaps:** applicable rows not met at the claimed SL-C, each with a link to the risk or
@@ -434,6 +437,10 @@ interface EvidenceTarget {
 interface EvidenceRule {
   id: RequirementId;
   type: "A" | "B" | "C";
+  appliesWhen?: readonly EvidenceTarget[];  // component-level precondition: some element in scope
+                                            // applicable for one of these, else n/a (unknown if only
+                                            // unknowns) — e.g. "public-key authentication is used"
+                                            // while the evidence sits on another element (CR 1.9 RE(1))
   targets: readonly EvidenceTarget[];       // empty = the component as a whole (always applicable)
   quantifier?: "all" | "any";               // default "all": every applicable element satisfies;
                                             // "any" only for component-wide capabilities (update, backup, …)
@@ -479,7 +486,9 @@ holds).
 3. **Statement** for the row → its status wins; the model result is shown next to it. The
    statement stores the model result at the time it was made; a different current result
    shows "model changed — review statement" (D-17).
-4. **Applicability** over the elements in scope: no target element `yes` and at least one
+4. **Applicability** over the elements in scope — first the rule's `appliesWhen`
+   precondition (no element applicable → `n/a`, only unknowns → `unknown`), then the
+   targets: no target element `yes` and at least one
    `unknown` → **`unknown`** (D-12); every target element `no`, or no element of the target
    types in scope → `n/a` with the derived reasoning. A rule without targets is always
    applicable. *Accepted limit:* a target type that does not occur at all (e.g. no
@@ -503,8 +512,9 @@ holds).
    supporting measure needs a statement naming it (step 3); deriving it along paths
    (e.g. an upstream gateway) is a later extension.
 8. **Claim** covering the row → `claimed` (D-5).
-9. Otherwise: any listed element `unknown` → `unknown`; type C → `needs-statement`;
-   else `gap` with the failing elements.
+9. Otherwise: any listed element `no` → `gap`, listing the `no` **and** the `unknown`
+   elements (a clear finding is not hidden behind unknowns, consistent with D-19 and
+   step 6); else any `unknown` → `unknown`; else type C → `needs-statement`.
 
 **Two values per FR (D-2, D-14).** A row *counts* for a value as follows:
 
@@ -527,8 +537,12 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 - **Completeness per edition (D-11):** every row has an evidence rule or is void; every
   requirement id resolves; type C rules have no `satisfiedIf`; no silent fallback.
 - **Conformance (D-15, D-18):** type-level test in `src/tests` — every path and value against
-  the element property types; compiled by `tsc` in `npm run build`. Includes a negative
-  case (`@ts-expect-error`): a rule with a non-existent literal path or value is rejected.
+  the element property types; compiled by `tsc` in `npm run build`. Includes negative
+  cases (`@ts-expect-error`): a non-existent literal path or value is rejected, and so is a
+  value list on a property typed as plain `string` (it could not be checked). The first run
+  found two real defects: `authenticatorStorage` names its software-only value per element
+  type (`system_software` on a Multiprocess), and `IntegrityProtection` was plain `string`
+  (`INTEGRITY_PROTECTION_OPTIONS` lacked `as const`) — both fixed with IEC-2a.
 - **Row lists:** SL-C and rows reproduce §4 here and §3 of the classic document (counts).
 - **Evaluator (IEC-3)** on small graphs:
   - `unknown` vs `n/a`: unset property → `unknown`; all set, none matching → `n/a`;
@@ -543,6 +557,7 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
     (K-C1);
   - vector rule: one non-counting row caps the FR at the level below its lowest SL-C;
   - `all` rule: an element with applicability `unknown` prevents `met` (D-19);
+  - one element `no` and one `unknown` → `gap` naming both (step 9);
   - supporting measure on an `all` rule only via a statement naming it; automatic on an
     `any` rule (D-20);
   - achieved run: a done mitigation against a model `no` → `gap` with the contradiction
@@ -550,8 +565,8 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 
 ### 9.6 Steps
 
-| Step | Content | Branch | Depends on |
-|---|---|---|---|
-| IEC-2a | types, evidence rules, both edition files, completeness test — no UI, no i18n | `feature/iec62443-cra-matrix` | — |
-| IEC-3 | evaluator, edition selection, vectors, evaluator tests | same | IEC-2a |
-| IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split |
+| Step | Content | Branch | Depends on | Status |
+|---|---|---|---|---|
+| IEC-2a | types, evidence rules, both edition files, completeness test, conformance test — no UI, no i18n | `feature/iec62443-cra-matrix` | — | done (patch 264) |
+| IEC-3 | evaluator, edition selection, vectors, evaluator tests | same | IEC-2a | open |
+| IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split | open |
