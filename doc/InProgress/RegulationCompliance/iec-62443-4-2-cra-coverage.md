@@ -1,7 +1,7 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v1 · 2026-10-31 (draft for discussion — open points in §7, nothing implemented
-yet) · code base: `main` 7dc44c7e (v0.16.0-beta, schema 11)
+**Status:** v2 · 2026-10-31 (decisions D-1, D-2 recorded in §7; open points K2, K4–K6,
+K8–K12; nothing implemented yet) · code base: `main` 9272d6db (v0.16.0-beta, schema 11)
 **Roadmap:** item 1 of the road to 1.0.0 (IEC 62443 compliance matrix for the CRA).
 **Related:** `doc/Open/RegulationCompliance/taraflow-compliance-architecture.md`
 (architecture from 2026-05, based on IEC 62443-4-2:2019 — see §2 for what changes),
@@ -301,22 +301,47 @@ Per project, from one model (consistency per EA-6-1):
 | P-5 | secure-by-default, reset, default-credential handling not modelled | CR 1.5 a–c, 7.6, 7.9 (CRA (2)(b)) | component-level fields (K2), or C rows |
 | P-6 | `secureErase` / `auditLogRetentionYears` from the architecture doc | CR 4.2 / EN 50742 8.5 | `DS.deletionMechanism` already covers CR 4.2 — drop `secureErase`; retention only for EN 50742 B |
 
-## 7. Open points — to decide before any code
+## 7. Decisions and open points
+
+### 7.1 Decisions
+
+| # | Decision (user, 2026-10-31) | Consequence |
+|---|---|---|
+| D-1 (K1, K7) | **Two matrices:** classic IEC 62443-4-2 (2019 edition) and the CRA edition EN IEC 62443-4-2 (prAA, this document). The project's regulation tags select the matrix. Both tags together are allowed but not required; if both are set, the **CRA matrix applies** (stronger). | Two versioned mapping files with one evaluator; selection by tags, not by the regulation preset (so ISO / EN 50742 projects can carry it too). The classic matrix needs the 2019 text (SAR / EDR / HDR / NDR, device categories) — §4 covers only the CRA edition. Which tags exactly: K9. |
+| D-2 (K3) | **SL-C follows from the TARA:** the achieved SL-C results from the chosen mitigations. It is a **vector per FR** (SL-C(IAC) … SL-C(RA)). If the project's target SL-C is not reached because one FR value falls short, **claims** are needed to reach it. | Target vector per FR on the project; achieved value per FR = highest SL-C at which every CR / RE selected for that FR (x.y.4 "Security levels") is met; a shortfall per FR lists the missing CR / RE rows, each closed by a mitigation or a claim. Open: which state counts (K10), what a 62443 claim is (K11). |
+
+Achieved SL-C per FR, as decided in D-2:
+
+```
+achieved(FR) = max { n ∈ 0..4 | every CR / RE of FR selected at SL-C n is met or claimed }
+gap(FR)      = target(FR) > achieved(FR)  →  rows selected at levels achieved+1 … target
+```
+
+A row counts as met when the evidence in §4 is present — properties set by a mitigation,
+or an analyst statement for C rows (K4) — or when a claim covers it.
+
+### 7.2 Open points — to decide before any code
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|
-| K1 | Which edition is the mapping based on? | (a) prAA:2026 draft (b) 4-2:2019 (c) both, selectable | **(a)**, as a versioned mapping file (`edition: "EN IEC 62443-4-2:2019/prAA:2026 (draft)"`), replaced when the EN is cited; 2019 only if a customer needs it (needs the 2019 copy) |
+| K1 | Edition | — | **decided, D-1** (both; the CRA mapping stays versioned as prAA draft until the EN is cited) |
 | K2 | What is "the component" in a TARAflow project? | (a) whole project = one component (b) one Multiprocess (or Process) selected as ToE, the rest is its environment / supporting measures (c) several components per project | **(b)**: matches prAA "supporting measures" (CCSC 2) — elements outside the ToE can meet a CR on its behalf; default: the whole model if nothing is selected |
-| K3 | SL-C target | (a) one SL-C for all FRs (b) SL-C vector per FR (c) derived from the TARA | **(b)**, project-level, entered by the analyst; TARA risk levels only shown as a hint (62443-3-2 SL-T derivation is a system topic) |
+| K3 | SL-C target / achieved | — | **decided, D-2** |
 | K4 | Analyst statements for C rows and overrides of A/B rows | (a) project file `compliance.statements[id]` = {applicable, status, reasoning, evidenceRef, supportingMeasure} (b) separate file | **(a)**: needs a schema fence (12; declare analysis-preserving — it adds fields only) |
 | K5 | Where is it shown? | (a) report chapter only (b) new tab + report (c) Overview sub-tab | **(b)**, step 1 report-only to validate the mapping on the examples |
 | K6 | Annex H threat list (Threat.UnauthorizedAccess …) | (a) ignore (b) tag catalog threats with the Annex H threat → CRA view per risk (c) later | **(c)**: still a draft of JTC13/WG9 (editor's note); revisit when EN 40000-series is stable |
-| K7 | Preset coupling | (a) own preset `iec-62443-4-2` (b) independent of the preset, like the item definition | **(b)**: CRA applies to automotive and machinery products too; EN 50742 B reuses the table as fixed subset |
-| K8 | Architecture doc (2026-05) | update in place / supersede | mark §2.2–2.4 as superseded by this document (2019 device categories), keep the evaluator idea |
+| K7 | Preset coupling | — | **decided, D-1** (tags, independent of the preset) |
+| K8 | Architecture doc (2026-05) | update in place / supersede | with D-1 its 2019 mapping (§2.2–2.4) becomes the basis of the classic matrix — move the classic part into a sibling document `iec-62443-4-2-2019-coverage.md` once the 2019 text is available |
+| K9 | Which tags select which matrix? (each tag alone selects its matrix, D-1) | (a) existing tags: `IEC 62443` → classic, `CRA` → CRA edition (b) `IEC 62443` → classic, new tag `EN IEC 62443 (CRA)` → CRA edition; the generic `CRA` tag selects no 62443 matrix | **(b)**: the generic `CRA` tag also fits products whose harmonised standard is not 62443-4-2 (consumer IoT: EN 18031, EN 40000 series) — with (a) they would get an inapplicable matrix. The tag validator suggests `CRA` with the new tag |
+| K10 | Which state of a mitigation counts for "achieved"? | (a) selected in the risk treatment (SHOULD values) (b) implemented in the DFD (IS values, closed loop) (c) both, shown as *planned* and *achieved* vector | **(c)**: planned = the TARA's design intent, achieved = the model as built; the report states the achieved vector, the gap list uses both |
+| K11 | What is a claim in 62443 terms? | (a) reuse the 0.16 claims (`project.cybersecurityConcept.claims`, CLM-nn) with a new kind for SL-C gaps: FR + CR / RE ids + the supporting measure (CCSC 2 prAA; compensating countermeasure in 2019) + responsible party (b) separate claim list for 62443 | **(a)**: one CLM numbering, review date and Audit verification already exist. Amends patch 244 (goals / claims ISO only): claims become visible for 62443 projects too. Note: prAA CCSC 2 requires the supporting measure to be described in the component documentation — the claim text is that description |
+| K12 | Rows the model cannot decide (C) and partial rows (B) | (a) C: analyst statement (K4) or a mitigation carrying CR / RE references; B: met when the property is set, unmodelled criteria shown as a checklist (b) B needs an explicit analyst confirmation | **(a)**, with a catalog extension: mitigations get optional `iec62443` references (CR / RE ids), so a chosen mitigation can meet a C row — this keeps "SL-C from the chosen mitigations" (D-2) true for C rows too |
 
 ## 8. Next steps
 
-1. Discuss §7 one point at a time; record the decisions here (doc patches, `main`).
+1. Discuss §7.2 one point at a time; record the decisions in §7.1 (doc patches, `main`).
+   The classic matrix (D-1) needs the IEC 62443-4-2:2019 text in the repo root (licensed,
+   never committed).
 2. Plan document with steps (mapping file + types, evaluator, statements, report chapter,
    tab, model gaps P-1…P-6) on a branch `feature/iec62443-cra-matrix`.
 3. Validate the A/B rows against the two examples (SmokeDetector-leveled, Headlamp) before

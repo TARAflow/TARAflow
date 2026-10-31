@@ -5,6 +5,11 @@
 **Datum:** 2026-05-24  
 **Scope:** Property-Gaps, CR-Mapping, Compliance-Report-Feature
 
+> **2026-10-31:** Dieses Dokument basiert auf IEC 62443-4-2:2019 (Gerätekategorien,
+> EDR/HDR/NDR). Der CRA-Entwurf EN IEC 62443-4-2:2019/prAA:2026 streicht Kap. 12–15 und
+> führt Applicability je CR ein — Anforderungsmatrix, Abweichungen und offene Punkte:
+> `doc/InProgress/RegulationCompliance/iec-62443-4-2-cra-coverage.md` (§2, §7 K8).
+
 ---
 
 ## Ziel
