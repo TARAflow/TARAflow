@@ -154,6 +154,7 @@ export function repairProject(raw: any): Project | null {
     ...(raw.sourceBindings ? { sourceBindings: raw.sourceBindings } : {}),
     ...(raw.itemDefinition ? { itemDefinition: raw.itemDefinition } : {}),
     ...(raw.cybersecurityConcept ? { cybersecurityConcept: raw.cybersecurityConcept } : {}),
+    ...(raw.compliance ? { compliance: raw.compliance } : {}),
     isOpen: raw.isOpen ?? false,
     hasUnsavedChanges: false,
     filePath: raw.filePath,

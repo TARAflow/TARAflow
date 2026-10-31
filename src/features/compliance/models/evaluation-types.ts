@@ -3,8 +3,8 @@
 // §9.4). Plain data — the app layer builds the input from the project
 // (component scope, property view per run, statements, claims, mitigations).
 
+import type { ComplianceRowStatus, ComplianceStatement, DeviceCategoryChoice } from "shared";
 import type {
-  DeviceCategory,
   Edition,
   EditionRow,
   FoundationalRequirement,
@@ -54,17 +54,10 @@ export interface PropertyView {
 
 // ==================== ANALYST INPUT ====================
 
-export type StatementStatus = "met" | "not-met" | "n/a";
+export type { StatementStatus } from "shared";
 
-/** Analyst statement on one row (D-8); wins over the model (§9.4 step 3). */
-export interface RowStatement {
-  status: StatementStatus;
-  reasoning: string;
-  /** Names the supporting measure that meets the row (D-14, D-20). */
-  supportingMeasure?: string;
-  /** The model result when the statement was made (D-17). */
-  modelStatusAtStatement?: RowStatus;
-}
+/** What the evaluator reads of a stored statement (D-8); wins over the model (§9.4 step 3). */
+export type RowStatement = Pick<ComplianceStatement, "status" | "reasoning" | "supportingMeasure" | "modelStatusAtStatement">;
 
 /** A claim covering rows of the matrix (D-5): another party covers the gap. */
 export interface MatrixClaim {
@@ -83,12 +76,7 @@ export interface MitigationEvidence {
   concernsElementIds: readonly string[];
 }
 
-/** Device categories of the component (2019 edition, K-C1). */
-export interface DeviceCategoryChoice {
-  categories: readonly DeviceCategory[];
-  /** "derived" = proposal, not yet confirmed → device rows pending. */
-  source: "derived" | "manual";
-}
+export type { DeviceCategoryChoice };
 
 export type EvaluationRun = "achieved" | "planned";
 
@@ -107,14 +95,7 @@ export interface ComplianceInput {
 
 // ==================== RESULT ====================
 
-export type RowStatus =
-  | "met"
-  | "claimed"
-  | "n/a"
-  | "unknown"
-  | "pending-category"
-  | "needs-statement"
-  | "gap";
+export type RowStatus = ComplianceRowStatus;
 
 export type RowSource =
   | "model"

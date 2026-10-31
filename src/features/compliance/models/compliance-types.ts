@@ -12,11 +12,12 @@
 //                   silent fallback to the other edition
 
 // ==================== FOUNDATIONAL REQUIREMENTS ====================
+// The primitives the project stores (FRs, device categories, edition ids)
+// live in shared (compliance-data-types.ts, schema 12); re-exported here.
 
-export const FOUNDATIONAL_REQUIREMENTS = ["IAC", "UC", "SI", "DC", "RDF", "TRE", "RA"] as const;
-
-/** FR 1 … FR 7 by their SL-C abbreviation. */
-export type FoundationalRequirement = (typeof FOUNDATIONAL_REQUIREMENTS)[number];
+import type { ComplianceEditionId, DeviceCategory, FoundationalRequirement } from "shared";
+export { FOUNDATIONAL_REQUIREMENTS } from "shared";
+export type { DeviceCategory, FoundationalRequirement };
 
 /** Capability security level; 0 = no level reached. */
 export type SecurityLevel = 0 | 1 | 2 | 3 | 4;
@@ -169,10 +170,7 @@ export type RequirementId = (typeof REQUIREMENT_IDS)[number];
 
 // ==================== EDITIONS ====================
 
-export type EditionId = "iec-62443-4-2-2019" | "en-iec-62443-4-2-praa-2026";
-
-/** 2019 component types (Clauses 12–15); prAA has CRs only. */
-export type DeviceCategory = "SAR" | "EDR" | "HDR" | "NDR";
+export type EditionId = ComplianceEditionId;
 
 /** CRA Annex I Part I: "1" or a letter of (2). */
 export type CraEssentialRequirement =

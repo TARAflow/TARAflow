@@ -2,7 +2,7 @@ import type { ProjectInfoData, ProjectSettingsData } from "features/overview";
 import { HazardData } from "features/hazards";
 import { DFDData } from "features/dfd";
 import { AssetData } from "features/assets";
-import { CybersecurityConcept, ItemDefinition, PhaseStatus, PhaseStatusMap, ProjectTags, SourceBinding } from "shared";
+import { ComplianceData, CybersecurityConcept, ItemDefinition, PhaseStatus, PhaseStatusMap, ProjectTags, SourceBinding } from "shared";
 import { ThreatData } from "features/threats";
 import { RiskData } from "features/risks";
 import { AttackTreeData } from "features/attacktree";
@@ -114,6 +114,13 @@ export interface Project {
    * Schema 11.
    */
   cybersecurityConcept?: CybersecurityConcept;
+  /**
+   * IEC 62443-4-2 requirement matrix data (iec-62443-4-2-cra-coverage.md
+   * D-8): component under evaluation, target SL-C vector, device categories
+   * (2019 edition), analyst statements per edition and row. The matrix itself
+   * is derived. Optional; absent = nothing entered yet. Schema 12.
+   */
+  compliance?: ComplianceData;
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
   filePath?: string; // Runtime-only (Electron). Stripped by prepareForDisk() before write — never persisted.

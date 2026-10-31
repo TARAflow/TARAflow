@@ -184,6 +184,25 @@ export {
   type SourceRef,
 } from "./models/item-definition-types";
 
+// ==================== IEC 62443-4-2 MATRIX DATA (schema 12) ====================
+export {
+  FOUNDATIONAL_REQUIREMENTS,
+  withComplianceComponent,
+  withComplianceStatement,
+  withComplianceTarget,
+  withDeviceCategories,
+  withoutComplianceStatement,
+  type ComplianceData,
+  type ComplianceEditionId,
+  type ComplianceRowStatus,
+  type ComplianceStatement,
+  type DeviceCategory,
+  type DeviceCategoryChoice,
+  type FoundationalRequirement,
+  type StatementStatus,
+  type TargetSecurityLevel,
+} from "./models/compliance-data-types";
+
 // ==================== ASSET RELATION UNION TYPES ====================
 // String union types for asset relations — used by dfd and threats features.
 export type {
