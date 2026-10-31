@@ -1,5 +1,5 @@
 // ==================== CONTROL VALUE SEMANTICS ====================
-// Closed-loop review CL-1 (doc/InProgress/Threat/closed-loop-review.md): when
+// Closed-loop review CL-1 (doc/Done/Threat/closed-loop-review.md): when
 // does a DFD property value meet a control's expected value? One answer for
 // the SHOULD derivation, the drift check, the coverage badge and the DFD
 // notification panel (each used to carry its own isEmptyValue).

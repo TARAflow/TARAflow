@@ -1,7 +1,6 @@
 # Closed loop — review and fixes
 
-**Status:** v2 · 2026-10-29 · CL-1 … CL-4 done (§4) · branch `feature/iso21434-item-definition`,
-release 0.16.0-beta
+**Status:** v3 · 2026-10-31 · done — CL-1 … CL-7 (§4), released in 0.16.0-beta
 **Origin:** user 2026-10-27: notifications in SmokeDetector and Headlamp "although no
 mitigation was implemented". Analysed with the user's own files
 (`SmokeDetector-leveled.tara.json`, `Headlamp_ISO21434_Example.tara.json`) through the

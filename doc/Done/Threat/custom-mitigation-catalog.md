@@ -1,7 +1,6 @@
 # Custom threats in the closed loop — project mitigation catalog
 
-**Status:** v2 · 2026-10-29 · CM-1 … CM-4 done (§4) · branch `feature/iso21434-item-definition`,
-release 0.16.0-beta (schema 11 fence already in place)
+**Status:** v3 · 2026-10-31 · done — CM-1 … CM-8 (§4), released in 0.16.0-beta (schema 11)
 **Origin:** user request 2026-10-27: "self-defined threats need a link to the security
 properties so that the closed loop also works for them".
 

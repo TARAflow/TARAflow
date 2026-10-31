@@ -6,7 +6,7 @@ release 0.16.0-beta (Jira); further trackers 0.17
 predates the OAuth services, the 0.15.2 token fix and the security findings below, and
 only renamed the proxy).
 **Related:** 0.15.2-beta (tokens out of the project file, secret-scan hooks);
-`doc/InProgress/Threat/closed-loop-review.md` (mitigation status drives the closed loop).
+`doc/Done/Threat/closed-loop-review.md` (mitigation status drives the closed loop).
 
 ---
 
