@@ -62,6 +62,8 @@ export type CommitSigningProblem = "key-missing" | "empty-manifest" | "email-not
  */
 export function commitSigning(input: {
   committedManifest: string | null;
+  /** The history introduced the manifest (anchor) — required even if removed since. */
+  anchored?: boolean;
   signCommit: boolean;
   signingEnabled: boolean;
   format: "ssh" | "gpg";
@@ -69,7 +71,10 @@ export function commitSigning(input: {
   keyId?: string;
   authorEmail: string;
 }): { required: boolean; sign: boolean; problem: CommitSigningProblem | null } {
-  const required = input.committedManifest !== null;
+  // Once the repository signs, it always signs (user 2026-10-31) — the
+  // anchor counts even after the manifest was removed (then nobody is
+  // authorized: "empty-manifest", as the engine sees it).
+  const required = input.committedManifest !== null || !!input.anchored;
   const sign = required || (input.signingEnabled && input.signCommit);
   if (!sign) return { required, sign, problem: null };
   const key = input.format === "ssh" ? input.sshSigningKeyPath : input.keyId;

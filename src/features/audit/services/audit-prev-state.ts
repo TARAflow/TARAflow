@@ -71,3 +71,19 @@ export async function loadCommittedManifest(raw: RawGit): Promise<string | null>
     return null;
   }
 }
+
+/**
+ * Whether the repository's history ever introduced the signer manifest (the
+ * audit anchor). From then on every commit is verified — signed and in a
+ * repository-wide rule, whatever the project file says (user 2026-10-31:
+ * once signing is on, only signed commits), even if the manifest was removed
+ * later (the engine then reports SIGNER_NOT_AUTHORIZED / SIG_UNSIGNED).
+ */
+export async function loadManifestAnchored(raw: RawGit): Promise<boolean> {
+  try {
+    const res = await raw(["log", "--diff-filter=A", "--format=%H", "--", ALLOWED_SIGNERS_REL_PATH]);
+    return res.success && typeof res.data === "string" && res.data.trim() !== "";
+  } catch {
+    return false;
+  }
+}

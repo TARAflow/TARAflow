@@ -90,7 +90,7 @@
       "signing": {
         "section": "Commit Signing",
         "help": "Sign audit commits cryptographically so their authenticity can be verified.",
-        "requiredByManifest": "This repository has a committed signer manifest: every commit is verified, so commits are always signed."
+        "requiredByManifest": "This repository signs (its history introduced a signer manifest): every commit is verified, so commits are always signed — for every project in it."
       },
       "signers": {
         "title": "Authorized signers",

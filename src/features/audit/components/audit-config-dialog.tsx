@@ -917,7 +917,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
               <Alert severity="info" data-testid="audit-config-signing-required">
                 {t("audit.config.signing.requiredByManifest", {
                   defaultValue:
-                    "This repository has a committed signer manifest: every commit is verified, so commits are always signed.",
+                    "This repository signs (its history introduced a signer manifest): every commit is verified, so commits are always signed — for every project in it.",
                 })}
               </Alert>
             )}

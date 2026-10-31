@@ -70,6 +70,8 @@ interface CommitDialogProps {
    * commit is signed (commitSigning, the engine's rule).
    */
   committedManifest?: string | null;
+  /** The history introduced the manifest (anchor): signing stays required. */
+  manifestAnchored?: boolean;
 }
 
 // ==================== COMPONENT ====================
@@ -85,12 +87,13 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   initialReviewer,
   protection,
   committedManifest = null,
+  manifestAnchored = false,
 }) => {
   const { t } = useTranslation();
 
-  // A repository with a signer manifest committed at HEAD verifies every
-  // later commit: there signing is required — the box is on and locked.
-  const signingRequired = committedManifest !== null;
+  // A repository that signs (manifest at HEAD, or introduced in its history)
+  // verifies every later commit: signing is required — box on and locked.
+  const signingRequired = committedManifest !== null || manifestAnchored;
   const signingEnabled =
     signingRequired || (config.signing?.enabled ?? config.gpg?.enabled ?? false);
   const signingFormat = config.signing?.format ?? (config.gpg?.enabled ? "gpg" : "ssh");
@@ -113,6 +116,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   // The same decision the commit handler makes — shown before the click.
   const signingDecision = commitSigning({
     committedManifest,
+    anchored: manifestAnchored,
     signCommit,
     signingEnabled: config.signing?.enabled ?? config.gpg?.enabled ?? false,
     format: signingFormat,

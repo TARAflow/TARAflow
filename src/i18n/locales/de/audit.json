@@ -90,7 +90,7 @@
       "signing": {
         "section": "Commit-Signierung",
         "help": "Audit-Commits kryptografisch signieren, damit ihre Echtheit verifiziert werden kann.",
-        "requiredByManifest": "Dieses Repository hat ein committetes Signer-Manifest: Jeder Commit wird verifiziert, darum wird immer signiert."
+        "requiredByManifest": "Dieses Repository signiert (seine Historie hat ein Signer-Manifest eingeführt): Jeder Commit wird verifiziert, darum wird immer signiert — für alle Projekte darin."
       },
       "signers": {
         "title": "Autorisierte Signierer",

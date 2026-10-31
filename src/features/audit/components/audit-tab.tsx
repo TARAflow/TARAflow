@@ -36,6 +36,7 @@ import { findVerificationCommits } from "../services/verification-commits";
 import { useAuditProtection } from "../hooks/useAuditProtection";
 import {
   loadCommittedManifest,
+  loadManifestAnchored,
   loadPreviousProjectFromGit,
   repoRelativePath,
 } from "../services/audit-prev-state";
@@ -145,27 +146,35 @@ export const AuditTab: React.FC<AuditTabProps> = ({
   // engine's (it checks each commit against its parent's manifest, never the
   // working tree). Re-read once git is ready, after each commit and when the
   // config dialog closes (signers may have been committed there).
+  // Plus whether the history ever introduced it (anchor): once the repository
+  // signs, every commit is signed — for every project in it (user 2026-10-31).
   const [committedManifest, setCommittedManifest] = useState<string | null>(null);
+  const [manifestAnchored, setManifestAnchored] = useState(false);
   const [manifestTick, setManifestTick] = useState(0);
   useEffect(() => {
     if (!repoRootValue || !isGitInitialized) {
       setCommittedManifest(null);
+      setManifestAnchored(false);
       return;
     }
     let cancelled = false;
-    void loadCommittedManifest((args) => gitService.raw(args)).then((m) => {
-      if (!cancelled) setCommittedManifest(m);
+    const raw = (args: string[]) => gitService.raw(args);
+    void Promise.all([loadCommittedManifest(raw), loadManifestAnchored(raw)]).then(([m, anchored]) => {
+      if (cancelled) return;
+      setCommittedManifest(m);
+      setManifestAnchored(anchored);
     });
     return () => {
       cancelled = true;
     };
   }, [repoRootValue, isGitInitialized, gitService, manifestTick]);
+  const signingRequired = committedManifest !== null || manifestAnchored;
 
-  // With a manifest every commit is signed. The key path is hydrated on load
-  // only when the file had signing on — fill it from git config
-  // (user.signingkey) when it is still missing, in memory only.
+  // Signing required: the key path is hydrated on load only when the file had
+  // signing on — fill it from git config (user.signingkey) when it is still
+  // missing, in memory only.
   useEffect(() => {
-    if (committedManifest === null) return;
+    if (!signingRequired) return;
     const signing = auditData.config.signing;
     const format = signing?.format ?? "ssh";
     if (format === "ssh" ? signing?.sshSigningKeyPath : signing?.keyId) return;
@@ -188,7 +197,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [committedManifest, auditData.config.signing, gitService]);
+  }, [signingRequired, auditData.config.signing, gitService]);
 
   // The commit message's Author trailer follows the configured author — the
   // message data is built when the tab opens, possibly before the author was
@@ -495,12 +504,17 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         // with one, the commit is signed whatever the switch or the box say;
         // a signature needs a key and an authorized author email. Re-read
         // here — the final check, the dialog showed the same before.
-        const committed = await loadCommittedManifest((args) => gitService.raw(args));
+        const rawGit = (args: string[]) => gitService.raw(args);
+        const [committed, anchored] = await Promise.all([
+          loadCommittedManifest(rawGit),
+          loadManifestAnchored(rawGit),
+        ]);
         const signingConfig = auditData.config.signing;
         const signingFormat = signingConfig?.format ?? (auditData.config.gpg?.enabled ? "gpg" : "ssh");
         const signingKeyId = signingConfig?.keyId ?? auditData.config.gpg?.keyId;
         const decision = commitSigning({
           committedManifest: committed,
+          anchored,
           signCommit: options.signCommit,
           signingEnabled: signingConfig?.enabled ?? auditData.config.gpg?.enabled ?? false,
           format: signingFormat,
@@ -850,7 +864,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         gitService={gitService}
         repoRoot={repoRootValue}
         protection={protection}
-        signingRequired={committedManifest !== null}
+        signingRequired={signingRequired}
       />
 
       {/* Commit Dialog */}
@@ -868,6 +882,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
           }}
           protection={protection}
           committedManifest={committedManifest}
+          manifestAnchored={manifestAnchored}
           initialReviewer={commitReviewer}
         />
       )}

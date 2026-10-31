@@ -1,7 +1,7 @@
 // src/tests/unit/features/audit/services/audit-signing-identity.test.ts
 import { describe, it, expect, vi } from "vitest";
 import { checkSigningIdentity, commitSigning } from "features/audit/services/audit-signing-identity";
-import { loadCommittedManifest } from "features/audit/services/audit-prev-state";
+import { loadCommittedManifest, loadManifestAnchored } from "features/audit/services/audit-prev-state";
 import { entryFromPubkey } from "features/audit/services/audit-signer-manifest";
 
 const alice = entryFromPubkey("alice@example.com", "ssh-ed25519 AAAA", {
@@ -70,7 +70,12 @@ describe("commitSigning", () => {
     expect(d.problem).toBe("email-not-authorized");
   });
 
-  it("no manifest at HEAD (deleted or never committed): the project's choice", () => {
+  it("once the repository signs, it always signs — the manifest removed since: required, nobody authorized", () => {
+    const d = commitSigning({ ...base, committedManifest: null, anchored: true, signCommit: false, signingEnabled: false });
+    expect(d).toEqual({ required: true, sign: true, problem: "empty-manifest" });
+  });
+
+  it("no manifest at HEAD and none in the history: the project's choice", () => {
     expect(commitSigning({ ...base, committedManifest: null, signCommit: false, signingEnabled: true })).toEqual({
       required: false,
       sign: false,
@@ -90,5 +95,18 @@ describe("loadCommittedManifest", () => {
   it("none at HEAD or a git error → null", async () => {
     expect(await loadCommittedManifest(vi.fn().mockResolvedValue({ success: false, error: "fatal: path not in HEAD" }))).toBeNull();
     expect(await loadCommittedManifest(vi.fn().mockRejectedValue(new Error("unborn HEAD")))).toBeNull();
+  });
+});
+
+describe("loadManifestAnchored", () => {
+  it("true once the history introduced .tara/allowed_signers", async () => {
+    const raw = vi.fn().mockResolvedValue({ success: true, data: "abc123\n" });
+    expect(await loadManifestAnchored(raw)).toBe(true);
+    expect(raw).toHaveBeenCalledWith(["log", "--diff-filter=A", "--format=%H", "--", ".tara/allowed_signers"]);
+  });
+
+  it("never introduced, or a git error → false", async () => {
+    expect(await loadManifestAnchored(vi.fn().mockResolvedValue({ success: true, data: "" }))).toBe(false);
+    expect(await loadManifestAnchored(vi.fn().mockRejectedValue(new Error("no repo")))).toBe(false);
   });
 });

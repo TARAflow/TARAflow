@@ -36,7 +36,7 @@ const message: CommitMessageData = {
   author: "Ann Example",
 };
 
-const open = (cfg: AuditConfig, committedManifest: string | null) => {
+const open = (cfg: AuditConfig, committedManifest: string | null, manifestAnchored = false) => {
   const onCommit = vi.fn().mockResolvedValue(undefined);
   render(
     <CommitDialog
@@ -48,6 +48,7 @@ const open = (cfg: AuditConfig, committedManifest: string | null) => {
       onCommit={onCommit}
       onClose={() => {}}
       committedManifest={committedManifest}
+      manifestAnchored={manifestAnchored}
     />,
   );
   return onCommit;
@@ -84,6 +85,15 @@ describe("commit dialog — signing", () => {
   it("author not in the committed manifest: shown before the click", () => {
     open(config(true, "/k/id", "bob@example.com"), MANIFEST);
     expect(screen.getByTestId("commit-signing-problem").textContent).toContain("bob@example.com");
+    expect((commitButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("once the repository signs, it always signs: manifest removed since → locked, blocked", () => {
+    open(config(false), null, true);
+    const box = screen.getByTestId("commit-sign-checkbox").querySelector("input")!;
+    expect(box.checked).toBe(true);
+    expect(box.disabled).toBe(true);
+    expect(screen.getByTestId("commit-signing-problem").textContent).toContain("signer manifest is empty");
     expect((commitButton() as HTMLButtonElement).disabled).toBe(true);
   });
 
