@@ -35,15 +35,13 @@ import { useAuditRepo } from "../hooks/useAuditRepo";
 import { findVerificationCommits } from "../services/verification-commits";
 import { useAuditProtection } from "../hooks/useAuditProtection";
 import {
+  loadCommittedManifest,
   loadPreviousProjectFromGit,
   repoRelativePath,
 } from "../services/audit-prev-state";
-import { createIpcFileIO } from "../services/audit-git-adapters";
-import {
-  allowedSignersPathOf,
-  parseAllowedSigners,
-} from "../services/audit-signer-manifest";
-import { checkSigningIdentity, signingGuard } from "../services/audit-signing-identity";
+import { commitSigning } from "../services/audit-signing-identity";
+import { readGitDerivedInfo } from "../services/derive-audit-config";
+import { commitSigningMessage } from "./commit-signing-message";
 import { diffService } from "../services/diff-service";
 import { createGitService } from "../services/git-service-renderer";
 import { credentialService } from "../services/credential-service-renderer";
@@ -142,6 +140,63 @@ export const AuditTab: React.FC<AuditTabProps> = ({
     gitService,
     currentBranch,
   );
+
+  // The signer manifest committed at HEAD — the one truth for signing, the
+  // engine's (it checks each commit against its parent's manifest, never the
+  // working tree). Re-read once git is ready, after each commit and when the
+  // config dialog closes (signers may have been committed there).
+  const [committedManifest, setCommittedManifest] = useState<string | null>(null);
+  const [manifestTick, setManifestTick] = useState(0);
+  useEffect(() => {
+    if (!repoRootValue || !isGitInitialized) {
+      setCommittedManifest(null);
+      return;
+    }
+    let cancelled = false;
+    void loadCommittedManifest((args) => gitService.raw(args)).then((m) => {
+      if (!cancelled) setCommittedManifest(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [repoRootValue, isGitInitialized, gitService, manifestTick]);
+
+  // With a manifest every commit is signed. The key path is hydrated on load
+  // only when the file had signing on — fill it from git config
+  // (user.signingkey) when it is still missing, in memory only.
+  useEffect(() => {
+    if (committedManifest === null) return;
+    const signing = auditData.config.signing;
+    const format = signing?.format ?? "ssh";
+    if (format === "ssh" ? signing?.sshSigningKeyPath : signing?.keyId) return;
+    let cancelled = false;
+    void readGitDerivedInfo({ raw: (args) => gitService.raw(args) }).then((info) => {
+      const key = format === "ssh" ? info.signing?.sshSigningKeyPath : info.signing?.keyId;
+      if (cancelled || !key) return;
+      setAuditData((prev) => ({
+        ...prev,
+        config: {
+          ...prev.config,
+          signing: {
+            ...(prev.config.signing ?? { enabled: true }),
+            format,
+            ...(format === "ssh" ? { sshSigningKeyPath: key } : { keyId: key }),
+          },
+        },
+      }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [committedManifest, auditData.config.signing, gitService]);
+
+  // The commit message's Author trailer follows the configured author — the
+  // message data is built when the tab opens, possibly before the author was
+  // set (local-user-settings / git config), which left "Author: Unknown".
+  useEffect(() => {
+    const name = auditData.config.author.name;
+    setCommitMessageData((prev) => (prev && name && prev.author !== name ? { ...prev, author: name } : prev));
+  }, [auditData.config.author.name]);
 
   // ==================== EFFECTS ====================
 
@@ -436,63 +491,37 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         }
         const relPath = repoRelativePath(repoRoot, filePath);
 
-        // Signing guard. A repository with a signer manifest verifies every
-        // commit after it (SIG_UNSIGNED is an error), so there a commit must be
-        // signed — no unchecked box, no project with signing off, no missing
-        // key (git-signing would commit unsigned without one). And the author
-        // email must be authorized in the manifest — otherwise git produces a
-        // signature that fails verification later ("No principal matched").
-        // Block before committing rather than ship a trail that fails.
-        const io = createIpcFileIO();
-        const manifestText = await io.read(allowedSignersPathOf(repoRoot));
-        const hasManifest = !!manifestText && manifestText.trim() !== "";
-        const signing = auditData.config.signing;
-        const problem = signingGuard({
-          hasManifest,
+        // Signing, decided on the manifest committed at HEAD (commitSigning):
+        // with one, the commit is signed whatever the switch or the box say;
+        // a signature needs a key and an authorized author email. Re-read
+        // here — the final check, the dialog showed the same before.
+        const committed = await loadCommittedManifest((args) => gitService.raw(args));
+        const signingConfig = auditData.config.signing;
+        const signingFormat = signingConfig?.format ?? (auditData.config.gpg?.enabled ? "gpg" : "ssh");
+        const signingKeyId = signingConfig?.keyId ?? auditData.config.gpg?.keyId;
+        const decision = commitSigning({
+          committedManifest: committed,
           signCommit: options.signCommit,
-          signingEnabled: signing?.enabled ?? auditData.config.gpg?.enabled ?? false,
-          format: signing?.format ?? "gpg",
-          sshSigningKeyPath: signing?.sshSigningKeyPath,
-          keyId: signing?.keyId ?? auditData.config.gpg?.keyId,
+          signingEnabled: signingConfig?.enabled ?? auditData.config.gpg?.enabled ?? false,
+          format: signingFormat,
+          sshSigningKeyPath: signingConfig?.sshSigningKeyPath,
+          keyId: signingKeyId,
+          authorEmail: auditData.config.author.email,
         });
-        if (problem === "signing-required") {
-          throw new Error(
-            t("audit.commit.signingRequired", {
-              defaultValue:
-                "This repository has a signer manifest: every commit must be signed. Turn signing on in the audit configuration (Config) and commit again.",
-            }),
-          );
+        if (decision.problem) {
+          throw new Error(commitSigningMessage(t, decision.problem, auditData.config.author.email));
         }
-        if (problem === "key-missing") {
-          throw new Error(
-            t("audit.commit.signingKeyMissing", {
-              defaultValue:
-                "Signing is on, but no signing key is set. Choose your key in the audit configuration (Config → Signing).",
-            }),
-          );
-        }
-        if (options.signCommit) {
-          const ident = checkSigningIdentity({
-            authorEmail: auditData.config.author.email,
-            manifestEntries: manifestText
-              ? parseAllowedSigners(manifestText)
-              : [],
-          });
-          if (!ident.ok) {
-            throw new Error(
-              ident.reason === "empty-manifest"
-                ? t("audit.commit.signerManifestEmpty", {
-                    defaultValue:
-                      "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers).",
-                  })
-                : t("audit.commit.signerNotAuthorized", {
-                    email: auditData.config.author.email,
-                    defaultValue:
-                      "Signing is enabled but your author email ({{email}}) is not authorized in the signer manifest. Add your key under this email (Config → Signers).",
-                  }),
-            );
-          }
-        }
+        const commitConfig: AuditConfig = decision.sign
+          ? {
+              ...auditData.config,
+              signing: {
+                ...(signingConfig ?? {}),
+                enabled: true,
+                format: signingFormat,
+                ...(signingKeyId ? { keyId: signingKeyId } : {}),
+              },
+            }
+          : auditData.config;
 
         // Stage only the project file (path-scoped)
         const stageResult = await gitService.stage([relPath]);
@@ -523,14 +552,15 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         // Commit — path-scoped
         const commitResult = await gitService.commit(
           options.message,
-          auditData.config,
-          options.signCommit,
+          commitConfig,
+          decision.sign,
           [relPath],
         );
 
         if (!commitResult.success || !commitResult.data) {
           throw new Error(commitResult.error || "Failed to commit");
         }
+        setManifestTick((n) => n + 1);
 
         // Push if requested
         if (options.pushAfterCommit && auditData.config.remoteUrl) {
@@ -811,12 +841,16 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         open={showConfigDialog}
         config={auditData.config}
         onSave={handleSaveConfig}
-        onClose={() => setShowConfigDialog(false)}
+        onClose={() => {
+          setShowConfigDialog(false);
+          setManifestTick((n) => n + 1);
+        }}
         onSaveCredential={handleSaveCredential}
         onSaveGPGKey={handleSaveGPGKey}
         gitService={gitService}
         repoRoot={repoRootValue}
         protection={protection}
+        signingRequired={committedManifest !== null}
       />
 
       {/* Commit Dialog */}
@@ -833,6 +867,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
             setCommitReviewer(undefined);
           }}
           protection={protection}
+          committedManifest={committedManifest}
           initialReviewer={commitReviewer}
         />
       )}

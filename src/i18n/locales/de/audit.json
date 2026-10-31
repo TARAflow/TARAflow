@@ -33,12 +33,11 @@
       "commitAndPush": "Commit & Push",
       "existingBranch": "Vorhandener Branch:",
       "pushAfterCommit": "Nach dem Commit zum Remote-Repository pushen",
-      "signCommit": "Commit signieren (SSH)",
+      "signCommit": "Commit signieren ({{format}})",
       "signCommitRequired": "Commit signieren — Pflicht, dieses Repository hat ein Signer-Manifest",
-      "signingRequired": "Dieses Repository hat ein Signer-Manifest: Jeder Commit muss signiert sein. Signieren in der Audit-Konfiguration (Config) einschalten und erneut committen.",
-      "signingKeyMissing": "Signieren ist eingeschaltet, aber kein Signierschlüssel gesetzt. Schlüssel in der Audit-Konfiguration wählen (Config → Signing).",
+      "signingKeyMissing": "Kein Signierschlüssel gesetzt. Schlüssel in der Audit-Konfiguration wählen (Config → Signing).",
       "signerManifestEmpty": "Signieren ist eingeschaltet, aber das Signer-Manifest ist leer. Zuerst dich selbst als Signer eintragen (Config → Signers).",
-      "signerNotAuthorized": "Signieren ist eingeschaltet, aber deine Autor-E-Mail ({{email}}) ist im Signer-Manifest nicht berechtigt. Schlüssel unter dieser E-Mail eintragen (Config → Signers).",
+      "signerNotAuthorized": "Deine Autor-E-Mail ({{email}}) ist im committeten Signer-Manifest nicht berechtigt. Schlüssel unter dieser E-Mail eintragen (Config → Signers) und das Manifest committen.",
       "commit": "Commit",
       "committing": "Wird committet…"
     },
@@ -90,7 +89,8 @@
       "customRoundPlaceholder": "Rundenname",
       "signing": {
         "section": "Commit-Signierung",
-        "help": "Audit-Commits kryptografisch signieren, damit ihre Echtheit verifiziert werden kann."
+        "help": "Audit-Commits kryptografisch signieren, damit ihre Echtheit verifiziert werden kann.",
+        "requiredByManifest": "Dieses Repository hat ein committetes Signer-Manifest: Jeder Commit wird verifiziert, darum wird immer signiert."
       },
       "signers": {
         "title": "Autorisierte Signierer",

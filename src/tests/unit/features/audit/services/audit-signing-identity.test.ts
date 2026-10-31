@@ -1,6 +1,7 @@
 // src/tests/unit/features/audit/services/audit-signing-identity.test.ts
-import { describe, it, expect } from "vitest";
-import { checkSigningIdentity, signingGuard } from "features/audit/services/audit-signing-identity";
+import { describe, it, expect, vi } from "vitest";
+import { checkSigningIdentity, commitSigning } from "features/audit/services/audit-signing-identity";
+import { loadCommittedManifest } from "features/audit/services/audit-prev-state";
 import { entryFromPubkey } from "features/audit/services/audit-signer-manifest";
 
 const alice = entryFromPubkey("alice@example.com", "ssh-ed25519 AAAA", {
@@ -46,24 +47,48 @@ describe("checkSigningIdentity", () => {
   });
 });
 
-// Review 2026-10-31 (TARAflow_Examples: SIG_UNSIGNED ×3) — with a signer
-// manifest every commit is verified, so it must be signed, with a key.
+// Reviews 2026-10-31 (TARAflow_Examples: SIG_UNSIGNED ×3, guard read the
+// working tree) — one truth, the manifest committed at HEAD: with it every
+// commit is signed, with a key and an authorized author email.
+const MANIFEST = 'alice@example.com namespaces="git" ssh-ed25519 AAAA\n';
 
-describe("signingGuard", () => {
-  const base = { format: "ssh" as const, sshSigningKeyPath: "/k/id_ed25519" };
+describe("commitSigning", () => {
+  const base = { format: "ssh" as const, sshSigningKeyPath: "/k/id_ed25519", authorEmail: "alice@example.com" };
 
-  it("manifest: unchecked box or signing off in the project → required", () => {
-    expect(signingGuard({ ...base, hasManifest: true, signCommit: false, signingEnabled: true })).toBe("signing-required");
-    expect(signingGuard({ ...base, hasManifest: true, signCommit: true, signingEnabled: false })).toBe("signing-required");
+  it("a committed manifest: signed whatever the switch and the box say", () => {
+    const d = commitSigning({ ...base, committedManifest: MANIFEST, signCommit: false, signingEnabled: false });
+    expect(d).toEqual({ required: true, sign: true, problem: null });
   });
 
-  it("signing intended but no key → key missing (git would commit unsigned)", () => {
-    expect(signingGuard({ format: "ssh", hasManifest: true, signCommit: true, signingEnabled: true })).toBe("key-missing");
-    expect(signingGuard({ format: "gpg", hasManifest: false, signCommit: true, signingEnabled: true })).toBe("key-missing");
+  it("a committed manifest but no key: key missing (git would commit unsigned)", () => {
+    const d = commitSigning({ format: "ssh", authorEmail: "alice@example.com", committedManifest: MANIFEST, signCommit: true, signingEnabled: true });
+    expect(d.problem).toBe("key-missing");
   });
 
-  it("manifest and a signed commit with a key, or no manifest and unsigned → fine", () => {
-    expect(signingGuard({ ...base, hasManifest: true, signCommit: true, signingEnabled: true })).toBeNull();
-    expect(signingGuard({ ...base, hasManifest: false, signCommit: false, signingEnabled: false })).toBeNull();
+  it("an author not in the COMMITTED manifest is not authorized (a working-tree entry does not count)", () => {
+    const d = commitSigning({ ...base, authorEmail: "bob@example.com", committedManifest: MANIFEST, signCommit: true, signingEnabled: true });
+    expect(d.problem).toBe("email-not-authorized");
+  });
+
+  it("no manifest at HEAD (deleted or never committed): the project's choice", () => {
+    expect(commitSigning({ ...base, committedManifest: null, signCommit: false, signingEnabled: true })).toEqual({
+      required: false,
+      sign: false,
+      problem: null,
+    });
+    expect(commitSigning({ ...base, committedManifest: null, signCommit: true, signingEnabled: true }).problem).toBe("empty-manifest");
+  });
+});
+
+describe("loadCommittedManifest", () => {
+  it("reads .tara/allowed_signers from HEAD, not the working tree", async () => {
+    const raw = vi.fn().mockResolvedValue({ success: true, data: MANIFEST });
+    expect(await loadCommittedManifest(raw)).toBe(MANIFEST);
+    expect(raw).toHaveBeenCalledWith(["show", "HEAD:.tara/allowed_signers"]);
+  });
+
+  it("none at HEAD or a git error → null", async () => {
+    expect(await loadCommittedManifest(vi.fn().mockResolvedValue({ success: false, error: "fatal: path not in HEAD" }))).toBeNull();
+    expect(await loadCommittedManifest(vi.fn().mockRejectedValue(new Error("unborn HEAD")))).toBeNull();
   });
 });

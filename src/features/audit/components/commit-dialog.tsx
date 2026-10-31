@@ -48,6 +48,8 @@ import {
 import type { CommitMessageData } from "../models/audit-types";
 import type { AuditProtection } from "../hooks/useAuditProtection";
 import { AuditProtectionPanel } from "./audit-protection-panel";
+import { commitSigning } from "../services/audit-signing-identity";
+import { commitSigningMessage } from "./commit-signing-message";
 
 // ==================== PROPS ====================
 
@@ -63,6 +65,11 @@ interface CommitDialogProps {
   protection?: AuditProtection;
   /** Prefilled reviewer (Reviewed-by trailer), e.g. of a TARA verification. */
   initialReviewer?: string;
+  /**
+   * The signer manifest committed at HEAD (null = none) — with one every
+   * commit is signed (commitSigning, the engine's rule).
+   */
+  committedManifest?: string | null;
 }
 
 // ==================== COMPONENT ====================
@@ -77,15 +84,16 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   onClose,
   initialReviewer,
   protection,
+  committedManifest = null,
 }) => {
   const { t } = useTranslation();
 
-  // A repository with a signer manifest (anchor) verifies every later commit:
-  // there signing is required — the box is on and locked.
-  const signingRequired = !!protection?.anchor;
+  // A repository with a signer manifest committed at HEAD verifies every
+  // later commit: there signing is required — the box is on and locked.
+  const signingRequired = committedManifest !== null;
   const signingEnabled =
     signingRequired || (config.signing?.enabled ?? config.gpg?.enabled ?? false);
-  const signingFormat = config.signing?.format ?? "gpg";
+  const signingFormat = config.signing?.format ?? (config.gpg?.enabled ? "gpg" : "ssh");
 
   // ==================== STATE ====================
 
@@ -102,6 +110,17 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [signCommit, setSignCommit] = useState<boolean>(signingEnabled);
 
+  // The same decision the commit handler makes — shown before the click.
+  const signingDecision = commitSigning({
+    committedManifest,
+    signCommit,
+    signingEnabled: config.signing?.enabled ?? config.gpg?.enabled ?? false,
+    format: signingFormat,
+    sshSigningKeyPath: config.signing?.sshSigningKeyPath,
+    keyId: config.signing?.keyId ?? config.gpg?.keyId,
+    authorEmail: config.author?.email ?? "",
+  });
+
   // ==================== COMPUTED ====================
 
   const allRoundNames = getAllRoundNames(config);
@@ -110,17 +129,14 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 
   // Generate commit message when round name changes
   useEffect(() => {
-    // The author as configured now — the message data is built when the tab
-    // opens, possibly before the author was set ("Author: Unknown").
     const updatedData = {
       ...commitMessageData,
-      author: config.author?.name || commitMessageData.author,
       round: roundName,
       reviewer: reviewer || undefined,
     };
     const message = generateCommitMessage(updatedData);
     setCommitMessage(message);
-  }, [roundName, reviewer, commitMessageData, config.author?.name]);
+  }, [roundName, reviewer, commitMessageData]);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -200,6 +216,13 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
           {/* Audit-trail protection warning (only when a local check fails) */}
           {protection && (
             <AuditProtectionPanel protection={protection} variant="banner" />
+          )}
+
+          {/* Signing problem — known before the click (commitSigning) */}
+          {signingDecision.problem && (
+            <Alert severity="error" data-testid="commit-signing-problem">
+              {commitSigningMessage(t, signingDecision.problem, config.author?.email ?? "")}
+            </Alert>
           )}
 
           {/* Error Alert */}
@@ -400,7 +423,8 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
                         defaultValue: "Sign commit — required, this repository has a signer manifest",
                       })
                     : t("audit.commit.signCommit", {
-                        defaultValue: `Sign commit (${signingFormat.toUpperCase()})`,
+                        format: signingFormat.toUpperCase(),
+                        defaultValue: "Sign commit ({{format}})",
                       })
                 }
               />
@@ -419,7 +443,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
         </Button>
         <Button
           onClick={handleCommit}
-          disabled={isCommitting || !commitMessage.trim()}
+          disabled={isCommitting || !commitMessage.trim() || !!signingDecision.problem}
           variant="contained"
           color="primary"
           startIcon={

@@ -33,12 +33,11 @@
       "commitAndPush": "Commit & Push",
       "existingBranch": "Existing Branch:",
       "pushAfterCommit": "Push to remote after commit",
-      "signCommit": "Sign commit (SSH)",
+      "signCommit": "Sign commit ({{format}})",
       "signCommitRequired": "Sign commit — required, this repository has a signer manifest",
-      "signingRequired": "This repository has a signer manifest: every commit must be signed. Turn signing on in the audit configuration (Config) and commit again.",
-      "signingKeyMissing": "Signing is on, but no signing key is set. Choose your key in the audit configuration (Config → Signing).",
+      "signingKeyMissing": "No signing key is set. Choose your key in the audit configuration (Config → Signing).",
       "signerManifestEmpty": "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers).",
-      "signerNotAuthorized": "Signing is enabled but your author email ({{email}}) is not authorized in the signer manifest. Add your key under this email (Config → Signers).",
+      "signerNotAuthorized": "Your author email ({{email}}) is not authorized in the committed signer manifest. Add your key under this email (Config → Signers) and commit the manifest.",
       "commit": "Commit",
       "committing": "Committing..."
     },
@@ -90,7 +89,8 @@
       "customRoundPlaceholder": "Round name",
       "signing": {
         "section": "Commit Signing",
-        "help": "Sign audit commits cryptographically so their authenticity can be verified."
+        "help": "Sign audit commits cryptographically so their authenticity can be verified.",
+        "requiredByManifest": "This repository has a committed signer manifest: every commit is verified, so commits are always signed."
       },
       "signers": {
         "title": "Authorized signers",

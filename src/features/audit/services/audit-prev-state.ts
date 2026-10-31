@@ -9,6 +9,7 @@
 
 import type { Project } from "app";
 import type { GitOperationResult } from "../models/git-types";
+import { ALLOWED_SIGNERS_REL_PATH } from "./audit-signer-manifest";
 
 /** A raw git runner bound to the current repo — window.git.raw. */
 export type RawGit = (args: string[]) => Promise<GitOperationResult<string>>;
@@ -53,5 +54,20 @@ export async function loadPreviousProjectFromGit(
     return JSON.parse(res.data) as Project;
   } catch {
     return null; // corrupt/partial content — don't crash the diff
+  }
+}
+
+/**
+ * The signer manifest as committed at HEAD (`git show HEAD:.tara/allowed_signers`)
+ * — what the verification engine checks the next commit against. null when
+ * HEAD has none (no manifest yet, unborn HEAD, git error); a deleted or edited
+ * working-tree copy does not count.
+ */
+export async function loadCommittedManifest(raw: RawGit): Promise<string | null> {
+  try {
+    const res = await raw(["show", `HEAD:${ALLOWED_SIGNERS_REL_PATH}`]);
+    return res.success && typeof res.data === "string" ? res.data : null;
+  } catch {
+    return null;
   }
 }

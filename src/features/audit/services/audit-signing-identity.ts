@@ -15,7 +15,7 @@
 //
 // Pure: (authorEmail, manifestEntries) → result. No git, no I/O.
 
-import type { SignerEntry } from "./audit-signer-manifest";
+import { parseAllowedSigners, type SignerEntry } from "./audit-signer-manifest";
 
 export interface SigningIdentityResult {
   ok: boolean;
@@ -48,24 +48,35 @@ export function checkSigningIdentity(input: {
     : { ok: false, reason: "email-not-authorized" };
 }
 
+/** Why a commit cannot be signed as the repository requires; null = fine. */
+export type CommitSigningProblem = "key-missing" | "empty-manifest" | "email-not-authorized";
+
 /**
- * Whether this commit may go ahead unsigned / without a key (review
- * 2026-10-31). A repository with a signer manifest verifies every later
- * commit — SIG_UNSIGNED is an error — so there the commit must be signed: the
- * per-commit toggle on, signing on in the config, and a key for the format
- * (without one git-signing commits unsigned). Without a manifest only a
- * missing key for an intended signature is a problem.
+ * How this commit is signed (reviews 2026-10-31). One truth, the engine's: the
+ * signer manifest COMMITTED at HEAD (`committedManifest`, null = none) — the
+ * engine checks each commit against its parent's manifest, never the working
+ * tree. With a manifest every later commit is verified (SIG_UNSIGNED is an
+ * error), so the commit is signed whatever the project's switch or the box
+ * say. A signature needs a key for the format (git-signing commits unsigned
+ * without one) and an author email the manifest authorizes.
  */
-export function signingGuard(input: {
-  hasManifest: boolean;
+export function commitSigning(input: {
+  committedManifest: string | null;
   signCommit: boolean;
   signingEnabled: boolean;
   format: "ssh" | "gpg";
   sshSigningKeyPath?: string;
   keyId?: string;
-}): "signing-required" | "key-missing" | null {
-  if (input.hasManifest && (!input.signCommit || !input.signingEnabled)) return "signing-required";
+  authorEmail: string;
+}): { required: boolean; sign: boolean; problem: CommitSigningProblem | null } {
+  const required = input.committedManifest !== null;
+  const sign = required || (input.signingEnabled && input.signCommit);
+  if (!sign) return { required, sign, problem: null };
   const key = input.format === "ssh" ? input.sshSigningKeyPath : input.keyId;
-  if (input.signCommit && input.signingEnabled && !key) return "key-missing";
-  return null;
+  if (!key) return { required, sign, problem: "key-missing" };
+  const ident = checkSigningIdentity({
+    authorEmail: input.authorEmail,
+    manifestEntries: input.committedManifest ? parseAllowedSigners(input.committedManifest) : [],
+  });
+  return { required, sign, problem: ident.ok ? null : (ident.reason ?? "email-not-authorized") };
 }

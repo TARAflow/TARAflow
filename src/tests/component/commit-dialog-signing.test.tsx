@@ -1,10 +1,10 @@
 // src/tests/component/commit-dialog-signing.test.tsx
 //
-// Review 2026-10-31 (TARAflow_Examples trail: SIG_UNSIGNED ×3, "Author:
-// Unknown"): in a repository with a signer manifest (anchor) every commit is
-// verified, so the commit dialog signs — box on and locked, whatever the
-// project's signing setting; and the Author trailer is the author configured
-// now, not the one at the time the tab opened.
+// Reviews 2026-10-31 (TARAflow_Examples trail: SIG_UNSIGNED ×3): with a signer
+// manifest committed at HEAD every commit is verified, so the commit dialog
+// signs — box on and locked, whatever the project's signing switch; and a
+// problem (no key, author not authorized) shows before the click, with the
+// Commit button disabled — the same decision the commit handler makes.
 
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -20,10 +20,12 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-const config = (signing: boolean): AuditConfig => ({
+const MANIFEST = 'ann@example.com namespaces="git" ssh-ed25519 AAAA\n';
+
+const config = (signing: boolean, key = "/k/id_ed25519", email = "ann@example.com"): AuditConfig => ({
   ...DEFAULT_AUDIT_CONFIG,
-  author: { name: "Ann Example", email: "ann@example.com" },
-  signing: { enabled: signing, format: "ssh" },
+  author: { name: "Ann Example", email },
+  signing: { enabled: signing, format: "ssh", ...(key ? { sshSigningKeyPath: key } : {}) },
 });
 
 const message: CommitMessageData = {
@@ -31,10 +33,10 @@ const message: CommitMessageData = {
   batchSize: 1,
   affectedPhases: ["Risk"],
   changes: [],
-  author: "Unknown",
+  author: "Ann Example",
 };
 
-const open = (cfg: AuditConfig, anchor: string | null) => {
+const open = (cfg: AuditConfig, committedManifest: string | null) => {
   const onCommit = vi.fn().mockResolvedValue(undefined);
   render(
     <CommitDialog
@@ -45,26 +47,27 @@ const open = (cfg: AuditConfig, anchor: string | null) => {
       commitMessageData={message}
       onCommit={onCommit}
       onClose={() => {}}
-      protection={{ anchor } as never}
+      committedManifest={committedManifest}
     />,
   );
   return onCommit;
 };
+const commitButton = () => screen.getByRole("button", { name: /^commit$/i });
 
 afterEach(cleanup);
 
-describe("commit dialog — signing and author", () => {
-  it("with a signer manifest: signing is on and locked, even with signing off in the project", async () => {
-    const onCommit = open(config(false), "abc123");
+describe("commit dialog — signing", () => {
+  it("committed manifest: signing on and locked, even with signing off in the project", async () => {
+    const onCommit = open(config(false), MANIFEST);
     const box = screen.getByTestId("commit-sign-checkbox").querySelector("input")!;
     expect(box.checked).toBe(true);
     expect(box.disabled).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: /^commit$/i }));
+    fireEvent.click(commitButton());
     await waitFor(() => expect(onCommit).toHaveBeenCalled());
     expect(onCommit.mock.calls[0][0].signCommit).toBe(true);
   });
 
-  it("without a manifest: the project's setting, the box can be unchecked", () => {
+  it("no manifest at HEAD: the project's setting, the box can be unchecked", () => {
     open(config(true), null);
     const box = screen.getByTestId("commit-sign-checkbox").querySelector("input")!;
     expect(box.disabled).toBe(false);
@@ -72,12 +75,20 @@ describe("commit dialog — signing and author", () => {
     expect(box.checked).toBe(false);
   });
 
-  it("the Author trailer is the configured author, not 'Unknown' from the tab's start", async () => {
-    const onCommit = open(config(true), null);
-    fireEvent.click(screen.getByRole("button", { name: /^commit$/i }));
-    await waitFor(() => expect(onCommit).toHaveBeenCalled());
-    const text = onCommit.mock.calls[0][0].message as string;
-    expect(text).toContain("Author: Ann Example");
-    expect(text).not.toContain("Unknown");
+  it("no key: the problem shows before the click, Commit disabled", () => {
+    open(config(true, ""), MANIFEST);
+    expect(screen.getByTestId("commit-signing-problem").textContent).toContain("No signing key is set");
+    expect((commitButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("author not in the committed manifest: shown before the click", () => {
+    open(config(true, "/k/id", "bob@example.com"), MANIFEST);
+    expect(screen.getByTestId("commit-signing-problem").textContent).toContain("bob@example.com");
+    expect((commitButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("the label names the format", () => {
+    open(config(true), null);
+    expect(screen.getByText("Sign commit (SSH)")).toBeTruthy();
   });
 });
