@@ -95,7 +95,8 @@ function plannedView(view: PropertyView, should: readonly { elementId: string; p
 
 // ==================== DOCUMENT DATA ====================
 
-function nameOf(project: Project): (id: string) => string {
+/** Element / flow id → "P-6 Maintenance Authentication Service". */
+export function complianceNameOf(project: Project): (id: string) => string {
   const names = new Map<string, string>();
   for (const e of [...(project.dfd?.elements ?? []), ...(project.dfd?.connections ?? [])] as Any[]) {
     names.set(e.id, [e.displayId, e.name].filter(Boolean).join(" ") || e.id);
@@ -104,7 +105,9 @@ function nameOf(project: Project): (id: string) => string {
 }
 
 /** Evaluates the project's matrix; undefined when no edition is selected or there is no DFD. */
-export function evaluateProjectCompliance(project: Project): { achieved: ComplianceResult; planned: ComplianceResult; scopeName?: string } | undefined {
+export function evaluateProjectCompliance(
+  project: Project,
+): { achieved: ComplianceResult; planned: ComplianceResult; scope: Set<string>; scopeName?: string } | undefined {
   const edition = selectEdition(project.info?.tags);
   const dfd = project.dfd as Any;
   if (!edition || !dfd?.elements?.length) return undefined;
@@ -157,7 +160,8 @@ export function evaluateProjectCompliance(project: Project): { achieved: Complia
   return {
     achieved: evaluateMatrix({ ...base, view, run: "achieved" }),
     planned: evaluateMatrix({ ...base, view: plannedView(view, should), run: "planned" }),
-    scopeName: componentId ? nameOf(project)(componentId) : undefined,
+    scope,
+    scopeName: componentId ? complianceNameOf(project)(componentId) : undefined,
   };
 }
 
@@ -167,7 +171,7 @@ export function buildDocCompliance(project: Project): DocCompliance | undefined 
   const edition = selectEdition(project.info?.tags);
   if (!result || !edition) return undefined;
   const { achieved, planned } = result;
-  const name = nameOf(project);
+  const name = complianceNameOf(project);
   const target = project.compliance?.target ?? {};
   const rowById = new Map(edition.rows.map((r) => [r.label, r]));
 

@@ -55,3 +55,7 @@ export {
 } from "./services/evaluate-matrix";
 export { selectEdition, TAG_EN_IEC_62443_CRA, TAG_IEC_62443 } from "./services/select-edition";
 export { buildPropertyView, type PropertyViewSource } from "./services/property-view";
+export { proposeDeviceCategories, type DeviceCategoryProposal } from "./services/device-category";
+
+// ==================== UI ====================
+export { ComplianceTab, type ComplianceTabProps } from "./components/compliance-tab";

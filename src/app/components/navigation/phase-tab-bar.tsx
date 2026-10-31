@@ -41,6 +41,8 @@ interface PhaseTabsProps {
   indicators?: PhaseIndicators;
   /** What the Audit entry points out (repo missing, uncommitted verifications) — chip + tooltip. */
   auditHints?: readonly string[];
+  /** The project's tags select an IEC 62443-4-2 matrix → the Compliance entry (D-9). */
+  complianceAvailable?: boolean;
 }
 
 export const PhaseTabs: React.FC<PhaseTabsProps> = ({
@@ -50,6 +52,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   threatDrift,
   indicators,
   auditHints = [],
+  complianceAvailable = false,
 }) => {
   const phaseStatus = indicators?.status ?? project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
   // Safety gating: the Hazard phase only appears when safety relevance is on
@@ -125,8 +128,21 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
           })}
         </div>
 
-        {/* Right Side: Audit + Integration + Language Switcher */}
+        {/* Right Side: Compliance + Audit + Integration + Language Switcher */}
         <div className="flex items-center gap-3">
+          {complianceAvailable && (
+            <button
+              onClick={() => onPhaseChange(PhaseId.Compliance)}
+              data-testid="compliance-entry"
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                activePhase === PhaseId.Compliance
+                  ? "bg-blue-50 text-blue-600 border border-blue-200"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              🛡 Compliance
+            </button>
+          )}
           <button
             onClick={() => onPhaseChange(PhaseId.Audit)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${

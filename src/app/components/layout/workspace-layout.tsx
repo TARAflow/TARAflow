@@ -129,6 +129,9 @@ import {
 import { DocTab, DocUpdateResult } from "features/documentation";
 import { IntegrationTab, createTicketAdapter, type IntegrationTabData } from "features/integration";
 import { AuditTab, useAuditHints } from "features/audit";
+import { ComplianceTab, proposeDeviceCategories, selectEdition } from "features/compliance";
+import type { ComplianceData } from "shared";
+import { complianceNameOf, evaluateProjectCompliance } from "app/services/compliance-report";
 import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
@@ -331,6 +334,15 @@ export const WorkspaceLayout: React.FC = () => {
       if (!current) return;
       const concept = current.cybersecurityConcept ?? emptyCybersecurityConcept();
       updateProject({ id: current.id, cybersecurityConcept: { ...concept, verifications } });
+    },
+    [updateProject],
+  );
+
+  // Compliance tab → project.compliance (iec-62443-4-2-cra-coverage.md D-8).
+  const handleComplianceChange = useCallback(
+    (compliance: ComplianceData) => {
+      const current = activeProjectRef.current;
+      if (current) updateProject({ id: current.id, compliance });
     },
     [updateProject],
   );
@@ -1123,6 +1135,40 @@ export const WorkspaceLayout: React.FC = () => {
     anchorTargets,
   );
 
+  // ── IEC 62443-4-2 matrix (Compliance tab, D-9) ──────────────────────────
+  // The tags select the edition; the model is evaluated only while the tab
+  // is open (the analysis view is rebuilt for it).
+  const complianceEdition = useMemo(() => selectEdition(activeProject?.info?.tags), [activeProject?.info?.tags]);
+  const complianceView = useMemo(() => {
+    if (!activeProject || !complianceEdition || activePhase !== PhaseId.Compliance) return undefined;
+    const evaluation = evaluateProjectCompliance(activeProject);
+    if (!evaluation) return undefined;
+    const elements = activeProject.dfd?.elements ?? [];
+    const componentId = activeProject.compliance?.componentId;
+    const component = elements.find((e) => e.id === componentId);
+    return {
+      ...evaluation,
+      nameOf: complianceNameOf(activeProject),
+      componentOptions: elements
+        .filter((e) => e.type === "Multiprocess" || e.type === "Process")
+        .map((e) => ({ id: e.id, label: [e.displayId, e.name].filter(Boolean).join(" ") })),
+      deviceProposal: proposeDeviceCategories(
+        component ? { type: component.type, properties: component.properties as unknown as Record<string, unknown> } : undefined,
+        elements.some((e) => e.type === "ChipBoundary" && evaluation.scope.has(e.id)),
+      ),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activePhase,
+    complianceEdition,
+    activeProject?.dfd,
+    activeProject?.threats,
+    activeProject?.risks,
+    activeProject?.attackTrees,
+    activeProject?.assets,
+    activeProject?.compliance,
+  ]);
+
   const securityDrifts = useSecurityDrift(
     controlInstances,
     activeProject?.dfd ?? null,
@@ -1232,6 +1278,7 @@ export const WorkspaceLayout: React.FC = () => {
         threatDrift={threatDriftCounts}
         indicators={memoizedPhaseIndicators ?? undefined}
         auditHints={auditHintLines}
+        complianceAvailable={!!complianceEdition}
       />
 
       <div className="flex-1 overflow-y-auto">
@@ -1544,6 +1591,26 @@ export const WorkspaceLayout: React.FC = () => {
             onVerificationsChange={handleVerificationsChange}
             onDirtyChange={handleAuditDirtyChange}
           />
+        )}
+
+        {activePhase === PhaseId.Compliance && complianceEdition && (
+          complianceView ? (
+            <ComplianceTab
+              edition={complianceEdition}
+              achieved={complianceView.achieved}
+              planned={complianceView.planned}
+              data={activeProject.compliance}
+              componentOptions={complianceView.componentOptions}
+              deviceProposal={complianceView.deviceProposal}
+              nameOf={complianceView.nameOf}
+              today={new Date().toISOString().slice(0, 10)}
+              onChange={handleComplianceChange}
+            />
+          ) : (
+            <div className="p-6 text-gray-600">
+              {t("compliance.noModel", { defaultValue: "The requirement matrix needs a data flow diagram — model the system in the DFD tab first." })}
+            </div>
+          )
         )}
 
         {activePhase === PhaseId.Integration && (

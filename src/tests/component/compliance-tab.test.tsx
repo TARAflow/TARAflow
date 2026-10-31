@@ -1,0 +1,123 @@
+// src/tests/component/compliance-tab.test.tsx
+//
+// The Compliance tab (iec-62443-4-2-cra-coverage.md D-9, IEC-8): open rows
+// first, the target per FR, a statement that stores the model result of the
+// moment (D-17), the device category confirmed before device rows count
+// (K-C1).
+
+import React from "react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ComplianceTab, evaluateMatrix, type ComplianceInput, type Edition } from "features/compliance";
+import type { ComplianceData } from "shared";
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (k: string, o?: Record<string, unknown>) =>
+      ((o?.defaultValue as string | undefined) ?? k).replace(/\{\{(\w+)\}\}/g, (_, n) => String(o?.[n] ?? "")),
+    i18n: { language: "en", exists: () => false },
+  }),
+}));
+
+afterEach(cleanup);
+
+const edition = (rows: Edition["rows"], id: Edition["id"] = "en-iec-62443-4-2-praa-2026"): Edition => ({
+  id,
+  title: id === "iec-62443-4-2-2019" ? "IEC 62443-4-2:2019" : "EN IEC 62443-4-2:2019/prAA:2026 (draft)",
+  draft: id !== "iec-62443-4-2-2019",
+  ccsc2Label: "supporting measures",
+  rows,
+});
+
+const CRA_ROWS: Edition["rows"] = [
+  { label: "CR 3.5", fr: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false, cra: ["h"] },
+  { label: "CR 3.7", fr: "SI", minSl: 1, requirementIds: ["cr-3.7"], supportingMeasuresAllowed: false, cra: ["k"] },
+];
+
+function renderTab(ed: Edition, data?: ComplianceData, extra: Partial<React.ComponentProps<typeof ComplianceTab>> = {}) {
+  const input: ComplianceInput = {
+    edition: ed,
+    view: { elements: [{ id: "p1", type: "Process", properties: { inputValidation: "none", errorHandling: "sanitized" } }], flows: [] },
+    scope: new Set(["p1"]),
+    run: "achieved",
+    statements: data?.statements?.[ed.id],
+    deviceCategories: data?.deviceCategories,
+  };
+  const achieved = evaluateMatrix(input);
+  const planned = evaluateMatrix({ ...input, run: "planned" });
+  const onChange = vi.fn();
+  render(
+    <ComplianceTab
+      edition={ed}
+      achieved={achieved}
+      planned={planned}
+      data={data}
+      componentOptions={[{ id: "p1", label: "P-1 Controller" }]}
+      nameOf={(id) => (id === "p1" ? "P-1 Controller" : id)}
+      today="2026-11-02"
+      onChange={onChange}
+      {...extra}
+    />,
+  );
+  return onChange;
+}
+
+describe("Compliance tab", () => {
+  it("shows the open rows first; 'All' adds the met ones", () => {
+    renderTab(edition(CRA_ROWS));
+    const rows = screen.getByTestId("compliance-rows");
+    expect(within(rows).getByTestId("compliance-row-CR 3.5")).toBeTruthy();
+    expect(within(rows).queryByTestId("compliance-row-CR 3.7")).toBeNull();
+    expect(within(rows).getByText(/not met by: P-1 Controller/)).toBeTruthy();
+    fireEvent.click(screen.getByTestId("compliance-filter-all"));
+    expect(within(screen.getByTestId("compliance-rows")).getByTestId("compliance-row-CR 3.7")).toBeTruthy();
+  });
+
+  it("the achieved SL-C per FR; a target is stored per FR", () => {
+    const onChange = renderTab(edition(CRA_ROWS));
+    const si = within(screen.getByTestId("compliance-vector")).getByText("SI").closest("tr")!;
+    expect(within(si as HTMLElement).getAllByText("0").length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByTestId("compliance-target-SI"), { target: { value: "2" } });
+    expect(onChange).toHaveBeenLastCalledWith({ target: { SI: 2 } });
+  });
+
+  it("a statement stores the model result of the moment and the date (D-17)", () => {
+    const onChange = renderTab(edition(CRA_ROWS));
+    fireEvent.click(screen.getByTestId("compliance-statement-CR 3.5"));
+    fireEvent.change(screen.getByTestId("statement-reasoning"), { target: { value: "Validated by the protocol stack" } });
+    fireEvent.click(screen.getByTestId("statement-save"));
+    expect(onChange).toHaveBeenLastCalledWith({
+      statements: {
+        "en-iec-62443-4-2-praa-2026": {
+          "CR 3.5": { status: "met", reasoning: "Validated by the protocol stack", modelStatusAtStatement: "gap", date: "2026-11-02" },
+        },
+      },
+    });
+  });
+
+  it("a statement needs a reasoning", () => {
+    renderTab(edition(CRA_ROWS));
+    fireEvent.click(screen.getByTestId("compliance-statement-CR 3.5"));
+    expect((screen.getByTestId("statement-save") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("2019 edition: a derived device category is a proposal to confirm (K-C1)", () => {
+    const rows: Edition["rows"] = [
+      { label: "EDR 3.10", fr: "SI", minSl: 1, requirementIds: ["cr-3.10"], supportingMeasuresAllowed: false, deviceCategories: ["EDR"] },
+    ];
+    const onChange = renderTab(edition(rows, "iec-62443-4-2-2019"), undefined, {
+      deviceProposal: { categories: ["EDR"], reason: "system-class" },
+    });
+    const box = screen.getByTestId("compliance-device-categories");
+    expect(within(box).getByText(/Proposal from the model: EDR/)).toBeTruthy();
+    expect(within(screen.getByTestId("compliance-rows")).getByText("confirm category")).toBeTruthy();
+    fireEvent.click(within(box).getByText("Confirm"));
+    expect(onChange).toHaveBeenLastCalledWith({ deviceCategories: { categories: ["EDR"], source: "manual" } });
+  });
+
+  it("choosing the component (D-7)", () => {
+    const onChange = renderTab(edition(CRA_ROWS));
+    fireEvent.change(screen.getByTestId("compliance-component"), { target: { value: "p1" } });
+    expect(onChange).toHaveBeenLastCalledWith({ componentId: "p1" });
+  });
+});

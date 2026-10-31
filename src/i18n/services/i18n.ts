@@ -10,6 +10,7 @@
 //   attacktree               → tabs.attacktree.*
 //   doc                      → tabs.doc.*
 //   audit                    → audit.*
+//   compliance               → compliance.* (IEC 62443-4-2 matrix tab)
 //
 // Threat catalog namespaces (keyed by template ID, e.g. "T-S-001.threat"):
 //   element-threats-attacks  → threat + attack texts for element templates (merged from threats/{domain}/*)
@@ -38,6 +39,7 @@ import enRisks from "../locales/en/risks.json";
 import enAttacktree from "../locales/en/attacktree.json";
 import enDoc from "../locales/en/doc.json";
 import enAudit from "../locales/en/audit.json";
+import enCompliance from "../locales/en/compliance.json";
 import {
   ELEMENT_THREAT_TEXTS as enElementThreatsAttacks,
   INTERACTION_THREAT_TEXTS as enInteractionThreatsAttacks,
@@ -71,6 +73,7 @@ import deRisks from "../locales/de/risks.json";
 import deAttacktree from "../locales/de/attacktree.json";
 import deDoc from "../locales/de/doc.json";
 import deAudit from "../locales/de/audit.json";
+import deCompliance from "../locales/de/compliance.json";
 import {
   ELEMENT_THREAT_TEXTS as deElementThreatsAttacks,
   INTERACTION_THREAT_TEXTS as deInteractionThreatsAttacks,
@@ -103,6 +106,7 @@ const NAMESPACES = [
   "attacktree",
   "doc",
   "audit",
+  "compliance",
   "element-threats-attacks",
   "interaction-threats-attacks",
   "mitigations",
@@ -124,6 +128,7 @@ const resources = {
     attacktree: enAttacktree,
     doc: enDoc,
     audit: enAudit,
+    compliance: enCompliance,
     "element-threats-attacks": enElementThreatsAttacks,
     "interaction-threats-attacks": enInteractionThreatsAttacks,
     mitigations: {
@@ -159,6 +164,7 @@ const resources = {
     attacktree: deAttacktree,
     doc: deDoc,
     audit: deAudit,
+    compliance: deCompliance,
     "element-threats-attacks": deElementThreatsAttacks,
     "interaction-threats-attacks": deInteractionThreatsAttacks,
     mitigations: {
@@ -203,6 +209,7 @@ i18n
       "attacktree",
       "doc",
       "audit",
+      "compliance",
       "element-threats-attacks",
       "interaction-threats-attacks",
       "mitigations",
