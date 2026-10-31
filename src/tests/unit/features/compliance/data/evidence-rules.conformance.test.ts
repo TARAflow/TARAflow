@@ -91,6 +91,9 @@ type TargetViolation<T> =
   | (T extends { readonly elementTypes: readonly (infer E)[] } ? ForEachType<E, ChecksOf<T>> : never)
   | (T extends { readonly endpointIf: { readonly elementTypes: readonly (infer E)[]; readonly checks: readonly (infer C)[] } }
       ? ForEachType<E, C>
+      : never)
+  | (T extends { readonly connectedIf: { readonly elementTypes: readonly (infer E)[]; readonly checks: readonly (infer C)[] } }
+      ? ForEachType<E, C>
       : never);
 
 type RuleViolation<R> = R extends { readonly targets: readonly (infer T)[] }
@@ -134,6 +137,9 @@ export type RejectsUnknownNotInValue = AssertNone<RuleViolation<ProbeRule<{ read
 // @ts-expect-error — a value list on a property typed as plain string cannot be checked
 export type RejectsStringTypedProperty = AssertNone<RuleViolation<ProbeRule<{ readonly property: "securityControls"; readonly in: readonly ["x"] }>>>;
 
+// @ts-expect-error — a connectedIf check on the neighbour's type is checked too
+export type RejectsUnknownNeighbourPath = AssertNone<RuleViolation<{ readonly targets: readonly [{ readonly elementTypes: readonly ["Process"]; readonly connectedIf: { readonly elementTypes: readonly ["ExternalEntity"]; readonly checks: readonly [{ readonly property: "noSuchProperty" }] } }] }>>;
+
 // @ts-expect-error — a property of another element type (DataFlow) on a Process
 export type RejectsWrongElementType = AssertNone<RuleViolation<ProbeRule<{ readonly property: "encryptionInTransit" }>>>;
 
@@ -146,7 +152,13 @@ describe("evidence rules conformance", () => {
     for (const rule of ALL_EVIDENCE_RULES) {
       for (const target of [...rule.targets, ...(rule.appliesWhen ?? [])]) {
         expect(target.elementTypes.length, rule.id).toBeGreaterThan(0);
-        for (const check of [...(target.appliesIf ?? []), ...(target.satisfiedIf ?? []), ...(target.endpointIf?.checks ?? [])]) {
+        const checks = [
+          ...(target.appliesIf ?? []),
+          ...(target.satisfiedIf ?? []),
+          ...(target.endpointIf?.checks ?? []),
+          ...(target.connectedIf?.checks ?? []),
+        ];
+        for (const check of checks) {
           expect(check.property, rule.id).toMatch(/^[a-zA-Z]+(\.[a-zA-Z]+)*$/);
         }
       }

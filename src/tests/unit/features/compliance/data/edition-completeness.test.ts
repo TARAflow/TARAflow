@@ -54,6 +54,19 @@ describe("IEC 62443-4-2 evidence rules", () => {
     }
   });
 
+  it('quantifier "any" only for the capabilities of the component as a whole (D-22)', () => {
+    // Mirrors the list with reasons in iec-62443-4-2-cra-coverage.md §9.2. A
+    // rule that needs "any" is added there first — never silently here.
+    const ALLOWED_ANY = [
+      "cr-1.3", "cr-1.4", "cr-1.5", "cr-2.8",
+      "cr-3.10", "cr-3.10-re1", "cr-3.10-re2", "cr-3.12",
+      "cr-5.1", "cr-6.1-re1", "cr-6.2",
+      "cr-7.3", "cr-7.4", "cr-7.9",
+    ];
+    const any = ALL_EVIDENCE_RULES.filter((r) => r.quantifier === "any").map((r) => r.id);
+    expect(any.filter((id) => !ALLOWED_ANY.includes(id))).toEqual([]);
+  });
+
   it("every requirement id is used by at least one edition", () => {
     const used = new Set(EDITIONS.flatMap((e) => e.rows.flatMap((r) => r.requirementIds)));
     expect(REQUIREMENT_IDS.filter((id) => !used.has(id))).toEqual([]);
@@ -82,9 +95,9 @@ describe.each(EDITIONS)("edition $id", (edition) => {
 });
 
 describe("CRA edition (prAA) reproduces iec-62443-4-2-cra-coverage.md §4", () => {
-  it("97 rows, 7 void; type split A 37 · B 23 · C 30", () => {
+  it("97 rows, 7 void; type split A 36 · B 23 · C 31", () => {
     expect(EDITION_PRAA_2026.rows).toHaveLength(97);
-    expect(countTypes(EDITION_PRAA_2026, () => true)).toEqual({ A: 37, B: 23, C: 30, "n/a": 7 });
+    expect(countTypes(EDITION_PRAA_2026, () => true)).toEqual({ A: 36, B: 23, C: 31, "n/a": 7 });
   });
 
   it("has no device rows and names the CRA requirements of every live row", () => {
@@ -111,9 +124,9 @@ describe("CRA edition (prAA) reproduces iec-62443-4-2-cra-coverage.md §4", () =
 describe("classic edition (2019) reproduces iec-62443-4-2-2019-coverage.md §3 / §4", () => {
   const isCr = (label: string) => label.startsWith("CR ");
 
-  it("73 CR rows (A 25 · B 17 · C 28 · 3 void) plus SAR 3 · EDR 13 · HDR 14 · NDR 22 device rows", () => {
+  it("73 CR rows (A 24 · B 17 · C 29 · 3 void) plus SAR 3 · EDR 13 · HDR 14 · NDR 22 device rows", () => {
     expect(EDITION_2019.rows.filter((r) => isCr(r.label))).toHaveLength(73);
-    expect(countTypes(EDITION_2019, isCr)).toEqual({ A: 25, B: 17, C: 28, "n/a": 3 });
+    expect(countTypes(EDITION_2019, isCr)).toEqual({ A: 24, B: 17, C: 29, "n/a": 3 });
     for (const [category, n] of [["SAR", 3], ["EDR", 13], ["HDR", 14], ["NDR", 22]] as const) {
       expect(EDITION_2019.rows.filter((r) => r.deviceCategories?.includes(category)), category).toHaveLength(n);
     }

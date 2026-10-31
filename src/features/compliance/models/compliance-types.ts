@@ -54,18 +54,25 @@ export interface PropertyCheck {
 
 /**
  * Elements a rule looks at (D-13). An element of `elementTypes` is applicable
- * when every `appliesIf` check holds (absent = every element of the types) and,
- * for data flows, when the source or the target element passes `endpointIf`.
- * It satisfies the requirement when any `satisfiedIf` check holds.
+ * when every `appliesIf` check holds (absent = every element of the types),
+ * for data flows when the source or the target passes `endpointIf`, for other
+ * elements when a connected element passes `connectedIf`. It satisfies the
+ * requirement when any `satisfiedIf` check holds.
  */
 export interface EvidenceTarget {
   elementTypes: readonly EvidenceElementType[];
   appliesIf?: readonly PropertyCheck[];
-  endpointIf?: {
-    elementTypes: readonly EvidenceElementType[];
-    checks: readonly PropertyCheck[];
-  };
+  /** DataFlow targets: the source or the target element passes the checks. */
+  endpointIf?: NeighbourCheck;
+  /** Element targets: some flow connects the element to one that passes the checks. */
+  connectedIf?: NeighbourCheck;
   satisfiedIf?: readonly PropertyCheck[];
+}
+
+/** Checks on the element at the other end of a flow. */
+export interface NeighbourCheck {
+  elementTypes: readonly EvidenceElementType[];
+  checks: readonly PropertyCheck[];
 }
 
 /**
@@ -78,7 +85,9 @@ export type EvidenceType = "A" | "B" | "C";
 /**
  * "all" (default): every applicable element in scope must satisfy (D-13).
  * "any": a capability of the component as a whole — one element suffices;
- * only these rules get automatic supporting measures (D-20).
+ * only these rules get automatic supporting measures (D-20). Allowed only for
+ * the requirement ids listed with their reason in the design doc (D-22); the
+ * completeness test enforces the list.
  */
 export type EvidenceQuantifier = "all" | "any";
 

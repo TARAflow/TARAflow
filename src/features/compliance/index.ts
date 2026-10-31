@@ -17,6 +17,7 @@ export type {
   EvidenceTarget,
   EvidenceType,
   FoundationalRequirement,
+  NeighbourCheck,
   PropertyCheck,
   RequirementId,
   SecurityLevel,

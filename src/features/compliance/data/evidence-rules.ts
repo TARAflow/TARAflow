@@ -82,6 +82,30 @@ const SYMMETRIC_KEY_USE = [
 
 const AUTHENTICATION_USE = [PROCESS_WITH_AUTH, MULTIPROCESS_WITH_AUTH] as const;
 
+/** The elements that authenticate keep their authenticators in hardware. */
+const AUTHENTICATORS_IN_HARDWARE = [
+  { ...PROCESS_WITH_AUTH, satisfiedIf: [{ property: "authenticatorStorage", in: ["tpm", "secure_element", "hsm"] }] },
+  { ...MULTIPROCESS_WITH_AUTH, satisfiedIf: [{ property: "authenticatorStorage", in: ["tpm", "secure_element", "hsm"] }] },
+] as const;
+
+/** A flow connects the element to a human external entity. */
+const HUMAN_NEIGHBOUR = { elementTypes: ["ExternalEntity"], checks: [{ property: "entityType", in: HUMAN_ENTITY_TYPES }] } as const;
+
+/** Processes that serve human users (sessions, user actions). */
+const PROCESSES_WITH_HUMAN_USERS = { elementTypes: ["Process"], connectedIf: HUMAN_NEIGHBOUR } as const;
+
+/** Interfaces reachable over a network (EL2 local network … EL4 internet). */
+const EXPOSED_INTERFACES = {
+  elementTypes: ["Interface"],
+  appliesIf: [{ property: "exposureLevel", in: ["EL2", "EL3", "EL4"] }],
+} as const;
+
+/** Data stores holding audit records. */
+const AUDIT_LOG_STORES = {
+  elementTypes: ["DataStore"],
+  appliesIf: [{ property: "storedDataTypes", in: ["audit_logs"] }],
+} as const;
+
 /** Key / authenticator storage on the elements that carry it. */
 const KEY_STORES_HARDWARE = [
   { elementTypes: ["Process", "Multiprocess", "ChipBoundary"], satisfiedIf: [{ property: "authenticatorStorage", in: ["tpm", "secure_element", "hsm"] }] },
@@ -90,6 +114,7 @@ const KEY_STORES_HARDWARE = [
 const AUDIT_LOGGING_USE = [
   { elementTypes: ["Process", "Multiprocess"], appliesIf: [{ property: "nonRepudiation", in: ["audit_log", "digital_signature", "hardware_backed"] }] },
   { elementTypes: ["TrustBoundary"], appliesIf: [{ property: "monitoringEnabled", in: [true] }] },
+  { elementTypes: ["DataStore"], appliesIf: [{ property: "storedDataTypes", in: ["audit_logs"] }] },
 ] as const;
 
 const SENSITIVE_STORES = {
@@ -175,7 +200,7 @@ const RULES = [
       "authenticators can be changed or refreshed",
     ],
   },
-  { id: "cr-1.5-re1", type: "A", quantifier: "any", appliesWhen: AUTHENTICATION_USE, targets: KEY_STORES_HARDWARE },
+  { id: "cr-1.5-re1", type: "A", targets: AUTHENTICATORS_IN_HARDWARE },
   {
     id: "cr-1.6",
     type: "A",
@@ -211,15 +236,11 @@ const RULES = [
     ],
     checklist: ["signatures and certificate data are validated", "proof of possession of the private key"],
   },
-  { id: "cr-1.9-re1", type: "A", quantifier: "any", appliesWhen: PUBLIC_KEY_USE, targets: KEY_STORES_HARDWARE },
+  { id: "cr-1.9-re1", type: "A", appliesWhen: PUBLIC_KEY_USE, targets: AUTHENTICATORS_IN_HARDWARE },
   { id: "cr-1.10", type: "C", targets: [HUMAN_ACCESS_FLOWS] },
-  {
-    id: "cr-1.11",
-    type: "A",
-    quantifier: "any",
-    appliesWhen: AUTHENTICATION_USE,
-    targets: [{ elementTypes: ["Interface"], satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["lockout"] }] }],
-  },
+  // Type C: lockout (abuseProtection) sits on the Interface, but the model does
+  // not link a human-access flow to the interface it passes (model gap P-7).
+  { id: "cr-1.11", type: "C", targets: AUTHENTICATION_USE },
   {
     id: "cr-1.12",
     type: "C",
@@ -228,11 +249,11 @@ const RULES = [
   {
     id: "cr-1.13",
     type: "B",
-    quantifier: "any",
     appliesWhen: REMOTE_ACCESS_USE,
     targets: [
       {
         elementTypes: ["TrustBoundary"],
+        appliesIf: [{ property: "boundaryType", in: ["network", "cloud"] }],
         satisfiedIf: [{ property: "boundaryControlTypes", in: ["vpn_gateway", "jump_host", "authentication_gateway", "firewall"] }],
       },
     ],
@@ -242,16 +263,15 @@ const RULES = [
   {
     id: "cr-1.14",
     type: "B",
-    quantifier: "any",
     appliesWhen: SYMMETRIC_KEY_USE,
     // The software-only value is named per element type (system_software on a Multiprocess).
     targets: [
-      { elementTypes: ["Process", "ChipBoundary"], satisfiedIf: [{ property: "authenticatorStorage", notIn: ["software_only"] }] },
-      { elementTypes: ["Multiprocess"], satisfiedIf: [{ property: "authenticatorStorage", notIn: ["system_software"] }] },
+      { ...PROCESS_WITH_AUTH, satisfiedIf: [{ property: "authenticatorStorage", notIn: ["software_only"] }] },
+      { ...MULTIPROCESS_WITH_AUTH, satisfiedIf: [{ property: "authenticatorStorage", notIn: ["system_software"] }] },
     ],
     checklist: ["mutual trust via the symmetric key", "access to the shared secret is restricted", "algorithm and key strength per recognised practice"],
   },
-  { id: "cr-1.14-re1", type: "A", quantifier: "any", appliesWhen: SYMMETRIC_KEY_USE, targets: KEY_STORES_HARDWARE },
+  { id: "cr-1.14-re1", type: "A", appliesWhen: SYMMETRIC_KEY_USE, targets: AUTHENTICATORS_IN_HARDWARE },
 
   // ── FR 2 — Use control ────────────────────────────────────────────────
   {
@@ -293,22 +313,24 @@ const RULES = [
   {
     id: "cr-2.5",
     type: "A",
-    quantifier: "any",
-    appliesWhen: [HUMAN_ACCESS_FLOWS],
-    targets: [{ elementTypes: ["Process"], satisfiedIf: [{ property: "sessionControl.sessionLockEnabled", in: [true] }] }],
+    targets: [{ ...PROCESSES_WITH_HUMAN_USERS, satisfiedIf: [{ property: "sessionControl.sessionLockEnabled", in: [true] }] }],
   },
   {
     id: "cr-2.6",
     type: "A",
-    quantifier: "any",
     appliesWhen: [{ elementTypes: ["Multiprocess"], appliesIf: [{ property: "remoteAccessEnabled", in: [true] }] }],
-    targets: [{ elementTypes: ["Process"], satisfiedIf: [{ property: "sessionControl.remoteTerminationEnabled", in: [true] }] }],
+    targets: [{ ...PROCESSES_WITH_HUMAN_USERS, satisfiedIf: [{ property: "sessionControl.remoteTerminationEnabled", in: [true] }] }],
   },
   {
     id: "cr-2.7",
     type: "A",
-    quantifier: "any",
-    targets: [{ elementTypes: ["Process"], satisfiedIf: [{ property: "sessionControl.maxConcurrentSessions" }] }],
+    targets: [
+      {
+        elementTypes: ["Process"],
+        connectedIf: { elementTypes: ["ExternalEntity"], checks: [{ property: "entityType" }] },
+        satisfiedIf: [{ property: "sessionControl.maxConcurrentSessions" }],
+      },
+    ],
   },
   {
     id: "cr-2.8",
@@ -331,15 +353,24 @@ const RULES = [
   {
     id: "cr-2.12",
     type: "A",
-    quantifier: "any",
-    appliesWhen: [HUMAN_ACCESS_FLOWS],
-    targets: [{ elementTypes: ["Process", "Multiprocess"], satisfiedIf: [{ property: "nonRepudiation", notIn: ["none"] }] }],
+    targets: [
+      {
+        elementTypes: ["Process", "Multiprocess"],
+        connectedIf: HUMAN_NEIGHBOUR,
+        satisfiedIf: [{ property: "nonRepudiation", notIn: ["none"] }],
+      },
+    ],
   },
   {
     id: "cr-2.12-re1",
     type: "A",
-    quantifier: "any",
-    targets: [{ elementTypes: ["Process", "Multiprocess"], satisfiedIf: [{ property: "nonRepudiation", in: ["digital_signature", "hardware_backed"] }] }],
+    targets: [
+      {
+        elementTypes: ["Process", "Multiprocess"],
+        connectedIf: { elementTypes: ["ExternalEntity"], checks: [{ property: "entityType" }] },
+        satisfiedIf: [{ property: "nonRepudiation", in: ["digital_signature", "hardware_backed"] }],
+      },
+    ],
   },
   {
     id: "cr-2.13",
@@ -443,12 +474,10 @@ const RULES = [
   {
     id: "cr-3.9",
     type: "B",
-    quantifier: "any",
-    appliesWhen: AUDIT_LOGGING_USE,
-    targets: [{ elementTypes: ["DataStore"], satisfiedIf: [{ property: "accessControlMechanism", notIn: ["none"] }] }],
-    checklist: ["the store holding the audit records is protected against access, change and deletion"],
+    targets: [{ ...AUDIT_LOG_STORES, satisfiedIf: [{ property: "accessControlMechanism", notIn: ["none"] }] }],
+    checklist: ["the audit records are protected against unauthorised access, change and deletion"],
   },
-  { id: "cr-3.9-re1", type: "C", targets: AUDIT_LOGGING_USE },
+  { id: "cr-3.9-re1", type: "C", targets: [AUDIT_LOG_STORES] },
   {
     id: "cr-3.10",
     type: "A",
@@ -620,18 +649,13 @@ const RULES = [
   {
     id: "cr-7.1",
     type: "B",
-    quantifier: "any",
-    targets: [
-      { elementTypes: ["Interface"], satisfiedIf: [{ property: "implementedControls.abuseProtection", notIn: ["none"] }] },
-      { elementTypes: ["DataFlow"], satisfiedIf: [{ property: "redundancy", notIn: ["none"] }] },
-    ],
+    targets: [{ ...EXPOSED_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", notIn: ["none"] }] }],
     checklist: ["essential functions continue in degraded mode during a DoS event"],
   },
   {
     id: "cr-7.1-re1",
     type: "A",
-    quantifier: "any",
-    targets: [{ elementTypes: ["Interface"], satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["flood_protection", "rate_limited"] }] }],
+    targets: [{ ...EXPOSED_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["flood_protection", "rate_limited"] }] }],
   },
   { id: "cr-7.2", type: "C", targets: [] },
   {
