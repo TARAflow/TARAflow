@@ -1382,15 +1382,21 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 {t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })}
               </em>
             </MenuItem>
-            {levels.map((_, i) => (
-              <MenuItem key={i + 1} value={i + 1}>
-                <Tooltip title={optionTooltip(i + 1)} placement="right">
-                  <span style={{ display: "block", width: "100%" }}>
-                    {optionLabel(i + 1)}
-                  </span>
-                </Tooltip>
-              </MenuItem>
-            ))}
+            {/* Least likely attack first (most attacker effort), as every
+                other likelihood factor reads 1 = unlikely … N = likely
+                (user 2026-10-31); the stored value stays the level index. */}
+            {levels
+              .map((_, i) => i + 1)
+              .reverse()
+              .map((idx1) => (
+                <MenuItem key={idx1} value={idx1}>
+                  <Tooltip title={optionTooltip(idx1)} placement="right">
+                    <span style={{ display: "block", width: "100%" }}>
+                      {optionLabel(idx1)}
+                    </span>
+                  </Tooltip>
+                </MenuItem>
+              ))}
           </Select>
         ) : (
           <Tooltip
@@ -1435,17 +1441,13 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
         : (residual?.value ?? treeFactorRating?.value ?? 0);
       // Feasibility band → risk-scale value (Mapping B from the risk scale).
       const mapB = feasibilityLevelToRiskScale(configuration.scale);
+      // Lowest feasibility first, as the likelihood factors read (user
+      // 2026-10-31).
       const residualOptions: Array<{ value: number; label: string }> = [
         {
-          value: mapB.high,
-          label: t("tabs.risks.dialog.feasibility.high", {
-            defaultValue: "High",
-          }),
-        },
-        {
-          value: mapB.medium,
-          label: t("tabs.risks.dialog.feasibility.medium", {
-            defaultValue: "Medium",
+          value: mapB["very-low"],
+          label: t("tabs.risks.dialog.feasibility.veryLow", {
+            defaultValue: "Very low",
           }),
         },
         {
@@ -1455,14 +1457,20 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           }),
         },
         {
-          value: mapB["very-low"],
-          label: t("tabs.risks.dialog.feasibility.veryLow", {
-            defaultValue: "Very low",
+          value: mapB.medium,
+          label: t("tabs.risks.dialog.feasibility.medium", {
+            defaultValue: "Medium",
+          }),
+        },
+        {
+          value: mapB.high,
+          label: t("tabs.risks.dialog.feasibility.high", {
+            defaultValue: "High",
           }),
         },
       ];
-      // A 3-level scale maps low and very low onto the same value — one
-      // option per value, labels joined.
+      // A 3-level scale maps very low and low onto the same value — one
+      // option per value, labels joined ("Very low / Low").
       for (let i = residualOptions.length - 1; i > 0; i--) {
         const same = residualOptions.findIndex((o) => o.value === residualOptions[i].value);
         if (same < i) {

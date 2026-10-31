@@ -135,4 +135,19 @@ describe("risk dialog — ISO Risk Before / After", () => {
     const ids = within(list as HTMLElement).getAllByText(/^AT-\d+\.\d+$/).map((e) => e.textContent);
     expect(ids).toEqual(["AT-1.1", "AT-2.1", "AT-10.2"]);
   });
+
+  it("residual factor levels read like every likelihood factor: least likely first (user 2026-10-31)", async () => {
+    openAfterTab(risk(1));
+    // The first select of the After tab is the elapsed time.
+    fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
+    const options = (await screen.findAllByRole("option")).map((o) => o.textContent);
+    expect(options).toEqual(["Not rated", ">6months", "<=6months", "<=1month", "<=1week", "<=1day"]);
+  });
+
+  it("the residual tree level: Very low first, High last", async () => {
+    openAfterTab(risk(0, { factors: false }));
+    fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
+    const options = (await screen.findAllByRole("option")).map((o) => o.textContent);
+    expect(options).toEqual(["Not set", "Very low (1)", "Low (2)", "Medium (3)", "High (4)"]);
+  });
 });
