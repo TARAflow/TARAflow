@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v4 · 2026-10-31 (decisions D-1 … D-10 in §7.1; K8 done — classic sibling
+**Status:** v4 · 2026-10-31 (decisions D-1 … D-11 in §7.1; K8 done — classic sibling
 `iec-62443-4-2-2019-coverage.md`; nothing implemented yet; target 0.17.0-beta before 2026-11-30; release plan: `doc/InProgress/Release/release-0.17-plan.md`) ·
 code base: `main` 90e5a52a (v0.16.0-beta, schema 11)
 **Roadmap:** item 1 of the road to 1.0.0 (IEC 62443 compliance matrix for the CRA).
@@ -318,6 +318,7 @@ Per project, from one model (consistency per EA-6-1):
 | D-8 (K4) | **Stored in the project file:** `project.compliance` = { component, target SL-C vector per FR, statements per CR / RE (applicable, status, reasoning, evidenceRef, supportingMeasure) } — schema 12. | New fields only → the migration is declared in `ANALYSIS_PRESERVING_MIGRATIONS`. |
 | D-9 (K5) | **Own tab "Compliance" + report chapter.** | Tab: SoA table, planned / achieved vector per FR, gaps → claim or mitigation. Report: §5. |
 | D-10 (K6) | **Annex H threat list later** (not in 0.17); the CRA view uses the CR mapping of Annex ZZ. | Revisit when the JTC13/WG9 list is final. |
+| D-11 (K-C2, classic doc) | Evidence mapping shared by both editions via **stable requirement ids**, explicit per-edition overrides, completeness test per edition (no silent fallback). | Applies to this document's §4 rows too: each row gets its requirement id in the mapping file (IEC-2). |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -351,7 +352,101 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 1. Discuss §7.2 one point at a time; record the decisions in §7.1 (doc patches, `main`).
    The classic matrix (D-1): IEC 62443-4-2:2019 is in the repo root (licensed, never
    committed or quoted).
-2. Plan document with steps (mapping file + types, evaluator, statements, report chapter,
-   tab, model gaps P-1…P-6) on a branch `feature/iec62443-cra-matrix`.
+2. Steps and their order: `doc/InProgress/Release/release-0.17-plan.md` §3.1; IEC-2 / IEC-3
+   detail in §9.
 3. Validate the A/B rows against the two examples (SmokeDetector-leveled, Headlamp) before
    the UI.
+
+## 9. Implementation design (IEC-2, IEC-3)
+
+Turns D-1 … D-11 into code structure. No new decisions; where this section chooses, it
+follows the decisions or existing patterns.
+
+### 9.1 Placement
+
+- New feature `src/features/compliance/` (models, data, services) — pure, no React in
+  IEC-2 / IEC-3. It imports only from `shared` (`DFDGraphReference`, `ProjectTags`,
+  `ControlInstance`, `CybersecurityConcept`), never from another feature.
+- The app layer computes the inputs (component scope, planned overlay) and passes them in
+  — the pattern of the Risk tab's `TicketPort` and of `to-reference-graph.ts`.
+
+### 9.2 Requirement ids and two kinds of files (D-11, K-C2)
+
+| File | Content |
+|---|---|
+| `models/compliance-types.ts` | `RequirementId`, `EvidenceRule`, `EditionRow`, `Edition`, `RowResult`, `SlVector`, `ComplianceInput` |
+| `data/evidence-rules.ts` | one entry per **requirement id** (e.g. `cr-1.1`, `cr-1.1-re2`, `cr-4.1-transit`, `cr-4.1-rest`, `cr-3.10`): applicability + satisfaction conditions, type A / B / C, checklist keys for B |
+| `data/edition-iec-62443-4-2-2019.ts`, `data/edition-en-iec-62443-4-2-praa-2026.ts` | rows of one edition: row label (`CR 1.1 RE(1)`, `EDR 3.10`), FR, lowest SL-C or void + reason, requirement ids, device categories (2019), CRA letters (prAA), explicit overrides |
+
+TypeScript, not JSON: the compiler checks every requirement id an edition row names.
+Device rows of 2019 map to the same requirement ids as the prAA CRs (EDR 3.10 →
+`cr-3.10`); content differences are separate ids (`cr-4.1-transit` + `cr-4.1-rest` for
+2019 CR 4.1; prAA CR 4.1 = `cr-4.1-transit`, RE(1) = `cr-4.1-rest`).
+
+**Evidence rule (declarative):**
+
+```ts
+interface EvidenceCondition {
+  elementTypes: string[];          // "Process", "DataFlow", …
+  property: string;                // dot path, e.g. "implementedControls.debugProtection"
+  in?: unknown[];                  // satisfied by one of these values
+  notIn?: unknown[];               // satisfied by any value except these (and not unset)
+}
+interface EvidenceRule {
+  id: RequirementId;
+  type: "A" | "B" | "C";
+  appliesWhen?: EvidenceCondition[];   // any → row applicable; absent = always
+  satisfiedBy?: EvidenceCondition[];   // any → met (B: met + checklist); absent for C
+  checklist?: string[];                // i18n keys of the unmodelled criteria (B)
+}
+```
+
+### 9.3 Edition selection (D-1, D-3)
+
+`selectEdition(tags)`: `EN IEC 62443 (CRA)` → prAA edition; else `IEC 62443` → 2019
+edition; else none. Pure, in the compliance feature; the tag itself is added in IEC-2b
+(after the i18n split).
+
+### 9.4 Evaluation (D-2, D-4 … D-8, K-C1)
+
+Input: edition, a **property view** (graph elements / flows with properties), the
+**component scope** (element ids of the component and its descendants — containment parent,
+child pages; computed by the app), statements, claims, chosen / done mitigations with
+`iec62443` references, device categories with source.
+
+Per row:
+
+1. **Void** row → `n/a` (reason from the edition file).
+2. **Device rows** (2019) outside the confirmed categories → `n/a`; while the category
+   source is "derived" the row is shown as pending confirmation (K-C1).
+3. **Statement** for the row → its status wins; the model result is still shown next to it.
+4. **Applicability:** `appliesWhen` over the elements in scope; none matches → `n/a`
+   with the derived reasoning ("no element in the component matches …").
+5. **Satisfaction:** `satisfiedBy` on an element in scope → `met` (source `model`); on an
+   element outside the scope only → `met` (source `supporting-measure`, element named,
+   D-7); type B adds the checklist; a mitigation with the requirement id → `met` (source
+   `mitigation`, D-6).
+6. A **claim** covering the row → `claimed` (D-5).
+7. Otherwise `gap` (A / B) or `needs-statement` (C).
+
+**Vector:** `achieved(FR)` = highest n in 0…4 such that every row of FR with lowest
+SL-C ≤ n is `met`, `claimed` or `n/a` (D-2). The evaluator runs twice (D-4): **achieved**
+on the IS properties with mitigations in a done status (`DONE_MITIGATION_STATUSES`),
+**planned** on the IS properties overlaid with the SHOULD values of the existing
+`ControlInstance` derivation and all chosen mitigations.
+
+### 9.5 Tests
+
+- Completeness per edition (D-11): every row has an evidence rule or is void; every
+  requirement id resolves; type C rows have no `satisfiedBy`; no silent fallback.
+- The SL-C and row lists reproduce §4 here and §3 of the classic document (row counts).
+- Evaluator on small graphs: applicability n/a, supporting measure, statement override,
+  claim, device category pending / changed, vector rule (one gap caps the FR).
+
+### 9.6 Steps
+
+| Step | Content | Branch | Depends on |
+|---|---|---|---|
+| IEC-2a | types, evidence rules, both edition files, completeness test — no UI, no i18n | `feature/iec62443-cra-matrix` | — |
+| IEC-3 | evaluator, edition selection, vectors, evaluator tests | same | IEC-2a |
+| IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split |
