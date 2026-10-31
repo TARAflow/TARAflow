@@ -8,6 +8,11 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 export function commitSigningMessage(t: Translate, problem: CommitSigningProblem, authorEmail: string): string {
   switch (problem) {
+    case "manifest-removed":
+      return t("audit.commit.signerManifestRemoved", {
+        defaultValue:
+          "The signer manifest was removed from this branch — its audit trail can no longer be verified. Restore .tara/allowed_signers (revert its removal) and commit again.",
+      });
     case "key-missing":
       return t("audit.commit.signingKeyMissing", {
         defaultValue: "No signing key is set. Choose your key in the audit configuration (Config → Signing).",

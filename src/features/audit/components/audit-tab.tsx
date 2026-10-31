@@ -36,8 +36,8 @@ import { findVerificationCommits } from "../services/verification-commits";
 import { useAuditProtection } from "../hooks/useAuditProtection";
 import {
   loadCommittedManifest,
-  loadManifestAnchored,
   loadPreviousProjectFromGit,
+  loadSigningState,
   repoRelativePath,
 } from "../services/audit-prev-state";
 import { commitSigning } from "../services/audit-signing-identity";
@@ -146,28 +146,37 @@ export const AuditTab: React.FC<AuditTabProps> = ({
   // engine's (it checks each commit against its parent's manifest, never the
   // working tree). Re-read once git is ready, after each commit and when the
   // config dialog closes (signers may have been committed there).
-  // Plus whether the history ever introduced it (anchor): once the repository
-  // signs, every commit is signed — for every project in it (user 2026-10-31).
+  // Plus whether the history ever introduced it — the anchor, as
+  // useAuditProtection reads it (one query, no second truth): once the
+  // repository signs, every commit is signed, for every project in it (user
+  // 2026-10-31).
   const [committedManifest, setCommittedManifest] = useState<string | null>(null);
-  const [manifestAnchored, setManifestAnchored] = useState(false);
   const [manifestTick, setManifestTick] = useState(0);
   useEffect(() => {
     if (!repoRootValue || !isGitInitialized) {
       setCommittedManifest(null);
-      setManifestAnchored(false);
       return;
     }
     let cancelled = false;
-    const raw = (args: string[]) => gitService.raw(args);
-    void Promise.all([loadCommittedManifest(raw), loadManifestAnchored(raw)]).then(([m, anchored]) => {
-      if (cancelled) return;
-      setCommittedManifest(m);
-      setManifestAnchored(anchored);
+    void loadCommittedManifest((args) => gitService.raw(args)).then((m) => {
+      if (!cancelled) setCommittedManifest(m);
     });
     return () => {
       cancelled = true;
     };
   }, [repoRootValue, isGitInitialized, gitService, manifestTick]);
+  const manifestAnchored = !!protection.anchor;
+  const { refresh: refreshProtection } = protection;
+  /** After a commit or a config change: manifest and anchor read again. */
+  const refreshSigningState = useCallback(() => {
+    setManifestTick((n) => n + 1);
+    void refreshProtection();
+  }, [refreshProtection]);
+  // The signing state of another branch (commit dialog, "existing branch").
+  const loadBranchSigningState = useCallback(
+    (ref: string) => loadSigningState((args) => gitService.raw(args), ref),
+    [gitService],
+  );
   const signingRequired = committedManifest !== null || manifestAnchored;
 
   // Signing required: the key path is hydrated on load only when the file had
@@ -500,15 +509,18 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         }
         const relPath = repoRelativePath(repoRoot, filePath);
 
-        // Signing, decided on the manifest committed at HEAD (commitSigning):
-        // with one, the commit is signed whatever the switch or the box say;
-        // a signature needs a key and an authorized author email. Re-read
-        // here — the final check, the dialog showed the same before.
-        const rawGit = (args: string[]) => gitService.raw(args);
-        const [committed, anchored] = await Promise.all([
-          loadCommittedManifest(rawGit),
-          loadManifestAnchored(rawGit),
-        ]);
+        // Signing, decided on the branch the commit GOES TO (commitSigning):
+        // its committed manifest and anchor — an existing other branch is
+        // checked out only below, a new branch starts at HEAD. With a
+        // manifest the commit is signed whatever the switch or the box say;
+        // a signature needs a key and an authorized author email. Read here
+        // as the final check; the dialog showed the same before.
+        const targetRef =
+          options.createBranch || !options.branchName ? "HEAD" : options.branchName;
+        const { manifest: committed, anchored } = await loadSigningState(
+          (args) => gitService.raw(args),
+          targetRef,
+        );
         const signingConfig = auditData.config.signing;
         const signingFormat = signingConfig?.format ?? (auditData.config.gpg?.enabled ? "gpg" : "ssh");
         const signingKeyId = signingConfig?.keyId ?? auditData.config.gpg?.keyId;
@@ -574,7 +586,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         if (!commitResult.success || !commitResult.data) {
           throw new Error(commitResult.error || "Failed to commit");
         }
-        setManifestTick((n) => n + 1);
+        refreshSigningState();
 
         // Push if requested
         if (options.pushAfterCommit && auditData.config.remoteUrl) {
@@ -641,6 +653,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
       onUpdate,
       detectChanges,
       refreshVerificationCommits,
+      refreshSigningState,
       t,
     ],
   );
@@ -857,7 +870,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         onSave={handleSaveConfig}
         onClose={() => {
           setShowConfigDialog(false);
-          setManifestTick((n) => n + 1);
+          refreshSigningState();
         }}
         onSaveCredential={handleSaveCredential}
         onSaveGPGKey={handleSaveGPGKey}
@@ -883,6 +896,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
           protection={protection}
           committedManifest={committedManifest}
           manifestAnchored={manifestAnchored}
+          loadBranchSigningState={loadBranchSigningState}
           initialReviewer={commitReviewer}
         />
       )}

@@ -36,6 +36,7 @@
       "signCommit": "Sign commit ({{format}})",
       "signCommitRequired": "Sign commit — required, this repository has a signer manifest",
       "signingKeyMissing": "No signing key is set. Choose your key in the audit configuration (Config → Signing).",
+      "signerManifestRemoved": "The signer manifest was removed from this branch — its audit trail can no longer be verified. Restore .tara/allowed_signers (revert its removal) and commit again.",
       "signerManifestEmpty": "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers).",
       "signerNotAuthorized": "Your author email ({{email}}) is not authorized in the committed signer manifest. Add your key under this email (Config → Signers) and commit the manifest.",
       "commit": "Commit",

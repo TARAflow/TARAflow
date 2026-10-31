@@ -36,6 +36,7 @@
       "signCommit": "Commit signieren ({{format}})",
       "signCommitRequired": "Commit signieren — Pflicht, dieses Repository hat ein Signer-Manifest",
       "signingKeyMissing": "Kein Signierschlüssel gesetzt. Schlüssel in der Audit-Konfiguration wählen (Config → Signing).",
+      "signerManifestRemoved": "Das Signer-Manifest wurde aus diesem Branch entfernt — sein Audit-Trail ist nicht mehr verifizierbar. .tara/allowed_signers wiederherstellen (Löschung rückgängig machen) und erneut committen.",
       "signerManifestEmpty": "Signieren ist eingeschaltet, aber das Signer-Manifest ist leer. Zuerst dich selbst als Signer eintragen (Config → Signers).",
       "signerNotAuthorized": "Deine Autor-E-Mail ({{email}}) ist im committeten Signer-Manifest nicht berechtigt. Schlüssel unter dieser E-Mail eintragen (Config → Signers) und das Manifest committen.",
       "commit": "Commit",

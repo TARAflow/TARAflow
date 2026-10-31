@@ -7,7 +7,7 @@
 // Commit button disabled — the same decision the commit handler makes.
 
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CommitDialog } from "features/audit/components/commit-dialog";
 import { DEFAULT_AUDIT_CONFIG, type AuditConfig, type CommitMessageData } from "features/audit/models/audit-types";
@@ -93,8 +93,41 @@ describe("commit dialog — signing", () => {
     const box = screen.getByTestId("commit-sign-checkbox").querySelector("input")!;
     expect(box.checked).toBe(true);
     expect(box.disabled).toBe(true);
-    expect(screen.getByTestId("commit-signing-problem").textContent).toContain("signer manifest is empty");
+    expect(screen.getByTestId("commit-signing-problem").textContent).toContain("signer manifest was removed");
     expect((commitButton() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("an existing other branch decides by ITS manifest (review 2026-10-31)", async () => {
+    const load = vi.fn().mockResolvedValue({ manifest: MANIFEST, anchored: true });
+    const onCommit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <CommitDialog
+        open
+        config={config(false)}
+        branches={[
+          { name: "main", current: true, commit: "a", label: "main" },
+          { name: "release", current: false, commit: "b", label: "release" },
+        ]}
+        currentBranch="main"
+        commitMessageData={message}
+        onCommit={onCommit}
+        onClose={() => {}}
+        committedManifest={null}
+        loadBranchSigningState={load}
+      />,
+    );
+    // Current branch without a manifest, signing off: no signing at all.
+    expect(screen.queryByTestId("commit-sign-checkbox")).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: /existing branch/i }));
+    fireEvent.mouseDown(within(screen.getByRole("radio", { name: /existing branch/i }).closest("label")!).getByRole("combobox"));
+    fireEvent.click(await screen.findByRole("option", { name: "release" }));
+    await waitFor(() => expect(load).toHaveBeenCalledWith("release"));
+    await waitFor(() =>
+      expect(screen.getByTestId("commit-sign-checkbox").querySelector("input")!.disabled).toBe(true),
+    );
+    fireEvent.click(commitButton());
+    await waitFor(() => expect(onCommit).toHaveBeenCalled());
+    expect(onCommit.mock.calls[0][0]).toMatchObject({ branchName: "release", signCommit: true });
   });
 
   it("the label names the format", () => {

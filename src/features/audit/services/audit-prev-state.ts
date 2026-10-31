@@ -58,14 +58,15 @@ export async function loadPreviousProjectFromGit(
 }
 
 /**
- * The signer manifest as committed at HEAD (`git show HEAD:.tara/allowed_signers`)
- * — what the verification engine checks the next commit against. null when
+ * The signer manifest as committed at `ref` (default HEAD; `git show
+ * <ref>:.tara/allowed_signers`) — what the verification engine checks the
+ * next commit on that branch against. null when
  * HEAD has none (no manifest yet, unborn HEAD, git error); a deleted or edited
  * working-tree copy does not count.
  */
-export async function loadCommittedManifest(raw: RawGit): Promise<string | null> {
+export async function loadCommittedManifest(raw: RawGit, ref = "HEAD"): Promise<string | null> {
   try {
-    const res = await raw(["show", `HEAD:${ALLOWED_SIGNERS_REL_PATH}`]);
+    const res = await raw(["show", `${ref}:${ALLOWED_SIGNERS_REL_PATH}`]);
     return res.success && typeof res.data === "string" ? res.data : null;
   } catch {
     return null;
@@ -79,11 +80,20 @@ export async function loadCommittedManifest(raw: RawGit): Promise<string | null>
  * once signing is on, only signed commits), even if the manifest was removed
  * later (the engine then reports SIGNER_NOT_AUTHORIZED / SIG_UNSIGNED).
  */
-export async function loadManifestAnchored(raw: RawGit): Promise<boolean> {
+export async function loadManifestAnchored(raw: RawGit, ref = "HEAD"): Promise<boolean> {
   try {
-    const res = await raw(["log", "--diff-filter=A", "--format=%H", "--", ALLOWED_SIGNERS_REL_PATH]);
+    const res = await raw(["log", ref, "--diff-filter=A", "--format=%H", "--", ALLOWED_SIGNERS_REL_PATH]);
     return res.success && typeof res.data === "string" && res.data.trim() !== "";
   } catch {
     return false;
   }
+}
+
+/** The signing state of the branch a commit goes to (manifest + anchor). */
+export async function loadSigningState(
+  raw: RawGit,
+  ref = "HEAD",
+): Promise<{ manifest: string | null; anchored: boolean }> {
+  const [manifest, anchored] = await Promise.all([loadCommittedManifest(raw, ref), loadManifestAnchored(raw, ref)]);
+  return { manifest, anchored };
 }

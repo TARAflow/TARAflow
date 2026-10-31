@@ -1,7 +1,7 @@
 // src/tests/unit/features/audit/services/audit-signing-identity.test.ts
 import { describe, it, expect, vi } from "vitest";
 import { checkSigningIdentity, commitSigning } from "features/audit/services/audit-signing-identity";
-import { loadCommittedManifest, loadManifestAnchored } from "features/audit/services/audit-prev-state";
+import { loadCommittedManifest, loadManifestAnchored, loadSigningState } from "features/audit/services/audit-prev-state";
 import { entryFromPubkey } from "features/audit/services/audit-signer-manifest";
 
 const alice = entryFromPubkey("alice@example.com", "ssh-ed25519 AAAA", {
@@ -70,9 +70,9 @@ describe("commitSigning", () => {
     expect(d.problem).toBe("email-not-authorized");
   });
 
-  it("once the repository signs, it always signs — the manifest removed since: required, nobody authorized", () => {
+  it("once the repository signs, it always signs — the manifest removed since: required, 'manifest-removed'", () => {
     const d = commitSigning({ ...base, committedManifest: null, anchored: true, signCommit: false, signingEnabled: false });
-    expect(d).toEqual({ required: true, sign: true, problem: "empty-manifest" });
+    expect(d).toEqual({ required: true, sign: true, problem: "manifest-removed" });
   });
 
   it("no manifest at HEAD and none in the history: the project's choice", () => {
@@ -102,11 +102,22 @@ describe("loadManifestAnchored", () => {
   it("true once the history introduced .tara/allowed_signers", async () => {
     const raw = vi.fn().mockResolvedValue({ success: true, data: "abc123\n" });
     expect(await loadManifestAnchored(raw)).toBe(true);
-    expect(raw).toHaveBeenCalledWith(["log", "--diff-filter=A", "--format=%H", "--", ".tara/allowed_signers"]);
+    expect(raw).toHaveBeenCalledWith(["log", "HEAD", "--diff-filter=A", "--format=%H", "--", ".tara/allowed_signers"]);
   });
 
   it("never introduced, or a git error → false", async () => {
     expect(await loadManifestAnchored(vi.fn().mockResolvedValue({ success: true, data: "" }))).toBe(false);
     expect(await loadManifestAnchored(vi.fn().mockRejectedValue(new Error("no repo")))).toBe(false);
+  });
+});
+
+describe("loadSigningState — the branch the commit goes to", () => {
+  it("reads manifest and anchor of the given ref, not HEAD", async () => {
+    const raw = vi.fn(async (args: string[]) =>
+      args[0] === "show" ? { success: true, data: MANIFEST } : { success: true, data: "abc\n" },
+    );
+    expect(await loadSigningState(raw, "release")).toEqual({ manifest: MANIFEST, anchored: true });
+    expect(raw).toHaveBeenCalledWith(["show", "release:.tara/allowed_signers"]);
+    expect(raw).toHaveBeenCalledWith(["log", "release", "--diff-filter=A", "--format=%H", "--", ".tara/allowed_signers"]);
   });
 });

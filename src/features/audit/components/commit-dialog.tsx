@@ -72,6 +72,12 @@ interface CommitDialogProps {
   committedManifest?: string | null;
   /** The history introduced the manifest (anchor): signing stays required. */
   manifestAnchored?: boolean;
+  /**
+   * The signing state of another branch — "existing branch" commits there,
+   * so its manifest and anchor decide (the two props above are the current
+   * branch's).
+   */
+  loadBranchSigningState?: (ref: string) => Promise<{ manifest: string | null; anchored: boolean }>;
 }
 
 // ==================== COMPONENT ====================
@@ -86,10 +92,44 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   onClose,
   initialReviewer,
   protection,
-  committedManifest = null,
-  manifestAnchored = false,
+  committedManifest: currentManifest = null,
+  manifestAnchored: currentAnchored = false,
+  loadBranchSigningState,
 }) => {
   const { t } = useTranslation();
+
+  // ==================== STATE ====================
+
+  const [branchMode, setBranchMode] = useState<
+    "current" | "existing" | "custom"
+  >("current");
+  const [selectedBranch, setSelectedBranch] = useState<string>(currentBranch);
+
+  // The branch the commit goes to decides (review 2026-10-31): the current
+  // one — also for a new branch, which starts at HEAD — or the chosen
+  // existing one, whose manifest and anchor are loaded.
+  const targetBranch = branchMode === "existing" ? selectedBranch : currentBranch;
+  const [otherBranchState, setOtherBranchState] = useState<{
+    ref: string;
+    manifest: string | null;
+    anchored: boolean;
+  } | null>(null);
+  useEffect(() => {
+    if (targetBranch === currentBranch || !loadBranchSigningState) return;
+    let cancelled = false;
+    void loadBranchSigningState(targetBranch).then((state) => {
+      if (!cancelled) setOtherBranchState({ ref: targetBranch, ...state });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [targetBranch, currentBranch, loadBranchSigningState]);
+  const onOtherBranch = targetBranch !== currentBranch;
+  const otherLoaded = otherBranchState?.ref === targetBranch;
+  const committedManifest = onOtherBranch ? (otherLoaded ? otherBranchState!.manifest : null) : currentManifest;
+  const manifestAnchored = onOtherBranch ? (otherLoaded ? otherBranchState!.anchored : false) : currentAnchored;
+  // Until the other branch is read, no commit (the decision is not known).
+  const signingStatePending = onOtherBranch && !!loadBranchSigningState && !otherLoaded;
 
   // A repository that signs (manifest at HEAD, or introduced in its history)
   // verifies every later commit: signing is required — box on and locked.
@@ -98,12 +138,6 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
     signingRequired || (config.signing?.enabled ?? config.gpg?.enabled ?? false);
   const signingFormat = config.signing?.format ?? (config.gpg?.enabled ? "gpg" : "ssh");
 
-  // ==================== STATE ====================
-
-  const [branchMode, setBranchMode] = useState<
-    "current" | "existing" | "custom"
-  >("current");
-  const [selectedBranch, setSelectedBranch] = useState<string>(currentBranch);
   const [customBranchName, setCustomBranchName] = useState<string>("");
   const [roundName, setRoundName] = useState<string>(commitMessageData.round);
   const [commitMessage, setCommitMessage] = useState<string>("");
@@ -447,7 +481,9 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
         </Button>
         <Button
           onClick={handleCommit}
-          disabled={isCommitting || !commitMessage.trim() || !!signingDecision.problem}
+          disabled={
+            isCommitting || !commitMessage.trim() || !!signingDecision.problem || signingStatePending
+          }
           variant="contained"
           color="primary"
           startIcon={

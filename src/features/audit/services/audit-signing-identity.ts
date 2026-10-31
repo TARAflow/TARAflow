@@ -49,7 +49,7 @@ export function checkSigningIdentity(input: {
 }
 
 /** Why a commit cannot be signed as the repository requires; null = fine. */
-export type CommitSigningProblem = "key-missing" | "empty-manifest" | "email-not-authorized";
+export type CommitSigningProblem = "manifest-removed" | "key-missing" | "empty-manifest" | "email-not-authorized";
 
 /**
  * How this commit is signed (reviews 2026-10-31). One truth, the engine's: the
@@ -73,10 +73,13 @@ export function commitSigning(input: {
 }): { required: boolean; sign: boolean; problem: CommitSigningProblem | null } {
   // Once the repository signs, it always signs (user 2026-10-31) — the
   // anchor counts even after the manifest was removed (then nobody is
-  // authorized: "empty-manifest", as the engine sees it).
+  // authorized, as the engine sees it: "manifest-removed").
   const required = input.committedManifest !== null || !!input.anchored;
   const sign = required || (input.signingEnabled && input.signCommit);
   if (!sign) return { required, sign, problem: null };
+  // Introduced once, gone now: every later commit is checked against an empty
+  // parent manifest — adding a signer cannot help, only restoring it.
+  if (input.anchored && input.committedManifest === null) return { required, sign, problem: "manifest-removed" };
   const key = input.format === "ssh" ? input.sshSigningKeyPath : input.keyId;
   if (!key) return { required, sign, problem: "key-missing" };
   const ident = checkSigningIdentity({
