@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v8 · 2026-10-31 (decisions D-1 … D-21 in §7.1, §9 aligned with them; IEC-2a done;
+**Status:** v9 · 2026-10-31 (decisions D-1 … D-23 in §7.1, §9 aligned with them; IEC-2a done;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -131,7 +131,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 1.3 (l. 699) | account management, directly or by supporting measures | 1 | d | Proc / MP with authentication | Proc / MP.`accountManagement` | A | — |
 | CR 1.4 (l. 732) | identifier management | 1 | d | as CR 1.3 | Proc / MP.`accountManagement` (implies identifier management) | B | — |
 | CR 1.5 (l. 773) | authenticator management: initial authenticator, detect unchanged defaults, change / refresh, protect stored / used / transmitted authenticators | 1 | b, d | every authentication mechanism | Proc / MP / CB.`authenticatorStorage` (protection at rest); DF encryption (in transit) | B | default-credential handling (a–c) not modelled |
-| CR 1.5 RE(1) (l. 817) | hardware protection of authenticators | 3 | b, d | as CR 1.5 | `authenticatorStorage` ∈ tpm, secure_element, hsm | A | — |
+| CR 1.5 RE(1) (l. 817) | hardware protection of authenticators | 3 | b, d | every authenticating Proc / MP | each: `authenticatorStorage` ∈ tpm, secure_element, hsm | A | — |
 | CR 1.6 (l. 853) | identify and authenticate all users of wireless communication | 1 | d | IF.`type` ∈ wifi, bluetooth, nfc; DF.`protocol` wireless (wireless_hart, bluetooth, …) | IF.ic.`linkAuthentication` ≠ none; DF.`endpointAuthentication` ≠ none | A | — |
 | CR 1.6 RE(1) (l. 887) | unique identification on wireless | 2 | d | as CR 1.6 | IF.ic.`linkAuthentication` ∈ certificate_based, mutual_pairing | B | — |
 | CR 1.7 (l. 918) | configurable password strength per recognised guidelines | 1 | d | any password-based mechanism (`…Authentication` = password) | — | C | — |
@@ -140,9 +140,9 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 1.8 (l. 979) | PKI operation per best practice | 2 | d, e, f | `…Authentication` ∈ certificate, mutual_tls | — | C | — |
 | CR 1.9 (l. 1019) | public-key authentication: signature / data validity, proof of possession | 2 | d, e, f | as CR 1.8 | DF.`endpointAuthentication` ∈ certificate, mutual_tls (mechanism only) | B | — |
 | CR 1.10 (l. 1087) | obscure authentication feedback | 1 | d | human-user authentication present | — | C | — |
-| CR 1.11 (l. 1122) | limit consecutive failed logins, lock for a period / until unlocked | 1 | d | every authentication mechanism | IF.ic.`abuseProtection` = lockout | A | — |
+| CR 1.11 (l. 1122) | limit consecutive failed logins, lock for a period / until unlocked | 1 | d | every authentication mechanism | — (IF.ic.`abuseProtection` = lockout sits on the interface; which interface a human-access flow passes is not modelled, P-7) | C | interface ↔ flow link (P-7) |
 | CR 1.12 (l. 1173) | configurable system-use notification before login on local HMI | 1 | — | local human UI (IF.`type` touchscreen, HMI EE) | — | C | — |
-| CR 1.13 (l. 1222) | monitor and control all access via untrusted networks | 1 | j | MP.`remoteAccessEnabled` / `exposedToInternet`; DF crossing a TB to an untrusted zone | TB.`boundaryControlTypes` ∋ vpn_gateway, jump_host, authentication_gateway, firewall; TB.`monitoringEnabled` | B | — |
+| CR 1.13 (l. 1222) | monitor and control all access via untrusted networks | 1 | j | MP.`remoteAccessEnabled` / `exposedToInternet`; TB of type network / cloud | each such TB: `boundaryControlTypes` ∋ vpn_gateway, jump_host, authentication_gateway, firewall; TB.`monitoringEnabled` | B | — |
 | CR 1.13 RE(1) (l. 1253) | deny untrusted-network access unless explicitly approved by a role | 3 | j | as CR 1.13 | — | C | — |
 | CR 1.14 (l. 1283) | *void in prAA* | — | — | — | — | n/a | — |
 
@@ -159,9 +159,9 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 2.3 (l. 1497) | *no component requirement (SR 2.3 is system level)* | — | — | — | — | n/a | — |
 | CR 2.4 (l. 1500) | policy for mobile code (execution, transfer, …) | 1 | j | component uses mobile code | — | C | "uses mobile code" flag |
 | CR 2.4 RE(1) (l. 1544) | authenticity check before executing mobile code | 2 | j | as CR 2.4 | — (`malwareProtection` = code_signing does not show that mobile code is checked) | C | "uses mobile code" flag |
-| CR 2.5 (l. 1575) | session lock after inactivity / on demand | 1 | d, j | human UI, local or remote | Proc.`sessionControl.sessionLockEnabled` | A | not on MP |
-| CR 2.6 (l. 1622) | terminate remote sessions (timeout / manual) | 2 | d, j | remote sessions (MP.`remoteAccessEnabled`) | Proc.`sessionControl.remoteTerminationEnabled` | A | not on MP |
-| CR 2.7 (l. 1664) | limit concurrent sessions per interface and user | 3 | h | every external interface with sessions | Proc.`sessionControl.maxConcurrentSessions` | A | not on MP |
+| CR 2.5 (l. 1575) | session lock after inactivity / on demand | 1 | d, j | every Proc connected to a human EE | each: Proc.`sessionControl.sessionLockEnabled` | A | not on MP |
+| CR 2.6 (l. 1622) | terminate remote sessions (timeout / manual) | 2 | d, j | MP.`remoteAccessEnabled`; every Proc connected to a human EE | each: Proc.`sessionControl.remoteTerminationEnabled` | A | not on MP |
+| CR 2.7 (l. 1664) | limit concurrent sessions per interface and user | 3 | h | every Proc connected to an EE | each: Proc.`sessionControl.maxConcurrentSessions` | A | not on MP |
 | CR 2.8 (l. 1700) | audit records for security-relevant event categories | 1 | f, i, j, l | always | Proc / MP.`nonRepudiation` = audit_log; IF.ic.`monitoringControl` ∈ usage_logged, tamper_logged | B | event categories not modelled |
 | CR 2.8 RE(1) (l. 1755) | opt-out of security audit logging for authorized users (CRA (2)(l)) | 1 | l | as CR 2.8 | — | C | — |
 | CR 2.9 (l. 1784) | allocate audit storage; essential functions survive a full log | 1 | h | audit logging present | — | C | — |
@@ -170,8 +170,8 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 2.11 (l. 1896) | timestamps or time-related information for audit records | 1 | f | audit logging present | — | C | — |
 | CR 2.11 RE(1) (l. 1924) | timestamps synchronised with an external source | 2 | f | timestamps created | — (would be: DF to a time-source EE, P-4) | C | no time-source marker |
 | CR 2.11 RE(2) (l. 1945) | detect alteration of the time source, audit it | 4 | f | as RE(1) | — (would be: DF.`integrityProtection` on the time-sync flow, P-4) | C | no time-source marker |
-| CR 2.12 (l. 1972) | determine whether a human user took an action | 1 | — | human UI | Proc / MP.`nonRepudiation` ≠ none | A | — |
-| CR 2.12 RE(1) (l. 2004) | non-repudiation for all users | 4 | — | as CR 2.12 | `nonRepudiation` ∈ digital_signature, hardware_backed | A | — |
+| CR 2.12 (l. 1972) | determine whether a human user took an action | 1 | — | every Proc / MP connected to a human EE | each: `nonRepudiation` ≠ none | A | — |
+| CR 2.12 RE(1) (l. 2004) | non-repudiation for all users | 4 | — | every Proc / MP connected to an EE | each: `nonRepudiation` ∈ digital_signature, hardware_backed | A | — |
 | CR 2.13 (l. 2033) | protect physical diagnostic and test interfaces (e.g. JTAG) | 2 | d, e, f | IF.`type` ∈ jtag, swd, swd_swo, jtag_trace, uart; CB.`debugInterfacePresent` ≠ none | IF.ic.`debugProtection` ≠ none; IF.ic.`serviceAccessPolicy`; CB.`debugInterfaceLocked`; PB.`debugInterfaceAccessible` = false | A | — |
 | CR 2.13 RE(1) (l. 2080) | actively monitor diagnostic interfaces, audit access attempts | 3 | f | as CR 2.13 | IF.ic.`monitoringControl` ∈ tamper_logged, alerted, active_response | A | — |
 
@@ -191,7 +191,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 3.6 (l. 2427) | set outputs to a predetermined state if operation cannot be maintained under attack | 1 | i, k | Proc / MP connected to the controlled process (actuator, safety function) | Proc.`failSafeOutputState` ≠ not_defined | A | — |
 | CR 3.7 (l. 2469) | handle errors without exploitable feedback | 1 | k | always | Proc.`errorHandling` = sanitized | A | — |
 | CR 3.8 (l. 2511) | session integrity: invalidate IDs on logout, random unique IDs | 2 | f | session-based interfaces | — | C | — |
-| CR 3.9 (l. 2561) | protect audit records from unauthorised access, change, deletion | 2 | — | audit logging present | DS holding audit logs: `accessControlMechanism`, `integrityProtection` | B | "audit log" store type |
+| CR 3.9 (l. 2561) | protect audit records from unauthorised access, change, deletion | 2 | — | every DS with `storedDataTypes` ∋ audit_logs | each: `accessControlMechanism` ≠ none | B | — |
 | CR 3.9 RE(1) (l. 2588) | audit records on hardware write-once media | 4 | — | as CR 3.9 | — | C | — |
 | CR 3.10 (l. 2613) | support updates and upgrades | 1 | c, f | always | MP.`updateMechanism` ≠ none | A | not on Proc / CB |
 | CR 3.10 RE(1) (l. 2638) | validate authenticity and integrity of updates before installation | 2 | c, f | as CR 3.10 | `updateMechanism` ∈ signed_local, signed_ota | A | — |
@@ -238,8 +238,8 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | ID | Requirement | SL-C | CRA | Applicability in the model | Evidence in the model | Type | Gap |
 |---|---|---|---|---|---|---|---|
-| CR 7.1 (l. 3505) | keep essential functions in degraded mode under DoS | 1 | h, i, k | always | IF.ic.`abuseProtection` ≠ none; DF.`redundancy` ≠ none | B | — |
-| CR 7.1 RE(1) (l. 3538) | mitigate message flooding | 2 | h, i, k | as CR 7.1 | IF.ic.`abuseProtection` ∈ flood_protection, rate_limited; EE.`rateLimited` | A | — |
+| CR 7.1 (l. 3505) | keep essential functions in degraded mode under DoS | 1 | h, i, k | every IF with `exposureLevel` EL2–EL4 | each: IF.ic.`abuseProtection` ≠ none | B | — |
+| CR 7.1 RE(1) (l. 3538) | mitigate message flooding | 2 | h, i, k | as CR 7.1 | each: IF.ic.`abuseProtection` ∈ flood_protection, rate_limited | A | — |
 | CR 7.2 (l. 3568) | limit resource use by security functions | 1 | h, k | always | — | C | — |
 | CR 7.3 (l. 3606) | backup directly or by supporting measures, without affecting operation | 1 | f, h, m | DS / MP with state worth restoring | MP.`backupMechanism` ≠ none; DS.`backupEnabled` | A | — |
 | CR 7.3 RE(1) (l. 3646) | verify backup integrity before restore | 2 | f, h, m | as CR 7.3 | — | C | — |
@@ -264,16 +264,16 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | | A | B | C | n/a |
 |---|---|---|---|---|
-| FR 1 (22 rows) | 6 | 7 | 7 | 2 |
+| FR 1 (22 rows) | 5 | 7 | 8 | 2 |
 | FR 2 (24) | 9 | 3 | 11 | 1 |
 | FR 3 (23) | 12 | 6 | 4 | 1 |
 | FR 4 (6) | 4 | 0 | 2 | 0 |
 | FR 5 (7) | 4 | 1 | 0 | 2 |
 | FR 6 (3) | 0 | 2 | 1 | 0 |
 | FR 7 (12) | 2 | 4 | 5 | 1 |
-| **Total (97)** | **37** | **23** | **30** | **7** |
+| **Total (97)** | **36** | **23** | **31** | **7** |
 
-About two thirds of the 90 live rows (60) can be pre-filled from the model (A + B). The C rows
+About two thirds of the 90 live rows (59) can be pre-filled from the model (A + B). The C rows
 need an analyst statement (applicable / met / not met / n/a + reasoning + evidence
 reference) — that is what makes the matrix a complete SoA.
 
@@ -301,8 +301,9 @@ Per project, from one model (consistency per EA-6-1):
 | P-1 | `TB.defaultDenyPolicy` is single-valued, but CR 5.2 RE(1)–(3) are cumulative at SL-C 3 | CR 5.2 RE(1–3) | multi-select (schema migration; analysis-preserving if the old value maps 1:1) — same pattern as the backlog item for `physicalPathProtection` / `malwareProtection` |
 | P-2 | `sessionControl` exists on Process only; `updateMechanism` on Multiprocess only | CR 2.5–2.7, 3.10 | add to the other element type, or evaluate per component (K2) over all children |
 | P-3 | no "human access" marker per interface / flow | CR 1.1, 1.10, 1.12, 2.5 | derive from the connected EE type (operator, maintenance, … — external-entity-type-registry) |
-| P-4 | no audit-log / log-sink / time-source markers | CR 2.8–2.11, 3.9, 6.1 | `StoredDataType` "audit_log" on DS; EE types "siem", "time_source" |
+| P-4 | no log-sink / time-source markers (audit-log stores are marked: `DS.storedDataTypes` ∋ audit_logs) | CR 2.11 RE(1)/(2), 6.1 RE(1) | EE types "siem", "time_source" |
 | P-5 | secure-by-default, reset, default-credential handling not modelled | CR 1.5 a–c, 7.6, 7.9 (CRA (2)(b)) | component-level fields (K2), or C rows |
+| P-7 | which interface a flow passes is not modelled (graph analysis has `viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | carry the interface id in the data-flow analysis |
 | P-6 | `secureErase` / `auditLogRetentionYears` from the architecture doc | CR 4.2 / EN 50742 8.5 | `DS.deletionMechanism` already covers CR 4.2 — drop `secureErase`; retention only for EN 50742 B |
 
 ## 7. Decisions and open points
@@ -332,6 +333,8 @@ Per project, from one model (consistency per EA-6-1):
 | D-19 (K-E8) | For **`all` rules, elements with applicability `unknown` count as `unknown`**, never skipped: an applicable element that clearly fails → `gap` naming it; otherwise any `unknown` → the row is not met by the model and ends as `unknown` (step 9). | §9.4 steps 4, 5. |
 | D-20 (K-E9) | **Supporting measures are derived automatically only for `any` rules** (e.g. backup or update by an external system). For `all` rules a supporting measure needs an analyst statement naming it; a derivation along paths (e.g. an upstream gateway) may come later. | §9.4 step 7 — evaluating `all` over scope ∪ environment would be stricter, not looser. |
 | D-21 (K-E10) | In the **achieved** run a mitigation reference counts **only where the model does not decide** (rule without model evidence, or elements `unknown`). Against a clear model `no` the row is a `gap` with the note "mitigation marked done, model shows not met". In the **planned** run the mitigation may overlay. | §9.4 step 6. |
+| D-22 (K-E11) | Quantifier **"any" only for the capabilities of the component as a whole**, listed with their reason in §9.2; the completeness test fails for any other "any" rule. | Review of IEC-2a (review 2026-10-31, reviewer): 28 rules had "any", several of them per element (key storage, lockout, sessions, DoS). |
+| D-23 (K-E12) | The value **`custom` counts as `unknown` in type A rules** ("statement needed"); in type B rules it counts as satisfied, the checklist covers it. Applied centrally by the evaluator. | `custom` only says the analyst entered something else, not that it suffices. |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -369,6 +372,8 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | K-E8 | Review of §9 v2 — review 2026-10-31 (reviewer) | — | **decided, D-19** |
 | K-E9 | Review of §9 v2 — review 2026-10-31 (reviewer) | — | **decided, D-20** |
 | K-E10 | Review of §9 v2 — review 2026-10-31 (reviewer) | — | **decided, D-21** |
+| K-E11 | Review of IEC-2a — review 2026-10-31 (reviewer) | — | **decided, D-22** |
+| K-E12 | Review of IEC-2a — review 2026-10-31 (reviewer) | — | **decided, D-23** |
 
 ## 8. Next steps
 
@@ -427,10 +432,9 @@ interface PropertyCheck {
 interface EvidenceTarget {
   elementTypes: readonly EvidenceElementType[];
   appliesIf?: readonly PropertyCheck[];     // all hold → applicable; absent = every element of the types
-  endpointIf?: {                            // DataFlow targets: a check on the source or target element
-    elementTypes: readonly EvidenceElementType[];
-    checks: readonly PropertyCheck[];
-  };
+  endpointIf?: NeighbourCheck;              // DataFlow targets: the source or the target passes
+  connectedIf?: NeighbourCheck;             // element targets: a flow connects the element to one
+                                            // that passes (e.g. every Process serving human users)
   satisfiedIf?: readonly PropertyCheck[];   // any holds on the same element → satisfied
 }
 
@@ -443,7 +447,7 @@ interface EvidenceRule {
                                             // while the evidence sits on another element (CR 1.9 RE(1))
   targets: readonly EvidenceTarget[];       // empty = the component as a whole (always applicable)
   quantifier?: "all" | "any";               // default "all": every applicable element satisfies;
-                                            // "any" only for component-wide capabilities (update, backup, …)
+                                            // "any" only for the ids listed below (D-22)
   checklist?: readonly string[];            // unmodelled criteria (B); paraphrased, i18n in IEC-2b
 }
 ```
@@ -454,6 +458,21 @@ conformance test in `src/tests` (D-15): every `elementTypes` × `property`
 path exists on that element type's properties interface and every `in` / `notIn` value is
 assignable to the property's type. The test may import `features/dfd`; the compliance
 feature itself does not. Type C rules have no `satisfiedIf`.
+
+**Quantifier "any" (D-22)** — allowed only for these capabilities of the component as a
+whole; the completeness test fails for any other "any" rule:
+
+| Requirement ids | Why one element suffices |
+|---|---|
+| `cr-1.3`, `cr-1.4`, `cr-1.5` | account, identifier and authenticator management is one function of the component (or a supporting system) |
+| `cr-2.8` | the component's audit function — the event categories are the checklist |
+| `cr-3.10`, `cr-3.10-re1`, `cr-3.10-re2` | the component has one update mechanism |
+| `cr-3.12` | supplier roots of trust are provisioned once per component |
+| `cr-5.1` | support of network segmentation is a property of the component's placement |
+| `cr-6.1-re1` | one programmatic access / forwarding channel for the audit records suffices |
+| `cr-6.2` | the capability to report detected issues to monitoring |
+| `cr-7.3`, `cr-7.4` | backup and recovery of the component |
+| `cr-7.9` | reset of the component to the supplier state |
 
 **Edition row** additionally carries `supportingMeasuresAllowed: boolean` (D-14): true where
 the requirement text lets the component meet it "directly or by supporting measures"
@@ -499,7 +518,8 @@ holds).
    element `yes` **and no element with applicability `unknown`** (D-19); `any` — at least
    one applicable element `yes`. Met → `met`, source `model` (type B adds the checklist).
    Elements that are `no` or `unknown` (applicability or satisfaction) are listed in the
-   result.
+   result. In **type A** rules a check that holds only because of the value `custom`
+   counts as `unknown` (D-23); in type B rules it counts, the checklist covers it.
 6. **Mitigation** with the requirement id, chosen for a risk whose threat concerns an
    element in scope (D-16) → `met`, source `mitigation`. **Achieved run** (D-21): only
    mitigations in a done status, and only where the model does not decide — the rule has
@@ -535,7 +555,8 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 ### 9.5 Tests
 
 - **Completeness per edition (D-11):** every row has an evidence rule or is void; every
-  requirement id resolves; type C rules have no `satisfiedIf`; no silent fallback.
+  requirement id resolves; type C rules have no `satisfiedIf`; no silent fallback; quantifier
+  "any" only for the ids of D-22.
 - **Conformance (D-15, D-18):** type-level test in `src/tests` — every path and value against
   the element property types; compiled by `tsc` in `npm run build`. Includes negative
   cases (`@ts-expect-error`): a non-existent literal path or value is rejected, and so is a
@@ -558,6 +579,7 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
   - vector rule: one non-counting row caps the FR at the level below its lowest SL-C;
   - `all` rule: an element with applicability `unknown` prevents `met` (D-19);
   - one element `no` and one `unknown` → `gap` naming both (step 9);
+  - `custom` in a type A rule → `unknown`, in a type B rule → `met` with checklist (D-23);
   - supporting measure on an `all` rule only via a statement naming it; automatic on an
     `any` rule (D-20);
   - achieved run: a done mitigation against a model `no` → `gap` with the contradiction
@@ -567,6 +589,6 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 
 | Step | Content | Branch | Depends on | Status |
 |---|---|---|---|---|
-| IEC-2a | types, evidence rules, both edition files, completeness test, conformance test — no UI, no i18n | `feature/iec62443-cra-matrix` | — | done (patch 264) |
+| IEC-2a | types, evidence rules, both edition files, completeness test, conformance test — no UI, no i18n | `feature/iec62443-cra-matrix` | — | done (patches 264, 266: D-22 quantifiers, `connectedIf`) |
 | IEC-3 | evaluator, edition selection, vectors, evaluator tests | same | IEC-2a | open |
 | IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split | open |
