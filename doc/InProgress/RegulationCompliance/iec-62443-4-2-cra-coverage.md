@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v10 · 2026-10-31 (decisions D-1 … D-24 in §7.1, §9 aligned with them; IEC-2a done;
+**Status:** v11 · 2026-10-31 (decisions D-1 … D-24 in §7.1, §9 aligned with them; IEC-2a, IEC-3 done;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -303,7 +303,7 @@ Per project, from one model (consistency per EA-6-1):
 | P-3 | no "human access" marker per interface / flow | CR 1.1, 1.10, 1.12, 2.5 | derive from the connected EE type (operator, maintenance, … — external-entity-type-registry) |
 | P-4 | no log-sink / time-source markers (audit-log stores are marked: `DS.storedDataTypes` ∋ audit_logs) | CR 2.11 RE(1)/(2), 6.1 RE(1) | EE types "siem", "time_source" |
 | P-5 | secure-by-default, reset, default-credential handling not modelled | CR 1.5 a–c, 7.6, 7.9 (CRA (2)(b)) | component-level fields (K2), or C rows |
-| P-7 | which interface a flow passes is not in the analysis graph (`viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | the effective model already lists the crossed interfaces per flow (`EffectiveFlow.interfaces`) — carry their ids into the data-flow analysis, then CR 1.11 can return to type A |
+| P-7 | which interface a flow passes is not in the reference view (`viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | the dfd graph already has `interfaceIds` per flow (`DataFlowAnalysis`, used by the validator), the effective model `EffectiveFlow.interfaces` — carry the ids into the property view, then CR 1.11 can return to type A |
 | P-6 | `secureErase` / `auditLogRetentionYears` from the architecture doc | CR 4.2 / EN 50742 8.5 | `DS.deletionMechanism` already covers CR 4.2 — drop `secureErase`; retention only for EN 50742 B |
 
 ## 7. Decisions and open points
@@ -335,7 +335,7 @@ Per project, from one model (consistency per EA-6-1):
 | D-21 (K-E10) | In the **achieved** run a mitigation reference counts **only where the model does not decide** (rule without model evidence, or elements `unknown`). Against a clear model `no` the row is a `gap` with the note "mitigation marked done, model shows not met". In the **planned** run the mitigation may overlay. | §9.4 step 6. |
 | D-22 (K-E11) | Quantifier **"any" only for the capabilities of the component as a whole**, listed with their reason in §9.2; the completeness test fails for any other "any" rule. | Review of IEC-2a (review 2026-10-31, reviewer): 28 rules had "any", several of them per element (key storage, lockout, sessions, DoS). |
 | D-23 (K-E12) | The value **`custom` counts as `unknown` in type A rules** ("statement needed"); in type B rules it counts as satisfied, the checklist covers it. Applied centrally by the evaluator. | `custom` only says the analyst entered something else, not that it suffices. |
-| D-24 (K-E13) | **Neighbours are the endpoints of the analysis graph** the threat generation uses (`dfd.graph`; for a leveled DFD built on the effective model — leaves only, every flow stitched to its deepest drawn endpoint). Interfaces are never flow endpoints: communication always passes an interface to the endpoint, so a flow is **sender → receiver** and carries the communication threats, while the interface gets its own logical and physical threats. An actor on the parent page is therefore a direct neighbour of the leaf process on the child page. A flow in state **fallback** (ends at a decomposed multiprocess because nobody drew it below) makes `endpointIf` / `connectedIf` **`unknown`** for the elements contained in that multiprocess — never `n/a` (D-12). | Review of IEC-2a / 266 (review 2026-10-31, reviewer) feared false `n/a` for processes behind an interface or on a child page (CR 2.5–2.7, 2.12); checked: the first case does not occur, the second is resolved by the effective model, only fallback flows remain. |
+| D-24 (K-E13) | **Neighbours are the endpoints of the analysis graph** the threat generation uses (`dfd.graph`; for a leveled DFD built on the effective model — leaves only, every flow stitched to its deepest drawn endpoint). Interfaces are not flow endpoints: communication always passes an interface to the endpoint, so a flow is **sender → receiver** and carries the communication threats, while the interface gets its own logical and physical threats. *Exception (found in IEC-3, by design of the validator, "path B"):* a flow may end **at** a debug interface on a chip boundary (debugger → JTAG / SWD / UART console); there the interface is the endpoint — the debug-interface rules (CR 2.13) target it directly, the session rules do not follow it into the chip. An actor on the parent page is therefore a direct neighbour of the leaf process on the child page. A flow in state **fallback** (ends at a decomposed multiprocess because nobody drew it below) makes `endpointIf` / `connectedIf` **`unknown`** for the elements contained in that multiprocess — never `n/a` (D-12). | Review of IEC-2a / 266 (review 2026-10-31, reviewer) feared false `n/a` for processes behind an interface or on a child page (CR 2.5–2.7, 2.12); checked: the first case does not occur, the second is resolved by the effective model, only fallback flows remain. |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -488,13 +488,22 @@ edition; else none. Pure, in the compliance feature; the tag itself is added in 
 
 ### 9.4 Evaluation (D-2, D-4 … D-8, D-12 … D-17, K-C1)
 
-Input: edition, a **property view** — the analysis graph of the threat generation
-(`DFDGraphReference`; leveled DFDs: effective model, D-24) with its elements, flows and
-properties, plus the flows in fallback state — the
+Input: edition, a **property view** built from the DFD analysis view
+(`buildPropertyView`): the **leaves** the threat generation sees (leveled DFDs: effective
+model, D-24) **plus the decomposed multiprocesses** — no leaves, but carriers of the
+system properties (`updateMechanism`, `backupMechanism`, `remoteAccessEnabled`,
+`systemClass`, …); without them every Multiprocess rule would be a false `n/a` in a leveled
+DFD — and **every drawn flow** with its resolved endpoints, flows excluded from threat
+generation included (`validationConnections`; `excludeFromThreatGen` says nothing about
+who accesses the component — review 2026-10-31, reviewer), plus the elements reached only
+by fallback flows — the
 **component scope** (element ids of the component and its descendants — containment parent,
 child pages; computed by the app), the **environment** (every other element),
 statements, claims, mitigations with `iec62443` references **and the risks / threats they
 are chosen for**, device categories with source.
+
+Values that only say "not decided yet" (`not_specified`, `not_assessed`, empty
+multi-select) count as unset (D-12).
 
 **Per element of a target** (three-valued, D-12): *applicable* = `yes` / `no` / `unknown`
 (a property an `appliesIf`, `endpointIf` or `connectedIf` check reads is not set, or the
@@ -539,7 +548,9 @@ holds).
 8. **Claim** covering the row → `claimed` (D-5).
 9. Otherwise: any listed element `no` → `gap`, listing the `no` **and** the `unknown`
    elements (a clear finding is not hidden behind unknowns, consistent with D-19 and
-   step 6); else any `unknown` → `unknown`; else type C → `needs-statement`.
+   step 6); else any `unknown` → `unknown`; else type C → `needs-statement`. For **`any`
+   rules** an `unknown` element might still satisfy the rule, so there `unknown` comes
+   before `gap`.
 
 **Two values per FR (D-2, D-14).** A row *counts* for a value as follows:
 
@@ -591,7 +602,10 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
     contained processes;
   - **smoke test in IEC-3** on `src/tests/fixtures/leveled/smoke-detector-leveled.json`
     (derived from the seminar example): no row of CR 2.5–2.7 / 2.12 is `n/a` for a process
-    that serves a human actor.
+    that serves a human actor — done: the maintenance technician on Top is the neighbour of
+    the leaf process "Controller Communication Handler"; the decomposed multiprocesses stay
+    in the view, so CR 3.10 is not a false `n/a`;
+  - a flow excluded from threat generation still counts as neighbour relation.
   - supporting measure on an `all` rule only via a statement naming it; automatic on an
     `any` rule (D-20);
   - achieved run: a done mitigation against a model `no` → `gap` with the contradiction
@@ -602,5 +616,5 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | Step | Content | Branch | Depends on | Status |
 |---|---|---|---|---|
 | IEC-2a | types, evidence rules, both edition files, completeness test, conformance test — no UI, no i18n | `feature/iec62443-cra-matrix` | — | done (patches 264, 266: D-22 quantifiers, `connectedIf`) |
-| IEC-3 | evaluator, edition selection, vectors, evaluator tests | same | IEC-2a | open |
+| IEC-3 | evaluator, edition selection, vectors, property view, evaluator tests, smoke test | same | IEC-2a | done (patch 269) |
 | IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split | open |
