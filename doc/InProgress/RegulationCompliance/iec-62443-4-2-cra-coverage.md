@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v4 · 2026-10-31 (decisions D-1 … D-11 in §7.1; K8 done — classic sibling
+**Status:** v5 · 2026-10-31 (decisions D-1 … D-17 in §7.1; K8 done — classic sibling
 `iec-62443-4-2-2019-coverage.md`; nothing implemented yet; target 0.17.0-beta before 2026-11-30; release plan: `doc/InProgress/Release/release-0.17-plan.md`) ·
 code base: `main` 90e5a52a (v0.16.0-beta, schema 11)
 **Roadmap:** item 1 of the road to 1.0.0 (IEC 62443 compliance matrix for the CRA).
@@ -167,8 +167,8 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 2.9 RE(1) (l. 1816) | warn at a configurable audit storage threshold | 3 | h | as CR 2.9 | — | C | — |
 | CR 2.10 (l. 1852) | essential functions survive audit failures; react appropriately | 1 | h, l | audit logging present | — | C | — |
 | CR 2.11 (l. 1896) | timestamps or time-related information for audit records | 1 | f | audit logging present | — | C | — |
-| CR 2.11 RE(1) (l. 1924) | timestamps synchronised with an external source | 2 | f | timestamps created | DF to a time-source EE (e.g. NTP / PTP) | B | no time-source marker |
-| CR 2.11 RE(2) (l. 1945) | detect alteration of the time source, audit it | 4 | f | as RE(1) | DF.`integrityProtection` on the time-sync flow | B | — |
+| CR 2.11 RE(1) (l. 1924) | timestamps synchronised with an external source | 2 | f | timestamps created | — (would be: DF to a time-source EE, P-4) | C | no time-source marker |
+| CR 2.11 RE(2) (l. 1945) | detect alteration of the time source, audit it | 4 | f | as RE(1) | — (would be: DF.`integrityProtection` on the time-sync flow, P-4) | C | no time-source marker |
 | CR 2.12 (l. 1972) | determine whether a human user took an action | 1 | — | human UI | Proc / MP.`nonRepudiation` ≠ none | A | — |
 | CR 2.12 RE(1) (l. 2004) | non-repudiation for all users | 4 | — | as CR 2.12 | `nonRepudiation` ∈ digital_signature, hardware_backed | A | — |
 | CR 2.13 (l. 2033) | protect physical diagnostic and test interfaces (e.g. JTAG) | 2 | d, e, f | IF.`type` ∈ jtag, swd, swd_swo, jtag_trace, uart; CB.`debugInterfacePresent` ≠ none | IF.ic.`debugProtection` ≠ none; IF.ic.`serviceAccessPolicy`; CB.`debugInterfaceLocked`; PB.`debugInterfaceAccessible` = false | A | — |
@@ -264,15 +264,15 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | | A | B | C | n/a |
 |---|---|---|---|---|
 | FR 1 (22 rows) | 6 | 7 | 7 | 2 |
-| FR 2 (24) | 9 | 6 | 8 | 1 |
+| FR 2 (24) | 9 | 4 | 10 | 1 |
 | FR 3 (23) | 12 | 6 | 4 | 1 |
 | FR 4 (6) | 4 | 0 | 2 | 0 |
 | FR 5 (7) | 4 | 1 | 0 | 2 |
 | FR 6 (3) | 0 | 2 | 1 | 0 |
 | FR 7 (12) | 2 | 4 | 5 | 1 |
-| **Total (97)** | **37** | **26** | **27** | **7** |
+| **Total (97)** | **37** | **24** | **29** | **7** |
 
-About 70 % of the 90 live rows (63) can be pre-filled from the model (A + B). The C rows
+About two thirds of the 90 live rows (61) can be pre-filled from the model (A + B). The C rows
 need an analyst statement (applicable / met / not met / n/a + reasoning + evidence
 reference) — that is what makes the matrix a complete SoA.
 
@@ -319,6 +319,12 @@ Per project, from one model (consistency per EA-6-1):
 | D-9 (K5) | **Own tab "Compliance" + report chapter.** | Tab: SoA table, planned / achieved vector per FR, gaps → claim or mitigation. Report: §5. |
 | D-10 (K6) | **Annex H threat list later** (not in 0.17); the CRA view uses the CR mapping of Annex ZZ. | Revisit when the JTC13/WG9 list is final. |
 | D-11 (K-C2, classic doc) | Evidence mapping shared by both editions via **stable requirement ids**, explicit per-edition overrides, completeness test per edition (no silent fallback). | Applies to this document's §4 rows too: each row gets its requirement id in the mapping file (IEC-2). |
+| D-12 (K-E1) | Status **`unknown`** when a property a condition reads is not set on an element in scope; counts like `needs-statement` (blocks the vector). `n/a` only when the model shows non-applicability. | Unfinished models never look better than complete ones. |
+| D-13 (K-E2) | **Quantifier per rule, default "all"**: every applicable element in scope must satisfy; "any" only where the requirement concerns the component as a whole; failing elements are listed in the gap. | Rules pair applicability and evidence on the same element types. |
+| D-14 (K-E3) | **Two values per FR:** *SL-C (component)* = met from model / mitigation + n/a, plus supporting measures only on rows whose text allows them ("directly or by supporting measures", flag per edition row); *SL-C with supporting measures and claims*. Claims never count for the component value. | Report and tab show and label both. |
+| D-15 (K-E4) | **Type-level conformance check** of every rule path and value against the element property types, as a file in `src/tests` compiled by `tsc` (the feature itself stays free of `features/dfd`); rules declared with `satisfies`. | Part of IEC-2a. |
+| D-16 (K-E5) | A mitigation reference counts only if the mitigation is chosen for a risk whose threat concerns an element **in the component scope**. | IEC-3. |
+| D-17 (K-E6) | A statement stores the **model result at the time of the statement**; a later difference shows "model changed — review statement". | Schema 12 field of the statement (D-8). |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -346,6 +352,12 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | K10 | Which state of a mitigation counts for "achieved"? | — | **decided, D-4** |
 | K11 | What is a claim in 62443 terms? | — | **decided, D-5** |
 | K12 | Rows the model cannot decide (C) and partial rows (B) | — | **decided, D-6** |
+| K-E1 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-12** |
+| K-E2 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-13** |
+| K-E3 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-14** |
+| K-E4 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-15** |
+| K-E5 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-16** |
+| K-E6 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-17** |
 
 ## 8. Next steps
 
@@ -379,6 +391,9 @@ follows the decisions or existing patterns.
 | `data/edition-iec-62443-4-2-2019.ts`, `data/edition-en-iec-62443-4-2-praa-2026.ts` | rows of one edition: row label (`CR 1.1 RE(1)`, `EDR 3.10`), FR, lowest SL-C or void + reason, requirement ids, device categories (2019), CRA letters (prAA), explicit overrides |
 
 TypeScript, not JSON: the compiler checks every requirement id an edition row names.
+**Licence:** edition files and checklist texts are code in the public repository — row
+labels are the standard's identifiers, everything else is paraphrased; no normative text
+verbatim (also not in i18n).
 Device rows of 2019 map to the same requirement ids as the prAA CRs (EDR 3.10 →
 `cr-3.10`); content differences are separate ids (`cr-4.1-transit` + `cr-4.1-rest` for
 2019 CR 4.1; prAA CR 4.1 = `cr-4.1-transit`, RE(1) = `cr-4.1-rest`).
