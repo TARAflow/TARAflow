@@ -1,7 +1,7 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v3 · 2026-10-31 (decisions D-1 … D-6 in §7.1; open points K2, K4–K6, K8;
-nothing implemented yet; release plan: `doc/InProgress/Release/release-0.17-plan.md`) ·
+**Status:** v4 · 2026-10-31 (decisions D-1 … D-10 in §7.1; K8 done — classic sibling
+`iec-62443-4-2-2019-coverage.md`; nothing implemented yet; target 0.17.0-beta before 2026-11-30; release plan: `doc/InProgress/Release/release-0.17-plan.md`) ·
 code base: `main` 90e5a52a (v0.16.0-beta, schema 11)
 **Roadmap:** item 1 of the road to 1.0.0 (IEC 62443 compliance matrix for the CRA).
 **Related:** `doc/Open/RegulationCompliance/taraflow-compliance-architecture.md`
@@ -314,6 +314,10 @@ Per project, from one model (consistency per EA-6-1):
 | D-4 (K10) | Two vectors: **planned** (mitigations chosen in the risk treatment, SHOULD values) and **achieved** (properties as set in the DFD, IS values — closed loop). | Report states the achieved vector; the gap list shows both. |
 | D-5 (K11) | Claims for SL-C gaps **reuse the 0.16 claims** (`project.cybersecurityConcept.claims`, CLM-nn) with a new kind: FR + CR / RE ids + supporting measure (prAA CCSC 2; compensating countermeasure in 2019) + responsible party. | Amends patch 244 (goals / claims ISO only): claims visible for projects with a 62443 matrix. The claim text is the supporting-measure description prAA CCSC 2 asks for in the component documentation. |
 | D-6 (K12) | C rows: analyst statement (K4) or a mitigation with **`iec62443` references** (CR / RE ids) in the catalog; B rows count as met when the property is set, the unmodelled criteria are shown as a checklist. | Catalog extension (built-in + custom mitigations); "SL-C from the chosen mitigations" (D-2) holds for C rows too. |
+| D-7 (K2) | **Component under evaluation = a selectable element** (Multiprocess or Process) per project; everything else in the model is its environment and may meet a CR as a supporting measure (prAA CCSC 2 / 2019 compensating countermeasure). Nothing selected → the whole model. | Applicability and evidence are evaluated on the component and its children; evidence found on elements outside it is shown as "by supporting measure" with the element named. |
+| D-8 (K4) | **Stored in the project file:** `project.compliance` = { component, target SL-C vector per FR, statements per CR / RE (applicable, status, reasoning, evidenceRef, supportingMeasure) } — schema 12. | New fields only → the migration is declared in `ANALYSIS_PRESERVING_MIGRATIONS`. |
+| D-9 (K5) | **Own tab "Compliance" + report chapter.** | Tab: SoA table, planned / achieved vector per FR, gaps → claim or mitigation. Report: §5. |
+| D-10 (K6) | **Annex H threat list later** (not in 0.17); the CRA view uses the CR mapping of Annex ZZ. | Revisit when the JTC13/WG9 list is final. |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -330,13 +334,13 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | # | Question | Options | Recommendation |
 |---|---|---|---|
 | K1 | Edition | — | **decided, D-1** (both; the CRA mapping stays versioned as prAA draft until the EN is cited) |
-| K2 | What is "the component" in a TARAflow project? | (a) whole project = one component (b) one Multiprocess (or Process) selected as ToE, the rest is its environment / supporting measures (c) several components per project | **(b)**: matches prAA "supporting measures" (CCSC 2) — elements outside the ToE can meet a CR on its behalf; default: the whole model if nothing is selected |
+| K2 | What is "the component" in a TARAflow project? | — | **decided, D-7** |
 | K3 | SL-C target / achieved | — | **decided, D-2** |
-| K4 | Analyst statements for C rows and overrides of A/B rows | (a) project file `compliance.statements[id]` = {applicable, status, reasoning, evidenceRef, supportingMeasure} (b) separate file | **(a)**: needs a schema fence (12; declare analysis-preserving — it adds fields only) |
-| K5 | Where is it shown? | (a) report chapter only (b) new tab + report (c) Overview sub-tab | **(b)**, step 1 report-only to validate the mapping on the examples |
-| K6 | Annex H threat list (Threat.UnauthorizedAccess …) | (a) ignore (b) tag catalog threats with the Annex H threat → CRA view per risk (c) later | **(c)**: still a draft of JTC13/WG9 (editor's note); revisit when EN 40000-series is stable |
+| K4 | Analyst statements for C rows and overrides of A/B rows | — | **decided, D-8** |
+| K5 | Where is it shown? | — | **decided, D-9** |
+| K6 | Annex H threat list (Threat.UnauthorizedAccess …) | — | **decided, D-10** |
 | K7 | Preset coupling | — | **decided, D-1** (tags, independent of the preset) |
-| K8 | Architecture doc (2026-05) | update in place / supersede | with D-1 its 2019 mapping (§2.2–2.4) becomes the basis of the classic matrix — write the sibling document `iec-62443-4-2-2019-coverage.md` (the 2019 text is in the repo root since 2026-10-31) and then mark the architecture doc superseded |
+| K8 | Architecture doc (2026-05) | — | **done**: classic sibling `iec-62443-4-2-2019-coverage.md` written (2026-10-31, own open points K-C1, K-C2); architecture doc marked superseded |
 | K9 | Which tags select which matrix? (each tag alone selects its matrix, D-1) | — | **decided, D-3** |
 | K10 | Which state of a mitigation counts for "achieved"? | — | **decided, D-4** |
 | K11 | What is a claim in 62443 terms? | — | **decided, D-5** |
