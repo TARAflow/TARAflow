@@ -40,6 +40,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
+      "iec62443": ["cr-3.11"],
       "affectsProperties": [],
       "verifications": ["V-IF-T-001"]
     },
@@ -73,6 +74,7 @@
       "strideCategory": "R",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.8"],
       "affectsProperties": [],
       "verifications": ["V-IF-R-001"]
     },
@@ -130,6 +132,7 @@
       "strideCategory": "D",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-7.1", "cr-7.1-re1"],
       "affectsProperties": [
         {
           "targetType": "Interface",
@@ -145,6 +148,7 @@
       "strideCategory": "D",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-1.11"],
       "affectsProperties": [
         {
           "targetType": "Interface",
@@ -161,6 +165,7 @@
       "context": {},
       "attackVectors": ["physical", "local"],
       "isCustom": false,
+      "iec62443": ["cr-2.13"],
       "affectsProperties": [
         {
           "targetType": "Interface",
@@ -177,6 +182,7 @@
       "context": {},
       "attackVectors": ["physical", "local"],
       "isCustom": false,
+      "iec62443": ["cr-2.13"],
       "affectsProperties": [
         {
           "targetType": "Interface",
@@ -225,6 +231,7 @@
       "context": {},
       "attackVectors": ["physical", "local"],
       "isCustom": false,
+      "iec62443": ["cr-2.13"],
       "affectsProperties": [
         {
           "targetType": "Interface",
@@ -241,6 +248,7 @@
       "context": {},
       "attackVectors": ["physical", "local"],
       "isCustom": false,
+      "iec62443": ["cr-2.13"],
       "affectsProperties": [
         {
           "targetType": "Interface",
@@ -288,6 +296,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-6.2"],
       "affectsProperties": [
         {
           "targetType": "Interface",

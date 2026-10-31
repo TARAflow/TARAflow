@@ -8,6 +8,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
+      "iec62443": ["cr-3.11"],
       "affectsProperties": [
         {
           "targetType": "PhysicalBoundary",
@@ -26,6 +27,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
+      "iec62443": ["cr-3.11", "cr-3.11-re1"],
       "affectsProperties": [
         {
           "targetType": "PhysicalBoundary",
@@ -164,6 +166,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
+      "iec62443": ["cr-6.2"],
       "affectsProperties": [
         {
           "targetType": "PhysicalBoundary",

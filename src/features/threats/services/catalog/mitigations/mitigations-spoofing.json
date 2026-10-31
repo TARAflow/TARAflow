@@ -7,6 +7,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-1.1-re2"],
       "affectsProperties": [
         {
           "targetType": "Multiprocess",
@@ -34,6 +35,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-1.8"],
       "affectsProperties": [
         {
           "targetType": "DataFlow",
@@ -62,6 +64,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-3.8"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -146,6 +149,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-5.2-re1"],
       "affectsProperties": [
         {
           "targetType": "TrustBoundary",
@@ -161,6 +165,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-1.5-re1"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -194,6 +199,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-1.2", "cr-1.2-re1"],
       "affectsProperties": [],
       "verifications": ["V-S-006", "V-S-007"]
     },
@@ -202,6 +208,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-1.2-re1"],
       "affectsProperties": [],
       "verifications": ["V-S-006", "V-S-007"]
     },
@@ -218,6 +225,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-1.2"],
       "affectsProperties": [],
       "verifications": ["V-S-008"]
     },
@@ -226,6 +234,7 @@
       "strideCategory": "S",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.1"],
       "affectsProperties": [],
       "verifications": ["V-S-008"]
     },
@@ -243,6 +252,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-1.13"],
       "affectsProperties": [],
       "verifications": ["V-OS-005"]
     },

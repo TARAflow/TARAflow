@@ -8,6 +8,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-7.1", "cr-7.1-re1"],
       "affectsProperties": [
         {
           "targetType": "ExternalEntity",
@@ -30,6 +31,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-7.2"],
       "affectsProperties": [],
       "verifications": ["V-D-001", "V-D-002"]
     },
@@ -61,6 +63,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-7.1"],
       "affectsProperties": [
         {
           "targetType": "Multiprocess",
@@ -77,6 +80,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-7.1"],
       "affectsProperties": [],
       "verifications": ["V-D-001", "V-D-002"]
     },
@@ -85,6 +89,7 @@
       "strideCategory": "D",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-7.3", "cr-7.4"],
       "affectsProperties": [
         {
           "targetType": "Multiprocess",
@@ -124,6 +129,7 @@
       "strideCategory": "D",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-5.2-re2"],
       "affectsProperties": [],
       "verifications": ["V-D-001"]
     },
@@ -149,6 +155,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-7.1", "cr-7.1-re1"],
       "affectsProperties": [],
       "verifications": ["V-D-009"]
     },
@@ -165,6 +172,7 @@
       "strideCategory": "D",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-3.6"],
       "affectsProperties": [],
       "verifications": ["V-D-010"]
     },
