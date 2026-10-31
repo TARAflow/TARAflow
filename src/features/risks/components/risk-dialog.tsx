@@ -104,7 +104,7 @@ function isoFactorPoints(factorId: string, value: number): number {
   return ISO_AP_POINTS_BY_FACTOR[factorId]?.[levels[value - 1]] ?? 0;
 }
 import { RiskConfiguration } from "../models/risk-config-types";
-import { factorLevelOptions } from "../utils/factor-level-options";
+import { factorLevelOptions, isoFactorLevelColor } from "../utils/factor-level-options";
 import { impactBasisText } from "../utils/impact-basis-text";
 import { IsoRiskPanel } from "./shared/iso-risk-panel";
 import {
@@ -128,6 +128,7 @@ import {
   MOSCOW_PRIORITIES,
   RISK_TREATMENTS,
   RISK_SCALES,
+  LIKELIHOOD_SCALES,
 } from "../models/risk-scale-types";
 import {
   calculateRiskValues,
@@ -1342,6 +1343,17 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       const lvl = levels[idx1 - 1];
       return t(`risks.isoLevels.${lvl}`, { defaultValue: lvl });
     };
+    // The likelihood dot of the other factors (green = attack unlikely … red =
+    // likely), on the option and on the read-only chip.
+    const levelDot = (idx1: number) => {
+      const color = isoFactorLevelColor(levels.length, idx1);
+      return color ? (
+        <Box
+          data-testid={`iso-level-dot-${factorId}-${idx1}`}
+          sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: color, flexShrink: 0 }}
+        />
+      ) : null;
+    };
     // Per-level tooltip: surfaces the ISO 18045 attack-potential points that
     // used to clutter the option label (removed), plus the direction cue.
     const optionTooltip = (idx1: number) => {
@@ -1391,9 +1403,10 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
               .map((idx1) => (
                 <MenuItem key={idx1} value={idx1}>
                   <Tooltip title={optionTooltip(idx1)} placement="right">
-                    <span style={{ display: "block", width: "100%" }}>
-                      {optionLabel(idx1)}
-                    </span>
+                    <Stack direction="row" spacing={1} alignItems="center" width="100%">
+                      {levelDot(idx1)}
+                      <span>{optionLabel(idx1)}</span>
+                    </Stack>
                   </Tooltip>
                 </MenuItem>
               ))}
@@ -1406,7 +1419,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             <Chip
               size="small"
               variant="outlined"
-              sx={{ width: "100%", justifyContent: "flex-start" }}
+              sx={{ width: "100%", justifyContent: "flex-start", "& .MuiChip-icon": { ml: 0.75 } }}
+              icon={value >= 1 ? (levelDot(value) ?? undefined) : undefined}
               label={
                 value >= 1
                   ? optionLabel(value)
@@ -1443,27 +1457,38 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       const mapB = feasibilityLevelToRiskScale(configuration.scale);
       // Lowest feasibility first, as the likelihood factors read (user
       // 2026-10-31).
-      const residualOptions: Array<{ value: number; label: string }> = [
+      // The likelihood colours of the factors (very low green … high red).
+      const LIKELIHOOD_DOT = {
+        "very-low": LIKELIHOOD_SCALES["4-level"].levels[0].color,
+        low: LIKELIHOOD_SCALES["4-level"].levels[1].color,
+        medium: LIKELIHOOD_SCALES["4-level"].levels[2].color,
+        high: LIKELIHOOD_SCALES["4-level"].levels[3].color,
+      };
+      const residualOptions: Array<{ value: number; label: string; color?: string }> = [
         {
           value: mapB["very-low"],
+          color: LIKELIHOOD_DOT["very-low"],
           label: t("tabs.risks.dialog.feasibility.veryLow", {
             defaultValue: "Very low",
           }),
         },
         {
           value: mapB.low,
+          color: LIKELIHOOD_DOT.low,
           label: t("tabs.risks.dialog.feasibility.low", {
             defaultValue: "Low",
           }),
         },
         {
           value: mapB.medium,
+          color: LIKELIHOOD_DOT.medium,
           label: t("tabs.risks.dialog.feasibility.medium", {
             defaultValue: "Medium",
           }),
         },
         {
           value: mapB.high,
+          color: LIKELIHOOD_DOT.high,
           label: t("tabs.risks.dialog.feasibility.high", {
             defaultValue: "High",
           }),
@@ -1554,7 +1579,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           >
             {residualOptions.map((o) => (
               <MenuItem key={o.value} value={o.value}>
-                {isISO && o.value === 0 ? o.label : `${o.label} (${o.value})`}
+                <Stack direction="row" spacing={1} alignItems="center" width="100%">
+                  {o.color && (
+                    <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: o.color, flexShrink: 0 }} />
+                  )}
+                  <span>{isISO && o.value === 0 ? o.label : `${o.label} (${o.value})`}</span>
+                </Stack>
               </MenuItem>
             ))}
           </Select>

@@ -150,4 +150,14 @@ describe("risk dialog — ISO Risk Before / After", () => {
     const options = (await screen.findAllByRole("option")).map((o) => o.textContent);
     expect(options).toEqual(["Not set", "Very low (1)", "Low (2)", "Medium (3)", "High (4)"]);
   });
+
+  it("ISO factor levels carry the likelihood dot: green least likely … red most likely (user 2026-10-31)", async () => {
+    openAfterTab(risk(1));
+    fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
+    await screen.findAllByRole("option");
+    const color = (idx1: number) =>
+      getComputedStyle(screen.getByTestId(`iso-level-dot-iso_elapsed_time-${idx1}`)).backgroundColor;
+    expect(color(5)).toBe("rgb(34, 197, 94)"); // > 6 months — green
+    expect(color(1)).toBe("rgb(239, 68, 68)"); // ≤ 1 day — red
+  });
 });
