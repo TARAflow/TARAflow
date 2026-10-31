@@ -245,7 +245,9 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
   const mitigations = (input.mitigations ?? []).filter(
     (m) =>
       m.requirementIds.includes(rule.id) &&
-      m.concernsElementIds.some((id) => input.scope.has(id)) &&
+      // A flow counts when it touches the scope, as for the evidence (a threat
+      // on a flow concerns the flow itself).
+      m.concernsElementIds.some(inScope) &&
       (input.run === "planned" || m.done),
   );
   if (mitigations.length > 0) {

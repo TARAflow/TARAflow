@@ -219,6 +219,18 @@ describe("mitigations (D-16, D-21)", () => {
     expect(r.source).toBe("mitigation");
   });
 
+  it("a mitigation for a threat on a flow that touches the scope counts (the flow itself is the concerned element)", () => {
+    const r = row(
+      run(cRow, [...pkElements, el("ee", "ExternalEntity", { entityType: "service" })], [flow("df", "ee", "mp")], {
+        scope: new Set(["mp"]),
+        mitigations: [{ mitigationId: "M-1", requirementIds: ["cr-1.8"], done: true, concernsElementIds: ["df"] }],
+      }),
+      "CR 1.8",
+    );
+    expect(r.status).toBe("met");
+    expect(r.source).toBe("mitigation");
+  });
+
   it("a mitigation for a risk of another component does not count", () => {
     const r = row(
       run(cRow, [...pkElements, el("other", "Process")], [], {
