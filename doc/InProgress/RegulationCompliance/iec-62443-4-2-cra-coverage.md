@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v13 · 2026-10-31 (decisions D-1 … D-25 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-3, IEC-4 done;
+**Status:** v14 · 2026-10-31 (decisions D-1 … D-25 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-3, IEC-4, IEC-5 done;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -621,4 +621,93 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-3 | evaluator, edition selection, vectors, property view, evaluator tests, smoke test | same | IEC-2a | done (patch 269) |
 | IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split | open |
 | IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
+| IEC-5 | `iec62443` references on catalog mitigations (§10), mitigation evidence for the evaluator from the risk treatment (one entry per mitigation and risk) | same | IEC-3 | done (patch 276) |
 | IEC-4 | `project.compliance` (`shared/models/compliance-data-types.ts`): component, target vector, device categories with origin, statements per edition and row (with the model result at the time, D-17); kept by every write path incl. repair | same | IEC-1 | done (patch 272) |
+
+## 10. Mitigation catalog references (IEC-5, D-6)
+
+Built-in mitigations that name IEC 62443-4-2 requirement ids (`iec62443` in the catalog
+JSON, `MitigationEntry.iec62443`). A chosen mitigation meets the row where the model
+cannot show it (type C) or leaves it undecided; in the achieved run only in a done status
+and never against a model "no" (D-21), and only for risks in the component scope (D-16).
+The assignment is conservative — a reference only where the control clearly implements
+the capability; 73 of 136 mitigations carry one. Mitigations whose DFD property mapping
+already shows the requirement are referenced too (planned vector, D-4). Project
+mitigations (`M-C-…`) can carry references as well; entering them comes with the
+Compliance tab (IEC-8).
+
+| Mitigation | Control (EN text, shortened) | Requirement ids |
+|---|---|---|
+| M-S-001 | Implement multi-factor authentication (MFA) | `cr-1.1-re2` |
+| M-S-002 | Use PKI systems and digital certificates | `cr-1.8` |
+| M-S-009 | Authenticate each sensor per device (device keys/certificates, signed readings) with fr… | `cr-1.2`, `cr-1.2-re1` |
+| M-S-010 | Bind the sensor to a provisioned identity at commissioning; reject unprovisioned sources | `cr-1.2-re1` |
+| M-S-012 | Authenticate the command source over an authenticated control channel; where per-device… | `cr-1.2` |
+| M-I-006 | Store cryptographic keys and credentials in hardware-protected storage (TPM, Secure Ele… | `cr-1.5-re1` |
+| M-CB-I-002 | Store device keys and certificates in dedicated hardware security module (TPM, Secure E… | `cr-1.5-re1` |
+| M-S-008 | Implement hardware authentication (secure elements, cryptographic chips) | `cr-1.5-re1` |
+| M-IF-D-004 | Lock interface after configurable number of failed authentication attempts — require ma… | `cr-1.11` |
+| M-OS-005 | Allow remote shell access only with keys, without root login, and disable it in product… | `cr-1.13` |
+| M-E-001 | Apply least privilege principle | `cr-2.1-re1` |
+| M-E-002 | Implement proper ACLs and role-based access control | `cr-2.1`, `cr-2.1-re2` |
+| M-I-003 | Implement proper ACLs and role-based access control | `cr-2.1`, `cr-2.1-re2` |
+| M-AC-001 | Implement role-based access control (RBAC) with defined roles and least-privileged role… | `cr-2.1`, `cr-2.1-re2` |
+| M-AC-002 | Implement attribute-based access control (ABAC) — decisions use attributes such as oper… | `cr-2.1` |
+| M-AC-003 | Run each service under its own unprivileged account — no root, unneeded capabilities dr… | `cr-2.1-re1` |
+| M-OS-001 | Enforce mandatory access control (SELinux or AppArmor) in enforcing mode with a profile… | `cr-2.1-re1` |
+| M-S-013 | Enforce a command authorization policy (only permitted controllers) | `cr-2.1` |
+| M-R-001 | Implement secure, tamper-proof logging | `cr-2.8`, `cr-3.9` |
+| M-IF-R-001 | Log all physical interface access events with timestamps | `cr-2.8` |
+| M-R-003 | Implement secure timestamps from trusted source | `cr-2.11`, `cr-2.11-re1` |
+| M-R-006 | Implement non-repudiation mechanism for critical operations (audit log, digital signatu… | `cr-2.12` |
+| M-CB-E-001 | Lock or disable JTAG/SWD debug interface via OTP fuse before production release | `cr-2.13` |
+| M-E-006 | Disable debug interfaces in production | `cr-2.13` |
+| M-IF-E-001 | Physically separate or remove debug interfaces in production units | `cr-2.13` |
+| M-IF-E-002 | Disable or protect debug interfaces in production (JTAG lock, fuse blowing) | `cr-2.13` |
+| M-IF-DBG-001 | Require authentication before granting debug access — restrict available commands to mi… | `cr-2.13` |
+| M-IF-DBG-003 | Permanently disable debug interface via OTP fuse before production deployment — irrever… | `cr-2.13` |
+| M-T-001 | Implement integrity controls and checksums | `cr-3.1` |
+| M-T-002 | Use digital signatures for data integrity | `cr-3.1`, `cr-3.1-re1` |
+| M-T-011 | Apply end-to-end integrity protection (HMAC or digital signature) on data flows crossin… | `cr-3.1`, `cr-3.1-re1` |
+| M-T-014 | Integrity-protect the acquisition path (signed or MAC-protected sensor frames) with rep… | `cr-3.1`, `cr-3.1-re1` |
+| M-T-017 | Integrity-protect the command path (MAC/signature with replay protection); where crypto… | `cr-3.1`, `cr-3.1-re1` |
+| M-E-007 | Implement application whitelisting — only explicitly authorized binaries may execute | `cr-3.2`, `cr-3.2-re1`, `edr-3.2-unauthorized-software` |
+| M-T-006 | Enforce cryptographic code signing — only firmware signed with a trusted key is accepte… | `cr-3.2`, `cr-3.2-re1`, `edr-3.2-unauthorized-software` |
+| M-E-008 | Deploy antivirus / EDR software and keep signatures up to date | `cr-3.2` |
+| M-OS-003 | Use a read-only, integrity-verified root file system (e.g. dm-verity) | `cr-3.4`, `cr-3.14` |
+| M-E-003 | Implement strict input validation | `cr-3.5` |
+| M-T-004 | Implement input validation and data sanitization | `cr-3.5` |
+| M-T-FSAFE-001 | Define and implement a deterministic fail-safe output state for all process outputs (CR… | `cr-3.6` |
+| M-D-014 | Watchdog with a defined fail-safe or fail-operational state | `cr-3.6` |
+| M-S-003 | Implement secure session management with proper timeout | `cr-3.8` |
+| M-OPS-002 | Deliver over-the-air updates signed and with anti-rollback protection (monotonic versio… | `cr-3.10`, `cr-3.10-re1`, `cr-3.10-re2` |
+| M-T-007 | Require cryptographically signed firmware updates — reject unsigned or unverifiable images | `cr-3.10-re1` |
+| M-PB-T-001 | Apply tamper-evident seals or microswitches to detect unauthorized physical access | `cr-3.11` |
+| M-PB-T-002 | Apply active tamper protection (conductive mesh, potting, voltage/light sensor) with au… | `cr-3.11`, `cr-3.11-re1` |
+| M-IF-T-002 | Epoxy encapsulation and tamper-evident seals | `cr-3.11` |
+| M-T-015 | Tamper-evident sensor housing or seal | `cr-3.11` |
+| M-CB-T-001 | Enable Secure Boot with cryptographic signature verification of the boot chain | `cr-3.14`, `cr-3.14-re1` |
+| M-I-001 | Encrypt data at rest using AES-256 | `cr-4.1-rest` |
+| M-I-004 | Implement secure data storage with proper key management | `cr-4.1-rest` |
+| M-I-002 | Encrypt data in transit using TLS 1.3 | `cr-4.1-transit`, `cr-3.1` |
+| M-T-005 | Use TLS 1.3 for data in transit | `cr-4.1-transit`, `cr-3.1` |
+| M-I-009 | Implement verifiable secure deletion (crypto erase, factory reset, overwrite) for end-o… | `cr-4.2`, `cr-4.2-re2` |
+| M-T-012 | Use only approved cryptographic algorithms and key lengths (NIST SP 800-131A, BSI TR-02… | `cr-4.3` |
+| M-VEH-002 | Route and filter messages between vehicle domains with a gateway whitelist | `cr-5.1` |
+| M-NET-001 | Configure an inbound firewall with default deny — only explicitly needed ports and peer… | `cr-5.2-re1` |
+| M-S-007 | Enforce default-deny policy at trust boundary — only explicitly permitted traffic is al… | `cr-5.2-re1` |
+| M-D-009 | Enable island mode capability — trust boundary can isolate the zone completely on incid… | `cr-5.2-re2` |
+| M-VEH-003 | Detect intrusions on in-vehicle networks (CAN IDS) and report them to the backend | `cr-6.2` |
+| M-IF-MON-001 | Monitor interface access and generate alerts on suspicious activity — log all connectio… | `cr-6.2` |
+| M-PB-R-002 | Route physical security alerts to Security Operations Centre with defined response proc… | `cr-6.2` |
+| M-D-001 | Implement rate limiting and throttling | `cr-7.1`, `cr-7.1-re1` |
+| M-IF-D-003 | Implement rate limiting and lockout on interface to prevent brute-force and flooding at… | `cr-7.1`, `cr-7.1-re1` |
+| M-D-012 | Rate limiting and input validation against flooding | `cr-7.1`, `cr-7.1-re1` |
+| M-D-004 | Implement high availability design with redundancy | `cr-7.1` |
+| M-D-005 | Use load balancing to distribute traffic | `cr-7.1` |
+| M-D-002 | Implement quotas and resource limits | `cr-7.2` |
+| M-D-006 | Implement automated backup and tested recovery procedure for system restoration after a… | `cr-7.3`, `cr-7.4` |
+| M-OS-006 | Apply a hardening baseline (e.g. CIS benchmark) and check it automatically for every re… | `cr-7.6` |
+| M-NET-003 | Disable unused ports, services and protocols — keep a minimal attack surface per build | `cr-7.7` |
+| M-NET-004 | Bind services to internal interfaces only — no management or debug service on external… | `cr-7.7` |
+| M-OPS-001 | Monitor vulnerabilities and manage patches for all third-party and OS components, based… | `cr-7.8` |
