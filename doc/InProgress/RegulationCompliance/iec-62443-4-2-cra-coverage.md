@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v5 · 2026-10-31 (decisions D-1 … D-17 in §7.1; K8 done — classic sibling
+**Status:** v6 · 2026-10-31 (decisions D-1 … D-17 in §7.1, §9 aligned with them; K8 done — classic sibling
 `iec-62443-4-2-2019-coverage.md`; nothing implemented yet; target 0.17.0-beta before 2026-11-30; release plan: `doc/InProgress/Release/release-0.17-plan.md`) ·
 code base: `main` 90e5a52a (v0.16.0-beta, schema 11)
 **Roadmap:** item 1 of the road to 1.0.0 (IEC 62443 compliance matrix for the CRA).
@@ -352,12 +352,12 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | K10 | Which state of a mitigation counts for "achieved"? | — | **decided, D-4** |
 | K11 | What is a claim in 62443 terms? | — | **decided, D-5** |
 | K12 | Rows the model cannot decide (C) and partial rows (B) | — | **decided, D-6** |
-| K-E1 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-12** |
-| K-E2 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-13** |
-| K-E3 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-14** |
-| K-E4 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-15** |
-| K-E5 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-16** |
-| K-E6 | Review of §9 (instance B, 2026-10-31) | — | **decided, D-17** |
+| K-E1 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-12** |
+| K-E2 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-13** |
+| K-E3 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-14** |
+| K-E4 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-15** |
+| K-E5 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-16** |
+| K-E6 | Review of §9 — review 2026-10-31 (reviewer) | — | **decided, D-17** |
 
 ## 8. Next steps
 
@@ -398,23 +398,50 @@ Device rows of 2019 map to the same requirement ids as the prAA CRs (EDR 3.10 �
 `cr-3.10`); content differences are separate ids (`cr-4.1-transit` + `cr-4.1-rest` for
 2019 CR 4.1; prAA CR 4.1 = `cr-4.1-transit`, RE(1) = `cr-4.1-rest`).
 
-**Evidence rule (declarative):**
+**Evidence rule (declarative, D-12 … D-15).** Applicability and evidence are checked **per
+element** (D-13): a target names the element types, the checks that make an element
+applicable and the checks that make it satisfy the requirement. For data flows a target
+can also check the element at the other end (e.g. CR 1.1: every flow from a human external
+entity).
 
 ```ts
-interface EvidenceCondition {
-  elementTypes: string[];          // "Process", "DataFlow", …
-  property: string;                // dot path, e.g. "implementedControls.debugProtection"
-  in?: unknown[];                  // satisfied by one of these values
-  notIn?: unknown[];               // satisfied by any value except these (and not unset)
+/** One property check; path and values are checked against the element
+ *  property types by the conformance test (D-15). */
+interface PropertyCheck {
+  property: string;               // dot path, e.g. "implementedControls.debugProtection"
+  in?: readonly unknown[];        // value is one of these
+  notIn?: readonly unknown[];     // value is set and none of these
+}                                 // neither: value is set
+
+interface EvidenceTarget {
+  elementTypes: readonly EvidenceElementType[];
+  appliesIf?: readonly PropertyCheck[];     // all hold → applicable; absent = every element of the types
+  endpointIf?: {                            // DataFlow targets: a check on the source or target element
+    elementTypes: readonly EvidenceElementType[];
+    checks: readonly PropertyCheck[];
+  };
+  satisfiedIf?: readonly PropertyCheck[];   // any holds on the same element → satisfied
 }
+
 interface EvidenceRule {
   id: RequirementId;
   type: "A" | "B" | "C";
-  appliesWhen?: EvidenceCondition[];   // any → row applicable; absent = always
-  satisfiedBy?: EvidenceCondition[];   // any → met (B: met + checklist); absent for C
-  checklist?: string[];                // i18n keys of the unmodelled criteria (B)
+  targets: readonly EvidenceTarget[];       // empty = the component as a whole (always applicable)
+  quantifier?: "all" | "any";               // default "all": every applicable element satisfies;
+                                            // "any" only for component-wide capabilities (update, backup, …)
+  checklist?: readonly string[];            // unmodelled criteria (B); paraphrased, i18n in IEC-2b
 }
 ```
+
+Rules are declared with `satisfies EvidenceRule` so literal values stay visible to the
+type-level conformance test in `src/tests` (D-15): every `elementTypes` × `property`
+path exists on that element type's properties interface and every `in` / `notIn` value is
+assignable to the property's type. The test may import `features/dfd`; the compliance
+feature itself does not. Type C rules have no `satisfiedIf`.
+
+**Edition row** additionally carries `supportingMeasuresAllowed: boolean` (D-14): true where
+the requirement text lets the component meet it "directly or by supporting measures"
+(prAA) / "or integrated into a system" (2019).
 
 ### 9.3 Edition selection (D-1, D-3)
 
@@ -422,41 +449,79 @@ interface EvidenceRule {
 edition; else none. Pure, in the compliance feature; the tag itself is added in IEC-2b
 (after the i18n split).
 
-### 9.4 Evaluation (D-2, D-4 … D-8, K-C1)
+### 9.4 Evaluation (D-2, D-4 … D-8, D-12 … D-17, K-C1)
 
 Input: edition, a **property view** (graph elements / flows with properties), the
 **component scope** (element ids of the component and its descendants — containment parent,
-child pages; computed by the app), statements, claims, chosen / done mitigations with
-`iec62443` references, device categories with source.
+child pages; computed by the app), the **environment** (every other element),
+statements, claims, mitigations with `iec62443` references **and the risks / threats they
+are chosen for**, device categories with source.
 
-Per row:
+**Per element of a target** (three-valued, D-12): *applicable* = `yes` / `no` / `unknown`
+(a property an `appliesIf` or `endpointIf` check reads is not set); *satisfied* = `yes` /
+`no` / `unknown` (a property a `satisfiedIf` check reads is not set and no other check
+holds).
+
+**Per row** — the first step that decides wins:
 
 1. **Void** row → `n/a` (reason from the edition file).
 2. **Device rows** (2019) outside the confirmed categories → `n/a`; while the category
-   source is "derived" the row is shown as pending confirmation (K-C1).
-3. **Statement** for the row → its status wins; the model result is still shown next to it.
-4. **Applicability:** `appliesWhen` over the elements in scope; none matches → `n/a`
-   with the derived reasoning ("no element in the component matches …").
-5. **Satisfaction:** `satisfiedBy` on an element in scope → `met` (source `model`); on an
-   element outside the scope only → `met` (source `supporting-measure`, element named,
-   D-7); type B adds the checklist; a mitigation with the requirement id → `met` (source
-   `mitigation`, D-6).
-6. A **claim** covering the row → `claimed` (D-5).
-7. Otherwise `gap` (A / B) or `needs-statement` (C).
+   source is "derived", the row is `pending-category` (K-C1) and blocks the vector.
+3. **Statement** for the row → its status wins; the model result is shown next to it. The
+   statement stores the model result at the time it was made; a different current result
+   shows "model changed — review statement" (D-17).
+4. **Applicability** over the elements in scope: no target element `yes` and at least one
+   `unknown` → **`unknown`** (D-12); every target element `no` (or no element of the target
+   types exists, while the model's element types are set) → `n/a` with the derived reasoning.
+   A rule without targets is always applicable.
+5. **Satisfaction in scope** with the rule's quantifier (D-13): `all` — every applicable
+   element `yes`; `any` — at least one `yes`. Met → `met`, source `model` (type B adds the
+   checklist). Elements that are `no` or `unknown` are listed in the result.
+6. **Mitigation** with the requirement id, chosen for a risk whose threat concerns an
+   element in scope (D-16) → `met`, source `mitigation` (achieved run: only mitigations in a
+   done status).
+7. **Supporting measure:** the rule holds when the environment is included (step 5 over
+   scope ∪ environment) but not over the scope alone → `met`, source
+   `supporting-measure`, the environment elements named (D-7).
+8. **Claim** covering the row → `claimed` (D-5).
+9. Otherwise: any listed element `unknown` → `unknown`; type C → `needs-statement`;
+   else `gap` with the failing elements.
 
-**Vector:** `achieved(FR)` = highest n in 0…4 such that every row of FR with lowest
-SL-C ≤ n is `met`, `claimed` or `n/a` (D-2). The evaluator runs twice (D-4): **achieved**
-on the IS properties with mitigations in a done status (`DONE_MITIGATION_STATUSES`),
-**planned** on the IS properties overlaid with the SHOULD values of the existing
-`ControlInstance` derivation and all chosen mitigations.
+**Two values per FR (D-2, D-14).** A row *counts* for a value as follows:
+
+| Row result | SL-C (component) | SL-C with supporting measures and claims |
+|---|---|---|
+| `met` from `model` or `mitigation`; statement "met" without supporting measure | ✓ | ✓ |
+| `met` from `supporting-measure`; statement "met" naming a supporting measure | only if the row has `supportingMeasuresAllowed` | ✓ |
+| `claimed` | — | ✓ |
+| `n/a` | ✓ | ✓ |
+| `unknown`, `pending-category`, `needs-statement`, `gap` | — | — |
+
+`value(FR)` = highest n in 0…4 such that every row of FR with lowest SL-C ≤ n counts.
+The evaluator runs twice (D-4): **achieved** on the IS properties with mitigations in a
+done status (`DONE_MITIGATION_STATUSES`), **planned** on the IS properties overlaid with
+the SHOULD values of the existing `ControlInstance` derivation and all chosen mitigations —
+four numbers per FR, the report states *achieved (component)* as the SL-C.
 
 ### 9.5 Tests
 
-- Completeness per edition (D-11): every row has an evidence rule or is void; every
-  requirement id resolves; type C rows have no `satisfiedBy`; no silent fallback.
-- The SL-C and row lists reproduce §4 here and §3 of the classic document (row counts).
-- Evaluator on small graphs: applicability n/a, supporting measure, statement override,
-  claim, device category pending / changed, vector rule (one gap caps the FR).
+- **Completeness per edition (D-11):** every row has an evidence rule or is void; every
+  requirement id resolves; type C rules have no `satisfiedIf`; no silent fallback.
+- **Conformance (D-15):** type-level test in `src/tests` — every path and value against the
+  element property types; compiled by `tsc` in `npm run build`.
+- **Row lists:** SL-C and rows reproduce §4 here and §3 of the classic document (counts).
+- **Evaluator (IEC-3)** on small graphs:
+  - `unknown` vs `n/a`: unset property → `unknown`; all set, none matching → `n/a`;
+    an unfinished model never reaches a higher value than the complete one (D-12);
+  - quantifier: one of several applicable flows unauthenticated → `gap` naming it;
+    `any` rules met by one element (D-13);
+  - two values: supporting measure on a row with and without `supportingMeasuresAllowed`;
+    a claim raises only the second value (D-14);
+  - mitigation in scope vs. for a risk of another component (D-16);
+  - statement override and "model changed" after an edit (D-17);
+  - device category pending / changed, statements on dropped device rows kept as n/a
+    (K-C1);
+  - vector rule: one non-counting row caps the FR at the level below its lowest SL-C.
 
 ### 9.6 Steps
 
