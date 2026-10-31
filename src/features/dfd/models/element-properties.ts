@@ -1057,7 +1057,7 @@ export type DataFlowMedium = "logical" | "physical";
      "hmac",
      "signature",
      "aead",
-     "custom"];
+     "custom"] as const;
 
   export type IntegrityProtection =
   (typeof INTEGRITY_PROTECTION_OPTIONS)[number];
