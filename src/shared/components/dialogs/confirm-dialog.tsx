@@ -74,9 +74,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
 
       {/* Dialog */}
-      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+      {/* Limited to the window height: a long message scrolls, header and
+          buttons stay visible (0.16.1-beta). */}
+      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-full ${config.bgColor} flex items-center justify-center`}
@@ -95,13 +97,13 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </div>
 
         {/* Content */}
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 overflow-y-auto min-h-0" data-testid="confirm-dialog-content">
           <p className="text-gray-600">{message}</p>
           {children && <div className="mt-4">{children}</div>}
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200 flex-shrink-0">
           <Button variant="secondary" onClick={onCancel}>
             {cancelLabel || t("common.cancel")}
           </Button>

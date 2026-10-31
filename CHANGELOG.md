@@ -1,3 +1,19 @@
+## [0.16.1-beta] - 2026-11-02
+
+Bug fix, no new project schema (still 11).
+
+### Fixed
+- **Project conversion dialog:** with a long list of conversion steps (e.g.
+  a project from an early schema) the dialog grew past the window and its
+  buttons could not be reached. The dialog is now limited to the window
+  height, the text scrolls and *Convert* / *Cancel* stay visible below it.
+- **Confirmation dialogs** (shared dialog): a long message scrolls the same
+  way, title and buttons stay visible.
+
+### Notes
+- No schema change: projects of 0.16.0-beta open unchanged, and 0.16.0-beta
+  still opens files saved by 0.16.1-beta.
+
 ## [0.16.0-beta] - 2026-10-31
 
 ISO/SAE 21434 work products of the concept phase — Item Definition,
