@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v11 · 2026-10-31 (decisions D-1 … D-24 in §7.1, §9 aligned with them; IEC-2a, IEC-3 done;
+**Status:** v12 · 2026-10-31 (decisions D-1 … D-24 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-3, IEC-4 done; K-E14 open;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -376,6 +376,7 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | K-E11 | Review of IEC-2a — review 2026-10-31 (reviewer) | — | **decided, D-22** |
 | K-E12 | Review of IEC-2a — review 2026-10-31 (reviewer) | — | **decided, D-23** |
 | K-E13 | Review of 266 — review 2026-10-31 (reviewer) | — | **decided, D-24** |
+| K-E14 | Does the TARA verification hash cover `project.compliance` (statements, target, component)? Today it does not — a statement changed after a verification leaves the verification looking valid | (a) no — the matrix is evaluated live, the verification covers the TARA only (b) **yes, only when present**: the hash content gets `compliance` only if the project has it, so every project without matrix data keeps exactly its hash and no hash version bump is needed; a statement changed after a verification then shows "changed" | **(b)** — the SoA is an evaluation artefact (EA-2-9) and rests on the statements; with (b) no 0.16 verification is touched |
 
 ## 8. Next steps
 
@@ -618,3 +619,5 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-2a | types, evidence rules, both edition files, completeness test, conformance test — no UI, no i18n | `feature/iec62443-cra-matrix` | — | done (patches 264, 266: D-22 quantifiers, `connectedIf`) |
 | IEC-3 | evaluator, edition selection, vectors, property view, evaluator tests, smoke test | same | IEC-2a | done (patch 269) |
 | IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split | open |
+| IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
+| IEC-4 | `project.compliance` (`shared/models/compliance-data-types.ts`): component, target vector, device categories with origin, statements per edition and row (with the model result at the time, D-17); kept by every write path incl. repair | same | IEC-1 | done (patch 272) |
