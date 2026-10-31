@@ -3,6 +3,7 @@
 // Location: src/app/services/doc-transform.ts (or src/app/utils/doc-transform.ts)
 
 import { docVerificationOf } from "./verification-state";
+import { buildDocCompliance } from "./compliance-report";
 import type { Project } from "../models/project-types";
 import type {
   DocProjectData,
@@ -171,6 +172,8 @@ function computeDocValues(
     methodology: buildMethodologyRecord(project),
     // Verification status as of now, the document's creation (plan Phase 4).
     verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
+    // IEC 62443-4-2 requirement matrix (iec-62443-4-2-cra-coverage.md §5).
+    compliance: buildDocCompliance(project),
   };
 }
 

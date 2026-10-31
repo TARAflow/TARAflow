@@ -1,0 +1,94 @@
+// tests/unit/app/services/compliance-report.test.ts
+//
+// The matrix of a real project for the document (app/services/compliance-
+// report.ts; iec-62443-4-2-cra-coverage.md §5, §9.4, D-1, D-3, D-7):
+// edition by tags, component scope, achieved and planned runs.
+
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { parseAndRepair } from "app/services/migration-service";
+import { buildDocCompliance, complianceScope, evaluateProjectCompliance } from "app/services/compliance-report";
+import type { Project } from "app/models/project-types";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
+
+const smokeDetector = (regulation: string[], compliance?: Any): Project => {
+  const raw: Any = JSON.parse(readFileSync("src/tests/fixtures/SmokeDetector.tara.json", "utf-8"));
+  const project: Any = parseAndRepair(raw)!;
+  project.info = { ...project.info, tags: { domain: [], platform: [], custom: [], ...(project.info.tags ?? {}), regulation } };
+  if (compliance) project.compliance = compliance;
+  return project;
+};
+
+describe("buildDocCompliance", () => {
+  it("no 62443 tag → no matrix (the generic CRA tag selects none, D-3)", () => {
+    expect(buildDocCompliance(smokeDetector([]))).toBeUndefined();
+    expect(buildDocCompliance(smokeDetector(["CRA"]))).toBeUndefined();
+  });
+
+  it("CRA edition: all 97 rows, the CRA view, seven FRs", () => {
+    const doc = buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"]))!;
+    expect(doc.cra).toBe(true);
+    expect(doc.draft).toBe(true);
+    expect(doc.rows).toHaveLength(97);
+    expect(doc.vectors.map((v) => v.fr)).toEqual(["IAC", "UC", "SI", "DC", "RDF", "TRE", "RA"]);
+    expect(doc.component).toBeUndefined();
+  });
+
+  it("both tags → the CRA edition (D-1)", () => {
+    expect(buildDocCompliance(smokeDetector(["IEC 62443", "EN IEC 62443 (CRA)"]))!.cra).toBe(true);
+  });
+
+  it("classic edition: device rows wait for a confirmed category (K-C1)", () => {
+    const doc = buildDocCompliance(smokeDetector(["IEC 62443"]))!;
+    expect(doc.cra).toBe(false);
+    expect(doc.rows).toHaveLength(125);
+    expect(doc.deviceCategories).toEqual({ categories: [], confirmed: false });
+    expect(doc.rows.find((r) => r.label === "EDR 3.14")!.status).toBe("pending-category");
+    const confirmed = buildDocCompliance(smokeDetector(["IEC 62443"], { deviceCategories: { categories: ["EDR"], source: "manual" } }))!;
+    expect(confirmed.rows.find((r) => r.label === "EDR 3.14")!.status).not.toBe("pending-category");
+    expect(confirmed.rows.find((r) => r.label === "NDR 3.14")!.status).toBe("n/a");
+  });
+
+  it("names elements by display id and name; target from the project", () => {
+    const doc = buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"], { target: { IAC: 2 } }))!;
+    expect(doc.vectors[0].target).toBe(2);
+    const listed = doc.rows.flatMap((r) => [...r.failing, ...r.unknown]);
+    expect(listed.some((n) => /^P-\d+ /.test(n))).toBe(true);
+  });
+
+  it("planned never below achieved: SHOULD values only strengthen, open mitigations count too", () => {
+    const { achieved, planned } = evaluateProjectCompliance(smokeDetector(["EN IEC 62443 (CRA)"]))!;
+    for (const fr of Object.keys(achieved.component) as (keyof typeof achieved.component)[]) {
+      expect(planned.component[fr]).toBeGreaterThanOrEqual(achieved.component[fr]);
+      expect(planned.withSupport[fr]).toBeGreaterThanOrEqual(achieved.withSupport[fr]);
+    }
+  });
+});
+
+describe("complianceScope (D-7)", () => {
+  const graph = {
+    elementTrustBoundaries: new Map([["p1", ["tb"]]]),
+    elementChipBoundaries: new Map([["p1", ["cb"]]]),
+    elementPhysicalBoundaries: new Map<string, string[]>(),
+    dataFlowAnalysis: new Map([["f1", { interfaceIds: ["if1"] }], ["f2", { interfaceIds: ["if2"] }]]),
+  };
+  const view = {
+    elements: ["mp", "p1", "p2", "other", "tb", "cb", "if1", "if2"].map((id) => ({ id, type: "Process" })),
+    flows: [
+      { id: "f1", from: "ee", to: "p1" },
+      { id: "f2", from: "ee", to: "other" },
+    ],
+  };
+  const containment = new Map([["p1", "mp"], ["p2", "p1x"], ["p1x", "mp"]]);
+
+  it("no component → the whole model", () => {
+    expect(complianceScope(undefined, view, containment, graph).size).toBe(view.elements.length);
+  });
+
+  it("the component, its descendants, their boundaries and the interfaces their flows pass", () => {
+    const scope = complianceScope("mp", view, containment, graph);
+    expect([...scope].sort()).toEqual(["cb", "if1", "mp", "p1", "p2", "tb"]);
+  });
+});

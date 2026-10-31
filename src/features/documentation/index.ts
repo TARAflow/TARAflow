@@ -17,6 +17,9 @@ export type {
   DocProjectData,
   DocUpdateResult,
   DocTabProps,
+  DocCompliance,
+  DocComplianceRow,
+  DocComplianceVector,
 } from "./models/doc-types";
 
 export {

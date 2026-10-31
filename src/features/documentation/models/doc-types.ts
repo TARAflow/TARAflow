@@ -48,6 +48,7 @@ export type DocChapterId =
   | "accepted-risks"
   | "traceability-matrix"
   | "goals-claims"
+  | "compliance-matrix"
   | "attack-trees"
   | "appendix";
 
@@ -119,6 +120,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Cybersecurity Goals and Claims",
     de: "Cybersecurity Goals und Claims",
   },
+  "compliance-matrix": {
+    en: "IEC 62443-4-2 Requirement Matrix",
+    de: "IEC 62443-4-2 Anforderungsmatrix",
+  },
   "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
   appendix: { en: "Appendix", de: "Anhang" },
 };
@@ -148,6 +153,10 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   // outcome of the treatment decisions, before the matrix that lists them.
   { id: "goals-claims", enabled: true, autoHideIfEmpty: true },
   { id: "traceability-matrix", enabled: true, autoHideIfEmpty: true },
+  // IEC 62443-4-2 / CRA requirement matrix (iec-62443-4-2-cra-coverage.md
+  // §5): the Statement of Applicability derived from the analysed model —
+  // only for projects tagged "IEC 62443" or "EN IEC 62443 (CRA)".
+  { id: "compliance-matrix", enabled: true, autoHideIfEmpty: true },
   { id: "appendix", enabled: false, autoHideIfEmpty: true },
 ];
 
@@ -264,6 +273,60 @@ export interface DocComputedValues {
    * under iso-21434. Absent → no status in the document.
    */
   verification?: DocVerification;
+  /**
+   * IEC 62443-4-2 requirement matrix (iec-62443-4-2-cra-coverage.md §5),
+   * evaluated by the app layer (buildDocCompliance) — only for projects whose
+   * tags select an edition. Absent → no matrix chapter.
+   */
+  compliance?: DocCompliance;
+}
+
+/** SL-C values of one FR (D-2, D-4, D-14). */
+export interface DocComplianceVector {
+  fr: string;
+  target?: number;
+  achievedComponent: number;
+  achievedWithSupport: number;
+  plannedComponent: number;
+  plannedWithSupport: number;
+}
+
+/** One row of the Statement of Applicability, names already resolved. */
+export interface DocComplianceRow {
+  label: string;
+  fr: string;
+  minSl: number | null;
+  /** CRA Annex I Part I letters (CRA edition). */
+  cra?: string[];
+  status: string;
+  source?: string;
+  failing: string[];
+  unknown: string[];
+  supporting: string[];
+  mitigations: string[];
+  claims: string[];
+  reasoning?: string;
+  checklist: string[];
+  contradiction?: boolean;
+  statementModelChanged?: boolean;
+  statementSuperseded?: boolean;
+  /** Counts for SL-C (component) in the achieved run (D-14). */
+  countsForComponent: boolean;
+  /** Catalog mitigations naming the row's requirements — for gaps. */
+  suggestions: string[];
+}
+
+export interface DocCompliance {
+  editionTitle: string;
+  draft: boolean;
+  /** CRA edition: with the Annex I Part I view. */
+  cra: boolean;
+  ccsc2Label: string;
+  /** Display name of the component; absent = the whole model (D-7). */
+  component?: string;
+  deviceCategories?: { categories: string[]; confirmed: boolean };
+  vectors: DocComplianceVector[];
+  rows: DocComplianceRow[];
 }
 
 /** The verification status the document shows up front. */
