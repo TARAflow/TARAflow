@@ -221,3 +221,27 @@ describe("verification status", () => {
     expect(verificationStatus([old], "h1", "2026-10-29").kind).toBe("reconfirm");
   });
 });
+
+describe("matrix data in the hash (iec-62443-4-2-cra-coverage.md D-25)", () => {
+  const base = (): Any => ({ info: { description: "d" }, risks: { risks: [] } });
+  const compliance = (reasoning: string) => ({
+    target: { IAC: 2 },
+    statements: { "en-iec-62443-4-2-praa-2026": { "CR 1.7": { status: "met", reasoning, date: "2026-11-02" } } },
+  });
+
+  it("a project without matrix data keeps its hash (no hash version bump)", () => {
+    expect(verificationStateHash({ ...base(), compliance: undefined })).toBe(verificationStateHash(base()));
+  });
+
+  it("matrix data is covered: a statement changed after a verification shows as a change", () => {
+    const before = verificationStateHash({ ...base(), compliance: compliance("NIST rules") });
+    expect(before).not.toBe(verificationStateHash(base()));
+    expect(verificationStateHash({ ...base(), compliance: compliance("changed later") })).not.toBe(before);
+  });
+
+  it("the key order of the stored data does not matter", () => {
+    const a = { target: { IAC: 2, UC: 3 }, componentId: "mp" };
+    const b = { componentId: "mp", target: { UC: 3, IAC: 2 } };
+    expect(verificationStateHash({ ...base(), compliance: a })).toBe(verificationStateHash({ ...base(), compliance: b }));
+  });
+});
