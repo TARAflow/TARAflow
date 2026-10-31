@@ -72,5 +72,10 @@
  *       Phase 1 stage A) and the cybersecurity concept
  *       project.cybersecurityConcept (goals, claims, verification records;
  *       Phase 4, decision 25) — an older release would drop them on save.
+ *  12 = 0.17.0-beta, version fence, no data change, declared
+ *       analysis-preserving (iec-62443-4-2-cra-coverage.md D-8): the
+ *       IEC 62443-4-2 / CRA matrix data project.compliance (component,
+ *       target SL-C vector, analyst statements; IEC-4) — an older release
+ *       would drop it on save.
  */
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 12;

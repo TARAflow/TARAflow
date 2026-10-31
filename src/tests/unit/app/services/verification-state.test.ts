@@ -114,8 +114,9 @@ describe("carrying verifications over loading (review 2026-10-30)", () => {
     expect(carryVerifications(p, { read: "r", migrated: "m", loaded: "m" }, false)).toBe(p);
   });
 
-  it("loading a migrated file: no migration is declared preserving yet, so the verification asks to be confirmed again", () => {
-    expect(ANALYSIS_PRESERVING_MIGRATIONS.size).toBe(0);
+  it("loading a file through a migration that is not declared preserving (schema 9 → 12 runs 10 and 11): confirm again", () => {
+    expect(ANALYSIS_PRESERVING_MIGRATIONS.has(10)).toBe(false);
+    expect(ANALYSIS_PRESERVING_MIGRATIONS.has(11)).toBe(false);
     const raw: Any = JSON.parse(readFileSync("src/tests/fixtures/headlamp-iso21434.tara.json", "utf-8"));
     const readHash = verificationStateHash(JSON.parse(JSON.stringify(raw)));
     raw.cybersecurityConcept = {
