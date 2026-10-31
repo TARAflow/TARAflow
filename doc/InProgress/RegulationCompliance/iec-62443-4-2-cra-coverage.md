@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v15 · 2026-10-31 (decisions D-1 … D-25 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-3, IEC-4, IEC-5, IEC-7 done;
+**Status:** v16 · 2026-10-31 (decisions D-1 … D-25 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -622,6 +622,7 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split | open |
 | IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
 | IEC-5 | `iec62443` references on catalog mitigations (§10), mitigation evidence for the evaluator from the risk treatment (one entry per mitigation and risk) | same | IEC-3 | done (patch 276) |
+| IEC-8 | Compliance tab (D-9): entry "🛡 Compliance" on the right of the tab bar like Audit / Integration (no phase status, not in the progress; only when the tags select an edition); component under evaluation, device categories (2019: derived proposal, confirm — K-C1), target per FR with achieved / planned × component / with support, rows (open first) with status, source, notes, statements (store the model result of the moment, D-17); i18n namespace `compliance`. Still open: `iec62443` references on project mitigations (M-C-…) in the custom mitigation dialog (IEC-8b) | same | IEC-4, IEC-7 | done (patch 04) |
 | IEC-7 | report chapter `compliance-matrix` (all formats incl. pdfmake, CLI): basis, SL-C per FR (achieved / planned × component / with support), SoA with the source of every row, CRA view, gaps with catalog suggestions; `app/services/compliance-report.ts` evaluates the project (edition by tags, property view, component scope, planned overlay, mitigation evidence) for app and CLI alike | same | IEC-3, IEC-4, IEC-5 | done (patch 02) |
 | IEC-4 | `project.compliance` (`shared/models/compliance-data-types.ts`): component, target vector, device categories with origin, statements per edition and row (with the model result at the time, D-17); kept by every write path incl. repair | same | IEC-1 | done (patch 272) |
 
