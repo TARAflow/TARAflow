@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.15.2-beta`
+> **Current version:** `v0.16.0-beta`
 
 TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
@@ -108,6 +108,7 @@ The threat analysis includes:
 * Threat synchronization with the DFD
 * Manual threat creation
 * Threat mitigation information
+* Project mitigation catalog: the analyst's own mitigations (M-C-nnn) with STRIDE category, attack vectors and DFD effects, usable on every threat and risk like a catalog entry, merged and deleted with their usage in view
 * Controls proposed per attack path by its attack vector (network / adjacent / local / physical) and the project context (domain, platform); 20 additional catalog controls for networks, access control, Linux hardening, in-vehicle communication and operations
 * Relevance-based filtering (unrated / relevant / uncertain / not relevant)
 * A STRIDE category is generated only if it is technically possible for the element **and** violates an active security goal
@@ -142,7 +143,9 @@ Features include:
 * Impact aggregation per regulation preset — **harm floor** (safety, physical damage and environment are never diluted by milder consequences), **maximum** (ISO/SAE 21434, ETSI TVRA) or weighted mean — switchable with a preview of every changed risk
 * Asset criterion weights as the default for the impact weights, overridable per factor
 * Explanation of how a risk's impact was formed, in the risk dialog and the report
-* ISO/SAE 21434: risk value 1–5 from the matrix of Annex H.8 (Minimal … Critical), threat scenarios per attack tree and a review list of treatment decisions
+* ISO/SAE 21434: risk value 1–5 from the matrix of Annex H.8 (Minimal … Critical), threat scenarios per attack tree and a review list of treatment decisions; the risk dialog names where feasibility and impact come from and rates the residual with the five attack-potential factors
+* ISO/SAE 21434: cybersecurity goals and claims per risk (tab *Goal / Claim*, dialog *Goals & Claims*) with findings for treatments without goal, claim, control or residual
+* Mitigation status synchronized with issue-tracker tickets (Jira Cloud) in both directions
 * Likelihood factor levels named by the situation they stand for (e.g. "4 – No technical skills"); ETSI TVRA factors with the norm's levels (e.g. "≤ 1 week (2)")
 * Leveled DFDs: risks grouped per decomposed multiprocess, a risk matrix per DFD group
 
@@ -164,6 +167,7 @@ Features include:
 * Attack-path synchronization
 * Integration of attack paths with threats and risks
 * Attack vector `av=network|adjacent|local|physical` on any node (ISO/SAE 21434 G.9), inherited down the tree; it selects fitting controls and leaves attack potential and feasibility unchanged
+* Tree and path ids AT-n / AT-n.m as used by threats, risks and the report
 * Visualization and structured editing
 
 Attack-tree information can be used as an additional input to the risk analysis.
@@ -189,6 +193,7 @@ The safety workflow includes:
 * Import of EN ISO 12100 / EN ISO 13849-1 risk assessments from spreadsheets: severity on the five-level scale with a value-map editor, default affected persons, lifecycle phase, hazard zone, protective measures and their type, risk graph S/F/P, PLr and PL, safety function; the customer's rating (probability, RPN, source values) is kept; a warning when the severity contradicts the risk graph
 * Import profiles stored in the project; a re-import of a revised sheet recognises the profile, follows moved or renamed columns and reconciles the rows (new / changed / unchanged / removed) instead of appending them
 * Hazard category suggested from the free-text hazard type (German and English keywords)
+* A person can be rated "none" (no injury, S0); under ISO/SAE 21434 person severities show their ISO 26262 class S0–S3
 
 Rationale, rules and code locations: [`doc/taraflow-safety-model.md`](doc/taraflow-safety-model.md).
 
@@ -215,6 +220,8 @@ The audit functionality includes:
 * Commit author verification
 * Offline/local commit handling
 * Audit trail verification
+* A repository that signs stays signed: once its history introduced a signer manifest, every commit — for every project in it — is signed, decided on the manifest committed on the target branch as the verification engine does
+* TARA verification (ISO/SAE 21434 RQ-09-07) recorded in the Audit tab, sealed with a hash of the analysis and committed with a `Reviewed-by` trailer
 * Classified DFD diff in the commit dialog — semantic, graphical, structural and identity changes per page, plus the effect of a change on the analysis (e.g. a flow now resolved below a multiprocess)
 
 This makes it possible to use Git not only for source-code versioning but also as part of the **traceability and integrity model of the security analysis itself**.
@@ -262,6 +269,8 @@ In an ISO/SAE 21434 project, threat relevance is derived from the **asset relati
 Attack feasibility follows **Annex G / ISO 18045**: the five attack-potential factors — elapsed time, specialist expertise, knowledge of the item, window of opportunity, equipment — sum to an attack potential that maps to a four-level feasibility band (Table G.7). Attack trees carry these factors per leaf; the resulting attack-path feasibility drives risk, and attack-path threats are enriched with the catalog's STRIDE-category mitigations and verifications.
 
 The **risk value 1–5** (15.8) is read from the matrix of Annex H.8: impact of the damage scenario (4-level scale Negligible / Moderate / Major / Severe) × attack feasibility, shown with a word (Minimal / Low / Medium / High / Critical) instead of I × L. The attack paths of one tree form a **threat scenario**, whose value is the highest of its paths. Treatment options carry the ISO names Avoid / Reduce / Share / Retain (15.9); a review list names Retain at a high value and Reduce at value 1. The report documents the method in a **methodology chapter** generated from the project's configuration, and every ISO risk records the calculation it was computed with.
+
+The concept-phase work products follow Clause 9: the **Item Definition** (Overview → *Definition*: purpose and functions, item boundary, preliminary architecture, operational environment, constraints, each with a source and links into the model; assumptions with owner, review date and status, linked by the trust boundaries that rely on them), **cybersecurity goals** (CSG-nn, optional CAL) for every risk to reduce and **cybersecurity claims** (CLM-nn) for every risk retained or shared (9.4), and the **verification** of the TARA (RQ-09-07) recorded in the Audit tab. Findings point at what is missing; the report has a chapter for each work product and a goal / claim column in the traceability matrix.
 
 > Current scope: a structured (dropdown-based) leaf editor for the attack-tree DSL, and generating starter attack trees from confirmed threats, are planned — see the post-release backlog.
 
@@ -595,13 +604,16 @@ The project format contains the information required to reconstruct and analyze 
 * Threats
 * Risks
 * Attack-tree information
+* Item Definition, cybersecurity goals and claims, TARA verification entries
 * Safety information
 * Documentation configuration
-* Audit-related configuration
+* Audit and integration settings the team shares (provider, remote, signing policy; tracker, URL, project, mapping)
+
+Personal values — the commit author, the tracker account and its connection state — are kept on the user's machine, not in the file; tokens and signing keys live in the OS keychain or the git configuration.
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
-The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **10**, since `v0.15.0-beta`).
+The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **11**, since `v0.16.0-beta`).
 
 View state such as the positions in the asset graph is not part of the project file.
 
@@ -666,11 +678,12 @@ Recent development versions include:
 * `v0.15.0-beta` — ISO/SAE 21434 risk value 1–5, threat scenarios and methodology chapter; attack-tree likelihood on the project's risk scale (schema 10)
 * `v0.15.1-beta` — hazard import for ISO 12100 / 13849 risk assessments with re-import, controls by attack vector, hazard items and node moving in the asset graph
 * `v0.15.2-beta` — security fix: issue-tracker tokens (Jira, Azure DevOps) stay in the OS keychain, never in the project file; secret check for audit-repository commits; DFD interface detection and multi-page validation fixes
+* `v0.16.0-beta` — ISO/SAE 21434 Item Definition, cybersecurity goals and claims, TARA verification; project mitigation catalog; reworked closed loop; host-bound Jira integration; personal values local, signed repositories stay signed (schema 11)
 
 The current development state is represented by:
 
 ```text
-v0.15.2-beta
+v0.16.0-beta
 ```
 
 Versions in the beta: releases without a new project schema count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
@@ -731,7 +744,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.15.2-beta**
+**TARAflow 0.16.0-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 
