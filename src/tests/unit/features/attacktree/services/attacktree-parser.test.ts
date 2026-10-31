@@ -16,7 +16,7 @@
 // Indentation in these fixtures is TABS on purpose — see attacktree-factory.
 
 import { describe, it, expect } from "vitest";
-import { attackTreeParser } from "features/attacktree/services/attacktree-parser";
+import { attackTreeParser, dslMitigationIds, parseAttackTree, replaceDslMitigation } from "features/attacktree/services/attacktree-parser";
 import {
   DSL_SIMPLE,
   DSL_EXTENDED,
@@ -235,5 +235,21 @@ describe("parseAttackTree — comments and whitespace", () => {
 
     expect(result.ast!.lineNumber).toBe(3);
     expect(result.ast!.children[0].lineNumber).toBe(4);
+  });
+});
+
+describe("mitigation lists (shared with the project mitigation usage check and merge)", () => {
+  const dsl = "Root;ROOT\n\tA;p=0.5,i=3 [M-001,M-C-001]\n\tB;OR\n\t\tC;p=0.5,i=3 [M-C-002]\n# [M-C-009]";
+
+  it("dslMitigationIds reads every list as the parser does, comments skipped", () => {
+    expect(dslMitigationIds(dsl)).toEqual(["M-001", "M-C-001", "M-C-002"]);
+    const parsed = parseAttackTree(dsl, "simple");
+    expect(parsed.ast?.children[0].mitigations).toEqual(["M-001", "M-C-001"]);
+  });
+
+  it("replaceDslMitigation rewrites inside a list and keeps a present target once", () => {
+    expect(replaceDslMitigation(dsl, "M-C-001", "M-C-002")).toBe("Root;ROOT\n\tA;p=0.5,i=3 [M-001,M-C-002]\n\tB;OR\n\t\tC;p=0.5,i=3 [M-C-002]\n# [M-C-009]");
+    expect(replaceDslMitigation("Root;ROOT\n\tA;p=0.5,i=3 [M-C-001, M-C-002]  ", "M-C-001", "M-C-002")).toBe("Root;ROOT\n\tA;p=0.5,i=3 [M-C-002]  ");
+    expect(replaceDslMitigation(dsl, "M-C-009", "M-C-002")).toBe(dsl);
   });
 });

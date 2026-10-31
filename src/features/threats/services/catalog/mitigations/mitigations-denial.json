@@ -116,14 +116,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "DataFlow",
-          "property": "connectorType",
-          "expectedValue": "m12_locking",
-          "confidence": "heuristic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": ["V-D-006"]
     },
     {
@@ -131,14 +124,7 @@
       "strideCategory": "D",
       "context": {},
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "TrustBoundary",
-          "property": "islandModeCapable",
-          "expectedValue": true,
-          "confidence": "deterministic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": ["V-D-001"]
     },
     {

@@ -524,6 +524,19 @@ export interface MitigationEntry {
   verifications?: string[];
 }
 
+/**
+ * A mitigation of the project catalog (custom mitigation catalog design CM-2):
+ * written by the analyst, stored with the project in
+ * `threats.configuration.customMitigations`, id `M-C-nnn`. Unlike the built-in
+ * catalog its text is not an i18n key but stored as written.
+ */
+export interface ProjectMitigation extends MitigationEntry {
+  /** The mitigation, as written by the analyst. */
+  text: string;
+  description?: string;
+  isCustom: true;
+}
+
 // ==================== MITIGATION PROPERTY MAPPING ====================
 
 /**
@@ -818,7 +831,10 @@ export interface ThreatConfiguration {
   };
   customElementTemplates: ElementTemplate[];
   customInteractionTemplates: InteractionTemplate[];
-  customMitigations: MitigationEntry[];
+  /** Project mitigation catalog M-C-nnn (custom mitigation catalog CM-2). */
+  customMitigations: ProjectMitigation[];
+  /** Highest M-C number ever issued — ids are never reused. */
+  customMitigationSeq?: number;
   customVerifications: VerificationEntry[];
 }
 

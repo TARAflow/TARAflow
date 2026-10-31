@@ -11,6 +11,7 @@ import {
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
 import type { AttackTreeReportSection } from "../attack-tree-report";
+import type { ReportSection } from "../report-section";
 import { MD_TEMPLATES } from "../templates/markdown-templates";
 import {
   escapeMarkdown,
@@ -175,6 +176,33 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
   }
 
   // Attack-trees chapter (plan F5)
+  formatStatusNotice(text: string, kind: "info" | "warning"): string {
+    return `> ${kind === "warning" ? "⚠ " : ""}${text}\n\n`;
+  }
+
+  formatSectionedChapter(chapterId: string, title: string, intro: string, body: string): string {
+    return `## ${title}\n\n${intro}\n\n${body}`;
+  }
+
+  formatReportSection(section: ReportSection): string {
+    const row = (cells: string[]) =>
+      `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")} |`;
+    return [
+      `### ${section.title}`,
+      "",
+      ...section.paragraphs.flatMap((p) => [p, ""]),
+      ...section.facts.map(([label, value]) => `**${label}**: ${value}  `),
+      ...(section.facts.length ? [""] : []),
+      ...(section.table
+        ? [
+            row(section.table.headers),
+            `|${section.table.headers.map(() => "---").join("|")}|`,
+            ...section.table.rows.map(row),
+          ]
+        : []),
+    ].join("\n") + "\n\n";
+  }
+
   formatAttackTreesChapter(title: string, intro: string, body: string): string {
     return `## ${title}\n\n${intro}\n\n${body}`;
   }

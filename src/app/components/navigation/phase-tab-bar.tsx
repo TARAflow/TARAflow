@@ -1,10 +1,11 @@
 import React, { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import { Project } from "../../models/project-types";
 import { PHASES, PhaseStatus, PhaseDefinition } from "shared";
+import { Tooltip } from "@mui/material";
 import { PhaseTab } from "./phase-tab";
 import { LanguageSwitcher } from "i18n";
 import { PhaseId } from "../../models/phase-types";
+import type { PhaseIndicators } from "../../utils/phase-indicators";
 
 // ==================== DEFAULT PHASE STATUS ====================
 
@@ -33,6 +34,13 @@ interface PhaseTabsProps {
    * analyst notices it right after changing goals, without opening the tab.
    */
   threatDrift?: { obsolete: number; added: number };
+  /**
+   * Status and error / warning count per phase (app/utils/phase-indicators.ts;
+   * the DFD's from its current validation). Without it: the stored status.
+   */
+  indicators?: PhaseIndicators;
+  /** What the Audit entry points out (repo missing, uncommitted verifications) — chip + tooltip. */
+  auditHints?: readonly string[];
 }
 
 export const PhaseTabs: React.FC<PhaseTabsProps> = ({
@@ -40,9 +48,10 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
   activePhase,
   onPhaseChange,
   threatDrift,
+  indicators,
+  auditHints = [],
 }) => {
-  const { t } = useTranslation();
-  const phaseStatus = project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
+  const phaseStatus = indicators?.status ?? project?.phaseStatus ?? DEFAULT_PHASE_STATUS;
   // Safety gating: the Hazard phase only appears when safety relevance is on
   const safetyRelevant = project?.info?.safetyRelevant ?? false;
 
@@ -69,61 +78,23 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
     );
   }, [safetyRelevant]);
 
-  // Extract validation counts for each phase
-  const getPhaseValidationCounts = useMemo(() => {
-    return (phaseId: number) => {
-      switch (phaseId) {
-        case PhaseId.DFD: {
-          // DFD Phase
-          const validation = project?.dfd?.validation;
-          return {
-            errors: validation?.errors?.length ?? 0,
-            warnings: validation?.warnings?.length ?? 0,
-          };
-        }
-        case PhaseId.Assets:
-          // Assets Phase
-          return { errors: 0, warnings: 0 };
-        case PhaseId.Threats: {
-          // Threats Phase — generation drift (not a validation finding)
-          const obsolete = threatDrift?.obsolete ?? 0;
-          const added = threatDrift?.added ?? 0;
-          const hints: string[] = [];
-          if (obsolete > 0) {
-            hints.push(
-              t("tabs.threats.drift.banner.obsolete", {
-                count: obsolete,
-                defaultValue: "{{count}} stored threats would no longer be generated",
-              }),
-            );
-          }
-          if (added > 0) {
-            hints.push(
-              t("tabs.threats.drift.banner.added", {
-                count: added,
-                defaultValue: "{{count}} threats would be added",
-              }),
-            );
-          }
-          return { errors: 0, warnings: obsolete + added, hints };
-        }
-        case PhaseId.Risk:
-          // Risk Phase
-          return { errors: 0, warnings: 0 };
-        case PhaseId.AttackTree:
-          // Attack Tree Phase
-          return { errors: 0, warnings: 0 };
-        case PhaseId.Documentation:
-          // Documentation Phase
-          return { errors: 0, warnings: 0 };
-        case PhaseId.Audit:
-          // Audit Phase
-          return { errors: 0, warnings: 0 };
-        default:
-          return { errors: 0, warnings: 0 };
-      }
-    };
-  }, [project?.dfd?.validation, threatDrift?.obsolete, threatDrift?.added, t]);
+  // Badges on the tabs: General (missing project information, the TARA
+  // verification under ISO/SAE 21434), the Hazard validation (user 2026-10-30), the DFD's
+  // current validation and the threat generation drift; the tooltip of every
+  // tab says what is behind its status (phase indicators — the same lines the
+  // Overview's phase cards show).
+  const BADGE_PHASES: readonly number[] = [PhaseId.General, PhaseId.Hazard, PhaseId.DFD, PhaseId.Threats, PhaseId.Risk];
+  const getPhaseValidationCounts = (phaseId: number) => {
+    const hints = indicators?.details[phaseId];
+    if (BADGE_PHASES.includes(phaseId)) {
+      const fallback =
+        phaseId === PhaseId.Threats
+          ? { errors: 0, warnings: (threatDrift?.obsolete ?? 0) + (threatDrift?.added ?? 0) }
+          : { errors: 0, warnings: 0 };
+      return { ...(indicators?.counts[phaseId] ?? fallback), hints };
+    }
+    return { errors: 0, warnings: 0, hints };
+  };
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 pt-4">
@@ -136,7 +107,7 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
               "not-started";
             const counts = getPhaseValidationCounts(phase.id);
             const { errors, warnings } = counts;
-            const hints = "hints" in counts ? counts.hints : undefined;
+            const hints = counts.hints;
 
             return (
               <PhaseTab
@@ -165,6 +136,21 @@ export const PhaseTabs: React.FC<PhaseTabsProps> = ({
             }`}
           >
             🔍 Audit
+            {auditHints.length > 0 && (
+              <Tooltip
+                title={auditHints.join("\n")}
+                arrow
+                placement="bottom"
+                slotProps={{ tooltip: { sx: { whiteSpace: "pre-line" } } }}
+              >
+                <span
+                  className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-yellow-500 rounded-full"
+                  data-testid="audit-hints"
+                >
+                  {auditHints.length}
+                </span>
+              </Tooltip>
+            )}
           </button>
 
           <button

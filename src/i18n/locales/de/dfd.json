@@ -1971,6 +1971,11 @@
               "placeholder": "z.B. Innen ist vertrauenswürdig, aussen ist feindlich",
               "helper": "Was nehmen Sie über jede Seite dieser Grenze an?"
             },
+            "assumptionIds": {
+              "label": "Annahmen (Item Definition)",
+              "convert": "In Annahme umwandeln",
+              "invalid": "{{ids}} als ungültig markiert — diese Grenze überprüfen."
+            },
             "boundaryControls": {
               "label": "Controls an der Grenze",
               "placeholder": "z.B. Firewall, API-Gateway, Authentifizierungsschicht",
@@ -2784,6 +2789,10 @@
         "heuristic": "Heuristische Zuordnung — vor dem Anwenden prüfen",
         "applyLabel": "Anwenden",
         "applyTooltip": "Vorschlag auf Modell anwenden",
+        "planned": "geplant",
+        "plannedCount": "{{count}} geplant",
+        "plannedTooltip": "Geplante Massnahme (offen / in Arbeit) — noch nicht im DFD. Apply wird angeboten, sobald die Massnahme umgesetzt ist.",
+        "doneMissing": "Massnahme als umgesetzt markiert, aber im DFD nicht gesetzt",
         "filter": {
           "all": "Alle",
           "errors": "Fehler",
@@ -2794,7 +2803,8 @@
         "conflict": {
           "label": "Konflikt",
           "manualOverride": "Eigenschaft manuell gesetzt, weicht aber von Risk-Entscheidung ab",
-          "staleRecord": "Angewendeter Wert entspricht nicht mehr der aktuellen Anforderung"
+          "staleRecord": "Angewendeter Wert entspricht nicht mehr der aktuellen Anforderung",
+          "doneOther": "Massnahme als umgesetzt markiert, aber das DFD hat einen anderen Wert"
         },
         "drift": {
           "label": "Drift",

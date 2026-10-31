@@ -8,8 +8,10 @@ import {
   isIrreversibleOrWorse,
   isOverrideSeverity,
   isSafetyCritical,
+  iso26262SeverityClass,
   normalizeLegacySafetyImpact,
   safetySeverityToFactor,
+  withSeverityClass,
   worstSafetySeverity,
 } from "shared/models/safety-types";
 import { deriveAggregatedImpact } from "features/assets/services/asset-physical-impact-deriver";
@@ -78,5 +80,28 @@ describe("Safety Override Rule tiers", () => {
     expect(isSafetyCritical({ relevance: "direct", impact: "irreversible_major" })).toBe(true);
     expect(isSafetyCritical({ relevance: "direct", impact: "irreversible_minor" })).toBe(false);
     expect(isSafetyCritical({ relevance: "indirect", impact: "fatal" })).toBe(false);
+  });
+});
+
+describe("ISO 26262 severity class (1H-S, RQ-15-06)", () => {
+  it("maps the person scale onto S0–S3 by the S column", () => {
+    expect(
+      ["none", "reversible_minor", "reversible_major", "irreversible_minor", "irreversible_major", "fatal"].map(
+        iso26262SeverityClass,
+      ),
+    ).toEqual(["S0", "S1", "S1", "S2", "S2", "S3"]);
+  });
+
+  it("pre-v9 names count as canonical; other scales have no class", () => {
+    expect(iso26262SeverityClass("fatality")).toBe("S3");
+    expect(iso26262SeverityClass("critical")).toBeUndefined();
+    expect(iso26262SeverityClass("low")).toBeUndefined();
+  });
+
+  it("only under iso-21434 the label gets the class", () => {
+    expect(withSeverityClass("irreversible_major", "Irreversible, major", "iso-21434")).toBe("S2 · Irreversible, major");
+    expect(withSeverityClass("none", "None (no injury)", "iso-21434")).toBe("S0 · None (no injury)");
+    expect(withSeverityClass("irreversible_major", "Irreversible, major", "default")).toBe("Irreversible, major");
+    expect(withSeverityClass("critical", "Critical", "iso-21434")).toBe("Critical");
   });
 });

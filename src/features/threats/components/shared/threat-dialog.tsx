@@ -35,6 +35,7 @@ import {
   Select,
   MenuItem,
   Stack,
+  Autocomplete,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -69,6 +70,20 @@ import {
   resolveVerificationDrafts,
   getAllMitigations,
 } from "../../services/threat-catalog-service";
+import { CatalogEntryPicker, LinkToCatalogButton } from "./catalog-entry-picker";
+import { ProjectMitigationForm } from "./project-mitigation-form";
+import { useProjectMitigations } from "./project-mitigations-context";
+import {
+  isProjectMitigationId,
+  type ProjectMitigationInput,
+} from "../../services/project-mitigations";
+import { useMitigationCatalogVersion } from "shared/hooks/use-mitigation-catalog-version";
+import {
+  addCatalogMitigation,
+  addCatalogVerification,
+  catalogMatchFor,
+  linkDraftToCatalog,
+} from "../../services/catalog-draft-ops";
 import {
   MitigationCoverageBadge,
   STRIDE_COLORS,
@@ -256,9 +271,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   const [editingAttack, setEditingAttack] = useState(false);
 
   // ── Add-entry forms ───────────────────────────────────────────────────────
-  const [addingMitigation, setAddingMitigation] = useState(false);
   const [addingVerification, setAddingVerification] = useState(false);
-  const [newMitigationText, setNewMitigationText] = useState("");
   const [newVerificationText, setNewVerificationText] = useState("");
 
   // ── Init / reset on open or threat change ────────────────────────────────
@@ -267,9 +280,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
       setLocal(toLocalState(currentThreat));
       setEditingThreat(false);
       setEditingAttack(false);
-      setAddingMitigation(false);
       setAddingVerification(false);
-      setNewMitigationText("");
       setNewVerificationText("");
     }
   }, [open, currentIndex]);
@@ -354,16 +365,73 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
     });
   };
 
-  const confirmAddMitigation = () => {
-    if (!newMitigationText.trim() || !local) return;
-    patch({
-      proposedMitigations: [
-        ...local.proposedMitigations,
-        { notes: newMitigationText.trim() },
-      ],
-    });
-    setNewMitigationText("");
-    setAddingMitigation(false);
+  // ── Catalog entries on an analyst-authored threat (CM-1) ──────────────────
+  // Stored as { id } so the closed loop sees them. Only manual threats: a
+  // generated threat's catalog list is rebuilt by its template.
+  const isManual = currentThreat?.source === "manual";
+
+  // Project mitigations M-C-nnn (CM-3): new, convert free text, edit. On any
+  // threat — they are the analyst's choice and survive regeneration.
+  const projectMitigations = useProjectMitigations();
+  const [pmForm, setPmForm] = useState<
+    | null
+    | { mode: "new" }
+    | { mode: "convert"; index: number; text: string }
+    | { mode: "edit"; id: string }
+  >(null);
+  const pmEntry = pmForm?.mode === "edit"
+    ? projectMitigations?.entries.find((e) => e.id === pmForm.id)
+    : undefined;
+  const pmInitial: Partial<ProjectMitigationInput> | undefined =
+    pmForm?.mode === "edit" && pmEntry
+      ? pmEntry
+      : pmForm?.mode === "convert"
+        ? { text: pmForm.text, strideCategory: currentThreat?.strideCategory }
+        : { strideCategory: currentThreat?.strideCategory };
+
+  const savePmForm = (input: ProjectMitigationInput) => {
+    if (!projectMitigations || !pmForm || !local) return;
+    if (pmForm.mode === "edit") {
+      projectMitigations.update(pmForm.id, input);
+    } else {
+      const id = projectMitigations.add(input);
+      if (pmForm.mode === "convert") {
+        linkMitigation(pmForm.index, id);
+      } else {
+        addMitigationFromCatalog(id);
+      }
+    }
+    setPmForm(null);
+  };
+
+  const addMitigationFromCatalog = (id: string) => {
+    if (!local) return;
+    const next = addCatalogMitigation(local.proposedMitigations, local.proposedVerifications, id);
+    patch({ proposedMitigations: next.mitigations, proposedVerifications: next.verifications });
+  };
+
+  const addVerificationFromCatalog = (id: string) => {
+    if (!local) return;
+    patch({ proposedVerifications: addCatalogVerification(local.proposedVerifications, id) });
+  };
+
+  const linkMitigation = (index: number, id: string) => {
+    if (!local) return;
+    patch({ proposedMitigations: linkDraftToCatalog(local.proposedMitigations, index, id) });
+  };
+
+  const linkVerification = (index: number, id: string) => {
+    if (!local) return;
+    patch({ proposedVerifications: linkDraftToCatalog(local.proposedVerifications, index, id) });
+  };
+
+  const removeCatalogEntry = (kind: "mitigation" | "verification", index: number) => {
+    if (!local) return;
+    if (kind === "mitigation") {
+      patch({ proposedMitigations: local.proposedMitigations.filter((_, i) => i !== index) });
+    } else {
+      patch({ proposedVerifications: local.proposedVerifications.filter((_, i) => i !== index) });
+    }
   };
 
   const confirmAddVerification = () => {
@@ -477,7 +545,9 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
   // ── Mitigation coverage (Rules of Hooks: must be before early return) ───────
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const threatCatalog = useMemo(() => getAllMitigations(), []);
+  const catalogVersion = useMitigationCatalogVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const threatCatalog = useMemo(() => getAllMitigations(), [catalogVersion]);
 
   const mitigationCoverage = useMemo(() => {
     if (!currentThreat || !dfdData || !threatCatalog.length) return new Map();
@@ -1049,17 +1119,32 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     defaultValue: "Proposed Mitigations",
                   })}
                 </Typography>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => setAddingMitigation(true)}
-                  disabled={addingMitigation}
-                >
-                  {t("tabs.threats.dialog.addMitigation", {
-                    defaultValue: "Add custom mitigation",
-                  })}
-                </Button>
+                {/* No free-text mitigation any more (user 2026-10-30): a new
+                    one is a project mitigation — tracked by id (report,
+                    tickets, merge), with a DFD effect in the closed loop.
+                    Free text written earlier stays editable and convertible. */}
+                {projectMitigations && (
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => setPmForm({ mode: "new" })}
+                    data-testid="new-project-mitigation"
+                  >
+                    {t("tabs.threats.dialog.newProjectMitigation", {
+                      defaultValue: "New project mitigation",
+                    })}
+                  </Button>
+                )}
               </Stack>
+              {(isManual || (projectMitigations?.entries.length ?? 0) > 0) && (
+                <CatalogEntryPicker
+                  kind="mitigation"
+                  strideCategory={currentThreat.strideCategory}
+                  presentIds={local.proposedMitigations.map((m) => m.id)}
+                  onPick={addMitigationFromCatalog}
+                  scope={isManual ? "all" : "project"}
+                />
+              )}
 
               <Stack spacing={1}>
                 {resolvedMitigations.map((m, index) => (
@@ -1084,6 +1169,24 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             },
                           )}
                         />
+                        <LinkToCatalogButton
+                          kind="mitigation"
+                          text={m.notes}
+                          onLink={(id) => linkMitigation(index, id)}
+                        />
+                        {projectMitigations && !!m.notes?.trim() && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+                            onClick={() => setPmForm({ mode: "convert", index, text: m.notes ?? "" })}
+                            data-testid={`convert-mitigation-${index}`}
+                          >
+                            {t("tabs.threats.dialog.convertToProjectMitigation", {
+                              defaultValue: "Convert to project mitigation",
+                            })}
+                          </Button>
+                        )}
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1114,6 +1217,25 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <MitigationCoverageBadge
                             coverage={mitigationCoverage.get(m.id ?? "")}
                           />
+                          {projectMitigations && isProjectMitigationId(m.id) && (
+                            <Button
+                              size="small"
+                              onClick={() => setPmForm({ mode: "edit", id: m.id! })}
+                              data-testid={`edit-project-mitigation-${m.id}`}
+                            >
+                              {t("common.edit", { defaultValue: "Edit" })}
+                            </Button>
+                          )}
+                          {(isManual || isProjectMitigationId(m.id)) && (
+                            <IconButton
+                              size="small"
+                              sx={{ ml: "auto" }}
+                              onClick={() => removeCatalogEntry("mitigation", index)}
+                              data-testid={`remove-catalog-${m.id}`}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          )}
                         </Box>
                         <TextField
                           size="small"
@@ -1137,58 +1259,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   </Box>
                 ))}
 
-                {addingMitigation && (
-                  <Box
-                    sx={{
-                      border: 1,
-                      borderColor: "primary.main",
-                      borderRadius: 1,
-                      p: 1.5,
-                    }}
-                  >
-                    <TextField
-                      autoFocus
-                      size="small"
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      placeholder={t(
-                        "tabs.threats.dialog.mitigationPlaceholder",
-                        {
-                          defaultValue: "Describe the mitigation...",
-                        },
-                      )}
-                      value={newMitigationText}
-                      onChange={(e) => setNewMitigationText(e.target.value)}
-                    />
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      justifyContent="flex-end"
-                      sx={{ mt: 1 }}
-                    >
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          setAddingMitigation(false);
-                          setNewMitigationText("");
-                        }}
-                      >
-                        {t("common.cancel", { defaultValue: "Cancel" })}
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        disabled={!newMitigationText.trim()}
-                        onClick={confirmAddMitigation}
-                      >
-                        {t("common.add", { defaultValue: "Add" })}
-                      </Button>
-                    </Stack>
-                  </Box>
-                )}
-
-                {resolvedMitigations.length === 0 && !addingMitigation && (
+                {resolvedMitigations.length === 0 && (
                   <Typography
                     variant="body2"
                     color="text.secondary"
@@ -1240,6 +1311,14 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   })}
                 </Button>
               </Stack>
+              {isManual && (
+                <CatalogEntryPicker
+                  kind="verification"
+                  strideCategory={currentThreat.strideCategory}
+                  presentIds={local.proposedVerifications.map((v) => v.id)}
+                  onPick={addVerificationFromCatalog}
+                />
+              )}
 
               <Stack spacing={1}>
                 {resolvedVerifications.map((v, index) => (
@@ -1264,6 +1343,11 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             },
                           )}
                         />
+                        <LinkToCatalogButton
+                          kind="verification"
+                          text={v.notes}
+                          onLink={(id) => linkVerification(index, id)}
+                        />
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1280,9 +1364,20 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                       </Stack>
                     ) : (
                       <>
-                        <Typography variant="body2" fontWeight="medium">
-                          {v.text}
-                        </Typography>
+                        <Stack direction="row" alignItems="center">
+                          <Typography variant="body2" fontWeight="medium" sx={{ flexGrow: 1 }}>
+                            {v.text}
+                          </Typography>
+                          {isManual && (
+                            <IconButton
+                              size="small"
+                              onClick={() => removeCatalogEntry("verification", index)}
+                              data-testid={`remove-catalog-${v.id}`}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Stack>
                         <TextField
                           size="small"
                           fullWidth
@@ -1550,8 +1645,17 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
           </Button>
         </Stack>
       </DialogActions>
+      {projectMitigations && (
+        <ProjectMitigationForm
+          open={pmForm !== null}
+          id={pmForm?.mode === "edit" ? pmForm.id : undefined}
+          initial={pmInitial}
+          onSave={savePmForm}
+          onClose={() => setPmForm(null)}
+        />
+      )}
     </Dialog>
   );
-};;
+};
 
 export default ThreatEvalDialog;

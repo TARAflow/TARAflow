@@ -43,6 +43,7 @@
       },
 
       "severity": {
+        "none": "None (no injury)",
         "reversible_minor": "Reversible, minor",
         "reversible_major": "Reversible, major",
         "irreversible_minor": "Irreversible, minor",

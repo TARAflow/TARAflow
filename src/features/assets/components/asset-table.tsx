@@ -79,6 +79,7 @@ import {
   SAFETY_SEVERITY_COLOR,
   isOverrideSeverity,
   safetyImpactI18nKey,
+  withSeverityClass,
   type AssetGroup,
   type SafetyImpact,
 } from "shared";
@@ -1487,7 +1488,7 @@ export const AssetTable = React.memo<AssetTableProps>(
               {l.externalRef ? `${l.externalRef} · ` : ""}
               {l.label}
               {l.severity
-                ? ` — ${t(safetyImpactI18nKey(l.severity))}`
+                ? ` — ${withSeverityClass(l.severity, t(safetyImpactI18nKey(l.severity)), impactLabelVocabulary)}`
                 : ""}
               {l.relevance ? ` [${l.relevance}]` : ""}
             </Typography>

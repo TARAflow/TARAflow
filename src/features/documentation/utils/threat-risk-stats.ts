@@ -8,7 +8,7 @@
 
 import type { DocLanguage } from "../models/doc-types";
 import type { RiskRoundingMethod, RiskScaleType } from "../../risks/models/risk-scale-types";
-import { RISK_SCALES, getRiskLabel } from "../../risks/models/risk-scale-types";
+import { riskLevelWords, riskScoreLevel } from "./risk-score-text";
 
 export interface StatsTable {
   /** Section title where a format needs one (StrictDoc). */
@@ -59,7 +59,6 @@ const TEXT = {
     unrated: "Not rated",
     threatsLine: (n: number) => `${n} ${n === 1 ? "threat" : "threats"}`,
     risksLine: (n: number) => `${n} ${n === 1 ? "risk" : "risks"}`,
-    level: (label: string) => label,
   },
   de: {
     statistics: "Statistik",
@@ -71,10 +70,6 @@ const TEXT = {
     unrated: "Nicht bewertet",
     threatsLine: (n: number) => `${n} ${n === 1 ? "Bedrohung" : "Bedrohungen"}`,
     risksLine: (n: number) => `${n} ${n === 1 ? "Risiko" : "Risiken"}`,
-    level: (label: string) =>
-      ({ Low: "Niedrig", Medium: "Mittel", High: "Hoch", "Very High": "Sehr hoch", Critical: "Kritisch" })[
-        label
-      ] ?? label,
   },
 } as const;
 
@@ -126,6 +121,8 @@ export function threatGroupSummary(threats: readonly StatsThreat[], lang: DocLan
 interface RiskScale {
   scale: RiskScaleType;
   roundingMethod?: RiskRoundingMethod;
+  /** Custom level thresholds of the risk configuration. */
+  severityThresholds?: Record<number, number>;
   /** iso-21434: count the risk values 1–5 (labelled "4 – High"), not `I × L`. */
   iso?: boolean;
 }
@@ -139,7 +136,7 @@ const ISO_VALUE_WORDS = {
 /** Counts per level, highest first, then "not rated". */
 function levelCounts(
   risks: readonly StatsRisk[],
-  { scale, roundingMethod, iso }: RiskScale,
+  { scale, severityThresholds, iso }: RiskScale,
   lang: DocLanguage = "en",
 ) {
   if (iso) {
@@ -149,15 +146,18 @@ function levelCounts(
     const unrated = risks.filter((r) => !r.isoRisk?.value).length;
     return { levels, counts, unrated };
   }
-  const levels = [...RISK_SCALES[scale].levels].reverse().map((l) => l.label);
-  const counts = new Map<string, number>(levels.map((l) => [l, 0]));
+  // Level by the scale's thresholds, as the risk tab (risk-score-text.ts).
+  const config = { scale, severityThresholds };
+  const levels = riskLevelWords(config, lang);
+  const n = levels.length;
+  const counts = levels.map(() => 0);
   let unrated = 0;
   for (const r of risks) {
-    const label = getRiskLabel(r.calculatedRiskBeforeMitigation, scale, roundingMethod);
-    if (counts.has(label)) counts.set(label, counts.get(label)! + 1);
-    else unrated++;
+    const level = riskScoreLevel(r.calculatedRiskBeforeMitigation, config);
+    if (level === 0) unrated++;
+    else counts[n - level]++;
   }
-  return { levels, counts: levels.map((l) => counts.get(l)!), unrated };
+  return { levels, counts, unrated };
 }
 
 export function riskStatsTable<R extends StatsRisk>(
@@ -181,7 +181,7 @@ export function riskStatsTable<R extends StatsRisk>(
     headers: [
       groupBy === "asset" ? text.asset : text.type,
       text.risks,
-      ...all.levels.map(text.level),
+      ...all.levels,
       ...(withUnrated ? [text.unrated] : []),
     ],
     rows: groupByType(risks, typeOf).map(([type, list]) => [typeLabel(type), String(list.length), ...cells(list)]),
@@ -194,7 +194,7 @@ export function riskGroupSummary(risks: readonly StatsRisk[], scale: RiskScale, 
   const text = TEXT[lang];
   const c = levelCounts(risks, scale, lang);
   const parts = c.levels
-    .map((l, i) => [text.level(l), c.counts[i]] as const)
+    .map((l, i) => [l, c.counts[i]] as const)
     .filter(([, n]) => n > 0)
     .map(([l, n]) => `${l} ${n}`);
   if (c.unrated > 0) parts.push(`${text.unrated} ${c.unrated}`);

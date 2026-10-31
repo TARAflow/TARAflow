@@ -44,6 +44,8 @@ interface ElementRiskViewProps {
   onRiskLevelFilterChange: (level: number | "") => void;
   onClearFilters: () => void;
   filteredCount: number;
+  /** All risks the tab can show, filters aside (incl. attack-path risks). */
+  totalCount?: number;
 
   onEdit: (risk: Risk) => void;
   onPriorityChange: (
@@ -66,6 +68,7 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
   onRiskLevelFilterChange,
   onClearFilters,
   filteredCount,
+  totalCount,
   onEdit,
   onPriorityChange,
   onTreatmentChange,
@@ -190,7 +193,7 @@ export const ElementRiskView: React.FC<ElementRiskViewProps> = ({
         onClear={onClearFilters}
         show={showFilters}
         filteredCount={filteredCount}
-        totalCount={risks.length}
+        totalCount={totalCount ?? risks.length}
       />
 
       {/* Trust Boundary Groups */}

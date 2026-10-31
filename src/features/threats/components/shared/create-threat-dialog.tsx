@@ -59,6 +59,9 @@ import {
   getLocalizedMitigation,
   getLocalizedVerification,
 } from "../../services/threat-catalog-service";
+import { useMitigationCatalogVersion } from "shared/hooks/use-mitigation-catalog-version";
+import { ProjectMitigationForm } from "./project-mitigation-form";
+import { useProjectMitigations } from "./project-mitigations-context";
 import { labelStem, nextSequenceNumber } from "../../services/threat-sequence";
 
 // ==================== PROPS ====================
@@ -364,7 +367,7 @@ const ContextBox: React.FC<{
 const CatalogList: React.FC<{
   suggestions: { id: string; text: string }[];
   alreadyAdded: string[];
-  onInsert: (text: string) => void;
+  onInsert: (text: string, id: string) => void;
 }> = ({ suggestions, alreadyAdded, onInsert }) => {
   const { t } = useTranslation();
   if (suggestions.length === 0) return null;
@@ -402,7 +405,7 @@ const CatalogList: React.FC<{
               <ListItemButton
                 dense
                 disabled={added}
-                onClick={() => onInsert(s.text)}
+                onClick={() => onInsert(s.text, s.id)}
                 sx={{ py: 0.5, px: 1, opacity: added ? 0.4 : 1 }}
               >
                 <ListItemText
@@ -460,7 +463,9 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
   const [attackDescription, setAttackDescription] = useState("");
   const [causeDescription, setCauseDescription] = useState("");
   const [mitigations, setMitigations] = useState<string[]>([]);
-  const [mitigationInput, setMitigationInput] = useState("");
+  // Catalog picks keep their id (custom mitigation catalog design CM-1): text
+  // → catalog id. Text typed by the analyst has no entry and stays free text.
+  const [catalogIds, setCatalogIds] = useState<Record<string, string>>({});
   const [verifications, setVerifications] = useState<string[]>([]);
   const [verificationInput, setVerificationInput] = useState("");
 
@@ -530,13 +535,18 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     table.trustBoundaryName,
   ]);
 
+  const catalogVersion = useMitigationCatalogVersion();
+  // Project mitigation M-C-nnn written right here (CM-3); kept by id.
+  const projectMitigations = useProjectMitigations();
+  const [pmFormOpen, setPmFormOpen] = useState(false);
   const mitigationSuggestions = useMemo(() => {
     if (!strideCategory) return [];
     return getAllMitigations()
       .filter((m) => m.strideCategory === strideCategory)
       .map((m) => ({ id: m.id, text: getLocalizedMitigation(m.id) }))
       .filter((m) => !!m.text);
-  }, [strideCategory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strideCategory, catalogVersion]);
 
   const verificationSuggestions = useMemo(() => {
     if (!strideCategory) return [];
@@ -574,20 +584,12 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
       setAttackDescription("");
       setCauseDescription("");
       setMitigations([]);
-      setMitigationInput("");
+      setCatalogIds({});
       setVerifications([]);
       setVerificationInput("");
       setPerspective("sender");
     }
   }, [open]);
-
-  const handleAddMitigation = () => {
-    const v = mitigationInput.trim();
-    if (v && !mitigations.includes(v)) {
-      setMitigations((p) => [...p, v]);
-      setMitigationInput("");
-    }
-  };
 
   const handleAddVerification = () => {
     const v = verificationInput.trim();
@@ -649,8 +651,10 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     threat.threatDescription = threatDescription.trim();
     threat.attackDescription = attackDescription.trim();
     threat.causeDescription = causeDescription.trim();
-    threat.proposedMitigations = mitigations.map((notes) => ({ notes }));
-    threat.proposedVerifications = verifications.map((notes) => ({ notes }));
+    const toDraft = (text: string) =>
+      catalogIds[text] ? { id: catalogIds[text] } : { notes: text };
+    threat.proposedMitigations = mitigations.map(toDraft);
+    threat.proposedVerifications = verifications.map(toDraft);
 
     if (isInteractionMode && dataFlowRef) {
       threat.dataFlow = {
@@ -688,6 +692,7 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
     causeDescription,
     mitigations,
     verifications,
+    catalogIds,
     elementName,
     elementType,
     onAdd,
@@ -1038,38 +1043,56 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
             <CatalogList
               suggestions={mitigationSuggestions}
               alreadyAdded={mitigations}
-              onInsert={(text) => {
-                if (!mitigations.includes(text))
-                  setMitigations((p) => [...p, text]);
+              onInsert={(text, catalogId) => {
+                if (mitigations.includes(text)) return;
+                setMitigations((p) => [...p, text]);
+                // The catalog entry's verifications follow it, as in the
+                // generated threats and the risk dialog.
+                const linked = (
+                  getAllMitigations().find((m) => m.id === catalogId)
+                    ?.verifications ?? []
+                )
+                  .map((id) => ({ id, text: getLocalizedVerification(id) }))
+                  .filter((v) => !!v.text);
+                setCatalogIds((p) => ({
+                  ...p,
+                  [text]: catalogId,
+                  ...Object.fromEntries(linked.map((v) => [v.text, v.id])),
+                }));
+                setVerifications((p) => [
+                  ...p,
+                  ...linked.map((v) => v.text).filter((v) => !p.includes(v)),
+                ]);
               }}
             />
-            {/* Add field at bottom */}
-            <Stack direction="row" spacing={1}>
-              <TextField
-                size="small"
-                fullWidth
-                label={t("tabs.threats.createDialog.addMitigation", {
-                  defaultValue: "Add mitigation *",
-                })}
-                value={mitigationInput}
-                onChange={(e) => setMitigationInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddMitigation();
-                  }
-                }}
-              />
-              <IconButton
-                onClick={handleAddMitigation}
-                disabled={
-                  !mitigationInput.trim() ||
-                  mitigations.includes(mitigationInput.trim())
-                }
-              >
-                <AddIcon />
-              </IconButton>
-            </Stack>
+            {projectMitigations && (
+              <Box>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => setPmFormOpen(true)}
+                  data-testid="new-project-mitigation"
+                >
+                  {t("tabs.threats.dialog.newProjectMitigation", {
+                    defaultValue: "New project mitigation",
+                  })}
+                </Button>
+                <ProjectMitigationForm
+                  open={pmFormOpen}
+                  initial={strideCategory ? { strideCategory } : undefined}
+                  onClose={() => setPmFormOpen(false)}
+                  onSave={(input) => {
+                    const newId = projectMitigations.add(input);
+                    const text = input.text.trim();
+                    setMitigations((p) => (p.includes(text) ? p : [...p, text]));
+                    setCatalogIds((p) => ({ ...p, [text]: newId }));
+                    setPmFormOpen(false);
+                  }}
+                />
+              </Box>
+            )}
+            {/* No free-text mitigation (user 2026-10-30): from the catalog or
+                a new project mitigation, so every mitigation has an id. */}
           </Stack>
         )}
 
@@ -1087,9 +1110,10 @@ export const CreateThreatDialog: React.FC<CreateThreatDialogProps> = ({
             <CatalogList
               suggestions={verificationSuggestions}
               alreadyAdded={verifications}
-              onInsert={(text) => {
-                if (!verifications.includes(text))
-                  setVerifications((p) => [...p, text]);
+              onInsert={(text, catalogId) => {
+                if (verifications.includes(text)) return;
+                setVerifications((p) => [...p, text]);
+                setCatalogIds((p) => ({ ...p, [text]: catalogId }));
               }}
             />
             {/* Add field at bottom */}

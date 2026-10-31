@@ -9,6 +9,8 @@
 // Location: src/shared/utils/mitigation-coverage.ts
 
 import type { MitigationPropertyRole, DFDReference } from "shared";
+import { meetsExpected, readControlValue } from "./control-value-semantics";
+import { mitigationFitsInterface } from "./control-applicability";
 
 // ==================== TYPES ====================
 
@@ -59,15 +61,13 @@ export interface ThreatForCoverage {
     targetId: string;
     targetType: string;
   } | null;
+  /** Attack-path threat: the anchor's targets (CL-4); checked instead of the fields above. */
+  controlTargets?: readonly ThreatForCoverage[];
 }
 
 // ==================== HELPERS ====================
 
-const EMPTY_VALUES = new Set([undefined, null, "", "none", "not_specified", false]);
 
-function isEmptyValue(v: unknown): boolean {
-  return EMPTY_VALUES.has(v as any);
-}
 
 function resolveTargetElementId(
   threat: ThreatForCoverage,
@@ -105,9 +105,9 @@ function readProperty(
   dfd: DFDReference,
 ): unknown {
   const el = (dfd.elements ?? []).find((e) => e.id === elementId);
-  if (el) return el.properties?.[property];
+  if (el) return readControlValue(el.properties, property);
   const conn = (dfd.connections ?? []).find((c) => c.id === elementId);
-  if (conn) return conn.properties?.[property];
+  if (conn) return readControlValue(conn.properties, property);
   return undefined;
 }
 
@@ -129,22 +129,39 @@ export function computeMitigationCoverage(
   if (!entry?.affectsProperties?.length) return null;
 
   const details: MitigationPropertyCoverage[] = [];
+  const seen = new Set<string>();
+  // Attack-path threat: every anchor target (closed-loop review CL-4).
+  const targets = threat.controlTargets?.length ? threat.controlTargets : [threat];
 
-  for (const effect of entry.affectsProperties) {
-    const elementId = resolveTargetElementId(threat, effect);
-    if (!elementId) continue;
+  for (const target of targets) {
+    for (const effect of entry.affectsProperties) {
+      const elementId = resolveTargetElementId(target, effect);
+      if (!elementId) continue;
+      const key = `${elementId}::${effect.property}::${JSON.stringify(effect.expectedValue)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // Interface: only mitigations whose controls fit its type (CL-1b).
+      if (
+        effect.targetType === "Interface" &&
+        !mitigationFitsInterface(
+          entry.affectsProperties,
+          (dfdData.elements ?? []).find((e) => e.id === elementId)?.properties,
+        )
+      ) {
+        continue;
+      }
 
-    const currentValue = readProperty(elementId, effect.property, dfdData);
-    const isCovered =
-      !isEmptyValue(currentValue) && currentValue === effect.expectedValue;
+      const currentValue = readProperty(elementId, effect.property, dfdData);
+      const isCovered = meetsExpected(effect.property, currentValue, effect.expectedValue);
 
-    details.push({
-      elementId,
-      property: effect.property,
-      expectedValue: effect.expectedValue,
-      currentValue,
-      isCovered,
-    });
+      details.push({
+        elementId,
+        property: effect.property,
+        expectedValue: effect.expectedValue,
+        currentValue,
+        isCovered,
+      });
+    }
   }
 
   if (details.length === 0) return null;

@@ -9,6 +9,8 @@
 // Sidebar: All risks in the current accordion group, sorted by risk score desc.
 // Prev/Next navigation, auto-save on switch, uncertain warning.
 
+import { RiskGoalClaimTab } from "./risk-goal-claim-tab";
+import { compareDisplayIds, type Assumption, type CybersecurityConcept } from "shared";
 import React, {
   useState,
   useMemo,
@@ -102,7 +104,7 @@ function isoFactorPoints(factorId: string, value: number): number {
   return ISO_AP_POINTS_BY_FACTOR[factorId]?.[levels[value - 1]] ?? 0;
 }
 import { RiskConfiguration } from "../models/risk-config-types";
-import { factorLevelOptions } from "../utils/factor-level-options";
+import { factorLevelOptions, isoFactorLevelColor } from "../utils/factor-level-options";
 import { impactBasisText } from "../utils/impact-basis-text";
 import { IsoRiskPanel } from "./shared/iso-risk-panel";
 import {
@@ -111,6 +113,7 @@ import {
   isoRiskValueI18nKey,
   liveIsoRisk,
 } from "../models/iso-risk-display";
+import { feasibilityFromRiskScaleValue } from "../models/iso-risk-matrix";
 import {
   isTreatmentToReview,
   offeredTreatments,
@@ -125,6 +128,7 @@ import {
   MOSCOW_PRIORITIES,
   RISK_TREATMENTS,
   RISK_SCALES,
+  LIKELIHOOD_SCALES,
 } from "../models/risk-scale-types";
 import {
   calculateRiskValues,
@@ -137,6 +141,7 @@ import {
   resolveVerificationDrafts,
   getAllMitigations,
 } from "../../threats/services/threat-catalog-service";
+import { useMitigationCatalogVersion } from "shared/hooks/use-mitigation-catalog-version";
 import { MitigationScopeSelector } from "./mitigation-scope-selector";
 import type {
   StrideCategory,
@@ -219,6 +224,17 @@ export interface RiskDialogProps {
   dfdData?: DFDReference | null;
   onSave: (riskId: string, updates: Partial<Risk>) => void;
   onClose: () => void;
+  /**
+   * Goals and claims (tab "Goal / Claim", ISO 21434 plan Phase 4, decision
+   * 25). Without onConceptChange the tab is not shown.
+   */
+  concept?: CybersecurityConcept;
+  onConceptChange?: (concept: CybersecurityConcept) => void;
+  /** Every risk of the register — "also on …", scenario order of the reuse list. */
+  allRisks?: readonly Risk[];
+  /** Item Definition assumptions a retain claim relies on. */
+  assumptions?: readonly Assumption[];
+  isoMode?: boolean;
 }
 
 // ==================== LOCAL STATE ====================
@@ -274,15 +290,22 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   dfdData,
   onSave,
   onClose,
+  concept,
+  onConceptChange,
+  allRisks,
+  assumptions,
+  isoMode,
 }) => {
   const { t } = useTranslation();
 
   // ── Sidebar sort: highest risk score first ───────────────────────────────
+  // Ascending display id (AT-1.1 … AT-10.2), as the risk table (user
+  // 2026-10-30). The classic score order looked random under ISO/SAE 21434,
+  // whose risk value is not calculatedRiskBeforeMitigation.
   const sortedRisks = useMemo(
     () =>
-      [...risks].sort(
-        (a, b) =>
-          b.calculatedRiskBeforeMitigation - a.calculatedRiskBeforeMitigation,
+      [...risks].sort((a, b) =>
+        compareDisplayIds(a.threatDisplayId, b.threatDisplayId),
       ),
     [risks],
   );
@@ -886,7 +909,9 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
   }, [local]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const mitigationCatalog = useMemo(() => getAllMitigations(), []);
+  const catalogVersion = useMitigationCatalogVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mitigationCatalog = useMemo(() => getAllMitigations(), [catalogVersion]);
 
   // Custom (non-catalog) mitigations are selected as { notes } WITHOUT an id;
   // only catalog entries carry an id. See mitigationSelectionKey.
@@ -1240,6 +1265,64 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     return { ap, band, likelihood: map[band] ?? 0 };
   };
 
+  // ISO: where the panels' feasibility and impact come from (user
+  // 2026-10-30) — replaces the read-only tree row (before) and the residual
+  // box under the factors (after); the factors below stay the input.
+  const isoFeasibilityNote = (mitigated: boolean): string | undefined => {
+    if (!isISO) return undefined;
+    const ratings = mitigated ? local.mitigatedFactorRatings : local.factorRatings;
+    const factors = isoResidual(ratings);
+    const factorsNote = factors
+      ? t("tabs.risks.dialog.isoNote.factors", { ap: factors.ap, defaultValue: "Five factors · AP {{ap}}" })
+      : undefined;
+    const rateFactors = t("tabs.risks.dialog.isoNote.rateFactors", {
+      defaultValue: "Rate all five factors",
+    });
+    if (!mitigated) {
+      if (!treeAssessment) return factorsNote ?? rateFactors;
+      const tree =
+        currentRisk.sourceStrideMethod === "attack-path" && currentRisk.threatDisplayId
+          ? t("tabs.risks.dialog.isoNote.treePath", {
+              path: currentRisk.threatDisplayId,
+              defaultValue: "Attack tree path {{path}}",
+            })
+          : t("tabs.risks.dialog.isoNote.tree", { defaultValue: "Attack tree (highest path)" });
+      return factors ? `${tree} · AP ${factors.ap}` : tree;
+    }
+    const level = feasibilityFromRiskScaleValue(
+      ratings.find((r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID)?.value,
+      configuration.scale,
+    );
+    if (hasTreeIsoFactors || !treeAssessment) {
+      if (factorsNote) return factorsNote;
+      return level && treeAssessment
+        ? t("tabs.risks.dialog.isoNote.storedLevel", {
+            defaultValue: "Stored residual level — rate all five factors",
+          })
+        : rateFactors;
+    }
+    return level
+      ? t("tabs.risks.dialog.isoNote.residualLevel", { defaultValue: "Residual attack-tree level" })
+      : t("tabs.risks.dialog.isoNote.setResidualLevel", {
+          defaultValue: "Set the residual attack-tree level below",
+        });
+  };
+  const isoImpactNote = (mitigated: boolean): string | undefined => {
+    if (!isISO) return undefined;
+    if (mitigated) {
+      return t("tabs.risks.dialog.isoNote.impactUnchanged", {
+        defaultValue: "Unchanged (damage scenario)",
+      });
+    }
+    const asset = linkedAssets[0];
+    return asset
+      ? t("tabs.risks.dialog.isoNote.damageScenario", {
+          asset: asset.displayId ?? asset.name,
+          defaultValue: "Damage scenario of {{asset}}",
+        })
+      : undefined;
+  };
+
   // One ISO attack-potential factor: read-only chip (before) or a labelled
   // "<level> (<points>)" dropdown (after).
   const renderIsoFactorRow = (factorId: string, mitigated: boolean) => {
@@ -1259,6 +1342,17 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     const optionLabel = (idx1: number) => {
       const lvl = levels[idx1 - 1];
       return t(`risks.isoLevels.${lvl}`, { defaultValue: lvl });
+    };
+    // The likelihood dot of the other factors (green = attack unlikely … red =
+    // likely), on the option and on the read-only chip.
+    const levelDot = (idx1: number) => {
+      const color = isoFactorLevelColor(levels.length, idx1);
+      return color ? (
+        <Box
+          data-testid={`iso-level-dot-${factorId}-${idx1}`}
+          sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: color, flexShrink: 0 }}
+        />
+      ) : null;
     };
     // Per-level tooltip: surfaces the ISO 18045 attack-potential points that
     // used to clutter the option label (removed), plus the direction cue.
@@ -1300,15 +1394,22 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                 {t("tabs.risks.dialog.notRated", { defaultValue: "Not rated" })}
               </em>
             </MenuItem>
-            {levels.map((_, i) => (
-              <MenuItem key={i + 1} value={i + 1}>
-                <Tooltip title={optionTooltip(i + 1)} placement="right">
-                  <span style={{ display: "block", width: "100%" }}>
-                    {optionLabel(i + 1)}
-                  </span>
-                </Tooltip>
-              </MenuItem>
-            ))}
+            {/* Least likely attack first (most attacker effort), as every
+                other likelihood factor reads 1 = unlikely … N = likely
+                (user 2026-10-31); the stored value stays the level index. */}
+            {levels
+              .map((_, i) => i + 1)
+              .reverse()
+              .map((idx1) => (
+                <MenuItem key={idx1} value={idx1}>
+                  <Tooltip title={optionTooltip(idx1)} placement="right">
+                    <Stack direction="row" spacing={1} alignItems="center" width="100%">
+                      {levelDot(idx1)}
+                      <span>{optionLabel(idx1)}</span>
+                    </Stack>
+                  </Tooltip>
+                </MenuItem>
+              ))}
           </Select>
         ) : (
           <Tooltip
@@ -1318,7 +1419,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
             <Chip
               size="small"
               variant="outlined"
-              sx={{ width: "100%", justifyContent: "flex-start" }}
+              sx={{ width: "100%", justifyContent: "flex-start", "& .MuiChip-icon": { ml: 0.75 } }}
+              icon={value >= 1 ? (levelDot(value) ?? undefined) : undefined}
               label={
                 value >= 1
                   ? optionLabel(value)
@@ -1345,37 +1447,55 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
       const residual = local.mitigatedFactorRatings.find(
         (r) => r.factorId === ATTACK_TREE_LIKELIHOOD_FACTOR_ID,
       );
-      const residualValue = residual?.value ?? treeFactorRating?.value ?? 0;
+      // ISO: no default — an unset residual level means no residual yet
+      // (liveIsoRisk / computeIsoRisks), so "not set" must be visible and
+      // selectable rather than showing the before level.
+      const residualValue = isISO
+        ? (residual?.value ?? 0)
+        : (residual?.value ?? treeFactorRating?.value ?? 0);
       // Feasibility band → risk-scale value (Mapping B from the risk scale).
       const mapB = feasibilityLevelToRiskScale(configuration.scale);
-      const residualOptions: Array<{ value: number; label: string }> = [
+      // Lowest feasibility first, as the likelihood factors read (user
+      // 2026-10-31).
+      // The likelihood colours of the factors (very low green … high red).
+      const LIKELIHOOD_DOT = {
+        "very-low": LIKELIHOOD_SCALES["4-level"].levels[0].color,
+        low: LIKELIHOOD_SCALES["4-level"].levels[1].color,
+        medium: LIKELIHOOD_SCALES["4-level"].levels[2].color,
+        high: LIKELIHOOD_SCALES["4-level"].levels[3].color,
+      };
+      const residualOptions: Array<{ value: number; label: string; color?: string }> = [
         {
-          value: mapB.high,
-          label: t("tabs.risks.dialog.feasibility.high", {
-            defaultValue: "High",
-          }),
-        },
-        {
-          value: mapB.medium,
-          label: t("tabs.risks.dialog.feasibility.medium", {
-            defaultValue: "Medium",
+          value: mapB["very-low"],
+          color: LIKELIHOOD_DOT["very-low"],
+          label: t("tabs.risks.dialog.feasibility.veryLow", {
+            defaultValue: "Very low",
           }),
         },
         {
           value: mapB.low,
+          color: LIKELIHOOD_DOT.low,
           label: t("tabs.risks.dialog.feasibility.low", {
             defaultValue: "Low",
           }),
         },
         {
-          value: mapB["very-low"],
-          label: t("tabs.risks.dialog.feasibility.veryLow", {
-            defaultValue: "Very low",
+          value: mapB.medium,
+          color: LIKELIHOOD_DOT.medium,
+          label: t("tabs.risks.dialog.feasibility.medium", {
+            defaultValue: "Medium",
+          }),
+        },
+        {
+          value: mapB.high,
+          color: LIKELIHOOD_DOT.high,
+          label: t("tabs.risks.dialog.feasibility.high", {
+            defaultValue: "High",
           }),
         },
       ];
-      // A 3-level scale maps low and very low onto the same value — one
-      // option per value, labels joined.
+      // A 3-level scale maps very low and low onto the same value — one
+      // option per value, labels joined ("Very low / Low").
       for (let i = residualOptions.length - 1; i > 0; i--) {
         const same = residualOptions.findIndex((o) => o.value === residualOptions[i].value);
         if (same < i) {
@@ -1385,6 +1505,14 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           };
           residualOptions.splice(i, 1);
         }
+      }
+      if (isISO) {
+        residualOptions.unshift({
+          value: 0,
+          label: t("tabs.risks.dialog.residualNotSet", {
+            defaultValue: "Not set",
+          }),
+        });
       }
       // Keep the current value selectable even if it is outside the standard
       // bands (e.g. 0 after an "eliminate" treatment, or a custom scale).
@@ -1451,7 +1579,12 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
           >
             {residualOptions.map((o) => (
               <MenuItem key={o.value} value={o.value}>
-                {o.label} ({o.value})
+                <Stack direction="row" spacing={1} alignItems="center" width="100%">
+                  {o.color && (
+                    <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: o.color, flexShrink: 0 }} />
+                  )}
+                  <span>{isISO && o.value === 0 ? o.label : `${o.label} (${o.value})`}</span>
+                </Stack>
               </MenuItem>
             ))}
           </Select>
@@ -1923,6 +2056,14 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   defaultValue: "Risk After",
                 })}
               />
+              {onConceptChange && (
+                <Tab
+                  data-testid="risk-tab-goal-claim"
+                  label={t("tabs.risks.dialog.tabGoalClaim", {
+                    defaultValue: "Goal / Claim",
+                  })}
+                />
+              )}
             </Tabs>
           </Box>
 
@@ -2303,6 +2444,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       feasibility={liveIso?.feasibility}
                       value={liveIso?.value}
                       testId="iso-risk-panel-before"
+                      feasibilityNote={isoFeasibilityNote(false)}
+                      impactNote={isoImpactNote(false)}
                     />
                   ) : (
                     <RiskScorePanel
@@ -2359,7 +2502,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         gap: 1,
                       }}
                     >
-                      {renderTreeFactorRow(false)}
+                      {/* ISO: the tree's feasibility is in the panel above. */}
+                      {!isISO && renderTreeFactorRow(false)}
                       {hasTreeIsoFactors &&
                         ISO_AP_FACTOR_IDS.map((id) =>
                           renderIsoFactorRow(id, false),
@@ -3025,6 +3169,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                       feasibility={liveIso?.residual?.feasibility}
                       value={liveIso?.residual?.value}
                       testId="iso-risk-panel-after"
+                      feasibilityNote={isoFeasibilityNote(true)}
+                      impactNote={isoImpactNote(true)}
                     />
                   ) : (
                     <RiskScorePanel
@@ -3082,18 +3228,24 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                         gap: 1,
                       }}
                     >
-                      {hasTreeIsoFactors ? (
+                      {/* Trees with the ISO factor breakdown: the five
+                          factors are the input, the residual tree level is
+                          derived from them (effect above) — no select. */}
+                      {!hasTreeIsoFactors && renderTreeFactorRow(true)}
+                      {hasTreeIsoFactors && (
                         <>
                           {ISO_AP_FACTOR_IDS.map((id) =>
                             renderIsoFactorRow(id, true),
                           )}
-                          {(() => {
+                          {/* ISO: the residual feasibility is in the panel above. */}
+                          {!isISO && (() => {
                             const res = isoResidual(
                               local.mitigatedFactorRatings,
                             );
                             return (
                               <Paper
                                 variant="outlined"
+                                data-testid="residual-feasibility-panel"
                                 sx={{
                                   p: 1.25,
                                   gridColumn: "1 / -1",
@@ -3126,14 +3278,31 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                             );
                           })()}
                         </>
-                      ) : (
-                        renderTreeFactorRow(true)
                       )}
                       {likelihoodFactors.map((f) => renderFactorRow(f, true))}
                     </Box>
                   </Box>
 
-                  {impactFactors.length > 0 && (
+                  {isISO ? (
+                    // ISO/SAE 21434: the impact is rated on the damage scenario
+                    // (15.5, the asset), not on the risk — the residual keeps
+                    // it; a control lowers the attack feasibility (15.7).
+                    <Box data-testid="iso-impact-after-note">
+                      <Typography variant="subtitle2" gutterBottom>
+                        {t("tabs.risks.dialog.impactAfterIso", {
+                          defaultValue: "Impact (After)",
+                        })}
+                      </Typography>
+                      <Paper variant="outlined" sx={{ p: 1.25, bgcolor: "grey.50" }}>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {t("tabs.risks.dialog.impactAfterIsoNote", {
+                            defaultValue:
+                              "Unchanged: the impact is rated on the damage scenario of the asset, a control lowers the attack feasibility. To lower the impact, re-rate the damage scenario in the Assets tab.",
+                          })}
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  ) : impactFactors.length > 0 && (
                     <Box>
                       <Typography variant="subtitle2" gutterBottom>
                         {t("tabs.risks.dialog.impactFactorsAfter", {
@@ -3175,6 +3344,21 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   )}
                 </Box>
               </Stack>
+            )}
+
+            {/* ══ TAB 4: GOAL / CLAIM (ISO 21434 9.4, decision 25) ═════════ */}
+            {tabValue === 3 && onConceptChange && (
+              <RiskGoalClaimTab
+                risk={currentRisk}
+                treatment={local.treatment}
+                treatmentJustification={local.treatmentJustification}
+                allRisks={allRisks ?? risks}
+                concept={concept}
+                onConceptChange={onConceptChange}
+                assetDataRef={assetDataRef}
+                assumptions={assumptions}
+                isoMode={isoMode}
+              />
             )}
           </Box>
         </Box>

@@ -188,3 +188,30 @@ export function mergeMitigationHints(
   }
   return result;
 }
+/**
+ * Recompute the "already implemented" flags of an analyst-authored threat's
+ * catalog entries (custom mitigation catalog design CM-1). Unlike
+ * mergeMitigationHints nothing is appended — the analyst chose the list; only
+ * the flags of entries already on it follow the element properties. Free-text
+ * entries (no id) are left as they are.
+ */
+export function refreshImplementedFlags(
+  drafts: MitigationDraft[],
+  hints: MitigationDraft[],
+): MitigationDraft[] {
+  const byId = new Map(hints.map((h) => [h.id, h]));
+  return drafts.map((draft) => {
+    if (!draft.id) return draft;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { alreadyImplemented, implementedByProperty, implementedByValue, ...rest } = draft;
+    const hint = byId.get(draft.id);
+    return hint
+      ? {
+          ...rest,
+          alreadyImplemented: true,
+          implementedByProperty: hint.implementedByProperty,
+          implementedByValue: hint.implementedByValue,
+        }
+      : rest;
+  });
+}

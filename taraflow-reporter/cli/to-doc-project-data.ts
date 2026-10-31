@@ -17,6 +17,7 @@
 
 import type { Project } from "../../src/app/models/project-types";
 import { buildMethodologyRecord } from "../../src/app/services/methodology-record";
+import { docVerificationOf } from "../../src/app/services/verification-state";
 import type {
   DocProjectData,
   DocComputedValues,
@@ -30,15 +31,13 @@ import type {
  * generators access it via `project.computed.impactLabels.get(...)`.
  * Empty maps are sufficient because every call site in the generator has
  * a `?? fallback` afterwards (verified in base-generator.ts, e.g.
- * `project.computed.riskBeforeLabels.get(risk.id) ?? risk.calculatedRiskBeforeMitigation.toString()`).
+ * `project.computed.moscowLabels.get(risk.moscowPriority) ?? risk.moscowPriority`).
  */
 function createEmptyComputedValues(language: DocLanguage): DocComputedValues {
   return {
     activeStrideMethods: [],
     language,
     impactLabels: new Map(),
-    riskBeforeLabels: new Map(),
-    riskAfterLabels: new Map(),
     strideNames: new Map(),
     moscowLabels: new Map(),
     statusLabels: new Map(),
@@ -72,11 +71,17 @@ export function toDocProjectData(
     // Plural → singular! (see plan gotcha)
     attackTree: project.attackTrees as DocProjectData["attackTree"],
 
+    // Item definition (WP-09-01, ISO 21434 plan A-5) — the same data as in the app.
+    ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
+    ...(project.cybersecurityConcept ? { cybersecurityConcept: project.cybersecurityConcept } : {}),
+
     computed: {
       ...createEmptyComputedValues(language),
       // Methodology chapter (ISO/SAE 21434 conformance plan 0d) — the same
       // derived record as in the app, so CLI and app report one method.
       methodology: buildMethodologyRecord(project),
+      // Verification status as of the report's creation (plan Phase 4).
+      verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
     },
 
     documentation: project.documentation as DocProjectData["documentation"],

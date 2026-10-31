@@ -93,6 +93,12 @@ interface AuditConfigDialogProps {
    * Local protection status + checklist.
    */
   protection?: AuditProtection;
+
+  /**
+   * The repository has a signer manifest committed at HEAD: every commit is
+   * signed (commitSigning) — the switch is on and locked, with the reason.
+   */
+  signingRequired?: boolean;
 }
 
 // ==================== COMPONENT ====================
@@ -107,6 +113,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   repoRoot,
   gitService,
   protection,
+  signingRequired = false,
 }) => {
   const { t } = useTranslation();
 
@@ -149,13 +156,15 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
      * Seed the unified signing block from the legacy gpg config.
      * This keeps older projects compatible.
      */
+    const signing = config.signing ?? {
+      enabled: !!config.gpg?.enabled,
+      format: "gpg" as const,
+      keyId: config.gpg?.keyId,
+    };
     setLocalConfig({
       ...normalizeAuditConfig(config),
-      signing: config.signing ?? {
-        enabled: !!config.gpg?.enabled,
-        format: "gpg",
-        keyId: config.gpg?.keyId,
-      },
+      // With a committed manifest signing is not a choice (signingRequired).
+      signing: signingRequired ? { ...signing, enabled: true } : signing,
     });
 
     setError(null);
@@ -190,7 +199,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [open, config, gitService]);
+  }, [open, config, gitService, signingRequired]);
 
   // ==================== HANDLERS ====================
 
@@ -831,6 +840,25 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 </ListItem>
               ))}
             </List>
+
+            {/* TARA verification validity (ISO 21434 plan Phase 4, decision 25) */}
+            <TextField
+              type="number"
+              size="small"
+              label={t("audit.config.verificationMaxAgeDays", {
+                defaultValue: "Verification counts as outdated after (days)",
+              })}
+              value={localConfig.verificationMaxAgeDays ?? 90}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                setLocalConfig((prev) => ({
+                  ...prev,
+                  verificationMaxAgeDays: Number.isFinite(n) && n > 0 ? Math.round(n) : undefined,
+                }));
+              }}
+              inputProps={{ min: 1, "data-testid": "audit-verification-max-age" }}
+              sx={{ maxWidth: 360, mt: 1 }}
+            />
           </Box>
         )}
 
@@ -864,7 +892,9 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
             <FormControlLabel
               control={
                 <Switch
-                  checked={!!localConfig.signing?.enabled}
+                  checked={signingRequired || !!localConfig.signing?.enabled}
+                  disabled={signingRequired}
+                  data-testid="audit-config-signing-switch"
                   onChange={(e) =>
                     setLocalConfig((prev) => ({
                       ...prev,
@@ -882,6 +912,15 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 defaultValue: "Sign commits",
               })}
             />
+
+            {signingRequired && (
+              <Alert severity="info" data-testid="audit-config-signing-required">
+                {t("audit.config.signing.requiredByManifest", {
+                  defaultValue:
+                    "This repository signs (its history introduced a signer manifest): every commit is verified, so commits are always signed — for every project in it.",
+                })}
+              </Alert>
+            )}
 
             {!localConfig.signing?.enabled && (
               <Alert severity="info">

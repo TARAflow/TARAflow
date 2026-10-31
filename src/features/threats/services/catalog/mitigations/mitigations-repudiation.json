@@ -73,14 +73,7 @@
       "strideCategory": "R",
       "context": {},
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "Process",
-          "property": "auditLogging",
-          "expectedValue": "cryptographic",
-          "confidence": "deterministic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": [
         "V-R-001"
       ]

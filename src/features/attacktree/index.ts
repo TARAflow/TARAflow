@@ -113,7 +113,7 @@ export {
 
 // ==================== SERVICES ====================
 
-export { attackTreeParser } from "./services/attacktree-parser";
+export { attackTreeParser, dslMitigationIds, replaceDslMitigation } from "./services/attacktree-parser";
 export { attackTreeCalculator } from "./services/attacktree-calculator";
 export { attackTreeValidator } from "./services/attacktree-validator";
 export { attackTreeService } from "./services/attacktree-service";
@@ -144,3 +144,6 @@ export {
 export type { AttackPathSyncResult } from "./services/attacktree-threat-sync";
 export { resolveFeasibilityConfiguration } from "./models/attacktree-types";
 export type { FeasibilityLevel } from "./models/attacktree-feasibility-types";
+
+// Attack-path threat ids (closed-loop targets, app layer)
+export { isAttackPathThreatOf } from "./services/attacktree-path-identity";

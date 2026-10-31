@@ -28,19 +28,21 @@ import { AuditToolbar } from "./audit-toolbar";
 import { AuditSummary } from "./audit-summary";
 import { PhaseDiffViewer } from "./phase-diff-viewer";
 import { CommitDialog } from "./commit-dialog";
+import { VerificationPanel } from "./verification-panel";
+import type { VerificationEntry } from "shared";
 import { AuditConfigDialog } from "./audit-config-dialog";
 import { useAuditRepo } from "../hooks/useAuditRepo";
+import { findVerificationCommits } from "../services/verification-commits";
 import { useAuditProtection } from "../hooks/useAuditProtection";
 import {
+  loadCommittedManifest,
   loadPreviousProjectFromGit,
+  loadSigningState,
   repoRelativePath,
 } from "../services/audit-prev-state";
-import { createIpcFileIO } from "../services/audit-git-adapters";
-import {
-  allowedSignersPathOf,
-  parseAllowedSigners,
-} from "../services/audit-signer-manifest";
-import { checkSigningIdentity } from "../services/audit-signing-identity";
+import { commitSigning } from "../services/audit-signing-identity";
+import { readGitDerivedInfo } from "../services/derive-audit-config";
+import { commitSigningMessage } from "./commit-signing-message";
 import { diffService } from "../services/diff-service";
 import { createGitService } from "../services/git-service-renderer";
 import { credentialService } from "../services/credential-service-renderer";
@@ -54,7 +56,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
-  onPhaseComplete,
+  onVerificationsChange,
 }) => {
   const { t } = useTranslation();
 
@@ -92,6 +94,12 @@ export const AuditTab: React.FC<AuditTabProps> = ({
   const [lastCommitDate, setLastCommitDate] = useState<string | undefined>(
     undefined,
   );
+
+  // TARA verification (plan Phase 4, decision 25): which entry went in with
+  // which commit — from git (pickaxe on the entry id), never stored.
+  const [verificationCommits, setVerificationCommits] = useState<ReadonlyMap<string, string>>(new Map());
+  const [commitReviewer, setCommitReviewer] = useState<string | undefined>(undefined);
+  const verificationEntries = project.cybersecurityConcept?.verifications ?? [];
 
   // ==================== COMPUTED ====================
 
@@ -133,6 +141,80 @@ export const AuditTab: React.FC<AuditTabProps> = ({
     gitService,
     currentBranch,
   );
+
+  // The signer manifest committed at HEAD — the one truth for signing, the
+  // engine's (it checks each commit against its parent's manifest, never the
+  // working tree). Re-read once git is ready, after each commit and when the
+  // config dialog closes (signers may have been committed there).
+  // Plus whether the history ever introduced it — the anchor, as
+  // useAuditProtection reads it (one query, no second truth): once the
+  // repository signs, every commit is signed, for every project in it (user
+  // 2026-10-31).
+  const [committedManifest, setCommittedManifest] = useState<string | null>(null);
+  const [manifestTick, setManifestTick] = useState(0);
+  useEffect(() => {
+    if (!repoRootValue || !isGitInitialized) {
+      setCommittedManifest(null);
+      return;
+    }
+    let cancelled = false;
+    void loadCommittedManifest((args) => gitService.raw(args)).then((m) => {
+      if (!cancelled) setCommittedManifest(m);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [repoRootValue, isGitInitialized, gitService, manifestTick]);
+  const manifestAnchored = !!protection.anchor;
+  const { refresh: refreshProtection } = protection;
+  /** After a commit or a config change: manifest and anchor read again. */
+  const refreshSigningState = useCallback(() => {
+    setManifestTick((n) => n + 1);
+    void refreshProtection();
+  }, [refreshProtection]);
+  // The signing state of another branch (commit dialog, "existing branch").
+  const loadBranchSigningState = useCallback(
+    (ref: string) => loadSigningState((args) => gitService.raw(args), ref),
+    [gitService],
+  );
+  const signingRequired = committedManifest !== null || manifestAnchored;
+
+  // Signing required: the key path is hydrated on load only when the file had
+  // signing on — fill it from git config (user.signingkey) when it is still
+  // missing, in memory only.
+  useEffect(() => {
+    if (!signingRequired) return;
+    const signing = auditData.config.signing;
+    const format = signing?.format ?? "ssh";
+    if (format === "ssh" ? signing?.sshSigningKeyPath : signing?.keyId) return;
+    let cancelled = false;
+    void readGitDerivedInfo({ raw: (args) => gitService.raw(args) }).then((info) => {
+      const key = format === "ssh" ? info.signing?.sshSigningKeyPath : info.signing?.keyId;
+      if (cancelled || !key) return;
+      setAuditData((prev) => ({
+        ...prev,
+        config: {
+          ...prev.config,
+          signing: {
+            ...(prev.config.signing ?? { enabled: true }),
+            format,
+            ...(format === "ssh" ? { sshSigningKeyPath: key } : { keyId: key }),
+          },
+        },
+      }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [signingRequired, auditData.config.signing, gitService]);
+
+  // The commit message's Author trailer follows the configured author — the
+  // message data is built when the tab opens, possibly before the author was
+  // set (local-user-settings / git config), which left "Author: Unknown".
+  useEffect(() => {
+    const name = auditData.config.author.name;
+    setCommitMessageData((prev) => (prev && name && prev.author !== name ? { ...prev, author: name } : prev));
+  }, [auditData.config.author.name]);
 
   // ==================== EFFECTS ====================
 
@@ -312,6 +394,46 @@ export const AuditTab: React.FC<AuditTabProps> = ({
     );
   }, [repo.outcome, project.filePath, gitService]);
 
+  const refreshVerificationCommits = useCallback(async () => {
+    const repoRoot =
+      repo.outcome?.kind === "repo-ok" ||
+      repo.outcome?.kind === "repo-needs-attributes"
+        ? repo.outcome.repoRoot
+        : null;
+    const filePath = project.filePath;
+    if (!repoRoot || !filePath || verificationEntries.length === 0) {
+      setVerificationCommits(new Map());
+      return;
+    }
+    setVerificationCommits(
+      await findVerificationCommits(
+        (command) => gitService.raw(command),
+        repoRoot,
+        filePath,
+        verificationEntries.map((e) => e.id),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repo.outcome, project.filePath, gitService, verificationEntries.map((e) => e.id).join(",")]);
+
+  useEffect(() => {
+    refreshVerificationCommits();
+  }, [refreshVerificationCommits]);
+
+  /** Commit dialog prefilled for a verification: round "Verification", Reviewed-by. */
+  const handleCommitVerification = useCallback(
+    (entry: VerificationEntry) => {
+      if (!validation.canCommit || !hasChanges || !commitMessageData) {
+        setError("Cannot commit: Configuration incomplete or no changes detected");
+        return;
+      }
+      setCommitMessageData({ ...commitMessageData, round: "Verification" });
+      setCommitReviewer(entry.reviewer);
+      setShowCommitDialog(true);
+    },
+    [validation.canCommit, hasChanges, commitMessageData],
+  );
+
   // ==================== HANDLERS ====================
 
   const handleRefresh = useCallback(() => {
@@ -387,27 +509,45 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         }
         const relPath = repoRelativePath(repoRoot, filePath);
 
-        // Signing-identity guard: if this commit will be signed, the author
-        // email must be authorized in the manifest — otherwise git produces a
-        // signature that fails verification later ("No principal matched").
-        // Block before committing rather than shipping a worthless signature.
-        if (options.signCommit) {
-          const io = createIpcFileIO();
-          const manifestText = await io.read(allowedSignersPathOf(repoRoot));
-          const ident = checkSigningIdentity({
-            authorEmail: auditData.config.author.email,
-            manifestEntries: manifestText
-              ? parseAllowedSigners(manifestText)
-              : [],
-          });
-          if (!ident.ok) {
-            throw new Error(
-              ident.reason === "empty-manifest"
-                ? "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers)."
-                : `Signing is enabled but your author email (${auditData.config.author.email}) is not authorized in the signer manifest. Add your key under this email (Config → Signers).`,
-            );
-          }
+        // Signing, decided on the branch the commit GOES TO (commitSigning):
+        // its committed manifest and anchor — an existing other branch is
+        // checked out only below, a new branch starts at HEAD. With a
+        // manifest the commit is signed whatever the switch or the box say;
+        // a signature needs a key and an authorized author email. Read here
+        // as the final check; the dialog showed the same before.
+        const targetRef =
+          options.createBranch || !options.branchName ? "HEAD" : options.branchName;
+        const { manifest: committed, anchored } = await loadSigningState(
+          (args) => gitService.raw(args),
+          targetRef,
+        );
+        const signingConfig = auditData.config.signing;
+        const signingFormat = signingConfig?.format ?? (auditData.config.gpg?.enabled ? "gpg" : "ssh");
+        const signingKeyId = signingConfig?.keyId ?? auditData.config.gpg?.keyId;
+        const decision = commitSigning({
+          committedManifest: committed,
+          anchored,
+          signCommit: options.signCommit,
+          signingEnabled: signingConfig?.enabled ?? auditData.config.gpg?.enabled ?? false,
+          format: signingFormat,
+          sshSigningKeyPath: signingConfig?.sshSigningKeyPath,
+          keyId: signingKeyId,
+          authorEmail: auditData.config.author.email,
+        });
+        if (decision.problem) {
+          throw new Error(commitSigningMessage(t, decision.problem, auditData.config.author.email));
         }
+        const commitConfig: AuditConfig = decision.sign
+          ? {
+              ...auditData.config,
+              signing: {
+                ...(signingConfig ?? {}),
+                enabled: true,
+                format: signingFormat,
+                ...(signingKeyId ? { keyId: signingKeyId } : {}),
+              },
+            }
+          : auditData.config;
 
         // Stage only the project file (path-scoped)
         const stageResult = await gitService.stage([relPath]);
@@ -438,14 +578,15 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         // Commit — path-scoped
         const commitResult = await gitService.commit(
           options.message,
-          auditData.config,
-          options.signCommit,
+          commitConfig,
+          decision.sign,
           [relPath],
         );
 
         if (!commitResult.success || !commitResult.data) {
           throw new Error(commitResult.error || "Failed to commit");
         }
+        refreshSigningState();
 
         // Push if requested
         if (options.pushAfterCommit && auditData.config.remoteUrl) {
@@ -492,6 +633,8 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         setCurrentBranch(options.branchName);
         await initializeGit();
         detectChanges();
+        refreshVerificationCommits();
+        setCommitReviewer(undefined);
 
         setShowCommitDialog(false);
       } catch (err) {
@@ -509,6 +652,9 @@ export const AuditTab: React.FC<AuditTabProps> = ({
       project.phaseStatus,
       onUpdate,
       detectChanges,
+      refreshVerificationCommits,
+      refreshSigningState,
+      t,
     ],
   );
 
@@ -692,6 +838,21 @@ export const AuditTab: React.FC<AuditTabProps> = ({
           />
         )}
 
+        {/* TARA verification (ISO/SAE 21434 RQ-09-07, decision 25) */}
+        {onVerificationsChange && project.verification && (
+          <VerificationPanel
+            entries={verificationEntries}
+            currentStateHash={project.verification.currentStateHash}
+            checklist={project.verification.checklist}
+            projectVersion={project.verification.projectVersion}
+            defaultReviewer={auditData.config.author.name}
+            commits={verificationCommits}
+            gitAvailable={isGitInitialized}
+            onChange={onVerificationsChange}
+            onCommit={handleCommitVerification}
+          />
+        )}
+
         {/* Audit trail verification */}
         {auditData.config.signing?.enabled && (
           <AuditVerifyPanel
@@ -707,12 +868,16 @@ export const AuditTab: React.FC<AuditTabProps> = ({
         open={showConfigDialog}
         config={auditData.config}
         onSave={handleSaveConfig}
-        onClose={() => setShowConfigDialog(false)}
+        onClose={() => {
+          setShowConfigDialog(false);
+          refreshSigningState();
+        }}
         onSaveCredential={handleSaveCredential}
         onSaveGPGKey={handleSaveGPGKey}
         gitService={gitService}
         repoRoot={repoRootValue}
         protection={protection}
+        signingRequired={signingRequired}
       />
 
       {/* Commit Dialog */}
@@ -724,8 +889,15 @@ export const AuditTab: React.FC<AuditTabProps> = ({
           currentBranch={currentBranch}
           commitMessageData={commitMessageData}
           onCommit={handleCommit}
-          onClose={() => setShowCommitDialog(false)}
+          onClose={() => {
+            setShowCommitDialog(false);
+            setCommitReviewer(undefined);
+          }}
           protection={protection}
+          committedManifest={committedManifest}
+          manifestAnchored={manifestAnchored}
+          loadBranchSigningState={loadBranchSigningState}
+          initialReviewer={commitReviewer}
         />
       )}
     </Box>

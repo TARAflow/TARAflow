@@ -40,6 +40,7 @@ import {
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
 import type { AttackTreeReportSection } from "../attack-tree-report";
+import type { ReportSection } from "../report-section";
 import { SDOC_TEMPLATES } from "../templates/strictdoc-templates";
 import { SDOC_EXTENDED_TEMPLATES } from "../templates/strictdoc-templates-extended";
 import { replacePlaceholders } from "../templates";
@@ -191,6 +192,44 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
 
   // Attack-trees chapter (plan F5). A section holds one free text, so facts,
   // structure (RST nested list) and path table share it.
+  formatStatusNotice(text: string, _kind: "info" | "warning"): string {
+    return ["[FREETEXT]", text, "[/FREETEXT]", "", ""].join("\n");
+  }
+
+  formatSectionedChapter(chapterId: string, title: string, intro: string, body: string): string {
+    return [
+      "[SECTION]",
+      `TITLE: ${title}`,
+      "",
+      "[FREETEXT]",
+      intro,
+      "[/FREETEXT]",
+      "",
+      body + "[/SECTION]",
+    ].join("\n") + "\n\n";
+  }
+
+  formatReportSection(section: ReportSection): string {
+    const row = (cells: string[]) =>
+      cells
+        .map((c, i) => `${i === 0 ? "   * - " : "     - "}${this.escapeTableText(c)}`)
+        .join("\n");
+    const body = [
+      ...section.paragraphs.flatMap((p) => [p, ""]),
+      ...section.facts.flatMap(([label, value]) => [`**${label}**: ${value}`, ""]),
+      ...(section.table
+        ? [".. list-table::", "   :header-rows: 1", "", row(section.table.headers), ...section.table.rows.map(row), ""]
+        : []),
+    ];
+    return [
+      "[SECTION]",
+      `TITLE: ${section.title}`,
+      "",
+      ...(body.length ? ["[FREETEXT]", ...body, "[/FREETEXT]", ""] : []),
+      "[/SECTION]",
+    ].join("\n") + "\n\n";
+  }
+
   formatAttackTreesChapter(title: string, intro: string, body: string): string {
     return [
       "[SECTION]",

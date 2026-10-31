@@ -18,6 +18,9 @@ export type {
 export { ProjectProgress } from "./components/project-progress";
 export { ProjectSettings } from "./components/project-settings";
 
+// TARA verification status text (Overview line, phase indicators)
+export { verificationStatusText } from "./components/verification-status-line";
+
 // ==================== TYPES ====================
 export type {
   GeneralTabData,
@@ -25,6 +28,9 @@ export type {
   ProjectProgressData,
   ProjectSettingsData,
   PhaseValidationInfo,
+  ItemModelItem,
+  MethodologySummary,
+  VerificationStatusView,
 } from "./models/overview-types";
 
 // ==================== HOOKS ====================

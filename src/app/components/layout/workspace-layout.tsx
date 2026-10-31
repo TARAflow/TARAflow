@@ -24,6 +24,14 @@ import {
   getPhaseStatusColor,
   useToast,
   dfdPreviewPagesOf,
+  emptyItemDefinition,
+  newAssumption,
+  issuedAssumptionNumber,
+  withAssumptions,
+  type Assumption,
+  type CybersecurityConcept,
+  emptyCybersecurityConcept,
+  type VerificationEntry,
 } from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
 import {
@@ -37,13 +45,14 @@ import { useProjectContext } from "../../contexts/project-context";
 
 import { PhaseTabs } from "../navigation/phase-tab-bar";
 
-import { GeneralTab } from "features/overview";
+import { GeneralTab, verificationStatusText } from "features/overview";
 import type { GeneralTabData } from "features/overview";
 
 import {
   HazardsTab,
   type HazardUpdateResult,
   hazardService,
+  hazardValidator,
 } from "features/hazards";
 
 import {
@@ -54,6 +63,7 @@ import {
 import {
   addCreatedAssets,
   analyseLeveled,
+  dfdService,
   isLeveled,
   multiprocessGroupsFrom,
   parentLevelFlowsFrom,
@@ -62,6 +72,18 @@ import {
 
 import { AssetsTab, AssetUpdateResult } from "features/assets";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
+import { buildAssumptionUsage, buildItemModelItems } from "app/utils/build-item-model-items";
+import { buildMethodologySummary } from "app/utils/build-methodology-summary";
+import { buildVerificationChecklist } from "app/utils/build-verification-checklist";
+import { notifyProjectMitigations, setProjectMitigations } from "shared/services/project-mitigation-registry";
+import { verificationStateHash, verificationStatus } from "app/services/verification-state";
+import {
+  rememberLocalSettings,
+  withLocalAudit,
+  withLocalIntegration,
+} from "app/services/local-user-settings";
+import { phaseIndicators } from "app/utils/phase-indicators";
+import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import {
@@ -86,7 +108,12 @@ import {
   NO_DRIFT,
 } from "features/threats";
 
-import { RisksTab, RiskUpdateResult } from "features/risks";
+import { RisksTab, RiskUpdateResult, riskService } from "features/risks";
+import {
+  mergeProjectMitigationConflicts,
+  mergeProjectMitigationRefs,
+  projectMitigationUsage,
+} from "app/services/project-mitigation-usage";
 import { getMandatoryAssetCriteriaIds } from "features/risks/services/regulation-preset-service";
 
 import {
@@ -100,8 +127,8 @@ import {
 } from "features/attacktree";
 
 import { DocTab, DocUpdateResult } from "features/documentation";
-import { IntegrationTab, type IntegrationTabData } from "features/integration";
-import { AuditTab } from "features/audit";
+import { IntegrationTab, createTicketAdapter, type IntegrationTabData } from "features/integration";
+import { AuditTab, useAuditHints } from "features/audit";
 import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
@@ -158,6 +185,14 @@ export const WorkspaceLayout: React.FC = () => {
 
   const activeProjectRef = useRef<Project | undefined>(undefined);
   activeProjectRef.current = activeProject;
+
+  // Project mitigation catalog M-C-nnn (custom mitigation catalog CM-2): the
+  // one writer of the shared registry. Registered before anything below reads
+  // the catalog — a plain assignment, like activeProjectRef above; the
+  // subscribers (useMitigationCatalogVersion) are told after the render.
+  const customMitigations = activeProject?.threats?.configuration?.customMitigations;
+  setProjectMitigations(customMitigations);
+  useEffect(() => notifyProjectMitigations(), [customMitigations]);
 
   // ── Projects-by-id ref — target-project lookup for late-firing handlers ────
   // activeProjectRef always points at whatever is active NOW. That is wrong
@@ -256,21 +291,7 @@ export const WorkspaceLayout: React.FC = () => {
         settings: activeProject.settings,
         phaseStatus: activeProject.phaseStatus,
         sourceBindings: activeProject.sourceBindings,
-        dfdValidation: activeProject.dfd?.validation
-          ? {
-              valid: activeProject.dfd.validation.errors.length === 0,
-              // GeneralTabData.dfdValidation uses the generic, string-based
-              // ValidationResult (common-types.ts) — it's a plain summary
-              // widget, not the interactive DFD notification panel, so it
-              // doesn't need displayId/elementId, just translated text.
-              errors: activeProject.dfd.validation.errors.map((f) =>
-                translateFinding(t, f),
-              ),
-              warnings: activeProject.dfd.validation.warnings.map((f) =>
-                translateFinding(t, f),
-              ),
-            }
-          : undefined,
+        itemDefinition: activeProject.itemDefinition,
       }
     : undefined;
 
@@ -283,6 +304,44 @@ export const WorkspaceLayout: React.FC = () => {
       if (conflicts.length > 0) toast.warning(conflicts[0].message);
     },
     [updateProject, toast],
+  );
+
+  // Trust boundary form → a new Item Definition assumption (A-3). Synchronous:
+  // the form links the returned id right away.
+  const handleCreateAssumption = useCallback(
+    (text: string): Assumption => {
+      const current = activeProjectRef.current;
+      const def = current?.itemDefinition ?? emptyItemDefinition();
+      const created = newAssumption(def.assumptions, text, issuedAssumptionNumber(def));
+      if (current) {
+        updateProject({
+          id: current.id,
+          itemDefinition: withAssumptions(def, [...def.assumptions, created]),
+        });
+      }
+      return created;
+    },
+    [updateProject],
+  );
+
+  // Audit tab → TARA verification entries (ISO 21434 plan Phase 4, decision 25).
+  const handleVerificationsChange = useCallback(
+    (verifications: VerificationEntry[]) => {
+      const current = activeProjectRef.current;
+      if (!current) return;
+      const concept = current.cybersecurityConcept ?? emptyCybersecurityConcept();
+      updateProject({ id: current.id, cybersecurityConcept: { ...concept, verifications } });
+    },
+    [updateProject],
+  );
+
+  // Risk dialog → goals and claims (ISO 21434 plan Phase 4, decision 25).
+  const handleConceptChange = useCallback(
+    (cybersecurityConcept: CybersecurityConcept) => {
+      const current = activeProjectRef.current;
+      if (current) updateProject({ id: current.id, cybersecurityConcept });
+    },
+    [updateProject],
   );
 
   // ── DFD tab ───────────────────────────────────────────────────────────────
@@ -524,6 +583,58 @@ export const WorkspaceLayout: React.FC = () => {
     [updateProject],
   );
 
+  // Personal values (commit author, tracker account and connection state) live
+  // on this machine, not in the file (local-user-settings, user 2026-10-30):
+  // the tabs see the project's blocks with them filled in. A file written
+  // before keeps its values until the next save — adopted once on opening.
+  const activeProjectId = activeProject?.id;
+  const activeAudit = activeProject?.audit ?? null;
+  const activeIntegration = activeProject?.integration ?? null;
+  useEffect(() => {
+    if (activeProjectId) {
+      rememberLocalSettings(activeProjectId, activeAudit, activeIntegration, { onlyMissing: true });
+    }
+    // Once per opened project — later edits go through the update handlers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
+  const localAudit = useMemo(
+    () => (activeProjectId ? withLocalAudit(activeProjectId, activeAudit) : activeAudit),
+    [activeProjectId, activeAudit],
+  );
+  const localIntegration = useMemo(
+    () => (activeProjectId ? withLocalIntegration(activeProjectId, activeIntegration) : activeIntegration),
+    [activeProjectId, activeIntegration],
+  );
+
+  // The issue tracker's adapter for the Risk tab (adapters design §4.3) —
+  // derived from the stored connection; the main process holds the token.
+  const integrationConnection = localIntegration?.connection ?? null;
+  const ticketPort = useMemo(() => createTicketAdapter(integrationConnection), [integrationConnection]);
+
+  // Project mitigations M-C-nnn (custom mitigation catalog CM-3): usage and
+  // merge span threats, risks and attack trees.
+  const projectMitigationRefs = useMemo(
+    () => ({
+      usage: (id: string) => {
+        const current = activeProjectRef.current;
+        return current
+          ? projectMitigationUsage(current, id)
+          : { threats: [], risks: [], attackTrees: [] };
+      },
+      mergeConflicts: (fromId: string, intoId: string) => {
+        const current = activeProjectRef.current;
+        return current ? mergeProjectMitigationConflicts(current, fromId, intoId) : [];
+      },
+      merge: (fromId: string, intoId: string) => {
+        const current = activeProjectRef.current;
+        if (!current || mergeProjectMitigationConflicts(current, fromId, intoId).length > 0) return;
+        const merged = mergeProjectMitigationRefs(current, fromId, intoId);
+        void updateProject({ id: current.id, ...merged });
+      },
+    }),
+    [updateProject],
+  );
+
   // ── Risks tab ─────────────────────────────────────────────────────────────
 
   const handleRisksUpdate = useCallback(
@@ -566,6 +677,7 @@ export const WorkspaceLayout: React.FC = () => {
     (updates: AuditUpdateResult) => {
       const current = activeProjectRef.current;
       if (!current) return;
+      rememberLocalSettings(current.id, updates.audit, null);
       updateProject({
         id: current.id,
         audit: updates.audit,
@@ -605,6 +717,7 @@ export const WorkspaceLayout: React.FC = () => {
     (data: IntegrationTabData) => {
       const current = activeProjectRef.current;
       if (!current) return;
+      rememberLocalSettings(current.id, null, data.integration);
       updateProject({
         id: current.id,
         integration: data.integration,
@@ -757,6 +870,79 @@ export const WorkspaceLayout: React.FC = () => {
     [activeProject?.assets],
   );
 
+  // What the Item Definition can link to (Overview → Definition, A-2).
+  const memoizedItemModelItems = useMemo(
+    () => (activeProject ? buildItemModelItems(activeProject) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProject?.dfd, activeProject?.assets],
+  );
+  // TARA verification (plan Phase 4, decision 25): the hash of the current
+  // analysis content, the checklist of a new entry, and — under iso-21434 —
+  // the status the Overview shows.
+  const verificationHash = useMemo(
+    () => (activeProject ? verificationStateHash(activeProject) : ""),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      activeProject?.info?.description,
+      activeProject?.itemDefinition,
+      activeProject?.hazards,
+      activeProject?.dfd,
+      activeProject?.assets,
+      activeProject?.threats,
+      activeProject?.attackTrees,
+      activeProject?.risks,
+      activeProject?.cybersecurityConcept,
+    ],
+  );
+  // TARA verification (RQ-09-07) only under iso-21434 — the Audit tab shows
+  // no verification panel otherwise (user 2026-10-30, amends decision 25).
+  const memoizedVerificationInput = useMemo(
+    () =>
+      activeProject &&
+      regulationPresetFromTags(activeProject.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
+        ? {
+            currentStateHash: verificationHash,
+            checklist: buildVerificationChecklist(activeProject, new Date().toISOString().slice(0, 10)),
+            ...(activeProject.info?.version ? { projectVersion: activeProject.info.version } : {}),
+          }
+        : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [verificationHash, activeProject?.info?.version, activeProject?.info?.tags],
+  );
+  const memoizedVerificationStatus = useMemo(
+    () =>
+      activeProject &&
+      regulationPresetFromTags(activeProject.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
+        ? verificationStatus(
+            activeProject.cybersecurityConcept?.verifications,
+            verificationHash,
+            new Date().toISOString().slice(0, 10),
+            activeProject.audit?.config?.verificationMaxAgeDays,
+          )
+        : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [verificationHash, activeProject?.cybersecurityConcept?.verifications, activeProject?.info?.tags, activeProject?.audit?.config?.verificationMaxAgeDays],
+  );
+
+  // Methodology sub-tab of the Overview (A-4): the record, read-only.
+  const memoizedMethodologySummary = useMemo(
+    () => (activeProject ? buildMethodologySummary(activeProject) : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProject?.info?.tags, activeProject?.assets?.configuration, activeProject?.risks?.configuration, activeProject?.attackTrees?.configuration],
+  );
+  const memoizedAssumptionUsage = useMemo(
+    () => (activeProject ? buildAssumptionUsage(activeProject) : {}),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProject?.dfd],
+  );
+
+  // Label vocabulary of the preset: under iso-21434 person-harm severities
+  // show their ISO 26262 class (S0–S3, conformance plan 1H-S).
+  const labelVocabulary: "default" | "iso-21434" =
+    regulationPresetFromTags(activeProject?.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
+      ? "iso-21434"
+      : "default";
+
   // Hazard → asset projection (§6): endangeredBy / contributesTo per asset.
   // Read-only; the assets feature never imports features/hazards.
   const memoizedHazardRef = useMemo(
@@ -851,18 +1037,90 @@ export const WorkspaceLayout: React.FC = () => {
     memoizedDFDReference,
   ]);
 
+  // ── Phase indicators (tabs + Overview phase progress) ─────────────────────
+  // One computation keyed by PhaseId; the DFD part validates the stored
+  // diagram now instead of trusting the validation stored in the file.
+  const dfdSavedValidation = useMemo(
+    () => (dfdTabProject ? dfdService.validateSavedState(dfdTabProject) : null),
+    [dfdTabProject],
+  );
+  // Audit entry of the phase bar (user 2026-10-30): no audit repository for
+  // the project file, verification entries not committed — chip + tooltip.
+  const auditHints = useAuditHints({
+    id: activeProject?.id ?? "",
+    filePath: activeProject?.filePath,
+    verificationIds: activeProject?.cybersecurityConcept?.verifications?.map((v) => v.id) ?? [],
+    refreshKey: `${activePhase}|${activeProject?.audit?.lastModified ?? ""}`,
+  });
+  const auditHintLines = useMemo(() => {
+    const lines: string[] = [];
+    if (auditHints?.repoMissing) {
+      lines.push(t("phases.audit.repoMissing", { defaultValue: "No audit repository for this project file — set it up in the Audit tab." }));
+    }
+    if (auditHints && auditHints.uncommittedVerifications > 0) {
+      lines.push(
+        t("phases.audit.uncommitted", {
+          count: auditHints.uncommittedVerifications,
+          defaultValue: "{{count}} TARA verification(s) not committed — commit in the Audit tab.",
+        }),
+      );
+    }
+    return lines;
+  }, [auditHints, t]);
+
+  const memoizedPhaseIndicators = useMemo(
+    () =>
+      activeProject
+        ? phaseIndicators({
+            phaseStatus: activeProject.phaseStatus,
+            info: activeProject.info,
+            dfdValidation: dfdSavedValidation,
+            dfdStatus: dfdSavedValidation ? dfdService.phaseStatusOf(dfdSavedValidation) : undefined,
+            // The Hazard tab's validation, only where the phase is shown.
+            hazardValidation:
+              activeProject.info?.safetyRelevant && activeProject.hazards?.hazards.length
+                ? hazardValidator.validate(activeProject.hazards, memoizedAssetDataRef?.assets)
+                : null,
+            riskValidation: activeProject.risks?.risks?.length ? riskService.validate(activeProject.risks) : null,
+            threatDrift: threatDriftCounts,
+            verification: memoizedVerificationStatus
+              ? { kind: memoizedVerificationStatus.kind, text: verificationStatusText(memoizedVerificationStatus, t) }
+              : undefined,
+            t,
+          })
+        : null,
+    [activeProject, dfdSavedValidation, threatDriftCounts, memoizedAssetDataRef, memoizedVerificationStatus, t],
+  );
+
   // ── Control instances + security drift ───────────────────────────────────
 
   // getAllMitigations() is a module-level singleton — memoize to ensure
   // stable reference across renders so useControlInstanceDerivation
   // does not re-run unnecessarily.
-  const mitigationCatalog = useMemo(() => getAllMitigations(), []);
+  const mitigationCatalog = useMemo(
+    () => getAllMitigations(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [customMitigations],
+  );
+
+  // Attack-path risks reach the closed loop through their tree's anchor
+  // (closed-loop review CL-3).
+  const anchorTargets = useMemo(
+    () =>
+      attackPathControlTargets(
+        activeProject?.attackTrees,
+        activeProject?.assets?.assets,
+        activeProject?.dfd,
+      ),
+    [activeProject?.attackTrees, activeProject?.assets?.assets, activeProject?.dfd],
+  );
 
   const controlInstances = useControlInstanceDerivation(
     activeProject?.threats ?? null,
     activeProject?.risks ?? null,
     activeProject?.dfd ?? null,
     mitigationCatalog,
+    anchorTargets,
   );
 
   const securityDrifts = useSecurityDrift(
@@ -972,6 +1230,8 @@ export const WorkspaceLayout: React.FC = () => {
         activePhase={activePhase}
         onPhaseChange={handlePhaseChange}
         threatDrift={threatDriftCounts}
+        indicators={memoizedPhaseIndicators ?? undefined}
+        auditHints={auditHintLines}
       />
 
       <div className="flex-1 overflow-y-auto">
@@ -987,7 +1247,16 @@ export const WorkspaceLayout: React.FC = () => {
             )}
             getStatusIcon={getPhaseStatusIcon}
             getStatusColor={getPhaseStatusColor}
+            phaseIndicators={memoizedPhaseIndicators ?? undefined}
+            onOpenPhase={handlePhaseChange}
             onUpdate={handleGeneralTabUpdate}
+            projectId={activeProject.id}
+            modelItems={memoizedItemModelItems}
+            assumptionUsage={memoizedAssumptionUsage}
+            methodology={memoizedMethodologySummary}
+            verification={memoizedVerificationStatus}
+            onOpenAuditTab={() => handlePhaseChange(PhaseId.Audit)}
+            onOpenRiskTab={() => handlePhaseChange(PhaseId.Risk)}
           />
         )}
 
@@ -1001,6 +1270,7 @@ export const WorkspaceLayout: React.FC = () => {
                 phaseStatus: activeProject.phaseStatus,
                 assetDataRef: memoizedAssetDataRef,
                 lastModified: activeProject.info?.lastModified || "",
+                labelVocabulary,
               }}
               onUpdate={handleHazardsUpdate}
               openRequest={hazardOpenRequest}
@@ -1029,6 +1299,9 @@ export const WorkspaceLayout: React.FC = () => {
               graphFocusRequest={graphFocusRequest}
               hazards={memoizedGraphHazards}
               assetRegistry={memoizedGraphRegistry}
+              labelVocabulary={labelVocabulary}
+              assumptions={activeProject.itemDefinition?.assumptions}
+              onCreateAssumption={handleCreateAssumption}
               onShowInTable={(assetId) => {
                 setTableHighlightRequest({ assetId });
                 handlePhaseChange(PhaseId.Assets);
@@ -1125,6 +1398,7 @@ export const WorkspaceLayout: React.FC = () => {
             }}
             dfdContext={memoizedDFDContext}
             onUpdate={handleThreatsUpdate}
+            projectMitigationRefs={projectMitigationRefs}
           />
         )}
 
@@ -1153,7 +1427,12 @@ export const WorkspaceLayout: React.FC = () => {
                 // Controls are proposed only when their context fits the
                 // project (mitigation catalog design D4).
                 activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-              ),
+              ).map((ref) => ({
+                ...ref,
+                // Where the path's controls go, for the coverage badge
+                // (closed-loop review CL-4).
+                controlTargets: anchorTargets(ref.id),
+              })),
               attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
                 activeProject.attackTrees,
                 activeProject.risks?.configuration?.scale,
@@ -1177,25 +1456,24 @@ export const WorkspaceLayout: React.FC = () => {
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               dfdTableGroups: memoizedTableGroups,
-              integration: activeProject.integration
+              integration: localIntegration
                 ? {
                     connection: {
-                      tool:
-                        activeProject.integration.connection?.tool ?? "jira",
-                      status:
-                        activeProject.integration.connection?.status ??
-                        "disconnected",
-                      projectName:
-                        activeProject.integration.connection?.projectName,
-                      credentials: activeProject.integration.connection
-                        ?.credentials as any,
+                      tool: localIntegration.connection?.tool ?? "jira",
+                      status: localIntegration.connection?.status ?? "disconnected",
+                      projectName: localIntegration.connection?.projectName,
+                      issueTypes: localIntegration.connection?.issueTypes,
+                      credentials: localIntegration.connection?.credentials as any,
                     },
                   }
                 : null,
+              cybersecurityConcept: activeProject.cybersecurityConcept,
+              assumptions: activeProject.itemDefinition?.assumptions,
               lastModified: activeProject.info?.lastModified || "",
             }}
+            ticketPort={ticketPort}
             onUpdate={handleRisksUpdate}
-            onPhaseComplete={() => setActivePhase(5)}
+            onConceptChange={handleConceptChange}
           />
         )}
 
@@ -1229,7 +1507,6 @@ export const WorkspaceLayout: React.FC = () => {
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handleAttackTreeUpdate}
-            onPhaseComplete={() => setActivePhase(6)}
           />
         </div>
 
@@ -1249,7 +1526,7 @@ export const WorkspaceLayout: React.FC = () => {
               id: activeProject.id,
               name: activeProject.info?.name || "",
               filePath: activeProject.filePath,
-              audit: activeProject.audit,
+              audit: localAudit,
               phaseStatus: activeProject.phaseStatus,
               info: activeProject.info,
               hazards: activeProject.hazards,
@@ -1258,17 +1535,20 @@ export const WorkspaceLayout: React.FC = () => {
               threats: activeProject.threats,
               risks: activeProject.risks,
               attackTrees: activeProject.attackTrees,
+              itemDefinition: activeProject.itemDefinition,
+              cybersecurityConcept: activeProject.cybersecurityConcept,
+              verification: memoizedVerificationInput,
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handleAuditUpdate}
+            onVerificationsChange={handleVerificationsChange}
             onDirtyChange={handleAuditDirtyChange}
-            onPhaseComplete={() => console.log("Audit phase completed")}
           />
         )}
 
         {activePhase === PhaseId.Integration && (
           <IntegrationTab
-            data={{ integration: activeProject.integration ?? null }}
+            data={{ integration: localIntegration }}
             onUpdate={handleIntegrationUpdate}
           />
         )}

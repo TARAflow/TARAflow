@@ -82,7 +82,7 @@
           "targetType": "DataFlow",
           "role": "channel",
           "property": "integrityProtection",
-          "expectedValue": true,
+          "expectedValue": "signature",
           "confidence": "deterministic"
         },
         {
@@ -254,7 +254,15 @@
       },
       "attackVectors": ["adjacent", "physical"],
       "isCustom": false,
-      "affectsProperties": [],
+      "affectsProperties": [
+        {
+          "targetType": "DataFlow",
+          "role": "channel",
+          "property": "integrityProtection",
+          "expectedValue": "hmac",
+          "confidence": "heuristic"
+        }
+      ],
       "verifications": ["V-VEH-001"]
     },
     {
@@ -276,7 +284,14 @@
       },
       "attackVectors": ["adjacent"],
       "isCustom": false,
-      "affectsProperties": [],
+      "affectsProperties": [
+        {
+          "targetType": "Interface",
+          "property": "implementedControls.linkAuthentication",
+          "expectedValue": "mutual_pairing",
+          "confidence": "heuristic"
+        }
+      ],
       "verifications": ["V-VEH-005"]
     }
   ]

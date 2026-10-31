@@ -143,6 +143,30 @@ describe("attack-tree section under iso-21434", () => {
     expect(screen.getAllByText("AT-2.1").length).toBeGreaterThan(0);
   });
 
+  it("the filter bar counts every risk the tab shows, attack-path risks included (user 2026-10-30: \"Showing 0 of 0\")", () => {
+    render(
+      <RiskTableView
+        risks={[]}
+        threats={[]}
+        configuration={iso}
+        strideMethod="per-element"
+        showFilters
+        filters={{ searchText: "", priorityFilter: "", treatmentFilter: "", riskLevelFilter: "", scope: {} } as never}
+        onSearchTextChange={vi.fn()}
+        onPriorityFilterChange={vi.fn()}
+        onRiskLevelFilterChange={vi.fn()}
+        onClearFilters={vi.fn()}
+        filteredCount={2}
+        totalCount={17}
+        onEdit={vi.fn()}
+        onPriorityChange={vi.fn()}
+        onTreatmentChange={vi.fn()}
+        attackPathRisks={[pathRisk("AT-2.1", "t2", 3, 2), pathRisk("AT-2.4", "t2", 4)] as never}
+      />,
+    );
+    expect(screen.getByText("Showing 2 of 17")).toBeTruthy();
+  });
+
   it("the review banner lists the decisions and toggles the filter", () => {
     const onToggle = vi.fn();
     const items = [{ risk: { ...risk("AT-9.1"), isoRisk: { value: 5 } }, kind: "retain-high", severity: "warning" }];

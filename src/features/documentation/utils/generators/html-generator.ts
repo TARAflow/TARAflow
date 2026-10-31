@@ -11,6 +11,7 @@ import {
 import type { StatsTable } from "../threat-risk-stats";
 import type { MethodologySection } from "../methodology-sections";
 import type { AttackTreeReportSection } from "../attack-tree-report";
+import type { ReportSection } from "../report-section";
 import { HTML_TEMPLATES } from "../templates/html-templates";
 import { replacePlaceholders, processConditionals } from "../templates";
 
@@ -101,6 +102,7 @@ export class HtmlGenerator extends BaseDocumentGenerator {
 
     let innerContent = "";
     innerContent += this.generateHeader();
+    innerContent += this.generateVerificationNotice();
     innerContent += this.generateToc(chapters);
 
     // Disabled chapters stay out (plan F6 — this loop used to check only
@@ -215,6 +217,40 @@ export class HtmlGenerator extends BaseDocumentGenerator {
   }
 
   // Attack-trees chapter (plan F5)
+  formatStatusNotice(text: string, kind: "info" | "warning"): string {
+    return `<p class="status-notice status-${kind}" data-status="${kind}"><strong>${this.escapeHtml(text)}</strong></p>\n\n`;
+  }
+
+  formatSectionedChapter(chapterId: string, title: string, intro: string, body: string): string {
+    return `<section id="${chapterId}">\n  <h2>${this.escapeHtml(title)}</h2>\n  <p>${this.escapeHtml(intro)}</p>\n${body}</section>\n\n`;
+  }
+
+  formatReportSection(section: ReportSection): string {
+    const cells = (tag: "th" | "td", list: string[]) =>
+      list.map((c) => `<${tag}>${this.escapeHtml(c)}</${tag}>`).join("");
+    return [
+      `  <h3>${this.escapeHtml(section.title)}</h3>`,
+      ...section.paragraphs.map((p) => `  <p>${this.escapeHtml(p).replace(/\n/g, "<br>")}</p>`),
+      ...(section.facts.length
+        ? [
+            `  <p>${section.facts
+              .map(([label, value]) => `<strong>${this.escapeHtml(label)}</strong>: ${this.escapeHtml(value)}`)
+              .join("<br>")}</p>`,
+          ]
+        : []),
+      ...(section.table
+        ? [
+            "  <table>",
+            `    <thead><tr>${cells("th", section.table.headers)}</tr></thead>`,
+            "    <tbody>",
+            ...section.table.rows.map((r) => `      <tr>${cells("td", r)}</tr>`),
+            "    </tbody>",
+            "  </table>",
+          ]
+        : []),
+    ].join("\n") + "\n";
+  }
+
   formatAttackTreesChapter(title: string, intro: string, body: string): string {
     return `<section id="attack-trees">\n  <h2>${this.escapeHtml(title)}</h2>\n  <p>${this.escapeHtml(intro)}</p>\n${body}</section>\n\n`;
   }

@@ -49,6 +49,8 @@ import { FEASIBILITY_RANK } from "../models/attacktree-feasibility-types";
 interface AttackTreeTableViewProps {
   pathAnalysis: PathAnalysis;
   evaluationMethod: EvaluationMethod;
+  /** The tree's number in the project — given, the table shows each path's AT-n.m. */
+  treeNumber?: number;
   /**
    * Lookup of mitigation id → reference (status/ticket/text), mirrored from
    * the Risk tab. Optional: when absent, mitigations render as plain id chips.
@@ -142,6 +144,7 @@ type SortOrder = "asc" | "desc";
 export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
   pathAnalysis,
   evaluationMethod,
+  treeNumber,
   mitigationLookup,
   mitigationCatalog,
   verificationCatalog,
@@ -196,6 +199,7 @@ export const AttackTreeTableView: React.FC<AttackTreeTableViewProps> = ({
   );
 
   const columns = useAttackTreePathColumns({
+    treeNumber,
     evaluationMethod,
     mitigationLookup,
     mitigationCatalog,

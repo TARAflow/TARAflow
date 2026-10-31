@@ -33,6 +33,7 @@
     "continue": "Continue",
     "inProgress": "In Progress",
     "errors": "Errors",
+    "warnings": "Warnings",
     "actions": "Actions",
     "remove": "Remove",
     "showDFD": "Show DFD Preview",
@@ -81,7 +82,24 @@
     "threats": "Threats",
     "risk": "Risk",
     "phaseProgress": "Phase Progress",
-    "overallProgress": "Overall Progress"
+    "overallProgress": "Overall Progress",
+    "openTab": "Click to open the tab",
+    "audit": {
+      "repoMissing": "No audit repository for this project file — set it up in the Audit tab.",
+      "uncommitted_one": "{{count}} TARA verification not committed — commit it in the Audit tab.",
+      "uncommitted_other": "{{count}} TARA verifications not committed — commit them in the Audit tab."
+    },
+    "details": {
+      "missing": "Missing: {{fields}}",
+      "more": "… {{count}} more",
+      "field": {
+        "name": "Name",
+        "description": "Description",
+        "version": "Version",
+        "responsible": "Responsible",
+        "tags": "Tags"
+      }
+    }
   },
   "status": {
     "notStarted": "Not Started",
@@ -147,7 +165,8 @@
         "v7": "Risks are linked by the stable threat id instead of the display number.",
         "v8": "Asset-to-asset relations are stored in the project file. Before, they were lost on save.",
         "v9": "The DFD can span several pages (top level and sub-diagrams); older TARAflow versions can no longer open the file, because they would merge the pages. Person-harm severity uses a 5-level scale (reversible minor/major, irreversible minor/major, fatal). Old values are mapped to the higher level: irreversible injury becomes irreversible major. Safety relevance of assets is derived from safety annotations and hazard items: the asset fields \"safety-relevant\" and \"Safety Impact\" are removed; a Safety Impact without another rating becomes a manual override.",
-        "v10": "Risks that take their likelihood from an attack tree are corrected: on a 3- or 4-level risk scale a \"high\" attack path counted as 5, outside the scale; the value now fits the scale (e.g. 4 on a 4-level scale) and the risk is recalculated. 5-level projects are unchanged. Old names of person-harm severities still left in the file (e.g. \"fatality\") get the current names; no rating changes. In ISO/SAE 21434 projects every risk gets its risk value 1–5 (impact × attack feasibility, matrix of Annex H.8), and risks and attack-tree analyses record with which calculation version and tables their values were computed. Treatments and priorities are not changed. Older TARAflow versions can no longer open the file, so they do not drop these values on save."
+        "v10": "Risks that take their likelihood from an attack tree are corrected: on a 3- or 4-level risk scale a \"high\" attack path counted as 5, outside the scale; the value now fits the scale (e.g. 4 on a 4-level scale) and the risk is recalculated. 5-level projects are unchanged. Old names of person-harm severities still left in the file (e.g. \"fatality\") get the current names; no rating changes. In ISO/SAE 21434 projects every risk gets its risk value 1–5 (impact × attack feasibility, matrix of Annex H.8), and risks and attack-tree analyses record with which calculation version and tables their values were computed. Treatments and priorities are not changed. Older TARAflow versions can no longer open the file, so they do not drop these values on save.",
+        "v11": "A person endangered by a hazard can be rated \"None (no injury)\" — S0 under ISO/SAE 21434. Such a rating counts as no harm: the person does not become a hazard target and its causes do not become safety-relevant. Older TARAflow versions can no longer open the file, because they would count it as harm. No values change. The project can carry an Item Definition (boundary, functions, architecture, operational environment, assumptions), edited in the Overview's Definition view; the project description becomes its \"Purpose and functions\". Risks can be linked to cybersecurity goals (treatment Reduce) and claims (Retain, Share), and the TARA verification is recorded."
       }
     },
     "confirmAssetDelete": {
@@ -250,6 +269,106 @@
     "imported": "Project imported",
     "phaseChanged": "Phase {{phase}} → {{status}}",
     "noActivity": "No activity recorded yet"
+  },
+  "verificationStatus": {
+    "label": "TARA verification",
+    "verified": "Verified on {{date}} by {{reviewer}} — state unchanged.",
+    "changed": "Changed since the verification on {{date}} — verify again in the Audit tab.",
+    "reconfirm": "The verification on {{date}} cannot vouch for the current state — recorded with an earlier TARAflow version, or the file was converted on loading. Confirm it again in the Audit tab.",
+    "outdated": "The verification on {{date}} is older than {{days}} days — verify again in the Audit tab.",
+    "failed": "The verification on {{date}} did not pass.",
+    "none": "Not verified yet — record the verification in the Audit tab.",
+    "openAudit": "Audit tab"
+  },
+  "overviewViews": {
+    "label": "Overview views",
+    "project": "Project",
+    "definition": "Definition",
+    "methodology": "Methodology",
+    "sources": "Sources",
+    "methodologyTitle": "Methodology (read-only)",
+    "methodologyHint": "Derived from the project's configuration — the same record the report's methodology chapter uses. Scales, matrix and acceptance criteria are set in the Risk tab's configuration.",
+    "openRiskConfiguration": "Change in the Risk tab"
+  },
+  "itemDefinition": {
+    "intro": "What is analysed: the item (ISO/SAE 21434 9.3), its boundary, functions, preliminary architecture and operational environment. Describe it here or refer to the architecture document it comes from.",
+    "purpose": {
+      "title": "Purpose and functions",
+      "hint": "What the item is for and what it does — the former project description.",
+      "placeholder": "Describe the item's purpose and its main functions..."
+    },
+    "sections": {
+      "boundary": {
+        "title": "Item boundary",
+        "hint": "What belongs to the item and what does not; its interfaces to other items and to the environment (9.3 a)."
+      },
+      "architecture": {
+        "title": "Preliminary architecture",
+        "hint": "The item's main building blocks and how they work together (9.3 c) — refer to the DFD instead of redrawing it."
+      },
+      "environment": {
+        "title": "Operational environment",
+        "hint": "Where and how the item is used, as far as relevant to cybersecurity (9.3, RQ-09-02)."
+      },
+      "constraints": {
+        "title": "Constraints and legal requirements",
+        "hint": "Technical, organisational and legal constraints the analysis has to respect."
+      }
+    },
+    "source": {
+      "label": "Source",
+      "document": "Source document (e.g. arc42)",
+      "section": "Section (e.g. §3 Context)",
+      "version": "Version"
+    },
+    "modelRefs": {
+      "label": "Refers to (DFD, assets)",
+      "missing": "removed ({{id}})"
+    },
+    "kinds": {
+      "element": "DFD elements",
+      "flow": "Data flows",
+      "page": "DFD pages",
+      "asset": "Assets"
+    },
+    "functions": {
+      "title": "Functions over the lifecycle",
+      "hint": "The item's functions and the lifecycle phases they are active in (ISO/SAE 21434 9.3 b).",
+      "name": "Function",
+      "description": "Short description",
+      "asset": "Function asset (optional)",
+      "add": "Add function",
+      "remove": "Remove function"
+    },
+    "lifecycle": {
+      "production": "Production",
+      "operation": "Operation",
+      "maintenance": "Maintenance",
+      "decommissioning": "Decommissioning"
+    },
+    "assumptions": {
+      "title": "Assumptions",
+      "hint": "What the analysis assumes about the environment (9.3, RQ-09-02 NOTE 8). Trust boundaries link them; an invalid assumption flags every boundary that relies on it.",
+      "text": "Assumption",
+      "statusLabel": "Status",
+      "status": {
+        "open": "open",
+        "confirmed": "confirmed",
+        "invalid": "invalid"
+      },
+      "owner": "Owner",
+      "reviewBy": "Review by",
+      "usedBy": "used by {{list}}",
+      "add": "Add assumption",
+      "remove": "Remove assumption"
+    },
+    "findings": {
+      "purposeMissing": "Purpose and functions are not described.",
+      "sectionMissing": "{{section}} is not described.",
+      "assumptionInvalidInUse": "{{assumption}} is invalid but still relied on by {{boundaries}} — review them.",
+      "assumptionReviewDue": "{{assumption}} is still open after its review date.",
+      "linkRemoved": "{{section}}: {{count}} link(s) to removed model items."
+    }
   },
   "projectInfo": {
     "title": "Project Information",
@@ -799,5 +918,48 @@
     "irreversible_major": "Irreversible, major",
     "fatal": "Fatal",
     "tooltip": "Safety: {{severity}}"
+  },
+  "integration": {
+    "title": "Issue tracker",
+    "intro": "Connect an issue tracker to create tickets for mitigations and follow their status. The token is kept in the OS keychain, bound to this tracker address — never in the project file.",
+    "retest": "Run the connection test once — the token is now bound to this tracker address and has to be entered again.",
+    "connected": "Connected to {{tracker}} — project {{project}} ({{host}}, {{account}})",
+    "tracker": "Tracker",
+    "from": "from {{version}}",
+    "secretHelp": "Stored in the OS keychain for this address only.",
+    "test": "Test connection",
+    "disconnect": "Disconnect",
+    "project": "Project",
+    "projectHint": "Run the connection test again to choose another project.",
+    "host": {
+      "jira": "Jira URL",
+      "jira-server": "Jira URL",
+      "azure-devops": "Organization URL",
+      "github": "API URL",
+      "gitlab": "GitLab URL",
+      "polarion": "Polarion URL",
+      "openproject": "OpenProject URL"
+    },
+    "user": {
+      "email": "E-mail",
+      "username": "User"
+    },
+    "secret": {
+      "jira": "API token",
+      "jira-server": "Personal access token",
+      "azure-devops": "Personal access token",
+      "github": "Personal access token",
+      "gitlab": "Personal access token",
+      "polarion": "Personal access token",
+      "openproject": "API key"
+    },
+    "error": {
+      "unavailable": "This tracker is not available yet.",
+      "hostNotHttps": "{{host}} must be an https address.",
+      "userRequired": "{{user}} is required.",
+      "secretRequired": "{{secret}} is required.",
+      "keychain": "The token could not be stored in the OS keychain (desktop app required)."
+    },
+    "issueCount": "{{count}} issues"
   }
 }

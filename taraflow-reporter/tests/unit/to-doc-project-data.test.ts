@@ -52,8 +52,6 @@ describe("toDocProjectData", () => {
     expect(doc.computed.activeStrideMethods).toEqual([]);
     expect(doc.computed.impactLabels).toBeInstanceOf(Map);
     expect(doc.computed.impactLabels.size).toBe(0);
-    expect(doc.computed.riskBeforeLabels).toBeInstanceOf(Map);
-    expect(doc.computed.riskAfterLabels).toBeInstanceOf(Map);
     expect(doc.computed.strideNames).toBeInstanceOf(Map);
     expect(doc.computed.moscowLabels).toBeInstanceOf(Map);
     expect(doc.computed.statusLabels).toBeInstanceOf(Map);
@@ -68,5 +66,29 @@ describe("toDocProjectData", () => {
     expect(doc.threats).toEqual(project.threats);
     expect(doc.risks).toEqual(project.risks);
     expect(doc.documentation).toEqual(project.documentation);
+  });
+
+  it("passes the item definition through (WP-09-01, ISO 21434 plan A-5); absent stays absent", () => {
+    const project = loadFixtureProject();
+    expect("itemDefinition" in toDocProjectData(project, "en")).toBe(false);
+    const itemDefinition = { sections: { boundary: { text: "Controller" } }, functions: [], assumptions: [] };
+    expect(toDocProjectData({ ...project, itemDefinition }, "en").itemDefinition).toEqual(itemDefinition);
+  });
+
+  it("passes goals / claims through and adds the verification status under ISO 21434 only (plan Phase 4)", () => {
+    const project = loadFixtureProject();
+    const doc = toDocProjectData(project, "en");
+    expect("cybersecurityConcept" in doc).toBe(false);
+    expect(doc.computed.verification).toBeUndefined();
+
+    const cybersecurityConcept = { goals: [], claims: [], verifications: [] };
+    const iso = {
+      ...project,
+      info: { ...project.info, tags: { ...project.info.tags, regulation: ["ISO/SAE 21434"] } },
+      cybersecurityConcept,
+    } as Project;
+    const isoDoc = toDocProjectData(iso, "en");
+    expect(isoDoc.cybersecurityConcept).toEqual(cybersecurityConcept);
+    expect(isoDoc.computed.verification?.kind).toBe("none");
   });
 });

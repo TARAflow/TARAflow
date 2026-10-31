@@ -9,6 +9,12 @@
 // Edge directions (verified against fixtures):
 //   endangers:      from = hazardId → to = assetId   (asset is target)
 //   contributes_to: from = assetId  → to = hazardId  (asset is cause)
+//
+// A person edge rated "none" (no injury, S0 — ISO plan decision 13 C) is a
+// rating, not harm: the link shows it, but it enters no aggregation and does
+// not make the person a hazard target. Otherwise the asset would turn
+// safety-relevant (stride-modifier, asset-validator) and commit-hazard-safety
+// would write physicalImpact "none" from the hazard.
 
 import type { HazardData } from "features/hazards";
 import {
@@ -27,11 +33,18 @@ import type { HazardImpact } from "shared/models/hazard-impact";
 const worse = worseSafetyImpact<SafetyImpact | undefined>;
 
 /**
- * Person-harm severity of an endangers edge. Environment / infrastructure
- * impacts use their own scales and carry no person-harm severity.
+ * Person-harm severity of an endangers edge as rated, "none" included (for
+ * display). Environment / infrastructure impacts use their own scales and
+ * carry no person-harm severity.
  */
 function humanSeverity(impact: HazardImpact | undefined): SafetyImpact | undefined {
   return impact?.target === "human" ? impact.severity : undefined;
+}
+
+/** Person harm for the aggregation: "none" (S0) is no harm. */
+function humanHarm(impact: HazardImpact | undefined): SafetyImpact | undefined {
+  const severity = humanSeverity(impact);
+  return severity === "none" ? undefined : severity;
 }
 
 export function buildAssetHazardLinks(
@@ -61,7 +74,7 @@ export function buildAssetHazardLinks(
     if (rel.type === "endangers") {
       hazardWorstSeverity[rel.from] = worse(
         hazardWorstSeverity[rel.from],
-        humanSeverity(rel.impact),
+        humanHarm(rel.impact),
       );
     }
   }
@@ -80,8 +93,10 @@ export function buildAssetHazardLinks(
       };
       const summary = ensure(rel.to);
       summary.endangeredBy.push(link);
-      summary.isHazardTarget = true;
-      summary.worstSeverity = worse(summary.worstSeverity, severity);
+      // A pure "none" person edge does not make a hazard target.
+      const harm = humanHarm(rel.impact);
+      if (rel.impact?.target !== "human" || harm !== undefined) summary.isHazardTarget = true;
+      summary.worstSeverity = worse(summary.worstSeverity, harm);
     } else if (rel.type === "contributes_to") {
       const item = itemsById.get(rel.to);
       const inherited = hazardWorstSeverity[rel.to];

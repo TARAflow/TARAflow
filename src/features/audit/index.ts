@@ -8,6 +8,8 @@ export { AuditSummary } from "./components/audit-summary";
 export { PhaseDiffViewer } from "./components/phase-diff-viewer";
 export { CommitDialog } from "./components/commit-dialog";
 export { AuditConfigDialog } from "./components/audit-config-dialog";
+// What the Audit entry of the phase bar points out (repo missing, uncommitted verifications)
+export { useAuditHints, type AuditHints } from "./hooks/useAuditHints";
 
 // ==================== MODELS ====================
 export type {

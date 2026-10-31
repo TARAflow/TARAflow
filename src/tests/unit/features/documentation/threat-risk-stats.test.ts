@@ -41,7 +41,8 @@ describe("threat statistics", () => {
 
 describe("risk statistics", () => {
   const risk = (value: number, type: string) => ({ calculatedRiskBeforeMitigation: value, type });
-  const RISKS = [risk(4, "DataFlow"), risk(4, "DataFlow"), risk(2, "Interface"), risk(3, "Interface"), risk(0, "Interface")];
+  // R = I × L up to 16 on the 4-level scale; levels by the thresholds 3 / 6 / 11 / 16.
+  const RISKS = [risk(12, "DataFlow"), risk(16, "DataFlow"), risk(5.3, "Interface"), risk(9.6, "Interface"), risk(0, "Interface")];
   const typeOf = (r: { type?: string }) => r.type ?? "-";
   const SCALE = { scale: "4-level" as const, roundingMethod: "round" as const };
 
@@ -60,5 +61,10 @@ describe("risk statistics", () => {
     expect(riskGroupSummary(RISKS, SCALE, "en")).toBe("5 risks — Critical 2 · High 1 · Medium 1 · Not rated 1");
     expect(riskGroupSummary(RISKS, SCALE, "de")).toBe("5 Risiken — Kritisch 2 · Hoch 1 · Mittel 1 · Nicht bewertet 1");
     expect(riskStatsTable(RISKS, typeOf, { scale: "5-level" }, "de", label).headers).toContain("Sehr hoch");
+  });
+
+  it("levels follow the scale's thresholds, custom ones included (review 2026-10-30: 4.0 and above read as Critical)", () => {
+    expect(riskGroupSummary([risk(4.2, "-"), risk(5.3, "-"), risk(6.4, "-")], SCALE, "en")).toBe("3 risks — High 1 · Medium 2");
+    expect(riskGroupSummary([risk(5.3, "-")], { ...SCALE, severityThresholds: { 1: 3, 2: 5, 3: 8, 4: 16 } }, "en")).toBe("1 risk — High 1");
   });
 });

@@ -364,7 +364,17 @@ export class ElementThreatGenerator {
       deduplicatedTables,
       project.threats?.perElementTables,
       elementThreatNaturalKey,
-      { keepManual: options?.keepManual },
+      {
+        keepManual: options?.keepManual,
+        manualHints: (t) => {
+          const el = t.linkedElement
+            ? project.dfdGraph?.elementsById.get(t.linkedElement.elementId)
+            : undefined;
+          return el
+            ? getImplementedMitigationHints(el.type, ((el as any).properties as Record<string, unknown> | null) ?? null, t.strideCategory)
+            : [];
+        },
+      },
     );
   }
 

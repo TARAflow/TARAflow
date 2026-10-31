@@ -18,6 +18,8 @@ import type { AssetData } from "features/assets";
 import type { ThreatData } from "features/threats";
 import type { RiskData } from "features/risks";
 import type { AttackTreeData } from "features/attacktree";
+import type { ItemDefinition } from "shared/models/item-definition-types";
+import type { CybersecurityConcept, VerificationEntry } from "shared/models/cybersecurity-concept-types";
 
 // ==================== DOCUMENT FORMAT ====================
 
@@ -31,6 +33,7 @@ export type DocChapterId =
   | "applicable-regulations"
   | "methodology"
   | "system-overview"
+  | "item-definition"
   | "dfd"
   | "dfd-descriptions"
   | "assets"
@@ -44,6 +47,7 @@ export type DocChapterId =
   | "srsl-assessment"
   | "accepted-risks"
   | "traceability-matrix"
+  | "goals-claims"
   | "attack-trees"
   | "appendix";
 
@@ -63,6 +67,7 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
   },
   methodology: { en: "Methodology", de: "Methodik" },
   "system-overview": { en: "System Overview", de: "Systemübersicht" },
+  "item-definition": { en: "Item Definition", de: "Item-Definition" },
   dfd: { en: "Data Flow Diagram", de: "Datenflussdiagramm" },
   "dfd-descriptions": {
     en: "DFD Element Descriptions",
@@ -110,6 +115,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Traceability Matrix (ISO/SAE 21434)",
     de: "Rückverfolgbarkeitsmatrix (ISO/SAE 21434)",
   },
+  "goals-claims": {
+    en: "Cybersecurity Goals and Claims",
+    de: "Cybersecurity Goals und Claims",
+  },
   "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
   appendix: { en: "Appendix", de: "Anhang" },
 };
@@ -119,6 +128,8 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "applicable-regulations", enabled: true, autoHideIfEmpty: true },
   { id: "methodology", enabled: true, autoHideIfEmpty: true },
   { id: "system-overview", enabled: true, autoHideIfEmpty: false },
+  // Item definition (WP-09-01, ISO 21434 plan A-5): what is analysed.
+  { id: "item-definition", enabled: true, autoHideIfEmpty: true },
   { id: "dfd", enabled: true, autoHideIfEmpty: true },
   { id: "dfd-descriptions", enabled: true, autoHideIfEmpty: true },
   { id: "assets", enabled: true, autoHideIfEmpty: true },
@@ -133,6 +144,9 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "risks-attack-path", enabled: true, autoHideIfEmpty: true },
   { id: "srsl-assessment", enabled: true, autoHideIfEmpty: true },
   { id: "accepted-risks", enabled: true, autoHideIfEmpty: true },
+  // Goals, claims, verification (WP-09-03/04/05, plan Phase 4) — the
+  // outcome of the treatment decisions, before the matrix that lists them.
+  { id: "goals-claims", enabled: true, autoHideIfEmpty: true },
   { id: "traceability-matrix", enabled: true, autoHideIfEmpty: true },
   { id: "appendix", enabled: false, autoHideIfEmpty: true },
 ];
@@ -228,10 +242,6 @@ export interface DocComputedValues {
   /** Cached impact labels (asset ID -> label) */
   impactLabels: Map<string, string>;
 
-  /** Cached risk labels (risk ID -> label) */
-  riskBeforeLabels: Map<string, string>;
-  riskAfterLabels: Map<string, string>;
-
   /** Cached STRIDE names (category -> name) */
   strideNames: Map<StrideCategory, string>;
 
@@ -248,6 +258,21 @@ export interface DocComputedValues {
    * applied. Absent → no methodology chapter.
    */
   methodology?: DocMethodology;
+  /**
+   * TARA verification status as of the document's creation (ISO/SAE 21434
+   * RQ-09-07, plan Phase 4, decision 25), derived by the app layer — only
+   * under iso-21434. Absent → no status in the document.
+   */
+  verification?: DocVerification;
+}
+
+/** The verification status the document shows up front. */
+export interface DocVerification {
+  kind: "verified" | "changed" | "reconfirm" | "outdated" | "failed" | "none";
+  latest?: VerificationEntry;
+  maxAgeDays: number;
+  /** ISO date the status refers to (document creation). */
+  asOf: string;
 }
 
 /** What the methodology chapter needs from the app's methodology record. */
@@ -298,6 +323,10 @@ export interface DocProjectData {
   threats: ThreatData | null;
   risks: RiskData | null;
   attackTree: AttackTreeData | null;
+  /** Item Definition (WP-09-01, ISO 21434 plan Phase 1 stage A); absent = none. */
+  itemDefinition?: ItemDefinition;
+  /** Goals, claims, verifications (WP-09-03/04/05, plan Phase 4); absent = none. */
+  cybersecurityConcept?: CybersecurityConcept;
 
   // Computed values (performance optimization)
   computed: DocComputedValues;
@@ -320,7 +349,6 @@ export interface DocTabProps {
   project: DocProjectData;
   onUpdate: (updates: DocUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
 }
 
 // ==================== HELPER FUNCTIONS ====================
@@ -442,27 +470,6 @@ export function getImpactLabel(
   if (impact >= 4) return language === "de" ? "Kritisch" : "Critical";
   if (impact >= 3) return language === "de" ? "Hoch" : "High";
   if (impact >= 2) return language === "de" ? "Mittel" : "Medium";
-  return language === "de" ? "Niedrig" : "Low";
-}
-
-/**
- * Get risk label from computed cache or calculate on-demand
- */
-export function getRiskLabel(
-  risk: number,
-  language: DocLanguage,
-  computed?: DocComputedValues,
-): string {
-  // Try cache first
-  if (computed?.riskBeforeLabels) {
-    const cached = computed.riskBeforeLabels.get(risk.toString());
-    if (cached) return cached;
-  }
-
-  // Fallback to calculation
-  if (risk >= 4) return language === "de" ? "Kritisch" : "Critical";
-  if (risk >= 3) return language === "de" ? "Hoch" : "High";
-  if (risk >= 2) return language === "de" ? "Mittel" : "Medium";
   return language === "de" ? "Niedrig" : "Low";
 }
 

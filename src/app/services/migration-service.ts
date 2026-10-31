@@ -15,6 +15,7 @@ import { DEFAULT_REGULATION_PRESET } from "shared";
 import type { Project } from "../models/project-types";
 import { migrateRiskData } from "../../features/risks/models/risk-assessment-types";
 import { CURRENT_SCHEMA_VERSION } from "./schema-version";
+import { carryVerifications, verificationStateHash } from "./verification-state";
 import {
   migrate_0_to_1,
   migrate_1_to_2,
@@ -26,6 +27,7 @@ import {
   migrate_7_to_8,
   migrate_8_to_9,
   migrate_9_to_10,
+  migrate_10_to_11,
 } from "./versions";
 import { normalizeThreatTables } from "../../features/threats/services/threat-table-normalize";
 
@@ -146,6 +148,11 @@ export function repairProject(raw: any): Project | null {
     documentation: raw.documentation ?? null,
     audit: raw.audit ?? null,
     integration: raw.integration ?? null,
+    // Optional project-level data — kept as they are (a repair must not
+    // drop what it does not rebuild).
+    ...(raw.sourceBindings ? { sourceBindings: raw.sourceBindings } : {}),
+    ...(raw.itemDefinition ? { itemDefinition: raw.itemDefinition } : {}),
+    ...(raw.cybersecurityConcept ? { cybersecurityConcept: raw.cybersecurityConcept } : {}),
     isOpen: raw.isOpen ?? false,
     hasUnsavedChanges: false,
     filePath: raw.filePath,
@@ -177,10 +184,23 @@ export interface MigrationResult {
  * was applied — the caller (ProjectRepository) uses this to decide whether
  * to write the file back to disk and show a UI notice.
  */
+/**
+ * Schema migrations declared to keep the analysis content — what the TARA
+ * verification hash covers (app/services/verification-state.ts) — unchanged,
+ * keyed by the version they migrate TO. Only these let a recorded TARA
+ * verification be re-sealed on load; any other migration makes it ask to be
+ * confirmed again. Declare a migration here only when it changes the form
+ * of the data, never a value of the analysis (review 2026-10-30). Files
+ * before schema 11 hold no verification, so none is listed yet.
+ */
+export const ANALYSIS_PRESERVING_MIGRATIONS: ReadonlySet<number> = new Set<number>([]);
+
 export function applyMigrations(raw: any): {
   data: any;
   migrated: boolean;
   fromVersion: number;
+  /** The versions migrated to, in order. */
+  applied: number[];
 } {
   const fromVersion: number = raw.schemaVersion ?? 0;
   let data = raw;
@@ -236,6 +256,11 @@ export function applyMigrations(raw: any): {
     migrated = true;
   }
 
+  if ((data.schemaVersion ?? 0) < 11) {
+    data = migrate_10_to_11(data);
+    migrated = true;
+  }
+
   // Add future version checks here:
   // if ((data.schemaVersion ?? 0) < 2) { data = migrate_1_to_2(data); migrated = true; }
 
@@ -250,7 +275,9 @@ export function applyMigrations(raw: any): {
     );
   }
 
-  return { data, migrated, fromVersion };
+  const applied: number[] = [];
+  for (let v = fromVersion + 1; v <= CURRENT_SCHEMA_VERSION; v++) applied.push(v);
+  return { data, migrated, fromVersion, applied };
 }
 
 // ==================== LEGACY DATA MIGRATIONS ====================
@@ -321,19 +348,7 @@ export function applyLegacyMigrations(raw: any): any {
  * Returns null only if the object is fundamentally unrecoverable.
  */
 export function parseAndRepair(raw: any): Project | null {
-  // Step 1: legacy format migrations
-  let data = applyLegacyMigrations(raw);
-
-  // Step 2: schema version migrations
-  const { data: migrated } = applyMigrations(data);
-  data = migrated;
-
-  // Step 3: validate + repair
-  if (isValidProject(data)) {
-    return data as Project;
-  }
-
-  return repairProject(data);
+  return parseAndRepairWithMetadata(raw)?.project ?? null;
 }
 
 /**
@@ -341,16 +356,23 @@ export function parseAndRepair(raw: any): Project | null {
  * to decide whether to write back and show a UI notice.
  */
 export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
-  // Step 1: legacy migrations
+  // Hash of the analysis as read — before anything touches it (step 4).
+  const hasVerifications = !!raw?.cybersecurityConcept?.verifications?.length;
+  const readHash = hasVerifications ? verificationStateHash(raw) : "";
+
+  // Step 1: legacy migrations (never declared analysis-preserving)
   let data = applyLegacyMigrations(raw);
+  const legacyKept = !hasVerifications || verificationStateHash(data) === readHash;
 
   // Step 2: schema migrations
   const {
     data: migrated,
     migrated: wasMigrated,
     fromVersion,
+    applied,
   } = applyMigrations(data);
   data = migrated;
+  const migratedHash = hasVerifications ? verificationStateHash(data) : "";
 
   // Step 3: validate + repair
   let project: Project | null;
@@ -361,6 +383,17 @@ export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
   }
 
   if (!project) return null;
+
+  // Step 4: a verification of the file as read is carried over the
+  // conversion only where it is declared analysis-preserving; otherwise it
+  // asks to be confirmed again (verification-state.ts, review 2026-10-30).
+  if (hasVerifications) {
+    project = carryVerifications(
+      project,
+      { read: readHash, migrated: migratedHash, loaded: verificationStateHash(project) },
+      legacyKept && applied.every((v) => ANALYSIS_PRESERVING_MIGRATIONS.has(v)),
+    );
+  }
 
   return { project, migrated: wasMigrated, fromVersion };
 }

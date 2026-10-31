@@ -65,5 +65,12 @@
  *         risk of an iso-21434 project (3a, decision 20).
  *       Fence rule (decision 15 as refined 2026-10-25): a new number only when
  *       an older release would drop or misread new fields.
+ *  11 = 0.16.0-beta, version fence, no data change (ISO plan decision 24):
+ *       "none" (no injury, S0) as the severity of a person endangers edge
+ *       (1H-S) — an older release would count it as harm; the Item
+ *       Definition project.itemDefinition (sections, functions, assumptions;
+ *       Phase 1 stage A) and the cybersecurity concept
+ *       project.cybersecurityConcept (goals, claims, verification records;
+ *       Phase 4, decision 25) — an older release would drop them on save.
  */
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 11;

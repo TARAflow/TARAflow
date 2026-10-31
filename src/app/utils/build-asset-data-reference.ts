@@ -73,6 +73,7 @@ export function buildAssetDataReference(
         .map((g) => ({
           type: g.type,
           level: g.level,
+          ...(g.formalDescription?.trim() ? { formalDescription: g.formalDescription.trim() } : {}),
           ...(g.impactRatings?.length
             ? {
                 impactRatings: g.impactRatings.map((r) => ({

@@ -56,6 +56,12 @@ export interface InterfaceCapability {
   cabled: boolean;
   /** Carries a link-layer authentication concept (WPA, pairing). Gates linkAuthentication. */
   hasLinkAuth: boolean;
+  /**
+   * Has a protocol / service to gate or monitor. Gates serviceAccessPolicy and
+   * monitoringControl. false for passive analog / digital I/O and the
+   * integrated HMI surface; absent = true.
+   */
+  hasServiceLayer?: boolean;
 }
 
 export const INTERFACE_CAPABILITY: Record<InterfaceType, InterfaceCapability> = {
@@ -118,14 +124,15 @@ export const INTERFACE_CAPABILITY: Record<InterfaceType, InterfaceCapability> = 
     cabled: true,
     hasLinkAuth: false,
   },
-  gpio: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
-  analog_in: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
+  gpio: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false, hasServiceLayer: false },
+  analog_in: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false, hasServiceLayer: false },
   analog_out: {
     requiresPhysicalAccess: true,
     cabled: true,
     hasLinkAuth: false,
+    hasServiceLayer: false,
   },
-  pwm: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false },
+  pwm: { requiresPhysicalAccess: true, cabled: true, hasLinkAuth: false, hasServiceLayer: false },
   touchscreen: {
     // Operating the touch surface requires physical presence at the device.
     requiresPhysicalAccess: true,
@@ -133,6 +140,9 @@ export const INTERFACE_CAPABILITY: Record<InterfaceType, InterfaceCapability> = 
     cabled: false,
     // No link-layer auth; auth lives in the Process behind the surface.
     hasLinkAuth: false,
+    // No maintenance / factory mode in which touch is off, nothing to monitor
+    // beyond the tamper evidence of physicalAccessProtection.
+    hasServiceLayer: false,
   },
   // Permissive defaults — unknown type, keep all controls available.
   custom: {
@@ -148,10 +158,10 @@ export const INTERFACE_CAPABILITY: Record<InterfaceType, InterfaceCapability> = 
  * type (capability), not of current property values (usage). Shared between
  * form gating (features/dfd) and threat-gen suppression (features/threats).
  *
- * `serviceAccessPolicy` / `monitoringControl` are NOT here — their gating
- * (integrated-HMI-surface exclusion) depends on UI-only `group` metadata and
- * currently has no threat-gen consumer; kept local to
- * features/dfd/models/interface-type-registry.ts.
+ * `serviceAccessPolicy` / `monitoringControl` are gated by `hasServiceLayer`
+ * (hasServiceLayerControl below) — moved here from the `group` metadata of
+ * features/dfd/models/interface-type-registry.ts when the closed loop became a
+ * second consumer (closed-loop review CL-1b).
  *
  * `abuseProtection` is intentionally absent — its home (interface vs.
  * flow/protocol terminus) is open question OQ3.
@@ -184,5 +194,33 @@ export function isControlApplicable(
     default:
       // Exhaustiveness guard — a new key must extend this switch.
       return ((_: never) => false)(key);
+  }
+}
+
+/** serviceAccessPolicy / monitoringControl: is there a service to gate or monitor? */
+export function hasServiceLayerControl(type: InterfaceType): boolean {
+  return INTERFACE_CAPABILITY[type]?.hasServiceLayer !== false;
+}
+
+/**
+ * Applicability of any `implementedControls` key, for consumers that only
+ * have the key as a string (the closed loop, CL-1b). Unknown type (none
+ * chosen yet) or unknown key (e.g. abuseProtection, open question OQ3) →
+ * applicable: never hide a control on missing information.
+ */
+export function isInterfaceControlKeyApplicable(type: string | undefined, key: string): boolean {
+  if (!type || !(type in INTERFACE_CAPABILITY)) return true;
+  const t = type as InterfaceType;
+  switch (key) {
+    case "physicalAccessProtection":
+    case "signalProtection":
+    case "debugProtection":
+    case "linkAuthentication":
+      return isControlApplicable(t, key);
+    case "serviceAccessPolicy":
+    case "monitoringControl":
+      return hasServiceLayerControl(t);
+    default:
+      return true;
   }
 }

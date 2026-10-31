@@ -22,6 +22,7 @@ import { toDocProjectData } from "./cli/to-doc-project-data";
 import { initI18nNode, i18n } from "./cli/i18n-node";
 import { installDomParser } from "./cli/dom-parser-node";
 import { resolveCliChapters } from "./cli/resolve-chapters";
+import { setProjectMitigations } from "../src/shared/services/project-mitigation-registry";
 import {
   createCliGenerator,
   generatePdfBufferCli,
@@ -137,6 +138,9 @@ async function main() {
   const t = (key: string, defaultValue?: string): string =>
     i18n.getFixedT(lang)(key, { defaultValue });
 
+  // The project's own mitigations M-C-nnn (custom mitigation catalog CM-2),
+  // as the app registers them on open.
+  setProjectMitigations(project.threats?.configuration?.customMitigations);
   const docData = toDocProjectData(project, lang);
 
   const outPath =

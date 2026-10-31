@@ -1,6 +1,6 @@
 # Issue-tracker integration — adapters, secure channel, ticket sync
 
-**Status:** v1 · 2026-10-29 · decisions taken (§3) · branch `feature/iso21434-item-definition`,
+**Status:** v2 · 2026-10-30 · IT-1 … IT-5 done (§5) · branch `feature/iso21434-item-definition`,
 release 0.16.0-beta (Jira); further trackers 0.17
 **Replaces:** `doc/Open/Integration/HANDOVER_Integration_Adapter_v1.md` (removed — it
 predates the OAuth services, the 0.15.2 token fix and the security findings below, and
@@ -81,8 +81,9 @@ Further choices [D] (to confirm in review):
   `statusCategory` new / indeterminate / done plus `resolution` decide; the name only
   distinguishes review inside "indeterminate" (`review`, `testing`, `qa`). Custom
   workflows keep working.
-- **Rejected by ticket:** `rejectionReason` = "Ticket <key> closed as <resolution>"; the
-  analyst can change it.
+- **Rejected by ticket:** `rejectedByTicket` = `{ key, resolution }`, shown as "Ticket
+  <key> closed as <resolution>" in the UI language (IT-6); the analyst can add a
+  `rejectionReason` of their own.
 - **Main-side allowlist:** methods GET / POST / PUT, path relative to the host, JSON
   bodies only; the main process strips any `Authorization` / `Cookie` header from the
   renderer.
@@ -129,9 +130,27 @@ every tracker; adapters only map their native fields to `TicketState`.
 - Changes through `onUpdate`; nothing kept only in local state.
 - A mitigation set to `rejected` by its ticket shows the ticket as the reason.
 
-### 4.4 Integration tab
+### 4.4 Integration tab — one tab, one form (user 2026-10-29)
 
-- Jira only in 0.16: URL, e-mail, API token, connection test, project cards. No OAuth.
+Authentication is the same everywhere in substance — instance URL, for some trackers a
+user, and a secret; trackers differ only in the fields and the header scheme. So there is
+**one** Integration tab with a tracker selector and **one** form built from a description
+per tracker (`shared/models/issue-trackers.ts`: label, host label / default host, user
+field, secret label, header scheme). The main process takes the header scheme from the
+same description. A new tracker in 0.17 is a row there plus its adapter — no new tab, no
+new form; the per-tracker tabs and forms (`jira-config.tsx`, `ado-config.tsx`) go.
+
+| Tracker | Fields | Header (main process) |
+|---|---|---|
+| Jira Cloud | URL, e-mail, API token | `Basic base64(email:token)` |
+| Jira Server / DC | URL, PAT | `Bearer <pat>` |
+| Azure DevOps | organization URL, PAT | `Basic base64(:pat)` |
+| GitHub | API URL (default api.github.com), PAT | `Bearer <pat>` |
+| GitLab | URL, PAT | `PRIVATE-TOKEN: <pat>` |
+| Polarion | URL, token | `Bearer <token>` |
+| OpenProject | URL, API key | `Basic base64(apikey:key)` |
+
+- 0.16: Jira Cloud selectable; the others listed with "from 0.17". No OAuth.
 - After the update with an old keychain entry: "Run the connection test once — the token
   is now bound to this Jira instance."
 
@@ -139,11 +158,11 @@ every tracker; adapters only map their native fields to `TicketState`.
 
 | Step | Content | Patch | Status |
 |---|---|---|---|
-| IT-1 | Main process: `integration:*` channel and keychain (host-bound, allowlist, auth set in main), preload / types; old `jira:*` channels removed | – | open |
-| IT-2 | `TicketAdapter`, factory, `JiraAdapter` (from both Jira services), status from category + resolution; old services, OAuth and ADO stub removed | – | open |
-| IT-3 | Sync: `applyTicketStates` (decision 2), batch, on open + "Sync now", persisted; intervals removed | – | open |
-| IT-4 | Integration tab: Jira form without OAuth, re-test notice; Risk tab and status dialog on the adapter | – | open |
-| IT-5 | Tests across the chain, CHANGELOG / release note (users must run the connection test once) | – | open |
+| IT-1 | Main process: `integration:saveToken / hasToken / deleteToken / request` (`electron/ipc/integration-handlers.ts`, `electron/services/integration-request.ts`): keychain `integration:<tool>:<host>:<account>`, https origin only, path on that host, GET / POST / PUT, renderer headers filtered (no Authorization / Cookie), auth header set in main from the tracker description, redirects not followed; tracker descriptions (`shared/models/issue-trackers.ts`, §4.4); preload and `electronAPI.integration` types. No handler returns a token. | 203 | done |
+| IT-2 | `TicketAdapter` and factory (`integration/adapters/`), `JiraAdapter` on the host-bound channel — status from category + resolution, escaped JQL, one batch for ticket states (single-key fallback on 400), ADF descriptions —, `connectTracker` (secret to the keychain, test, removed again on failure); the **one Integration tab / one form** (§4.4) with project cards, disconnect and the re-test notice; ticket types in `shared/models/ticket-types.ts` (`TicketStatus` gains `DECLINED`). Removed: `jira-service`, `integration-service`, `ado-service`, both OAuth services and their hook, `jira-config`, `ado-config(-with-oauth)`, `use-integration-connection`, the OAuth deep-link handler and bridge (the single-instance lock it carried moved to `electron/single-instance.ts`, unchanged) | 204 | done |
+| IT-3 | The app derives the adapter from the stored connection and passes it to the Risk tab as `TicketPort` (`shared/models/ticket-types.ts`) — no feature imports the other. `risks/services/ticket-sync.ts`: decision 2 (only a ticket change is applied, both directions, done without fix → rejected with the ticket as reason; `ticketSyncedAt` only on a change — no file churn), `applyTicketStatesToRisks` through `riskService.updateRisk`. Risk tab: one batch on opening and "Sync ticket status" in the toolbar, persisted by the auto-save; the 5 s interval and its stale snapshot are gone. Status dialog: the port instead of credentials, one sync on opening, linking / creating adopt the ticket's state; the status select stays visible with a linked ticket ("follows SCRUM-1 when it changes"); mitigations keyed by `mitigationSelectionKey` (keyed by id, a ticket was linked to every custom mitigation at once). Issue types of the chosen project are stored with the connection. Removed: `jira-mitigation-service` (ticket texts moved to `ticket-text.ts`), the `jira:*` IPC channels, bridges, types and keychain methods; legacy `jira:<account>` keychain entries are deleted when a bound Jira token is saved | 205 | done |
+| IT-4/5 | Merged (user 2026-10-30): what IT-4 planned came with IT-3 (ticket links on the adapter URL, rejected-by-ticket rationale). Integration test over the whole chain (`src/tests/integration/integration/issue-tracker-chain.int.test.ts`): connection test → token in the keychain bound to its reference, none in the project → stored connection → adapter → main-process request (token added, host enforced) → ticket states → mitigation status; a crafted host gets no token and sends nothing. CHANGELOG / release note with the 0.16.0 release patch (users run the connection test once after the update) | 206 | done |
+| IT-6 | Review 2026-10-30, i18n: the form labels come from i18n (`integration.host.<id>`, `integration.user.<kind>`, `integration.secret.<id>`; the descriptions keep the English defaults, `tracker-labels.ts`); the connection test's own errors carry a code (`integration.error.<code>`, the English message stays for other callers); the project cards' issue count; a ticket closed without fix stores its reason as data — `rejectedByTicket: { key, resolution }` instead of an English sentence in `rejectionReason`, rendered in the UI language, counted as the reason, dropped when the ticket moves on (hash and merge treat it with the ticket fields). Ticket texts sent to the tracker stay English (older, separate step) | 215 | done |
 
 0.17: ADO (WIQL, JSON Patch, `System.State`), GitHub (labels / closed state reason),
 GitLab, Polarion (REST v1), OpenProject; Jira Server / Data Center.

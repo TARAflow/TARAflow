@@ -38,6 +38,7 @@ import {
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { useElementForm } from "../../hooks/use-element-form";
+import { TrustBoundaryAssumptions } from "./trust-boundary-assumptions";
 import {
   TB_TYPE_DEFAULTS,
   TB_TYPE_DRIVEN_FIELDS,
@@ -515,6 +516,13 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                   "What do you assume about each side of this boundary?",
               },
             )}
+          />
+
+          {/* Linked Item Definition assumptions (A-3) */}
+          <TrustBoundaryAssumptions
+            text={props.securityAssumptions ?? ""}
+            assumptionIds={props.assumptionIds ?? []}
+            onChange={(ids) => form.handlePropertyChange("assumptionIds", ids)}
           />
 
           {/* ── Documentation ───────────────────────── */}

@@ -50,7 +50,7 @@ export const PhaseTab: React.FC<PhaseTabProps> = ({
       return "";
     }
 
-    return parts.join(", ");
+    return parts.join("\n");
   };
 
   const tooltipText = getTooltipText();
@@ -85,7 +85,12 @@ export const PhaseTab: React.FC<PhaseTabProps> = ({
   // Wrap with tooltip if there's something to show
   if (tooltipText) {
     return (
-      <Tooltip title={tooltipText} arrow placement="bottom">
+      <Tooltip
+        title={tooltipText}
+        arrow
+        placement="bottom"
+        slotProps={{ tooltip: { sx: { whiteSpace: "pre-line" } } }}
+      >
         {tabButton}
       </Tooltip>
     );

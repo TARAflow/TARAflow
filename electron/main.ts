@@ -1,13 +1,13 @@
 import { app, BrowserWindow, Menu, session } from "electron";
 import path from "path";
-import { registerOAuthProtocol, setupOAuthHandler } from "./oauth-handler";
+import { setupSingleInstance } from "./single-instance";
 import { buildAppMenu } from "./app-menu";
 import { hardenWindowNavigation, makeIsInternalUrl } from "./window-navigation";
 import { configureDrawioRequests } from "./drawio-requests";
 
 import { registerShellHandlers } from "./ipc/shell-handlers";
 import { registerPdfHandlers } from "./ipc/pdf-handlers";
-import { registerJiraHandlers } from "./ipc/jira-handlers";
+import { registerIntegrationHandlers } from "./ipc/integration-handlers";
 import { registerDrawioHandlers } from "./ipc/drawio-handlers";
 import { registerGitHandlers } from "./ipc/git-handlers";
 import { registerAuditHandlers } from "./ipc/audit-handlers";
@@ -25,7 +25,7 @@ import { registerBuildInfoHandlers } from "./ipc/build-info-handlers";
 // handler inline; it's app lifecycle + window creation now.
 registerShellHandlers();
 registerPdfHandlers();
-registerJiraHandlers();
+registerIntegrationHandlers();
 registerDrawioHandlers();
 registerGitHandlers();
 registerAuditHandlers();
@@ -183,13 +183,11 @@ function createWindow() {
   });
 }
 
-registerOAuthProtocol();
-
 app.whenReady().then(() => {
   configureDrawioRequests(session.defaultSession);
   Menu.setApplicationMenu(buildAppMenu());
   createWindow();
-  setupOAuthHandler(() => mainWindow);
+  setupSingleInstance(() => mainWindow);
 });
 
 app.on("window-all-closed", () => {

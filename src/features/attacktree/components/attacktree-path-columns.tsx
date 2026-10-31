@@ -42,12 +42,18 @@ import {
 import type { LikelihoodModel } from "../models/attacktree-feasibility-types";
 import type { AttackPathAssessment } from "../models/attacktree-types";
 import { setPathAssessment } from "../services/attacktree-threat-sync";
-import { strideCategoriesForPath } from "../services/attacktree-threat-generator";
+import { attackPathDisplayId, strideCategoriesForPath } from "../services/attacktree-threat-generator";
 
 // ==================== OPTIONS ====================
 
 export interface AttackTreePathColumnsOptions {
   evaluationMethod: EvaluationMethod;
+  /**
+   * The tree's number in the project (treeNumberOf). Given → a first "ID"
+   * column with the path's AT-n.m — the label of its threat and risk
+   * (attackPathDisplayId; user 2026-10-30).
+   */
+  treeNumber?: number;
   /**
    * Mitigation id (UPPERCASE) → reference, mirrored from the Risk tab. Absent
    * means mitigations render as plain id chips.
@@ -103,6 +109,7 @@ const RELEVANCE_OPTIONS: ThreatRelevanceRef[] = [
 // ==================== HOOK ====================
 
 export function useAttackTreePathColumns({
+  treeNumber,
   mitigationLookup,
   mitigationCatalog,
   verificationCatalog,
@@ -235,6 +242,20 @@ export function useAttackTreePathColumns({
 
   return React.useMemo(() => {
     const columns: DataColumn<AttackPath>[] = [];
+
+    // ── ID: AT-n.m, as threat, risk and report name the path ─────────────
+    if (treeNumber !== undefined) {
+      columns.push({
+        id: "pathId",
+        header: t("attacktree:tabs.attacktree.tableview.pathId", { defaultValue: "ID" }),
+        minWidth: 64,
+        renderCell: (path) => (
+          <Box sx={{ fontSize: "0.75rem", fontWeight: 600, whiteSpace: "nowrap" }} data-testid={`path-id-${path.pathKey}`}>
+            {attackPathDisplayId(treeNumber, path)}
+          </Box>
+        ),
+      });
+    }
 
     // ── Path chain ────────────────────────────────────────────────────────
     columns.push({
@@ -586,6 +607,7 @@ export function useAttackTreePathColumns({
     return columns;
   }, [
     t,
+    treeNumber,
     catalogText,
     renderMitigationChip,
     showRelevance,

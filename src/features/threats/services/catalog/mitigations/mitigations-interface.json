@@ -277,7 +277,7 @@
         {
           "targetType": "Interface",
           "property": "implementedControls.serviceAccessPolicy",
-          "expectedValue": "none",
+          "expectedValue": "maintenance_only",
           "confidence": "heuristic"
         }
       ],

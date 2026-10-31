@@ -325,8 +325,10 @@ describe("prepareForDisk — audit.config credential/path stripping", () => {
     // Project-level policy is preserved.
     expect(cfg.provider).toBe("github");
     expect(cfg.remoteUrl).toBe("git@github.com:x/y.git");
-    expect(cfg.author).toEqual({ name: "J", email: "j@x" });
     expect(cfg.lastRoundNumber).toBe(3);
+    // The commit author is personal — local-user-settings, never on disk
+    // (2026-10-30: every team member commits under their own name).
+    expect(cfg).not.toHaveProperty("author");
   });
 
   it("does not throw on a partial config missing auth/gpg/signing", () => {

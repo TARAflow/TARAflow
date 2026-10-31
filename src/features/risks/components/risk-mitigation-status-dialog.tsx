@@ -54,23 +54,15 @@ import type {
 import {
   MITIGATION_STATUS_CONFIGS,
   deriveImplementationProgress,
+  mitigationSelectionKey,
 } from "../models/risk-mitigation-types";
-import type {
-  IntegrationConnection,
-  JiraCredentials,
-  JiraProject,
-} from "../../integration/models/integration-types";
 import type {
   RiskIntegrationConnection,
   TicketSummary,
 } from "../models/risk-integration-types";
-import {
-  fetchJiraTickets,
-  createJiraTicket,
-  syncTicketStatus,
-  buildTicketDescription,
-  buildTicketSummary,
-} from "../services/jira-mitigation-service";
+import type { TicketPort } from "shared/models/ticket-types";
+import { buildTicketDescription, buildTicketSummary } from "../services/ticket-text";
+import { applyTicketState, hasRejectionReason } from "../services/ticket-sync";
 
 import { MitigationDraftRef } from "shared";
 
@@ -94,10 +86,12 @@ const MITIGATION_STATUS_OPTIONS: {
 export interface RiskMitigationStatusDialogProps {
   open: boolean;
   risk: Risk;
-  /** Pass the active IntegrationConnection if available — enables Jira mode */
+  /** The stored connection (project key) — tickets need it and a port. */
   integrationConnection?: RiskIntegrationConnection | null;
-  /** Selected Jira project (needed for issue type list and ticket creation) */
-  jiraProject?: JiraProject | null;
+  /** The issue tracker, through its adapter (adapters design §4.3). */
+  ticketPort?: TicketPort | null;
+  /** Issue types of the connected project (stored when it was chosen). */
+  issueTypes?: Array<{ id: string; name: string; iconUrl?: string }>;
   onSave: (riskId: string, updates: Partial<Risk>) => void;
   onClose: () => void;
 }
@@ -108,7 +102,7 @@ interface JiraTicketPanelProps {
   mitigation: SelectedMitigation;
   mitigationText: string;
   risk: Risk;
-  credentials: JiraCredentials;
+  port: TicketPort;
   projectKey: string;
   issueTypes: Array<{ id: string; name: string }>;
   onLink: (m: Partial<SelectedMitigation>) => void;
@@ -120,7 +114,7 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
   mitigation,
   mitigationText,
   risk,
-  credentials,
+  port,
   projectKey,
   issueTypes: issueTypesProp,
   onLink,
@@ -160,22 +154,31 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
   // Sync state
   const [syncing, setSyncing] = useState(false);
 
-  // Local sync interval — refreshes status every 5s when ticket is linked
+  /**
+   * Adopt the ticket's state (adapters design §3.2: only a change of the
+   * ticket is applied, both directions). `base` is the mitigation the state
+   * applies to — a newly linked ticket starts without a last seen status.
+   */
+  const adoptTicket = async (base: SelectedMitigation) => {
+    if (!base.ticketId) return;
+    const state = (await port.fetchTicketStates([base.ticketId])).get(base.ticketId);
+    const next = applyTicketState(base, state, new Date().toISOString());
+    if (next === mitigation) return;
+    onLink({
+      ticketId: next.ticketId,
+      ticketUrl: next.ticketUrl,
+      ticketStatus: next.ticketStatus,
+      ticketSyncedAt: next.ticketSyncedAt,
+      status: next.status,
+      rejectedByTicket: next.rejectedByTicket,
+    });
+  };
+
+  // Sync once when the dialog opens on a linked ticket — no polling (§3.3).
   useEffect(() => {
-    if (!mitigation.ticketId) return;
-    const interval = setInterval(async () => {
-      const syncResult = await syncTicketStatus(credentials, mitigation.ticketId!);
-      if (syncResult) {
-        onLink({
-          ticketStatus: syncResult.ticketStatus,
-          status: syncResult.mappedMitigationStatus ?? mitigation.status,
-          ticketSyncedAt: syncResult.syncedAt,
-        });
-      }
-    }, 5_000);
-    return () => clearInterval(interval);
+    if (mitigation.ticketId) void adoptTicket(mitigation);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mitigation.ticketId, credentials]);
+  }, [mitigation.ticketId, port]);
 
   // Load tickets when issueType or tab changes
   useEffect(() => {
@@ -184,7 +187,7 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
       setLoadingTickets(true);
       setTicketsError(null);
       try {
-        const result = await fetchJiraTickets(credentials, projectKey, selectedIssueType);
+        const result = await port.fetchTickets(projectKey, selectedIssueType);
         setTickets(result);
         if (!result.length) setTicketsError("No open tickets found for this type.");
       } catch {
@@ -194,25 +197,13 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
       }
     };
     load();
-  }, [tab, selectedIssueType, credentials, projectKey]);
-
-  // Internal sync — refreshes status and updates parent
-  const handleSyncAndFetchDetails = async (ticketId: string) => {
-    const syncResult = await syncTicketStatus(credentials, ticketId);
-    if (syncResult) {
-      onLink({
-        ticketStatus: syncResult.ticketStatus,
-        status: syncResult.mappedMitigationStatus ?? mitigation.status,
-        ticketSyncedAt: syncResult.syncedAt,
-      });
-    }
-  };
+  }, [tab, selectedIssueType, port, projectKey]);
 
   const handleSyncStatus = async () => {
     if (!mitigation.ticketId) return;
     setSyncing(true);
     try {
-      await handleSyncAndFetchDetails(mitigation.ticketId);
+      await adoptTicket(mitigation);
     } finally {
       setSyncing(false);
     }
@@ -222,7 +213,7 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
     setCreating(true);
     setCreateError(null);
     try {
-      const result = await createJiraTicket(credentials, {
+      const result = await port.createTicket({
         projectKey,
         issueType: createIssueType,
         summary,
@@ -231,14 +222,12 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
         labels: ["security", "threat-model"],
       });
       if (result.success && result.ticketId) {
-        // Immediately sync status after creation
-        const syncResult = await syncTicketStatus(credentials, result.ticketId);
-        onLink({
+        // Link and adopt the new ticket's state.
+        await adoptTicket({
+          ...mitigation,
           ticketId: result.ticketId,
           ticketUrl: result.ticketUrl,
-          ticketStatus: syncResult?.ticketStatus ?? "OPEN",
-          status: syncResult?.mappedMitigationStatus ?? "open",
-          ticketSyncedAt: new Date().toISOString(),
+          ticketStatus: undefined,
         });
       } else {
         setCreateError(result.error ?? "Failed to create ticket.");
@@ -490,14 +479,12 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
                   <Box
                     key={ticket.key}
                     onClick={async () => {
-                      // Link ticket and immediately sync its status
-                      const syncResult = await syncTicketStatus(credentials, ticket.key);
-                      onLink({
+                      // Link the ticket and adopt its state.
+                      await adoptTicket({
+                        ...mitigation,
                         ticketId: ticket.key,
                         ticketUrl: ticket.url,
-                        ticketStatus: syncResult?.ticketStatus ?? ticket.ticketStatus,
-                        status: syncResult?.mappedMitigationStatus ?? undefined,
-                        ticketSyncedAt: new Date().toISOString(),
+                        ticketStatus: undefined,
                       });
                     }}
                     sx={{
@@ -702,7 +689,7 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
 
 export const RiskMitigationStatusDialog: React.FC<
   RiskMitigationStatusDialogProps
-> = ({ open, risk, integrationConnection, jiraProject, onSave, onClose }) => {
+> = ({ open, risk, integrationConnection, ticketPort, issueTypes: projectIssueTypes, onSave, onClose }) => {
   const { t } = useTranslation();
 
   // Local copy of mitigations for editing
@@ -717,23 +704,21 @@ export const RiskMitigationStatusDialog: React.FC<
     );
   }, [risk.id, risk.selectedMitigations]);
 
-  // Jira connection
+  // Issue tracker: a port (adapter) and a chosen project.
   const isJiraConnected =
-    integrationConnection?.tool === "jira" &&
+    !!ticketPort &&
     integrationConnection?.status === "connected" &&
     !!integrationConnection?.projectName;
-
-  const jiraCredentials = isJiraConnected
-    ? (integrationConnection!.credentials as unknown as JiraCredentials)
-    : null;
   const jiraProjectKey = integrationConnection?.projectName ?? "";
-  const issueTypes = jiraProject?.issueTypes ?? [];
+  const issueTypes = projectIssueTypes ?? [];
 
+  // Keyed by the selection key: custom mitigations have no id, and keying by
+  // id changed all of them at once (e.g. a ticket linked to every one).
   const updateMitigation = useCallback(
-    (id: string | undefined, updates: Partial<SelectedMitigation>) => {
+    (key: string, updates: Partial<SelectedMitigation>) => {
       setMitigations((prev) =>
         prev.map((m) =>
-          m.id === id
+          mitigationSelectionKey(m) === key
             ? {
                 ...m,
                 ...updates,
@@ -890,8 +875,10 @@ export const RiskMitigationStatusDialog: React.FC<
                     </Typography>
 
                     <Stack spacing={1.5}>
-                      {/* Manual status — only in offline mode (no Jira ticket linked) */}
-                      {!m.ticketId && (
+                      {/* Status — also with a linked ticket: the status follows the
+                          ticket when the ticket changes; in between the analyst
+                          sets it (verified, rejected …), adapters design §3.2. */}
+                      {(
                         <Box
                           sx={{
                             display: "flex",
@@ -913,7 +900,7 @@ export const RiskMitigationStatusDialog: React.FC<
                             <Select
                               value={m.status ?? "open"}
                               onChange={(e) =>
-                                updateMitigation(m.id, {
+                                updateMitigation(mitigationSelectionKey(m), {
                                   status: e.target.value as MitigationStatus,
                                 })
                               }
@@ -962,6 +949,14 @@ export const RiskMitigationStatusDialog: React.FC<
                               {new Date(m.statusChangedAt).toLocaleDateString()}
                             </Typography>
                           )}
+                          {m.ticketId && (
+                            <Typography variant="caption" color="text.secondary" data-testid="status-follows-ticket">
+                              {t("tabs.risks.mitigationStatusDialog.followsTicket", {
+                                defaultValue: "follows {{ticket}} when it changes",
+                                ticket: m.ticketId,
+                              })}
+                            </Typography>
+                          )}
                         </Box>
                       )}
 
@@ -992,7 +987,7 @@ export const RiskMitigationStatusDialog: React.FC<
                             placeholder="Note, commit hash, test result, audit reference..."
                             value={m.evidenceNote ?? ""}
                             onChange={(e) =>
-                              updateMitigation(m.id, {
+                              updateMitigation(mitigationSelectionKey(m), {
                                 evidenceNote: e.target.value,
                               })
                             }
@@ -1022,7 +1017,7 @@ export const RiskMitigationStatusDialog: React.FC<
                             placeholder="Ticket ID, PR link, Jira/ADO reference..."
                             value={m.evidenceRef ?? ""}
                             onChange={(e) =>
-                              updateMitigation(m.id, {
+                              updateMitigation(mitigationSelectionKey(m), {
                                 evidenceRef: e.target.value,
                               })
                             }
@@ -1073,18 +1068,28 @@ export const RiskMitigationStatusDialog: React.FC<
                             fullWidth
                             variant="outlined"
                             required
-                            placeholder="Reason for not implementing this mitigation..."
+                            placeholder={t("tabs.risks.mitigationStatusDialog.rejectionPlaceholder", {
+                              defaultValue: "Reason for not implementing this mitigation...",
+                            })}
                             value={m.rejectionReason ?? ""}
                             onChange={(e) =>
-                              updateMitigation(m.id, {
+                              updateMitigation(mitigationSelectionKey(m), {
                                 rejectionReason: e.target.value,
                               })
                             }
-                            error={!m.rejectionReason?.trim()}
+                            error={!hasRejectionReason(m)}
                             helperText={
-                              !m.rejectionReason?.trim()
-                                ? "Required for audit trail"
-                                : undefined
+                              m.rejectedByTicket
+                                ? t("tabs.risks.mitigationStatusDialog.rejectedByTicket", {
+                                    defaultValue: "Ticket {{key}} closed as {{resolution}}",
+                                    key: m.rejectedByTicket.key,
+                                    resolution: m.rejectedByTicket.resolution,
+                                  })
+                                : !hasRejectionReason(m)
+                                  ? t("tabs.risks.mitigationStatusDialog.rejectionRequired", {
+                                      defaultValue: "Required for audit trail",
+                                    })
+                                  : undefined
                             }
                             inputProps={{ style: { fontSize: "0.8rem" } }}
                           />
@@ -1092,13 +1097,13 @@ export const RiskMitigationStatusDialog: React.FC<
                       )}
 
                       {/* Jira integration section */}
-                      {isJiraConnected && jiraCredentials && (
+                      {isJiraConnected && ticketPort && (
                         <>
                           <JiraTicketPanel
                             mitigation={m}
                             mitigationText={mitigationText}
                             risk={risk}
-                            credentials={jiraCredentials}
+                            port={ticketPort}
                             projectKey={jiraProjectKey}
                             issueTypes={
                               issueTypes.length
@@ -1106,7 +1111,7 @@ export const RiskMitigationStatusDialog: React.FC<
                                 : [{ id: "task", name: "Task" }]
                             }
                             onLink={(updates) =>
-                              updateMitigation(m.id, updates)
+                              updateMitigation(mitigationSelectionKey(m), updates)
                             }
                           />
                         </>

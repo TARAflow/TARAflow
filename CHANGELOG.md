@@ -1,3 +1,182 @@
+## [0.16.0-beta] - 2026-10-31
+
+ISO/SAE 21434 work products of the concept phase — Item Definition,
+cybersecurity goals and claims, TARA verification — a project mitigation
+catalog, a reworked closed loop and a new issue-tracker integration.
+New project schema **11**: projects are converted when opened (with a
+backup) and then no longer open in 0.15.x.
+
+### Added
+- **Item Definition (ISO/SAE 21434 Clause 9, WP-09-01):** the Overview gets
+  sub-tabs Project / Definition / Methodology / Sources.
+  - Definition: purpose and functions, item boundary, preliminary
+    architecture, operational environment, constraints and legal
+    requirements — each with text, a source (document, section, version)
+    and links to DFD elements, flows, pages and assets; functions with their
+    lifecycle phases and an optional function asset.
+  - Assumptions ASM-nn with source, owner, review date and status (open /
+    confirmed / invalid); a trust boundary links the assumptions it relies
+    on, and free text there can be converted into one.
+  - Findings: under ISO/SAE 21434 item boundary, preliminary architecture
+    and operational environment are mandatory; in every preset a missing
+    purpose, an invalid assumption still in use, an overdue review date and
+    links to removed model items are reported. Badges on the sub-tabs.
+  - Methodology view: the methodology record of the project, read-only.
+  - Report chapter *Item Definition* right after the system overview.
+- **Cybersecurity goals and claims (9.4, WP-09-03/04), ISO/SAE 21434
+  projects:**
+  - Risk dialog, new tab *Goal / Claim*: a risk to reduce gets goals
+    CSG-nn (proposed from the formal description of the asset × property
+    it violates, optional CAL; one-click reuse of a goal of the same
+    scenario with a text preview); retain gets claims CLM-nn relying on
+    assumptions, share claims with the responsible party.
+  - Risk-tab dialog *Goals & Claims*: all goals and claims grouped by
+    scenario, goal proposals for every risk to reduce without one, merge,
+    remove unused; findings as a badge and as a marker in the risk table.
+  - Findings: reduce without goal, without a selected control or without a
+    residual rating; retain / share without claim; avoid without
+    justification; claims without assumption or party; review date passed;
+    links to removed risks.
+  - CSG, CLM and ASM numbers are never reused after a delete.
+  - Report chapter *Cybersecurity Goals and Claims* and a goal / claim
+    column in the traceability matrix.
+- **TARA verification (RQ-09-07, WP-09-05), ISO/SAE 21434 projects:** the
+  Audit tab records a verification — date, reviewer, the four points of
+  RQ-09-07 as a checklist with the open findings per point, result,
+  findings — together with a hash of the analysis content. The status
+  (verified / changed / confirm again / outdated after 90 days,
+  configurable / failed) shows in the Overview, the phase bar and at the
+  top of the report (marked, never blocked). An entry is committed with
+  the round *Verification* and a `Reviewed-by` trailer; until then it can
+  be edited or removed. Implementation progress (mitigation status,
+  tickets) does not change the hash; schema migrations only keep an entry
+  verified when they are declared analysis-preserving, otherwise it asks
+  to be confirmed again.
+- **Project mitigation catalog M-C-nnn:** the analyst's own mitigations
+  are catalog entries of the project — text, description, STRIDE category,
+  optional attack vectors and the DFD effects the closed loop checks.
+  Usable on every threat and risk, kept on regeneration, listed with their
+  usage in the threat configuration (edit, merge, delete only when unused);
+  merging keeps status and tickets and refuses contradicting data. Numbers
+  are never reused. Free text that equals a catalog text offers a link.
+- **Issue-tracker integration rebuilt:** one Integration tab with one form
+  per tracker description (Jira Cloud in 0.16; Azure DevOps, GitHub,
+  GitLab, Polarion, OpenProject and Jira Server listed for 0.17). The token
+  stays in the main process, bound to tool, host and account; the
+  renderer never sees it and a host from a crafted project file finds
+  none (https only, no redirects). Ticket states sync in one batch when
+  the Risk tab opens and on *Sync ticket status*; the mitigation status
+  mirrors its ticket in both directions, a ticket closed as won't fix /
+  declined / duplicate sets *rejected* with the ticket as reason, and a
+  sync without change leaves the project file untouched.
+- **Hazards:** a person edge can be rated *none* (no injury, S0) — it
+  makes nobody safety-relevant; the hazard import accepts "none". Under
+  ISO/SAE 21434 person severities read with their ISO 26262 class
+  (*S2 · Irreversible, major*).
+- **Attack trees:** *AT-n* before every tree title and an ID column
+  *AT-n.m* in the path tables, the ids threats, risks and the report use.
+- **Overview and phase bar:** a phase card tells what is behind its status
+  (missing fields, the hazard, DFD and risk findings, generation drift,
+  the verification status) and opens its tab; the phase tabs show the same
+  in their tooltip. Badges on General, Hazard, DFD, Threats and Risk; the
+  Audit entry shows a chip when the project has no audit repository or
+  uncommitted verification entries.
+- **Closed loop for attack-path risks:** controls of an ISO project reach
+  the DFD through the attack tree's anchor asset (its elements and flows);
+  the risk dialog's "already implemented" badge checks them too.
+
+### Changed
+- **Closed loop (DFD notification panel):** one answer to "does the DFD
+  value meet the control?" for derivation, drift, coverage and the panel
+  (empty values incl. `not_*`, stronger values meet weaker ones, e.g. mTLS
+  meets TLS). A control of a mitigation still open or in progress is
+  information (*n planned*), not a warning; a warning or conflict only
+  when the mitigation is marked done and the DFD disagrees. One row per
+  expected value. *Apply* writes into the element's properties and is
+  offered only for a mitigation that counts as done — also on a drift row,
+  to restore a reverted value. Mitigations reach only interfaces their
+  controls fit (no debug-interface controls on WLAN or RS-485).
+  15 catalog effects corrected; the automotive controls (SecOC, Bluetooth
+  hardening, CAN IDS) got DFD effects.
+- **Threats:** no new free-text mitigations — a project mitigation needs
+  only its text. Existing free text stays editable and can be converted.
+  Manual threats keep catalog ids, so they reach the closed loop.
+- **Goals, claims and the TARA verification are ISO/SAE 21434 only:**
+  another preset shows no Goals & Claims button, no Goal / Claim tab, no
+  report chapter and no verification panel; stored data stays in the file.
+- **Personal values stay on this machine:** the commit author and the
+  tracker account (e-mail, account id) and connection state are stored
+  locally, no longer in the `.tara.json`. The file keeps what the team
+  shares: audit provider, remote, branch, rounds, auth method, signing
+  on/off and format; tracker, URL, auth method, project, issue types and
+  mapping. Values in an older file are taken over once when it is opened
+  and leave the file with the next save.
+- **Signed audit repositories stay signed:** once a repository's history
+  introduced a signer manifest, every commit in it is signed — for every
+  project, whatever the project's signing switch (locked and explained in
+  the configuration). The decision follows the manifest committed on the
+  branch the commit goes to, as the verification engine does; a missing
+  key, an author not in the committed manifest or a removed manifest are
+  shown in the commit dialog before the click.
+- **Risk dialog (ISO/SAE 21434):** the panels read Feasibility | Impact |
+  Risk and name their source (attack-tree path and attack potential, the
+  five residual factors, the damage scenario); the impact after mitigation
+  is the damage scenario's, read-only. The residual factors list their
+  levels least likely first with the likelihood colour dot, like every
+  other likelihood factor. The side list follows the display id
+  (AT-1.1 … AT-10.2).
+- **Risk tab:** counts include attack-path risks (an ISO project showed
+  "0/0 Risks"); "Showing n of m" counts every risk the tab shows; the
+  STRIDE method buttons count risks, not threats; the progress chip
+  explains what counts as done (*share* included). The tab's validation
+  is shown — toolbar chip, Overview, phase bar — with new warnings for a
+  risk to reduce without mitigation or (classic projects) without a
+  residual rating; the former "high risk without mitigation" rule, which
+  flagged accepted risks, is gone.
+- **Azure DevOps removed for now:** the Azure DevOps connection of 0.15
+  (PAT and OAuth) is gone with the old integration services; it returns as
+  an adapter of the new integration in 0.17. The OAuth deep-link handler
+  is removed as well.
+- The Continue / phase-complete buttons are gone (tabs are switched in the
+  phase bar).
+- CI runs the component tests.
+
+### Fixed
+- **Report:** the PDF (pdfmake, also the CLI) lacked six chapters the other
+  formats have — applicable regulations, methodology, DFD element
+  descriptions, asset-element relations, attack-path threat scenarios,
+  traceability matrix — and its table of contents checked outdated ids.
+  Risk levels in reports of classic projects follow the scale thresholds
+  (the executive summary counted 188 of 199 Smoke Detector risks as
+  critical; the risk tab: 16).
+- **Overview:** DFD findings appeared under Hazard (old phase number), and
+  the DFD status came from the validation stored in the file instead of
+  the current one.
+- **Assets:** protection targets of the hazard analysis (persons, the
+  building) are no longer reported as "not placed in DFD".
+- **Hazards:** a hazard without ISO 12100 type, description or rationale
+  is reported (warnings); the toolbar chip shows warnings.
+- The threat configuration dialog dropped configuration fields it did not
+  know on save.
+- The audit commit message could carry `Author: Unknown` when the author
+  was set after the Audit tab opened.
+
+### Upgrade notes
+- Projects are converted to schema 11 when opened (backup alongside);
+  afterwards they open in 0.16 and later only.
+- **Jira:** run the connection test once in the Integration tab — tokens
+  are now bound to the tracker address (older keychain entries are
+  removed). Each team member connects with their own account.
+- **Azure DevOps** users: there is no Azure DevOps connection in 0.16.
+  A project that depends on it should stay on 0.15.2 until 0.17 — once
+  opened in 0.16 it is converted to schema 11 and no longer opens in
+  0.15.2. Ticket keys stored on mitigations stay in the project.
+- After the first save, the commit author and the Jira e-mail are no
+  longer in the project file; teammates set their own (the author is
+  taken from `git config` when empty).
+- In a repository with a signer manifest, commits are signed always — a
+  project with signing switched off must have a signing key set.
+
 ## [0.15.2-beta] - 2026-10-30
 
 Security fix for the issue-tracker integration and two DFD fixes, no new

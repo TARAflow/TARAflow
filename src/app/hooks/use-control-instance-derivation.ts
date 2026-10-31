@@ -22,27 +22,36 @@ import type {
 } from "features/threats";
 import type { DFDData } from "features/dfd";
 import type { ControlInstance, MitigationPropertyRole } from "shared";
+import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
+import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
+import { mitigationFitsInterface } from "shared/utils/control-applicability";
+
+// ==================== TYPES ====================
+
+/** Where a risk's controls go: a STRIDE threat's element or flow. */
+export interface ControlTarget {
+  linkedElement: { elementId: string; elementType: string } | null;
+  dataFlow: {
+    connectionId?: string;
+    sourceId: string;
+    sourceType: string;
+    targetId: string;
+    targetType: string;
+  } | null;
+}
 
 // ==================== HELPERS ====================
 
-const EMPTY_VALUES = new Set([undefined, null, "", "none", "not_specified", false]);
-
-function isEmptyValue(value: unknown): boolean {
-  return EMPTY_VALUES.has(value as any);
-}
-
 /**
- * Derive status by comparing the current DFD property value against expected.
- * "implemented" when already set correctly, "missing" otherwise.
+ * "implemented" when the DFD value meets the expected one (closed-loop review
+ * CL-1: stronger values count, an empty word like "none" can be expected).
  */
 function deriveStatus(
+  property: string,
   currentValue: unknown,
   expectedValue: unknown
 ): ControlInstance["status"] {
-  if (!isEmptyValue(currentValue) && currentValue === expectedValue) {
-    return "implemented";
-  }
-  return "missing";
+  return meetsExpected(property, currentValue, expectedValue) ? "implemented" : "missing";
 }
 
 // ==================== IDENTITY KEY ====================
@@ -147,81 +156,82 @@ function resolveTargetElementId(
  *   status = "missing" when property is absent or differs.
  *   Empty array when any required input is null/empty.
  *
- * Memoized: only recomputes when threatData, riskData, dfdData or catalog changes.
+ * Pure; useControlInstanceDerivation memoizes it.
  */
-export function useControlInstanceDerivation(
+export function deriveControlInstances(
   threatData: ThreatData | null,
   riskData: RiskData | null,
   dfdData: DFDData | null,
-  catalog: MitigationEntry[]
+  catalog: MitigationEntry[],
+  /**
+   * Closed-loop review CL-3: targets of a risk whose threat is not in the
+   * STRIDE tables (attack-path risks, resolved through the tree's anchor).
+   */
+  resolveAnchorTargets?: (threatId: string) => ControlTarget[],
 ): ControlInstance[] {
-  return useMemo(() => {
-    if (!threatData || !riskData || catalog.length === 0) return [];
 
-    // Build flat threat lookup: threatId → Threat
-    const threatById = new Map<string, {
-      linkedElement: { elementId: string; elementType: string } | null;
-      dataFlow: {
-        connectionId?: string;
-        sourceId: string;
-        sourceType: string;
-        targetId: string;
-        targetType: string;
-      } | null;
-    }>();
+  // No STRIDE threats is fine: attack-path risks resolve through the anchor (CL-3).
+  if (!riskData || catalog.length === 0) return [];
 
-    for (const table of threatData.perElementTables) {
-      for (const threat of table.threats) {
-        threatById.set(threat.id, {
-          linkedElement: threat.linkedElement,
-          dataFlow: null,
-        });
-      }
+  // Build flat threat lookup: threatId → Threat
+  const threatById = new Map<string, ControlTarget>();
+
+  for (const table of threatData?.perElementTables ?? []) {
+    for (const threat of table.threats) {
+      threatById.set(threat.id, {
+        linkedElement: threat.linkedElement,
+        dataFlow: null,
+      });
     }
-    for (const table of threatData.perInteractionTables) {
-      for (const threat of table.threats) {
-        threatById.set(threat.id, {
-          linkedElement: null,
-          dataFlow: threat.dataFlow,
-        });
-      }
+  }
+  for (const table of threatData?.perInteractionTables ?? []) {
+    for (const threat of table.threats) {
+      threatById.set(threat.id, {
+        linkedElement: null,
+        dataFlow: threat.dataFlow,
+      });
     }
+  }
 
-    // Build mitigation catalog lookup: mitigationId → MitigationEntry
-    const catalogById = new Map<string, MitigationEntry>();
-    for (const entry of catalog) {
-      catalogById.set(entry.id, entry);
-    }
+  // Build mitigation catalog lookup: mitigationId → MitigationEntry
+  const catalogById = new Map<string, MitigationEntry>();
+  for (const entry of catalog) {
+    catalogById.set(entry.id, entry);
+  }
 
-    // Build DFD property lookups for status derivation
-    const elementById = new Map<string, { properties?: any }>();
-    const connectionById = new Map<string, { properties?: any }>();
-    if (dfdData) {
-      for (const el of dfdData.elements ?? []) elementById.set(el.id, el);
-      for (const conn of dfdData.connections ?? []) connectionById.set(conn.id, conn);
-    }
+  // Build DFD property lookups for status derivation
+  const elementById = new Map<string, { properties?: any }>();
+  const connectionById = new Map<string, { properties?: any }>();
+  if (dfdData) {
+    for (const el of dfdData.elements ?? []) elementById.set(el.id, el);
+    for (const conn of dfdData.connections ?? []) connectionById.set(conn.id, conn);
+  }
 
-    // Accumulator: instanceKey → ControlInstance (for deduplication)
-    const instances = new Map<string, ControlInstance>();
+  // Accumulator: instanceKey → ControlInstance (for deduplication)
+  const instances = new Map<string, ControlInstance>();
 
-    for (const risk of riskData.risks ?? []) {
-      if (risk.selectedMitigations.length === 0) continue;
+  for (const risk of riskData.risks ?? []) {
+    if (risk.selectedMitigations.length === 0) continue;
 
-      // accept   → risk retained as-is, no control action needed
-      // eliminate → feature/function removed entirely, no DFD property to set
-      // transfer  → risk moved to third party, no internal DFD change
-      // reduce    → mitigate with controls (primary case) → process
-      // share     → distributed responsibility, controls may still apply → process
-      if (
-        risk.treatment === "accept" ||
-        risk.treatment === "eliminate" ||
-        risk.treatment === "transfer"
-      )
-        continue;
+    // accept   → risk retained as-is, no control action needed
+    // eliminate → feature/function removed entirely, no DFD property to set
+    // transfer  → risk moved to third party, no internal DFD change
+    // reduce    → mitigate with controls (primary case) → process
+    // share     → distributed responsibility, controls may still apply → process
+    if (
+      risk.treatment === "accept" ||
+      risk.treatment === "eliminate" ||
+      risk.treatment === "transfer"
+    )
+      continue;
 
-      const threat = threatById.get(risk.threatId);
-      if (!threat) continue;
+    // STRIDE threat: its element / flow. Attack-path risk (CL-3): the DFD
+    // elements and flows its tree's anchor asset is linked to — heuristic.
+    const own = threatById.get(risk.threatId);
+    const targets = own ? [own] : resolveAnchorTargets?.(risk.threatId) ?? [];
+    const anchored = !own;
 
+    for (const threat of targets) {
       for (const mitigation of risk.selectedMitigations) {
         // Skip rejected mitigations — analyst decided not to implement
         if (mitigation.status === "rejected") continue;
@@ -255,19 +265,30 @@ export function useControlInstanceDerivation(
           // Read current property value from DFD for status derivation
           const el = elementById.get(elementId);
           const conn = connectionById.get(elementId);
-          const currentValue =
-            el?.properties?.[effect.property] ??
-            conn?.properties?.[effect.property];
 
-          const status = deriveStatus(currentValue, effect.expectedValue);
+          // Interface: only mitigations whose controls fit its type (CL-1b).
+          if (
+            effect.targetType === "Interface" &&
+            !mitigationFitsInterface(catalogEntry.affectsProperties, el?.properties)
+          ) {
+            continue;
+          }
+          const currentValue = readControlValue(
+            el?.properties ?? conn?.properties,
+            effect.property,
+          );
+
+          const status = deriveStatus(effect.property, currentValue, effect.expectedValue);
           const key = makeInstanceKey(
             elementId,
             effect.property,
             effect.expectedValue,
           );
 
+          const done = DONE_MITIGATION_STATUSES.includes(mitigation.status);
           const existing = instances.get(key);
           if (existing) {
+            if (done) existing.planned = false;
             // Keep "implemented" if any source sees it as already satisfied
             if (status === "implemented") existing.status = "implemented";
             // Deduplicate: merge source tracking arrays
@@ -288,18 +309,33 @@ export function useControlInstanceDerivation(
               expectedValue: effect.expectedValue,
               status,
               source: "inferred",
-              inferenceConfidence: effect.confidence,
+              inferenceConfidence: anchored ? "heuristic" : effect.confidence,
               coversMitigationIds: [mitigationId],
               coversRiskIds: [risk.id],
               coversThreatIds: [risk.threatId],
+              planned: !done,
             });
           }
         }
       }
     }
+  }
 
-    return Array.from(instances.values());
-  }, [threatData, riskData, dfdData, catalog]);
+  return Array.from(instances.values());
+}
+
+/** Memoized deriveControlInstances for the app. */
+export function useControlInstanceDerivation(
+  threatData: ThreatData | null,
+  riskData: RiskData | null,
+  dfdData: DFDData | null,
+  catalog: MitigationEntry[],
+  resolveAnchorTargets?: (threatId: string) => ControlTarget[],
+): ControlInstance[] {
+  return useMemo(
+    () => deriveControlInstances(threatData, riskData, dfdData, catalog, resolveAnchorTargets),
+    [threatData, riskData, dfdData, catalog, resolveAnchorTargets],
+  );
 }
 
 // ==================== SELECTOR HELPERS ====================

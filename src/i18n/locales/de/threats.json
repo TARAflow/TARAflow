@@ -215,6 +215,32 @@
           "description": "Anderer Bedrohungsakteur-Typ"
         }
       },
+      "projectMitigation": {
+        "newTitle": "Neue Projekt-Massnahme",
+        "editTitle": "Projekt-Massnahme {{id}}",
+        "text": "Massnahme *",
+        "description": "Beschreibung",
+        "vectors": "Angriffsvektoren (keiner = alle)",
+        "effects": "Wirkung im DFD (Closed Loop)",
+        "noEffects": "Ohne Wirkung kann der Closed Loop diese Massnahme nicht prüfen.",
+        "target": "Element",
+        "property": "Eigenschaft",
+        "value": "Wert",
+        "role": {
+          "channel": "Kanal",
+          "source": "Sender",
+          "target": "Empfänger"
+        },
+        "listTitle": "Projekt-Massnahmen",
+        "listHint": "Eigene Massnahmen (M-C-nnn), angelegt in den Threat-Dialogen. Änderungen hier wirken sofort.",
+        "risk": "Risk",
+        "effectCount": "{{count}} DFD-Wirkung(en)",
+        "usedBy": "Verwendet von",
+        "unused": "Nicht verwendet",
+        "mergeInto": "Zusammenführen mit …",
+        "mergeBlocked": "{{from}} lässt sich nicht mit {{into}} zusammenführen: Risiko {{risks}} verwendet beide mit unterschiedlichem Status, Ticket, Nachweis oder Scope. Gleiche die beiden Einträge zuerst im Risiko an.",
+        "deleteUsed": "Noch verwendet — zuerst aus Threats, Risks und Angriffsbäumen entfernen oder zusammenführen."
+      },
       "dialog": {
         "cause": "Ursache",
         "threat": "Bedrohung",
@@ -227,6 +253,11 @@
         "followsMitigations": "folgen den Massnahmen automatisch",
         "addMitigation": "Eigene Massnahme hinzufügen",
         "addVerification": "Eigene Verifizierung hinzufügen",
+        "addMitigationFromCatalog": "Massnahme aus dem Katalog hinzufügen",
+        "addVerificationFromCatalog": "Verifizierung aus dem Katalog hinzufügen",
+        "linkToCatalog": "Mit {{id}} verknüpfen",
+        "newProjectMitigation": "Neue Projekt-Massnahme",
+        "convertToProjectMitigation": "In Projekt-Massnahme umwandeln",
         "mitigationPlaceholder": "Massnahme beschreiben...",
         "verificationPlaceholder": "Verifizierung beschreiben...",
         "notePlaceholder": "Optionale Notiz für das Audit-Trail...",

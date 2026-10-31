@@ -310,8 +310,8 @@ class AssetService {
     return syncFromDFD(assetData, dfdAssets, dfdElements, dfdConnections);
   }
 
-  getAssetsMissingInDFD(assetData: AssetData, dfdAssets: AssetDFDAsset[]) {
-    return getAssetsMissingInDFD(assetData, dfdAssets);
+  getAssetsMissingInDFD(assetData: AssetData, dfdAssets: AssetDFDAsset[], hazardLinks?: AssetHazardLinks) {
+    return getAssetsMissingInDFD(assetData, dfdAssets, hazardLinks);
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────

@@ -101,3 +101,17 @@ export function factorLevelOptions(
         : null,
   };
 }
+
+/**
+ * Colour of an ISO/SAE 21434 attack-potential level (Annex G) — the same dot
+ * the other likelihood factors carry (user 2026-10-31): green for the level
+ * that makes the attack least likely (most attacker effort) up to red for the
+ * most likely one, on the 4-level likelihood colours. `idx1` is the stored
+ * value, 1 = the norm table's first level (≤ 1 day, layman, … — most likely).
+ */
+export function isoFactorLevelColor(levelCount: number, idx1: number): string | undefined {
+  if (levelCount < 2 || idx1 < 1 || idx1 > levelCount) return undefined;
+  const colors = LIKELIHOOD_SCALES["4-level"].levels.map((l) => l.color);
+  const rank = levelCount - idx1; // 0 = least likely
+  return colors[Math.round((rank * (colors.length - 1)) / (levelCount - 1))];
+}

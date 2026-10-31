@@ -7,6 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  endangersSeverityRank,
   HAZARD_SEVERITY_RANK_COLOR,
   hazardSeverityRank,
   worstEndangersSeverity,
@@ -46,5 +47,21 @@ describe("hazard severity display", () => {
     ];
     expect(worstEndangersSeverity("H1", relations)).toEqual({ severity: "irreversible_major", rank: 4 });
     expect(worstEndangersSeverity("H3", relations)).toEqual({ severity: "", rank: 0 });
+  });
+
+  it("1H-S: a person edge rated 'none' is S0 — rank 0; an unknown value ranks below (−1)", () => {
+    expect(endangersSeverityRank({ target: "human", severity: "none" })).toBe(0);
+    expect(endangersSeverityRank({ target: "human", severity: "fatal" })).toBe(4);
+    expect(endangersSeverityRank({ target: "infrastructure", severity: "none" })).toBe(-1);
+    expect(endangersSeverityRank({ target: "environment", severity: "whatever" })).toBe(-1);
+  });
+
+  it("1H-S: worst severity tells S0 from not rated", () => {
+    expect(worstEndangersSeverity("H1", [endangers("H1", "none")])).toEqual({ severity: "none", rank: 0 });
+    expect(worstEndangersSeverity("H1", [])).toEqual({ severity: "", rank: 0 });
+    expect(worstEndangersSeverity("H1", [endangers("H1", "none"), endangers("H1", "reversible_minor")])).toEqual({
+      severity: "reversible_minor",
+      rank: 1,
+    });
   });
 });

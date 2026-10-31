@@ -75,7 +75,6 @@ export interface AssetTabProps {
     updates: { name?: string; description?: string },
   ) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
   /** Per-asset hazard links, projected by the app layer (workspace-layout). */
   hazardLinks?: Record<string, AssetHazardSummary>;
   /**
@@ -687,8 +686,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
 
   const missingInDFD = useMemo(() => {
     if (!project.dfdAssets) return [];
-    return assetService.getAssetsMissingInDFD(assetData, project.dfdAssets);
-  }, [assetData, project.dfdAssets]);
+    return assetService.getAssetsMissingInDFD(assetData, project.dfdAssets, hazardLinks);
+  }, [assetData, project.dfdAssets, hazardLinks]);
 
   const hasWarnings = syncWarnings.length > 0;
 

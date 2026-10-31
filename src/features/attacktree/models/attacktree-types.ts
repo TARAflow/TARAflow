@@ -717,7 +717,6 @@ export interface AttackTreeTabProps {
   project: AttackTreeProjectData;
   onUpdate: (updates: AttackTreeUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
 }
 
 // ==================== PARSER RESULT ====================

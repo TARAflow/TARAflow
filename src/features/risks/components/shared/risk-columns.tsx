@@ -15,7 +15,9 @@ import {
   MenuItem,
   IconButton,
 } from "@mui/material";
-import { Edit as EditIcon } from "@mui/icons-material";
+import { Edit as EditIcon, WarningAmber as WarningIcon } from "@mui/icons-material";
+import { useConceptFindingsByRisk } from "../concept-findings-context";
+import { conceptFindingText } from "../concept-finding-text";
 import {
   MOSCOW_PRIORITIES,
   RISK_TREATMENTS,
@@ -290,6 +292,8 @@ export const useRiskColumns = ({
   reviewThreatIds,
 }: UseRiskColumnsProps): RiskColumn[] => {
   const { t } = useTranslation();
+  // ISO 21434 plan Phase 4 (P4-2): goal / claim warnings next to the treatment.
+  const conceptFindings = useConceptFindingsByRisk();
 
   return useMemo(() => {
     // ── Factor breakdown tooltip helper ────────────────────────────────────
@@ -668,7 +672,7 @@ export const useRiskColumns = ({
         });
         // ISO: a stored "transfer" is a decision to review (dashed border).
         const toReview = isTreatmentToReview(risk.treatment, vocabulary);
-        return (
+        const chip = (
           <Tooltip
             title={t(`${key}.description`, {
               defaultValue: tr.description,
@@ -690,6 +694,24 @@ export const useRiskColumns = ({
               }}
             />
           </Tooltip>
+        );
+        const findings = conceptFindings?.get(risk.id) ?? [];
+        if (findings.length === 0) return chip;
+        return (
+          <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+            {chip}
+            <Tooltip
+              title={findings
+                .map((f) => conceptFindingText(f, t, () => risk.threatDisplayId))
+                .join(" · ")}
+            >
+              <WarningIcon
+                fontSize="small"
+                sx={{ color: "#d97706", fontSize: 16 }}
+                data-testid={`concept-marker-${risk.id}`}
+              />
+            </Tooltip>
+          </Box>
         );
       },
     });
@@ -1007,5 +1029,6 @@ export const useRiskColumns = ({
     readOnly,
     showJustification,
     reviewThreatIds,
+    conceptFindings,
   ]);
 };

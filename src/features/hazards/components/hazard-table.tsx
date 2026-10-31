@@ -50,9 +50,10 @@ import type {
 } from "shared";
 import {
   HAZARD_SEVERITY_RANK_COLOR,
-  hazardSeverityRank,
   isContributesTo,
   isEndangers,
+  withSeverityClass,
+  worstEndangersSeverity,
 } from "shared";
 import type { HazardData } from "../models/hazard-data-types";
 
@@ -64,6 +65,11 @@ export interface HazardTableProps {
   onEdit: (hazard: HazardItem) => void;
   onDelete: (id: HazardItemId) => void;
   onQuickAdd: (label: string) => void;
+  /**
+   * Label vocabulary of the preset: under "iso-21434" person-harm severities
+   * show their ISO 26262 class (S0–S3, RQ-15-06, conformance plan 1H-S).
+   */
+  labelVocabulary?: "default" | "iso-21434";
 }
 
 interface AssetChip {
@@ -107,7 +113,6 @@ const PHP_COLOR: Record<string, { bg: string; fg: string }> = {
 
 // Rank and colour of the "Max Severity" column: shared with the asset graph
 // (shared/models/hazard-severity-display.ts).
-const severityRank = hazardSeverityRank;
 const RANK_COLOR = HAZARD_SEVERITY_RANK_COLOR;
 
 const SOURCE_META: Record<
@@ -254,7 +259,7 @@ const AssetChips: React.FC<{
 // ==================== COMPONENT ====================
 
 export const HazardTable = React.memo<HazardTableProps>(
-  ({ data, assets, onEdit, onDelete, onQuickAdd }) => {
+  ({ data, assets, onEdit, onDelete, onQuickAdd, labelVocabulary }) => {
     const { t } = useTranslation();
     const [quickLabel, setQuickLabel] = useState("");
     // Row visibility filter. Out-of-scope hazards are hidden by default (they
@@ -284,14 +289,10 @@ export const HazardTable = React.memo<HazardTableProps>(
 
       const causeAssets: Record<string, AssetChip[]> = {};
       const targetAssets: Record<string, AssetChip[]> = {};
-      const worstRank: Record<string, number> = {};
-      const worstSeverity: Record<string, string> = {};
 
       for (const h of data.hazards) {
         causeAssets[h.id] = [];
         targetAssets[h.id] = [];
-        worstRank[h.id] = 0;
-        worstSeverity[h.id] = "";
       }
       for (const r of data.relations as HazardRelation[]) {
         if (isContributesTo(r) && r.to in causeAssets) {
@@ -299,21 +300,20 @@ export const HazardTable = React.memo<HazardTableProps>(
         }
         if (isEndangers(r) && r.from in targetAssets) {
           targetAssets[r.from].push(toChip(r.to));
-          const rank = severityRank(r.impact.severity);
-          if (rank > worstRank[r.from]) {
-            worstRank[r.from] = rank;
-            worstSeverity[r.from] = r.impact.severity;
-          }
         }
       }
 
-      return data.hazards.map((h) => ({
-        ...h,
-        _causeAssets: causeAssets[h.id] ?? [],
-        _targetAssets: targetAssets[h.id] ?? [],
-        _worstRank: worstRank[h.id] ?? 0,
-        _worstSeverity: worstSeverity[h.id] ?? "",
-      }));
+      return data.hazards.map((h) => {
+        // Not rated (no rated edge) sorts below S0 ("none", rank 0).
+        const worst = worstEndangersSeverity(h.id, data.relations as HazardRelation[]);
+        return {
+          ...h,
+          _causeAssets: causeAssets[h.id] ?? [],
+          _targetAssets: targetAssets[h.id] ?? [],
+          _worstRank: worst.severity ? worst.rank : -1,
+          _worstSeverity: worst.severity,
+        };
+      });
     }, [data.hazards, data.relations, assets]);
 
     // ── Apply the visibility filter ─────────────────────────────────────────
@@ -579,9 +579,13 @@ export const HazardTable = React.memo<HazardTableProps>(
               })}
             >
               <Chip
-                label={t(`tabs.hazards.severity.${p.row._worstSeverity}`, {
-                  defaultValue: humanize(p.row._worstSeverity),
-                })}
+                label={withSeverityClass(
+                  p.row._worstSeverity,
+                  t(`tabs.hazards.severity.${p.row._worstSeverity}`, {
+                    defaultValue: humanize(p.row._worstSeverity),
+                  }),
+                  labelVocabulary,
+                )}
                 size="small"
                 sx={{
                   height: 20,
@@ -660,7 +664,7 @@ export const HazardTable = React.memo<HazardTableProps>(
         sourceColumn,
         actionsColumn,
       ];
-    }, [t, onEdit, onDelete]);
+    }, [t, onEdit, onDelete, labelVocabulary]);
 
     // ==================== RENDER ====================
 

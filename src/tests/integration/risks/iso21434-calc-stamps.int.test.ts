@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { parseAndRepair } from "app/services/migration-service";
+import { CURRENT_SCHEMA_VERSION } from "app/services/schema-version";
 import {
   commitLoadedProject,
   mergeProjectPatch,
@@ -29,10 +30,10 @@ describe("ISO calculation stamps — open, edit, save", () => {
   // cnc-ref carries no ISO feasibility (no tree, no iso_* factors), so the
   // migration computes no ISO risk value and stamps nothing (3a: only risks
   // that get an isoRisk in migration 9 → 10 are stamped, decision 20 E5).
-  it("opening and saving an ISO project without computable risk values writes no stamp; schema is 10", () => {
+  it("opening and saving an ISO project without computable risk values writes no stamp; schema is current", () => {
     const saved = serialiseProject(open(FIXTURE));
     expect(saved).not.toContain("calcStamp");
-    expect(JSON.parse(saved).schemaVersion).toBe(10);
+    expect(JSON.parse(saved).schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 
   it("open → save → open → save is byte-identical", () => {

@@ -15,7 +15,8 @@ export interface RiskProgress {
  * Calculate progress statistics for a group of risks.
  * A risk is considered "done" if its implementation status is:
  *   implemented | verified | rejected (all active mitigations resolved)
- * Or if treatment is accept/transfer (no mitigation needed).
+ * Or if treatment is accept / transfer / share (no mitigation needed —
+ * "share" is the ISO/SAE 21434 name of transfer; user 2026-10-30).
  */
 export function calculateProgress(risks: Risk[]): RiskProgress {
   const total = risks.length;
@@ -24,6 +25,7 @@ export function calculateProgress(risks: Risk[]): RiskProgress {
     if (
       r.treatment === "accept" ||
       r.treatment === "transfer" ||
+      r.treatment === "share" ||
       r.moscowPriority === "wont"
     )
       return true;

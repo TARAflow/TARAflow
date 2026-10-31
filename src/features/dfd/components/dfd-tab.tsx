@@ -3,6 +3,7 @@
 // NO business logic, NO data transformation, just rendering and event delegation
 
 import { A2AOpsProvider } from "../contexts/a2a-ops-context";
+import { AssumptionsProvider } from "../contexts/assumptions-context";
 import React, {
   useState,
   useCallback,
@@ -11,6 +12,7 @@ import React, {
   useRef,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { applyControlSuggestionUpdate } from "../services/apply-control-suggestion";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { AssetGroup } from "shared";
 import type {
@@ -60,7 +62,7 @@ import { OrphanPageDialog } from "./child-page-ui";
 import { InsertContextDialog } from "./insert-context-dialog";
 import { LostDefinitionDialog } from "./lost-definition-dialog";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
-import type { AssetUsageLookup } from "shared";
+import type { Assumption, AssetUsageLookup } from "shared";
 import type { AssetFocusRequest, AssetVisibility } from "./dfd-asset-panel";
 import type {
   DFDAutoNumberingConfig,
@@ -93,13 +95,20 @@ export interface DFDTabProps {
    * (e.g. hazard protection targets) that the dfd.assets mirror lacks.
    */
   assetRegistry?: AssetGraphRegistry | null;
+  /** Label vocabulary of the preset (asset graph: S0–S3 under iso-21434). */
+  labelVocabulary?: "default" | "iso-21434";
+  /**
+   * The Item Definition's assumptions and how to create one (trust boundary
+   * form, A-3). Absent: the form shows the free text only.
+   */
+  assumptions?: readonly Assumption[];
+  onCreateAssumption?: (text: string) => Assumption;
   /** "Show in table" from the asset graph (FR-V13, way back). */
   onShowInTable?: (assetId: string) => void;
   /** "Open in Hazard tab" from a hazard's card in the asset graph (G9). */
   onOpenHazard?: (hazardId: string) => void;
   onUpdate: (updates: DFDUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
   /**
    * Control gap requirements derived from selected Risk Tab mitigations.
    * Read-only — DFD Tab displays warnings, never writes back.
@@ -127,7 +136,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
-  onPhaseComplete,
   controlInstances,
   securityDrifts,
   assetUsage,
@@ -135,6 +143,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   graphFocusRequest,
   hazards,
   assetRegistry,
+  labelVocabulary,
+  assumptions,
+  onCreateAssumption,
   onShowInTable,
   onOpenHazard,
 }) => {
@@ -213,7 +224,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     () => ({
       onUpdate,
       onDirtyChange,
-      onPhaseComplete,
       darkMode,
       autoValidateInterval: 500,
       autoNumberOnSave: false,
@@ -606,34 +616,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       mitigationId?: string,
       riskId?: string,
     ) => {
-      // Build audit record
-      const record: import("features/dfd/models/element-shared-types").SecurityControlRecord =
-        {
-          property,
-          value,
-          setBy: "apply_suggestion",
-          setAt: new Date().toISOString(),
-          ...(mitigationId ? { mitigationId } : {}),
-          ...(riskId ? { riskId } : {}),
-        };
-
-      // Get current ownership records and append (replace existing for same property)
       const target = isConnection
         ? editor.connections.find((c) => c.id === elementId)
         : editor.elements.find((e) => e.id === elementId);
-
-      const existingOwnership: any[] =
-        (target?.properties as any)?.securityControlOwnership ?? [];
-
-      const updatedOwnership = [
-        ...existingOwnership.filter((r: any) => r.property !== property),
-        record,
-      ];
-
-      const updates = {
-        [property]: value,
-        securityControlOwnership: updatedOwnership,
-      } as any;
+      const updates = applyControlSuggestionUpdate(
+        target?.properties as Record<string, unknown> | undefined,
+        property,
+        value,
+        { mitigationId, riskId, at: new Date().toISOString() },
+      ) as never;
 
       if (isConnection) {
         editor.updateConnectionDescription(
@@ -800,10 +791,20 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     setGraphFocus({ assetId: graphFocusRequest.assetId });
   }, [graphFocusRequest, setViewMode]);
 
+  // Item Definition assumptions for the trust boundary form (A-3).
+  const assumptionsAccess = useMemo(
+    () =>
+      onCreateAssumption
+        ? { assumptions: assumptions ?? [], create: onCreateAssumption }
+        : null,
+    [assumptions, onCreateAssumption],
+  );
+
   // ==================== RENDER ====================
 
   return (
     <A2AOpsProvider commit={commitA2AOps}>
+    <AssumptionsProvider value={assumptionsAccess}>
     <Box
       sx={{
         display: "flex",
@@ -936,6 +937,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               focusRequest={graphFocus}
               onShowInTable={onShowInTable}
               onOpenHazard={onOpenHazard}
+              labelVocabulary={labelVocabulary}
               onCreateAsset={handleCreateAssetForGroup}
               assetEditing={assetEditingForGraph}
               elementLinking={elementLinkingForGraph}
@@ -1074,6 +1076,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onSave={handleAssetSave}
       />
     </Box>
+    </AssumptionsProvider>
     </A2AOpsProvider>
   );
 }

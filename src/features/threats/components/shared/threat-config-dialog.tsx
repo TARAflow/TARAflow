@@ -1,8 +1,8 @@
 // ==================== THREAT CONFIG DIALOG ====================
 // Configuration dialog for STRIDE method settings.
 // Custom template tabs removed — MitigationEntry/VerificationEntry no longer
-// carry inline text (resolved via i18n). Custom catalog extension will be
-// redesigned in a later step.
+// carry inline text (resolved via i18n). The project's own mitigations
+// (M-C-nnn, custom mitigation catalog CM-3) are listed at the end.
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,6 +20,8 @@ import {
 } from "@mui/material";
 
 import type { ThreatConfiguration } from "../../models/threat-types";
+import { ProjectMitigationList, type ProjectMitigationRefs } from "./project-mitigation-list";
+import type { ProjectMitigationsApi } from "./project-mitigations-context";
 
 // ==================== TYPES ====================
 
@@ -29,6 +31,9 @@ interface ThreatConfigDialogProps {
   hasExistingThreats: boolean;
   onSave: (config: ThreatConfiguration) => void;
   onClose: () => void;
+  /** Project mitigation catalog M-C-nnn (custom mitigation catalog CM-3). */
+  projectMitigations?: ProjectMitigationsApi | null;
+  projectMitigationRefs?: ProjectMitigationRefs;
 }
 
 // ==================== COMPONENT ====================
@@ -39,6 +44,8 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
   hasExistingThreats,
   onSave,
   onClose,
+  projectMitigations,
+  projectMitigationRefs,
 }) => {
   const { t } = useTranslation();
 
@@ -54,6 +61,9 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
 
   const handleSave = () => {
     onSave({
+      // Everything not edited here (project mitigations and their counter
+      // included) stays as it is.
+      ...configuration,
       activeMethod: configuration.activeMethod,
       zeroTrustMode,
       showThreatActor,
@@ -245,6 +255,13 @@ export const ThreatConfigDialog: React.FC<ThreatConfigDialogProps> = ({
               <Switch disabled checked={false} />
             </Box>
           </Box>
+
+          {projectMitigations && (
+            <>
+              <Divider />
+              <ProjectMitigationList api={projectMitigations} refs={projectMitigationRefs} />
+            </>
+          )}
         </Box>
       </DialogContent>
 

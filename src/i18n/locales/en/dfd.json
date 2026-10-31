@@ -1972,6 +1972,11 @@
               "placeholder": "e.g. Inside is trusted, outside is hostile",
               "helper": "What do you assume about each side of this boundary?"
             },
+            "assumptionIds": {
+              "label": "Assumptions (Item Definition)",
+              "convert": "Convert to assumption",
+              "invalid": "{{ids}} marked invalid — review this boundary."
+            },
             "boundaryControls": {
               "label": "Controls at Boundary",
               "placeholder": "e.g. Firewall, API Gateway, Authentication Layer",
@@ -2797,6 +2802,10 @@
         "heuristic": "Heuristic mapping — confirm before applying",
         "applyLabel": "Apply",
         "applyTooltip": "Apply suggestion to model",
+        "planned": "planned",
+        "plannedCount": "{{count}} planned",
+        "plannedTooltip": "Planned mitigation (open / in progress) — not yet in the DFD. Apply is offered once the mitigation is implemented.",
+        "doneMissing": "Mitigation marked implemented, but the DFD does not show it",
         "filter": {
           "all": "All",
           "errors": "Errors",
@@ -2807,7 +2816,8 @@
         "conflict": {
           "label": "Conflict",
           "manualOverride": "Property set manually but differs from Risk decision",
-          "staleRecord": "Applied value no longer matches current requirement"
+          "staleRecord": "Applied value no longer matches current requirement",
+          "doneOther": "Mitigation marked implemented, but the DFD holds another value"
         },
         "drift": {
           "label": "Drift",

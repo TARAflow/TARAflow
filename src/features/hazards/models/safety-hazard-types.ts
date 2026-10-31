@@ -8,12 +8,13 @@
 // delete this file and import from there instead — this is the single source.
 
 /**
- * Severity as an import reads it (hazard import HI-1 / HI-1a): the canonical
- * person-harm scale (`SafetySeverity`, as on the endangers edge) — or one of
- * the four legacy values of the earlier intermediate scale, still accepted as
- * input (TARAflow JSON / CSV files, value maps) and mapped as before.
+ * Severity as an import reads it (hazard import HI-1 / HI-1a / HI-1b): the
+ * canonical person-harm scale (`SafetyImpact`, as on the endangers edge,
+ * "none" = no injury / S0 included) — or one of the four legacy values of the
+ * earlier intermediate scale, still accepted as input (TARAflow JSON / CSV
+ * files, value maps) and mapped as before.
  */
-export type HazardSeverity = SafetySeverity | LegacyHazardSeverity;
+export type HazardSeverity = SafetyImpact | LegacyHazardSeverity;
 
 /** The earlier intermediate scale — input only, mapped by the bridge. */
 export type LegacyHazardSeverity =
@@ -33,7 +34,7 @@ export type HazardProbability =
 // SINGLE SOURCE is hazard-types.ts (native hazard model). Re-exported here so
 // import-side consumers keep one import path, WITHOUT redefining the union.
 // Do not add categories here — edit hazard-types.ts.
-import { SAFETY_SEVERITIES, type HazardCategory, type SafetySeverity } from "shared";
+import { SAFETY_IMPACTS, type HazardCategory, type SafetyImpact } from "shared";
 
 export interface SafetyHazard {
   id: string; // project-unique, e.g. "H-01"
@@ -93,7 +94,7 @@ export const LEGACY_HAZARD_SEVERITIES: ReadonlySet<LegacyHazardSeverity> = new S
 
 /** Every severity an import accepts: the canonical scale and the legacy values. */
 export const HAZARD_SEVERITIES: ReadonlySet<HazardSeverity> = new Set<HazardSeverity>([
-  ...SAFETY_SEVERITIES,
+  ...SAFETY_IMPACTS,
   ...LEGACY_HAZARD_SEVERITIES,
 ]);
 

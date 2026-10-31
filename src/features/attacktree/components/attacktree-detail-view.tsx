@@ -50,7 +50,7 @@ import {
 } from "../models/attacktree-types";
 import type { LikelihoodModel } from "../models/attacktree-feasibility-types";
 import { FEASIBILITY_RANK } from "../models/attacktree-feasibility-types";
-import { treeDisplayTitle } from "../utils/attacktree-labels";
+import { treeDisplayId, treeDisplayTitle, treeNumberOf } from "../utils/attacktree-labels";
 import { AttackTreeEditor } from "./attacktree-editor";
 import { AttackTreePreview } from "./attacktree-preview";
 import { AttackTreeTableView } from "./attacktree-tableview";
@@ -274,6 +274,9 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
                       }}
                     >
                       <span>{getAnchorTypeIcon(tree.anchor.type)}</span>
+                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }} data-testid={`tree-id-${tree.id}`}>
+                        {treeDisplayId(trees, tree.id)}
+                      </span>
                       <span style={{ flexGrow: 1 }}>
                         {treeDisplayTitle(tree, t)}
                       </span>
@@ -421,6 +424,7 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
                 <AttackTreeTableView
                   pathAnalysis={selectedTree.pathAnalysis}
                   evaluationMethod={selectedTree.configuration.evaluationMethod}
+                  treeNumber={treeNumberOf(trees, selectedTree.id)}
                   mitigationLookup={mitigationLookup}
                   likelihoodModel={likelihoodModel}
                   treeId={selectedTree.id}
@@ -440,6 +444,7 @@ export const AttackTreeDetailView = React.memo<AttackTreeDetailViewProps>(
                   mitigationCatalog={mitigationCatalog}
                   verificationCatalog={verificationCatalog}
                   title={treeDisplayTitle(selectedTree, t)}
+                  treeNumber={treeNumberOf(trees, selectedTree.id)}
                 />
               </>
             ) : (

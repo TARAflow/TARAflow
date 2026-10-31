@@ -157,14 +157,7 @@
       "strideCategory": "I",
       "context": {},
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "DataStore",
-          "property": "secureDeletion",
-          "expectedValue": "crypto_erase",
-          "confidence": "deterministic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": [
         "V-I-001"
       ]

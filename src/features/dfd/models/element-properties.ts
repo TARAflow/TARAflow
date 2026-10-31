@@ -1750,6 +1750,13 @@ export interface TrustBoundaryProperties {
   boundaryType?: TrustBoundaryType;
   defaultExposureLevel?: ExposureLevel;
   securityAssumptions?: string;
+  /**
+   * Assumptions of the Item Definition this boundary relies on (ISO/SAE 21434
+   * RQ-09-02 NOTE 8; conformance plan Phase 1 stage A, A-3, decision 12):
+   * ids of project.itemDefinition.assumptions. The free text above stays as it
+   * is; "Convert to assumption" creates an assumption from it and links it.
+   */
+  assumptionIds?: string[];
 
   /**
    * Structured security controls enforced at this boundary.

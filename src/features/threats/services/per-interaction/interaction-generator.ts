@@ -387,7 +387,23 @@ export class InteractionThreatGenerator {
       tables,
       project.threats?.perInteractionTables,
       interactionThreatNaturalKey,
-      { keepManual: options?.keepManual },
+      {
+        keepManual: options?.keepManual,
+        // The perspective of a manual threat is not stored: both ends count.
+        manualHints: (t) => {
+          const ids = t.dataFlow
+            ? [t.dataFlow.sourceId, t.dataFlow.targetId]
+            : t.linkedElement
+              ? [t.linkedElement.elementId]
+              : [];
+          return ids.flatMap((id) => {
+            const el = project.dfdGraph?.elementsById.get(id);
+            return el
+              ? getImplementedMitigationHints(el.type, ((el as any).properties as Record<string, unknown> | null) ?? null, t.strideCategory)
+              : [];
+          });
+        },
+      },
     );
   }
 

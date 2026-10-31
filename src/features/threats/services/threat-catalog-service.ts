@@ -10,6 +10,7 @@ import type {
   ElementTemplate,
   InteractionTemplate,
   MitigationEntry,
+  ProjectMitigation,
   VerificationEntry,
   MitigationDraft,
   VerificationDraft,
@@ -40,6 +41,7 @@ import verificationsElevationData from "./catalog/verifications/verifications-el
 import verificationsInterfaceData from "./catalog/verifications/verifications-interface.json";
 import verificationsChipBoundaryData from "./catalog/verifications/verifications-chipboundary.json";
 import verificationsPhysicalBoundaryData from "./catalog/verifications/verifications-physicalboundary.json";
+import { getMitigationCatalogVersion, registeredProjectMitigations } from "shared/services/project-mitigation-registry";
 
 // ==================== CATALOG SINGLETONS ====================
 
@@ -340,8 +342,42 @@ export function getAllInteractionTemplates(): InteractionTemplate[] {
   return ALL_INTERACTION_TEMPLATES;
 }
 
+// ==================== PROJECT MITIGATIONS ====================
+// Custom mitigation catalog design CM-2: the project's own mitigations
+// (M-C-nnn) join the built-in catalog for every reader — closed loop,
+// dialogs, report — so they work wherever a catalog id works. The open
+// project registers them in the shared registry (app: workspace layout; CLI:
+// before generating); the derived lookups below follow its version. Readers
+// that memoize the catalog depend on useMitigationCatalogVersion().
+// Generation does not use them: a generated threat's controls come from the
+// built-in catalog, project mitigations are chosen by the analyst.
+
+let derivedVersion = -1;
+let projectMitigationById = new Map<string, ProjectMitigation>();
+let catalogWithProject: MitigationEntry[] = ALL_MITIGATIONS;
+
+function derived(): void {
+  const version = getMitigationCatalogVersion();
+  if (version === derivedVersion) return;
+  derivedVersion = version;
+  const entries = registeredProjectMitigations<ProjectMitigation>();
+  projectMitigationById = new Map(entries.map((m) => [m.id, m]));
+  catalogWithProject = entries.length > 0 ? [...ALL_MITIGATIONS, ...entries] : ALL_MITIGATIONS;
+}
+
+export function getProjectMitigations(): readonly ProjectMitigation[] {
+  return registeredProjectMitigations<ProjectMitigation>();
+}
+
+export function getProjectMitigation(id: string): ProjectMitigation | undefined {
+  derived();
+  return projectMitigationById.get(id);
+}
+
+/** Built-in catalog plus the open project's mitigations. */
 export function getAllMitigations(): MitigationEntry[] {
-  return ALL_MITIGATIONS;
+  derived();
+  return catalogWithProject;
 }
 
 export function getAllVerifications(): VerificationEntry[] {
@@ -607,6 +643,8 @@ export function getLocalizedInteractionCause(
 }
 
 export function getLocalizedMitigation(mitigationId: string): string {
+  const own = getProjectMitigation(mitigationId);
+  if (own) return own.text;
   return i18n.t(`${mitigationId}.mitigation`, { ns: "mitigations" });
 }
 

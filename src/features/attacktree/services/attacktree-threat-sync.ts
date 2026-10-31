@@ -48,6 +48,7 @@ import {
   buildThreatId,
 } from "./attacktree-threat-generator";
 import {
+  buildAttackPathThreatId,
   diffPathAnalysis,
   type PathDiff,
 } from "./attacktree-path-identity";
@@ -99,7 +100,7 @@ export function tupleForThreatId(
   threatId: string,
   stride: StrideCategory,
 ): { pathKey: string; strideCategory: StrideCategory } | null {
-  const prefix = `AT-${treeId}-`;
+  const prefix = buildAttackPathThreatId(treeId, "");
   const suffix = `-${stride}`;
   if (!threatId.startsWith(prefix) || !threatId.endsWith(suffix)) return null;
   const pathKey = threatId.slice(prefix.length, threatId.length - suffix.length);

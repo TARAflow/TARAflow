@@ -67,8 +67,6 @@ const project = (likelihoodMethod?: string): Any => ({
     ],
   },
   computed: {
-    riskBeforeLabels: new Map(),
-    riskAfterLabels: new Map(),
     moscowLabels: new Map(),
     impactLabels: new Map(),
   },

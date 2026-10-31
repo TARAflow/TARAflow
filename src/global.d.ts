@@ -1,12 +1,5 @@
 // ==================== TYPES ====================
 
-export interface OAuthCallbackData {
-  code?: string;
-  state?: string;
-  error?: string;
-  errorDescription?: string;
-}
-
 // Import types for Git and Credentials
 import type {
   GitStatus,
@@ -26,10 +19,6 @@ declare global {
     electron?: {
       shell: {
         openExternal: (url: string) => Promise<void>;
-      };
-      oauth?: {
-        onCallback: (callback: (data: OAuthCallbackData) => void) => void;
-        removeCallback: () => void;
       };
       file?: {
         saveDialog: (
@@ -128,20 +117,33 @@ declare global {
         dfd1Xml: string,
         dfd2Xml: string,
       ) => Promise<{ success: boolean; error?: string }>;
-      jiraRequest: (config: { url: string; options: any }) => Promise<any>;
-      jira: {
-        saveToken: (
-          account: string,
-          token: string,
-        ) => Promise<{ success: boolean; error?: string }>;
-        getToken: (account: string) => Promise<{
-          success: boolean;
-          token: string | null;
-          error?: string;
-        }>;
-        deleteToken: (
-          account: string,
-        ) => Promise<{ success: boolean; error?: string }>;
+      /** Issue trackers — the main process holds and applies the token (adapters design §4.1). */
+      integration: {
+        saveToken: (ref: {
+          tool: string;
+          host: string;
+          account: string;
+          token: string;
+        }) => Promise<{ success: boolean; error?: string }>;
+        hasToken: (ref: {
+          tool: string;
+          host: string;
+          account: string;
+        }) => Promise<{ success: boolean; hasToken: boolean }>;
+        deleteToken: (ref: {
+          tool: string;
+          host: string;
+          account: string;
+        }) => Promise<{ success: boolean }>;
+        request: (req: {
+          tool: string;
+          host: string;
+          account: string;
+          method: "GET" | "POST" | "PUT";
+          path: string;
+          body?: unknown;
+          headers?: Record<string, string>;
+        }) => Promise<{ ok: boolean; status: number; data: unknown; error?: string }>;
       };
     };
 

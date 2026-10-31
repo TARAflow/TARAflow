@@ -1,10 +1,11 @@
 // src/tests/unit/features/hazards/services/severity-scale-service.test.ts
 import { describe, it, expect } from "vitest";
-import { resolveSeverityScale } from "features/hazards";
+import { defaultSeverityFor, resolveSeverityScale } from "features/hazards";
 
 describe("resolveSeverityScale", () => {
-  it("returns the safety scale for human targets (excludes 'none')", () => {
+  it("returns the safety scale for human targets, 'none' (S0) first (ISO plan 13 C)", () => {
     expect(resolveSeverityScale("human")).toEqual([
+      "none",
       "reversible_minor",
       "reversible_major",
       "irreversible_minor",
@@ -29,5 +30,11 @@ describe("resolveSeverityScale", () => {
       "high",
       "critical",
     ]);
+  });
+
+  it("a new edge starts with the lowest harm, never 'none' (S0)", () => {
+    expect(defaultSeverityFor("human")).toBe("reversible_minor");
+    expect(defaultSeverityFor("environment")).toBe("low");
+    expect(defaultSeverityFor("infrastructure")).toBe("low");
   });
 });

@@ -6,6 +6,10 @@
 // - Sync calls pass dfd + assetDataRef for asset criteria prefill
 // - pendingSafetySourceRemoval checked on mount and project change
 
+import { GoalsClaimsDialog } from "./goals-claims-dialog";
+import { ConceptFindingsProvider } from "./concept-findings-context";
+import { conceptFindings, conceptWarningsByRisk } from "../services/concept-findings";
+import type { CybersecurityConcept } from "shared";
 import { collectConfiguredImpactCriteria } from "../services/risk-sync-service";
 import React, {
   useState,
@@ -59,11 +63,8 @@ import { isIsoRiskMode } from "../models/iso-risk-display";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
 import { RiskMitigationStatusDialog } from "./risk-mitigation-status-dialog";
-import { syncAllMitigationTickets } from "../services/jira-mitigation-service";
-import type {
-  JiraCredentials,
-  JiraProject,
-} from "../../integration/models/integration-types";
+import { applyTicketStatesToRisks, linkedTicketKeys } from "../services/ticket-sync";
+import type { TicketPort } from "shared/models/ticket-types";
 
 import { RiskConfigDialog } from "./risk-config-dialog";
 import { RiskMatrix } from "./risk-matrix";
@@ -81,6 +82,7 @@ import {
   DEFAULT_TOP_HEIGHT,
   MainView,
 } from "../utils/risks-tab-helpers";
+import { calculateProgress } from "../utils/risk-progress";
 
 // ==================== COMPONENT ====================
 
@@ -88,14 +90,19 @@ import {
 export interface RiskTabProps {
   project: RiskProjectData;
   onUpdate: (updates: RiskUpdateResult) => void;
+  /** Goals and claims changed (risk dialog, decision 25) — stored by the app layer. */
+  onConceptChange?: (concept: CybersecurityConcept) => void;
   onDirtyChange?: (isDirty: boolean) => void;
-  onPhaseComplete?: () => void;
+  /** The issue tracker's adapter (adapters design §4.3); absent = none connected. */
+  ticketPort?: TicketPort | null;
 }
 
 export const RisksTab: React.FC<RiskTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
+  onConceptChange,
+  ticketPort,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
@@ -320,20 +327,20 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     attackPathActiveRisks.length > 0 ||
     attackPathWontRisks.length > 0;
 
+  // Toolbar counts over every risk the tab shows — the active STRIDE method
+  // and the attack-path risks (ISO/SAE 21434 has only these; user
+  // 2026-10-30: "0/0 Risks, Not Started" with 17 risks). Assessed: a risk
+  // value (ISO) or a calculated score; complete: the progress chip's rule.
+  const toolbarRisks = useMemo(
+    () => [...activeRisks, ...attackPathActiveRisks],
+    [activeRisks, attackPathActiveRisks],
+  );
   const assessedRiskCount = useMemo(
     () =>
-      activeRisks.filter((r) => r.calculatedRiskBeforeMitigation > 0).length,
-    [activeRisks],
+      toolbarRisks.filter((r) => (r.isoRisk?.value ?? 0) > 0 || r.calculatedRiskBeforeMitigation > 0).length,
+    [toolbarRisks],
   );
-  const completedRiskCount = useMemo(
-    () =>
-      activeRisks.filter((r) =>
-        r.selectedMitigations.some(
-          (m) => m.status === "implemented" || m.status === "verified",
-        ),
-      ).length,
-    [activeRisks],
-  );
+  const completedRiskCount = useMemo(() => calculateProgress(toolbarRisks).done, [toolbarRisks]);
 
   const currentThreats = useMemo(
     () =>
@@ -364,6 +371,14 @@ export const RisksTab: React.FC<RiskTabProps> = ({
   const hasAnyThreats = allThreats.length > 0;
   const perElementCount = project.perElementThreats.length;
   const perInteractionCount = project.perInteractionThreats.length;
+  // The validation of the current state, for the toolbar chip (user
+  // 2026-10-30 — the stored one was never shown, and may be stale).
+  const currentValidation = useMemo(() => riskService.validate(riskData), [riskData]);
+  // The method buttons show risks, not threats (user 2026-10-30).
+  const risksOfMethod = (method: "per-element" | "per-interaction") =>
+    riskData.risks.filter((r) => r.sourceStrideMethod === method).length;
+  const dismissed = (threats: readonly { relevance?: string }[]) =>
+    threats.filter((th) => th.relevance === "not_relevant").length;
   const needsSync = hasAnyThreats && syncStatus.needsSync;
 
   const {
@@ -459,83 +474,41 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     }
   }, [riskData.configuration.pendingSafetySourceRemoval]);
 
-  // ── Jira project for dialog (resolved from integration connection) ─────────
-  const jiraProjectForDialog = useMemo((): JiraProject | null => {
-    const conn = project.integration?.connection;
-    if (!conn || conn.tool !== "jira" || conn.status !== "connected")
-      return null;
+  // ── Ticket sync (adapters design §3.3) ──────────────────────────────────
+  // One batch on opening the tab and on "Sync tickets" — no polling. Applied
+  // to the current risks (a ref, not a snapshot of an interval) through the
+  // same updateRisk as the status dialog, and persisted by the auto-save.
+  const riskDataRef = useRef(riskData);
+  riskDataRef.current = riskData;
+  const [ticketSync, setTicketSync] = useState<{ running: boolean; at?: string }>({ running: false });
+  const ticketsConnected = !!ticketPort && project.integration?.connection?.status === "connected";
+  const hasLinkedTickets = useMemo(() => linkedTicketKeys(riskData.risks).length > 0, [riskData.risks]);
 
-    // Use issueTypes from stored connection credentials if available
-    // (populated when user tests connection in Integration Tab)
-    const storedIssueTypes = (conn.credentials as any)?.issueTypes as
-      | Array<{ id: string; name: string; iconUrl?: string }>
-      | undefined;
-
-    const issueTypes = storedIssueTypes?.length
-      ? storedIssueTypes.filter(
-          (it) => !it.name.toLowerCase().includes("subtask"),
-        )
-      : [
-          // Fallback with Jira Cloud standard issue type icons
-          { id: "task", name: "Task", iconUrl: undefined },
-          { id: "story", name: "Story", iconUrl: undefined },
-          { id: "bug", name: "Bug", iconUrl: undefined },
-          { id: "feature", name: "Feature", iconUrl: undefined },
-          { id: "epic", name: "Epic", iconUrl: undefined },
-        ];
-
-    return {
-      id: conn.projectName ?? "",
-      key: conn.projectName ?? "",
-      name: conn.projectName ?? "",
-      projectTypeKey: "software",
-      issueTypes,
-    };
-  }, [project.integration?.connection]);
-
-  // ── Auto-sync Jira ticket statuses every 10 seconds ──────────────────────
-  // Only runs when Jira is connected and there are mitigations with linked tickets.
-  useEffect(() => {
-    const conn = project.integration?.connection;
-    if (!conn || conn.tool !== "jira" || conn.status !== "connected") return;
-
-    const hasMitigationTickets = riskData.risks.some((r) =>
-      r.selectedMitigations.some((m) => !!m.ticketId),
-    );
-    if (!hasMitigationTickets) return;
-
-    const credentials = conn.credentials as JiraCredentials;
-
-    const interval = setInterval(async () => {
-      const updatedRisks = await Promise.all(
-        riskData.risks.map(async (risk) => {
-          const updatedMitigations = await syncAllMitigationTickets(
-            credentials,
-            risk.selectedMitigations,
-          );
-          const mitigationsChanged =
-            JSON.stringify(updatedMitigations) !==
-            JSON.stringify(risk.selectedMitigations);
-          return mitigationsChanged
-            ? { ...risk, selectedMitigations: updatedMitigations }
-            : risk;
-        }),
-      );
-
-      const anyChanged = updatedRisks.some((r, i) => r !== riskData.risks[i]);
-      if (anyChanged) {
-        // Only update local state — do not call onUpdate to avoid
-        // triggering main-layout re-render and persistence log every 5s.
-        // Changes will be persisted on next manual save.
-        setRiskData((prev) => ({ ...prev, risks: updatedRisks }));
+  const syncTickets = useCallback(async () => {
+    if (!ticketPort) return;
+    const keys = linkedTicketKeys(riskDataRef.current.risks);
+    if (keys.length === 0) return;
+    setTicketSync((prev) => ({ ...prev, running: true }));
+    try {
+      const states = await ticketPort.fetchTicketStates(keys);
+      const now = new Date().toISOString();
+      const current = riskDataRef.current;
+      const data = applyTicketStatesToRisks(current, states, now, (d, r) => riskService.updateRisk(d, r));
+      if (data !== current) {
+        setRiskData(data);
+        setIsDirty(true);
       }
-    }, 5_000);
+      setTicketSync({ running: false, at: now });
+    } catch {
+      setTicketSync((prev) => ({ ...prev, running: false }));
+    }
+  }, [ticketPort]);
 
-    return () => clearInterval(interval);
-    // Intentionally exclude riskData.risks from deps to avoid resetting interval
-    // on every risk change — stale closure is acceptable for background sync.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.integration?.connection]);
+  useEffect(() => {
+    if (ticketsConnected) void syncTickets();
+  }, [ticketsConnected, syncTickets]);
+
+  const ticketIssueTypes = project.integration?.connection?.issueTypes;
 
   // Auto-save when dirty (debounced)
   useEffect(() => {
@@ -810,7 +783,29 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
   // ==================== RENDER ====================
 
+  // ── Goals & claims (ISO 21434 plan Phase 4, decision 25) ─────────────────
+  const [showConceptDialog, setShowConceptDialog] = useState(false);
+  // Goals and claims are ISO/SAE 21434 work products: only an iso-21434
+  // project shows them (user 2026-10-30, amends decision 25 "every preset");
+  // stored data of another preset stays in the file.
+  const conceptChange = project.isoMode ? onConceptChange : undefined;
+  const conceptFindingList = useMemo(
+    () =>
+      !project.isoMode
+        ? []
+        : conceptFindings({
+            risks: riskData.risks,
+            concept: project.cybersecurityConcept,
+            assumptions: project.assumptions,
+            isoMode: true,
+            today: new Date().toISOString().slice(0, 10),
+          }),
+    [riskData.risks, project.cybersecurityConcept, project.assumptions, project.isoMode],
+  );
+  const conceptMarkers = useMemo(() => conceptWarningsByRisk(conceptFindingList), [conceptFindingList]);
+
   return (
+    <ConceptFindingsProvider value={conceptMarkers}>
     <Box
       sx={{
         display: "flex",
@@ -833,16 +828,24 @@ export const RisksTab: React.FC<RiskTabProps> = ({
 
       {/* Toolbar */}
       <RisksToolbar
+        onSyncTickets={ticketsConnected && hasLinkedTickets ? () => void syncTickets() : undefined}
+        ticketSyncing={ticketSync.running}
+        ticketSyncedAt={ticketSync.at}
         isDirty={isDirty}
         isSyncing={isSyncing}
         riskMethod={riskMethod}
         activeStrideMethod={activeStrideMethod}
-        riskCount={activeRisks.length}
+        riskCount={toolbarRisks.length}
         assessedRiskCount={assessedRiskCount}
         completedRiskCount={completedRiskCount}
         wontCount={wontRisks.length}
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}
+        validation={currentValidation}
+        perElementRiskCount={risksOfMethod("per-element")}
+        perInteractionRiskCount={risksOfMethod("per-interaction")}
+        perElementDismissedCount={dismissed(project.perElementThreats)}
+        perInteractionDismissedCount={dismissed(project.perInteractionThreats)}
         canSwitchStrideMethod={canSwitchStrideMethod}
         isoMode={project.isoMode ?? false}
         perInteractionDisabled={(project.disabledStrideMethods ?? []).includes(
@@ -865,6 +868,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
         onImport={handleImport}
         onToggleWontTable={() => setShowWontTable(!showWontTable)}
         onToggleFilters={() => setShowFilters(!showFilters)}
+        onOpenConcept={conceptChange ? () => setShowConceptDialog(true) : undefined}
+        conceptWarningCount={conceptFindingList.filter((f) => f.severity === "warning").length}
       />
 
       {/* Notifications — self-contained accordion (renders nothing when
@@ -1088,7 +1093,10 @@ export const RisksTab: React.FC<RiskTabProps> = ({
                 onRiskLevelFilterChange={setRiskLevelFilter}
                 onClearFilters={clearFilters}
                 onScopeFilterChange={setScopeFilter}
-                filteredCount={filteredActiveRisks.length}
+                // "Showing n of m" over every risk the tab shows — the active
+                // STRIDE method and the attack-path risks (user 2026-10-30).
+                filteredCount={filteredActiveRisks.length + filteredAttackPathRisks.length}
+                totalCount={toolbarRisks.length}
                 onEdit={handleEditRisk}
                 onPriorityChange={handlePriorityChange}
                 onTreatmentChange={handleTreatmentChange}
@@ -1128,6 +1136,11 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           dfdData={project.dfd ?? null}
           onSave={handleSaveRisk}
           onClose={handleCloseRiskDialog}
+          concept={project.cybersecurityConcept}
+          onConceptChange={conceptChange}
+          allRisks={riskData.risks}
+          assumptions={project.assumptions}
+          isoMode={project.isoMode}
         />
       )}
 
@@ -1136,7 +1149,8 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           open={!!selectedImplementationRisk}
           risk={selectedImplementationRisk}
           integrationConnection={project.integration?.connection ?? null}
-          jiraProject={jiraProjectForDialog}
+          ticketPort={ticketsConnected ? ticketPort : null}
+          issueTypes={ticketIssueTypes}
           onSave={handleSaveImplementation}
           onClose={handleCloseImplementationDialog}
         />
@@ -1221,8 +1235,27 @@ export const RisksTab: React.FC<RiskTabProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {conceptChange && showConceptDialog && (
+        <GoalsClaimsDialog
+          open
+          onClose={() => setShowConceptDialog(false)}
+          risks={riskData.risks}
+          concept={project.cybersecurityConcept}
+          onConceptChange={conceptChange}
+          findings={conceptFindingList}
+          assetDataRef={project.assetDataRef}
+          onOpenRisk={(riskId) => {
+            const risk = riskData.risks.find((r) => r.id === riskId);
+            if (!risk) return;
+            setShowConceptDialog(false);
+            handleEditRisk(risk);
+          }}
+        />
+      )}
     </Box>
+    </ConceptFindingsProvider>
   );
-};;;
+};
 
 export default RisksTab;

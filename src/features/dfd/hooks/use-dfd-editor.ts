@@ -33,7 +33,6 @@ import { useDFDPersistence } from "./use-dfd-persistence";
 import { useDFDThumbnail } from "./use-dfd-thumbnail";
 import { useDFDAutoNumbering } from "./use-dfd-auto-numbering";
 import { useDFDExportImport } from "./use-dfd-export-import";
-import { useDFDCompletion } from "./use-dfd-completion";
 import { useCellIdentity } from "./use-cell-identity";
 import { withPageThumbnails } from "../services/leveled/page-thumbnails";
 import { withCompleteness } from "../services/dfd-completeness";
@@ -54,7 +53,6 @@ import { waitForRenderable } from "../utils/wait-for-renderable";
 export interface UseDFDEditorOptions {
   onDirtyChange?: (isDirty: boolean) => void;
   onUpdate?: (updates: DFDUpdateResult) => void;
-  onPhaseComplete?: () => void;
   onSelectionChanged?: (cells: any[]) => void;
   darkMode?: boolean;
   autoValidateInterval?: number;
@@ -189,7 +187,6 @@ export function useDFDEditor(
   const {
     onDirtyChange,
     onUpdate,
-    onPhaseComplete,
     onSelectionChanged,
     darkMode = false,
     autoValidateInterval = 500,
@@ -475,11 +472,6 @@ export function useDFDEditor(
 
   // Export/Import layer
   const exportImport = useDFDExportImport(project, bridge, persistence);
-
-  // Completion business rules
-  const completion = useDFDCompletion(validation, persistence, data.stats, {
-    onPhaseComplete,
-  });
 
   // ==================== COORDINATED OPERATIONS ====================
 

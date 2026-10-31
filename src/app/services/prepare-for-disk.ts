@@ -70,7 +70,15 @@
 // These belong in the credential-service, not the project file. They are
 // stripped here (`configForDisk`); only project-level policy stays:
 // signing.{enabled,format}, gpg.{enabled}, auth.{method}, and the rest of the
-// config (provider, remoteUrl, branches, author, rounds).
+// config (provider, remoteUrl, branches, rounds).
+//
+// PERSONAL VALUES (2026-10-30, user)
+// ----------------------------------
+// The commit author and the tracker account differ per team member — they
+// stay on the machine (local-user-settings.ts), the file keeps what the team
+// shares: audit.config.author, integration.lastSync and the connection's
+// credentials.email / accountId, status, lastTested, lastError are stripped.
+// The tracker URL, auth method, project and mapping stay (same for the team).
 //
 // INTEGRATION SECRETS (2026-10-29)
 // ---------------------------------
@@ -143,7 +151,9 @@ function normalizeThumbnail(thumbnail: string | undefined): string | undefined {
  * signing fields are re-hydrated from the credential-service on open.
  */
 function configForDisk(config: AuditConfigShape): AuditConfigShape {
-  const { signing, gpg, auth, ...rest } = config;
+  // The author is personal (local-user-settings) — never on disk.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { signing, gpg, auth, author, ...rest } = config;
   // Guarded: prepareForDisk must never throw on a partial config (a minimal or
   // migrated one may lack a sub-object). Reduce each only when present.
   return {
@@ -180,9 +190,25 @@ function withoutSecrets(value: unknown): unknown {
   );
 }
 
-/** The integration block without any secret (see INTEGRATION SECRETS above). */
+/**
+ * The integration block without any secret (see INTEGRATION SECRETS above) and
+ * without this user's account and connection state (PERSONAL VALUES).
+ */
 function integrationForDisk(integration: Project["integration"]): Project["integration"] {
-  return integration ? (withoutSecrets(integration) as Project["integration"]) : integration;
+  if (!integration) return integration;
+  const clean = withoutSecrets(integration) as NonNullable<Project["integration"]>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { lastSync, connection, ...rest } = clean;
+  if (!connection) return { ...rest, connection } as Project["integration"];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { status, lastTested, lastError, credentials, ...shared } = connection;
+  let sharedCredentials = credentials;
+  if (credentials) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { email, accountId, ...team } = credentials;
+    sharedCredentials = team as typeof credentials;
+  }
+  return { ...rest, connection: { ...shared, credentials: sharedCredentials } } as Project["integration"];
 }
 
 /** Drop audit RESULTS + the internal lastModified sentinel; reduce the config. */

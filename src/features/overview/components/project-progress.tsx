@@ -1,11 +1,14 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "@mui/material";
 import { AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 import { PhaseStatus, PhaseStatusMap, PhaseDefinition } from "shared";
 import { type ProjectProgressData } from "../models/overview-types";
 
 // ==================== PROJECT PROGRESS ====================
-// Displays phase progress overview
+// Displays phase progress overview. Each card tells in its tooltip what is
+// behind the phase's status (the app's phase indicators) and opens the
+// phase's tab on click.
 //
 // Pure UI component - all types imported from shared/models
 
@@ -18,6 +21,8 @@ interface ProjectProgressProps {
   getStatusIcon: (status: PhaseStatus) => string;
   /** Get status color for a phase status */
   getStatusColor: (status: PhaseStatus) => string;
+  /** Open the phase's tab; without it the cards are not clickable. */
+  onOpenPhase?: (phaseId: number) => void;
 }
 
 export const ProjectProgress: React.FC<ProjectProgressProps> = ({
@@ -25,6 +30,7 @@ export const ProjectProgress: React.FC<ProjectProgressProps> = ({
   phases,
   getStatusIcon,
   getStatusColor,
+  onOpenPhase,
 }) => {
   const { t } = useTranslation();
 
@@ -139,22 +145,59 @@ export const ProjectProgress: React.FC<ProjectProgressProps> = ({
             borderClass = "border-green-300 hover:border-green-400";
           }
 
-          return (
-            <div
-              key={phase.id}
-              className={`border rounded-lg p-3 text-center cursor-pointer transition-colors ${borderClass}`}
-            >
-              <div className="text-2xl mb-1" style={{ color }}>
-                {icon}
+          const details = data.details?.[phase.id] ?? [];
+          const tooltip = (
+            <div data-testid={`phase-card-tooltip-${phase.id}`}>
+              <div style={{ fontWeight: 600 }}>
+                {phase.label}: {getStatusTranslation(status)}
               </div>
-              <div className="text-xs font-medium text-gray-600">
-                {phase.shortLabel}
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {getStatusTranslation(status)}
-              </div>
-              {renderValidationBadge(phase.id, status)}
+              {(errors > 0 || warnings > 0) && (
+                <div>
+                  {[
+                    errors > 0 ? `${errors} ${t("tabs.dfd.validation.errors")}` : "",
+                    warnings > 0 ? `${warnings} ${t("tabs.dfd.validation.warnings")}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
+              )}
+              {details.length > 0 && (
+                <ul style={{ margin: "4px 0 0", paddingLeft: 16 }}>
+                  {details.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
+              )}
+              {onOpenPhase && (
+                <div style={{ marginTop: 4, opacity: 0.8 }}>
+                  {t("phases.openTab", { defaultValue: "Click to open the tab" })}
+                </div>
+              )}
             </div>
+          );
+
+          return (
+            <Tooltip key={phase.id} title={tooltip} arrow placement="bottom">
+              <button
+                type="button"
+                onClick={() => onOpenPhase?.(phase.id)}
+                data-testid={`phase-card-${phase.id}`}
+                className={`border rounded-lg p-3 text-center transition-colors bg-white ${
+                  onOpenPhase ? "cursor-pointer" : "cursor-default"
+                } ${borderClass}`}
+              >
+                <div className="text-2xl mb-1" style={{ color }}>
+                  {icon}
+                </div>
+                <div className="text-xs font-medium text-gray-600">
+                  {phase.shortLabel}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {getStatusTranslation(status)}
+                </div>
+                {renderValidationBadge(phase.id, status)}
+              </button>
+            </Tooltip>
           );
         })}
       </div>

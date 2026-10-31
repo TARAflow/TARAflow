@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import {
   Settings as SettingsIcon,
+  Flag as GoalsIcon,
   Sync as SyncIcon,
   Warning as WarningIcon,
   Download as ExportIcon,
@@ -29,6 +30,7 @@ import {
   AccountTree as PerInteractionIcon,
   DoNotDisturb as WontIcon,
   Search as SearchIcon,
+  ConfirmationNumber as TicketIcon,
 } from "@mui/icons-material";
 
 import type { StrideMethod } from "shared";
@@ -46,8 +48,24 @@ export interface RisksToolbarProps {
   assessedRiskCount: number;
   completedRiskCount: number;
   wontCount: number;
+  /** Threats of the method — whether there is anything to switch to. */
   perElementCount: number;
   perInteractionCount: number;
+  /**
+   * Risks of the method (active + won't) — what the method button's badge
+   * shows; and the threats rated not relevant, for its tooltip (user
+   * 2026-10-30: the badge showed 231 threats next to 119 risks).
+   */
+  /**
+   * The Risk-tab validation (riskService.validate) of the current state —
+   * errors and warnings on the status chip, their texts as tooltip (user
+   * 2026-10-30: it was computed but shown nowhere).
+   */
+  validation?: { errors: readonly string[]; warnings: readonly string[] } | null;
+  perElementRiskCount?: number;
+  perInteractionRiskCount?: number;
+  perElementDismissedCount?: number;
+  perInteractionDismissedCount?: number;
   /** Tab switch only enabled when both methods have eligible threats */
   canSwitchStrideMethod: boolean;
   /** ISO 21434 mode: STRIDE threats don't feed risk, so hide the method switcher */
@@ -75,6 +93,15 @@ export interface RisksToolbarProps {
   onImport: () => void;
   onToggleWontTable: () => void;
   onToggleFilters: () => void;
+  /** Opens "Goals & Claims" (ISO 21434 plan Phase 4); absent = no button. */
+  onOpenConcept?: () => void;
+  /** Open goal / claim warnings — the badge on that button. */
+  conceptWarningCount?: number;
+  /** "Sync tickets" (adapters design §3.3); absent = no tracker connected / no linked ticket. */
+  onSyncTickets?: () => void;
+  ticketSyncing?: boolean;
+  /** Time of the last ticket sync, for the tooltip. */
+  ticketSyncedAt?: string;
 }
 
 // ==================== COMPONENT ====================
@@ -90,6 +117,11 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   wontCount,
   perElementCount,
   perInteractionCount,
+  validation,
+  perElementRiskCount,
+  perInteractionRiskCount,
+  perElementDismissedCount = 0,
+  perInteractionDismissedCount = 0,
   canSwitchStrideMethod,
   isoMode = false,
   perInteractionDisabled,
@@ -106,12 +138,29 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   onStrideMethodChange,
   onSync,
   onOpenConfig,
+  onOpenConcept,
+  onSyncTickets,
+  ticketSyncing = false,
+  ticketSyncedAt,
+  conceptWarningCount = 0,
   onExport,
   onImport,
   onToggleWontTable,
   onToggleFilters,
 }) => {
   const { t } = useTranslation();
+
+  // Method button: badge = risks of the method, tooltip = where they come from.
+  const methodTooltip = (label: string, risks: number, threats: number, dismissed: number) =>
+    t("tabs.risks.methodCountTooltip", {
+      method: label,
+      risks,
+      threats,
+      dismissed,
+      defaultValue: "{{method}}: {{risks}} risks from {{threats}} threats ({{dismissed}} rated not relevant)",
+    });
+  const elementRisks = perElementRiskCount ?? perElementCount;
+  const interactionRisks = perInteractionRiskCount ?? perInteractionCount;
 
   const getStatusColor = (): "default" | "success" | "warning" | "error" => {
     if (riskCount === 0) return "default";
@@ -215,13 +264,16 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
           disabled={!canSwitchStrideMethod || perElementCount === 0}
         >
           <Tooltip
-            title={`${t("tabs.risks.perElement", {
-              defaultValue: "Per-Element",
-            })} (${perElementCount})`}
+            title={methodTooltip(
+              t("tabs.risks.perElement", { defaultValue: "Per-Element" }),
+              elementRisks,
+              perElementCount,
+              perElementDismissedCount,
+            )}
           >
             {/* Badge only on inactive button, only when count > 0 */}
-            {activeStrideMethod !== "per-element" && perElementCount > 0 ? (
-              <Badge badgeContent={perElementCount} color="primary" max={999}>
+            {activeStrideMethod !== "per-element" && elementRisks > 0 ? (
+              <Badge badgeContent={elementRisks} color="primary" max={999} data-testid="method-badge-per-element">
                 <PerElementIcon fontSize="small" />
               </Badge>
             ) : (
@@ -238,15 +290,19 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
           }
         >
           <Tooltip
-            title={`${t("tabs.risks.perInteraction", {
-              defaultValue: "Per-Interaction",
-            })} (${perInteractionCount})`}
+            title={methodTooltip(
+              t("tabs.risks.perInteraction", { defaultValue: "Per-Interaction" }),
+              interactionRisks,
+              perInteractionCount,
+              perInteractionDismissedCount,
+            )}
           >
             {/* Badge only on inactive button, only when count > 0 */}
             {activeStrideMethod !== "per-interaction" &&
-            perInteractionCount > 0 ? (
+            interactionRisks > 0 ? (
               <Badge
-                badgeContent={perInteractionCount}
+                data-testid="method-badge-per-interaction"
+                badgeContent={interactionRisks}
                 color="primary"
                 max={999}
               >
@@ -290,6 +346,35 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
           </IconButton>
         </span>
       </Tooltip>
+
+      {/* Ticket sync (adapters design §3.3): on opening the tab and here */}
+      {onSyncTickets && (
+        <Tooltip
+          title={
+            t("tabs.risks.syncTickets", { defaultValue: "Sync ticket status" }) +
+            (ticketSyncedAt
+              ? ` — ${t("tabs.risks.lastTicketSync", { defaultValue: "last {{time}}", time: new Date(ticketSyncedAt).toLocaleTimeString() })}`
+              : "")
+          }
+        >
+          <span>
+            <IconButton onClick={onSyncTickets} size="small" disabled={ticketSyncing} data-testid="risks-sync-tickets">
+              {ticketSyncing ? <CircularProgress size={20} /> : <TicketIcon />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
+
+      {/* Goals & Claims (ISO 21434 9.4, decision 25) */}
+      {onOpenConcept && (
+        <Tooltip title={t("tabs.risks.goalsClaims.button", { defaultValue: "Goals & Claims" })}>
+          <IconButton onClick={onOpenConcept} size="small" data-testid="risks-open-goals-claims">
+            <Badge color="warning" badgeContent={conceptWarningCount} invisible={conceptWarningCount === 0}>
+              <GoalsIcon />
+            </Badge>
+          </IconButton>
+        </Tooltip>
+      )}
 
       {/* Configuration */}
       <Tooltip
@@ -382,7 +467,25 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
         />
       </Tooltip>
 
-      <Chip label={getStatusText()} size="small" color={getStatusColor()} />
+      {validation && validation.errors.length + validation.warnings.length > 0 ? (
+        <Tooltip
+          title={[...validation.errors, ...validation.warnings].join("\n")}
+          slotProps={{ tooltip: { sx: { whiteSpace: "pre-line" } } }}
+        >
+          <Chip
+            data-testid="risk-validation-chip"
+            label={
+              validation.errors.length > 0
+                ? `${validation.errors.length} ${t("common.errors", { defaultValue: "Errors" })}`
+                : `${validation.warnings.length} ${t("common.warnings", { defaultValue: "Warnings" })}`
+            }
+            size="small"
+            color={validation.errors.length > 0 ? "error" : "warning"}
+          />
+        </Tooltip>
+      ) : (
+        <Chip label={getStatusText()} size="small" color={getStatusColor()} />
+      )}
 
       {isDirty && (
         <Chip

@@ -108,6 +108,23 @@ export function treeDisplayTitle(tree: AttackTree, t: TFunction): string {
   return tree.name;
 }
 
+/**
+ * The tree's number in the project ("AT-3" → 3): its 1-based position, the
+ * same number the attack-path threats, the risks and the report use
+ * (buildAttackPathThreatReferences, attackPathDisplayId). Undefined when the
+ * tree is not in the list.
+ */
+export function treeNumberOf(trees: readonly { id: string }[], treeId: string): number | undefined {
+  const index = trees.findIndex((tree) => tree.id === treeId);
+  return index < 0 ? undefined : index + 1;
+}
+
+/** "AT-3" for the third tree of the project (user 2026-10-30: shown before the title). */
+export function treeDisplayId(trees: readonly { id: string }[], treeId: string): string | undefined {
+  const n = treeNumberOf(trees, treeId);
+  return n === undefined ? undefined : `AT-${n}`;
+}
+
 /** The line under the title: which goal, and how much has been analysed. */
 export function treeDisplaySubtitle(tree: AttackTree, t: TFunction): string {
   const parts: string[] = [];

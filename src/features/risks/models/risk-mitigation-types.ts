@@ -53,8 +53,16 @@ export interface SelectedMitigation {
   /** Current lifecycle status. Default: "open". */
   status: MitigationStatus;
 
-  /** Required when status = "rejected". IEC 62443-4-1 audit trail. */
+  /** Required when status = "rejected" (or rejectedByTicket). IEC 62443-4-1 audit trail. */
   rejectionReason?: string;
+
+  /**
+   * Set by the ticket sync when the ticket was closed without a fix (won't
+   * fix, declined, duplicate) — the reason as data, rendered in the UI
+   * language ("Ticket {{key}} closed as {{resolution}}"); removed when the
+   * ticket moves on. Counts as the rejection reason.
+   */
+  rejectedByTicket?: { key: string; resolution: string };
 
   /** ISO timestamp when status last changed. */
   statusChangedAt?: string;
@@ -76,7 +84,11 @@ export interface SelectedMitigation {
   /** Last known ticket status synced from Jira / ADO. */
   ticketStatus?: TicketStatus;
 
-  /** ISO timestamp when ticket status was last synced */
+  /**
+   * ISO timestamp when a sync last saw the ticket status change — not every
+   * sync (adapters design §3.3: a sync that changes nothing leaves the
+   * project file and its audit diff untouched).
+   */
   ticketSyncedAt?: string;
 
   // ─────────────────────────────────────────────────────────────────────────

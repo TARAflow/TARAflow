@@ -536,3 +536,33 @@ describe("identity preservation on merge", () => {
     expect(out.threats[0].relevance).toBe("relevant");
   });
 });
+
+describe("mergeGeneratedTables — manualHints (custom mitigation catalog CM-1)", () => {
+  const tbl = (threats: Threat[]) =>
+    ({ trustBoundaryId: null, trustBoundaryName: "", displayIdentifier: "[UB]", threats } as any);
+  const gen = baseThreat({ id: "uuid-gen-1", displayId: "P1-S-1", source: "generated:full" });
+  const manual = baseThreat({
+    id: "uuid-manual-1",
+    displayId: "P1-S-2",
+    source: "manual",
+    proposedMitigations: [{ id: "M-S-001" }, { notes: "free text" }],
+  });
+
+  it("a kept manual threat's catalog entries get the element's implemented flags", () => {
+    const merged = mergeGeneratedTables([tbl([gen])], [tbl([gen, manual])], elementThreatNaturalKey, {
+      keepManual: true,
+      manualHints: (t) =>
+        t.id === "uuid-manual-1"
+          ? [{ id: "M-S-001", alreadyImplemented: true, implementedByProperty: "p", implementedByValue: "v" }]
+          : [],
+    });
+    const kept = merged[0].threats.find((t) => t.source === "manual")!;
+    expect(kept.proposedMitigations).toEqual([
+      { id: "M-S-001", alreadyImplemented: true, implementedByProperty: "p", implementedByValue: "v" },
+      { notes: "free text" },
+    ]);
+    // generated threats are left to the generator
+    expect(merged[0].threats.find((t) => t.source !== "manual")).toEqual(gen);
+  });
+});
+

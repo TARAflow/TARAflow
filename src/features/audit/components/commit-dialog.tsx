@@ -48,6 +48,8 @@ import {
 import type { CommitMessageData } from "../models/audit-types";
 import type { AuditProtection } from "../hooks/useAuditProtection";
 import { AuditProtectionPanel } from "./audit-protection-panel";
+import { commitSigning } from "../services/audit-signing-identity";
+import { commitSigningMessage } from "./commit-signing-message";
 
 // ==================== PROPS ====================
 
@@ -61,6 +63,21 @@ interface CommitDialogProps {
   onClose: () => void;
   /** Local protection status — shows a warning banner when a check fails. */
   protection?: AuditProtection;
+  /** Prefilled reviewer (Reviewed-by trailer), e.g. of a TARA verification. */
+  initialReviewer?: string;
+  /**
+   * The signer manifest committed at HEAD (null = none) — with one every
+   * commit is signed (commitSigning, the engine's rule).
+   */
+  committedManifest?: string | null;
+  /** The history introduced the manifest (anchor): signing stays required. */
+  manifestAnchored?: boolean;
+  /**
+   * The signing state of another branch — "existing branch" commits there,
+   * so its manifest and anchor decide (the two props above are the current
+   * branch's).
+   */
+  loadBranchSigningState?: (ref: string) => Promise<{ manifest: string | null; anchored: boolean }>;
 }
 
 // ==================== COMPONENT ====================
@@ -73,13 +90,13 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   commitMessageData,
   onCommit,
   onClose,
+  initialReviewer,
   protection,
+  committedManifest: currentManifest = null,
+  manifestAnchored: currentAnchored = false,
+  loadBranchSigningState,
 }) => {
   const { t } = useTranslation();
-
-  const signingEnabled =
-    config.signing?.enabled ?? config.gpg?.enabled ?? false;
-  const signingFormat = config.signing?.format ?? "gpg";
 
   // ==================== STATE ====================
 
@@ -87,6 +104,40 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
     "current" | "existing" | "custom"
   >("current");
   const [selectedBranch, setSelectedBranch] = useState<string>(currentBranch);
+
+  // The branch the commit goes to decides (review 2026-10-31): the current
+  // one — also for a new branch, which starts at HEAD — or the chosen
+  // existing one, whose manifest and anchor are loaded.
+  const targetBranch = branchMode === "existing" ? selectedBranch : currentBranch;
+  const [otherBranchState, setOtherBranchState] = useState<{
+    ref: string;
+    manifest: string | null;
+    anchored: boolean;
+  } | null>(null);
+  useEffect(() => {
+    if (targetBranch === currentBranch || !loadBranchSigningState) return;
+    let cancelled = false;
+    void loadBranchSigningState(targetBranch).then((state) => {
+      if (!cancelled) setOtherBranchState({ ref: targetBranch, ...state });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [targetBranch, currentBranch, loadBranchSigningState]);
+  const onOtherBranch = targetBranch !== currentBranch;
+  const otherLoaded = otherBranchState?.ref === targetBranch;
+  const committedManifest = onOtherBranch ? (otherLoaded ? otherBranchState!.manifest : null) : currentManifest;
+  const manifestAnchored = onOtherBranch ? (otherLoaded ? otherBranchState!.anchored : false) : currentAnchored;
+  // Until the other branch is read, no commit (the decision is not known).
+  const signingStatePending = onOtherBranch && !!loadBranchSigningState && !otherLoaded;
+
+  // A repository that signs (manifest at HEAD, or introduced in its history)
+  // verifies every later commit: signing is required — box on and locked.
+  const signingRequired = committedManifest !== null || manifestAnchored;
+  const signingEnabled =
+    signingRequired || (config.signing?.enabled ?? config.gpg?.enabled ?? false);
+  const signingFormat = config.signing?.format ?? (config.gpg?.enabled ? "gpg" : "ssh");
+
   const [customBranchName, setCustomBranchName] = useState<string>("");
   const [roundName, setRoundName] = useState<string>(commitMessageData.round);
   const [commitMessage, setCommitMessage] = useState<string>("");
@@ -95,6 +146,18 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   const [isCommitting, setIsCommitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [signCommit, setSignCommit] = useState<boolean>(signingEnabled);
+
+  // The same decision the commit handler makes — shown before the click.
+  const signingDecision = commitSigning({
+    committedManifest,
+    anchored: manifestAnchored,
+    signCommit,
+    signingEnabled: config.signing?.enabled ?? config.gpg?.enabled ?? false,
+    format: signingFormat,
+    sshSigningKeyPath: config.signing?.sshSigningKeyPath,
+    keyId: config.signing?.keyId ?? config.gpg?.keyId,
+    authorEmail: config.author?.email ?? "",
+  });
 
   // ==================== COMPUTED ====================
 
@@ -120,12 +183,12 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
       setSelectedBranch(currentBranch);
       setCustomBranchName("");
       setRoundName(commitMessageData.round);
-      setReviewer("");
+      setReviewer(initialReviewer ?? "");
       setPushAfterCommit(!!config.remoteUrl);
       setSignCommit(signingEnabled);
       setError(null);
     }
-  }, [open, currentBranch, commitMessageData.round, config]);
+  }, [open, currentBranch, commitMessageData.round, config, initialReviewer]);
 
   // ==================== HANDLERS ====================
 
@@ -164,7 +227,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
         createBranch,
         message: commitMessage,
         roundName,
-        signCommit,
+        signCommit: signingRequired || signCommit,
         pushAfterCommit: pushAfterCommit && !!config.remoteUrl,
         reviewer: reviewer || undefined,
       };
@@ -191,6 +254,13 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
           {/* Audit-trail protection warning (only when a local check fails) */}
           {protection && (
             <AuditProtectionPanel protection={protection} variant="banner" />
+          )}
+
+          {/* Signing problem — known before the click (commitSigning) */}
+          {signingDecision.problem && (
+            <Alert severity="error" data-testid="commit-signing-problem">
+              {commitSigningMessage(t, signingDecision.problem, config.author?.email ?? "")}
+            </Alert>
           )}
 
           {/* Error Alert */}
@@ -379,13 +449,22 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={signCommit}
+                    checked={signingRequired || signCommit}
+                    disabled={signingRequired}
                     onChange={(e) => setSignCommit(e.target.checked)}
+                    data-testid="commit-sign-checkbox"
                   />
                 }
-                label={t("audit.commit.signCommit", {
-                  defaultValue: `Sign commit (${signingFormat.toUpperCase()})`,
-                })}
+                label={
+                  signingRequired
+                    ? t("audit.commit.signCommitRequired", {
+                        defaultValue: "Sign commit — required, this repository has a signer manifest",
+                      })
+                    : t("audit.commit.signCommit", {
+                        format: signingFormat.toUpperCase(),
+                        defaultValue: "Sign commit ({{format}})",
+                      })
+                }
               />
             )}
           </Box>
@@ -402,7 +481,9 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
         </Button>
         <Button
           onClick={handleCommit}
-          disabled={isCommitting || !commitMessage.trim()}
+          disabled={
+            isCommitting || !commitMessage.trim() || !!signingDecision.problem || signingStatePending
+          }
           variant="contained"
           color="primary"
           startIcon={

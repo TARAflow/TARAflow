@@ -133,6 +133,57 @@ export type {
   SourceRefType,
 } from "./models/source-binding-types";
 
+// ==================== CYBERSECURITY CONCEPT (ISO/SAE 21434 9.4) ====================
+export {
+  addClaim,
+  addGoal,
+  claimsOfRisk,
+  emptyCybersecurityConcept,
+  goalsOfRisk,
+  linkClaim,
+  linkGoal,
+  mergeClaims,
+  mergeGoals,
+  newClaim,
+  newGoal,
+  nextConceptDisplayId,
+  removeClaim,
+  removeGoal,
+  unlinkClaim,
+  unlinkGoal,
+  updateClaim,
+  updateGoal,
+  VERIFICATION_HASH_VERSION,
+  type AssetPropertyRef,
+  type Cal,
+  type ClaimKind,
+  type CybersecurityClaim,
+  type CybersecurityConcept,
+  type CybersecurityGoal,
+  type VerificationEntry,
+  type VerificationResult,
+  type VerificationScope,
+} from "./models/cybersecurity-concept-types";
+
+// ==================== ITEM DEFINITION (ISO/SAE 21434 9.3) ====================
+export {
+  ITEM_SECTION_IDS,
+  LIFECYCLE_PHASES,
+  emptyItemDefinition,
+  newAssumption,
+  nextAssumptionDisplayId,
+  issuedAssumptionNumber,
+  withAssumptions,
+  type Assumption,
+  type AssumptionStatus,
+  type ItemDefinition,
+  type ItemFunction,
+  type ItemSection,
+  type ItemSectionId,
+  type LifecyclePhase,
+  type SourceRef,
+} from "./models/item-definition-types";
+
 // ==================== ASSET RELATION UNION TYPES ====================
 // String union types for asset relations — used by dfd and threats features.
 export type {
@@ -172,6 +223,9 @@ export {
   isOverrideSeverity,
   safetySeverityToFactor,
   normalizeLegacySafetyImpact,
+  iso26262SeverityClass,
+  withSeverityClass,
+  type Iso26262SeverityClass,
   type SafetySeverity,
 } from "./models/safety-types";
 
@@ -199,6 +253,7 @@ export {
 } from "./models/hazard-impact";
 export {
   HAZARD_SEVERITY_RANK_COLOR,
+  endangersSeverityRank,
   hazardSeverityRank,
   worstEndangersSeverity,
 } from "./models/hazard-severity-display";

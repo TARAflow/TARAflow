@@ -3,6 +3,7 @@ import type { InterfaceProperties } from "./element-properties";
 import {
   INTERFACE_CAPABILITY,
   isControlApplicable as isSharedControlApplicable,
+  hasServiceLayerControl,
   type InterfaceControlKey as SharedInterfaceControlKey,
 } from "shared/models/interface-capability-registry";
 
@@ -278,22 +279,11 @@ export function isControlApplicable(
     case "linkAuthentication":
       return isSharedControlApplicable(type, key);
     case "serviceAccessPolicy":
-      // No gateable "service state" concept for an integrated HMI surface
-      // (no maintenance/factory mode in which touch is off), nor for passive
-      // analog/digital I/O (no protocol/service to gate — prior NO_AUTH_INTERFACES).
-      return (
-        INTERFACE_TYPE_META[type].group !== "hmi" &&
-        INTERFACE_TYPE_META[type].group !== "io"
-      );
     case "monitoringControl":
-      // hmi: would overlap with physicalAccessProtection's tamper_evident
-      // rather than covering anything distinct.
-      // io: passive analog/digital I/O has no logical protocol to monitor
-      // (prior NO_AUTH_INTERFACES).
-      return (
-        INTERFACE_TYPE_META[type].group !== "hmi" &&
-        INTERFACE_TYPE_META[type].group !== "io"
-      );
+      // No gateable service state / nothing to monitor for an integrated HMI
+      // surface or passive analog / digital I/O — the shared registry's
+      // hasServiceLayer (moved there for the closed loop, CL-1b).
+      return hasServiceLayerControl(type);
     default:
       // Exhaustiveness guard — a new key must extend this switch.
       return ((_: never) => false)(key);

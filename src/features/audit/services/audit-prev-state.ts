@@ -9,6 +9,7 @@
 
 import type { Project } from "app";
 import type { GitOperationResult } from "../models/git-types";
+import { ALLOWED_SIGNERS_REL_PATH } from "./audit-signer-manifest";
 
 /** A raw git runner bound to the current repo — window.git.raw. */
 export type RawGit = (args: string[]) => Promise<GitOperationResult<string>>;
@@ -54,4 +55,47 @@ export async function loadPreviousProjectFromGit(
   } catch {
     return null; // corrupt/partial content — don't crash the diff
   }
+}
+
+/**
+ * The signer manifest as committed at `ref` (default HEAD; `git show
+ * <ref>:.tara/allowed_signers`) — what the verification engine checks the
+ * next commit on that branch against. null when `ref` has none (no manifest
+ * yet, unborn HEAD, unknown ref, git error); a deleted or edited working-tree
+ * copy does not count. `ref` is a local branch or HEAD — the commit dialog
+ * lists local branches only (branchLocal), so the ref read here is the one
+ * checked out for the commit.
+ */
+export async function loadCommittedManifest(raw: RawGit, ref = "HEAD"): Promise<string | null> {
+  try {
+    const res = await raw(["show", `${ref}:${ALLOWED_SIGNERS_REL_PATH}`]);
+    return res.success && typeof res.data === "string" ? res.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether the repository's history ever introduced the signer manifest (the
+ * audit anchor). From then on every commit is verified — signed and in a
+ * repository-wide rule, whatever the project file says (user 2026-10-31:
+ * once signing is on, only signed commits), even if the manifest was removed
+ * later (the engine then reports SIGNER_NOT_AUTHORIZED / SIG_UNSIGNED).
+ */
+export async function loadManifestAnchored(raw: RawGit, ref = "HEAD"): Promise<boolean> {
+  try {
+    const res = await raw(["log", ref, "--diff-filter=A", "--format=%H", "--", ALLOWED_SIGNERS_REL_PATH]);
+    return res.success && typeof res.data === "string" && res.data.trim() !== "";
+  } catch {
+    return false;
+  }
+}
+
+/** The signing state of the branch a commit goes to (manifest + anchor). */
+export async function loadSigningState(
+  raw: RawGit,
+  ref = "HEAD",
+): Promise<{ manifest: string | null; anchored: boolean }> {
+  const [manifest, anchored] = await Promise.all([loadCommittedManifest(raw, ref), loadManifestAnchored(raw, ref)]);
+  return { manifest, anchored };
 }

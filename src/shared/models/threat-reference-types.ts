@@ -98,6 +98,21 @@ export interface ThreatReference {
    * propose controls that fit how the path attacks. Absent elsewhere.
    */
   attackVector?: AttackVector;
+  /**
+   * Attack-path threat: the DFD elements / flows its tree's anchor asset is
+   * linked to — where its controls go (closed-loop review CL-3/CL-4). Set by
+   * the app; the coverage badge checks every target. Absent elsewhere.
+   */
+  controlTargets?: {
+    linkedElement: { elementId: string; elementType: string } | null;
+    dataFlow: {
+      connectionId?: string;
+      sourceId: string;
+      sourceType: string;
+      targetId: string;
+      targetType: string;
+    } | null;
+  }[];
 }
 
 // ==================== THREAT → GOAL LINK ====================

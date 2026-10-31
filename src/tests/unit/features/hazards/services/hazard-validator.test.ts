@@ -140,4 +140,24 @@ describe("hazardValidator", () => {
     const v = hazardValidator.validate(d, assets);
     expect(v.errors.some((e) => e.includes("does not match"))).toBe(true);
   });
+
+  it("warns when the ISO 12100 type, the description or the rationale is missing — not blocking (user 2026-10-30)", () => {
+    const d = completeHazard();
+    const v = hazardValidator.validate(d);
+    expect(v.warnings).toEqual([
+      'Hazard "Tank rupture" has no ISO 12100 hazard type.',
+      'Hazard "Tank rupture" has no description.',
+      'Hazard "Tank rupture" has no rationale.',
+    ]);
+    expect(v.isComplete).toBe(true);
+    expect(hazardService.deriveHazardPhaseStatus(d)).toBe("complete");
+
+    const filled = {
+      ...d,
+      hazards: d.hazards.map((h) => ({ ...h, hazardType: "thermal" as const, description: "Tank bursts.", rationale: "ISO 12100 Annex B." })),
+    };
+    expect(hazardValidator.validate(filled).warnings).toEqual([]);
+    const blank = { ...filled, hazards: filled.hazards.map((h) => ({ ...h, description: "  ", rationale: "" })) };
+    expect(hazardValidator.validate(blank).warnings).toHaveLength(2);
+  });
 });

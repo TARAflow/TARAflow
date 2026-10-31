@@ -59,6 +59,11 @@ interface RiskTableViewProps {
   onClearFilters: () => void;
   onScopeFilterChange?: (scope: DfdScopeFilter) => void;
   filteredCount: number;
+  /**
+   * All risks the tab can show, filters aside — the "of" in "Showing n of m"
+   * (risks itself is already filtered; user 2026-10-30).
+   */
+  totalCount?: number;
 
   onEdit: (risk: Risk) => void;
   onPriorityChange: (
@@ -227,6 +232,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
     onClearFilters,
     onScopeFilterChange,
     filteredCount,
+    totalCount,
     onEdit,
     onPriorityChange,
     onTreatmentChange,
@@ -260,6 +266,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
         onRiskLevelFilterChange={onRiskLevelFilterChange}
         onClearFilters={onClearFilters}
         filteredCount={filteredCount}
+        totalCount={totalCount}
         onEdit={onEdit}
         onPriorityChange={onPriorityChange}
         onTreatmentChange={onTreatmentChange}
@@ -293,7 +300,7 @@ export const RiskTableView = React.memo<RiskTableViewProps>(
           scope={filters.scope}
           onScopeChange={onScopeFilterChange}
           filteredCount={filteredCount}
-          totalCount={risks.length}
+          totalCount={totalCount ?? risks.length}
         />
         <RiskGroupSections
           groups={groups}

@@ -11,6 +11,7 @@ export type {
   ThreatSyncResult,
   MitigationEntry,
   MitigationPropertyEffect,
+  ProjectMitigation,
   ThreatRiskAttachment,
 } from "./models/threat-types";
 
@@ -90,7 +91,16 @@ export {
   getAllVerifications,
   selectCategoryControls,
   selectCategoryVerifications,
+  getProjectMitigations,
 } from "./services/threat-catalog-service";
+export {
+  addProjectMitigation,
+  updateProjectMitigation,
+  removeProjectMitigation,
+  nextProjectMitigationId,
+  isProjectMitigationId,
+} from "./services/project-mitigations";
+export type { ProjectMitigationInput } from "./services/project-mitigations";
 
 export { syncThreatsWithGraph } from "./services/sync-threats-with-graph";
 export {

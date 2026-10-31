@@ -47,7 +47,6 @@ export const DocTab: React.FC<DocTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
-  onPhaseComplete,
 }) => {
   const { t } = useTranslation();
 

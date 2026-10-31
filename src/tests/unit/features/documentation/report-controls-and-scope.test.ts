@@ -71,8 +71,6 @@ const project = (regulation: string[], likelihoodMethod?: string): Any => ({
   },
   attackTree: null,
   computed: {
-    riskBeforeLabels: new Map(),
-    riskAfterLabels: new Map(),
     moscowLabels: new Map(),
     impactLabels: new Map(),
     strideNames: new Map(),

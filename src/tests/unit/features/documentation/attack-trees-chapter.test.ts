@@ -78,8 +78,6 @@ const project = (trees: Any[]): Any => ({
   risks: null,
   attackTree: { trees, configuration: {} },
   computed: {
-    riskBeforeLabels: new Map(),
-    riskAfterLabels: new Map(),
     moscowLabels: new Map(),
     impactLabels: new Map(),
   },

@@ -3,11 +3,12 @@
 // These define the shape of data this feature works with
 
 import type {
+  VerificationEntry,
+  ItemDefinition,
   PhaseStatusMap,
   ProjectTags,
   RegulationPresetId,
   SourceBinding,
-  ValidationResult,
   WindowOfOpportunity,
 } from "shared";
 
@@ -68,6 +69,8 @@ export interface ProjectProgressData {
   phaseStatus: PhaseStatusMap;
   /** Validation info per phase (optional) */
   validationInfo?: Record<number, PhaseValidationInfo>;
+  /** The lines behind a phase's status, shown in the card tooltip (optional). */
+  details?: Record<number, string[]>;
 }
 
 // ==================== PROJECT STATUS CONFIGURATION ====================
@@ -95,6 +98,62 @@ export const PROJECT_STATUS_CONFIG = {
   },
 } as const;
 
+// ==================== ITEM DEFINITION: MODEL ITEMS ====================
+
+/**
+ * A model item a Definition section can link to (Phase 1 stage A, A-2):
+ * DFD elements and flows, DFD pages (leveled DFD) and assets. Built by the app
+ * layer — the overview feature imports no other feature.
+ */
+export interface ItemModelItem {
+  id: string;
+  kind: "element" | "flow" | "page" | "asset";
+  /** e.g. "EE-1 Operator", "DF-3 push alarm", "Top level", "FU-001 Smoke detection" */
+  label: string;
+  /** Element type or asset group, for the picker. */
+  detail?: string;
+}
+
+// ==================== METHODOLOGY SUMMARY ====================
+
+/**
+ * What the Methodology sub-tab shows (conformance plan Phase 1 stage A, A-4):
+ * the methodology record of the app layer (buildMethodologyRecord, 0b),
+ * reduced to values — read-only, the configuration stays in the Risk tab's
+ * dialog (decision 2026-10-16). Values are the record's keys; the view labels
+ * them with the report's methodology texts.
+ */
+export interface MethodologySummary {
+  presetNameKey: string;
+  impactScale: string;
+  requiredImpactScale?: string;
+  impactScaleConforms: boolean;
+  impactCriteriaIds: string[];
+  impactAggregation: string;
+  likelihoodMethod: string;
+  feasibilityMethod: string;
+  likelihoodModel: string;
+  treatmentOptions: string[];
+  securityProperties: string[];
+  /** Risk value from the matrix of Annex H.8 (iso-21434). */
+  riskMatrix: boolean;
+  /** "iso-21434 · risk-1+feasibility-1 · 3f2a…" (iso-21434) */
+  calcStamps?: { risk: string; path: string };
+}
+
+// ==================== VERIFICATION STATUS ====================
+
+/**
+ * Status of the TARA verification (ISO/SAE 21434 RQ-09-07, plan Phase 4,
+ * decision 25), derived by the app layer; shown under iso-21434 only.
+ */
+export interface VerificationStatusView {
+  kind: "verified" | "changed" | "reconfirm" | "outdated" | "failed" | "none";
+  latest?: VerificationEntry;
+  ageDays?: number;
+  maxAgeDays: number;
+}
+
 // ==================== GENERAL TAB ====================
 // Main data structure for the General/Overview tab
 
@@ -120,8 +179,23 @@ export interface GeneralTabData {
    */
   sourceBindings?: SourceBinding[];
 
-  // Validation results (optional)
-  dfdValidation?: ValidationResult;
-  assetsValidation?: ValidationResult;
-  threatsValidation?: ValidationResult;
+  /**
+   * Item Definition (ISO/SAE 21434 9.3; conformance plan Phase 1 stage A,
+   * decision 24) — edited in the Definition sub-tab. Its "Purpose and
+   * functions" text is info.description.
+   */
+  itemDefinition?: ItemDefinition;
+
+}
+
+/**
+ * The phase progress as the app derives it (app/utils/phase-indicators.ts):
+ * the status per phase — the DFD's from its current validation — and the
+ * error / warning count per phase id.
+ */
+export interface PhaseIndicatorsView {
+  status: PhaseStatusMap;
+  counts: Record<number, PhaseValidationInfo>;
+  /** Why a phase is not complete — translated lines for the card tooltip. */
+  details?: Record<number, string[]>;
 }

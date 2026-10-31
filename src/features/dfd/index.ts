@@ -12,6 +12,7 @@ export type {
 
   // Data containers
   DFDValidation,
+  ValidationFinding,
   DFDStats,
   DFDData,
   DFDPage,

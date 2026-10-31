@@ -221,6 +221,32 @@
           "description": "Other threat actor type"
         }
       },
+      "projectMitigation": {
+        "newTitle": "New project mitigation",
+        "editTitle": "Project mitigation {{id}}",
+        "text": "Mitigation *",
+        "description": "Description",
+        "vectors": "Attack vectors (none = all)",
+        "effects": "Effect on the DFD (closed loop)",
+        "noEffects": "Without an effect the closed loop cannot check this mitigation.",
+        "target": "Element",
+        "property": "Property",
+        "value": "Value",
+        "role": {
+          "channel": "channel",
+          "source": "sender",
+          "target": "receiver"
+        },
+        "listTitle": "Project mitigations",
+        "listHint": "Your own mitigations (M-C-nnn), created in the threat dialogs. Changes here apply at once.",
+        "risk": "Risk",
+        "effectCount": "{{count}} DFD effect(s)",
+        "usedBy": "Used by",
+        "unused": "Not used",
+        "mergeInto": "Merge into …",
+        "mergeBlocked": "{{from}} cannot be merged into {{into}}: risk {{risks}} uses both with a different status, ticket, evidence or scope. Align the two entries in the risk first.",
+        "deleteUsed": "Still used — remove it from the threats, risks and attack trees first, or merge it."
+      },
       "dialog": {
         "cause": "Root Cause",
         "threat": "Threat",
@@ -233,6 +259,11 @@
         "followsMitigations": "follow mitigations automatically",
         "addMitigation": "Add custom mitigation",
         "addVerification": "Add custom verification",
+        "addMitigationFromCatalog": "Add mitigation from catalog",
+        "addVerificationFromCatalog": "Add verification from catalog",
+        "linkToCatalog": "Link to {{id}}",
+        "newProjectMitigation": "New project mitigation",
+        "convertToProjectMitigation": "Convert to project mitigation",
         "mitigationPlaceholder": "Describe the mitigation...",
         "verificationPlaceholder": "Describe the verification...",
         "notePlaceholder": "Optional note for audit trail...",

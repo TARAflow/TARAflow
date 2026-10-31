@@ -683,7 +683,7 @@ export const HTML_TEMPLATES = {
     lang === "de"
       ? `  <table>
     <thead>
-      <tr><th>AS</th><th>DS</th><th>TS</th><th>AF</th><th>Risikowert (1&ndash;5)</th><th>Behandlung (RT)</th><th>Restrisiko (RR)</th></tr>
+      <tr><th>AS</th><th>DS</th><th>TS</th><th>AF</th><th>Risikowert (1&ndash;5)</th><th>Behandlung (RT)</th><th>Goal / Claim (CG)</th><th>Restrisiko (RR)</th></tr>
     </thead>
     <tbody>
 {{traceabilityRows}}
@@ -694,7 +694,7 @@ export const HTML_TEMPLATES = {
 `
       : `  <table>
     <thead>
-      <tr><th>AS</th><th>DS</th><th>TS</th><th>AF</th><th>Risk value (1&ndash;5)</th><th>Treatment (RT)</th><th>Residual (RR)</th></tr>
+      <tr><th>AS</th><th>DS</th><th>TS</th><th>AF</th><th>Risk value (1&ndash;5)</th><th>Treatment (RT)</th><th>Goal / Claim (CG)</th><th>Residual (RR)</th></tr>
     </thead>
     <tbody>
 {{traceabilityRows}}
@@ -711,6 +711,7 @@ export const HTML_TEMPLATES = {
         <td>{{afStatus}}: {{afLabel}}</td>
         <td>{{riskBefore}}</td>
         <td>{{treatment}}</td>
+        <td>{{goalsClaims}}</td>
         <td>{{riskAfter}}</td>
       </tr>
 `,

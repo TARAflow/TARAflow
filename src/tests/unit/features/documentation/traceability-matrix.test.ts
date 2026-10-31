@@ -87,8 +87,6 @@ const baseProject = (
   attackTree,
   risks: { configuration: { likelihoodMethod }, risks },
   computed: {
-    riskBeforeLabels: new Map<string, string>(),
-    riskAfterLabels: new Map<string, string>(),
   },
 });
 

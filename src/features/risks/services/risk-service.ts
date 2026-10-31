@@ -281,17 +281,45 @@ export const riskService = {
         `${transferToReview.length} risk(s) with treatment "transfer" — ISO/SAE 21434 offers no transfer option; confirm as share`,
       );
 
-    const highUnmitigated = riskData.risks.filter(
+    // A risk to reduce needs a mitigation, at any risk value (user
+    // 2026-10-30). Accept / transfer / share need none — their justification
+    // is checked above; the former "high risk without mitigation" rule
+    // flagged exactly those accepted risks.
+    const reduceUnmitigated = riskData.risks.filter(
       (r) =>
-        r.calculatedRiskBeforeMitigation >= 3 &&
+        r.treatment === "reduce" &&
         r.selectedMitigations.filter((m) => m.status !== "rejected").length ===
           0 &&
         r.moscowPriority !== "wont",
     );
-    if (highUnmitigated.length > 0)
+    if (reduceUnmitigated.length > 0)
       warnings.push(
-        `${highUnmitigated.length} high-risk item(s) have no mitigation defined`,
+        `${reduceUnmitigated.length} risk(s) to reduce have no mitigation (${reduceUnmitigated
+          .slice(0, 5)
+          .map((r) => r.threatDisplayId)
+          .join(", ")}${reduceUnmitigated.length > 5 ? ", …" : ""})`,
       );
+
+    // A risk to reduce needs its residual rated — the factors after
+    // mitigation (user 2026-10-30, Smoke Detector SHE-D-1). Not under
+    // ISO/SAE 21434: there the residual is isoRisk.residual and its absence
+    // is the RESIDUAL_MISSING finding; the classic after-value stays 0.
+    if (riskData.configuration?.likelihoodMethod !== "iso-21434") {
+      const residualMissing = riskData.risks.filter(
+        (r) =>
+          r.treatment === "reduce" &&
+          r.calculatedRiskBeforeMitigation > 0 &&
+          !(r.calculatedRiskAfterMitigation > 0) &&
+          r.moscowPriority !== "wont",
+      );
+      if (residualMissing.length > 0)
+        warnings.push(
+          `${residualMissing.length} risk(s) to reduce have no residual risk rating (${residualMissing
+            .slice(0, 5)
+            .map((r) => r.threatDisplayId)
+            .join(", ")}${residualMissing.length > 5 ? ", …" : ""})`,
+        );
+    }
 
     const uncertainRisks = riskData.risks.filter(
       (r) => r.threatRelevance === "uncertain",

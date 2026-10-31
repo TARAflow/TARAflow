@@ -19,7 +19,7 @@ import { WindowOfOpportunitySelector } from "./window-of-opportunity-selector";
 //   Version (1/2) | Responsible (1/2)
 //   Safety Switch (1/2) | Window of Opportunity (1/2)
 //     -> WoO only for EN 50742 Approach A; otherwise Safety takes the row
-//   Description (1/1)
+//   Description (1/1) — unless showDescription is false (Overview: Definition view)
 //   [afterDescription slot — e.g. Created / Last Modified]
 //   Tags (1/1)
 //
@@ -50,6 +50,12 @@ interface ProjectInfoFieldsProps {
   autoFocusName?: boolean;
   /** Rendered between Description and Tags. */
   afterDescription?: React.ReactNode;
+  /**
+   * The description field (default shown). The Overview tab edits it in the
+   * Definition sub-tab as "Purpose and functions" (conformance plan Phase 1,
+   * decision 8); the New Project dialog keeps it here.
+   */
+  showDescription?: boolean;
 }
 
 const INPUT =
@@ -64,6 +70,7 @@ export const ProjectInfoFields: React.FC<ProjectInfoFieldsProps> = ({
   errors = {},
   autoFocusName = false,
   afterDescription,
+  showDescription = true,
 }) => {
   const { t } = useTranslation();
 
@@ -182,29 +189,31 @@ export const ProjectInfoFields: React.FC<ProjectInfoFieldsProps> = ({
       </div>
 
       {/* Description (1/1) */}
-      <div>
-        <label htmlFor="project-description" className={LABEL}>
-          {t("project.description")}
-          {star("description")}
-        </label>
-        {editing ? (
-          <textarea
-            id="project-description"
-            value={value.description}
-            onChange={(e) => onChange({ description: e.target.value })}
-            rows={4}
-            placeholder={t("projectInfo.descriptionPlaceholder", {
-              defaultValue: "Describe your project...",
-            })}
-            className={`${INPUT} ${border("description")} resize-none`}
-          />
-        ) : (
-          <p className="text-gray-900 py-2 whitespace-pre-wrap">
-            {value.description || "-"}
-          </p>
-        )}
-        {error("description")}
-      </div>
+      {showDescription && (
+        <div>
+          <label htmlFor="project-description" className={LABEL}>
+            {t("project.description")}
+            {star("description")}
+          </label>
+          {editing ? (
+            <textarea
+              id="project-description"
+              value={value.description}
+              onChange={(e) => onChange({ description: e.target.value })}
+              rows={4}
+              placeholder={t("projectInfo.descriptionPlaceholder", {
+                defaultValue: "Describe your project...",
+              })}
+              className={`${INPUT} ${border("description")} resize-none`}
+            />
+          ) : (
+            <p className="text-gray-900 py-2 whitespace-pre-wrap">
+              {value.description || "-"}
+            </p>
+          )}
+          {error("description")}
+        </div>
+      )}
 
       {afterDescription}
 

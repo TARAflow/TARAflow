@@ -33,11 +33,17 @@
       "commitAndPush": "Commit & Push",
       "existingBranch": "Vorhandener Branch:",
       "pushAfterCommit": "Nach dem Commit zum Remote-Repository pushen",
-      "signCommit": "Commit signieren (SSH)",
+      "signCommit": "Commit signieren ({{format}})",
+      "signCommitRequired": "Commit signieren — Pflicht, dieses Repository hat ein Signer-Manifest",
+      "signingKeyMissing": "Kein Signierschlüssel gesetzt. Schlüssel in der Audit-Konfiguration wählen (Config → Signing).",
+      "signerManifestRemoved": "Das Signer-Manifest wurde aus diesem Branch entfernt — sein Audit-Trail ist nicht mehr verifizierbar. .tara/allowed_signers wiederherstellen (Löschung rückgängig machen) und erneut committen.",
+      "signerManifestEmpty": "Signieren ist eingeschaltet, aber das Signer-Manifest ist leer. Zuerst dich selbst als Signer eintragen (Config → Signers).",
+      "signerNotAuthorized": "Deine Autor-E-Mail ({{email}}) ist im committeten Signer-Manifest nicht berechtigt. Schlüssel unter dieser E-Mail eintragen (Config → Signers) und das Manifest committen.",
       "commit": "Commit",
       "committing": "Wird committet…"
     },
     "config": {
+      "verificationMaxAgeDays": "Verifikation gilt als veraltet nach (Tagen)",
       "title": "Audit-Konfiguration",
       "enableSigning": "Commits signieren",
       "tabs": {
@@ -84,7 +90,8 @@
       "customRoundPlaceholder": "Rundenname",
       "signing": {
         "section": "Commit-Signierung",
-        "help": "Audit-Commits kryptografisch signieren, damit ihre Echtheit verifiziert werden kann."
+        "help": "Audit-Commits kryptografisch signieren, damit ihre Echtheit verifiziert werden kann.",
+        "requiredByManifest": "Dieses Repository signiert (seine Historie hat ein Signer-Manifest eingeführt): Jeder Commit wird verifiziert, darum wird immer signiert — für alle Projekte darin."
       },
       "signers": {
         "title": "Autorisierte Signierer",
@@ -295,11 +302,43 @@
         }
       }
     },
+    "verification": {
+      "title": "TARA-Verifikation (ISO/SAE 21434 RQ-09-07)",
+      "new": "Verifikation erfassen",
+      "none": "Noch nicht verifiziert.",
+      "scope": {
+        "tara": "a) TARA korrekt und vollständig gegenüber der Item Definition",
+        "treatment": "b) Behandlungsentscheide vollständig, korrekt und stimmig",
+        "goals-claims": "c) Goals und Claims korrekt gegenüber den Behandlungsentscheiden",
+        "consistency": "d) Alle Goals und Claims untereinander konsistent"
+      },
+      "result": {
+        "passed": "bestanden",
+        "passed-with-conditions": "bestanden mit Auflagen",
+        "failed": "nicht bestanden"
+      },
+      "stateCurrent": "Stand unverändert",
+      "stateChanged": "seither geändert",
+      "stateReconfirm": "erneut bestätigen",
+      "committed": "committet {{hash}}",
+      "notCommitted": "nicht committet",
+      "commit": "Committen",
+      "remove": "Entfernen",
+      "edit": "Bearbeiten",
+      "editTitle": "Verifikation bearbeiten",
+      "date": "Datum",
+      "reviewer": "Reviewer",
+      "checked": "Geprüft (RQ-09-07)",
+      "openFindings": "{{count}} offene(r) Prüfhinweis(e) — siehe Unteransicht Definition und Goals & Claims",
+      "resultLabel": "Ergebnis",
+      "findings": "Befunde / Auflagen"
+    },
     "rounds": {
       "initial": "Initiale Bewertung",
       "detail": "Detailbewertung",
       "refinement": "Verfeinerung",
-      "final": "Finale Entscheidung"
+      "final": "Finale Entscheidung",
+      "verification": "Verifikation"
     }
   }
 }

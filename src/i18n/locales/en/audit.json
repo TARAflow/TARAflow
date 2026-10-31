@@ -33,11 +33,17 @@
       "commitAndPush": "Commit & Push",
       "existingBranch": "Existing Branch:",
       "pushAfterCommit": "Push to remote after commit",
-      "signCommit": "Sign commit (SSH)",
+      "signCommit": "Sign commit ({{format}})",
+      "signCommitRequired": "Sign commit — required, this repository has a signer manifest",
+      "signingKeyMissing": "No signing key is set. Choose your key in the audit configuration (Config → Signing).",
+      "signerManifestRemoved": "The signer manifest was removed from this branch — its audit trail can no longer be verified. Restore .tara/allowed_signers (revert its removal) and commit again.",
+      "signerManifestEmpty": "Signing is enabled but the signer manifest is empty. Add yourself as a signer first (Config → Signers).",
+      "signerNotAuthorized": "Your author email ({{email}}) is not authorized in the committed signer manifest. Add your key under this email (Config → Signers) and commit the manifest.",
       "commit": "Commit",
       "committing": "Committing..."
     },
     "config": {
+      "verificationMaxAgeDays": "Verification counts as outdated after (days)",
       "title": "Audit Configuration",
       "enableSigning": "Sign commits",
       "tabs": {
@@ -84,7 +90,8 @@
       "customRoundPlaceholder": "Round name",
       "signing": {
         "section": "Commit Signing",
-        "help": "Sign audit commits cryptographically so their authenticity can be verified."
+        "help": "Sign audit commits cryptographically so their authenticity can be verified.",
+        "requiredByManifest": "This repository signs (its history introduced a signer manifest): every commit is verified, so commits are always signed — for every project in it."
       },
       "signers": {
         "title": "Authorized signers",
@@ -295,11 +302,43 @@
         }
       }
     },
+    "verification": {
+      "title": "TARA verification (ISO/SAE 21434 RQ-09-07)",
+      "new": "Record verification",
+      "none": "Not verified yet.",
+      "scope": {
+        "tara": "a) TARA correct and complete with respect to the item definition",
+        "treatment": "b) Risk treatment decisions complete, correct and consistent",
+        "goals-claims": "c) Goals and claims correct with respect to the treatment decisions",
+        "consistency": "d) All goals and claims consistent with each other"
+      },
+      "result": {
+        "passed": "passed",
+        "passed-with-conditions": "passed with conditions",
+        "failed": "failed"
+      },
+      "stateCurrent": "state unchanged",
+      "stateChanged": "changed since",
+      "stateReconfirm": "confirm again",
+      "committed": "committed {{hash}}",
+      "notCommitted": "not committed",
+      "commit": "Commit",
+      "remove": "Remove",
+      "edit": "Edit",
+      "editTitle": "Edit verification",
+      "date": "Date",
+      "reviewer": "Reviewer",
+      "checked": "Checked (RQ-09-07)",
+      "openFindings": "{{count}} open finding(s) — see the Definition sub-tab and Goals & Claims",
+      "resultLabel": "Result",
+      "findings": "Findings / conditions"
+    },
     "rounds": {
       "initial": "Initial Assessment",
       "detail": "Detail Review",
       "refinement": "Refinement",
-      "final": "Final Decision"
+      "final": "Final Decision",
+      "verification": "Verification"
     }
   }
 }

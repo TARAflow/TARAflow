@@ -114,6 +114,14 @@ export function buildAttackPathThreatId(
   return `AT-${treeId}-${pathKey}`;
 }
 
+/**
+ * Whether `threatId` is an attack-path threat of tree `treeId` — any path, any
+ * STRIDE category. The one place outside the builders that knows the format.
+ */
+export function isAttackPathThreatOf(treeId: string, threatId: string): boolean {
+  return threatId.startsWith(buildAttackPathThreatId(treeId, ""));
+}
+
 // ==================== COLLISION GUARD ====================
 
 /**

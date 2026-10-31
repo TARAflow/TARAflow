@@ -2,6 +2,7 @@
 // Simplified transform - direct references + cached labels only
 // Location: src/app/services/doc-transform.ts (or src/app/utils/doc-transform.ts)
 
+import { docVerificationOf } from "./verification-state";
 import type { Project } from "../models/project-types";
 import type {
   DocProjectData,
@@ -114,7 +115,6 @@ function computeDocValues(
   language: DocLanguage,
 ): DocComputedValues {
   const impactScale = project.assets?.configuration?.impactScale ?? "4-level";
-  const riskScale = project.risks?.configuration?.scale ?? "4-level";
   // ISO/SAE 21434 names on the 4-level impact scale (display only).
   const isoImpactLabels =
     impactScale === "4-level" &&
@@ -128,24 +128,6 @@ function computeDocValues(
       ? getIsoImpactLabel(asset.overallImpact, language)
       : getScaleLabel(asset.overallImpact, impactScale, language);
     impactLabels.set(asset.id, label);
-  });
-
-  // Cache risk labels (risk ID -> label)
-  const riskBeforeLabels = new Map<string, string>();
-  const riskAfterLabels = new Map<string, string>();
-  project.risks?.risks?.forEach((risk) => {
-    const beforeLabel = getScaleLabel(
-      risk.calculatedRiskBeforeMitigation,
-      riskScale,
-      language,
-    );
-    const afterLabel = getScaleLabel(
-      risk.calculatedRiskAfterMitigation,
-      riskScale,
-      language,
-    );
-    riskBeforeLabels.set(risk.id, beforeLabel);
-    riskAfterLabels.set(risk.id, afterLabel);
   });
 
   // Cache STRIDE names (category -> name)
@@ -182,13 +164,13 @@ function computeDocValues(
     activeStrideMethods,
     language,
     impactLabels,
-    riskBeforeLabels,
-    riskAfterLabels,
     strideNames,
     moscowLabels,
     statusLabels,
     // Methodology chapter (ISO/SAE 21434 conformance plan 0d).
     methodology: buildMethodologyRecord(project),
+    // Verification status as of now, the document's creation (plan Phase 4).
+    verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
   };
 }
 
@@ -220,6 +202,8 @@ export function transformProjectToDocData(
     threats: project.threats ?? null,
     risks: project.risks ?? null,
     attackTree: project.attackTrees ?? null,
+    ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
+    ...(project.cybersecurityConcept ? { cybersecurityConcept: project.cybersecurityConcept } : {}),
 
     // Computed values (performance optimization)
     computed: computeDocValues(project, language),

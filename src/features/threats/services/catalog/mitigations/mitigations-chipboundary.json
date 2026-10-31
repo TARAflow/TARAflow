@@ -169,14 +169,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "ChipBoundary",
-          "property": "sideChannelProtection",
-          "expectedValue": "basic",
-          "confidence": "heuristic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": [
         "V-CB-SCA-001"
       ]
@@ -187,14 +180,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "ChipBoundary",
-          "property": "sideChannelProtection",
-          "expectedValue": "basic",
-          "confidence": "heuristic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": [
         "V-CB-SCA-002"
       ]
@@ -205,14 +191,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "ChipBoundary",
-          "property": "sideChannelProtection",
-          "expectedValue": "basic",
-          "confidence": "heuristic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": [
         "V-CB-SCA-003"
       ]
@@ -223,20 +202,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
-      "affectsProperties": [
-        {
-          "targetType": "ChipBoundary",
-          "property": "sideChannelProtection",
-          "expectedValue": "basic",
-          "confidence": "heuristic"
-        },
-        {
-          "targetType": "DataFlow",
-          "property": "physicalPathProtection",
-          "expectedValue": "conformal_coating",
-          "confidence": "deterministic"
-        }
-      ],
+      "affectsProperties": [],
       "verifications": [
         "V-CB-SCA-004"
       ]
@@ -250,7 +216,7 @@
       "affectsProperties": [
         {
           "targetType": "ChipBoundary",
-          "property": "keyStorage",
+          "property": "authenticatorStorage",
           "expectedValue": "hsm",
           "confidence": "deterministic"
         }

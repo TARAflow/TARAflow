@@ -181,7 +181,13 @@ export function generateRiskMatrix(scale: RiskScaleType): RiskMatrixCell[][] {
 }
 
 // ==================== RISK COLOR / LABEL HELPERS ====================
+// A risk value (R = I × L, up to levels² — 16 on the 4-level scale) belongs
+// to the first level whose threshold it does not exceed (custom thresholds
+// from the risk configuration win). The one rule for the risk tab, the
+// matrix and the report (review 2026-10-30: the report used the value as if
+// it were a level number, so 4.0 and above read as "Critical").
 
+/** Level index of a value 1..N on an axis (likelihood) — not for risk values. */
 function calculateLevelIndex(
   value: number,
   maxLevels: number,
@@ -193,24 +199,38 @@ function calculateLevelIndex(
   return Math.min(Math.max(Math.round(value) - 1, 0), maxLevels - 1);
 }
 
+/** The level of a risk value on the scale. */
+export function riskSeverityLevel(
+  value: number,
+  scale: RiskScaleType,
+  severityThresholds?: Record<number, number>,
+): RiskScaleLevel {
+  const levels = RISK_SCALES[scale].levels;
+  for (const level of levels) {
+    const threshold = severityThresholds?.[level.value] ?? level.threshold;
+    if (value <= threshold) return level;
+  }
+  return levels[levels.length - 1];
+}
+
+/** Color of a risk value; gray (#6b7280) for unrated (value <= 0). */
 export function getRiskColor(
   value: number,
   scale: RiskScaleType,
-  roundingMethod: RiskRoundingMethod = "round",
+  _roundingMethod?: RiskRoundingMethod,
+  severityThresholds?: Record<number, number>,
 ): string {
   if (value <= 0) return "#6b7280";
-  const scaleConfig = RISK_SCALES[scale];
-  const levelIndex = calculateLevelIndex(value, scaleConfig.levels.length, roundingMethod);
-  return scaleConfig.levels[levelIndex].color;
+  return riskSeverityLevel(value, scale, severityThresholds).color;
 }
 
+/** Label of a risk value; "-" for unrated. */
 export function getRiskLabel(
   value: number,
   scale: RiskScaleType,
-  roundingMethod: RiskRoundingMethod = "round",
+  _roundingMethod?: RiskRoundingMethod,
+  severityThresholds?: Record<number, number>,
 ): string {
   if (value <= 0) return "-";
-  const scaleConfig = RISK_SCALES[scale];
-  const levelIndex = calculateLevelIndex(value, scaleConfig.levels.length, roundingMethod);
-  return scaleConfig.levels[levelIndex].label;
+  return riskSeverityLevel(value, scale, severityThresholds).label;
 }

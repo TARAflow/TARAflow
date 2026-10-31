@@ -609,24 +609,24 @@ This matrix is a coverage check over the chain *Asset (AS) → Damage Scenario (
 
   traceabilityMatrixTable: (lang: DocLanguage) =>
     lang === "de"
-      ? `[cols="1,2,3,2,1,1,1", options="header"]
+      ? `[cols="1,2,3,2,1,1,1,1", options="header"]
 |===
-| AS | DS | TS | AF | Risikowert (1–5) | Behandlung (RT) | Restrisiko (RR)
+| AS | DS | TS | AF | Risikowert (1–5) | Behandlung (RT) | Goal / Claim (CG) | Restrisiko (RR)
 
 {{traceabilityRows}}
 |===
 
 `
-      : `[cols="1,2,3,2,1,1,1", options="header"]
+      : `[cols="1,2,3,2,1,1,1,1", options="header"]
 |===
-| AS | DS | TS | AF | Risk value (1–5) | Treatment (RT) | Residual (RR)
+| AS | DS | TS | AF | Risk value (1–5) | Treatment (RT) | Goal / Claim (CG) | Residual (RR)
 
 {{traceabilityRows}}
 |===
 
 `,
 
-  traceabilityRow: `| {{asId}} {{asName}} | {{dsStatus}}: {{dsLabel}} | <<threat-{{tsAnchor}},{{tsId}}>> {{tsDescription}} | {{afStatus}}: {{afLabel}} | {{riskBefore}} | {{treatment}} | {{riskAfter}}
+  traceabilityRow: `| {{asId}} {{asName}} | {{dsStatus}}: {{dsLabel}} | <<threat-{{tsAnchor}},{{tsId}}>> {{tsDescription}} | {{afStatus}}: {{afLabel}} | {{riskBefore}} | {{treatment}} | {{goalsClaims}} | {{riskAfter}}
 `,
 
   // ==================== ACCEPTED RISKS ====================

@@ -206,6 +206,13 @@ export interface RiskProjectData {
    */
   dfdTableGroups?: import("shared").DfdTableGroups;
   dfd?: DFDReference | null;
+  /**
+   * Goals, claims and verification records (ISO/SAE 21434 9.4, plan Phase 4,
+   * decision 25) — edited in the risk dialog's "Goal / Claim" tab.
+   */
+  cybersecurityConcept?: import("shared").CybersecurityConcept;
+  /** Item Definition assumptions a retain claim relies on. */
+  assumptions?: readonly import("shared").Assumption[];
   /** Integration connection for Jira/ADO ticket linking in RiskMitigationStatusDialog */
   integration?: {
     connection: RiskIntegrationConnection | null;

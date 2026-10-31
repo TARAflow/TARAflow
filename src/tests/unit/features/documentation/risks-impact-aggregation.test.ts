@@ -25,8 +25,6 @@ const project = (impactAggregation?: string): any => ({
   info: { name: "Test" },
   risks: { configuration: { impactAggregation }, risks: [risk] },
   computed: {
-    riskBeforeLabels: new Map(),
-    riskAfterLabels: new Map(),
     moscowLabels: new Map(),
     impactLabels: new Map(),
   },
@@ -94,7 +92,6 @@ describe("ISO traceability: risk value 1–5 instead of I × L per category", ()
         },
       },
     ];
-    p.computed.riskBeforeLabels = new Map([["r1", "High"]]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gen = new MarkdownGenerator(p, cfg("en"), t) as any;
     const { content } = gen.generateTraceabilityMatrix("Traceability");
