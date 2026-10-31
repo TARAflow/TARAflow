@@ -60,9 +60,11 @@ export async function loadPreviousProjectFromGit(
 /**
  * The signer manifest as committed at `ref` (default HEAD; `git show
  * <ref>:.tara/allowed_signers`) — what the verification engine checks the
- * next commit on that branch against. null when
- * HEAD has none (no manifest yet, unborn HEAD, git error); a deleted or edited
- * working-tree copy does not count.
+ * next commit on that branch against. null when `ref` has none (no manifest
+ * yet, unborn HEAD, unknown ref, git error); a deleted or edited working-tree
+ * copy does not count. `ref` is a local branch or HEAD — the commit dialog
+ * lists local branches only (branchLocal), so the ref read here is the one
+ * checked out for the commit.
  */
 export async function loadCommittedManifest(raw: RawGit, ref = "HEAD"): Promise<string | null> {
   try {
