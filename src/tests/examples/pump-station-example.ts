@@ -20,6 +20,9 @@ import type { Asset, AssetConfiguration, AssetData } from "features/assets/model
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import type { ImpactRating } from "features/assets/models/asset-impact-types";
 import type { AssetProperties } from "shared/models/asset-property-types";
+import type { A2ARelation } from "shared/models/a2a-relation-types";
+import type { A2ARelationType } from "shared/models/asset-group-types";
+import { addA2ARelation } from "shared/services/a2a-relation-service";
 import type { ItemDefinition } from "shared/models/item-definition-types";
 import type { SecurityGoalType } from "features/assets/models/asset-security-goals-types";
 import { createEmptyAsset } from "features/assets/services/asset-factory";
@@ -66,7 +69,7 @@ import { threatPhaseStatus } from "features/threats/services/threat-phase-status
 import { riskService } from "features/risks/services/risk-service";
 import { PHASE_STATUS_KEY } from "shared/models/common-types";
 import { createDefaultDocData } from "features/documentation/models/doc-types";
-import { EDGES, SHAPES, pumpStationXml } from "./pump-station-diagram";
+import { pumpStationXml } from "./pump-station-diagram";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ProjectJson = any;
@@ -217,7 +220,7 @@ const SECURE_OPC: DataFlowProperties = {
 const FLOW_PROPERTIES: Record<string, DataFlowProperties> = {
   "DF-1": { protocol: "human_input", endpointAuthentication: "password", encryptionInTransit: "none", integrityProtection: "none", messageType: "command", dataClassification: "internal" },
   "DF-2": { ...SECURE_OPC, messageType: "command", dataClassification: "internal" },
-  "DF-3": { ...SECURE_OPC, dataClassification: "internal" },
+  "DF-3": { ...SECURE_OPC, messageType: "measurement", dataClassification: "internal" },
   "DF-4": { ...SECURE_OPC, dataClassification: "internal" },
   "DF-5": { ...SECURE_OPC, messageType: "command", dataClassification: "internal" },
   "DF-6": { protocol: "https", endpointAuthentication: "certificate", encryptionInTransit: "tls", integrityProtection: "signature", cryptoStandard: "nist_approved", dataClassification: "confidential" },
@@ -453,6 +456,36 @@ function buildAssets(dfd: ProjectJson): Asset[] {
       [["MP-1", "is_an"]],
       { protectionNeed: "critical", automationLevel: "fully_automated", description: "The automatic control of pumps and valves." }),
   ];
+}
+
+/**
+ * Asset-to-asset relations, added through the app's relations service (rules
+ * per asset group, deterministic order): what the pump control needs, uses
+ * and is configured by, and where the setpoints come from.
+ */
+function assetRelations(assets: Asset[]): A2ARelation[] {
+  const id = (displayId: string) => assets.find((a) => a.displayId === displayId)!.id;
+  const groupOf = (assetId: string) => assets.find((a) => a.id === assetId)?.assetGroup;
+  const wanted: [string, A2ARelationType, string, string][] = [
+    ["DA-001", "required_by", "PR-001", "The pump control runs on the setpoints."],
+    ["DA-002", "consumed_by", "PR-001", "Measured values close the control loop."],
+    ["DA-003", "required_by", "PR-001", "Firmware and PLC program are the pump control."],
+    ["DA-004", "configures", "PR-001", "Recipes and configuration parameterise the control."],
+    ["DA-005", "configures", "PR-001", "A service session can change parameters of the control."],
+    ["DA-001", "derives_from", "DA-004", "Setpoints are taken from the active recipe."],
+  ];
+  let relations: A2ARelation[] = [];
+  for (const [source, relationType, target, rationale] of wanted) {
+    const result = addA2ARelation(
+      relations,
+      { sourceAssetId: id(source), targetAssetId: id(target), relationType, rationale },
+      groupOf,
+      () => `rel-${source}-${relationType}-${target}`.toLowerCase(),
+    );
+    if (!result.ok) throw new Error(`${source} ${relationType} ${target}: ${result.reason}`);
+    relations = result.relations;
+  }
+  return relations;
 }
 
 // ── Threats and risks ───────────────────────────────────────────────────────
@@ -715,7 +748,12 @@ export function buildPumpStationProject(): ProjectJson {
     }
   }
   dfd.assets = deriveDfdAssets(assets, dfd.elements, dfd.connections);
-  const assetData: AssetData = recalculateAllImpacts({ configuration: ASSET_CONFIGURATION, assets, lastModified: DATE });
+  const assetData: AssetData = recalculateAllImpacts({
+    configuration: ASSET_CONFIGURATION,
+    assets,
+    relations: assetRelations(assets),
+    lastModified: DATE,
+  });
 
   const threats = generateThreats(dfd, assetData.assets, TAGS);
   const synced = buildRisks(dfd, assetData.assets, threats);
@@ -768,5 +806,3 @@ export function buildPumpStationProject(): ProjectJson {
   return commitLoadedPhaseStatus(project as unknown as Project);
 }
 
-/** Ids for tests: element display id → element id. */
-export const ELEMENT_DISPLAY_IDS = [...SHAPES.filter((s) => !s.type.endsWith("boundary")).map((s) => s.displayId), ...EDGES.map((e) => e.displayId)];

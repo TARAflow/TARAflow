@@ -6,7 +6,8 @@
 //
 //   WRITE_EXAMPLES=. npx vitest run src/tests/examples/pump-station-example.test.ts
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { initI18nNode } from "../../../taraflow-reporter/cli/i18n-node";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseAndRepair } from "app/services/migration-service";
@@ -28,8 +29,15 @@ import { riskService } from "features/risks/services/risk-service";
 import type { RiskData } from "features/risks/models/risk-assessment-types";
 import { buildPumpStationProject, type ProjectJson } from "./pump-station-example";
 
-const raw = buildPumpStationProject();
-const project = parseAndRepair(JSON.parse(JSON.stringify(raw))) as Project;
+// The texts of threats, mitigations and verifications come from the catalog's
+// translations — loaded first, as in the app, so the written example has them.
+let raw: ProjectJson;
+let project: Project;
+beforeAll(async () => {
+  await initI18nNode("en");
+  raw = buildPumpStationProject();
+  project = parseAndRepair(JSON.parse(JSON.stringify(raw))) as Project;
+});
 const byDisplay = (id: string) =>
   [...raw.dfd.elements, ...raw.dfd.connections].find((x: ProjectJson) => x.displayId === id)!;
 
@@ -73,6 +81,21 @@ describe("Pump Station Controller example", () => {
     expect(threats.every((t: ProjectJson) => t.relevance === "relevant")).toBe(true);
   });
 
+  it("asset-to-asset relations: what the pump control needs, uses and is configured by", () => {
+    const name = (id: string) => project.assets!.assets.find((a) => a.id === id)!.displayId;
+    const relations = (project.assets!.relations ?? []).map((r) => `${name(r.sourceAssetId)} ${r.relationType} ${name(r.targetAssetId)}`);
+    expect(relations.sort()).toEqual(
+      [
+        "DA-001 derives_from DA-004",
+        "DA-001 required_by PR-001",
+        "DA-002 consumed_by PR-001",
+        "DA-003 required_by PR-001",
+        "DA-004 configures PR-001",
+        "DA-005 configures PR-001",
+      ].sort(),
+    );
+  });
+
   it("the Assets tab's threat / goal check finds nothing: every threat violates an active goal of its assets", () => {
     const links = buildThreatGoalLinks({
       threats: project.threats,
@@ -88,6 +111,18 @@ describe("Pump Station Controller example", () => {
     const loaded = commitLoadedPhaseStatus(project);
     const phases = getProgressPhaseIds(!!loaded.info.safetyRelevant, false);
     expect(phases.map((id) => [id, loaded.phaseStatus[id as keyof typeof loaded.phaseStatus]])).toEqual(phases.map((id) => [id, "complete"]));
+  });
+
+  it("threats, mitigations and verifications carry their catalog texts", () => {
+    const threats = [...raw.threats.perElementTables, ...raw.threats.perInteractionTables].flatMap((t: ProjectJson) => t.threats);
+    for (const t of threats) {
+      expect(t.threatDescription, t.displayId).toBeTruthy();
+      expect(t.attackDescription, t.displayId).toBeTruthy();
+    }
+    for (const r of raw.risks.risks) {
+      for (const m of r.proposedMitigations ?? []) expect(m.text, `${r.threatDisplayId} ${m.id}`).toBeTruthy();
+      for (const v of r.proposedVerifications ?? []) expect(v.text, `${r.threatDisplayId} ${v.id}`).toBeTruthy();
+    }
   });
 
   it("threats and risks come from the generators; every risk has a chosen mitigation", () => {
