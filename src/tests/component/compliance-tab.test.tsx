@@ -164,9 +164,21 @@ describe("Compliance tab", () => {
     expect(screen.getByTestId("statement-reasoning")).toBeTruthy();
   });
 
-  it("the quick guide is open while no SL-T is set; the to-do list asks for the SL-T first", () => {
+  it("the quick guide is open the first time, collapsed from then on; it can be opened", () => {
+    localStorage.removeItem("taraflow.compliance.guideSeen");
+    const expanded = () => within(screen.getByTestId("compliance-guide")).getByRole("button").getAttribute("aria-expanded");
     renderTab(edition(CRA_ROWS));
+    expect(expanded()).toBe("true");
     expect(within(screen.getByTestId("compliance-guide")).getByText(/Set the SL-T per foundational requirement/)).toBeTruthy();
+    cleanup();
+    renderTab(edition(CRA_ROWS));
+    expect(expanded()).toBe("false");
+    fireEvent.click(within(screen.getByTestId("compliance-guide")).getByRole("button"));
+    expect(expanded()).toBe("true");
+  });
+
+  it("without an SL-T the to-do list asks for it first", () => {
+    renderTab(edition(CRA_ROWS));
     expect(within(screen.getByTestId("compliance-todo")).getByText(/Set the SL-T above/)).toBeTruthy();
   });
 

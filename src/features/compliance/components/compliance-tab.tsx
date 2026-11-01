@@ -9,7 +9,7 @@
 // Presentational: the app layer evaluates the model (compliance-report.ts)
 // and stores what the tab changes (project.compliance).
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Accordion,
@@ -60,6 +60,24 @@ import { describeLanguageOf, describeRequirement, type RequirementDescription } 
 import { buildTodoList } from "../services/todo-list";
 
 const NS = "compliance";
+
+const GUIDE_SEEN_KEY = "taraflow.compliance.guideSeen";
+
+function guideSeen(): boolean {
+  try {
+    return localStorage.getItem(GUIDE_SEEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markGuideSeen(): void {
+  try {
+    localStorage.setItem(GUIDE_SEEN_KEY, "1");
+  } catch {
+    // no storage (e.g. private mode): the guide opens again next time
+  }
+}
 
 /** Keys of the compliance namespace live under "compliance.*" (one file per feature, full key paths). */
 function useComplianceT() {
@@ -147,6 +165,10 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   const [filter, setFilter] = useState<"open" | "all">("open");
   const [editing, setEditing] = useState<RowResult | null>(null);
   const [info, setInfo] = useState<RowResult | null>(null);
+  // The quick guide: open the first time the tab is shown on this machine,
+  // collapsed from then on (user 2026-11-01); it can always be opened.
+  const [guideOpen, setGuideOpen] = useState(() => !guideSeen());
+  useEffect(() => markGuideSeen(), []);
   const hasDeviceRows = edition.rows.some((r) => r.deviceCategories);
   const cra = edition.id === "en-iec-62443-4-2-praa-2026";
   const statements = data?.statements?.[edition.id] ?? {};
@@ -173,7 +195,13 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     <Box sx={{ p: 3 }} data-testid="compliance-tab">
       <Stack spacing={3}>
         {/* ── Quick guide ───────────────────────────────────────────── */}
-        <Accordion variant="outlined" defaultExpanded={!hasTarget} disableGutters data-testid="compliance-guide">
+        <Accordion
+          variant="outlined"
+          expanded={guideOpen}
+          onChange={(_, open) => setGuideOpen(open)}
+          disableGutters
+          data-testid="compliance-guide"
+        >
           <AccordionSummary expandIcon={<span aria-hidden>▾</span>}>
             <Typography variant="subtitle1">{t("guideTitle", "How to work with this tab")}</Typography>
           </AccordionSummary>
