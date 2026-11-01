@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v16 · 2026-10-31 (decisions D-1 … D-25 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done;
+**Status:** v17 · 2026-10-31 (decisions D-1 … D-26 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -283,6 +283,8 @@ Per project, from one model (consistency per EA-6-1):
 
 1. **Header:** standard version (prAA:2026 draft), component under evaluation (K2),
    claimed SL-C per FR (K3), date, model hash (reuse the verification hash of Phase 4).
+   SL table (D-26): FRs as columns; rows SL-T (requirement), SL-C (product), SL-C planned,
+   with measures of the system; values below the SL-T marked ✗.
 2. **SoA table:** CR / RE · applicable? · reasoning (derived from the applicability
    column, or the analyst's) · status (met / partial / gap / n/a / manual) · evidence
    (element ids + property values, analyst evidence ref) · supporting measure (CCSC 2)
@@ -337,6 +339,7 @@ Per project, from one model (consistency per EA-6-1):
 | D-23 (K-E12) | The value **`custom` counts as `unknown` in type A rules** ("statement needed"); in type B rules it counts as satisfied, the checklist covers it. Applied centrally by the evaluator. | `custom` only says the analyst entered something else, not that it suffices. |
 | D-24 (K-E13) | **Neighbours are the endpoints of the analysis graph** the threat generation uses (`dfd.graph`; for a leveled DFD built on the effective model — leaves only, every flow stitched to its deepest drawn endpoint). Interfaces are not flow endpoints: communication always passes an interface to the endpoint, so a flow is **sender → receiver** and carries the communication threats, while the interface gets its own logical and physical threats. *Exception (found in IEC-3, by design of the validator, "path B"):* a flow may end **at** a debug interface on a chip boundary (debugger → JTAG / SWD / UART console); there the interface is the endpoint — the debug-interface rules (CR 2.13) target it directly, the session rules do not follow it into the chip. An actor on the parent page is therefore a direct neighbour of the leaf process on the child page. A flow in state **fallback** (ends at a decomposed multiprocess because nobody drew it below) makes `endpointIf` / `connectedIf` **`unknown`** for the elements contained in that multiprocess — never `n/a` (D-12). | Review of IEC-2a / 266 (review 2026-10-31, reviewer) feared false `n/a` for processes behind an interface or on a child page (CR 2.5–2.7, 2.12); checked: the first case does not occur, the second is resolved by the effective model, only fallback flows remain. |
 | D-25 (K-E14) | The TARA verification hash covers `project.compliance` (component, target, device categories, statements) **only when present**: projects without matrix data keep exactly their hash, so the hash version stays and no earlier verification is touched; a statement changed after a verification shows "changed". | The matrix is an evaluation artefact (SoA, EA-2-9) resting on the statements. `app/services/verification-state.ts`. |
+| D-26 | **SL terms as operators use them** (user 2026-11-01, after the first look at the tab): the target per FR is the **SL-T** the operator / zone requires — a vector over the FRs, entered per FR with a quick "all FR to …"; the product's value is its **SL-C (product)**, with **SL-C planned** after the chosen open mitigations; the value with supporting measures and claims is shown as **"with measures of the system"** — what the plant can reach if it provides the listed supporting measures and claims, the basis for the SL-A, which only arises in the operated plant and is never computed by TARAflow. "Planned with measures of the system" is not shown. The SL table has the **FRs as columns** and the four values as rows, in the tab and in the report; a value below the SL-T is marked by colour **and** symbol (✗ / ✓), never by colour alone. | Renames only — the evaluation (D-2, D-4, D-14) is unchanged. The gap list answers the operator question "SL-T 3 required — product SL-C 2 — what is missing, what must the plant provide". |
 
 Achieved SL-C per FR, as decided in D-2:
 
