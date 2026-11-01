@@ -19,6 +19,9 @@ import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import type { Project } from "app/models/project-types";
 import { dfdValidator } from "features/dfd/services/dfd-validator";
+import { buildThreatGoalLinks } from "app/utils/build-threat-goal-links";
+import { commitLoadedPhaseStatus } from "app/services/phase-status-commit";
+import { getProgressPhaseIds } from "app/models/phase-types";
 import { collectAssetFindings } from "features/assets/services/asset-validator";
 import type { AssetData } from "features/assets/models/asset-types";
 import { riskService } from "features/risks/services/risk-service";
@@ -68,6 +71,23 @@ describe("Pump Station Controller example", () => {
     expect([...rv.errors, ...rv.warnings]).toEqual([]);
     const threats = [...raw.threats.perElementTables, ...raw.threats.perInteractionTables].flatMap((t: ProjectJson) => t.threats);
     expect(threats.every((t: ProjectJson) => t.relevance === "relevant")).toBe(true);
+  });
+
+  it("the Assets tab's threat / goal check finds nothing: every threat violates an active goal of its assets", () => {
+    const links = buildThreatGoalLinks({
+      threats: project.threats,
+      assets: project.assets!.assets,
+      dfdElements: (project.dfd as ProjectJson).elements,
+      attackTrees: project.attackTrees,
+      disabledStrideMethods: [],
+    });
+    expect(collectAssetFindings(project.assets as AssetData, links)).toEqual([]);
+  });
+
+  it("the Overview shows 100 %: every progress phase complete by the app's rules", () => {
+    const loaded = commitLoadedPhaseStatus(project);
+    const phases = getProgressPhaseIds(!!loaded.info.safetyRelevant, false);
+    expect(phases.map((id) => [id, loaded.phaseStatus[id as keyof typeof loaded.phaseStatus]])).toEqual(phases.map((id) => [id, "complete"]));
   });
 
   it("threats and risks come from the generators; every risk has a chosen mitigation", () => {

@@ -58,6 +58,12 @@ import { toReferenceGraph } from "app/utils/to-reference-graph";
 import { deriveControlInstances } from "app/hooks/use-control-instance-derivation";
 import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import { CURRENT_SCHEMA_VERSION } from "app/services/schema-version";
+import { commitLoadedPhaseStatus } from "app/services/phase-status-commit";
+import type { Project } from "app/models/project-types";
+import { dfdService } from "features/dfd/services/dfd-service";
+import { threatPhaseStatus } from "features/threats/services/threat-phase-status";
+import { riskService } from "features/risks/services/risk-service";
+import { PHASE_STATUS_KEY } from "shared/models/common-types";
 import { createDefaultDocData } from "features/documentation/models/doc-types";
 import { EDGES, SHAPES, pumpStationXml } from "./pump-station-diagram";
 
@@ -228,6 +234,42 @@ const FLOW_PROPERTIES: Record<string, DataFlowProperties> = {
   "DF-13": { protocol: "file", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "signature", dataClassification: "internal" },
 };
 
+/** The analyst's description of every element and flow (the DFD counts as complete only with them). */
+const DESCRIPTIONS: Record<string, string> = {
+  CN: "Plant control network of the pump station: firewall and segmentation towards the plant network, default deny.",
+  CAB: "Locked control cabinet in the pump station building; door switch reported to SCADA.",
+  "P-1": "HMI runtime on the cabinet door panel: shows process values, lets operators change setpoints.",
+  "MP-1": "Pump controller (PLC, RTOS) running the pump and valve control; updated over signed OTA.",
+  "DS-1": "Flash store for recipes and the controller configuration, signed.",
+  "IF-1": "Touch panel in the cabinet door.",
+  "IF-2": "Service USB port inside the cabinet, maintenance only.",
+  "IF-3": "Ethernet port to the plant control network.",
+  "IF-4": "RS-485 fieldbus to the pumps and valves.",
+  "IF-5": "JTAG header on the controller board, fused off after production programming.",
+  "EE-1": "Operator on site.",
+  "EE-2": "Maintenance technician with service access in the cabinet.",
+  "EE-3": "Control room SCADA of the water utility.",
+  "EE-4": "Vendor update server delivering signed firmware.",
+  "EE-5": "Remote access gateway for vendor service sessions.",
+  "EE-6": "Engineering workstation that downloads the PLC program.",
+  "EE-7": "Pumps and valves with their sensors on the fieldbus.",
+  "EE-8": "Debug probe used at production programming only.",
+  "DF-1": "Operator commands entered on the touch panel.",
+  "DF-2": "Setpoints from the HMI to the controller (OPC UA, signed and encrypted).",
+  "DF-3": "Process values from the controller to the HMI.",
+  "DF-4": "Process values reported to SCADA.",
+  "DF-5": "Remote setpoints written by SCADA.",
+  "DF-6": "Signed firmware images from the update server.",
+  "DF-7": "PLC program download from the engineering workstation — no encryption yet, Sign & Encrypt planned.",
+  "DF-8": "Vendor remote service session through the access gateway (mutual TLS over VPN).",
+  "DF-9": "Service commands from the technician over the service USB.",
+  "DF-10": "Actuator commands to pumps and valves over Modbus RTU — no authentication.",
+  "DF-11": "Sensor values from the field over Modbus RTU — no authentication.",
+  "DF-12": "Recipes written to the configuration store.",
+  "DF-13": "Configuration read at start-up.",
+  "DF-14": "Debug session at production programming; the JTAG is fused off afterwards.",
+};
+
 // ── DFD ─────────────────────────────────────────────────────────────────────
 
 export function buildDfd(): ProjectJson {
@@ -237,7 +279,9 @@ export function buildDfd(): ProjectJson {
   const withProps = <T extends { displayId?: string; properties?: unknown }>(item: T): T => {
     const own = props[item.displayId ?? ""];
     if (!own) throw new Error(`no properties for ${item.displayId}`);
-    return { ...item, properties: { ...(item.properties as object), ...own } };
+    const description = DESCRIPTIONS[item.displayId ?? ""];
+    if (!description) throw new Error(`no description for ${item.displayId}`);
+    return { ...item, description, properties: { ...(item.properties as object), ...own } };
   };
   return {
     xml,
@@ -306,23 +350,27 @@ function buildAssets(dfd: ProjectJson): Asset[] {
     asset(dfd, "DA-001", "Setpoints and commands", "data",
       { financial_damage: 2, operational: 4, regulatory_compliance: 2, recoverability: 2, affected_users: 3 },
       [["DF-1", "transports"], ["DF-2", "transports"], ["DF-5", "transports"], ["DF-10", "transports"]],
-      { protectionNeed: "high", dataType: ["config"], lifecycle: "transient" }),
+      { protectionNeed: "high", dataType: ["config"], lifecycle: "transient", description: "Setpoints and operator commands that drive the pumps." }),
     asset(dfd, "DA-002", "Process values", "data",
       { financial_damage: 1, operational: 3, regulatory_compliance: 1, recoverability: 1, affected_users: 2 },
       [["DF-3", "transports"], ["DF-4", "transports"], ["DF-11", "transports"]],
-      { protectionNeed: "medium", dataType: ["telemetry"], lifecycle: "transient" }),
+      { protectionNeed: "medium", dataType: ["telemetry"], lifecycle: "transient", description: "Pressures, flows and levels measured in the field." }),
     asset(dfd, "DA-003", "PLC program and firmware", "data",
       { financial_damage: 3, operational: 4, regulatory_compliance: 2, recoverability: 3, affected_users: 3 },
       [["DF-6", "transports"], ["DF-7", "transports"], ["DF-9", "transports"]],
-      { protectionNeed: "critical", dataType: ["firmware"], lifecycle: "stored" }),
+      { protectionNeed: "critical", dataType: ["firmware"], lifecycle: "stored", description: "Controller firmware and the PLC program." }),
     asset(dfd, "DA-004", "Recipes and configuration", "data",
       { financial_damage: 2, operational: 3, regulatory_compliance: 1, recoverability: 2, affected_users: 2 },
       [["DS-1", "stores"], ["DF-12", "transports"], ["DF-13", "transports"]],
-      { protectionNeed: "high", dataType: ["config", "calibration"], lifecycle: "stored" }),
+      { protectionNeed: "high", dataType: ["config", "calibration"], lifecycle: "stored", description: "Recipes, calibration and the controller configuration." }),
+    asset(dfd, "DA-005", "Remote service session", "data",
+      { financial_damage: 2, operational: 3, regulatory_compliance: 2, recoverability: 2, affected_users: 2 },
+      [["DF-8", "transports"]],
+      { protectionNeed: "high", dataType: ["credentials", "config"], lifecycle: "transient", description: "Credentials and commands of a vendor remote service session." }),
     asset(dfd, "PR-001", "Pump control", "process",
       { financial_damage: 3, operational: 4, regulatory_compliance: 3, recoverability: 2, affected_users: 4 },
       [["MP-1", "is_an"]],
-      { protectionNeed: "critical", automationLevel: "fully_automated" }),
+      { protectionNeed: "critical", automationLevel: "fully_automated", description: "The automatic control of pumps and valves." }),
   ];
 }
 
@@ -542,9 +590,21 @@ export function buildPumpStationProject(): ProjectJson {
   const assetData: AssetData = recalculateAllImpacts({ configuration: ASSET_CONFIGURATION, assets, lastModified: DATE });
 
   const threats = generateThreats(dfd, assetData.assets, TAGS);
-  const risks = buildRisks(dfd, assetData.assets, threats);
+  const synced = buildRisks(dfd, assetData.assets, threats);
+  // The validation the Risk tab stores with its data (Overview, phase status).
+  const risks: RiskData = { ...synced, validation: { ...riskService.validate(synced), lastValidated: DATE } };
 
-  return {
+  // Phase statuses by the app's own rules, as the tabs set them when they
+  // save: DFD from its validation, threats when every one is rated, then
+  // General, Assets, Risk and Attack Tree as on load.
+  const dfdStatus = dfdService.phaseStatusOf(dfdService.validateSavedState({ dfd } as never)!);
+  const phaseStatus = {
+    ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [i, "not-started"])),
+    [PHASE_STATUS_KEY.dfd]: dfdStatus,
+    [PHASE_STATUS_KEY.threats]: threatPhaseStatus(threats),
+  };
+
+  const project = {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     id: "example-pump-station-controller",
     info: {
@@ -564,7 +624,7 @@ export function buildPumpStationProject(): ProjectJson {
     settings: { autoSave: true, autoSaveInterval: 2, regulationPreset: "standard", strictMode: false },
     methodSelected: true,
     strideMethod: "per-interaction",
-    phaseStatus: Object.fromEntries(Array.from({ length: 11 }, (_, i) => [String(i), i <= 4 ? "in-progress" : "not-started"])),
+    phaseStatus,
     dfd,
     assets: { ...assetData, lastModified: DATE },
     threats,
@@ -576,6 +636,7 @@ export function buildPumpStationProject(): ProjectJson {
     integration: null,
     audit: null,
   };
+  return commitLoadedPhaseStatus(project as unknown as Project);
 }
 
 /** Ids for tests: element display id → element id. */
