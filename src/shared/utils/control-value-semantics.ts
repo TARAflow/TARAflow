@@ -107,14 +107,37 @@ export const CONTROL_VALUE_MEETS: Readonly<Record<string, Readonly<Record<string
   cryptoStandard: {
     nist_approved: ["fips_140_2", "fips_140_3"],
   },
-  defaultDenyPolicy: {
-    deny_all_permit_exception: ["island_mode"],
-  },
+  // defaultDenyPolicy: no order — the policies are separate capabilities and
+  // a multi-select since schema 12 (P-1); island mode does not deny by default.
 };
+
+/**
+ * Multi-select properties: a SHOULD value is met when the selection contains
+ * it, and applying it adds it to the selection. A single stored value (file
+ * before the reshape) counts as a selection of one.
+ */
+export const MULTI_SELECT_CONTROL_PROPERTIES: ReadonlySet<string> = new Set(["defaultDenyPolicy"]);
+
+/** Values that exclude every other one of a multi-select property. */
+const EXCLUSIVE_VALUES: Readonly<Record<string, readonly unknown[]>> = { defaultDenyPolicy: ["allow_all"] };
 
 const leaf = (property: string) => property.slice(property.lastIndexOf(".") + 1);
 
+/** The entries of a multi-select value; a single value counts as one. */
+const selectionOf = (current: unknown): unknown[] =>
+  Array.isArray(current) ? current : isEmptyControlValue(current) ? [] : [current];
+
 export function controlValueState(property: string, current: unknown, expected: unknown): ControlValueState {
+  if (Array.isArray(current) || MULTI_SELECT_CONTROL_PROPERTIES.has(leaf(property))) {
+    // A selection meets the expected value when one entry does.
+    const states = selectionOf(current).map((v) => singleValueState(property, v, expected));
+    if (states.includes("met")) return "met";
+    return states.every((st) => st === "empty") ? "empty" : "other";
+  }
+  return singleValueState(property, current, expected);
+}
+
+function singleValueState(property: string, current: unknown, expected: unknown): ControlValueState {
   if (current === expected) return "met";
   if (typeof expected === "string" && (CONTROL_VALUE_MEETS[leaf(property)]?.[expected] ?? []).includes(current)) {
     return "met";
@@ -147,8 +170,16 @@ export function readControlValue(props: Props, property: string): unknown {
 /** The properties update that sets a (dotted) property, keeping its siblings. */
 export function controlValuePatch(props: Props, property: string, value: unknown): Record<string, unknown> {
   const keys = property.split(".");
+  // Multi-select: the value joins the selection; an exclusive value replaces it.
+  const exclusive = EXCLUSIVE_VALUES[leaf(property)] ?? [];
+  const next = (current: unknown): unknown => {
+    if (!MULTI_SELECT_CONTROL_PROPERTIES.has(leaf(property))) return value;
+    if (exclusive.includes(value)) return [value];
+    const kept = selectionOf(current).filter((v) => v !== value && !exclusive.includes(v));
+    return [...kept, value];
+  };
   const build = (node: unknown, i: number): unknown => {
-    if (i === keys.length) return value;
+    if (i === keys.length) return next(node);
     const base = node && typeof node === "object" ? (node as Record<string, unknown>) : {};
     return { ...base, [keys[i]]: build(base[keys[i]], i + 1) };
   };

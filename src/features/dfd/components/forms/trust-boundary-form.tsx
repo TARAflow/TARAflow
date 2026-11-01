@@ -47,8 +47,12 @@ import {
   buildClearPatch,
 } from "../../models/element-property-defaults";
 import {
+  DEFAULT_DENY_POLICY_OPTIONS,
   TRUST_BOUNDARY_CORE_TYPE_OPTIONS,
   TRUST_BOUNDARY_EMBEDDED_TYPE_OPTIONS,
+  defaultDenyPoliciesOf,
+  withDefaultDenyPolicy,
+  type DefaultDenyPolicy,
 } from "../../models/element-properties";
 
 // ==================== PROPS ====================
@@ -445,34 +449,32 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
                 )}
               </InputLabel>
               <Select
-                value={props.defaultDenyPolicy ?? ""}
-                onChange={(e) =>
-                  form.handlePropertyChange(
-                    "defaultDenyPolicy",
-                    e.target.value || undefined,
-                  )
+                multiple
+                value={defaultDenyPoliciesOf(props.defaultDenyPolicy)}
+                onChange={(e) => {
+                  // Multi-select (P-1): "allow_all" excludes the others.
+                  const chosen = (typeof e.target.value === "string" ? e.target.value.split(",") : e.target.value) as DefaultDenyPolicy[];
+                  const before = defaultDenyPoliciesOf(props.defaultDenyPolicy);
+                  const added = chosen.find((p) => !before.includes(p));
+                  const next = added ? withDefaultDenyPolicy(chosen, added) : chosen;
+                  form.handlePropertyChange("defaultDenyPolicy", next.length > 0 ? next : undefined);
+                }}
+                renderValue={(selected) =>
+                  (selected as DefaultDenyPolicy[])
+                    .map((opt) =>
+                      t(`tabs.dfd.element_description.trustboundary.fields.defaultDenyPolicy.options.${opt}`, { defaultValue: opt }),
+                    )
+                    .join(", ")
                 }
                 label={t(
                   "tabs.dfd.element_description.trustboundary.fields.defaultDenyPolicy.label",
                   { defaultValue: "Default Traffic Policy" },
                 )}
+                inputProps={{ "data-testid": "tb-default-deny-policy" }}
               >
-                <MenuItem value="">
-                  <em>
-                    {t("common.not_specified", {
-                      defaultValue: "Not specified",
-                    })}
-                  </em>
-                </MenuItem>
-                {(
-                  [
-                    "allow_all",
-                    "deny_all_permit_exception",
-                    "island_mode",
-                    "fail_close",
-                  ] as const
-                ).map((opt) => (
+                {DEFAULT_DENY_POLICY_OPTIONS.map((opt) => (
                   <MenuItem key={opt} value={opt}>
+                    <Checkbox size="small" checked={defaultDenyPoliciesOf(props.defaultDenyPolicy).includes(opt)} />
                     <Tooltip
                       title={t(
                         `tabs.dfd.element_description.trustboundary.fields.defaultDenyPolicy.tooltips.${opt}`,

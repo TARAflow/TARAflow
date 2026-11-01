@@ -194,7 +194,8 @@ export interface MigrationResult {
  * confirmed again. Declare a migration here only when it changes the form
  * of the data, never a value of the analysis (review 2026-10-30). Files
  * before schema 11 hold no verification, so nothing before 12 is listed.
- *   12  version fence for project.compliance, no data change (0.17.0-beta)
+ *   12  version fence for project.compliance; defaultDenyPolicy "x" → ["x"]
+ *       (multi-select, 1:1 — P-1) (0.17.0-beta)
  */
 export const ANALYSIS_PRESERVING_MIGRATIONS: ReadonlySet<number> = new Set<number>([12]);
 

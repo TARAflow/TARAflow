@@ -15,8 +15,28 @@
  * property becoming multi-select, IEC-9) must keep that declaration true —
  * a 1:1 reshaping only — or remove it.
  *
+ * Reshape (P-1, iec-62443-4-2-cra-coverage.md IEC-9): the trust boundary's
+ * `defaultDenyPolicy` becomes multi-select — a stored value "x" becomes
+ * ["x"], an empty one is removed. 1:1: no value changes its meaning (the
+ * policies are separate capabilities; nothing is inferred from one to
+ * another), so the declaration analysis-preserving holds and a recorded
+ * verification is re-sealed on load.
+ *
  * Runs once per file through the version gate in migration-service.
  */
 export function migrate_11_to_12(data: any): any {
-  return { ...data, schemaVersion: 12 };
+  const elements = data?.dfd?.elements;
+  if (!Array.isArray(elements)) return { ...data, schemaVersion: 12 };
+  return {
+    ...data,
+    dfd: { ...data.dfd, elements: elements.map(reshapeDefaultDenyPolicy) },
+    schemaVersion: 12,
+  };
+}
+
+function reshapeDefaultDenyPolicy(element: any): any {
+  const value = element?.properties?.defaultDenyPolicy;
+  if (value === undefined || Array.isArray(value)) return element;
+  const { defaultDenyPolicy: _single, ...rest } = element.properties;
+  return { ...element, properties: value ? { ...rest, defaultDenyPolicy: [value] } : rest };
 }

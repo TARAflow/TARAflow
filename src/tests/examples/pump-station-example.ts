@@ -86,7 +86,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
   CN: as<TrustBoundaryProperties>({
     boundaryType: "network",
     boundaryControlTypes: ["firewall", "network_segmentation"],
-    defaultDenyPolicy: "deny_all_permit_exception",
+    defaultDenyPolicy: ["deny_all_permit_exception"],
     monitoringEnabled: true,
     defaultExposureLevel: "EL2",
   }),

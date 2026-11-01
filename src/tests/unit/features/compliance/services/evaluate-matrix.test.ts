@@ -202,6 +202,30 @@ describe("transmitted information: flows across the component border (D-28)", ()
   });
 });
 
+// ==================== P-1 MULTI-SELECT POLICY ====================
+
+describe("trust boundary policies are cumulative (P-1)", () => {
+  const ed = edition(
+    { label: "CR 5.2 RE(1)", requirementIds: ["cr-5.2-re1"], fr: "RDF", minSl: 2 },
+    { label: "CR 5.2 RE(2)", requirementIds: ["cr-5.2-re2"], fr: "RDF", minSl: 3 },
+    { label: "CR 5.2 RE(3)", requirementIds: ["cr-5.2-re3"], fr: "RDF", minSl: 3 },
+  );
+  const zone = (defaultDenyPolicy: unknown) => [
+    el("tb", "TrustBoundary", { boundaryType: "network", boundaryControlTypes: ["firewall"], defaultDenyPolicy }),
+  ];
+
+  it("one boundary with all three policies meets all three rows", () => {
+    const r = run(ed, zone(["deny_all_permit_exception", "island_mode", "fail_close"]));
+    expect(["CR 5.2 RE(1)", "CR 5.2 RE(2)", "CR 5.2 RE(3)"].map((l) => row(r, l).status)).toEqual(["met", "met", "met"]);
+  });
+
+  it("island mode alone does not meet default deny", () => {
+    const r = run(ed, zone(["island_mode"]));
+    expect(row(r, "CR 5.2 RE(1)").status).toBe("gap");
+    expect(row(r, "CR 5.2 RE(2)").status).toBe("met");
+  });
+});
+
 // ==================== D-23 CUSTOM ====================
 
 describe('"custom" (D-23)', () => {

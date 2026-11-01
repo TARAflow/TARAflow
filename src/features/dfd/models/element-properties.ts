@@ -1766,6 +1766,27 @@ export type TrustBoundaryType = (typeof TRUST_BOUNDARY_TYPE_OPTIONS)[number];
 
 // ==================== TRUST BOUNDARY PROPERTIES ====================
 
+export const DEFAULT_DENY_POLICY_OPTIONS = ["allow_all", "deny_all_permit_exception", "island_mode", "fail_close"] as const;
+
+/** One traffic policy of a trust boundary (TrustBoundaryProperties.defaultDenyPolicy). */
+export type DefaultDenyPolicy = (typeof DEFAULT_DENY_POLICY_OPTIONS)[number];
+
+/** The stored policies; a single value of a file written before the reshape counts as one entry. */
+export function defaultDenyPoliciesOf(value: unknown): DefaultDenyPolicy[] {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return DEFAULT_DENY_POLICY_OPTIONS.filter((p) => values.includes(p));
+}
+
+/**
+ * The policies after choosing one more: "allow_all" excludes the others,
+ * any other one removes "allow_all".
+ */
+export function withDefaultDenyPolicy(current: readonly DefaultDenyPolicy[] | undefined, added: DefaultDenyPolicy): DefaultDenyPolicy[] {
+  if (added === "allow_all") return ["allow_all"];
+  const rest = (current ?? []).filter((p) => p !== "allow_all" && p !== added);
+  return DEFAULT_DENY_POLICY_OPTIONS.filter((p) => p === added || rest.includes(p));
+}
+
 export interface TrustBoundaryProperties {
   boundaryId?: string;
   boundaryType?: TrustBoundaryType;
@@ -1805,30 +1826,26 @@ export interface TrustBoundaryProperties {
   complianceRelevance?: string;
 
   /**
-   * Default traffic policy enforced at this boundary.
-   * NDR 5.2 RE(1) — Deny all, permit by exception (SL-2+).
-   * NDR 5.2 RE(2) — Island mode capability (SL-3+).
-   * NDR 5.2 RE(3) — Fail close on mechanism failure (SL-3+).
+   * Traffic policies enforced at this boundary — multi-select since schema 12
+   * (iec-62443-4-2-cra-coverage.md P-1): the capabilities of CR 5.2 RE(1) –
+   * RE(3) are separate and cumulative, one boundary can have several.
    *
    * Only meaningful for boundaryType = "network" | "cloud".
    *
-   * allow_all                → No restriction — all zone-crossing flows permitted
-   * deny_all_permit_exception → Whitelist-based; only explicitly permitted flows pass
-   *                             NDR 5.2 RE(1) satisfied
-   * island_mode              → Boundary can isolate zone completely on incident
-   *                             NDR 5.2 RE(2) satisfied (implies RE1)
-   * fail_close               → On mechanism failure: no traffic passes (fail-safe)
-   *                             NDR 5.2 RE(3) satisfied (implies RE1 + RE2)
+   * allow_all                → No restriction — all zone-crossing flows
+   *                             permitted; excludes the others
+   * deny_all_permit_exception → Whitelist-based; only explicitly permitted
+   *                             flows pass — CR 5.2 RE(1) (SL-2+)
+   * island_mode              → Boundary can isolate the zone completely on an
+   *                             incident — CR 5.2 RE(2) (SL-3+)
+   * fail_close               → On mechanism failure no traffic passes
+   *                             (fail-safe) — CR 5.2 RE(3) (SL-3+)
    *
    * Threat implication:
    *   allow_all → Restricted Data Flow threats active; lateral movement possible
    *   deny_all_permit_exception → Reduces attack surface to explicitly allowed flows
    */
-  defaultDenyPolicy?:
-    | "allow_all"
-    | "deny_all_permit_exception"
-    | "island_mode"
-    | "fail_close";
+  defaultDenyPolicy?: DefaultDenyPolicy[];
 
   owner?: string;
   notes?: string;
