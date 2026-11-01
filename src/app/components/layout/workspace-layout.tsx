@@ -1269,6 +1269,9 @@ export const WorkspaceLayout: React.FC = () => {
               labelVocabulary={labelVocabulary}
               assumptions={activeProject.itemDefinition?.assumptions}
               onCreateAssumption={handleCreateAssumption}
+              assumptionsNeutral={
+                regulationPresetFromTags(activeProject.info?.tags ?? EMPTY_PROJECT_TAGS) !== "iso-21434"
+              }
               onShowInTable={(assetId) => {
                 setTableHighlightRequest({ assetId });
                 handlePhaseChange(PhaseId.Assets);

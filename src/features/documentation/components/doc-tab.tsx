@@ -30,7 +30,7 @@ import {
 } from "@mui/material";
 
 import type { DocTabProps, DocFormat, DocLanguage } from "../models/doc-types";
-import { CHAPTER_TITLES, isChapterVisible } from "../models/doc-types";
+import { getChapterTitle, isChapterVisible } from "../models/doc-types";
 import { DocPreview } from "./doc-preview";
 import { DocConfigDialog } from "./doc-config-dialog";
 import { DocToolbar } from "./doc-toolbar";
@@ -219,10 +219,14 @@ export const DocTab: React.FC<DocTabProps> = ({
                   {config.chapters.map((chapter) => {
                     const hasContent = chapterHasContent[chapter.id];
                     const isVisible = isChapterVisible(chapter, hasContent);
-                    const title =
-                      config.language === "de"
-                        ? CHAPTER_TITLES[chapter.id].de
-                        : CHAPTER_TITLES[chapter.id].en;
+                    // Same titles as the document (system definition outside ISO/SAE 21434).
+                    const title = getChapterTitle(
+                      chapter.id,
+                      config.language === "de" ? "de" : "en",
+                      undefined,
+                      undefined,
+                      project.computed?.neutralItemDefinition,
+                    );
 
                     return (
                       <ListItem key={chapter.id} disablePadding>

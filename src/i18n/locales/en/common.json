@@ -167,7 +167,7 @@
         "v9": "The DFD can span several pages (top level and sub-diagrams); older TARAflow versions can no longer open the file, because they would merge the pages. Person-harm severity uses a 5-level scale (reversible minor/major, irreversible minor/major, fatal). Old values are mapped to the higher level: irreversible injury becomes irreversible major. Safety relevance of assets is derived from safety annotations and hazard items: the asset fields \"safety-relevant\" and \"Safety Impact\" are removed; a Safety Impact without another rating becomes a manual override.",
         "v10": "Risks that take their likelihood from an attack tree are corrected: on a 3- or 4-level risk scale a \"high\" attack path counted as 5, outside the scale; the value now fits the scale (e.g. 4 on a 4-level scale) and the risk is recalculated. 5-level projects are unchanged. Old names of person-harm severities still left in the file (e.g. \"fatality\") get the current names; no rating changes. In ISO/SAE 21434 projects every risk gets its risk value 1–5 (impact × attack feasibility, matrix of Annex H.8), and risks and attack-tree analyses record with which calculation version and tables their values were computed. Treatments and priorities are not changed. Older TARAflow versions can no longer open the file, so they do not drop these values on save.",
         "v11": "A person endangered by a hazard can be rated \"None (no injury)\" — S0 under ISO/SAE 21434. Such a rating counts as no harm: the person does not become a hazard target and its causes do not become safety-relevant. Older TARAflow versions can no longer open the file, because they would count it as harm. No values change. The project can carry an Item Definition (boundary, functions, architecture, operational environment, assumptions), edited in the Overview's Definition view; the project description becomes its \"Purpose and functions\". Risks can be linked to cybersecurity goals (treatment Reduce) and claims (Retain, Share), and the TARA verification is recorded.",
-        "v12": "The project can carry an IEC 62443-4-2 requirement matrix (classic edition or the CRA edition EN IEC 62443-4-2): the component under evaluation, the target security level per foundational requirement and the analyst statements per requirement. Older TARAflow versions can no longer open the file, because they would drop this data on save. No values change; a recorded TARA verification stays valid."
+        "v12": "The project can carry an IEC 62443-4-2 requirement matrix (classic edition or the CRA edition EN IEC 62443-4-2): the component under evaluation, the target security level per foundational requirement and the analyst statements per requirement. Older TARAflow versions can no longer open the file, because they would drop this data on save. The traffic policy of a trust boundary becomes a selection (one stored policy becomes a selection of one), and an old free-text boundary control moves into the field for further boundary controls. Values keep their meaning; a recorded TARA verification stays valid."
       }
     },
     "confirmAssetDelete": {
@@ -369,6 +369,17 @@
       "assumptionInvalidInUse": "{{assumption}} is invalid but still relied on by {{boundaries}} — review them.",
       "assumptionReviewDue": "{{assumption}} is still open after its review date.",
       "linkRemoved": "{{section}}: {{count}} link(s) to removed model items."
+    },
+    "neutral": {
+      "intro": "What is analysed: the system, its boundary, functions, architecture and operational environment — for the CRA the intended purpose and the description of the product. Describe it here or refer to the architecture document it comes from.",
+      "purpose": { "hint": "What the system is for and what it does (intended purpose) — the former project description.", "placeholder": "Describe the system's intended purpose and its main functions..." },
+      "sections": {
+        "boundary": { "title": "System boundary", "hint": "What belongs to the system and what does not; its interfaces to other systems and to the environment." },
+        "architecture": { "title": "Architecture", "hint": "The system's main building blocks and how they work together — refer to the DFD instead of redrawing it." },
+        "environment": { "hint": "Where and how the system is used, as far as relevant to cybersecurity." }
+      },
+      "functions": { "hint": "The system's functions and the lifecycle phases they are active in." },
+      "assumptions": { "hint": "What the analysis assumes about the environment. Trust boundaries link them; an invalid assumption flags every boundary that relies on it." }
     }
   },
   "projectInfo": {

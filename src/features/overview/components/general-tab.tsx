@@ -4,6 +4,7 @@ import {
   PhaseDefinition,
   PhaseStatus,
   SourceBinding,
+  EMPTY_PROJECT_TAGS,
   regulationPresetFromTags,
 } from "shared";
 import { itemDefinitionFindings } from "../services/item-definition-findings";
@@ -279,6 +280,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
           modelItems={modelItems}
           assumptionUsage={assumptionUsage}
           findings={itemFindings}
+          neutral={regulationPresetFromTags(data.info.tags ?? EMPTY_PROJECT_TAGS) !== "iso-21434"}
           onChange={({ description, itemDefinition }) =>
             onUpdate({
               ...data,

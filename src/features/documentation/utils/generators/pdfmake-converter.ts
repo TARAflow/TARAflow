@@ -286,6 +286,7 @@ export class PdfMakeConverter {
       this.lang,
       chapterConfig?.customTitle,
       chapterConfig?.customTitleDE,
+      this.project.computed?.neutralItemDefinition,
     );
   }
 
@@ -1352,8 +1353,8 @@ export class PdfMakeConverter {
   private createItemDefinition(): Content[] {
     return this.sectionedChapter(
       "item-definition",
-      itemDefinitionIntro(this.t),
-      itemDefinitionReportSections(this.project, this.t),
+      itemDefinitionIntro(this.t, this.project.computed?.neutralItemDefinition),
+      itemDefinitionReportSections(this.project, this.t, this.project.computed?.neutralItemDefinition),
     );
   }
 

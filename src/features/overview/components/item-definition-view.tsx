@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useItemDefinitionText } from "./item-definition-text";
 import {
   emptyItemDefinition,
   issuedAssumptionNumber,
@@ -40,6 +41,8 @@ interface ItemDefinitionViewProps {
   /** What is still missing (A-4), computed by the tab. */
   findings?: readonly ItemFinding[];
   onChange: (change: { description?: string; itemDefinition: ItemDefinition }) => void;
+  /** Outside ISO/SAE 21434: "system definition" wording, no clause numbers. */
+  neutral?: boolean;
 }
 
 const TEXT_SECTIONS: readonly Exclude<ItemSectionId, "functions">[] = [
@@ -75,8 +78,10 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
   assumptionUsage = {},
   findings = [],
   onChange,
+  neutral = false,
 }) => {
   const { t } = useTranslation();
+  const text = useItemDefinitionText(neutral);
   const def = itemDefinition ?? emptyItemDefinition();
 
   const withSection = (id: ItemSectionId, section: ItemSection): ItemDefinition => {
@@ -93,20 +98,18 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
   return (
     <div data-testid="item-definition-view">
       <p className="text-sm text-gray-600 mb-4">
-        {t("itemDefinition.intro", {
-          defaultValue:
-            "What is analysed: the item (ISO/SAE 21434 9.3), its boundary, functions, preliminary architecture and operational environment. Describe it here or refer to the architecture document it comes from.",
-        })}
+        {text(
+          "intro",
+          "What is analysed: the item (ISO/SAE 21434 9.3), its boundary, functions, preliminary architecture and operational environment. Describe it here or refer to the architecture document it comes from.",
+        )}
       </p>
 
-      <ItemFindingsPanel findings={findings} />
+      <ItemFindingsPanel findings={findings} neutral={neutral} />
 
       <ItemSectionCard
         testId="item-definition-purpose"
         title={t("itemDefinition.purpose.title", { defaultValue: "Purpose and functions" })}
-        hint={t("itemDefinition.purpose.hint", {
-          defaultValue: "What the item is for and what it does — the former project description.",
-        })}
+        hint={text("purpose.hint", "What the item is for and what it does — the former project description.")}
         text={description}
         section={def.sections.functions}
         modelItems={modelItems}
@@ -118,6 +121,7 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
       <ItemFunctionsCard
         functions={def.functions}
         functionAssets={functionAssets}
+        neutral={neutral}
         onSave={(functions: ItemFunction[]) => onChange({ itemDefinition: { ...def, functions } })}
       />
 
@@ -125,8 +129,8 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
         <ItemSectionCard
           key={id}
           testId={`item-definition-${id}`}
-          title={t(`itemDefinition.sections.${id}.title`, { defaultValue: SECTION_DEFAULTS[id].title })}
-          hint={t(`itemDefinition.sections.${id}.hint`, { defaultValue: SECTION_DEFAULTS[id].hint })}
+          title={text(`sections.${id}.title`, SECTION_DEFAULTS[id].title)}
+          hint={text(`sections.${id}.hint`, SECTION_DEFAULTS[id].hint)}
           text={def.sections[id]?.text ?? ""}
           section={def.sections[id]}
           modelItems={modelItems}
@@ -142,6 +146,7 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
         assumptions={def.assumptions}
         issued={issuedAssumptionNumber(def)}
         usage={assumptionUsage}
+        neutral={neutral}
         onSave={(assumptions) => onChange({ itemDefinition: withAssumptions(def, assumptions) })}
       />
     </div>

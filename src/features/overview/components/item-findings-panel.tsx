@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Info } from "lucide-react";
 import type { ItemFinding } from "../services/item-definition-findings";
+import { useItemDefinitionText } from "./item-definition-text";
 
 // ==================== ITEM FINDINGS PANEL ====================
 // What the Definition sub-tab still lacks (A-4), on top of the view.
@@ -14,15 +15,19 @@ const SECTION_DEFAULT: Record<string, string> = {
   constraints: "Constraints and legal requirements",
 };
 
-export const ItemFindingsPanel: React.FC<{ findings: readonly ItemFinding[] }> = ({ findings }) => {
+export const ItemFindingsPanel: React.FC<{ findings: readonly ItemFinding[]; neutral?: boolean }> = ({
+  findings,
+  neutral = false,
+}) => {
   const { t } = useTranslation();
+  const label = useItemDefinitionText(neutral);
   if (findings.length === 0) return null;
   const sectionName = (id?: string) =>
     !id
       ? ""
       : id === "functions"
-        ? t("itemDefinition.purpose.title", { defaultValue: SECTION_DEFAULT.functions })
-        : t(`itemDefinition.sections.${id}.title`, { defaultValue: SECTION_DEFAULT[id] ?? id });
+        ? label("purpose.title", SECTION_DEFAULT.functions)
+        : label(`sections.${id}.title`, SECTION_DEFAULT[id] ?? id);
 
   const text = (f: ItemFinding) => {
     switch (f.code) {

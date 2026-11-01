@@ -1816,12 +1816,6 @@ export interface TrustBoundaryProperties {
    */
   customBoundaryControls?: string;
 
-  /**
-   * @deprecated Use boundaryControlTypes + customBoundaryControls instead.
-   * Retained for backwards compatibility — migrated on next save.
-   */
-  boundaryControls?: string;
-
   monitoringEnabled?: boolean;
   complianceRelevance?: string;
 
@@ -2183,6 +2177,14 @@ export interface PhysicalBoundaryProperties {
    * @see PhysicalMonitoringType
    */
   monitoringType?: PhysicalMonitoringType;
+
+  /**
+   * Further physical controls outside the choices above, as free text — e.g.
+   * "video surveillance of the pump station by the operator". Documentation
+   * only: threat generation, closed loop and the IEC 62443 matrix read the
+   * structured fields.
+   */
+  customPhysicalControls?: string;
 
   // ── Attack Surface Hints ───────────────────────────────────────────────────
   /**

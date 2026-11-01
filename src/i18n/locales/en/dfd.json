@@ -1997,13 +1997,9 @@
             },
             "assumptionIds": {
               "label": "Assumptions (Item Definition)",
+              "labelNeutral": "Assumptions (system definition)",
               "convert": "Convert to assumption",
               "invalid": "{{ids}} marked invalid — review this boundary."
-            },
-            "boundaryControls": {
-              "label": "Controls at Boundary",
-              "placeholder": "e.g. Firewall, API Gateway, Authentication Layer",
-              "helper": "What enforces this boundary?"
             },
             "complianceRelevance": {
               "label": "Compliance Relevance",
@@ -2251,6 +2247,11 @@
                 "guard_patrol": "Periodic manned patrol — detection window depends on patrol interval.",
                 "tamper_monitoring": "Electronic tamper sensor (switch, mesh, voltage) — often paired with zeroize response on adjacent Chip Boundary."
               }
+            },
+            "customPhysicalControls": {
+              "label": "Further Physical Controls",
+              "placeholder": "e.g. video surveillance by the operator, alarm system of the building",
+              "helper": "Controls not in the lists above — documented in the report, not evaluated"
             },
             "requiresToolAccess": {
               "label": "Requires tool access to open (screwdriver, hex key)",

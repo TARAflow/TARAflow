@@ -91,4 +91,13 @@ describe("toDocProjectData", () => {
     expect(isoDoc.cybersecurityConcept).toEqual(cybersecurityConcept);
     expect(isoDoc.computed.verification?.kind).toBe("none");
   });
+
+  it("outside ISO/SAE 21434 the item definition is the system definition (neutral wording), as in the app", () => {
+    const project = loadFixtureProject();
+    const tags = { domain: [], platform: [], custom: [], ...(project.info?.tags ?? {}) };
+    const neutral = toDocProjectData({ ...project, info: { ...project.info, tags: { ...tags, regulation: ["EN IEC 62443 (CRA)"] } } } as Project, "en");
+    expect(neutral.computed.neutralItemDefinition).toBe(true);
+    const iso = toDocProjectData({ ...project, info: { ...project.info, tags: { ...tags, regulation: ["ISO 21434"] } } } as Project, "en");
+    expect(iso.computed.neutralItemDefinition).toBe(false);
+  });
 });

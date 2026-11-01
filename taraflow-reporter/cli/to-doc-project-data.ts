@@ -19,6 +19,7 @@ import type { Project } from "../../src/app/models/project-types";
 import { buildMethodologyRecord } from "../../src/app/services/methodology-record";
 import { docVerificationOf } from "../../src/app/services/verification-state";
 import { buildDocCompliance } from "../../src/app/services/compliance-report";
+import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../src/shared";
 import type {
   DocProjectData,
   DocComputedValues,
@@ -85,6 +86,8 @@ export function toDocProjectData(
       verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
       // IEC 62443-4-2 requirement matrix — the same evaluation as in the app.
       compliance: buildDocCompliance(project, language),
+      // Item definition as "system definition" outside ISO/SAE 21434, as in the app.
+      neutralItemDefinition: regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) !== "iso-21434",
     },
 
     documentation: project.documentation as DocProjectData["documentation"],

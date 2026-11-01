@@ -162,6 +162,9 @@ function computeDocValues(
   }
 
   return {
+    // Item definition as "system definition" outside ISO/SAE 21434.
+    neutralItemDefinition:
+      regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) !== "iso-21434",
     activeStrideMethods,
     language,
     impactLabels,

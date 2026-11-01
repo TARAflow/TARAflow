@@ -37,11 +37,21 @@ const SECTION_DEFAULTS: Record<Exclude<ItemSectionId, "functions">, string> = {
   constraints: "Constraints and legal requirements",
 };
 
-export const itemDefinitionIntro = (t: TranslateFn): string =>
-  t(
-    `${K}.intro`,
-    "What the analysis is about (ISO/SAE 21434 9.3): the item's purpose and functions, its boundary, its preliminary architecture and its operational environment, with the sources they come from and the assumptions the analysis relies on.",
-  );
+/** Outside ISO/SAE 21434: the system definition (DocComputedValues.neutralItemDefinition). */
+const NEUTRAL_DEFAULTS = {
+  intro:
+    "What the analysis is about: the system's intended purpose and functions, its boundary, its architecture and its operational environment, with the sources they come from and the assumptions the analysis relies on.",
+  boundary: "System boundary",
+  architecture: "Architecture",
+} as const;
+
+export const itemDefinitionIntro = (t: TranslateFn, neutral = false): string =>
+  neutral
+    ? t(`${K}.neutral.intro`, NEUTRAL_DEFAULTS.intro)
+    : t(
+        `${K}.intro`,
+        "What the analysis is about (ISO/SAE 21434 9.3): the item's purpose and functions, its boundary, its preliminary architecture and its operational environment, with the sources they come from and the assumptions the analysis relies on.",
+      );
 
 /** Something stored beyond the description? */
 export function hasItemDefinitionContent(def: ItemDefinition | undefined): boolean {
@@ -80,6 +90,7 @@ function modelLabels(project: Pick<DocProjectData, "dfd" | "assets">): Map<strin
 export function itemDefinitionReportSections(
   project: Pick<DocProjectData, "info" | "itemDefinition" | "dfd" | "assets">,
   t: TranslateFn,
+  neutral = false,
 ): ItemDefinitionReportSection[] {
   const def = project.itemDefinition;
   if (!hasItemDefinitionContent(def)) return [];
@@ -132,7 +143,10 @@ export function itemDefinitionReportSections(
     const s = def!.sections[id];
     if (!s?.text?.trim() && !s?.source?.document?.trim() && !s?.modelRefs?.length) continue;
     sections.push({
-      title: t(`${K}.section.${id}`, SECTION_DEFAULTS[id]),
+      title:
+        neutral && (id === "boundary" || id === "architecture")
+          ? t(`${K}.neutral.${id}`, NEUTRAL_DEFAULTS[id])
+          : t(`${K}.section.${id}`, SECTION_DEFAULTS[id]),
       paragraphs: paragraphs(s.text),
       facts: facts(s),
     });

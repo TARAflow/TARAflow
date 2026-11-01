@@ -51,6 +51,7 @@ const FREE_TEXT_FIELDS = new Set<string>([
   "safetyRationale",
   "securityAssumptions",
   "customBoundaryControls",
+  "customPhysicalControls",
 ]);
 
 const PROPERTY_LABELS: Record<string, { en: string; de: string }> = {
@@ -138,7 +139,6 @@ const PROPERTY_LABELS: Record<string, { en: string; de: string }> = {
     en: "Security Assumptions",
     de: "Sicherheitsannahmen",
   },
-  boundaryControls: { en: "Boundary Controls", de: "Grenzkontrollen" },
   monitoringEnabled: { en: "Monitoring Enabled", de: "Überwachung aktiviert" },
   complianceRelevance: {
     en: "Compliance Relevance",
@@ -441,6 +441,7 @@ const ELEMENT_FIELD_LAYOUT: Record<string, FieldLayout> = {
       "physicalAccessControl",
       "tamperProtection",
       "monitoringType",
+      "customPhysicalControls",
       "requiresToolAccess",
       "debugInterfaceAccessible",
       "removableMediaAccessible",
@@ -715,7 +716,6 @@ export function getElementSecurityNotes(
     }
     case "TrustBoundary": {
       const props = element.properties as TrustBoundaryProperties;
-      if (props.boundaryControls) parts.push(props.boundaryControls);
       if (props.securityAssumptions) parts.push(props.securityAssumptions);
       if (props.notes) parts.push(props.notes);
       break;

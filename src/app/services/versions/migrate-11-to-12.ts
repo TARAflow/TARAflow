@@ -22,6 +22,11 @@
  * another), so the declaration analysis-preserving holds and a recorded
  * verification is re-sealed on load.
  *
+ * Removal: the trust boundary's free-text `boundaryControls` (replaced by
+ * `boundaryControlTypes` + `customBoundaryControls` long ago, without a
+ * migration and without a form field) — its text is appended to
+ * `customBoundaryControls`, nothing is lost or reinterpreted.
+ *
  * Runs once per file through the version gate in migration-service.
  */
 export function migrate_11_to_12(data: any): any {
@@ -29,7 +34,7 @@ export function migrate_11_to_12(data: any): any {
   if (!Array.isArray(elements)) return { ...data, schemaVersion: 12 };
   return {
     ...data,
-    dfd: { ...data.dfd, elements: elements.map(reshapeDefaultDenyPolicy) },
+    dfd: { ...data.dfd, elements: elements.map((e: any) => moveBoundaryControls(reshapeDefaultDenyPolicy(e))) },
     schemaVersion: 12,
   };
 }
@@ -39,4 +44,14 @@ function reshapeDefaultDenyPolicy(element: any): any {
   if (value === undefined || Array.isArray(value)) return element;
   const { defaultDenyPolicy: _single, ...rest } = element.properties;
   return { ...element, properties: value ? { ...rest, defaultDenyPolicy: [value] } : rest };
+}
+
+function moveBoundaryControls(element: any): any {
+  const props = element?.properties;
+  if (!props || !("boundaryControls" in props)) return element;
+  const { boundaryControls, ...rest } = props;
+  const text = typeof boundaryControls === "string" ? boundaryControls.trim() : "";
+  const custom = typeof rest.customBoundaryControls === "string" ? rest.customBoundaryControls.trim() : "";
+  const merged = [custom, text].filter((t) => t && !(t === text && custom.includes(text))).join("\n");
+  return { ...element, properties: merged ? { ...rest, customBoundaryControls: merged } : rest };
 }

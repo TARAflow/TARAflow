@@ -406,6 +406,7 @@ export abstract class BaseDocumentGenerator {
       this.ctx.lang,
       chapterConfig?.customTitle,
       chapterConfig?.customTitleDE,
+      this.ctx.project.computed?.neutralItemDefinition,
     );
 
     switch (chapterId) {
@@ -1475,12 +1476,13 @@ export abstract class BaseDocumentGenerator {
    */
   protected generateItemDefinition(title: string): ChapterContent {
     const chapterId: DocChapterId = "item-definition";
-    const sections = itemDefinitionReportSections(this.ctx.project, this.ctx.t);
+    const neutral = this.ctx.project.computed?.neutralItemDefinition;
+    const sections = itemDefinitionReportSections(this.ctx.project, this.ctx.t, neutral);
     if (sections.length === 0) {
       return { id: chapterId, title, content: "", hasContent: false };
     }
     const body = sections.map((s) => this.formatReportSection(s)).join("");
-    const content = this.formatSectionedChapter(chapterId, title, itemDefinitionIntro(this.ctx.t), body);
+    const content = this.formatSectionedChapter(chapterId, title, itemDefinitionIntro(this.ctx.t, neutral), body);
     return { id: chapterId, title, content, hasContent: content !== "" };
   }
 

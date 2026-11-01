@@ -14,6 +14,8 @@ export interface AssumptionsAccess {
   readonly assumptions: readonly Assumption[];
   /** Stores a new open assumption with this text and returns it. */
   readonly create: (text: string) => Assumption;
+  /** Outside ISO/SAE 21434 the assumptions belong to the system definition. */
+  readonly neutral?: boolean;
 }
 
 const AssumptionsContext = createContext<AssumptionsAccess | null>(null);

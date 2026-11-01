@@ -64,4 +64,15 @@ describe("trust boundary assumptions (A-3)", () => {
     render(<TrustBoundaryAssumptions text="x" assumptionIds={[]} onChange={vi.fn()} />);
     expect(screen.queryByTestId("tb-assumptions")).toBeNull();
   });
+
+  it("outside ISO/SAE 21434 the field is labelled as system definition", () => {
+    const create = vi.fn();
+    render(
+      <AssumptionsProvider value={{ assumptions: ASSUMPTIONS, create, neutral: true }}>
+        <TrustBoundaryAssumptions text="" assumptionIds={[]} onChange={vi.fn()} />
+      </AssumptionsProvider>,
+    );
+    expect(screen.getByLabelText("Assumptions (system definition)")).toBeTruthy();
+    expect(screen.queryByLabelText("Assumptions (Item Definition)")).toBeNull();
+  });
 });

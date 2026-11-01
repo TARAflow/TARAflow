@@ -34,6 +34,27 @@ describe("migrate 11 → 12 (version fence)", () => {
     expect(out.dfd.elements[0].properties.boundaryType).toBe("network");
   });
 
+  it("boundaryControls: the old free text moves into customBoundaryControls, nothing is lost", () => {
+    const tb = (properties: Record<string, unknown>) => ({ id: "tb", type: "TrustBoundary", properties });
+    const out = migrate_11_to_12({
+      ...structuredClone(v11),
+      dfd: {
+        elements: [
+          tb({ boundaryControls: "Siemens SCALANCE S615" }),
+          tb({ boundaryControls: "DPI for Profinet", customBoundaryControls: "OPC UA reverse proxy" }),
+          tb({ boundaryControls: "OPC UA reverse proxy", customBoundaryControls: "OPC UA reverse proxy" }),
+          tb({ boundaryControls: "" }),
+        ],
+      },
+    });
+    expect(out.dfd.elements.map((e: Any) => e.properties)).toEqual([
+      { customBoundaryControls: "Siemens SCALANCE S615" },
+      { customBoundaryControls: "OPC UA reverse proxy\nDPI for Profinet" },
+      { customBoundaryControls: "OPC UA reverse proxy" },
+      {},
+    ]);
+  });
+
   it("is the current version and declared analysis-preserving", () => {
     expect(CURRENT_SCHEMA_VERSION).toBe(12);
     expect(ANALYSIS_PRESERVING_MIGRATIONS.has(12)).toBe(true);

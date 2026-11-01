@@ -224,6 +224,7 @@
       },
       "itemDefinition": {
         "intro": "Worum es in der Analyse geht (ISO/SAE 21434 9.3): Zweck und Funktionen des Items, seine Grenze, seine vorläufige Architektur und seine Betriebsumgebung, mit den Quellen, aus denen sie stammen, und den Annahmen, auf die sich die Analyse stützt.",
+        "neutral": { "intro": "Worum es in der Analyse geht: bestimmungsgemässe Verwendung und Funktionen des Systems, seine Grenze, seine Architektur und seine Einsatzumgebung, mit den Quellen, aus denen sie stammen, und den Annahmen, auf die sich die Analyse stützt.", "boundary": "Systemgrenze", "architecture": "Architektur" },
         "purpose": "Zweck und Funktionen",
         "section": {
           "boundary": "Item-Grenze",

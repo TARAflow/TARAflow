@@ -560,6 +560,27 @@ export const PhysicalBoundaryDescriptionForm = React.memo<PhysicalBoundaryFormPr
             </Select>
           </FormControl>
 
+          {/* Further physical controls — free text, documentation only */}
+          <BufferedTextField
+            fullWidth
+            size="small"
+            label={t(
+              "tabs.dfd.element_description.physicalboundary.fields.customPhysicalControls.label",
+              { defaultValue: "Further Physical Controls" },
+            )}
+            value={props.customPhysicalControls ?? ""}
+            onCommit={(v) => form.handlePropertyChange("customPhysicalControls", v || undefined)}
+            placeholder={t(
+              "tabs.dfd.element_description.physicalboundary.fields.customPhysicalControls.placeholder",
+              { defaultValue: "e.g. video surveillance by the operator, alarm system of the building" },
+            )}
+            helperText={t(
+              "tabs.dfd.element_description.physicalboundary.fields.customPhysicalControls.helper",
+              { defaultValue: "Controls not in the lists above — documented in the report, not evaluated" },
+            )}
+            inputProps={{ "data-testid": "pb-custom-physical-controls" }}
+          />
+
           {/* Attack Surface Hints — boundary-type conditional */}
 
           {/* requiresToolAccess: device_enclosure, vehicle, cabinet */}

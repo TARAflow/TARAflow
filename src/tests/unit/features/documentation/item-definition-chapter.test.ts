@@ -14,11 +14,13 @@ import { StrictdocGenerator } from "features/documentation/utils/generators/stri
 import { PdfMakeConverter } from "features/documentation/utils/generators/pdfmake-converter";
 import {
   hasItemDefinitionContent,
+  itemDefinitionIntro,
   itemDefinitionReportSections,
 } from "features/documentation/utils/item-definition-report";
 import {
   DEFAULT_CHAPTER_CONFIG,
   createDefaultDocData,
+  getChapterTitle,
   withDefaultChapters,
 } from "features/documentation/models/doc-types";
 import type { ItemDefinition } from "shared";
@@ -143,5 +145,24 @@ describe("item-definition chapter", () => {
     expect(ids.indexOf("item-definition")).toBe(ids.indexOf("system-overview") + 1);
     const stored = DEFAULT_CHAPTER_CONFIG.filter((c) => c.id !== "item-definition");
     expect(withDefaultChapters(stored).map((c) => c.id)).toContain("item-definition");
+  });
+});
+
+describe("outside ISO/SAE 21434: the system definition", () => {
+  it("chapter title, intro and the boundary / architecture titles lose the ISO wording", () => {
+    expect(getChapterTitle("item-definition", "en", undefined, undefined, true)).toBe("System Definition");
+    expect(getChapterTitle("item-definition", "de", undefined, undefined, true)).toBe("Systemdefinition");
+    expect(getChapterTitle("item-definition", "en")).toBe("Item Definition");
+    expect(itemDefinitionIntro(t, true)).not.toMatch(/21434|item/);
+    const def = definition();
+    def.sections.architecture = { text: "PLC and HMI" };
+    const titles = itemDefinitionReportSections({ info: {}, itemDefinition: def } as Any, t, true).map((s) => s.title);
+    expect(titles).toContain("System boundary");
+    expect(titles).toContain("Architecture");
+    expect(titles).not.toContain("Item boundary");
+  });
+
+  it("a custom chapter title still wins", () => {
+    expect(getChapterTitle("item-definition", "en", "Product description", undefined, true)).toBe("Product description");
   });
 });

@@ -78,9 +78,15 @@ export const TrustBoundaryAssumptions: React.FC<TrustBoundaryAssumptionsProps> =
         renderInput={(params) => (
           <TextField
             {...params}
-            label={t("tabs.dfd.element_description.trustboundary.fields.assumptionIds.label", {
-              defaultValue: "Assumptions (Item Definition)",
-            })}
+            label={
+              access.neutral
+                ? t("tabs.dfd.element_description.trustboundary.fields.assumptionIds.labelNeutral", {
+                    defaultValue: "Assumptions (system definition)",
+                  })
+                : t("tabs.dfd.element_description.trustboundary.fields.assumptionIds.label", {
+                    defaultValue: "Assumptions (Item Definition)",
+                  })
+            }
             inputProps={{ ...params.inputProps, "data-testid": "tb-assumptions-input" }}
           />
         )}

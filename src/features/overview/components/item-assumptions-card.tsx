@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useItemDefinitionText } from "./item-definition-text";
 import { Plus, Trash2 } from "lucide-react";
 import { Chip } from "@mui/material";
 import { newAssumption, type Assumption, type AssumptionStatus } from "shared";
@@ -17,6 +18,8 @@ interface ItemAssumptionsCardProps {
   assumptions: readonly Assumption[];
   /** Highest ASM number issued so far — a number deleted in this edit is not issued again. */
   issued?: number;
+  /** Outside ISO/SAE 21434: neutral wording. */
+  neutral?: boolean;
   /** assumption id → labels of the boundaries that link it */
   usage: Readonly<Record<string, readonly string[]>>;
   onSave: (assumptions: Assumption[]) => void;
@@ -32,8 +35,15 @@ const STATUS_COLOR: Record<AssumptionStatus, "default" | "success" | "error"> = 
   invalid: "error",
 };
 
-export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({ assumptions, issued = 0, usage, onSave }) => {
+export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({
+  assumptions,
+  issued = 0,
+  usage,
+  onSave,
+  neutral = false,
+}) => {
   const { t } = useTranslation();
+  const text = useItemDefinitionText(neutral);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Assumption[]>([]);
   const statusLabel = (s: AssumptionStatus) => t(`itemDefinition.assumptions.status.${s}`, { defaultValue: s });
@@ -73,10 +83,10 @@ export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({ assump
         <EditButtons editing={editing} onEdit={start} onCancel={() => setEditing(false)} onSave={save} />
       </div>
       <p className="text-xs text-gray-500 mb-3">
-        {t("itemDefinition.assumptions.hint", {
-          defaultValue:
-            "What the analysis assumes about the environment (9.3, RQ-09-02 NOTE 8). Trust boundaries link them; an invalid assumption flags every boundary that relies on it.",
-        })}
+        {text(
+          "assumptions.hint",
+          "What the analysis assumes about the environment (9.3, RQ-09-02 NOTE 8). Trust boundaries link them; an invalid assumption flags every boundary that relies on it.",
+        )}
       </p>
 
       {!editing && assumptions.length === 0 && <p className="text-gray-500">-</p>}

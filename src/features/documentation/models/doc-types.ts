@@ -242,6 +242,13 @@ export interface DocValidation {
  * These are calculated once during transform and cached
  */
 export interface DocComputedValues {
+  /**
+   * Outside ISO/SAE 21434 the item definition is the system definition —
+   * chapter title and texts without "item" and clause numbers. Absent = ISO
+   * wording (data built without the app's transform).
+   */
+  neutralItemDefinition?: boolean;
+
   /** Active STRIDE methods based on actual content */
   activeStrideMethods: StrideMethod[];
 
@@ -418,15 +425,21 @@ export interface DocTabProps {
 
 // ==================== HELPER FUNCTIONS ====================
 
+/** Chapter titles outside ISO/SAE 21434 (DocComputedValues.neutralItemDefinition). */
+export const NEUTRAL_CHAPTER_TITLES: Partial<Record<DocChapterId, { en: string; de: string }>> = {
+  "item-definition": { en: "System Definition", de: "Systemdefinition" },
+};
+
 export function getChapterTitle(
   chapterId: DocChapterId,
   language: DocLanguage,
   customTitle?: string,
   customTitleDE?: string,
+  neutral = false,
 ): string {
   if (language === "de" && customTitleDE) return customTitleDE;
   if (language === "en" && customTitle) return customTitle;
-  return CHAPTER_TITLES[chapterId][language];
+  return ((neutral && NEUTRAL_CHAPTER_TITLES[chapterId]) || CHAPTER_TITLES[chapterId])[language];
 }
 
 export function isChapterVisible(

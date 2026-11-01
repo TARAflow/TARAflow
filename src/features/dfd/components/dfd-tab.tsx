@@ -103,6 +103,8 @@ export interface DFDTabProps {
    */
   assumptions?: readonly Assumption[];
   onCreateAssumption?: (text: string) => Assumption;
+  /** Outside ISO/SAE 21434: the assumptions are labelled as system definition. */
+  assumptionsNeutral?: boolean;
   /** "Show in table" from the asset graph (FR-V13, way back). */
   onShowInTable?: (assetId: string) => void;
   /** "Open in Hazard tab" from a hazard's card in the asset graph (G9). */
@@ -146,6 +148,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   labelVocabulary,
   assumptions,
   onCreateAssumption,
+  assumptionsNeutral = false,
   onShowInTable,
   onOpenHazard,
 }) => {
@@ -795,9 +798,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   const assumptionsAccess = useMemo(
     () =>
       onCreateAssumption
-        ? { assumptions: assumptions ?? [], create: onCreateAssumption }
+        ? { assumptions: assumptions ?? [], create: onCreateAssumption, neutral: assumptionsNeutral }
         : null,
-    [assumptions, onCreateAssumption],
+    [assumptions, onCreateAssumption, assumptionsNeutral],
   );
 
   // ==================== RENDER ====================

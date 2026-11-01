@@ -1996,13 +1996,9 @@
             },
             "assumptionIds": {
               "label": "Annahmen (Item Definition)",
+              "labelNeutral": "Annahmen (Systemdefinition)",
               "convert": "In Annahme umwandeln",
               "invalid": "{{ids}} als ungültig markiert — diese Grenze überprüfen."
-            },
-            "boundaryControls": {
-              "label": "Controls an der Grenze",
-              "placeholder": "z.B. Firewall, API-Gateway, Authentifizierungsschicht",
-              "helper": "Was setzt diese Grenze durch?"
             },
             "complianceRelevance": {
               "label": "Compliance-Relevanz",
@@ -2250,6 +2246,11 @@
                 "guard_patrol": "Periodische bemannte Patrouille — Erkennungsfenster hängt von Patrouillenstintervall ab.",
                 "tamper_monitoring": "Elektronischer Manipulationssensor (Schalter, Netz, Spannung) — oft mit Nullsetz-Reaktion an benachbarter Chip Boundary gepaart."
               }
+            },
+            "customPhysicalControls": {
+              "label": "Weitere physische Controls",
+              "placeholder": "z.B. Videoüberwachung durch den Betreiber, Alarmanlage des Gebäudes",
+              "helper": "Controls, die oben nicht zur Auswahl stehen — im Bericht dokumentiert, nicht ausgewertet"
             },
             "requiresToolAccess": {
               "label": "Werkzeugzugang zum Öffnen erforderlich (Schraubenzieher, Inbusschlüssel)",

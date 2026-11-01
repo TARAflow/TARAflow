@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useItemDefinitionText } from "./item-definition-text";
 import { Plus, Trash2 } from "lucide-react";
 import { Autocomplete, Chip, TextField } from "@mui/material";
 import { LIFECYCLE_PHASES, type ItemFunction, type LifecyclePhase } from "shared";
@@ -16,6 +17,8 @@ interface ItemFunctionsCardProps {
   functions: readonly ItemFunction[];
   /** Assets of the groups function / process — the candidates for the link. */
   functionAssets: readonly ItemModelItem[];
+  /** Outside ISO/SAE 21434: neutral wording. */
+  neutral?: boolean;
   onSave: (functions: ItemFunction[]) => void;
 }
 
@@ -25,8 +28,9 @@ const INPUT =
 let seq = 0;
 const newId = () => `fn-${Date.now().toString(36)}-${(seq++).toString(36)}`;
 
-export const ItemFunctionsCard: React.FC<ItemFunctionsCardProps> = ({ functions, functionAssets, onSave }) => {
+export const ItemFunctionsCard: React.FC<ItemFunctionsCardProps> = ({ functions, functionAssets, onSave, neutral = false }) => {
   const { t } = useTranslation();
+  const text = useItemDefinitionText(neutral);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ItemFunction[]>([]);
   const assetById = new Map(functionAssets.map((a) => [a.id, a]));
@@ -62,9 +66,7 @@ export const ItemFunctionsCard: React.FC<ItemFunctionsCardProps> = ({ functions,
         <EditButtons editing={editing} onEdit={start} onCancel={() => setEditing(false)} onSave={save} />
       </div>
       <p className="text-xs text-gray-500 mb-3">
-        {t("itemDefinition.functions.hint", {
-          defaultValue: "The item's functions and the lifecycle phases they are active in (ISO/SAE 21434 9.3 b).",
-        })}
+        {text("functions.hint", "The item's functions and the lifecycle phases they are active in (ISO/SAE 21434 9.3 b).")}
       </p>
 
       {!editing && functions.length === 0 && <p className="text-gray-500">-</p>}

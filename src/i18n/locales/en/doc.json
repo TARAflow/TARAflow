@@ -224,6 +224,7 @@
       },
       "itemDefinition": {
         "intro": "What the analysis is about (ISO/SAE 21434 9.3): the item's purpose and functions, its boundary, its preliminary architecture and its operational environment, with the sources they come from and the assumptions the analysis relies on.",
+        "neutral": { "intro": "What the analysis is about: the system's intended purpose and functions, its boundary, its architecture and its operational environment, with the sources they come from and the assumptions the analysis relies on.", "boundary": "System boundary", "architecture": "Architecture" },
         "purpose": "Purpose and functions",
         "section": {
           "boundary": "Item boundary",
