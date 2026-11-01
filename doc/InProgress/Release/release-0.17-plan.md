@@ -74,7 +74,7 @@ read-only for it, so two patches never conflict in this file.
 | IEC-7 | Report chapter (all formats incl. pdfmake, CLI chapter list): SoA table, CRA view, vectors, gaps | IEC-4, IEC-5 | | open |
 | IEC-8 | Compliance tab (K5) | MT-1, IEC-7 | | open |
 | IEC-9 | Model gaps P-1 … P-6; multi-select `defaultDenyPolicy`, `physicalPathProtection`, `malwareProtection` (backlog "conflicting SHOULDs") — schema 12, analysis-preserving only if values map 1:1 | IEC-1 | 13, 21 | done (P-1, P-2) |
-| IEC-10 | Validate on the examples (SmokeDetector-leveled, Headlamp); coverage doc status; general example Pump Station Controller | all IEC | 12 | in progress |
+| IEC-10 | Validate on the examples (SmokeDetector-leveled, Headlamp); coverage doc status; general example Pump Station Controller | all IEC | 12, 15, 17, 23, 25 | done |
 
 ### 3.2 Instance B — S2 issue trackers
 
