@@ -73,7 +73,7 @@ read-only for it, so two patches never conflict in this file.
 | IEC-6 | Claims: new kind for SL-C gaps (FR, CR / RE ids, supporting measure, responsible party), visible for projects with a 62443 matrix — amends patch 244 (D-5) | MT-2, IEC-4 | | open |
 | IEC-7 | Report chapter (all formats incl. pdfmake, CLI chapter list): SoA table, CRA view, vectors, gaps | IEC-4, IEC-5 | | open |
 | IEC-8 | Compliance tab (K5) | MT-1, IEC-7 | | open |
-| IEC-9 | Model gaps P-1 … P-6; multi-select `defaultDenyPolicy`, `physicalPathProtection`, `malwareProtection` (backlog "conflicting SHOULDs") — schema 12, analysis-preserving only if values map 1:1 | IEC-1 | 13 | P-2 done; P-1 open |
+| IEC-9 | Model gaps P-1 … P-6; multi-select `defaultDenyPolicy`, `physicalPathProtection`, `malwareProtection` (backlog "conflicting SHOULDs") — schema 12, analysis-preserving only if values map 1:1 | IEC-1 | 13, 21 | done (P-1, P-2) |
 | IEC-10 | Validate on the examples (SmokeDetector-leveled, Headlamp); coverage doc status; general example Pump Station Controller | all IEC | 12 | in progress |
 
 ### 3.2 Instance B — S2 issue trackers

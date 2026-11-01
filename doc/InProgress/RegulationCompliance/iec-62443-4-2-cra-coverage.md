@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v23 · 2026-11-01 (decisions D-1 … D-29 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 P-2 done; IEC-10 in progress; IEC-6, IEC-8b in 0.18;
+**Status:** v24 · 2026-11-01 (decisions D-1 … D-29 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 done (P-1, P-2); IEC-10 in progress; IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -300,7 +300,7 @@ Per project, from one model (consistency per EA-6-1):
 
 | # | Gap | Rows | Proposal (to decide) |
 |---|---|---|---|
-| P-1 | `TB.defaultDenyPolicy` is single-valued, but CR 5.2 RE(1)–(3) are cumulative at SL-C 3 | CR 5.2 RE(1–3) | multi-select (schema migration; analysis-preserving if the old value maps 1:1) — same pattern as the backlog item for `physicalPathProtection` / `malwareProtection` |
+| P-1 | `TB.defaultDenyPolicy` is single-valued, but CR 5.2 RE(1)–(3) are cumulative at SL-C 3 | CR 5.2 RE(1–3) | multi-select (schema migration; analysis-preserving if the old value maps 1:1) — same pattern as the backlog item for `physicalPathProtection` / `malwareProtection` → **done** (patch 21): `DefaultDenyPolicy[]`, migration 11 → 12 reshapes "x" → ["x"] (1:1, analysis-preserving, verification re-sealed); "allow_all" excludes the others; closed loop: met when the selection contains the SHOULD value, Apply adds it; island mode no longer counts as default deny |
 | P-2 | `sessionControl` exists on Process only; `updateMechanism` on Multiprocess only | CR 2.5–2.7, 3.10 | **done** (patch 13): both properties on both element types, with form fields (`sessionControl` had none at all — CR 2.5–2.7 could not be answered from the UI); the session switches are three-valued (not specified / yes / no); the rules read both types. Threat generation stays Multiprocess-only for `updateMechanism` |
 | P-3 | no "human access" marker per interface / flow | CR 1.1, 1.10, 1.12, 2.5 | derive from the connected EE type (operator, maintenance, … — external-entity-type-registry) |
 | P-4 | no log-sink / time-source markers (audit-log stores are marked: `DS.storedDataTypes` ∋ audit_logs) | CR 2.11 RE(1)/(2), 6.1 RE(1) | EE types "siem", "time_source" |
@@ -634,7 +634,7 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-2b | regulation tag `EN IEC 62443 (CRA)` (catalogue, tooltip, document description, context hint, hint to add the CRA tag); checklist / reasoning texts came with D-27 | same | — (done without waiting for B's i18n split, user 2026-11-01) | done (patch 11) |
 | IEC-6 | claims for SL-C gaps (D-5) | — | — | **0.18** (user 2026-11-01): statements with a supporting measure cover the case in 0.17 |
 | IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | — | — | **0.18** (user 2026-11-01) |
-| IEC-9 | model gaps: P-2 (update mechanism / session control on both element types) and P-1 (`defaultDenyPolicy` multi-select, schema-12 migration) in 0.17; P-4, P-7 in 0.18 | same | IEC-1 | P-2 done (patch 13); P-1 open |
+| IEC-9 | model gaps: P-2 (update mechanism / session control on both element types) and P-1 (`defaultDenyPolicy` multi-select, schema-12 migration) in 0.17; P-4, P-7 in 0.18 | same | IEC-1 | done: P-2 (patch 13), P-1 (patch 21) |
 | IEC-10 | validation: general example "Pump Station Controller" (CRA tag, SL-T 2, every row status; generator `src/tests/examples/pump-station-example.ts` through the real services, `WRITE_EXAMPLES=<dir>` writes the project); the seminar uses SmokeDetector; check SmokeDetector-leveled / Headlamp | same | all IEC | in progress: example done (patch 12, with the fix of the planned overlay — it lost every property but the patched one); D-28 (patch 15); D-29 (patch 17); open: the two examples |
 | IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
 | IEC-5 | `iec62443` references on catalog mitigations (§10), mitigation evidence for the evaluator from the risk treatment (one entry per mitigation and risk) | same | IEC-3 | done (patch 276) |
