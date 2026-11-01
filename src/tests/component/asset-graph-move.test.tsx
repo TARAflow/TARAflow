@@ -122,10 +122,11 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     expect(at("h1")).toEqual([hx - 500, dataY]);
   });
 
-  it("the free row above everything takes a side-column node (FR-V17g)", () => {
+  it("the free rows above everything take a side-column node (FR-V17g)", () => {
     view();
     showAll();
     expect(screen.getByTestId("asset-graph-free-row")).toBeTruthy();
+    expect(screen.getByTestId("asset-graph-free-row-2")).toBeTruthy();
     const [hx] = at("h1");
     const node = screen.getByTestId("asset-graph-node-h1");
     fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
@@ -135,8 +136,9 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     act(() => {
       window.dispatchEvent(new PointerEvent("pointerup", { clientX: 100, clientY: -5000 }));
     });
-    const freeY = Number(screen.getByTestId("asset-graph-free-row").getAttribute("y")) - 6 + 140 / 2;
-    expect(at("h1")).toEqual([hx, freeY]);
+    // Dragged far up: the topmost row, the second free row.
+    const free2Y = Number(screen.getByTestId("asset-graph-free-row-2").getAttribute("y")) - 6 + 140 / 2;
+    expect(at("h1")).toEqual([hx, free2Y]);
   });
 
   it("a vertical-lane node does not leave its lane", () => {

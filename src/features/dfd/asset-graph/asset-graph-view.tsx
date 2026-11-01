@@ -1567,7 +1567,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     stroke={muted}
                     strokeOpacity={0.4}
                     strokeDasharray="6 6"
-                    data-testid="asset-graph-free-row"
+                    data-testid={lane.id === FREE_LANE ? "asset-graph-free-row" : "asset-graph-free-row-2"}
                   />
                 ) : lane.kind !== "orthogonal" ? (
                   <rect x={-2000} y={lane.y - LANE_HEIGHT / 2 + 6} width={8000} height={LANE_HEIGHT - 12} fill={laneFill} />
@@ -1581,13 +1581,13 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 >
                   {lane.id === ANCHOR_LANE
                     ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
-                    : lane.id === FREE_LANE
+                    : lane.kind === "free"
                       ? t("tabs.dfd.assetGraph.freeRow", { defaultValue: "Free row" })
                       : lane.id === HAZARD_LANE
                         ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
                         : groupLabel(lane.id)}
                 </text>
-                {canCreate && lane.id !== ANCHOR_LANE && lane.id !== HAZARD_LANE && lane.id !== FREE_LANE && (
+                {canCreate && lane.id !== ANCHOR_LANE && lane.id !== HAZARD_LANE && lane.kind !== "free" && (
                   <g
                     transform={`translate(${(lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2) + 14},${lane.y - LANE_HEIGHT / 2 + 16})`}
                     style={{ cursor: "pointer" }}

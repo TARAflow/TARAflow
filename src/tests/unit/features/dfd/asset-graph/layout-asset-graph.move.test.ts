@@ -9,6 +9,7 @@
 import { describe, it, expect } from "vitest";
 import {
   FREE_LANE,
+  FREE_LANE_2,
   LANE_HEIGHT,
   layoutAssetGraph,
   moveNode,
@@ -110,20 +111,27 @@ describe("layout rows (vertical lanes at one height)", () => {
   });
 });
 
-describe("free row above the top lane (FR-V17g)", () => {
+describe("two free rows above the top lane (FR-V17g)", () => {
   const layout = layoutAssetGraph(graph);
   const lane = (id: string) => layout.lanes.find((l) => l.id === id);
 
-  it("sits one row above the topmost lane, holds no node", () => {
-    const top = Math.min(...layout.lanes.filter((l) => l.id !== FREE_LANE).map((l) => l.y));
+  it("sit one and two rows above the topmost lane, hold no node", () => {
+    const top = Math.min(...layout.lanes.filter((l) => l.kind !== "free").map((l) => l.y));
     expect(lane(FREE_LANE)).toEqual({ id: FREE_LANE, kind: "free", y: top - LANE_HEIGHT });
-    for (const p of layout.positions.values()) expect(p.y).not.toBe(top - LANE_HEIGHT);
+    expect(lane(FREE_LANE_2)).toEqual({ id: FREE_LANE_2, kind: "free", y: top - 2 * LANE_HEIGHT });
+    for (const p of layout.positions.values()) {
+      expect(p.y).not.toBe(top - LANE_HEIGHT);
+      expect(p.y).not.toBe(top - 2 * LANE_HEIGHT);
+    }
   });
 
-  it("a side-column node can be moved into it and stays there; a vertical-lane node cannot", () => {
+  it("a side-column node can be moved into either and stays there; a vertical-lane node cannot", () => {
     const freeY = lane(FREE_LANE)!.y;
+    const free2Y = lane(FREE_LANE_2)!.y;
     const moved = moveNode(layout.positions, "h1", 0, -10000, { sideColumn: true, lanes: layout.lanes });
-    expect(moved.get("h1")!.y).toBe(freeY);
+    expect(moved.get("h1")!.y).toBe(free2Y);
+    const oneRow = moveNode(layout.positions, "h1", 0, freeY - layout.positions.get("h1")!.y, { sideColumn: true, lanes: layout.lanes });
+    expect(oneRow.get("h1")!.y).toBe(freeY);
     expect(layoutAssetGraph(graph, moved).positions.get("h1")).toEqual(moved.get("h1"));
     const d1 = moveNode(layout.positions, "s1", 0, -10000, { sideColumn: false, lanes: layout.lanes });
     expect(d1.get("s1")).toEqual(layout.positions.get("s1"));
@@ -132,5 +140,6 @@ describe("free row above the top lane (FR-V17g)", () => {
   it("no free row without a side column", () => {
     const vertical = layoutAssetGraph({ nodes: [node("d1", "data"), node("s1", "system")], edges: [] });
     expect(vertical.lanes.map((l) => l.id)).not.toContain(FREE_LANE);
+    expect(vertical.lanes.map((l) => l.id)).not.toContain(FREE_LANE_2);
   });
 });

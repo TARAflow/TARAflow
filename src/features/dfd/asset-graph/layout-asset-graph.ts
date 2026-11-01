@@ -52,10 +52,14 @@ const TICKS = 300;
 
 export const ANCHOR_LANE = "anchors";
 /**
- * An empty row above the top lane (FR-V17g): a place to move side-column
- * nodes to, e.g. persons above the infrastructure. Holds no node of its own.
+ * Two empty rows above the top lane (FR-V17g): places to move side-column
+ * nodes to, e.g. persons above the infrastructure — two, so persons and
+ * e.g. services or hazards' protection targets can each get a row of their
+ * own. Hold no node of their own.
  */
 export const FREE_LANE = "free";
+/** The second free row, above FREE_LANE. */
+export const FREE_LANE_2 = "free-2";
 /** Lane of the Hazard Items (FR-V11, G1) — side column, above human. */
 export const HAZARD_LANE = "hazards";
 
@@ -68,7 +72,7 @@ const COLUMN_LANES: readonly string[] = [
 ];
 
 export interface AssetGraphLane {
-  /** Asset group, ANCHOR_LANE, HAZARD_LANE (a side-column lane) or FREE_LANE. */
+  /** Asset group, ANCHOR_LANE, HAZARD_LANE (a side-column lane), FREE_LANE or FREE_LANE_2. */
   readonly id: string;
   readonly kind: "vertical" | "orthogonal" | "anchors" | "free";
   /** Lane centre. */
@@ -147,10 +151,11 @@ function computeLanes(
     slots.set(layer, { lane, targetX: columnX });
     row += 1;
   }
-  // FR-V17g: with a side column, one free row above everything.
+  // FR-V17g: with a side column, two free rows above everything.
   if ([...slots.values()].some((s) => s.lane.kind === "orthogonal")) {
     const topY = Math.min(...[...slots.values()].map((s) => s.lane.y));
     slots.set(FREE_LANE, { lane: { id: FREE_LANE, kind: "free", y: topY - LANE_HEIGHT } });
+    slots.set(FREE_LANE_2, { lane: { id: FREE_LANE_2, kind: "free", y: topY - 2 * LANE_HEIGHT } });
   }
   return slots;
 }
