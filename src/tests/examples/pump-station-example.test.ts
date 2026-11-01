@@ -134,13 +134,13 @@ describe("Pump Station Controller example", () => {
     expect(status(achieved.rows, "CR 3.10")).toBe("met"); // signed OTA update on the PLC
     // D-28: the key press on the touch panel (DF-1) and the internal flows
     // to the configuration store (DF-12/13) are no transmitted information.
-    expect(achieved.rows.find((r) => r.label === "CR 3.1")!.failing).toEqual(["df-7", "df-9", "df-10", "df-11", "df-14"]);
+    expect([...achieved.rows.find((r) => r.label === "CR 3.1")!.failing].sort()).toEqual(["df-10", "df-11", "df-14", "df-7", "df-9"]);
 
     // D-29: a mitigation covers only the elements of its risks — MFA chosen
     // elsewhere does not close the human access flows DF-1 and DF-9.
     const plannedRow = (label: string) => planned.rows.find((r) => r.label === label)!;
     expect(plannedRow("CR 1.1 RE(2)").status).toBe("gap");
-    expect(plannedRow("CR 1.1 RE(2)").failing).toEqual(["df-1", "df-9"]);
+    expect([...plannedRow("CR 1.1 RE(2)").failing].sort()).toEqual(["df-1", "df-9"]);
 
     // planned never loses a met row
     for (const row of achieved.rows.filter((r) => r.status === "met")) expect(status(planned.rows, row.label)).toBe("met");

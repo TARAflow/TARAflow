@@ -20,6 +20,7 @@ import type { Asset, AssetConfiguration, AssetData } from "features/assets/model
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import type { ImpactRating } from "features/assets/models/asset-impact-types";
 import type { AssetProperties } from "shared/models/asset-property-types";
+import type { ItemDefinition } from "shared/models/item-definition-types";
 import type { SecurityGoalType } from "features/assets/models/asset-security-goals-types";
 import { createEmptyAsset } from "features/assets/services/asset-factory";
 import { deriveSecurityGoalSuggestions } from "features/assets/services/asset-cianaaa-deriver";
@@ -234,6 +235,85 @@ const FLOW_PROPERTIES: Record<string, DataFlowProperties> = {
   "DF-13": { protocol: "file", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "signature", dataClassification: "internal" },
 };
 
+// ── The remaining form fields ───────────────────────────────────────────────
+// Every field the property forms show, filled as an analyst would — owner and
+// notes included. Fields without a form field (accessMode, dataMinimization,
+// volume, assumedTrusted, connectionSpeed), the leveled-DFD fields and the
+// physical-coupling fields stay unset.
+
+const OT = "Water utility OT team";
+const VENDOR = "Vendor (controller)";
+const flow = (p: DataFlowProperties) => as<DataFlowProperties>({ medium: "logical", safetyFunction: "none", crossesSafetyBoundary: false, ...p });
+
+const FORM_COMPLETION: Record<string, Record<string, unknown>> = {
+  CN: as<TrustBoundaryProperties>({
+    securityAssumptions: "Only the pump station's control network is behind the firewall; the plant IT network and everything beyond are untrusted.",
+    customBoundaryControls: "Industrial firewall with an OPC UA allowlist",
+    assumptionIds: ["asm-it", "asm-remote"],
+    complianceRelevance: "IEC 62443-3-3 zone \"Pump station\" (SL-T 2)",
+    owner: OT,
+    notes: "Conduits to SCADA and to the vendor gateway are the only permitted crossings.",
+  }),
+  CAB: as<PhysicalBoundaryProperties>({
+    customPhysicalControls: "Video surveillance of the pump station building by the operator",
+    owner: OT,
+    notes: "Key held by the maintenance team; door switch alarm goes to SCADA.",
+  }),
+  "P-1": as<ProcessProperties>({
+    tlsTermination: "server",
+    updateMechanism: "signed_ota",
+    owner: VENDOR,
+    notes: "Updated together with the controller firmware.",
+  }),
+  "MP-1": as<MultiprocessProperties>({
+    certificationLevel: "iec62443_sl2",
+    multiTenant: false,
+    internalComponents: "RTOS, pump control application, OPC UA server, Modbus RTU master, update agent, secure element",
+    securitySummary: "Signed firmware with secure boot, certificate-based OPC UA, role-based access, audit log; fieldbus without authentication (planned).",
+    owner: VENDOR,
+    notes: "IEC 62443-4-2 SL-C 2 targeted; see the Compliance tab.",
+  }),
+  "DS-1": as<DataStoreProperties>({
+    accessControl: "Read and written by the controller only",
+    cryptoStandard: "nist_approved",
+    deletionPolicy: "Recipes and configuration are overwritten on factory reset",
+    accessModel: "direct_access",
+    accessModelSource: "manual",
+    accessModelRationale: "Flash read and written directly by the controller application, no service in between.",
+    multiTenant: false,
+    containsSafetyRelevantData: false,
+    owner: VENDOR,
+    notes: "Signed records; a backup is taken before every program download.",
+  }),
+  "IF-1": as<InterfaceProperties>({ safetyRelevant: false, notes: "Capacitive touch panel in the cabinet door." }),
+  "IF-2": as<InterfaceProperties>({ safetyRelevant: false, notes: "Disabled in operation mode; enabled by the maintenance role." }),
+  "IF-3": as<InterfaceProperties>({ safetyRelevant: false, notes: "100 Mbit/s, managed switch port with port security." }),
+  "IF-4": as<InterfaceProperties>({ safetyRelevant: false, notes: "Modbus RTU, 19.2 kbit/s, terminated in the cabinet." }),
+  "IF-5": as<InterfaceProperties>({ safetyRelevant: false, notes: "Fused off after production programming." }),
+  "EE-1": as<ExternalEntityProperties>({ authorizationScope: "Operate pumps, change setpoints", threatActor: "insider", contractExists: true, rateLimited: false, owner: OT, notes: "Shift staff of the water utility." }),
+  "EE-2": as<ExternalEntityProperties>({ authorizationScope: "Service and diagnostics, configuration", threatActor: "insider", contractExists: true, rateLimited: false, owner: OT, notes: "Own and contracted maintenance staff." }),
+  "EE-3": as<ExternalEntityProperties>({ authorizationScope: "Read process values, write remote setpoints", threatActor: "compromised", contractExists: true, rateLimited: true, owner: OT, notes: "Control room of the water utility." }),
+  "EE-4": as<ExternalEntityProperties>({ authorizationScope: "Deliver signed firmware", threatActor: "compromised", contractExists: true, rateLimited: true, owner: VENDOR, notes: "Operated by the controller vendor." }),
+  "EE-5": as<ExternalEntityProperties>({ authorizationScope: "Forward approved vendor service sessions", threatActor: "malicious", contractExists: true, rateLimited: true, owner: OT, notes: "Gateway in the utility's DMZ; sessions approved per ticket." }),
+  "EE-6": as<ExternalEntityProperties>({ authorizationScope: "Download the PLC program", threatActor: "compromised", contractExists: true, rateLimited: false, owner: OT, notes: "Engineering laptop of the automation team." }),
+  "EE-7": as<ExternalEntityProperties>({ authenticationMethod: "none", authorizationScope: "Execute actuator commands, report sensor values", threatActor: "benign", contractExists: true, rateLimited: false, owner: OT, notes: "Pumps, valves and their sensors on the fieldbus." }),
+  "EE-8": as<ExternalEntityProperties>({ authenticationMethod: "none", authorizationScope: "Production programming only", threatActor: "insider", contractExists: true, rateLimited: false, owner: VENDOR, notes: "Used at the vendor's production line." }),
+  "DF-1": flow({ frequency: "ondemand", dataTypeNotes: "Pump start / stop, setpoint changes", location: "in_enclosure", locationRationale: "Touch panel in the cabinet door", redundancy: "none", physicalPathProtection: "none", notes: "Masked PIN entry before changes." }),
+  "DF-2": flow({ frequency: "ondemand", dataTypeNotes: "Setpoints", location: "in_enclosure", locationRationale: "Cabinet-internal Ethernet", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "OPC UA Sign & Encrypt." }),
+  "DF-3": flow({ frequency: "continuous", dataTypeNotes: "Pressures, flows, levels", location: "in_enclosure", locationRationale: "Cabinet-internal Ethernet", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "OPC UA subscription." }),
+  "DF-4": flow({ frequency: "continuous", dataTypeNotes: "Process values and alarms", location: "local_network", locationRationale: "Plant control network to the control room", redundancy: "buffered", physicalPathProtection: "cable_duct", notes: "Buffered in the controller when SCADA is unreachable." }),
+  "DF-5": flow({ frequency: "ondemand", dataTypeNotes: "Remote setpoints", location: "local_network", locationRationale: "Plant control network from the control room", redundancy: "none", physicalPathProtection: "cable_duct", notes: "Range-checked by the controller." }),
+  "DF-6": flow({ frequency: "ondemand", dataTypeNotes: "Firmware image", location: "enterprise_network", locationRationale: "From the vendor's update server through the utility's firewall", redundancy: "none", physicalPathProtection: "none", notes: "Signature checked before installation." }),
+  "DF-7": flow({ frequency: "ondemand", dataTypeNotes: "PLC program", location: "local_network", locationRationale: "Engineering laptop on the control network", redundancy: "none", physicalPathProtection: "cable_duct", notes: "Sign & Encrypt planned (mitigations in progress)." }),
+  "DF-8": flow({ frequency: "ondemand", dataTypeNotes: "Service commands and diagnostics", location: "enterprise_network", locationRationale: "Vendor session through the utility's DMZ gateway", redundancy: "none", physicalPathProtection: "none", notes: "Mutual TLS inside a VPN; approved per ticket." }),
+  "DF-9": flow({ frequency: "ondemand", dataTypeNotes: "Service commands", location: "in_enclosure", locationRationale: "USB port inside the locked cabinet", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "Maintenance role required." }),
+  "DF-10": flow({ frequency: "periodic", dataTypeNotes: "Actuator commands", location: "field_cable", locationRationale: "RS-485 cable to the pumps in the station", redundancy: "none", physicalPathProtection: "cable_duct", notes: "No authentication on Modbus RTU (gap, planned mitigation)." }),
+  "DF-11": flow({ frequency: "continuous", dataTypeNotes: "Sensor values", location: "field_cable", locationRationale: "RS-485 cable from the pumps in the station", redundancy: "none", physicalPathProtection: "cable_duct", notes: "No authentication on Modbus RTU (gap, planned mitigation)." }),
+  "DF-12": flow({ frequency: "ondemand", dataTypeNotes: "Recipes", location: "on_board", locationRationale: "Controller-internal flash", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "Signed records." }),
+  "DF-13": flow({ frequency: "event_based", dataTypeNotes: "Configuration", location: "on_board", locationRationale: "Read at start-up", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "Signature checked on read." }),
+  "DF-14": flow({ frequency: "ondemand", dataTypeNotes: "Production image, debug commands", location: "on_board", locationRationale: "Probe on the board's JTAG header", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "Only at the production line; fused off afterwards." }),
+};
+
 /** The analyst's description of every element and flow (the DFD counts as complete only with them). */
 const DESCRIPTIONS: Record<string, string> = {
   CN: "Plant control network of the pump station: firewall and segmentation towards the plant network, default deny.",
@@ -276,6 +356,7 @@ export function buildDfd(): ProjectJson {
   const xml = pumpStationXml();
   const parsed = dfdParser.parse(xml);
   const props = { ...PROPERTIES, ...FLOW_PROPERTIES };
+  for (const [id, more] of Object.entries(FORM_COMPLETION)) props[id] = { ...props[id], ...more };
   const withProps = <T extends { displayId?: string; properties?: unknown }>(item: T): T => {
     const own = props[item.displayId ?? ""];
     if (!own) throw new Error(`no properties for ${item.displayId}`);
@@ -565,6 +646,53 @@ export const COMPLIANCE: ComplianceData = {
   statements: { "en-iec-62443-4-2-praa-2026": STATEMENTS },
 };
 
+// ── System definition (Overview → Definition) ───────────────────────────────
+// Outside ISO/SAE 21434 the item definition is the system definition — for
+// the CRA the intended purpose (info.description) and the product description.
+
+const SOURCE = { document: "Pump Station Controller — system specification", version: "1.0" };
+
+function systemDefinition(assets: Asset[]): ItemDefinition {
+  const asset = (displayId: string) => assets.find((a) => a.displayId === displayId)!.id;
+  return {
+    sections: {
+      functions: { source: { ...SOURCE, section: "§1 Purpose" } },
+      boundary: {
+        text: "The controller in its cabinet: HMI runtime, pump controller (PLC), configuration store and the cabinet's interfaces (touch panel, service USB, Ethernet, fieldbus, JTAG). Not part of it: SCADA, the vendor's update server and gateway, the engineering workstation and the pumps and valves in the field.",
+        source: { ...SOURCE, section: "§2 Scope" },
+        modelRefs: ["tb-cn", "pb-cab"],
+      },
+      architecture: {
+        text: "The PLC runs the pump control on an RTOS with an OPC UA server towards HMI, SCADA and engineering and a Modbus RTU master towards the field; recipes and configuration are kept in signed flash records. See the DFD.",
+        source: { ...SOURCE, section: "§3 Architecture" },
+        modelRefs: ["mp-plc", "p-hmi", "ds-cfg"],
+      },
+      environment: {
+        text: "Pump station of a water utility: locked building, controller in a locked cabinet, control network of the station behind the utility's firewall; vendor service only through the utility's remote access gateway.",
+        source: { ...SOURCE, section: "§4 Operational environment" },
+        modelRefs: ["tb-cn"],
+      },
+      constraints: {
+        text: "Cyber Resilience Act (Regulation (EU) 2024/2847) with EN IEC 62443-4-2 (draft prAA) as the harmonised standard, SL-T 2 for the station's zone; drinking-water regulations of the operator.",
+        source: { ...SOURCE, section: "§5 Requirements" },
+      },
+    },
+    functions: [
+      { id: "fn-control", name: "Pump control", description: "Keeps pressures and levels by driving pumps and valves.", lifecyclePhases: ["operation"], functionAssetId: asset("PR-001") },
+      { id: "fn-monitor", name: "Monitoring", description: "Reports process values and alarms to the HMI and SCADA.", lifecyclePhases: ["operation"] },
+      { id: "fn-service", name: "Service and update", description: "Program download, firmware update, remote and local service.", lifecyclePhases: ["maintenance"] },
+      { id: "fn-provision", name: "Production programming", description: "Initial firmware via JTAG, then fused off; secrets into the secure element.", lifecyclePhases: ["production"] },
+      { id: "fn-reset", name: "Factory reset", description: "Overwrites recipes, configuration and credentials before disposal.", lifecyclePhases: ["decommissioning"] },
+    ],
+    assumptions: [
+      { id: "asm-cabinet", displayId: "ASM-01", text: "The cabinet is locked; only the maintenance team holds the key.", owner: OT, status: "confirmed", source: { ...SOURCE, section: "§4" } },
+      { id: "asm-it", displayId: "ASM-02", text: "The plant IT network is untrusted; the utility maintains the firewall between it and the control network.", owner: OT, status: "confirmed", source: { ...SOURCE, section: "§4" } },
+      { id: "asm-remote", displayId: "ASM-03", text: "Vendor remote access is only possible through the utility's gateway, approved per ticket.", owner: OT, reviewBy: "2027-06-30", status: "open", source: { ...SOURCE, section: "§4" } },
+    ],
+    assumptionSeq: 3,
+  };
+}
+
 // ── Project ─────────────────────────────────────────────────────────────────
 
 export const TAGS = {
@@ -625,6 +753,7 @@ export function buildPumpStationProject(): ProjectJson {
     methodSelected: true,
     strideMethod: "per-interaction",
     phaseStatus,
+    itemDefinition: systemDefinition(assetData.assets),
     dfd,
     assets: { ...assetData, lastModified: DATE },
     threats,
