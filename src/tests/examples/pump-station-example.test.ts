@@ -90,6 +90,9 @@ describe("Pump Station Controller example", () => {
     expect(status(achieved.rows, "CR 3.13")).toBe("gap"); // statement: not met
     expect(status(achieved.rows, "CR 7.8")).toBe("needs-statement");
     expect(status(achieved.rows, "CR 3.10")).toBe("met"); // signed OTA update on the PLC
+    // D-28: the key press on the touch panel (DF-1) and the internal flows
+    // to the configuration store (DF-12/13) are no transmitted information.
+    expect(achieved.rows.find((r) => r.label === "CR 3.1")!.failing).toEqual(["df-7", "df-9", "df-10", "df-11"]);
 
     // planned never loses a met row
     for (const row of achieved.rows.filter((r) => r.status === "met")) expect(status(planned.rows, row.label)).toBe("met");

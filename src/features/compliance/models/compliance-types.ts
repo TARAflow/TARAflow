@@ -67,6 +67,13 @@ export interface EvidenceTarget {
   endpointIf?: NeighbourCheck;
   /** Element targets: some flow connects the element to one that passes the checks. */
   connectedIf?: NeighbourCheck;
+  /**
+   * DataFlow targets: only flows that transmit information across the
+   * component's border — an endpoint is an ExternalEntity or outside the
+   * scope; key presses on the component's own panel (protocol human_input)
+   * and transducer couplings (medium physical) carry none (D-28).
+   */
+  crossesComponent?: true;
   satisfiedIf?: readonly PropertyCheck[];
 }
 

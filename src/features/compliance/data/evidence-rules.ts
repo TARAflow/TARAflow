@@ -98,6 +98,13 @@ const PROCESSES_WITH_HUMAN_USERS = { elementTypes: ["Process", "Multiprocess"], 
 /** Elements that carry updateMechanism (P-2): a component drawn as one process updates too. */
 const UPDATABLE = { elementTypes: ["Process", "Multiprocess"] } as const;
 
+/**
+ * Flows that transmit information across the component's border (D-28):
+ * internal flows, key presses on the own panel and transducer couplings do
+ * not count for CR 3.1 / 4.1. CR 4.3 keeps every encrypted flow.
+ */
+const COMPONENT_BORDER_FLOWS = { elementTypes: ["DataFlow"], crossesComponent: true } as const;
+
 /** Interfaces reachable over a network (EL2 local network … EL4 internet). */
 const EXPOSED_INTERFACES = {
   elementTypes: ["Interface"],
@@ -405,7 +412,7 @@ const RULES = [
     type: "A",
     targets: [
       {
-        elementTypes: ["DataFlow"],
+        ...COMPONENT_BORDER_FLOWS,
         satisfiedIf: [
           { property: "integrityProtection", in: ["hmac", "signature", "aead"] },
           { property: "encryptionInTransit", in: ["tls", "mtls", "vpn"] },
@@ -416,7 +423,7 @@ const RULES = [
   {
     id: "cr-3.1-re1",
     type: "A",
-    targets: [{ elementTypes: ["DataFlow"], satisfiedIf: [{ property: "integrityProtection", in: ["hmac", "signature", "aead"] }] }],
+    targets: [{ ...COMPONENT_BORDER_FLOWS, satisfiedIf: [{ property: "integrityProtection", in: ["hmac", "signature", "aead"] }] }],
   },
   {
     id: "cr-3.2",
@@ -561,7 +568,7 @@ const RULES = [
     type: "A",
     targets: [
       {
-        elementTypes: ["DataFlow"],
+        ...COMPONENT_BORDER_FLOWS,
         appliesIf: [{ property: "dataClassification", in: ["confidential", "secret"] }],
         satisfiedIf: [{ property: "encryptionInTransit", notIn: ["none"] }],
       },

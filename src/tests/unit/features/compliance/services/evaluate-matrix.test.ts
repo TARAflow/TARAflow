@@ -172,6 +172,36 @@ describe("update and sessions on Process and Multiprocess (P-2)", () => {
   });
 });
 
+// ==================== D-28 COMPONENT BORDER ====================
+
+describe("transmitted information: flows across the component border (D-28)", () => {
+  const ed = edition({ label: "CR 3.1", requirementIds: ["cr-3.1"], fr: "SI" });
+  const P = (id: string) => el(id, "Process");
+  const plain = { integrityProtection: "none", encryptionInTransit: "none" };
+
+  it("internal flows do not count, a flow to an external entity does", () => {
+    const internal = run(ed, [P("a"), P("b")], [flow("f", "a", "b", plain)]);
+    expect(row(internal, "CR 3.1").status).toBe("n/a");
+    const external = run(ed, [P("a"), el("ee", "ExternalEntity")], [flow("f", "ee", "a", plain)]);
+    expect(row(external, "CR 3.1").failing).toEqual(["f"]);
+  });
+
+  it("a flow to an element outside the component scope counts", () => {
+    const r = run(ed, [P("a"), P("b")], [flow("f", "a", "b", plain)], { scope: new Set(["a"]) });
+    expect(row(r, "CR 3.1").failing).toEqual(["f"]);
+  });
+
+  it("human input on the own panel and physical couplings carry no transmitted information", () => {
+    const ee = el("ee", "ExternalEntity", { entityType: "operator" });
+    const r = run(
+      ed,
+      [P("a"), ee],
+      [flow("key", "ee", "a", { ...plain, protocol: "human_input" }), flow("couple", "ee", "a", { ...plain, medium: "physical" })],
+    );
+    expect(row(r, "CR 3.1").status).toBe("n/a");
+  });
+});
+
 // ==================== D-23 CUSTOM ====================
 
 describe('"custom" (D-23)', () => {

@@ -33,6 +33,7 @@ const WORDS = {
     model: "Checked in the model",
     noModel: "Not derivable from the model — a statement, a mitigation of the risk treatment or a claim meets it.",
     wholeComponent: "the component as a whole",
+    crossesComponent: "across the component border (not human input, not physical coupling)",
   },
   de: {
     every: "jedes",
@@ -47,6 +48,7 @@ const WORDS = {
     model: "Im Modell geprüft",
     noModel: "Nicht aus dem Modell ableitbar — eine Aussage, eine Massnahme der Risikobehandlung oder ein Claim erfüllt sie.",
     wholeComponent: "die Komponente als Ganzes",
+    crossesComponent: "über die Komponentengrenze (keine menschliche Eingabe, keine physische Kopplung)",
   },
 } as const;
 
@@ -67,6 +69,7 @@ function neighbourText(n: NeighbourCheck, prefix: string, w: (typeof WORDS)[Desc
 
 function targetText(target: EvidenceTarget, quantifier: string, w: (typeof WORDS)[DescribeLanguage]): string {
   const parts = [`${quantifier} ${target.elementTypes.join(" / ")}`];
+  if (target.crossesComponent) parts.push(w.crossesComponent);
   if (target.appliesIf?.length) parts.push(`${w.with} ${target.appliesIf.map((c) => checkText(c, w)).join(", ")}`);
   if (target.endpointIf) parts.push(neighbourText(target.endpointIf, w.fromOrTo, w));
   if (target.connectedIf) parts.push(neighbourText(target.connectedIf, w.connectedTo, w));

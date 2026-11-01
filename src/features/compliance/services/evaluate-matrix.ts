@@ -89,6 +89,7 @@ interface Graph {
   /** flow id → its two endpoints. */
   endpoints: Map<string, [string, string]>;
   fallbackContained: ReadonlySet<string>;
+  scope: ReadonlySet<string>;
 }
 
 function buildGraph(input: ComplianceInput): Graph {
@@ -106,7 +107,14 @@ function buildGraph(input: ComplianceInput): Graph {
     link(flow.from, flow.to);
     link(flow.to, flow.from);
   }
-  return { elements, flowElements, neighbours, endpoints, fallbackContained: input.view.fallbackContained ?? new Set() };
+  return {
+    elements,
+    flowElements,
+    neighbours,
+    endpoints,
+    fallbackContained: input.view.fallbackContained ?? new Set(),
+    scope: input.scope,
+  };
 }
 
 /** Elements (or flows) of the target's types, inside or outside the scope. */
@@ -132,7 +140,17 @@ function neighbourTri(graph: Graph, ids: Iterable<string>, check: NeighbourCheck
   return or(results);
 }
 
+/** The flow transmits information across the component's border (D-28). */
+function crossesComponent(graph: Graph, flow: ViewElement): boolean {
+  const props = (flow.properties ?? {}) as Record<string, unknown>;
+  if (props.protocol === "human_input" || props.medium === "physical") return false;
+  return (graph.endpoints.get(flow.id) ?? []).some(
+    (id) => !graph.scope.has(id) || graph.elements.get(id)?.type === "ExternalEntity",
+  );
+}
+
 function applicable(graph: Graph, element: ViewElement, target: EvidenceTarget): Tri {
+  if (target.crossesComponent && element.type === "DataFlow" && !crossesComponent(graph, element)) return "no";
   const parts: Tri[] = (target.appliesIf ?? []).map((c) => evaluateCheck(element, c, false));
   if (target.endpointIf && element.type === "DataFlow") {
     parts.push(neighbourTri(graph, graph.endpoints.get(element.id) ?? [], target.endpointIf));
