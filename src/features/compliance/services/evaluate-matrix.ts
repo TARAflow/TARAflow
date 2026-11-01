@@ -268,6 +268,24 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
       m.concernsElementIds.some(inScope) &&
       (input.run === "planned" || m.done),
   );
+  // D-29: a rule every element must meet is covered element by element — a
+  // mitigation counts only for the elements its risks concern; the rest stays
+  // open. Row-level (as before): C rows and "any" rules (a capability of the
+  // component as a whole).
+  const open = [...model.failing, ...model.unknown];
+  if (mitigations.length > 0 && rule.type !== "C" && (rule.quantifier ?? "all") === "all" && open.length > 0) {
+    const covering = mitigations.filter((m) => m.concernsElementIds.some((id) => open.includes(id)));
+    if (covering.length === 0) return model;
+    const covered = new Set(covering.flatMap((m) => m.concernsElementIds));
+    const mitigationIds = covering.map((m) => m.mitigationId);
+    // D-21: in the achieved run a done mitigation does not overrule a clear model "no".
+    const failing = input.run === "achieved" ? model.failing : model.failing.filter((id) => !covered.has(id));
+    const unknown = model.unknown.filter((id) => !covered.has(id));
+    const contradiction = input.run === "achieved" && model.failing.some((id) => covered.has(id));
+    if (failing.length > 0) return { ...model, failing, unknown, mitigationIds, ...(contradiction ? { contradiction } : {}) };
+    if (unknown.length > 0) return { ...model, status: "unknown", failing, unknown, mitigationIds };
+    return { ...model, status: "met", source: "mitigation", failing, unknown, mitigationIds };
+  }
   if (mitigations.length > 0) {
     const mitigationIds = mitigations.map((m) => m.mitigationId);
     // D-21: in the achieved run a done mitigation does not overrule a clear model "no".

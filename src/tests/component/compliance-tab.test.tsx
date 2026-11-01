@@ -142,8 +142,12 @@ describe("Compliance tab", () => {
   });
 
   it("a click opens the info dialog with everything; its statement button closes it first, then opens the statement dialog", () => {
+    const asked: (readonly string[])[] = [];
     renderTab(edition(CRA_ROWS), undefined, {
-      mitigationSuggestions: (ids) => (ids.includes("cr-3.5") ? [{ id: "M-T-004", text: "Implement input validation" }] : []),
+      mitigationSuggestions: (ids, openElementIds) => {
+        asked.push(openElementIds);
+        return ids.includes("cr-3.5") ? [{ id: "M-T-004", text: "Implement input validation" }] : [];
+      },
     });
     fireEvent.click(screen.getByTestId("compliance-req-CR 3.5"));
     const dialog = screen.getByTestId("compliance-info-dialog");
@@ -151,6 +155,8 @@ describe("Compliance tab", () => {
     expect(within(dialog).getByText(/Checked in the model: every Process: input validation = strict \/ schema/)).toBeTruthy();
     expect(within(dialog).getByText(/not met by: P-1 Controller/)).toBeTruthy();
     expect(within(dialog).getByText("M-T-004")).toBeTruthy();
+    // D-29: the suggestions are asked for the elements still open
+    expect(asked.at(-1)).toEqual(["p1"]);
     expect(within(dialog).getByText("Summary in our own words — the standard is authoritative.")).toBeTruthy();
 
     fireEvent.click(within(dialog).getByTestId("compliance-info-statement"));

@@ -30,6 +30,7 @@ import {
   evaluateMatrix,
   FOUNDATIONAL_REQUIREMENTS,
   selectEdition,
+  suggestMitigations,
   type ComplianceResult,
   type MitigationEvidence,
   type PropertyView,
@@ -107,6 +108,14 @@ export function complianceNameOf(project: Project): (id: string) => string {
   return (id) => names.get(id) ?? id;
 }
 
+/** Element / flow id → its type ("DataFlow" for flows), for the derived requirements (D-29). */
+export function complianceTypeOf(project: Project): (id: string) => string | undefined {
+  const types = new Map<string, string>();
+  for (const e of (project.dfd?.elements ?? []) as Any[]) types.set(e.id, e.type);
+  for (const c of (project.dfd?.connections ?? []) as Any[]) types.set(c.id, "DataFlow");
+  return (id) => types.get(id);
+}
+
 /** Evaluates the project's matrix; undefined when no edition is selected or there is no DFD. */
 export function evaluateProjectCompliance(
   project: Project,
@@ -150,7 +159,13 @@ export function evaluateProjectCompliance(
 
   const catalog = getAllMitigations();
   const anchors = attackPathControlTargets(project.attackTrees, project.assets?.assets, project.dfd);
-  const mitigations: MitigationEvidence[] = buildComplianceMitigationEvidence(project.threats, project.risks, catalog, anchors);
+  const mitigations: MitigationEvidence[] = buildComplianceMitigationEvidence(
+    project.threats,
+    project.risks,
+    catalog,
+    anchors,
+    complianceTypeOf(project),
+  );
   const should = deriveControlInstances(project.threats, project.risks, project.dfd, catalog, anchors);
 
   const base = {
@@ -179,13 +194,14 @@ export function buildDocCompliance(project: Project, language = "en"): DocCompli
   const target = project.compliance?.target ?? {};
   const rowById = new Map(edition.rows.map((r) => [r.label, r]));
 
-  // Catalog mitigations naming a requirement — suggestions for gaps.
-  const suggestionsOf = (label: string): string[] => {
-    const ids = new Set<string>(rowById.get(label)?.requirementIds ?? []);
-    return getAllMitigations()
-      .filter((m) => m.iec62443?.some((id) => ids.has(id)))
-      .map((m) => m.id);
-  };
+  // Catalog mitigations meeting a requirement on a type of the open elements — suggestions for gaps (D-29).
+  const typeOf = complianceTypeOf(project);
+  const suggestionsOf = (label: string, openElementIds: readonly string[]): string[] =>
+    suggestMitigations(
+      getAllMitigations(),
+      rowById.get(label)?.requirementIds ?? [],
+      new Set(openElementIds.map(typeOf).filter((type): type is string => !!type)),
+    ).map((m) => m.id);
 
   return {
     editionTitle: edition.title,
@@ -230,7 +246,7 @@ export function buildDocCompliance(project: Project, language = "en"): DocCompli
         statementModelChanged: r.statementModelChanged,
         statementSuperseded: r.statementSuperseded,
         countsForComponent: countsComponent,
-        suggestions: countsComponent || r.status === "n/a" ? [] : suggestionsOf(r.label),
+        suggestions: countsComponent || r.status === "n/a" ? [] : suggestionsOf(r.label, [...r.failing, ...r.unknown]),
       };
     }),
   };

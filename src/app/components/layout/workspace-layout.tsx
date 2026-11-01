@@ -124,9 +124,9 @@ import {
 import { DocTab, DocUpdateResult } from "features/documentation";
 import { IntegrationTab, createTicketAdapter, type IntegrationTabData } from "features/integration";
 import { AuditTab, useAuditHints } from "features/audit";
-import { ComplianceTab, proposeDeviceCategories, selectEdition } from "features/compliance";
+import { ComplianceTab, proposeDeviceCategories, selectEdition, suggestMitigations } from "features/compliance";
 import type { ComplianceData } from "shared";
-import { complianceNameOf, evaluateProjectCompliance } from "app/services/compliance-report";
+import { complianceNameOf, complianceTypeOf, evaluateProjectCompliance } from "app/services/compliance-report";
 import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
@@ -1144,6 +1144,7 @@ export const WorkspaceLayout: React.FC = () => {
     return {
       ...evaluation,
       nameOf: complianceNameOf(activeProject),
+      typeOf: complianceTypeOf(activeProject),
       componentOptions: elements
         .filter((e) => e.type === "Multiprocess" || e.type === "Process")
         .map((e) => ({ id: e.id, label: [e.displayId, e.name].filter(Boolean).join(" ") })),
@@ -1524,9 +1525,12 @@ export const WorkspaceLayout: React.FC = () => {
               nameOf={complianceView.nameOf}
               today={new Date().toISOString().slice(0, 10)}
               onChange={handleComplianceChange}
-              mitigationSuggestions={(ids) =>
-                getAllMitigations()
-                  .filter((m) => m.iec62443?.some((id) => (ids as readonly string[]).includes(id)))
+              mitigationSuggestions={(ids, openElementIds) =>
+                suggestMitigations(
+                  getAllMitigations(),
+                  ids,
+                  new Set(openElementIds.map(complianceView.typeOf).filter((type): type is string => !!type)),
+                )
                   .map((m) => ({
                     id: m.id,
                     // Project mitigations carry their text; catalog ones are i18n keys.

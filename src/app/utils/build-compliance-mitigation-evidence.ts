@@ -12,15 +12,17 @@
 // concerns its element or its flow with both endpoints, an attack-path risk
 // the targets of its tree's anchor (CL-3). Project mitigations (M-C-…) take
 // part like catalog ones when they carry references.
+//
+// D-29: besides the hand-kept `iec62443` references, a mitigation meets the
+// requirements its `affectsProperties` satisfy — only for the elements of the
+// effect's type (typeOf), so an effect on a data flow never covers a process.
 
 import type { RiskData } from "features/risks";
 import type { MitigationEntry, ThreatData } from "features/threats";
-import type { MitigationEvidence, RequirementId } from "features/compliance";
-import { REQUIREMENT_IDS } from "features/compliance";
+import type { MitigationEvidence, MitigationRequirement, RequirementId } from "features/compliance";
+import { mitigationRequirements } from "features/compliance";
 import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import type { ControlTarget } from "app/hooks/use-control-instance-derivation";
-
-const KNOWN_IDS = new Set<string>(REQUIREMENT_IDS);
 
 function elementIdsOf(target: ControlTarget): string[] {
   if (target.linkedElement) return [target.linkedElement.elementId];
@@ -33,12 +35,16 @@ export function buildComplianceMitigationEvidence(
   riskData: RiskData | null,
   catalog: readonly MitigationEntry[],
   resolveAnchorTargets?: (threatId: string) => ControlTarget[],
+  /** Element / flow id → type ("DataFlow" for flows); without it derived requirements are not used. */
+  typeOf?: (id: string) => string | undefined,
 ): MitigationEvidence[] {
   if (!riskData) return [];
-  const referencing = new Map(
-    catalog.filter((m) => m.iec62443?.length).map((m) => [m.id, m.iec62443!.filter((id) => KNOWN_IDS.has(id)) as RequirementId[]]),
-  );
-  if (referencing.size === 0) return [];
+  const requirementsOf = new Map<string, MitigationRequirement[]>();
+  for (const m of catalog) {
+    const reqs = mitigationRequirements(m).filter((r) => !r.elementTypes || typeOf);
+    if (reqs.length > 0) requirementsOf.set(m.id, reqs);
+  }
+  if (requirementsOf.size === 0) return [];
 
   const targetsOfThreat = new Map<string, ControlTarget>();
   for (const table of threatData?.perElementTables ?? []) {
@@ -59,14 +65,18 @@ export function buildComplianceMitigationEvidence(
     const concernsElementIds = [...new Set(targets.flatMap(elementIdsOf))];
     for (const selected of risk.selectedMitigations ?? []) {
       if (!selected.id || selected.status === "rejected") continue;
-      const requirementIds = referencing.get(selected.id);
-      if (!requirementIds?.length) continue;
-      evidence.push({
-        mitigationId: selected.id,
-        requirementIds,
-        done: DONE_MITIGATION_STATUSES.includes(selected.status),
-        concernsElementIds,
-      });
+      const reqs = requirementsOf.get(selected.id);
+      if (!reqs) continue;
+      const done = DONE_MITIGATION_STATUSES.includes(selected.status);
+      // Referenced ids: every concerned element; derived ones: per element type.
+      const referenced = reqs.filter((r) => !r.elementTypes).map((r) => r.requirementId);
+      if (referenced.length > 0) evidence.push({ mitigationId: selected.id, requirementIds: referenced, done, concernsElementIds });
+      const byType = new Map<string, RequirementId[]>();
+      for (const r of reqs) for (const type of r.elementTypes ?? []) byType.set(type, [...(byType.get(type) ?? []), r.requirementId]);
+      for (const [type, requirementIds] of byType) {
+        const ofType = concernsElementIds.filter((id) => typeOf?.(id) === type);
+        if (ofType.length > 0) evidence.push({ mitigationId: selected.id, requirementIds, done, concernsElementIds: ofType });
+      }
     }
   }
   return evidence;

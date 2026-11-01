@@ -74,7 +74,7 @@ describe("Pump Station Controller example", () => {
     const count = (rows: { status: string }[]) =>
       rows.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});
     expect(count(achieved.rows)).toEqual({ met: 55, gap: 12, "n/a": 21, "needs-statement": 9 });
-    expect(count(planned.rows)).toEqual({ met: 61, gap: 6, "n/a": 21, "needs-statement": 9 });
+    expect(count(planned.rows)).toEqual({ met: 58, gap: 9, "n/a": 21, "needs-statement": 9 });
 
     // SL-T 2: UC and RDF reach it; IAC stays at 1 even planned (no device
     // authentication on the fieldbus — a claim or a fix is needed); RA waits
@@ -93,6 +93,12 @@ describe("Pump Station Controller example", () => {
     // D-28: the key press on the touch panel (DF-1) and the internal flows
     // to the configuration store (DF-12/13) are no transmitted information.
     expect(achieved.rows.find((r) => r.label === "CR 3.1")!.failing).toEqual(["df-7", "df-9", "df-10", "df-11"]);
+
+    // D-29: a mitigation covers only the elements of its risks — MFA chosen
+    // elsewhere does not close the human access flows DF-1 and DF-9.
+    const plannedRow = (label: string) => planned.rows.find((r) => r.label === label)!;
+    expect(plannedRow("CR 1.1 RE(2)").status).toBe("gap");
+    expect(plannedRow("CR 1.1 RE(2)").failing).toEqual(["df-1", "df-9"]);
 
     // planned never loses a met row
     for (const row of achieved.rows.filter((r) => r.status === "met")) expect(status(planned.rows, row.label)).toBe("met");

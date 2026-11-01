@@ -112,7 +112,11 @@ export interface ComplianceTabProps {
   today: string;
   onChange: (data: ComplianceData) => void;
   /** Catalog mitigations naming one of the requirement ids (for the info dialog). */
-  mitigationSuggestions?: (requirementIds: readonly RequirementId[]) => readonly { id: string; text: string }[];
+  /** Catalog mitigations for a row; filtered to the types of the elements still open (D-29). */
+  mitigationSuggestions?: (
+    requirementIds: readonly RequirementId[],
+    openElementIds: readonly string[],
+  ) => readonly { id: string; text: string }[];
 }
 
 /** First items of a list, the rest counted. */
@@ -423,7 +427,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           descriptions={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang))}
           cra={cra ? [...(rowDef.get(info.label)?.cra ?? [])] : undefined}
           statement={statements[info.label]}
-          suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? []) ?? []}
+          suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? [], [...info.failing, ...info.unknown]) ?? []}
           nameOf={nameOf}
           t={t}
           onClose={() => setInfo(null)}

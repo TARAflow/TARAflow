@@ -324,6 +324,46 @@ describe("mitigations (D-16, D-21)", () => {
   });
 });
 
+// ==================== D-29 PER ELEMENT ====================
+
+describe("mitigations cover element by element on an all-rule (D-29)", () => {
+  const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], fr: "SI" });
+  const weak = [el("p1", "Process", { inputValidation: "none" }), el("p2", "Process", { inputValidation: "none" })];
+  const M = (concerns: string[], done = false) => [
+    { mitigationId: "M-3", requirementIds: ["cr-3.5"] as RequirementId[], done, concernsElementIds: concerns },
+  ];
+
+  it("planned: a mitigation for p1 closes p1 only — p2 stays a gap", () => {
+    const r = row(run(ed, weak, [], { mitigations: M(["p1"]), run: "planned" }), "CR 3.5");
+    expect(r.status).toBe("gap");
+    expect(r.failing).toEqual(["p2"]);
+    expect(r.mitigationIds).toEqual(["M-3"]);
+  });
+
+  it("planned: mitigations for every open element meet the row", () => {
+    const r = row(run(ed, weak, [], { mitigations: M(["p1", "p2"]), run: "planned" }), "CR 3.5");
+    expect(r.status).toBe("met");
+    expect(r.source).toBe("mitigation");
+  });
+
+  it("a mitigation for another element in scope does not cover", () => {
+    const r = row(run(ed, [...weak, el("ds", "DataStore")], [], { mitigations: M(["ds"]), run: "planned" }), "CR 3.5");
+    expect(r.failing).toEqual(["p1", "p2"]);
+    expect(r.mitigationIds).toEqual([]);
+  });
+
+  it("achieved: a done mitigation decides an unknown element, never a model 'no'", () => {
+    const mixed = [el("p1", "Process"), el("p2", "Process", { inputValidation: "none" })];
+    const r = row(run(ed, mixed, [], { mitigations: M(["p1", "p2"], true) }), "CR 3.5");
+    expect(r.status).toBe("gap");
+    expect(r.failing).toEqual(["p2"]);
+    expect(r.unknown).toEqual([]);
+    expect(r.contradiction).toBe(true);
+    const onlyUnknown = row(run(ed, [el("p1", "Process")], [], { mitigations: M(["p1"], true) }), "CR 3.5");
+    expect(onlyUnknown.status).toBe("met");
+  });
+});
+
 // ==================== D-17 STATEMENTS ====================
 
 describe("statements (D-17)", () => {

@@ -1,5 +1,5 @@
 // Mitigation evidence for the IEC 62443-4-2 matrix
-// (app/utils/build-compliance-mitigation-evidence.ts; D-6, D-16, D-21).
+// (app/utils/build-compliance-mitigation-evidence.ts; D-6, D-16, D-21, D-29).
 import { describe, it, expect } from "vitest";
 import { buildComplianceMitigationEvidence } from "app/utils/build-compliance-mitigation-evidence";
 import { evaluateMatrix, type Edition } from "features/compliance";
@@ -68,5 +68,18 @@ describe("buildComplianceMitigationEvidence", () => {
       evaluateMatrix({ edition, view, scope: new Set(["proc-a"]), run: r, mitigations: evidence }).rows[0];
     expect(run("achieved").status).toBe("needs-statement");
     expect(run("planned").status).toBe("met");
+  });
+
+  it("derived requirements count only for the elements of the effect's type (D-29)", () => {
+    const withEffect: Any[] = [
+      { id: "M-T-X", affectsProperties: [{ targetType: "DataFlow", property: "integrityProtection", expectedValue: "hmac" }] },
+    ];
+    const typeOf = (id: string) => ({ f1: "DataFlow", ee: "ExternalEntity", "proc-a": "Process" })[id];
+    const out = buildComplianceMitigationEvidence(threats, { risks: [risk("t-f", [{ id: "M-T-X", status: "verified" }])] } as Any, withEffect, undefined, typeOf);
+    expect(out).toHaveLength(1);
+    expect(out[0].concernsElementIds).toEqual(["f1"]);
+    expect(out[0].requirementIds).toEqual(expect.arrayContaining(["cr-3.1", "cr-3.1-re1"]));
+    // without a type lookup the derived requirements are not used
+    expect(buildComplianceMitigationEvidence(threats, { risks: [risk("t-f", [{ id: "M-T-X", status: "verified" }])] } as Any, withEffect)).toEqual([]);
   });
 });
