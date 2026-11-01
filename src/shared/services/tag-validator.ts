@@ -118,6 +118,13 @@ const TAG_RULES: TagRule[] = [
     suggestedTag: "OT",
   },
   {
+    regulation: "EN IEC 62443 (CRA)",
+    expectedPlatforms: ["OT", "Embedded"],
+    expectedDomains: ["Industrial", "Energy", "Water", "Transportation"],
+    messageKey: "projectInfo.tagWarnings.enIec62443Cra",
+    suggestedTag: "OT",
+  },
+  {
     regulation: "ISO 27017",
     expectedPlatforms: ["Cloud"],
     messageKey: "projectInfo.tagWarnings.iso27017",
@@ -319,7 +326,25 @@ export function getRegulationConflicts(tags: ProjectTags): TagWarning[] {
  * above the softer missing-context hints.
  */
 export function getTagWarnings(tags: ProjectTags): TagWarning[] {
-  return [...getRegulationConflicts(tags), ...getMissingContextWarnings(tags)];
+  return [...getRegulationConflicts(tags), ...getMissingContextWarnings(tags), ...getCraPairingHints(tags)];
+}
+
+/**
+ * The CRA edition of IEC 62443-4-2 is a harmonised standard under the CRA
+ * (iec-62443-4-2-cra-coverage.md D-3): with "EN IEC 62443 (CRA)" the generic
+ * "CRA" tag belongs to the project too. A hint, never a block.
+ */
+function getCraPairingHints(tags: ProjectTags): TagWarning[] {
+  if (!tags.regulation.includes("EN IEC 62443 (CRA)") || tags.regulation.includes("CRA")) return [];
+  return [
+    {
+      kind: "missing-context",
+      regulation: "EN IEC 62443 (CRA)",
+      message: i18n.t("projectInfo.tagWarnings.enIec62443CraWithoutCra", {
+        defaultValue: "EN IEC 62443 (CRA) is a harmonised standard under the Cyber Resilience Act — consider adding the CRA tag as well.",
+      }),
+    },
+  ];
 }
 
 /**

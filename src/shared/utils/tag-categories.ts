@@ -94,6 +94,13 @@ export const TAG_CATEGORIES: TagCategory[] = [
         tooltipKey: "tags.tooltips.iec62443",
         docDescriptionKey: "tags.docDescriptions.iec62443",
       },
+      // The CRA edition EN IEC 62443-4-2/prAA (iec-62443-4-2-cra-coverage.md
+      // D-3): selects the CRA requirement matrix; "IEC 62443" the classic one.
+      {
+        name: "EN IEC 62443 (CRA)",
+        tooltipKey: "tags.tooltips.enIec62443Cra",
+        docDescriptionKey: "tags.docDescriptions.enIec62443Cra",
+      },
       {
         name: "EN 18031",
         tooltipKey: "tags.tooltips.en18031",

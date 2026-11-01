@@ -43,6 +43,10 @@ const svg = (fill: string) =>
 /** Image XObjects in the PDF (one per embedded raster image). */
 const imageCount = (pdf: Buffer) => (pdf.toString("latin1").match(/\/Subtype\s*\/Image/g) ?? []).length;
 
+// Each test renders several PDFs; alone it takes ~1.5 s, under the load of the
+// full suite it exceeded the default 5 s (0.17 CI). Not a performance budget.
+const PDF_TIMEOUT_MS = 30_000;
+
 describe("CLI PDF with one figure per page", () => {
   it("embeds the image of every page that has one", async () => {
     installDomParser();
@@ -70,7 +74,7 @@ describe("CLI PDF with one figure per page", () => {
     expect(three.subarray(0, 5).toString()).toBe("%PDF-");
     expect(two - one).toBeGreaterThan(0);
     expect(imageCount(three) - two).toBe(two - one);
-  });
+  }, PDF_TIMEOUT_MS);
 
   it("renders the table of flows analysed on a parent level (7c)", async () => {
     installDomParser();
@@ -94,5 +98,5 @@ describe("CLI PDF with one figure per page", () => {
       (key: string, defaultValue?: string) => defaultValue ?? key,
     );
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
-  });
+  }, PDF_TIMEOUT_MS);
 });
