@@ -1,7 +1,7 @@
 // To-do list per element up to the SL-T (iec-62443-4-2-cra-coverage.md IEC-8,
 // D-29), on the Pump Station example (SL-T 2 in every FR).
 import { describe, it, expect } from "vitest";
-import { buildTodoList, EDITION_PRAA_2026 } from "features/compliance";
+import { buildTodoList, EDITION_PRAA_2026, evaluateMatrix, type Edition } from "features/compliance";
 import { parseAndRepair } from "app/services/migration-service";
 import { complianceTypeOf, evaluateProjectCompliance } from "app/services/compliance-report";
 import { buildPumpStationProject } from "../../../../examples/pump-station-example";
@@ -36,6 +36,23 @@ describe("buildTodoList", () => {
   });
 
   it("no target → nothing to do", () => {
-    expect(buildTodoList(EDITION_PRAA_2026, achieved, planned, {})).toEqual({ elements: [], statements: [] });
+    expect(buildTodoList(EDITION_PRAA_2026, achieved, planned, {})).toEqual({ elements: [], component: [], statements: [] });
+  });
+
+  it("a row one element meets (any) is a component item, not one per element", () => {
+    const edition: Edition = {
+      ...EDITION_PRAA_2026,
+      rows: [{ label: "CR 3.10", fr: "SI", minSl: 1, requirementIds: ["cr-3.10"], supportingMeasuresAllowed: false }],
+    };
+    const input = {
+      edition,
+      view: { elements: [{ id: "p1", type: "Process" }, { id: "p2", type: "Process" }], flows: [] },
+      scope: new Set(["p1", "p2"]),
+    };
+    const list = buildTodoList(edition, evaluateMatrix({ ...input, run: "achieved" }), evaluateMatrix({ ...input, run: "planned" }), { SI: 1 });
+    expect(list.elements).toEqual([]);
+    expect(list.component).toEqual([
+      { label: "CR 3.10", fr: "SI", properties: ["update mechanism"], elementTypes: ["Process", "Multiprocess"], plannedClosed: false },
+    ]);
   });
 });

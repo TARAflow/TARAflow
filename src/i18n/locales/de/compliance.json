@@ -89,6 +89,8 @@
     "todoNotMet": "nicht erfüllt, prüfen",
     "todoMissing": "setzen",
     "todoPlanned": "durch geplante Massnahmen geschlossen",
-    "todoStatements": "Aussagen nötig"
+    "todoStatements": "Aussagen nötig",
+    "todoComponent": "Für die Komponente — ein Element genügt",
+    "todoOnOne": "an einem {{types}}"
   }
 }

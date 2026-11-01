@@ -364,7 +364,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           </Typography>
           {!hasTarget ? (
             <Alert severity="info">{t("todoNoTarget", "Set the SL-T above — the to-do list shows what is open up to it.")}</Alert>
-          ) : todo.elements.length === 0 && todo.statements.length === 0 ? (
+          ) : todo.elements.length === 0 && todo.component.length === 0 && todo.statements.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               {t("todoNothing", "Nothing open up to the SL-T.")}
             </Typography>
@@ -392,6 +392,26 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   </Box>
                 </Box>
               ))}
+              {todo.component.length > 0 && (
+                <Box data-testid="compliance-todo-component">
+                  <Typography variant="subtitle2">{t("todoComponent", "For the component — one element suffices")}</Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    {todo.component.map((item) => (
+                      <li key={item.label}>
+                        <Typography variant="body2" component="span">
+                          <Link component="button" variant="body2" onClick={() => openInfo(item.label)} sx={{ verticalAlign: "baseline" }}>
+                            {item.label}
+                          </Link>
+                          {` — ${t("todoOnOne", "on one {{types}}", { types: item.elementTypes.join(" / ") })}: ${item.properties.join(", ")}`}
+                        </Typography>
+                        {item.plannedClosed && (
+                          <Chip size="small" color="info" variant="outlined" sx={{ ml: 1 }} label={t("todoPlanned", "closed by planned mitigations")} />
+                        )}
+                      </li>
+                    ))}
+                  </Box>
+                </Box>
+              )}
               {todo.statements.length > 0 && (
                 <Box data-testid="compliance-todo-statements">
                   <Typography variant="subtitle2">{t("todoStatements", "Statements needed")}</Typography>

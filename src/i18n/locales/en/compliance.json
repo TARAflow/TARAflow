@@ -89,6 +89,8 @@
     "todoNotMet": "not met, check",
     "todoMissing": "set",
     "todoPlanned": "closed by planned mitigations",
-    "todoStatements": "Statements needed"
+    "todoStatements": "Statements needed",
+    "todoComponent": "For the component — one element suffices",
+    "todoOnOne": "on one {{types}}"
   }
 }
