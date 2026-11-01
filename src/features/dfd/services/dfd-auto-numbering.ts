@@ -847,6 +847,7 @@ export class DFDAutoNumbering {
         prefix,
       );
       idLabelElement.setAttribute("label", newLabelWithFormat);
+      fitIdLabelWidth(idLabelElement, newLabel, newLabelWithFormat);
 
       console.log(
         `[AutoNumbering] Object label: "${currentLabel}" -> "${newLabelWithFormat}"`,
@@ -951,3 +952,25 @@ export class DFDAutoNumbering {
 export const dfdAutoNumbering = new DFDAutoNumbering();
 
 export default DFDAutoNumbering;
+
+// ==================== ID LABEL WIDTH ====================
+
+/** Average glyph width of the id label font, in em (Helvetica, digits and capitals). */
+const ID_LABEL_EM = 0.62;
+/** Padding left + right inside the box. */
+const ID_LABEL_PADDING = 8;
+
+/**
+ * Horizontal autoresize of an id label: the numbering writes the XML that
+ * draw.io then loads, so draw.io's own autosize never runs — the box grows
+ * here to fit the new id ("DF-14", "P-1.2.3"). Grows only: a box the
+ * analyst made wider stays as it is.
+ */
+export function fitIdLabelWidth(idLabelElement: Element, text: string, label: string): void {
+  const geometry = idLabelElement.getElementsByTagName("mxGeometry")[0];
+  if (!geometry) return;
+  const fontSize = Number(/font-size:\s*(\d+(?:\.\d+)?)px/.exec(label)?.[1] ?? 12);
+  const needed = Math.ceil(text.length * fontSize * ID_LABEL_EM + ID_LABEL_PADDING);
+  const current = Number(geometry.getAttribute("width") ?? 0);
+  if (needed > current) geometry.setAttribute("width", String(needed));
+}
