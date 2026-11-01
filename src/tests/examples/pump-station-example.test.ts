@@ -18,6 +18,11 @@ import { getAllMitigations } from "features/threats";
 import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import type { Project } from "app/models/project-types";
+import { dfdValidator } from "features/dfd/services/dfd-validator";
+import { collectAssetFindings } from "features/assets/services/asset-validator";
+import type { AssetData } from "features/assets/models/asset-types";
+import { riskService } from "features/risks/services/risk-service";
+import type { RiskData } from "features/risks/models/risk-assessment-types";
 import { buildPumpStationProject, type ProjectJson } from "./pump-station-example";
 
 const raw = buildPumpStationProject();
@@ -31,11 +36,15 @@ describe("Pump Station Controller example", () => {
     expect(project.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(project.info.tags.regulation).toEqual(["EN IEC 62443 (CRA)", "CRA"]);
     expect(project.compliance?.target).toEqual({ IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 });
+    // Not safety-relevant: no hazard analysis, no safety criterion, no safety risk factor.
+    expect(project.info.safetyRelevant).toBe(false);
+    expect(project.assets!.configuration.impactCriteria.some((c) => c.id === "safety")).toBe(false);
+    expect(project.risks!.configuration.activeFactors.find((f) => f.factorId === "safety")?.enabled ?? false).toBe(false);
   });
 
-  it("the parser reads the diagram: 17 elements, 13 flows, interfaces on the cabinet border", () => {
-    expect(raw.dfd.elements).toHaveLength(17);
-    expect(raw.dfd.connections).toHaveLength(13);
+  it("the parser reads the diagram: 18 elements, 14 flows, interfaces on the cabinet border", () => {
+    expect(raw.dfd.elements).toHaveLength(18);
+    expect(raw.dfd.connections).toHaveLength(14);
     const graph = resolveDfdGraph(raw.dfd)!;
     const interfacesOf = (flow: string) =>
       (graph.dataFlowAnalysis.get(byDisplay(flow).id)?.interfaceIds ?? []).map((id: string) => byDisplay2(id));
@@ -46,6 +55,19 @@ describe("Pump Station Controller example", () => {
     expect(interfacesOf("DF-10")).toEqual(["IF-4"]);
     expect(interfacesOf("DF-11")).toEqual(["IF-4"]);
     expect(interfacesOf("DF-2")).toEqual([]);
+    expect(interfacesOf("DF-14")).toEqual(["IF-5"]); // debug probe on the JTAG (path B)
+  });
+
+  it("the app's own checks find nothing to complete: DFD, assets, risks", () => {
+    const graph = resolveDfdGraph(project.dfd as ProjectJson)!;
+    const dfd = project.dfd as ProjectJson;
+    const v = dfdValidator.validate(dfd.elements, dfd.connections, dfd.assets, dfd.stats, graph);
+    expect([...v.errors, ...v.warnings]).toEqual([]);
+    expect(collectAssetFindings(project.assets as AssetData)).toEqual([]);
+    const rv = riskService.validate(project.risks as RiskData);
+    expect([...rv.errors, ...rv.warnings]).toEqual([]);
+    const threats = [...raw.threats.perElementTables, ...raw.threats.perInteractionTables].flatMap((t: ProjectJson) => t.threats);
+    expect(threats.every((t: ProjectJson) => t.relevance === "relevant")).toBe(true);
   });
 
   it("threats and risks come from the generators; every risk has a chosen mitigation", () => {
@@ -92,7 +114,7 @@ describe("Pump Station Controller example", () => {
     expect(status(achieved.rows, "CR 3.10")).toBe("met"); // signed OTA update on the PLC
     // D-28: the key press on the touch panel (DF-1) and the internal flows
     // to the configuration store (DF-12/13) are no transmitted information.
-    expect(achieved.rows.find((r) => r.label === "CR 3.1")!.failing).toEqual(["df-7", "df-9", "df-10", "df-11"]);
+    expect(achieved.rows.find((r) => r.label === "CR 3.1")!.failing).toEqual(["df-7", "df-9", "df-10", "df-11", "df-14"]);
 
     // D-29: a mitigation covers only the elements of its risks — MFA chosen
     // elsewhere does not close the human access flows DF-1 and DF-9.

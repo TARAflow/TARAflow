@@ -6,7 +6,7 @@
 // generator (pump-station-example.ts) lets the app's own DFD parser turn it
 // into elements and flows, so diagram and records cannot drift apart.
 //
-//   left        Operator, Maintenance Technician
+//   left        Operator, Maintenance Technician, Debug Probe (factory only)
 //   centre      Control Network [CN] ⊃ Control Cabinet [CAB]:
 //               HMI Runtime, Pump Controller (PLC), Configuration Store,
 //               interfaces Touch Panel, Service USB, Ethernet, Fieldbus, JTAG
@@ -93,6 +93,7 @@ export const SHAPES: Shape[] = [
   // Left side.
   { id: "ee-op", displayId: "EE-1", type: "externalentity", label: "Operator", x: 110, y: 170, w: 120, h: 50 },
   { id: "ee-maint", displayId: "EE-2", type: "externalentity", label: "Maintenance Technician", x: 90, y: 345, w: 140, h: 50 },
+  { id: "ee-dbg", displayId: "EE-8", type: "externalentity", label: "Debug Probe", x: 110, y: 690, w: 120, h: 50 },
   // Right side.
   { id: "ee-scada", displayId: "EE-3", type: "externalentity", label: "Control Room SCADA", x: 1200, y: 190, w: 150, h: 50 },
   { id: "ee-upd", displayId: "EE-4", type: "externalentity", label: "Update Server", x: 1200, y: 290, w: 150, h: 50 },
@@ -116,6 +117,7 @@ export const EDGES: Edge[] = [
   { id: "df-11", displayId: "DF-11", label: "stream sensor values [stream]", from: "ee-field", to: "mp-plc" },
   { id: "df-12", displayId: "DF-12", label: "write recipes", from: "mp-plc", to: "ds-cfg" },
   { id: "df-13", displayId: "DF-13", label: "read configuration", from: "ds-cfg", to: "mp-plc" },
+  { id: "df-14", displayId: "DF-14", label: "pull debug session [req_resp]", from: "ee-dbg", to: "if-jtag" },
 ];
 
 export function pumpStationXml(): string {

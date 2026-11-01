@@ -19,6 +19,8 @@
 import type { Asset, AssetConfiguration, AssetData } from "features/assets/models/asset-types";
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import type { ImpactRating } from "features/assets/models/asset-impact-types";
+import type { AssetProperties } from "shared/models/asset-property-types";
+import type { SecurityGoalType } from "features/assets/models/asset-security-goals-types";
 import { createEmptyAsset } from "features/assets/services/asset-factory";
 import { deriveSecurityGoalSuggestions } from "features/assets/services/asset-cianaaa-deriver";
 import { recalculateAllImpacts } from "features/assets/services/asset-impact-calculator";
@@ -43,6 +45,9 @@ import { getAllMitigations } from "features/threats";
 import { createDefaultRiskData } from "features/risks/models/risk-assessment-types";
 import type { RiskData } from "features/risks/models/risk-assessment-types";
 import { syncRisksFromThreats } from "features/risks/services/risk-sync-service";
+import { calculateRiskValues } from "features/risks/services/risk-calculation-service";
+import { ALL_PREDEFINED_FACTORS } from "features/risks/models/risk-factor-types";
+import type { FactorRating } from "features/risks/models/risk-factor-types";
 import type { MitigationStatus } from "features/risks/models/risk-mitigation-types";
 import type { ComplianceData, ComplianceStatement } from "shared/models/compliance-data-types";
 import { deriveDfdAssets } from "app/utils/asset-to-dfd-mapper";
@@ -62,10 +67,8 @@ export type ProjectJson = any;
 const DATE = "2026-11-01T00:00:00.000Z";
 const SCALE = "4-level" as const;
 
-export const ASSET_CONFIGURATION: AssetConfiguration = {
-  ...DEFAULT_ASSET_CONFIGURATION,
-  impactCriteria: [...DEFAULT_ASSET_CONFIGURATION.impactCriteria, { id: "safety", weight: 0.2 }],
-};
+/** Default asset criteria — the example is not safety-relevant (no hazard analysis). */
+export const ASSET_CONFIGURATION: AssetConfiguration = DEFAULT_ASSET_CONFIGURATION;
 
 // ── Element properties (the analyst's model) ────────────────────────────────
 // Deliberate weak spots, so the matrix has something to say:
@@ -101,7 +104,6 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     debugInterfaceAccessible: false,
     removableMediaAccessible: true,
     requiresToolAccess: true,
-    safetyRelevant: true,
   }),
   "P-1": as<ProcessProperties>({
     processSemantic: "execution_unit",
@@ -137,8 +139,6 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     sessionControl: { sessionLockEnabled: true, remoteTerminationEnabled: true, maxConcurrentSessions: 2 },
     exposedToInternet: false,
     airGapped: false,
-    safetyRelevant: true,
-    safetyRationale: "Drives pumps and valves of the water supply.",
   }),
   "DS-1": as<DataStoreProperties>({
     technology: "flash",
@@ -196,6 +196,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
   "EE-5": as<ExternalEntityProperties>({ entityType: "remote_access", ownership: "internal", trustLevel: "low", authenticationMethod: "certificate" }),
   "EE-6": as<ExternalEntityProperties>({ entityType: "engineering_workstation", ownership: "internal", trustLevel: "medium", authenticationMethod: "password" }),
   "EE-7": as<ExternalEntityProperties>({ entityType: "actuator", ownership: "internal", trustLevel: "low" }),
+  "EE-8": as<ExternalEntityProperties>({ entityType: "debugger", ownership: "internal", trustLevel: "low" }),
 };
 
 const SECURE_OPC: DataFlowProperties = {
@@ -220,6 +221,10 @@ const FLOW_PROPERTIES: Record<string, DataFlowProperties> = {
   "DF-10": { protocol: "modbus_rtu", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "crc", messageType: "command", dataClassification: "internal" },
   "DF-11": { protocol: "modbus_rtu", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "crc", dataClassification: "internal" },
   "DF-12": { protocol: "file", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "signature", dataClassification: "internal" },
+  // Production programming only: the JTAG is fused off afterwards (IF-5).
+  // The production image holds no device secrets — they are provisioned
+  // later into the secure element — so the flow is internal.
+  "DF-14": { protocol: "custom", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "none", dataClassification: "internal" },
   "DF-13": { protocol: "file", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "signature", dataClassification: "internal" },
 };
 
@@ -257,12 +262,14 @@ function asset(
   group: "data" | "process",
   ratings: Ratings,
   links: [string, string][], // [element displayId, relationType]
+  properties: AssetProperties,
 ): Asset {
   const a = createEmptyAsset(displayId, ASSET_CONFIGURATION, group, displayId);
   const all = [...dfd.elements, ...dfd.connections];
   const built: Asset = {
     ...a,
     name,
+    properties: { ...a.properties, ...properties },
     impactRatings: a.impactRatings.map(
       (r): ImpactRating => ({ criterionId: r.criterionId, value: (ratings[r.criterionId] ?? null) as ImpactRating["value"] }),
     ),
@@ -277,33 +284,49 @@ function asset(
     created: DATE,
     lastModified: DATE,
   };
-  return { ...built, securityGoals: deriveSecurityGoalSuggestions(built, built.securityGoals, SCALE) };
+  const goals = deriveSecurityGoalSuggestions(built, built.securityGoals, SCALE).map((g) =>
+    g.level === "none" ? g : { ...g, formalDescription: GOAL_TEXT[g.type](name) },
+  );
+  return { ...built, securityGoals: goals };
 }
+
+/** The formal description of an active security goal, as the analyst writes it. */
+const GOAL_TEXT: Record<SecurityGoalType, (name: string) => string> = {
+  C: (n) => `${n} shall be protected against unauthorised disclosure.`,
+  I: (n) => `${n} shall be protected against unauthorised modification.`,
+  A: (n) => `${n} shall be available when the pump station needs it.`,
+  N: (n) => `Changes to ${n} shall be attributable to their originator.`,
+  AuthZ: (n) => `Only authorised roles shall read or change ${n}.`,
+  AuthN: (n) => `The origin of ${n} shall be authenticated.`,
+  Acc: (n) => `Actions on ${n} shall be logged with the acting identity.`,
+};
 
 function buildAssets(dfd: ProjectJson): Asset[] {
   return [
     asset(dfd, "DA-001", "Setpoints and commands", "data",
-      { financial_damage: 2, operational: 4, regulatory_compliance: 2, recoverability: 2, affected_users: 3, safety: 3 },
-      [["DF-1", "transports"], ["DF-2", "transports"], ["DF-5", "transports"], ["DF-10", "transports"]]),
+      { financial_damage: 2, operational: 4, regulatory_compliance: 2, recoverability: 2, affected_users: 3 },
+      [["DF-1", "transports"], ["DF-2", "transports"], ["DF-5", "transports"], ["DF-10", "transports"]],
+      { protectionNeed: "high", dataType: ["config"], lifecycle: "transient" }),
     asset(dfd, "DA-002", "Process values", "data",
-      { financial_damage: 1, operational: 3, regulatory_compliance: 1, recoverability: 1, affected_users: 2, safety: 2 },
-      [["DF-3", "transports"], ["DF-4", "transports"], ["DF-11", "transports"]]),
+      { financial_damage: 1, operational: 3, regulatory_compliance: 1, recoverability: 1, affected_users: 2 },
+      [["DF-3", "transports"], ["DF-4", "transports"], ["DF-11", "transports"]],
+      { protectionNeed: "medium", dataType: ["telemetry"], lifecycle: "transient" }),
     asset(dfd, "DA-003", "PLC program and firmware", "data",
-      { financial_damage: 3, operational: 4, regulatory_compliance: 2, recoverability: 3, affected_users: 3, safety: 4 },
-      [["DF-6", "transports"], ["DF-7", "transports"], ["DF-9", "transports"]]),
+      { financial_damage: 3, operational: 4, regulatory_compliance: 2, recoverability: 3, affected_users: 3 },
+      [["DF-6", "transports"], ["DF-7", "transports"], ["DF-9", "transports"]],
+      { protectionNeed: "critical", dataType: ["firmware"], lifecycle: "stored" }),
     asset(dfd, "DA-004", "Recipes and configuration", "data",
-      { financial_damage: 2, operational: 3, regulatory_compliance: 1, recoverability: 2, affected_users: 2, safety: 3 },
-      [["DS-1", "stores"], ["DF-12", "transports"], ["DF-13", "transports"]]),
+      { financial_damage: 2, operational: 3, regulatory_compliance: 1, recoverability: 2, affected_users: 2 },
+      [["DS-1", "stores"], ["DF-12", "transports"], ["DF-13", "transports"]],
+      { protectionNeed: "high", dataType: ["config", "calibration"], lifecycle: "stored" }),
     asset(dfd, "PR-001", "Pump control", "process",
-      { financial_damage: 3, operational: 4, regulatory_compliance: 3, recoverability: 2, affected_users: 4, safety: 4 },
-      [["MP-1", "is_an"]]),
+      { financial_damage: 3, operational: 4, regulatory_compliance: 3, recoverability: 2, affected_users: 4 },
+      [["MP-1", "is_an"]],
+      { protectionNeed: "critical", automationLevel: "fully_automated" }),
   ];
 }
 
 // ── Threats and risks ───────────────────────────────────────────────────────
-
-/** Threats on these elements stay "uncertain" — the rest is relevant. */
-const UNCERTAIN = new Set(["DF-12", "DF-13", "IF-5"]);
 
 function generateThreats(dfd: ProjectJson, assets: Asset[], tags: ProjectJson): ThreatData {
   const graph = resolveDfdGraph(dfd)!;
@@ -318,15 +341,9 @@ function generateThreats(dfd: ProjectJson, assets: Asset[], tags: ProjectJson): 
     lastModified: DATE,
   } as unknown as ThreatProjectData;
   const base = createDefaultThreatData();
-  const displayOf = new Map([...dfd.elements, ...dfd.connections].map((x: ProjectJson) => [x.id, x.displayId]));
+  // The analyst confirmed every generated threat as relevant.
   const rate = (tables: ThreatTable[]) =>
-    tables.map((t) => ({
-      ...t,
-      threats: t.threats.map((th) => {
-        const at = displayOf.get(th.linkedElement?.elementId ?? th.dataFlow?.connectionId ?? "");
-        return { ...th, relevance: UNCERTAIN.has(at) ? ("uncertain" as const) : ("relevant" as const) };
-      }),
-    }));
+    tables.map((t) => ({ ...t, threats: t.threats.map((th) => ({ ...th, relevance: "relevant" as const })) }));
   const perElement = elementThreatGenerator.generateThreatsForProject(data, { ...base.configuration, activeMethod: "per-element" });
   const perInteraction = interactionThreatGenerator.generateThreatsForProject(
     data,
@@ -351,6 +368,46 @@ const STATUS_AT: Record<string, MitigationStatus> = {
   "DF-10": "open",
   "DF-11": "open",
 };
+
+/**
+ * Likelihood the analyst rates per element: 3 on the weak spots reachable
+ * from outside, 1 inside the cabinet (internal flows, the store, the fused
+ * JTAG), 2 elsewhere.
+ */
+const LIKELIHOOD_AT: Record<string, number> = {
+  "DF-7": 3, "DF-9": 3, "DF-10": 3, "DF-11": 3, "IF-2": 3, "IF-4": 3,
+  "DF-2": 1, "DF-3": 1, "DF-12": 1, "DF-13": 1, "DS-1": 1, "IF-5": 1,
+};
+
+/**
+ * The analyst's rating of one risk: likelihood factors per element, impact
+ * as derived from the assets by the sync (operational 2 where no asset is
+ * linked), residual likelihood two levels lower once mitigations are chosen.
+ * Scores through the risk service's own calculation.
+ */
+function rate(risk: RiskData["risks"][number], at: string, configuration: RiskData["configuration"]): RiskData["risks"][number] {
+  const isLikelihood = (id: string) => ALL_PREDEFINED_FACTORS.find((f) => f.id === id)?.category === "likelihood";
+  const base = LIKELIHOOD_AT[at] ?? 2;
+  const residual = risk.selectedMitigations.length > 0 ? Math.max(1, base - 2) : base;
+  const withLikelihood = (ratings: FactorRating[], value: number) =>
+    ratings.map((r) => (isLikelihood(r.factorId) ? { ...r, value } : r));
+  let factorRatings = withLikelihood(risk.factorRatings, base);
+  if (calculateRiskValues(factorRatings, configuration).impact === 0) {
+    factorRatings = factorRatings.map((r) => (r.factorId === "operational" ? { ...r, value: 2, source: "manual" as const } : r));
+  }
+  const mitigatedFactorRatings = withLikelihood(factorRatings, residual);
+  const before = calculateRiskValues(factorRatings, configuration);
+  const after = calculateRiskValues(mitigatedFactorRatings, configuration);
+  return {
+    ...risk,
+    factorRatings,
+    mitigatedFactorRatings,
+    calculatedImpact: before.impact,
+    calculatedLikelihood: before.likelihood,
+    calculatedRiskBeforeMitigation: before.risk,
+    calculatedRiskAfterMitigation: after.risk,
+  };
+}
 
 /** Proposals the analyst does not take: no encryption on the RS-485 fieldbus (process values are not confidential). */
 const SKIPPED: Record<string, string[]> = { "DF-10": ["M-I-002"], "DF-11": ["M-I-002"] };
@@ -417,7 +474,7 @@ function buildRisks(dfd: ProjectJson, assets: Asset[], threats: ThreatData): Ris
       const selectedMitigations = ids.length
         ? ids.map((id) => ({ id, status: planned ?? ("verified" as const) }))
         : candidates(r).slice(0, 1).map((id) => ({ id, status: "open" as const }));
-      return { ...r, selectedMitigations };
+      return rate({ ...r, selectedMitigations }, at, synced.configuration);
     }),
   };
 }
@@ -500,7 +557,7 @@ export function buildPumpStationProject(): ProjectJson {
       created: DATE,
       lastModified: DATE,
       isHighImpact: false,
-      safetyRelevant: true,
+      safetyRelevant: false,
       tags: TAGS,
     },
     status: "draft",
