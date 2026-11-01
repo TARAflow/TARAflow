@@ -32,6 +32,9 @@ describe.each([1, 2])("shape library DFD_%i", (n) => {
     expect(style("Dataflow (curved)")).toContain("curved=1");
     expect(style("Dataflow (orthogonal)")).toContain("edgeStyle=orthogonalEdgeStyle");
     expect(style("Dataflow (straight)")).not.toContain("edgeStyle");
+    // straight means no bends either — a copied orthogonal route drew two
+    const straight = unescape(entries.find((e) => e.title === "Dataflow (straight)")!.xml);
+    expect(straight).not.toContain('<Array as="points">');
   });
 
   it("every element shape carries exactly one id label (boundaries and the legend none)", () => {
