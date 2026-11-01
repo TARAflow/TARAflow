@@ -68,6 +68,14 @@
     },
     "noModel": "The requirement matrix needs a data flow diagram — model the system in the DFD tab first.",
     "targetAll": "all FR",
-    "vectorText": "SL-T: what the operator or the zone requires. SL-C (product): what the product provides according to the model; planned: after the chosen open mitigations. With measures of the system: what the plant can reach if it provides the listed supporting measures and claims — the basis for the SL-A, which only arises in the operated plant."
+    "vectorText": "SL-T: what the operator or the zone requires. SL-C (product): what the product provides according to the model; planned: after the chosen open mitigations. With measures of the system: what the plant can reach if it provides the listed supporting measures and claims — the basis for the SL-A, which only arises in the operated plant.",
+    "whatItIsAbout": "What it is about",
+    "howChecked": "How TARAflow checks it",
+    "summaryDisclaimer": "Summary in our own words — the standard is authoritative.",
+    "elements": "Elements",
+    "suggestions": "Catalog mitigations",
+    "statementSection": "Statement",
+    "noStatement": "No statement yet.",
+    "close": "Close"
   }
 }

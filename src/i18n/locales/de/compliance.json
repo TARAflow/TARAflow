@@ -68,6 +68,14 @@
     },
     "noModel": "Die Anforderungsmatrix braucht ein Datenflussdiagramm — zuerst das System im DFD-Tab modellieren.",
     "targetAll": "alle FR",
-    "vectorText": "SL-T: was der Betreiber bzw. die Zone verlangt. SL-C (Produkt): was das Produkt laut Modell kann; geplant: nach den gewählten offenen Massnahmen. Mit Massnahmen des Systems: was in der Anlage erreichbar ist, wenn sie die gelisteten Supporting Measures und Claims stellt — Grundlage für das SL-A, das erst in der betriebenen Anlage entsteht."
+    "vectorText": "SL-T: was der Betreiber bzw. die Zone verlangt. SL-C (Produkt): was das Produkt laut Modell kann; geplant: nach den gewählten offenen Massnahmen. Mit Massnahmen des Systems: was in der Anlage erreichbar ist, wenn sie die gelisteten Supporting Measures und Claims stellt — Grundlage für das SL-A, das erst in der betriebenen Anlage entsteht.",
+    "whatItIsAbout": "Worum es geht",
+    "howChecked": "So prüft TARAflow",
+    "summaryDisclaimer": "Kurzfassung in eigenen Worten — massgeblich ist der Normtext.",
+    "elements": "Elemente",
+    "suggestions": "Massnahmen aus dem Katalog",
+    "statementSection": "Aussage",
+    "noStatement": "Noch keine Aussage.",
+    "close": "Schliessen"
   }
 }

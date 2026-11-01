@@ -131,4 +131,30 @@ describe("Compliance tab", () => {
     fireEvent.change(screen.getByTestId("compliance-component"), { target: { value: "p1" } });
     expect(onChange).toHaveBeenLastCalledWith({ componentId: "p1" });
   });
+
+  it("hovering the requirement number shows the compact tooltip: title and our own summary (D-27)", async () => {
+    renderTab(edition(CRA_ROWS));
+    fireEvent.mouseOver(screen.getByTestId("compliance-req-CR 3.5"));
+    const tip = await screen.findByTestId("compliance-tooltip-CR 3.5");
+    expect(within(tip).getByText("CR 3.5 – Input validation")).toBeTruthy();
+    expect(within(tip).getByText("Security-relevant input from external interfaces is validated.")).toBeTruthy();
+    expect(within(tip).queryByText(/How TARAflow checks it/)).toBeNull();
+  });
+
+  it("a click opens the info dialog with everything; its statement button closes it first, then opens the statement dialog", () => {
+    renderTab(edition(CRA_ROWS), undefined, {
+      mitigationSuggestions: (ids) => (ids.includes("cr-3.5") ? [{ id: "M-T-004", text: "Implement input validation" }] : []),
+    });
+    fireEvent.click(screen.getByTestId("compliance-req-CR 3.5"));
+    const dialog = screen.getByTestId("compliance-info-dialog");
+    expect(within(dialog).getByText("CR 3.5 – Input validation")).toBeTruthy();
+    expect(within(dialog).getByText(/Checked in the model: every Process: input validation = strict \/ schema/)).toBeTruthy();
+    expect(within(dialog).getByText(/not met by: P-1 Controller/)).toBeTruthy();
+    expect(within(dialog).getByText("M-T-004")).toBeTruthy();
+    expect(within(dialog).getByText("Summary in our own words — the standard is authoritative.")).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByTestId("compliance-info-statement"));
+    expect(screen.queryByTestId("compliance-info-dialog")).toBeNull();
+    expect(screen.getByTestId("statement-reasoning")).toBeTruthy();
+  });
 });

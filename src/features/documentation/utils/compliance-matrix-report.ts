@@ -161,11 +161,12 @@ export function complianceMatrixSections(compliance: DocCompliance | undefined, 
   // 3 — Statement of Applicability
   sections.push({
     title: t(`${K}.soaTitle`, "Statement of Applicability"),
-    paragraphs: [],
+    paragraphs: [t(`${K}.summaryDisclaimer`, "The summaries are in our own words — the standard is authoritative.")],
     facts: [],
     table: {
       headers: [
         t(`${K}.requirement`, "Requirement"),
+        t(`${K}.summaryColumn`, "Summary"),
         t(`${K}.minSl`, "SL-C from"),
         ...(c.cra ? [t(`${K}.craColumn`, "CRA")] : []),
         t(`${K}.statusColumn`, "Status"),
@@ -174,6 +175,7 @@ export function complianceMatrixSections(compliance: DocCompliance | undefined, 
       ],
       rows: c.rows.map((row) => [
         row.label,
+        row.summary,
         row.minSl === null ? "—" : String(row.minSl),
         ...(c.cra ? [(row.cra ?? []).join(", ") || "—"] : []),
         statusText(row, t),

@@ -31,6 +31,7 @@ const row = (label: string, extra: Partial<DocComplianceRow> = {}): DocComplianc
   supporting: [],
   mitigations: [],
   claims: [],
+  summary: `${label} title — ${label} summary`,
   checklist: [],
   countsForComponent: true,
   suggestions: [],
@@ -99,10 +100,13 @@ describe("compliance matrix sections", () => {
 
   it("SoA: status with its source; long element lists are shortened", () => {
     const rows = byTitle("Statement of Applicability").table!.rows;
-    expect(rows[0]).toEqual(["CR 1.1", "1", "d", "met", "model", "to confirm: each interface authenticates"]);
-    expect(rows[1][5]).toBe("not met by: DF-1, DF-2, DF-3, DF-4, DF-5 (+2 more)");
-    expect(rows[2].slice(3, 6)).toEqual(["met", "mitigation", "mitigations: M-S-002"]);
-    expect(rows[3].slice(3, 5)).toEqual(["claimed", "claim"]);
+    const soa = byTitle("Statement of Applicability");
+    expect(soa.table!.headers.slice(0, 3)).toEqual(["Requirement", "Summary", "SL-C from"]);
+    expect(soa.paragraphs[0]).toBe("The summaries are in our own words — the standard is authoritative.");
+    expect(rows[0]).toEqual(["CR 1.1", "CR 1.1 title — CR 1.1 summary", "1", "d", "met", "model", "to confirm: each interface authenticates"]);
+    expect(rows[1][6]).toBe("not met by: DF-1, DF-2, DF-3, DF-4, DF-5 (+2 more)");
+    expect(rows[2].slice(4, 7)).toEqual(["met", "mitigation", "mitigations: M-S-002"]);
+    expect(rows[3].slice(4, 6)).toEqual(["claimed", "claim"]);
   });
 
   it("CRA view: every essential requirement with its rows and the ones not met", () => {
@@ -130,7 +134,7 @@ describe("compliance matrix in the formats", () => {
   it("markdown, AsciiDoc, HTML, StrictDoc and PDF render the chapter", () => {
     const md = new MarkdownGenerator(project(compliance()), cfg(), t).generate().content;
     expect(md).toContain("## IEC 62443-4-2 Requirement Matrix");
-    expect(md).toContain("| CR 1.2 | 2 | d, e | gap |  | not met by: DF-1, DF-2, DF-3, DF-4, DF-5 (+2 more) |");
+    expect(md).toContain("| CR 1.2 | CR 1.2 title — CR 1.2 summary | 2 | d, e | gap |  | not met by: DF-1, DF-2, DF-3, DF-4, DF-5 (+2 more) |");
     expect(new AsciidocGenerator(project(compliance()), cfg(), t).generate().content).toContain("Statement of Applicability");
     expect(new HtmlGenerator(project(compliance()), cfg(), t).generate().content).toContain('<section id="compliance-matrix">');
     expect(new StrictdocGenerator(project(compliance()), cfg(), t).generate().content).toContain("TITLE: Statement of Applicability");

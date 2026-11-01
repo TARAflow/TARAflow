@@ -1605,6 +1605,15 @@ export const WorkspaceLayout: React.FC = () => {
               nameOf={complianceView.nameOf}
               today={new Date().toISOString().slice(0, 10)}
               onChange={handleComplianceChange}
+              mitigationSuggestions={(ids) =>
+                getAllMitigations()
+                  .filter((m) => m.iec62443?.some((id) => (ids as readonly string[]).includes(id)))
+                  .map((m) => ({
+                    id: m.id,
+                    // Project mitigations carry their text; catalog ones are i18n keys.
+                    text: (m as { text?: string }).text ?? t(`${m.id}.mitigation`, { ns: "mitigations", defaultValue: m.id }),
+                  }))
+              }
             />
           ) : (
             <div className="p-6 text-gray-600">

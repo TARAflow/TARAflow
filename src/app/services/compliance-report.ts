@@ -25,6 +25,8 @@ import { getAllMitigations } from "features/threats";
 import {
   buildPropertyView,
   countsForComponent,
+  describeLanguageOf,
+  describeRequirement,
   evaluateMatrix,
   FOUNDATIONAL_REQUIREMENTS,
   selectEdition,
@@ -166,7 +168,8 @@ export function evaluateProjectCompliance(
 }
 
 /** The matrix chapter's data (DocProjectData.computed.compliance). */
-export function buildDocCompliance(project: Project): DocCompliance | undefined {
+export function buildDocCompliance(project: Project, language = "en"): DocCompliance | undefined {
+  const lang = describeLanguageOf(language);
   const result = evaluateProjectCompliance(project);
   const edition = selectEdition(project.info?.tags);
   if (!result || !edition) return undefined;
@@ -205,6 +208,8 @@ export function buildDocCompliance(project: Project): DocCompliance | undefined 
     })),
     rows: achieved.rows.map((r) => {
       const countsComponent = countsForComponent(r);
+      // D-27: title and our own summary per requirement, checklists in the document language.
+      const descriptions = (rowById.get(r.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang));
       return {
         label: r.label,
         fr: r.fr,
@@ -218,7 +223,8 @@ export function buildDocCompliance(project: Project): DocCompliance | undefined 
         mitigations: [...new Set(r.mitigationIds)],
         claims: r.claimIds,
         reasoning: r.reasoning,
-        checklist: r.checklist,
+        summary: descriptions.map((d) => `${d.title} — ${d.summary}`).join(" / "),
+        checklist: r.checklist.length > 0 ? descriptions.flatMap((d) => d.checklist) : [],
         contradiction: r.contradiction,
         statementModelChanged: r.statementModelChanged,
         statementSuperseded: r.statementSuperseded,

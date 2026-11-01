@@ -306,6 +306,8 @@ export interface DocComplianceRow {
   mitigations: string[];
   claims: string[];
   reasoning?: string;
+  /** "Title — summary in our own words" (D-27), document language; never normative text. */
+  summary: string;
   checklist: string[];
   contradiction?: boolean;
   statementModelChanged?: boolean;

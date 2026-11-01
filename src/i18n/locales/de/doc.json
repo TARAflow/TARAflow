@@ -343,7 +343,9 @@
           "claim": "Claim",
           "edition": "Ausgabe",
           "device-category": "Gerätekategorie"
-        }
+        },
+        "summaryColumn": "Kurzfassung",
+        "summaryDisclaimer": "Die Kurzfassungen sind in eigenen Worten — massgeblich ist der Normtext."
       }
     }
   }

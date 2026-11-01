@@ -173,7 +173,7 @@ function computeDocValues(
     // Verification status as of now, the document's creation (plan Phase 4).
     verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
     // IEC 62443-4-2 requirement matrix (iec-62443-4-2-cra-coverage.md §5).
-    compliance: buildDocCompliance(project),
+    compliance: buildDocCompliance(project, language),
   };
 }
 

@@ -33,6 +33,8 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Link,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import {
@@ -48,9 +50,10 @@ import {
   type StatementStatus,
   type TargetSecurityLevel,
 } from "shared";
-import type { Edition } from "../models/compliance-types";
+import type { Edition, RequirementId } from "../models/compliance-types";
 import type { ComplianceResult, RowResult, RowStatus } from "../models/evaluation-types";
 import type { DeviceCategoryProposal } from "../services/device-category";
+import { describeLanguageOf, describeRequirement, type RequirementDescription } from "../services/describe-requirement";
 
 const NS = "compliance";
 
@@ -108,6 +111,8 @@ export interface ComplianceTabProps {
   /** ISO date stored with a statement. */
   today: string;
   onChange: (data: ComplianceData) => void;
+  /** Catalog mitigations naming one of the requirement ids (for the info dialog). */
+  mitigationSuggestions?: (requirementIds: readonly RequirementId[]) => readonly { id: string; text: string }[];
 }
 
 /** First items of a list, the rest counted. */
@@ -124,10 +129,14 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   nameOf,
   today,
   onChange,
+  mitigationSuggestions,
 }) => {
   const t = useComplianceT();
+  const { i18n } = useTranslation(NS);
+  const lang = describeLanguageOf(i18n?.language);
   const [filter, setFilter] = useState<"open" | "all">("open");
   const [editing, setEditing] = useState<RowResult | null>(null);
+  const [info, setInfo] = useState<RowResult | null>(null);
   const hasDeviceRows = edition.rows.some((r) => r.deviceCategories);
   const cra = edition.id === "en-iec-62443-4-2-praa-2026";
   const statements = data?.statements?.[edition.id] ?? {};
@@ -340,17 +349,35 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
             </TableHead>
             <TableBody>
               {rows.map((row) => {
+                const descriptions = (rowDef.get(row.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang));
+                const checklist = row.checklist.length > 0 ? descriptions.flatMap((d) => d.checklist) : [];
                 const notes = [
                   row.failing.length > 0 && `${t("failing", "not met by")}: ${shortList(row.failing.map(nameOf))}`,
                   row.unknown.length > 0 && `${t("unknown", "properties missing on")}: ${shortList(row.unknown.map(nameOf))}`,
                   row.supportingElements.length > 0 && `${t("supporting", "supporting measure")}: ${shortList(row.supportingElements.map(nameOf))}`,
                   row.mitigationIds.length > 0 && `${t("mitigations", "mitigations")}: ${shortList([...new Set(row.mitigationIds)])}`,
-                  row.checklist.length > 0 && `${t("checklist", "to confirm")}: ${row.checklist.join("; ")}`,
+                  checklist.length > 0 && `${t("checklist", "to confirm")}: ${checklist.join("; ")}`,
                   row.source === "statement" && row.reasoning,
                 ].filter(Boolean);
                 return (
                   <TableRow key={row.label} data-testid={`compliance-row-${row.label}`}>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>{row.label}</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      {descriptions.length > 0 ? (
+                        <Tooltip arrow placement="right" title={<RequirementTooltip label={row.label} descriptions={descriptions} />}>
+                          <Link
+                            component="button"
+                            variant="body2"
+                            underline="hover"
+                            onClick={() => setInfo(row)}
+                            data-testid={`compliance-req-${row.label}`}
+                          >
+                            {row.label}
+                          </Link>
+                        </Tooltip>
+                      ) : (
+                        row.label
+                      )}
+                    </TableCell>
                     <TableCell>{row.minSl ?? "—"}</TableCell>
                     {cra && <TableCell>{(rowDef.get(row.label)?.cra ?? []).join(", ") || "—"}</TableCell>}
                     <TableCell>
@@ -390,6 +417,25 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
         </Paper>
       </Stack>
 
+      {info && (
+        <RequirementInfoDialog
+          row={info}
+          descriptions={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang))}
+          cra={cra ? [...(rowDef.get(info.label)?.cra ?? [])] : undefined}
+          statement={statements[info.label]}
+          suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? []) ?? []}
+          nameOf={nameOf}
+          t={t}
+          onClose={() => setInfo(null)}
+          onStatement={() => {
+            // The info dialog goes first, then the statement dialog opens — never two at once.
+            const row = info;
+            setInfo(null);
+            setEditing(row);
+          }}
+        />
+      )}
+
       {editing && (
         <StatementDialog
           row={editing}
@@ -407,6 +453,167 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
         />
       )}
     </Box>
+  );
+};
+
+// ==================== REQUIREMENT TOOLTIP AND INFO DIALOG (D-27) ====================
+// Title and our own summary — never the normative text.
+
+/** Compact: title and summary; a click on the number opens the info dialog. */
+const RequirementTooltip: React.FC<{ label: string; descriptions: readonly RequirementDescription[] }> = ({ label, descriptions }) => (
+  <Box sx={{ maxWidth: 360 }} data-testid={`compliance-tooltip-${label}`}>
+    {descriptions.map((d) => (
+      <Box key={d.id} sx={{ mb: 0.5 }}>
+        <Typography variant="subtitle2">
+          {label} – {d.title}
+        </Typography>
+        <Typography variant="body2">{d.summary}</Typography>
+      </Box>
+    ))}
+  </Box>
+);
+
+interface RequirementInfoDialogProps {
+  row: RowResult;
+  descriptions: readonly RequirementDescription[];
+  cra?: readonly string[];
+  statement?: ComplianceStatement;
+  suggestions: readonly { id: string; text: string }[];
+  nameOf: (id: string) => string;
+  t: ReturnType<typeof useComplianceT>;
+  onClose: () => void;
+  onStatement: () => void;
+}
+
+const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
+  row,
+  descriptions,
+  cra,
+  statement,
+  suggestions,
+  nameOf,
+  t,
+  onClose,
+  onStatement,
+}) => {
+  const section = (title: string, body: React.ReactNode) => (
+    <Box sx={{ mb: 1.5 }}>
+      <Typography variant="subtitle2">{title}</Typography>
+      {body}
+    </Box>
+  );
+  const checklist = row.checklist.length > 0 ? descriptions.flatMap((d) => d.checklist) : [];
+  return (
+    <Dialog open onClose={onClose} maxWidth="sm" fullWidth data-testid="compliance-info-dialog">
+      <DialogTitle>
+        {row.label} – {descriptions.map((d) => d.title).join(" / ")}
+      </DialogTitle>
+      <DialogContent dividers>
+        <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
+          <Chip size="small" label={`${t("minSl", "SL-C from")} ${row.minSl ?? "—"}`} />
+          {cra && cra.length > 0 && <Chip size="small" label={`CRA ${cra.map((c) => `(2)(${c})`).join(", ")}`} />}
+          <Chip size="small" color={STATUS_COLOR[row.status]} label={t(`status.${row.status}`, STATUS_DEFAULT[row.status])} />
+          {row.source && <Chip size="small" variant="outlined" label={t(`sourceName.${row.source}`, SOURCE_DEFAULT[row.source])} />}
+        </Stack>
+        {section(
+          t("whatItIsAbout", "What it is about"),
+          descriptions.map((d) => (
+            <Typography key={d.id} variant="body2">
+              {d.summary}
+            </Typography>
+          )),
+        )}
+        {section(
+          t("howChecked", "How TARAflow checks it"),
+          descriptions.map((d) => (
+            <Typography key={d.id} variant="body2">
+              {d.check}
+            </Typography>
+          )),
+        )}
+        {(row.failing.length > 0 || row.unknown.length > 0 || row.supportingElements.length > 0) &&
+          section(
+            t("elements", "Elements"),
+            <>
+              {row.failing.length > 0 && (
+                <Typography variant="body2">
+                  {t("failing", "not met by")}: {row.failing.map(nameOf).join(", ")}
+                </Typography>
+              )}
+              {row.unknown.length > 0 && (
+                <Typography variant="body2">
+                  {t("unknown", "properties missing on")}: {row.unknown.map(nameOf).join(", ")}
+                </Typography>
+              )}
+              {row.supportingElements.length > 0 && (
+                <Typography variant="body2">
+                  {t("supporting", "supporting measure")}: {row.supportingElements.map(nameOf).join(", ")}
+                </Typography>
+              )}
+            </>,
+          )}
+        {row.contradiction && (
+          <Alert severity="error" sx={{ mb: 1.5 }}>
+            {t("contradiction", "Mitigation marked done, but the model shows the requirement not met.")}
+          </Alert>
+        )}
+        {checklist.length > 0 &&
+          section(
+            t("checklist", "to confirm"),
+            <ul style={{ margin: 0, paddingLeft: 20 }}>
+              {checklist.map((c) => (
+                <li key={c}>
+                  <Typography variant="body2">{c}</Typography>
+                </li>
+              ))}
+            </ul>,
+          )}
+        {suggestions.length > 0 &&
+          section(
+            t("suggestions", "Catalog mitigations"),
+            suggestions.map((m) => (
+              <Typography key={m.id} variant="body2">
+                <b>{m.id}</b> {m.text}
+              </Typography>
+            )),
+          )}
+        {section(
+          t("statementSection", "Statement"),
+          statement ? (
+            <>
+              <Typography variant="body2">
+                {t(`statementStatusName.${statement.status}`, STATEMENT_DEFAULT[statement.status])} — {statement.reasoning}
+              </Typography>
+              {statement.supportingMeasure && (
+                <Typography variant="body2">
+                  {t("supportingMeasure", "Supporting measure (outside the component)")}: {statement.supportingMeasure}
+                </Typography>
+              )}
+              {row.statementModelChanged && (
+                <Typography variant="body2" color="warning.main">
+                  {t("modelChanged", "The model changed since the statement — review it.")}
+                </Typography>
+              )}
+            </>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              {t("noStatement", "No statement yet.")}
+            </Typography>
+          ),
+        )}
+        <Typography variant="caption" sx={{ fontStyle: "italic" }}>
+          {t("summaryDisclaimer", "Summary in our own words — the standard is authoritative.")}
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t("close", "Close")}</Button>
+        {row.source !== "edition" && (
+          <Button variant="contained" onClick={onStatement} data-testid="compliance-info-statement">
+            {statement ? t("editStatement", "Statement") : t("addStatement", "Add statement")}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 };
 

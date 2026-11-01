@@ -343,7 +343,9 @@
           "claim": "claim",
           "edition": "edition",
           "device-category": "device category"
-        }
+        },
+        "summaryColumn": "Summary",
+        "summaryDisclaimer": "The summaries are in our own words — the standard is authoritative."
       }
     }
   }

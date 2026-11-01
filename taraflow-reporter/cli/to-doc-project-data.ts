@@ -84,7 +84,7 @@ export function toDocProjectData(
       // Verification status as of the report's creation (plan Phase 4).
       verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
       // IEC 62443-4-2 requirement matrix — the same evaluation as in the app.
-      compliance: buildDocCompliance(project),
+      compliance: buildDocCompliance(project, language),
     },
 
     documentation: project.documentation as DocProjectData["documentation"],
