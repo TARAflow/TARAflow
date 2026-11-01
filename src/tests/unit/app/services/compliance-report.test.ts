@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { parseAndRepair } from "app/services/migration-service";
 import { buildDocCompliance, complianceScope, evaluateProjectCompliance } from "app/services/compliance-report";
 import type { Project } from "app/models/project-types";
+import { buildPumpStationProject } from "../../../examples/pump-station-example";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -64,6 +65,16 @@ describe("buildDocCompliance", () => {
       expect(planned.component[fr]).toBeGreaterThanOrEqual(achieved.component[fr]);
       expect(planned.withSupport[fr]).toBeGreaterThanOrEqual(achieved.withSupport[fr]);
     }
+  });
+
+  it("planned keeps the other properties of an element a SHOULD value changes: no met row turns unknown", () => {
+    // The pump station example has open mitigations whose SHOULD values touch
+    // flows with several properties (DF-7, DF-10, DF-11).
+    const { achieved, planned } = evaluateProjectCompliance(parseAndRepair(buildPumpStationProject())!)!;
+    const plannedStatus = new Map(planned.rows.map((r) => [r.label, r.status]));
+    const met = achieved.rows.filter((r) => r.status === "met");
+    expect(met.length).toBeGreaterThan(0);
+    for (const row of met) expect([row.label, plannedStatus.get(row.label)]).toEqual([row.label, "met"]);
   });
 });
 

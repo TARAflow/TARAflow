@@ -88,7 +88,8 @@ function plannedView(view: PropertyView, should: readonly { elementId: string; p
     for (const c of should) {
       if (c.elementId !== item.id) continue;
       if (meetsExpected(c.property, readControlValue(properties as Any, c.property), c.expectedValue)) continue;
-      properties = controlValuePatch(properties as Any, c.property, c.expectedValue);
+      // The patch holds only the changed top-level key.
+      properties = { ...properties, ...controlValuePatch(properties as Any, c.property, c.expectedValue) };
     }
     return { ...item, properties };
   };

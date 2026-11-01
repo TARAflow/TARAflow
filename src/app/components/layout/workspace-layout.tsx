@@ -86,11 +86,8 @@ import { phaseIndicators } from "app/utils/phase-indicators";
 import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
-import {
-  buildElementToAssetIds,
-  resolveThreatAssetIds,
-} from "app/utils/threat-asset-links";
 import { buildThreatGoalLinks } from "app/utils/build-threat-goal-links";
+import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/extract-threat-references";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
 import {
@@ -98,8 +95,6 @@ import {
   ThreatData,
   ThreatsTab,
   type ThreatUpdateResult,
-  resolveMitigationDrafts,
-  resolveVerificationDrafts,
   getAllMitigations,
   syncThreatsWithGraph,
   type ThreatRiskAttachment,
@@ -1179,89 +1174,13 @@ export const WorkspaceLayout: React.FC = () => {
   const extractThreatReferences = (
     threatData: ThreatData | null | undefined,
     strideMethod: StrideMethod,
-  ): ThreatReference[] => {
-    if (!threatData) return [];
-
-    const tables =
-      strideMethod === "per-element"
-        ? threatData.perElementTables
-        : threatData.perInteractionTables;
-
-    if (!tables || tables.length === 0) return [];
-
-    const elementToAssetIds = buildElementToAssetIds(
+  ): ThreatReference[] =>
+    extractThreatReferencesOf(
+      threatData,
+      strideMethod,
       activeProject?.assets?.assets,
       (activeProject?.dfd as any)?.elements,
     );
-
-    const references: ThreatReference[] = [];
-    for (const table of tables) {
-      if (!table.threats || table.threats.length === 0) continue;
-      for (const threat of table.threats) {
-        let elementName: string | undefined;
-        let dataFlowName: string | undefined;
-
-        if (strideMethod === "per-element") {
-          elementName =
-            threat.linkedElement?.elementName ||
-            threat.linkedElement?.elementId;
-        } else {
-          dataFlowName = threat.dataFlow?.dataFlowName;
-          if (!dataFlowName && threat.dataFlow) {
-            dataFlowName = `${threat.dataFlow.sourceName} → ${threat.dataFlow.targetName}`;
-          }
-        }
-
-        const linkedAssetIds = resolveThreatAssetIds(threat, elementToAssetIds);
-
-        references.push({
-          id: threat.id,
-          displayId: threat.displayId,
-          strideCategory: threat.strideCategory,
-          threatDescription: threat.threatDescription,
-          attackDescription: threat.attackDescription,
-          causeDescription: threat.causeDescription,
-          linkedAssetIds,
-          relevance: threat.relevance ?? "unrated",
-          ...(threat.review ? { review: threat.review } : {}),
-          proposedMitigations: resolveMitigationDrafts(
-            threat.proposedMitigations ?? [],
-          ).map((m) => ({
-            id: m.id,
-            text: m.text,
-            notes: m.notes,
-            isCustom: m.isCustom,
-          })),
-          proposedVerifications: resolveVerificationDrafts(
-            threat.proposedVerifications ?? [],
-          ).map((v) => ({
-            id: v.id,
-            text: v.text,
-            notes: v.notes,
-            isCustom: v.isCustom,
-          })),
-          sourceStrideMethod: strideMethod,
-          elementName,
-          dataFlowName,
-          trustBoundaryId: table.displayIdentifier,
-          trustBoundaryName: table.trustBoundaryName,
-          // EL-anchor resolution (§11.1) reads the DFD's exposureLevel off the
-          // threat's raw anchor: per-element (incl. a DataFlow-typed element,
-          // STRIDE_PER_ELEMENT_TYPE.DataFlow = T,I,D) via linkedElement, and
-          // per-interaction via dataFlow. These must survive onto the
-          // ThreatReference or applyExposureLevelToFactorRatings has no anchor
-          // to resolve and EN 50742 EL silently stays 0 in the Risk tab.
-          linkedElement: threat.linkedElement ?? null,
-          dataFlow: threat.dataFlow ?? null,
-          // Table group of a flow between multiprocesses (D20): the attacked side.
-          ...(threat.interactionContext?.victimRole
-            ? { interactionContext: { victimRole: threat.interactionContext.victimRole } }
-            : {}),
-        });
-      }
-    }
-    return references;
-  };
 
   // ── Guard ─────────────────────────────────────────────────────────────────
 
