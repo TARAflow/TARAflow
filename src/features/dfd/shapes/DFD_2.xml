@@ -63,9 +63,9 @@
     "title": "User"
   },
   {
-    "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"\" type=\"interface\" id=\"2\"&gt;&lt;mxCell style=\"group\" vertex=\"1\" connectable=\"0\" parent=\"1\"&gt;&lt;mxGeometry width=\"58\" height=\"60.079999999999984\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"Name\" type=\"interface\" id=\"3\"&gt;&lt;mxCell style=\"whiteSpace=wrap;html=1;aspect=fixed;dashed=1;strokeWidth=2;\" vertex=\"1\" parent=\"2\"&gt;&lt;mxGeometry width=\"38.92\" height=\"38.92\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"&amp;lt;font style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;IF-xx&amp;lt;/font&amp;gt;\" type=\"interface\"IdLabel\" id=\"4\"&gt;&lt;mxCell style=\"rounded=0;whiteSpace=wrap;html=1;strokeColor=#0000CC;editable=0;\" vertex=\"1\" connectable=\"0\" parent=\"2\"&gt;&lt;mxGeometry x=\"23\" y=\"42\" width=\"35\" height=\"18.08\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
-    "w": 58,
-    "h": 60.079999999999984,
+    "xml": "&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=\"0\"/&gt;&lt;mxCell id=\"1\" parent=\"0\"/&gt;&lt;object label=\"Name\" type=\"interface\" id=\"2\"&gt;&lt;mxCell connectable=\"0\" parent=\"1\" style=\"whiteSpace=wrap;html=1;aspect=fixed;dashed=1;strokeWidth=2;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"38.92\" width=\"38.92\" as=\"geometry\"/&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;object label=\"&amp;lt;font style=&amp;quot;font-size: 10px&amp;quot;&amp;gt;IF-xx&amp;lt;/font&amp;gt;\" type=\"idlabel\" id=\"3\"&gt;&lt;mxCell connectable=\"0\" parent=\"2\" style=\"rounded=0;html=1;strokeColor=#0000CC;fillColor=none;autosize=1;\" vertex=\"1\"&gt;&lt;mxGeometry height=\"18.08\" relative=\"1\" width=\"35\" as=\"geometry\"&gt;&lt;mxPoint x=\"40\" y=\"21\" as=\"offset\"/&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;&lt;/object&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;",
+    "w": 38.92,
+    "h": 38.92,
     "aspect": "fixed",
     "title": "Interface"
   },

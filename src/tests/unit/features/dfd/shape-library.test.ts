@@ -34,6 +34,16 @@ describe.each([1, 2])("shape library DFD_%i", (n) => {
     expect(style("Dataflow (straight)")).not.toContain("edgeStyle");
   });
 
+  it("every element shape carries exactly one id label (boundaries and the legend none)", () => {
+    const withoutId = new Set(["Trust Boundary", "Physical Boundary", "Chip Boundary", "Legend"]);
+    for (const e of entries) {
+      const xml = unescape(e.xml);
+      expect(xml.match(/type="idlabel"/g)?.length ?? 0, e.title).toBe(withoutId.has(e.title) ? 0 : 1);
+      // every attribute value closed — a broken type="…"X" hid an id label once
+      expect(xml, e.title).not.toMatch(/="[^"]*"[A-Za-z]/);
+    }
+  });
+
   it("every id label sizes horizontally to its text: autosize, no word wrap", () => {
     for (const e of entries) {
       for (const m of unescape(e.xml).matchAll(/type="idlabel"[^>]*>\s*<mxCell[^>]*style="([^"]*)"/g)) {
@@ -41,5 +51,12 @@ describe.each([1, 2])("shape library DFD_%i", (n) => {
         expect(m[1], e.title).not.toContain("whiteSpace=wrap");
       }
     }
+  });
+});
+
+describe("both libraries share the interface shape", () => {
+  it("DFD_2's interface is DFD_1's", () => {
+    const iface = (n: number) => xmlLib(n).find((e) => e.title === "Interface");
+    expect(iface(2)).toEqual(iface(1));
   });
 });
