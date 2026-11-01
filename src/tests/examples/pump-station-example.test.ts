@@ -198,6 +198,22 @@ describe("Pump Station Controller example", () => {
     for (const row of achieved.rows.filter((r) => r.status === "met")) expect(status(planned.rows, row.label)).toBe("met");
   });
 
+  it("switched to the classic edition the statements still hold — only the graph is evaluated anew (D-31)", () => {
+    const classic = {
+      ...project,
+      info: { ...project.info, tags: { ...project.info.tags, regulation: ["IEC 62443", "CRA"] } },
+    } as Project;
+    const { achieved, planned } = evaluateProjectCompliance(classic)!;
+    const row = (label: string) => achieved.rows.find((r) => r.label === label)!;
+    expect(row("CR 1.7")).toMatchObject({ status: "met", source: "statement" }); // made with the CRA edition
+    expect(row("EDR 2.4").status).toBe("n/a"); // device row of the confirmed category, "no mobile code"
+    expect(row("CR 7.8").status).toBe("needs-statement");
+    // The CRA edition's picture, the graph's gaps included; RDF reaches 4 —
+    // the boundary rows CR 5.2 RE(2)/(3) are NDR rows there, n/a for an EDR.
+    expect(achieved.component).toEqual({ IAC: 1, UC: 2, SI: 0, DC: 0, RDF: 4, TRE: 4, RA: 1 });
+    expect(planned.component).toEqual({ IAC: 1, UC: 2, SI: 1, DC: 4, RDF: 4, TRE: 4, RA: 1 });
+  });
+
   it.runIf(!!process.env.WRITE_EXAMPLES)("writes the example", () => {
     const dir = process.env.WRITE_EXAMPLES!;
     mkdirSync(dir, { recursive: true });

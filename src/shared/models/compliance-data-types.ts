@@ -67,32 +67,35 @@ export interface ComplianceData {
   /** Device categories of the component — 2019 edition only (K-C1). */
   deviceCategories?: DeviceCategoryChoice;
   /**
-   * Statements per edition and row label: the editions number their rows
-   * differently, and switching the tags must not lose either set.
+   * Statements per requirement (D-31): keyed by the requirement ids of the
+   * row (requirementKey) — a statement describes the product, not the
+   * edition, so it holds in the classic and the CRA edition wherever the
+   * requirement is the same. Files written before D-31 stored them per
+   * edition and row label; the app folds those on load.
    */
-  statements?: Partial<Record<ComplianceEditionId, Record<string, ComplianceStatement>>>;
+  statements?: Record<string, ComplianceStatement>;
+}
+
+/** The key of a row's statement: its requirement ids, sorted, "+"-joined (D-31). */
+export function requirementKey(requirementIds: readonly string[]): string {
+  return [...requirementIds].sort().join("+");
 }
 
 // ==================== HELPERS ====================
 // Pure updates for the UI (IEC-8); `undefined` data = nothing stored yet.
 
+/** `key`: requirementKey of the row the statement is made on. */
 export function withComplianceStatement(
   data: ComplianceData | undefined,
-  edition: ComplianceEditionId,
-  rowLabel: string,
+  key: string,
   statement: ComplianceStatement,
 ): ComplianceData {
-  const statements = data?.statements ?? {};
-  return { ...data, statements: { ...statements, [edition]: { ...(statements[edition] ?? {}), [rowLabel]: statement } } };
+  return { ...data, statements: { ...data?.statements, [key]: statement } };
 }
 
-export function withoutComplianceStatement(
-  data: ComplianceData | undefined,
-  edition: ComplianceEditionId,
-  rowLabel: string,
-): ComplianceData {
-  const { [rowLabel]: _removed, ...rest } = data?.statements?.[edition] ?? {};
-  return { ...data, statements: { ...data?.statements, [edition]: rest } };
+export function withoutComplianceStatement(data: ComplianceData | undefined, key: string): ComplianceData {
+  const { [key]: _removed, ...rest } = data?.statements ?? {};
+  return { ...data, statements: rest };
 }
 
 export function withComplianceTarget(

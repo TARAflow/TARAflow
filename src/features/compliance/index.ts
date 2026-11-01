@@ -56,6 +56,7 @@ export {
 export { selectEdition, TAG_EN_IEC_62443_CRA, TAG_IEC_62443 } from "./services/select-edition";
 export { buildPropertyView, type PropertyViewSource } from "./services/property-view";
 export { proposeDeviceCategories, type DeviceCategoryProposal } from "./services/device-category";
+export { editionStatements, statementKeyOf } from "./services/edition-statements";
 export { buildTodoList, type ComponentTodo, type ElementTodo, type TodoItem, type TodoList } from "./services/todo-list";
 export {
   mitigationRequirements,

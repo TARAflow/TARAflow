@@ -192,6 +192,7 @@ export {
   withComplianceTarget,
   withDeviceCategories,
   withoutComplianceStatement,
+  requirementKey,
   type ComplianceData,
   type ComplianceEditionId,
   type ComplianceRowStatus,

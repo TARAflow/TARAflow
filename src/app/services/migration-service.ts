@@ -3,6 +3,7 @@
 // No I/O, no storage — pure data transformation.
 // Imported by ProjectRepository; never by UI components directly.
 
+import { foldLegacyStatements } from "./compliance-statements-legacy";
 import { repairHazardAssetRefs } from "./repair-hazard-asset-refs";
 import { repairElementRelationGroups } from "./repair-element-relation-groups";
 import {
@@ -392,6 +393,13 @@ export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
   }
 
   if (!project) return null;
+
+  // Step 3b: matrix statements per requirement (D-31) — a file of the 0.17
+  // development stored them per edition and row label.
+  if (project.compliance) {
+    const compliance = foldLegacyStatements(project.compliance);
+    if (compliance !== project.compliance) project = { ...project, compliance };
+  }
 
   // Step 4: a verification of the file as read is carried over the
   // conversion only where it is declared analysis-preserving; otherwise it

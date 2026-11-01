@@ -58,6 +58,7 @@ import type { ComplianceResult, RowResult, RowStatus } from "../models/evaluatio
 import type { DeviceCategoryProposal } from "../services/device-category";
 import { describeLanguageOf, describeRequirement, type RequirementDescription } from "../services/describe-requirement";
 import { buildTodoList } from "../services/todo-list";
+import { editionStatements, statementKeyOf } from "../services/edition-statements";
 
 const NS = "compliance";
 
@@ -171,7 +172,12 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   useEffect(() => markGuideSeen(), []);
   const hasDeviceRows = edition.rows.some((r) => r.deviceCategories);
   const cra = edition.id === "en-iec-62443-4-2-praa-2026";
-  const statements = data?.statements?.[edition.id] ?? {};
+  // D-31: one statement per requirement, shared by both editions.
+  const statements = useMemo(() => editionStatements(edition, data?.statements), [edition, data?.statements]);
+  const keyOf = (label: string) => {
+    const row = rowDef.get(label);
+    return row ? statementKeyOf(row) : label;
+  };
   const rowDef = useMemo(() => new Map(edition.rows.map((r) => [r.label, r])), [edition]);
 
   const rows = useMemo(
@@ -583,11 +589,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           existing={statements[editing.label]}
           onClose={() => setEditing(null)}
           onSave={(statement) => {
-            onChange(withComplianceStatement(data, edition.id, editing.label, statement));
+            onChange(withComplianceStatement(data, keyOf(editing.label), statement));
             setEditing(null);
           }}
           onRemove={() => {
-            onChange(withoutComplianceStatement(data, edition.id, editing.label));
+            onChange(withoutComplianceStatement(data, keyOf(editing.label)));
             setEditing(null);
           }}
           today={today}

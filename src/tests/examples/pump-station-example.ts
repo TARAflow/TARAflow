@@ -70,6 +70,7 @@ import { riskService } from "features/risks/services/risk-service";
 import { PHASE_STATUS_KEY } from "shared/models/common-types";
 import { createDefaultDocData } from "features/documentation/models/doc-types";
 import { pumpStationXml } from "./pump-station-diagram";
+import { EDITION_2019, EDITION_PRAA_2026, statementKeyOf } from "features/compliance";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ProjectJson = any;
@@ -165,7 +166,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     location: "external_panel",
     ...exposure("EL2", "Operator panel in the cabinet door, reachable on site."),
     operationalState: "enabled",
-    implementedControls: { abuseProtection: "lockout", serviceAccessPolicy: "always_enabled" },
+    implementedControls: { linkAuthentication: "none", abuseProtection: "lockout", serviceAccessPolicy: "always_enabled" },
   }),
   "IF-2": as<InterfaceProperties>({
     type: "usb",
@@ -197,7 +198,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     location: "on_board",
     operationalState: "hw_disabled",
     ...exposure("EL1", "On the controller board; fused off after production."),
-    implementedControls: { debugProtection: "fused_off", monitoringControl: "tamper_logged", serviceAccessPolicy: "factory_only" },
+    implementedControls: { linkAuthentication: "none", debugProtection: "fused_off", monitoringControl: "tamper_logged", serviceAccessPolicy: "factory_only" },
   }),
   "EE-1": as<ExternalEntityProperties>({ entityType: "operator", ownership: "internal", trustLevel: "medium", authenticationMethod: "password" }),
   "EE-2": as<ExternalEntityProperties>({ entityType: "maintenance", ownership: "internal", trustLevel: "medium", authenticationMethod: "password" }),
@@ -693,9 +694,31 @@ export const STATEMENTS: Record<string, ComplianceStatement> = {
   "CR 7.6": statement("met", "A secure-defaults profile can be applied from the HMI; the current settings can be viewed there."),
 };
 
+/** Statements on rows only the classic edition (2019) has. */
+const CLASSIC_ONLY_STATEMENTS: Record<string, ComplianceStatement> = {
+  "CR 3.3": statement("met", "The controller tests its security functions at start-up and on demand from the HMI (maintenance role).", "Service manual §6.1"),
+};
+
+/**
+ * Stored per requirement (D-31): the statements hold in the CRA and in the
+ * classic edition alike. Device category EDR confirmed for the classic one.
+ */
 export const COMPLIANCE: ComplianceData = {
   target: { IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 },
-  statements: { "en-iec-62443-4-2-praa-2026": STATEMENTS },
+  deviceCategories: { categories: ["EDR"], source: "manual" },
+  statements: Object.fromEntries([
+    ...Object.entries(STATEMENTS).map(([label, statement]) => {
+      const row = EDITION_PRAA_2026.rows.find((r) => r.label === label);
+      if (!row) throw new Error(`no CRA row ${label}`);
+      return [statementKeyOf(row), statement] as const;
+    }),
+    // Rows only the classic edition has.
+    ...Object.entries(CLASSIC_ONLY_STATEMENTS).map(([label, statement]) => {
+      const row = EDITION_2019.rows.find((r) => r.label === label);
+      if (!row) throw new Error(`no classic row ${label}`);
+      return [statementKeyOf(row), statement] as const;
+    }),
+  ]),
 };
 
 // ── System definition (Overview → Definition) ───────────────────────────────

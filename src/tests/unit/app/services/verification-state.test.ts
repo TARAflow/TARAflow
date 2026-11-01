@@ -226,7 +226,7 @@ describe("matrix data in the hash (iec-62443-4-2-cra-coverage.md D-25)", () => {
   const base = (): Any => ({ info: { description: "d" }, risks: { risks: [] } });
   const compliance = (reasoning: string) => ({
     target: { IAC: 2 },
-    statements: { "en-iec-62443-4-2-praa-2026": { "CR 1.7": { status: "met", reasoning, date: "2026-11-02" } } },
+    statements: { "cr-1.7": { status: "met", reasoning, date: "2026-11-02" } },
   });
 
   it("a project without matrix data keeps its hash (no hash version bump)", () => {

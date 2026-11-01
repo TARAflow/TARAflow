@@ -21,13 +21,10 @@ const compliance = (): ComplianceData => ({
   componentId: "mp_ctl",
   target: { IAC: 2, UC: 2, SI: 3 },
   deviceCategories: { categories: ["EDR"], source: "manual" },
+  // Per requirement (D-31).
   statements: {
-    "en-iec-62443-4-2-praa-2026": {
-      "CR 1.7": { status: "met", reasoning: "NIST SP 800-63B rules in the login service", evidenceRef: "TR-12 §4", modelStatusAtStatement: "needs-statement", date: "2026-11-02" },
-    },
-    "iec-62443-4-2-2019": {
-      "EDR 3.10": { status: "met", reasoning: "signed OTA", supportingMeasure: "update server", date: "2026-11-02" },
-    },
+    "cr-1.7": { status: "met", reasoning: "NIST SP 800-63B rules in the login service", evidenceRef: "TR-12 §4", modelStatusAtStatement: "needs-statement", date: "2026-11-02" },
+    "cr-3.10": { status: "met", reasoning: "signed OTA", supportingMeasure: "update server", date: "2026-11-02" },
   },
 });
 

@@ -8,7 +8,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ComplianceTab, evaluateMatrix, type ComplianceInput, type Edition } from "features/compliance";
+import { ComplianceTab, editionStatements, evaluateMatrix, type ComplianceInput, type Edition } from "features/compliance";
 import type { ComplianceData } from "shared";
 
 vi.mock("react-i18next", () => ({
@@ -40,7 +40,7 @@ function renderTab(ed: Edition, data?: ComplianceData, extra: Partial<React.Comp
     view: { elements: [{ id: "p1", type: "Process", properties: { inputValidation: "none", errorHandling: "sanitized" } }], flows: [] },
     scope: new Set(["p1"]),
     run: "achieved",
-    statements: data?.statements?.[ed.id],
+    statements: editionStatements(ed, data?.statements),
     deviceCategories: data?.deviceCategories,
   };
   const achieved = evaluateMatrix(input);
@@ -98,10 +98,9 @@ describe("Compliance tab", () => {
     fireEvent.change(screen.getByTestId("statement-reasoning"), { target: { value: "Validated by the protocol stack" } });
     fireEvent.click(screen.getByTestId("statement-save"));
     expect(onChange).toHaveBeenLastCalledWith({
+      // Stored per requirement (D-31) — the classic edition shows it too.
       statements: {
-        "en-iec-62443-4-2-praa-2026": {
-          "CR 3.5": { status: "met", reasoning: "Validated by the protocol stack", modelStatusAtStatement: "gap", date: "2026-11-02" },
-        },
+        "cr-3.5": { status: "met", reasoning: "Validated by the protocol stack", modelStatusAtStatement: "gap", date: "2026-11-02" },
       },
     });
   });

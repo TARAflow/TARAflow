@@ -1,5 +1,5 @@
 // Pure updates of the stored matrix data (shared/models/compliance-data-types.ts,
-// iec-62443-4-2-cra-coverage.md D-8, K-C1).
+// iec-62443-4-2-cra-coverage.md D-8, K-C1, D-31).
 import { describe, it, expect } from "vitest";
 import {
   withComplianceComponent,
@@ -7,22 +7,25 @@ import {
   withComplianceTarget,
   withDeviceCategories,
   withoutComplianceStatement,
+  requirementKey,
   type ComplianceStatement,
 } from "shared";
-
-const PRAA = "en-iec-62443-4-2-praa-2026" as const;
-const CLASSIC = "iec-62443-4-2-2019" as const;
 const st = (reasoning: string): ComplianceStatement => ({ status: "met", reasoning, date: "2026-11-02" });
 
 describe("compliance data helpers", () => {
-  it("statements are kept per edition — switching the tags loses neither set", () => {
-    let data = withComplianceStatement(undefined, PRAA, "CR 1.7", st("a"));
-    data = withComplianceStatement(data, CLASSIC, "CR 1.7", st("b"));
-    expect(data.statements?.[PRAA]?.["CR 1.7"].reasoning).toBe("a");
-    expect(data.statements?.[CLASSIC]?.["CR 1.7"].reasoning).toBe("b");
-    data = withoutComplianceStatement(data, PRAA, "CR 1.7");
-    expect(data.statements?.[PRAA]).toEqual({});
-    expect(data.statements?.[CLASSIC]?.["CR 1.7"]).toBeDefined();
+  it("statements are kept per requirement — one statement, whatever edition shows the row (D-31)", () => {
+    let data = withComplianceStatement(undefined, "cr-1.7", st("a"));
+    data = withComplianceStatement(data, "cr-2.9", st("b"));
+    expect(data.statements?.["cr-1.7"].reasoning).toBe("a");
+    data = withComplianceStatement(data, "cr-1.7", st("c"));
+    expect(data.statements?.["cr-1.7"].reasoning).toBe("c");
+    data = withoutComplianceStatement(data, "cr-1.7");
+    expect(data.statements).toEqual({ "cr-2.9": st("b") });
+  });
+
+  it("the key of a row: its requirement ids, sorted and joined", () => {
+    expect(requirementKey(["cr-4.1-transit", "cr-4.1-rest"])).toBe("cr-4.1-rest+cr-4.1-transit");
+    expect(requirementKey(["cr-3.10"])).toBe("cr-3.10");
   });
 
   it("a target per FR can be set and cleared", () => {
@@ -33,11 +36,11 @@ describe("compliance data helpers", () => {
   });
 
   it("changing the device category never deletes statements (K-C1)", () => {
-    let data = withComplianceStatement(undefined, CLASSIC, "NDR 3.10", st("as a gateway"));
+    let data = withComplianceStatement(undefined, "cr-3.10", st("as a gateway"));
     data = withDeviceCategories(data, { categories: ["NDR"], source: "manual" });
     data = withDeviceCategories(data, { categories: ["EDR"], source: "manual" });
     expect(data.deviceCategories).toEqual({ categories: ["EDR"], source: "manual" });
-    expect(data.statements?.[CLASSIC]?.["NDR 3.10"]).toBeDefined();
+    expect(data.statements?.["cr-3.10"]).toBeDefined();
     expect(withDeviceCategories(data, undefined).deviceCategories).toBeUndefined();
   });
 

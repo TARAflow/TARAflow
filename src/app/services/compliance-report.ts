@@ -27,6 +27,7 @@ import {
   countsForComponent,
   describeLanguageOf,
   describeRequirement,
+  editionStatements,
   evaluateMatrix,
   FOUNDATIONAL_REQUIREMENTS,
   selectEdition,
@@ -171,7 +172,8 @@ export function evaluateProjectCompliance(
   const base = {
     edition,
     scope,
-    statements: project.compliance?.statements?.[edition.id],
+    // D-31: statements per requirement, found by each row's requirement ids.
+    statements: editionStatements(edition, project.compliance?.statements),
     mitigations,
     deviceCategories: project.compliance?.deviceCategories,
   };
