@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.16.1-beta`
+> **Current version:** `v0.17.0-beta`
 
 TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
@@ -41,7 +41,7 @@ Supported modeling concepts include:
 * Physical Boundaries
 * Structured element properties
 * Protocol and communication metadata
-* Security and contextual properties
+* Security and contextual properties — e.g. update mechanism and session control on processes and multiprocesses, several traffic policies per trust boundary (default deny, island mode, fail close)
 * Validation and consistency checks
 * Asset relationships, restricted to the relation types the element rules allow
 * **Leveled DFDs:** one project can hold several draw.io pages — a top-level diagram plus child pages that decompose individual multiprocesses. Elements keep one identity across pages (definitions and context copies), are numbered hierarchically (`P-2.1` under `MP-2`), and flows drawn on a parent level are resolved to the parts that actually handle them. One element namespace, one asset register, one threat and risk register for the whole project.
@@ -221,7 +221,7 @@ The audit functionality includes:
 * Offline/local commit handling
 * Audit trail verification
 * A repository that signs stays signed: once its history introduced a signer manifest, every commit — for every project in it — is signed, decided on the manifest committed on the target branch as the verification engine does
-* TARA verification (ISO/SAE 21434 RQ-09-07) recorded in the Audit tab, sealed with a hash of the analysis and committed with a `Reviewed-by` trailer
+* TARA verification (ISO/SAE 21434 RQ-09-07) recorded in the Audit tab, sealed with a hash of the analysis (including the IEC 62443-4-2 matrix data, when present) and committed with a `Reviewed-by` trailer
 * Classified DFD diff in the commit dialog — semantic, graphical, structural and identity changes per page, plus the effect of a change on the analysis (e.g. a flow now resolved below a multiprocess)
 
 This makes it possible to use Git not only for source-code versioning but also as part of the **traceability and integrity model of the security analysis itself**.
@@ -273,6 +273,20 @@ The **risk value 1–5** (15.8) is read from the matrix of Annex H.8: impact of 
 The concept-phase work products follow Clause 9: the **Item Definition** (Overview → *Definition*: purpose and functions, item boundary, preliminary architecture, operational environment, constraints, each with a source and links into the model; assumptions with owner, review date and status, linked by the trust boundaries that rely on them), **cybersecurity goals** (CSG-nn, optional CAL) for every risk to reduce and **cybersecurity claims** (CLM-nn) for every risk retained or shared (9.4), and the **verification** of the TARA (RQ-09-07) recorded in the Audit tab. Findings point at what is missing; the report has a chapter for each work product and a goal / claim column in the traceability matrix.
 
 > Current scope: a structured (dropdown-based) leaf editor for the attack-tree DSL, and generating starter attack trees from confirmed threats, are planned — see the post-release backlog.
+
+---
+
+## IEC 62443-4-2 and the Cyber Resilience Act
+
+TARAflow derives the **IEC 62443-4-2 requirement matrix** of a component from the TARA model. The regulation tag selects the edition: `IEC 62443` the classic edition (2019) with the device categories SAR / EDR / HDR / NDR, `EN IEC 62443 (CRA)` the CRA edition EN IEC 62443-4-2/prAA (draft, marked as such) with the view by CRA Annex I letter; with both tags the CRA edition applies.
+
+The **Compliance tab** shows, for the component under evaluation (an element or the whole model):
+
+* the security levels per foundational requirement — **SL-T** (the target), **SL-C** of the product from the model and the mitigations marked done, **SL-C planned** once the chosen mitigations are done, and the value with measures of the system around the component (the basis for the SL-A, which only arises in the operated plant);
+* every requirement row with its status (met, gap, unknown, statement needed, not applicable) and its **source** — DFD properties, a mitigation of the risk treatment (counted for the elements its risks concern), a supporting measure, or the analyst's statement with reasoning and evidence;
+* a **to-do list up to the SL-T**: per element the property to set or check, what the planned mitigations close, the statements still missing; and a quick guide.
+
+An unset property is *unknown*, never *not applicable*; a statement keeps the model result of its moment and is flagged when the model changes. Hovering a requirement shows its title and a summary in our own words (EN / DE) — the standards' texts are not part of TARAflow. The report has a chapter with the security levels, the statement of applicability, the CRA view and the gaps with suggested catalog mitigations.
 
 ---
 
@@ -371,6 +385,7 @@ The documentation workflow supports:
 * Analysis results
 * Other project-specific analysis information
 * Leveled DFDs: one DFD section per page with its figure and element table, the flows analysed on a parent level, and threat and risk tables grouped like the app
+* IEC 62443-4-2 requirement matrix: security levels per foundational requirement, statement of applicability with the source of every row, CRA view, gaps with suggested mitigations
 
 The same reporting functionality can be used through the graphical application and the `taraflow-report` CLI.
 
@@ -605,6 +620,7 @@ The project format contains the information required to reconstruct and analyze 
 * Risks
 * Attack-tree information
 * Item Definition, cybersecurity goals and claims, TARA verification entries
+* IEC 62443-4-2 matrix data: component under evaluation, target security levels, device categories, statements
 * Safety information
 * Documentation configuration
 * Audit and integration settings the team shares (provider, remote, signing policy; tracker, URL, project, mapping)
@@ -613,7 +629,7 @@ Personal values — the commit author, the tracker account and its connection st
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
-The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **11**, since `v0.16.0-beta`).
+The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **12**, since `v0.17.0-beta`).
 
 View state such as the positions in the asset graph is not part of the project file.
 
@@ -680,11 +696,12 @@ Recent development versions include:
 * `v0.15.2-beta` — security fix: issue-tracker tokens (Jira, Azure DevOps) stay in the OS keychain, never in the project file; secret check for audit-repository commits; DFD interface detection and multi-page validation fixes
 * `v0.16.0-beta` — ISO/SAE 21434 Item Definition, cybersecurity goals and claims, TARA verification; project mitigation catalog; reworked closed loop; host-bound Jira integration; personal values local, signed repositories stay signed (schema 11)
 * `v0.16.1-beta` — fix: the project conversion dialog scrolls, its buttons stay visible with a long list of conversion steps
+* `v0.17.0-beta` — IEC 62443-4-2 requirement matrices (classic and CRA edition) with Compliance tab and report chapter; update mechanism and session control on processes and multiprocesses, traffic policy multi-select (schema 12)
 
 The current development state is represented by:
 
 ```text
-v0.16.1-beta
+v0.17.0-beta
 ```
 
 Versions in the beta: releases without a new project schema count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
@@ -745,10 +762,10 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.16.1-beta**
+**TARAflow 0.17.0-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 
-**System Modeling → Asset Analysis → Threat Analysis → Risk Assessment → Attack Trees → Safety Analysis → Documentation → Auditable Git History**
+**System Modeling → Asset Analysis → Threat Analysis → Risk Assessment → Attack Trees → Safety Analysis → Compliance (IEC 62443-4-2) → Documentation → Auditable Git History**
 
 The project is currently focused on extending the analysis capabilities while improving traceability, reproducibility, verification, and integration with engineering workflows.

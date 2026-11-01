@@ -1,3 +1,77 @@
+## [0.17.0-beta] - 2026-11-02
+
+IEC 62443-4-2 requirement matrices — the classic edition (2019) and the
+CRA edition EN IEC 62443-4-2/prAA (draft) — derived from the TARA model:
+a new Compliance tab, a report chapter and the model properties they need.
+New project schema **12**: projects are converted when opened (with a
+backup) and then no longer open in 0.16.x.
+
+### Added
+- **Requirement matrices IEC 62443-4-2:** the regulation tag selects the
+  matrix — `IEC 62443` the classic edition (with the device categories
+  SAR / EDR / HDR / NDR), the new tag `EN IEC 62443 (CRA)` the CRA edition
+  (draft prAA:2026, marked as such); with both tags the CRA edition
+  applies. The tag validator suggests the generic `CRA` tag next to the
+  new one. Every row is derived from the model where it can be:
+  - from the DFD properties of the elements in scope — an unset property
+    counts as *unknown*, never as *not applicable*;
+  - from the mitigations of the risk treatment: a mitigation counts for the
+    elements its risks concern, in the achieved state only when marked
+    done and never against a property the model shows not met; the
+    planned state applies the values the chosen mitigations expect;
+  - from supporting measures of the system around the component and the
+    analyst's statements for what the model cannot show.
+- **Compliance tab** (on the right of the tab bar, only when a tag selects
+  a matrix): component under evaluation (an element or the whole model);
+  device categories of the 2019 edition proposed from the model and
+  confirmed by the analyst; the security levels per foundational
+  requirement — SL-T (target), SL-C of the product, SL-C planned and the
+  value with measures of the system (the basis for the SL-A); the rows
+  with status, source and notes, open first; statements (met / not met /
+  not applicable, reasoning, supporting measure, evidence) that keep the
+  model result of their moment and say when the model changed since;
+  a tooltip and an info dialog per requirement with its title and a
+  summary in our own words (EN / DE — never the normative text), how
+  TARAflow checks it, the elements concerned and catalog mitigations
+  that fit the open elements; a **to-do list up to the SL-T** per element
+  (which property to set or check, what the planned mitigations close,
+  which statements are missing) and a five-step quick guide.
+- **Report chapter *IEC 62443-4-2 requirement matrix*** (all formats incl.
+  PDF and the CLI): basis, security levels per FR, statement of
+  applicability with the source of every row, the CRA view by Annex I
+  letter, gaps with suggested catalog mitigations.
+- **Mitigation catalog:** 73 mitigations name the IEC 62443-4-2
+  requirements they implement; a mitigation also meets the requirements
+  its DFD effects satisfy, for elements of that type.
+- **DFD:** update mechanism and session control (session lock, remote
+  termination, session limit — three-valued: not specified / yes / no) on
+  processes and multiprocesses; session control had no field before. The
+  trust boundary's traffic policy is a multi-select (default deny, island
+  mode, fail close together; *allow all* excludes the others).
+- **TARA verification:** the hash covers the matrix data (component,
+  target, statements) when a project has them — projects without keep
+  their hash.
+
+### Changed
+- **Closed loop for multi-select properties:** a control is met when the
+  selection contains its value, *Apply* adds the value to the selection;
+  island mode no longer counts as default deny (separate capabilities).
+- **Report property tables:** update mechanism on processes and one row per
+  session setting instead of *N/A*.
+
+### Upgrade notes
+- Projects are converted to schema 12 when opened (backup alongside):
+  a trust boundary's traffic policy becomes a selection of one. A TARA
+  verification recorded with 0.16 stays valid (the conversion is declared
+  analysis-preserving).
+- The CRA edition follows the draft EN IEC 62443-4-2/prAA:2026; the matrix
+  will follow the cited edition. The standards' texts are not part of
+  TARAflow — the summaries are our own words, the standard is
+  authoritative.
+- **Azure DevOps** and the further tracker adapters did not make 0.17 —
+  they follow in 0.18. A project that depends on Azure DevOps should stay
+  on 0.15.2.
+
 ## [0.16.1-beta] - 2026-11-02
 
 Bug fix, no new project schema (still 11).
