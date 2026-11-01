@@ -81,7 +81,7 @@ describe("Pump Station Controller example", () => {
     expect(threats.every((t: ProjectJson) => t.relevance === "relevant")).toBe(true);
   });
 
-  it("asset-to-asset relations: what the pump control needs, uses and is configured by", () => {
+  it("asset-to-asset relations: what the pump control and its functions need, use and are configured by", () => {
     const name = (id: string) => project.assets!.assets.find((a) => a.id === id)!.displayId;
     const relations = (project.assets!.relations ?? []).map((r) => `${name(r.sourceAssetId)} ${r.relationType} ${name(r.targetAssetId)}`);
     expect(relations.sort()).toEqual(
@@ -92,8 +92,25 @@ describe("Pump Station Controller example", () => {
         "DA-003 required_by PR-001",
         "DA-004 configures PR-001",
         "DA-005 configures PR-001",
+        "PR-001 implements FU-001",
+        "DA-001 required_by FU-001",
+        "DA-004 configures FU-001",
+        "DA-002 required_by FU-002",
+        "DA-003 required_by FU-003",
+        "DA-005 required_by FU-003",
       ].sort(),
     );
+  });
+
+  it("function assets on the DFD and in the system definition", () => {
+    const fn = (id: string) => project.assets!.assets.find((a) => a.displayId === id)!;
+    const links = (id: string) => fn(id).linkedDFDElements.map((l) => `${l.displayId ?? l.elementId} ${l.relationType}`).sort();
+    expect(links("FU-001")).toEqual(["MP-1 implements"]);
+    expect(links("FU-002")).toEqual(["MP-1 executes", "P-1 implements"]);
+    expect(links("FU-003")).toEqual(["MP-1 implements"]);
+    const functions = project.itemDefinition!.functions;
+    const displayOf = (assetId: string | undefined) => project.assets!.assets.find((a) => a.id === assetId)?.displayId;
+    expect(functions.filter((f) => f.functionAssetId).map((f) => displayOf(f.functionAssetId))).toEqual(["FU-001", "FU-002", "FU-003"]);
   });
 
   it("the Assets tab's threat / goal check finds nothing: every threat violates an active goal of its assets", () => {
