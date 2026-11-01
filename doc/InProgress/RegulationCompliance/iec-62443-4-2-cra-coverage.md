@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v21 · 2026-11-01 (decisions D-1 … D-28 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 P-2 done; IEC-10 in progress; IEC-6, IEC-8b in 0.18;
+**Status:** v22 · 2026-11-01 (decisions D-1 … D-29 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 P-2 done; IEC-10 in progress; IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -342,6 +342,7 @@ Per project, from one model (consistency per EA-6-1):
 | D-26 | **SL terms as operators use them** (user 2026-11-01, after the first look at the tab): the target per FR is the **SL-T** the operator / zone requires — a vector over the FRs, entered per FR with a quick "all FR to …"; the product's value is its **SL-C (product)**, with **SL-C planned** after the chosen open mitigations; the value with supporting measures and claims is shown as **"with measures of the system"** — what the plant can reach if it provides the listed supporting measures and claims, the basis for the SL-A, which only arises in the operated plant and is never computed by TARAflow. "Planned with measures of the system" is not shown. The SL table has the **FRs as columns** and the four values as rows, in the tab and in the report; a value below the SL-T is marked by colour **and** symbol (✗ / ✓), never by colour alone. | Renames only — the evaluation (D-2, D-4, D-14) is unchanged. The gap list answers the operator question "SL-T 3 required — product SL-C 2 — what is missing, what must the plant provide". |
 | D-27 | **What a requirement is about** (user 2026-11-01): every row shows the requirement's short title and a **summary in our own words** (English, German) — **never the normative text** (no "shall" sentences, rationale or acceptance criteria; TARAflow is public, the standard licensed), always with "summary — the standard is authoritative". In the tab: a **compact tooltip** (title, summary) on the requirement number; a **click opens an info dialog** with all of it — SL-C from, CRA letters, current status and source, "how TARAflow checks it" (generated from the evidence rule), affected elements, checklist, catalog mitigations, the statement; its "statement" button closes the info dialog first, then opens the statement dialog (the button in the row stays). In the report: a compact column "title — summary" in the SoA. The type B checklists are translated as well. | `data/requirement-texts.ts`, `services/describe-requirement.ts`. |
 | D-28 (K-E15) | **Transmitted information = flows across the component border** (user 2026-11-01): CR 3.1, CR 3.1 RE(1) and CR 4.1 (transit) apply only to a flow with an endpoint that is an ExternalEntity or outside the component scope, and not to human input on the component's own panel (protocol `human_input`) or a transducer coupling (medium `physical`). CR 4.3 keeps every encrypted flow. | `EvidenceTarget.crossesComponent`, rules via `COMPONENT_BORDER_FLOWS` (patch 15); without a selected component the scope is the whole model, so the flows to and from external entities count |
+| D-29 | **Mitigations cover element by element; references fit the element types** (user 2026-11-01): (1) on a rule every element must meet (`all`, type A / B) a mitigation covers only the elements its risks concern — the rest stays open and listed; C rows and `any` rules stay row-level. (2) Besides the hand-kept `iec62443` references a mitigation meets the requirements its `affectsProperties` satisfy (effect type ∈ rule target types, expected value accepted), bound to that element type. (3) Catalog test: a hand reference on an A / B rule must fit a type the rule checks when the mitigation has property effects; wider references only listed with a reason (5). (4) Suggestions for a row: only mitigations meeting it on a type of the elements still open. | evaluator step 6, `mitigation-requirements.ts`, evidence builder with `typeOf`, tab / report suggestions (patch 17). Pump Station planned run: CR 1.1 RE(2), CR 1.5 RE(1), CR 7.1 RE(1) back to gaps |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -542,12 +543,17 @@ holds).
    Elements that are `no` or `unknown` (applicability or satisfaction) are listed in the
    result. In **type A** rules a check that holds only because of the value `custom`
    counts as `unknown` (D-23); in type B rules it counts, the checklist covers it.
-6. **Mitigation** with the requirement id, chosen for a risk whose threat concerns an
-   element in scope (D-16) → `met`, source `mitigation`. **Achieved run** (D-21): only
+6. **Mitigation** with the requirement id (referenced, or derived from its property
+   effects for the elements of the effect's type — D-29), chosen for a risk whose threat
+   concerns an element in scope (D-16) → `met`, source `mitigation`. On an `all` rule
+   (type A / B) it covers **only the elements its risks concern** (D-29): uncovered
+   elements stay `no` / `unknown` and listed; C rows and `any` rules are covered as a
+   whole. **Achieved run** (D-21): only
    mitigations in a done status, and only where the model does not decide — the rule has
    no model evidence (type C) or the listed elements are `unknown`; if step 5 found an
    element `no`, the row stays a `gap` with the note "mitigation marked done, model shows
-   not met". **Planned run:** the mitigation may overlay a model `no`.
+   not met". **Planned run:** the mitigation may overlay a model `no` of the elements it
+   covers.
 7. **Supporting measure** — automatically **only for `any` rules** (D-20): the rule holds
    on an element of the environment but on none in scope → `met`, source
    `supporting-measure`, the environment element named (D-7). For `all` rules a
@@ -629,7 +635,7 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-6 | claims for SL-C gaps (D-5) | — | — | **0.18** (user 2026-11-01): statements with a supporting measure cover the case in 0.17 |
 | IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | — | — | **0.18** (user 2026-11-01) |
 | IEC-9 | model gaps: P-2 (update mechanism / session control on both element types) and P-1 (`defaultDenyPolicy` multi-select, schema-12 migration) in 0.17; P-4, P-7 in 0.18 | same | IEC-1 | P-2 done (patch 13); P-1 open |
-| IEC-10 | validation: general example "Pump Station Controller" (CRA tag, SL-T 2, every row status; generator `src/tests/examples/pump-station-example.ts` through the real services, `WRITE_EXAMPLES=<dir>` writes the project); the seminar uses SmokeDetector; check SmokeDetector-leveled / Headlamp | same | all IEC | in progress: example done (patch 12, with the fix of the planned overlay — it lost every property but the patched one); D-28 (patch 15); open: the two examples |
+| IEC-10 | validation: general example "Pump Station Controller" (CRA tag, SL-T 2, every row status; generator `src/tests/examples/pump-station-example.ts` through the real services, `WRITE_EXAMPLES=<dir>` writes the project); the seminar uses SmokeDetector; check SmokeDetector-leveled / Headlamp | same | all IEC | in progress: example done (patch 12, with the fix of the planned overlay — it lost every property but the patched one); D-28 (patch 15); D-29 (patch 17); open: the two examples |
 | IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
 | IEC-5 | `iec62443` references on catalog mitigations (§10), mitigation evidence for the evaluator from the risk treatment (one entry per mitigation and risk) | same | IEC-3 | done (patch 276) |
 | IEC-8 | Compliance tab (D-9): entry "🛡 Compliance" on the right of the tab bar like Audit / Integration (no phase status, not in the progress; only when the tags select an edition); component under evaluation, device categories (2019: derived proposal, confirm — K-C1), target per FR with achieved / planned × component / with support, rows (open first) with status, source, notes, statements (store the model result of the moment, D-17); i18n namespace `compliance`. Still open: `iec62443` references on project mitigations (M-C-…) in the custom mitigation dialog (IEC-8b) | same | IEC-4, IEC-7 | done (patch 04) |
@@ -644,7 +650,9 @@ cannot show it (type C) or leaves it undecided; in the achieved run only in a do
 and never against a model "no" (D-21), and only for risks in the component scope (D-16).
 The assignment is conservative — a reference only where the control clearly implements
 the capability; 73 of 136 mitigations carry one. Mitigations whose DFD property mapping
-already shows the requirement are referenced too (planned vector, D-4). Project
+already shows the requirement are referenced too (planned vector, D-4). Since D-29 the property mapping also
+derives requirements by itself (bound to the effect's element type); the table lists only
+the hand-kept references. Project
 mitigations (`M-C-…`) can carry references as well; entering them comes with the
 Compliance tab (IEC-8).
 
