@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v18 · 2026-10-31 (decisions D-1 … D-27 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done;
+**Status:** v19 · 2026-10-31 (decisions D-1 … D-27 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done; IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -623,7 +623,10 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 |---|---|---|---|---|
 | IEC-2a | types, evidence rules, both edition files, completeness test, conformance test — no UI, no i18n | `feature/iec62443-cra-matrix` | — | done (patches 264, 266: D-22 quantifiers, `connectedIf`) |
 | IEC-3 | evaluator, edition selection, vectors, property view, evaluator tests, smoke test | same | IEC-2a | done (patch 269) |
-| IEC-2b | regulation tag `EN IEC 62443 (CRA)`, checklist / reasoning i18n keys | same | B's i18n split | open |
+| IEC-2b | regulation tag `EN IEC 62443 (CRA)` (catalogue, tooltip, document description, context hint, hint to add the CRA tag); checklist / reasoning texts came with D-27 | same | — (done without waiting for B's i18n split, user 2026-11-01) | done (patch 11) |
+| IEC-6 | claims for SL-C gaps (D-5) | — | — | **0.18** (user 2026-11-01): statements with a supporting measure cover the case in 0.17 |
+| IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | — | — | **0.18** (user 2026-11-01) |
+| IEC-9 | model gaps: P-2 (update mechanism / session control on both element types) and P-1 (`defaultDenyPolicy` multi-select, schema-12 migration) in 0.17; P-4, P-7 in 0.18 | same | IEC-1 | open |
 | IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
 | IEC-5 | `iec62443` references on catalog mitigations (§10), mitigation evidence for the evaluator from the risk treatment (one entry per mitigation and risk) | same | IEC-3 | done (patch 276) |
 | IEC-8 | Compliance tab (D-9): entry "🛡 Compliance" on the right of the tab bar like Audit / Integration (no phase status, not in the progress; only when the tags select an edition); component under evaluation, device categories (2019: derived proposal, confirm — K-C1), target per FR with achieved / planned × component / with support, rows (open first) with status, source, notes, statements (store the model result of the moment, D-17); i18n namespace `compliance`. Still open: `iec62443` references on project mitigations (M-C-…) in the custom mitigation dialog (IEC-8b) | same | IEC-4, IEC-7 | done (patch 04) |

@@ -7,6 +7,14 @@ maintainability, fixes). The user reviews, applies and commits every patch.
 **Sources:** roadmap and backlog after 0.16 (user 2026-10-31), the design documents
 named per strand below.
 
+> **Status 2026-11-01 (user):** instance B has not started (no commits on
+> `feature/0.17-trackers-maintenance`, plan v2 / B01 not delivered). The B scope is no longer
+> on the critical path of 0.17: issue-tracker adapters and FX / MT items move to 0.18 unless
+> B delivers before the freeze; instance A takes small fixes needed for the release (e.g. the
+> PDF test timeout). S1 status lives in `iec-62443-4-2-cra-coverage.md` §9.6 — IEC-6 and
+> IEC-8b moved to 0.18, P-1 stays in 0.17; the tag `EN IEC 62443 (CRA)` (IEC-2b) was added
+> without waiting for the i18n split.
+
 ---
 
 ## 1. Scope
