@@ -6,11 +6,11 @@ describe("describeRequirement", () => {
   it("an all-rule: every element of the target, with its neighbour and the accepted values", () => {
     const d = describeRequirement("cr-2.5", "en");
     expect(d.title).toBe("Session lock");
-    expect(d.check).toBe("Checked in the model: every Process connected to ExternalEntity (entity type = user / admin_user / operator / maintenance / contractor / device_owner): session lock enabled = true.");
+    expect(d.check).toBe("Checked in the model: every Process / Multiprocess connected to ExternalEntity (entity type = user / admin_user / operator / maintenance / contractor / device_owner): session lock enabled = true.");
   });
 
   it("an any-rule and a precondition", () => {
-    expect(describeRequirement("cr-3.10", "en").check).toContain("at least one Multiprocess: update mechanism set, not none");
+    expect(describeRequirement("cr-3.10", "en").check).toContain("at least one Process / Multiprocess: update mechanism set, not none");
     expect(describeRequirement("cr-1.9-re1", "en").check).toMatch(/^Applies when: at least one DataFlow with endpoint authentication = certificate \/ mutual_tls/);
   });
 

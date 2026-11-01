@@ -27,6 +27,39 @@ import type {
   Controllability,
 } from "./transducer-properties";
 
+// ==================== SHARED: UPDATE / SESSIONS ====================
+// On Process AND Multiprocess (iec-62443-4-2-cra-coverage.md P-2): a
+// component drawn as a single process updates and holds sessions as well as
+// one drawn as a multiprocess.
+
+export const UPDATE_MECHANISM_OPTIONS = [
+  "none", // No update planned
+  "manual_local", // Physical access, manual (no signing required)
+  "signed_local", // Signed package, physical access
+  "signed_ota", // Signed Over-the-Air
+  "vendor_only", // Only through manufacturer / supplier
+  "mdm_managed", // Mobile Device Management
+  "ci_cd", // Automated CI/CD deployment (Cloud / DevOps)
+] as const;
+
+/** How the software of the element is updated — CR 3.10 (RE 1, RE 2). */
+export type UpdateMechanism = (typeof UPDATE_MECHANISM_OPTIONS)[number];
+
+/**
+ * Session management controls for elements with human users.
+ * CR 2.5 (session lock, SL-1+), CR 2.6 (remote termination, SL-2+),
+ * CR 2.7 (concurrent session control, SL-3+).
+ *
+ * sessionLockEnabled:          CR 2.5 — lock after inactivity timeout
+ * remoteTerminationEnabled:    CR 2.6 — manual termination by authority
+ * maxConcurrentSessions:       CR 2.7 — per-user session limit (0 = unlimited)
+ */
+export interface SessionControl {
+  sessionLockEnabled?: boolean;
+  remoteTerminationEnabled?: boolean;
+  maxConcurrentSessions?: number;
+}
+
 // ==================== PROCESS PROPERTIES ====================
 
 export interface ProcessProperties {
@@ -209,22 +242,14 @@ export interface ProcessProperties {
     | "custom";
 
   /**
-   * Session management controls for human-user-facing processes.
-   * CR 2.5 (session lock, SL-1+), CR 2.6 (remote termination, SL-2+),
-   * CR 2.7 (concurrent session control, SL-3+).
-   *
+   * Session management for a process with human users (SessionControl).
    * Only meaningful for processes with a human user interface:
    * technology = "ui" | "websocket" | "cli" | "api" (with HMI access).
-   *
-   * sessionLockEnabled:          CR 2.5 — lock after inactivity timeout
-   * remoteTerminationEnabled:    CR 2.6 — manual termination by authority
-   * maxConcurrentSessions:       CR 2.7 — per-user session limit (0 = unlimited)
    */
-  sessionControl?: {
-    sessionLockEnabled?: boolean;
-    remoteTerminationEnabled?: boolean;
-    maxConcurrentSessions?: number;
-  };
+  sessionControl?: SessionControl;
+
+  /** How the process is updated, when it is updated on its own (CR 3.10). */
+  updateMechanism?: UpdateMechanism;
 
   /**
    * Non-repudiation mechanism — ability to prove a user took a specific action.
@@ -317,14 +342,10 @@ export interface MultiprocessProperties {
     | "cc_eal4"; // Common Criteria EAL 4+
 
   // ── Update Mechanism ─────────────────────────────────────────────────────
-  updateMechanism?:
-    | "none" // No update planned
-    | "manual_local" // Physical access, manual (no signing required)
-    | "signed_local" // Signed package, physical access
-    | "signed_ota" // Signed Over-the-Air
-    | "vendor_only" // Only through manufacturer / supplier
-    | "mdm_managed" // Mobile Device Management
-    | "ci_cd"; // Automated CI/CD deployment (Cloud / DevOps)
+  updateMechanism?: UpdateMechanism;
+
+  /** Session management of the system's human users (CR 2.5 – 2.7). */
+  sessionControl?: SessionControl;
 
   // ── System-Level Access Control ──────────────────────────────────────────
   /**

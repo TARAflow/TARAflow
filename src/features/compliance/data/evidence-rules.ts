@@ -92,7 +92,11 @@ const AUTHENTICATORS_IN_HARDWARE = [
 const HUMAN_NEIGHBOUR = { elementTypes: ["ExternalEntity"], checks: [{ property: "entityType", in: HUMAN_ENTITY_TYPES }] } as const;
 
 /** Processes that serve human users (sessions, user actions). */
-const PROCESSES_WITH_HUMAN_USERS = { elementTypes: ["Process"], connectedIf: HUMAN_NEIGHBOUR } as const;
+/** Processes and multiprocesses with a human neighbour — both carry sessionControl (P-2). */
+const PROCESSES_WITH_HUMAN_USERS = { elementTypes: ["Process", "Multiprocess"], connectedIf: HUMAN_NEIGHBOUR } as const;
+
+/** Elements that carry updateMechanism (P-2): a component drawn as one process updates too. */
+const UPDATABLE = { elementTypes: ["Process", "Multiprocess"] } as const;
 
 /** Interfaces reachable over a network (EL2 local network … EL4 internet). */
 const EXPOSED_INTERFACES = {
@@ -326,7 +330,7 @@ const RULES = [
     type: "A",
     targets: [
       {
-        elementTypes: ["Process"],
+        elementTypes: ["Process", "Multiprocess"],
         connectedIf: { elementTypes: ["ExternalEntity"], checks: [{ property: "entityType" }] },
         satisfiedIf: [{ property: "sessionControl.maxConcurrentSessions" }],
       },
@@ -482,19 +486,19 @@ const RULES = [
     id: "cr-3.10",
     type: "A",
     quantifier: "any",
-    targets: [{ elementTypes: ["Multiprocess"], satisfiedIf: [{ property: "updateMechanism", notIn: ["none"] }] }],
+    targets: [{ ...UPDATABLE, satisfiedIf: [{ property: "updateMechanism", notIn: ["none"] }] }],
   },
   {
     id: "cr-3.10-re1",
     type: "A",
     quantifier: "any",
-    targets: [{ elementTypes: ["Multiprocess"], satisfiedIf: [{ property: "updateMechanism", in: ["signed_local", "signed_ota"] }] }],
+    targets: [{ ...UPDATABLE, satisfiedIf: [{ property: "updateMechanism", in: ["signed_local", "signed_ota"] }] }],
   },
   {
     id: "cr-3.10-re2",
     type: "B",
     quantifier: "any",
-    targets: [{ elementTypes: ["Multiprocess"], satisfiedIf: [{ property: "updateMechanism", in: ["signed_ota", "mdm_managed", "ci_cd"] }] }],
+    targets: [{ ...UPDATABLE, satisfiedIf: [{ property: "updateMechanism", in: ["signed_ota", "mdm_managed", "ci_cd"] }] }],
     checklist: ["automatic loading, notification or scheduled updating", "recovery to an earlier version on failure (should)"],
   },
   {

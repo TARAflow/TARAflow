@@ -133,6 +133,8 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     backupMechanism: "manual_local",
     nonRepudiation: "audit_log",
     remoteAccessEnabled: true,
+    // Engineering, SCADA and remote service sessions (CR 2.5 – 2.7).
+    sessionControl: { sessionLockEnabled: true, remoteTerminationEnabled: true, maxConcurrentSessions: 2 },
     exposedToInternet: false,
     airGapped: false,
     safetyRelevant: true,

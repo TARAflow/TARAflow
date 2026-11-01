@@ -141,6 +141,37 @@ describe('quantifier "any"', () => {
   });
 });
 
+// ==================== P-2 BOTH ELEMENT TYPES ====================
+
+describe("update and sessions on Process and Multiprocess (P-2)", () => {
+  const ed = edition(
+    { label: "CR 2.5", requirementIds: ["cr-2.5"] },
+    { label: "CR 3.10", requirementIds: ["cr-3.10"], fr: "SI" },
+    { label: "CR 3.10 RE(1)", requirementIds: ["cr-3.10-re1"], fr: "SI", minSl: 2 },
+  );
+
+  it("a component drawn as one process: its update mechanism counts, no n/a", () => {
+    const signed = run(ed, [el("p", "Process", { updateMechanism: "signed_ota" })]);
+    expect(row(signed, "CR 3.10").status).toBe("met");
+    expect(row(signed, "CR 3.10 RE(1)").status).toBe("met");
+    expect(row(run(ed, [el("p", "Process")]), "CR 3.10").status).toBe("unknown");
+  });
+
+  it("one updatable element suffices, whichever type", () => {
+    const r = run(ed, [el("mp", "Multiprocess", { updateMechanism: "none" }), el("p", "Process", { updateMechanism: "signed_local" })]);
+    expect(row(r, "CR 3.10").status).toBe("met");
+  });
+
+  it("a multiprocess with human users carries the session lock", () => {
+    const flows = [flow("f", "ee-op", "mp")];
+    const locked = run(ed, [OPERATOR, el("mp", "Multiprocess", { sessionControl: { sessionLockEnabled: true } })], flows);
+    expect(row(locked, "CR 2.5").status).toBe("met");
+    const open = run(ed, [OPERATOR, el("mp", "Multiprocess")], flows);
+    expect(row(open, "CR 2.5").status).toBe("unknown");
+    expect(row(open, "CR 2.5").unknown).toEqual(["mp"]);
+  });
+});
+
 // ==================== D-23 CUSTOM ====================
 
 describe('"custom" (D-23)', () => {
@@ -341,7 +372,8 @@ describe("neighbours (D-24)", () => {
       "CR 2.5",
     );
     expect(r.status).toBe("unknown");
-    expect(r.unknown).toEqual(["p"]);
+    // The multiprocess holds the fallback flow itself and carries sessionControl too (P-2).
+    expect(r.unknown).toEqual(["mp", "p"]);
   });
 });
 
