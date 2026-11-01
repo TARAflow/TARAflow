@@ -12,6 +12,7 @@
       },
       "attackVectors": ["physical"],
       "isCustom": false,
+      "iec62443": ["cr-3.14", "cr-3.14-re1"],
       "affectsProperties": [
         {
           "targetType": "ChipBoundary",
@@ -122,6 +123,7 @@
       },
       "attackVectors": ["physical"],
       "isCustom": false,
+      "iec62443": ["cr-2.13"],
       "affectsProperties": [
         {
           "targetType": "ChipBoundary",
@@ -213,6 +215,7 @@
       "context": {},
       "attackVectors": ["physical"],
       "isCustom": false,
+      "iec62443": ["cr-1.5-re1"],
       "affectsProperties": [
         {
           "targetType": "ChipBoundary",

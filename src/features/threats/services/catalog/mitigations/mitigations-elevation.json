@@ -7,6 +7,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.1-re1"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -24,6 +25,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.1", "cr-2.1-re2"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -47,6 +49,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-3.5"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -100,6 +103,7 @@
       "context": {},
       "attackVectors": ["physical", "local"],
       "isCustom": false,
+      "iec62443": ["cr-2.13"],
       "affectsProperties": [
         {
           "targetType": "Interface",
@@ -123,6 +127,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-3.2", "cr-3.2-re1", "edr-3.2-unauthorized-software"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -146,6 +151,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-3.2"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -164,6 +170,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-5.2-re1"],
       "affectsProperties": [],
       "verifications": ["V-NET-001"]
     },
@@ -173,6 +180,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent", "local"],
       "isCustom": false,
+      "iec62443": ["cr-7.7"],
       "affectsProperties": [],
       "verifications": ["V-NET-003"]
     },
@@ -182,6 +190,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-7.7"],
       "affectsProperties": [],
       "verifications": ["V-NET-004"]
     },
@@ -190,6 +199,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.1", "cr-2.1-re2"],
       "affectsProperties": [],
       "verifications": ["V-AC-001"]
     },
@@ -198,6 +208,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.1"],
       "affectsProperties": [],
       "verifications": ["V-AC-002"]
     },
@@ -207,6 +218,7 @@
       "context": {},
       "attackVectors": ["local"],
       "isCustom": false,
+      "iec62443": ["cr-2.1-re1"],
       "affectsProperties": [],
       "verifications": ["V-AC-003"]
     },
@@ -216,6 +228,7 @@
       "context": {},
       "attackVectors": ["local", "network"],
       "isCustom": false,
+      "iec62443": ["cr-2.1-re1"],
       "affectsProperties": [],
       "verifications": ["V-OS-001"]
     },
@@ -242,6 +255,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-7.6"],
       "affectsProperties": [],
       "verifications": ["V-OS-006"]
     },
@@ -250,6 +264,7 @@
       "strideCategory": "E",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-7.8"],
       "affectsProperties": [],
       "verifications": ["V-OPS-001"]
     }

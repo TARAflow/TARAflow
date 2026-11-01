@@ -114,8 +114,9 @@ describe("carrying verifications over loading (review 2026-10-30)", () => {
     expect(carryVerifications(p, { read: "r", migrated: "m", loaded: "m" }, false)).toBe(p);
   });
 
-  it("loading a migrated file: no migration is declared preserving yet, so the verification asks to be confirmed again", () => {
-    expect(ANALYSIS_PRESERVING_MIGRATIONS.size).toBe(0);
+  it("loading a file through a migration that is not declared preserving (schema 9 → 12 runs 10 and 11): confirm again", () => {
+    expect(ANALYSIS_PRESERVING_MIGRATIONS.has(10)).toBe(false);
+    expect(ANALYSIS_PRESERVING_MIGRATIONS.has(11)).toBe(false);
     const raw: Any = JSON.parse(readFileSync("src/tests/fixtures/headlamp-iso21434.tara.json", "utf-8"));
     const readHash = verificationStateHash(JSON.parse(JSON.stringify(raw)));
     raw.cybersecurityConcept = {
@@ -218,5 +219,29 @@ describe("verification status", () => {
   it("an entry hashed by another hash version asks to be confirmed again", () => {
     const old = { ...entry("2026-10-01", "passed"), hashVersion: VERIFICATION_HASH_VERSION + 1 };
     expect(verificationStatus([old], "h1", "2026-10-29").kind).toBe("reconfirm");
+  });
+});
+
+describe("matrix data in the hash (iec-62443-4-2-cra-coverage.md D-25)", () => {
+  const base = (): Any => ({ info: { description: "d" }, risks: { risks: [] } });
+  const compliance = (reasoning: string) => ({
+    target: { IAC: 2 },
+    statements: { "en-iec-62443-4-2-praa-2026": { "CR 1.7": { status: "met", reasoning, date: "2026-11-02" } } },
+  });
+
+  it("a project without matrix data keeps its hash (no hash version bump)", () => {
+    expect(verificationStateHash({ ...base(), compliance: undefined })).toBe(verificationStateHash(base()));
+  });
+
+  it("matrix data is covered: a statement changed after a verification shows as a change", () => {
+    const before = verificationStateHash({ ...base(), compliance: compliance("NIST rules") });
+    expect(before).not.toBe(verificationStateHash(base()));
+    expect(verificationStateHash({ ...base(), compliance: compliance("changed later") })).not.toBe(before);
+  });
+
+  it("the key order of the stored data does not matter", () => {
+    const a = { target: { IAC: 2, UC: 3 }, componentId: "mp" };
+    const b = { componentId: "mp", target: { UC: 3, IAC: 2 } };
+    expect(verificationStateHash({ ...base(), compliance: a })).toBe(verificationStateHash({ ...base(), compliance: b }));
   });
 });

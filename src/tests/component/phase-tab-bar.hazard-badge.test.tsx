@@ -44,4 +44,15 @@ describe("phase bar badges", () => {
     render(<PhaseTabs project={project} activePhase={0} onPhaseChange={() => {}} />);
     expect(screen.queryByTestId("audit-hints")).toBeNull();
   });
+
+  it("the Compliance entry appears only when the tags select a matrix (iec-62443-4-2-cra-coverage.md D-9)", () => {
+    const project: Any = { id: "p", info: {}, phaseStatus: {} };
+    const onPhaseChange = vi.fn();
+    const { unmount } = render(<PhaseTabs project={project} activePhase={0} onPhaseChange={onPhaseChange} />);
+    expect(screen.queryByTestId("compliance-entry")).toBeNull();
+    unmount();
+    render(<PhaseTabs project={project} activePhase={0} onPhaseChange={onPhaseChange} complianceAvailable />);
+    screen.getByTestId("compliance-entry").click();
+    expect(onPhaseChange).toHaveBeenCalledWith(PhaseId.Compliance);
+  });
 });

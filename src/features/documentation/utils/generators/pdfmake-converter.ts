@@ -17,6 +17,7 @@ import {
   verificationStatusSentence,
 } from "../cybersecurity-concept-report";
 import type { ReportSection } from "../report-section";
+import { complianceMatrixIntro, complianceMatrixSections } from "../compliance-matrix-report";
 import {
   attackTreeReportSections,
   attackTreesIntro,
@@ -456,6 +457,12 @@ export class PdfMakeConverter {
         return this.createAttackTrees();
       case "goals-claims":
         return this.createGoalsClaims();
+      case "compliance-matrix":
+        return this.sectionedChapter(
+          "compliance-matrix",
+          complianceMatrixIntro(this.t),
+          complianceMatrixSections(this.project.computed.compliance, this.t),
+        );
       case "accepted-risks":
         return this.getWontRisks().length > 0 ? this.createAcceptedRisks() : [];
       case "traceability-matrix":

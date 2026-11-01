@@ -12,6 +12,7 @@ import {
   verificationStatusLabel,
   verificationStatusSentence,
 } from "../cybersecurity-concept-report";
+import { complianceMatrixIntro, complianceMatrixSections } from "../compliance-matrix-report";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
 import { controlLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
@@ -420,6 +421,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateItemDefinition(title);
       case "goals-claims":
         return this.generateGoalsClaims(title);
+      case "compliance-matrix":
+        return this.generateComplianceMatrix(title);
       case "dfd":
         return this.generateDfd(title);
       case "dfd-descriptions":
@@ -1492,6 +1495,20 @@ export abstract class BaseDocumentGenerator {
     }
     const body = sections.map((s) => this.formatReportSection(s)).join("");
     const content = this.formatSectionedChapter(chapterId, title, goalsClaimsIntro(this.ctx.t), body);
+    return { id: chapterId, title, content, hasContent: content !== "" };
+  }
+
+  // ==================== IEC 62443-4-2 REQUIREMENT MATRIX ====================
+
+  /** The Statement of Applicability (iec-62443-4-2-cra-coverage.md §5). */
+  protected generateComplianceMatrix(title: string): ChapterContent {
+    const chapterId: DocChapterId = "compliance-matrix";
+    const sections = complianceMatrixSections(this.ctx.project.computed.compliance, this.ctx.t);
+    if (sections.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+    const body = sections.map((s) => this.formatReportSection(s)).join("");
+    const content = this.formatSectionedChapter(chapterId, title, complianceMatrixIntro(this.ctx.t), body);
     return { id: chapterId, title, content, hasContent: content !== "" };
   }
 

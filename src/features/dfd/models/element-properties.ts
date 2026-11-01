@@ -27,6 +27,39 @@ import type {
   Controllability,
 } from "./transducer-properties";
 
+// ==================== SHARED: UPDATE / SESSIONS ====================
+// On Process AND Multiprocess (iec-62443-4-2-cra-coverage.md P-2): a
+// component drawn as a single process updates and holds sessions as well as
+// one drawn as a multiprocess.
+
+export const UPDATE_MECHANISM_OPTIONS = [
+  "none", // No update planned
+  "manual_local", // Physical access, manual (no signing required)
+  "signed_local", // Signed package, physical access
+  "signed_ota", // Signed Over-the-Air
+  "vendor_only", // Only through manufacturer / supplier
+  "mdm_managed", // Mobile Device Management
+  "ci_cd", // Automated CI/CD deployment (Cloud / DevOps)
+] as const;
+
+/** How the software of the element is updated — CR 3.10 (RE 1, RE 2). */
+export type UpdateMechanism = (typeof UPDATE_MECHANISM_OPTIONS)[number];
+
+/**
+ * Session management controls for elements with human users.
+ * CR 2.5 (session lock, SL-1+), CR 2.6 (remote termination, SL-2+),
+ * CR 2.7 (concurrent session control, SL-3+).
+ *
+ * sessionLockEnabled:          CR 2.5 — lock after inactivity timeout
+ * remoteTerminationEnabled:    CR 2.6 — manual termination by authority
+ * maxConcurrentSessions:       CR 2.7 — per-user session limit (0 = unlimited)
+ */
+export interface SessionControl {
+  sessionLockEnabled?: boolean;
+  remoteTerminationEnabled?: boolean;
+  maxConcurrentSessions?: number;
+}
+
 // ==================== PROCESS PROPERTIES ====================
 
 export interface ProcessProperties {
@@ -209,22 +242,14 @@ export interface ProcessProperties {
     | "custom";
 
   /**
-   * Session management controls for human-user-facing processes.
-   * CR 2.5 (session lock, SL-1+), CR 2.6 (remote termination, SL-2+),
-   * CR 2.7 (concurrent session control, SL-3+).
-   *
+   * Session management for a process with human users (SessionControl).
    * Only meaningful for processes with a human user interface:
    * technology = "ui" | "websocket" | "cli" | "api" (with HMI access).
-   *
-   * sessionLockEnabled:          CR 2.5 — lock after inactivity timeout
-   * remoteTerminationEnabled:    CR 2.6 — manual termination by authority
-   * maxConcurrentSessions:       CR 2.7 — per-user session limit (0 = unlimited)
    */
-  sessionControl?: {
-    sessionLockEnabled?: boolean;
-    remoteTerminationEnabled?: boolean;
-    maxConcurrentSessions?: number;
-  };
+  sessionControl?: SessionControl;
+
+  /** How the process is updated, when it is updated on its own (CR 3.10). */
+  updateMechanism?: UpdateMechanism;
 
   /**
    * Non-repudiation mechanism — ability to prove a user took a specific action.
@@ -317,14 +342,10 @@ export interface MultiprocessProperties {
     | "cc_eal4"; // Common Criteria EAL 4+
 
   // ── Update Mechanism ─────────────────────────────────────────────────────
-  updateMechanism?:
-    | "none" // No update planned
-    | "manual_local" // Physical access, manual (no signing required)
-    | "signed_local" // Signed package, physical access
-    | "signed_ota" // Signed Over-the-Air
-    | "vendor_only" // Only through manufacturer / supplier
-    | "mdm_managed" // Mobile Device Management
-    | "ci_cd"; // Automated CI/CD deployment (Cloud / DevOps)
+  updateMechanism?: UpdateMechanism;
+
+  /** Session management of the system's human users (CR 2.5 – 2.7). */
+  sessionControl?: SessionControl;
 
   // ── System-Level Access Control ──────────────────────────────────────────
   /**
@@ -1057,7 +1078,7 @@ export type DataFlowMedium = "logical" | "physical";
      "hmac",
      "signature",
      "aead",
-     "custom"];
+     "custom"] as const;
 
   export type IntegrityProtection =
   (typeof INTEGRITY_PROTECTION_OPTIONS)[number];
@@ -1745,6 +1766,27 @@ export type TrustBoundaryType = (typeof TRUST_BOUNDARY_TYPE_OPTIONS)[number];
 
 // ==================== TRUST BOUNDARY PROPERTIES ====================
 
+export const DEFAULT_DENY_POLICY_OPTIONS = ["allow_all", "deny_all_permit_exception", "island_mode", "fail_close"] as const;
+
+/** One traffic policy of a trust boundary (TrustBoundaryProperties.defaultDenyPolicy). */
+export type DefaultDenyPolicy = (typeof DEFAULT_DENY_POLICY_OPTIONS)[number];
+
+/** The stored policies; a single value of a file written before the reshape counts as one entry. */
+export function defaultDenyPoliciesOf(value: unknown): DefaultDenyPolicy[] {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return DEFAULT_DENY_POLICY_OPTIONS.filter((p) => values.includes(p));
+}
+
+/**
+ * The policies after choosing one more: "allow_all" excludes the others,
+ * any other one removes "allow_all".
+ */
+export function withDefaultDenyPolicy(current: readonly DefaultDenyPolicy[] | undefined, added: DefaultDenyPolicy): DefaultDenyPolicy[] {
+  if (added === "allow_all") return ["allow_all"];
+  const rest = (current ?? []).filter((p) => p !== "allow_all" && p !== added);
+  return DEFAULT_DENY_POLICY_OPTIONS.filter((p) => p === added || rest.includes(p));
+}
+
 export interface TrustBoundaryProperties {
   boundaryId?: string;
   boundaryType?: TrustBoundaryType;
@@ -1784,30 +1826,26 @@ export interface TrustBoundaryProperties {
   complianceRelevance?: string;
 
   /**
-   * Default traffic policy enforced at this boundary.
-   * NDR 5.2 RE(1) — Deny all, permit by exception (SL-2+).
-   * NDR 5.2 RE(2) — Island mode capability (SL-3+).
-   * NDR 5.2 RE(3) — Fail close on mechanism failure (SL-3+).
+   * Traffic policies enforced at this boundary — multi-select since schema 12
+   * (iec-62443-4-2-cra-coverage.md P-1): the capabilities of CR 5.2 RE(1) –
+   * RE(3) are separate and cumulative, one boundary can have several.
    *
    * Only meaningful for boundaryType = "network" | "cloud".
    *
-   * allow_all                → No restriction — all zone-crossing flows permitted
-   * deny_all_permit_exception → Whitelist-based; only explicitly permitted flows pass
-   *                             NDR 5.2 RE(1) satisfied
-   * island_mode              → Boundary can isolate zone completely on incident
-   *                             NDR 5.2 RE(2) satisfied (implies RE1)
-   * fail_close               → On mechanism failure: no traffic passes (fail-safe)
-   *                             NDR 5.2 RE(3) satisfied (implies RE1 + RE2)
+   * allow_all                → No restriction — all zone-crossing flows
+   *                             permitted; excludes the others
+   * deny_all_permit_exception → Whitelist-based; only explicitly permitted
+   *                             flows pass — CR 5.2 RE(1) (SL-2+)
+   * island_mode              → Boundary can isolate the zone completely on an
+   *                             incident — CR 5.2 RE(2) (SL-3+)
+   * fail_close               → On mechanism failure no traffic passes
+   *                             (fail-safe) — CR 5.2 RE(3) (SL-3+)
    *
    * Threat implication:
    *   allow_all → Restricted Data Flow threats active; lateral movement possible
    *   deny_all_permit_exception → Reduces attack surface to explicitly allowed flows
    */
-  defaultDenyPolicy?:
-    | "allow_all"
-    | "deny_all_permit_exception"
-    | "island_mode"
-    | "fail_close";
+  defaultDenyPolicy?: DefaultDenyPolicy[];
 
   owner?: string;
   notes?: string;

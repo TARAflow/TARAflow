@@ -10,6 +10,7 @@
 
 import type {
   ChipBoundaryProperties,
+  DefaultDenyPolicy,
   DataFlowProperties,
   DataStoreProperties,
   ExternalEntityProperties,
@@ -17,7 +18,6 @@ import type {
   MultiprocessProperties,
   PhysicalBoundaryProperties,
   ProcessProperties,
-  TrustBoundaryProperties,
 } from "./element-properties";
 
 type Controls = NonNullable<InterfaceProperties["implementedControls"]>;
@@ -111,7 +111,7 @@ export const CONTROL_PROPERTY_OPTIONS: Readonly<Record<string, readonly unknown[
   ]),
   "Interface.implementedControls.abuseProtection": o<Controls["abuseProtection"]>(["none", "rate_limited", "lockout", "flood_protection"]),
 
-  "TrustBoundary.defaultDenyPolicy": o<TrustBoundaryProperties["defaultDenyPolicy"]>([
+  "TrustBoundary.defaultDenyPolicy": o<DefaultDenyPolicy>([
     "allow_all", "deny_all_permit_exception", "island_mode", "fail_close",
   ]),
 

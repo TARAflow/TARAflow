@@ -518,6 +518,14 @@ export interface MitigationEntry {
   /** DFD property effects — drives ControlInstance derivation */
   affectsProperties: MitigationPropertyEffect[];
   /**
+   * IEC 62443-4-2 requirement ids this control implements (e.g. "cr-7.2";
+   * iec-62443-4-2-cra-coverage.md D-6, §9.2 ids). A chosen mitigation then
+   * meets the matrix row where the model cannot show it (type C), or where
+   * the model leaves it undecided (D-21). Strings here — the compliance
+   * feature owns the id list; a test checks every reference against it.
+   */
+  iec62443?: string[];
+  /**
    * Verification IDs that should be auto-selected when this mitigation is chosen.
    * Auto-deselected when the mitigation is deselected (unless manually re-added).
    */

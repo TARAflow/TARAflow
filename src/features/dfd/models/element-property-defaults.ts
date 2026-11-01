@@ -1382,14 +1382,14 @@ export const TB_TYPE_DEFAULTS: Record<
     defaultExposureLevel: "EL3",
     monitoringEnabled: true,
     boundaryControlTypes: ["firewall"] as BoundaryControlType[],
-    defaultDenyPolicy: "allow_all", // Surfaces NDR 5.2 RE(1) gap — analyst must tighten
+    defaultDenyPolicy: ["allow_all"], // Surfaces the CR 5.2 RE(1) gap — analyst must tighten
   },
   // Cloud boundary — IAM gateway is the baseline, monitoring mandatory
   cloud: {
     defaultExposureLevel: "EL4",
     monitoringEnabled: true,
     boundaryControlTypes: ["authentication_gateway"] as BoundaryControlType[],
-    defaultDenyPolicy: "allow_all", // Surfaces NDR 5.2 RE(1) gap
+    defaultDenyPolicy: ["allow_all"], // Surfaces the CR 5.2 RE(1) gap
   },
   // Privilege boundary — no network control, OS-enforced
   privilege: {

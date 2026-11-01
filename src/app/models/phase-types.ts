@@ -33,6 +33,13 @@ export const PhaseId = {
   Documentation: 7,
   Audit: 8,
   Integration: 9,
+  /**
+   * IEC 62443-4-2 / CRA requirement matrix (iec-62443-4-2-cra-coverage.md
+   * D-9). Like Audit and Integration an entry on the right of the tab bar —
+   * no phase status, not part of the progress; shown only when the project's
+   * tags select an edition.
+   */
+  Compliance: 10,
 } as const;
 
 export type PhaseId = (typeof PhaseId)[keyof typeof PhaseId];

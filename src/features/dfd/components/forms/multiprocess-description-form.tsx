@@ -31,6 +31,7 @@ import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
+import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
 import { useElementForm } from "../../hooks/use-element-form";
 import {
   getMultiprocessDefaults,
@@ -446,53 +447,12 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           </Grid>
         )}
 
-        {/* Update Mechanism — always shown */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.multiprocess.fields.updateMechanism.label",
-                { defaultValue: "Update Mechanism" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.updateMechanism ?? ""}
-              onChange={(e) =>
-                handlePropertyChange("updateMechanism", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.multiprocess.fields.updateMechanism.label",
-                { defaultValue: "Update Mechanism" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", {
-                    defaultValue: "Not specified",
-                  })}
-                </em>
-              </MenuItem>
-              {(
-                [
-                  "none",
-                  "manual_local",
-                  "signed_local",
-                  "signed_ota",
-                  "vendor_only",
-                  "mdm_managed",
-                  "ci_cd",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.multiprocess.fields.updateMechanism.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
+        {/* Update Mechanism — always shown (CR 3.10) */}
+        <UpdateMechanismField
+          i18nBase="tabs.dfd.element_description.multiprocess.fields"
+          value={props.updateMechanism}
+          onChange={(v) => handlePropertyChange("updateMechanism", v)}
+        />
 
         {/* Exposed to Internet — always shown */}
         <Grid
@@ -1025,6 +985,13 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
             </FormControl>
           </Grid>
         )}
+
+        {/* Session Control — CR 2.5 – 2.7, for systems with human or remote sessions */}
+        <SessionControlFields
+          i18nBase="tabs.dfd.element_description.multiprocess.fields"
+          value={props.sessionControl}
+          onChange={(v) => handlePropertyChange("sessionControl", v)}
+        />
       </Grid>
 
       {/* ── DOCUMENTATION ─────────────────────────────────────────────── */}

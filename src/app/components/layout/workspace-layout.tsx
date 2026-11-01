@@ -86,11 +86,8 @@ import { phaseIndicators } from "app/utils/phase-indicators";
 import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
 import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
-import {
-  buildElementToAssetIds,
-  resolveThreatAssetIds,
-} from "app/utils/threat-asset-links";
 import { buildThreatGoalLinks } from "app/utils/build-threat-goal-links";
+import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/extract-threat-references";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
 import {
@@ -98,8 +95,6 @@ import {
   ThreatData,
   ThreatsTab,
   type ThreatUpdateResult,
-  resolveMitigationDrafts,
-  resolveVerificationDrafts,
   getAllMitigations,
   syncThreatsWithGraph,
   type ThreatRiskAttachment,
@@ -129,6 +124,9 @@ import {
 import { DocTab, DocUpdateResult } from "features/documentation";
 import { IntegrationTab, createTicketAdapter, type IntegrationTabData } from "features/integration";
 import { AuditTab, useAuditHints } from "features/audit";
+import { ComplianceTab, proposeDeviceCategories, selectEdition, suggestMitigations } from "features/compliance";
+import type { ComplianceData } from "shared";
+import { complianceNameOf, complianceTypeOf, evaluateProjectCompliance } from "app/services/compliance-report";
 import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
@@ -331,6 +329,15 @@ export const WorkspaceLayout: React.FC = () => {
       if (!current) return;
       const concept = current.cybersecurityConcept ?? emptyCybersecurityConcept();
       updateProject({ id: current.id, cybersecurityConcept: { ...concept, verifications } });
+    },
+    [updateProject],
+  );
+
+  // Compliance tab → project.compliance (iec-62443-4-2-cra-coverage.md D-8).
+  const handleComplianceChange = useCallback(
+    (compliance: ComplianceData) => {
+      const current = activeProjectRef.current;
+      if (current) updateProject({ id: current.id, compliance });
     },
     [updateProject],
   );
@@ -1123,6 +1130,41 @@ export const WorkspaceLayout: React.FC = () => {
     anchorTargets,
   );
 
+  // ── IEC 62443-4-2 matrix (Compliance tab, D-9) ──────────────────────────
+  // The tags select the edition; the model is evaluated only while the tab
+  // is open (the analysis view is rebuilt for it).
+  const complianceEdition = useMemo(() => selectEdition(activeProject?.info?.tags), [activeProject?.info?.tags]);
+  const complianceView = useMemo(() => {
+    if (!activeProject || !complianceEdition || activePhase !== PhaseId.Compliance) return undefined;
+    const evaluation = evaluateProjectCompliance(activeProject);
+    if (!evaluation) return undefined;
+    const elements = activeProject.dfd?.elements ?? [];
+    const componentId = activeProject.compliance?.componentId;
+    const component = elements.find((e) => e.id === componentId);
+    return {
+      ...evaluation,
+      nameOf: complianceNameOf(activeProject),
+      typeOf: complianceTypeOf(activeProject),
+      componentOptions: elements
+        .filter((e) => e.type === "Multiprocess" || e.type === "Process")
+        .map((e) => ({ id: e.id, label: [e.displayId, e.name].filter(Boolean).join(" ") })),
+      deviceProposal: proposeDeviceCategories(
+        component ? { type: component.type, properties: component.properties as unknown as Record<string, unknown> } : undefined,
+        elements.some((e) => e.type === "ChipBoundary" && evaluation.scope.has(e.id)),
+      ),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activePhase,
+    complianceEdition,
+    activeProject?.dfd,
+    activeProject?.threats,
+    activeProject?.risks,
+    activeProject?.attackTrees,
+    activeProject?.assets,
+    activeProject?.compliance,
+  ]);
+
   const securityDrifts = useSecurityDrift(
     controlInstances,
     activeProject?.dfd ?? null,
@@ -1133,89 +1175,13 @@ export const WorkspaceLayout: React.FC = () => {
   const extractThreatReferences = (
     threatData: ThreatData | null | undefined,
     strideMethod: StrideMethod,
-  ): ThreatReference[] => {
-    if (!threatData) return [];
-
-    const tables =
-      strideMethod === "per-element"
-        ? threatData.perElementTables
-        : threatData.perInteractionTables;
-
-    if (!tables || tables.length === 0) return [];
-
-    const elementToAssetIds = buildElementToAssetIds(
+  ): ThreatReference[] =>
+    extractThreatReferencesOf(
+      threatData,
+      strideMethod,
       activeProject?.assets?.assets,
       (activeProject?.dfd as any)?.elements,
     );
-
-    const references: ThreatReference[] = [];
-    for (const table of tables) {
-      if (!table.threats || table.threats.length === 0) continue;
-      for (const threat of table.threats) {
-        let elementName: string | undefined;
-        let dataFlowName: string | undefined;
-
-        if (strideMethod === "per-element") {
-          elementName =
-            threat.linkedElement?.elementName ||
-            threat.linkedElement?.elementId;
-        } else {
-          dataFlowName = threat.dataFlow?.dataFlowName;
-          if (!dataFlowName && threat.dataFlow) {
-            dataFlowName = `${threat.dataFlow.sourceName} → ${threat.dataFlow.targetName}`;
-          }
-        }
-
-        const linkedAssetIds = resolveThreatAssetIds(threat, elementToAssetIds);
-
-        references.push({
-          id: threat.id,
-          displayId: threat.displayId,
-          strideCategory: threat.strideCategory,
-          threatDescription: threat.threatDescription,
-          attackDescription: threat.attackDescription,
-          causeDescription: threat.causeDescription,
-          linkedAssetIds,
-          relevance: threat.relevance ?? "unrated",
-          ...(threat.review ? { review: threat.review } : {}),
-          proposedMitigations: resolveMitigationDrafts(
-            threat.proposedMitigations ?? [],
-          ).map((m) => ({
-            id: m.id,
-            text: m.text,
-            notes: m.notes,
-            isCustom: m.isCustom,
-          })),
-          proposedVerifications: resolveVerificationDrafts(
-            threat.proposedVerifications ?? [],
-          ).map((v) => ({
-            id: v.id,
-            text: v.text,
-            notes: v.notes,
-            isCustom: v.isCustom,
-          })),
-          sourceStrideMethod: strideMethod,
-          elementName,
-          dataFlowName,
-          trustBoundaryId: table.displayIdentifier,
-          trustBoundaryName: table.trustBoundaryName,
-          // EL-anchor resolution (§11.1) reads the DFD's exposureLevel off the
-          // threat's raw anchor: per-element (incl. a DataFlow-typed element,
-          // STRIDE_PER_ELEMENT_TYPE.DataFlow = T,I,D) via linkedElement, and
-          // per-interaction via dataFlow. These must survive onto the
-          // ThreatReference or applyExposureLevelToFactorRatings has no anchor
-          // to resolve and EN 50742 EL silently stays 0 in the Risk tab.
-          linkedElement: threat.linkedElement ?? null,
-          dataFlow: threat.dataFlow ?? null,
-          // Table group of a flow between multiprocesses (D20): the attacked side.
-          ...(threat.interactionContext?.victimRole
-            ? { interactionContext: { victimRole: threat.interactionContext.victimRole } }
-            : {}),
-        });
-      }
-    }
-    return references;
-  };
 
   // ── Guard ─────────────────────────────────────────────────────────────────
 
@@ -1232,6 +1198,7 @@ export const WorkspaceLayout: React.FC = () => {
         threatDrift={threatDriftCounts}
         indicators={memoizedPhaseIndicators ?? undefined}
         auditHints={auditHintLines}
+        complianceAvailable={!!complianceEdition}
       />
 
       <div className="flex-1 overflow-y-auto">
@@ -1544,6 +1511,39 @@ export const WorkspaceLayout: React.FC = () => {
             onVerificationsChange={handleVerificationsChange}
             onDirtyChange={handleAuditDirtyChange}
           />
+        )}
+
+        {activePhase === PhaseId.Compliance && complianceEdition && (
+          complianceView ? (
+            <ComplianceTab
+              edition={complianceEdition}
+              achieved={complianceView.achieved}
+              planned={complianceView.planned}
+              data={activeProject.compliance}
+              componentOptions={complianceView.componentOptions}
+              deviceProposal={complianceView.deviceProposal}
+              nameOf={complianceView.nameOf}
+              typeOf={complianceView.typeOf}
+              today={new Date().toISOString().slice(0, 10)}
+              onChange={handleComplianceChange}
+              mitigationSuggestions={(ids, openElementIds) =>
+                suggestMitigations(
+                  getAllMitigations(),
+                  ids,
+                  new Set(openElementIds.map(complianceView.typeOf).filter((type): type is string => !!type)),
+                )
+                  .map((m) => ({
+                    id: m.id,
+                    // Project mitigations carry their text; catalog ones are i18n keys.
+                    text: (m as { text?: string }).text ?? t(`${m.id}.mitigation`, { ns: "mitigations", defaultValue: m.id }),
+                  }))
+              }
+            />
+          ) : (
+            <div className="p-6 text-gray-600">
+              {t("compliance.noModel", { defaultValue: "The requirement matrix needs a data flow diagram — model the system in the DFD tab first." })}
+            </div>
+          )
         )}
 
         {activePhase === PhaseId.Integration && (

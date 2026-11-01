@@ -28,6 +28,7 @@ import {
   migrate_8_to_9,
   migrate_9_to_10,
   migrate_10_to_11,
+  migrate_11_to_12,
 } from "./versions";
 import { normalizeThreatTables } from "../../features/threats/services/threat-table-normalize";
 
@@ -153,6 +154,7 @@ export function repairProject(raw: any): Project | null {
     ...(raw.sourceBindings ? { sourceBindings: raw.sourceBindings } : {}),
     ...(raw.itemDefinition ? { itemDefinition: raw.itemDefinition } : {}),
     ...(raw.cybersecurityConcept ? { cybersecurityConcept: raw.cybersecurityConcept } : {}),
+    ...(raw.compliance ? { compliance: raw.compliance } : {}),
     isOpen: raw.isOpen ?? false,
     hasUnsavedChanges: false,
     filePath: raw.filePath,
@@ -191,9 +193,11 @@ export interface MigrationResult {
  * verification be re-sealed on load; any other migration makes it ask to be
  * confirmed again. Declare a migration here only when it changes the form
  * of the data, never a value of the analysis (review 2026-10-30). Files
- * before schema 11 hold no verification, so none is listed yet.
+ * before schema 11 hold no verification, so nothing before 12 is listed.
+ *   12  version fence for project.compliance; defaultDenyPolicy "x" → ["x"]
+ *       (multi-select, 1:1 — P-1) (0.17.0-beta)
  */
-export const ANALYSIS_PRESERVING_MIGRATIONS: ReadonlySet<number> = new Set<number>([]);
+export const ANALYSIS_PRESERVING_MIGRATIONS: ReadonlySet<number> = new Set<number>([12]);
 
 export function applyMigrations(raw: any): {
   data: any;
@@ -258,6 +262,11 @@ export function applyMigrations(raw: any): {
 
   if ((data.schemaVersion ?? 0) < 11) {
     data = migrate_10_to_11(data);
+    migrated = true;
+  }
+
+  if ((data.schemaVersion ?? 0) < 12) {
+    data = migrate_11_to_12(data);
     migrated = true;
   }
 

@@ -1,0 +1,525 @@
+// src/tests/examples/pump-station-example.ts
+//
+// The "Pump Station Controller" example: an industrial component under the
+// CRA edition of IEC 62443-4-2 (iec-62443-4-2-cra-coverage.md IEC-10). It
+// shows the requirement matrix with every status: rows met by the model,
+// rows met only by planned mitigations, rows closed by a statement, open
+// statements, gaps and rows that do not apply.
+//
+// Everything runs through the REAL services, like the Simple Controller
+// examples: the app's DFD parser reads the diagram (pump-station-diagram.ts),
+// the asset factory / deriver / impact calculator build the assets, the
+// threat generators the threats, the risk sync the risks. Only the analyst
+// decisions are written here: the element properties, the relevance of the
+// threats, the chosen mitigations with their status and the statements.
+//
+// pump-station-example.test.ts checks what the example promises and writes
+// the file when WRITE_EXAMPLES=<dir> is set.
+
+import type { Asset, AssetConfiguration, AssetData } from "features/assets/models/asset-types";
+import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
+import type { ImpactRating } from "features/assets/models/asset-impact-types";
+import { createEmptyAsset } from "features/assets/services/asset-factory";
+import { deriveSecurityGoalSuggestions } from "features/assets/services/asset-cianaaa-deriver";
+import { recalculateAllImpacts } from "features/assets/services/asset-impact-calculator";
+import { dfdParser } from "features/dfd/services/dfd-parser";
+import type {
+  DataFlowProperties,
+  DataStoreProperties,
+  ExternalEntityProperties,
+  InterfaceProperties,
+  MultiprocessProperties,
+  PhysicalBoundaryProperties,
+  ProcessProperties,
+  TrustBoundaryProperties,
+} from "features/dfd/models/element-properties";
+import type { ExposureLevel } from "features/dfd/models/element-shared-types";
+import { DFDGraphAnalysisContext } from "features/dfd";
+import { elementThreatGenerator } from "features/threats/services/per-element/element-generator";
+import { interactionThreatGenerator } from "features/threats/services/per-interaction/interaction-generator";
+import { createDefaultThreatData } from "features/threats/models/threat-types";
+import type { ThreatData, ThreatProjectData, ThreatTable } from "features/threats/models/threat-types";
+import { getAllMitigations } from "features/threats";
+import { createDefaultRiskData } from "features/risks/models/risk-assessment-types";
+import type { RiskData } from "features/risks/models/risk-assessment-types";
+import { syncRisksFromThreats } from "features/risks/services/risk-sync-service";
+import type { MitigationStatus } from "features/risks/models/risk-mitigation-types";
+import type { ComplianceData, ComplianceStatement } from "shared/models/compliance-data-types";
+import { deriveDfdAssets } from "app/utils/asset-to-dfd-mapper";
+import { resolveDfdGraph } from "app/utils/resolve-dfd-graph";
+import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
+import { extractThreatReferences } from "app/utils/extract-threat-references";
+import { toReferenceGraph } from "app/utils/to-reference-graph";
+import { deriveControlInstances } from "app/hooks/use-control-instance-derivation";
+import { meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
+import { CURRENT_SCHEMA_VERSION } from "app/services/schema-version";
+import { createDefaultDocData } from "features/documentation/models/doc-types";
+import { EDGES, SHAPES, pumpStationXml } from "./pump-station-diagram";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ProjectJson = any;
+
+const DATE = "2026-11-01T00:00:00.000Z";
+const SCALE = "4-level" as const;
+
+export const ASSET_CONFIGURATION: AssetConfiguration = {
+  ...DEFAULT_ASSET_CONFIGURATION,
+  impactCriteria: [...DEFAULT_ASSET_CONFIGURATION.impactCriteria, { id: "safety", weight: 0.2 }],
+};
+
+// ── Element properties (the analyst's model) ────────────────────────────────
+// Deliberate weak spots, so the matrix has something to say:
+//   DF-7   engineering download: password, no encryption — planned fix open
+//   DF-10/11  fieldbus to the pumps: no authentication, CRC only — a gap
+//   DF-9   service USB: password, no encryption
+
+const exposure = (level: ExposureLevel, rationale: string) => ({
+  exposureLevel: level,
+  exposureLevelSource: "manual" as const,
+  exposureLevelRationale: rationale,
+});
+
+/** Typed per element type: a value the DFD cannot hold does not compile. */
+const as = <T,>(properties: T) => properties as Record<string, unknown>;
+
+const PROPERTIES: Record<string, Record<string, unknown>> = {
+  CN: as<TrustBoundaryProperties>({
+    boundaryType: "network",
+    boundaryControlTypes: ["firewall", "network_segmentation"],
+    defaultDenyPolicy: ["deny_all_permit_exception"],
+    monitoringEnabled: true,
+    defaultExposureLevel: "EL2",
+  }),
+  CAB: as<PhysicalBoundaryProperties>({
+    boundaryType: "cabinet",
+    accessibility: "controlled",
+    physicalAccessControl: "key",
+    tamperProtection: "switch",
+    monitoringType: "tamper_monitoring",
+    physicalExposureLevel: "PEL2",
+    physicalMobility: "fixed",
+    debugInterfaceAccessible: false,
+    removableMediaAccessible: true,
+    requiresToolAccess: true,
+    safetyRelevant: true,
+  }),
+  "P-1": as<ProcessProperties>({
+    processSemantic: "execution_unit",
+    technology: "ui",
+    authenticationRequired: "yes",
+    authorizationModel: "rbac",
+    accountManagement: "local_only",
+    authenticatorStorage: "software_only",
+    inputValidation: "strict",
+    errorHandling: "sanitized",
+    nonRepudiation: "audit_log",
+    malwareProtection: "application_whitelist",
+    privilegeLevel: "low",
+    runsAs: "user",
+    exposedToInternet: false,
+    failSafeOutputState: "hold_last_value",
+    sessionControl: { sessionLockEnabled: true, remoteTerminationEnabled: true, maxConcurrentSessions: 1 },
+  }),
+  "MP-1": as<MultiprocessProperties>({
+    systemClass: "embedded_controller",
+    operatingSystem: "rtos",
+    updateMechanism: "signed_ota",
+    boundaryAuthentication: "certificate",
+    tlsTermination: "server",
+    authorizationModel: "rbac",
+    accountManagement: "local_only",
+    authenticatorStorage: "secure_element",
+    malwareProtection: "code_signing",
+    backupMechanism: "manual_local",
+    nonRepudiation: "audit_log",
+    remoteAccessEnabled: true,
+    // Engineering, SCADA and remote service sessions (CR 2.5 – 2.7).
+    sessionControl: { sessionLockEnabled: true, remoteTerminationEnabled: true, maxConcurrentSessions: 2 },
+    exposedToInternet: false,
+    airGapped: false,
+    safetyRelevant: true,
+    safetyRationale: "Drives pumps and valves of the water supply.",
+  }),
+  "DS-1": as<DataStoreProperties>({
+    technology: "flash",
+    storedDataTypes: ["config"],
+    dataClassification: "internal",
+    integrityProtection: "signature",
+    encryptionAtRest: "none",
+    accessControlMechanism: "process_enforced",
+    backupEnabled: true,
+    deletionMechanism: "factory_reset",
+  }),
+  "IF-1": as<InterfaceProperties>({
+    type: "touchscreen",
+    location: "external_panel",
+    ...exposure("EL2", "Operator panel in the cabinet door, reachable on site."),
+    operationalState: "enabled",
+    implementedControls: { abuseProtection: "lockout", serviceAccessPolicy: "always_enabled" },
+  }),
+  "IF-2": as<InterfaceProperties>({
+    type: "usb",
+    connectorType: "usb_a",
+    location: "in_enclosure",
+    operationalState: "enabled",
+    ...exposure("EL2", "Behind the locked cabinet door; maintenance staff only."),
+    implementedControls: { linkAuthentication: "none", abuseProtection: "lockout", serviceAccessPolicy: "maintenance_only" },
+  }),
+  "IF-3": as<InterfaceProperties>({
+    type: "ethernet",
+    connectorType: "rj45",
+    location: "network_port",
+    operationalState: "enabled",
+    ...exposure("EL3", "Connected to the plant control network."),
+    implementedControls: { linkAuthentication: "certificate_based", abuseProtection: "rate_limited", serviceAccessPolicy: "always_enabled" },
+  }),
+  "IF-4": as<InterfaceProperties>({
+    type: "rs485",
+    connectorType: "terminal",
+    location: "field_accessible",
+    operationalState: "enabled",
+    ...exposure("EL2", "Field cable to the pumps, runs through the station building."),
+    implementedControls: { linkAuthentication: "none", abuseProtection: "rate_limited", serviceAccessPolicy: "always_enabled" },
+  }),
+  "IF-5": as<InterfaceProperties>({
+    type: "jtag",
+    connectorType: "jtag_20pin",
+    location: "on_board",
+    operationalState: "hw_disabled",
+    ...exposure("EL1", "On the controller board; fused off after production."),
+    implementedControls: { debugProtection: "fused_off", monitoringControl: "tamper_logged", serviceAccessPolicy: "factory_only" },
+  }),
+  "EE-1": as<ExternalEntityProperties>({ entityType: "operator", ownership: "internal", trustLevel: "medium", authenticationMethod: "password" }),
+  "EE-2": as<ExternalEntityProperties>({ entityType: "maintenance", ownership: "internal", trustLevel: "medium", authenticationMethod: "password" }),
+  "EE-3": as<ExternalEntityProperties>({ entityType: "scada_hmi", ownership: "internal", trustLevel: "medium", authenticationMethod: "certificate" }),
+  "EE-4": as<ExternalEntityProperties>({ entityType: "update_server", ownership: "external", trustLevel: "medium", authenticationMethod: "certificate" }),
+  "EE-5": as<ExternalEntityProperties>({ entityType: "remote_access", ownership: "internal", trustLevel: "low", authenticationMethod: "certificate" }),
+  "EE-6": as<ExternalEntityProperties>({ entityType: "engineering_workstation", ownership: "internal", trustLevel: "medium", authenticationMethod: "password" }),
+  "EE-7": as<ExternalEntityProperties>({ entityType: "actuator", ownership: "internal", trustLevel: "low" }),
+};
+
+const SECURE_OPC: DataFlowProperties = {
+  protocol: "opc_ua",
+  endpointAuthentication: "certificate",
+  encryptionInTransit: "tls",
+  integrityProtection: "signature",
+  cryptoStandard: "nist_approved",
+};
+
+const FLOW_PROPERTIES: Record<string, DataFlowProperties> = {
+  "DF-1": { protocol: "human_input", endpointAuthentication: "password", encryptionInTransit: "none", integrityProtection: "none", messageType: "command", dataClassification: "internal" },
+  "DF-2": { ...SECURE_OPC, messageType: "command", dataClassification: "internal" },
+  "DF-3": { ...SECURE_OPC, dataClassification: "internal" },
+  "DF-4": { ...SECURE_OPC, dataClassification: "internal" },
+  "DF-5": { ...SECURE_OPC, messageType: "command", dataClassification: "internal" },
+  "DF-6": { protocol: "https", endpointAuthentication: "certificate", encryptionInTransit: "tls", integrityProtection: "signature", cryptoStandard: "nist_approved", dataClassification: "confidential" },
+  // OPC UA in security mode None today; Sign & Encrypt is planned (DF-7 mitigations in progress).
+  "DF-7": { protocol: "opc_ua", endpointAuthentication: "password", encryptionInTransit: "none", integrityProtection: "none", cryptoStandard: "nist_approved", dataClassification: "confidential" },
+  "DF-8": { protocol: "https", endpointAuthentication: "mutual_tls", encryptionInTransit: "vpn", integrityProtection: "hmac", cryptoStandard: "nist_approved", dataClassification: "internal" },
+  "DF-9": { protocol: "file", endpointAuthentication: "password", encryptionInTransit: "none", integrityProtection: "hash", dataClassification: "internal" },
+  "DF-10": { protocol: "modbus_rtu", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "crc", messageType: "command", dataClassification: "internal" },
+  "DF-11": { protocol: "modbus_rtu", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "crc", dataClassification: "internal" },
+  "DF-12": { protocol: "file", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "signature", dataClassification: "internal" },
+  "DF-13": { protocol: "file", endpointAuthentication: "none", encryptionInTransit: "none", integrityProtection: "signature", dataClassification: "internal" },
+};
+
+// ── DFD ─────────────────────────────────────────────────────────────────────
+
+export function buildDfd(): ProjectJson {
+  const xml = pumpStationXml();
+  const parsed = dfdParser.parse(xml);
+  const props = { ...PROPERTIES, ...FLOW_PROPERTIES };
+  const withProps = <T extends { displayId?: string; properties?: unknown }>(item: T): T => {
+    const own = props[item.displayId ?? ""];
+    if (!own) throw new Error(`no properties for ${item.displayId}`);
+    return { ...item, properties: { ...(item.properties as object), ...own } };
+  };
+  return {
+    xml,
+    elements: parsed.elements.map(withProps),
+    connections: parsed.connections.map(withProps),
+    assets: [],
+    stats: parsed.stats,
+    thumbnail: null,
+    validation: { errors: [], warnings: [], isComplete: false, lastValidated: DATE },
+    lastModified: DATE,
+  };
+}
+
+// ── Assets ──────────────────────────────────────────────────────────────────
+
+type Ratings = Partial<Record<string, number>>;
+
+function asset(
+  dfd: ProjectJson,
+  displayId: string,
+  name: string,
+  group: "data" | "process",
+  ratings: Ratings,
+  links: [string, string][], // [element displayId, relationType]
+): Asset {
+  const a = createEmptyAsset(displayId, ASSET_CONFIGURATION, group, displayId);
+  const all = [...dfd.elements, ...dfd.connections];
+  const built: Asset = {
+    ...a,
+    name,
+    impactRatings: a.impactRatings.map(
+      (r): ImpactRating => ({ criterionId: r.criterionId, value: (ratings[r.criterionId] ?? null) as ImpactRating["value"] }),
+    ),
+    linkedDFDElements: links.map(([id, relationType]) => {
+      const e = all.find((x: { displayId: string }) => x.displayId === id);
+      if (!e) throw new Error(`no DFD element ${id}`);
+      const type = dfd.connections.includes(e) ? "DataFlow" : e.type;
+      return { elementId: e.id, displayId: id, elementName: e.name, elementType: type, relationType };
+    }) as never,
+    source: "dfd",
+    syncedWithDFD: true,
+    created: DATE,
+    lastModified: DATE,
+  };
+  return { ...built, securityGoals: deriveSecurityGoalSuggestions(built, built.securityGoals, SCALE) };
+}
+
+function buildAssets(dfd: ProjectJson): Asset[] {
+  return [
+    asset(dfd, "DA-001", "Setpoints and commands", "data",
+      { financial_damage: 2, operational: 4, regulatory_compliance: 2, recoverability: 2, affected_users: 3, safety: 3 },
+      [["DF-1", "transports"], ["DF-2", "transports"], ["DF-5", "transports"], ["DF-10", "transports"]]),
+    asset(dfd, "DA-002", "Process values", "data",
+      { financial_damage: 1, operational: 3, regulatory_compliance: 1, recoverability: 1, affected_users: 2, safety: 2 },
+      [["DF-3", "transports"], ["DF-4", "transports"], ["DF-11", "transports"]]),
+    asset(dfd, "DA-003", "PLC program and firmware", "data",
+      { financial_damage: 3, operational: 4, regulatory_compliance: 2, recoverability: 3, affected_users: 3, safety: 4 },
+      [["DF-6", "transports"], ["DF-7", "transports"], ["DF-9", "transports"]]),
+    asset(dfd, "DA-004", "Recipes and configuration", "data",
+      { financial_damage: 2, operational: 3, regulatory_compliance: 1, recoverability: 2, affected_users: 2, safety: 3 },
+      [["DS-1", "stores"], ["DF-12", "transports"], ["DF-13", "transports"]]),
+    asset(dfd, "PR-001", "Pump control", "process",
+      { financial_damage: 3, operational: 4, regulatory_compliance: 3, recoverability: 2, affected_users: 4, safety: 4 },
+      [["MP-1", "is_an"]]),
+  ];
+}
+
+// ── Threats and risks ───────────────────────────────────────────────────────
+
+/** Threats on these elements stay "uncertain" — the rest is relevant. */
+const UNCERTAIN = new Set(["DF-12", "DF-13", "IF-5"]);
+
+function generateThreats(dfd: ProjectJson, assets: Asset[], tags: ProjectJson): ThreatData {
+  const graph = resolveDfdGraph(dfd)!;
+  const data = {
+    id: "example-pump-station",
+    name: "Pump Station Controller",
+    threats: null,
+    phaseStatus: {},
+    dfdGraph: toReferenceGraph(graph),
+    assetDataRef: buildAssetDataReference(assets, {}, SCALE, ASSET_CONFIGURATION.impactCriteria),
+    info: { tags },
+    lastModified: DATE,
+  } as unknown as ThreatProjectData;
+  const base = createDefaultThreatData();
+  const displayOf = new Map([...dfd.elements, ...dfd.connections].map((x: ProjectJson) => [x.id, x.displayId]));
+  const rate = (tables: ThreatTable[]) =>
+    tables.map((t) => ({
+      ...t,
+      threats: t.threats.map((th) => {
+        const at = displayOf.get(th.linkedElement?.elementId ?? th.dataFlow?.connectionId ?? "");
+        return { ...th, relevance: UNCERTAIN.has(at) ? ("uncertain" as const) : ("relevant" as const) };
+      }),
+    }));
+  const perElement = elementThreatGenerator.generateThreatsForProject(data, { ...base.configuration, activeMethod: "per-element" });
+  const perInteraction = interactionThreatGenerator.generateThreatsForProject(
+    data,
+    new DFDGraphAnalysisContext(graph),
+    { ...base.configuration, activeMethod: "per-interaction" },
+  );
+  return {
+    ...base,
+    configuration: { ...base.configuration, activeMethod: "per-interaction" },
+    perElementTables: rate(perElement),
+    perInteractionTables: rate(perInteraction),
+    lastModified: DATE,
+  };
+}
+
+/**
+ * Mitigation status per element: the fieldbus fix is only planned, the
+ * engineering download fix is in progress; everything else is verified.
+ */
+const STATUS_AT: Record<string, MitigationStatus> = {
+  "DF-7": "in_progress",
+  "DF-10": "open",
+  "DF-11": "open",
+};
+
+/** Proposals the analyst does not take: no encryption on the RS-485 fieldbus (process values are not confidential). */
+const SKIPPED: Record<string, string[]> = { "DF-10": ["M-I-002"], "DF-11": ["M-I-002"] };
+
+function buildRisks(dfd: ProjectJson, assets: Asset[], threats: ThreatData): RiskData {
+  const elements = dfd.elements;
+  const refs = [
+    ...extractThreatReferences(threats, "per-element", assets, elements),
+    ...extractThreatReferences(threats, "per-interaction", assets, elements),
+  ];
+  const dfdRef = {
+    processes: elements
+      .filter((e: ProjectJson) => e.type === "Process" || e.type === "Multiprocess")
+      .map((e: ProjectJson) => ({ id: e.id, label: e.name ?? e.id })),
+    elements: elements.map((e: ProjectJson) => ({ id: e.id, properties: e.properties })),
+    connections: dfd.connections.map((c: ProjectJson) => ({ id: c.id, properties: c.properties })),
+  };
+  const synced = syncRisksFromThreats(
+    createDefaultRiskData(),
+    refs,
+    dfdRef,
+    buildAssetDataReference(assets, {}, SCALE, ASSET_CONFIGURATION.impactCriteria),
+  ).riskData;
+
+  // The analyst picks up to two proposed catalog mitigations per risk, those
+  // naming an IEC 62443 requirement first. "verified" only where the model
+  // already shows the control (every SHOULD value of the closed loop met);
+  // on the weak spots (STATUS_AT) the mitigations are still planned, and a
+  // risk with no control in place gets its first proposal as "open".
+  const catalog = getAllMitigations();
+  const referencing = new Set(catalog.filter((m) => m.iec62443?.length).map((m) => m.id));
+  const known = new Set(catalog.map((m) => m.id));
+  const displayOf = new Map([...elements, ...dfd.connections].map((x: ProjectJson) => [x.id, x.displayId]));
+  const threatAt = new Map<string, string>();
+  for (const t of [...threats.perElementTables, ...threats.perInteractionTables].flatMap((x) => x.threats)) {
+    threatAt.set(t.id, displayOf.get(t.linkedElement?.elementId ?? t.dataFlow?.connectionId ?? "") ?? "");
+  }
+  const candidates = (r: RiskData["risks"][number]) =>
+    (r.proposedMitigations ?? [])
+      .map((m: { id?: string }) => m.id)
+      .filter((id): id is string => !!id && known.has(id))
+      .sort((a, b) => Number(referencing.has(b)) - Number(referencing.has(a)));
+  const all: RiskData = {
+    ...synced,
+    risks: synced.risks.map((r) => ({ ...r, selectedMitigations: candidates(r).map((id) => ({ id, status: "open" as const })) })),
+  };
+  const properties = new Map([...elements, ...dfd.connections].map((x: ProjectJson) => [x.id, x.properties ?? {}]));
+  const unmet = new Set<string>(); // riskId::mitigationId
+  for (const c of deriveControlInstances(threats, all, dfd, catalog)) {
+    if (meetsExpected(c.property, readControlValue(properties.get(c.elementId), c.property), c.expectedValue)) continue;
+    for (const riskId of c.coversRiskIds) for (const id of c.coversMitigationIds) unmet.add(`${riskId}::${id}`);
+  }
+  return {
+    ...synced,
+    lastModified: DATE,
+    risks: synced.risks.map((r) => {
+      const at = threatAt.get(r.threatId) ?? "";
+      const planned = STATUS_AT[at];
+      const ids = candidates(r)
+        .filter((id) => !SKIPPED[at]?.includes(id))
+        .filter((id) => planned || !unmet.has(`${r.id}::${id}`))
+        .slice(0, 2);
+      // Nothing in place yet: the first proposal is planned.
+      const selectedMitigations = ids.length
+        ? ids.map((id) => ({ id, status: planned ?? ("verified" as const) }))
+        : candidates(r).slice(0, 1).map((id) => ({ id, status: "open" as const }));
+      return { ...r, selectedMitigations };
+    }),
+  };
+}
+
+// ── Compliance ──────────────────────────────────────────────────────────────
+
+const statement = (status: ComplianceStatement["status"], reasoning: string, evidenceRef?: string): ComplianceStatement => ({
+  status,
+  reasoning,
+  ...(evidenceRef ? { evidenceRef } : {}),
+  date: "2026-11-01",
+});
+
+/**
+ * Statements per row label of the CRA edition, up to the target SL 2. Open on
+ * purpose: CR 7.8 (inventory, SL 2) and every row above the target.
+ */
+export const STATEMENTS: Record<string, ComplianceStatement> = {
+  "CR 1.1 RE(1)": statement("met", "Every operator and technician logs in with a personal account; there is no shared login.", "User manual §4.1"),
+  "CR 1.7": statement("met", "Minimum length, complexity and lifetime of passwords are configurable; the defaults follow NIST SP 800-63B.", "Security manual §2.3"),
+  "CR 1.10": statement("met", "PIN and password entry on the touch panel is masked."),
+  "CR 1.11": statement("met", "After five failed logins the account is locked for 15 minutes; the limit is configurable.", "Security manual §2.4"),
+  "CR 1.12": statement("met", "The HMI shows a configurable notice before the login screen."),
+  "CR 2.4": statement("n/a", "Neither the PLC nor the HMI runtime loads scripts, plug-ins or other mobile code."),
+  "CR 2.4 RE(1)": statement("n/a", "No mobile code (see CR 2.4)."),
+  "CR 2.8 RE(1)": statement("met", "Only the administrator role can disable audit categories; the change itself is logged."),
+  "CR 2.9": statement("met", "4 MB of flash are reserved for the audit log as a ring buffer; a full log never stops pump control.", "Design spec §7.2"),
+  "CR 2.10": statement("met", "On an audit write error the controller keeps running and raises a maintenance alarm to SCADA."),
+  "CR 2.11": statement("met", "Audit records carry a UTC time stamp from the real-time clock."),
+  "CR 2.11 RE(1)": statement("met", "The real-time clock is synchronised with the plant NTP server every hour."),
+  "CR 3.8": statement("met", "HMI session IDs are 128-bit random values and are invalidated at logout and on timeout."),
+  "CR 3.13": statement("not-met", "Trust anchors are provisioned by the vendor at production; owner provisioning is planned for firmware 2.0."),
+  "CR 6.1": statement("met", "The audit log can be read, read-only, over OPC UA by the maintenance role and exported as CSV."),
+  "CR 7.3 RE(1)": statement("met", "Configuration backups carry a signature that is checked before a restore.", "Service manual §5.3"),
+  "CR 7.6": statement("met", "A secure-defaults profile can be applied from the HMI; the current settings can be viewed there."),
+};
+
+export const COMPLIANCE: ComplianceData = {
+  target: { IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 },
+  statements: { "en-iec-62443-4-2-praa-2026": STATEMENTS },
+};
+
+// ── Project ─────────────────────────────────────────────────────────────────
+
+export const TAGS = {
+  custom: [],
+  domain: ["Industrial"],
+  platform: ["OT"],
+  regulation: ["EN IEC 62443 (CRA)", "CRA"],
+};
+
+export function buildPumpStationProject(): ProjectJson {
+  const dfd = buildDfd();
+  const assets = buildAssets(dfd);
+
+  // Asset links live on the diagram (assetRelations), dfd.assets mirrors them.
+  const dfdItems = [...dfd.elements, ...dfd.connections];
+  for (const a of assets) {
+    for (const link of a.linkedDFDElements) {
+      const item = dfdItems.find((x: { id: string }) => x.id === link.elementId);
+      (item.assetRelations ??= []).push({ assetId: a.id, assetGroup: a.assetGroup, relationType: link.relationType });
+    }
+  }
+  dfd.assets = deriveDfdAssets(assets, dfd.elements, dfd.connections);
+  const assetData: AssetData = recalculateAllImpacts({ configuration: ASSET_CONFIGURATION, assets, lastModified: DATE });
+
+  const threats = generateThreats(dfd, assetData.assets, TAGS);
+  const risks = buildRisks(dfd, assetData.assets, threats);
+
+  return {
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    id: "example-pump-station-controller",
+    info: {
+      name: "TARAflow Example – Pump Station Controller",
+      description:
+        "Industrial pump station controller (PLC with HMI, configuration store, service and fieldbus interfaces) evaluated against the CRA edition of IEC 62443-4-2 (EN IEC 62443-4-2/prAA, draft). Shows the requirement matrix with met, planned, stated, open and gap rows.",
+      version: "1.0",
+      responsible: "TARAflow",
+      team: ["TARAflow"],
+      created: DATE,
+      lastModified: DATE,
+      isHighImpact: false,
+      safetyRelevant: true,
+      tags: TAGS,
+    },
+    status: "draft",
+    settings: { autoSave: true, autoSaveInterval: 2, regulationPreset: "standard", strictMode: false },
+    methodSelected: true,
+    strideMethod: "per-interaction",
+    phaseStatus: Object.fromEntries(Array.from({ length: 11 }, (_, i) => [String(i), i <= 4 ? "in-progress" : "not-started"])),
+    dfd,
+    assets: { ...assetData, lastModified: DATE },
+    threats,
+    risks,
+    compliance: COMPLIANCE,
+    attackTrees: null,
+    hazards: null,
+    documentation: { ...createDefaultDocData(), lastModified: DATE },
+    integration: null,
+    audit: null,
+  };
+}
+
+/** Ids for tests: element display id → element id. */
+export const ELEMENT_DISPLAY_IDS = [...SHAPES.filter((s) => !s.type.endsWith("boundary")).map((s) => s.displayId), ...EDGES.map((e) => e.displayId)];

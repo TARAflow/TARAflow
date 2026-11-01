@@ -7,6 +7,7 @@
       "strideCategory": "I",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-4.1-rest"],
       "affectsProperties": [
         {
           "targetType": "DataStore",
@@ -25,6 +26,7 @@
       "context": {},
       "attackVectors": ["network", "adjacent"],
       "isCustom": false,
+      "iec62443": ["cr-4.1-transit", "cr-3.1"],
       "affectsProperties": [
         {
           "targetType": "DataFlow",
@@ -44,6 +46,7 @@
       "strideCategory": "I",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.1", "cr-2.1-re2"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -67,6 +70,7 @@
       "strideCategory": "I",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-4.1-rest"],
       "affectsProperties": [
         {
           "targetType": "DataStore",
@@ -94,6 +98,7 @@
       "strideCategory": "I",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-1.5-re1"],
       "affectsProperties": [
         {
           "targetType": "Process",
@@ -157,6 +162,7 @@
       "strideCategory": "I",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-4.2", "cr-4.2-re2"],
       "affectsProperties": [],
       "verifications": [
         "V-I-001"

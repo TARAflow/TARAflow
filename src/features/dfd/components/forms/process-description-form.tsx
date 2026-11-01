@@ -28,6 +28,7 @@ import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
+import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
 import { useElementForm } from "../../hooks/use-element-form";
 import {
   updateProcessProperties,
@@ -873,6 +874,20 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
             </FormControl>
           </Grid>
         )}
+
+        {/* Update Mechanism — CR 3.10, when the process is updated on its own */}
+        <UpdateMechanismField
+          i18nBase="tabs.dfd.element_description.process.fields"
+          value={props.updateMechanism}
+          onChange={(v) => handlePropertyChange("updateMechanism", v)}
+        />
+
+        {/* Session Control — CR 2.5 – 2.7, for processes with human users */}
+        <SessionControlFields
+          i18nBase="tabs.dfd.element_description.process.fields"
+          value={props.sessionControl}
+          onChange={(v) => handlePropertyChange("sessionControl", v)}
+        />
 
         {/* Exposed to Internet — not applicable for embedded processes (no network stack) */}
         {!isEmbedded && (

@@ -5,7 +5,11 @@
 //
 // The verified state is a hash of the ANALYSIS CONTENT — independent of git:
 // item definition, hazards, the DFD model (elements, flows, pages), assets,
-// threats, attack trees, risks, goals and claims. Left out, so that neither a
+// threats, attack trees, risks, goals and claims, and — only when present —
+// the IEC 62443-4-2 matrix data (project.compliance: component, target,
+// statements; iec-62443-4-2-cra-coverage.md D-25). Only-when-present keeps
+// the hash of every project without matrix data exactly as it was, so the
+// hash version stays and no earlier verification is touched. Left out, so that neither a
 // save nor a re-layout counts as a change: the verification records
 // themselves, audit and document settings, the draw.io XML and thumbnails
 // (layout), derived caches (graph, validation, calculation stamps) and every
@@ -116,6 +120,8 @@ export function verificationStateHash(project: Partial<Project>): string {
     risks: analysisOfRisks(project.risks),
     goals: concept?.goals ?? [],
     claims: concept?.claims ?? [],
+    // D-25: only when present — absent, the content (and hash) is unchanged.
+    ...(project.compliance ? { compliance: project.compliance } : {}),
   };
   return fnv1aHex12(canonicalStringify(strip(content)));
 }

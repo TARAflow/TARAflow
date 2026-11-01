@@ -7,6 +7,7 @@
       "strideCategory": "R",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.8", "cr-3.9"],
       "affectsProperties": [],
       "verifications": [
         "V-R-001"
@@ -35,6 +36,7 @@
       "strideCategory": "R",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.11", "cr-2.11-re1"],
       "affectsProperties": [],
       "verifications": [
         "V-R-003"
@@ -73,6 +75,7 @@
       "strideCategory": "R",
       "context": {},
       "isCustom": false,
+      "iec62443": ["cr-2.12"],
       "affectsProperties": [],
       "verifications": [
         "V-R-001"

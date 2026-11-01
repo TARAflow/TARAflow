@@ -23,11 +23,8 @@ describe("migrate 10 → 11 (version fence)", () => {
     expect(out).toEqual({ ...v10, schemaVersion: 11 });
   });
 
-  it("is the current version", () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(11);
-  });
-
-  it("a file of a newer schema is refused", () => {
-    expect(() => applyMigrations({ ...v10, schemaVersion: 12 })).toThrow(/Unsupported schema version: 12/);
+  it("is followed by the schema-12 fence", () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe(12);
+    expect(applyMigrations(structuredClone(v10)).data.schemaVersion).toBe(12);
   });
 });

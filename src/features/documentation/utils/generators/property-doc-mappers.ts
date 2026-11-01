@@ -269,6 +269,11 @@ export function getElementPropertiesGrouped(
     // not at the top level — resolve them there before falling back.
     if (element.type === "Interface" && field in implementedControls)
       return implementedControls[field];
+    // Dotted fields read a nested object (sessionControl.sessionLockEnabled).
+    if (field.includes(".")) {
+      const [outer, inner] = field.split(".");
+      return (props[outer] as Record<string, unknown> | undefined)?.[inner];
+    }
     return props[field];
   };
   return buildGroupsFromLayout(element.type, lang, read);
@@ -298,6 +303,13 @@ interface FieldLayout {
   meta: string[];
 }
 
+/** Nested sessionControl, one row per setting (Process and Multiprocess, P-2). */
+const SESSION_CONTROL_FIELDS = [
+  "sessionControl.sessionLockEnabled",
+  "sessionControl.remoteTerminationEnabled",
+  "sessionControl.maxConcurrentSessions",
+];
+
 const ELEMENT_FIELD_LAYOUT: Record<string, FieldLayout> = {
   Process: {
     segment: "process",
@@ -313,6 +325,8 @@ const ELEMENT_FIELD_LAYOUT: Record<string, FieldLayout> = {
       "nonRepudiation",
       "failSafeOutputState",
       "exposedToInternet",
+      "updateMechanism",
+      ...SESSION_CONTROL_FIELDS,
     ],
     meta: ["owner", "notes", "description"],
   },
@@ -338,6 +352,7 @@ const ELEMENT_FIELD_LAYOUT: Record<string, FieldLayout> = {
       "authenticatorStorage",
       "backupMechanism",
       "nonRepudiation",
+      ...SESSION_CONTROL_FIELDS,
     ],
     meta: [
       "internalComponents",

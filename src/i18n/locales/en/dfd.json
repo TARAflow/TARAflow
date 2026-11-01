@@ -737,6 +737,18 @@
               "maxConcurrentSessions": {
                 "label": "Max. Concurrent Sessions (0 = unlimited)"
               }
+            },
+            "updateMechanism": {
+              "label": "Update Mechanism",
+              "options": {
+                "none": "No update planned",
+                "manual_local": "Manual (local, physical access)",
+                "signed_local": "Signed package (local)",
+                "signed_ota": "Signed OTA",
+                "vendor_only": "Vendor-managed only",
+                "mdm_managed": "MDM-managed",
+                "ci_cd": "Automated CI/CD deployment"
+              }
             }
           },
           "stride_hint": {
@@ -919,6 +931,17 @@
                 "vendor_only": "Vendor-managed only",
                 "mdm_managed": "MDM-managed",
                 "ci_cd": "Automated CI/CD deployment"
+              }
+            },
+            "sessionControl": {
+              "sessionLockEnabled": {
+                "label": "Session Lock after Inactivity"
+              },
+              "remoteTerminationEnabled": {
+                "label": "Remote Session Termination"
+              },
+              "maxConcurrentSessions": {
+                "label": "Max. Concurrent Sessions (0 = unlimited)"
               }
             },
             "exposedToInternet": {
