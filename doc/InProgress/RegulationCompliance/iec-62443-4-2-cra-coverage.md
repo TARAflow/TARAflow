@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v20 · 2026-11-01 (decisions D-1 … D-27 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 P-2 done; IEC-10 in progress; open point K-E15; IEC-6, IEC-8b in 0.18;
+**Status:** v21 · 2026-11-01 (decisions D-1 … D-28 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 P-2 done; IEC-10 in progress; IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -179,7 +179,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | ID | Requirement | SL-C | CRA | Applicability in the model | Evidence in the model | Type | Gap |
 |---|---|---|---|---|---|---|---|
-| CR 3.1 (l. 2122) | protect integrity of transmitted information | 1 | f | every external DF | DF.`integrityProtection` ∈ hmac, signature, aead; DF.`encryptionInTransit` ∈ tls, mtls, vpn | A | — |
+| CR 3.1 (l. 2122) | protect integrity of transmitted information | 1 | f | every DF across the component border, no human input / physical coupling (D-28) | DF.`integrityProtection` ∈ hmac, signature, aead; DF.`encryptionInTransit` ∈ tls, mtls, vpn | A | — |
 | CR 3.1 RE(1) (l. 2147) | verify authenticity of received information | 2 | f | as CR 3.1 | DF.`integrityProtection` ∈ hmac, signature, aead + `endpointAuthentication` ≠ none | A | — |
 | CR 3.2 (l. 2195) | prevent and detect installation / execution of malicious code | 1 | k | Proc / MP executing code | Proc / MP.`malwareProtection` ≠ none | A | — |
 | CR 3.2 RE(1) (l. 2230) | detect and prevent installation of malicious code (report version of protection) | 2 | k | as CR 3.2 | `malwareProtection` ∈ application_whitelist, code_signing | B | — |
@@ -207,7 +207,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | ID | Requirement | SL-C | CRA | Applicability in the model | Evidence in the model | Type | Gap |
 |---|---|---|---|---|---|---|---|
-| CR 4.1 (l. 2980) | confidentiality of sensitive information over external interfaces | 1 | e, m | DF leaving the component with `dataClassification` ∈ confidential, secret (or a confidential asset) | DF.`encryptionInTransit` ≠ none | A | — |
+| CR 4.1 (l. 2980) | confidentiality of sensitive information over external interfaces | 1 | e, m | DF across the component border (D-28) with `dataClassification` ∈ confidential, secret (or a confidential asset) | DF.`encryptionInTransit` ≠ none | A | — |
 | CR 4.1 RE(1) (l. 3017) | confidentiality of sensitive information at rest and in processing | 2 | e, m | DS with `dataClassification` ∈ confidential, restricted, secret | DS.`encryptionAtRest` ≠ none; CB.`firmwareProtection` = encrypted | A | "in processing" (memory) not modelled |
 | CR 4.2 (l. 3050) | erase all sensitive information in non-volatile memory | 2 | b, e, m | DS with sensitive data | DS.`deletionMechanism` ∈ overwrite, crypto_erase, factory_reset, physical | A | — |
 | CR 4.2 RE(1) (l. 3077) | erase sensitive information in volatile memory | 3 | b, e, m | Proc handling sensitive data | — | C | — |
@@ -341,6 +341,7 @@ Per project, from one model (consistency per EA-6-1):
 | D-25 (K-E14) | The TARA verification hash covers `project.compliance` (component, target, device categories, statements) **only when present**: projects without matrix data keep exactly their hash, so the hash version stays and no earlier verification is touched; a statement changed after a verification shows "changed". | The matrix is an evaluation artefact (SoA, EA-2-9) resting on the statements. `app/services/verification-state.ts`. |
 | D-26 | **SL terms as operators use them** (user 2026-11-01, after the first look at the tab): the target per FR is the **SL-T** the operator / zone requires — a vector over the FRs, entered per FR with a quick "all FR to …"; the product's value is its **SL-C (product)**, with **SL-C planned** after the chosen open mitigations; the value with supporting measures and claims is shown as **"with measures of the system"** — what the plant can reach if it provides the listed supporting measures and claims, the basis for the SL-A, which only arises in the operated plant and is never computed by TARAflow. "Planned with measures of the system" is not shown. The SL table has the **FRs as columns** and the four values as rows, in the tab and in the report; a value below the SL-T is marked by colour **and** symbol (✗ / ✓), never by colour alone. | Renames only — the evaluation (D-2, D-4, D-14) is unchanged. The gap list answers the operator question "SL-T 3 required — product SL-C 2 — what is missing, what must the plant provide". |
 | D-27 | **What a requirement is about** (user 2026-11-01): every row shows the requirement's short title and a **summary in our own words** (English, German) — **never the normative text** (no "shall" sentences, rationale or acceptance criteria; TARAflow is public, the standard licensed), always with "summary — the standard is authoritative". In the tab: a **compact tooltip** (title, summary) on the requirement number; a **click opens an info dialog** with all of it — SL-C from, CRA letters, current status and source, "how TARAflow checks it" (generated from the evidence rule), affected elements, checklist, catalog mitigations, the statement; its "statement" button closes the info dialog first, then opens the statement dialog (the button in the row stays). In the report: a compact column "title — summary" in the SoA. The type B checklists are translated as well. | `data/requirement-texts.ts`, `services/describe-requirement.ts`. |
+| D-28 (K-E15) | **Transmitted information = flows across the component border** (user 2026-11-01): CR 3.1, CR 3.1 RE(1) and CR 4.1 (transit) apply only to a flow with an endpoint that is an ExternalEntity or outside the component scope, and not to human input on the component's own panel (protocol `human_input`) or a transducer coupling (medium `physical`). CR 4.3 keeps every encrypted flow. | `EvidenceTarget.crossesComponent`, rules via `COMPONENT_BORDER_FLOWS` (patch 15); without a selected component the scope is the whole model, so the flows to and from external entities count |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -382,7 +383,7 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | K-E12 | Review of IEC-2a — review 2026-10-31 (reviewer) | — | **decided, D-23** |
 | K-E13 | Review of 266 — review 2026-10-31 (reviewer) | — | **decided, D-24** |
 | K-E14 | Does the TARA verification hash cover `project.compliance`? | — | **decided, D-25** |
-| K-E15 | CR 3.1 / 3.1 RE(1) check **every** DataFlow, while §4 says "every external DF". Found with the Pump Station example (IEC-10): the operator's input on the local touch panel (DF-1, protocol `human_input`) fails CR 3.1, so SI cannot reach 1 even when every network flow is protected; internal flows (PLC ↔ configuration store) count as well. | (a) keep all flows; (b) external flows only (an endpoint outside the component scope), as §4 says; (c) (b) and no `human_input` / physical-coupling flows | **(c)**: CR 3.1 is about transmitted information; a key press on the component's own panel and a transducer coupling carry none. Same filter for CR 4.1 (transit) and CR 4.3 (transit) to be checked |
+| K-E15 | CR 3.1 / 3.1 RE(1) check **every** DataFlow, while §4 says "every external DF". Found with the Pump Station example (IEC-10): the operator's input on the local touch panel (DF-1, protocol `human_input`) fails CR 3.1, so SI cannot reach 1 even when every network flow is protected; internal flows (PLC ↔ configuration store) count as well. | — | **decided, D-28** (option c; CR 4.1 transit too, CR 4.3 unchanged) |
 
 ## 8. Next steps
 
@@ -628,7 +629,7 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-6 | claims for SL-C gaps (D-5) | — | — | **0.18** (user 2026-11-01): statements with a supporting measure cover the case in 0.17 |
 | IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | — | — | **0.18** (user 2026-11-01) |
 | IEC-9 | model gaps: P-2 (update mechanism / session control on both element types) and P-1 (`defaultDenyPolicy` multi-select, schema-12 migration) in 0.17; P-4, P-7 in 0.18 | same | IEC-1 | P-2 done (patch 13); P-1 open |
-| IEC-10 | validation: general example "Pump Station Controller" (CRA tag, SL-T 2, every row status; generator `src/tests/examples/pump-station-example.ts` through the real services, `WRITE_EXAMPLES=<dir>` writes the project); the seminar uses SmokeDetector; check SmokeDetector-leveled / Headlamp | same | all IEC | in progress: example done (patch 12, with the fix of the planned overlay — it lost every property but the patched one); open: K-E15, the two examples |
+| IEC-10 | validation: general example "Pump Station Controller" (CRA tag, SL-T 2, every row status; generator `src/tests/examples/pump-station-example.ts` through the real services, `WRITE_EXAMPLES=<dir>` writes the project); the seminar uses SmokeDetector; check SmokeDetector-leveled / Headlamp | same | all IEC | in progress: example done (patch 12, with the fix of the planned overlay — it lost every property but the patched one); D-28 (patch 15); open: the two examples |
 | IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
 | IEC-5 | `iec62443` references on catalog mitigations (§10), mitigation evidence for the evaluator from the risk treatment (one entry per mitigation and risk) | same | IEC-3 | done (patch 276) |
 | IEC-8 | Compliance tab (D-9): entry "🛡 Compliance" on the right of the tab bar like Audit / Integration (no phase status, not in the progress; only when the tags select an edition); component under evaluation, device categories (2019: derived proposal, confirm — K-C1), target per FR with achieved / planned × component / with support, rows (open first) with status, source, notes, statements (store the model result of the moment, D-17); i18n namespace `compliance`. Still open: `iec62443` references on project mitigations (M-C-…) in the custom mitigation dialog (IEC-8b) | same | IEC-4, IEC-7 | done (patch 04) |
