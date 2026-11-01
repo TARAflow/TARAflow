@@ -491,6 +491,12 @@
     }
   },
   "tags": {
+    "effect": {
+      "method": "Defines the method: risk calculation, threat generation, work products and report.",
+      "matrix": "Enables the requirement matrix: Compliance tab and report chapter.",
+      "legendMethod": "defines the method",
+      "legendMatrix": "enables the requirement matrix"
+    },
     "tooltips": {
       "cra": "EU Cyber Resilience Act - Security requirements for products with digital elements",
       "nis2": "EU Network and Information Security Directive - Critical infrastructure security",

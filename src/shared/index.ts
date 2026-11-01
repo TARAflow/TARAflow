@@ -485,6 +485,8 @@ export {
   hasTagConflicts,
   getTagWarnings,
   requiresHazardAnalysis,
+  tagEffectOf,
+  MATRIX_TAGS,
 } from "./services/tag-validator";
 
 export { SafetyAnalysisToggle } from "./components/safety-analysis-toggle";

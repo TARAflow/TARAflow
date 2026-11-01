@@ -221,6 +221,24 @@ export function regulationPresetFromTags(
   return "standard";
 }
 
+// ==================== TAG EFFECT ====================
+
+/** Regulation tags that enable an IEC 62443-4-2 requirement matrix (compliance select-edition). */
+export const MATRIX_TAGS: readonly string[] = ["IEC 62443", "EN IEC 62443 (CRA)"];
+
+/**
+ * What a tag changes in the workflow, for marking it in the tag editor:
+ *   method  selects the regulation preset — risk method, threat generators,
+ *           work products, report (ISO 21434, EN 50742, ETSI TVRA)
+ *   matrix  enables a requirement matrix — Compliance tab and report chapter
+ *   null    documentation and context only
+ */
+export function tagEffectOf(tag: string): "method" | "matrix" | null {
+  if (methodGroupOf(tag)) return "method";
+  if (MATRIX_TAGS.includes(tag)) return "matrix";
+  return null;
+}
+
 // ==================== VALIDATOR ====================
 
 /**

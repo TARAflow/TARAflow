@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Settings, ShieldCheck } from "lucide-react";
 import { Tooltip } from "@mui/material";
 // NOTE: helpers imported from the top "shared" barrel — see the cycle note in
 // safety-analysis-toggle.tsx. Consumers import this component from
@@ -12,7 +12,7 @@ import {
   removeTagFromProject,
   flattenProjectTags,
 } from "../models/project-tags";
-import { getTagWarnings } from "../services/tag-validator";
+import { getTagWarnings, tagEffectOf } from "../services/tag-validator";
 
 import {
   TAG_CATEGORIES,
@@ -78,15 +78,61 @@ export const ProjectTagsEditor: React.FC<ProjectTagsEditorProps> = ({
 
   // ==================== RENDER HELPERS ====================
 
+  // Tags that change the workflow stand out — not by colour alone:
+  //   method  dark, with a cog (selects the regulation preset)
+  //   matrix  outlined, with a shield (enables the requirement matrix)
+  const effectText = (effect: "method" | "matrix") =>
+    effect === "method"
+      ? t("tags.effect.method", {
+          defaultValue: "Defines the method: risk calculation, threat generation, work products and report.",
+        })
+      : t("tags.effect.matrix", {
+          defaultValue: "Enables the requirement matrix: Compliance tab and report chapter.",
+        });
+
+  const effectClass = (effect: "method" | "matrix" | null, normal: string) =>
+    effect === "method"
+      ? "bg-green-700 text-white border-green-700"
+      : effect === "matrix"
+        ? `${normal} border-green-700`
+        : `${normal} border-transparent`;
+
+  const effectIcon = (effect: "method" | "matrix" | null) =>
+    effect === "method" ? (
+      <Settings className="w-3 h-3" aria-hidden data-testid="tag-effect-method" />
+    ) : effect === "matrix" ? (
+      <ShieldCheck className="w-3 h-3" aria-hidden data-testid="tag-effect-matrix" />
+    ) : null;
+
+  const tooltipOf = (tag: string, tooltipKey?: string) => {
+    const effect = tagEffectOf(tag);
+    const text = tooltipKey ? t(tooltipKey, { defaultValue: tag }) : null;
+    if (!effect) return text;
+    return (
+      <span>
+        <strong>{effectText(effect)}</strong>
+        {text && (
+          <>
+            <br />
+            {text}
+          </>
+        )}
+      </span>
+    );
+  };
+
   const renderTagBadge = (tag: string, showRemoveButton = false) => {
     const styles = getTagStyles(tag, {});
     const tagDef = getTagDefinition(tag);
-    const hasTooltip = tagDef?.tooltipKey;
+    const effect = tagEffectOf(tag);
+    const tooltip = tooltipOf(tag, tagDef?.tooltipKey);
 
     const badge = (
       <span
-        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${styles.bg} ${styles.text}`}
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm border-2 ${effectClass(effect, `${styles.bg} ${styles.text}`)}`}
+        data-tag-effect={effect ?? undefined}
       >
+        {effectIcon(effect)}
         {tag}
         {showRemoveButton && (
           <button
@@ -104,14 +150,9 @@ export const ProjectTagsEditor: React.FC<ProjectTagsEditorProps> = ({
       </span>
     );
 
-    if (hasTooltip) {
+    if (tooltip) {
       return (
-        <Tooltip
-          key={tag}
-          title={t(tagDef.tooltipKey!, { defaultValue: tag })}
-          arrow
-          placement="top"
-        >
+        <Tooltip key={tag} title={tooltip} arrow placement="top">
           {badge}
         </Tooltip>
       );
@@ -122,26 +163,24 @@ export const ProjectTagsEditor: React.FC<ProjectTagsEditorProps> = ({
 
   const renderAvailableTagButton = (tagName: string, category: TagCategory) => {
     const tagDef = getTagDefinition(tagName);
-    const hasTooltip = tagDef?.tooltipKey;
+    const effect = tagEffectOf(tagName);
+    const tooltip = tooltipOf(tagName, tagDef?.tooltipKey);
 
     const button = (
       <button
         type="button"
         onClick={() => addTag(tagName)}
-        className={`px-2.5 py-1 text-xs border rounded-full transition-colors ${category.bgColor} ${category.textColor} border-transparent hover:opacity-80`}
+        className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs border-2 rounded-full transition-colors hover:opacity-80 ${effectClass(effect, `${category.bgColor} ${category.textColor}`)}`}
+        data-tag-effect={effect ?? undefined}
       >
-        + {tagName}
+        + {effectIcon(effect)}
+        {tagName}
       </button>
     );
 
-    if (hasTooltip) {
+    if (tooltip) {
       return (
-        <Tooltip
-          key={tagName}
-          title={t(tagDef.tooltipKey!, { defaultValue: tagName })}
-          arrow
-          placement="top"
-        >
+        <Tooltip key={tagName} title={tooltip} arrow placement="top">
           {button}
         </Tooltip>
       );
@@ -221,6 +260,18 @@ export const ProjectTagsEditor: React.FC<ProjectTagsEditorProps> = ({
           );
         })}
       </div>
+
+      {/* Legend for the marked tags */}
+      <p className="text-xs text-gray-500 flex flex-wrap items-center gap-x-4 gap-y-1" data-testid="tag-effect-legend">
+        <span className="inline-flex items-center gap-1">
+          <Settings className="w-3 h-3" aria-hidden />
+          {t("tags.effect.legendMethod", { defaultValue: "defines the method" })}
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <ShieldCheck className="w-3 h-3" aria-hidden />
+          {t("tags.effect.legendMatrix", { defaultValue: "enables the requirement matrix" })}
+        </span>
+      </p>
 
       {/* Custom Tag Input */}
       <div>

@@ -489,6 +489,12 @@
     }
   },
   "tags": {
+    "effect": {
+      "method": "Bestimmt die Methode: Risikoberechnung, Threat-Generierung, Arbeitsprodukte und Bericht.",
+      "matrix": "Schaltet die Anforderungsmatrix frei: Compliance-Tab und Berichtskapitel.",
+      "legendMethod": "bestimmt die Methode",
+      "legendMatrix": "schaltet die Anforderungsmatrix frei"
+    },
     "tooltips": {
       "cra": "EU Cyber Resilience Act - Sicherheitsanforderungen für Produkte mit digitalen Elementen",
       "nis2": "EU Netzwerk- und Informationssicherheit Richtlinie - Sicherheit kritischer Infrastrukturen",

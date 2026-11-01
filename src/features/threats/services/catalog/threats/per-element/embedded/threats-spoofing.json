@@ -42,7 +42,8 @@
           "driver"
         ],
         "regulation": [
-          "IEC 62443"
+          "IEC 62443",
+          "EN IEC 62443 (CRA)"
         ]
       },
       "mitigations": [
