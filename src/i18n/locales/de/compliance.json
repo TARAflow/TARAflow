@@ -8,13 +8,12 @@
     "deviceProposal": "Vorschlag aus dem Modell: {{categories}} — bestätigen, bevor die Gerätezeilen zählen.",
     "deviceAsk": "Gerätekategorie der Komponente wählen — Workstation oder mobiles Gerät: HDR, wenn das Gerät mitgeliefert wird, SAR nur für eine App oder ein Werkzeug.",
     "confirm": "Bestätigen",
-    "vectorTitle": "Security Level Capability pro Foundational Requirement",
+    "vectorTitle": "Security Levels pro Foundational Requirement",
     "fr": "FR",
-    "target": "Ziel",
-    "achievedComponent": "Erreicht — Komponente",
-    "achievedWithSupport": "Erreicht — mit Support / Claims",
-    "plannedComponent": "Geplant — Komponente",
-    "plannedWithSupport": "Geplant — mit Support / Claims",
+    "target": "SL-T (Anforderung)",
+    "achievedComponent": "SL-C (Produkt)",
+    "achievedWithSupport": "Mit Massnahmen des Systems",
+    "plannedComponent": "SL-C geplant",
     "rowsTitle": "Anforderungen",
     "filterOpen": "Offen",
     "filterAll": "Alle",
@@ -67,6 +66,8 @@
       "not-met": "nicht erfüllt",
       "n/a": "nicht anwendbar"
     },
-    "noModel": "Die Anforderungsmatrix braucht ein Datenflussdiagramm — zuerst das System im DFD-Tab modellieren."
+    "noModel": "Die Anforderungsmatrix braucht ein Datenflussdiagramm — zuerst das System im DFD-Tab modellieren.",
+    "targetAll": "alle FR",
+    "vectorText": "SL-T: was der Betreiber bzw. die Zone verlangt. SL-C (Produkt): was das Produkt laut Modell kann; geplant: nach den gewählten offenen Massnahmen. Mit Massnahmen des Systems: was in der Anlage erreichbar ist, wenn sie die gelisteten Supporting Measures und Claims stellt — Grundlage für das SL-A, das erst in der betriebenen Anlage entsteht."
   }
 }

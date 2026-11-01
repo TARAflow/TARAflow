@@ -86,8 +86,15 @@ describe("compliance matrix sections", () => {
     ]);
   });
 
-  it("SL-C per FR: target, achieved and planned, both values each", () => {
-    expect(byTitle("Security level capability per foundational requirement").table?.rows).toEqual([["IAC", "2", "1", "2", "2", "2"]]);
+  it("SL table (D-26): FRs as columns; SL-T, SL-C (product), SL-C planned, with measures of the system; below the SL-T marked ✗", () => {
+    const table = byTitle("Security levels per foundational requirement").table!;
+    expect(table.headers).toEqual(["", "IAC"]);
+    expect(table.rows).toEqual([
+      ["SL-T (requirement)", "2"],
+      ["SL-C (product)", "1 ✗"],
+      ["SL-C planned", "2 ✓"],
+      ["With measures of the system", "2"],
+    ]);
   });
 
   it("SoA: status with its source; long element lists are shortened", () => {
@@ -104,7 +111,7 @@ describe("compliance matrix sections", () => {
   });
 
   it("gaps against the target: rows up to the target that the component does not meet, with suggestions", () => {
-    expect(byTitle("Gaps against the target").table?.rows).toEqual([
+    expect(byTitle("Gaps against the SL-T").table?.rows).toEqual([
       ["CR 1.2", "gap", "M-S-009"],
       ["CR 1.11", "claimed", "—"],
     ]);
@@ -112,7 +119,8 @@ describe("compliance matrix sections", () => {
 
   it("classic edition: no CRA column or view; no target → no gaps section; nothing → no chapter", () => {
     const classic = complianceMatrixSections(compliance({ cra: false, draft: false, vectors: [{ fr: "IAC", achievedComponent: 1, achievedWithSupport: 1, plannedComponent: 1, plannedWithSupport: 1 }] }), t);
-    expect(classic.map((s) => s.title)).toEqual(["Basis", "Security level capability per foundational requirement", "Statement of Applicability"]);
+    expect(classic.map((s) => s.title)).toEqual(["Basis", "Security levels per foundational requirement", "Statement of Applicability"]);
+    expect(classic[1].table!.rows[1]).toEqual(["SL-C (product)", "1"]); // no SL-T → no mark
     expect(classic[2].table?.headers).not.toContain("CRA");
     expect(complianceMatrixSections(undefined, t)).toEqual([]);
   });

@@ -132,34 +132,29 @@ export function complianceMatrixSections(compliance: DocCompliance | undefined, 
     facts: basis,
   });
 
-  // 2 — SL-C per foundational requirement
+  // 2 — SL table (D-26): FRs as columns; SL-T, SL-C (product), SL-C planned,
+  // with measures of the system; a value below the SL-T is marked ✗ (not by
+  // colour alone — Markdown has none).
   const level = (n: number | undefined) => (n === undefined ? "—" : String(n));
+  const compared = (n: number, target: number | undefined) =>
+    target === undefined ? String(n) : `${n} ${n >= target ? "✓" : "✗"}`;
   sections.push({
-    title: t(`${K}.vectorTitle`, "Security level capability per foundational requirement"),
+    title: t(`${K}.vectorTitle`, "Security levels per foundational requirement"),
     paragraphs: [
       t(
         `${K}.vectorText`,
-        "Achieved: from the model as built and the mitigations marked done. Planned: with the mitigations chosen in the risk treatment. SL-C (component) counts what the component itself provides; the second value adds supporting measures and claims. The SL-C of the component is the achieved component value.",
+        "SL-T: what the operator or the zone requires. SL-C (product): what the product provides according to the model and the mitigations marked done; planned: after the chosen open mitigations. With measures of the system: what the plant can reach if it provides the listed supporting measures and claims — the basis for the SL-A, which only arises in the operated plant. ✗ marks a value below the SL-T.",
       ),
     ],
     facts: [],
     table: {
-      headers: [
-        t(`${K}.fr`, "FR"),
-        t(`${K}.target`, "Target"),
-        t(`${K}.achievedComponent`, "Achieved — SL-C (component)"),
-        t(`${K}.achievedWithSupport`, "Achieved — with supporting measures and claims"),
-        t(`${K}.plannedComponent`, "Planned — SL-C (component)"),
-        t(`${K}.plannedWithSupport`, "Planned — with supporting measures and claims"),
+      headers: ["", ...c.vectors.map((v) => v.fr)],
+      rows: [
+        [t(`${K}.target`, "SL-T (requirement)"), ...c.vectors.map((v) => level(v.target))],
+        [t(`${K}.achievedComponent`, "SL-C (product)"), ...c.vectors.map((v) => compared(v.achievedComponent, v.target))],
+        [t(`${K}.plannedComponent`, "SL-C planned"), ...c.vectors.map((v) => compared(v.plannedComponent, v.target))],
+        [t(`${K}.achievedWithSupport`, "With measures of the system"), ...c.vectors.map((v) => String(v.achievedWithSupport))],
       ],
-      rows: c.vectors.map((v) => [
-        v.fr,
-        level(v.target),
-        level(v.achievedComponent),
-        level(v.achievedWithSupport),
-        level(v.plannedComponent),
-        level(v.plannedWithSupport),
-      ]),
     },
   });
 
@@ -218,11 +213,11 @@ export function complianceMatrixSections(compliance: DocCompliance | undefined, 
   });
   if (gaps.length > 0) {
     sections.push({
-      title: t(`${K}.gapsTitle`, "Gaps against the target"),
+      title: t(`${K}.gapsTitle`, "Gaps against the SL-T"),
       paragraphs: [
         t(
           `${K}.gapsText`,
-          "Rows needed for the target level that the component does not meet itself — each is closed by a mitigation, a statement or a claim (another party covers it).",
+          "Rows needed for the SL-T that the product does not meet itself (SL-C) — each is closed by a change of the product (mitigation), a statement, or a measure the plant provides (supporting measure, claim).",
         ),
       ],
       facts: [],

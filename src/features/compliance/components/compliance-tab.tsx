@@ -219,30 +219,54 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           )}
         </Paper>
 
-        {/* ── SL-C per FR ───────────────────────────────────────────── */}
+        {/* ── SL table (D-26): FRs as columns ─────────────────────── */}
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="subtitle1" gutterBottom>
-            {t("vectorTitle", "Security level capability per foundational requirement")}
+            {t("vectorTitle", "Security levels per foundational requirement")}
           </Typography>
           <Table size="small" data-testid="compliance-vector">
             <TableHead>
               <TableRow>
-                <TableCell>{t("fr", "FR")}</TableCell>
-                <TableCell>{t("target", "Target")}</TableCell>
-                <TableCell>{t("achievedComponent", "Achieved — component")}</TableCell>
-                <TableCell>{t("achievedWithSupport", "Achieved — with support / claims")}</TableCell>
-                <TableCell>{t("plannedComponent", "Planned — component")}</TableCell>
-                <TableCell>{t("plannedWithSupport", "Planned — with support / claims")}</TableCell>
+                <TableCell />
+                {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
+                  <TableCell key={fr} align="center">
+                    {fr}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {FOUNDATIONAL_REQUIREMENTS.map((fr) => {
-                const target = data?.target?.[fr];
-                const below = target !== undefined && achieved.component[fr] < target;
-                return (
-                  <TableRow key={fr}>
-                    <TableCell>{fr}</TableCell>
-                    <TableCell>
+              <TableRow>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <span>{t("target", "SL-T (requirement)")}</span>
+                    <TextField
+                      select
+                      size="small"
+                      label={t("targetAll", "all FR")}
+                      value=""
+                      sx={{ minWidth: 96 }}
+                      onChange={(e) => {
+                        const level = e.target.value === "-" ? undefined : (Number(e.target.value) as TargetSecurityLevel);
+                        let next = data;
+                        for (const fr of FOUNDATIONAL_REQUIREMENTS) next = withComplianceTarget(next, fr, level);
+                        if (next) onChange(next);
+                      }}
+                      inputProps={{ "data-testid": "compliance-target-all" }}
+                    >
+                      <MenuItem value="-">—</MenuItem>
+                      {["1", "2", "3", "4"].map((n) => (
+                        <MenuItem key={n} value={n}>
+                          {n}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Stack>
+                </TableCell>
+                {FOUNDATIONAL_REQUIREMENTS.map((fr) => {
+                  const target = data?.target?.[fr];
+                  return (
+                    <TableCell key={fr} align="center">
                       <TextField
                         select
                         size="small"
@@ -260,15 +284,33 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                         ))}
                       </TextField>
                     </TableCell>
-                    <TableCell sx={below ? { color: "error.main", fontWeight: 600 } : undefined}>{achieved.component[fr]}</TableCell>
-                    <TableCell>{achieved.withSupport[fr]}</TableCell>
-                    <TableCell>{planned.component[fr]}</TableCell>
-                    <TableCell>{planned.withSupport[fr]}</TableCell>
-                  </TableRow>
-                );
-              })}
+                  );
+                })}
+              </TableRow>
+              {(
+                [
+                  ["slcProduct", t("achievedComponent", "SL-C (product)"), achieved.component, true],
+                  ["slcPlanned", t("plannedComponent", "SL-C planned"), planned.component, true],
+                  ["withSystem", t("achievedWithSupport", "With measures of the system"), achieved.withSupport, false],
+                ] as const
+              ).map(([key, label, values, compare]) => (
+                <TableRow key={key} data-testid={`compliance-vector-${key}`}>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>{label}</TableCell>
+                  {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
+                    <TableCell key={fr} align="center">
+                      <LevelChip value={values[fr]} target={compare ? data?.target?.[fr] : undefined} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {t(
+              "vectorText",
+              "SL-T: what the operator or the zone requires. SL-C (product): what the product provides according to the model; planned: after the chosen open mitigations. With measures of the system: what the plant can reach if it provides the listed supporting measures and claims — the basis for the SL-A, which only arises in the operated plant.",
+            )}
+          </Typography>
         </Paper>
 
         {/* ── Rows ──────────────────────────────────────────────────── */}
@@ -365,6 +407,23 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
         />
       )}
     </Box>
+  );
+};
+
+// ==================== LEVEL CHIP ====================
+
+/** A level, compared with the SL-T by colour AND symbol (D-26). */
+const LevelChip: React.FC<{ value: number; target?: number }> = ({ value, target }) => {
+  if (target === undefined) return <Chip size="small" variant="outlined" label={value} />;
+  const ok = value >= target;
+  return (
+    <Chip
+      size="small"
+      color={ok ? "success" : "error"}
+      label={`${value} ${ok ? "✓" : "✗"}`}
+      sx={{ fontWeight: 700, minWidth: 48 }}
+      data-level={ok ? "meets" : "below"}
+    />
   );
 };
 

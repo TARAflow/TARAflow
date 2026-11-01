@@ -8,13 +8,12 @@
     "deviceProposal": "Proposal from the model: {{categories}} — confirm before the device rows count.",
     "deviceAsk": "Choose the device category of the component — workstation or mobile device: HDR if the device is delivered, SAR for an app or tool only.",
     "confirm": "Confirm",
-    "vectorTitle": "Security level capability per foundational requirement",
+    "vectorTitle": "Security levels per foundational requirement",
     "fr": "FR",
-    "target": "Target",
-    "achievedComponent": "Achieved — component",
-    "achievedWithSupport": "Achieved — with support / claims",
-    "plannedComponent": "Planned — component",
-    "plannedWithSupport": "Planned — with support / claims",
+    "target": "SL-T (requirement)",
+    "achievedComponent": "SL-C (product)",
+    "achievedWithSupport": "With measures of the system",
+    "plannedComponent": "SL-C planned",
     "rowsTitle": "Requirements",
     "filterOpen": "Open",
     "filterAll": "All",
@@ -67,6 +66,8 @@
       "not-met": "not met",
       "n/a": "not applicable"
     },
-    "noModel": "The requirement matrix needs a data flow diagram — model the system in the DFD tab first."
+    "noModel": "The requirement matrix needs a data flow diagram — model the system in the DFD tab first.",
+    "targetAll": "all FR",
+    "vectorText": "SL-T: what the operator or the zone requires. SL-C (product): what the product provides according to the model; planned: after the chosen open mitigations. With measures of the system: what the plant can reach if it provides the listed supporting measures and claims — the basis for the SL-A, which only arises in the operated plant."
   }
 }

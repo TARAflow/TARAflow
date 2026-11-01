@@ -73,12 +73,23 @@ describe("Compliance tab", () => {
     expect(within(screen.getByTestId("compliance-rows")).getByTestId("compliance-row-CR 3.7")).toBeTruthy();
   });
 
-  it("the achieved SL-C per FR; a target is stored per FR", () => {
+  it("SL table (D-26): FRs as columns; the SL-C against the SL-T by colour and symbol; a target per FR", () => {
+    const onChange = renderTab(edition(CRA_ROWS), { target: { SI: 2 } });
+    const vector = screen.getByTestId("compliance-vector");
+    expect(within(vector).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["", "IAC", "UC", "SI", "DC", "RDF", "TRE", "RA"]);
+    const product = screen.getByTestId("compliance-vector-slcProduct");
+    expect(within(product).getByText("0 ✗").closest("[data-level]")!.getAttribute("data-level")).toBe("below");
+    expect(within(screen.getByTestId("compliance-vector-withSystem")).queryByText(/✗|✓/)).toBeNull();
+    fireEvent.change(screen.getByTestId("compliance-target-SI"), { target: { value: "3" } });
+    expect(onChange).toHaveBeenLastCalledWith({ target: { SI: 3 } });
+  });
+
+  it("'all FR' sets the SL-T of every FR at once, and clears it", () => {
     const onChange = renderTab(edition(CRA_ROWS));
-    const si = within(screen.getByTestId("compliance-vector")).getByText("SI").closest("tr")!;
-    expect(within(si as HTMLElement).getAllByText("0").length).toBeGreaterThan(0);
-    fireEvent.change(screen.getByTestId("compliance-target-SI"), { target: { value: "2" } });
-    expect(onChange).toHaveBeenLastCalledWith({ target: { SI: 2 } });
+    fireEvent.change(screen.getByTestId("compliance-target-all"), { target: { value: "3" } });
+    expect(onChange).toHaveBeenLastCalledWith({ target: { IAC: 3, UC: 3, SI: 3, DC: 3, RDF: 3, TRE: 3, RA: 3 } });
+    fireEvent.change(screen.getByTestId("compliance-target-all"), { target: { value: "-" } });
+    expect(onChange).toHaveBeenLastCalledWith({ target: {} });
   });
 
   it("a statement stores the model result of the moment and the date (D-17)", () => {
