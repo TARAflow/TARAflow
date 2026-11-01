@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v19 · 2026-10-31 (decisions D-1 … D-27 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done; IEC-6, IEC-8b in 0.18;
+**Status:** v20 · 2026-11-01 (decisions D-1 … D-27 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 P-2 done; IEC-10 in progress; open point K-E15; IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -159,9 +159,9 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 2.3 (l. 1497) | *no component requirement (SR 2.3 is system level)* | — | — | — | — | n/a | — |
 | CR 2.4 (l. 1500) | policy for mobile code (execution, transfer, …) | 1 | j | component uses mobile code | — | C | "uses mobile code" flag |
 | CR 2.4 RE(1) (l. 1544) | authenticity check before executing mobile code | 2 | j | as CR 2.4 | — (`malwareProtection` = code_signing does not show that mobile code is checked) | C | "uses mobile code" flag |
-| CR 2.5 (l. 1575) | session lock after inactivity / on demand | 1 | d, j | every Proc connected to a human EE | each: Proc.`sessionControl.sessionLockEnabled` | A | not on MP |
-| CR 2.6 (l. 1622) | terminate remote sessions (timeout / manual) | 2 | d, j | MP.`remoteAccessEnabled`; every Proc connected to a human EE | each: Proc.`sessionControl.remoteTerminationEnabled` | A | not on MP |
-| CR 2.7 (l. 1664) | limit concurrent sessions per interface and user | 3 | h | every Proc connected to an EE | each: Proc.`sessionControl.maxConcurrentSessions` | A | not on MP |
+| CR 2.5 (l. 1575) | session lock after inactivity / on demand | 1 | d, j | every Proc / MP connected to a human EE | each: `sessionControl.sessionLockEnabled` | A | — (P-2) |
+| CR 2.6 (l. 1622) | terminate remote sessions (timeout / manual) | 2 | d, j | MP.`remoteAccessEnabled`; every Proc / MP connected to a human EE | each: `sessionControl.remoteTerminationEnabled` | A | — (P-2) |
+| CR 2.7 (l. 1664) | limit concurrent sessions per interface and user | 3 | h | every Proc / MP connected to an EE | each: `sessionControl.maxConcurrentSessions` | A | — (P-2) |
 | CR 2.8 (l. 1700) | audit records for security-relevant event categories | 1 | f, i, j, l | always | Proc / MP.`nonRepudiation` = audit_log; IF.ic.`monitoringControl` ∈ usage_logged, tamper_logged | B | event categories not modelled |
 | CR 2.8 RE(1) (l. 1755) | opt-out of security audit logging for authorized users (CRA (2)(l)) | 1 | l | as CR 2.8 | — | C | — |
 | CR 2.9 (l. 1784) | allocate audit storage; essential functions survive a full log | 1 | h | audit logging present | — | C | — |
@@ -193,7 +193,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 3.8 (l. 2511) | session integrity: invalidate IDs on logout, random unique IDs | 2 | f | session-based interfaces | — | C | — |
 | CR 3.9 (l. 2561) | protect audit records from unauthorised access, change, deletion | 2 | — | every DS with `storedDataTypes` ∋ audit_logs | each: `accessControlMechanism` ≠ none | B | — |
 | CR 3.9 RE(1) (l. 2588) | audit records on hardware write-once media | 4 | — | as CR 3.9 | — | C | — |
-| CR 3.10 (l. 2613) | support updates and upgrades | 1 | c, f | always | MP.`updateMechanism` ≠ none | A | not on Proc / CB |
+| CR 3.10 (l. 2613) | support updates and upgrades | 1 | c, f | always | at least one Proc / MP: `updateMechanism` ≠ none | A | not on CB |
 | CR 3.10 RE(1) (l. 2638) | validate authenticity and integrity of updates before installation | 2 | c, f | as CR 3.10 | `updateMechanism` ∈ signed_local, signed_ota | A | — |
 | CR 3.10 RE(2) (l. 2664) | automatic loading, update notification or scheduled update (should: rollback) | 2 | c, f | as CR 3.10 | `updateMechanism` ∈ signed_ota, mdm_managed, ci_cd | B | rollback not modelled |
 | CR 3.11 (l. 2709) | physical tamper resistance and detection (not for software-only components) | 2 | d, e, f | component with hardware (PB / CB present) | PB.`tamperProtection` ≠ none; CB.`tamperProtection` ≠ none | A | — |
@@ -301,7 +301,7 @@ Per project, from one model (consistency per EA-6-1):
 | # | Gap | Rows | Proposal (to decide) |
 |---|---|---|---|
 | P-1 | `TB.defaultDenyPolicy` is single-valued, but CR 5.2 RE(1)–(3) are cumulative at SL-C 3 | CR 5.2 RE(1–3) | multi-select (schema migration; analysis-preserving if the old value maps 1:1) — same pattern as the backlog item for `physicalPathProtection` / `malwareProtection` |
-| P-2 | `sessionControl` exists on Process only; `updateMechanism` on Multiprocess only | CR 2.5–2.7, 3.10 | add to the other element type, or evaluate per component (K2) over all children |
+| P-2 | `sessionControl` exists on Process only; `updateMechanism` on Multiprocess only | CR 2.5–2.7, 3.10 | **done** (patch 13): both properties on both element types, with form fields (`sessionControl` had none at all — CR 2.5–2.7 could not be answered from the UI); the session switches are three-valued (not specified / yes / no); the rules read both types. Threat generation stays Multiprocess-only for `updateMechanism` |
 | P-3 | no "human access" marker per interface / flow | CR 1.1, 1.10, 1.12, 2.5 | derive from the connected EE type (operator, maintenance, … — external-entity-type-registry) |
 | P-4 | no log-sink / time-source markers (audit-log stores are marked: `DS.storedDataTypes` ∋ audit_logs) | CR 2.11 RE(1)/(2), 6.1 RE(1) | EE types "siem", "time_source" |
 | P-5 | secure-by-default, reset, default-credential handling not modelled | CR 1.5 a–c, 7.6, 7.9 (CRA (2)(b)) | component-level fields (K2), or C rows |
@@ -382,6 +382,7 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | K-E12 | Review of IEC-2a — review 2026-10-31 (reviewer) | — | **decided, D-23** |
 | K-E13 | Review of 266 — review 2026-10-31 (reviewer) | — | **decided, D-24** |
 | K-E14 | Does the TARA verification hash cover `project.compliance`? | — | **decided, D-25** |
+| K-E15 | CR 3.1 / 3.1 RE(1) check **every** DataFlow, while §4 says "every external DF". Found with the Pump Station example (IEC-10): the operator's input on the local touch panel (DF-1, protocol `human_input`) fails CR 3.1, so SI cannot reach 1 even when every network flow is protected; internal flows (PLC ↔ configuration store) count as well. | (a) keep all flows; (b) external flows only (an endpoint outside the component scope), as §4 says; (c) (b) and no `human_input` / physical-coupling flows | **(c)**: CR 3.1 is about transmitted information; a key press on the component's own panel and a transducer coupling carry none. Same filter for CR 4.1 (transit) and CR 4.3 (transit) to be checked |
 
 ## 8. Next steps
 
@@ -626,7 +627,8 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-2b | regulation tag `EN IEC 62443 (CRA)` (catalogue, tooltip, document description, context hint, hint to add the CRA tag); checklist / reasoning texts came with D-27 | same | — (done without waiting for B's i18n split, user 2026-11-01) | done (patch 11) |
 | IEC-6 | claims for SL-C gaps (D-5) | — | — | **0.18** (user 2026-11-01): statements with a supporting measure cover the case in 0.17 |
 | IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | — | — | **0.18** (user 2026-11-01) |
-| IEC-9 | model gaps: P-2 (update mechanism / session control on both element types) and P-1 (`defaultDenyPolicy` multi-select, schema-12 migration) in 0.17; P-4, P-7 in 0.18 | same | IEC-1 | open |
+| IEC-9 | model gaps: P-2 (update mechanism / session control on both element types) and P-1 (`defaultDenyPolicy` multi-select, schema-12 migration) in 0.17; P-4, P-7 in 0.18 | same | IEC-1 | P-2 done (patch 13); P-1 open |
+| IEC-10 | validation: general example "Pump Station Controller" (CRA tag, SL-T 2, every row status; generator `src/tests/examples/pump-station-example.ts` through the real services, `WRITE_EXAMPLES=<dir>` writes the project); the seminar uses SmokeDetector; check SmokeDetector-leveled / Headlamp | same | all IEC | in progress: example done (patch 12, with the fix of the planned overlay — it lost every property but the patched one); open: K-E15, the two examples |
 | IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
 | IEC-5 | `iec62443` references on catalog mitigations (§10), mitigation evidence for the evaluator from the risk treatment (one entry per mitigation and risk) | same | IEC-3 | done (patch 276) |
 | IEC-8 | Compliance tab (D-9): entry "🛡 Compliance" on the right of the tab bar like Audit / Integration (no phase status, not in the progress; only when the tags select an edition); component under evaluation, device categories (2019: derived proposal, confirm — K-C1), target per FR with achieved / planned × component / with support, rows (open first) with status, source, notes, statements (store the model result of the moment, D-17); i18n namespace `compliance`. Still open: `iec62443` references on project mitigations (M-C-…) in the custom mitigation dialog (IEC-8b) | same | IEC-4, IEC-7 | done (patch 04) |
