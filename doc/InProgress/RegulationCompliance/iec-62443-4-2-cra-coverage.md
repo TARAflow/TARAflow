@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v27 · 2026-11-01 · **0.17 scope released with 0.17.0-beta** — continues in 0.18 (IEC-6 claims, IEC-8b, P-4, P-7, D-30 option c) (decisions D-1 … D-30 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 done (P-1, P-2); IEC-10 done (§9.7); IEC-6, IEC-8b in 0.18;
+**Status:** v28 · 2026-11-01 · **0.17 scope released with 0.17.0-beta** — continues in 0.18 (IEC-6 claims, IEC-8b, P-4, P-7, D-30 option c, §11 model coverage of type C rows) (decisions D-1 … D-31 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 done (P-1, P-2); IEC-10 done (§9.7); IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/Done/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -344,6 +344,7 @@ Per project, from one model (consistency per EA-6-1):
 | D-28 (K-E15) | **Transmitted information = flows across the component border** (user 2026-11-01): CR 3.1, CR 3.1 RE(1) and CR 4.1 (transit) apply only to a flow with an endpoint that is an ExternalEntity or outside the component scope, and not to human input on the component's own panel (protocol `human_input`) or a transducer coupling (medium `physical`). CR 4.3 keeps every encrypted flow. | `EvidenceTarget.crossesComponent`, rules via `COMPONENT_BORDER_FLOWS` (patch 15); without a selected component the scope is the whole model, so the flows to and from external entities count |
 | D-29 | **Mitigations cover element by element; references fit the element types** (user 2026-11-01): (1) on a rule every element must meet (`all`, type A / B) a mitigation covers only the elements its risks concern — the rest stays open and listed; C rows and `any` rules stay row-level. (2) Besides the hand-kept `iec62443` references a mitigation meets the requirements its `affectsProperties` satisfy (effect type ∈ rule target types, expected value accepted), bound to that element type. (3) Catalog test: a hand reference on an A / B rule must fit a type the rule checks when the mitigation has property effects; wider references only listed with a reason (5). (4) Suggestions for a row: only mitigations meeting it on a type of the elements still open. | evaluator step 6, `mitigation-requirements.ts`, evidence builder with `typeOf`, tab / report suggestions (patch 17). Pump Station planned run: CR 1.1 RE(2), CR 1.5 RE(1), CR 7.1 RE(1) back to gaps |
 | D-30 (K-E16) | **A multiprocess without child page stands in for processes and stores** (user 2026-11-01, option b): a rule that checks Process or DataStore, with no element of those types in scope, is `unknown` with the black-box multiprocesses listed — not `n/a`; the to-do list asks to model the inside or make a statement. Narrow: models that show processes / stores are unchanged; rules that check Multiprocess themselves need no stand-in. Option (c), the missing properties directly on the Multiprocess, stays for 0.18 | `PropertyView.blackBoxes`, evaluator step 4, to-do item "inside" (patch 25) |
+| D-31 | **Statements per requirement, shared by both editions** (user 2026-11-01): a statement describes the product, not the edition — it is stored per requirement (`ComplianceData.statements` keyed by `requirementKey`: the row's requirement ids, sorted, "+"-joined) and holds in the classic and the CRA edition wherever the requirement is the same (110 of 122 classic rows; device rows SAR / EDR / HDR / NDR share theirs). Switching the tags re-evaluates the graph and keeps the statements. Supersedes the per-edition storage of D-8. Files of the 0.17 development (per edition and row label) are folded on load; the newer statement wins where both editions held one | `editionStatements` / `statementKeyOf` (compliance), `foldLegacyStatements` in the load path, tab and report read per row (patch 41) |
 
 Achieved SL-C per FR, as decided in D-2:
 
@@ -744,3 +745,61 @@ Compliance tab (IEC-8).
 | M-NET-003 | Disable unused ports, services and protocols — keep a minimal attack surface per build | `cr-7.7` |
 | M-NET-004 | Bind services to internal interfaces only — no management or debug service on external… | `cr-7.7` |
 | M-OPS-001 | Monitor vulnerabilities and manage patches for all third-party and OS components, based… | `cr-7.8` |
+
+## 11. Model coverage of the type C rows (0.18 design, user 2026-11-01)
+
+About a third of the rows can only be met by a statement today — the model has no
+property for them: 31 of 90 rows of the CRA edition, 44 of 122 of the classic one.
+Most are capabilities of the component or of its human-facing parts that fit as
+element properties.
+
+**Visibility by the element's logic, not by a tag** (user 2026-11-01): the fields
+describe the product and serve every project — threat generation, the closed loop,
+mitigations' DFD effects and every regulation that asks for them. A field appears
+when the element's configuration makes it meaningful (e.g. password rules once an
+authentication by password is chosen, audit fields on a store holding audit logs),
+whatever the tags. A statement stays possible for every matrix row.
+
+**Other regulations** (user 2026-11-01): the same fields shall cover the controls of
+ETSI EN 303 645 (consumer IoT) and EN 18031-1 / -2 / -3 (RED delegated act). The
+columns below map them **preliminarily** — from the structure of these standards,
+not from their text, which is not in the repository yet; to be verified once the
+texts are available (licensed, never committed, paraphrased only).
+
+| # | Field (element) | Shown when (element logic) | Values | IEC 62443-4-2 (type after) | EN 303 645 (prelim.) | EN 18031 (prelim.) |
+|---|---|---|---|---|---|---|
+| F-1 | `userAccounts` (Process / Multiprocess) | human neighbour and authentication set | individual · shared | CR 1.1 RE(1) (A) | 5.1 | AUM |
+| F-2 | `passwordPolicy` (Process / Multiprocess, flow from a human) | authentication = password | none · fixed · configurable · configurable with lifetime | CR 1.7 (A), RE(1)/(2) (A) | 5.1 | AUM |
+| F-3 | `defaultCredentials` (Process / Multiprocess) | authentication set | none · unique per device · set at first use · universal | — (CR 1.5 a) | 5.1 | AUM |
+| F-4 | `authenticatorFeedbackMasked` (Interface touchscreen / Process ui) | human input | yes · no | CR 1.10 (A) | — | AUM |
+| F-5 | `loginAttemptLimit` (Process / Multiprocess) | authentication set | none · timed lockout · lockout until admin | CR 1.11 (A) — with P-7 also the interface's `abuseProtection` | 5.1 | AUM (brute force) |
+| F-6 | `loginBanner` (Process / Interface) | human neighbour | yes · no | CR 1.12 (A) | — | — |
+| F-7 | `certificateManagement` (Multiprocess / Process) | certificate / mTLS in use | self-signed · own CA · PKI with revocation | CR 1.8 (B) | 5.5 | CCK / CRY |
+| F-8 | `remoteAccessApproval` (Multiprocess) | `remoteAccessEnabled` | none · per session by an assigned role | CR 1.13 RE(1) (A) | — | ACM |
+| F-9 | `supervisorOverride`, `dualApproval` (Process / Multiprocess) | human neighbour | yes · no | CR 2.1 RE(3), RE(4) (A) | — | ACM |
+| F-10 | `mobileCode` (Process) | technology ui / api / websocket | none · restricted by policy · signed only | CR 2.4 (A), RE(1) (A) | 5.7 | GEC |
+| F-11 | `auditCapacity` (DataStore with audit_logs) | store holds audit logs | none · ring buffer · reserved with threshold warning | CR 2.9 (A), RE(1) (A) | — | LGM |
+| F-12 | `auditFailureResponse` (Process / Multiprocess logging) | `nonRepudiation` ≠ none | stop · continue with alarm | CR 2.10 (A) | — | LGM |
+| F-13 | `timeSource` (Multiprocess / Process logging) | `nonRepudiation` ≠ none | none · RTC · NTP · authenticated time | CR 2.11 (A), RE(1) (A), RE(2) (A) | — | LGM |
+| F-14 | `auditAccess` (DataStore with audit_logs) | store holds audit logs | none · local read-only · remote read-only | CR 6.1 (A) | — | LGM |
+| F-15 | `writeOnce` (DataStore with audit_logs) | store holds audit logs | yes · no | CR 3.9 RE(1) (A) | — | LGM |
+| F-16 | `auditOptOut` (Multiprocess) | `nonRepudiation` ≠ none | none · per category by an authorised role | CR 2.8 RE(1) (A) | — | — |
+| F-17 | `sessionControl.sessionIdsRandom` (Process) | human neighbour | yes · no | CR 3.8 (A) | 5.5 | SCM |
+| F-18 | `securitySelfTest` (Multiprocess / Chip Boundary) | always | none · at start-up · on demand · continuous | CR 3.3 (A), RE(1) (A) | 5.7 | GEC |
+| F-19 | `integrityViolationAlert` (Multiprocess / Chip Boundary) | secure boot or signed data | yes · no | CR 3.4 RE(2) (A) | 5.7 | SUM / RLM |
+| F-20 | `rootOfTrustProvisioning` (Chip Boundary / Multiprocess) | secure element / TPM or certificates | vendor only · by the asset owner | CR 3.13 (A) | 5.4 | SSM / CCK |
+| F-21 | `deletionVerified`, `sharedMemoryErased` (DataStore) | sensitive store | yes · no | CR 4.2 RE(1), RE(2) (A) | 5.11 | DLM |
+| F-22 | `userDataDeletion` (DataStore with personal data / Multiprocess) | store holds personal data | none · by the user · by factory reset | — (CR 4.2, 7.9) | 5.11 | DLM (EN 18031-2) |
+| F-23 | `resourceLimits` (Multiprocess) | always | yes · no | CR 7.2 (B) | 5.9 | RLM |
+| F-24 | `backupVerified` (Multiprocess) | `backupMechanism` ≠ none | yes · no | CR 7.3 RE(1) (A) | 5.9 | RLM |
+| F-25 | `securityConfiguration` (Multiprocess) | always | none · secure defaults · readable · machine-readable | CR 7.6 (A), RE(1) (A) | 5.6 | GEC |
+| F-26 | `inventoryReporting` (Multiprocess) | always | none · local · over the network | CR 7.8 (A) | — | GEC |
+| F-27 | `updateNotification` (Multiprocess / Process with `updateMechanism`) | `updateMechanism` ≠ none | none · user notified · automatic with notice | CR 3.10 RE(2) (B → A) | 5.3 | SUM |
+| F-28 | `securityContact` / support period (project, not an element) | always (Overview) | text / date | — (62443-4-1, process) | 5.2, 5.3 | — (CRA Annex II) |
+
+Remaining type C after F-1 … F-27 (CRA edition): CR 2.11 RE(2) only partly (time
+source integrity needs the protocol), the 2019-only rows SAR 3.2 / HDR 3.2 RE(1)
+and NDR 5.3. Open for the review: names and values per field, which ones go to the
+component (Multiprocess) only, whether F-2 / F-5 / F-6 belong on the interface
+instead of the process, threat generation and mitigation effects for the new
+fields, the EN 303 645 / EN 18031 columns against the standard texts.
