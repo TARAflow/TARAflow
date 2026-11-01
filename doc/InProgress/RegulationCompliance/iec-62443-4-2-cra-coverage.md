@@ -1,8 +1,8 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v26 · 2026-11-01 (decisions D-1 … D-30 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 done (P-1, P-2); IEC-10 done (§9.7); IEC-6, IEC-8b in 0.18;
+**Status:** v27 · 2026-11-01 · **0.17 scope released with 0.17.0-beta** — continues in 0.18 (IEC-6 claims, IEC-8b, P-4, P-7, D-30 option c) (decisions D-1 … D-30 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 done (P-1, P-2); IEC-10 done (§9.7); IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
-release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
+release plan: `doc/Done/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
 **Roadmap:** item 1 of the road to 1.0.0 (IEC 62443 compliance matrix for the CRA).
 **Related:** `doc/Open/RegulationCompliance/taraflow-compliance-architecture.md`
@@ -393,7 +393,7 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 1. Discuss §7.2 one point at a time; record the decisions in §7.1 (doc patches, `main`).
    The classic matrix (D-1): IEC 62443-4-2:2019 is in the repo root (licensed, never
    committed or quoted).
-2. Steps and their order: `doc/InProgress/Release/release-0.17-plan.md` §3.1; IEC-2 / IEC-3
+2. Steps and their order: `doc/Done/Release/release-0.17-plan.md` §3.1; IEC-2 / IEC-3
    detail in §9.
 3. Validate the A/B rows against the two examples (SmokeDetector-leveled, Headlamp) before
    the UI.

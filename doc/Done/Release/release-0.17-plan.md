@@ -1,7 +1,15 @@
 # TARAflow 0.17.0-beta — release plan
 
-**Status:** v1 · 2026-10-31 · base: `main` 90e5a52a (v0.16.0-beta, schema 11) · target
-schema **12** (one fence for the whole release)
+**Status:** done · released as 0.17.0-beta (schema **12**) · v1 2026-10-31, closed 2026-11-01 ·
+base: `main` 90e5a52a (v0.16.0-beta, schema 11)
+
+> **Closed (0.17.0-beta):** strand S1 is complete — both requirement matrices, Compliance
+> tab, report chapter, decisions D-1 … D-30 in
+> `doc/InProgress/RegulationCompliance/iec-62443-4-2-cra-coverage.md` (stays in progress:
+> claims IEC-6, IEC-8b, P-4, P-7 and D-30 option c follow in 0.18). Instance B did not
+> start: S2 (tracker adapters IT-7 … IT-12, incl. Azure DevOps), S3 (MT-1 … MT-3), S4
+> (FX-1 … FX-6) and the split of `common.json` into `overview.json` / `common.json` move to
+> 0.18 unchanged.
 **Work split:** two Claude instances — **A** (standards strand) and **B** (trackers,
 maintainability, fixes). The user reviews, applies and commits every patch.
 **Sources:** roadmap and backlog after 0.16 (user 2026-10-31), the design documents
@@ -64,16 +72,16 @@ read-only for it, so two patches never conflict in this file.
 
 | Step | Content | Depends on | Patch | Status |
 |---|---|---|---|---|
-| IEC-0 | Docs: classic matrix `iec-62443-4-2-2019-coverage.md` (from the 2019 text, licensed, paraphrased); decide K2, K4, K5, K6, K8 with the user; implementation plan section in the coverage doc | — | | open |
-| IEC-1 | Schema 12 skeleton: `migrate-11-to-12.ts` (no-op), version fence, `ANALYSIS_PRESERVING_MIGRATIONS` entry, fixtures | — | | open |
-| IEC-2 | Mapping types + two versioned mapping files (classic 2019, CRA prAA); regulation tag `EN IEC 62443 (CRA)` (DE / EN tooltip, doc description), tag-validator hint; matrix selection by tags (D-1, D-3) | IEC-0 | | open |
-| IEC-3 | Evaluator: applicability per element, A / B rows, planned and achieved SL-C vector per FR, gap list (D-2, D-4); component under evaluation (K2) | IEC-2 | | open |
-| IEC-4 | Project data: target vector per FR, analyst statements for C rows / overrides (K4) — schema 12 | IEC-1, IEC-3 | | open |
-| IEC-5 | Mitigation catalog: optional `iec62443` CR / RE references (built-in + custom mitigations) (D-6) | IEC-3 | | open |
-| IEC-6 | Claims: new kind for SL-C gaps (FR, CR / RE ids, supporting measure, responsible party), visible for projects with a 62443 matrix — amends patch 244 (D-5) | MT-2, IEC-4 | | open |
-| IEC-7 | Report chapter (all formats incl. pdfmake, CLI chapter list): SoA table, CRA view, vectors, gaps | IEC-4, IEC-5 | | open |
-| IEC-8 | Compliance tab (K5) | MT-1, IEC-7 | | open |
-| IEC-9 | Model gaps P-1 … P-6; multi-select `defaultDenyPolicy`, `physicalPathProtection`, `malwareProtection` (backlog "conflicting SHOULDs") — schema 12, analysis-preserving only if values map 1:1 | IEC-1 | 13, 21 | done (P-1, P-2) |
+| IEC-0 | Docs: classic matrix `iec-62443-4-2-2019-coverage.md` (from the 2019 text, licensed, paraphrased); decide K2, K4, K5, K6, K8 with the user; implementation plan section in the coverage doc | — | | done (docs on `main`) |
+| IEC-1 | Schema 12 skeleton: `migrate-11-to-12.ts` (no-op), version fence, `ANALYSIS_PRESERVING_MIGRATIONS` entry, fixtures | — | | done |
+| IEC-2 | Mapping types + two versioned mapping files (classic 2019, CRA prAA); regulation tag `EN IEC 62443 (CRA)` (DE / EN tooltip, doc description), tag-validator hint; matrix selection by tags (D-1, D-3) | IEC-0 | | done (IEC-2a, IEC-2b) |
+| IEC-3 | Evaluator: applicability per element, A / B rows, planned and achieved SL-C vector per FR, gap list (D-2, D-4); component under evaluation (K2) | IEC-2 | | done |
+| IEC-4 | Project data: target vector per FR, analyst statements for C rows / overrides (K4) — schema 12 | IEC-1, IEC-3 | | done |
+| IEC-5 | Mitigation catalog: optional `iec62443` CR / RE references (built-in + custom mitigations) (D-6) | IEC-3 | | done |
+| IEC-6 | Claims: new kind for SL-C gaps (FR, CR / RE ids, supporting measure, responsible party), visible for projects with a 62443 matrix — amends patch 244 (D-5) | MT-2, IEC-4 | | **0.18** (user 2026-11-01) |
+| IEC-7 | Report chapter (all formats incl. pdfmake, CLI chapter list): SoA table, CRA view, vectors, gaps | IEC-4, IEC-5 | | done |
+| IEC-8 | Compliance tab (K5) | MT-1, IEC-7 | | done (incl. to-do list and quick guide; IEC-8b in 0.18) |
+| IEC-9 | Model gaps P-1 … P-6; multi-select `defaultDenyPolicy`, `physicalPathProtection`, `malwareProtection` (backlog "conflicting SHOULDs") — schema 12, analysis-preserving only if values map 1:1 | IEC-1 | 13, 21 | done (P-1, P-2); `physicalPathProtection` / `malwareProtection` multi-select → 0.18 |
 | IEC-10 | Validate on the examples (SmokeDetector-leveled, Headlamp); coverage doc status; general example Pump Station Controller | all IEC | 12, 15, 17, 23, 25 | done |
 
 ### 3.2 Instance B — S2 issue trackers
@@ -111,7 +119,7 @@ user check (list it in the release test plan).
 
 | Step | Content | Owner | Status |
 |---|---|---|---|
-| R-1 | `TESTPLAN-0.17.md` (repo root, untracked), CHANGELOG, release note `doc/release-notes/v0.17.0-beta.md`, README, version 0.17.0-beta; finished design docs → `doc/Done` | A, after both branches are merged | open |
+| R-1 | `TESTPLAN-0.17.md` (repo root, untracked), CHANGELOG, release note `doc/release-notes/v0.17.0-beta.md`, README, version 0.17.0-beta; finished design docs → `doc/Done` | A, after both branches are merged | done (release patch after the merge of `feature/iec62443-cra-matrix`) |
 
 ## 4. Schema 12 — one fence
 
