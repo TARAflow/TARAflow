@@ -1,6 +1,6 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
-**Status:** v24 · 2026-11-01 (decisions D-1 … D-29 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 done (P-1, P-2); IEC-10 in progress; IEC-6, IEC-8b in 0.18;
+**Status:** v25 · 2026-11-01 (decisions D-1 … D-29 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 done (P-1, P-2); IEC-10 in progress (§9.7); open point K-E16; IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/InProgress/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,
 branch `feature/iec62443-cra-matrix`
@@ -384,6 +384,7 @@ or an analyst statement for C rows (K4) — or when a claim covers it.
 | K-E12 | Review of IEC-2a — review 2026-10-31 (reviewer) | — | **decided, D-23** |
 | K-E13 | Review of 266 — review 2026-10-31 (reviewer) | — | **decided, D-24** |
 | K-E14 | Does the TARA verification hash cover `project.compliance`? | — | **decided, D-25** |
+| K-E16 | A model of black-box Multiprocesses (Headlamp: ECUs, no child pages) makes every row whose rule checks only Process or DataStore `n/a` — input validation, error handling, session lock, data at rest. §9.4 step 4 accepts this ("no element of the target type → n/a, the reasoning names the type"), but a black-box Multiprocess **contains** processes and stores; the model just does not show them. | (a) keep the accepted limit; (b) a Multiprocess without child page in scope stands in for Process / DataStore: such rows become `unknown` ("model its inside or make a statement") instead of `n/a`; (c) (b) and the Multiprocess form gets the missing properties (input validation, error handling, encryption at rest …) | **(b)**: no false `n/a`, the to-do list names the Multiprocess; (c) is a larger model change for 0.18 |
 | K-E15 | CR 3.1 / 3.1 RE(1) check **every** DataFlow, while §4 says "every external DF". Found with the Pump Station example (IEC-10): the operator's input on the local touch panel (DF-1, protocol `human_input`) fails CR 3.1, so SI cannot reach 1 even when every network flow is protected; internal flows (PLC ↔ configuration store) count as well. | — | **decided, D-28** (option c; CR 4.1 transit too, CR 4.3 unchanged) |
 
 ## 8. Next steps
@@ -641,6 +642,17 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-8 | Compliance tab (D-9): entry "🛡 Compliance" on the right of the tab bar like Audit / Integration (no phase status, not in the progress; only when the tags select an edition); component under evaluation, device categories (2019: derived proposal, confirm — K-C1), target per FR with achieved / planned × component / with support, rows (open first) with status, source, notes, statements (store the model result of the moment, D-17); i18n namespace `compliance`. Still open: `iec62443` references on project mitigations (M-C-…) in the custom mitigation dialog (IEC-8b). Added: to-do list per element up to the SL-T (open rows whose level the target needs, per failing / incomplete element with the properties the rule reads on its type, marked when the planned mitigations close it; open statements apart) and a five-step quick guide, open while no SL-T is set | same | IEC-4, IEC-7 | done (patch 04; to-do list and guide patch 19) |
 | IEC-7 | report chapter `compliance-matrix` (all formats incl. pdfmake, CLI): basis, SL-C per FR (achieved / planned × component / with support), SoA with the source of every row, CRA view, gaps with catalog suggestions; `app/services/compliance-report.ts` evaluates the project (edition by tags, property view, component scope, planned overlay, mitigation evidence) for app and CLI alike | same | IEC-3, IEC-4, IEC-5 | done (patch 02) |
 | IEC-4 | `project.compliance` (`shared/models/compliance-data-types.ts`): component, target vector, device categories with origin, statements per edition and row (with the model result at the time, D-17); kept by every write path incl. repair | same | IEC-1 | done (patch 272) |
+
+### 9.7 Validation on the examples (IEC-10, 2026-11-01)
+
+SL-T 2 in every FR; whole model as the component.
+
+| Example | Edition | met / gap / unknown / needs-statement / n/a | SL-C (product) | Findings |
+|---|---|---|---|---|
+| Pump Station Controller (generated, patch 12) | CRA | 55 / 12 / 0 / 9 / 21 | IAC 1, UC 2, SI 0, DC 0, RDF 2, TRE 4, RA 1 | every row status occurs; led to D-28, D-29 and the planned-overlay fix |
+| SmokeDetector-leveled | CRA | 12 / 26 / 22 / 29 / 8 | 0 in every FR | an example modelled for threats, not for the matrix: many security properties unset (unknown) or weak (gaps) — plausible, no false result found; the to-do list showed "any" rows at every element → fixed (patch 23) |
+| SmokeDetector-leveled | 2019, EDR | 10 / 26 / 15 / 31 / 43 | 0 in every FR | as CRA; the n/a are the other device categories |
+| Headlamp (ISO 21434) | CRA | 14 / 19 / 5 / 23 / 36 | DC 4, else 0 | only black-box Multiprocesses: every row whose rule checks Process or DataStore is `n/a` (CR 2.5, 2.6, 2.12, 3.4, 3.5 – 3.7, 3.9, 4.1 RE(1), 4.2, 7.9) → K-E16 |
 
 ## 10. Mitigation catalog references (IEC-5, D-6)
 
