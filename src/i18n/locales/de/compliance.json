@@ -76,6 +76,19 @@
     "suggestions": "Massnahmen aus dem Katalog",
     "statementSection": "Aussage",
     "noStatement": "Noch keine Aussage.",
-    "close": "Schliessen"
+    "close": "Schliessen",
+    "guideTitle": "So arbeitest du mit diesem Tab",
+    "guide1": "Wähle die zu bewertende Komponente — oder lass das ganze Modell.",
+    "guide2": "Setze das SL-T pro Grundanforderung: was der Betreiber, die Zone oder dein Kunde verlangt.",
+    "guide3": "Arbeite die To-do-Liste ab: fehlende Eigenschaften im DFD setzen und Massnahmen in der Risikobehandlung wählen, wo das Modell eine Anforderung als nicht erfüllt zeigt.",
+    "guide4": "Zeilen, die das Modell nicht zeigen kann, brauchen eine Aussage: Begründung und wo der Nachweis liegt (Handbuch, Testbericht). Ein Klick auf die Anforderungsnummer zeigt alles dazu.",
+    "guide5": "Vergleiche SL-C (Produkt) mit dem SL-T: geplant zeigt den Wert, sobald die gewählten Massnahmen umgesetzt sind; eine verbleibende Lücke braucht eine Änderung am Produkt oder eine Massnahme des Systems drumherum.",
+    "todoTitle": "To-do bis zum SL-T",
+    "todoNoTarget": "Setze oben das SL-T — die To-do-Liste zeigt, was bis dahin offen ist.",
+    "todoNothing": "Bis zum SL-T ist nichts offen.",
+    "todoNotMet": "nicht erfüllt, prüfen",
+    "todoMissing": "setzen",
+    "todoPlanned": "durch geplante Massnahmen geschlossen",
+    "todoStatements": "Aussagen nötig"
   }
 }

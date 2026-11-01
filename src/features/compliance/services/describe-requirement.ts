@@ -53,7 +53,7 @@ const WORDS = {
 } as const;
 
 /** "implementedControls.debugProtection" → "debug protection". */
-const words = (path: string) =>
+export const words = (path: string) =>
   (path.split(".").pop() ?? path).replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
 
 function checkText(check: PropertyCheck, w: (typeof WORDS)[DescribeLanguage]): string {

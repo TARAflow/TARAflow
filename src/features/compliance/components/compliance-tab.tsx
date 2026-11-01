@@ -12,6 +12,9 @@
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -54,6 +57,7 @@ import type { Edition, RequirementId } from "../models/compliance-types";
 import type { ComplianceResult, RowResult, RowStatus } from "../models/evaluation-types";
 import type { DeviceCategoryProposal } from "../services/device-category";
 import { describeLanguageOf, describeRequirement, type RequirementDescription } from "../services/describe-requirement";
+import { buildTodoList } from "../services/todo-list";
 
 const NS = "compliance";
 
@@ -111,7 +115,8 @@ export interface ComplianceTabProps {
   /** ISO date stored with a statement. */
   today: string;
   onChange: (data: ComplianceData) => void;
-  /** Catalog mitigations naming one of the requirement ids (for the info dialog). */
+  /** Element / flow id → type, for the properties of the to-do list. */
+  typeOf?: (id: string) => string | undefined;
   /** Catalog mitigations for a row; filtered to the types of the elements still open (D-29). */
   mitigationSuggestions?: (
     requirementIds: readonly RequirementId[],
@@ -134,6 +139,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   today,
   onChange,
   mitigationSuggestions,
+  typeOf,
 }) => {
   const t = useComplianceT();
   const { i18n } = useTranslation(NS);
@@ -151,12 +157,37 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     [achieved.rows, filter],
   );
 
+  const target = useMemo(() => data?.target ?? {}, [data?.target]);
+  const hasTarget = Object.keys(target).length > 0;
+  const todo = useMemo(() => buildTodoList(edition, achieved, planned, target, typeOf), [edition, achieved, planned, target, typeOf]);
+  const rowByLabel = useMemo(() => new Map(achieved.rows.map((r) => [r.label, r])), [achieved.rows]);
+  const openInfo = (label: string) => {
+    const row = rowByLabel.get(label);
+    if (row) setInfo(row);
+  };
+
   const choice = data?.deviceCategories;
   const confirmedCategories = choice?.source === "manual" ? choice.categories : [];
 
   return (
     <Box sx={{ p: 3 }} data-testid="compliance-tab">
       <Stack spacing={3}>
+        {/* ── Quick guide ───────────────────────────────────────────── */}
+        <Accordion variant="outlined" defaultExpanded={!hasTarget} disableGutters data-testid="compliance-guide">
+          <AccordionSummary expandIcon={<span aria-hidden>▾</span>}>
+            <Typography variant="subtitle1">{t("guideTitle", "How to work with this tab")}</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Box component="ol" sx={{ m: 0, pl: 3, "& li": { mb: 0.5 } }}>
+              <li>{t("guide1", "Choose the component under evaluation — or keep the whole model.")}</li>
+              <li>{t("guide2", "Set the SL-T per foundational requirement: what the operator, the zone or your customer requires.")}</li>
+              <li>{t("guide3", "Work through the to-do list: set the missing properties in the DFD, and choose mitigations in the risk treatment where the model shows a requirement not met.")}</li>
+              <li>{t("guide4", "Rows the model cannot show need a statement: reasoning and where the evidence is (manual, test report). Click a requirement number for everything about it.")}</li>
+              <li>{t("guide5", "Compare SL-C (product) with the SL-T: planned shows the value once the chosen mitigations are done; a gap that remains needs a change of the product or a measure of the system around it.")}</li>
+            </Box>
+          </AccordionDetails>
+        </Accordion>
+
         {/* ── Basis ─────────────────────────────────────────────────── */}
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
@@ -324,6 +355,60 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
               "SL-T: what the operator or the zone requires. SL-C (product): what the product provides according to the model; planned: after the chosen open mitigations. With measures of the system: what the plant can reach if it provides the listed supporting measures and claims — the basis for the SL-A, which only arises in the operated plant.",
             )}
           </Typography>
+        </Paper>
+
+        {/* ── To do up to the SL-T ───────────────────────────────────── */}
+        <Paper variant="outlined" sx={{ p: 2 }} data-testid="compliance-todo">
+          <Typography variant="subtitle1" gutterBottom>
+            {t("todoTitle", "To do up to the SL-T")}
+          </Typography>
+          {!hasTarget ? (
+            <Alert severity="info">{t("todoNoTarget", "Set the SL-T above — the to-do list shows what is open up to it.")}</Alert>
+          ) : todo.elements.length === 0 && todo.statements.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              {t("todoNothing", "Nothing open up to the SL-T.")}
+            </Typography>
+          ) : (
+            <Stack spacing={1.5}>
+              {todo.elements.map((element) => (
+                <Box key={element.elementId} data-testid={`compliance-todo-${element.elementId}`}>
+                  <Typography variant="subtitle2">{nameOf(element.elementId)}</Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    {element.items.map((item) => (
+                      <li key={`${item.label}-${item.kind}`}>
+                        <Typography variant="body2" component="span">
+                          <Link component="button" variant="body2" onClick={() => openInfo(item.label)} sx={{ verticalAlign: "baseline" }}>
+                            {item.label}
+                          </Link>
+                          {" — "}
+                          {item.kind === "not-met" ? t("todoNotMet", "not met, check") : t("todoMissing", "set")}
+                          {item.properties.length > 0 && `: ${item.properties.join(", ")}`}
+                        </Typography>
+                        {item.plannedClosed && (
+                          <Chip size="small" color="info" variant="outlined" sx={{ ml: 1 }} label={t("todoPlanned", "closed by planned mitigations")} />
+                        )}
+                      </li>
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+              {todo.statements.length > 0 && (
+                <Box data-testid="compliance-todo-statements">
+                  <Typography variant="subtitle2">{t("todoStatements", "Statements needed")}</Typography>
+                  <Typography variant="body2">
+                    {todo.statements.map((s, i) => (
+                      <React.Fragment key={s.label}>
+                        {i > 0 && ", "}
+                        <Link component="button" variant="body2" onClick={() => openInfo(s.label)} sx={{ verticalAlign: "baseline" }}>
+                          {s.label}
+                        </Link>
+                      </React.Fragment>
+                    ))}
+                  </Typography>
+                </Box>
+              )}
+            </Stack>
+          )}
         </Paper>
 
         {/* ── Rows ──────────────────────────────────────────────────── */}

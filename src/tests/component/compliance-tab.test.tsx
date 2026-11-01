@@ -163,4 +163,19 @@ describe("Compliance tab", () => {
     expect(screen.queryByTestId("compliance-info-dialog")).toBeNull();
     expect(screen.getByTestId("statement-reasoning")).toBeTruthy();
   });
+
+  it("the quick guide is open while no SL-T is set; the to-do list asks for the SL-T first", () => {
+    renderTab(edition(CRA_ROWS));
+    expect(within(screen.getByTestId("compliance-guide")).getByText(/Set the SL-T per foundational requirement/)).toBeTruthy();
+    expect(within(screen.getByTestId("compliance-todo")).getByText(/Set the SL-T above/)).toBeTruthy();
+  });
+
+  it("with an SL-T the to-do list names the element, the row and the property; the row opens the info dialog", () => {
+    renderTab(edition(CRA_ROWS), { target: { SI: 1 } }, { typeOf: (id) => (id === "p1" ? "Process" : undefined) });
+    const entry = screen.getByTestId("compliance-todo-p1");
+    expect(within(entry).getByText("P-1 Controller")).toBeTruthy();
+    expect(within(entry).getByText(/not met, check: input validation/)).toBeTruthy();
+    fireEvent.click(within(entry).getByText("CR 3.5"));
+    expect(within(screen.getByTestId("compliance-info-dialog")).getByText("CR 3.5 – Input validation")).toBeTruthy();
+  });
 });

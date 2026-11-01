@@ -76,6 +76,19 @@
     "suggestions": "Catalog mitigations",
     "statementSection": "Statement",
     "noStatement": "No statement yet.",
-    "close": "Close"
+    "close": "Close",
+    "guideTitle": "How to work with this tab",
+    "guide1": "Choose the component under evaluation — or keep the whole model.",
+    "guide2": "Set the SL-T per foundational requirement: what the operator, the zone or your customer requires.",
+    "guide3": "Work through the to-do list: set the missing properties in the DFD, and choose mitigations in the risk treatment where the model shows a requirement not met.",
+    "guide4": "Rows the model cannot show need a statement: reasoning and where the evidence is (manual, test report). Click a requirement number for everything about it.",
+    "guide5": "Compare SL-C (product) with the SL-T: planned shows the value once the chosen mitigations are done; a gap that remains needs a change of the product or a measure of the system around it.",
+    "todoTitle": "To do up to the SL-T",
+    "todoNoTarget": "Set the SL-T above — the to-do list shows what is open up to it.",
+    "todoNothing": "Nothing open up to the SL-T.",
+    "todoNotMet": "not met, check",
+    "todoMissing": "set",
+    "todoPlanned": "closed by planned mitigations",
+    "todoStatements": "Statements needed"
   }
 }

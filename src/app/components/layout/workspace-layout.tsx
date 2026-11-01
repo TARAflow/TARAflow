@@ -1523,6 +1523,7 @@ export const WorkspaceLayout: React.FC = () => {
               componentOptions={complianceView.componentOptions}
               deviceProposal={complianceView.deviceProposal}
               nameOf={complianceView.nameOf}
+              typeOf={complianceView.typeOf}
               today={new Date().toISOString().slice(0, 10)}
               onChange={handleComplianceChange}
               mitigationSuggestions={(ids, openElementIds) =>
