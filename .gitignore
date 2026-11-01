@@ -8,3 +8,8 @@ diff.txt
 
 # Local secret-scan patterns (organisation domains etc.), see scripts/secret-scan.mjs
 .secret-scan.local
+
+# Licensed standards texts (never commit)
+Standards/
+# Local PDF renders of the test plans
+TESTPLAN-*.pdf
