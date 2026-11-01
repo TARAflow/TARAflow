@@ -60,6 +60,10 @@ describe("leveled SmokeDetector — matrix smoke test", () => {
     expect(row("CR 3.10").status).not.toBe("n/a");
   });
 
+  it("decomposed multiprocesses are no black boxes; only leaves of the analysis view are (D-30)", () => {
+    expect(view.blackBoxes?.size).toBe(0);
+  });
+
   it("an unfinished example model reaches no SL-C above 0 for the component", () => {
     expect(Object.values(result.component).every((level) => level === 0)).toBe(true);
   });

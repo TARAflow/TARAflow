@@ -15,8 +15,12 @@ import { words } from "./describe-requirement";
 export interface TodoItem {
   label: string;
   fr: FoundationalRequirement;
-  /** "not-met": the model shows it not met; "missing": a property is unset (or a neighbour's). */
-  kind: "not-met" | "missing";
+  /**
+   * "not-met": the model shows it not met; "missing": a property is unset (or
+   * a neighbour's); "inside": a multiprocess without child page stands in for
+   * processes / stores the model does not show (D-30).
+   */
+  kind: "not-met" | "missing" | "inside";
   /** Properties the rule reads on this element type, as words ("integrity protection"). */
   properties: string[];
   /** The planned run closes it for this element (chosen open mitigations). */
@@ -107,13 +111,17 @@ export function buildTodoList(
         label: row.label,
         fr: row.fr,
         kind,
-        properties: propertiesFor(edition, row, typeOf?.(id), kind),
+        properties: kind === "inside" ? [] : propertiesFor(edition, row, typeOf?.(id), kind),
         plannedClosed: p?.status === "met" || !stillOpen.has(id),
       };
       byElement.set(id, [...(byElement.get(id) ?? []), item]);
     };
     for (const id of row.failing) add(id, "not-met");
-    for (const id of row.unknown) add(id, "missing");
+    const targetTypes = new Set(rules.flatMap((rule) => rule?.targets.flatMap((t) => t.elementTypes as readonly string[]) ?? []));
+    for (const id of row.unknown) {
+      const type = typeOf?.(id);
+      add(id, type && !targetTypes.has(type) ? "inside" : "missing");
+    }
   }
 
   const elements = [...byElement]

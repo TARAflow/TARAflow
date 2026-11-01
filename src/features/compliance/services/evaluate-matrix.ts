@@ -89,6 +89,7 @@ interface Graph {
   /** flow id → its two endpoints. */
   endpoints: Map<string, [string, string]>;
   fallbackContained: ReadonlySet<string>;
+  blackBoxes: ReadonlySet<string>;
   scope: ReadonlySet<string>;
 }
 
@@ -113,6 +114,7 @@ function buildGraph(input: ComplianceInput): Graph {
     neighbours,
     endpoints,
     fallbackContained: input.view.fallbackContained ?? new Set(),
+    blackBoxes: input.view.blackBoxes ?? new Set(),
     scope: input.scope,
   };
 }
@@ -195,6 +197,29 @@ function describeTargets(targets: readonly EvidenceTarget[]): string {
   return [...new Set(targets.flatMap((t) => t.elementTypes))].join(" / ");
 }
 
+/** Types a multiprocess without child page contains but the model does not show (D-30). */
+const STAND_IN_TYPES: readonly string[] = ["Process", "DataStore"];
+
+/**
+ * D-30: black-box multiprocesses in scope that stand in for a rule's
+ * Process / DataStore targets — only when no element of those types is in
+ * scope at all (the case §9.4 step 4 otherwise reports as n/a). Targets
+ * that check Multiprocess themselves need no stand-in.
+ */
+function blackBoxStandIns(rule: EvidenceRule, graph: Graph, inScope: (id: string) => boolean): string[] {
+  const standInTargets = rule.targets.filter(
+    (t) =>
+      !(t.elementTypes as readonly string[]).includes("Multiprocess") &&
+      (t.elementTypes as readonly string[]).some((type) => STAND_IN_TYPES.includes(type)),
+  );
+  if (standInTargets.length === 0) return [];
+  const types = new Set(standInTargets.flatMap((t) => (t.elementTypes as readonly string[]).filter((type) => STAND_IN_TYPES.includes(type))));
+  for (const element of graph.elements.values()) {
+    if (types.has(element.type) && inScope(element.id)) return [];
+  }
+  return [...graph.blackBoxes].filter((id) => inScope(id) && graph.elements.has(id));
+}
+
 /** Steps 4 – 7 and 9 for one requirement id. */
 function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput): IdOutcome {
   const typeA = rule.type === "A";
@@ -225,9 +250,15 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
     }
   }
   if (!wholeComponent && applicableYes.length === 0) {
-    return applicableUnknown.length > 0
-      ? outcome("unknown", { unknown: applicableUnknown })
-      : outcome("n/a", { reasoning: `no applicable ${describeTargets(rule.targets)} in the component` });
+    if (applicableUnknown.length > 0) return outcome("unknown", { unknown: applicableUnknown });
+    const standIns = blackBoxStandIns(rule, graph, inScope);
+    if (standIns.length > 0) {
+      return outcome("unknown", {
+        unknown: standIns,
+        reasoning: `no ${describeTargets(rule.targets)} modelled — a multiprocess without child page may contain one`,
+      });
+    }
+    return outcome("n/a", { reasoning: `no applicable ${describeTargets(rule.targets)} in the component` });
   }
 
   // Step 5 — satisfaction in scope (types A / B); type C needs a statement.

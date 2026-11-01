@@ -50,6 +50,13 @@ export interface PropertyView {
    * checks on them are unknown, never n/a (D-24).
    */
   fallbackContained?: ReadonlySet<string>;
+  /**
+   * Multiprocesses without a child page (leaves of the analysis view): they
+   * contain processes and stores the model does not show. A rule on Process
+   * or DataStore with no such element in scope is unknown there, not n/a
+   * (D-30). Absent = none.
+   */
+  blackBoxes?: ReadonlySet<string>;
 }
 
 // ==================== ANALYST INPUT ====================

@@ -381,7 +381,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                             {item.label}
                           </Link>
                           {" — "}
-                          {item.kind === "not-met" ? t("todoNotMet", "not met, check") : t("todoMissing", "set")}
+                          {item.kind === "not-met"
+                            ? t("todoNotMet", "not met, check")
+                            : item.kind === "inside"
+                              ? t("todoInside", "model its processes and stores on a child page, or make a statement")
+                              : t("todoMissing", "set")}
                           {item.properties.length > 0 && `: ${item.properties.join(", ")}`}
                         </Typography>
                         {item.plannedClosed && (

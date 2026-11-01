@@ -36,7 +36,7 @@ function run(
   const { view, ...rest } = extra;
   return evaluateMatrix({
     edition: ed,
-    view: { elements, flows, fallbackContained: view?.fallbackContained },
+    view: { elements, flows, fallbackContained: view?.fallbackContained, blackBoxes: view?.blackBoxes },
     scope: rest.scope ?? new Set(elements.map((e) => e.id)),
     run: "achieved",
     ...rest,
@@ -223,6 +223,37 @@ describe("trust boundary policies are cumulative (P-1)", () => {
     const r = run(ed, zone(["island_mode"]));
     expect(row(r, "CR 5.2 RE(1)").status).toBe("gap");
     expect(row(r, "CR 5.2 RE(2)").status).toBe("met");
+  });
+});
+
+// ==================== D-30 BLACK-BOX MULTIPROCESS ====================
+
+describe("a multiprocess without child page stands in for processes and stores (D-30)", () => {
+  const ed = edition(
+    { label: "CR 3.5", requirementIds: ["cr-3.5"], fr: "SI" },
+    { label: "CR 3.2", requirementIds: ["cr-3.2"], fr: "SI" },
+  );
+  const ecu = el("ecu", "Multiprocess", { malwareProtection: "code_signing" });
+  const blackBox = { elements: [], flows: [], blackBoxes: new Set(["ecu"]) };
+
+  it("no Process in the model: the black box makes the row unknown, not n/a", () => {
+    const r = row(run(ed, [ecu], [], { view: blackBox }), "CR 3.5");
+    expect(r.status).toBe("unknown");
+    expect(r.unknown).toEqual(["ecu"]);
+    expect(r.reasoning).toContain("multiprocess without child page");
+  });
+
+  it("a rule that checks Multiprocess itself needs no stand-in", () => {
+    expect(row(run(ed, [ecu], [], { view: blackBox }), "CR 3.2").status).toBe("met");
+  });
+
+  it("a decomposed multiprocess (not a black box) leaves the accepted n/a", () => {
+    expect(row(run(ed, [ecu]), "CR 3.5").status).toBe("n/a");
+  });
+
+  it("with a Process modelled the row is decided by it", () => {
+    const r = row(run(ed, [ecu, el("p", "Process", { inputValidation: "strict" })], [], { view: blackBox }), "CR 3.5");
+    expect(r.status).toBe("met");
   });
 });
 

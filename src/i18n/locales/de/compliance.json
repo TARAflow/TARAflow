@@ -91,6 +91,7 @@
     "todoPlanned": "durch geplante Massnahmen geschlossen",
     "todoStatements": "Aussagen nötig",
     "todoComponent": "Für die Komponente — ein Element genügt",
-    "todoOnOne": "an einem {{types}}"
+    "todoOnOne": "an einem {{types}}",
+    "todoInside": "Prozesse und Speicher auf einer Unterseite modellieren oder eine Aussage erfassen"
   }
 }

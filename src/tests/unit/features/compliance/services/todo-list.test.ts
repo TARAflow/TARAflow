@@ -55,4 +55,24 @@ describe("buildTodoList", () => {
       { label: "CR 3.10", fr: "SI", properties: ["update mechanism"], elementTypes: ["Process", "Multiprocess"], plannedClosed: false },
     ]);
   });
+
+  it("a black-box multiprocess standing in gets the item 'inside' (D-30)", () => {
+    const edition: Edition = {
+      ...EDITION_PRAA_2026,
+      rows: [{ label: "CR 3.5", fr: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false }],
+    };
+    const input = {
+      edition,
+      view: { elements: [{ id: "ecu", type: "Multiprocess" }], flows: [], blackBoxes: new Set(["ecu"]) },
+      scope: new Set(["ecu"]),
+    };
+    const list = buildTodoList(
+      edition,
+      evaluateMatrix({ ...input, run: "achieved" }),
+      evaluateMatrix({ ...input, run: "planned" }),
+      { SI: 1 },
+      () => "Multiprocess",
+    );
+    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", fr: "SI", kind: "inside", properties: [], plannedClosed: false }] }]);
+  });
 });

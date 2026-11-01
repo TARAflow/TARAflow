@@ -91,6 +91,7 @@
     "todoPlanned": "closed by planned mitigations",
     "todoStatements": "Statements needed",
     "todoComponent": "For the component — one element suffices",
-    "todoOnOne": "on one {{types}}"
+    "todoOnOne": "on one {{types}}",
+    "todoInside": "model its processes and stores on a child page, or make a statement"
   }
 }

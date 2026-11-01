@@ -12,6 +12,8 @@
 //   flows     every drawn flow with its resolved endpoints, excluded ones
 //             included (`validationConnections`): excludeFromThreatGen says
 //             nothing about who accesses the component (D-24).
+//   blackBoxes the multiprocesses of the analysis view (no child page): they
+//             stand in for the processes and stores they contain (D-30).
 
 import type { PropertyView, ViewElement, ViewFlow } from "../models/evaluation-types";
 
@@ -32,5 +34,6 @@ export function buildPropertyView(source: PropertyViewSource): PropertyView {
     elements: [...source.analysisElements, ...decomposed],
     flows: source.flows,
     fallbackContained: source.fallbackContained,
+    blackBoxes: new Set(source.analysisElements.filter((e) => e.type === "Multiprocess").map((e) => e.id)),
   };
 }
