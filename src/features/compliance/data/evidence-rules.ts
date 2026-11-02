@@ -244,6 +244,18 @@ const RULES = [
       "unchanged default authenticators are recognised",
       "authenticators can be changed or refreshed",
     ],
+    // F-3 / F-3b (CM-5b): the provisioning scheme answers a; no default, or a
+    // change enforced at first use, answers b (unique per device / universal
+    // leave it to confirm); changeable answers c, not changeable fails it.
+    answers: [
+      { item: 0, yesIf: [{ property: "defaultCredentials" }] },
+      { item: 1, yesIf: [{ property: "defaultCredentials", in: ["none_preinstalled", "change_enforced"] }] },
+      {
+        item: 2,
+        yesIf: [{ property: "authenticatorChangeable", in: ["yes"] }],
+        noIf: [{ property: "authenticatorChangeable", in: ["no"] }],
+      },
+    ],
   },
   { id: "cr-1.5-re1", type: "A", targets: AUTHENTICATORS_IN_HARDWARE },
   {

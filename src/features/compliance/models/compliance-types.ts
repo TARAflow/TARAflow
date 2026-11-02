@@ -105,6 +105,19 @@ export type EvidenceType = "A" | "B" | "C";
  */
 export type EvidenceQuantifier = "all" | "any";
 
+/**
+ * A checklist item of a type B rule that model fields can answer (model
+ * coverage plan CM-5b): on the rule's applicable elements, `yesIf` answers it
+ * (the item leaves the checklist), `noIf` fails the row; otherwise it stays
+ * on the checklist. Combined like the rule (quantifier any / all).
+ */
+export interface ChecklistAnswer {
+  /** Index into the rule's checklist. */
+  item: number;
+  yesIf: readonly PropertyCheck[];
+  noIf?: readonly PropertyCheck[];
+}
+
 export interface EvidenceRule {
   id: RequirementId;
   type: EvidenceType;
@@ -120,6 +133,8 @@ export interface EvidenceRule {
   quantifier?: EvidenceQuantifier;
   /** Criteria the model cannot show (type B); paraphrased, i18n in IEC-2b. */
   checklist?: readonly string[];
+  /** Checklist items model fields answer (type B). */
+  answers?: readonly ChecklistAnswer[];
 }
 
 // ==================== REQUIREMENT IDS ====================

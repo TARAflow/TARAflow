@@ -52,19 +52,22 @@ function renderFields(properties: Record<string, unknown>, flows: VisibilityFlow
 const passwordLogin: VisibilityFlowInput = { id: "f", from: "op", to: "p", properties: { endpointAuthentication: "password" } };
 
 describe("model fields in the Security sub-tabs", () => {
-  it("a process with a password login from an operator: accounts and both password fields under login, three open", () => {
+  it("a process with a password login from an operator: accounts, both password fields and the authenticator fields under login, five open", () => {
     renderFields({ authenticationRequired: "yes" }, [passwordLogin]);
-    expect(screen.getByTestId("security-tab-login").textContent).toBe("Login & accounts (3)");
+    expect(screen.getByTestId("security-tab-login").textContent).toBe("Login & accounts (5)");
+    expect(screen.getByTestId("model-field-defaultCredentials")).toBeTruthy();
+    expect(screen.getByTestId("model-field-authenticatorChangeable")).toBeTruthy();
     expect(screen.getByTestId("model-field-userAccounts")).toBeTruthy();
     expect(screen.getByTestId("model-field-passwordStrength")).toBeTruthy();
     expect(screen.getByTestId("model-field-passwordLifetime")).toBeTruthy();
     expect(screen.queryByTestId("security-tab-authorization")).toBeNull(); // no RBAC → no roleMapping
   });
 
-  it("RBAC: role permissions in the authorization tab", () => {
+  it("RBAC: role permissions in the authorization tab; without human users or passwords only the authenticator fields under login", () => {
     renderFields({ authenticationRequired: "yes", authorizationModel: "rbac", roleMapping: "fixed_roles" }, []);
     expect(screen.getByTestId("security-tab-authorization").textContent).toBe("Authorization");
-    expect(screen.queryByTestId("security-tab-login")).toBeNull(); // no human users, no password
+    expect(screen.getByTestId("security-tab-login").textContent).toBe("Login & accounts (2)");
+    expect(screen.queryByTestId("model-field-userAccounts")).toBeNull();
   });
 
   it("no authentication decided yet, certificate login: no field, no tab", () => {

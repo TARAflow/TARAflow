@@ -207,6 +207,8 @@ describe("Pump Station Controller example", () => {
     const { achieved, planned } = evaluateProjectCompliance(classic)!;
     const row = (label: string) => achieved.rows.find((r) => r.label === label)!;
     expect(row("CR 1.10")).toMatchObject({ status: "met", source: "statement" }); // made with the CRA edition
+    // CR 1.5 from the model: F-3 / F-3b answer the whole checklist (CM-5b).
+    expect(row("CR 1.5")).toMatchObject({ status: "met", source: "model", checklist: [] });
     // From the model fields in both editions; 2019 RE(1) / RE(2) as well.
     for (const label of ["CR 1.1 RE(1)", "CR 1.7", "CR 1.7 RE(1)", "CR 1.7 RE(2)"]) {
       expect(row(label), label).toMatchObject({ status: "met", source: "model" });

@@ -6,6 +6,7 @@
 
 // ==================== TYPES ====================
 export type {
+  ChecklistAnswer,
   CraEssentialRequirement,
   DeviceCategory,
   Edition,
@@ -88,6 +89,7 @@ export {
   describeLanguageOf,
   describeRequirement,
   describeRule,
+  localizedChecklist,
   type DescribeLanguage,
   type RequirementDescription,
 } from "./services/describe-requirement";

@@ -139,6 +139,9 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     passwordLifetime: "human_accounts",
     // Roles operator / maintenance / admin; the admin maps permissions to roles (CR 2.1 RE(2)).
     roleMapping: "configurable",
+    // Shipped with a default password whose change is enforced at the first login (CR 1.5).
+    defaultCredentials: "change_enforced",
+    authenticatorChangeable: "yes",
   }),
   "MP-1": as<MultiprocessProperties>({
     systemClass: "embedded_controller",
@@ -161,6 +164,9 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     passwordStrength: "configurable_policy",
     passwordLifetime: "all_accounts",
     roleMapping: "configurable",
+    // Device password and key unique per controller, set in production (CR 1.5).
+    defaultCredentials: "unique_per_device",
+    authenticatorChangeable: "yes",
     exposedToInternet: false,
     airGapped: false,
   }),

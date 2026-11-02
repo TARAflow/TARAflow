@@ -382,6 +382,24 @@
             "all_accounts": "Alle Konten"
           }
         },
+        "defaultCredentials": {
+          "label": "Erstmalige Authentisierungsmerkmale",
+          "help": "Wie die ersten Passwörter, PINs oder Schlüssel entstehen: keine vorinstalliert (bei der Inbetriebnahme gesetzt), eindeutig pro Gerät (zufällig, nicht aus Seriennummer oder MAC abgeleitet), ein Standardwert, dessen Änderung beim ersten Gebrauch erzwungen wird, oder ein Standardwert, der auf allen Geräten gleich ist. IEC 62443-4-2 CR 1.5 a / b; ETSI EN 303 645 5.1-1 und EN 18031 AUM-5 lassen universelle Standardwerte nicht zu.",
+          "values": {
+            "none_preinstalled": "Keine vorinstalliert",
+            "unique_per_device": "Eindeutig pro Gerät",
+            "change_enforced": "Standardwert, Änderung beim ersten Gebrauch erzwungen",
+            "universal": "Gleicher Standardwert auf allen Geräten"
+          }
+        },
+        "authenticatorChangeable": {
+          "label": "Authentisierungsmerkmale änderbar",
+          "help": "Lassen sich Passwörter, PINs oder Schlüssel im Betrieb ändern und erneuern? IEC 62443-4-2 CR 1.5 c; ETSI EN 303 645 5.1-4.",
+          "values": {
+            "yes": "Ja",
+            "no": "Nein"
+          }
+        },
         "roleMapping": {
           "label": "Rollen-Berechtigungen",
           "help": "Bei rollenbasierter Autorisierung: Kann eine berechtigte Rolle (z. B. der Administrator) festlegen und ändern, welche Rechte jede Rolle hat, oder sind Rollen und Rechte im Produkt fest vorgegeben? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) verlangt die konfigurierbare Zuordnung.",

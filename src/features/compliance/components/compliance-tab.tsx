@@ -56,7 +56,12 @@ import {
 import type { Edition, RequirementId } from "../models/compliance-types";
 import type { ComplianceResult, RowResult, RowStatus } from "../models/evaluation-types";
 import type { DeviceCategoryProposal } from "../services/device-category";
-import { describeLanguageOf, describeRequirement, type RequirementDescription } from "../services/describe-requirement";
+import {
+  describeLanguageOf,
+  describeRequirement,
+  localizedChecklist,
+  type RequirementDescription,
+} from "../services/describe-requirement";
 import { buildTodoList } from "../services/todo-list";
 import { editionStatements, statementKeyOf } from "../services/edition-statements";
 
@@ -570,7 +575,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
             <TableBody>
               {rows.map((row) => {
                 const descriptions = (rowDef.get(row.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang));
-                const checklist = row.checklist.length > 0 ? descriptions.flatMap((d) => d.checklist) : [];
+                const checklist = localizedChecklist(descriptions, row.checklist);
                 const notes = [
                   row.failing.length > 0 && `${t("failing", "not met by")}: ${shortList(row.failing.map(nameOf))}`,
                   row.unknown.length > 0 && `${t("unknown", "properties missing on")}: ${shortList(row.unknown.map(nameOf))}`,
@@ -708,7 +713,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
       {body}
     </Box>
   );
-  const checklist = row.checklist.length > 0 ? descriptions.flatMap((d) => d.checklist) : [];
+  const checklist = localizedChecklist(descriptions, row.checklist);
   return (
     // At most 80 % of the window: a long description scrolls inside, title and buttons stay in view.
     <Dialog

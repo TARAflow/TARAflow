@@ -96,10 +96,18 @@ type TargetViolation<T> =
       ? ForEachType<E, C>
       : never);
 
+/** Checks of the checklist answers (CM-5b), read on the rule's target elements. */
+type AnswerChecks<A> =
+  | (A extends { readonly yesIf: readonly (infer C)[] } ? C : never)
+  | (A extends { readonly noIf: readonly (infer C)[] } ? C : never);
+
+type AnswerViolation<T, A> = T extends { readonly elementTypes: readonly (infer E)[] } ? ForEachType<E, AnswerChecks<A>> : never;
+
 type RuleViolation<R> = R extends { readonly targets: readonly (infer T)[] }
   ?
       | TargetViolation<T>
       | (R extends { readonly appliesWhen: readonly (infer W)[] } ? TargetViolation<W> : never)
+      | (R extends { readonly answers: readonly (infer A)[] } ? AnswerViolation<T, A> : never)
   : never;
 
 /** Compiles only for `never`; the error message shows the offending check. */
@@ -140,6 +148,9 @@ export type RejectsStringTypedProperty = AssertNone<RuleViolation<ProbeRule<{ re
 // @ts-expect-error — a connectedIf check on the neighbour's type is checked too
 export type RejectsUnknownNeighbourPath = AssertNone<RuleViolation<{ readonly targets: readonly [{ readonly elementTypes: readonly ["Process"]; readonly connectedIf: { readonly elementTypes: readonly ["ExternalEntity"]; readonly checks: readonly [{ readonly property: "noSuchProperty" }] } }] }>>;
 
+// @ts-expect-error — a checklist answer reads a property the target type does not have
+export type RejectsUnknownAnswerPath = AssertNone<RuleViolation<{ readonly targets: readonly [{ readonly elementTypes: readonly ["Process"] }]; readonly answers: readonly [{ readonly item: 0; readonly yesIf: readonly [{ readonly property: "noSuchProperty" }] }] }>>;
+
 // @ts-expect-error — a property of another element type (DataFlow) on a Process
 export type RejectsWrongElementType = AssertNone<RuleViolation<ProbeRule<{ readonly property: "encryptionInTransit" }>>>;
 
@@ -161,6 +172,11 @@ describe("evidence rules conformance", () => {
         for (const check of checks) {
           expect(check.property, rule.id).toMatch(/^[a-zA-Z]+(\.[a-zA-Z]+)*$/);
         }
+      }
+      for (const answer of rule.answers ?? []) {
+        expect(rule.type, rule.id).toBe("B");
+        expect(answer.item, rule.id).toBeLessThan(rule.checklist?.length ?? 0);
+        for (const check of [...answer.yesIf, ...(answer.noIf ?? [])]) expect(check.property, rule.id).toMatch(/^[a-zA-Z]+(\.[a-zA-Z]+)*$/);
       }
     }
   });

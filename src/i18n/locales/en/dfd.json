@@ -382,6 +382,24 @@
             "all_accounts": "All accounts"
           }
         },
+        "defaultCredentials": {
+          "label": "Initial authenticators",
+          "help": "How the first passwords, PINs or keys come into being: none pre-installed (set when the device is commissioned), unique per device (random, not derived from serial number or MAC), a default whose change is enforced at first use, or one default that is the same on every device. IEC 62443-4-2 CR 1.5 a / b; ETSI EN 303 645 5.1-1 and EN 18031 AUM-5 do not allow universal defaults.",
+          "values": {
+            "none_preinstalled": "None pre-installed",
+            "unique_per_device": "Unique per device",
+            "change_enforced": "Default, change enforced at first use",
+            "universal": "Same default on every device"
+          }
+        },
+        "authenticatorChangeable": {
+          "label": "Authenticators changeable",
+          "help": "Can passwords, PINs or keys be changed and refreshed during operation? IEC 62443-4-2 CR 1.5 c; ETSI EN 303 645 5.1-4.",
+          "values": {
+            "yes": "Yes",
+            "no": "No"
+          }
+        },
         "roleMapping": {
           "label": "Role permissions",
           "help": "With role-based authorization: can an authorised role (e.g. the administrator) define and change which permissions each role has, or are the roles and their permissions fixed in the product? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) asks for the configurable mapping.",

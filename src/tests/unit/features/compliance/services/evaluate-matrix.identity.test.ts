@@ -5,7 +5,16 @@
 // same conditions that show the fields. An unset field is unknown, never met
 // (R-1, R-8).
 import { describe, it, expect } from "vitest";
-import { EDITION_2019, EDITION_PRAA_2026, evaluateMatrix, type Edition, type ViewElement, type ViewFlow } from "features/compliance";
+import {
+  describeRequirement,
+  EDITION_2019,
+  EDITION_PRAA_2026,
+  evaluateMatrix,
+  localizedChecklist,
+  type Edition,
+  type ViewElement,
+  type ViewFlow,
+} from "features/compliance";
 
 const operator: ViewElement = { id: "op", type: "ExternalEntity", properties: { entityType: "operator" } };
 const scada: ViewElement = { id: "scada", type: "ExternalEntity", properties: { entityType: "scada_hmi" } };
@@ -106,5 +115,50 @@ describe("CR 2.1 RE(2) — permission mapping to roles (F-29)", () => {
   it("another authorization model has no roles to map: gap; none chosen yet: unknown", () => {
     expect(status({ authorizationModel: "acl", roleMapping: "configurable" })).toBe("gap");
     expect(status({})).toBe("unknown");
+  });
+});
+
+describe("CR 1.5 — checklist items answered by F-3 / F-3b (CM-5b)", () => {
+  const ITEMS = [
+    "initial authenticators can be provisioned",
+    "unchanged default authenticators are recognised",
+    "authenticators can be changed or refreshed",
+  ];
+  const row = (properties: Record<string, unknown>, extra: ViewElement[] = []) => {
+    const r = EDITION_PRAA_2026.rows.find((x) => x.label === "CR 1.5")!;
+    return evaluateMatrix({
+      edition: { ...EDITION_PRAA_2026, rows: [r] },
+      view: { elements: [hmi({ authenticationRequired: "yes", authenticatorStorage: "software_only", ...properties }), ...extra], flows: [] },
+      scope: new Set(["p", ...extra.map((e) => e.id)]),
+      run: "achieved",
+    }).rows[0];
+  };
+
+  it("fields unset: met (type B) with the whole checklist to confirm — an unset field answers nothing", () => {
+    expect(row({})).toMatchObject({ status: "met", checklist: ITEMS });
+  });
+
+  it("change enforced at first use and changeable: nothing left to confirm", () => {
+    expect(row({ defaultCredentials: "change_enforced", authenticatorChangeable: "yes" })).toMatchObject({ status: "met", checklist: [] });
+  });
+
+  it("unique per device / universal: recognising unchanged defaults stays to confirm", () => {
+    for (const defaultCredentials of ["unique_per_device", "universal"]) {
+      expect(row({ defaultCredentials, authenticatorChangeable: "yes" }).checklist, defaultCredentials).toEqual([ITEMS[1]]);
+    }
+  });
+
+  it("not changeable: gap on the element", () => {
+    expect(row({ defaultCredentials: "none_preinstalled", authenticatorChangeable: "no" })).toMatchObject({ status: "gap", failing: ["p"] });
+  });
+
+  it("a capability of the component (any): one element that can change its authenticators answers it", () => {
+    const other: ViewElement = { id: "q", type: "Process", properties: { authenticationRequired: "yes", authenticatorChangeable: "no" } };
+    expect(row({ authenticatorChangeable: "yes" }, [other]).status).toBe("met");
+  });
+
+  it("the open items in the document language", () => {
+    const open = row({ defaultCredentials: "unique_per_device", authenticatorChangeable: "yes" }).checklist;
+    expect(localizedChecklist([describeRequirement("cr-1.5", "de")], open)).toEqual(["unveränderte Standard-Authentisierungsmerkmale werden erkannt"]);
   });
 });

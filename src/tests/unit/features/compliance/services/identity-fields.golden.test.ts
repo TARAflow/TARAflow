@@ -14,7 +14,7 @@ import type { Project } from "app/models/project-types";
 type Any = any;
 
 const ROWS = ["CR 1.1 RE(1)", "CR 1.7", "CR 1.7 RE(1)", "CR 1.7 RE(2)", "CR 2.1 RE(2)"];
-const FIELDS = ["userAccounts", "passwordStrength", "passwordLifetime", "roleMapping"];
+const FIELDS = ["userAccounts", "passwordStrength", "passwordLifetime", "roleMapping", "defaultCredentials", "authenticatorChangeable"];
 
 function load(file: string): Project {
   const project: Any = parseAndRepair(JSON.parse(readFileSync(file, "utf-8")))!;
@@ -37,5 +37,11 @@ describe.each([
         expect(row.source === "model" && row.status === "met", `${edition.id} ${row.label}: ${row.status}`).toBe(false);
       }
     }
+  });
+
+  it.each([EDITION_PRAA_2026, EDITION_2019])("$id: CR 1.5 keeps its whole checklist while F-3 / F-3b are unset", (edition) => {
+    const row = context.evaluate(edition).achieved.rows.find((r) => r.label === "CR 1.5")!;
+    if (row.status === "met" && row.source === "model") expect(row.checklist).toHaveLength(3);
+    expect(row.status).not.toBe("gap");
   });
 });

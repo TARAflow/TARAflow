@@ -117,5 +117,18 @@ export function describeRequirement(id: RequirementId, lang: DescribeLanguage): 
   return { id, title: text.title, summary: lang === "de" ? text.de : text.en, check: describeRule(rule, lang), checklist };
 }
 
+/**
+ * The open checklist items of a row, in the language of `descriptions`:
+ * `open` holds the evaluator's items (RowResult.checklist, English rule
+ * texts) — items the model answers are not among them (CM-5b).
+ */
+export function localizedChecklist(descriptions: readonly RequirementDescription[], open: readonly string[]): string[] {
+  if (open.length === 0) return [];
+  return descriptions.flatMap((d) => {
+    const items = EVIDENCE_RULES.get(d.id)?.checklist ?? [];
+    return items.flatMap((item, i) => (open.includes(item) ? [d.checklist[i] ?? item] : []));
+  });
+}
+
 /** The language of a UI / document language code ("de", "de-CH", "en" …). */
 export const describeLanguageOf = (code: string | undefined): DescribeLanguage => (code?.startsWith("de") ? "de" : "en");

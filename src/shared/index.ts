@@ -210,6 +210,8 @@ export {
 
 // ==================== MODEL FIELD VISIBILITY (model coverage plan §3) ====================
 export {
+  AUTHENTICATOR_CHANGEABLE_VALUES,
+  DEFAULT_CREDENTIALS_VALUES,
   HUMAN_ENTITY_TYPES,
   isFieldShown,
   isUnset,

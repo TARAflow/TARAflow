@@ -175,6 +175,17 @@ export const PASSWORD_STRENGTH_VALUES = ["not_specified", "none", "fixed_rules",
 export const PASSWORD_LIFETIME_VALUES = ["not_specified", "none", "human_accounts", "machine_accounts", "all_accounts"] as const;
 
 /**
+ * F-3 — CR 1.5 items a / b: how the first authenticators come into being —
+ * none pre-installed (set at commissioning), unique per device (random, not
+ * derived from serial number or MAC), a default whose change is enforced at
+ * first use, or one universal default for every device.
+ */
+export const DEFAULT_CREDENTIALS_VALUES = ["not_specified", "none_preinstalled", "unique_per_device", "change_enforced", "universal"] as const;
+
+/** F-3b — CR 1.5 item c: the authenticators can be changed / refreshed. */
+export const AUTHENTICATOR_CHANGEABLE_VALUES = ["not_specified", "yes", "no"] as const;
+
+/**
  * F-29 — CR 2.1 RE(2): with role-based authorization, whether an authorised
  * role can define and change which permissions a role has, or the roles are
  * fixed in the product.
@@ -213,6 +224,20 @@ export const MODEL_FIELDS: readonly ModelField[] = [
       if (machine) return ["none", "machine_accounts"];
       return PASSWORD_LIFETIME_VALUES.slice(1);
     },
+  },
+  {
+    property: "defaultCredentials",
+    group: "login",
+    elementTypes: ["Process", "Multiprocess"],
+    values: DEFAULT_CREDENTIALS_VALUES,
+    shownWhen: MODEL_CONDITIONS.authenticates,
+  },
+  {
+    property: "authenticatorChangeable",
+    group: "login",
+    elementTypes: ["Process", "Multiprocess"],
+    values: AUTHENTICATOR_CHANGEABLE_VALUES,
+    shownWhen: MODEL_CONDITIONS.authenticates,
   },
   {
     property: "roleMapping",

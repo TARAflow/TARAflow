@@ -27,9 +27,16 @@ import type {
   Controllability,
 } from "./transducer-properties";
 
-import type { PASSWORD_LIFETIME_VALUES, PASSWORD_STRENGTH_VALUES, ROLE_MAPPING_VALUES, USER_ACCOUNTS_VALUES } from "shared";
+import type {
+  AUTHENTICATOR_CHANGEABLE_VALUES,
+  DEFAULT_CREDENTIALS_VALUES,
+  PASSWORD_LIFETIME_VALUES,
+  PASSWORD_STRENGTH_VALUES,
+  ROLE_MAPPING_VALUES,
+  USER_ACCOUNTS_VALUES,
+} from "shared";
 
-// ==================== SHARED: IDENTITY (model coverage F-1, F-2, F-29) ====================
+// ==================== SHARED: IDENTITY (model coverage F-1 … F-3b, F-29) ====================
 // On Process AND Multiprocess — the element that verifies the login. Shown
 // only where the earlier settings make them meaningful; the predicates and
 // the value lists live in shared/models/property-visibility.ts.
@@ -42,6 +49,10 @@ export type PasswordStrength = (typeof PASSWORD_STRENGTH_VALUES)[number];
 export type PasswordLifetime = (typeof PASSWORD_LIFETIME_VALUES)[number];
 /** Roles fixed in the product, or the permission mapping of roles configurable (CR 2.1 RE(2)). */
 export type RoleMapping = (typeof ROLE_MAPPING_VALUES)[number];
+/** How the first authenticators come into being (CR 1.5 a / b). */
+export type DefaultCredentials = (typeof DEFAULT_CREDENTIALS_VALUES)[number];
+/** The authenticators can be changed / refreshed (CR 1.5 c). */
+export type AuthenticatorChangeable = (typeof AUTHENTICATOR_CHANGEABLE_VALUES)[number];
 
 // ==================== SHARED: UPDATE / SESSIONS ====================
 // On Process AND Multiprocess (iec-62443-4-2-cra-coverage.md P-2): a
@@ -265,6 +276,10 @@ export interface ProcessProperties {
   passwordLifetime?: PasswordLifetime;
   /** F-29 — shown with role-based authorization (authorizationModel = rbac). */
   roleMapping?: RoleMapping;
+  /** F-3 — shown when the element authenticates. */
+  defaultCredentials?: DefaultCredentials;
+  /** F-3b — shown when the element authenticates. */
+  authenticatorChangeable?: AuthenticatorChangeable;
 
   /**
    * Session management for a process with human users (SessionControl).
@@ -519,6 +534,10 @@ export interface MultiprocessProperties {
   passwordLifetime?: PasswordLifetime;
   /** F-29 — shown with role-based authorization (authorizationModel = rbac). */
   roleMapping?: RoleMapping;
+  /** F-3 — shown when the element authenticates. */
+  defaultCredentials?: DefaultCredentials;
+  /** F-3b — shown when the element authenticates. */
+  authenticatorChangeable?: AuthenticatorChangeable;
 
   /**
    * Backup and recovery mechanism for this system.

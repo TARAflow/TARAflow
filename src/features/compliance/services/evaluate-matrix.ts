@@ -14,6 +14,7 @@
 //                               9 no → gap, else unknown, else needs-statement
 
 import type {
+  ChecklistAnswer,
   EditionRow,
   EvidenceRule,
   EvidenceTarget,
@@ -192,6 +193,8 @@ interface IdOutcome {
   mitigationIds: string[];
   contradiction?: boolean;
   reasoning?: string;
+  /** Type B: the checklist items the model does not answer (CM-5b). */
+  openChecklist?: string[];
 }
 
 const outcome = (status: IdStatus, extra: Partial<IdOutcome> = {}): IdOutcome => ({
@@ -273,6 +276,8 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
 
   // Step 5 — satisfaction in scope (types A / B); type C needs a statement.
   let model: IdOutcome;
+  // Type B: checklist items answered by model fields (CM-5b) — "no" fails the row.
+  const answered = answerChecklist(rule, applicableYes.map((a) => a.element));
   if (rule.type === "C") {
     model = outcome("needs-statement");
   } else {
@@ -298,6 +303,10 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
             : outcome("gap", { failing: no });
     }
   }
+  if (answered.failing.length > 0 && (model.status === "met" || model.status === "unknown")) {
+    model = outcome("gap", { failing: answered.failing, unknown: model.unknown });
+  }
+  model = { ...model, openChecklist: answered.open };
   if (model.status === "met") return model;
 
   // Step 6 — mitigations naming the requirement, chosen for risks in scope (D-16).
@@ -347,6 +356,30 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
   return model;
 }
 
+/** One element's answer to a checklist item: yes, no, or open (unknown). */
+function answerOf(element: ViewElement, answer: ChecklistAnswer): Tri {
+  if (answer.yesIf.some((c) => evaluateCheck(element, c, false) === "yes")) return "yes";
+  if ((answer.noIf ?? []).some((c) => evaluateCheck(element, c, false) === "yes")) return "no";
+  return "unknown";
+}
+
+/** The checklist items still open and the elements whose fields fail one (CM-5b). */
+function answerChecklist(rule: EvidenceRule, elements: readonly ViewElement[]): { open: string[]; failing: string[] } {
+  const checklist = rule.checklist ?? [];
+  if (rule.type !== "B" || !rule.answers?.length || elements.length === 0) return { open: [...checklist], failing: [] };
+  const any = rule.quantifier === "any";
+  const answeredYes = new Set<number>();
+  const failing = new Set<string>();
+  for (const answer of rule.answers) {
+    const results = elements.map((e) => ({ id: e.id, tri: answerOf(e, answer) }));
+    const tris = results.map((r) => r.tri);
+    const tri = any ? (tris.includes("yes") ? "yes" : tris.every((t) => t === "no") ? "no" : "unknown") : and(tris);
+    if (tri === "yes") answeredYes.add(answer.item);
+    if (tri === "no") for (const r of results) if (r.tri === "no") failing.add(r.id);
+  }
+  return { open: checklist.filter((_, i) => !answeredYes.has(i)), failing: [...failing] };
+}
+
 // ==================== ONE ROW ====================
 
 const STATUS_ORDER: readonly IdStatus[] = ["gap", "unknown", "needs-statement", "met", "n/a"];
@@ -371,6 +404,7 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
     mitigationIds: merged("mitigationIds"),
     contradiction: outcomes.some((o) => o.contradiction) || undefined,
     reasoning: outcomes.map((o) => o.reasoning).find(Boolean),
+    openChecklist: outcomes.flatMap((o) => o.openChecklist ?? []),
   };
 }
 
@@ -433,7 +467,7 @@ function evaluateRow(row: EditionRow, graph: Graph, input: ComplianceInput): Row
     supportingElements: combined.supporting,
     mitigationIds: combined.mitigationIds,
     claimIds,
-    checklist: status === "met" ? rules.flatMap((r) => (r.type === "B" ? [...(r.checklist ?? [])] : [])) : [],
+    checklist: status === "met" ? (combined.openChecklist ?? []) : [],
     reasoning: combined.reasoning,
     contradiction: combined.contradiction,
   };

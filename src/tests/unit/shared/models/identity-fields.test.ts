@@ -18,6 +18,8 @@ const userAccounts = modelField("userAccounts")!;
 const passwordStrength = modelField("passwordStrength")!;
 const passwordLifetime = modelField("passwordLifetime")!;
 const roleMapping = modelField("roleMapping")!;
+const defaultCredentials = modelField("defaultCredentials")!;
+const authenticatorChangeable = modelField("authenticatorChangeable")!;
 
 const operator: VisibilityElement = { id: "op", type: "ExternalEntity", properties: { entityType: "operator" } };
 const scada: VisibilityElement = { id: "scada", type: "ExternalEntity", properties: { entityType: "scada_hmi" } };
@@ -109,5 +111,20 @@ describe("F-29 roleMapping: role-based authorization", () => {
 
   it("userAccounts knows the login per role of industrial devices", () => {
     expect(userAccounts.values).toEqual(["not_specified", "individual", "per_role", "shared"]);
+  });
+});
+
+describe("F-3 defaultCredentials / F-3b authenticatorChangeable: the element authenticates", () => {
+  it("shown with any authentication — also between machines; hidden without", () => {
+    for (const field of [defaultCredentials, authenticatorChangeable]) {
+      expect(isFieldShown(field, contextOf(process({ authenticationRequired: "certificate" }), [flow("f", "scada", "p")]))).toBe(true);
+      expect(isFieldShown(field, contextOf(system({ boundaryAuthentication: "password" }), []))).toBe(true);
+      expect(isFieldShown(field, contextOf(process({}), []))).toBe(false);
+      expect(isFieldShown(field, contextOf(process({ authenticationRequired: "no" }), []))).toBe(false);
+    }
+  });
+
+  it("changeable is three-valued (R-1)", () => {
+    expect(authenticatorChangeable.values).toEqual(["not_specified", "yes", "no"]);
   });
 });

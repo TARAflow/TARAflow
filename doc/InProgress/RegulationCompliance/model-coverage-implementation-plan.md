@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.11 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4, CM-5a, CM-5c, CM-5d done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.12 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-5d done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -409,7 +409,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-5a | F-1, F-2a, F-2b (accounts, passwords) — model, form, i18n, rules, report, golden (**done**, see §10.1) | CM-3, CM-4 | A |
 | CM-5c | `userAccounts` per role; F-29 `roleMapping`, CR 2.1 RE(2) corrected (user 2026-11-02) (**done**, see §10.1) | CM-5a | A |
 | CM-5d | light sub-tabs per category under the Security divider of the Process / Multiprocess forms, open-field count per tab, tabs without fields hidden; context predicates for existing fields where they match the rule's applicability (user 2026-11-02) (**done**, see §10.1) | CM-5c | A |
-| CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) | CM-5a | A |
+| CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) (**done**, see §10.1) | CM-5a | A |
 | CM-6 | F-27, F-25a, F-25b (lifecycle / configuration) | CM-5 | A |
 | CM-7 | F-22, F-28 (data deletion, support data) | CM-5 | A |
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
@@ -621,3 +621,30 @@ have role-based logins and RBAC — how does the model show it?
 - Tests: Multiprocess tab order and fields per tab, Process sessions tab with / without
   human users and the kept tab, model fields per tab with open counts, report session
   rows.
+
+**CM-5b (done, 2026-11-02).**
+
+- Fields `defaultCredentials` (none pre-installed · unique per device · default, change
+  enforced at first use · same default on every device) and `authenticatorChangeable`
+  (yes · no, three-valued) on Process and Multiprocess, tab "Login & accounts", shown
+  where the element authenticates (condition `authenticates`, machines included).
+- Mechanism: `EvidenceRule.answers` — checklist items of a type B rule that model
+  fields answer (`ChecklistAnswer`: item index, `yesIf`, `noIf`), read on the rule's
+  applicable elements and combined like the rule (any / all). Yes removes the item
+  from the checklist, no fails the row on those elements, otherwise the item stays.
+  Hidden fields read as unset (R-4), so an unset or hidden field answers nothing.
+  The conformance test (D-15) checks the answers' property paths and values too.
+- CR 1.5 (text of both editions: a initial authenticator, b recognising unchanged
+  defaults, c change / refresh, d protection): a ← `defaultCredentials` set; b ← none
+  pre-installed or change enforced (unique per device / universal leave b to
+  confirm — not a 62443 gap; EN 303 645 5.1-1 / EN 18031 AUM-5 will treat
+  "universal" in their modules); c ← changeable, not changeable → gap. d stays with
+  `authenticatorStorage` (the row's evidence) and the flows' encryption.
+- The evaluator returns only the open items (`RowResult.checklist`); tab, info dialog
+  and report localise exactly those (`localizedChecklist`) — before, they rebuilt the
+  whole checklist.
+- Pump Station example: P-1 change enforced, MP-1 unique per device, both changeable —
+  CR 1.5 met from the model with nothing left to confirm.
+- Tests: answers per value (met / open item / gap), any-quantifier, German open items,
+  visibility, golden (unset fields keep the whole checklist, never a gap), conformance
+  negative case for an unknown answer path.
