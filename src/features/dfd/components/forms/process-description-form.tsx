@@ -31,6 +31,7 @@ import { ElementFormShell } from "./element-form-shell";
 import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
 import { useElementVisibilityContext, useModelFieldEntries } from "./model-field-inputs";
 import { SecurityTabs } from "./security-tabs";
+import { MultiSelectField } from "./multi-select-field";
 import { isUnset, MODEL_CONDITIONS, type VisibilityElement } from "shared";
 import { useElementForm } from "../../hooks/use-element-form";
 import {
@@ -820,45 +821,14 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
             set: !isUnset(props.malwareProtection),
             node: (
               <>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>
-                      {t(
-                        "tabs.dfd.element_description.process.fields.malwareProtection.label",
-                        { defaultValue: "Malware Protection" },
-                      )}
-                    </InputLabel>
-                    <Select
-                      value={props.malwareProtection ?? ""}
-                      onChange={(e) =>
-                        handlePropertyChange(
-                          "malwareProtection",
-                          e.target.value === "" ? undefined : e.target.value,
-                        )
-                      }
-                      label={t(
-                        "tabs.dfd.element_description.process.fields.malwareProtection.label",
-                        { defaultValue: "Malware Protection" },
-                      )}
-                    >
-                      <MenuItem value="">
-                        <em>{t("common.not_specified")}</em>
-                      </MenuItem>
-                      {(props.technology != null
-                        ? (MALWARE_PROTECTION_OPTIONS[props.technology] ??
-                          ALL_MALWARE_OPTIONS)
-                        : ALL_MALWARE_OPTIONS
-                      ).map((opt: string) => (
-                        <MenuItem key={opt} value={opt}>
-                          {t(
-                            `tabs.dfd.element_description.process.fields.malwareProtection.options.${opt}`,
-                            { defaultValue: opt },
-                          )}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+                <MultiSelectField
+                  label={t("tabs.dfd.element_description.process.fields.malwareProtection.label", { defaultValue: "Malware Protection" })}
+                  options={props.technology != null ? (MALWARE_PROTECTION_OPTIONS[props.technology] ?? ALL_MALWARE_OPTIONS) : ALL_MALWARE_OPTIONS}
+                  value={props.malwareProtection}
+                  onChange={(next) => handlePropertyChange("malwareProtection", next)}
+                  optionLabel={(opt) => t(`tabs.dfd.element_description.process.fields.malwareProtection.options.${opt}`, { defaultValue: opt })}
+                  testId="process-malware-protection"
+                />
               </>
             ),
           },

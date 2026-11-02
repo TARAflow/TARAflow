@@ -116,10 +116,19 @@ export const CONTROL_VALUE_MEETS: Readonly<Record<string, Readonly<Record<string
  * it, and applying it adds it to the selection. A single stored value (file
  * before the reshape) counts as a selection of one.
  */
-export const MULTI_SELECT_CONTROL_PROPERTIES: ReadonlySet<string> = new Set(["defaultDenyPolicy"]);
+export const MULTI_SELECT_CONTROL_PROPERTIES: ReadonlySet<string> = new Set([
+  "defaultDenyPolicy",
+  // MS-1 (schema 13): measures that combine — conflicting SHOULDs of the backlog after 0.16.
+  "malwareProtection",
+  "physicalPathProtection",
+]);
 
 /** Values that exclude every other one of a multi-select property. */
-const EXCLUSIVE_VALUES: Readonly<Record<string, readonly unknown[]>> = { defaultDenyPolicy: ["allow_all"] };
+const EXCLUSIVE_VALUES: Readonly<Record<string, readonly unknown[]>> = {
+  defaultDenyPolicy: ["allow_all"],
+  malwareProtection: ["none"],
+  physicalPathProtection: ["none"],
+};
 
 const leaf = (property: string) => property.slice(property.lastIndexOf(".") + 1);
 

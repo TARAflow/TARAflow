@@ -15,6 +15,11 @@ import { foldLegacyStatements } from "../compliance-statements-legacy";
  *          (K-5). Statements still in the per-edition form of the 0.17
  *          development are folded per requirement first (D-31).
  *   S13-a  (CM-5 … CM-7) new optional element fields — additive, no step.
+ *   MS-1   (release plan 0.18) `malwareProtection` (Process, Multiprocess) and
+ *          `physicalPathProtection` (data flows) become multi-select: a stored
+ *          value "x" becomes ["x"], an empty one is removed — 1:1, the
+ *          measures keep their meaning (as P-1 did for defaultDenyPolicy in
+ *          schema 12), so no analysis value changes.
  *   S13-c  (FX-6, when the release plan schedules it) path keys.
  *
  * Analysis preservation is reported PER FILE (K-9), not declared for the
@@ -28,10 +33,37 @@ import { foldLegacyStatements } from "../compliance-statements-legacy";
  */
 export function migrate_12_to_13(data: any): { data: any; analysisChanged: boolean } {
   const compliance = reshapeCompliance(data?.compliance);
+  const dfd = reshapeMultiSelect(data?.dfd);
   return {
-    data: { ...data, ...(compliance.value ? { compliance: compliance.value } : {}), schemaVersion: 13 },
+    data: {
+      ...data,
+      ...(compliance.value ? { compliance: compliance.value } : {}),
+      ...(dfd ? { dfd } : {}),
+      schemaVersion: 13,
+    },
     analysisChanged: compliance.analysisChanged,
   };
+}
+
+/** MS-1: single values of the combinable controls become selections (1:1). */
+function reshapeMultiSelect(dfd: any): any {
+  if (!dfd || typeof dfd !== "object") return dfd;
+  const elements = Array.isArray(dfd.elements)
+    ? dfd.elements.map((e: any) =>
+        e?.type === "Process" || e?.type === "Multiprocess" ? toSelection(e, "malwareProtection") : e,
+      )
+    : dfd.elements;
+  const connections = Array.isArray(dfd.connections)
+    ? dfd.connections.map((c: any) => toSelection(c, "physicalPathProtection"))
+    : dfd.connections;
+  return { ...dfd, elements, connections };
+}
+
+function toSelection(item: any, key: string): any {
+  const value = item?.properties?.[key];
+  if (value === undefined || Array.isArray(value)) return item;
+  const { [key]: _single, ...rest } = item.properties;
+  return { ...item, properties: value ? { ...rest, [key]: [value] } : rest };
 }
 
 /** The family the schema-12 fields belong to. */

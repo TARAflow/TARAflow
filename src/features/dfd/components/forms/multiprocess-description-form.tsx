@@ -26,7 +26,7 @@ import {
 import { BufferedTextField } from "../shared/buffered-text-field";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
-import type { MultiprocessProperties } from "../../models/element-properties";
+import { MALWARE_PROTECTION_OPTIONS, type MultiprocessProperties } from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
@@ -34,6 +34,7 @@ import { ElementFormShell } from "./element-form-shell";
 import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
 import { useElementVisibilityContext, useModelFieldEntries } from "./model-field-inputs";
 import { SecurityTabs } from "./security-tabs";
+import { MultiSelectField } from "./multi-select-field";
 import { isUnset, MODEL_CONDITIONS, type VisibilityElement } from "shared";
 import { useElementForm } from "../../hooks/use-element-form";
 import {
@@ -843,53 +844,14 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
             set: !isUnset(props.malwareProtection),
             node: (
               <>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>
-                      {t(
-                        "tabs.dfd.element_description.multiprocess.fields.malwareProtection.label",
-                        { defaultValue: "Malware Protection" },
-                      )}
-                    </InputLabel>
-                    <Select
-                      value={props.malwareProtection ?? ""}
-                      onChange={(e) =>
-                        handlePropertyChange("malwareProtection", e.target.value)
-                      }
-                      label={t(
-                        "tabs.dfd.element_description.multiprocess.fields.malwareProtection.label",
-                        { defaultValue: "Malware Protection" },
-                      )}
-                    >
-                      <MenuItem value="">
-                        <em>
-                          {t("common.not_specified", {
-                            defaultValue: "Not specified",
-                          })}
-                        </em>
-                      </MenuItem>
-                      {(sc != null
-                        ? MALWARE_PROTECTION_OPTIONS_MP[sc]
-                        : ([
-                            "none",
-                            "av_software",
-                            "application_whitelist",
-                            "code_signing",
-                            "nx_dep",
-                            "sandbox",
-                            "custom",
-                          ] as const)
-                      ).map((opt) => (
-                        <MenuItem key={opt} value={opt}>
-                          {t(
-                            `tabs.dfd.element_description.multiprocess.fields.malwareProtection.options.${opt}`,
-                            { defaultValue: opt },
-                          )}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+                <MultiSelectField
+                  label={t("tabs.dfd.element_description.multiprocess.fields.malwareProtection.label", { defaultValue: "Malware Protection" })}
+                  options={sc != null ? MALWARE_PROTECTION_OPTIONS_MP[sc] : MALWARE_PROTECTION_OPTIONS}
+                  value={props.malwareProtection}
+                  onChange={(next) => handlePropertyChange("malwareProtection", next)}
+                  optionLabel={(opt) => t(`tabs.dfd.element_description.multiprocess.fields.malwareProtection.options.${opt}`, { defaultValue: opt })}
+                  testId="multiprocess-malware-protection"
+                />
               </>
             ),
           },

@@ -143,3 +143,43 @@ describe("schema 13 in the pipeline", () => {
     expect(loaded.cybersecurityConcept.verifications[0].reconfirm).toBe("migration");
   });
 });
+
+describe("MS-1: combinable controls become selections (1:1)", () => {
+  const dfd = {
+    elements: [
+      { id: "p", type: "Process", properties: { malwareProtection: "code_signing" } },
+      { id: "mp", type: "Multiprocess", properties: { malwareProtection: "" } },
+      { id: "ds", type: "DataStore", properties: { malwareProtection: "none" } },
+      { id: "q", type: "Process", properties: { malwareProtection: ["sandbox"] } },
+    ],
+    connections: [{ id: "f", from: "p", to: "q", properties: { physicalPathProtection: "cable_duct" } }],
+  };
+
+  it("a stored value becomes a selection of one, an empty one is removed, other types and selections stay", () => {
+    const { data, analysisChanged } = migrate_12_to_13({ schemaVersion: 12, dfd: structuredClone(dfd) });
+    expect(data.dfd.elements.map((e: Any) => e.properties)).toEqual([
+      { malwareProtection: ["code_signing"] },
+      {},
+      { malwareProtection: "none" },
+      { malwareProtection: ["sandbox"] },
+    ]);
+    expect(data.dfd.connections[0].properties).toEqual({ physicalPathProtection: ["cable_duct"] });
+    expect(analysisChanged).toBe(false);
+  });
+
+  it("a verified file with such values is re-sealed, not reopened", () => {
+    const current: Any = parseAndRepairWithMetadata(JSON.parse(readFileSync("src/tests/fixtures/SmokeDetector.tara.json", "utf-8")))!.project;
+    const file: Any = JSON.parse(JSON.stringify({ ...current, schemaVersion: 12 }));
+    file.dfd.elements = file.dfd.elements.map((e: Any) =>
+      e.type === "Process" ? { ...e, properties: { ...e.properties, malwareProtection: "code_signing" } } : e,
+    );
+    const readHash = verificationStateHash(JSON.parse(JSON.stringify(file)));
+    file.cybersecurityConcept = {
+      ...(file.cybersecurityConcept ?? { goals: [], claims: [] }),
+      verifications: [{ id: "v1", date: "2026-11-02", reviewer: "A", scope: ["tara"], result: "passed", stateHash: readHash, hashVersion: VERIFICATION_HASH_VERSION }],
+    };
+    const { project: loaded }: Any = parseAndRepairWithMetadata(file);
+    expect(loaded.dfd.elements.find((e: Any) => e.type === "Process").properties.malwareProtection).toEqual(["code_signing"]);
+    expect(loaded.cybersecurityConcept.verifications[0].reconfirm).toBeUndefined();
+  });
+});

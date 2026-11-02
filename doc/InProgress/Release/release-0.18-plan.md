@@ -1,6 +1,6 @@
 # TARAflow 0.18.0-beta — release plan
 
-**Status:** v1 · 2026-11-02 · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
+**Status:** v2 · 2026-11-02 · MS-1 done · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
 exposure level), schema **13** on `feature/0.18-model-coverage`
 **Work split (user 2026-11-02):** instance **A** — the compliance strand (S1); instance
 **B** — issue trackers, maintainability and fixes (S2 – S4), Azure DevOps first. The user
@@ -62,7 +62,7 @@ B: IT-8 ADO ─ IT-7, IT-9 … IT-12 (independent)
 | IEC-6 | claims as evidence for SL-C gaps (D-5) | open |
 | IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | open |
 | D-30c | per-element fields on a black-box Multiprocess (D-30 option c) | open |
-| MS-1 | `physicalPathProtection`, `malwareProtection` multi-select (conflicting SHOULDs, backlog after 0.16) — schema-13 step, 1:1 | open |
+| MS-1 | `physicalPathProtection`, `malwareProtection` multi-select (conflicting SHOULDs, backlog after 0.16) — schema-13 step, 1:1 | **done** (patch 22): selections with "none" exclusive (shared helpers `selectionOf` / `withSelected`, also behind `defaultDenyPolicy`); one `MultiSelectField` in the Process, Multiprocess and DataFlow forms (per-technology / per-system-class options kept); defaults, elimination filter (`buried` in a selection), implemented-control hints and the closed loop (`MULTI_SELECT_CONTROL_PROPERTIES`, "none" exclusive) read selections; migration step in `migrate-12-to-13` ("x" → ["x"], analysis-preserving); R-2 test: the same threats for single values and selections. The other pairs of conflicting SHOULDs are true alternatives and stay single-valued |
 | FF-1 | form fields for properties the model has but no form shows: `accessMode`, `dataMinimization`, `volume`, `assumedTrusted`, `connectionSpeed` (with visibility by context) | open |
 | P-4 | time source — question to the user: F-13 in model coverage stage 2 (plan) or 0.18? | open question |
 
@@ -95,6 +95,7 @@ tracker is a user check (listed in TESTPLAN-0.18.md).
 | FX-4 | risk-tab validation messages (`riskService.validate`) via i18n | open |
 | FX-5 | relink helper for goals / claims orphaned by a renamed attack-tree node (pathKey) | open |
 | FX-6 | AND-gate paths: one path per AND gate (combined feasibility) — schema-13 step with the per-file report (K-9) | open |
+| FX-7 | threat catalog context keys the matcher ignores: `matchesContext` does not read `physicalPathProtection`, so the condition `physicalPathProtection: ["none"]` in `threats-physical.json` has no effect (found with MS-1, 2026-11-02) — a guard test for unknown context keys, then decide per key (wire it in — changes threats, R-2 note in the release notes — or drop it from the catalog) | open |
 | I18N-1 | split `common.json` into `overview.json` / `common.json` (insert / move keys textually, never re-dump the JSON) | open |
 
 ### 3.4 Release

@@ -15,6 +15,10 @@
 import type { StrideCategory } from "shared";
 import type { MitigationDraft } from "../models/threat-types";
 
+/** The measures of a control that may hold several (schema 13, MS-1) — "none" and empty entries left out. */
+const selected = (value: unknown): string[] =>
+  [value].flat().filter((v): v is string => typeof v === "string" && v !== "" && v !== "none");
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function mark(
@@ -125,12 +129,15 @@ export function getImplementedMitigationHints(
   // ── Process / Multiprocess ────────────────────────────────────────────────
 
   if (elementType === "Process" || elementType === "Multiprocess") {
-    const mp = props["malwareProtection"] as string | undefined;
-    if (mp && mp !== "none") {
+    // A selection since schema 13 (MS-1); a single value of an older file counts as one.
+    const measures = selected(props["malwareProtection"]);
+    if (measures.length > 0) {
+      const mp = measures.join(", ");
       if (strideCategory === "E") {
         hints.push(mark("M-E-001", "malwareProtection", mp));
-        if (["application_whitelist", "code_signing"].includes(mp)) {
-          hints.push(mark("M-E-002", "malwareProtection", mp));
+        const strict = measures.find((m) => ["application_whitelist", "code_signing"].includes(m));
+        if (strict) {
+          hints.push(mark("M-E-002", "malwareProtection", strict));
         }
       }
       if (strideCategory === "T") {
@@ -142,8 +149,9 @@ export function getImplementedMitigationHints(
   // ── DataFlow ──────────────────────────────────────────────────────────────
 
   if (elementType === "DataFlow") {
-    const ppp = props["physicalPathProtection"] as string | undefined;
-    if (ppp && ppp !== "none") {
+    const paths = selected(props["physicalPathProtection"]);
+    if (paths.length > 0) {
+      const ppp = paths.join(", ");
       if (strideCategory === "T") {
         hints.push(mark("M-T-001", "physicalPathProtection", ppp));
       }

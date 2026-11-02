@@ -12,6 +12,8 @@ import type {
   ChipBoundaryProperties,
   DefaultDenyPolicy,
   DataFlowProperties,
+  MalwareProtection,
+  PhysicalPathProtection,
   DataStoreProperties,
   ExternalEntityProperties,
   InterfaceProperties,
@@ -33,7 +35,7 @@ export const CONTROL_PROPERTY_OPTIONS: Readonly<Record<string, readonly unknown[
     "software_only", "tpm", "secure_element", "hsm", "keychain_os", "custom",
   ]),
   "Process.authorizationModel": o<ProcessProperties["authorizationModel"]>(["not_specified", "none", "rbac", "abac", "acl", "custom"]),
-  "Process.malwareProtection": o<ProcessProperties["malwareProtection"]>([
+  "Process.malwareProtection": o<MalwareProtection>([
     "none", "av_software", "application_whitelist", "code_signing", "nx_dep", "sandbox", "custom",
   ]),
   "Process.privilegeLevel": o<ProcessProperties["privilegeLevel"]>(["not_specified", "low", "medium", "high", "root"]),
@@ -51,7 +53,7 @@ export const CONTROL_PROPERTY_OPTIONS: Readonly<Record<string, readonly unknown[
   "Multiprocess.authorizationModel": o<MultiprocessProperties["authorizationModel"]>([
     "not_specified", "none", "rbac", "abac", "acl", "capability_based",
   ]),
-  "Multiprocess.malwareProtection": o<MultiprocessProperties["malwareProtection"]>([
+  "Multiprocess.malwareProtection": o<MalwareProtection>([
     "none", "av_software", "application_whitelist", "code_signing", "nx_dep", "sandbox", "custom",
   ]),
   "Multiprocess.accountManagement": o<MultiprocessProperties["accountManagement"]>([
@@ -82,7 +84,7 @@ export const CONTROL_PROPERTY_OPTIONS: Readonly<Record<string, readonly unknown[
   "DataFlow.endpointAuthentication": o<DataFlowProperties["endpointAuthentication"]>([
     "none", "password", "pairing", "symmetric_key", "token", "mfa", "biometric", "certificate", "apikey", "oauth", "mutual_tls",
   ]),
-  "DataFlow.physicalPathProtection": o<DataFlowProperties["physicalPathProtection"]>([
+  "DataFlow.physicalPathProtection": o<PhysicalPathProtection>([
     "none", "cable_duct", "conduit", "armored_cable", "tamper_seal", "locked_cabinet", "buried",
   ]),
   "DataFlow.redundancy": o<DataFlowProperties["redundancy"]>(["none", "failover", "degraded", "buffered"]),

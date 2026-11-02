@@ -32,8 +32,10 @@ import {
   ENDPOINT_AUTHENTICATION_OPTIONS,
   INTEGRITY_PROTECTION_OPTIONS,
   MESSAGE_TYPE_OPTIONS,
+  PHYSICAL_PATH_PROTECTION_OPTIONS,
   type Protocol,
 } from "../../models/element-properties";
+import { MultiSelectField } from "./multi-select-field";
 import type { ExposureLevel } from "../../models/element-shared-types";
 import {
   EXPOSURE_LEVEL_LABEL_KEYS,
@@ -1057,56 +1059,15 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           )}
 
           <Grid container rowSpacing={2} columnSpacing={2}>
-            {/* Physical Path Protection */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>
-                  {t(
-                    "tabs.dfd.element_description.dataflow.fields.physicalPathProtection.label",
-                    { defaultValue: "Physical Path Protection" },
-                  )}
-                </InputLabel>
-                <Select
-                  value={props.physicalPathProtection ?? ""}
-                  onChange={(e) =>
-                    form.handlePropertyChange(
-                      "physicalPathProtection",
-                      e.target.value || undefined,
-                    )
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.dataflow.fields.physicalPathProtection.label",
-                    { defaultValue: "Physical Path Protection" },
-                  )}
-                >
-                  <MenuItem value="">
-                    <em>
-                      {t("common.not_specified", {
-                        defaultValue: "Not specified",
-                      })}
-                    </em>
-                  </MenuItem>
-                  {(
-                    [
-                      "none",
-                      "cable_duct",
-                      "conduit",
-                      "armored_cable",
-                      "tamper_seal",
-                      "locked_cabinet",
-                      "buried",
-                    ] as const
-                  ).map((opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {t(
-                        `tabs.dfd.element_description.dataflow.fields.physicalPathProtection.options.${opt}`,
-                        { defaultValue: opt },
-                      )}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+            {/* Physical Path Protection — multi-select since schema 13 (MS-1): e.g. a duct and a tamper seal */}
+            <MultiSelectField
+              label={t("tabs.dfd.element_description.dataflow.fields.physicalPathProtection.label", { defaultValue: "Physical Path Protection" })}
+              options={PHYSICAL_PATH_PROTECTION_OPTIONS}
+              value={props.physicalPathProtection}
+              onChange={(next) => form.handlePropertyChange("physicalPathProtection", next)}
+              optionLabel={(opt) => t(`tabs.dfd.element_description.dataflow.fields.physicalPathProtection.options.${opt}`, { defaultValue: opt })}
+              testId="dataflow-physical-path-protection"
+            />
           </Grid>
         </>
       )}

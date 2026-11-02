@@ -75,6 +75,50 @@ export type SecurityConfigReporting = (typeof SECURITY_CONFIG_REPORTING_VALUES)[
 /** How the user's data leaves the component (EN 303 645 5.11-1, CR 7.9). */
 export type UserDataDeletion = (typeof USER_DATA_DELETION_VALUES)[number];
 
+// ==================== SHARED: MULTI-SELECT CONTROLS ====================
+// Controls whose measures combine (backlog after 0.16 "conflicting SHOULDs",
+// release plan 0.18 MS-1): two mitigations may set different values and both
+// hold — a cable duct and a tamper seal, code signing and a sandbox. Stored
+// as a selection since schema 13; "none" excludes every other value.
+
+export const MALWARE_PROTECTION_OPTIONS = [
+  "none",
+  "av_software",
+  "application_whitelist",
+  "code_signing",
+  "nx_dep",
+  "sandbox",
+  "custom",
+] as const;
+export type MalwareProtection = (typeof MALWARE_PROTECTION_OPTIONS)[number];
+
+export const PHYSICAL_PATH_PROTECTION_OPTIONS = [
+  "none",
+  "cable_duct",
+  "conduit",
+  "armored_cable",
+  "tamper_seal",
+  "locked_cabinet",
+  "buried",
+] as const;
+export type PhysicalPathProtection = (typeof PHYSICAL_PATH_PROTECTION_OPTIONS)[number];
+
+/** The stored selection in option order; a single value of an older file counts as one entry. */
+export function selectionOf<T extends string>(options: readonly T[], value: unknown): T[] {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return options.filter((o) => values.includes(o));
+}
+
+/**
+ * The selection after choosing one more value: an exclusive value ("none",
+ * "allow_all") replaces the others, any other value removes the exclusive ones.
+ */
+export function withSelected<T extends string>(options: readonly T[], current: readonly T[], added: T, exclusive: readonly T[]): T[] {
+  if (exclusive.includes(added)) return [added];
+  const rest = current.filter((v) => !exclusive.includes(v) && v !== added);
+  return options.filter((o) => o === added || rest.includes(o));
+}
+
 // ==================== SHARED: UPDATE / SESSIONS ====================
 // On Process AND Multiprocess (iec-62443-4-2-cra-coverage.md P-2): a
 // component drawn as a single process updates and holds sessions as well as
@@ -211,14 +255,8 @@ export interface ProcessProperties {
    *
    * Relevant for: rtos_task, driver, bootloader, bare_metal, protocol_stack
    */
-  malwareProtection?:
-    | "none"
-    | "av_software"
-    | "application_whitelist"
-    | "code_signing"
-    | "nx_dep"
-    | "sandbox"
-    | "custom";
+  /** Multi-select since schema 13 (MS-1): measures combine; "none" excludes the others. */
+  malwareProtection?: MalwareProtection[];
 
   /**
    * Fail-safe output state when normal operation cannot be maintained.
@@ -516,14 +554,8 @@ export interface MultiprocessProperties {
    *
    * @see ProcessProperties.malwareProtection for per-process granularity.
    */
-  malwareProtection?:
-    | "none"
-    | "av_software"
-    | "application_whitelist"
-    | "code_signing"
-    | "nx_dep"
-    | "sandbox"
-    | "custom";
+  /** Multi-select since schema 13 (MS-1): measures combine; "none" excludes the others. */
+  malwareProtection?: MalwareProtection[];
 
   /**
    * Account management at system boundary.
@@ -1406,14 +1438,8 @@ export interface DataFlowProperties {
    * CRA relevance: Article 13 "minimise attack surfaces"
    * IEC 62443-3-3 SR 3.4: Physical access to communication paths
    */
-  physicalPathProtection?:
-    | "none"
-    | "cable_duct"
-    | "conduit"
-    | "armored_cable"
-    | "tamper_seal"
-    | "locked_cabinet"
-    | "buried";
+  /** Multi-select since schema 13 (MS-1): e.g. a duct and a tamper seal; "none" excludes the others. */
+  physicalPathProtection?: PhysicalPathProtection[];
 
   // ---- Safety annotation (optional, non-invasive) ----
   // "Safety Context/Boundary" is NOT a separate DFD element (unlike TrustBoundary).
@@ -1874,8 +1900,7 @@ export type DefaultDenyPolicy = (typeof DEFAULT_DENY_POLICY_OPTIONS)[number];
 
 /** The stored policies; a single value of a file written before the reshape counts as one entry. */
 export function defaultDenyPoliciesOf(value: unknown): DefaultDenyPolicy[] {
-  const values = Array.isArray(value) ? value : value ? [value] : [];
-  return DEFAULT_DENY_POLICY_OPTIONS.filter((p) => values.includes(p));
+  return selectionOf(DEFAULT_DENY_POLICY_OPTIONS, value);
 }
 
 /**
@@ -1883,9 +1908,7 @@ export function defaultDenyPoliciesOf(value: unknown): DefaultDenyPolicy[] {
  * any other one removes "allow_all".
  */
 export function withDefaultDenyPolicy(current: readonly DefaultDenyPolicy[] | undefined, added: DefaultDenyPolicy): DefaultDenyPolicy[] {
-  if (added === "allow_all") return ["allow_all"];
-  const rest = (current ?? []).filter((p) => p !== "allow_all" && p !== added);
-  return DEFAULT_DENY_POLICY_OPTIONS.filter((p) => p === added || rest.includes(p));
+  return withSelected(DEFAULT_DENY_POLICY_OPTIONS, current ?? [], added, ["allow_all"]);
 }
 
 export interface TrustBoundaryProperties {

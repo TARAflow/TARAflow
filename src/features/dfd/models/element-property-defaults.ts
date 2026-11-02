@@ -147,14 +147,14 @@ export const PROCESS_TECH_DEFAULTS: Record<
     authorizationModel: "none",
     inputValidation: "basic",
     errorHandling: "silent",
-    malwareProtection: "none", // Surfaces CR 3.2 / EDR 3.2 gap
+    malwareProtection: ["none"], // Surfaces CR 3.2 / EDR 3.2 gap
   },
   bare_metal: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "none",
     errorHandling: "silent",
-    malwareProtection: "none", // Surfaces CR 3.2 / EDR 3.2 gap
+    malwareProtection: ["none"], // Surfaces CR 3.2 / EDR 3.2 gap
     failSafeOutputState: "not_defined", // Surfaces CR 3.6 gap for bare-metal blocks
   },
   isr: {
@@ -162,14 +162,14 @@ export const PROCESS_TECH_DEFAULTS: Record<
     authorizationModel: "none",
     inputValidation: "none",
     errorHandling: "silent",
-    malwareProtection: "none", // Surfaces CR 3.2 gap
+    malwareProtection: ["none"], // Surfaces CR 3.2 gap
   },
   state_machine: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "strict",
     errorHandling: "silent",
-    malwareProtection: "none", // Surfaces CR 3.2 gap
+    malwareProtection: ["none"], // Surfaces CR 3.2 gap
     failSafeOutputState: "not_defined", // Surfaces CR 3.6 gap — state machines need fail-safe
   },
   bootloader: {
@@ -177,21 +177,21 @@ export const PROCESS_TECH_DEFAULTS: Record<
     authorizationModel: "none",
     inputValidation: "strict",
     errorHandling: "silent",
-    malwareProtection: "code_signing", // Bootloader baseline: signed firmware only
+    malwareProtection: ["code_signing"], // Bootloader baseline: signed firmware only
   },
   driver: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "basic",
     errorHandling: "silent",
-    malwareProtection: "none", // Surfaces CR 3.2 gap
+    malwareProtection: ["none"], // Surfaces CR 3.2 gap
   },
   protocol_stack: {
     authenticationRequired: "no",
     authorizationModel: "none",
     inputValidation: "strict",
     errorHandling: "silent",
-    malwareProtection: "none", // Surfaces CR 3.2 gap
+    malwareProtection: ["none"], // Surfaces CR 3.2 gap
   },
 };
 
@@ -295,7 +295,7 @@ export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
     remoteAccessEnabled: false,
     airGapped: false,
     exposedToInternet: false,
-    malwareProtection: "none", // Surfaces CR 3.2 / EDR 3.2 gap
+    malwareProtection: ["none"], // Surfaces CR 3.2 / EDR 3.2 gap
     accountManagement: "local_only", // Surfaces CR 1.3 gap — no central management
     backupMechanism: "none", // Surfaces CR 7.3 gap
   },
@@ -309,7 +309,7 @@ export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
     remoteAccessEnabled: true, // Typical: remote HMI access exists
     airGapped: false,
     exposedToInternet: false,
-    malwareProtection: "av_software", // SCADA on Windows: AV baseline
+    malwareProtection: ["av_software"], // SCADA on Windows: AV baseline
     accountManagement: "local_only", // Surfaces CR 1.3 gap — LDAP often missing
     backupMechanism: "manual_local", // Typical baseline for OT systems
   },
@@ -323,7 +323,7 @@ export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
     remoteAccessEnabled: true,
     multiTenant: false,
     exposedToInternet: false,
-    malwareProtection: "none", // Analyst must assess (av / whitelist / container)
+    malwareProtection: ["none"], // Analyst must assess (av / whitelist / container)
     accountManagement: "ldap", // Enterprise default: centralized
     backupMechanism: "automated_remote",
   },
@@ -336,7 +336,7 @@ export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
     authorizationModel: "acl",
     remoteAccessEnabled: false,
     exposedToInternet: false,
-    malwareProtection: "application_whitelist", // Hardened gateway: whitelist baseline
+    malwareProtection: ["application_whitelist"], // Hardened gateway: whitelist baseline
     accountManagement: "local_only", // Gateway: typically local accounts
     backupMechanism: "automated_remote",
   },
@@ -347,7 +347,7 @@ export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
     updateMechanism: "mdm_managed",
     boundaryAuthentication: "mfa",
     exposedToInternet: true, // Mobile devices are internet-connected by nature
-    malwareProtection: "sandbox", // Mobile OS sandbox model
+    malwareProtection: ["sandbox"], // Mobile OS sandbox model
     accountManagement: "iam", // MDM-managed → cloud IAM
     backupMechanism: "automated_remote",
   },
@@ -361,7 +361,7 @@ export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
     remoteAccessEnabled: true,
     multiTenant: true,
     exposedToInternet: true,
-    malwareProtection: "sandbox", // Cloud: container/sandbox model
+    malwareProtection: ["sandbox"], // Cloud: container/sandbox model
     accountManagement: "iam", // Cloud IAM is the baseline
     backupMechanism: "automated_remote",
   },
@@ -374,7 +374,7 @@ export const MULTIPROCESS_SYSTEMCLASS_DEFAULTS: Record<
     authorizationModel: "rbac",
     remoteAccessEnabled: false,
     exposedToInternet: false,
-    malwareProtection: "av_software", // Workstation: AV baseline
+    malwareProtection: ["av_software"], // Workstation: AV baseline
     accountManagement: "active_directory", // Engineering PC: typical AD membership
     backupMechanism: "manual_local",
   },
