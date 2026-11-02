@@ -74,6 +74,10 @@ describe("IEC 62443-4-2 evidence rules", () => {
 });
 
 describe.each(EDITIONS)("edition $id", (edition) => {
+  it("every row's group is one of the edition's groups", () => {
+    expect(edition.rows.filter((r) => !edition.groups.includes(r.group)).map((r) => r.label)).toEqual([]);
+  });
+
   it("labels are unique", () => {
     const labels = edition.rows.map((r) => r.label);
     expect(new Set(labels).size).toBe(labels.length);

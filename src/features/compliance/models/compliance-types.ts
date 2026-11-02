@@ -15,9 +15,9 @@
 // The primitives the project stores (FRs, device categories, edition ids)
 // live in shared (compliance-data-types.ts, schema 12); re-exported here.
 
-import type { ComplianceEditionId, DeviceCategory, FoundationalRequirement } from "shared";
+import type { ComplianceEditionId, DeviceCategory, FoundationalRequirement, StandardFamilyId } from "shared";
 export { FOUNDATIONAL_REQUIREMENTS } from "shared";
-export type { DeviceCategory, FoundationalRequirement };
+export type { DeviceCategory, FoundationalRequirement, StandardFamilyId };
 
 /** Capability security level; 0 = no level reached. */
 export type SecurityLevel = 0 | 1 | 2 | 3 | 4;
@@ -175,6 +175,37 @@ export const REQUIREMENT_IDS = [
 
 export type RequirementId = (typeof REQUIREMENT_IDS)[number];
 
+// ==================== REQUIREMENT NAMESPACES ====================
+// Requirement ids are unique inside their family; a family's namespace makes
+// them unique across families (model coverage plan §2.3, K-4) — e.g.
+// "iec62443:cr-1.1", later "en303645:5.1-1". Inside a family, and wherever
+// the family is implied (statements in the family's block, the catalog's
+// `iec62443` references, evidence rules), ids stay unqualified: stored keys
+// do not change. Qualified ids are for places that mix families.
+
+/** Namespace per family; for IEC 62443-4-2 also the mitigation catalog's reference field. */
+export const REQUIREMENT_NAMESPACES = {
+  "iec-62443-4-2": "iec62443",
+} as const satisfies Record<StandardFamilyId, string>;
+
+export type RequirementNamespace = (typeof REQUIREMENT_NAMESPACES)[StandardFamilyId];
+
+/** A requirement id with its family's namespace, e.g. "iec62443:cr-1.1". */
+export type QualifiedRequirementId = `${RequirementNamespace}:${string}`;
+
+export function qualifyRequirementId(family: StandardFamilyId, id: string): QualifiedRequirementId {
+  return `${REQUIREMENT_NAMESPACES[family]}:${id}`;
+}
+
+/** The family and the unqualified id; undefined for an unknown namespace or an unqualified id. */
+export function parseRequirementId(qualified: string): { family: StandardFamilyId; id: string } | undefined {
+  const colon = qualified.indexOf(":");
+  if (colon <= 0) return undefined;
+  const namespace = qualified.slice(0, colon);
+  const family = (Object.keys(REQUIREMENT_NAMESPACES) as StandardFamilyId[]).find((f) => REQUIREMENT_NAMESPACES[f] === namespace);
+  return family ? { family, id: qualified.slice(colon + 1) } : undefined;
+}
+
 // ==================== EDITIONS ====================
 
 export type EditionId = ComplianceEditionId;
@@ -183,10 +214,16 @@ export type EditionId = ComplianceEditionId;
 export type CraEssentialRequirement =
   | "1" | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m";
 
-export interface EditionRow {
+/**
+ * One row of an edition. `G` is the edition's grouping — for IEC 62443-4-2
+ * the foundational requirement (the SL-C vector is per group), for other
+ * standards e.g. the provision group (model coverage plan §2.3).
+ */
+export interface EditionRow<G extends string = FoundationalRequirement> {
   /** Row label as the standard numbers it, e.g. "CR 1.1 RE(1)", "EDR 3.10". */
   label: string;
-  fr: FoundationalRequirement;
+  /** The group the row belongs to; one of the edition's `groups`. */
+  group: G;
   /** Lowest SL-C at which the row is selected (x.y.4); null for void rows. */
   minSl: Exclude<SecurityLevel, 0> | null;
   /** Requirement ids the row consists of — all must be met. Empty only for void rows. */
@@ -207,13 +244,17 @@ export interface EditionRow {
   sourceLine?: number;
 }
 
-export interface Edition {
+export interface Edition<G extends string = FoundationalRequirement> {
   id: EditionId;
+  /** The standard the edition belongs to — statements are shared inside it (D-31). */
+  family: StandardFamilyId;
   /** Shown in the report header. */
   title: string;
   /** True while the edition is a draft (prAA enquiry draft). */
   draft: boolean;
   /** Name of CCSC 2 in this edition. */
   ccsc2Label: string;
-  rows: readonly EditionRow[];
+  /** The row groups in display order; every row's `group` is one of them. */
+  groups: readonly G[];
+  rows: readonly EditionRow<G>[];
 }

@@ -8,7 +8,14 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ComplianceTab, editionStatements, evaluateMatrix, type ComplianceInput, type Edition } from "features/compliance";
+import {
+  ComplianceTab,
+  editionStatements,
+  evaluateMatrix,
+  FOUNDATIONAL_REQUIREMENTS,
+  type ComplianceInput,
+  type Edition,
+} from "features/compliance";
 import type { ComplianceData } from "shared";
 
 vi.mock("react-i18next", () => ({
@@ -23,15 +30,17 @@ afterEach(cleanup);
 
 const edition = (rows: Edition["rows"], id: Edition["id"] = "en-iec-62443-4-2-praa-2026"): Edition => ({
   id,
+  family: "iec-62443-4-2",
   title: id === "iec-62443-4-2-2019" ? "IEC 62443-4-2:2019" : "EN IEC 62443-4-2:2019/prAA:2026 (draft)",
   draft: id !== "iec-62443-4-2-2019",
   ccsc2Label: "supporting measures",
+  groups: FOUNDATIONAL_REQUIREMENTS,
   rows,
 });
 
 const CRA_ROWS: Edition["rows"] = [
-  { label: "CR 3.5", fr: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false, cra: ["h"] },
-  { label: "CR 3.7", fr: "SI", minSl: 1, requirementIds: ["cr-3.7"], supportingMeasuresAllowed: false, cra: ["k"] },
+  { label: "CR 3.5", group: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false, cra: ["h"] },
+  { label: "CR 3.7", group: "SI", minSl: 1, requirementIds: ["cr-3.7"], supportingMeasuresAllowed: false, cra: ["k"] },
 ];
 
 function renderTab(ed: Edition, data?: ComplianceData, extra: Partial<React.ComponentProps<typeof ComplianceTab>> = {}) {
@@ -130,7 +139,7 @@ describe("Compliance tab", () => {
 
   it("2019 edition: a derived device category is a proposal to confirm (K-C1)", () => {
     const rows: Edition["rows"] = [
-      { label: "EDR 3.10", fr: "SI", minSl: 1, requirementIds: ["cr-3.10"], supportingMeasuresAllowed: false, deviceCategories: ["EDR"] },
+      { label: "EDR 3.10", group: "SI", minSl: 1, requirementIds: ["cr-3.10"], supportingMeasuresAllowed: false, deviceCategories: ["EDR"] },
     ];
     const onChange = renderTab(edition(rows, "iec-62443-4-2-2019"), undefined, {
       deviceProposal: { categories: ["EDR"], reason: "system-class" },

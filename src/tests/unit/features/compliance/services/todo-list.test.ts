@@ -42,7 +42,7 @@ describe("buildTodoList", () => {
   it("a row one element meets (any) is a component item, not one per element", () => {
     const edition: Edition = {
       ...EDITION_PRAA_2026,
-      rows: [{ label: "CR 3.10", fr: "SI", minSl: 1, requirementIds: ["cr-3.10"], supportingMeasuresAllowed: false }],
+      rows: [{ label: "CR 3.10", group: "SI", minSl: 1, requirementIds: ["cr-3.10"], supportingMeasuresAllowed: false }],
     };
     const input = {
       edition,
@@ -52,14 +52,14 @@ describe("buildTodoList", () => {
     const list = buildTodoList(edition, evaluateMatrix({ ...input, run: "achieved" }), evaluateMatrix({ ...input, run: "planned" }), { SI: 1 });
     expect(list.elements).toEqual([]);
     expect(list.component).toEqual([
-      { label: "CR 3.10", fr: "SI", properties: ["update mechanism"], elementTypes: ["Process", "Multiprocess"], plannedClosed: false },
+      { label: "CR 3.10", group: "SI", properties: ["update mechanism"], elementTypes: ["Process", "Multiprocess"], plannedClosed: false },
     ]);
   });
 
   it("a black-box multiprocess standing in gets the item 'inside' (D-30)", () => {
     const edition: Edition = {
       ...EDITION_PRAA_2026,
-      rows: [{ label: "CR 3.5", fr: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false }],
+      rows: [{ label: "CR 3.5", group: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false }],
     };
     const input = {
       edition,
@@ -73,6 +73,6 @@ describe("buildTodoList", () => {
       { SI: 1 },
       () => "Multiprocess",
     );
-    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", fr: "SI", kind: "inside", properties: [], plannedClosed: false }] }]);
+    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", group: "SI", kind: "inside", properties: [], plannedClosed: false }] }]);
   });
 });

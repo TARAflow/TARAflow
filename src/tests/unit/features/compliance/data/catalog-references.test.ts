@@ -5,7 +5,7 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { REQUIREMENT_IDS, ruleElementTypes, type RequirementId } from "features/compliance";
+import { REQUIREMENT_IDS, REQUIREMENT_NAMESPACES, ruleElementTypes, type RequirementId } from "features/compliance";
 
 const DIR = join(process.cwd(), "src/features/threats/services/catalog/mitigations");
 const entries = readdirSync(DIR)
@@ -21,6 +21,11 @@ const entries = readdirSync(DIR)
 
 describe("mitigation catalog → IEC 62443 references", () => {
   const known = new Set<string>(REQUIREMENT_IDS);
+
+  it("the reference field is named after the family's namespace (K-4)", () => {
+    const field = REQUIREMENT_NAMESPACES["iec-62443-4-2"];
+    expect(entries.some((m) => field in m)).toBe(true);
+  });
 
   it("every reference is a known requirement id, none twice on one mitigation", () => {
     for (const m of entries) {

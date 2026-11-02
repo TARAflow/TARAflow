@@ -223,7 +223,7 @@ export function regulationPresetFromTags(
 
 // ==================== TAG EFFECT ====================
 
-/** Regulation tags that enable an IEC 62443-4-2 requirement matrix (compliance select-edition). */
+/** Regulation tags that enable an IEC 62443-4-2 requirement matrix (compliance standard registry). */
 export const MATRIX_TAGS: readonly string[] = ["IEC 62443", "EN IEC 62443 (CRA)"];
 
 /**

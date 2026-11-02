@@ -115,7 +115,7 @@ export type RowSource =
 
 export interface RowResult {
   label: string;
-  fr: FoundationalRequirement;
+  group: FoundationalRequirement;
   minSl: EditionRow["minSl"];
   status: RowStatus;
   /** Where the status comes from — the report names it (§5). */

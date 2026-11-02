@@ -200,6 +200,7 @@ export {
   type DeviceCategory,
   type DeviceCategoryChoice,
   type FoundationalRequirement,
+  type StandardFamilyId,
   type StatementStatus,
   type TargetSecurityLevel,
 } from "./models/compliance-data-types";

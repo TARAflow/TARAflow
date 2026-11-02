@@ -368,7 +368,7 @@ function evaluateRow(row: EditionRow, graph: Graph, input: ComplianceInput): Row
   const statement = input.statements?.[row.label];
   const base = {
     label: row.label,
-    fr: row.fr,
+    group: row.group,
     minSl: row.minSl,
     failing: [] as string[],
     unknown: [] as string[],
@@ -465,7 +465,7 @@ export function countsWithSupport(row: RowResult): boolean {
 export function vectorOf(rows: readonly RowResult[], counts: (row: RowResult) => boolean): SlVector {
   const vector = {} as SlVector;
   for (const fr of FOUNDATIONAL_REQUIREMENTS as readonly FoundationalRequirement[]) {
-    const blocking = rows.filter((r) => r.fr === fr && r.minSl !== null && !counts(r)).map((r) => r.minSl as number);
+    const blocking = rows.filter((r) => r.group === fr && r.minSl !== null && !counts(r)).map((r) => r.minSl as number);
     vector[fr] = (blocking.length > 0 ? Math.min(...blocking) - 1 : 4) as SecurityLevel;
   }
   return vector;

@@ -22,6 +22,13 @@ export type TargetSecurityLevel = 1 | 2 | 3 | 4;
 
 export type ComplianceEditionId = "iec-62443-4-2-2019" | "en-iec-62443-4-2-praa-2026";
 
+/**
+ * A standard family — the editions of one standard; statements and the
+ * component are shared inside a family, never across (model coverage plan
+ * §2.4, K-6). Further families (EN 303 645, EN 18031) join with their module.
+ */
+export type StandardFamilyId = "iec-62443-4-2";
+
 /** 2019 component types (Clauses 12–15). */
 export type DeviceCategory = "SAR" | "EDR" | "HDR" | "NDR";
 

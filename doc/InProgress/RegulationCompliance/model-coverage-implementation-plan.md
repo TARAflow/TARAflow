@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.3 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.4 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -360,7 +360,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | Step | Content | Depends on | Owner |
 |---|---|---|---|
 | CM-0 | this plan: K-points decided, standard references verified by A (**done**: references verified v0.2, K decided 2026-11-02) | — | A |
-| CM-1 | standard registry `activeStandards`, generalised `EditionRow.group`, requirement id namespace (K-4) — no UI change, both editions still evaluate | CM-0 | A |
+| CM-1 | standard registry `activeStandards`, generalised `EditionRow.group`, requirement id namespace (K-4) — no UI change, both editions still evaluate (**done**, see below) | CM-0 | A |
 | CM-2 | sub-tab frame in `compliance-tab.tsx`, D-3 superseded, per-viewer last sub-tab | CM-1 | A |
 | CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) | CM-0 | A |
 | CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) | CM-0 | A |
@@ -373,3 +373,27 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 
 FX-5 / FX-6 (S13-c) join the schema-13 fence of CM-3 when the 0.18 release plan
 schedules them.
+
+### 10.1 Progress
+
+**CM-1 (done, 2026-11-02).**
+
+- `services/standard-registry.ts` replaces `select-edition.ts`: `STANDARDS` (registry
+  order = sub-tab order: CRA edition, classic edition), `activeStandards(tags)` returns
+  every selected standard (K-1). `selectEdition` stays as "first active standard" for
+  the tab and the report until CM-2 / CM-9 — no visible change yet.
+- `StandardModule` as in §2.1 without `draft` (the edition carries it already, one
+  source); `StandardFamilyId` lives in `shared` (CM-3 keys `ComplianceData.families`
+  by it).
+- `Edition<G>` / `EditionRow<G>`: `fr` → `group`, `Edition.family`, `Edition.groups`
+  (62443: the seven FRs). `RowResult` and the to-do items mirror the row and carry
+  `group` too; the report model keeps its `fr` column until CM-9.
+- K-4 implemented as a namespace per family (`REQUIREMENT_NAMESPACES`,
+  `qualifyRequirementId`, `parseRequirementId`; 62443: `iec62443`, the name of the
+  catalog's reference field). Ids stay **unqualified inside their family** — statement
+  keys (`requirementKey`), catalog references and evidence rules are unchanged, so no
+  stored data changes; qualified ids are for places that mix families ("see also"
+  links, K-6).
+- Tests: registry (tags → standards, K-1 order, `MATRIX_TAGS` = registry tags),
+  namespaces (round trip, unknown namespace), every row's group in `Edition.groups`,
+  catalog field = namespace.

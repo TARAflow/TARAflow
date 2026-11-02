@@ -14,7 +14,7 @@ import { words } from "./describe-requirement";
 
 export interface TodoItem {
   label: string;
-  fr: FoundationalRequirement;
+  group: FoundationalRequirement;
   /**
    * "not-met": the model shows it not met; "missing": a property is unset (or
    * a neighbour's); "inside": a multiprocess without child page stands in for
@@ -34,7 +34,7 @@ export interface ElementTodo {
 
 export interface ComponentTodo {
   label: string;
-  fr: FoundationalRequirement;
+  group: FoundationalRequirement;
   /** Properties one element of these types must show. */
   properties: string[];
   elementTypes: string[];
@@ -47,12 +47,12 @@ export interface TodoList {
   /** Open rows one element of the component meets (quantifier "any"). */
   component: ComponentTodo[];
   /** Open rows within the target that only a statement (or a mitigation reference) can meet. */
-  statements: { label: string; fr: FoundationalRequirement }[];
+  statements: { label: string; group: FoundationalRequirement }[];
 }
 
 /** The row's SL-C level is needed for the target of its FR. */
 function withinTarget(row: RowResult, target: Partial<Record<FoundationalRequirement, SecurityLevel>>): boolean {
-  const level = target[row.fr];
+  const level = target[row.group];
   return level !== undefined && (row.minSl ?? 1) <= level;
 }
 
@@ -89,7 +89,7 @@ export function buildTodoList(
   for (const row of achieved.rows) {
     if (!withinTarget(row, target)) continue;
     if (row.status === "needs-statement") {
-      statements.push({ label: row.label, fr: row.fr });
+      statements.push({ label: row.label, group: row.group });
       continue;
     }
     if (row.status !== "gap" && row.status !== "unknown") continue;
@@ -98,7 +98,7 @@ export function buildTodoList(
     if (rules.length > 0 && rules.every((rule) => rule?.quantifier === "any")) {
       component.push({
         label: row.label,
-        fr: row.fr,
+        group: row.group,
         properties: propertiesFor(edition, row, undefined, "not-met"),
         elementTypes: [...new Set(rules.flatMap((rule) => rule!.targets.flatMap((t) => t.elementTypes as readonly string[])))],
         plannedClosed: p?.status === "met",
@@ -109,7 +109,7 @@ export function buildTodoList(
     const add = (id: string, kind: TodoItem["kind"]) => {
       const item: TodoItem = {
         label: row.label,
-        fr: row.fr,
+        group: row.group,
         kind,
         properties: kind === "inside" ? [] : propertiesFor(edition, row, typeOf?.(id), kind),
         plannedClosed: p?.status === "met" || !stillOpen.has(id),

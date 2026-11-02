@@ -4,6 +4,7 @@
 import { describe, it, expect } from "vitest";
 import {
   evaluateMatrix,
+  FOUNDATIONAL_REQUIREMENTS,
   type ComplianceInput,
   type Edition,
   type EditionRow,
@@ -18,10 +19,12 @@ type RowSpec = Partial<EditionRow> & { label: string; requirementIds: readonly R
 
 const edition = (...rows: RowSpec[]): Edition => ({
   id: "en-iec-62443-4-2-praa-2026",
+  family: "iec-62443-4-2",
   title: "test",
   draft: true,
   ccsc2Label: "supporting measures",
-  rows: rows.map((r) => ({ fr: "UC", minSl: 1, supportingMeasuresAllowed: false, ...r })),
+  groups: FOUNDATIONAL_REQUIREMENTS,
+  rows: rows.map((r) => ({ group: "UC", minSl: 1, supportingMeasuresAllowed: false, ...r })),
 });
 
 const el = (id: string, type: string, properties: Record<string, unknown> = {}): ViewElement => ({ id, type, properties });
@@ -128,7 +131,7 @@ describe('quantifier "all" (D-13, D-19)', () => {
 });
 
 describe('quantifier "any"', () => {
-  const ed = edition({ label: "CR 7.3", requirementIds: ["cr-7.3"], fr: "RA" });
+  const ed = edition({ label: "CR 7.3", requirementIds: ["cr-7.3"], group: "RA" });
 
   it("one element with backup suffices", () => {
     const r = row(run(ed, [el("mp", "Multiprocess", { backupMechanism: "none" }), el("ds", "DataStore", { backupEnabled: true })]), "CR 7.3");
@@ -146,8 +149,8 @@ describe('quantifier "any"', () => {
 describe("update and sessions on Process and Multiprocess (P-2)", () => {
   const ed = edition(
     { label: "CR 2.5", requirementIds: ["cr-2.5"] },
-    { label: "CR 3.10", requirementIds: ["cr-3.10"], fr: "SI" },
-    { label: "CR 3.10 RE(1)", requirementIds: ["cr-3.10-re1"], fr: "SI", minSl: 2 },
+    { label: "CR 3.10", requirementIds: ["cr-3.10"], group: "SI" },
+    { label: "CR 3.10 RE(1)", requirementIds: ["cr-3.10-re1"], group: "SI", minSl: 2 },
   );
 
   it("a component drawn as one process: its update mechanism counts, no n/a", () => {
@@ -175,7 +178,7 @@ describe("update and sessions on Process and Multiprocess (P-2)", () => {
 // ==================== D-28 COMPONENT BORDER ====================
 
 describe("transmitted information: flows across the component border (D-28)", () => {
-  const ed = edition({ label: "CR 3.1", requirementIds: ["cr-3.1"], fr: "SI" });
+  const ed = edition({ label: "CR 3.1", requirementIds: ["cr-3.1"], group: "SI" });
   const P = (id: string) => el(id, "Process");
   const plain = { integrityProtection: "none", encryptionInTransit: "none" };
 
@@ -206,9 +209,9 @@ describe("transmitted information: flows across the component border (D-28)", ()
 
 describe("trust boundary policies are cumulative (P-1)", () => {
   const ed = edition(
-    { label: "CR 5.2 RE(1)", requirementIds: ["cr-5.2-re1"], fr: "RDF", minSl: 2 },
-    { label: "CR 5.2 RE(2)", requirementIds: ["cr-5.2-re2"], fr: "RDF", minSl: 3 },
-    { label: "CR 5.2 RE(3)", requirementIds: ["cr-5.2-re3"], fr: "RDF", minSl: 3 },
+    { label: "CR 5.2 RE(1)", requirementIds: ["cr-5.2-re1"], group: "RDF", minSl: 2 },
+    { label: "CR 5.2 RE(2)", requirementIds: ["cr-5.2-re2"], group: "RDF", minSl: 3 },
+    { label: "CR 5.2 RE(3)", requirementIds: ["cr-5.2-re3"], group: "RDF", minSl: 3 },
   );
   const zone = (defaultDenyPolicy: unknown) => [
     el("tb", "TrustBoundary", { boundaryType: "network", boundaryControlTypes: ["firewall"], defaultDenyPolicy }),
@@ -230,8 +233,8 @@ describe("trust boundary policies are cumulative (P-1)", () => {
 
 describe("a multiprocess without child page stands in for processes and stores (D-30)", () => {
   const ed = edition(
-    { label: "CR 3.5", requirementIds: ["cr-3.5"], fr: "SI" },
-    { label: "CR 3.2", requirementIds: ["cr-3.2"], fr: "SI" },
+    { label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI" },
+    { label: "CR 3.2", requirementIds: ["cr-3.2"], group: "SI" },
   );
   const ecu = el("ecu", "Multiprocess", { malwareProtection: "code_signing" });
   const blackBox = { elements: [], flows: [], blackBoxes: new Set(["ecu"]) };
@@ -261,12 +264,12 @@ describe("a multiprocess without child page stands in for processes and stores (
 
 describe('"custom" (D-23)', () => {
   it("in a type A rule → unknown", () => {
-    const ed = edition({ label: "CR 3.2", requirementIds: ["cr-3.2"], fr: "SI" });
+    const ed = edition({ label: "CR 3.2", requirementIds: ["cr-3.2"], group: "SI" });
     expect(row(run(ed, [el("p", "Process", { malwareProtection: "custom" })]), "CR 3.2").status).toBe("unknown");
   });
 
   it("in a type B rule → met with the checklist", () => {
-    const ed = edition({ label: "CR 3.4", requirementIds: ["cr-3.4"], fr: "SI" });
+    const ed = edition({ label: "CR 3.4", requirementIds: ["cr-3.4"], group: "SI" });
     const r = row(run(ed, [el("ds", "DataStore", { integrityProtection: "custom" })]), "CR 3.4");
     expect(r.status).toBe("met");
     expect(r.checklist.length).toBeGreaterThan(0);
@@ -281,14 +284,14 @@ describe("two values per FR (D-14, D-20)", () => {
   const scope = new Set(["mp"]);
 
   it("an 'any' rule met outside the scope → supporting measure; counts for the component only if allowed", () => {
-    const notAllowed = run(edition({ label: "CR 7.3", requirementIds: ["cr-7.3"], fr: "RA", minSl: 1 }), elements, [], { scope });
+    const notAllowed = run(edition({ label: "CR 7.3", requirementIds: ["cr-7.3"], group: "RA", minSl: 1 }), elements, [], { scope });
     expect(row(notAllowed, "CR 7.3").source).toBe("supporting-measure");
     expect(row(notAllowed, "CR 7.3").supportingElements).toEqual(["ds-ext"]);
     expect(notAllowed.component.RA).toBe(0);
     expect(notAllowed.withSupport.RA).toBe(4);
 
     const allowed = run(
-      edition({ label: "CR 7.3", requirementIds: ["cr-7.3"], fr: "RA", minSl: 1, supportingMeasuresAllowed: true }),
+      edition({ label: "CR 7.3", requirementIds: ["cr-7.3"], group: "RA", minSl: 1, supportingMeasuresAllowed: true }),
       elements,
       [],
       { scope },
@@ -297,7 +300,7 @@ describe("two values per FR (D-14, D-20)", () => {
   });
 
   it("an 'all' rule gets no automatic supporting measure — only a statement naming it", () => {
-    const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], fr: "SI", minSl: 1, supportingMeasuresAllowed: true });
+    const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI", minSl: 1, supportingMeasuresAllowed: true });
     const elems = [el("p", "Process", { inputValidation: "none" }), el("p-ext", "Process", { inputValidation: "strict" })];
     expect(row(run(ed, elems, [], { scope: new Set(["p"]) }), "CR 3.5").status).toBe("gap");
 
@@ -310,7 +313,7 @@ describe("two values per FR (D-14, D-20)", () => {
   });
 
   it("a claim raises only the second value", () => {
-    const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], fr: "SI", minSl: 2 });
+    const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI", minSl: 2 });
     const result = run(ed, [el("p", "Process", { inputValidation: "none" })], [], {
       claims: [{ displayId: "CLM-01", rowLabels: ["CR 3.5"] }],
     });
@@ -323,7 +326,7 @@ describe("two values per FR (D-14, D-20)", () => {
 // ==================== D-16 / D-21 MITIGATIONS ====================
 
 describe("mitigations (D-16, D-21)", () => {
-  const cRow = edition({ label: "CR 1.8", requirementIds: ["cr-1.8"], fr: "IAC" });
+  const cRow = edition({ label: "CR 1.8", requirementIds: ["cr-1.8"], group: "IAC" });
   const pkElements = [el("mp", "Multiprocess", { boundaryAuthentication: "certificate" })];
 
   it("a done mitigation for a risk in scope meets a type C row", () => {
@@ -359,7 +362,7 @@ describe("mitigations (D-16, D-21)", () => {
   });
 
   it("achieved run: a done mitigation against a model 'no' stays a gap with the contradiction note", () => {
-    const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], fr: "SI" });
+    const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI" });
     const mitigations = [{ mitigationId: "M-2", requirementIds: ["cr-3.5"] as RequirementId[], done: true, concernsElementIds: ["p"] }];
     const achieved = row(run(ed, [el("p", "Process", { inputValidation: "none" })], [], { mitigations }), "CR 3.5");
     expect(achieved.status).toBe("gap");
@@ -382,7 +385,7 @@ describe("mitigations (D-16, D-21)", () => {
 // ==================== D-29 PER ELEMENT ====================
 
 describe("mitigations cover element by element on an all-rule (D-29)", () => {
-  const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], fr: "SI" });
+  const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI" });
   const weak = [el("p1", "Process", { inputValidation: "none" }), el("p2", "Process", { inputValidation: "none" })];
   const M = (concerns: string[], done = false) => [
     { mitigationId: "M-3", requirementIds: ["cr-3.5"] as RequirementId[], done, concernsElementIds: concerns },
@@ -422,7 +425,7 @@ describe("mitigations cover element by element on an all-rule (D-29)", () => {
 // ==================== D-17 STATEMENTS ====================
 
 describe("statements (D-17)", () => {
-  const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], fr: "SI" });
+  const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI" });
 
   it("win over the model, which stays visible", () => {
     const r = row(
@@ -451,8 +454,8 @@ describe("statements (D-17)", () => {
 
 describe("device rows (K-C1)", () => {
   const ed = edition(
-    { label: "EDR 3.10", requirementIds: ["cr-3.10"], fr: "SI", deviceCategories: ["EDR"] },
-    { label: "NDR 3.10", requirementIds: ["cr-3.10"], fr: "SI", deviceCategories: ["NDR"] },
+    { label: "EDR 3.10", requirementIds: ["cr-3.10"], group: "SI", deviceCategories: ["EDR"] },
+    { label: "NDR 3.10", requirementIds: ["cr-3.10"], group: "SI", deviceCategories: ["NDR"] },
   );
   const elements = [el("mp", "Multiprocess", { updateMechanism: "signed_ota" })];
 
@@ -476,7 +479,7 @@ describe("device rows (K-C1)", () => {
 // ==================== D-24 NEIGHBOURS ====================
 
 describe("neighbours (D-24)", () => {
-  const ed = edition({ label: "CR 2.5", requirementIds: ["cr-2.5"], fr: "UC" });
+  const ed = edition({ label: "CR 2.5", requirementIds: ["cr-2.5"], group: "UC" });
 
   it("a flow excluded from threat generation still makes the process serve a human user", () => {
     const r = row(run(ed, [OPERATOR, LOCK("p", false)], [flow("f", "ee-op", "p", { excludeFromThreatGen: true })]), "CR 2.5");
@@ -506,7 +509,7 @@ describe("neighbours (D-24)", () => {
 
 describe("rows and vector (D-2)", () => {
   it("a row of several requirement ids is met only when all are (2019 CR 4.1)", () => {
-    const ed = edition({ label: "CR 4.1", requirementIds: ["cr-4.1-transit", "cr-4.1-rest"], fr: "DC" });
+    const ed = edition({ label: "CR 4.1", requirementIds: ["cr-4.1-transit", "cr-4.1-rest"], group: "DC" });
     const elements = [
       el("p", "Process"),
       el("ds", "DataStore", { dataClassification: "secret", encryptionAtRest: "none" }),
@@ -519,8 +522,8 @@ describe("rows and vector (D-2)", () => {
 
   it("one non-counting row caps the FR below its lowest SL-C", () => {
     const ed = edition(
-      { label: "A", requirementIds: ["cr-3.5"], fr: "SI", minSl: 1 },
-      { label: "B", requirementIds: ["cr-3.7"], fr: "SI", minSl: 3 },
+      { label: "A", requirementIds: ["cr-3.5"], group: "SI", minSl: 1 },
+      { label: "B", requirementIds: ["cr-3.7"], group: "SI", minSl: 3 },
     );
     const result = run(ed, [el("p", "Process", { inputValidation: "strict", errorHandling: "verbose" })]);
     expect(result.component.SI).toBe(2);
@@ -528,7 +531,7 @@ describe("rows and vector (D-2)", () => {
   });
 
   it("void rows are n/a from the edition and never block", () => {
-    const ed = edition({ label: "CR 7.5", requirementIds: [], minSl: null, void: "no component requirement", fr: "RA" });
+    const ed = edition({ label: "CR 7.5", requirementIds: [], minSl: null, void: "no component requirement", group: "RA" });
     const r = run(ed, []);
     expect(row(r, "CR 7.5").status).toBe("n/a");
     expect(row(r, "CR 7.5").source).toBe("edition");

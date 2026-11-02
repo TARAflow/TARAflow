@@ -231,7 +231,7 @@ export function buildDocCompliance(project: Project, language = "en"): DocCompli
       const descriptions = (rowById.get(r.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang));
       return {
         label: r.label,
-        fr: r.fr,
+        fr: r.group,
         minSl: r.minSl,
         cra: rowById.get(r.label)?.cra ? [...rowById.get(r.label)!.cra!] : undefined,
         status: r.status,

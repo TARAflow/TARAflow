@@ -1,8 +1,8 @@
 // ==================== COMPLIANCE FEATURE INDEX ====================
 // Public API of the compliance feature — IEC 62443-4-2 requirement matrices
 // (classic 2019 and CRA edition prAA), iec-62443-4-2-cra-coverage.md §9.
-// IEC-2a: types, evidence rules and the two editions; IEC-3: evaluator and
-// edition selection.
+// IEC-2a: types, evidence rules and the two editions; IEC-3: evaluator;
+// CM-1: standard registry (model-coverage-implementation-plan.md §2.1).
 
 // ==================== TYPES ====================
 export type {
@@ -19,11 +19,20 @@ export type {
   FoundationalRequirement,
   NeighbourCheck,
   PropertyCheck,
+  QualifiedRequirementId,
   RequirementId,
+  RequirementNamespace,
   SecurityLevel,
   SlVector,
+  StandardFamilyId,
 } from "./models/compliance-types";
-export { FOUNDATIONAL_REQUIREMENTS, REQUIREMENT_IDS } from "./models/compliance-types";
+export {
+  FOUNDATIONAL_REQUIREMENTS,
+  parseRequirementId,
+  qualifyRequirementId,
+  REQUIREMENT_IDS,
+  REQUIREMENT_NAMESPACES,
+} from "./models/compliance-types";
 
 // ==================== DATA ====================
 export { ALL_EVIDENCE_RULES, EVIDENCE_RULES } from "./data/evidence-rules";
@@ -53,7 +62,14 @@ export {
   evaluateMatrix,
   vectorOf,
 } from "./services/evaluate-matrix";
-export { selectEdition, TAG_EN_IEC_62443_CRA, TAG_IEC_62443 } from "./services/select-edition";
+export {
+  activeStandards,
+  selectEdition,
+  STANDARDS,
+  TAG_EN_IEC_62443_CRA,
+  TAG_IEC_62443,
+  type StandardModule,
+} from "./services/standard-registry";
 export { buildPropertyView, type PropertyViewSource } from "./services/property-view";
 export { proposeDeviceCategories, type DeviceCategoryProposal } from "./services/device-category";
 export { editionStatements, statementKeyOf } from "./services/edition-statements";

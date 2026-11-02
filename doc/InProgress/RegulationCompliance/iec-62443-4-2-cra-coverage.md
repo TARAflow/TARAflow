@@ -498,6 +498,12 @@ the requirement text lets the component meet it "directly or by supporting measu
 edition; else none. Pure, in the compliance feature; the tag itself is added in IEC-2b
 (after the i18n split).
 
+0.18 (CM-1): the standard registry `activeStandards(tags)` (`services/standard-registry.ts`,
+model-coverage-implementation-plan.md §2.1) returns every selected standard — both
+editions with both tags (K-1). `selectEdition` is the first of them until the sub-tabs
+(CM-2) and the per-standard report chapters (CM-9). `EditionRow.fr` is now
+`EditionRow.group` (the FR for 62443, plan §2.3).
+
 ### 9.4 Evaluation (D-2, D-4 … D-8, D-12 … D-17, K-C1)
 
 Input: edition, a **property view** built from the DFD analysis view

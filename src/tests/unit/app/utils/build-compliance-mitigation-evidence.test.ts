@@ -2,7 +2,7 @@
 // (app/utils/build-compliance-mitigation-evidence.ts; D-6, D-16, D-21, D-29).
 import { describe, it, expect } from "vitest";
 import { buildComplianceMitigationEvidence } from "app/utils/build-compliance-mitigation-evidence";
-import { evaluateMatrix, type Edition } from "features/compliance";
+import { evaluateMatrix, FOUNDATIONAL_REQUIREMENTS, type Edition } from "features/compliance";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -58,10 +58,12 @@ describe("buildComplianceMitigationEvidence", () => {
     );
     const edition: Edition = {
       id: "en-iec-62443-4-2-praa-2026",
+      family: "iec-62443-4-2",
       title: "t",
       draft: true,
       ccsc2Label: "supporting measures",
-      rows: [{ label: "CR 7.2", fr: "RA", minSl: 1, requirementIds: ["cr-7.2"], supportingMeasuresAllowed: false }],
+      groups: FOUNDATIONAL_REQUIREMENTS,
+      rows: [{ label: "CR 7.2", group: "RA", minSl: 1, requirementIds: ["cr-7.2"], supportingMeasuresAllowed: false }],
     };
     const view = { elements: [{ id: "proc-a", type: "Process" }, { id: "proc-b", type: "Process" }], flows: [] };
     const run = (r: "achieved" | "planned") =>
