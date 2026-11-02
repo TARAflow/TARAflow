@@ -1,10 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-<<<<<<< HEAD
-**Status:** v0.10 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4, CM-5a, CM-5c, CM-5d done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
-=======
-**Status:** v0.6 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1, CM-2 done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
->>>>>>> main
+**Status:** v0.11 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4, CM-5a, CM-5c, CM-5d done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
