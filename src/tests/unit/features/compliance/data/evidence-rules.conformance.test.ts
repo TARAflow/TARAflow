@@ -90,6 +90,7 @@ type ChecksOf<T> =
 
 type TargetViolation<T> =
   | (T extends { readonly elementTypes: readonly (infer E)[] } ? ForEachType<E, ChecksOf<T>> : never)
+  | (T extends { readonly interfaceIf: readonly (infer C)[] } ? ForEachType<"Interface", C> : never)
   | (T extends { readonly endpointIf: { readonly elementTypes: readonly (infer E)[]; readonly checks: readonly (infer C)[] } }
       ? ForEachType<E, C>
       : never)
@@ -173,6 +174,7 @@ describe("evidence rules conformance", () => {
           ...(target.appliesIf ?? []),
           ...(target.satisfiedIf ?? []),
           ...(target.satisfiedIfAll ?? []),
+          ...(target.interfaceIf ?? []),
           ...(target.endpointIf?.checks ?? []),
           ...(target.connectedIf?.checks ?? []),
         ];

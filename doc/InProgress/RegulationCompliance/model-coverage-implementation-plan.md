@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.15 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-7a done · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.16 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-8 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -413,7 +413,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-6 | F-27, F-27b, F-25a, F-25b (lifecycle / configuration) (**done**, see §10.1) | CM-5 | A |
 | CM-7a | F-22 (user data deletion), CR 7.9 for every component (**done**, see §10.1) | CM-5 | A |
 | CM-7b | ~~F-28 support data on the project (Overview), report header~~ — **withdrawn** (user 2026-11-02: documentation, not TARA; patch 13 reverted, see §10.1) | CM-7a | A |
-| CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
+| CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) (**done**, see §10.1) | CM-1 | A |
 | CM-9 | report: one chapter per active standard | CM-2 | A |
 | CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
 | CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) | CM-2, CM-3 | A |
@@ -734,3 +734,26 @@ not part of the documentation? Decided: dropped, patch 13 reverted.
   (`tabs.doc.compliance.craDocumentation`, EN / DE); the coverage document §11 marks
   F-28 dropped.
 - K-10 ("stage-1 fields as §4.2") holds without F-28.
+
+**CM-8 (done, 2026-11-02).**
+
+- `ViewFlow.interfaceIds`: the app layer carries the interfaces each flow passes from
+  the DFD graph (`dataFlowAnalysis.interfaceIds`) into the property view.
+- `EvidenceTarget.interfaceIf`: a DataFlow target is satisfied when an interface the
+  flow passes meets every check; no interface modelled on the flow → unknown (the
+  model does not show where the control sits). The conformance test checks the
+  paths on the Interface type; `ruleElementTypes` includes Interface for such rules,
+  `requirementsMetBy` derives a requirement from an interface effect, and the
+  suggestions treat open flows of such a rule as open interfaces (D-29).
+- CR 1.11 A (both editions): every login with a guessable authenticator (password,
+  pairing, MFA, biometric) into an element that authenticates passes an interface with
+  `abuseProtection` = lockout. Rate limiting has no lock period — CR 1.11 asks for
+  limit **and** lock; EN 303 645 5.1-5 / EN 18031 AUM-6 will accept rate limiting in
+  their modules (§4.1 F-5). F-5 stays dropped.
+- Type split: prAA A 42 · B 23 · C 25; 2019 CR rows A 31 · B 17 · C 22.
+- Pump Station example: the model found a contradiction — the statement said
+  "locked after five failed logins", but IF-3 (Ethernet, engineering workstation
+  login DF-7) was only rate-limited. IF-3 now locks; the CR 1.11 statement is gone,
+  the model shows it.
+- Tests: CR 1.11 per interface value, without interface, not guessable, not
+  authenticating; mitigation derivation and suggestion via the interface; example.

@@ -140,7 +140,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 1.8 (l. 979) | PKI operation per best practice | 2 | d, e, f | `…Authentication` ∈ certificate, mutual_tls | — | C | — |
 | CR 1.9 (l. 1019) | public-key authentication: signature / data validity, proof of possession | 2 | d, e, f | as CR 1.8 | DF.`endpointAuthentication` ∈ certificate, mutual_tls (mechanism only) | B | — |
 | CR 1.10 (l. 1087) | obscure authentication feedback | 1 | d | human-user authentication present | — | C | — |
-| CR 1.11 (l. 1122) | limit consecutive failed logins, lock for a period / until unlocked | 1 | d | every authentication mechanism | — (IF.ic.`abuseProtection` = lockout sits on the interface; which interface a human-access flow passes is not modelled, P-7) | C | interface ↔ flow link (P-7) |
+| CR 1.11 (l. 1122) | limit consecutive failed logins, lock for a period / until unlocked | 1 | d | every login with a guessable authenticator (password, pairing, MFA, biometric) into an element that authenticates | (0.18, P-7) an interface the login passes: IF.ic.`abuseProtection` = lockout (rate limiting alone has no lock period); no interface modelled → unknown | A | — |
 | CR 1.12 (l. 1173) | configurable system-use notification before login on local HMI | 1 | — | local human UI (IF.`type` touchscreen, HMI EE) | — | C | — |
 | CR 1.13 (l. 1222) | monitor and control all access via untrusted networks | 1 | j | MP.`remoteAccessEnabled` / `exposedToInternet`; TB of type network / cloud | each such TB: `boundaryControlTypes` ∋ vpn_gateway, jump_host, authentication_gateway, firewall; TB.`monitoringEnabled` | B | — |
 | CR 1.13 RE(1) (l. 1253) | deny untrusted-network access unless explicitly approved by a role | 3 | j | as CR 1.13 | — | C | — |
@@ -264,16 +264,16 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | | A | B | C | n/a |
 |---|---|---|---|---|
-| FR 1 (22 rows) | 8 | 7 | 5 | 2 |
+| FR 1 (22 rows) | 9 | 7 | 4 | 2 |
 | FR 2 (24) | 9 | 3 | 11 | 1 |
 | FR 3 (23) | 12 | 6 | 4 | 1 |
 | FR 4 (6) | 4 | 0 | 2 | 0 |
 | FR 5 (7) | 4 | 1 | 0 | 2 |
 | FR 6 (3) | 0 | 2 | 1 | 0 |
 | FR 7 (12) | 4 | 4 | 3 | 1 |
-| **Total (97)** | **41** | **23** | **26** | **7** |
+| **Total (97)** | **42** | **23** | **25** | **7** |
 
-About two thirds of the 90 live rows (64 since 0.18 CM-6; 59 before 0.18) can be pre-filled from the model (A + B). The C rows
+About two thirds of the 90 live rows (65 since 0.18 CM-8; 59 before 0.18) can be pre-filled from the model (A + B). The C rows
 need an analyst statement (applicable / met / not met / n/a + reasoning + evidence
 reference) — that is what makes the matrix a complete SoA.
 
@@ -305,7 +305,7 @@ Per project, from one model (consistency per EA-6-1):
 | P-3 | no "human access" marker per interface / flow | CR 1.1, 1.10, 1.12, 2.5 | derive from the connected EE type (operator, maintenance, … — external-entity-type-registry) |
 | P-4 | no log-sink / time-source markers (audit-log stores are marked: `DS.storedDataTypes` ∋ audit_logs) | CR 2.11 RE(1)/(2), 6.1 RE(1) | EE types "siem", "time_source" |
 | P-5 | secure-by-default, reset, default-credential handling not modelled | CR 1.5 a–c, 7.6, 7.9 (CRA (2)(b)) | component-level fields (K2), or C rows |
-| P-7 | which interface a flow passes is not in the reference view (`viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | the dfd graph already has `interfaceIds` per flow (`DataFlowAnalysis`, used by the validator), the effective model `EffectiveFlow.interfaces` — carry the ids into the property view, then CR 1.11 can return to type A |
+| P-7 | which interface a flow passes is not in the reference view (`viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | **done (0.18 CM-8):** the property view carries the `interfaceIds` of the DFD graph per flow; rules read them with `EvidenceTarget.interfaceIf`; CR 1.11 is type A again |
 | P-6 | `secureErase` / `auditLogRetentionYears` from the architecture doc | CR 4.2 / EN 50742 8.5 | `DS.deletionMechanism` already covers CR 4.2 — drop `secureErase`; retention only for EN 50742 B |
 
 ## 7. Decisions and open points

@@ -104,6 +104,15 @@ const WITHOUT_AUTHENTICATION_FOR_HUMANS = [
   },
 ] as const;
 
+/** Logins with an authenticator that can be guessed — the ones a lockout protects (CR 1.11). */
+const GUESSABLE_LOGINS = {
+  elementTypes: ["DataFlow"],
+  appliesIf: [{ property: "endpointAuthentication", in: ["password", "pairing", "mfa", "biometric"] }],
+} as const;
+
+/** The interface locks after consecutive failed attempts (limit and lock period). */
+const LOCKOUT = [{ property: "implementedControls.abuseProtection", in: ["lockout"] }] as const;
+
 /** The elements that verify a password and carry the password fields (F-2). */
 const PASSWORD_VERIFIERS = { elementTypes: ["Process", "Multiprocess"] } as const;
 
@@ -310,9 +319,18 @@ const RULES = [
   },
   { id: "cr-1.9-re1", type: "A", appliesWhen: PUBLIC_KEY_USE, targets: AUTHENTICATORS_IN_HARDWARE },
   { id: "cr-1.10", type: "C", targets: [HUMAN_ACCESS_FLOWS] },
-  // Type C: lockout (abuseProtection) sits on the Interface, but the model does
-  // not link a human-access flow to the interface it passes (model gap P-7).
-  { id: "cr-1.11", type: "C", targets: AUTHENTICATION_USE },
+  {
+    // P-7 (CM-8): every login with a guessable authenticator into an element
+    // that authenticates passes an interface that locks after failed attempts
+    // — CR 1.11 asks for a limit and a lock period, so rate limiting alone
+    // does not meet it. A flow without a modelled interface is unknown.
+    id: "cr-1.11",
+    type: "A",
+    targets: [
+      { ...GUESSABLE_LOGINS, endpointIf: { elementTypes: ["Process"], checks: PROCESS_WITH_AUTH.appliesIf }, interfaceIf: LOCKOUT },
+      { ...GUESSABLE_LOGINS, endpointIf: { elementTypes: ["Multiprocess"], checks: MULTIPROCESS_WITH_AUTH.appliesIf }, interfaceIf: LOCKOUT },
+    ],
+  },
   {
     id: "cr-1.12",
     type: "C",

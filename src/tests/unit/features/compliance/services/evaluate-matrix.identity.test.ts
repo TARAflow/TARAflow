@@ -238,3 +238,27 @@ describe("prAA CR 7.9 — component reset (CM-7a)", () => {
     expect(run([mp({ userDataDeletion: "by_user" })]).status).toBe("gap");
   });
 });
+
+describe("CR 1.11 — lockout on the interface a login passes (P-7, CM-8)", () => {
+  const run = (edition: Edition, flowProps: Record<string, unknown>, ifaceProps: Record<string, unknown> | null, target = hmi({ authenticationRequired: "yes" })) => {
+    const r = edition.rows.find((x) => x.label === "CR 1.11")!;
+    const elements: ViewElement[] = [target, operator];
+    if (ifaceProps) elements.push({ id: "if1", type: "Interface", properties: { implementedControls: ifaceProps } });
+    const flows: ViewFlow[] = [{ id: "f", from: "op", to: "p", properties: flowProps, ...(ifaceProps ? { interfaceIds: ["if1"] } : {}) }];
+    return evaluateMatrix({ edition: { ...edition, rows: [r] }, view: { elements, flows }, scope: new Set(["p", "if1"]), run: "achieved" }).rows[0];
+  };
+
+  it.each([EDITION_PRAA_2026, EDITION_2019])("$id: a password login through an interface with lockout is met; rate limiting alone is a gap", (edition) => {
+    expect(run(edition, { endpointAuthentication: "password" }, { abuseProtection: "lockout" }).status).toBe("met");
+    expect(run(edition, { endpointAuthentication: "password" }, { abuseProtection: "rate_limited" })).toMatchObject({ status: "gap", failing: ["f"] });
+  });
+
+  it("no interface modelled on the login: unknown — the model does not show where the lockout sits", () => {
+    expect(run(EDITION_PRAA_2026, { endpointAuthentication: "password" }, null).status).toBe("unknown");
+  });
+
+  it("not a guessable login, or into an element that does not authenticate: n/a", () => {
+    expect(run(EDITION_PRAA_2026, { endpointAuthentication: "certificate" }, { abuseProtection: "none" }).status).toBe("n/a");
+    expect(run(EDITION_PRAA_2026, { endpointAuthentication: "password" }, { abuseProtection: "none" }, hmi({ authenticationRequired: "no" })).status).toBe("n/a");
+  });
+});

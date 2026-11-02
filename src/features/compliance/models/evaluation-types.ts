@@ -28,6 +28,8 @@ export interface ViewFlow {
   from: string;
   to: string;
   properties?: Record<string, unknown>;
+  /** Interfaces the flow passes (DFD graph, P-7); absent = not known. */
+  interfaceIds?: readonly string[];
 }
 
 /**

@@ -209,7 +209,8 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     location: "network_port",
     operationalState: "enabled",
     ...exposure("EL3", "Connected to the plant control network."),
-    implementedControls: { linkAuthentication: "certificate_based", abuseProtection: "rate_limited", serviceAccessPolicy: "always_enabled" },
+    // Logins over the network (engineering workstation, DF-7) lock after five failed attempts for 15 minutes (CR 1.11).
+    implementedControls: { linkAuthentication: "certificate_based", abuseProtection: "lockout", serviceAccessPolicy: "always_enabled" },
   }),
   "IF-4": as<InterfaceProperties>({
     type: "rs485",
@@ -704,7 +705,7 @@ const statement = (status: ComplianceStatement["status"], reasoning: string, evi
 export const STATEMENTS: Record<string, ComplianceStatement> = {
   // CR 1.1 RE(1) and CR 1.7 come from the model (userAccounts, passwordStrength, passwordLifetime).
   "CR 1.10": statement("met", "PIN and password entry on the touch panel is masked."),
-  "CR 1.11": statement("met", "After five failed logins the account is locked for 15 minutes; the limit is configurable.", "Security manual §2.4"),
+  // CR 1.11 comes from the model: every password login passes an interface that locks (IF-1, IF-2, IF-3).
   "CR 1.12": statement("met", "The HMI shows a configurable notice before the login screen."),
   "CR 2.4": statement("n/a", "Neither the PLC nor the HMI runtime loads scripts, plug-ins or other mobile code."),
   "CR 2.4 RE(1)": statement("n/a", "No mobile code (see CR 2.4)."),

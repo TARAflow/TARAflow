@@ -211,6 +211,8 @@ describe("Pump Station Controller example", () => {
     expect(row("CR 1.10")).toMatchObject({ status: "met", source: "statement" }); // made with the CRA edition
     // CR 1.5 from the model: F-3 / F-3b answer the whole checklist (CM-5b).
     expect(row("CR 1.5")).toMatchObject({ status: "met", source: "model", checklist: [] });
+    // CR 1.11 from the model: every password login passes an interface that locks (P-7, CM-8).
+    expect(row("CR 1.11")).toMatchObject({ status: "met", source: "model" });
     // CR 7.6 from secureByDefault / securityConfigReporting in the classic edition too (CM-6).
     expect(row("CR 7.6")).toMatchObject({ status: "met", source: "model" });
     // From the model fields in both editions; 2019 RE(1) / RE(2) as well.

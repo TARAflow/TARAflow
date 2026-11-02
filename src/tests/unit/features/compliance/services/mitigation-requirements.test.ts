@@ -2,7 +2,7 @@
 // ids from the catalog, derived ones from affectsProperties (bound to the
 // effect's element type), suggestions filtered to the open element types.
 import { describe, it, expect } from "vitest";
-import { mitigationRequirements, requirementsMetBy, suggestMitigations } from "features/compliance";
+import { mitigationRequirements, requirementsMetBy, ruleElementTypes, suggestMitigations } from "features/compliance";
 
 describe("requirementsMetBy", () => {
   it("an effect meets the A / B rules of its type whose check accepts the value", () => {
@@ -55,5 +55,18 @@ describe("suggestMitigations", () => {
 
   it("a referenced id without property effect is always suggested", () => {
     expect(suggestMitigations(catalog, ["cr-4.3"], new Set(["DataStore"])).map((m) => m.id)).toEqual(["M-REF"]);
+  });
+});
+
+describe("rules that read the interface a flow passes (P-7, CM-8)", () => {
+  it("an interface lockout effect meets CR 1.11; the rule checks interfaces too", () => {
+    expect(requirementsMetBy({ targetType: "Interface", property: "implementedControls.abuseProtection", expectedValue: "lockout" })).toContain("cr-1.11");
+    expect(requirementsMetBy({ targetType: "Interface", property: "implementedControls.abuseProtection", expectedValue: "rate_limited" })).not.toContain("cr-1.11");
+    expect([...ruleElementTypes("cr-1.11")].sort()).toEqual(["DataFlow", "Interface"]);
+  });
+
+  it("open login flows suggest a mitigation that sets the lockout on the interface", () => {
+    const lockout = { id: "M-IF", affectsProperties: [{ targetType: "Interface", property: "implementedControls.abuseProtection", expectedValue: "lockout" }] };
+    expect(suggestMitigations([lockout], ["cr-1.11"], new Set(["DataFlow"])).map((m) => m.id)).toEqual(["M-IF"]);
   });
 });
