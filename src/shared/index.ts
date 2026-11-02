@@ -208,6 +208,23 @@ export {
   type TargetSecurityLevel,
 } from "./models/compliance-data-types";
 
+// ==================== MODEL FIELD VISIBILITY (model coverage plan §3) ====================
+export {
+  isFieldShown,
+  isUnset,
+  MODEL_FIELDS,
+  modelField,
+  NOT_SPECIFIED,
+  readModelField,
+  visibilityContexts,
+  withoutHiddenFields,
+  type ModelField,
+  type VisibilityContext,
+  type VisibilityElement,
+  type VisibilityFlowInput,
+  type VisibilityLink,
+} from "./models/property-visibility";
+
 // ==================== ASSET RELATION UNION TYPES ====================
 // String union types for asset relations — used by dfd and threats features.
 export type {

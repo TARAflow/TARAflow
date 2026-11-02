@@ -24,6 +24,7 @@ import type {
   SecurityLevel,
   SlVector,
 } from "../models/compliance-types";
+import { MODEL_FIELDS, withoutHiddenFields } from "shared";
 import { FOUNDATIONAL_REQUIREMENTS } from "../models/compliance-types";
 import type {
   ComplianceInput,
@@ -94,7 +95,9 @@ interface Graph {
 }
 
 function buildGraph(input: ComplianceInput): Graph {
-  const elements = new Map(input.view.elements.map((e) => [e.id, e]));
+  // R-4: a model field its driver hides reads as unset in every check.
+  const view = withoutHiddenFields(input.view.elements, input.view.flows, MODEL_FIELDS);
+  const elements = new Map(view.elements.map((e) => [e.id, e]));
   const flowElements = new Map<string, ViewElement>();
   const neighbours = new Map<string, Set<string>>();
   const endpoints = new Map<string, [string, string]>();
@@ -102,7 +105,7 @@ function buildGraph(input: ComplianceInput): Graph {
     if (!neighbours.has(a)) neighbours.set(a, new Set());
     neighbours.get(a)!.add(b);
   };
-  for (const flow of input.view.flows) {
+  for (const flow of view.flows) {
     flowElements.set(flow.id, { id: flow.id, type: "DataFlow", properties: flow.properties });
     endpoints.set(flow.id, [flow.from, flow.to]);
     link(flow.from, flow.to);

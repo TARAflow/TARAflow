@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.6 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-3 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.7 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -363,7 +363,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-1 | standard registry `activeStandards`, generalised `EditionRow.group`, requirement id namespace (K-4) — no UI change, both editions still evaluate (**done**, see below) | CM-0 | A |
 | CM-2 | sub-tab frame in `compliance-tab.tsx`, D-3 superseded, per-viewer last sub-tab (**done**, see §10.1) | CM-1 | A |
 | CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) (**done**, see §10.1) | CM-0 | A |
-| CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) | CM-0 | A |
+| CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) (**done**, see §10.1) | CM-0 | A |
 | CM-5 | F-1, F-2, F-3 (identity) — model, form, i18n, rules, report, golden | CM-3, CM-4 | A |
 | CM-6 | F-27, F-25a, F-25b (lifecycle / configuration) | CM-5 | A |
 | CM-7 | F-22, F-28 (data deletion, support data) | CM-5 | A |
@@ -455,3 +455,30 @@ schedules them.
   report, re-seal vs. reconfirm on load), helpers per family incl. K-5, report scope
   per family, fixtures and the Pump Station example in the new form; version checks
   of older migration tests no longer pin 12.
+
+**CM-4 (done, 2026-11-02).**
+
+- `shared/models/property-visibility.ts`: registry `MODEL_FIELDS` (empty until CM-5)
+  with `property`, `elementTypes`, `values` (`not_specified` first), `multiple?`,
+  `shownWhen(context)`. The context is the element (or flow) with its incoming and
+  outgoing flows and the element at their other end (for a flow: its endpoints) —
+  enough for the §4.2 drivers (incoming password flow, human neighbour,
+  `updateMechanism`). `visibilityContexts(elements, flows)` builds it for the whole
+  model.
+- Readers: `isFieldShown`, `readModelField` (hidden → unset), `withoutHiddenFields`
+  (copies of elements and flows without hidden fields; the stored model untouched —
+  K-7). `isUnset` treats absent, empty, `not_specified` and an empty selection alike
+  (both conventions of the model exist today).
+- Evaluator: `buildGraph` masks hidden fields once, so every check — own properties
+  and neighbour checks — sees a hidden field as unset (R-4); the evidence rules stay
+  declarative.
+- Generic tests, run for every registered field (CM-5 … CM-7 need no extra test for
+  these rules): R-1 value list, R-6 element types and the declaration in
+  `element-properties.ts`, R-7 label / help / value labels EN + DE under
+  `dfd.json` `tabs.dfd.modelFields.<property>`, and a source guard (R-3 / R-4): a
+  source file that names a registered field must use the predicate, except the
+  declarations (registry, property types, evidence rules, migrations). The guard
+  checks itself on `inputValidation`. The evaluator's masking is tested with a test
+  registry.
+- R-2 (threat generation unchanged for `not_specified`) is checked per field when it
+  gets a threat effect (stage 2, §4.3); stage-1 fields have none.
