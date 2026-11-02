@@ -47,13 +47,10 @@ export function requirementsMetBy(effect: PropertyEffect): RequirementId[] {
       rule.type !== "C" &&
       rule.targets.some(
         (target) =>
-          ((target.elementTypes as readonly string[]).includes(effect.targetType) &&
-            [...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])].some(
-              (check) => check.property === effect.property && accepts(check, effect.expectedValue),
-            )) ||
-          // P-7: the rule reads the interface the flow passes.
-          (effect.targetType === "Interface" &&
-            (target.interfaceIf ?? []).some((check) => check.property === effect.property && accepts(check, effect.expectedValue))),
+          (target.elementTypes as readonly string[]).includes(effect.targetType) &&
+          [...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])].some(
+            (check) => check.property === effect.property && accepts(check, effect.expectedValue),
+          ),
       ),
   ).map((rule) => rule.id);
 }
@@ -75,17 +72,11 @@ export function mitigationRequirements(mitigation: MitigationRequirementSource):
   ];
 }
 
-/** Element types an A / B rule checks — incl. the interfaces its flows pass (P-7); empty for C rules and rules on the component as a whole. */
+/** Element types an A / B rule checks; empty for C rules and rules on the component as a whole. */
 export function ruleElementTypes(id: RequirementId): Set<string> {
   const rule = EVIDENCE_RULES.get(id);
   if (!rule || rule.type === "C") return new Set();
-  return new Set(rule.targets.flatMap((t) => [...(t.elementTypes as readonly string[]), ...(t.interfaceIf?.length ? ["Interface"] : [])]));
-}
-
-/** Open flows of a rule that reads their interfaces leave those interfaces open too (P-7). */
-function withPassedInterfaces(id: RequirementId, open: ReadonlySet<string>): ReadonlySet<string> {
-  const readsInterfaces = EVIDENCE_RULES.get(id)?.targets.some((t) => t.interfaceIf?.length);
-  return readsInterfaces && open.has("DataFlow") ? new Set([...open, "Interface"]) : open;
+  return new Set(rule.targets.flatMap((t) => t.elementTypes as readonly string[]));
 }
 
 /**
@@ -105,11 +96,10 @@ export function suggestMitigations<T extends MitigationRequirementSource>(
     mitigationRequirements(mitigation).some((req) => {
       if (!wanted.has(req.requirementId)) return false;
       if (openElementTypes.size === 0) return true;
-      const open = withPassedInterfaces(req.requirementId, openElementTypes);
-      if (req.elementTypes) return req.elementTypes.some((type) => open.has(type));
+      if (req.elementTypes) return req.elementTypes.some((type) => openElementTypes.has(type));
       const ruleTypes = ruleElementTypes(req.requirementId);
       const effectTypes = (mitigation.affectsProperties ?? []).map((e) => e.targetType).filter((type) => ruleTypes.has(type));
-      return effectTypes.length === 0 || effectTypes.some((type) => open.has(type));
+      return effectTypes.length === 0 || effectTypes.some((type) => openElementTypes.has(type));
     }),
   );
 }

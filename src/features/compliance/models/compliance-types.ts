@@ -83,12 +83,6 @@ export interface EvidenceTarget {
   satisfiedIf?: readonly PropertyCheck[];
   /** Every one of these checks must hold (and with `satisfiedIf` when both are given). */
   satisfiedIfAll?: readonly PropertyCheck[];
-  /**
-   * DataFlow targets: satisfied when an interface the flow passes meets
-   * every check (P-7); no interface modelled on the flow → unknown. And
-   * with the other satisfaction checks when given.
-   */
-  interfaceIf?: readonly PropertyCheck[];
 }
 
 /** Checks on the element at the other end of a flow. */

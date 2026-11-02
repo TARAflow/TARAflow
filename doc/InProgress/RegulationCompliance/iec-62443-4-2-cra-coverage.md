@@ -140,7 +140,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 1.8 (l. 979) | PKI operation per best practice | 2 | d, e, f | `…Authentication` ∈ certificate, mutual_tls | — | C | — |
 | CR 1.9 (l. 1019) | public-key authentication: signature / data validity, proof of possession | 2 | d, e, f | as CR 1.8 | DF.`endpointAuthentication` ∈ certificate, mutual_tls (mechanism only) | B | — |
 | CR 1.10 (l. 1087) | obscure authentication feedback | 1 | d | human-user authentication present | — | C | — |
-| CR 1.11 (l. 1122) | limit consecutive failed logins, lock for a period / until unlocked | 1 | d | every login with a guessable authenticator (password, pairing, MFA, biometric) into an element that authenticates | (0.18, P-7) an interface the login passes: IF.ic.`abuseProtection` = lockout (rate limiting alone has no lock period); no interface modelled → unknown | A | — |
+| CR 1.11 (l. 1122) | limit consecutive failed logins, lock for a period / until unlocked | 1 | d | a login with a guessable authenticator (password, pairing, MFA, biometric) reaches an element that authenticates, or a link pairs with PIN / PSK | (0.18, F-5 `loginLockout`) the verifier locks for a period or until an admin unlocks — a delay alone has no lock; a self-authenticating link: IF.ic.`abuseProtection` = lockout | A | user 2026-11-02: the lockout belongs to the element that verifies the login, not to the port |
 | CR 1.12 (l. 1173) | configurable system-use notification before login on local HMI | 1 | — | local human UI (IF.`type` touchscreen, HMI EE) | — | C | — |
 | CR 1.13 (l. 1222) | monitor and control all access via untrusted networks | 1 | j | MP.`remoteAccessEnabled` / `exposedToInternet`; TB of type network / cloud | each such TB: `boundaryControlTypes` ∋ vpn_gateway, jump_host, authentication_gateway, firewall; TB.`monitoringEnabled` | B | — |
 | CR 1.13 RE(1) (l. 1253) | deny untrusted-network access unless explicitly approved by a role | 3 | j | as CR 1.13 | — | C | — |
@@ -305,7 +305,7 @@ Per project, from one model (consistency per EA-6-1):
 | P-3 | no "human access" marker per interface / flow | CR 1.1, 1.10, 1.12, 2.5 | derive from the connected EE type (operator, maintenance, … — external-entity-type-registry) |
 | P-4 | no log-sink / time-source markers (audit-log stores are marked: `DS.storedDataTypes` ∋ audit_logs) | CR 2.11 RE(1)/(2), 6.1 RE(1) | EE types "siem", "time_source" |
 | P-5 | secure-by-default, reset, default-credential handling not modelled | CR 1.5 a–c, 7.6, 7.9 (CRA (2)(b)) | component-level fields (K2), or C rows |
-| P-7 | which interface a flow passes is not in the reference view (`viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | **done (0.18 CM-8):** the property view carries the `interfaceIds` of the DFD graph per flow; rules read them with `EvidenceTarget.interfaceIf`; CR 1.11 is type A again |
+| P-7 | which interface a flow passes is not in the reference view (`viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | **not needed (0.18 CM-8b):** the login lockout belongs to the verifier (F-5 `loginLockout`, user 2026-11-02), not to the interface — CR 1.11 is type A without the interface link; the interface ids stay in the DFD graph |
 | P-6 | `secureErase` / `auditLogRetentionYears` from the architecture doc | CR 4.2 / EN 50742 8.5 | `DS.deletionMechanism` already covers CR 4.2 — drop `secureErase`; retention only for EN 50742 B |
 
 ## 7. Decisions and open points

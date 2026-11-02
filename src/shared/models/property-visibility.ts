@@ -121,6 +121,9 @@ const isHuman = (element: VisibilityElement | undefined): boolean =>
 
 const links = (c: VisibilityContext): readonly VisibilityLink[] => [...c.incoming, ...c.outgoing];
 
+/** Authenticators an attacker can guess online — what a lockout protects (CR 1.11). */
+const GUESSABLE_AUTHENTICATION: readonly unknown[] = ["password", "pairing", "mfa", "biometric"];
+
 /** Flows into the element whose endpoint authentication is a password. */
 const passwordFlows = (c: VisibilityContext): readonly VisibilityLink[] =>
   c.incoming.filter((l) => prop(l.flow, "endpointAuthentication") === "password");
@@ -156,6 +159,16 @@ export const MODEL_CONDITIONS = {
   humanPasswordUse: (c: VisibilityContext): boolean =>
     !deniesAuthentication(c) &&
     (passwordFlows(c).some((l) => isHuman(l.other)) || (boundaryPassword(c) && links(c).some((l) => isHuman(l.other)))),
+  /**
+   * Logins with a guessable authenticator reach the element (CR 1.11): an
+   * incoming flow with password, pairing, MFA or biometrics, or a
+   * Multiprocess's boundary password / MFA; never where the element states it
+   * does not authenticate. The element verifies them — it counts failed attempts.
+   */
+  guessableLogin: (c: VisibilityContext): boolean =>
+    !deniesAuthentication(c) &&
+    (c.incoming.some((l) => GUESSABLE_AUTHENTICATION.includes(prop(l.flow, "endpointAuthentication"))) ||
+      (c.element.type === "Multiprocess" && ["password", "mfa"].includes(prop(c.element, "boundaryAuthentication") as string))),
   /** Permissions are granted by role (authorizationModel = rbac); never where the element states it does not authenticate. */
   roleBasedAuthorization: (c: VisibilityContext): boolean =>
     !deniesAuthentication(c) && prop(c.element, "authorizationModel") === "rbac",
@@ -217,6 +230,14 @@ export const PASSWORD_LIFETIME_VALUES = ["not_specified", "none", "human_account
  * first use, or one universal default for every device.
  */
 export const DEFAULT_CREDENTIALS_VALUES = ["not_specified", "none_preinstalled", "unique_per_device", "change_enforced", "universal"] as const;
+
+/**
+ * F-5 (back, CM-8b) — CR 1.11: what the element that verifies the login does
+ * after failed attempts — nothing, a delay / rate limit, a lock for a period,
+ * a lock until an administrator unlocks. The verifier counts the attempts; a
+ * port does not see logins (user 2026-11-02).
+ */
+export const LOGIN_LOCKOUT_VALUES = ["not_specified", "none", "delay", "timed_lockout", "admin_unlock"] as const;
 
 /** F-3b — CR 1.5 item c: the authenticators can be changed / refreshed. */
 export const AUTHENTICATOR_CHANGEABLE_VALUES = ["not_specified", "yes", "no"] as const;
@@ -346,6 +367,13 @@ export const MODEL_FIELDS: readonly ModelField[] = [
     shownWhen: MODEL_CONDITIONS.componentLevel,
     // A delete function for the user only where user data is stored.
     valuesFor: (c) => (c.model?.storesUserData ? USER_DATA_DELETION_VALUES.slice(1) : ["none", "factory_reset"]),
+  },
+  {
+    property: "loginLockout",
+    group: "login",
+    elementTypes: ["Process", "Multiprocess"],
+    values: LOGIN_LOCKOUT_VALUES,
+    shownWhen: MODEL_CONDITIONS.guessableLogin,
   },
   {
     property: "roleMapping",

@@ -446,6 +446,16 @@
             "both": "Both"
           }
         },
+        "loginLockout": {
+          "label": "After failed logins",
+          "help": "What this element does after consecutive failed login attempts: nothing, a delay or rate limit, a lock for a period, or a lock until an administrator unlocks. It counts the attempts because it verifies the login — a port does not see logins. IEC 62443-4-2 CR 1.11 asks for a limit and a lock; ETSI EN 303 645 5.1-5 and EN 18031 AUM-6 also accept a delay.",
+          "values": {
+            "none": "Nothing",
+            "delay": "Delay / rate limit",
+            "timed_lockout": "Lock for a period",
+            "admin_unlock": "Lock until an administrator unlocks"
+          }
+        },
         "roleMapping": {
           "label": "Role permissions",
           "help": "With role-based authorization: can an authorised role (e.g. the administrator) define and change which permissions each role has, or are the roles and their permissions fixed in the product? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) asks for the configurable mapping.",

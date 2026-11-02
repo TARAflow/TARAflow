@@ -30,6 +30,7 @@ import type {
 import type {
   AUTHENTICATOR_CHANGEABLE_VALUES,
   DEFAULT_CREDENTIALS_VALUES,
+  LOGIN_LOCKOUT_VALUES,
   PASSWORD_LIFETIME_VALUES,
   PASSWORD_STRENGTH_VALUES,
   ROLE_MAPPING_VALUES,
@@ -58,6 +59,8 @@ export type RoleMapping = (typeof ROLE_MAPPING_VALUES)[number];
 export type DefaultCredentials = (typeof DEFAULT_CREDENTIALS_VALUES)[number];
 /** The authenticators can be changed / refreshed (CR 1.5 c). */
 export type AuthenticatorChangeable = (typeof AUTHENTICATOR_CHANGEABLE_VALUES)[number];
+/** What the verifier does after failed login attempts (CR 1.11). */
+export type LoginLockout = (typeof LOGIN_LOCKOUT_VALUES)[number];
 
 // ==================== SHARED: LIFECYCLE / CONFIGURATION (model coverage F-25, F-27) ====================
 
@@ -298,6 +301,8 @@ export interface ProcessProperties {
   defaultCredentials?: DefaultCredentials;
   /** F-3b — shown when the element authenticates. */
   authenticatorChangeable?: AuthenticatorChangeable;
+  /** F-5 — shown where logins with a guessable authenticator reach the element. */
+  loginLockout?: LoginLockout;
   /** F-27 — shown when the element is updated (updateMechanism set, not none). */
   updateDelivery?: UpdateDelivery;
   /** F-27b — shown with automatic updates. */
@@ -566,6 +571,8 @@ export interface MultiprocessProperties {
   defaultCredentials?: DefaultCredentials;
   /** F-3b — shown when the element authenticates. */
   authenticatorChangeable?: AuthenticatorChangeable;
+  /** F-5 — shown where logins with a guessable authenticator reach the element. */
+  loginLockout?: LoginLockout;
   /** F-27 — shown when the element is updated (updateMechanism set, not none). */
   updateDelivery?: UpdateDelivery;
   /** F-27b — shown with automatic updates. */
@@ -1754,7 +1761,10 @@ export interface InterfaceProperties {
      *
      * none           → No abuse protection — flooding/brute-force threat active
      * rate_limited   → Request rate capped; sustained flood mitigated
-     * lockout        → Interface locked after N failed attempts; brute-force mitigated
+     * lockout        → Pairing / link authentication locked after N failed attempts —
+     *                  only where the link authenticates itself (hasLinkAuth). Login
+     *                  lockout belongs to the verifier: Process / Multiprocess
+     *                  loginLockout (CR 1.11, user 2026-11-02).
      * flood_protection → Protocol-level flood detection (e.g. CAN bus load limiter)
      */
     abuseProtection?: "none" | "rate_limited" | "lockout" | "flood_protection";

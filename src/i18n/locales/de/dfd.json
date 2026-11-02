@@ -446,6 +446,16 @@
             "both": "Beides"
           }
         },
+        "loginLockout": {
+          "label": "Nach fehlgeschlagenen Logins",
+          "help": "Was dieses Element nach aufeinanderfolgenden fehlgeschlagenen Anmeldeversuchen tut: nichts, eine Verzögerung bzw. Ratenbegrenzung, eine Sperre für eine Zeit oder eine Sperre bis zur Freigabe durch einen Administrator. Es zählt die Versuche, weil es die Anmeldung prüft — ein Port sieht keine Logins. IEC 62443-4-2 CR 1.11 verlangt Grenze und Sperre; ETSI EN 303 645 5.1-5 und EN 18031 AUM-6 akzeptieren auch eine Verzögerung.",
+          "values": {
+            "none": "Nichts",
+            "delay": "Verzögerung / Ratenbegrenzung",
+            "timed_lockout": "Sperre für eine Zeit",
+            "admin_unlock": "Sperre bis zur Freigabe durch den Admin"
+          }
+        },
         "roleMapping": {
           "label": "Rollen-Berechtigungen",
           "help": "Bei rollenbasierter Autorisierung: Kann eine berechtigte Rolle (z. B. der Administrator) festlegen und ändern, welche Rechte jede Rolle hat, oder sind Rollen und Rechte im Produkt fest vorgegeben? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) verlangt die konfigurierbare Zuordnung.",

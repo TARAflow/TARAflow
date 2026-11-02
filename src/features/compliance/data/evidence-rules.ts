@@ -104,14 +104,21 @@ const WITHOUT_AUTHENTICATION_FOR_HUMANS = [
   },
 ] as const;
 
-/** Logins with an authenticator that can be guessed — the ones a lockout protects (CR 1.11). */
-const GUESSABLE_LOGINS = {
-  elementTypes: ["DataFlow"],
-  appliesIf: [{ property: "endpointAuthentication", in: ["password", "pairing", "mfa", "biometric"] }],
-} as const;
-
-/** The interface locks after consecutive failed attempts (limit and lock period). */
-const LOCKOUT = [{ property: "implementedControls.abuseProtection", in: ["lockout"] }] as const;
+/** Some login with a guessable authenticator reaches an element that authenticates, or a link pairs with PIN / PSK (CR 1.11). */
+const GUESSABLE_LOGIN_USE = [
+  {
+    elementTypes: ["DataFlow"],
+    appliesIf: [{ property: "endpointAuthentication", in: ["password", "pairing", "mfa", "biometric"] }],
+    endpointIf: { elementTypes: ["Process"], checks: [{ property: "authenticationRequired", notIn: ["not_specified", "no"] }] },
+  },
+  {
+    elementTypes: ["DataFlow"],
+    appliesIf: [{ property: "endpointAuthentication", in: ["password", "pairing", "mfa", "biometric"] }],
+    endpointIf: { elementTypes: ["Multiprocess"], checks: [{ property: "boundaryAuthentication", notIn: ["not_specified", "none"] }] },
+  },
+  { elementTypes: ["Multiprocess"], appliesIf: [{ property: "boundaryAuthentication", in: ["password", "mfa"] }] },
+  { elementTypes: ["Interface"], appliesIf: [{ property: "implementedControls.linkAuthentication", in: ["pairing", "pre_shared_key"] }] },
+] as const;
 
 /** The elements that verify a password and carry the password fields (F-2). */
 const PASSWORD_VERIFIERS = { elementTypes: ["Process", "Multiprocess"] } as const;
@@ -320,15 +327,22 @@ const RULES = [
   { id: "cr-1.9-re1", type: "A", appliesWhen: PUBLIC_KEY_USE, targets: AUTHENTICATORS_IN_HARDWARE },
   { id: "cr-1.10", type: "C", targets: [HUMAN_ACCESS_FLOWS] },
   {
-    // P-7 (CM-8): every login with a guessable authenticator into an element
-    // that authenticates passes an interface that locks after failed attempts
-    // — CR 1.11 asks for a limit and a lock period, so rate limiting alone
-    // does not meet it. A flow without a modelled interface is unknown.
+    // F-5 (CM-8b, user 2026-11-02): the element that verifies a guessable
+    // login counts the failed attempts and locks — for a period or until an
+    // administrator unlocks; a delay alone has no lock (CR 1.11 asks for limit
+    // and lock). A link that authenticates itself (PIN / PSK pairing) locks
+    // the pairing attempts on the interface.
     id: "cr-1.11",
     type: "A",
+    // n/a only where no guessable login is modelled; logins not decided yet → unknown.
+    appliesWhen: GUESSABLE_LOGIN_USE,
     targets: [
-      { ...GUESSABLE_LOGINS, endpointIf: { elementTypes: ["Process"], checks: PROCESS_WITH_AUTH.appliesIf }, interfaceIf: LOCKOUT },
-      { ...GUESSABLE_LOGINS, endpointIf: { elementTypes: ["Multiprocess"], checks: MULTIPROCESS_WITH_AUTH.appliesIf }, interfaceIf: LOCKOUT },
+      { ...PASSWORD_VERIFIERS, when: ["guessableLogin"], satisfiedIf: [{ property: "loginLockout", in: ["timed_lockout", "admin_unlock"] }] },
+      {
+        elementTypes: ["Interface"],
+        appliesIf: [{ property: "implementedControls.linkAuthentication", in: ["pairing", "pre_shared_key"] }],
+        satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["lockout"] }],
+      },
     ],
   },
   {

@@ -35,13 +35,13 @@ const WORDS = {
     noModel: "Not derivable from the model — a statement, a mitigation of the risk treatment or a claim meets it.",
     wholeComponent: "the component as a whole",
     crossesComponent: "across the component border (not human input, not physical coupling)",
-    viaInterface: "passing an interface with",
     conditions: {
       authenticates: "that authenticates",
       humanUsers: "with human users",
       passwordInUse: "that a password reaches",
       humanPasswordUse: "where humans log in with a password",
       roleBasedAuthorization: "with role-based authorization",
+      guessableLogin: "that logins with a guessable authenticator reach",
       componentLevel: "that stands for the component (a multiprocess, or the process under evaluation)",
       updatable: "that is updated",
       automaticUpdates: "that installs updates automatically",
@@ -63,13 +63,13 @@ const WORDS = {
     noModel: "Nicht aus dem Modell ableitbar — eine Aussage, eine Massnahme der Risikobehandlung oder ein Claim erfüllt sie.",
     wholeComponent: "die Komponente als Ganzes",
     crossesComponent: "über die Komponentengrenze (keine menschliche Eingabe, keine physische Kopplung)",
-    viaInterface: "über ein Interface mit",
     conditions: {
       authenticates: "das authentifiziert",
       humanUsers: "mit menschlichen Benutzern",
       passwordInUse: "das ein Passwort erreicht",
       humanPasswordUse: "bei dem sich Menschen mit Passwort anmelden",
       roleBasedAuthorization: "mit rollenbasierter Autorisierung",
+      guessableLogin: "das Logins mit erratbarem Merkmal erreichen",
       componentLevel: "das für die Komponente steht (ein Multiprocess oder der bewertete Process)",
       updatable: "das aktualisiert wird",
       automaticUpdates: "das Updates automatisch installiert",
@@ -103,8 +103,7 @@ function targetText(target: EvidenceTarget, quantifier: string, w: (typeof WORDS
   const head = parts.join(" ");
   const anyOf = target.satisfiedIf?.length ? target.satisfiedIf.map((c) => checkText(c, w)).join(` ${w.or} `) : "";
   const allOf = target.satisfiedIfAll?.length ? target.satisfiedIfAll.map((c) => checkText(c, w)).join(` ${w.and} `) : "";
-  const via = target.interfaceIf?.length ? `${w.viaInterface} ${target.interfaceIf.map((c) => checkText(c, w)).join(` ${w.and} `)}` : "";
-  const condition = [anyOf, allOf, via].filter(Boolean).join(` ${w.and} `);
+  const condition = [anyOf, allOf].filter(Boolean).join(` ${w.and} `);
   return condition ? `${head}: ${condition}` : head;
 }
 

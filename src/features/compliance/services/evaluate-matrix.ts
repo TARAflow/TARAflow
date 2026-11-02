@@ -95,8 +95,6 @@ interface Graph {
   scope: ReadonlySet<string>;
   /** Element / flow id → what the model conditions see of it (EvidenceTarget.when). */
   contextOf: (id: string) => VisibilityContext | undefined;
-  /** Flow id → the interfaces it passes (P-7). */
-  flowInterfaces: Map<string, readonly string[]>;
 }
 
 function buildGraph(input: ComplianceInput): Graph {
@@ -126,7 +124,6 @@ function buildGraph(input: ComplianceInput): Graph {
     blackBoxes: input.view.blackBoxes ?? new Set(),
     scope: input.scope,
     contextOf: visibilityContexts(view.elements, view.flows, options),
-    flowInterfaces: new Map(view.flows.filter((f) => f.interfaceIds).map((f) => [f.id, f.interfaceIds!])),
   };
 }
 
@@ -180,21 +177,10 @@ function applicable(graph: Graph, element: ViewElement, target: EvidenceTarget):
   return and(parts);
 }
 
-function satisfied(graph: Graph, element: ViewElement, target: EvidenceTarget, typeA: boolean): Tri {
-  const parts: Tri[] = [];
-  if (target.satisfiedIf?.length) parts.push(or(target.satisfiedIf.map((c) => evaluateCheck(element, c, typeA))));
-  if (target.satisfiedIfAll?.length) parts.push(and(target.satisfiedIfAll.map((c) => evaluateCheck(element, c, typeA))));
-  if (target.interfaceIf?.length) parts.push(viaInterface(graph, element, target.interfaceIf, typeA));
-  return parts.length > 0 ? and(parts) : "no";
-}
-
-/** A flow passes an interface that meets every check (P-7); none modelled → unknown. */
-function viaInterface(graph: Graph, flow: ViewElement, checks: readonly PropertyCheck[], typeA: boolean): Tri {
-  const interfaces = (graph.flowInterfaces.get(flow.id) ?? [])
-    .map((id) => graph.elements.get(id))
-    .filter((e): e is ViewElement => !!e);
-  if (interfaces.length === 0) return "unknown";
-  return or(interfaces.map((i) => and(checks.map((c) => evaluateCheck(i, c, typeA)))));
+function satisfied(element: ViewElement, target: EvidenceTarget, typeA: boolean): Tri {
+  if (!target.satisfiedIfAll?.length) return or((target.satisfiedIf ?? []).map((c) => evaluateCheck(element, c, typeA)));
+  const all = and(target.satisfiedIfAll.map((c) => evaluateCheck(element, c, typeA)));
+  return target.satisfiedIf?.length ? and([or(target.satisfiedIf.map((c) => evaluateCheck(element, c, typeA))), all]) : all;
 }
 
 // ==================== ONE REQUIREMENT ====================
@@ -298,7 +284,7 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
   if (rule.type === "C") {
     model = outcome("needs-statement");
   } else {
-    const results = applicableYes.map(({ element, target }) => ({ id: element.id, tri: satisfied(graph, element, target, typeA) }));
+    const results = applicableYes.map(({ element, target }) => ({ id: element.id, tri: satisfied(element, target, typeA) }));
     const yes = results.filter((r) => r.tri === "yes").map((r) => r.id);
     const no = results.filter((r) => r.tri === "no").map((r) => r.id);
     const unknown = [...results.filter((r) => r.tri === "unknown").map((r) => r.id), ...applicableUnknown];
@@ -364,7 +350,7 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
   if (rule.type !== "C" && rule.quantifier === "any") {
     const supporting = rule.targets.flatMap((target) =>
       candidates(graph, target, inScope, false)
-        .filter((e) => applicable(graph, e, target) === "yes" && satisfied(graph, e, target, typeA) === "yes")
+        .filter((e) => applicable(graph, e, target) === "yes" && satisfied(e, target, typeA) === "yes")
         .map((e) => e.id),
     );
     if (supporting.length > 0) return { ...model, status: "met", source: "supporting-measure", supporting };

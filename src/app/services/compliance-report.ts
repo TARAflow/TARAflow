@@ -174,11 +174,7 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
   const view = buildPropertyView({
     analysisElements: analysis.elements as unknown as ViewElement[],
     allElements: dfd.elements as ViewElement[],
-    // P-7: the interfaces each flow passes, from the DFD graph.
-    flows: (analysis.validationConnections as unknown as ViewFlow[]).map((flow) => {
-      const interfaceIds = graph.dataFlowAnalysis?.get(flow.id)?.interfaceIds as string[] | undefined;
-      return interfaceIds?.length ? { ...flow, interfaceIds } : flow;
-    }),
+    flows: analysis.validationConnections as unknown as ViewFlow[],
     fallbackContained,
   });
   const componentId = project.compliance?.componentId;

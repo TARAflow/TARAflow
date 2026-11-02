@@ -940,7 +940,13 @@ const InterfaceGeneralTab: React.FC<InterfaceGeneralTabProps> = ({
                         [
                           "none",
                           "rate_limited",
-                          "lockout",
+                          // Locking after failed attempts belongs to the element that verifies the
+                          // login (the lockout field of the Process / Multiprocess, CR 1.11) — here only where the
+                          // link authenticates itself (pairing); a stored value stays selectable.
+                          ...(INTERFACE_TYPE_META[props.type ?? "custom"]?.hasLinkAuth ||
+                          props.implementedControls?.abuseProtection === "lockout"
+                            ? (["lockout"] as const)
+                            : []),
                           "flood_protection",
                         ] as const
                       ).map((opt) => (

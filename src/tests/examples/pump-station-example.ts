@@ -142,6 +142,8 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     // Shipped with a default password whose change is enforced at the first login (CR 1.5).
     defaultCredentials: "change_enforced",
     authenticatorChangeable: "yes",
+    // Five failed logins lock the account for 15 minutes (CR 1.11).
+    loginLockout: "timed_lockout",
   }),
   "MP-1": as<MultiprocessProperties>({
     systemClass: "embedded_controller",
@@ -167,6 +169,8 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     // Device password and key unique per controller, set in production (CR 1.5).
     defaultCredentials: "unique_per_device",
     authenticatorChangeable: "yes",
+    // Technician and engineering logins lock after five failed attempts for 15 minutes (CR 1.11).
+    loginLockout: "timed_lockout",
     // Signed updates installed on the operator's request or in a maintenance
     // window (prAA CR 3.10 RE(2) c); a secure-defaults profile, the current
     // settings readable on the HMI (CR 7.6).
@@ -209,8 +213,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     location: "network_port",
     operationalState: "enabled",
     ...exposure("EL3", "Connected to the plant control network."),
-    // Logins over the network (engineering workstation, DF-7) lock after five failed attempts for 15 minutes (CR 1.11).
-    implementedControls: { linkAuthentication: "certificate_based", abuseProtection: "lockout", serviceAccessPolicy: "always_enabled" },
+    implementedControls: { linkAuthentication: "certificate_based", abuseProtection: "rate_limited", serviceAccessPolicy: "always_enabled" },
   }),
   "IF-4": as<InterfaceProperties>({
     type: "rs485",
@@ -705,7 +708,7 @@ const statement = (status: ComplianceStatement["status"], reasoning: string, evi
 export const STATEMENTS: Record<string, ComplianceStatement> = {
   // CR 1.1 RE(1) and CR 1.7 come from the model (userAccounts, passwordStrength, passwordLifetime).
   "CR 1.10": statement("met", "PIN and password entry on the touch panel is masked."),
-  // CR 1.11 comes from the model: every password login passes an interface that locks (IF-1, IF-2, IF-3).
+  // CR 1.11 comes from the model: the HMI and the PLC lock after failed logins (loginLockout).
   "CR 1.12": statement("met", "The HMI shows a configurable notice before the login screen."),
   "CR 2.4": statement("n/a", "Neither the PLC nor the HMI runtime loads scripts, plug-ins or other mobile code."),
   "CR 2.4 RE(1)": statement("n/a", "No mobile code (see CR 2.4)."),

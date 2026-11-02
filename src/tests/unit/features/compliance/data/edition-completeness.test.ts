@@ -34,7 +34,7 @@ function countTypes(edition: Edition, filter: (label: string) => boolean): Recor
 }
 
 const hasSatisfiedIf = (rule: EvidenceRule) =>
-  rule.targets.some((t) => (t.satisfiedIf?.length ?? 0) > 0 || (t.satisfiedIfAll?.length ?? 0) > 0 || (t.interfaceIf?.length ?? 0) > 0);
+  rule.targets.some((t) => (t.satisfiedIf?.length ?? 0) > 0 || (t.satisfiedIfAll?.length ?? 0) > 0);
 
 describe("IEC 62443-4-2 evidence rules", () => {
   it("one rule per requirement id, no rule without an id", () => {

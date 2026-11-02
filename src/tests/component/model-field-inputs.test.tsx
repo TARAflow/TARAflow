@@ -52,9 +52,10 @@ function renderFields(properties: Record<string, unknown>, flows: VisibilityFlow
 const passwordLogin: VisibilityFlowInput = { id: "f", from: "op", to: "p", properties: { endpointAuthentication: "password" } };
 
 describe("model fields in the Security sub-tabs", () => {
-  it("a process with a password login from an operator: accounts, both password fields and the authenticator fields under login, five open", () => {
+  it("a process with a password login from an operator: accounts, password, authenticator and lockout fields under login, six open", () => {
     renderFields({ authenticationRequired: "yes" }, [passwordLogin]);
-    expect(screen.getByTestId("security-tab-login").textContent).toBe("Login & accounts (5)");
+    expect(screen.getByTestId("security-tab-login").textContent).toBe("Login & accounts (6)");
+    expect(screen.getByTestId("model-field-loginLockout")).toBeTruthy();
     expect(screen.getByTestId("model-field-defaultCredentials")).toBeTruthy();
     expect(screen.getByTestId("model-field-authenticatorChangeable")).toBeTruthy();
     expect(screen.getByTestId("model-field-userAccounts")).toBeTruthy();

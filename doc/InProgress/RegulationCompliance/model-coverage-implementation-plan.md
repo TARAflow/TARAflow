@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.16 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-8 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.17 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-8b done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -150,7 +150,7 @@ These hold for every field of §4 and are tested once, generically.
 
 | § 11 field | Proposal | Reason |
 |---|---|---|
-| F-5 `loginAttemptLimit` | **drop**; close P-7 instead (carry `interfaceIds` of the flow into the property view, read the existing `Interface.implementedControls.abuseProtection` = `lockout`) | R-5 — the capability already exists on the interface. v0.2: CR 1.11 needs a limit **and** a denial period → `lockout` only; EN 303 645 5.1-5 and EN 18031 AUM-6 accept rate limiting → `rate_limited` or `lockout` |
+| F-5 `loginAttemptLimit` | **v0.17: back as `loginLockout` on the verifier** (user 2026-11-02, reverses this triage): the element that checks the login counts the failed attempts; a port sees no logins. `abuseProtection` on the interface keeps rate limiting / flood protection (CR 7.1) and the lockout of a self-authenticating link (pairing). v0.1–v0.16: dropped in favour of the interface field via P-7 | R-5 was applied to the wrong source — the interface field answered a different question (protocol abuse), so one value could not hold both rate limiting (CR 7.1 RE(1)) and lockout (CR 1.11) |
 | F-2 `passwordPolicy` | **split** (v0.2): `passwordStrength` and `passwordLifetime` | strength (CR 1.7) and lifetime (CR 1.7 RE(1)/RE(2)) are separate rows; prAA voids RE(1) and narrows RE(2) to software processes and devices |
 | F-3 `defaultCredentials` | **add** `authenticatorChangeable` as F-3b (v0.2, K-12) | mandatory in EN 303 645 (5.1-4) and EN 18031 (AUM-4); CR 1.5 item c |
 | F-27 `updateNotification` | **rename** `updateDelivery`, values after CR 3.10 RE(2) a/b/c; **add** `updateDefaults` as F-27b (v0.2, K-12) | RE(2) accepts any of automatic / notification / on request or schedule; the CRA asks more (enabled by default, opt-out, postpone) |
@@ -414,6 +414,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-7a | F-22 (user data deletion), CR 7.9 for every component (**done**, see §10.1) | CM-5 | A |
 | CM-7b | ~~F-28 support data on the project (Overview), report header~~ — **withdrawn** (user 2026-11-02: documentation, not TARA; patch 13 reverted, see §10.1) | CM-7a | A |
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) (**done**, see §10.1) | CM-1 | A |
+| CM-8b | F-5 `loginLockout` on the verifier; CR 1.11 from it; the interface link of CM-8 removed (user 2026-11-02) (**done**, see §10.1) | CM-8 | A |
 | CM-9 | report: one chapter per active standard | CM-2 | A |
 | CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
 | CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) | CM-2, CM-3 | A |
@@ -757,3 +758,31 @@ not part of the documentation? Decided: dropped, patch 13 reverted.
   the model shows it.
 - Tests: CR 1.11 per interface value, without interface, not guessable, not
   authenticating; mitigation derivation and suggestion via the interface; example.
+
+**CM-8b (done, 2026-11-02).** User question after CM-8: does the security property
+belong to IF-3 or to the process that uses IF-3? Answer: the login lockout belongs to
+the element that verifies the login — it counts the failed attempts per account; the
+port sees packets, not logins (as decided in Phase A1: authentication on the flow and
+the verifier, link authentication on the interface). CM-8 had followed the §4.1
+triage (K-11: F-5 dropped in favour of the interface field) and exposed its flaw:
+`abuseProtection` is one value, so an Ethernet port could not have rate limiting
+(CR 7.1 RE(1)) and lockout (CR 1.11) at once. Decided: lockout on the process.
+
+- F-5 back as `loginLockout` (none · delay / rate limit · lock for a period · lock
+  until an administrator unlocks) on Process and Multiprocess, tab "Login &
+  accounts", shown where a guessable login arrives (condition `guessableLogin`:
+  incoming password / pairing / MFA / biometric flow, or a boundary password / MFA).
+- CR 1.11 A: the verifier locks (period or admin unlock; a delay has no lock); a link
+  that authenticates itself with PIN / PSK pairing locks on the interface. A
+  three-valued precondition: n/a only where no guessable login is modelled, logins not
+  decided yet → unknown.
+- Interface `abuseProtection`: "lockout" is offered only for link-authenticating types
+  (Bluetooth, Wi-Fi, NFC; a stored value stays); rate limiting and flood protection as
+  before. Threat generation unchanged (R-2): it still reads the interface lockout for
+  brute-force spoofing; the new field gets its threat effect in stage 2.
+- The CM-8 mechanism (`ViewFlow.interfaceIds`, `EvidenceTarget.interfaceIf`, the
+  mitigation mapping via interfaces) is removed again — no rule needs it.
+- Pump Station example: IF-3 back to rate limiting; P-1 and MP-1 lock for a period
+  after failed logins; CR 1.11 from the model.
+- Tests: CR 1.11 per value and edition, unstated / undecided (unknown), no guessable
+  login (n/a), pairing link; visibility; Interface form values.

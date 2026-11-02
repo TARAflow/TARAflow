@@ -20,6 +20,7 @@ const passwordLifetime = modelField("passwordLifetime")!;
 const roleMapping = modelField("roleMapping")!;
 const defaultCredentials = modelField("defaultCredentials")!;
 const authenticatorChangeable = modelField("authenticatorChangeable")!;
+const loginLockout = modelField("loginLockout")!;
 
 const operator: VisibilityElement = { id: "op", type: "ExternalEntity", properties: { entityType: "operator" } };
 const scada: VisibilityElement = { id: "scada", type: "ExternalEntity", properties: { entityType: "scada_hmi" } };
@@ -126,5 +127,16 @@ describe("F-3 defaultCredentials / F-3b authenticatorChangeable: the element aut
 
   it("changeable is three-valued (R-1)", () => {
     expect(authenticatorChangeable.values).toEqual(["not_specified", "yes", "no"]);
+  });
+});
+
+describe("F-5 loginLockout on the verifier (CM-8b)", () => {
+  it("shown where a guessable login arrives; not for certificates, outgoing logins or an element without authentication", () => {
+    expect(isFieldShown(loginLockout, contextOf(process({}), [flow("f", "op", "p", "password")]))).toBe(true);
+    expect(isFieldShown(loginLockout, contextOf(process({}), [flow("f", "scada", "p", "pairing")]))).toBe(true);
+    expect(isFieldShown(loginLockout, contextOf(system({ boundaryAuthentication: "mfa" }), []))).toBe(true);
+    expect(isFieldShown(loginLockout, contextOf(process({}), [flow("f", "op", "p", "certificate")]))).toBe(false);
+    expect(isFieldShown(loginLockout, contextOf(process({}), [flow("f", "p", "scada", "password")]))).toBe(false);
+    expect(isFieldShown(loginLockout, contextOf(process({ authenticationRequired: "no" }), [flow("f", "op", "p", "password")]))).toBe(false);
   });
 });
