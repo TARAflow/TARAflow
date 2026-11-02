@@ -102,7 +102,7 @@ const ROWS: readonly EditionRow[] = [
   { label: "CR 7.3 RE(1)", fr: "RA", minSl: 2, requirementIds: ["cr-7.3-re1"], supportingMeasuresAllowed: true, cra: ["f", "h", "m"], sourceLine: 3646 },
   { label: "CR 7.4", fr: "RA", minSl: 1, requirementIds: ["cr-7.4"], supportingMeasuresAllowed: false, cra: ["b", "m"], sourceLine: 3674 },
   { label: "CR 7.5", fr: "RA", minSl: null, requirementIds: [], void: "no component requirement (emergency power, system level)", supportingMeasuresAllowed: false, sourceLine: 3713 },
-  { label: "CR 7.6", fr: "RA", minSl: 1, requirementIds: ["cr-7.6"], supportingMeasuresAllowed: false, cra: ["b", "k", "l"], sourceLine: 3715 },
+  { label: "CR 7.6", fr: "RA", minSl: 1, requirementIds: ["cr-7.6"], supportingMeasuresAllowed: false, cra: ["b", "k"], sourceLine: 3715 },
   { label: "CR 7.6 RE(1)", fr: "RA", minSl: 3, requirementIds: ["cr-7.6-re1"], supportingMeasuresAllowed: false, cra: ["b", "k"], sourceLine: 3744 },
   { label: "CR 7.7", fr: "RA", minSl: 1, requirementIds: ["cr-7.7"], supportingMeasuresAllowed: false, cra: ["b", "j", "k"], sourceLine: 3770 },
   { label: "CR 7.8", fr: "RA", minSl: 2, requirementIds: ["cr-7.8"], supportingMeasuresAllowed: false, sourceLine: 3808 },

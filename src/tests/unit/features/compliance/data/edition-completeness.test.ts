@@ -109,6 +109,30 @@ describe("CRA edition (prAA) reproduces iec-62443-4-2-cra-coverage.md §4", () =
     }
   });
 
+  it("names only CRA requirements that Annex ZZ maps to the row's CR", () => {
+    // Table ZZ.1 of the draft lists subclauses; here as CRs (subclause 5.3 = CR 1.1,
+    // 11.8 = CR 7.6, …) — iec-62443-4-2-cra-coverage.md §3.
+    const ZZ: Record<string, string> = {
+      b: "1.5 3.14 4.2 7.4 7.6 7.7 7.9",
+      c: "3.10",
+      d: "1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 1.10 1.11 2.1 2.2 2.5 2.6 2.13 3.11 3.13 4.3 6.1 6.2",
+      e: "1.2 1.8 1.9 2.13 3.11 3.13 4.1 4.2 4.3",
+      f: "1.8 1.9 2.8 2.11 2.13 3.1 3.4 3.8 3.10 3.11 3.12 3.13 3.14 4.3 7.3",
+      h: "2.7 2.9 2.10 3.5 7.1 7.2 7.3",
+      i: "2.8 3.5 3.6 5.1 5.2 7.1",
+      j: "1.13 2.4 2.5 2.6 2.8 3.5 5.1 5.2 7.7",
+      k: "3.2 3.4 3.6 3.7 7.1 7.2 7.6 7.7",
+      l: "2.8 2.10 3.4 6.1 6.2",
+      m: "4.1 4.2 4.3 7.3 7.4",
+    };
+    for (const row of EDITION_PRAA_2026.rows) {
+      const cr = row.label.split(" ")[1];
+      for (const letter of row.cra ?? []) {
+        expect(ZZ[letter]?.split(" "), `${row.label} (2)(${letter})`).toContain(cr);
+      }
+    }
+  });
+
   it("CR 4.1 is split into transit and rest (content differs from 2019)", () => {
     const ids = (label: string) => EDITION_PRAA_2026.rows.find((r) => r.label === label)?.requirementIds;
     expect(ids("CR 4.1")).toEqual(["cr-4.1-transit"]);
