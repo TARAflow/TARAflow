@@ -764,7 +764,9 @@ whatever the tags. A statement stays possible for every matrix row.
 ETSI EN 303 645 (consumer IoT) and EN 18031-1 / -2 / -3 (RED delegated act). The
 columns below map them **preliminarily** — from the structure of these standards,
 not from their text, which is not in the repository yet; to be verified once the
-texts are available (licensed, never committed, paraphrased only).
+texts are available (licensed, never committed, paraphrased only). **Verified 2026-11-02**
+against ETSI EN 303 645 V2.1.1 and FprEN 18031-1/-2/-3: the corrected columns are in
+`model-coverage-implementation-plan.md` §4.4 and supersede the two "prelim." columns below.
 
 | # | Field (element) | Shown when (element logic) | Values | IEC 62443-4-2 (type after) | EN 303 645 (prelim.) | EN 18031 (prelim.) |
 |---|---|---|---|---|---|---|
