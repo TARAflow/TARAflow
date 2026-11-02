@@ -92,6 +92,8 @@ export interface ComplianceInput {
   view: PropertyView;
   /** Element ids of the component and its descendants (D-7); flows touching them are in scope too. */
   scope: ReadonlySet<string>;
+  /** The component under evaluation — model fields of the whole component are read on it (CM-6). */
+  componentId?: string;
   run: EvaluationRun;
   /** Keyed by row label. */
   statements?: Readonly<Record<string, RowStatement>>;

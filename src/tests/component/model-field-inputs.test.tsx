@@ -70,9 +70,10 @@ describe("model fields in the Security sub-tabs", () => {
     expect(screen.queryByTestId("model-field-userAccounts")).toBeNull();
   });
 
-  it("no authentication decided yet, certificate login: no field, no tab", () => {
+  it("no authentication decided yet, certificate login: no login field — only the component's settings (no multiprocess in the model)", () => {
     renderFields({}, [{ ...passwordLogin, properties: { endpointAuthentication: "certificate" } }]);
-    expect(screen.queryByTestId("security-tabs")).toBeNull();
+    expect(screen.queryByTestId("security-tab-login")).toBeNull();
+    expect(screen.getByTestId("security-tab-operation").textContent).toBe("Operation (2)");
   });
 
   it("only the fitting lifetime values; a choice is passed on", () => {

@@ -99,7 +99,8 @@ interface Graph {
 
 function buildGraph(input: ComplianceInput): Graph {
   // R-4: a model field its driver hides reads as unset in every check.
-  const view = withoutHiddenFields(input.view.elements, input.view.flows, MODEL_FIELDS);
+  const options = { componentId: input.componentId };
+  const view = withoutHiddenFields(input.view.elements, input.view.flows, MODEL_FIELDS, options);
   const elements = new Map(view.elements.map((e) => [e.id, e]));
   const flowElements = new Map<string, ViewElement>();
   const neighbours = new Map<string, Set<string>>();
@@ -122,7 +123,7 @@ function buildGraph(input: ComplianceInput): Graph {
     fallbackContained: input.view.fallbackContained ?? new Set(),
     blackBoxes: input.view.blackBoxes ?? new Set(),
     scope: input.scope,
-    contextOf: visibilityContexts(view.elements, view.flows),
+    contextOf: visibilityContexts(view.elements, view.flows, options),
   };
 }
 
@@ -177,7 +178,9 @@ function applicable(graph: Graph, element: ViewElement, target: EvidenceTarget):
 }
 
 function satisfied(element: ViewElement, target: EvidenceTarget, typeA: boolean): Tri {
-  return or((target.satisfiedIf ?? []).map((c) => evaluateCheck(element, c, typeA)));
+  if (!target.satisfiedIfAll?.length) return or((target.satisfiedIf ?? []).map((c) => evaluateCheck(element, c, typeA)));
+  const all = and(target.satisfiedIfAll.map((c) => evaluateCheck(element, c, typeA)));
+  return target.satisfiedIf?.length ? and([or(target.satisfiedIf.map((c) => evaluateCheck(element, c, typeA))), all]) : all;
 }
 
 // ==================== ONE REQUIREMENT ====================

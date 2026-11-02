@@ -834,7 +834,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
               </>
             ),
           },
-          ...modelFieldEntries,
           // Malware Protection — CR 3.2 / EDR/HDR/NDR 3.2
           // Options filtered per systemClass: AV requires general-purpose OS
           {
@@ -1121,6 +1120,8 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
               </>
             ),
           },
+          // Model coverage fields last in each tab — after the settings that show them.
+          ...modelFieldEntries,
         ]}
       />
 

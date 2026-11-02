@@ -167,6 +167,12 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     // Device password and key unique per controller, set in production (CR 1.5).
     defaultCredentials: "unique_per_device",
     authenticatorChangeable: "yes",
+    // Signed updates installed on the operator's request or in a maintenance
+    // window (prAA CR 3.10 RE(2) c); a secure-defaults profile, the current
+    // settings readable on the HMI (CR 7.6).
+    updateDelivery: "on_request_or_scheduled",
+    secureByDefault: "yes",
+    securityConfigReporting: "readable_interface",
     exposedToInternet: false,
     airGapped: false,
   }),
@@ -709,7 +715,7 @@ export const STATEMENTS: Record<string, ComplianceStatement> = {
   "CR 3.13": statement("not-met", "Trust anchors are provisioned by the vendor at production; owner provisioning is planned for firmware 2.0."),
   "CR 6.1": statement("met", "The audit log can be read, read-only, over OPC UA by the maintenance role and exported as CSV."),
   "CR 7.3 RE(1)": statement("met", "Configuration backups carry a signature that is checked before a restore.", "Service manual §5.3"),
-  "CR 7.6": statement("met", "A secure-defaults profile can be applied from the HMI; the current settings can be viewed there."),
+  // CR 7.6 comes from the model (secureByDefault, securityConfigReporting on MP-1).
 };
 
 /** Statements on rows only the classic edition (2019) has. */

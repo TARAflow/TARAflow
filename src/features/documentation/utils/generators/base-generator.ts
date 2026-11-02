@@ -756,6 +756,7 @@ export abstract class BaseDocumentGenerator {
     const contextOf = visibilityContexts(
       elements as unknown as VisibilityElement[],
       connections as unknown as VisibilityFlowInput[],
+      { componentId: project.complianceComponentId },
     );
 
     // Overview table. Leveled DFD (7b): the overview is the element table of

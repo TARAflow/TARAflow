@@ -210,6 +210,7 @@ export function transformProjectToDocData(
     attackTree: project.attackTrees ?? null,
     ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
     ...(project.cybersecurityConcept ? { cybersecurityConcept: project.cybersecurityConcept } : {}),
+    ...(project.compliance?.componentId ? { complianceComponentId: project.compliance.componentId } : {}),
 
     // Computed values (performance optimization)
     computed: computeDocValues(project, language),

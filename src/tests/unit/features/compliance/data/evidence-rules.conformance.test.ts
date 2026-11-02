@@ -85,7 +85,8 @@ type ForEachType<E, C> = E extends ElementType ? CheckViolation<E, C> : never;
 
 type ChecksOf<T> =
   | (T extends { readonly appliesIf: readonly (infer C)[] } ? C : never)
-  | (T extends { readonly satisfiedIf: readonly (infer C)[] } ? C : never);
+  | (T extends { readonly satisfiedIf: readonly (infer C)[] } ? C : never)
+  | (T extends { readonly satisfiedIfAll: readonly (infer C)[] } ? C : never);
 
 type TargetViolation<T> =
   | (T extends { readonly elementTypes: readonly (infer E)[] } ? ForEachType<E, ChecksOf<T>> : never)
@@ -166,6 +167,7 @@ describe("evidence rules conformance", () => {
         const checks = [
           ...(target.appliesIf ?? []),
           ...(target.satisfiedIf ?? []),
+          ...(target.satisfiedIfAll ?? []),
           ...(target.endpointIf?.checks ?? []),
           ...(target.connectedIf?.checks ?? []),
         ];

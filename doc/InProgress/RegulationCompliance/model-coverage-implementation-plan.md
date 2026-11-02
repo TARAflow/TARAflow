@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.12 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-5d done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.13 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-6 done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -410,7 +410,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-5c | `userAccounts` per role; F-29 `roleMapping`, CR 2.1 RE(2) corrected (user 2026-11-02) (**done**, see §10.1) | CM-5a | A |
 | CM-5d | light sub-tabs per category under the Security divider of the Process / Multiprocess forms, open-field count per tab, tabs without fields hidden; context predicates for existing fields where they match the rule's applicability (user 2026-11-02) (**done**, see §10.1) | CM-5c | A |
 | CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) (**done**, see §10.1) | CM-5a | A |
-| CM-6 | F-27, F-25a, F-25b (lifecycle / configuration) | CM-5 | A |
+| CM-6 | F-27, F-27b, F-25a, F-25b (lifecycle / configuration) (**done**, see §10.1) | CM-5 | A |
 | CM-7 | F-22, F-28 (data deletion, support data) | CM-5 | A |
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
 | CM-9 | report: one chapter per active standard | CM-2 | A |
@@ -648,3 +648,40 @@ have role-based logins and RBAC — how does the model show it?
 - Tests: answers per value (met / open item / gap), any-quantifier, German open items,
   visibility, golden (unset fields keep the whole checklist, never a gap), conformance
   negative case for an unknown answer path.
+
+**CM-6 (done, 2026-11-02).** Texts checked: prAA CR 3.10 RE(2) (a automatic loading,
+b notification, c on request or schedule; recovery is a "should"), CR 7.6 a) secure by
+default, b) interface to the deployed settings, RE(1) machine-readable.
+
+- Fields, tab "Operation" (after the settings that show them):
+  - `updateDelivery` (manual only · notification · on request or scheduled ·
+    automatic), shown where the element is updated (condition `updatable`:
+    `updateMechanism` set, not none); a mechanism with physical access
+    (manual_local, signed_local) offers manual only or notification.
+  - `updateDefaults` (multi-select: on by default · user can switch off · user can
+    postpone), shown with automatic delivery (`automaticUpdates`); no 62443 row —
+    CRA (2)(c) / EN 303 645 5.3-6, report only.
+  - `secureByDefault` (yes · no), `securityConfigReporting` (none · readable
+    interface · machine-readable), on the element that stands for the component
+    (condition `componentLevel`): every Multiprocess, a Process when it is the
+    component under evaluation or the model has no Multiprocess. Deviation from §4.2
+    ("Multiprocess, always"): a component drawn as a process would otherwise make
+    CR 7.6 n/a. The component under evaluation reaches the contexts as
+    `VisibilityModel.componentId` (DFD tab provider, evaluator input, report data).
+- Rules: CR 3.10 RE(2) stays B (the "should" remains to confirm), now satisfied by
+  the delivery instead of a list of mechanisms; an element with `updateMechanism`
+  none fails it; the first checklist item is answered by the delivery (CM-5b
+  mechanism). CR 7.6 A with `satisfiedIfAll` (new: every check must hold) — secure
+  by default **and** a readable interface; CR 7.6 RE(1) A with machine-readable;
+  both quantifier "any" (D-22 list extended: one function of the component).
+- Type split: prAA A 41 · B 23 · C 26; 2019 CR rows A 30 · B 17 · C 23. Coverage
+  documents updated (also the stray (l) on CR 7.6 in the §4 table, fixed in code by
+  patch 44).
+- Pump Station example: MP-1 delivers on request / schedule, secure by default,
+  settings readable on the HMI; the CR 7.6 statement removed. CR 7.6 RE(1) (SL 3,
+  above the target) is now a gap — no machine-readable report — instead of
+  needs-statement.
+- Tests: visibility per driver (incl. a stored automatic delivery without mechanism,
+  componentId), values for local mechanisms, rules per value and edition, process vs
+  multiprocess as component element, golden rows extended, Process form operation tab
+  (delivery after mechanism).

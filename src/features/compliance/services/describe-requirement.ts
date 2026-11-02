@@ -29,6 +29,7 @@ const WORDS = {
     set: "set",
     setNot: "set, not",
     or: "or",
+    and: "and",
     appliesWhen: "Applies when",
     model: "Checked in the model",
     noModel: "Not derivable from the model — a statement, a mitigation of the risk treatment or a claim meets it.",
@@ -40,6 +41,9 @@ const WORDS = {
       passwordInUse: "that a password reaches",
       humanPasswordUse: "where humans log in with a password",
       roleBasedAuthorization: "with role-based authorization",
+      componentLevel: "that stands for the component (a multiprocess, or the process under evaluation)",
+      updatable: "that is updated",
+      automaticUpdates: "that installs updates automatically",
       machinePasswordUse: "where software processes or devices log in with a password",
     },
   },
@@ -52,6 +56,7 @@ const WORDS = {
     set: "gesetzt",
     setNot: "gesetzt, nicht",
     or: "oder",
+    and: "und",
     appliesWhen: "Gilt, wenn",
     model: "Im Modell geprüft",
     noModel: "Nicht aus dem Modell ableitbar — eine Aussage, eine Massnahme der Risikobehandlung oder ein Claim erfüllt sie.",
@@ -63,6 +68,9 @@ const WORDS = {
       passwordInUse: "das ein Passwort erreicht",
       humanPasswordUse: "bei dem sich Menschen mit Passwort anmelden",
       roleBasedAuthorization: "mit rollenbasierter Autorisierung",
+      componentLevel: "das für die Komponente steht (ein Multiprocess oder der bewertete Process)",
+      updatable: "das aktualisiert wird",
+      automaticUpdates: "das Updates automatisch installiert",
       machinePasswordUse: "bei dem sich Software-Prozesse oder Geräte mit Passwort anmelden",
     },
   },
@@ -91,7 +99,10 @@ function targetText(target: EvidenceTarget, quantifier: string, w: (typeof WORDS
   if (target.endpointIf) parts.push(neighbourText(target.endpointIf, w.fromOrTo, w));
   if (target.connectedIf) parts.push(neighbourText(target.connectedIf, w.connectedTo, w));
   const head = parts.join(" ");
-  return target.satisfiedIf?.length ? `${head}: ${target.satisfiedIf.map((c) => checkText(c, w)).join(` ${w.or} `)}` : head;
+  const anyOf = target.satisfiedIf?.length ? target.satisfiedIf.map((c) => checkText(c, w)).join(` ${w.or} `) : "";
+  const allOf = target.satisfiedIfAll?.length ? target.satisfiedIfAll.map((c) => checkText(c, w)).join(` ${w.and} `) : "";
+  const condition = [anyOf, allOf].filter(Boolean).join(` ${w.and} `);
+  return condition ? `${head}: ${condition}` : head;
 }
 
 export function describeRule(rule: EvidenceRule, lang: DescribeLanguage): string {

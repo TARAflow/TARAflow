@@ -33,7 +33,8 @@ function countTypes(edition: Edition, filter: (label: string) => boolean): Recor
   return counts;
 }
 
-const hasSatisfiedIf = (rule: EvidenceRule) => rule.targets.some((t) => (t.satisfiedIf?.length ?? 0) > 0);
+const hasSatisfiedIf = (rule: EvidenceRule) =>
+  rule.targets.some((t) => (t.satisfiedIf?.length ?? 0) > 0 || (t.satisfiedIfAll?.length ?? 0) > 0);
 
 describe("IEC 62443-4-2 evidence rules", () => {
   it("one rule per requirement id, no rule without an id", () => {
@@ -61,7 +62,7 @@ describe("IEC 62443-4-2 evidence rules", () => {
       "cr-1.3", "cr-1.4", "cr-1.5", "cr-2.8",
       "cr-3.10", "cr-3.10-re1", "cr-3.10-re2", "cr-3.12",
       "cr-5.1", "cr-6.1-re1", "cr-6.2",
-      "cr-7.3", "cr-7.4", "cr-7.9",
+      "cr-7.3", "cr-7.4", "cr-7.6", "cr-7.6-re1", "cr-7.9",
     ];
     const any = ALL_EVIDENCE_RULES.filter((r) => r.quantifier === "any").map((r) => r.id);
     expect(any.filter((id) => !ALLOWED_ANY.includes(id))).toEqual([]);
@@ -99,9 +100,9 @@ describe.each(EDITIONS)("edition $id", (edition) => {
 });
 
 describe("CRA edition (prAA) reproduces iec-62443-4-2-cra-coverage.md §4", () => {
-  it("97 rows, 7 void; type split A 39 · B 23 · C 28 (CR 1.1 RE(1), CR 1.7, CR 1.7 RE(2) C → A with F-1 / F-2)", () => {
+  it("97 rows, 7 void; type split A 41 · B 23 · C 26 (C → A: CR 1.1 RE(1), CR 1.7, RE(2) with F-1 / F-2; CR 7.6, RE(1) with F-25)", () => {
     expect(EDITION_PRAA_2026.rows).toHaveLength(97);
-    expect(countTypes(EDITION_PRAA_2026, () => true)).toEqual({ A: 39, B: 23, C: 28, "n/a": 7 });
+    expect(countTypes(EDITION_PRAA_2026, () => true)).toEqual({ A: 41, B: 23, C: 26, "n/a": 7 });
   });
 
   it("has no device rows and names the CRA requirements of every live row", () => {
@@ -152,10 +153,10 @@ describe("CRA edition (prAA) reproduces iec-62443-4-2-cra-coverage.md §4", () =
 describe("classic edition (2019) reproduces iec-62443-4-2-2019-coverage.md §3 / §4", () => {
   const isCr = (label: string) => label.startsWith("CR ");
 
-  it("73 CR rows (A 28 · B 17 · C 25 · 3 void) plus SAR 3 · EDR 13 · HDR 14 · NDR 22 device rows", () => {
+  it("73 CR rows (A 30 · B 17 · C 23 · 3 void) plus SAR 3 · EDR 13 · HDR 14 · NDR 22 device rows", () => {
     expect(EDITION_2019.rows.filter((r) => isCr(r.label))).toHaveLength(73);
-    // CR 1.1 RE(1), CR 1.7, RE(1), RE(2) C → A with F-1 / F-2 (CM-5a).
-    expect(countTypes(EDITION_2019, isCr)).toEqual({ A: 28, B: 17, C: 25, "n/a": 3 });
+    // C → A: CR 1.1 RE(1), CR 1.7, RE(1), RE(2) with F-1 / F-2 (CM-5a); CR 7.6, RE(1) with F-25 (CM-6).
+    expect(countTypes(EDITION_2019, isCr)).toEqual({ A: 30, B: 17, C: 23, "n/a": 3 });
     for (const [category, n] of [["SAR", 3], ["EDR", 13], ["HDR", 14], ["NDR", 22]] as const) {
       expect(EDITION_2019.rows.filter((r) => r.deviceCategories?.includes(category)), category).toHaveLength(n);
     }

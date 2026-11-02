@@ -205,6 +205,7 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
       const base = {
         edition,
         scope: familyScope,
+        componentId: familyComponent,
         // D-31: statements per requirement, found by each row's requirement ids.
         statements: editionStatements(edition, familyData.statements),
         mitigations,

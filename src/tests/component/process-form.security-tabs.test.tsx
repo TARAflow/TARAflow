@@ -60,4 +60,14 @@ describe("ProcessDescriptionForm — Security sub-tabs", () => {
     renderForm(process("p4", { technology: "ui" }), [{ id: "f", from: "op", to: "p4" }]);
     expect(screen.getByTestId("security-tab-operation").getAttribute("aria-selected")).toBe("true");
   });
+
+  it("operation tab: update delivery after the update mechanism; the component's settings on a process in a model without multiprocess", () => {
+    renderForm(process("p5", { technology: "ui", updateMechanism: "signed_ota" }), [{ id: "f", from: "op", to: "p5" }]);
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    const mechanism = screen.getAllByText("Update Mechanism")[0];
+    const delivery = screen.getByTestId("model-field-updateDelivery");
+    expect(mechanism.compareDocumentPosition(delivery) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("model-field-secureByDefault")).toBeTruthy();
+    expect(screen.getByTestId("model-field-securityConfigReporting")).toBeTruthy();
+  });
 });

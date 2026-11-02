@@ -33,6 +33,10 @@ import type {
   PASSWORD_LIFETIME_VALUES,
   PASSWORD_STRENGTH_VALUES,
   ROLE_MAPPING_VALUES,
+  SECURE_BY_DEFAULT_VALUES,
+  SECURITY_CONFIG_REPORTING_VALUES,
+  UPDATE_DEFAULTS_VALUES,
+  UPDATE_DELIVERY_VALUES,
   USER_ACCOUNTS_VALUES,
 } from "shared";
 
@@ -53,6 +57,17 @@ export type RoleMapping = (typeof ROLE_MAPPING_VALUES)[number];
 export type DefaultCredentials = (typeof DEFAULT_CREDENTIALS_VALUES)[number];
 /** The authenticators can be changed / refreshed (CR 1.5 c). */
 export type AuthenticatorChangeable = (typeof AUTHENTICATOR_CHANGEABLE_VALUES)[number];
+
+// ==================== SHARED: LIFECYCLE / CONFIGURATION (model coverage F-25, F-27) ====================
+
+/** How updates reach the element (prAA CR 3.10 RE(2)). */
+export type UpdateDelivery = (typeof UPDATE_DELIVERY_VALUES)[number];
+/** Defaults of automatic updates (CRA Annex I (2)(c)); multi-select. */
+export type UpdateDefault = Exclude<(typeof UPDATE_DEFAULTS_VALUES)[number], "not_specified">;
+/** Configured to its secure-by-default settings (CR 7.6 a). */
+export type SecureByDefault = (typeof SECURE_BY_DEFAULT_VALUES)[number];
+/** Interface to the deployed settings (CR 7.6 b, RE(1)). */
+export type SecurityConfigReporting = (typeof SECURITY_CONFIG_REPORTING_VALUES)[number];
 
 // ==================== SHARED: UPDATE / SESSIONS ====================
 // On Process AND Multiprocess (iec-62443-4-2-cra-coverage.md P-2): a
@@ -280,6 +295,14 @@ export interface ProcessProperties {
   defaultCredentials?: DefaultCredentials;
   /** F-3b — shown when the element authenticates. */
   authenticatorChangeable?: AuthenticatorChangeable;
+  /** F-27 — shown when the element is updated (updateMechanism set, not none). */
+  updateDelivery?: UpdateDelivery;
+  /** F-27b — shown with automatic updates. */
+  updateDefaults?: UpdateDefault[];
+  /** F-25a — shown where the element stands for the component. */
+  secureByDefault?: SecureByDefault;
+  /** F-25b — shown where the element stands for the component. */
+  securityConfigReporting?: SecurityConfigReporting;
 
   /**
    * Session management for a process with human users (SessionControl).
@@ -538,6 +561,14 @@ export interface MultiprocessProperties {
   defaultCredentials?: DefaultCredentials;
   /** F-3b — shown when the element authenticates. */
   authenticatorChangeable?: AuthenticatorChangeable;
+  /** F-27 — shown when the element is updated (updateMechanism set, not none). */
+  updateDelivery?: UpdateDelivery;
+  /** F-27b — shown with automatic updates. */
+  updateDefaults?: UpdateDefault[];
+  /** F-25a — shown where the element stands for the component. */
+  secureByDefault?: SecureByDefault;
+  /** F-25b — shown where the element stands for the component. */
+  securityConfigReporting?: SecurityConfigReporting;
 
   /**
    * Backup and recovery mechanism for this system.

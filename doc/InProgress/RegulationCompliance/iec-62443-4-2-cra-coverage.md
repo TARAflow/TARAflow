@@ -195,7 +195,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 3.9 RE(1) (l. 2588) | audit records on hardware write-once media | 4 | — | as CR 3.9 | — | C | — |
 | CR 3.10 (l. 2613) | support updates and upgrades | 1 | c, f | always | at least one Proc / MP: `updateMechanism` ≠ none | A | not on CB |
 | CR 3.10 RE(1) (l. 2638) | validate authenticity and integrity of updates before installation | 2 | c, f | as CR 3.10 | `updateMechanism` ∈ signed_local, signed_ota | A | — |
-| CR 3.10 RE(2) (l. 2664) | automatic loading, update notification or scheduled update (should: rollback) | 2 | c, f | as CR 3.10 | `updateMechanism` ∈ signed_ota, mdm_managed, ci_cd | B | rollback not modelled |
+| CR 3.10 RE(2) (l. 2664) | automatic loading, update notification or scheduled update (should: rollback) | 2 | c, f | as CR 3.10 | (0.18, F-27) every updated element: `updateDelivery` ∈ notification, on_request_or_scheduled, automatic (a / b / c of the text); no updates → gap | B | rollback ("should") stays on the checklist |
 | CR 3.11 (l. 2709) | physical tamper resistance and detection (not for software-only components) | 2 | d, e, f | component with hardware (PB / CB present) | PB.`tamperProtection` ≠ none; CB.`tamperProtection` ≠ none | A | — |
 | CR 3.11 RE(1) (l. 2751) | notify on tampering attempts | 3 | d, e, f | as CR 3.11 | PB.`tamperProtection` = active_detection; PB.`monitoringType` = tamper_monitoring; CB.`tamperProtection` = active | A | — |
 | CR 3.12 (l. 2784) | provision and protect product supplier roots of trust at manufacture | 2 | f | component with secure boot / signed updates | CB.`secureBootEnabled`; `authenticatorStorage` ∈ secure_element, tpm, hsm | B | no root-of-trust field |
@@ -245,8 +245,8 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 7.3 RE(1) (l. 3646) | verify backup integrity before restore | 2 | f, h, m | as CR 7.3 | — | C | — |
 | CR 7.4 (l. 3674) | recover and reconstitute to a known secure state | 1 | b, m | always | MP.`backupMechanism` (partly) | B | — |
 | CR 7.5 (l. 3713) | *no component requirement (emergency power, system level)* | — | — | — | — | n/a | — |
-| CR 7.6 (l. 3715) | secure-by-default network and security configuration; interface to read current settings | 1 | b, k, l | always | — | C | secure-by-default is a CRA headline (2)(b); no model field |
-| CR 7.6 RE(1) (l. 3744) | machine-readable report of current security settings | 3 | b, k | as CR 7.6 | — | C | — |
+| CR 7.6 (l. 3715) | secure-by-default network and security configuration; interface to read current settings | 1 | b, k | always | (0.18, F-25) on the element that stands for the component (Multiprocess, or the Process under evaluation): `secureByDefault` = yes **and** `securityConfigReporting` ∈ readable interface, machine-readable | A | secure-by-default is a CRA headline (2)(b); ZZ.1 has no (l) for CR 7.6 (patch 44) |
+| CR 7.6 RE(1) (l. 3744) | machine-readable report of current security settings | 3 | b, k | as CR 7.6 | (0.18, F-25b) `securityConfigReporting` = machine-readable | A | — |
 | CR 7.7 (l. 3770) | restrict unnecessary interfaces, functions, ports, protocols, services | 1 | b, j, k | every IF / service | IF.`operationalState` ∈ sw_disabled, hw_disabled, permanent_disabled for unused IF; IF.ic.`serviceAccessPolicy` ≠ always_enabled | B | "needed for intended use" not modelled per IF |
 | CR 7.8 (l. 3808) | provide component information to an inventory | 2 | — | always | — | C | — |
 | CR 7.9 (l. 3840) | reset to a supplier-defined state (**new in prAA**) | 1 | b | always | DS.`deletionMechanism` = factory_reset (partly) | B | reset capability per component not modelled |
@@ -270,10 +270,10 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | FR 4 (6) | 4 | 0 | 2 | 0 |
 | FR 5 (7) | 4 | 1 | 0 | 2 |
 | FR 6 (3) | 0 | 2 | 1 | 0 |
-| FR 7 (12) | 2 | 4 | 5 | 1 |
-| **Total (97)** | **39** | **23** | **28** | **7** |
+| FR 7 (12) | 4 | 4 | 3 | 1 |
+| **Total (97)** | **41** | **23** | **26** | **7** |
 
-About two thirds of the 90 live rows (62 since 0.18 CM-5a; 59 before) can be pre-filled from the model (A + B). The C rows
+About two thirds of the 90 live rows (64 since 0.18 CM-6; 59 before 0.18) can be pre-filled from the model (A + B). The C rows
 need an analyst statement (applicable / met / not met / n/a + reasoning + evidence
 reference) — that is what makes the matrix a complete SoA.
 
@@ -486,6 +486,7 @@ whole; the completeness test fails for any other "any" rule:
 | `cr-6.1-re1` | one programmatic access / forwarding channel for the audit records suffices |
 | `cr-6.2` | the capability to report detected issues to monitoring |
 | `cr-7.3`, `cr-7.4` | backup and recovery of the component |
+| `cr-7.6`, `cr-7.6-re1` | the secure-by-default configuration and its reporting interface belong to the component as a whole, asked on the element that stands for it (0.18 CM-6, condition `componentLevel`) |
 | `cr-7.9` | reset of the component to the supplier state |
 
 **Edition row** additionally carries `supportingMeasuresAllowed: boolean` (D-14): true where

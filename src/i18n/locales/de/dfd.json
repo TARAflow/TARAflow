@@ -400,6 +400,42 @@
             "no": "Nein"
           }
         },
+        "updateDelivery": {
+          "label": "Update-Auslieferung",
+          "help": "Wie Updates zum Element kommen: nur manuell, Benachrichtigung über ein verfügbares Update, Installation auf Anforderung oder nach Zeitplan, oder automatisch. EN IEC 62443-4-2/prAA CR 3.10 RE(2) akzeptiert jede der letzten drei. Ein Mechanismus mit physischem Zugriff bietet nur manuell oder Benachrichtigung an.",
+          "values": {
+            "manual_only": "Nur manuell",
+            "notification": "Benachrichtigung über verfügbare Updates",
+            "on_request_or_scheduled": "Auf Anforderung oder nach Zeitplan",
+            "automatic": "Automatisch"
+          }
+        },
+        "updateDefaults": {
+          "label": "Einstellungen automatischer Updates",
+          "help": "Wie automatische Updates bei Auslieferung eingestellt sind: standardmässig eingeschaltet, der Benutzer kann sie abschalten, der Benutzer kann sie aufschieben. CRA Anhang I (2)(c), ETSI EN 303 645 5.3-6.",
+          "values": {
+            "enabled_by_default": "Standardmässig eingeschaltet",
+            "user_can_disable": "Benutzer kann sie abschalten",
+            "user_can_postpone": "Benutzer kann sie aufschieben"
+          }
+        },
+        "secureByDefault": {
+          "label": "Secure by Default",
+          "help": "Wird die Komponente mit ihren sicheren Standardeinstellungen für Netzwerk und Sicherheit ausgeliefert und lässt sie sich darauf konfigurieren? IEC 62443-4-2 CR 7.6 a). Gefragt am Element, das für die Komponente steht: ein Multiprocess oder der bewertete Process.",
+          "values": {
+            "yes": "Ja",
+            "no": "Nein"
+          }
+        },
+        "securityConfigReporting": {
+          "label": "Bericht der Sicherheitseinstellungen",
+          "help": "Lassen sich die aktuellen Netzwerk- und Sicherheitseinstellungen auslesen: nein, über eine Schnittstelle (z. B. eine Konfigurationsseite) oder als maschinenlesbarer Bericht? IEC 62443-4-2 CR 7.6 b) und RE(1).",
+          "values": {
+            "none": "Nein",
+            "readable_interface": "Über eine Schnittstelle lesbar",
+            "machine_readable": "Maschinenlesbarer Bericht"
+          }
+        },
         "roleMapping": {
           "label": "Rollen-Berechtigungen",
           "help": "Bei rollenbasierter Autorisierung: Kann eine berechtigte Rolle (z. B. der Administrator) festlegen und ändern, welche Rechte jede Rolle hat, oder sind Rollen und Rechte im Produkt fest vorgegeben? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) verlangt die konfigurierbare Zuordnung.",

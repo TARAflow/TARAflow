@@ -552,6 +552,7 @@ export class PdfMakeConverter {
     const contextOf = visibilityContexts(
       elements as unknown as VisibilityElement[],
       connections as unknown as VisibilityFlowInput[],
+      { componentId: this.project.complianceComponentId },
     );
     const resolveAssetName = (assetId: string) =>
       this.project.assets?.assets?.find((a) => a.id === assetId)?.name ?? assetId;

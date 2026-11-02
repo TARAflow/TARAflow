@@ -725,7 +725,6 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               </>
             ),
           },
-          ...modelFieldEntries,
           // Input Validation
           {
             key: "inputValidation",
@@ -1062,6 +1061,8 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               </>
             ),
           },
+          // Model coverage fields last in each tab — after the settings that show them.
+          ...modelFieldEntries,
         ]}
       />
 

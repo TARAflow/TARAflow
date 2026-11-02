@@ -119,6 +119,12 @@ const MACHINE_PASSWORD_LIFETIME = {
   satisfiedIf: [{ property: "passwordLifetime", in: ["machine_accounts", "all_accounts"] }],
 } as const;
 
+/** Update deliveries prAA CR 3.10 RE(2) accepts: everything but "manual only" (F-27). */
+const UPDATE_DELIVERY_WITHOUT_ACTION = ["notification", "on_request_or_scheduled", "automatic"] as const;
+
+/** The element that stands for the component — a Multiprocess, or the process under evaluation (F-25). */
+const COMPONENT_ELEMENTS = { elementTypes: ["Process", "Multiprocess"], when: ["componentLevel"] } as const;
+
 /** Elements that carry updateMechanism (P-2): a component drawn as one process updates too. */
 const UPDATABLE = { elementTypes: ["Process", "Multiprocess"] } as const;
 
@@ -577,11 +583,23 @@ const RULES = [
     targets: [{ ...UPDATABLE, satisfiedIf: [{ property: "updateMechanism", in: ["signed_local", "signed_ota"] }] }],
   },
   {
+    // F-27 (CM-6): prAA RE(2) accepts any of a) automatic loading, b)
+    // notification, c) updating on request or schedule — the delivery shows
+    // which; the recovery to an earlier version is a "should" and stays on the
+    // checklist (the row stays B). An element without updates fails it.
     id: "cr-3.10-re2",
     type: "B",
     quantifier: "any",
-    targets: [{ ...UPDATABLE, satisfiedIf: [{ property: "updateMechanism", in: ["signed_ota", "mdm_managed", "ci_cd"] }] }],
+    targets: [
+      {
+        ...UPDATABLE,
+        appliesIf: [{ property: "updateMechanism", notIn: ["none"] }],
+        satisfiedIf: [{ property: "updateDelivery", in: UPDATE_DELIVERY_WITHOUT_ACTION }],
+      },
+      { ...UPDATABLE, appliesIf: [{ property: "updateMechanism", in: ["none"] }], satisfiedIf: [{ property: "updateMechanism", notIn: ["none"] }] },
+    ],
     checklist: ["automatic loading, notification or scheduled updating", "recovery to an earlier version on failure (should)"],
+    answers: [{ item: 0, yesIf: [{ property: "updateDelivery", in: UPDATE_DELIVERY_WITHOUT_ACTION }] }],
   },
   {
     id: "cr-3.11",
@@ -761,8 +779,29 @@ const RULES = [
     targets: [{ elementTypes: ["Multiprocess"], satisfiedIf: [{ property: "backupMechanism", notIn: ["none"] }] }],
     checklist: ["the component recovers to a known secure state after disruption or failure"],
   },
-  { id: "cr-7.6", type: "C", targets: [] },
-  { id: "cr-7.6-re1", type: "C", targets: [] },
+  {
+    // F-25a / F-25b (CM-6): a) configured to its secure-by-default settings
+    // and b) an interface to the deployed settings — on the element that
+    // stands for the component (any: a capability of the component, D-22).
+    id: "cr-7.6",
+    type: "A",
+    quantifier: "any",
+    targets: [
+      {
+        ...COMPONENT_ELEMENTS,
+        satisfiedIfAll: [
+          { property: "secureByDefault", in: ["yes"] },
+          { property: "securityConfigReporting", in: ["readable_interface", "machine_readable"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "cr-7.6-re1",
+    type: "A",
+    quantifier: "any",
+    targets: [{ ...COMPONENT_ELEMENTS, satisfiedIf: [{ property: "securityConfigReporting", in: ["machine_readable"] }] }],
+  },
   {
     id: "cr-7.7",
     type: "B",

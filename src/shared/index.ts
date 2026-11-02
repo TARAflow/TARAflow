@@ -221,6 +221,10 @@ export {
   PASSWORD_LIFETIME_VALUES,
   PASSWORD_STRENGTH_VALUES,
   ROLE_MAPPING_VALUES,
+  SECURE_BY_DEFAULT_VALUES,
+  SECURITY_CONFIG_REPORTING_VALUES,
+  UPDATE_DEFAULTS_VALUES,
+  UPDATE_DELIVERY_VALUES,
   USER_ACCOUNTS_VALUES,
   modelField,
   NOT_SPECIFIED,
@@ -234,6 +238,8 @@ export {
   type VisibilityElement,
   type VisibilityFlowInput,
   type VisibilityLink,
+  type VisibilityModel,
+  type VisibilityOptions,
 } from "./models/property-visibility";
 
 // ==================== ASSET RELATION UNION TYPES ====================

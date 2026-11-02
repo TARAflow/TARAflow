@@ -400,6 +400,42 @@
             "no": "No"
           }
         },
+        "updateDelivery": {
+          "label": "Update delivery",
+          "help": "How updates reach the element: only manually, a notification of an available update, installation on request or on a schedule, or automatically. EN IEC 62443-4-2/prAA CR 3.10 RE(2) accepts any of the last three. A mechanism that needs physical access offers manual only or notification.",
+          "values": {
+            "manual_only": "Manual only",
+            "notification": "Notification of available updates",
+            "on_request_or_scheduled": "On request or scheduled",
+            "automatic": "Automatic"
+          }
+        },
+        "updateDefaults": {
+          "label": "Automatic update settings",
+          "help": "How automatic updates are set up when delivered: switched on by default, the user can switch them off, the user can postpone them. CRA Annex I (2)(c), ETSI EN 303 645 5.3-6.",
+          "values": {
+            "enabled_by_default": "On by default",
+            "user_can_disable": "User can switch them off",
+            "user_can_postpone": "User can postpone them"
+          }
+        },
+        "secureByDefault": {
+          "label": "Secure by default",
+          "help": "Is the component delivered with — and configurable to — its secure-by-default network and security settings? IEC 62443-4-2 CR 7.6 a). Asked on the element that stands for the component: a multiprocess, or the process under evaluation.",
+          "values": {
+            "yes": "Yes",
+            "no": "No"
+          }
+        },
+        "securityConfigReporting": {
+          "label": "Security settings report",
+          "help": "Can the deployed network and security settings be read: no, through an interface (e.g. a configuration page), or as a machine-readable report? IEC 62443-4-2 CR 7.6 b) and RE(1).",
+          "values": {
+            "none": "No",
+            "readable_interface": "Readable through an interface",
+            "machine_readable": "Machine-readable report"
+          }
+        },
         "roleMapping": {
           "label": "Role permissions",
           "help": "With role-based authorization: can an authorised role (e.g. the administrator) define and change which permissions each role has, or are the roles and their permissions fixed in the product? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) asks for the configurable mapping.",

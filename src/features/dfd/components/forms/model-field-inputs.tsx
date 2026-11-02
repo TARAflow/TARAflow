@@ -34,9 +34,14 @@ const ModelFieldContext = createContext<ContextOf | null>(null);
 export const ModelFieldProvider: React.FC<{
   elements: readonly VisibilityElement[];
   connections: readonly VisibilityFlowInput[];
+  /** Component under evaluation (Compliance tab): settings of the whole component are asked on it. */
+  componentId?: string;
   children: React.ReactNode;
-}> = ({ elements, connections, children }) => {
-  const contextOf = useMemo(() => visibilityContexts(elements, connections), [elements, connections]);
+}> = ({ elements, connections, componentId, children }) => {
+  const contextOf = useMemo(
+    () => visibilityContexts(elements, connections, { componentId }),
+    [elements, connections, componentId],
+  );
   return <ModelFieldContext.Provider value={contextOf}>{children}</ModelFieldContext.Provider>;
 };
 

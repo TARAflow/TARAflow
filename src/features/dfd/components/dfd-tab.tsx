@@ -97,6 +97,8 @@ export interface DFDTabProps {
    * object per request. Opens the drawing and selects the element.
    */
   elementFocusRequest?: ElementFocusRequest | null;
+  /** Component under evaluation of the Compliance tab — the element forms ask the component's settings on it (CM-6). */
+  complianceComponentId?: string;
   /**
    * The project's Hazard Items and their edges for the asset graph (FR-V11,
    * read-only) — the DFD feature never imports the hazards feature.
@@ -148,6 +150,7 @@ export interface DFDTabProps {
 
 export const DFDTab: React.FC<DFDTabProps> = ({
   project,
+  complianceComponentId,
   onUpdate,
   onDirtyChange,
   controlInstances,
@@ -826,6 +829,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     <ModelFieldProvider
       elements={(project.dfd?.elements ?? EMPTY_LIST) as unknown as VisibilityElement[]}
       connections={(project.dfd?.connections ?? EMPTY_LIST) as unknown as VisibilityFlowInput[]}
+      componentId={complianceComponentId}
     >
     <Box
       sx={{

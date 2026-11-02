@@ -167,9 +167,11 @@ describe("Pump Station Controller example", () => {
     const { achieved, planned } = evaluateProjectCompliance(project)!;
     const count = (rows: { status: string }[]) =>
       rows.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});
-    // CR 1.1 RE(1), CR 1.7, CR 1.7 RE(2) from the model fields (CM-5a).
-    expect(count(achieved.rows)).toEqual({ met: 56, gap: 12, "n/a": 21, "needs-statement": 8 });
-    expect(count(planned.rows)).toEqual({ met: 59, gap: 9, "n/a": 21, "needs-statement": 8 });
+    // CR 1.1 RE(1), CR 1.7, CR 1.7 RE(2) from the model fields (CM-5a); CR 7.6
+    // from the model, CR 7.6 RE(1) (SL 3, above the target) now a gap: the
+    // settings are readable on the HMI, not as a machine-readable report (CM-6).
+    expect(count(achieved.rows)).toEqual({ met: 56, gap: 13, "n/a": 21, "needs-statement": 7 });
+    expect(count(planned.rows)).toEqual({ met: 59, gap: 10, "n/a": 21, "needs-statement": 7 });
 
     // SL-T 2: UC and RDF reach it; IAC stays at 1 even planned (no device
     // authentication on the fieldbus — a claim or a fix is needed); RA waits
@@ -209,6 +211,8 @@ describe("Pump Station Controller example", () => {
     expect(row("CR 1.10")).toMatchObject({ status: "met", source: "statement" }); // made with the CRA edition
     // CR 1.5 from the model: F-3 / F-3b answer the whole checklist (CM-5b).
     expect(row("CR 1.5")).toMatchObject({ status: "met", source: "model", checklist: [] });
+    // CR 7.6 from secureByDefault / securityConfigReporting in the classic edition too (CM-6).
+    expect(row("CR 7.6")).toMatchObject({ status: "met", source: "model" });
     // From the model fields in both editions; 2019 RE(1) / RE(2) as well.
     for (const label of ["CR 1.1 RE(1)", "CR 1.7", "CR 1.7 RE(1)", "CR 1.7 RE(2)"]) {
       expect(row(label), label).toMatchObject({ status: "met", source: "model" });

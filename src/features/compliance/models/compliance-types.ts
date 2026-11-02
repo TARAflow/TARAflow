@@ -81,6 +81,8 @@ export interface EvidenceTarget {
    */
   crossesComponent?: true;
   satisfiedIf?: readonly PropertyCheck[];
+  /** Every one of these checks must hold (and with `satisfiedIf` when both are given). */
+  satisfiedIfAll?: readonly PropertyCheck[];
 }
 
 /** Checks on the element at the other end of a flow. */

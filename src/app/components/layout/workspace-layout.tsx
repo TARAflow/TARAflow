@@ -1266,6 +1266,7 @@ export const WorkspaceLayout: React.FC = () => {
             <DFDTab
               key={dfdTabProject.id}
               project={dfdTabProject}
+              complianceComponentId={activeProject.compliance?.componentId}
               onUpdate={handleDFDUpdate}
               assetUsage={assetUsageLookup}
               threatCountOf={threatCountLookup}

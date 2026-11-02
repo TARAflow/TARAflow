@@ -399,6 +399,8 @@ export interface DocProjectData {
   itemDefinition?: ItemDefinition;
   /** Goals, claims, verifications (WP-09-03/04/05, plan Phase 4); absent = none. */
   cybersecurityConcept?: CybersecurityConcept;
+  /** Component under evaluation of the Compliance tab — model fields of the whole component are listed on it (CM-6). */
+  complianceComponentId?: string;
 
   // Computed values (performance optimization)
   computed: DocComputedValues;

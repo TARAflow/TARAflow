@@ -162,3 +162,50 @@ describe("CR 1.5 — checklist items answered by F-3 / F-3b (CM-5b)", () => {
     expect(localizedChecklist([describeRequirement("cr-1.5", "de")], open)).toEqual(["unveränderte Standard-Authentisierungsmerkmale werden erkannt"]);
   });
 });
+
+describe("CR 3.10 RE(2) and CR 7.6 from the lifecycle fields (CM-6)", () => {
+  const run = (edition: Edition, label: string, elements: ViewElement[], componentId?: string) => {
+    const r = edition.rows.find((x) => x.label === label)!;
+    return evaluateMatrix({
+      edition: { ...edition, rows: [r] },
+      view: { elements, flows: [] },
+      scope: new Set(elements.map((e) => e.id)),
+      run: "achieved",
+      componentId,
+    }).rows[0];
+  };
+  const mp = (properties: Record<string, unknown>): ViewElement => ({ id: "mp", type: "Multiprocess", properties });
+
+  it("prAA RE(2): notification, on request / schedule or automatic met — the recovery 'should' stays to confirm", () => {
+    for (const updateDelivery of ["notification", "on_request_or_scheduled", "automatic"]) {
+      expect(run(EDITION_PRAA_2026, "CR 3.10 RE(2)", [mp({ updateMechanism: "signed_ota", updateDelivery })]), updateDelivery).toMatchObject({
+        status: "met",
+        checklist: ["recovery to an earlier version on failure (should)"],
+      });
+    }
+  });
+
+  it("prAA RE(2): manual only gap, not stated unknown, no updates gap", () => {
+    expect(run(EDITION_PRAA_2026, "CR 3.10 RE(2)", [mp({ updateMechanism: "signed_ota", updateDelivery: "manual_only" })]).status).toBe("gap");
+    expect(run(EDITION_PRAA_2026, "CR 3.10 RE(2)", [mp({ updateMechanism: "signed_ota" })]).status).toBe("unknown");
+    expect(run(EDITION_PRAA_2026, "CR 3.10 RE(2)", [mp({ updateMechanism: "none" })]).status).toBe("gap");
+  });
+
+  it.each([EDITION_PRAA_2026, EDITION_2019])("$id CR 7.6: secure by default and a readable interface; RE(1) machine-readable", (edition) => {
+    const both = mp({ secureByDefault: "yes", securityConfigReporting: "readable_interface" });
+    expect(run(edition, "CR 7.6", [both]).status).toBe("met");
+    expect(run(edition, "CR 7.6 RE(1)", [both]).status).toBe("gap");
+    expect(run(edition, "CR 7.6", [mp({ secureByDefault: "yes", securityConfigReporting: "none" })]).status).toBe("gap");
+    expect(run(edition, "CR 7.6", [mp({ secureByDefault: "yes" })]).status).toBe("unknown");
+    expect(run(edition, "CR 7.6 RE(1)", [mp({ securityConfigReporting: "machine_readable" })]).status).toBe("met");
+  });
+
+  it("CR 7.6 on a process: only where it stands for the component", () => {
+    const p = hmi({ secureByDefault: "yes", securityConfigReporting: "readable_interface" });
+    const other = mp({});
+    // A multiprocess elsewhere in the model: the process is no component element — the multiprocess is asked.
+    expect(run(EDITION_PRAA_2026, "CR 7.6", [p, other]).status).toBe("unknown");
+    // The process is the component under evaluation: its settings count.
+    expect(run(EDITION_PRAA_2026, "CR 7.6", [p, other], "p").status).toBe("met");
+  });
+});
