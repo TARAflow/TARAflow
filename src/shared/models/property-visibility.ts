@@ -133,6 +133,9 @@ export const MODEL_CONDITIONS = {
   humanPasswordUse: (c: VisibilityContext): boolean =>
     !deniesAuthentication(c) &&
     (passwordFlows(c).some((l) => isHuman(l.other)) || (boundaryPassword(c) && links(c).some((l) => isHuman(l.other)))),
+  /** Permissions are granted by role (authorizationModel = rbac); never where the element states it does not authenticate. */
+  roleBasedAuthorization: (c: VisibilityContext): boolean =>
+    !deniesAuthentication(c) && prop(c.element, "authorizationModel") === "rbac",
   /** Software processes or devices log in with a password: a password flow from a non-human source, or a boundary password with non-human external neighbours. */
   machinePasswordUse: (c: VisibilityContext): boolean =>
     !deniesAuthentication(c) &&
@@ -148,8 +151,13 @@ export const MODEL_CONDITION_IDS = Object.keys(MODEL_CONDITIONS) as ModelConditi
 // Stage 1 (model-coverage-implementation-plan.md §4.2). Values as const
 // arrays: element-properties.ts derives its types from them (one source).
 
-/** F-1 — CR 1.1 RE(1): every human user has an account of their own. */
-export const USER_ACCOUNTS_VALUES = ["not_specified", "individual", "shared"] as const;
+/**
+ * F-1 — how human users log in: an account per person, one login per role
+ * (operator / maintenance / admin — usual in industrial devices) or one
+ * shared login. CR 1.1 allows role- or group-based identification; CR 1.1
+ * RE(1) asks for unique identification of every human user.
+ */
+export const USER_ACCOUNTS_VALUES = ["not_specified", "individual", "per_role", "shared"] as const;
 
 /** F-2a — CR 1.7: password strength rules. */
 export const PASSWORD_STRENGTH_VALUES = ["not_specified", "none", "fixed_rules", "configurable_policy"] as const;
@@ -160,6 +168,13 @@ export const PASSWORD_STRENGTH_VALUES = ["not_specified", "none", "fixed_rules",
  * prAA: RE(1) void, RE(2) software processes and devices).
  */
 export const PASSWORD_LIFETIME_VALUES = ["not_specified", "none", "human_accounts", "machine_accounts", "all_accounts"] as const;
+
+/**
+ * F-29 — CR 2.1 RE(2): with role-based authorization, whether an authorised
+ * role can define and change which permissions a role has, or the roles are
+ * fixed in the product.
+ */
+export const ROLE_MAPPING_VALUES = ["not_specified", "fixed_roles", "configurable"] as const;
 
 /** The registered fields; further stage-1 fields join with CM-5b … CM-7. */
 export const MODEL_FIELDS: readonly ModelField[] = [
@@ -190,6 +205,12 @@ export const MODEL_FIELDS: readonly ModelField[] = [
       if (machine) return ["none", "machine_accounts"];
       return PASSWORD_LIFETIME_VALUES.slice(1);
     },
+  },
+  {
+    property: "roleMapping",
+    elementTypes: ["Process", "Multiprocess"],
+    values: ROLE_MAPPING_VALUES,
+    shownWhen: MODEL_CONDITIONS.roleBasedAuthorization,
   },
 ];
 

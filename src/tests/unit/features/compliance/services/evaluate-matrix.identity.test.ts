@@ -1,5 +1,6 @@
-// CR 1.1 RE(1) and CR 1.7 (+ RE(1), RE(2)) from the identity fields
-// (model-coverage-implementation-plan.md §4.2 F-1, F-2a, F-2b; CM-5a): type A
+// CR 1.1 RE(1), CR 1.7 (+ RE(1), RE(2)) and CR 2.1 RE(2) from the identity
+// fields (model-coverage-implementation-plan.md §4.2 F-1, F-2a, F-2b, F-29;
+// CM-5a, CM-5c): type A
 // in both editions, decided on the element that verifies the login, with the
 // same conditions that show the fields. An unset field is unknown, never met
 // (R-1, R-8).
@@ -32,6 +33,14 @@ describe("CR 1.1 RE(1) — individual accounts (F-1)", () => {
     expect(rowStatus(edition, "CR 1.1 RE(1)", hmi({ authenticationRequired: "yes", userAccounts: "individual" }), login).status).toBe("met");
     expect(rowStatus(edition, "CR 1.1 RE(1)", hmi({ authenticationRequired: "yes", userAccounts: "shared" }), login).status).toBe("gap");
     expect(rowStatus(edition, "CR 1.1 RE(1)", hmi({ authenticationRequired: "yes" }), login).status).toBe("unknown");
+  });
+
+  it("a login per role or one shared login: CR 1.1 met (role-based identification is allowed), RE(1) not", () => {
+    for (const userAccounts of ["per_role", "shared"]) {
+      const element = hmi({ authenticationRequired: "yes", userAccounts });
+      expect(rowStatus(EDITION_2019, "CR 1.1 RE(1)", element, login).status, userAccounts).toBe("gap");
+      expect(rowStatus(EDITION_2019, "CR 1.1", element, login).status, userAccounts).toBe("met");
+    }
   });
 
   it("a process serving humans that states it does not authenticate fails — a stored value does not help", () => {
@@ -81,5 +90,21 @@ describe("CR 1.7 RE(1) / RE(2) — password lifetime (F-2b)", () => {
     expect(rowStatus(EDITION_PRAA_2026, "CR 1.7 RE(2)", hmi({ passwordLifetime: "human_accounts" }), machines).status).toBe("gap");
     expect(rowStatus(EDITION_PRAA_2026, "CR 1.7 RE(2)", hmi({}), humans).status).toBe("n/a");
     expect(rowStatus(EDITION_PRAA_2026, "CR 1.7 RE(2)", hmi({}), machines).status).toBe("unknown");
+  });
+});
+
+describe("CR 2.1 RE(2) — permission mapping to roles (F-29)", () => {
+  const status = (properties: Record<string, unknown>) =>
+    rowStatus(EDITION_PRAA_2026, "CR 2.1 RE(2)", hmi({ authenticationRequired: "yes", ...properties }), []).status;
+
+  it("RBAC: configurable met, fixed roles gap, not stated unknown — RBAC alone no longer meets it", () => {
+    expect(status({ authorizationModel: "rbac", roleMapping: "configurable" })).toBe("met");
+    expect(status({ authorizationModel: "rbac", roleMapping: "fixed_roles" })).toBe("gap");
+    expect(status({ authorizationModel: "rbac" })).toBe("unknown");
+  });
+
+  it("another authorization model has no roles to map: gap; none chosen yet: unknown", () => {
+    expect(status({ authorizationModel: "acl", roleMapping: "configurable" })).toBe("gap");
+    expect(status({})).toBe("unknown");
   });
 });

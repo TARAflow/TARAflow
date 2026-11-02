@@ -356,10 +356,11 @@
       "modelFields": {
         "userAccounts": {
           "label": "User accounts",
-          "help": "How human users log in to this element: each with an account of their own, or with shared accounts (e.g. one \"operator\" login). IEC 62443-4-2 CR 1.1 RE(1) asks for unique identification of every human user.",
+          "help": "How human users log in to this element: each person with an account of their own, one login per role (e.g. operator, maintenance, admin — usual in industrial devices), or one login shared by everyone. IEC 62443-4-2 CR 1.1 accepts role- or group-based logins; CR 1.1 RE(1) (SL 2) asks for unique identification of every human user.",
           "values": {
             "individual": "One account per person",
-            "shared": "Shared accounts"
+            "per_role": "One login per role",
+            "shared": "One shared login"
           }
         },
         "passwordStrength": {
@@ -379,6 +380,14 @@
             "human_accounts": "Human user accounts",
             "machine_accounts": "Accounts of software processes and devices",
             "all_accounts": "All accounts"
+          }
+        },
+        "roleMapping": {
+          "label": "Role permissions",
+          "help": "With role-based authorization: can an authorised role (e.g. the administrator) define and change which permissions each role has, or are the roles and their permissions fixed in the product? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) asks for the configurable mapping.",
+          "values": {
+            "fixed_roles": "Fixed in the product",
+            "configurable": "Configurable by an authorised role"
           }
         }
       },

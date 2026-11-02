@@ -137,6 +137,8 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     userAccounts: "individual",
     passwordStrength: "configurable_policy",
     passwordLifetime: "human_accounts",
+    // Roles operator / maintenance / admin; the admin maps permissions to roles (CR 2.1 RE(2)).
+    roleMapping: "configurable",
   }),
   "MP-1": as<MultiprocessProperties>({
     systemClass: "embedded_controller",
@@ -158,6 +160,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     userAccounts: "individual",
     passwordStrength: "configurable_policy",
     passwordLifetime: "all_accounts",
+    roleMapping: "configurable",
     exposedToInternet: false,
     airGapped: false,
   }),

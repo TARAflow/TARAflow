@@ -345,11 +345,31 @@ const RULES = [
     checklist: ["authorization for all users incl. software processes and devices, least privilege"],
   },
   {
+    // F-29: roles fixed in the product do not let an authorised role change
+    // the permission mapping; without roles there is no mapping to change.
     id: "cr-2.1-re2",
     type: "A",
     targets: [
-      { ...PROCESS_WITH_AUTH, satisfiedIf: [{ property: "authorizationModel", in: ["rbac"] }] },
-      { ...MULTIPROCESS_WITH_AUTH, satisfiedIf: [{ property: "authorizationModel", in: ["rbac"] }] },
+      {
+        ...PROCESS_WITH_AUTH,
+        appliesIf: [...PROCESS_WITH_AUTH.appliesIf, { property: "authorizationModel", in: ["rbac"] }],
+        satisfiedIf: [{ property: "roleMapping", in: ["configurable"] }],
+      },
+      {
+        ...MULTIPROCESS_WITH_AUTH,
+        appliesIf: [...MULTIPROCESS_WITH_AUTH.appliesIf, { property: "authorizationModel", in: ["rbac"] }],
+        satisfiedIf: [{ property: "roleMapping", in: ["configurable"] }],
+      },
+      {
+        ...PROCESS_WITH_AUTH,
+        appliesIf: [...PROCESS_WITH_AUTH.appliesIf, { property: "authorizationModel", notIn: ["not_specified", "rbac"] }],
+        satisfiedIf: [{ property: "authorizationModel", in: ["rbac"] }],
+      },
+      {
+        ...MULTIPROCESS_WITH_AUTH,
+        appliesIf: [...MULTIPROCESS_WITH_AUTH.appliesIf, { property: "authorizationModel", notIn: ["not_specified", "rbac"] }],
+        satisfiedIf: [{ property: "authorizationModel", in: ["rbac"] }],
+      },
     ],
   },
   { id: "cr-2.1-re3", type: "C", targets: AUTHENTICATION_USE },

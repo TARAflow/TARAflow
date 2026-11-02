@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.8 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4, CM-5a done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.9 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4, CM-5a, CM-5c done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -167,7 +167,7 @@ references of every field).
 
 | # | Field | On | Shown when (R-3) | Values (`not_specified` first, R-1) | 62443 rows after |
 |---|---|---|---|---|---|
-| F-1 | `userAccounts` | Process, Multiprocess | the element authenticates (Process `authenticationRequired` ∉ {not_specified, no}; Multiprocess `boundaryAuthentication` ∉ {not_specified, none}) **and** has a human neighbour (D-24) | individual · shared | CR 1.1 RE(1) → A (both editions) |
+| F-1 | `userAccounts` | Process, Multiprocess | the element authenticates (Process `authenticationRequired` ∉ {not_specified, no}; Multiprocess `boundaryAuthentication` ∉ {not_specified, none}) **and** has a human neighbour (D-24) | individual · per role · shared (v0.9: the login per role of industrial devices) | CR 1.1 RE(1) → A (both editions); per role / shared meet CR 1.1, not RE(1) |
 | F-2a | `passwordStrength` | Process, Multiprocess | a password is in use: an incoming flow with `endpointAuthentication` = password, or Multiprocess `boundaryAuthentication` = password | none · fixed rules · configurable policy | CR 1.7 → A with "configurable policy" (both editions) |
 | F-2b | `passwordLifetime` | Process, Multiprocess | as F-2a | none · human accounts · machine accounts · all accounts | 2019: RE(1) ← human / all (help text: lifetime **and** reuse limit), RE(2) ← all; prAA: RE(1) void, RE(2) ← machine / all |
 | F-3 | `defaultCredentials` | Process, Multiprocess | the element authenticates (as F-1, without the human condition) | none pre-installed · unique per device · change enforced at first use · universal | CR 1.5 items a, b (checklist; the row stays B) |
@@ -178,6 +178,7 @@ references of every field).
 | F-27 | `updateDelivery` | Multiprocess, Process | `updateMechanism` ∉ {not_specified, none} | manual only · notification of available updates · on request or scheduled · automatic | prAA CR 3.10 RE(2) B → A when ≠ manual only (no row in 2019) |
 | F-27b | `updateDefaults` | Multiprocess, Process | F-27 = automatic | multi-select: enabled by default · user can disable · user can postpone | — (CRA (2)(c), EN 303 645 5.3-6) |
 | F-28 | security contact, support period end, model designation | project (Overview) | always | text · date · text | — (62443-4-1, process) |
+| F-29 | `roleMapping` (v0.9, user 2026-11-02) | Process, Multiprocess | `authorizationModel` = rbac (and the element does not state "no authentication") | fixed roles · configurable | CR 2.1 RE(2) stays A, now `roleMapping` = configurable — RBAC alone over-claimed it |
 
 **Answers to the v0.1 open points (instance A, v0.2):**
 
@@ -365,6 +366,8 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) (**done**, see §10.1) | CM-0 | A |
 | CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) (**done**, see §10.1) | CM-0 | A |
 | CM-5a | F-1, F-2a, F-2b (accounts, passwords) — model, form, i18n, rules, report, golden (**done**, see §10.1) | CM-3, CM-4 | A |
+| CM-5c | `userAccounts` per role; F-29 `roleMapping`, CR 2.1 RE(2) corrected (user 2026-11-02) (**done**, see §10.1) | CM-5a | A |
+| CM-5d | light sub-tabs per category under the Security divider of the Process / Multiprocess forms, open-field count per tab, tabs without fields hidden; context predicates for existing fields where they match the rule's applicability (user 2026-11-02) | CM-5c | A |
 | CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) | CM-5a | A |
 | CM-6 | F-27, F-25a, F-25b (lifecycle / configuration) | CM-5 | A |
 | CM-7 | F-22, F-28 (data deletion, support data) | CM-5 | A |
@@ -532,3 +535,23 @@ a mechanism of their own (CM-5b).
   rules per edition (met / gap / unknown / n/a), form component, report rows, golden
   (SmokeDetector, CNC reference: unset fields never meet a row); the generic R-1 /
   R-3 / R-4 / R-6 / R-7 tests now run for the three fields.
+
+**CM-5c (done, 2026-11-02).** User question 2026-11-02: industrial devices usually
+have role-based logins and RBAC — how does the model show it?
+
+- IEC 62443-4-2:2019 CR 1.1 (rationale) allows role- or group-based identification —
+  several users may share one identity; CR 1.1 RE(1) (SL 2) asks for unique
+  identification. `userAccounts` therefore has three values: one account per person ·
+  one login per role · one shared login; per role and shared meet CR 1.1 (decided on
+  the flows as before) and fail RE(1).
+- CR 2.1 RE(2) (SL 2): an authorised role defines and changes the mapping of
+  permissions to roles. The rule accepted `authorizationModel = rbac` alone — an
+  over-claim for devices with roles fixed in the product. New field F-29
+  `roleMapping` (fixed roles · configurable), shown with `authorizationModel = rbac`
+  (condition `roleBasedAuthorization`); RE(2) met only with "configurable"; another
+  authorization model has no roles to map → gap; unset → unknown. Projects with RBAC
+  see RE(2) as unknown until the field is set (golden: never met while unset).
+- Pump Station example: `roleMapping = configurable` on P-1 and MP-1 (counts
+  unchanged).
+- The Security section gets sub-tabs in CM-5d (user 2026-11-02: light tabs under the
+  Security divider; hide a field only when it does not fit the context).

@@ -1,5 +1,5 @@
-// F-1 userAccounts, F-2a passwordStrength, F-2b passwordLifetime
-// (model-coverage-implementation-plan.md §4.2, CM-5a): each field appears
+// F-1 userAccounts, F-2a passwordStrength, F-2b passwordLifetime, F-29
+// roleMapping (model-coverage-implementation-plan.md §4.2, CM-5a / CM-5c): each field appears
 // only where the settings made before it make it meaningful (user
 // 2026-11-02), offers only fitting values, and keeps its value while hidden
 // (K-7).
@@ -17,6 +17,7 @@ import {
 const userAccounts = modelField("userAccounts")!;
 const passwordStrength = modelField("passwordStrength")!;
 const passwordLifetime = modelField("passwordLifetime")!;
+const roleMapping = modelField("roleMapping")!;
 
 const operator: VisibilityElement = { id: "op", type: "ExternalEntity", properties: { entityType: "operator" } };
 const scada: VisibilityElement = { id: "scada", type: "ExternalEntity", properties: { entityType: "scada_hmi" } };
@@ -94,5 +95,19 @@ describe("F-2b passwordLifetime offers only the kinds of accounts that log in wi
     // A password from a human that reaches a process stating "no authentication" counts for nothing.
     const denied = contextOf(process({ authenticationRequired: "no" }), [flow("f", "op", "p", "password")]);
     expect(MODEL_CONDITIONS.humanPasswordUse(denied)).toBe(false);
+  });
+});
+
+describe("F-29 roleMapping: role-based authorization", () => {
+  it("shown with authorizationModel = rbac; hidden with other models, unset, or an element that does not authenticate", () => {
+    expect(isFieldShown(roleMapping, contextOf(process({ authenticationRequired: "yes", authorizationModel: "rbac" }), []))).toBe(true);
+    expect(isFieldShown(roleMapping, contextOf(system({ authorizationModel: "rbac" }), []))).toBe(true);
+    expect(isFieldShown(roleMapping, contextOf(process({ authorizationModel: "acl" }), []))).toBe(false);
+    expect(isFieldShown(roleMapping, contextOf(process({}), []))).toBe(false);
+    expect(isFieldShown(roleMapping, contextOf(process({ authenticationRequired: "no", authorizationModel: "rbac" }), []))).toBe(false);
+  });
+
+  it("userAccounts knows the login per role of industrial devices", () => {
+    expect(userAccounts.values).toEqual(["not_specified", "individual", "per_role", "shared"]);
   });
 });

@@ -152,7 +152,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 |---|---|---|---|---|---|---|---|
 | CR 2.1 (l. 1315) | authorization enforcement for identified and authenticated users | 1 | d | Proc / MP with authentication | Proc / MP.`authorizationModel` ≠ none; DF.`accessMode` | A | — |
 | CR 2.1 RE(1) (l. 1351) | authorization for all users by responsibility and least privilege | 2 | d | as CR 2.1 | `authorizationModel` + Proc.`privilegeLevel` / `runsAs` (least privilege) | B | — |
-| CR 2.1 RE(2) (l. 1375) | authorized role maps permissions to roles | 2 | d | as CR 2.1 | `authorizationModel` = rbac | A | — |
+| CR 2.1 RE(2) (l. 1375) | authorized role maps permissions to roles | 2 | d | as CR 2.1 | `authorizationModel` = rbac **and** (0.18, F-29) `roleMapping` = configurable — fixed roles do not meet it | A | — |
 | CR 2.1 RE(3) (l. 1401) | supervisor manual override | 3 | d | as CR 2.1 | — | C | — |
 | CR 2.1 RE(4) (l. 1425) | dual approval for actions with serious impact on essential functions | 4 | d | as CR 2.1, safety-relevant functions | — | C | — |
 | CR 2.2 (l. 1458) | wireless usage authorization, monitoring, restriction | 1 | d | wireless IF / DF (as CR 1.6) | IF.ic.`monitoringControl` ≠ none, IF.ic.`serviceAccessPolicy` | B | — |

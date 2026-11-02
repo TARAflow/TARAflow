@@ -356,10 +356,11 @@
       "modelFields": {
         "userAccounts": {
           "label": "Benutzerkonten",
-          "help": "Wie sich Menschen an diesem Element anmelden: jede Person mit einem eigenen Konto oder mit gemeinsamen Konten (z. B. ein Login \"Bediener\"). IEC 62443-4-2 CR 1.1 RE(1) verlangt die eindeutige Identifikation jedes menschlichen Benutzers.",
+          "help": "Wie sich Menschen an diesem Element anmelden: jede Person mit einem eigenen Konto, ein Login pro Rolle (z. B. Bediener, Wartung, Admin — bei Industriegeräten üblich) oder ein gemeinsamer Login für alle. IEC 62443-4-2 CR 1.1 lässt rollen- oder gruppenbasierte Logins zu; CR 1.1 RE(1) (SL 2) verlangt die eindeutige Identifikation jedes menschlichen Benutzers.",
           "values": {
             "individual": "Ein Konto pro Person",
-            "shared": "Gemeinsame Konten"
+            "per_role": "Ein Login pro Rolle",
+            "shared": "Ein gemeinsamer Login"
           }
         },
         "passwordStrength": {
@@ -379,6 +380,14 @@
             "human_accounts": "Konten menschlicher Benutzer",
             "machine_accounts": "Konten von Software-Prozessen und Geräten",
             "all_accounts": "Alle Konten"
+          }
+        },
+        "roleMapping": {
+          "label": "Rollen-Berechtigungen",
+          "help": "Bei rollenbasierter Autorisierung: Kann eine berechtigte Rolle (z. B. der Administrator) festlegen und ändern, welche Rechte jede Rolle hat, oder sind Rollen und Rechte im Produkt fest vorgegeben? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) verlangt die konfigurierbare Zuordnung.",
+          "values": {
+            "fixed_roles": "Im Produkt fest vorgegeben",
+            "configurable": "Durch eine berechtigte Rolle konfigurierbar"
           }
         }
       },
