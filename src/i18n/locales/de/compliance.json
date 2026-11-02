@@ -1,6 +1,7 @@
 {
   "compliance": {
     "draft": "Entwurf",
+    "standards": "Normen",
     "component": "Bewertete Komponente",
     "wholeModel": "Ganzes Modell",
     "intro": "Die Matrix wird aus dem Modell abgeleitet: Eigenschaften, die Massnahmen der Risikobehandlung, Supporting Measures ausserhalb der Komponente, deine Aussagen und Claims. Nicht gesetzte Eigenschaften zählen als unbekannt — nie als nicht anwendbar.",

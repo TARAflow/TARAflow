@@ -20,6 +20,8 @@ export interface StandardModule {
   id: EditionId;
   /** Statements and the component are shared inside a family (D-31, K-6). */
   family: StandardFamilyId;
+  /** Sub-tab label — the standard's short name, not translated. */
+  label: string;
   /** Regulation tags that show the standard; any one suffices. */
   tags: readonly string[];
   edition: Edition;
@@ -32,6 +34,7 @@ export const STANDARDS: readonly StandardModule[] = [
   {
     id: EDITION_PRAA_2026.id,
     family: EDITION_PRAA_2026.family,
+    label: "EN IEC 62443-4-2 (CRA)",
     tags: [TAG_EN_IEC_62443_CRA],
     edition: EDITION_PRAA_2026,
     header: "security-levels",
@@ -39,6 +42,7 @@ export const STANDARDS: readonly StandardModule[] = [
   {
     id: EDITION_2019.id,
     family: EDITION_2019.family,
+    label: "IEC 62443-4-2:2019",
     tags: [TAG_IEC_62443],
     edition: EDITION_2019,
     header: "security-levels",
@@ -52,9 +56,8 @@ export function activeStandards(tags: Pick<ProjectTags, "regulation"> | null | u
 }
 
 /**
- * The edition the tab and the report show until they show one sub-tab /
- * chapter per standard (CM-2, CM-9): the first active standard — with both
- * 62443 tags the CRA edition, as before.
+ * The edition the report shows until it has one chapter per standard
+ * (CM-9): the first active standard — with both 62443 tags the CRA edition.
  */
 export function selectEdition(tags: Pick<ProjectTags, "regulation"> | null | undefined): Edition | null {
   return activeStandards(tags)[0]?.edition ?? null;

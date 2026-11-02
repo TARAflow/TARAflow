@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.4 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.5 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1, CM-2 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -361,7 +361,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 |---|---|---|---|
 | CM-0 | this plan: K-points decided, standard references verified by A (**done**: references verified v0.2, K decided 2026-11-02) | — | A |
 | CM-1 | standard registry `activeStandards`, generalised `EditionRow.group`, requirement id namespace (K-4) — no UI change, both editions still evaluate (**done**, see below) | CM-0 | A |
-| CM-2 | sub-tab frame in `compliance-tab.tsx`, D-3 superseded, per-viewer last sub-tab | CM-1 | A |
+| CM-2 | sub-tab frame in `compliance-tab.tsx`, D-3 superseded, per-viewer last sub-tab (**done**, see §10.1) | CM-1 | A |
 | CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) | CM-0 | A |
 | CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) | CM-0 | A |
 | CM-5 | F-1, F-2, F-3 (identity) — model, form, i18n, rules, report, golden | CM-3, CM-4 | A |
@@ -397,3 +397,27 @@ schedules them.
 - Tests: registry (tags → standards, K-1 order, `MATRIX_TAGS` = registry tags),
   namespaces (round trip, unknown namespace), every row's group in `Edition.groups`,
   catalog field = namespace.
+
+**CM-2 (done, 2026-11-02).**
+
+- `components/compliance-frame.tsx` (new file next to `compliance-tab.tsx`, which stays
+  the view of one edition): one sub-tab per active standard, labelled with
+  `StandardModule.label` (new, not translated: the standard's short name); no sub-tab
+  bar with a single standard, so single-tag projects look as before. The last sub-tab
+  is kept in localStorage (`taraflow.compliance.subTab`); a remembered standard whose
+  tag was removed falls back to the first one. Each sub-tab mounts the tab afresh
+  (filter and dialogs belong to one standard).
+- Only the selected standard is evaluated: `compliance-report.ts` splits
+  `prepareProjectCompliance(project)` (property view, scope, mitigations, planned
+  overlay — once per project state) from `evaluate(edition)`;
+  `evaluateProjectCompliance(project, edition?)` keeps the report on the first active
+  standard until CM-9.
+- Workspace: `activeStandards` instead of `selectEdition`, `ComplianceFrame` instead of
+  `ComplianceTab` — the change stays at the compliance block (K-8). D-3 is superseded
+  in the tab; the report follows with CM-9.
+- Component data (component, SL-T, statements) is still the one `project.compliance`
+  block; statements are shared by both editions anyway (D-31). Per-family data comes
+  with CM-3.
+- Tests: frame (two sub-tabs, CRA first, only the selected one evaluated, remembered,
+  fallback after tag removal, no bar for one standard); `prepareProjectCompliance`
+  gives the same result per edition as `evaluateProjectCompliance`.

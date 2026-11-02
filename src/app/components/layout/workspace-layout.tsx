@@ -124,9 +124,9 @@ import {
 import { DocTab, DocUpdateResult } from "features/documentation";
 import { IntegrationTab, createTicketAdapter, type IntegrationTabData } from "features/integration";
 import { AuditTab, useAuditHints } from "features/audit";
-import { ComplianceTab, proposeDeviceCategories, selectEdition, suggestMitigations } from "features/compliance";
+import { activeStandards, ComplianceFrame, proposeDeviceCategories, suggestMitigations } from "features/compliance";
 import type { ComplianceData } from "shared";
-import { complianceNameOf, complianceTypeOf, evaluateProjectCompliance } from "app/services/compliance-report";
+import { complianceNameOf, complianceTypeOf, prepareProjectCompliance } from "app/services/compliance-report";
 import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
 import { transformProjectToDocData } from "app/services/doc-transform";
@@ -1135,13 +1135,14 @@ export const WorkspaceLayout: React.FC = () => {
     anchorTargets,
   );
 
-  // ── IEC 62443-4-2 matrix (Compliance tab, D-9) ──────────────────────────
-  // The tags select the edition; the model is evaluated only while the tab
-  // is open (the analysis view is rebuilt for it).
-  const complianceEdition = useMemo(() => selectEdition(activeProject?.info?.tags), [activeProject?.info?.tags]);
+  // ── Requirement matrices (Compliance tab, D-9) ──────────────────────────
+  // The tags select the standards, one sub-tab each (K-1); the model is
+  // prepared only while the tab is open (the analysis view is rebuilt for
+  // it), the frame evaluates the selected standard.
+  const complianceStandards = useMemo(() => activeStandards(activeProject?.info?.tags), [activeProject?.info?.tags]);
   const complianceView = useMemo(() => {
-    if (!activeProject || !complianceEdition || activePhase !== PhaseId.Compliance) return undefined;
-    const evaluation = evaluateProjectCompliance(activeProject);
+    if (!activeProject || complianceStandards.length === 0 || activePhase !== PhaseId.Compliance) return undefined;
+    const evaluation = prepareProjectCompliance(activeProject);
     if (!evaluation) return undefined;
     const elements = activeProject.dfd?.elements ?? [];
     const componentId = activeProject.compliance?.componentId;
@@ -1161,7 +1162,7 @@ export const WorkspaceLayout: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activePhase,
-    complianceEdition,
+    complianceStandards,
     activeProject?.dfd,
     activeProject?.threats,
     activeProject?.risks,
@@ -1203,7 +1204,7 @@ export const WorkspaceLayout: React.FC = () => {
         threatDrift={threatDriftCounts}
         indicators={memoizedPhaseIndicators ?? undefined}
         auditHints={auditHintLines}
-        complianceAvailable={!!complianceEdition}
+        complianceAvailable={complianceStandards.length > 0}
       />
 
       <div className="flex-1 overflow-y-auto">
@@ -1522,12 +1523,11 @@ export const WorkspaceLayout: React.FC = () => {
           />
         )}
 
-        {activePhase === PhaseId.Compliance && complianceEdition && (
+        {activePhase === PhaseId.Compliance && complianceStandards.length > 0 && (
           complianceView ? (
-            <ComplianceTab
-              edition={complianceEdition}
-              achieved={complianceView.achieved}
-              planned={complianceView.planned}
+            <ComplianceFrame
+              standards={complianceStandards}
+              evaluate={complianceView.evaluate}
               data={activeProject.compliance}
               componentOptions={complianceView.componentOptions}
               deviceProposal={complianceView.deviceProposal}

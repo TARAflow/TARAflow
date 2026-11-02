@@ -37,7 +37,7 @@ describe("activeStandards", () => {
     expect(ids([TAG_IEC_62443, TAG_EN_IEC_62443_CRA])).toEqual(["en-iec-62443-4-2-praa-2026", "iec-62443-4-2-2019"]);
   });
 
-  it("until the sub-tabs (CM-2), the tab and the report show the first active standard", () => {
+  it("until one chapter per standard (CM-9), the report shows the first active standard", () => {
     expect(selectEdition(tags(TAG_IEC_62443, TAG_EN_IEC_62443_CRA))).toBe(EDITION_PRAA_2026);
     expect(selectEdition(tags(TAG_IEC_62443))).toBe(EDITION_2019);
     expect(selectEdition(tags("CRA"))).toBeNull();

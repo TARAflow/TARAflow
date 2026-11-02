@@ -94,3 +94,4 @@ export {
 
 // ==================== UI ====================
 export { ComplianceTab, type ComplianceTabProps } from "./components/compliance-tab";
+export { ComplianceFrame, type ComplianceFrameProps } from "./components/compliance-frame";

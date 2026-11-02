@@ -1,6 +1,7 @@
 {
   "compliance": {
     "draft": "draft",
+    "standards": "Standards",
     "component": "Component under evaluation",
     "wholeModel": "Whole model",
     "intro": "The matrix is derived from the model: properties, the mitigations of the risk treatment, supporting measures outside the component, your statements and claims. Unset properties count as unknown — never as not applicable.",

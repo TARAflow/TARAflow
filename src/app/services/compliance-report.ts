@@ -4,7 +4,8 @@
 // document (iec-62443-4-2-cra-coverage.md §5, §9.4) — the app layer joins
 // what the features may not import from each other:
 //
-//   edition         the project's regulation tags (D-1, D-3)
+//   edition         the project's regulation tags (D-1; standard registry,
+//                   one evaluation per standard, K-1)
 //   property view   the DFD analysis view: leaves + decomposed multiprocesses,
 //                   every drawn flow incl. excluded ones (D-24)
 //   scope           the component and what belongs to it (D-7): its
@@ -33,6 +34,7 @@ import {
   selectEdition,
   suggestMitigations,
   type ComplianceResult,
+  type Edition,
   type MitigationEvidence,
   type PropertyView,
   type ViewElement,
@@ -117,13 +119,22 @@ export function complianceTypeOf(project: Project): (id: string) => string | und
   return (id) => types.get(id);
 }
 
-/** Evaluates the project's matrix; undefined when no edition is selected or there is no DFD. */
-export function evaluateProjectCompliance(
-  project: Project,
-): { achieved: ComplianceResult; planned: ComplianceResult; scope: Set<string>; scopeName?: string } | undefined {
-  const edition = selectEdition(project.info?.tags);
+/** The model side of the matrix, shared by every standard of the project. */
+export interface ProjectComplianceContext {
+  scope: Set<string>;
+  scopeName?: string;
+  /** Achieved and planned run of one edition. */
+  evaluate: (edition: Edition) => { achieved: ComplianceResult; planned: ComplianceResult };
+}
+
+/**
+ * Builds what every edition reads (property view, scope, mitigations, the
+ * planned overlay) once; the editions are evaluated on demand. Undefined
+ * when there is no DFD.
+ */
+export function prepareProjectCompliance(project: Project): ProjectComplianceContext | undefined {
   const dfd = project.dfd as Any;
-  if (!edition || !dfd?.elements?.length) return undefined;
+  if (!dfd?.elements?.length) return undefined;
 
   const source = {
     xml: dfd.xml,
@@ -169,20 +180,40 @@ export function evaluateProjectCompliance(
   );
   const should = deriveControlInstances(project.threats, project.risks, project.dfd, catalog, anchors);
 
-  const base = {
-    edition,
-    scope,
-    // D-31: statements per requirement, found by each row's requirement ids.
-    statements: editionStatements(edition, project.compliance?.statements),
-    mitigations,
-    deviceCategories: project.compliance?.deviceCategories,
-  };
+  const planned = plannedView(view, should);
+
   return {
-    achieved: evaluateMatrix({ ...base, view, run: "achieved" }),
-    planned: evaluateMatrix({ ...base, view: plannedView(view, should), run: "planned" }),
     scope,
     scopeName: componentId ? complianceNameOf(project)(componentId) : undefined,
+    evaluate: (edition) => {
+      const base = {
+        edition,
+        scope,
+        // D-31: statements per requirement, found by each row's requirement ids.
+        statements: editionStatements(edition, project.compliance?.statements),
+        mitigations,
+        deviceCategories: project.compliance?.deviceCategories,
+      };
+      return {
+        achieved: evaluateMatrix({ ...base, view, run: "achieved" }),
+        planned: evaluateMatrix({ ...base, view: planned, run: "planned" }),
+      };
+    },
   };
+}
+
+/**
+ * Evaluates one edition of the project's matrix — by default the first
+ * active standard (the report shows one chapter until CM-9); undefined when
+ * no edition is selected or there is no DFD.
+ */
+export function evaluateProjectCompliance(
+  project: Project,
+  edition: Edition | null = selectEdition(project.info?.tags),
+): { achieved: ComplianceResult; planned: ComplianceResult; scope: Set<string>; scopeName?: string } | undefined {
+  const context = edition ? prepareProjectCompliance(project) : undefined;
+  if (!edition || !context) return undefined;
+  return { ...context.evaluate(edition), scope: context.scope, scopeName: context.scopeName };
 }
 
 /** The matrix chapter's data (DocProjectData.computed.compliance). */

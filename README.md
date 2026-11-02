@@ -278,7 +278,7 @@ The concept-phase work products follow Clause 9: the **Item Definition** (Overvi
 
 ## IEC 62443-4-2 and the Cyber Resilience Act
 
-TARAflow derives the **IEC 62443-4-2 requirement matrix** of a component from the TARA model. The regulation tag selects the edition: `IEC 62443` the classic edition (2019) with the device categories SAR / EDR / HDR / NDR, `EN IEC 62443 (CRA)` the CRA edition EN IEC 62443-4-2/prAA (draft, marked as such) with the view by CRA Annex I letter; with both tags the CRA edition applies.
+TARAflow derives the **IEC 62443-4-2 requirement matrix** of a component from the TARA model. The regulation tag selects the edition: `IEC 62443` the classic edition (2019) with the device categories SAR / EDR / HDR / NDR, `EN IEC 62443 (CRA)` the CRA edition EN IEC 62443-4-2/prAA (draft, marked as such) with the view by CRA Annex I letter; with both tags the Compliance tab shows both editions as sub-tabs (the report chapter: the CRA edition).
 
 The **Compliance tab** shows, for the component under evaluation (an element or the whole model):
 

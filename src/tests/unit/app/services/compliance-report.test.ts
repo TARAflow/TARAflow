@@ -7,7 +7,13 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parseAndRepair } from "app/services/migration-service";
-import { buildDocCompliance, complianceScope, evaluateProjectCompliance } from "app/services/compliance-report";
+import {
+  buildDocCompliance,
+  complianceScope,
+  evaluateProjectCompliance,
+  prepareProjectCompliance,
+} from "app/services/compliance-report";
+import { EDITION_2019, EDITION_PRAA_2026 } from "features/compliance";
 import type { Project } from "app/models/project-types";
 import { buildPumpStationProject } from "../../../examples/pump-station-example";
 
@@ -21,6 +27,26 @@ const smokeDetector = (regulation: string[], compliance?: Any): Project => {
   if (compliance) project.compliance = compliance;
   return project;
 };
+
+describe("prepareProjectCompliance", () => {
+  it("one preparation evaluates each edition like evaluateProjectCompliance (K-1, sub-tabs)", () => {
+    const project = smokeDetector(["IEC 62443", "EN IEC 62443 (CRA)"]);
+    const context = prepareProjectCompliance(project)!;
+    for (const edition of [EDITION_PRAA_2026, EDITION_2019]) {
+      const single = evaluateProjectCompliance(project, edition)!;
+      const fromContext = context.evaluate(edition);
+      expect(fromContext.achieved).toEqual(single.achieved);
+      expect(fromContext.planned).toEqual(single.planned);
+      expect(fromContext.achieved.rows).toHaveLength(edition.rows.length);
+    }
+    expect(context.scope).toEqual(evaluateProjectCompliance(project)!.scope);
+  });
+
+  it("no DFD → nothing to evaluate", () => {
+    const project = smokeDetector(["IEC 62443"]);
+    expect(prepareProjectCompliance({ ...project, dfd: undefined } as Any)).toBeUndefined();
+  });
+});
 
 describe("buildDocCompliance", () => {
   it("no 62443 tag → no matrix (the generic CRA tag selects none, D-3)", () => {
