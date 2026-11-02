@@ -69,8 +69,25 @@ describe("Compliance tab", () => {
     expect(within(rows).getByTestId("compliance-row-CR 3.5")).toBeTruthy();
     expect(within(rows).queryByTestId("compliance-row-CR 3.7")).toBeNull();
     expect(within(rows).getByText(/not met by: P-1 Controller/)).toBeTruthy();
-    fireEvent.click(screen.getByTestId("compliance-filter-all"));
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "all" } });
     expect(within(screen.getByTestId("compliance-rows")).getByTestId("compliance-row-CR 3.7")).toBeTruthy();
+  });
+
+  it("the filter shows one status at a time, with the count per choice; met includes claimed", () => {
+    renderTab(edition(CRA_ROWS));
+    const shown = () => within(screen.getByTestId("compliance-rows")).queryAllByTestId(/^compliance-row-/).map((r) => r.dataset.testid);
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "met" } });
+    expect(shown()).toEqual(["compliance-row-CR 3.7"]);
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "gap" } });
+    expect(shown()).toEqual(["compliance-row-CR 3.5"]);
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "unknown" } });
+    expect(shown()).toEqual([]);
+    expect(screen.getByText("No requirements with this status.")).toBeTruthy();
+    fireEvent.mouseDown(within(screen.getByTestId("compliance-filter").parentElement!).getByRole("combobox"));
+    const options = screen.getAllByRole("option").map((o) => o.textContent);
+    expect(options).toEqual([
+      "All (2)", "Open (1)", "Gap (1)", "Statement needed (0)", "Unknown (0)", "Not applicable (0)", "Met (incl. claimed) (1)",
+    ]);
   });
 
   it("SL table (D-26): FRs as columns; the SL-C against the SL-T by colour and symbol; a target per FR", () => {

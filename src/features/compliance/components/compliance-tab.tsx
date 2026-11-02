@@ -34,8 +34,6 @@ import {
   TableHead,
   TableRow,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Link,
   Tooltip,
   Typography,
@@ -90,6 +88,32 @@ function useComplianceT() {
 
 const DEVICE_CATEGORIES: DeviceCategory[] = ["SAR", "EDR", "HDR", "NDR"];
 const OPEN_STATUSES: readonly RowStatus[] = ["gap", "unknown", "needs-statement", "pending-category"];
+
+/** The row filter (user 2026-11-02): all, the open rows, or one status; "met" includes "claimed". */
+type RowFilter = "all" | "open" | "gap" | "needs-statement" | "unknown" | "n/a" | "met";
+const ROW_FILTERS: readonly RowFilter[] = ["all", "open", "gap", "needs-statement", "unknown", "n/a", "met"];
+const FILTER_DEFAULT: Record<RowFilter, string> = {
+  all: "All",
+  open: "Open",
+  gap: "Gap",
+  "needs-statement": "Statement needed",
+  unknown: "Unknown",
+  "n/a": "Not applicable",
+  met: "Met (incl. claimed)",
+};
+
+function matchesFilter(row: RowResult, filter: RowFilter): boolean {
+  switch (filter) {
+    case "all":
+      return true;
+    case "open":
+      return OPEN_STATUSES.includes(row.status) || !!row.statementModelChanged;
+    case "met":
+      return row.status === "met" || row.status === "claimed";
+    default:
+      return row.status === filter;
+  }
+}
 
 const STATUS_DEFAULT: Record<RowStatus, string> = {
   met: "met",
@@ -163,7 +187,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   const t = useComplianceT();
   const { i18n } = useTranslation(NS);
   const lang = describeLanguageOf(i18n?.language);
-  const [filter, setFilter] = useState<"open" | "all">("open");
+  const [filter, setFilter] = useState<RowFilter>("open");
   const [editing, setEditing] = useState<RowResult | null>(null);
   const [info, setInfo] = useState<RowResult | null>(null);
   // The quick guide: open the first time the tab is shown on this machine,
@@ -180,9 +204,10 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   };
   const rowDef = useMemo(() => new Map(edition.rows.map((r) => [r.label, r])), [edition]);
 
-  const rows = useMemo(
-    () => (filter === "all" ? achieved.rows : achieved.rows.filter((r) => OPEN_STATUSES.includes(r.status) || r.statementModelChanged)),
-    [achieved.rows, filter],
+  const rows = useMemo(() => achieved.rows.filter((r) => matchesFilter(r, filter)), [achieved.rows, filter]);
+  const filterCount = useMemo(
+    () => new Map(ROW_FILTERS.map((f) => [f, achieved.rows.filter((r) => matchesFilter(r, f)).length])),
+    [achieved.rows],
   );
 
   const target = useMemo(() => data?.target ?? {}, [data?.target]);
@@ -473,14 +498,21 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
             <Typography variant="subtitle1">{t("rowsTitle", "Requirements")}</Typography>
-            <ToggleButtonGroup size="small" exclusive value={filter} onChange={(_, v) => v && setFilter(v)}>
-              <ToggleButton value="open" data-testid="compliance-filter-open">
-                {t("filterOpen", "Open")}
-              </ToggleButton>
-              <ToggleButton value="all" data-testid="compliance-filter-all">
-                {t("filterAll", "All")}
-              </ToggleButton>
-            </ToggleButtonGroup>
+            <TextField
+              select
+              size="small"
+              label={t("filterLabel", "Show")}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as RowFilter)}
+              inputProps={{ "data-testid": "compliance-filter" }}
+              sx={{ minWidth: 220 }}
+            >
+              {ROW_FILTERS.map((f) => (
+                <MenuItem key={f} value={f}>
+                  {t(`filter.${f}`, FILTER_DEFAULT[f])} ({filterCount.get(f) ?? 0})
+                </MenuItem>
+              ))}
+            </TextField>
           </Stack>
           <Table size="small" data-testid="compliance-rows">
             <TableHead>
@@ -558,7 +590,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           </Table>
           {rows.length === 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {t("noOpenRows", "No open requirements.")}
+              {filter === "open" ? t("noOpenRows", "No open requirements.") : t("noRowsFilter", "No requirements with this status.")}
             </Typography>
           )}
         </Paper>
