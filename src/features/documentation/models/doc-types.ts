@@ -281,11 +281,12 @@ export interface DocComputedValues {
    */
   verification?: DocVerification;
   /**
-   * IEC 62443-4-2 requirement matrix (iec-62443-4-2-cra-coverage.md §5),
-   * evaluated by the app layer (buildDocCompliance) — only for projects whose
-   * tags select an edition. Absent → no matrix chapter.
+   * Requirement matrices (iec-62443-4-2-cra-coverage.md §5), one per active
+   * standard in registry order (model coverage plan §2.5, CM-9), evaluated by
+   * the app layer (buildDocCompliance) — only for projects whose tags select
+   * a standard. Absent → no matrix chapter.
    */
-  compliance?: DocCompliance;
+  compliance?: DocCompliance[];
 }
 
 /** SL-C values of one FR (D-2, D-4, D-14). */
@@ -326,6 +327,8 @@ export interface DocComplianceRow {
 }
 
 export interface DocCompliance {
+  /** Short name of the standard — the part's title when the chapter has several (CM-9). */
+  standardLabel: string;
   editionTitle: string;
   draft: boolean;
   /** CRA edition: with the Annex I Part I view. */

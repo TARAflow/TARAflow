@@ -32,10 +32,12 @@ import {
   localizedChecklist,
   evaluateMatrix,
   FOUNDATIONAL_REQUIREMENTS,
+  activeStandards,
   selectEdition,
   suggestMitigations,
   type ComplianceResult,
   type Edition,
+  type StandardModule,
   type MitigationEvidence,
   type PropertyView,
   type ViewElement,
@@ -235,12 +237,20 @@ export function evaluateProjectCompliance(
   return context.evaluate(edition);
 }
 
-/** The matrix chapter's data (DocProjectData.computed.compliance). */
-export function buildDocCompliance(project: Project, language = "en"): DocCompliance | undefined {
+/**
+ * The matrix chapter's data (DocProjectData.computed.compliance): one part
+ * per active standard, in registry order (CM-9); the model is prepared once.
+ */
+export function buildDocCompliance(project: Project, language = "en"): DocCompliance[] | undefined {
+  const standards = activeStandards(project.info?.tags);
+  const context = standards.length > 0 ? prepareProjectCompliance(project) : undefined;
+  if (!context) return undefined;
+  return standards.map((standard) => docComplianceOf(project, language, standard, context.evaluate(standard.edition)));
+}
+
+function docComplianceOf(project: Project, language: string, standard: StandardModule, result: EditionEvaluation): DocCompliance {
   const lang = describeLanguageOf(language);
-  const result = evaluateProjectCompliance(project);
-  const edition = selectEdition(project.info?.tags);
-  if (!result || !edition) return undefined;
+  const edition = standard.edition;
   const { achieved, planned } = result;
   const name = complianceNameOf(project);
   const familyData = familyCompliance(project.compliance, edition.family);
@@ -257,6 +267,7 @@ export function buildDocCompliance(project: Project, language = "en"): DocCompli
     ).map((m) => m.id);
 
   return {
+    standardLabel: standard.label,
     editionTitle: edition.title,
     draft: edition.draft,
     cra: edition.id === "en-iec-62443-4-2-praa-2026",

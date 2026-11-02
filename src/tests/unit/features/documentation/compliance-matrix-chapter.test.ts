@@ -39,6 +39,7 @@ const row = (label: string, extra: Partial<DocComplianceRow> = {}): DocComplianc
 });
 
 const compliance = (extra: Partial<DocCompliance> = {}): DocCompliance => ({
+  standardLabel: "EN IEC 62443-4-2 (CRA)",
   editionTitle: "EN IEC 62443-4-2:2019/prAA:2026 (draft)",
   draft: true,
   cra: true,
@@ -68,7 +69,7 @@ const project = (c?: DocCompliance): Any => ({
   risks: null,
   attackTree: null,
   dfd: null,
-  computed: { moscowLabels: new Map(), impactLabels: new Map(), ...(c ? { compliance: c } : {}) },
+  computed: { moscowLabels: new Map(), impactLabels: new Map(), ...(c ? { compliance: [c] } : {}) },
 });
 const cfg = (): Any => ({
   ...createDefaultDocData().configuration,
@@ -77,7 +78,7 @@ const cfg = (): Any => ({
 });
 
 describe("compliance matrix sections", () => {
-  const sections = complianceMatrixSections(compliance(), t);
+  const sections = complianceMatrixSections([compliance()], t);
   const byTitle = (title: string) => sections.find((s) => s.title === title)!;
 
   it("basis: edition marked as draft, the component", () => {
@@ -127,11 +128,20 @@ describe("compliance matrix sections", () => {
   });
 
   it("classic edition: no CRA column or view; no target → no gaps section; nothing → no chapter", () => {
-    const classic = complianceMatrixSections(compliance({ cra: false, draft: false, vectors: [{ fr: "IAC", achievedComponent: 1, achievedWithSupport: 1, plannedComponent: 1, plannedWithSupport: 1 }] }), t);
+    const classic = complianceMatrixSections([compliance({ cra: false, draft: false, vectors: [{ fr: "IAC", achievedComponent: 1, achievedWithSupport: 1, plannedComponent: 1, plannedWithSupport: 1 }] })], t);
     expect(classic.map((s) => s.title)).toEqual(["Basis", "Security levels per foundational requirement", "Statement of Applicability"]);
     expect(classic[1].table!.rows[1]).toEqual(["SL-C (product)", "1"]); // no SL-T → no mark
     expect(classic[2].table?.headers).not.toContain("CRA");
     expect(complianceMatrixSections(undefined, t)).toEqual([]);
+  });
+
+  it("two standards: one part each, the section titles name the standard (CM-9)", () => {
+    const classic = compliance({ standardLabel: "IEC 62443-4-2:2019", editionTitle: "IEC 62443-4-2:2019", cra: false, draft: false });
+    const titles = complianceMatrixSections([compliance(), classic], t).map((s) => s.title);
+    expect(titles[0]).toBe("EN IEC 62443-4-2 (CRA): Basis");
+    expect(titles).toContain("EN IEC 62443-4-2 (CRA): Regulation (EU) 2024/2847 (CRA), Annex I Part I");
+    expect(titles).toContain("IEC 62443-4-2:2019: Statement of Applicability");
+    expect(titles.filter((x) => x.startsWith("IEC 62443-4-2:2019:"))).not.toContain("IEC 62443-4-2:2019: Regulation (EU) 2024/2847 (CRA), Annex I Part I");
   });
 });
 
@@ -145,6 +155,14 @@ describe("compliance matrix in the formats", () => {
     expect(new StrictdocGenerator(project(compliance()), cfg(), t).generate().content).toContain("TITLE: Statement of Applicability");
     const pdf = JSON.stringify(new PdfMakeConverter(project(compliance()), cfg(), t).createDocumentDefinition().content);
     expect(pdf).toContain('"text":"IEC 62443-4-2 Requirement Matrix","style":"h1"');
+  });
+
+  it("two standards: both parts in one chapter (CM-9)", () => {
+    const both: Any = { ...project(compliance()), computed: { moscowLabels: new Map(), impactLabels: new Map(), compliance: [compliance(), compliance({ standardLabel: "IEC 62443-4-2:2019", cra: false })] } };
+    const md = new MarkdownGenerator(both, cfg(), t).generate().content;
+    expect(md.match(/## IEC 62443-4-2 Requirement Matrix/g)).toHaveLength(1);
+    expect(md).toContain("EN IEC 62443-4-2 (CRA): Statement of Applicability");
+    expect(md).toContain("IEC 62443-4-2:2019: Statement of Applicability");
   });
 
   it("without matrix data the chapter is left out", () => {

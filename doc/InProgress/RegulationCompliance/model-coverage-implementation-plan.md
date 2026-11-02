@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.17 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-8b done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.18 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -415,7 +415,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-7b | ~~F-28 support data on the project (Overview), report header~~ — **withdrawn** (user 2026-11-02: documentation, not TARA; patch 13 reverted, see §10.1) | CM-7a | A |
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) (**done**, see §10.1) | CM-1 | A |
 | CM-8b | F-5 `loginLockout` on the verifier; CR 1.11 from it; the interface link of CM-8 removed (user 2026-11-02) (**done**, see §10.1) | CM-8 | A |
-| CM-9 | report: one chapter per active standard | CM-2 | A |
+| CM-9 | report: one chapter per active standard — realised as one chapter with a part per standard (**done**, see §10.1) | CM-2 | A |
 | CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
 | CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) | CM-2, CM-3 | A |
 | CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View` in the app layer, model rules for 7.3 / 7.4.3.5.1; golden tests on an own example with `EN50742_A` (mandated control done → row met; WoO unset or risk unrated → unknown) — never customer data | CM-11 | A |
@@ -786,3 +786,21 @@ triage (K-11: F-5 dropped in favour of the interface field) and exposed its flaw
   after failed logins; CR 1.11 from the model.
 - Tests: CR 1.11 per value and edition, unstated / undecided (unknown), no guessable
   login (n/a), pairing link; visibility; Interface form values.
+
+**CM-9 (done, 2026-11-02).**
+
+- `buildDocCompliance` returns one `DocCompliance` per active standard in registry
+  order (CRA edition, classic edition), preparing the model once
+  (`prepareProjectCompliance`); `DocCompliance.standardLabel` names the standard;
+  `computed.compliance` is the list.
+- Deviation from §2.5 ("one chapter per standard"): **one chapter "compliance-matrix"
+  with one part per standard** — separate chapters would need dynamic chapter ids in
+  the chapter configuration (enable / order / custom titles), the TOC and the CLI
+  chapter list for something the user switches by tag anyway. With several standards
+  each section title names its standard ("EN IEC 62443-4-2 (CRA): Basis"); with one the
+  chapter reads as before. All formats (HTML, Markdown, AsciiDoc, StrictDoc, pdfmake)
+  render the same sections.
+- `selectEdition` remains only as the default of `evaluateProjectCompliance`.
+- README: both editions in the report with both tags.
+- Tests: two parts with prefixed titles, the CRA view only in the CRA part, one chapter
+  in Markdown, the app-layer parts in registry order.

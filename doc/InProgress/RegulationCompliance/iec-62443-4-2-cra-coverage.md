@@ -504,8 +504,8 @@ model-coverage-implementation-plan.md §2.1) returns every selected standard —
 editions with both tags (K-1). `selectEdition` is the first of them until the sub-tabs
 (CM-2) and the per-standard report chapters (CM-9). `EditionRow.fr` is now
 `EditionRow.group` (the FR for 62443, plan §2.3). CM-2: the Compliance tab shows one
-sub-tab per active standard (`ComplianceFrame`); only the report still uses
-`selectEdition`. CM-3 (schema 13): `project.compliance` holds one block per standard family —
+sub-tab per active standard (`ComplianceFrame`). CM-9: the report chapter has one
+part per active standard (`buildDocCompliance` returns one `DocCompliance` each). CM-3 (schema 13): `project.compliance` holds one block per standard family —
 the D-8 data (target, device categories, statements) now lives in
 `compliance.families["iec-62443-4-2"]`, the component stays the default at the top
 (plan §2.4, K-2, K-5).

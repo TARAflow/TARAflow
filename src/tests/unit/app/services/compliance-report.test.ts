@@ -65,7 +65,7 @@ describe("buildDocCompliance", () => {
   });
 
   it("CRA edition: all 97 rows, the CRA view, seven FRs", () => {
-    const doc = buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"]))!;
+    const [doc] = buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"]))!;
     expect(doc.cra).toBe(true);
     expect(doc.draft).toBe(true);
     expect(doc.rows).toHaveLength(97);
@@ -73,23 +73,28 @@ describe("buildDocCompliance", () => {
     expect(doc.component).toBeUndefined();
   });
 
-  it("both tags → the CRA edition (D-1)", () => {
-    expect(buildDocCompliance(smokeDetector(["IEC 62443", "EN IEC 62443 (CRA)"]))!.cra).toBe(true);
+  it("both tags → one part per edition, the CRA edition first (K-1, CM-9)", () => {
+    const parts = buildDocCompliance(smokeDetector(["IEC 62443", "EN IEC 62443 (CRA)"]))!;
+    expect(parts.map((p) => [p.standardLabel, p.cra])).toEqual([
+      ["EN IEC 62443-4-2 (CRA)", true],
+      ["IEC 62443-4-2:2019", false],
+    ]);
+    expect(parts.map((p) => p.rows.length)).toEqual([97, 125]);
   });
 
   it("classic edition: device rows wait for a confirmed category (K-C1)", () => {
-    const doc = buildDocCompliance(smokeDetector(["IEC 62443"]))!;
+    const [doc] = buildDocCompliance(smokeDetector(["IEC 62443"]))!;
     expect(doc.cra).toBe(false);
     expect(doc.rows).toHaveLength(125);
     expect(doc.deviceCategories).toEqual({ categories: [], confirmed: false });
     expect(doc.rows.find((r) => r.label === "EDR 3.14")!.status).toBe("pending-category");
-    const confirmed = buildDocCompliance(smokeDetector(["IEC 62443"], { families: { "iec-62443-4-2": { deviceCategories: { categories: ["EDR"], source: "manual" } } } }))!;
+    const [confirmed] = buildDocCompliance(smokeDetector(["IEC 62443"], { families: { "iec-62443-4-2": { deviceCategories: { categories: ["EDR"], source: "manual" } } } }))!;
     expect(confirmed.rows.find((r) => r.label === "EDR 3.14")!.status).not.toBe("pending-category");
     expect(confirmed.rows.find((r) => r.label === "NDR 3.14")!.status).toBe("n/a");
   });
 
   it("names elements by display id and name; target from the project", () => {
-    const doc = buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"], { families: { "iec-62443-4-2": { target: { IAC: 2 } } } }))!;
+    const [doc] = buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"], { families: { "iec-62443-4-2": { target: { IAC: 2 } } } }))!;
     expect(doc.vectors[0].target).toBe(2);
     const listed = doc.rows.flatMap((r) => [...r.failing, ...r.unknown]);
     expect(listed.some((n) => /^P-\d+ /.test(n))).toBe(true);

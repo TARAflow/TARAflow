@@ -10,6 +10,8 @@
 //                  by a measure marked done is never read as model evidence)
 //   4 CRA view     Annex I Part I → rows (CRA edition only)
 //   5 gaps         rows below the target, with catalog suggestions
+// One part per active standard (CM-9): both 62443 tags → the CRA edition and
+// the classic edition, each with these sections.
 
 import type { DocCompliance, DocComplianceRow } from "../models/doc-types";
 import type { ReportSection } from "./report-section";
@@ -97,13 +99,22 @@ function rowNotes(row: DocComplianceRow, t: TranslateFn): string {
   return parts.join(" · ");
 }
 
-export function hasComplianceContent(compliance: DocCompliance | undefined): boolean {
-  return !!compliance && compliance.rows.length > 0;
+export function hasComplianceContent(compliance: readonly DocCompliance[] | undefined): boolean {
+  return !!compliance && compliance.some((c) => c.rows.length > 0);
 }
 
-export function complianceMatrixSections(compliance: DocCompliance | undefined, t: TranslateFn): ReportSection[] {
-  if (!hasComplianceContent(compliance)) return [];
-  const c = compliance!;
+/**
+ * The chapter's sections: one part per active standard (CM-9). With several
+ * standards each section title names its standard ("EN IEC 62443-4-2 (CRA):
+ * Basis"); with one the chapter reads as before.
+ */
+export function complianceMatrixSections(compliance: readonly DocCompliance[] | undefined, t: TranslateFn): ReportSection[] {
+  const parts = (compliance ?? []).filter((c) => c.rows.length > 0);
+  if (parts.length <= 1) return parts.length === 1 ? standardSections(parts[0], t) : [];
+  return parts.flatMap((c) => standardSections(c, t).map((s) => ({ ...s, title: `${c.standardLabel}: ${s.title}` })));
+}
+
+function standardSections(c: DocCompliance, t: TranslateFn): ReportSection[] {
   const sections: ReportSection[] = [];
 
   // 1 — basis
