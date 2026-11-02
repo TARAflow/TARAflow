@@ -15,6 +15,7 @@ import {
 /** Shown on a process that has an incoming password flow — the shape of F-2a. */
 const PASSWORD_RULES: ModelField = {
   property: "testPasswordRules",
+  group: "login",
   elementTypes: ["Process"],
   values: ["not_specified", "none", "configurable"],
   shownWhen: (c) => c.incoming.some((l) => l.flow.properties?.endpointAuthentication === "password"),

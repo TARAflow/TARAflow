@@ -392,6 +392,14 @@
         }
       },
       "element_description": {
+        "securityTabs": {
+          "login": "Anmeldung & Konten",
+          "authorization": "Berechtigungen",
+          "robustness": "Robustheit",
+          "sessions": "Sitzungen & Nachvollziehbarkeit",
+          "operation": "Betrieb",
+          "safety": "Safety"
+        },
         "title": "Element-Beschreibungen",
         "safetyAnnotation": { "title": "Safety-Annotationen" },
         "assets": "Assets",

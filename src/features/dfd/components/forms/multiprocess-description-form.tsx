@@ -32,8 +32,9 @@ import { SecurityControlOwnershipDisplay } from "./security-control-ownership-di
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
-import { ModelFieldInputs } from "./model-field-inputs";
-import type { VisibilityElement } from "shared";
+import { useElementVisibilityContext, useModelFieldEntries } from "./model-field-inputs";
+import { SecurityTabs } from "./security-tabs";
+import { isUnset, MODEL_CONDITIONS, type VisibilityElement } from "shared";
 import { useElementForm } from "../../hooks/use-element-form";
 import {
   getMultiprocessDefaults,
@@ -219,6 +220,15 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
     },
     [element.properties, onChange],
   );
+
+  // Security sub-tabs (CM-5d): the model coverage fields from the registry,
+  // and the session settings only where human users reach the element —
+  // without the DFD tab's model they stay as before.
+  const modelFieldEntries = useModelFieldEntries(element as unknown as VisibilityElement, (property, value) =>
+    handlePropertyChange(property as keyof MultiprocessProperties, value),
+  );
+  const visibility = useElementVisibilityContext(element as unknown as VisibilityElement);
+  const sessionsShown = !visibility || MODEL_CONDITIONS.humanUsers(visibility);
 
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -558,450 +568,561 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
         })}
       />
 
-      <Grid container rowSpacing={2} columnSpacing={2}>
-        {/* Boundary Authentication — always shown */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.multiprocess.fields.boundaryAuthentication.label",
-                { defaultValue: "Boundary Authentication" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.boundaryAuthentication ?? ""}
-              onChange={(e) =>
-                handlePropertyChange("boundaryAuthentication", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.multiprocess.fields.boundaryAuthentication.label",
-                { defaultValue: "Boundary Authentication" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", {
-                    defaultValue: "Not specified",
-                  })}
-                </em>
-              </MenuItem>
-              {(
-                [
-                  "none",
-                  "password",
-                  "mfa",
-                  "certificate",
-                  "mtls",
-                  "oauth",
-                  "apikey",
-                  "hardware_token",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.multiprocess.fields.boundaryAuthentication.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* TLS Termination — capability, decoupled from boundary auth */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.multiprocess.fields.tlsTermination.label",
-                { defaultValue: "TLS Termination" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.tlsTermination ?? ""}
-              onChange={(e) =>
-                handlePropertyChange("tlsTermination", e.target.value)
-              }
-              label={t(
-                "tabs.dfd.element_description.multiprocess.fields.tlsTermination.label",
-                { defaultValue: "TLS Termination" },
-              )}
-            >
-              <MenuItem value="">
-                <em>
-                  {t("common.not_specified", { defaultValue: "Not specified" })}
-                </em>
-              </MenuItem>
-              {(["none", "server", "mutual"] as const).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.multiprocess.fields.tlsTermination.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Authorization Model — all except mobile_device, safety_system */}
-        {isVisible(sc, SHOW_AUTHORIZATION_MODEL) && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.multiprocess.fields.authorizationModel.label",
-                  { defaultValue: "Authorization Model" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.authorizationModel ?? ""}
-                onChange={(e) =>
-                  handlePropertyChange("authorizationModel", e.target.value)
-                }
-                label={t(
-                  "tabs.dfd.element_description.multiprocess.fields.authorizationModel.label",
-                  { defaultValue: "Authorization Model" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>
-                    {t("common.not_specified", {
-                      defaultValue: "Not specified",
-                    })}
-                  </em>
-                </MenuItem>
-                {(
-                  ["none", "rbac", "abac", "acl", "capability_based"] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.multiprocess.fields.authorizationModel.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        )}
-
-        {/* Malware Protection — CR 3.2 / EDR/HDR/NDR 3.2
-             Options filtered per systemClass: AV requires general-purpose OS */}
-        {isVisible(sc, SHOW_MALWARE_PROTECTION) && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.multiprocess.fields.malwareProtection.label",
-                  { defaultValue: "Malware Protection" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.malwareProtection ?? ""}
-                onChange={(e) =>
-                  handlePropertyChange("malwareProtection", e.target.value)
-                }
-                label={t(
-                  "tabs.dfd.element_description.multiprocess.fields.malwareProtection.label",
-                  { defaultValue: "Malware Protection" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>
-                    {t("common.not_specified", {
-                      defaultValue: "Not specified",
-                    })}
-                  </em>
-                </MenuItem>
-                {(sc != null
-                  ? MALWARE_PROTECTION_OPTIONS_MP[sc]
-                  : ([
-                      "none",
-                      "av_software",
-                      "application_whitelist",
-                      "code_signing",
-                      "nx_dep",
-                      "sandbox",
-                      "custom",
-                    ] as const)
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.multiprocess.fields.malwareProtection.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        )}
-
-        {/* Account Management — CR 1.3 — not applicable for safety_system */}
-        {isVisible(sc, SHOW_ACCOUNT_MANAGEMENT) && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.multiprocess.fields.accountManagement.label",
-                  { defaultValue: "Account Management" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.accountManagement ?? ""}
-                onChange={(e) =>
-                  handlePropertyChange("accountManagement", e.target.value)
-                }
-                label={t(
-                  "tabs.dfd.element_description.multiprocess.fields.accountManagement.label",
-                  { defaultValue: "Account Management" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>
-                    {t("common.not_specified", {
-                      defaultValue: "Not specified",
-                    })}
-                  </em>
-                </MenuItem>
-                {(
-                  [
-                    "local_only",
-                    "ldap",
-                    "active_directory",
-                    "radius",
-                    "iam",
-                    "custom",
-                  ] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.multiprocess.fields.accountManagement.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        )}
-
-        {/* Authenticator Storage — CR 1.5 RE(1) */}
-        {isVisible(sc, SHOW_AUTHENTICATOR_STORAGE) && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.label",
-                  { defaultValue: "Authenticator Storage" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.authenticatorStorage ?? ""}
-                onChange={(e) =>
-                  handlePropertyChange("authenticatorStorage", e.target.value)
-                }
-                label={t(
-                  "tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.label",
-                  { defaultValue: "Authenticator Storage" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>
-                    {t("common.not_specified", {
-                      defaultValue: "Not specified",
-                    })}
-                  </em>
-                </MenuItem>
-                {(
-                  [
-                    "system_software",
-                    "tpm",
-                    "secure_element",
-                    "hsm",
-                    "custom",
-                  ] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        )}
-
-        {/* Model coverage fields (user accounts, password rules) — only where the settings above and the flows make them meaningful */}
-        <ModelFieldInputs
-          element={element as unknown as VisibilityElement}
-          onChange={(property, value) => handlePropertyChange(property as keyof MultiprocessProperties, value)}
-        />
-
-        {/* Backup Mechanism — CR 7.3 / CR 7.4 — not applicable for mobile_device */}
-        {isVisible(sc, SHOW_BACKUP_MECHANISM) && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.multiprocess.fields.backupMechanism.label",
-                  { defaultValue: "Backup Mechanism" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.backupMechanism ?? ""}
-                onChange={(e) =>
-                  handlePropertyChange("backupMechanism", e.target.value)
-                }
-                label={t(
-                  "tabs.dfd.element_description.multiprocess.fields.backupMechanism.label",
-                  { defaultValue: "Backup Mechanism" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>
-                    {t("common.not_specified", {
-                      defaultValue: "Not specified",
-                    })}
-                  </em>
-                </MenuItem>
-                {(
-                  [
-                    "none",
-                    "manual_local",
-                    "automated_local",
-                    "automated_remote",
-                    "redundant_system",
-                    "vendor_managed",
-                  ] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.multiprocess.fields.backupMechanism.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        )}
-
-        {/* Non-Repudiation — CR 2.12 — only for systems with human operator interaction */}
-        {isVisible(sc, SHOW_NON_REPUDIATION) && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.multiprocess.fields.nonRepudiation.label",
-                  { defaultValue: "Non-Repudiation" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.nonRepudiation ?? ""}
-                onChange={(e) =>
-                  handlePropertyChange("nonRepudiation", e.target.value)
-                }
-                label={t(
-                  "tabs.dfd.element_description.multiprocess.fields.nonRepudiation.label",
-                  { defaultValue: "Non-Repudiation" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>
-                    {t("common.not_specified", {
-                      defaultValue: "Not specified",
-                    })}
-                  </em>
-                </MenuItem>
-                {(
-                  [
-                    "none",
-                    "audit_log",
-                    "digital_signature",
-                    "hardware_backed",
-                  ] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.multiprocess.fields.nonRepudiation.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        )}
-
-        {/* Update Mechanism — always shown (CR 3.10), next to the session fields as on the Process */}
-        <UpdateMechanismField
-          i18nBase="tabs.dfd.element_description.multiprocess.fields"
-          value={props.updateMechanism}
-          onChange={(v) => handlePropertyChange("updateMechanism", v)}
-        />
-
-        {/* Session Control — CR 2.5 – 2.7, for systems with human or remote sessions */}
-        <SessionControlFields
-          i18nBase="tabs.dfd.element_description.multiprocess.fields"
-          value={props.sessionControl}
-          onChange={(v) => handlePropertyChange("sessionControl", v)}
-        />
-
-        {/* Safety Relevant + Rationale — embedded_controller, scada_hmi, safety_system; last in the section */}
-        {isVisible(sc, SHOW_SAFETY) && (
-          <>
-            <Grid
-              item
-              xs={12}
-              sm={6}
-              sx={{ display: "flex", alignItems: "center" }}
-            >
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={props.safetyRelevant ?? false}
-                    onChange={(e) =>
-                      handlePropertyChange("safetyRelevant", e.target.checked)
-                    }
-                  />
-                }
-                label={t(
-                  "tabs.dfd.element_description.multiprocess.fields.safetyRelevant.label",
-                  { defaultValue: "Safety-Relevant System" },
-                )}
+      <SecurityTabs
+        formKey="multiprocess"
+        entries={[
+          // Boundary Authentication — always shown
+          {
+            key: "boundaryAuthentication",
+            group: "login",
+            visible: true,
+            set: !isUnset(props.boundaryAuthentication),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.multiprocess.fields.boundaryAuthentication.label",
+                        { defaultValue: "Boundary Authentication" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.boundaryAuthentication ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange("boundaryAuthentication", e.target.value)
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.boundaryAuthentication.label",
+                        { defaultValue: "Boundary Authentication" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>
+                          {t("common.not_specified", {
+                            defaultValue: "Not specified",
+                          })}
+                        </em>
+                      </MenuItem>
+                      {(
+                        [
+                          "none",
+                          "password",
+                          "mfa",
+                          "certificate",
+                          "mtls",
+                          "oauth",
+                          "apikey",
+                          "hardware_token",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.multiprocess.fields.boundaryAuthentication.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // TLS Termination — capability, decoupled from boundary auth
+          {
+            key: "tlsTermination",
+            group: "login",
+            visible: true,
+            set: !isUnset(props.tlsTermination),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.multiprocess.fields.tlsTermination.label",
+                        { defaultValue: "TLS Termination" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.tlsTermination ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange("tlsTermination", e.target.value)
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.tlsTermination.label",
+                        { defaultValue: "TLS Termination" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>
+                          {t("common.not_specified", { defaultValue: "Not specified" })}
+                        </em>
+                      </MenuItem>
+                      {(["none", "server", "mutual"] as const).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.multiprocess.fields.tlsTermination.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Account Management — CR 1.3 — not applicable for safety_system
+          {
+            key: "accountManagement",
+            group: "login",
+            visible: isVisible(sc, SHOW_ACCOUNT_MANAGEMENT),
+            set: !isUnset(props.accountManagement),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.multiprocess.fields.accountManagement.label",
+                        { defaultValue: "Account Management" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.accountManagement ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange("accountManagement", e.target.value)
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.accountManagement.label",
+                        { defaultValue: "Account Management" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>
+                          {t("common.not_specified", {
+                            defaultValue: "Not specified",
+                          })}
+                        </em>
+                      </MenuItem>
+                      {(
+                        [
+                          "local_only",
+                          "ldap",
+                          "active_directory",
+                          "radius",
+                          "iam",
+                          "custom",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.multiprocess.fields.accountManagement.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Authenticator Storage — CR 1.5 RE(1)
+          {
+            key: "authenticatorStorage",
+            group: "login",
+            visible: isVisible(sc, SHOW_AUTHENTICATOR_STORAGE),
+            set: !isUnset(props.authenticatorStorage),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.label",
+                        { defaultValue: "Authenticator Storage" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.authenticatorStorage ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange("authenticatorStorage", e.target.value)
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.label",
+                        { defaultValue: "Authenticator Storage" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>
+                          {t("common.not_specified", {
+                            defaultValue: "Not specified",
+                          })}
+                        </em>
+                      </MenuItem>
+                      {(
+                        [
+                          "system_software",
+                          "tpm",
+                          "secure_element",
+                          "hsm",
+                          "custom",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.multiprocess.fields.authenticatorStorage.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Authorization Model — all except mobile_device, safety_system
+          {
+            key: "authorizationModel",
+            group: "authorization",
+            visible: isVisible(sc, SHOW_AUTHORIZATION_MODEL),
+            set: !isUnset(props.authorizationModel),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.multiprocess.fields.authorizationModel.label",
+                        { defaultValue: "Authorization Model" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.authorizationModel ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange("authorizationModel", e.target.value)
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.authorizationModel.label",
+                        { defaultValue: "Authorization Model" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>
+                          {t("common.not_specified", {
+                            defaultValue: "Not specified",
+                          })}
+                        </em>
+                      </MenuItem>
+                      {(
+                        ["none", "rbac", "abac", "acl", "capability_based"] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.multiprocess.fields.authorizationModel.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          ...modelFieldEntries,
+          // Malware Protection — CR 3.2 / EDR/HDR/NDR 3.2
+          // Options filtered per systemClass: AV requires general-purpose OS
+          {
+            key: "malwareProtection",
+            group: "robustness",
+            visible: isVisible(sc, SHOW_MALWARE_PROTECTION),
+            set: !isUnset(props.malwareProtection),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.multiprocess.fields.malwareProtection.label",
+                        { defaultValue: "Malware Protection" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.malwareProtection ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange("malwareProtection", e.target.value)
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.malwareProtection.label",
+                        { defaultValue: "Malware Protection" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>
+                          {t("common.not_specified", {
+                            defaultValue: "Not specified",
+                          })}
+                        </em>
+                      </MenuItem>
+                      {(sc != null
+                        ? MALWARE_PROTECTION_OPTIONS_MP[sc]
+                        : ([
+                            "none",
+                            "av_software",
+                            "application_whitelist",
+                            "code_signing",
+                            "nx_dep",
+                            "sandbox",
+                            "custom",
+                          ] as const)
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.multiprocess.fields.malwareProtection.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Session Control — CR 2.5 – 2.7, only for elements with human users (condition humanUsers)
+          {
+            key: "sessionControl.sessionLockEnabled",
+            group: "sessions",
+            visible: sessionsShown,
+            set: props.sessionControl?.sessionLockEnabled !== undefined,
+            node: (
+              <SessionControlFields
+                i18nBase="tabs.dfd.element_description.multiprocess.fields"
+                value={props.sessionControl}
+                onChange={(v) => handlePropertyChange("sessionControl", v)}
+                only="sessionLockEnabled"
               />
-            </Grid>
-
-            {props.safetyRelevant && (
-              <Grid item xs={12}>
-                <BufferedTextField
-                  fullWidth
-                  size="small"
-                  multiline
-                  rows={2}
-                  label={t(
-                    "tabs.dfd.element_description.multiprocess.fields.safetyRationale.label",
-                    { defaultValue: "Safety Rationale" },
-                  )}
-                  value={props.safetyRationale ?? ""}
-                  onCommit={(v) => handlePropertyChange("safetyRationale", v)}
-                  placeholder={t(
-                    "tabs.dfd.element_description.multiprocess.fields.safetyRationale.placeholder",
-                    {
-                      defaultValue:
-                        "e.g. Controls emergency stop. SIL-2 certified per IEC 61508. Hardware watchdog, no remote update in production.",
-                    },
-                  )}
+            ),
+          },
+          {
+            key: "sessionControl.remoteTerminationEnabled",
+            group: "sessions",
+            visible: sessionsShown,
+            set: props.sessionControl?.remoteTerminationEnabled !== undefined,
+            node: (
+              <SessionControlFields
+                i18nBase="tabs.dfd.element_description.multiprocess.fields"
+                value={props.sessionControl}
+                onChange={(v) => handlePropertyChange("sessionControl", v)}
+                only="remoteTerminationEnabled"
+              />
+            ),
+          },
+          {
+            key: "sessionControl.maxConcurrentSessions",
+            group: "sessions",
+            visible: sessionsShown,
+            set: props.sessionControl?.maxConcurrentSessions !== undefined,
+            node: (
+              <SessionControlFields
+                i18nBase="tabs.dfd.element_description.multiprocess.fields"
+                value={props.sessionControl}
+                onChange={(v) => handlePropertyChange("sessionControl", v)}
+                only="maxConcurrentSessions"
+              />
+            ),
+          },
+          // Non-Repudiation — CR 2.12 — only for systems with human operator interaction
+          {
+            key: "nonRepudiation",
+            group: "sessions",
+            visible: isVisible(sc, SHOW_NON_REPUDIATION),
+            set: !isUnset(props.nonRepudiation),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.multiprocess.fields.nonRepudiation.label",
+                        { defaultValue: "Non-Repudiation" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.nonRepudiation ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange("nonRepudiation", e.target.value)
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.nonRepudiation.label",
+                        { defaultValue: "Non-Repudiation" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>
+                          {t("common.not_specified", {
+                            defaultValue: "Not specified",
+                          })}
+                        </em>
+                      </MenuItem>
+                      {(
+                        [
+                          "none",
+                          "audit_log",
+                          "digital_signature",
+                          "hardware_backed",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.multiprocess.fields.nonRepudiation.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Update Mechanism — always shown (CR 3.10), next to the session fields as on the Process
+          {
+            key: "updateMechanism",
+            group: "operation",
+            visible: true,
+            set: !isUnset(props.updateMechanism),
+            node: (
+              <>
+                <UpdateMechanismField
+                  i18nBase="tabs.dfd.element_description.multiprocess.fields"
+                  value={props.updateMechanism}
+                  onChange={(v) => handlePropertyChange("updateMechanism", v)}
                 />
-              </Grid>
-            )}
-          </>
-        )}
-      </Grid>
+              </>
+            ),
+          },
+          // Backup Mechanism — CR 7.3 / CR 7.4 — not applicable for mobile_device
+          {
+            key: "backupMechanism",
+            group: "operation",
+            visible: isVisible(sc, SHOW_BACKUP_MECHANISM),
+            set: !isUnset(props.backupMechanism),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.multiprocess.fields.backupMechanism.label",
+                        { defaultValue: "Backup Mechanism" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.backupMechanism ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange("backupMechanism", e.target.value)
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.backupMechanism.label",
+                        { defaultValue: "Backup Mechanism" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>
+                          {t("common.not_specified", {
+                            defaultValue: "Not specified",
+                          })}
+                        </em>
+                      </MenuItem>
+                      {(
+                        [
+                          "none",
+                          "manual_local",
+                          "automated_local",
+                          "automated_remote",
+                          "redundant_system",
+                          "vendor_managed",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.multiprocess.fields.backupMechanism.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Safety Relevant + Rationale — embedded_controller, scada_hmi, safety_system; last in the section
+          {
+            key: "safetyRelevant",
+            group: "safety",
+            visible: isVisible(sc, SHOW_SAFETY),
+            set: true,
+            node: (
+              <>
+                <>
+                  <Grid
+                    item
+                    xs={12}
+                    sm={6}
+                    sx={{ display: "flex", alignItems: "center" }}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={props.safetyRelevant ?? false}
+                          onChange={(e) =>
+                            handlePropertyChange("safetyRelevant", e.target.checked)
+                          }
+                        />
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.multiprocess.fields.safetyRelevant.label",
+                        { defaultValue: "Safety-Relevant System" },
+                      )}
+                    />
+                  </Grid>
+
+                  {props.safetyRelevant && (
+                    <Grid item xs={12}>
+                      <BufferedTextField
+                        fullWidth
+                        size="small"
+                        multiline
+                        rows={2}
+                        label={t(
+                          "tabs.dfd.element_description.multiprocess.fields.safetyRationale.label",
+                          { defaultValue: "Safety Rationale" },
+                        )}
+                        value={props.safetyRationale ?? ""}
+                        onCommit={(v) => handlePropertyChange("safetyRationale", v)}
+                        placeholder={t(
+                          "tabs.dfd.element_description.multiprocess.fields.safetyRationale.placeholder",
+                          {
+                            defaultValue:
+                              "e.g. Controls emergency stop. SIL-2 certified per IEC 61508. Hardware watchdog, no remote update in production.",
+                          },
+                        )}
+                      />
+                    </Grid>
+                  )}
+                </>
+              </>
+            ),
+          },
+        ]}
+      />
 
       {/* ── DOCUMENTATION ─────────────────────────────────────────────── */}
       <SectionLabel

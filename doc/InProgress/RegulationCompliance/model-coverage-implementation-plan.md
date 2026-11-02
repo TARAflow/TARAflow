@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.9 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4, CM-5a, CM-5c done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.10 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4, CM-5a, CM-5c, CM-5d done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -367,7 +367,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) (**done**, see §10.1) | CM-0 | A |
 | CM-5a | F-1, F-2a, F-2b (accounts, passwords) — model, form, i18n, rules, report, golden (**done**, see §10.1) | CM-3, CM-4 | A |
 | CM-5c | `userAccounts` per role; F-29 `roleMapping`, CR 2.1 RE(2) corrected (user 2026-11-02) (**done**, see §10.1) | CM-5a | A |
-| CM-5d | light sub-tabs per category under the Security divider of the Process / Multiprocess forms, open-field count per tab, tabs without fields hidden; context predicates for existing fields where they match the rule's applicability (user 2026-11-02) | CM-5c | A |
+| CM-5d | light sub-tabs per category under the Security divider of the Process / Multiprocess forms, open-field count per tab, tabs without fields hidden; context predicates for existing fields where they match the rule's applicability (user 2026-11-02) (**done**, see §10.1) | CM-5c | A |
 | CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) | CM-5a | A |
 | CM-6 | F-27, F-25a, F-25b (lifecycle / configuration) | CM-5 | A |
 | CM-7 | F-22, F-28 (data deletion, support data) | CM-5 | A |
@@ -555,3 +555,25 @@ have role-based logins and RBAC — how does the model show it?
   unchanged).
 - The Security section gets sub-tabs in CM-5d (user 2026-11-02: light tabs under the
   Security divider; hide a field only when it does not fit the context).
+
+**CM-5d (done, 2026-11-02).**
+
+- `components/forms/security-tabs.tsx`: the Security section of the Process and the
+  Multiprocess form in light sub-tabs — Login & accounts · Authorization · Robustness ·
+  Sessions & traceability · Operation (· Safety on the Multiprocess, last). Each field
+  is an entry with tab, `visible` (the form's existing condition, or the field's
+  predicate) and `set`; a tab names its open fields ("Login & accounts (3)"),
+  checkboxes count as set; a tab without a visible field is left out; the chosen tab
+  is kept per element type while the app runs. The fields' JSX is unchanged, only
+  moved into entries.
+- Model coverage fields carry their tab in the registry (`ModelField.group`);
+  `useModelFieldEntries` turns the registry into entries.
+- Context for existing fields (hide only what does not fit, user 2026-11-02): the
+  session settings appear only where human users reach the element (condition
+  `humanUsers`, as the CR 2.5 – 2.7 rules); the report leaves them out there too.
+  Not hidden: account management and authenticator storage — threat generation and
+  the closed loop read them (R-2), hiding them would change threats; their form
+  conditions stay as they were.
+- Tests: Multiprocess tab order and fields per tab, Process sessions tab with / without
+  human users and the kept tab, model fields per tab with open counts, report session
+  rows.

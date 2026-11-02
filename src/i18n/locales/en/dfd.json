@@ -392,6 +392,14 @@
         }
       },
       "element_description": {
+        "securityTabs": {
+          "login": "Login & accounts",
+          "authorization": "Authorization",
+          "robustness": "Robustness",
+          "sessions": "Sessions & traceability",
+          "operation": "Operation",
+          "safety": "Safety"
+        },
         "title": "Element Descriptions",
         "safetyAnnotation": { "title": "Safety Annotations" },
         "assets": "Assets",

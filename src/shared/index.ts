@@ -227,6 +227,7 @@ export {
   withoutHiddenFields,
   type ModelConditionId,
   type ModelField,
+  type SecurityGroup,
   type VisibilityContext,
   type VisibilityElement,
   type VisibilityFlowInput,

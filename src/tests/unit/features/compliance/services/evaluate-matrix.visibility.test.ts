@@ -12,6 +12,7 @@ vi.mock("shared", async (importOriginal) => {
     MODEL_FIELDS: [
       {
         property: "inputValidation",
+        group: "robustness",
         elementTypes: ["Process"],
         values: ["not_specified", "none", "basic", "strict", "schema"],
         shownWhen: (c: { element: { properties?: Record<string, unknown> } }) => c.element.properties?.errorHandling === "sanitized",

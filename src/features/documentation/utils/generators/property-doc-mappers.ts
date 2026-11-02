@@ -22,7 +22,14 @@ import type {
   TrustBoundaryProperties,
 } from "../../../dfd/models/element-properties";
 import type { DocLanguage } from "../../models/doc-types";
-import { isFieldShown, isUnset, MODEL_FIELDS, readModelField, type VisibilityContext } from "../../../../shared/models/property-visibility";
+import {
+  isFieldShown,
+  isUnset,
+  MODEL_CONDITIONS,
+  MODEL_FIELDS,
+  readModelField,
+  type VisibilityContext,
+} from "../../../../shared/models/property-visibility";
 // Configured i18next singleton — adjust path/alias to your project.
 import {i18n} from "i18n"
 
@@ -279,7 +286,9 @@ export function getElementPropertiesGrouped(
     }
     return props[field];
   };
-  const groups = buildGroupsFromLayout(element.type, lang, read);
+  // Session settings only where human users reach the element — the form's condition (CM-5d).
+  const withoutSessions = !!context && !MODEL_CONDITIONS.humanUsers(context);
+  const groups = buildGroupsFromLayout(element.type, lang, read, (field) => withoutSessions && field.startsWith("sessionControl."));
   const fields = context ? modelFieldEntries(context, lang) : [];
   if (fields.length > 0 && groups[1]) groups[1] = { ...groups[1], properties: [...groups[1].properties, ...fields] };
   return groups;
@@ -501,13 +510,14 @@ function buildGroupsFromLayout(
   elementType: string,
   lang: DocLanguage,
   read: (field: string) => unknown,
+  skip: (field: string) => boolean = () => false,
 ): PropertyGroup[] {
   const layout = ELEMENT_FIELD_LAYOUT[elementType];
   if (!layout) return [];
   const prop = makePropFactory(layout.segment, lang);
   const grp = (key: string, fields: string[]): PropertyGroup => ({
     groupName: getGroupName(key, lang),
-    properties: fields.map((f) => prop(f, read(f))),
+    properties: fields.filter((f) => !skip(f)).map((f) => prop(f, read(f))),
   });
   // Order matters: the generator overrides bucket positionally
   // (first = Context, middle = Security Controls, last = Meta).

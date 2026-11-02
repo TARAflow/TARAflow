@@ -60,9 +60,14 @@ export interface VisibilityFlowInput {
 
 export const NOT_SPECIFIED = "not_specified";
 
+/** Sub-tab of the Security section an element form shows a field in (CM-5d). */
+export type SecurityGroup = "login" | "authorization" | "robustness" | "sessions" | "operation";
+
 export interface ModelField {
   /** Property key on the element (top level of `properties`). */
   property: string;
+  /** Sub-tab of the form's Security section. */
+  group: SecurityGroup;
   /** Element types that carry the field (R-6). */
   elementTypes: readonly string[];
   /** Values in display order; the first is "not_specified" (R-1). */
@@ -180,6 +185,7 @@ export const ROLE_MAPPING_VALUES = ["not_specified", "fixed_roles", "configurabl
 export const MODEL_FIELDS: readonly ModelField[] = [
   {
     property: "userAccounts",
+    group: "login",
     elementTypes: ["Process", "Multiprocess"],
     values: USER_ACCOUNTS_VALUES,
     // Accounts only mean something where the element authenticates human users.
@@ -187,12 +193,14 @@ export const MODEL_FIELDS: readonly ModelField[] = [
   },
   {
     property: "passwordStrength",
+    group: "login",
     elementTypes: ["Process", "Multiprocess"],
     values: PASSWORD_STRENGTH_VALUES,
     shownWhen: MODEL_CONDITIONS.passwordInUse,
   },
   {
     property: "passwordLifetime",
+    group: "login",
     elementTypes: ["Process", "Multiprocess"],
     values: PASSWORD_LIFETIME_VALUES,
     shownWhen: MODEL_CONDITIONS.passwordInUse,
@@ -208,6 +216,7 @@ export const MODEL_FIELDS: readonly ModelField[] = [
   },
   {
     property: "roleMapping",
+    group: "authorization",
     elementTypes: ["Process", "Multiprocess"],
     values: ROLE_MAPPING_VALUES,
     shownWhen: MODEL_CONDITIONS.roleBasedAuthorization,

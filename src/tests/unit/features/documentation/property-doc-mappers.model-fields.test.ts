@@ -45,3 +45,20 @@ describe("getElementPropertiesGrouped — model coverage fields", () => {
     expect(security(hmi, null)).not.toHaveProperty("User accounts");
   });
 });
+
+describe("getElementPropertiesGrouped — session settings follow the form (CM-5d)", () => {
+  const withSessions = process({ sessionControl: { sessionLockEnabled: true } });
+  const plc = { id: "plc", type: "ExternalEntity", properties: { entityType: "plc" } };
+  const rows = (flows: VisibilityFlowInput[]) => {
+    const context = visibilityContexts([withSessions as unknown as VisibilityElement, operator, plc], flows)("p");
+    return Object.fromEntries(getElementPropertiesGrouped(withSessions, "en", context)[1].properties.map((p) => [p.label, p.value]));
+  };
+
+  it("listed where human users reach the element", () => {
+    expect(rows([{ id: "f", from: "op", to: "p" }])["Session Lock after Inactivity"]).toBe("Yes");
+  });
+
+  it("left out where only machines do — although stored", () => {
+    expect(rows([{ id: "f", from: "plc", to: "p" }])).not.toHaveProperty("Session Lock after Inactivity");
+  });
+});
