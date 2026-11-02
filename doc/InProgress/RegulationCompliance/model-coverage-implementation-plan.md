@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.5 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1, CM-2 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.6 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1, CM-2 done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -30,8 +30,10 @@ Two strands that belong together:
    field.
 2. **Multi-standard Compliance tab** — the tab becomes a frame with **one sub-tab per
    standard**, shown when a regulation tag of that standard is set. A standard is a data
-   module on one evaluator. Today only IEC 62443-4-2 (classic, CRA edition) exists; ETSI
-   EN 303 645 and EN 18031-1/-2/-3 are the next candidates, EN 50742 approach B later.
+   module on one evaluator. Today only IEC 62443-4-2 (classic, CRA edition) exists;
+   EN 50742 approach A follows (§8.1), ETSI EN 303 645 and EN 18031-1/-2/-3 are the next
+   candidates. EN 50742 approach B only after IEC 62443 support is complete (user
+   2026-11-02).
 
 | Stage | Release | Content |
 |---|---|---|
@@ -55,7 +57,7 @@ interface StandardModule {
   family: StandardFamilyId;       // "iec-62443-4-2" — statements and component shared inside
   tags: readonly string[];        // regulation tags that show the sub-tab
   edition: Edition;               // rows, groups, requirement ids (existing type, generalised §2.3)
-  header: "security-levels" | "conformance";  // SL-T / SL-C per FR, or a conformance summary
+  header: "security-levels" | "conformance" | "srsl";  // SL-T / SL-C per FR, a conformance summary, or the derived SRSL per safety function (EN 50742 A, §8.1)
   draft: boolean;                 // e.g. prAA enquiry draft — shown as such
 }
 
@@ -328,6 +330,45 @@ A module for ETSI EN 303 645 or EN 18031-x is built only when:
 
 Until then the §4.4 columns for these standards are not shown in UI or report.
 
+### 8.1 EN 50742 Approach A — module `en-50742-a` (user 2026-11-02)
+
+Approach A is the only EN 50742 approach TARAflow implements. Its baseline requirements
+(7.3 logging, 7.5 software identification, 9 information for use) and the conformance
+view of the 7.4.3 rows get a sub-tab of their own (`en-50742-approach-a-design.md` §6).
+The conditions of §8 hold: the licensed draft prEN 50742:2025 is the source of
+`en-50742-rq-coverage.md`, whose §9 lists the rows; the E-points below are decided
+(user 2026-11-02: E-1 … E-4 as recommended, E-5 the whole module in 0.18).
+
+| Field | Value |
+|---|---|
+| `id` / `family` / namespace | `en-50742-a` / `en-50742` / `en50742` (K-4) |
+| `tags` | `EN50742_A` and the aliases of the tag normaliser (design §3.12) |
+| `label` | "EN 50742 A" |
+| `header` | `srsl` — per safety function the highest SRSL over its interfaces, read-only, plus WoO and status counts; no target to enter |
+| `draft` | yes (prEN, enquiry draft) |
+| groups | threat assessment · information collection (7.3) · software identification (7.5) · protection measures (7.4.3) · information for use (9) |
+| project data | `families["en-50742"]`: statements only — no component (scope = the whole machine, every page), no target |
+
+Two evidence kinds beyond the property checks (coverage §9.1):
+
+- **risk** (`EvidenceRule.risk = { clause }`): per risk with `calculatedSrsl`, the clauses
+  `mandatedRequirementsForThreat` mandates at that tier and the selected mandated
+  controls (`en50742-<clause>`) with their status; planned controls go through the
+  existing planned overlay.
+- **project** (`EvidenceRule.project = <check id>`): a named pure check over hazards,
+  risks, safety-function assets, WoO and system definition.
+
+`features/compliance` keeps importing `shared` only: `prepareProjectCompliance` builds an
+`En50742View` next to the property view when the module is active.
+
+| # | Question | Options | Decision |
+|---|---|---|---|
+| E-1 | Header | (a) `srsl` read-only · (b) the `conformance` summary only | **a** — the SRSL per safety function is what an assessor asks for first |
+| E-2 | Granularity of the 7.4.3 rows | (a) one row per clause over all (safety function, interface) pairs, pairs in the row dialog · (b) one row per pair and clause | **a** — 9 rows instead of 9 × n; the to-do list names the pair |
+| E-3 | Method rows (4.3, 7.1, 7.4.2) | (a) in the sub-tab as project checks · (b) only the track / doc rows | **a** — 4.3 / 7.4.2 are what the conformity claim rests on; the checks are cheap |
+| E-4 | 7.4.3.5.1 (no STRIDE mandate) | (a) model rule + statement · (b) add it to `EN50742_MANDATED_CLAUSES` | **a** — the model rule reads the security properties the IEC 62443-4-2 rules already use (`updateMechanism` signed_local / signed_ota, DataStore `integrityProtection` = signature, `malwareProtection` = code_signing): shared building blocks, never 62443 statements as evidence (K-6). No new field needed. (b) is re-checked against the final EN (coverage O10) |
+| E-5 | Release | (a) 0.18 stage 1, after CM-3 · (b) 0.19 | **a, complete** — CM-11, CM-12 and CM-13 all in 0.18: the module data lives in schema 13, a later release would need another fence |
+
 Versions (v0.2): the texts in `Standards/` are ETSI EN 303 645 **V2.1.1** (2020-06) and
 EN 18031-1/-2/-3 as **FprEN (May 2024)** — the module states the version it was built
 against (like `draft: true` for prAA); K-15 asks which versions to target.
@@ -370,6 +411,9 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
 | CM-9 | report: one chapter per active standard | CM-2 | A |
 | CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
+| CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) | CM-2, CM-3 | A |
+| CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View` in the app layer, model rules for 7.3 / 7.4.3.5.1; golden tests on an own example with `EN50742_A` (mandated control done → row met; WoO unset or risk unrated → unknown) — never customer data | CM-11 | A |
+| CM-13 | EN 50742 A report chapter (with CM-9); coverage rows → tracked / met with test references | CM-9, CM-12 | A |
 
 FX-5 / FX-6 (S13-c) join the schema-13 fence of CM-3 when the 0.18 release plan
 schedules them.

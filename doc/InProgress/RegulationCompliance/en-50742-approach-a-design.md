@@ -6,9 +6,15 @@
 > the existing TARAflow structure.
 >
 > **Approach B** (Clause 8 — the fixed IEC 62443-3-3/-4-2 subset, Tables 3/4) is
-> **out of scope here** and is delivered by the Compliance feature
-> (`taraflow-compliance-architecture.md`) as the `en-50742-b` preset's
-> `complianceProfile`. This document does not duplicate it.
+> **out of scope here** and **deferred** (user 2026-11-02): it builds on
+> EN IEC 62443-3-3 / -4-2 and is planned only after TARAflow's IEC 62443 support is
+> complete. Only Approach A is implemented.
+>
+> The **non-risk-derived** Approach A requirements (7.3 logging, 7.5 software
+> identification, 9 information for use) and the conformance view of the 7.4.3 rows
+> are delivered by the Compliance tab as the sub-tab `en-50742-a` (§6, decided
+> 2026-11-02; rows in `en-50742-rq-coverage.md` §9, steps in
+> `model-coverage-implementation-plan.md` §8.1).
 >
 > **ISO 21434** rides the same preset rails (see `regulation-presets-design.md`
 > and `iso-21434-conformance-implementation-plan.md`); the shared layers below are built once.
@@ -162,7 +168,7 @@ risk-derived and apply regardless of SRSL:
   demand).
 
 These are a static checklist, closer to the Compliance-feature style than the
-risk engine. See §6 for the scope decision.
+risk engine. They are evaluated in the Compliance sub-tab `en-50742-a` (§6).
 
 ### 2.2 Output model — SRSL primary, R=I×L secondary (DECIDED)
 
@@ -576,7 +582,7 @@ strings (normalized, punctuation/case-insensitive — `"EN 50742 A"`,
 | `severityAxis` | 3-level `reversible | non_reversible | fatal` on the safety-function asset (from safety assessment; `fatal` is a TARAflow extension, §1.3, §3.6) |
 | `riskOutput` | **primary:** `SRSL0..SRSL3` via literal Table B.6 lookup `(AP band × severity)`. **secondary:** `R = I × L` with L = AP band on the project likelihood scale (Output Model C, §2.2 — SRSL governs; the two may diverge in ordering by design). |
 | `srslProfile` | §5 |
-| `complianceProfile` | absent (that is `en-50742-b`) |
+| `complianceProfile` | absent — the conformance view is the Compliance sub-tab `en-50742-a`, selected by the tag through the standard registry (`activeStandards`), not by a preset field (§6) |
 | `hazardSwitch` | forced active (see §7.1) |
 | `normativeBasis` | `"prEN 50742:2025 (Draft), Clause 7.4.2/7.4.3, Annex B"` |
 
@@ -666,22 +672,50 @@ type SRSLProfile = SrslRequirement[];
 
 ## 6. Baseline (non-risk-derived) Approach A requirements
 
-Scope decision needed. These apply regardless of SRSL and are a static checklist,
-not a risk output:
+These apply regardless of SRSL and are not a risk output:
 
 - 7.3.1–7.3.5 Tracing log: which interventions to log, evidence content,
   storage ≥ 5 years, tamper protection, authorized-only deletion.
 - 7.5 Identification of software versions and configuration on demand,
   human-readable.
 - 9 Information for use: security context, software/config identification,
-  permission/prohibition of modifications.
+  access to the intervention evidence, permission/prohibition of modifications.
 
-- [ ] **Decide:** include as a fixed Approach-A checklist in the report now, or
-  defer to the Compliance-feature checklist engine. Recommended: a small static
-  section in the Approach-A report (they are few and fixed), independent of the
-  SRSL loop.
+They are essential requirements: Annex ZZ maps 7.3.2–7.3.4 and 7.5 to Regulation
+(EU) 2023/1230, Annex III 1.1.9 and 1.2.1 f). A project that evaluates every SRSL
+but leaves them open has no presumption of conformity.
 
----
+- [x] **Decided (user 2026-11-02): Compliance sub-tab `en-50742-a`**, not a static
+  report section. The earlier recommendation (a fixed checklist in the Approach-A
+  report) is superseded: since CM-2 the Compliance tab has one sub-tab per active
+  standard, and statements, to-do list, planned overlay, verification hash and the
+  report chapter (CM-9) come with it. A static section would need all of that again.
+
+What the sub-tab contains (row list: `en-50742-rq-coverage.md` §9):
+
+| Group | Rows | Evidence |
+|---|---|---|
+| Threat assessment | 4.3 (threat assessment after ISO 12100, security context, measures do not degrade safety), 7.1, 7.4.2 (SRSL per safety function, SRSL0 only when isolated) | project checks over hazards, risks, safety-function assets, WoO and system definition; statements |
+| Information collection | 7.3.1 … 7.3.5 | model (logging, log protection) + statements with checklists |
+| Software identification | 7.5 | statement (model field later) |
+| Protection measures | 7.4.3.1 summary, one row per 7.4.3 clause | the risk tab: per risk with SRSL the clauses §11.4 mandates and the selected mandated controls with their status; 7.4.3.5.1 from the model (no STRIDE mandate) |
+| Information for use | 9, 4.3 c) remaining vulnerabilities | statements; risks with remaining requirements listed |
+
+Rules:
+
+- **No second SRSL source.** The sub-tab reads `calculatedSrsl` and the selected
+  mandated controls; it never computes or stores an SRSL. Adding a control in the
+  sub-tab is not possible — the to-do entry links to the risk (as the 62443 to-do
+  entries link to the element).
+- **No target level.** The header shows per safety function the highest SRSL over its
+  interfaces (read-only) and the WoO (header kind `srsl`).
+- **Boundary unchanged.** `features/compliance` imports `shared` only; the app layer
+  passes an `En50742View` (safety functions, SRSL per interface, mandated clauses and
+  selected controls per risk, WoO, hazard summary) next to the property view.
+- **Statements per family** (`en-50742`, K-6); links to related IEC 62443-4-2 rows are
+  "see also", never evidence.
+- **Tag-driven** like every module: shown with `EN50742_A` (and aliases, §3.12);
+  removing the tag hides the sub-tab and keeps the data (K-3).
 
 ## 7. Phased implementation
 
@@ -739,7 +773,8 @@ not a risk output:
 ### 7.5 Phase 5 — Report (Approach A evidence)
 - Per (safety function, interface): severity + source, AP (EL, WoO, AC, formula,
   band), SRSL, the SRSL-required protection requirements with verification status.
-- Baseline checklist (§6).
+- Baseline requirements (§6): the report chapter of the Compliance sub-tab
+  `en-50742-a` (one chapter per active standard, plan step CM-9).
 - Methodology section with `normativeBasis`; optionally surface the Annex ZZ
   mapping (which clauses give presumption of conformity to Regulation (EU)
   2023/1230, Annex III 1.1.9 / 1.2.1 a) / f)).
@@ -756,10 +791,10 @@ not a risk output:
 ## 8. Out of scope
 
 - **Approach B** (`en-50742-b`): Clause 8, IEC 62443-3-3/-4-2 fixed subset
-  (Tables 3/4), system/component role, `ComplianceProfile`, compensating-
-  countermeasure/SL-C reduction (8.3), persistency (8.5). Delivered by the
-  Compliance feature (`taraflow-compliance-architecture.md`); this document does
-  not restate it.
+  (Tables 3/4), system/component role, compensating-countermeasure/SL-C reduction
+  (8.3), persistency (8.5). Deferred until TARAflow's IEC 62443 support is complete
+  (user 2026-11-02); it will then be a further Compliance sub-tab reusing the
+  62443 rows. This document does not restate it.
 - No new calculation math beyond the AP formula + Table B.6 lookup.
 
 ---
@@ -786,8 +821,11 @@ A project with preset `en-50742-a` can:
 3. compute `AP = (EL × WoO) + AC` and band it (Table B.5);
 4. derive the SRSL per (safety function, interface) via Table B.6;
 5. select and verify the SRSL-required protection requirements (Clause 7.4.3);
-6. produce a report with the baseline checklist (7.3/7.5/9), full traceability,
-   and `normativeBasis`.
+6. show in the Compliance sub-tab `en-50742-a` every row of
+   `en-50742-rq-coverage.md` §9 as met, planned, stated or justified n/a — the
+   baseline requirements 7.3 / 7.5 / 9 included;
+7. produce a report with that sub-tab's chapter, full traceability, and
+   `normativeBasis`.
 
 ---
 
