@@ -221,6 +221,29 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     const row = rowByLabel.get(label);
     if (row) setInfo(row);
   };
+  /** A requirement number: tooltip with title and summary, a click opens the info dialog (D-27). */
+  const requirementLink = (label: string, testId?: string) => {
+    const descriptions = (rowDef.get(label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang));
+    const link = (
+      <Link
+        component="button"
+        variant="body2"
+        underline="hover"
+        onClick={() => openInfo(label)}
+        sx={{ verticalAlign: "baseline" }}
+        data-testid={testId}
+      >
+        {label}
+      </Link>
+    );
+    // Void rows have no description: plain text, as before.
+    if (descriptions.length === 0) return label;
+    return (
+      <Tooltip arrow placement="right" title={<RequirementTooltip label={label} descriptions={descriptions} />}>
+        {link}
+      </Tooltip>
+    );
+  };
 
   const choice = data?.deviceCategories;
   const confirmedCategories = choice?.source === "manual" ? choice.categories : [];
@@ -455,9 +478,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                     {element.items.map((item) => (
                       <li key={`${item.label}-${item.kind}`}>
                         <Typography variant="body2" component="span">
-                          <Link component="button" variant="body2" onClick={() => openInfo(item.label)} sx={{ verticalAlign: "baseline" }}>
-                            {item.label}
-                          </Link>
+                          {requirementLink(item.label)}
                           {" — "}
                           {item.kind === "not-met"
                             ? t("todoNotMet", "not met, check")
@@ -481,9 +502,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                     {todo.component.map((item) => (
                       <li key={item.label}>
                         <Typography variant="body2" component="span">
-                          <Link component="button" variant="body2" onClick={() => openInfo(item.label)} sx={{ verticalAlign: "baseline" }}>
-                            {item.label}
-                          </Link>
+                          {requirementLink(item.label)}
                           {` — ${t("todoOnOne", "on one {{types}}", { types: item.elementTypes.join(" / ") })}: ${item.properties.join(", ")}`}
                         </Typography>
                         {item.plannedClosed && (
@@ -501,9 +520,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                     {todo.statements.map((s, i) => (
                       <React.Fragment key={s.label}>
                         {i > 0 && ", "}
-                        <Link component="button" variant="body2" onClick={() => openInfo(s.label)} sx={{ verticalAlign: "baseline" }}>
-                          {s.label}
-                        </Link>
+                        {requirementLink(s.label)}
                       </React.Fragment>
                     ))}
                   </Typography>
@@ -560,21 +577,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                 return (
                   <TableRow key={row.label} data-testid={`compliance-row-${row.label}`}>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {descriptions.length > 0 ? (
-                        <Tooltip arrow placement="right" title={<RequirementTooltip label={row.label} descriptions={descriptions} />}>
-                          <Link
-                            component="button"
-                            variant="body2"
-                            underline="hover"
-                            onClick={() => setInfo(row)}
-                            data-testid={`compliance-req-${row.label}`}
-                          >
-                            {row.label}
-                          </Link>
-                        </Tooltip>
-                      ) : (
-                        row.label
-                      )}
+                      {requirementLink(row.label, `compliance-req-${row.label}`)}
                     </TableCell>
                     <TableCell>{row.minSl ?? "—"}</TableCell>
                     {cra && <TableCell>{(rowDef.get(row.label)?.cra ?? []).join(", ") || "—"}</TableCell>}

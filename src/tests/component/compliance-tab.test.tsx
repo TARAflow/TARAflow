@@ -207,6 +207,13 @@ describe("Compliance tab", () => {
     expect(within(screen.getByTestId("compliance-info-dialog")).getByText("CR 3.5 – Input validation")).toBeTruthy();
   });
 
+  it("a requirement in the to-do list has the same tooltip as in the table", async () => {
+    renderTab(edition(CRA_ROWS), { target: { SI: 1 } });
+    fireEvent.mouseOver(within(screen.getByTestId("compliance-todo-p1")).getByText("CR 3.5"));
+    const tip = await screen.findByTestId("compliance-tooltip-CR 3.5");
+    expect(within(tip).getByText("CR 3.5 – Input validation")).toBeTruthy();
+  });
+
   it("the element of a to-do entry links to the diagram", () => {
     const onShowElement = vi.fn();
     renderTab(edition(CRA_ROWS), { target: { SI: 1 } }, { onShowElement });
