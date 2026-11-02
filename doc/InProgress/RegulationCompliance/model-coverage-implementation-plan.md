@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.15 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-7 done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.14 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-6, CM-7a done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -412,7 +412,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) (**done**, see §10.1) | CM-5a | A |
 | CM-6 | F-27, F-27b, F-25a, F-25b (lifecycle / configuration) (**done**, see §10.1) | CM-5 | A |
 | CM-7a | F-22 (user data deletion), CR 7.9 for every component (**done**, see §10.1) | CM-5 | A |
-| CM-7b | F-28 support data on the project (Overview), report header (**done**, see §10.1) | CM-7a | A |
+| CM-7b | F-28 support data on the project (Overview), report header | CM-7a | A |
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
 | CM-9 | report: one chapter per active standard | CM-2 | A |
 | CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
@@ -709,22 +709,3 @@ different place (Overview, report header) → CM-7b.
   factory reset met CR 7.9 before).
 - Tests: visibility and value filter, CR 7.9 without stores (unknown, no longer n/a),
   with the field, with a store, delete function only (gap).
-
-**CM-7b (done, 2026-11-02).**
-
-- `ProjectInfoData.productSupport` (`modelDesignation`, `securityContact`,
-  `supportEnd` as ISO date) — additive in schema 13 (S13-a), kept by every write
-  path (disk form, load, repair). Not analysis content: the TARA verification hash
-  does not cover it.
-- Overview: a "Product support" block under the project information, edited and
-  saved with it; cleared fields leave no empty entries. Shown always — project
-  level, no element logic (the user's rule "never by tag" holds).
-- Report: header rows "Model designation", "Vulnerability contact", "Security updates
-  until" (EN / DE) in HTML, Markdown, AsciiDoc and StrictDoc, each only when stated
-  (the conditional carries its line break, so a Markdown table never gets an empty
-  line); pdfmake cover lines under the version.
-- No matrix row (IEC 62443-4-1 is a process standard); the EN 303 645 / CRA modules
-  read it later (5.2-1, 5.3-13, 5.3-16; CRA Annex II).
-- Pump Station example states model designation, contact and support end.
-- Tests: Overview component (show, edit, save, clear), write paths, report header
-  (EN rows, DE single row, unchanged without data, HTML).

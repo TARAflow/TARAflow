@@ -21,10 +21,7 @@ export const MD_TEMPLATES = {
 | **Erstellt** | {{created}} |
 | **Zuletzt geändert** | {{lastModified}} |
 | **Organisation** | {{organization}} |
-| **Kritikalität** | {{criticality}} |{{#modelDesignation}}
-| **Modellbezeichnung** | {{modelDesignation}} |{{/modelDesignation}}{{#securityContact}}
-| **Kontakt für Schwachstellen** | {{securityContact}} |{{/securityContact}}{{#supportEnd}}
-| **Sicherheitsupdates bis** | {{supportEnd}} |{{/supportEnd}}
+| **Kritikalität** | {{criticality}} |
 {{#team}}| **Team** | {{team}} |{{/team}}
 
 ### Tags
@@ -47,10 +44,7 @@ export const MD_TEMPLATES = {
 | **Created** | {{created}} |
 | **Last Modified** | {{lastModified}} |
 | **Organization** | {{organization}} |
-| **Criticality** | {{criticality}} |{{#modelDesignation}}
-| **Model designation** | {{modelDesignation}} |{{/modelDesignation}}{{#securityContact}}
-| **Vulnerability contact** | {{securityContact}} |{{/securityContact}}{{#supportEnd}}
-| **Security updates until** | {{supportEnd}} |{{/supportEnd}}
+| **Criticality** | {{criticality}} |
 {{#team}}| **Team** | {{team}} |{{/team}}
 
 ### Tags

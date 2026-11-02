@@ -70,15 +70,3 @@ describe("project.compliance survives every write path (schema 13)", () => {
     expect(parseAndRepair({ ...raw, schemaVersion: 11 })?.compliance).toBeUndefined();
   });
 });
-
-describe("info.productSupport survives every write path (F-28, CM-7b)", () => {
-  const support = { modelDesignation: "PSC-200", securityContact: "psirt@example.com", supportEnd: "2032-12-31" };
-  const withSupport = () => project({ info: { ...project().info, productSupport: support } } as Any);
-
-  it("disk form, loading and repair", () => {
-    const raw: Any = JSON.parse(JSON.stringify(prepareForDisk(withSupport())));
-    expect(raw.info.productSupport).toEqual(support);
-    expect((parseAndRepair(raw)?.info as Any).productSupport).toEqual(support);
-    expect((repairProject(raw)?.info as Any).productSupport).toEqual(support);
-  });
-});

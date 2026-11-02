@@ -3,13 +3,11 @@ import { useTranslation } from "react-i18next";
 import { Edit3, Save, X } from "lucide-react";
 import type { ProjectInfoData } from "../models/overview-types";
 import { ProjectInfoFields } from "./project-info-fields";
-import { ProductSupportFields } from "./product-support-fields";
 
 // ==================== PROJECT INFO ====================
 // Displays and allows editing of project metadata. The fields themselves are
 // ProjectInfoFields (shared with the New Project dialog); this component adds
-// the view/edit toggle, the read-only Created / Last Modified row and the
-// product support data (F-28).
+// the view/edit toggle and the read-only Created / Last Modified row.
 
 interface ProjectInfoProps {
   info: ProjectInfoData;
@@ -108,17 +106,6 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
               </p>
             </div>
           </div>
-        }
-      />
-
-      <ProductSupportFields
-        value={isEditing ? editData.productSupport : info.productSupport}
-        editing={isEditing}
-        onChange={(productSupport) =>
-          setEditData((d) => {
-            const { productSupport: _old, ...rest } = d;
-            return productSupport ? { ...rest, productSupport } : rest;
-          })
         }
       />
     </div>

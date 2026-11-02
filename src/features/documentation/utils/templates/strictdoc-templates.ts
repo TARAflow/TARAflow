@@ -85,10 +85,7 @@ Bedrohungs- und Risikoanalyse
 Verantwortlich: {{responsible}}
 Zuletzt geändert: {{lastModified}}
 Organisation: {{organization}}
-Kritikalität: {{criticality}}{{#modelDesignation}}
-Modellbezeichnung: {{modelDesignation}}{{/modelDesignation}}{{#securityContact}}
-Kontakt für Schwachstellen: {{securityContact}}{{/securityContact}}{{#supportEnd}}
-Sicherheitsupdates bis: {{supportEnd}}{{/supportEnd}}
+Kritikalität: {{criticality}}
 {{#team}}Team: {{team}}{{/team}}
 {{#classification}}Klassifizierung: {{classification}}{{/classification}}
 [/FREETEXT]
@@ -152,10 +149,7 @@ Threat and Risk Analysis
 Responsible: {{responsible}}
 Last Modified: {{lastModified}}
 Organization: {{organization}}
-Criticality: {{criticality}}{{#modelDesignation}}
-Model designation: {{modelDesignation}}{{/modelDesignation}}{{#securityContact}}
-Vulnerability contact: {{securityContact}}{{/securityContact}}{{#supportEnd}}
-Security updates until: {{supportEnd}}{{/supportEnd}}
+Criticality: {{criticality}}
 {{#team}}Team: {{team}}{{/team}}
 {{#classification}}Classification: {{classification}}{{/classification}}
 [/FREETEXT]

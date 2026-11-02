@@ -385,15 +385,6 @@
   },
   "projectInfo": {
     "title": "Project Information",
-    "productSupport": {
-      "title": "Product support",
-      "hint": "What the manufacturer states for the product (CRA Annex II, ETSI EN 303 645 5.2-1, 5.3-13, 5.3-16). Shown in the report header.",
-      "modelDesignation": "Model designation",
-      "modelDesignationPlaceholder": "e.g. PSC-200 rev. B",
-      "securityContact": "Vulnerability contact",
-      "securityContactPlaceholder": "e.g. psirt@example.com",
-      "supportEnd": "Security updates until"
-    },
     "tagCategories": {
       "domain": "Industry",
       "platform": "Platform",
