@@ -447,13 +447,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           </Grid>
         )}
 
-        {/* Update Mechanism — always shown (CR 3.10) */}
-        <UpdateMechanismField
-          i18nBase="tabs.dfd.element_description.multiprocess.fields"
-          value={props.updateMechanism}
-          onChange={(v) => handlePropertyChange("updateMechanism", v)}
-        />
-
         {/* Exposed to Internet — always shown */}
         <Grid
           item
@@ -691,56 +684,6 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           </Grid>
         )}
 
-        {/* Safety Relevant + Rationale — embedded_controller, scada_hmi, safety_system */}
-        {isVisible(sc, SHOW_SAFETY) && (
-          <>
-            <Grid
-              item
-              xs={12}
-              sm={6}
-              sx={{ display: "flex", alignItems: "center" }}
-            >
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={props.safetyRelevant ?? false}
-                    onChange={(e) =>
-                      handlePropertyChange("safetyRelevant", e.target.checked)
-                    }
-                  />
-                }
-                label={t(
-                  "tabs.dfd.element_description.multiprocess.fields.safetyRelevant.label",
-                  { defaultValue: "Safety-Relevant System" },
-                )}
-              />
-            </Grid>
-
-            {props.safetyRelevant && (
-              <Grid item xs={12}>
-                <BufferedTextField
-                  fullWidth
-                  size="small"
-                  multiline
-                  rows={2}
-                  label={t(
-                    "tabs.dfd.element_description.multiprocess.fields.safetyRationale.label",
-                    { defaultValue: "Safety Rationale" },
-                  )}
-                  value={props.safetyRationale ?? ""}
-                  onCommit={(v) => handlePropertyChange("safetyRationale", v)}
-                  placeholder={t(
-                    "tabs.dfd.element_description.multiprocess.fields.safetyRationale.placeholder",
-                    {
-                      defaultValue:
-                        "e.g. Controls emergency stop. SIL-2 certified per IEC 61508. Hardware watchdog, no remote update in production.",
-                    },
-                  )}
-                />
-              </Grid>
-            )}
-          </>
-        )}
         {/* Malware Protection — CR 3.2 / EDR/HDR/NDR 3.2
              Options filtered per systemClass: AV requires general-purpose OS */}
         {isVisible(sc, SHOW_MALWARE_PROTECTION) && (
@@ -986,12 +929,70 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
           </Grid>
         )}
 
+        {/* Update Mechanism — always shown (CR 3.10), next to the session fields as on the Process */}
+        <UpdateMechanismField
+          i18nBase="tabs.dfd.element_description.multiprocess.fields"
+          value={props.updateMechanism}
+          onChange={(v) => handlePropertyChange("updateMechanism", v)}
+        />
+
         {/* Session Control — CR 2.5 – 2.7, for systems with human or remote sessions */}
         <SessionControlFields
           i18nBase="tabs.dfd.element_description.multiprocess.fields"
           value={props.sessionControl}
           onChange={(v) => handlePropertyChange("sessionControl", v)}
         />
+
+        {/* Safety Relevant + Rationale — embedded_controller, scada_hmi, safety_system; last in the section */}
+        {isVisible(sc, SHOW_SAFETY) && (
+          <>
+            <Grid
+              item
+              xs={12}
+              sm={6}
+              sx={{ display: "flex", alignItems: "center" }}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={props.safetyRelevant ?? false}
+                    onChange={(e) =>
+                      handlePropertyChange("safetyRelevant", e.target.checked)
+                    }
+                  />
+                }
+                label={t(
+                  "tabs.dfd.element_description.multiprocess.fields.safetyRelevant.label",
+                  { defaultValue: "Safety-Relevant System" },
+                )}
+              />
+            </Grid>
+
+            {props.safetyRelevant && (
+              <Grid item xs={12}>
+                <BufferedTextField
+                  fullWidth
+                  size="small"
+                  multiline
+                  rows={2}
+                  label={t(
+                    "tabs.dfd.element_description.multiprocess.fields.safetyRationale.label",
+                    { defaultValue: "Safety Rationale" },
+                  )}
+                  value={props.safetyRationale ?? ""}
+                  onCommit={(v) => handlePropertyChange("safetyRationale", v)}
+                  placeholder={t(
+                    "tabs.dfd.element_description.multiprocess.fields.safetyRationale.placeholder",
+                    {
+                      defaultValue:
+                        "e.g. Controls emergency stop. SIL-2 certified per IEC 61508. Hardware watchdog, no remote update in production.",
+                    },
+                  )}
+                />
+              </Grid>
+            )}
+          </>
+        )}
       </Grid>
 
       {/* ── DOCUMENTATION ─────────────────────────────────────────────── */}
