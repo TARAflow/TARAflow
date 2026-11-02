@@ -803,3 +803,5 @@ and NDR 5.3. Open for the review: names and values per field, which ones go to t
 component (Multiprocess) only, whether F-2 / F-5 / F-6 belong on the interface
 instead of the process, threat generation and mitigation effects for the new
 fields, the EN 303 645 / EN 18031 columns against the standard texts.
+
+**Implementation plan:** `model-coverage-implementation-plan.md` (draft 2026-11-02) — cross-cutting field rules, stage-1 / stage-2 split, triage of F-5 / F-13 / F-17 / F-25, schema 13, the Compliance tab with one sub-tab per standard.
