@@ -950,16 +950,20 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       }
     }
 
-    // Crossing DF → max(TB_from.EL, TB_to.EL)
+    // Crossing DF → max(TB_from.EL, TB_to.EL). A flow that no longer crosses
+    // (boundary removed or resized, endpoints moved into one zone) loses a
+    // derived EL — a stale value would still look derived and feed the risk
+    // and EN 50742 AP calculation. Manual values stay; a flow without analysis
+    // (dangling endpoint) is left as it is.
     for (const conn of connections) {
       const props = conn.properties as DataFlowProperties | undefined;
       if (props?.exposureLevelSource === "manual") continue;
 
       const analysis = dataFlowAnalysis.get(conn.id);
-      if (!analysis?.crossesTrustBoundary) continue;
+      if (!analysis) continue;
 
-      const fromTBIds = analysis.fromTrustBoundaryIds ?? [];
-      const toTBIds = analysis.toTrustBoundaryIds ?? [];
+      const fromTBIds = analysis.crossesTrustBoundary ? (analysis.fromTrustBoundaryIds ?? []) : [];
+      const toTBIds = analysis.crossesTrustBoundary ? (analysis.toTrustBoundaryIds ?? []) : [];
       let derivedEL: string | undefined;
 
       for (const tbId of [...fromTBIds, ...toTBIds]) {
