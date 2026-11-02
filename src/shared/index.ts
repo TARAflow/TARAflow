@@ -210,14 +210,21 @@ export {
 
 // ==================== MODEL FIELD VISIBILITY (model coverage plan §3) ====================
 export {
+  HUMAN_ENTITY_TYPES,
   isFieldShown,
   isUnset,
+  MODEL_CONDITION_IDS,
+  MODEL_CONDITIONS,
   MODEL_FIELDS,
+  PASSWORD_LIFETIME_VALUES,
+  PASSWORD_STRENGTH_VALUES,
+  USER_ACCOUNTS_VALUES,
   modelField,
   NOT_SPECIFIED,
   readModelField,
   visibilityContexts,
   withoutHiddenFields,
+  type ModelConditionId,
   type ModelField,
   type VisibilityContext,
   type VisibilityElement,

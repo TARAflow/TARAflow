@@ -124,7 +124,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | ID | Requirement | SL-C | CRA | Applicability in the model | Evidence in the model | Type | Gap |
 |---|---|---|---|---|---|---|---|
 | CR 1.1 (l. 526) | identify and authenticate human users on every external interface with human access (directly or by supporting measures) | 1 | d | IF / DF with a human EE (operator, maintenance, …) | Proc.`authenticationRequired` ≠ no; MP.`boundaryAuthentication`; DF.`endpointAuthentication` ≠ none | B | which interfaces allow human access is implicit (EE type) |
-| CR 1.1 RE(1) (l. 568) | unique identification and authentication of all human users | 2 | d | as CR 1.1 | — | C | "shared account" flag |
+| CR 1.1 RE(1) (l. 568) | unique identification and authentication of all human users | 2 | d | as CR 1.1 | — | A (0.18) | F-1 `userAccounts` = individual on every element that authenticates human users |
 | CR 1.1 RE(2) (l. 593) | multifactor authentication for human users | 3 | d | as CR 1.1 | MP.`boundaryAuthentication` = mfa; DF.`endpointAuthentication` = mfa; EE.`authenticationMethod` = mfa | A | — |
 | CR 1.2 (l. 624) | identify and authenticate other components on external interfaces, and itself towards them | 2 | d, e | DF between Proc / MP and a non-human EE or another component | DF.`endpointAuthentication` ∈ certificate, mutual_tls, symmetric_key, token, apikey; Proc.`tlsTermination` = mutual; IF.ic.`linkAuthentication` ≠ none | A | — |
 | CR 1.2 RE(1) (l. 665) | unique identification and authentication of components | 3 | d, e | as CR 1.2 | DF.`endpointAuthentication` ∈ certificate, mutual_tls (per-device identity) | B | shared vs. per-device key not modelled |
@@ -134,9 +134,9 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 1.5 RE(1) (l. 817) | hardware protection of authenticators | 3 | b, d | every authenticating Proc / MP | each: `authenticatorStorage` ∈ tpm, secure_element, hsm | A | — |
 | CR 1.6 (l. 853) | identify and authenticate all users of wireless communication | 1 | d | IF.`type` ∈ wifi, bluetooth, nfc; DF.`protocol` wireless (wireless_hart, bluetooth, …) | IF.ic.`linkAuthentication` ≠ none; DF.`endpointAuthentication` ≠ none | A | — |
 | CR 1.6 RE(1) (l. 887) | unique identification on wireless | 2 | d | as CR 1.6 | IF.ic.`linkAuthentication` ∈ certificate_based, mutual_pairing | B | — |
-| CR 1.7 (l. 918) | configurable password strength per recognised guidelines | 1 | d | any password-based mechanism (`…Authentication` = password) | — | C | — |
+| CR 1.7 (l. 918) | configurable password strength per recognised guidelines | 1 | d | any password-based mechanism (`…Authentication` = password) | — | A (0.18) | F-2a `passwordStrength` = configurable policy on the element a password reaches |
 | CR 1.7 RE(1) (l. 947) | *void in prAA* | — | — | — | — | n/a | — |
-| CR 1.7 RE(2) (l. 949) | password lifetime limits for software processes / devices | 4 | d | password-based machine authentication | — | C | — |
+| CR 1.7 RE(2) (l. 949) | password lifetime limits for software processes / devices | 4 | d | password-based machine authentication | — | A (0.18) | F-2b `passwordLifetime` = machine / all where software processes or devices log in with a password |
 | CR 1.8 (l. 979) | PKI operation per best practice | 2 | d, e, f | `…Authentication` ∈ certificate, mutual_tls | — | C | — |
 | CR 1.9 (l. 1019) | public-key authentication: signature / data validity, proof of possession | 2 | d, e, f | as CR 1.8 | DF.`endpointAuthentication` ∈ certificate, mutual_tls (mechanism only) | B | — |
 | CR 1.10 (l. 1087) | obscure authentication feedback | 1 | d | human-user authentication present | — | C | — |
@@ -264,16 +264,16 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | | A | B | C | n/a |
 |---|---|---|---|---|
-| FR 1 (22 rows) | 5 | 7 | 8 | 2 |
+| FR 1 (22 rows) | 8 | 7 | 5 | 2 |
 | FR 2 (24) | 9 | 3 | 11 | 1 |
 | FR 3 (23) | 12 | 6 | 4 | 1 |
 | FR 4 (6) | 4 | 0 | 2 | 0 |
 | FR 5 (7) | 4 | 1 | 0 | 2 |
 | FR 6 (3) | 0 | 2 | 1 | 0 |
 | FR 7 (12) | 2 | 4 | 5 | 1 |
-| **Total (97)** | **36** | **23** | **31** | **7** |
+| **Total (97)** | **39** | **23** | **28** | **7** |
 
-About two thirds of the 90 live rows (59) can be pre-filled from the model (A + B). The C rows
+About two thirds of the 90 live rows (62 since 0.18 CM-5a; 59 before) can be pre-filled from the model (A + B). The C rows
 need an analyst statement (applicable / met / not met / n/a + reasoning + evidence
 reference) — that is what makes the matrix a complete SoA.
 

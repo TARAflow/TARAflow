@@ -15,7 +15,7 @@
 // The primitives the project stores (FRs, device categories, edition ids)
 // live in shared (compliance-data-types.ts, schema 12); re-exported here.
 
-import type { ComplianceEditionId, DeviceCategory, FoundationalRequirement, StandardFamilyId } from "shared";
+import type { ComplianceEditionId, DeviceCategory, FoundationalRequirement, ModelConditionId, StandardFamilyId } from "shared";
 export { FOUNDATIONAL_REQUIREMENTS } from "shared";
 export type { DeviceCategory, FoundationalRequirement, StandardFamilyId };
 
@@ -67,6 +67,12 @@ export interface EvidenceTarget {
   endpointIf?: NeighbourCheck;
   /** Element targets: some flow connects the element to one that passes the checks. */
   connectedIf?: NeighbourCheck;
+  /**
+   * Named conditions of the model (shared/models/property-visibility.ts) the
+   * element must meet — the same facts that show the model fields (R-3), e.g.
+   * "passwordInUse". Plain yes / no: a condition reads unset drivers as "no".
+   */
+  when?: readonly ModelConditionId[];
   /**
    * DataFlow targets: only flows that transmit information across the
    * component's border — an endpoint is an ExternalEntity or outside the

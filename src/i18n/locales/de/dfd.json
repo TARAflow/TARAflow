@@ -353,6 +353,35 @@
           "description": "Transducer — wandelt einen Befehl in eine physische Wirkung"
         }
       },
+      "modelFields": {
+        "userAccounts": {
+          "label": "Benutzerkonten",
+          "help": "Wie sich Menschen an diesem Element anmelden: jede Person mit einem eigenen Konto oder mit gemeinsamen Konten (z. B. ein Login \"Bediener\"). IEC 62443-4-2 CR 1.1 RE(1) verlangt die eindeutige Identifikation jedes menschlichen Benutzers.",
+          "values": {
+            "individual": "Ein Konto pro Person",
+            "shared": "Gemeinsame Konten"
+          }
+        },
+        "passwordStrength": {
+          "label": "Regeln zur Passwortstärke",
+          "help": "Die Regeln für Passwörter, die hier geprüft werden: keine, im Produkt fest vorgegeben oder eine vom Betreiber konfigurierbare Richtlinie (Mindestlänge, Zeichenklassen). IEC 62443-4-2 CR 1.7 verlangt eine konfigurierbare Stärke.",
+          "values": {
+            "none": "Keine",
+            "fixed_rules": "Feste Regeln",
+            "configurable_policy": "Konfigurierbare Richtlinie"
+          }
+        },
+        "passwordLifetime": {
+          "label": "Begrenzung der Passwort-Gültigkeit",
+          "help": "Für welche Konten die Gültigkeitsdauer eines Passworts und die Wiederverwendung alter Passwörter begrenzt sind. Angeboten werden nur die Kontenarten, die sich hier mit Passwort anmelden. IEC 62443-4-2:2019 CR 1.7 RE(1) (menschliche Benutzer, Dauer und Wiederverwendung) und RE(2) (alle Benutzer); in der CRA-Ausgabe gilt RE(2) für Software-Prozesse und Geräte.",
+          "values": {
+            "none": "Keine",
+            "human_accounts": "Konten menschlicher Benutzer",
+            "machine_accounts": "Konten von Software-Prozessen und Geräten",
+            "all_accounts": "Alle Konten"
+          }
+        }
+      },
       "element_description": {
         "title": "Element-Beschreibungen",
         "safetyAnnotation": { "title": "Safety-Annotationen" },

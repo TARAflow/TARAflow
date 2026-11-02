@@ -44,6 +44,12 @@ import {
   type StatsTable,
 } from "../threat-risk-stats";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
+import {
+  visibilityContexts,
+  type VisibilityContext,
+  type VisibilityElement,
+  type VisibilityFlowInput,
+} from "../../../../shared/models/property-visibility";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -746,6 +752,11 @@ export abstract class BaseDocumentGenerator {
 
     const elements = project.dfd.elements;
     const connections = project.dfd.connections ?? [];
+    // Model coverage fields are listed where their predicate shows them (R-4).
+    const contextOf = visibilityContexts(
+      elements as unknown as VisibilityElement[],
+      connections as unknown as VisibilityFlowInput[],
+    );
 
     // Overview table. Leveled DFD (7b): the overview is the element table of
     // each page section in the DFD chapter — not repeated here.
@@ -767,7 +778,7 @@ export abstract class BaseDocumentGenerator {
       content += typeHeader;
 
       for (const element of typeElements) {
-        content += this.generateDfdElementDetailedEntry(element);
+        content += this.generateDfdElementDetailedEntry(element, contextOf);
       }
       content += this.getDfdSubsectionCloseTemplate();
     }
@@ -798,10 +809,13 @@ export abstract class BaseDocumentGenerator {
   /**
    * Generate detailed element entry with grouped properties
    */
-  protected generateDfdElementDetailedEntry(element: DFDElement): string {
+  protected generateDfdElementDetailedEntry(
+    element: DFDElement,
+    contextOf?: (id: string) => VisibilityContext | undefined,
+  ): string {
     const { lang } = this.ctx;
 
-    const propertyGroups = getElementPropertiesGrouped(element, lang);
+    const propertyGroups = getElementPropertiesGrouped(element, lang, contextOf?.(element.id));
     const propertyGroupsText = this.formatPropertyGroups(propertyGroups);
     const assetRelations = formatElementAssetRelations(element, lang, this.resolveAssetName);
 

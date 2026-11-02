@@ -15,12 +15,10 @@
 // Declared `as const satisfies` (D-18): the literal paths and values stay
 // visible to the conformance test (src/tests/…/evidence-rules.conformance.test.ts).
 
+import { HUMAN_ENTITY_TYPES } from "shared";
 import type { EvidenceRule, RequirementId } from "../models/compliance-types";
 
 // ==================== SHARED PIECES ====================
-
-/** External-entity types that are humans (external-entity-type-registry). */
-const HUMAN_ENTITY_TYPES = ["user", "admin_user", "operator", "maintenance", "contractor", "device_owner"] as const;
 
 /** Every flow to or from a human external entity — interfaces with human access. */
 const HUMAN_ACCESS_FLOWS = {
@@ -64,11 +62,6 @@ const DEBUG_CHIPS = {
   appliesIf: [{ property: "debugInterfacePresent", notIn: ["none"] }],
 } as const;
 
-const PASSWORD_USE = [
-  { elementTypes: ["DataFlow"], appliesIf: [{ property: "endpointAuthentication", in: ["password"] }] },
-  { elementTypes: ["Multiprocess"], appliesIf: [{ property: "boundaryAuthentication", in: ["password"] }] },
-] as const;
-
 const PUBLIC_KEY_USE = [
   { elementTypes: ["DataFlow"], appliesIf: [{ property: "endpointAuthentication", in: ["certificate", "mutual_tls"] }] },
   { elementTypes: ["Multiprocess"], appliesIf: [{ property: "boundaryAuthentication", in: ["certificate", "mtls"] }] },
@@ -94,6 +87,37 @@ const HUMAN_NEIGHBOUR = { elementTypes: ["ExternalEntity"], checks: [{ property:
 /** Processes that serve human users (sessions, user actions). */
 /** Processes and multiprocesses with a human neighbour — both carry sessionControl (P-2). */
 const PROCESSES_WITH_HUMAN_USERS = { elementTypes: ["Process", "Multiprocess"], connectedIf: HUMAN_NEIGHBOUR } as const;
+
+/** Process / multiprocess that serves human users but states it does not authenticate — fails any "authenticate the user" rule. */
+const WITHOUT_AUTHENTICATION_FOR_HUMANS = [
+  {
+    elementTypes: ["Process"],
+    appliesIf: [{ property: "authenticationRequired", in: ["no"] }],
+    connectedIf: HUMAN_NEIGHBOUR,
+    satisfiedIf: [{ property: "authenticationRequired", notIn: ["no"] }],
+  },
+  {
+    elementTypes: ["Multiprocess"],
+    appliesIf: [{ property: "boundaryAuthentication", in: ["none"] }],
+    connectedIf: HUMAN_NEIGHBOUR,
+    satisfiedIf: [{ property: "boundaryAuthentication", notIn: ["none"] }],
+  },
+] as const;
+
+/** The elements that verify a password and carry the password fields (F-2). */
+const PASSWORD_VERIFIERS = { elementTypes: ["Process", "Multiprocess"] } as const;
+
+const HUMAN_PASSWORD_LIFETIME = {
+  ...PASSWORD_VERIFIERS,
+  when: ["humanPasswordUse"],
+  satisfiedIf: [{ property: "passwordLifetime", in: ["human_accounts", "all_accounts"] }],
+} as const;
+
+const MACHINE_PASSWORD_LIFETIME = {
+  ...PASSWORD_VERIFIERS,
+  when: ["machinePasswordUse"],
+  satisfiedIf: [{ property: "passwordLifetime", in: ["machine_accounts", "all_accounts"] }],
+} as const;
 
 /** Elements that carry updateMechanism (P-2): a component drawn as one process updates too. */
 const UPDATABLE = { elementTypes: ["Process", "Multiprocess"] } as const;
@@ -156,7 +180,17 @@ const RULES = [
     targets: [{ ...HUMAN_ACCESS_FLOWS, satisfiedIf: [{ property: "endpointAuthentication", notIn: ["none"] }] }],
     checklist: ["each external interface with human access identifies and authenticates the user"],
   },
-  { id: "cr-1.1-re1", type: "C", targets: [HUMAN_ACCESS_FLOWS] },
+  {
+    // F-1: individual accounts on every element that authenticates human
+    // users; one that serves humans without authenticating fails outright.
+    id: "cr-1.1-re1",
+    type: "A",
+    targets: [
+      { ...PROCESS_WITH_AUTH, connectedIf: HUMAN_NEIGHBOUR, satisfiedIf: [{ property: "userAccounts", in: ["individual"] }] },
+      { ...MULTIPROCESS_WITH_AUTH, connectedIf: HUMAN_NEIGHBOUR, satisfiedIf: [{ property: "userAccounts", in: ["individual"] }] },
+      ...WITHOUT_AUTHENTICATION_FOR_HUMANS,
+    ],
+  },
   {
     id: "cr-1.1-re2",
     type: "A",
@@ -229,10 +263,19 @@ const RULES = [
     ],
     checklist: ["each wireless user has a unique identity"],
   },
-  { id: "cr-1.7", type: "C", targets: PASSWORD_USE },
-  { id: "cr-1.7-re1-human", type: "C", targets: PASSWORD_USE },
-  { id: "cr-1.7-re2-all-users", type: "C", targets: PASSWORD_USE },
-  { id: "cr-1.7-re2-machines", type: "C", targets: PASSWORD_USE },
+  // F-2a / F-2b on the element that verifies the password (the same
+  // conditions show the fields). A password flow to an element outside these
+  // types (e.g. the component logging in to an external server) is not the
+  // component's password-based authentication.
+  {
+    id: "cr-1.7",
+    type: "A",
+    targets: [{ ...PASSWORD_VERIFIERS, when: ["passwordInUse"], satisfiedIf: [{ property: "passwordStrength", in: ["configurable_policy"] }] }],
+  },
+  { id: "cr-1.7-re1-human", type: "A", targets: [HUMAN_PASSWORD_LIFETIME] },
+  // 2019 RE(2): every kind of account that logs in with a password has limits.
+  { id: "cr-1.7-re2-all-users", type: "A", targets: [HUMAN_PASSWORD_LIFETIME, MACHINE_PASSWORD_LIFETIME] },
+  { id: "cr-1.7-re2-machines", type: "A", targets: [MACHINE_PASSWORD_LIFETIME] },
   { id: "cr-1.8", type: "C", targets: PUBLIC_KEY_USE },
   {
     // The mechanism in use is the evidence; how it validates is the checklist.

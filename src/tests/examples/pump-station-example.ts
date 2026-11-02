@@ -132,6 +132,11 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     exposedToInternet: false,
     failSafeOutputState: "hold_last_value",
     sessionControl: { sessionLockEnabled: true, remoteTerminationEnabled: true, maxConcurrentSessions: 1 },
+    // Operators log in with a password (DF-1): personal accounts, the policy
+    // (length, complexity, lifetime) is configurable — CR 1.1 RE(1), CR 1.7.
+    userAccounts: "individual",
+    passwordStrength: "configurable_policy",
+    passwordLifetime: "human_accounts",
   }),
   "MP-1": as<MultiprocessProperties>({
     systemClass: "embedded_controller",
@@ -148,6 +153,11 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     remoteAccessEnabled: true,
     // Engineering, SCADA and remote service sessions (CR 2.5 – 2.7).
     sessionControl: { sessionLockEnabled: true, remoteTerminationEnabled: true, maxConcurrentSessions: 2 },
+    // Technicians (DF-9) and the engineering workstation (DF-7) log in with a
+    // password: personal accounts, configurable policy, lifetime for both.
+    userAccounts: "individual",
+    passwordStrength: "configurable_policy",
+    passwordLifetime: "all_accounts",
     exposedToInternet: false,
     airGapped: false,
   }),
@@ -675,8 +685,7 @@ const statement = (status: ComplianceStatement["status"], reasoning: string, evi
  * purpose: CR 7.8 (inventory, SL 2) and every row above the target.
  */
 export const STATEMENTS: Record<string, ComplianceStatement> = {
-  "CR 1.1 RE(1)": statement("met", "Every operator and technician logs in with a personal account; there is no shared login.", "User manual §4.1"),
-  "CR 1.7": statement("met", "Minimum length, complexity and lifetime of passwords are configurable; the defaults follow NIST SP 800-63B.", "Security manual §2.3"),
+  // CR 1.1 RE(1) and CR 1.7 come from the model (userAccounts, passwordStrength, passwordLifetime).
   "CR 1.10": statement("met", "PIN and password entry on the touch panel is masked."),
   "CR 1.11": statement("met", "After five failed logins the account is locked for 15 minutes; the limit is configurable.", "Security manual §2.4"),
   "CR 1.12": statement("met", "The HMI shows a configurable notice before the login screen."),

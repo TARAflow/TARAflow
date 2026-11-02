@@ -167,8 +167,9 @@ describe("Pump Station Controller example", () => {
     const { achieved, planned } = evaluateProjectCompliance(project)!;
     const count = (rows: { status: string }[]) =>
       rows.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});
-    expect(count(achieved.rows)).toEqual({ met: 55, gap: 12, "n/a": 21, "needs-statement": 9 });
-    expect(count(planned.rows)).toEqual({ met: 58, gap: 9, "n/a": 21, "needs-statement": 9 });
+    // CR 1.1 RE(1), CR 1.7, CR 1.7 RE(2) from the model fields (CM-5a).
+    expect(count(achieved.rows)).toEqual({ met: 56, gap: 12, "n/a": 21, "needs-statement": 8 });
+    expect(count(planned.rows)).toEqual({ met: 59, gap: 9, "n/a": 21, "needs-statement": 8 });
 
     // SL-T 2: UC and RDF reach it; IAC stays at 1 even planned (no device
     // authentication on the fieldbus — a claim or a fix is needed); RA waits
@@ -205,7 +206,11 @@ describe("Pump Station Controller example", () => {
     } as Project;
     const { achieved, planned } = evaluateProjectCompliance(classic)!;
     const row = (label: string) => achieved.rows.find((r) => r.label === label)!;
-    expect(row("CR 1.7")).toMatchObject({ status: "met", source: "statement" }); // made with the CRA edition
+    expect(row("CR 1.10")).toMatchObject({ status: "met", source: "statement" }); // made with the CRA edition
+    // From the model fields in both editions; 2019 RE(1) / RE(2) as well.
+    for (const label of ["CR 1.1 RE(1)", "CR 1.7", "CR 1.7 RE(1)", "CR 1.7 RE(2)"]) {
+      expect(row(label), label).toMatchObject({ status: "met", source: "model" });
+    }
     expect(row("EDR 2.4").status).toBe("n/a"); // device row of the confirmed category, "no mobile code"
     expect(row("CR 7.8").status).toBe("needs-statement");
     // The CRA edition's picture, the graph's gaps included; RDF reaches 4 —

@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.7 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.8 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-4, CM-5a done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -364,7 +364,8 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-2 | sub-tab frame in `compliance-tab.tsx`, D-3 superseded, per-viewer last sub-tab (**done**, see §10.1) | CM-1 | A |
 | CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) (**done**, see §10.1) | CM-0 | A |
 | CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) (**done**, see §10.1) | CM-0 | A |
-| CM-5 | F-1, F-2, F-3 (identity) — model, form, i18n, rules, report, golden | CM-3, CM-4 | A |
+| CM-5a | F-1, F-2a, F-2b (accounts, passwords) — model, form, i18n, rules, report, golden (**done**, see §10.1) | CM-3, CM-4 | A |
+| CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) | CM-5a | A |
 | CM-6 | F-27, F-25a, F-25b (lifecycle / configuration) | CM-5 | A |
 | CM-7 | F-22, F-28 (data deletion, support data) | CM-5 | A |
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
@@ -482,3 +483,52 @@ schedules them.
   registry.
 - R-2 (threat generation unchanged for `not_specified`) is checked per field when it
   gets a threat effect (stage 2, §4.3); stage-1 fields have none.
+
+**CM-5a (done, 2026-11-02).** CM-5 split: the CR 1.5 checklist items of F-3 / F-3b need
+a mechanism of their own (CM-5b).
+
+- Fields in the registry (values as `const` arrays in `property-visibility.ts`, the
+  types in `element-properties.ts` derive from them): `userAccounts` (individual ·
+  shared), `passwordStrength` (none · fixed rules · configurable policy),
+  `passwordLifetime` (none · human accounts · machine accounts · all accounts) on
+  Process and Multiprocess.
+- **Shown only where the earlier settings make them meaningful** (user 2026-11-02),
+  through named conditions `MODEL_CONDITIONS` shared by the fields and the rules:
+  `authenticates` (Process `authenticationRequired` / Multiprocess
+  `boundaryAuthentication` set and not "no" / "none"), `humanUsers` (a flow to a
+  human external entity), `passwordInUse` (an incoming password flow or a boundary
+  password — never where the element states it does not authenticate),
+  `humanPasswordUse`, `machinePasswordUse` (by the source of the password flow;
+  boundary password: by the kinds of external neighbours). F-1 = authenticates ∧
+  humanUsers; F-2a / F-2b = passwordInUse. Value level: `passwordLifetime` offers
+  human / machine / all only for the kinds of accounts that log in with a password
+  there (`ModelField.valuesFor`); a stored value outside them stays selectable.
+- Rules: `EvidenceTarget.when` (condition ids, yes / no) next to the property checks.
+  CR 1.1 RE(1) A: `userAccounts` = individual on every element that authenticates
+  human users; one that serves humans but states it does not authenticate fails.
+  CR 1.7 A: `passwordStrength` = configurable policy where a password reaches the
+  element. 2019 RE(1): lifetime human / all where humans log in with a password;
+  2019 RE(2): every kind in use covered; prAA RE(2): machine / all where software
+  processes or devices do. A password flow to an element outside Process /
+  Multiprocess (the component logging in elsewhere) no longer makes CR 1.7
+  applicable — it is not the component's password check. HUMAN_ENTITY_TYPES moved to
+  `shared` (one list for rules and fields). Rule descriptions name the conditions in
+  words (EN / DE).
+- Type split: prAA A 39 · B 23 · C 28 (was 36 / 23 / 31); 2019 CR rows A 28 · B 17 ·
+  C 25 (was 24 / 17 / 29); coverage documents updated.
+- Form: `ModelFieldInputs` (generic, from the registry) in the Process and
+  Multiprocess forms after the authenticator storage; the DFD tab provides the model
+  (`ModelFieldProvider`: elements and connections → contexts), because the element
+  form alone does not know its flows. Labels / help (tooltip) / values in `dfd.json`
+  `tabs.dfd.modelFields`.
+- Report: the element table lists the shown fields in the security group with the
+  form's labels (`getElementPropertiesGrouped(element, lang, context)`; HTML /
+  Markdown and pdfmake pass the context); hidden ones are left out.
+- Pump Station example: the fields set on P-1 (HMI) and MP-1 (PLC); the statements
+  on CR 1.1 RE(1) and CR 1.7 removed — the model shows them now (achieved: met 56,
+  needs-statement 8). The generated root file has to be written again
+  (`WRITE_EXAMPLES=.`).
+- Tests: conditions and visibility per driver value and back (K-7), value filter,
+  rules per edition (met / gap / unknown / n/a), form component, report rows, golden
+  (SmokeDetector, CNC reference: unset fields never meet a row); the generic R-1 /
+  R-3 / R-4 / R-6 / R-7 tests now run for the three fields.

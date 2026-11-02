@@ -24,7 +24,7 @@ import type {
   SecurityLevel,
   SlVector,
 } from "../models/compliance-types";
-import { MODEL_FIELDS, withoutHiddenFields } from "shared";
+import { MODEL_CONDITIONS, MODEL_FIELDS, visibilityContexts, withoutHiddenFields, type VisibilityContext } from "shared";
 import { FOUNDATIONAL_REQUIREMENTS } from "../models/compliance-types";
 import type {
   ComplianceInput,
@@ -92,6 +92,8 @@ interface Graph {
   fallbackContained: ReadonlySet<string>;
   blackBoxes: ReadonlySet<string>;
   scope: ReadonlySet<string>;
+  /** Element / flow id → what the model conditions see of it (EvidenceTarget.when). */
+  contextOf: (id: string) => VisibilityContext | undefined;
 }
 
 function buildGraph(input: ComplianceInput): Graph {
@@ -119,6 +121,7 @@ function buildGraph(input: ComplianceInput): Graph {
     fallbackContained: input.view.fallbackContained ?? new Set(),
     blackBoxes: input.view.blackBoxes ?? new Set(),
     scope: input.scope,
+    contextOf: visibilityContexts(view.elements, view.flows),
   };
 }
 
@@ -156,6 +159,10 @@ function crossesComponent(graph: Graph, flow: ViewElement): boolean {
 
 function applicable(graph: Graph, element: ViewElement, target: EvidenceTarget): Tri {
   if (target.crossesComponent && element.type === "DataFlow" && !crossesComponent(graph, element)) return "no";
+  if (target.when) {
+    const context = graph.contextOf(element.id);
+    if (!context || !target.when.every((id) => MODEL_CONDITIONS[id](context))) return "no";
+  }
   const parts: Tri[] = (target.appliesIf ?? []).map((c) => evaluateCheck(element, c, false));
   if (target.endpointIf && element.type === "DataFlow") {
     parts.push(neighbourTri(graph, graph.endpoints.get(element.id) ?? [], target.endpointIf));

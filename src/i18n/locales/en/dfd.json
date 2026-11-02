@@ -353,6 +353,35 @@
           "description": "Transducer — converts a command into a physical effect"
         }
       },
+      "modelFields": {
+        "userAccounts": {
+          "label": "User accounts",
+          "help": "How human users log in to this element: each with an account of their own, or with shared accounts (e.g. one \"operator\" login). IEC 62443-4-2 CR 1.1 RE(1) asks for unique identification of every human user.",
+          "values": {
+            "individual": "One account per person",
+            "shared": "Shared accounts"
+          }
+        },
+        "passwordStrength": {
+          "label": "Password strength rules",
+          "help": "The rules for passwords checked here: none, rules fixed in the product, or a policy the operator can configure (minimum length, character classes). IEC 62443-4-2 CR 1.7 asks for configurable strength.",
+          "values": {
+            "none": "None",
+            "fixed_rules": "Fixed rules",
+            "configurable_policy": "Configurable policy"
+          }
+        },
+        "passwordLifetime": {
+          "label": "Password lifetime limits",
+          "help": "Which accounts have limits on how long a password is valid and on reusing old passwords. Only the kinds of accounts that log in with a password here are offered. IEC 62443-4-2:2019 CR 1.7 RE(1) (human users, lifetime and reuse) and RE(2) (all users); in the CRA edition RE(2) covers software processes and devices.",
+          "values": {
+            "none": "None",
+            "human_accounts": "Human user accounts",
+            "machine_accounts": "Accounts of software processes and devices",
+            "all_accounts": "All accounts"
+          }
+        }
+      },
       "element_description": {
         "title": "Element Descriptions",
         "safetyAnnotation": { "title": "Safety Annotations" },

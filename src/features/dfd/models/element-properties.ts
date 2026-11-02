@@ -27,6 +27,20 @@ import type {
   Controllability,
 } from "./transducer-properties";
 
+import type { PASSWORD_LIFETIME_VALUES, PASSWORD_STRENGTH_VALUES, USER_ACCOUNTS_VALUES } from "shared";
+
+// ==================== SHARED: IDENTITY (model coverage F-1, F-2) ====================
+// On Process AND Multiprocess — the element that verifies the login. Shown
+// only where the earlier settings make them meaningful; the predicates and
+// the value lists live in shared/models/property-visibility.ts.
+
+/** Every human user has an own account, or accounts are shared (CR 1.1 RE(1)). */
+export type UserAccounts = (typeof USER_ACCOUNTS_VALUES)[number];
+/** Password strength rules: none, fixed in the product, or a configurable policy (CR 1.7). */
+export type PasswordStrength = (typeof PASSWORD_STRENGTH_VALUES)[number];
+/** Accounts with password lifetime (and reuse) limits (CR 1.7 RE(1) / RE(2)). */
+export type PasswordLifetime = (typeof PASSWORD_LIFETIME_VALUES)[number];
+
 // ==================== SHARED: UPDATE / SESSIONS ====================
 // On Process AND Multiprocess (iec-62443-4-2-cra-coverage.md P-2): a
 // component drawn as a single process updates and holds sessions as well as
@@ -240,6 +254,13 @@ export interface ProcessProperties {
     | "hsm"
     | "keychain_os"
     | "custom";
+
+  /** F-1 — shown when the process authenticates human users. */
+  userAccounts?: UserAccounts;
+  /** F-2a — shown when a password reaches the process. */
+  passwordStrength?: PasswordStrength;
+  /** F-2b — shown when a password reaches the process. */
+  passwordLifetime?: PasswordLifetime;
 
   /**
    * Session management for a process with human users (SessionControl).
@@ -485,6 +506,13 @@ export interface MultiprocessProperties {
     | "secure_element"
     | "hsm"
     | "custom";
+
+  /** F-1 — shown when the system authenticates human users at its boundary. */
+  userAccounts?: UserAccounts;
+  /** F-2a — shown when passwords are used at the boundary. */
+  passwordStrength?: PasswordStrength;
+  /** F-2b — shown when passwords are used at the boundary. */
+  passwordLifetime?: PasswordLifetime;
 
   /**
    * Backup and recovery mechanism for this system.

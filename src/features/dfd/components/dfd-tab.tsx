@@ -53,6 +53,8 @@ import {
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
 import { DFDDetailsPanel } from "./dfd-details-panel";
+import { ModelFieldProvider } from "./forms/model-field-inputs";
+import type { VisibilityElement, VisibilityFlowInput } from "shared";
 import { DFDConfigDialog } from "./dfd-config-dialog";
 import {
   IdentityReviewDialog,
@@ -72,9 +74,13 @@ import type {
 import { DEFAULT_AUTONUMBERING_CONFIG } from "../models/dfd-types";
 import { useElementFocusRequest, type ElementFocusRequest } from "../hooks/use-element-focus-request";
 
+
 // ==================== CONSTANTS ====================
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
 const DRAWIO_BASE_URL = "https://embed.diagrams.net/?embed=1&spin=1&proto=json&plugins=1&configure=1&modified=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1";
+
+/** Stable empty list, so the model field contexts are not rebuilt on every render. */
+const EMPTY_LIST: readonly never[] = [];
 
 // ==================== DFD TAB PROPS ====================
 
@@ -817,6 +823,10 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   return (
     <A2AOpsProvider commit={commitA2AOps}>
     <AssumptionsProvider value={assumptionsAccess}>
+    <ModelFieldProvider
+      elements={(project.dfd?.elements ?? EMPTY_LIST) as unknown as VisibilityElement[]}
+      connections={(project.dfd?.connections ?? EMPTY_LIST) as unknown as VisibilityFlowInput[]}
+    >
     <Box
       sx={{
         display: "flex",
@@ -1088,6 +1098,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onSave={handleAssetSave}
       />
     </Box>
+    </ModelFieldProvider>
     </AssumptionsProvider>
     </A2AOpsProvider>
   );

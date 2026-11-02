@@ -30,6 +30,11 @@ import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { reportGroupsOf } from "../dfd-report-groups";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
 import {
+  visibilityContexts,
+  type VisibilityElement,
+  type VisibilityFlowInput,
+} from "../../../../shared/models/property-visibility";
+import {
   riskGroupSummary,
   riskStatsTable,
   threatElementType,
@@ -543,6 +548,11 @@ export class PdfMakeConverter {
     const elements = this.project.dfd?.elements ?? [];
     if (elements.length === 0) return [];
     const connections = this.project.dfd?.connections ?? [];
+    // Model coverage fields are listed where their predicate shows them (R-4).
+    const contextOf = visibilityContexts(
+      elements as unknown as VisibilityElement[],
+      connections as unknown as VisibilityFlowInput[],
+    );
     const resolveAssetName = (assetId: string) =>
       this.project.assets?.assets?.find((a) => a.id === assetId)?.name ?? assetId;
     const linked = (text: string): Content[] =>
@@ -554,7 +564,7 @@ export class PdfMakeConverter {
       for (const element of typeElements) {
         content.push(
           { text: `${element.displayId || element.id}: ${element.name}`, bold: true, margin: [0, 8, 0, 2] },
-          ...this.propertyGroups(getElementPropertiesGrouped(element, this.lang)),
+          ...this.propertyGroups(getElementPropertiesGrouped(element, this.lang, contextOf(element.id))),
           ...linked(formatElementAssetRelations(element, this.lang, resolveAssetName)),
         );
       }

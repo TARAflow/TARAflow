@@ -32,6 +32,8 @@ import { SecurityControlOwnershipDisplay } from "./security-control-ownership-di
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
+import { ModelFieldInputs } from "./model-field-inputs";
+import type { VisibilityElement } from "shared";
 import { useElementForm } from "../../hooks/use-element-form";
 import {
   getMultiprocessDefaults,
@@ -832,6 +834,12 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
             </FormControl>
           </Grid>
         )}
+
+        {/* Model coverage fields (user accounts, password rules) — only where the settings above and the flows make them meaningful */}
+        <ModelFieldInputs
+          element={element as unknown as VisibilityElement}
+          onChange={(property, value) => handlePropertyChange(property as keyof MultiprocessProperties, value)}
+        />
 
         {/* Backup Mechanism — CR 7.3 / CR 7.4 — not applicable for mobile_device */}
         {isVisible(sc, SHOW_BACKUP_MECHANISM) && (

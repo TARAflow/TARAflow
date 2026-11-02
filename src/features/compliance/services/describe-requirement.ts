@@ -34,6 +34,13 @@ const WORDS = {
     noModel: "Not derivable from the model — a statement, a mitigation of the risk treatment or a claim meets it.",
     wholeComponent: "the component as a whole",
     crossesComponent: "across the component border (not human input, not physical coupling)",
+    conditions: {
+      authenticates: "that authenticates",
+      humanUsers: "with human users",
+      passwordInUse: "that a password reaches",
+      humanPasswordUse: "where humans log in with a password",
+      machinePasswordUse: "where software processes or devices log in with a password",
+    },
   },
   de: {
     every: "jedes",
@@ -49,6 +56,13 @@ const WORDS = {
     noModel: "Nicht aus dem Modell ableitbar — eine Aussage, eine Massnahme der Risikobehandlung oder ein Claim erfüllt sie.",
     wholeComponent: "die Komponente als Ganzes",
     crossesComponent: "über die Komponentengrenze (keine menschliche Eingabe, keine physische Kopplung)",
+    conditions: {
+      authenticates: "das authentifiziert",
+      humanUsers: "mit menschlichen Benutzern",
+      passwordInUse: "das ein Passwort erreicht",
+      humanPasswordUse: "bei dem sich Menschen mit Passwort anmelden",
+      machinePasswordUse: "bei dem sich Software-Prozesse oder Geräte mit Passwort anmelden",
+    },
   },
 } as const;
 
@@ -70,6 +84,7 @@ function neighbourText(n: NeighbourCheck, prefix: string, w: (typeof WORDS)[Desc
 function targetText(target: EvidenceTarget, quantifier: string, w: (typeof WORDS)[DescribeLanguage]): string {
   const parts = [`${quantifier} ${target.elementTypes.join(" / ")}`];
   if (target.crossesComponent) parts.push(w.crossesComponent);
+  for (const id of target.when ?? []) parts.push(w.conditions[id]);
   if (target.appliesIf?.length) parts.push(`${w.with} ${target.appliesIf.map((c) => checkText(c, w)).join(", ")}`);
   if (target.endpointIf) parts.push(neighbourText(target.endpointIf, w.fromOrTo, w));
   if (target.connectedIf) parts.push(neighbourText(target.connectedIf, w.connectedTo, w));
