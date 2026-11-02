@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** draft v0.2 · 2026-11-02 · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.3 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -14,7 +14,7 @@ regulation is marked "(CRA text)".
 "a sub-tab per standard in the Compliance tab, shown when a regulation tag of that
 standard is set — so the regulations can be changed later".
 
-Nothing in this document is decided until the user decides the K-points in §9.
+The K-points of §9 are decided (user 2026-11-02: all as recommended); the steps of §10 follow from them.
 Requirement texts are paraphrased; the standards are authoritative and never committed.
 
 ---
@@ -332,9 +332,9 @@ Versions (v0.2): the texts in `Standards/` are ETSI EN 303 645 **V2.1.1** (2020-
 EN 18031-1/-2/-3 as **FprEN (May 2024)** — the module states the version it was built
 against (like `draft: true` for prAA); K-15 asks which versions to target.
 
-## 9. Open points (K) — options and recommendation
+## 9. Decisions (K) — decided 2026-11-02 (user: all as recommended)
 
-| # | Question | Options | Recommendation |
+| # | Question | Options | Decision |
 |---|---|---|---|
 | K-1 | Both 62443 tags set | (a) CRA wins (D-3) · (b) two sub-tabs | **b** — supersedes D-3 |
 | K-2 | Project data for several families | (a) reshape into `families` (schema 13, 1:1) · (b) 62443 at top level, `families` only for others | **a** — one shape for all; one-time re-seal |
@@ -359,7 +359,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 
 | Step | Content | Depends on | Owner |
 |---|---|---|---|
-| CM-0 | this plan: K-points decided, standard references verified by A (**v0.2: verified**, K open) | — | A |
+| CM-0 | this plan: K-points decided, standard references verified by A (**done**: references verified v0.2, K decided 2026-11-02) | — | A |
 | CM-1 | standard registry `activeStandards`, generalised `EditionRow.group`, requirement id namespace (K-4) — no UI change, both editions still evaluate | CM-0 | A |
 | CM-2 | sub-tab frame in `compliance-tab.tsx`, D-3 superseded, per-viewer last sub-tab | CM-1 | A |
 | CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) | CM-0 | A |
