@@ -500,6 +500,12 @@ export abstract class BaseDocumentGenerator {
       criticality: getCriticalityText(info.isHighImpact, lang),
       tagsGrouped,
       team: info.team.length > 0 ? info.team.join(", ") : undefined,
+      // Product support (F-28) — a row only when stated.
+      modelDesignation: info.productSupport?.modelDesignation || undefined,
+      securityContact: info.productSupport?.securityContact || undefined,
+      supportEnd: info.productSupport?.supportEnd
+        ? formatDocDate(info.productSupport.supportEnd, config.template.dateFormat)
+        : undefined,
     };
 
     let header = this.getHeaderTemplate();

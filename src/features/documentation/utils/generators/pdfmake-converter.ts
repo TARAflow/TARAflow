@@ -110,6 +110,9 @@ const PDF_LABELS = {
     version: "Version",
     metaDate: "Created",
     metaAuthor: "Responsible",
+    modelDesignation: "Model designation",
+    securityContact: "Vulnerability contact",
+    supportEnd: "Security updates until",
     metaClassification: "Classification",
     tocTitle: "Table of Contents",
     executiveSummaryOverview: "Overview",
@@ -174,6 +177,9 @@ const PDF_LABELS = {
     version: "Version",
     metaDate: "Erstellt",
     metaAuthor: "Verantwortlich",
+    modelDesignation: "Modellbezeichnung",
+    securityContact: "Kontakt für Schwachstellen",
+    supportEnd: "Sicherheitsupdates bis",
     metaClassification: "Klassifizierung",
     tocTitle: "Inhaltsverzeichnis",
     executiveSummaryOverview: "Übersicht",
@@ -544,6 +550,17 @@ export class PdfMakeConverter {
     return out;
   }
 
+  /** Product support data (F-28) for the cover — only what is stated. */
+  private productSupportLines(): string[] {
+    const support = this.project.info.productSupport;
+    if (!support) return [];
+    return [
+      support.modelDesignation && `${this.label("modelDesignation")}: ${support.modelDesignation}`,
+      support.securityContact && `${this.label("securityContact")}: ${support.securityContact}`,
+      support.supportEnd && `${this.label("supportEnd")}: ${formatDocDate(support.supportEnd, this.config.template.dateFormat)}`,
+    ].filter((line): line is string => !!line);
+  }
+
   private createDfdDescriptions(): Content[] {
     const elements = this.project.dfd?.elements ?? [];
     if (elements.length === 0) return [];
@@ -683,8 +700,13 @@ export class PdfMakeConverter {
           ? `${this.label("version")}: ${this.project.info.version}`
           : "",
         style: "coverVersion",
-        margin: [0, 0, 0, 40],
+        margin: [0, 0, 0, this.productSupportLines().length > 0 ? 10 : 40],
       },
+      ...this.productSupportLines().map((text, i, all) => ({
+        text,
+        style: "coverVersion",
+        margin: [0, 0, 0, i === all.length - 1 ? 40 : 4] as [number, number, number, number],
+      })),
       {
         canvas: [
           {

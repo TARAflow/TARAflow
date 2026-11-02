@@ -19,6 +19,22 @@ import type {
  */
 
 // ==================== PROJECT INFO ====================
+/**
+ * Support data of the product (model coverage plan F-28, CM-7b): what the
+ * CRA (Annex II) and ETSI EN 303 645 (5.2-1 contact, 5.3-13 support period,
+ * 5.3-16 model designation) ask the manufacturer to state. Project level,
+ * shown in the report header; no matrix row (IEC 62443-4-1 is a process
+ * standard). Absent fields are not stated yet.
+ */
+export interface ProductSupport {
+  /** Model designation as the product carries it (EN 303 645 5.3-16). */
+  modelDesignation?: string;
+  /** Where vulnerabilities are reported — e-mail or web form (EN 303 645 5.2-1). */
+  securityContact?: string;
+  /** End of the support period for security updates, ISO date (EN 303 645 5.3-13). */
+  supportEnd?: string;
+}
+
 export interface ProjectInfoData {
   name: string;
   description: string;
@@ -43,6 +59,8 @@ export interface ProjectInfoData {
    * it is NOT a per-risk factor. Undefined until the analyst sets it.
    */
   windowOfOpportunity?: WindowOfOpportunity;
+  /** Product support data (F-28) — report header; absent = not stated. */
+  productSupport?: ProductSupport;
 }
 export interface PhaseValidationInfo {
   errors: number;

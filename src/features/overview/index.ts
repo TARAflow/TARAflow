@@ -24,6 +24,7 @@ export { verificationStatusText } from "./components/verification-status-line";
 // ==================== TYPES ====================
 export type {
   GeneralTabData,
+  ProductSupport,
   ProjectInfoData,
   ProjectProgressData,
   ProjectSettingsData,

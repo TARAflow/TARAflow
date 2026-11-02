@@ -28,7 +28,10 @@ export const ADOC_TEMPLATES = {
 | *Erstellt* | {{created}}
 | *Zuletzt geändert* | {{lastModified}}
 | *Organisation* | {{organization}}
-| *Kritikalität* | {{criticality}}
+| *Kritikalität* | {{criticality}}{{#modelDesignation}}
+| *Modellbezeichnung* | {{modelDesignation}}{{/modelDesignation}}{{#securityContact}}
+| *Kontakt für Schwachstellen* | {{securityContact}}{{/securityContact}}{{#supportEnd}}
+| *Sicherheitsupdates bis* | {{supportEnd}}{{/supportEnd}}
 {{#team}}| *Team* | {{team}}{{/team}}
 |===
 
@@ -59,7 +62,10 @@ export const ADOC_TEMPLATES = {
 | *Created* | {{created}}
 | *Last Modified* | {{lastModified}}
 | *Organization* | {{organization}}
-| *Criticality* | {{criticality}}
+| *Criticality* | {{criticality}}{{#modelDesignation}}
+| *Model designation* | {{modelDesignation}}{{/modelDesignation}}{{#securityContact}}
+| *Vulnerability contact* | {{securityContact}}{{/securityContact}}{{#supportEnd}}
+| *Security updates until* | {{supportEnd}}{{/supportEnd}}
 {{#team}}| *Team* | {{team}}{{/team}}
 |===
 

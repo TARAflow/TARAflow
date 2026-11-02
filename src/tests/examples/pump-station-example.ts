@@ -858,6 +858,8 @@ export function buildPumpStationProject(): ProjectJson {
       isHighImpact: false,
       safetyRelevant: false,
       tags: TAGS,
+      // Support data the CRA and EN 303 645 ask for (F-28) — in the report header.
+      productSupport: { modelDesignation: "PSC-200 rev. B", securityContact: "psirt@example.com", supportEnd: "2034-12-31" },
     },
     status: "draft",
     settings: { autoSave: true, autoSaveInterval: 2, regulationPreset: "standard", strictMode: false },

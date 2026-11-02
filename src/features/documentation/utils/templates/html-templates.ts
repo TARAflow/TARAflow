@@ -40,7 +40,10 @@ export const HTML_TEMPLATES = {
     <tr><th>Erstellt</th><td>{{created}}</td></tr>
     <tr><th>Zuletzt geändert</th><td>{{lastModified}}</td></tr>
     <tr><th>Organisation</th><td>{{organization}}</td></tr>
-    <tr><th>Kritikalität</th><td>{{criticality}}</td></tr>
+    <tr><th>Kritikalität</th><td>{{criticality}}</td></tr>{{#modelDesignation}}
+    <tr><th>Modellbezeichnung</th><td>{{modelDesignation}}</td></tr>{{/modelDesignation}}{{#securityContact}}
+    <tr><th>Kontakt für Schwachstellen</th><td>{{securityContact}}</td></tr>{{/securityContact}}{{#supportEnd}}
+    <tr><th>Sicherheitsupdates bis</th><td>{{supportEnd}}</td></tr>{{/supportEnd}}
     {{#team}}<tr><th>Team</th><td>{{team}}</td></tr>{{/team}}
   </table>
   
@@ -60,7 +63,10 @@ export const HTML_TEMPLATES = {
     <tr><th>Created</th><td>{{created}}</td></tr>
     <tr><th>Last Modified</th><td>{{lastModified}}</td></tr>
     <tr><th>Organization</th><td>{{organization}}</td></tr>
-    <tr><th>Criticality</th><td>{{criticality}}</td></tr>
+    <tr><th>Criticality</th><td>{{criticality}}</td></tr>{{#modelDesignation}}
+    <tr><th>Model designation</th><td>{{modelDesignation}}</td></tr>{{/modelDesignation}}{{#securityContact}}
+    <tr><th>Vulnerability contact</th><td>{{securityContact}}</td></tr>{{/securityContact}}{{#supportEnd}}
+    <tr><th>Security updates until</th><td>{{supportEnd}}</td></tr>{{/supportEnd}}
     {{#team}}<tr><th>Team</th><td>{{team}}</td></tr>{{/team}}
   </table>
   
