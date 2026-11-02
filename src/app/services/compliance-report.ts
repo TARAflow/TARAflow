@@ -41,6 +41,7 @@ import {
   type ViewFlow,
 } from "features/compliance";
 import type { DocCompliance } from "features/documentation";
+import { complianceComponentOf, familyCompliance } from "shared";
 import { controlValuePatch, meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import { deriveControlInstances } from "../hooks/use-control-instance-derivation";
 import { attackPathControlTargets } from "../utils/attack-path-control-targets";
@@ -119,12 +120,21 @@ export function complianceTypeOf(project: Project): (id: string) => string | und
   return (id) => types.get(id);
 }
 
-/** The model side of the matrix, shared by every standard of the project. */
-export interface ProjectComplianceContext {
+/** One edition evaluated: both runs and the scope of its family's component (K-5). */
+export interface EditionEvaluation {
+  achieved: ComplianceResult;
+  planned: ComplianceResult;
   scope: Set<string>;
   scopeName?: string;
-  /** Achieved and planned run of one edition. */
-  evaluate: (edition: Edition) => { achieved: ComplianceResult; planned: ComplianceResult };
+}
+
+/** The model side of the matrix, shared by every standard of the project. */
+export interface ProjectComplianceContext {
+  /** Scope of the default component (ComplianceData.componentId). */
+  scope: Set<string>;
+  scopeName?: string;
+  /** Achieved and planned run of one edition, in its family's scope and with its family's data. */
+  evaluate: (edition: Edition) => EditionEvaluation;
 }
 
 /**
@@ -168,6 +178,8 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
   });
   const componentId = project.compliance?.componentId;
   const scope = complianceScope(componentId, view, containmentParent, graph);
+  const scopeOf = (id: string | undefined) => (id === componentId ? scope : complianceScope(id, view, containmentParent, graph));
+  const nameOf = (id: string | undefined) => (id ? complianceNameOf(project)(id) : undefined);
 
   const catalog = getAllMitigations();
   const anchors = attackPathControlTargets(project.attackTrees, project.assets?.assets, project.dfd);
@@ -184,19 +196,24 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
 
   return {
     scope,
-    scopeName: componentId ? complianceNameOf(project)(componentId) : undefined,
+    scopeName: nameOf(componentId),
     evaluate: (edition) => {
+      const familyData = familyCompliance(project.compliance, edition.family);
+      const familyComponent = complianceComponentOf(project.compliance, edition.family);
+      const familyScope = scopeOf(familyComponent);
       const base = {
         edition,
-        scope,
+        scope: familyScope,
         // D-31: statements per requirement, found by each row's requirement ids.
-        statements: editionStatements(edition, project.compliance?.statements),
+        statements: editionStatements(edition, familyData.statements),
         mitigations,
-        deviceCategories: project.compliance?.deviceCategories,
+        deviceCategories: familyData.deviceCategories,
       };
       return {
         achieved: evaluateMatrix({ ...base, view, run: "achieved" }),
         planned: evaluateMatrix({ ...base, view: planned, run: "planned" }),
+        scope: familyScope,
+        scopeName: nameOf(familyComponent),
       };
     },
   };
@@ -210,10 +227,10 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
 export function evaluateProjectCompliance(
   project: Project,
   edition: Edition | null = selectEdition(project.info?.tags),
-): { achieved: ComplianceResult; planned: ComplianceResult; scope: Set<string>; scopeName?: string } | undefined {
+): EditionEvaluation | undefined {
   const context = edition ? prepareProjectCompliance(project) : undefined;
   if (!edition || !context) return undefined;
-  return { ...context.evaluate(edition), scope: context.scope, scopeName: context.scopeName };
+  return context.evaluate(edition);
 }
 
 /** The matrix chapter's data (DocProjectData.computed.compliance). */
@@ -224,7 +241,8 @@ export function buildDocCompliance(project: Project, language = "en"): DocCompli
   if (!result || !edition) return undefined;
   const { achieved, planned } = result;
   const name = complianceNameOf(project);
-  const target = project.compliance?.target ?? {};
+  const familyData = familyCompliance(project.compliance, edition.family);
+  const target = familyData.target ?? {};
   const rowById = new Map(edition.rows.map((r) => [r.label, r]));
 
   // Catalog mitigations meeting a requirement on a type of the open elements — suggestions for gaps (D-29).
@@ -244,8 +262,8 @@ export function buildDocCompliance(project: Project, language = "en"): DocCompli
     component: result.scopeName,
     deviceCategories: edition.rows.some((r) => r.deviceCategories)
       ? {
-          categories: [...(project.compliance?.deviceCategories?.categories ?? [])],
-          confirmed: project.compliance?.deviceCategories?.source === "manual",
+          categories: [...(familyData.deviceCategories?.categories ?? [])],
+          confirmed: familyData.deviceCategories?.source === "manual",
         }
       : undefined,
     vectors: FOUNDATIONAL_REQUIREMENTS.map((fr) => ({

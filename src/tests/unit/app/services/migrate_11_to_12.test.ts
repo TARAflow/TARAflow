@@ -55,13 +55,14 @@ describe("migrate 11 → 12 (version fence)", () => {
     ]);
   });
 
-  it("is the current version and declared analysis-preserving", () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(12);
+  it("is declared analysis-preserving", () => {
+    expect(CURRENT_SCHEMA_VERSION).toBeGreaterThanOrEqual(12);
     expect(ANALYSIS_PRESERVING_MIGRATIONS.has(12)).toBe(true);
   });
 
   it("a file of a newer schema is refused", () => {
-    expect(() => applyMigrations({ ...v11, schemaVersion: 13 })).toThrow(/Unsupported schema version: 13/);
+    const newer = CURRENT_SCHEMA_VERSION + 1;
+    expect(() => applyMigrations({ ...v11, schemaVersion: newer })).toThrow(new RegExp(`Unsupported schema version: ${newer}`));
   });
 
   // The fence changes no hashed content (the verification hash does not cover
@@ -85,7 +86,7 @@ describe("migrate 11 → 12 (version fence)", () => {
 
     const { project: loaded, migrated }: Any = parseAndRepairWithMetadata(asV11);
     expect(migrated).toBe(true);
-    expect(loaded.schemaVersion).toBe(12);
+    expect(loaded.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(verificationStateHash(loaded)).toBe(readHash);
     const entry = loaded.cybersecurityConcept.verifications[0];
     expect(entry.reconfirm).toBeUndefined();

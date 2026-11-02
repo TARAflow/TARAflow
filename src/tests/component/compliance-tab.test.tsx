@@ -16,7 +16,7 @@ import {
   type ComplianceInput,
   type Edition,
 } from "features/compliance";
-import type { ComplianceData } from "shared";
+import { familyCompliance, type ComplianceData, type FamilyComplianceData } from "shared";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -38,6 +38,9 @@ const edition = (rows: Edition["rows"], id: Edition["id"] = "en-iec-62443-4-2-pr
   rows,
 });
 
+/** The tab stores its data in the block of its family (schema 13, K-2). */
+const fam = (data: FamilyComplianceData): ComplianceData => ({ families: { "iec-62443-4-2": data } });
+
 const CRA_ROWS: Edition["rows"] = [
   { label: "CR 3.5", group: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false, cra: ["h"] },
   { label: "CR 3.7", group: "SI", minSl: 1, requirementIds: ["cr-3.7"], supportingMeasuresAllowed: false, cra: ["k"] },
@@ -49,8 +52,8 @@ function renderTab(ed: Edition, data?: ComplianceData, extra: Partial<React.Comp
     view: { elements: [{ id: "p1", type: "Process", properties: { inputValidation: "none", errorHandling: "sanitized" } }], flows: [] },
     scope: new Set(["p1"]),
     run: "achieved",
-    statements: editionStatements(ed, data?.statements),
-    deviceCategories: data?.deviceCategories,
+    statements: editionStatements(ed, familyCompliance(data, ed.family).statements),
+    deviceCategories: familyCompliance(data, ed.family).deviceCategories,
   };
   const achieved = evaluateMatrix(input);
   const planned = evaluateMatrix({ ...input, run: "planned" });
@@ -100,22 +103,22 @@ describe("Compliance tab", () => {
   });
 
   it("SL table (D-26): FRs as columns; the SL-C against the SL-T by colour and symbol; a target per FR", () => {
-    const onChange = renderTab(edition(CRA_ROWS), { target: { SI: 2 } });
+    const onChange = renderTab(edition(CRA_ROWS), fam({ target: { SI: 2 } }));
     const vector = screen.getByTestId("compliance-vector");
     expect(within(vector).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["", "IAC", "UC", "SI", "DC", "RDF", "TRE", "RA"]);
     const product = screen.getByTestId("compliance-vector-slcProduct");
     expect(within(product).getByText("0 ✗").closest("[data-level]")!.getAttribute("data-level")).toBe("below");
     expect(within(screen.getByTestId("compliance-vector-withSystem")).queryByText(/✗|✓/)).toBeNull();
     fireEvent.change(screen.getByTestId("compliance-target-SI"), { target: { value: "3" } });
-    expect(onChange).toHaveBeenLastCalledWith({ target: { SI: 3 } });
+    expect(onChange).toHaveBeenLastCalledWith(fam({ target: { SI: 3 } }));
   });
 
   it("'all FR' sets the SL-T of every FR at once, and clears it", () => {
     const onChange = renderTab(edition(CRA_ROWS));
     fireEvent.change(screen.getByTestId("compliance-target-all"), { target: { value: "3" } });
-    expect(onChange).toHaveBeenLastCalledWith({ target: { IAC: 3, UC: 3, SI: 3, DC: 3, RDF: 3, TRE: 3, RA: 3 } });
+    expect(onChange).toHaveBeenLastCalledWith(fam({ target: { IAC: 3, UC: 3, SI: 3, DC: 3, RDF: 3, TRE: 3, RA: 3 } }));
     fireEvent.change(screen.getByTestId("compliance-target-all"), { target: { value: "-" } });
-    expect(onChange).toHaveBeenLastCalledWith({ target: {} });
+    expect(onChange).toHaveBeenLastCalledWith(fam({ target: {} }));
   });
 
   it("a statement stores the model result of the moment and the date (D-17)", () => {
@@ -123,12 +126,14 @@ describe("Compliance tab", () => {
     fireEvent.click(screen.getByTestId("compliance-statement-CR 3.5"));
     fireEvent.change(screen.getByTestId("statement-reasoning"), { target: { value: "Validated by the protocol stack" } });
     fireEvent.click(screen.getByTestId("statement-save"));
-    expect(onChange).toHaveBeenLastCalledWith({
-      // Stored per requirement (D-31) — the classic edition shows it too.
-      statements: {
-        "cr-3.5": { status: "met", reasoning: "Validated by the protocol stack", modelStatusAtStatement: "gap", date: "2026-11-02" },
-      },
-    });
+    expect(onChange).toHaveBeenLastCalledWith(
+      fam({
+        // Stored per requirement (D-31) — the classic edition shows it too.
+        statements: {
+          "cr-3.5": { status: "met", reasoning: "Validated by the protocol stack", modelStatusAtStatement: "gap", date: "2026-11-02" },
+        },
+      }),
+    );
   });
 
   it("a statement needs a reasoning", () => {
@@ -148,7 +153,7 @@ describe("Compliance tab", () => {
     expect(within(box).getByText(/Proposal from the model: EDR/)).toBeTruthy();
     expect(within(screen.getByTestId("compliance-rows")).getByText("confirm category")).toBeTruthy();
     fireEvent.click(within(box).getByText("Confirm"));
-    expect(onChange).toHaveBeenLastCalledWith({ deviceCategories: { categories: ["EDR"], source: "manual" } });
+    expect(onChange).toHaveBeenLastCalledWith(fam({ deviceCategories: { categories: ["EDR"], source: "manual" } }));
   });
 
   it("choosing the component (D-7)", () => {
@@ -208,7 +213,7 @@ describe("Compliance tab", () => {
   });
 
   it("with an SL-T the to-do list names the element, the row and the property; the row opens the info dialog", () => {
-    renderTab(edition(CRA_ROWS), { target: { SI: 1 } }, { typeOf: (id) => (id === "p1" ? "Process" : undefined) });
+    renderTab(edition(CRA_ROWS), fam({ target: { SI: 1 } }), { typeOf: (id) => (id === "p1" ? "Process" : undefined) });
     const entry = screen.getByTestId("compliance-todo-p1");
     expect(within(entry).getByText("P-1 Controller")).toBeTruthy();
     expect(within(entry).getByText(/not met, check: input validation/)).toBeTruthy();
@@ -217,7 +222,7 @@ describe("Compliance tab", () => {
   });
 
   it("a requirement in the to-do list has the same tooltip as in the table", async () => {
-    renderTab(edition(CRA_ROWS), { target: { SI: 1 } });
+    renderTab(edition(CRA_ROWS), fam({ target: { SI: 1 } }));
     fireEvent.mouseOver(within(screen.getByTestId("compliance-todo-p1")).getByText("CR 3.5"));
     const tip = await screen.findByTestId("compliance-tooltip-CR 3.5");
     expect(within(tip).getByText("CR 3.5 – Input validation")).toBeTruthy();
@@ -225,13 +230,13 @@ describe("Compliance tab", () => {
 
   it("the element of a to-do entry links to the diagram", () => {
     const onShowElement = vi.fn();
-    renderTab(edition(CRA_ROWS), { target: { SI: 1 } }, { onShowElement });
+    renderTab(edition(CRA_ROWS), fam({ target: { SI: 1 } }), { onShowElement });
     fireEvent.click(screen.getByTestId("compliance-todo-link-p1"));
     expect(onShowElement).toHaveBeenCalledWith("p1");
   });
 
   it("without the callback the element is plain text", () => {
-    renderTab(edition(CRA_ROWS), { target: { SI: 1 } });
+    renderTab(edition(CRA_ROWS), fam({ target: { SI: 1 } }));
     expect(screen.queryByTestId("compliance-todo-link-p1")).toBeNull();
     expect(within(screen.getByTestId("compliance-todo-p1")).getByText("P-1 Controller")).toBeTruthy();
   });

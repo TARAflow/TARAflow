@@ -42,6 +42,16 @@ describe("prepareProjectCompliance", () => {
     expect(context.scope).toEqual(evaluateProjectCompliance(project)!.scope);
   });
 
+  it("a family's own component narrows that family's scope; the default stays for the context (K-5)", () => {
+    const project = smokeDetector(["IEC 62443"], { families: { "iec-62443-4-2": { componentId: "P-5" } } });
+    const context = prepareProjectCompliance(project)!;
+    const evaluation = context.evaluate(EDITION_2019);
+    expect(context.scopeName).toBeUndefined();
+    expect(evaluation.scopeName).toBe("P-12 Firmware Update Manager");
+    expect(evaluation.scope.has("P-5")).toBe(true);
+    expect(evaluation.scope.size).toBeLessThan(context.scope.size);
+  });
+
   it("no DFD → nothing to evaluate", () => {
     const project = smokeDetector(["IEC 62443"]);
     expect(prepareProjectCompliance({ ...project, dfd: undefined } as Any)).toBeUndefined();
@@ -73,13 +83,13 @@ describe("buildDocCompliance", () => {
     expect(doc.rows).toHaveLength(125);
     expect(doc.deviceCategories).toEqual({ categories: [], confirmed: false });
     expect(doc.rows.find((r) => r.label === "EDR 3.14")!.status).toBe("pending-category");
-    const confirmed = buildDocCompliance(smokeDetector(["IEC 62443"], { deviceCategories: { categories: ["EDR"], source: "manual" } }))!;
+    const confirmed = buildDocCompliance(smokeDetector(["IEC 62443"], { families: { "iec-62443-4-2": { deviceCategories: { categories: ["EDR"], source: "manual" } } } }))!;
     expect(confirmed.rows.find((r) => r.label === "EDR 3.14")!.status).not.toBe("pending-category");
     expect(confirmed.rows.find((r) => r.label === "NDR 3.14")!.status).toBe("n/a");
   });
 
   it("names elements by display id and name; target from the project", () => {
-    const doc = buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"], { target: { IAC: 2 } }))!;
+    const doc = buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"], { families: { "iec-62443-4-2": { target: { IAC: 2 } } } }))!;
     expect(doc.vectors[0].target).toBe(2);
     const listed = doc.rows.flatMap((r) => [...r.failing, ...r.unknown]);
     expect(listed.some((n) => /^P-\d+ /.test(n))).toBe(true);

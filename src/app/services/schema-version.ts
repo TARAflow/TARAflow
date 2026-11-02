@@ -77,5 +77,12 @@
  *       IEC 62443-4-2 / CRA matrix data project.compliance (component,
  *       target SL-C vector, analyst statements; IEC-4) — an older release
  *       would drop it on save.
+ *  13 = 0.18.0-beta (model-coverage-implementation-plan.md §6):
+ *       project.compliance one block per standard family (S13-b, K-2:
+ *       target, deviceCategories, statements move 1:1 into
+ *       families["iec-62443-4-2"]; componentId stays the default) — an older
+ *       release would misread it. Analysis preservation is reported per file
+ *       (K-9): the reshape keeps every value; only dropped legacy statements
+ *       count as a change.
  */
-export const CURRENT_SCHEMA_VERSION = 12;
+export const CURRENT_SCHEMA_VERSION = 13;

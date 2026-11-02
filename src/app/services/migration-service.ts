@@ -3,7 +3,6 @@
 // No I/O, no storage — pure data transformation.
 // Imported by ProjectRepository; never by UI components directly.
 
-import { foldLegacyStatements } from "./compliance-statements-legacy";
 import { repairHazardAssetRefs } from "./repair-hazard-asset-refs";
 import { repairElementRelationGroups } from "./repair-element-relation-groups";
 import {
@@ -30,6 +29,7 @@ import {
   migrate_9_to_10,
   migrate_10_to_11,
   migrate_11_to_12,
+  migrate_12_to_13,
 } from "./versions";
 import { normalizeThreatTables } from "../../features/threats/services/threat-table-normalize";
 
@@ -200,16 +200,29 @@ export interface MigrationResult {
  */
 export const ANALYSIS_PRESERVING_MIGRATIONS: ReadonlySet<number> = new Set<number>([12]);
 
+/**
+ * From this schema on, a migration reports per file whether it changed an
+ * analysis value (model-coverage-implementation-plan.md §6, K-9) instead of
+ * being declared above: a step that changes values only in some files
+ * (e.g. FX-6 path keys only where an attack tree has an AND gate) does not
+ * invalidate the verification of every other file.
+ */
+const FIRST_REPORTING_VERSION = 13;
+
 export function applyMigrations(raw: any): {
   data: any;
   migrated: boolean;
   fromVersion: number;
   /** The versions migrated to, in order. */
   applied: number[];
+  /** Every migration that ran kept the analysis values of this file (declared or reported, K-9). */
+  analysisPreserved: boolean;
 } {
   const fromVersion: number = raw.schemaVersion ?? 0;
   let data = raw;
   let migrated = false;
+  /** Versions ≥ 13 whose migration reported an analysis change for this file. */
+  const changedBy: number[] = [];
 
   if (fromVersion < 1) {
     data = migrate_0_to_1(data);
@@ -271,6 +284,13 @@ export function applyMigrations(raw: any): {
     migrated = true;
   }
 
+  if ((data.schemaVersion ?? 0) < 13) {
+    const step = migrate_12_to_13(data);
+    data = step.data;
+    if (step.analysisChanged) changedBy.push(13);
+    migrated = true;
+  }
+
   // Add future version checks here:
   // if ((data.schemaVersion ?? 0) < 2) { data = migrate_1_to_2(data); migrated = true; }
 
@@ -287,7 +307,8 @@ export function applyMigrations(raw: any): {
 
   const applied: number[] = [];
   for (let v = fromVersion + 1; v <= CURRENT_SCHEMA_VERSION; v++) applied.push(v);
-  return { data, migrated, fromVersion, applied };
+  const analysisPreserved = applied.every((v) => (v >= FIRST_REPORTING_VERSION ? !changedBy.includes(v) : ANALYSIS_PRESERVING_MIGRATIONS.has(v)));
+  return { data, migrated, fromVersion, applied, analysisPreserved };
 }
 
 // ==================== LEGACY DATA MIGRATIONS ====================
@@ -379,7 +400,7 @@ export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
     data: migrated,
     migrated: wasMigrated,
     fromVersion,
-    applied,
+    analysisPreserved,
   } = applyMigrations(data);
   data = migrated;
   const migratedHash = hasVerifications ? verificationStateHash(data) : "";
@@ -394,13 +415,6 @@ export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
 
   if (!project) return null;
 
-  // Step 3b: matrix statements per requirement (D-31) — a file of the 0.17
-  // development stored them per edition and row label.
-  if (project.compliance) {
-    const compliance = foldLegacyStatements(project.compliance);
-    if (compliance !== project.compliance) project = { ...project, compliance };
-  }
-
   // Step 4: a verification of the file as read is carried over the
   // conversion only where it is declared analysis-preserving; otherwise it
   // asks to be confirmed again (verification-state.ts, review 2026-10-30).
@@ -408,7 +422,7 @@ export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
     project = carryVerifications(
       project,
       { read: readHash, migrated: migratedHash, loaded: verificationStateHash(project) },
-      legacyKept && applied.every((v) => ANALYSIS_PRESERVING_MIGRATIONS.has(v)),
+      legacyKept && analysisPreserved,
     );
   }
 

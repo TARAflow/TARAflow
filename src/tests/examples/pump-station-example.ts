@@ -700,25 +700,30 @@ const CLASSIC_ONLY_STATEMENTS: Record<string, ComplianceStatement> = {
 };
 
 /**
- * Stored per requirement (D-31): the statements hold in the CRA and in the
- * classic edition alike. Device category EDR confirmed for the classic one.
+ * Stored per requirement (D-31) in the IEC 62443-4-2 family block (schema
+ * 13): the statements hold in the CRA and in the classic edition alike.
+ * Device category EDR confirmed for the classic one.
  */
 export const COMPLIANCE: ComplianceData = {
-  target: { IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 },
-  deviceCategories: { categories: ["EDR"], source: "manual" },
-  statements: Object.fromEntries([
-    ...Object.entries(STATEMENTS).map(([label, statement]) => {
-      const row = EDITION_PRAA_2026.rows.find((r) => r.label === label);
-      if (!row) throw new Error(`no CRA row ${label}`);
-      return [statementKeyOf(row), statement] as const;
-    }),
-    // Rows only the classic edition has.
-    ...Object.entries(CLASSIC_ONLY_STATEMENTS).map(([label, statement]) => {
-      const row = EDITION_2019.rows.find((r) => r.label === label);
-      if (!row) throw new Error(`no classic row ${label}`);
-      return [statementKeyOf(row), statement] as const;
-    }),
-  ]),
+  families: {
+    "iec-62443-4-2": {
+      target: { IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 },
+      deviceCategories: { categories: ["EDR"], source: "manual" },
+      statements: Object.fromEntries([
+        ...Object.entries(STATEMENTS).map(([label, statement]) => {
+          const row = EDITION_PRAA_2026.rows.find((r) => r.label === label);
+          if (!row) throw new Error(`no CRA row ${label}`);
+          return [statementKeyOf(row), statement] as const;
+        }),
+        // Rows only the classic edition has.
+        ...Object.entries(CLASSIC_ONLY_STATEMENTS).map(([label, statement]) => {
+          const row = EDITION_2019.rows.find((r) => r.label === label);
+          if (!row) throw new Error(`no classic row ${label}`);
+          return [statementKeyOf(row), statement] as const;
+        }),
+      ]),
+    },
+  },
 };
 
 // ── System definition (Overview → Definition) ───────────────────────────────

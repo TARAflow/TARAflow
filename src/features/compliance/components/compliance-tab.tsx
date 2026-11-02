@@ -39,6 +39,8 @@ import {
   Typography,
 } from "@mui/material";
 import {
+  complianceComponentOf,
+  familyCompliance,
   FOUNDATIONAL_REQUIREMENTS,
   withComplianceComponent,
   withComplianceStatement,
@@ -199,8 +201,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   useEffect(() => markGuideSeen(), []);
   const hasDeviceRows = edition.rows.some((r) => r.deviceCategories);
   const cra = edition.id === "en-iec-62443-4-2-praa-2026";
-  // D-31: one statement per requirement, shared by both editions.
-  const statements = useMemo(() => editionStatements(edition, data?.statements), [edition, data?.statements]);
+  // The edition's family block (K-2); component: the family's own, else the default (K-5).
+  const family = edition.family;
+  const familyData = familyCompliance(data, family);
+  // D-31: one statement per requirement, shared by the editions of the family.
+  const statements = useMemo(() => editionStatements(edition, familyData.statements), [edition, familyData.statements]);
   const keyOf = (label: string) => {
     const row = rowDef.get(label);
     return row ? statementKeyOf(row) : label;
@@ -213,7 +218,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     [achieved.rows],
   );
 
-  const target = useMemo(() => data?.target ?? {}, [data?.target]);
+  const target = useMemo(() => familyData.target ?? {}, [familyData.target]);
   const hasTarget = Object.keys(target).length > 0;
   const todo = useMemo(() => buildTodoList(edition, achieved, planned, target, typeOf), [edition, achieved, planned, target, typeOf]);
   const rowByLabel = useMemo(() => new Map(achieved.rows.map((r) => [r.label, r])), [achieved.rows]);
@@ -245,7 +250,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     );
   };
 
-  const choice = data?.deviceCategories;
+  const choice = familyData.deviceCategories;
   const confirmedCategories = choice?.source === "manual" ? choice.categories : [];
 
   return (
@@ -283,7 +288,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
               size="small"
               sx={{ minWidth: 320 }}
               label={t("component", "Component under evaluation")}
-              value={data?.componentId ?? ""}
+              value={complianceComponentOf(data, family) ?? ""}
               onChange={(e) => onChange(withComplianceComponent(data, e.target.value || undefined))}
               inputProps={{ "data-testid": "compliance-component" }}
             >
@@ -327,7 +332,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                           checked={current.includes(category)}
                           onChange={(e) => {
                             const next = e.target.checked ? [...current, category] : current.filter((c) => c !== category);
-                            onChange(withDeviceCategories(data, { categories: next, source: "manual" }));
+                            onChange(withDeviceCategories(data, family, { categories: next, source: "manual" }));
                           }}
                         />
                       }
@@ -338,7 +343,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   <Button
                     size="small"
                     variant="contained"
-                    onClick={() => onChange(withDeviceCategories(data, { categories: deviceProposal.categories, source: "manual" }))}
+                    onClick={() => onChange(withDeviceCategories(data, family, { categories: deviceProposal.categories, source: "manual" }))}
                   >
                     {t("confirm", "Confirm")}
                   </Button>
@@ -378,7 +383,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       onChange={(e) => {
                         const level = e.target.value === "-" ? undefined : (Number(e.target.value) as TargetSecurityLevel);
                         let next = data;
-                        for (const fr of FOUNDATIONAL_REQUIREMENTS) next = withComplianceTarget(next, fr, level);
+                        for (const fr of FOUNDATIONAL_REQUIREMENTS) next = withComplianceTarget(next, family, fr, level);
                         if (next) onChange(next);
                       }}
                       inputProps={{ "data-testid": "compliance-target-all" }}
@@ -393,7 +398,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   </Stack>
                 </TableCell>
                 {FOUNDATIONAL_REQUIREMENTS.map((fr) => {
-                  const target = data?.target?.[fr];
+                  const target = familyData.target?.[fr];
                   return (
                     <TableCell key={fr} align="center">
                       <TextField
@@ -401,7 +406,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                         size="small"
                         value={target === undefined ? "" : String(target)}
                         onChange={(e) =>
-                          onChange(withComplianceTarget(data, fr, e.target.value === "" ? undefined : (Number(e.target.value) as TargetSecurityLevel)))
+                          onChange(withComplianceTarget(data, family, fr, e.target.value === "" ? undefined : (Number(e.target.value) as TargetSecurityLevel)))
                         }
                         inputProps={{ "data-testid": `compliance-target-${fr}` }}
                       >
@@ -427,7 +432,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   <TableCell sx={{ whiteSpace: "nowrap" }}>{label}</TableCell>
                   {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
                     <TableCell key={fr} align="center">
-                      <LevelChip value={values[fr]} target={compare ? data?.target?.[fr] : undefined} />
+                      <LevelChip value={values[fr]} target={compare ? familyData.target?.[fr] : undefined} />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -643,11 +648,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           existing={statements[editing.label]}
           onClose={() => setEditing(null)}
           onSave={(statement) => {
-            onChange(withComplianceStatement(data, keyOf(editing.label), statement));
+            onChange(withComplianceStatement(data, family, keyOf(editing.label), statement));
             setEditing(null);
           }}
           onRemove={() => {
-            onChange(withoutComplianceStatement(data, keyOf(editing.label)));
+            onChange(withoutComplianceStatement(data, family, keyOf(editing.label)));
             setEditing(null);
           }}
           today={today}

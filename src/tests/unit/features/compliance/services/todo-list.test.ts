@@ -8,7 +8,7 @@ import { buildPumpStationProject } from "../../../../examples/pump-station-examp
 
 const project = parseAndRepair(buildPumpStationProject())!;
 const { achieved, planned } = evaluateProjectCompliance(project)!;
-const todo = buildTodoList(EDITION_PRAA_2026, achieved, planned, project.compliance!.target!, complianceTypeOf(project));
+const todo = buildTodoList(EDITION_PRAA_2026, achieved, planned, project.compliance!.families!["iec-62443-4-2"]!.target!, complianceTypeOf(project));
 const itemsOf = (id: string) => todo.elements.find((e) => e.elementId === id)?.items ?? [];
 
 describe("buildTodoList", () => {

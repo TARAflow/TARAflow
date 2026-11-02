@@ -46,7 +46,7 @@ describe("Pump Station Controller example", () => {
     expect(project).not.toBeNull();
     expect(project.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(project.info.tags.regulation).toEqual(["EN IEC 62443 (CRA)", "CRA"]);
-    expect(project.compliance?.target).toEqual({ IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 });
+    expect(project.compliance?.families?.["iec-62443-4-2"]?.target).toEqual({ IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 });
     // Not safety-relevant: no hazard analysis, no safety criterion, no safety risk factor.
     expect(project.info.safetyRelevant).toBe(false);
     expect(project.assets!.configuration.impactCriteria.some((c) => c.id === "safety")).toBe(false);

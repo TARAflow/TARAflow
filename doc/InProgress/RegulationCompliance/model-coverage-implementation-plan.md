@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.5 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1, CM-2 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.6 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-3 done · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -362,7 +362,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-0 | this plan: K-points decided, standard references verified by A (**done**: references verified v0.2, K decided 2026-11-02) | — | A |
 | CM-1 | standard registry `activeStandards`, generalised `EditionRow.group`, requirement id namespace (K-4) — no UI change, both editions still evaluate (**done**, see below) | CM-0 | A |
 | CM-2 | sub-tab frame in `compliance-tab.tsx`, D-3 superseded, per-viewer last sub-tab (**done**, see §10.1) | CM-1 | A |
-| CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) | CM-0 | A |
+| CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) (**done**, see §10.1) | CM-0 | A |
 | CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) | CM-0 | A |
 | CM-5 | F-1, F-2, F-3 (identity) — model, form, i18n, rules, report, golden | CM-3, CM-4 | A |
 | CM-6 | F-27, F-25a, F-25b (lifecycle / configuration) | CM-5 | A |
@@ -421,3 +421,37 @@ schedules them.
 - Tests: frame (two sub-tabs, CRA first, only the selected one evaluated, remembered,
   fallback after tag removal, no bar for one standard); `prepareProjectCompliance`
   gives the same result per edition as `evaluateProjectCompliance`.
+
+**CM-3 (done, 2026-11-02; branch `feature/0.18-model-coverage`).**
+
+- Schema 13: `CURRENT_SCHEMA_VERSION = 13`, `versions/migrate-12-to-13.ts`, conversion
+  dialog text v13 (EN / DE).
+- S13-b (K-2): `ComplianceData` = `{ componentId?, families? }`, `FamilyComplianceData` =
+  `{ componentId?, target?, deviceCategories?, statements? }` as in §2.4; schema 12's
+  `target`, `deviceCategories`, `statements` move 1:1 into
+  `families["iec-62443-4-2"]`, `componentId` stays the default (K-5). Data already
+  per family passes unchanged.
+- The fold of the 0.17-development statement form (D-31) moved from the load path
+  (former step 3b of `parseAndRepairWithMetadata`) into the migration, before the
+  move: it is a format conversion of schema-12 files and now reports what it drops.
+- K-9: from schema 13 on, a migration returns `{ data, analysisChanged }` for the
+  file; `applyMigrations` returns `analysisPreserved` (versions < 13: the declared
+  set, unchanged; ≥ 13: the per-file report). The reshape reports no change — a TARA
+  verification is re-sealed; a legacy statement dropped because both editions held
+  different ones on one requirement (newer wins) reports a change → reconfirm. FX-6
+  (S13-c) plugs into the same report when it is scheduled.
+- Helpers in `shared` take the family: `familyCompliance`, `complianceComponentOf`
+  (family's own component, else the default), `withComplianceStatement /
+  withoutComplianceStatement / withComplianceTarget / withDeviceCategories (data,
+  family, …)`; `withComplianceComponent` sets the default. The tab reads and writes
+  the block of its edition's family; the component selector still edits the default
+  (no per-family override in the UI until a second family exists).
+- `prepareProjectCompliance`: `evaluate(edition)` uses the family's component scope
+  and data and returns its own `scope` / `scopeName`; the context keeps the default
+  scope (device-category proposal).
+- K-3 unchanged: the verification hash covers the whole `project.compliance`,
+  hidden families included.
+- Tests: `migrate_12_to_13.test.ts` (reshape, no-op cases, legacy fold, per-file
+  report, re-seal vs. reconfirm on load), helpers per family incl. K-5, report scope
+  per family, fixtures and the Pump Station example in the new form; version checks
+  of older migration tests no longer pin 12.

@@ -1,15 +1,18 @@
 // app/services/compliance-statements-legacy.ts
 //
-// D-31: statements are stored per requirement (ComplianceData.statements by
-// requirementKey). Files written during the 0.17 development stored them per
-// edition and row label ({ [editionId]: { [label]: statement } }). On load
-// they are folded into the new form: each label is resolved to its row's
-// requirement key in its edition; where both editions held a statement for
-// the same requirement, the newer one wins. Idempotent — data in the new
-// form passes unchanged (same object).
+// D-31: statements are stored per requirement (keyed by requirementKey).
+// Files written during the 0.17 development stored them per edition and row
+// label ({ [editionId]: { [label]: statement } }). migrate-12-to-13 folds
+// those into the new form before it moves them into the family block: each
+// label is resolved to its row's requirement key in its edition; where both
+// editions held a statement for the same requirement, the newer one wins —
+// the other is dropped, which the migration reports as an analysis change
+// for that file (K-9). Statements in the new form pass unchanged (same
+// object).
 
 import { EDITION_2019, EDITION_PRAA_2026, statementKeyOf, type Edition } from "features/compliance";
-import type { ComplianceData, ComplianceStatement } from "shared";
+import type { ComplianceStatement } from "shared";
+import { canonicalStringify } from "./tcs-serialize";
 
 const EDITIONS: Readonly<Record<string, Edition>> = {
   [EDITION_2019.id]: EDITION_2019,
@@ -19,13 +22,22 @@ const EDITIONS: Readonly<Record<string, Edition>> = {
 const isStatement = (v: unknown): v is ComplianceStatement =>
   !!v && typeof v === "object" && typeof (v as ComplianceStatement).status === "string";
 
-export function foldLegacyStatements(data: ComplianceData | undefined): ComplianceData | undefined {
-  const stored = data?.statements as Record<string, unknown> | undefined;
-  if (!stored || !Object.keys(stored).some((k) => k in EDITIONS && !isStatement(stored[k]))) return data;
+export interface FoldedStatements {
+  statements: Record<string, ComplianceStatement> | undefined;
+  /** Statements that lost to a newer, different one for the same requirement. */
+  dropped: number;
+}
+
+export function foldLegacyStatements(stored: Readonly<Record<string, unknown>> | undefined): FoldedStatements {
+  if (!stored || !Object.keys(stored).some((k) => k in EDITIONS && !isStatement(stored[k]))) {
+    return { statements: stored as Record<string, ComplianceStatement> | undefined, dropped: 0 };
+  }
 
   const folded: Record<string, ComplianceStatement> = {};
+  let dropped = 0;
   const put = (key: string, statement: ComplianceStatement) => {
     const existing = folded[key];
+    if (existing && canonicalStringify(existing) !== canonicalStringify(statement)) dropped++;
     if (!existing || (statement.date ?? "") > (existing.date ?? "")) folded[key] = statement;
   };
   for (const [key, value] of Object.entries(stored)) {
@@ -41,5 +53,5 @@ export function foldLegacyStatements(data: ComplianceData | undefined): Complian
       put(key, value);
     }
   }
-  return { ...data, statements: folded };
+  return { statements: folded, dropped };
 }

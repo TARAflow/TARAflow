@@ -184,9 +184,11 @@ export {
   type SourceRef,
 } from "./models/item-definition-types";
 
-// ==================== IEC 62443-4-2 MATRIX DATA (schema 12) ====================
+// ==================== REQUIREMENT MATRIX DATA (schema 13) ====================
 export {
   FOUNDATIONAL_REQUIREMENTS,
+  complianceComponentOf,
+  familyCompliance,
   withComplianceComponent,
   withComplianceStatement,
   withComplianceTarget,
@@ -199,6 +201,7 @@ export {
   type ComplianceStatement,
   type DeviceCategory,
   type DeviceCategoryChoice,
+  type FamilyComplianceData,
   type FoundationalRequirement,
   type StandardFamilyId,
   type StatementStatus,
