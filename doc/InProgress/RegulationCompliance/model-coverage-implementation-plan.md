@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.19 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.20 · stage 1 done (CM-10) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -25,7 +25,7 @@ Two strands that belong together:
 
 1. **Model coverage** — DFD element properties that let the model show what the type C
    rows ask for today only by a statement (§11 of the coverage document: 31 of 90 CRA
-   rows, 44 of 122 classic rows). The fields describe the product, not a regulation:
+   rows, 44 of 122 classic rows in 0.17; 25 and 37 after stage 1, §10.1 CM-10). The fields describe the product, not a regulation:
    threat generation, the closed loop, mitigation effects and every matrix read the same
    field.
 2. **Multi-standard Compliance tab** — the tab becomes a frame with **one sub-tab per
@@ -416,7 +416,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) (**done**, see §10.1) | CM-1 | A |
 | CM-8b | F-5 `loginLockout` on the verifier; CR 1.11 from it; the interface link of CM-8 removed (user 2026-11-02) (**done**, see §10.1) | CM-8 | A |
 | CM-9 | report: one chapter per active standard — realised as one chapter with a part per standard (**done**, see §10.1) | CM-2 | A |
-| CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
+| CM-10 | validation on the examples, coverage document counts, this plan → status (**done**, see §10.1) | all | A |
 | CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) | CM-2, CM-3 | A |
 | CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View` in the app layer, model rules for 7.3 / 7.4.3.5.1; golden tests on an own example with `EN50742_A` (mandated control done → row met; WoO unset or risk unrated → unknown) — never customer data | CM-11 | A |
 | CM-13 | EN 50742 A report chapter (with CM-9); coverage rows → tracked / met with test references | CM-9, CM-12 | A |
@@ -820,3 +820,47 @@ its sections one level below.
 - Table of contents: the PDF lists each standard as an indented entry under the
   chapter; AsciiDoc / StrictDoc build theirs from the headings in their toolchain;
   the HTML and Markdown TOC stay at chapter level (they list chapters only).
+
+**CM-10 (done, 2026-11-02) — stage 1 complete.**
+
+Type split from the code (edition files × evidence rules; the completeness test pins
+it):
+
+| Edition | live rows | A | B | C | C before 0.18 |
+|---|---|---|---|---|---|
+| EN IEC 62443-4-2/prAA (CRA) | 90 | 42 | 23 | 25 | 31 |
+| IEC 62443-4-2:2019 (incl. device rows) | 122 | 60 | 25 | 37 | 44 |
+
+C → A in stage 1: CR 1.1 RE(1), CR 1.7 (+ 2019 RE(1), RE(2), prAA RE(2)), CR 1.11,
+CR 7.6, CR 7.6 RE(1). Rules made stricter or correct on the way: CR 2.1 RE(2) (RBAC alone
+no longer meets it, F-29), prAA CR 7.9 (no longer n/a without data stores), CR 3.10
+RE(2) (delivery instead of a mechanism list).
+
+Validation on the examples (achieved run, CRA edition / classic edition):
+
+| Example | met | from the model | gap | unknown | needs statement | n/a | pending category |
+|---|---|---|---|---|---|---|---|
+| Pump Station Controller (fields set) | 56 / 51 | 44 / 39 | 13 / 12 | 0 / 0 | 7 / 7 | 21 / 55 | — / 0 |
+| SmokeDetector (fixture, new fields unset) | 7 / 6 | 7 / 6 | 20 / 16 | 33 / 19 | 23 / 21 | 14 / 11 | — / 52 |
+| CNC reference (fixture, sparse model) | 0 / 0 | 0 / 0 | 0 / 0 | 68 / 56 | 9 / 7 | 20 / 10 | — / 52 |
+
+- Pump Station: 0.17 had met 55, gap 12, needs-statement 9 (CRA edition). Now three
+  statements are replaced by model evidence (CR 1.1 RE(1), CR 1.7, CR 7.6) plus CR 1.11
+  and CR 1.5 without open checklist items; CR 7.6 RE(1) (SL 3, above the target) became
+  a gap — no machine-readable report. The example still passes its own checks.
+- SmokeDetector / CNC: the new fields are unset — the golden test confirms no row
+  became met by the model through them; their rows are unknown until the analyst
+  fills them (R-1, R-8).
+
+**Open after stage 1 (0.18 scope beyond this plan, or stage 2):**
+
+- From the coverage document: IEC-6 (claims as 62443 row evidence), IEC-8b, P-4 (time
+  source as F-13 in stage 2), D-30 option c (per-element fields on a black-box
+  Multiprocess).
+- EN 50742 approach A module (§8.1, other instance) — a sub-tab via the registry; the
+  report part per standard is ready (CM-9).
+- Stage 2 fields (§4.3) and the threat-generation / closed-loop / mitigation-effect
+  coupling of all new fields (R-2: none of the stage-1 fields changes threats yet;
+  `loginLockout` next to the interface lockout is the first candidate).
+- Schema 13: FX-6 path keys (S13-c) can use the per-file preservation report (K-9).
+- Manual test of the 0.18 changes: TESTPLAN-0.18.md (user 2026-11-02).

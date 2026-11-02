@@ -157,6 +157,8 @@ describe("classic edition (2019) reproduces iec-62443-4-2-2019-coverage.md §3 /
     expect(EDITION_2019.rows.filter((r) => isCr(r.label))).toHaveLength(73);
     // C → A: CR 1.1 RE(1), CR 1.7, RE(1), RE(2) with F-1 / F-2 (CM-5a); CR 7.6, RE(1) with F-25 (CM-6); CR 1.11 with P-7 (CM-8).
     expect(countTypes(EDITION_2019, isCr)).toEqual({ A: 31, B: 17, C: 22, "n/a": 3 });
+    // All 125 rows incl. device rows: 122 live, C 37 (44 in 0.17) — model-coverage plan §10.1 CM-10.
+    expect(countTypes(EDITION_2019, () => true)).toEqual({ A: 60, B: 25, C: 37, "n/a": 3 });
     for (const [category, n] of [["SAR", 3], ["EDR", 13], ["HDR", 14], ["NDR", 22]] as const) {
       expect(EDITION_2019.rows.filter((r) => r.deviceCategories?.includes(category)), category).toHaveLength(n);
     }

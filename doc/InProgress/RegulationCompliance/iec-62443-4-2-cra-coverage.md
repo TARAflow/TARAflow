@@ -761,7 +761,9 @@ Compliance tab (IEC-8).
 ## 11. Model coverage of the type C rows (0.18 design, user 2026-11-01)
 
 About a third of the rows can only be met by a statement today — the model has no
-property for them: 31 of 90 rows of the CRA edition, 44 of 122 of the classic one.
+property for them: 31 of 90 rows of the CRA edition, 44 of 122 of the classic one
+(0.17). After 0.18 stage 1 (model-coverage-implementation-plan.md, CM-10): 25 of 90 and
+37 of 122.
 Most are capabilities of the component or of its human-facing parts that fit as
 element properties.
 
