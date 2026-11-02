@@ -105,13 +105,14 @@ export function hasComplianceContent(compliance: readonly DocCompliance[] | unde
 
 /**
  * The chapter's sections: one part per active standard (CM-9). With several
- * standards each section title names its standard ("EN IEC 62443-4-2 (CRA):
- * Basis"); with one the chapter reads as before.
+ * standards each standard is a heading of its own with its sections one
+ * level below (user 2026-11-02: many standards can be active); with one the
+ * chapter reads as before.
  */
 export function complianceMatrixSections(compliance: readonly DocCompliance[] | undefined, t: TranslateFn): ReportSection[] {
   const parts = (compliance ?? []).filter((c) => c.rows.length > 0);
   if (parts.length <= 1) return parts.length === 1 ? standardSections(parts[0], t) : [];
-  return parts.flatMap((c) => standardSections(c, t).map((s) => ({ ...s, title: `${c.standardLabel}: ${s.title}` })));
+  return parts.map((c) => ({ title: c.standardLabel, paragraphs: [c.editionTitle], facts: [], children: standardSections(c, t) }));
 }
 
 function standardSections(c: DocCompliance, t: TranslateFn): ReportSection[] {

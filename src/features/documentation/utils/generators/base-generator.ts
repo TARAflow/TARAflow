@@ -300,7 +300,8 @@ export abstract class BaseDocumentGenerator {
   protected formatSectionedChapter(_chapterId: string, _title: string, _intro: string, _body: string): string {
     return "";
   }
-  protected formatReportSection(_section: ReportSection): string {
+  /** `depth`: 0 for a section of the chapter, 1 for its sub-sections (ReportSection.children). */
+  protected formatReportSection(_section: ReportSection, _depth = 0): string {
     return "";
   }
   /** A status line below the header (verification, plan Phase 4). */

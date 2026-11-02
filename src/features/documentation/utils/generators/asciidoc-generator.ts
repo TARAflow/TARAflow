@@ -164,14 +164,14 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
     return `== ${title}\n\n${intro}\n\n${body}`;
   }
 
-  formatReportSection(section: ReportSection): string {
+  formatReportSection(section: ReportSection, depth = 0): string {
     const row = (cells: string[]) =>
       `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")}`;
     const facts = section.facts.map(([label, value], i) =>
       `*${label}*: ${value}${i < section.facts.length - 1 ? " +" : ""}`,
     );
     return [
-      `=== ${section.title}`,
+      `${"=".repeat(3 + depth)} ${section.title}`,
       "",
       ...section.paragraphs.flatMap((p) => [p, ""]),
       ...(facts.length ? [...facts, ""] : []),
@@ -186,7 +186,7 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
             "",
           ]
         : []),
-    ].join("\n") + "\n";
+    ].join("\n") + "\n" + (section.children ?? []).map((c) => this.formatReportSection(c, depth + 1)).join("");
   }
 
   formatAttackTreesChapter(title: string, intro: string, body: string): string {

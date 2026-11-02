@@ -1381,8 +1381,13 @@ export class PdfMakeConverter {
       { text: this.chapterTitle(id), style: "h1", tocItem: true },
       { text: intro, margin: [0, 0, 0, 8] },
     ];
-    for (const section of sections) {
-      content.push({ text: section.title, style: "h2" });
+    const add = (section: ReportSection, depth: number) => {
+      // A part with sub-sections (e.g. one standard, CM-9) gets its own TOC entry.
+      content.push({
+        text: section.title,
+        style: depth === 0 ? "h2" : "h3",
+        ...(section.children?.length ? { tocItem: true, tocMargin: [20, 2, 0, 0] as [number, number, number, number] } : {}),
+      });
       for (const p of section.paragraphs) content.push({ text: p, margin: [0, 0, 0, 4] });
       for (const [label, value] of section.facts) {
         content.push({ text: [{ text: `${label}: `, bold: true }, value] });
@@ -1401,7 +1406,9 @@ export class PdfMakeConverter {
           margin: [0, 6, 0, 12],
         });
       }
-    }
+      for (const child of section.children ?? []) add(child, depth + 1);
+    };
+    for (const section of sections) add(section, 0);
     content.push({ text: "", pageBreak: "after" });
     return content;
   }

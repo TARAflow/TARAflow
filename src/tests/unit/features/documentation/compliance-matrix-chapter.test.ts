@@ -135,13 +135,13 @@ describe("compliance matrix sections", () => {
     expect(complianceMatrixSections(undefined, t)).toEqual([]);
   });
 
-  it("two standards: one part each, the section titles name the standard (CM-9)", () => {
+  it("two standards: one part each — the standard is a heading, its sections one level below (CM-9)", () => {
     const classic = compliance({ standardLabel: "IEC 62443-4-2:2019", editionTitle: "IEC 62443-4-2:2019", cra: false, draft: false });
-    const titles = complianceMatrixSections([compliance(), classic], t).map((s) => s.title);
-    expect(titles[0]).toBe("EN IEC 62443-4-2 (CRA): Basis");
-    expect(titles).toContain("EN IEC 62443-4-2 (CRA): Regulation (EU) 2024/2847 (CRA), Annex I Part I");
-    expect(titles).toContain("IEC 62443-4-2:2019: Statement of Applicability");
-    expect(titles.filter((x) => x.startsWith("IEC 62443-4-2:2019:"))).not.toContain("IEC 62443-4-2:2019: Regulation (EU) 2024/2847 (CRA), Annex I Part I");
+    const parts = complianceMatrixSections([compliance(), classic], t);
+    expect(parts.map((p) => p.title)).toEqual(["EN IEC 62443-4-2 (CRA)", "IEC 62443-4-2:2019"]);
+    expect(parts[0].paragraphs).toEqual(["EN IEC 62443-4-2:2019/prAA:2026 (draft)"]);
+    expect(parts[0].children!.map((c) => c.title)).toContain("Regulation (EU) 2024/2847 (CRA), Annex I Part I");
+    expect(parts[1].children!.map((c) => c.title)).toEqual(["Basis", "Security levels per foundational requirement", "Statement of Applicability", "Gaps against the SL-T"]);
   });
 });
 
@@ -157,12 +157,21 @@ describe("compliance matrix in the formats", () => {
     expect(pdf).toContain('"text":"IEC 62443-4-2 Requirement Matrix","style":"h1"');
   });
 
-  it("two standards: both parts in one chapter (CM-9)", () => {
+  it("two standards: one chapter, a heading per standard, sections below — in every format (CM-9)", () => {
     const both: Any = { ...project(compliance()), computed: { moscowLabels: new Map(), impactLabels: new Map(), compliance: [compliance(), compliance({ standardLabel: "IEC 62443-4-2:2019", cra: false })] } };
     const md = new MarkdownGenerator(both, cfg(), t).generate().content;
     expect(md.match(/## IEC 62443-4-2 Requirement Matrix/g)).toHaveLength(1);
-    expect(md).toContain("EN IEC 62443-4-2 (CRA): Statement of Applicability");
-    expect(md).toContain("IEC 62443-4-2:2019: Statement of Applicability");
+    expect(md).toContain("### EN IEC 62443-4-2 (CRA)\n");
+    expect(md).toContain("### IEC 62443-4-2:2019\n");
+    expect(md).toContain("#### Statement of Applicability");
+    expect(new AsciidocGenerator(both, cfg(), t).generate().content).toContain("==== Statement of Applicability");
+    expect(new HtmlGenerator(both, cfg(), t).generate().content).toContain("<h4>Statement of Applicability</h4>");
+    const sdoc = new StrictdocGenerator(both, cfg(), t).generate().content;
+    const part = sdoc.indexOf("TITLE: IEC 62443-4-2:2019");
+    expect(sdoc.indexOf("TITLE: Statement of Applicability", part)).toBeGreaterThan(part);
+    const pdf = JSON.stringify(new PdfMakeConverter(both, cfg(), t).createDocumentDefinition().content);
+    expect(pdf).toContain('"text":"IEC 62443-4-2:2019","style":"h2","tocItem":true');
+    expect(pdf).toContain('"text":"Statement of Applicability","style":"h3"');
   });
 
   it("without matrix data the chapter is left out", () => {

@@ -225,11 +225,11 @@ export class HtmlGenerator extends BaseDocumentGenerator {
     return `<section id="${chapterId}">\n  <h2>${this.escapeHtml(title)}</h2>\n  <p>${this.escapeHtml(intro)}</p>\n${body}</section>\n\n`;
   }
 
-  formatReportSection(section: ReportSection): string {
+  formatReportSection(section: ReportSection, depth = 0): string {
     const cells = (tag: "th" | "td", list: string[]) =>
       list.map((c) => `<${tag}>${this.escapeHtml(c)}</${tag}>`).join("");
     return [
-      `  <h3>${this.escapeHtml(section.title)}</h3>`,
+      `  <h${3 + depth}>${this.escapeHtml(section.title)}</h${3 + depth}>`,
       ...section.paragraphs.map((p) => `  <p>${this.escapeHtml(p).replace(/\n/g, "<br>")}</p>`),
       ...(section.facts.length
         ? [
@@ -248,7 +248,7 @@ export class HtmlGenerator extends BaseDocumentGenerator {
             "  </table>",
           ]
         : []),
-    ].join("\n") + "\n";
+    ].join("\n") + "\n" + (section.children ?? []).map((c) => this.formatReportSection(c, depth + 1)).join("");
   }
 
   formatAttackTreesChapter(title: string, intro: string, body: string): string {

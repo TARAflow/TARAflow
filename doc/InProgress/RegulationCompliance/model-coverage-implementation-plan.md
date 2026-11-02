@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.18 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.19 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -804,3 +804,19 @@ triage (K-11: F-5 dropped in favour of the interface field) and exposed its flaw
 - README: both editions in the report with both tags.
 - Tests: two parts with prefixed titles, the CRA view only in the CRA part, one chapter
   in Markdown, the app-layer parts in registry order.
+
+**CM-9 refined (2026-11-02, user):** all standards may be active at once (IEC 62443,
+EN IEC 62443 (CRA), EN 18031, EN 50742 A, EN 303 645) — the Compliance tab shows one
+sub-tab each (CM-2, unchanged); in the report, title prefixes do not scale to five
+parts. Decided (option 1): one chapter, **each standard a heading of its own** with
+its sections one level below.
+
+- `ReportSection.children`: sub-sections one heading level deeper; every format nests
+  them — Markdown `###` / `####`, AsciiDoc `===` / `====`, HTML `h3` / `h4`, StrictDoc
+  nested `[SECTION]`, pdfmake `h2` / `h3`.
+- With several standards `complianceMatrixSections` returns one part per standard
+  (title = standard, the edition as its first paragraph, the sections as children);
+  with one standard the chapter is flat as before.
+- Table of contents: the PDF lists each standard as an indented entry under the
+  chapter; AsciiDoc / StrictDoc build theirs from the headings in their toolchain;
+  the HTML and Markdown TOC stay at chapter level (they list chapters only).
