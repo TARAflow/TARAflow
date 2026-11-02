@@ -601,7 +601,7 @@ Requirement tests check the requirements of the design documents end to end thro
 npm run test:requirements
 ```
 
-The example projects in [TARAflow_Examples](https://github.com/TARAflow/TARAflow_Examples) (Simple Controller) are generated from `src/tests/examples` and checked by the same suite.
+The example projects in [TARAflow_Examples](https://github.com/TARAflow/TARAflow_Examples) (Simple Controller, Pump Station Controller) are generated from `src/tests/examples` and checked by the same suite.
 
 The repository contains unit, component, requirement, and integration tests covering application functionality as well as CLI and audit-related functionality.
 

@@ -27,15 +27,20 @@ backup) and then no longer open in 0.16.x.
   confirmed by the analyst; the security levels per foundational
   requirement — SL-T (target), SL-C of the product, SL-C planned and the
   value with measures of the system (the basis for the SL-A); the rows
-  with status, source and notes, open first; statements (met / not met /
-  not applicable, reasoning, supporting measure, evidence) that keep the
-  model result of their moment and say when the model changed since;
+  with status, source and notes, filtered by status (all, open, gap,
+  statement needed, unknown, not applicable, met — each with its count;
+  open first); statements (met / not met / not applicable, reasoning,
+  supporting measure, evidence) that keep the model result of their
+  moment and say when the model changed since — one statement per
+  requirement, valid in both editions;
   a tooltip and an info dialog per requirement with its title and a
   summary in our own words (EN / DE — never the normative text), how
   TARAflow checks it, the elements concerned and catalog mitigations
   that fit the open elements; a **to-do list up to the SL-T** per element
   (which property to set or check, what the planned mitigations close,
-  which statements are missing) and a five-step quick guide.
+  which statements are missing) — the element's name leads to it in the
+  diagram (DFD tab, element selected, details panel open) — and a
+  five-step quick guide, open the first time and collapsed afterwards.
 - **Report chapter *IEC 62443-4-2 requirement matrix*** (all formats incl.
   PDF and the CLI): basis, security levels per FR, statement of
   applicability with the source of every row, the CRA view by Annex I
@@ -51,6 +56,22 @@ backup) and then no longer open in 0.16.x.
 - **TARA verification:** the hash covers the matrix data (component,
   target, statements) when a project has them — projects without keep
   their hash.
+- **Tags that change the workflow are marked:** the tags that switch the
+  method of the project (ISO 21434, EN 50742 A / B, ETSI TVRA) dark with a
+  cog, the tags that enable a requirement matrix outlined with a shield —
+  in the tag editor with a legend, never by colour alone.
+- **System definition:** outside ISO/SAE 21434 the item definition reads
+  as the system definition (for the CRA: intended purpose and product
+  description) — Overview, trust boundary assumptions, report chapter.
+- **Physical boundary:** free text *Further physical controls* (shown in
+  the report, not evaluated).
+- **DFD shape libraries:** a third data flow *Dataflow (straight)*; id
+  labels widen to the id the numbering writes.
+- **Asset graph:** a second free row above the top lane for side-column
+  nodes (e.g. persons).
+- **Example Pump Station Controller** (IEC 62443 / CRA, in
+  TARAflow_Examples): a complete TARA of a water pump station controller
+  with the matrix in both editions.
 
 ### Changed
 - **Closed loop for multi-select properties:** a control is met when the
@@ -58,10 +79,25 @@ backup) and then no longer open in 0.16.x.
   island mode no longer counts as default deny (separate capabilities).
 - **Report property tables:** update mechanism on processes and one row per
   session setting instead of *N/A*.
+- **Multiprocess form:** the update mechanism sits under Security next to
+  the session fields (as on the process); *safety-relevant* closes the
+  section.
+- **Threat catalog:** the embedded spoofing template S-002 applies with
+  both IEC 62443 tags (before only with `IEC 62443`).
+
+### Fixed
+- DFD_2 shape library: the interface shape's id label works (a broken
+  attribute hid it).
+- CRA view: CR 7.6 maps to Annex I (2)(b) and (k) only — it also showed
+  (l), a subclause number of Annex ZZ read as a CR number.
+- The requirement info dialog takes at most 80 % of the window; a long
+  description scrolls, title and buttons stay in view.
 
 ### Upgrade notes
 - Projects are converted to schema 12 when opened (backup alongside):
-  a trust boundary's traffic policy becomes a selection of one. A TARA
+  a trust boundary's traffic policy becomes a selection of one, and the
+  old free text *boundary controls* (no form field for a long time) is
+  appended to *custom boundary controls* — nothing is lost. A TARA
   verification recorded with 0.16 stays valid (the conversion is declared
   analysis-preserving).
 - The CRA edition follows the draft EN IEC 62443-4-2/prAA:2026; the matrix
@@ -71,6 +107,10 @@ backup) and then no longer open in 0.16.x.
 - **Azure DevOps** and the further tracker adapters did not make 0.17 —
   they follow in 0.18. A project that depends on Azure DevOps should stay
   on 0.15.2.
+
+### Security
+- Dependencies: `follow-redirects` and `joi` (dev tooling via `wait-on`)
+  updated after `npm audit`.
 
 ## [0.16.1-beta] - 2026-11-02
 
