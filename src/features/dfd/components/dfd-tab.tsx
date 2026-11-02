@@ -70,6 +70,7 @@ import type {
   DFDUpdateResult,
 } from "../models/dfd-types";
 import { DEFAULT_AUTONUMBERING_CONFIG } from "../models/dfd-types";
+import { useElementFocusRequest, type ElementFocusRequest } from "../hooks/use-element-focus-request";
 
 // ==================== CONSTANTS ====================
 // "https://embed.diagrams.net/?embed=1&spin=1&proto=json&configure=1&noExitBtn=1&saveAndExit=0&noSaveBtn=1&libraries=1";
@@ -85,6 +86,11 @@ export interface DFDTabProps {
    * asset panel.
    */
   graphFocusRequest?: { readonly assetId: string } | null;
+  /**
+   * "Show in the diagram" from another tab (Compliance to-do list): a new
+   * object per request. Opens the drawing and selects the element.
+   */
+  elementFocusRequest?: ElementFocusRequest | null;
   /**
    * The project's Hazard Items and their edges for the asset graph (FR-V11,
    * read-only) — the DFD feature never imports the hazards feature.
@@ -143,6 +149,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   assetUsage,
   threatCountOf,
   graphFocusRequest,
+  elementFocusRequest,
   hazards,
   assetRegistry,
   labelVocabulary,
@@ -786,6 +793,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     },
     [editor, setViewMode],
   );
+
+  useElementFocusRequest(elementFocusRequest, viewMode, setViewMode, editor.pluginReady, editor.selectCell);
 
   useEffect(() => {
     if (!graphFocusRequest) return;

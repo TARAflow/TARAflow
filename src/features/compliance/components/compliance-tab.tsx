@@ -158,6 +158,8 @@ export interface ComplianceTabProps {
   /** ISO date stored with a statement. */
   today: string;
   onChange: (data: ComplianceData) => void;
+  /** "Show in the diagram": the DFD tab opens the drawing with the element selected. */
+  onShowElement?: (elementId: string) => void;
   /** Element / flow id → type, for the properties of the to-do list. */
   typeOf?: (id: string) => string | undefined;
   /** Catalog mitigations for a row; filtered to the types of the elements still open (D-29). */
@@ -181,6 +183,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   nameOf,
   today,
   onChange,
+  onShowElement,
   mitigationSuggestions,
   typeOf,
 }) => {
@@ -431,7 +434,23 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
             <Stack spacing={1.5}>
               {todo.elements.map((element) => (
                 <Box key={element.elementId} data-testid={`compliance-todo-${element.elementId}`}>
-                  <Typography variant="subtitle2">{nameOf(element.elementId)}</Typography>
+                  <Typography variant="subtitle2">
+                    {onShowElement ? (
+                      <Tooltip title={t("showInDiagram", "Show in the diagram")}>
+                        <Link
+                          component="button"
+                          variant="subtitle2"
+                          underline="hover"
+                          onClick={() => onShowElement(element.elementId)}
+                          data-testid={`compliance-todo-link-${element.elementId}`}
+                        >
+                          {nameOf(element.elementId)}
+                        </Link>
+                      </Tooltip>
+                    ) : (
+                      nameOf(element.elementId)
+                    )}
+                  </Typography>
                   <Box component="ul" sx={{ m: 0, pl: 3 }}>
                     {element.items.map((item) => (
                       <li key={`${item.label}-${item.kind}`}>

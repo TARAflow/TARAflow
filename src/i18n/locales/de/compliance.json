@@ -42,6 +42,7 @@
     "addStatement": "Aussage erfassen",
     "noOpenRows": "Keine offenen Anforderungen.",
     "noRowsFilter": "Keine Anforderungen mit diesem Status.",
+    "showInDiagram": "Im Diagramm zeigen",
     "statementTitle": "Aussage zu {{row}}",
     "statementModel": "Ergebnis des Modells jetzt: {{status}}. Es wird mit der Aussage gespeichert, damit eine spätere Änderung des Modells sichtbar wird.",
     "statementStatus": "Status",

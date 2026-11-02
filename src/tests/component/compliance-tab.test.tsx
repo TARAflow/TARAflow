@@ -206,4 +206,17 @@ describe("Compliance tab", () => {
     fireEvent.click(within(entry).getByText("CR 3.5"));
     expect(within(screen.getByTestId("compliance-info-dialog")).getByText("CR 3.5 – Input validation")).toBeTruthy();
   });
+
+  it("the element of a to-do entry links to the diagram", () => {
+    const onShowElement = vi.fn();
+    renderTab(edition(CRA_ROWS), { target: { SI: 1 } }, { onShowElement });
+    fireEvent.click(screen.getByTestId("compliance-todo-link-p1"));
+    expect(onShowElement).toHaveBeenCalledWith("p1");
+  });
+
+  it("without the callback the element is plain text", () => {
+    renderTab(edition(CRA_ROWS), { target: { SI: 1 } });
+    expect(screen.queryByTestId("compliance-todo-link-p1")).toBeNull();
+    expect(within(screen.getByTestId("compliance-todo-p1")).getByText("P-1 Controller")).toBeTruthy();
+  });
 });

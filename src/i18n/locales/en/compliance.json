@@ -42,6 +42,7 @@
     "addStatement": "Add statement",
     "noOpenRows": "No open requirements.",
     "noRowsFilter": "No requirements with this status.",
+    "showInDiagram": "Show in the diagram",
     "statementTitle": "Statement on {{row}}",
     "statementModel": "Model result now: {{status}}. It is stored with the statement, so a later change of the model is shown.",
     "statementStatus": "Status",

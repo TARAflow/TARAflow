@@ -230,6 +230,11 @@ export const WorkspaceLayout: React.FC = () => {
   const [graphFocusRequest, setGraphFocusRequest] = useState<{
     assetId: string;
   } | null>(null);
+  // "Show in the diagram" from the Compliance to-do list: DFD tab, drawing,
+  // the element selected.
+  const [elementFocusRequest, setElementFocusRequest] = useState<{
+    elementId: string;
+  } | null>(null);
   // "Show in table" from the asset graph (FR-V13, way back).
   const [tableHighlightRequest, setTableHighlightRequest] = useState<{
     assetId: string;
@@ -1264,6 +1269,7 @@ export const WorkspaceLayout: React.FC = () => {
               assetUsage={assetUsageLookup}
               threatCountOf={threatCountLookup}
               graphFocusRequest={graphFocusRequest}
+              elementFocusRequest={elementFocusRequest}
               hazards={memoizedGraphHazards}
               assetRegistry={memoizedGraphRegistry}
               labelVocabulary={labelVocabulary}
@@ -1529,6 +1535,10 @@ export const WorkspaceLayout: React.FC = () => {
               typeOf={complianceView.typeOf}
               today={new Date().toISOString().slice(0, 10)}
               onChange={handleComplianceChange}
+              onShowElement={(elementId) => {
+                setElementFocusRequest({ elementId });
+                handlePhaseChange(PhaseId.DFD);
+              }}
               mitigationSuggestions={(ids, openElementIds) =>
                 suggestMitigations(
                   getAllMitigations(),
