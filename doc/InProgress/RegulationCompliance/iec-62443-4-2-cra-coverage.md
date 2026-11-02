@@ -238,7 +238,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | ID | Requirement | SL-C | CRA | Applicability in the model | Evidence in the model | Type | Gap |
 |---|---|---|---|---|---|---|---|
-| CR 7.1 (l. 3505) | keep essential functions in degraded mode under DoS | 1 | h, i, k | every IF with `exposureLevel` EL2–EL4 | each: IF.ic.`abuseProtection` ≠ none | B | — |
+| CR 7.1 (l. 3505) | keep essential functions in degraded mode under DoS | 1 | h, i, k | every IF with `exposureLevel` EL2–EL4 **and a protocol to flood** (0.18: `ABUSE_PROTECTION_INTERFACE_TYPES`; a touch panel or GPIO is no longer checked — the form never offered the field there) | each: IF.ic.`abuseProtection` ≠ none | B | — |
 | CR 7.1 RE(1) (l. 3538) | mitigate message flooding | 2 | h, i, k | as CR 7.1 | each: IF.ic.`abuseProtection` ∈ flood_protection, rate_limited | A | — |
 | CR 7.2 (l. 3568) | limit resource use by security functions | 1 | h, k | always | — | C | — |
 | CR 7.3 (l. 3606) | backup directly or by supporting measures, without affecting operation | 1 | f, h, m | DS / MP with state worth restoring | MP.`backupMechanism` ≠ none; DS.`backupEnabled` | A | — |

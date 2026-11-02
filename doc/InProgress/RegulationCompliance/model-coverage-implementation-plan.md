@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.20 · stage 1 done (CM-10) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.21 · stage 1 done (CM-10) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -864,3 +864,19 @@ Validation on the examples (achieved run, CRA edition / classic edition):
   `loginLockout` next to the interface lockout is the first candidate).
 - Schema 13: FX-6 path keys (S13-c) can use the per-file preservation report (K-9).
 - Manual test of the 0.18 changes: TESTPLAN-0.18.md (user 2026-11-02).
+
+**Follow-up after CM-10 (2026-11-02, user: "adapt the open question").** The Pump
+Station's IF-1 (touch panel) and IF-2 (USB) still carried `abuseProtection` = lockout
+from before CM-8b. Changing them exposed one more mismatch: CR 7.1 / RE(1) checked every
+exposed interface, but the Interface form offers abuse protection only for interfaces
+with a protocol (UART, Bluetooth, CAN, RS-485, Ethernet, Wi-Fi, USB, NFC) — a touch panel
+could never meet the rows.
+
+- `ABUSE_PROTECTION_INTERFACE_TYPES` in `shared/models/interface-capability-registry.ts`
+  — one list for the Interface form and the CR 7.1 rules; open question OQ3 ("home of
+  abuse protection") answered with CM-8b: protocol / link level on the interface, login
+  lockout on the verifier.
+- CR 7.1 / RE(1) check exposed protocol interfaces only.
+- Example: IF-1 without abuse protection (a touch panel has no protocol to
+  rate-limit), IF-2 rate-limited. CR 7.1 RE(1) is met now: CRA edition met 57 / gap 12 /
+  needs statement 7 / n/a 21 (classic 52 / 11 / 7 / 55); SL vectors unchanged.

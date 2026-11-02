@@ -1,3 +1,4 @@
+import { ABUSE_PROTECTION_INTERFACE_TYPES } from "shared/models/interface-capability-registry";
 import {
   INTERFACE_TYPE_META,
   isControlApplicable,
@@ -78,11 +79,9 @@ interface InterfaceGeneralTabProps {
   defaultExposureLevel?: ExposureLevel;
 }
 
-// Protocol-capable interfaces — abuseProtection (rate limiting, lockout) applies.
-// Not yet registry-driven (OQ3, Phase A2) — kept local until then.
-const ABUSE_PROTECTION_INTERFACES = new Set<
-  NonNullable<InterfaceProperties["type"]>
->(["uart", "bluetooth", "can", "rs485", "ethernet", "wifi", "usb", "nfc"]);
+// Protocol-capable interfaces — abuseProtection applies (shared list, also the
+// interfaces the IEC 62443-4-2 CR 7.1 rules check; OQ3 answered 2026-11-02).
+const ABUSE_PROTECTION_INTERFACES = new Set<string>(ABUSE_PROTECTION_INTERFACE_TYPES);
 
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <Box sx={{ pt: 1 }}>

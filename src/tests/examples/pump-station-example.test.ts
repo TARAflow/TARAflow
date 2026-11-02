@@ -170,8 +170,9 @@ describe("Pump Station Controller example", () => {
     // CR 1.1 RE(1), CR 1.7, CR 1.7 RE(2) from the model fields (CM-5a); CR 7.6
     // from the model, CR 7.6 RE(1) (SL 3, above the target) now a gap: the
     // settings are readable on the HMI, not as a machine-readable report (CM-6).
-    expect(count(achieved.rows)).toEqual({ met: 56, gap: 13, "n/a": 21, "needs-statement": 7 });
-    expect(count(planned.rows)).toEqual({ met: 59, gap: 10, "n/a": 21, "needs-statement": 7 });
+    // CR 7.1 RE(1) met since 0.18: only protocol interfaces are checked (IF-2, IF-3 rate-limited).
+    expect(count(achieved.rows)).toEqual({ met: 57, gap: 12, "n/a": 21, "needs-statement": 7 });
+    expect(count(planned.rows)).toEqual({ met: 60, gap: 9, "n/a": 21, "needs-statement": 7 });
 
     // SL-T 2: UC and RDF reach it; IAC stays at 1 even planned (no device
     // authentication on the fieldbus — a claim or a fix is needed); RA waits

@@ -197,7 +197,8 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     location: "external_panel",
     ...exposure("EL2", "Operator panel in the cabinet door, reachable on site."),
     operationalState: "enabled",
-    implementedControls: { linkAuthentication: "none", abuseProtection: "lockout", serviceAccessPolicy: "always_enabled" },
+    // A touch panel has no protocol to rate-limit; the login lockout sits on P-1 (CM-8b).
+    implementedControls: { linkAuthentication: "none", serviceAccessPolicy: "always_enabled" },
   }),
   "IF-2": as<InterfaceProperties>({
     type: "usb",
@@ -205,7 +206,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     location: "in_enclosure",
     operationalState: "enabled",
     ...exposure("EL2", "Behind the locked cabinet door; maintenance staff only."),
-    implementedControls: { linkAuthentication: "none", abuseProtection: "lockout", serviceAccessPolicy: "maintenance_only" },
+    implementedControls: { linkAuthentication: "none", abuseProtection: "rate_limited", serviceAccessPolicy: "maintenance_only" },
   }),
   "IF-3": as<InterfaceProperties>({
     type: "ethernet",

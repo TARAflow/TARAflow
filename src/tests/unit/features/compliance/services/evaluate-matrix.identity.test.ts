@@ -278,3 +278,25 @@ describe("CR 1.11 — the verifier locks after failed logins (F-5, CM-8b)", () =
     expect(run(EDITION_PRAA_2026, hmi({}), [], [ble("rate_limited")]).status).toBe("gap");
   });
 });
+
+describe("CR 7.1 / RE(1) — only interfaces with a protocol to flood (OQ3, 2026-11-02)", () => {
+  const run = (label: string, iface: ViewElement) => {
+    const r = EDITION_PRAA_2026.rows.find((x) => x.label === label)!;
+    return evaluateMatrix({ edition: { ...EDITION_PRAA_2026, rows: [r] }, view: { elements: [iface], flows: [] }, scope: new Set([iface.id]), run: "achieved" }).rows[0];
+  };
+  const iface = (type: string, abuseProtection?: string): ViewElement => ({
+    id: "if",
+    type: "Interface",
+    properties: { type, exposureLevel: "EL3", ...(abuseProtection ? { implementedControls: { abuseProtection } } : {}) },
+  });
+
+  it("an exposed touch panel is not checked — the form has no abuse protection for it", () => {
+    expect(run("CR 7.1 RE(1)", iface("touchscreen")).status).toBe("n/a");
+  });
+
+  it("an exposed Ethernet port: rate limiting met, nothing set unknown, lockout no rate limit", () => {
+    expect(run("CR 7.1 RE(1)", iface("ethernet", "rate_limited")).status).toBe("met");
+    expect(run("CR 7.1 RE(1)", iface("ethernet")).status).toBe("unknown");
+    expect(run("CR 7.1 RE(1)", iface("ethernet", "lockout")).status).toBe("gap");
+  });
+});

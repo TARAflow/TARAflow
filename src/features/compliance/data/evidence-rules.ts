@@ -16,6 +16,7 @@
 // visible to the conformance test (src/tests/…/evidence-rules.conformance.test.ts).
 
 import { HUMAN_ENTITY_TYPES } from "shared";
+import { ABUSE_PROTECTION_INTERFACE_TYPES } from "shared/models/interface-capability-registry";
 import type { EvidenceRule, RequirementId } from "../models/compliance-types";
 
 // ==================== SHARED PIECES ====================
@@ -152,9 +153,17 @@ const UPDATABLE = { elementTypes: ["Process", "Multiprocess"] } as const;
 const COMPONENT_BORDER_FLOWS = { elementTypes: ["DataFlow"], crossesComponent: true } as const;
 
 /** Interfaces reachable over a network (EL2 local network … EL4 internet). */
-const EXPOSED_INTERFACES = {
+/**
+ * Exposed interfaces whose protocol can be flooded — the ones that carry
+ * abuseProtection (CR 7.1). A touch panel or a GPIO line has no protocol to
+ * rate-limit; before 0.18 they were checked too and could never be met.
+ */
+const EXPOSED_PROTOCOL_INTERFACES = {
   elementTypes: ["Interface"],
-  appliesIf: [{ property: "exposureLevel", in: ["EL2", "EL3", "EL4"] }],
+  appliesIf: [
+    { property: "exposureLevel", in: ["EL2", "EL3", "EL4"] },
+    { property: "type", in: ABUSE_PROTECTION_INTERFACE_TYPES },
+  ],
 } as const;
 
 /** Data stores holding audit records. */
@@ -785,13 +794,13 @@ const RULES = [
   {
     id: "cr-7.1",
     type: "B",
-    targets: [{ ...EXPOSED_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", notIn: ["none"] }] }],
+    targets: [{ ...EXPOSED_PROTOCOL_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", notIn: ["none"] }] }],
     checklist: ["essential functions continue in degraded mode during a DoS event"],
   },
   {
     id: "cr-7.1-re1",
     type: "A",
-    targets: [{ ...EXPOSED_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["flood_protection", "rate_limited"] }] }],
+    targets: [{ ...EXPOSED_PROTOCOL_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["flood_protection", "rate_limited"] }] }],
   },
   { id: "cr-7.2", type: "C", targets: [] },
   {
