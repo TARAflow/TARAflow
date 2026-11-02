@@ -116,6 +116,8 @@ export type EvidenceQuantifier = "all" | "any";
 export interface ChecklistAnswer {
   /** Index into the rule's checklist. */
   item: number;
+  /** Read only on these of the applicable elements; absent = all of them. */
+  elementTypes?: readonly EvidenceElementType[];
   yesIf: readonly PropertyCheck[];
   noIf?: readonly PropertyCheck[];
 }

@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.13 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-6 done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.14 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-6, CM-7a done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -411,7 +411,8 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-5d | light sub-tabs per category under the Security divider of the Process / Multiprocess forms, open-field count per tab, tabs without fields hidden; context predicates for existing fields where they match the rule's applicability (user 2026-11-02) (**done**, see §10.1) | CM-5c | A |
 | CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) (**done**, see §10.1) | CM-5a | A |
 | CM-6 | F-27, F-27b, F-25a, F-25b (lifecycle / configuration) (**done**, see §10.1) | CM-5 | A |
-| CM-7 | F-22, F-28 (data deletion, support data) | CM-5 | A |
+| CM-7a | F-22 (user data deletion), CR 7.9 for every component (**done**, see §10.1) | CM-5 | A |
+| CM-7b | F-28 support data on the project (Overview), report header | CM-7a | A |
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
 | CM-9 | report: one chapter per active standard | CM-2 | A |
 | CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
@@ -685,3 +686,26 @@ default, b) interface to the deployed settings, RE(1) machine-readable.
   componentId), values for local mechanisms, rules per value and edition, process vs
   multiprocess as component element, golden rows extended, Process form operation tab
   (delivery after mechanism).
+
+**CM-7a (done, 2026-11-02).** CM-7 split: the project-level support data (F-28) is a
+different place (Overview, report header) → CM-7b.
+
+- R-5 check: DataStore already has `deletionMechanism` (overwrite, factory reset,
+  crypto erase …) and it already decides CR 4.2 — the store-level part of §4.2 F-22
+  would duplicate it. New is only who can remove the user's data, a capability of the
+  component: F-22 `userDataDeletion` (none · delete function for the user · reset to
+  the supplier state · both) on the element that stands for the component
+  (`componentLevel`, like F-25), tab "Operation". "Delete function" / "both" are
+  offered only where a data store holds user data (`VisibilityModel.storesUserData`:
+  pii, credentials, keys_certificates, config — EN 303 645 5.11-1's user data).
+- CR 4.2 unchanged (stores, `deletionMechanism`). prAA CR 7.9 (text: applicable to all
+  components) gets the component element as a target: reset ∈ factory reset, both;
+  a store with factory reset still shows it; both answer the checklist item. Before,
+  a component without data stores was n/a — counted as met for the SL.
+- `ChecklistAnswer.elementTypes`: an answer can be read on some of the applicable
+  types only (CR 7.9: the field on the component, `deletionMechanism` on stores); the
+  conformance test checks it on those types.
+- Pump Station example: MP-1 resets to the supplier state (counts unchanged — DS-1's
+  factory reset met CR 7.9 before).
+- Tests: visibility and value filter, CR 7.9 without stores (unknown, no longer n/a),
+  with the field, with a store, delete function only (gap).

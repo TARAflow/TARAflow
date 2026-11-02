@@ -73,7 +73,7 @@ describe("model fields in the Security sub-tabs", () => {
   it("no authentication decided yet, certificate login: no login field — only the component's settings (no multiprocess in the model)", () => {
     renderFields({}, [{ ...passwordLogin, properties: { endpointAuthentication: "certificate" } }]);
     expect(screen.queryByTestId("security-tab-login")).toBeNull();
-    expect(screen.getByTestId("security-tab-operation").textContent).toBe("Operation (2)");
+    expect(screen.getByTestId("security-tab-operation").textContent).toBe("Operation (3)"); // secure by default, settings report, user data deletion
   });
 
   it("only the fitting lifetime values; a choice is passed on", () => {

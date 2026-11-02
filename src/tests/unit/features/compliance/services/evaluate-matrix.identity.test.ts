@@ -209,3 +209,32 @@ describe("CR 3.10 RE(2) and CR 7.6 from the lifecycle fields (CM-6)", () => {
     expect(run(EDITION_PRAA_2026, "CR 7.6", [p, other], "p").status).toBe("met");
   });
 });
+
+describe("prAA CR 7.9 — component reset (CM-7a)", () => {
+  const run = (elements: ViewElement[]) => {
+    const r = EDITION_PRAA_2026.rows.find((x) => x.label === "CR 7.9")!;
+    return evaluateMatrix({
+      edition: { ...EDITION_PRAA_2026, rows: [r] },
+      view: { elements, flows: [] },
+      scope: new Set(elements.map((e) => e.id)),
+      run: "achieved",
+    }).rows[0];
+  };
+  const mp = (properties: Record<string, unknown>): ViewElement => ({ id: "mp", type: "Multiprocess", properties });
+  const ds = (properties: Record<string, unknown>): ViewElement => ({ id: "ds", type: "DataStore", properties });
+
+  it("applies to every component: without data stores and without the field it is unknown — no longer n/a", () => {
+    expect(run([mp({})]).status).toBe("unknown");
+  });
+
+  it("reset to the supplier state on the component: met, nothing left to confirm", () => {
+    for (const userDataDeletion of ["factory_reset", "both"]) {
+      expect(run([mp({ userDataDeletion })]), userDataDeletion).toMatchObject({ status: "met", checklist: [] });
+    }
+  });
+
+  it("a store wiped by factory reset shows the reset too; no reset at all is a gap", () => {
+    expect(run([mp({}), ds({ deletionMechanism: "factory_reset" })])).toMatchObject({ status: "met", checklist: [] });
+    expect(run([mp({ userDataDeletion: "by_user" })]).status).toBe("gap");
+  });
+});

@@ -436,6 +436,16 @@
             "machine_readable": "Machine-readable report"
           }
         },
+        "userDataDeletion": {
+          "label": "Deleting user data",
+          "help": "How the user's data (personal data, user configuration, passwords and keys) leaves the component: not at all, by a delete function the user can trigger, by a reset to the supplier-defined state (factory reset), or both. ETSI EN 303 645 5.11-1, CRA Annex I (2)(m), EN IEC 62443-4-2/prAA CR 7.9 (reset). Which store is wiped how is set on the data store (deletion mechanism). The delete function is offered only where a data store holds user data.",
+          "values": {
+            "none": "Not possible",
+            "by_user": "Delete function for the user",
+            "factory_reset": "Reset to the supplier state",
+            "both": "Both"
+          }
+        },
         "roleMapping": {
           "label": "Role permissions",
           "help": "With role-based authorization: can an authorised role (e.g. the administrator) define and change which permissions each role has, or are the roles and their permissions fixed in the product? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) asks for the configurable mapping.",

@@ -817,11 +817,21 @@ const RULES = [
   },
   { id: "cr-7.8", type: "C", targets: [] },
   {
+    // prAA: applicable to every component — the element that stands for the
+    // component carries the reset (F-22, CM-7a); a store reset by factory
+    // reset shows it too. Before, a component without data stores was n/a.
     id: "cr-7.9",
     type: "B",
     quantifier: "any",
-    targets: [{ elementTypes: ["DataStore"], satisfiedIf: [{ property: "deletionMechanism", in: ["factory_reset"] }] }],
+    targets: [
+      { ...COMPONENT_ELEMENTS, satisfiedIf: [{ property: "userDataDeletion", in: ["factory_reset", "both"] }] },
+      { elementTypes: ["DataStore"], satisfiedIf: [{ property: "deletionMechanism", in: ["factory_reset"] }] },
+    ],
     checklist: ["the component can be reset to the supplier-defined state"],
+    answers: [
+      { item: 0, elementTypes: ["Process", "Multiprocess"], yesIf: [{ property: "userDataDeletion", in: ["factory_reset", "both"] }] },
+      { item: 0, elementTypes: ["DataStore"], yesIf: [{ property: "deletionMechanism", in: ["factory_reset"] }] },
+    ],
   },
 ] as const satisfies readonly EvidenceRule[];
 

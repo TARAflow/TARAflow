@@ -11,6 +11,7 @@ const updateDelivery = modelField("updateDelivery")!;
 const updateDefaults = modelField("updateDefaults")!;
 const secureByDefault = modelField("secureByDefault")!;
 const securityConfigReporting = modelField("securityConfigReporting")!;
+const userDataDeletion = modelField("userDataDeletion")!;
 
 const process = (id: string, properties: Record<string, unknown> = {}): VisibilityElement => ({ id, type: "Process", properties });
 const system = (id: string, properties: Record<string, unknown> = {}): VisibilityElement => ({ id, type: "Multiprocess", properties });
@@ -57,5 +58,21 @@ describe("F-25a / F-25b on the element that stands for the component", () => {
     expect(isFieldShown(secureByDefault, contextOf(process("p"), [process("q")]))).toBe(true);
     expect(isFieldShown(secureByDefault, contextOf(process("p"), [system("mp")]))).toBe(false);
     expect(isFieldShown(secureByDefault, contextOf(process("p"), [system("mp")], "p"))).toBe(true);
+  });
+});
+
+describe("F-22 userDataDeletion on the element that stands for the component (CM-7a)", () => {
+  const store = (storedDataTypes: string[]): VisibilityElement => ({ id: "ds", type: "DataStore", properties: { storedDataTypes } });
+
+  it("shown like the component's other settings", () => {
+    expect(isFieldShown(userDataDeletion, contextOf(system("mp")))).toBe(true);
+    expect(isFieldShown(userDataDeletion, contextOf(process("p"), [system("mp")]))).toBe(false);
+  });
+
+  it("a delete function for the user only where a store holds user data", () => {
+    expect(userDataDeletion.valuesFor!(contextOf(system("mp"), [store(["pii"])]))).toEqual(["none", "by_user", "factory_reset", "both"]);
+    expect(userDataDeletion.valuesFor!(contextOf(system("mp"), [store(["config"])]))).toEqual(["none", "by_user", "factory_reset", "both"]);
+    expect(userDataDeletion.valuesFor!(contextOf(system("mp"), [store(["telemetry", "firmware"])]))).toEqual(["none", "factory_reset"]);
+    expect(userDataDeletion.valuesFor!(contextOf(system("mp")))).toEqual(["none", "factory_reset"]);
   });
 });

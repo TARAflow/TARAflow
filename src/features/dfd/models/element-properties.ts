@@ -38,6 +38,7 @@ import type {
   UPDATE_DEFAULTS_VALUES,
   UPDATE_DELIVERY_VALUES,
   USER_ACCOUNTS_VALUES,
+  USER_DATA_DELETION_VALUES,
 } from "shared";
 
 // ==================== SHARED: IDENTITY (model coverage F-1 … F-3b, F-29) ====================
@@ -68,6 +69,8 @@ export type UpdateDefault = Exclude<(typeof UPDATE_DEFAULTS_VALUES)[number], "no
 export type SecureByDefault = (typeof SECURE_BY_DEFAULT_VALUES)[number];
 /** Interface to the deployed settings (CR 7.6 b, RE(1)). */
 export type SecurityConfigReporting = (typeof SECURITY_CONFIG_REPORTING_VALUES)[number];
+/** How the user's data leaves the component (EN 303 645 5.11-1, CR 7.9). */
+export type UserDataDeletion = (typeof USER_DATA_DELETION_VALUES)[number];
 
 // ==================== SHARED: UPDATE / SESSIONS ====================
 // On Process AND Multiprocess (iec-62443-4-2-cra-coverage.md P-2): a
@@ -303,6 +306,8 @@ export interface ProcessProperties {
   secureByDefault?: SecureByDefault;
   /** F-25b — shown where the element stands for the component. */
   securityConfigReporting?: SecurityConfigReporting;
+  /** F-22 — shown where the element stands for the component. */
+  userDataDeletion?: UserDataDeletion;
 
   /**
    * Session management for a process with human users (SessionControl).
@@ -569,6 +574,8 @@ export interface MultiprocessProperties {
   secureByDefault?: SecureByDefault;
   /** F-25b — shown where the element stands for the component. */
   securityConfigReporting?: SecurityConfigReporting;
+  /** F-22 — shown where the element stands for the component. */
+  userDataDeletion?: UserDataDeletion;
 
   /**
    * Backup and recovery mechanism for this system.

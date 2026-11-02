@@ -102,7 +102,12 @@ type AnswerChecks<A> =
   | (A extends { readonly yesIf: readonly (infer C)[] } ? C : never)
   | (A extends { readonly noIf: readonly (infer C)[] } ? C : never);
 
-type AnswerViolation<T, A> = T extends { readonly elementTypes: readonly (infer E)[] } ? ForEachType<E, AnswerChecks<A>> : never;
+/** An answer with its own element types is checked on those, else on the rule's target types. */
+type AnswerViolation<T, A> = A extends { readonly elementTypes: readonly (infer E)[] }
+  ? ForEachType<E, AnswerChecks<A>>
+  : T extends { readonly elementTypes: readonly (infer E)[] }
+    ? ForEachType<E, AnswerChecks<A>>
+    : never;
 
 type RuleViolation<R> = R extends { readonly targets: readonly (infer T)[] }
   ?

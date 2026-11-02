@@ -374,7 +374,9 @@ function answerChecklist(rule: EvidenceRule, elements: readonly ViewElement[]): 
   const answeredYes = new Set<number>();
   const failing = new Set<string>();
   for (const answer of rule.answers) {
-    const results = elements.map((e) => ({ id: e.id, tri: answerOf(e, answer) }));
+    const own = answer.elementTypes ? elements.filter((e) => answer.elementTypes!.includes(e.type as never)) : elements;
+    if (own.length === 0) continue;
+    const results = own.map((e) => ({ id: e.id, tri: answerOf(e, answer) }));
     const tris = results.map((r) => r.tri);
     const tri = any ? (tris.includes("yes") ? "yes" : tris.every((t) => t === "no") ? "no" : "unknown") : and(tris);
     if (tri === "yes") answeredYes.add(answer.item);

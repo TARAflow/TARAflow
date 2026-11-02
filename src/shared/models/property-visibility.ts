@@ -56,6 +56,8 @@ export interface VisibilityModel {
   hasMultiprocess: boolean;
   /** The component under evaluation (Compliance tab), if one is chosen. */
   componentId?: string;
+  /** Some data store holds user data: personal data, credentials, keys or configuration (EN 303 645 5.11-1). */
+  storesUserData?: boolean;
 }
 
 /** Options for building the contexts of a whole model. */
@@ -234,6 +236,17 @@ export const SECURE_BY_DEFAULT_VALUES = ["not_specified", "yes", "no"] as const;
 /** F-25b — CR 7.6 b) / RE(1): an interface to the deployed settings; machine-readable report. */
 export const SECURITY_CONFIG_REPORTING_VALUES = ["not_specified", "none", "readable_interface", "machine_readable"] as const;
 
+/**
+ * F-22 — EN 303 645 5.11-1, CRA (m), prAA CR 7.9: how the user's data leaves
+ * the component — not at all, by a delete function for the user, by a reset
+ * to the supplier state, or both. Which store is wiped how stays with
+ * DataStore.deletionMechanism (CR 4.2).
+ */
+export const USER_DATA_DELETION_VALUES = ["not_specified", "none", "by_user", "factory_reset", "both"] as const;
+
+/** Stored data types that count as user data (EN 303 645 5.11-1: personal data, user configuration, keys and passwords). */
+const USER_DATA_TYPES: readonly unknown[] = ["pii", "credentials", "keys_certificates", "config"];
+
 /** Update mechanisms that need physical access — they cannot fetch or install on their own. */
 const LOCAL_UPDATE_MECHANISMS: readonly unknown[] = ["manual_local", "signed_local"];
 
@@ -326,6 +339,15 @@ export const MODEL_FIELDS: readonly ModelField[] = [
     shownWhen: MODEL_CONDITIONS.componentLevel,
   },
   {
+    property: "userDataDeletion",
+    group: "operation",
+    elementTypes: ["Process", "Multiprocess"],
+    values: USER_DATA_DELETION_VALUES,
+    shownWhen: MODEL_CONDITIONS.componentLevel,
+    // A delete function for the user only where user data is stored.
+    valuesFor: (c) => (c.model?.storesUserData ? USER_DATA_DELETION_VALUES.slice(1) : ["none", "factory_reset"]),
+  },
+  {
     property: "roleMapping",
     group: "authorization",
     elementTypes: ["Process", "Multiprocess"],
@@ -366,6 +388,9 @@ export function visibilityContexts(
   const byId = new Map(elements.map((e) => [e.id, e]));
   const model: VisibilityModel = {
     hasMultiprocess: elements.some((e) => e.type === "Multiprocess"),
+    storesUserData: elements.some(
+      (e) => e.type === "DataStore" && [prop(e, "storedDataTypes")].flat().some((t) => USER_DATA_TYPES.includes(t)),
+    ),
     ...(options.componentId ? { componentId: options.componentId } : {}),
   };
   const flowElement = (f: VisibilityFlowInput): VisibilityElement => ({ id: f.id, type: "DataFlow", properties: f.properties });

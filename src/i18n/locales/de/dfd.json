@@ -436,6 +436,16 @@
             "machine_readable": "Maschinenlesbarer Bericht"
           }
         },
+        "userDataDeletion": {
+          "label": "Löschen von Benutzerdaten",
+          "help": "Wie die Daten des Benutzers (personenbezogene Daten, Benutzerkonfiguration, Passwörter und Schlüssel) die Komponente verlassen: gar nicht, über eine Löschfunktion für den Benutzer, über ein Zurücksetzen in den Lieferzustand (Factory Reset) oder beides. ETSI EN 303 645 5.11-1, CRA Anhang I (2)(m), EN IEC 62443-4-2/prAA CR 7.9 (Reset). Welcher Speicher wie gelöscht wird, steht beim Datenspeicher (Löschmechanismus). Die Löschfunktion wird nur angeboten, wo ein Datenspeicher Benutzerdaten hält.",
+          "values": {
+            "none": "Nicht möglich",
+            "by_user": "Löschfunktion für den Benutzer",
+            "factory_reset": "Zurücksetzen in den Lieferzustand",
+            "both": "Beides"
+          }
+        },
         "roleMapping": {
           "label": "Rollen-Berechtigungen",
           "help": "Bei rollenbasierter Autorisierung: Kann eine berechtigte Rolle (z. B. der Administrator) festlegen und ändern, welche Rechte jede Rolle hat, oder sind Rollen und Rechte im Produkt fest vorgegeben? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) verlangt die konfigurierbare Zuordnung.",

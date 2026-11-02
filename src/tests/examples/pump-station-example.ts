@@ -173,6 +173,8 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     updateDelivery: "on_request_or_scheduled",
     secureByDefault: "yes",
     securityConfigReporting: "readable_interface",
+    // A factory reset from the HMI wipes configuration and accounts (CR 7.9).
+    userDataDeletion: "factory_reset",
     exposedToInternet: false,
     airGapped: false,
   }),

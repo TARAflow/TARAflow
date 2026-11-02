@@ -249,7 +249,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 7.6 RE(1) (l. 3744) | machine-readable report of current security settings | 3 | b, k | as CR 7.6 | (0.18, F-25b) `securityConfigReporting` = machine-readable | A | — |
 | CR 7.7 (l. 3770) | restrict unnecessary interfaces, functions, ports, protocols, services | 1 | b, j, k | every IF / service | IF.`operationalState` ∈ sw_disabled, hw_disabled, permanent_disabled for unused IF; IF.ic.`serviceAccessPolicy` ≠ always_enabled | B | "needed for intended use" not modelled per IF |
 | CR 7.8 (l. 3808) | provide component information to an inventory | 2 | — | always | — | C | — |
-| CR 7.9 (l. 3840) | reset to a supplier-defined state (**new in prAA**) | 1 | b | always | DS.`deletionMechanism` = factory_reset (partly) | B | reset capability per component not modelled |
+| CR 7.9 (l. 3840) | reset to a supplier-defined state (**new in prAA**) | 1 | b | always | (0.18, F-22) the element that stands for the component: `userDataDeletion` ∈ factory reset, both — or a DS.`deletionMechanism` = factory_reset; both answer the checklist item | B | before 0.18 a component without data stores was n/a although the requirement applies to all components |
 
 ### Common component security constraints and process
 

@@ -16,7 +16,7 @@ type Any = any;
 const ROWS = ["CR 1.1 RE(1)", "CR 1.7", "CR 1.7 RE(1)", "CR 1.7 RE(2)", "CR 2.1 RE(2)", "CR 3.10 RE(2)", "CR 7.6", "CR 7.6 RE(1)"];
 const FIELDS = [
   "userAccounts", "passwordStrength", "passwordLifetime", "roleMapping", "defaultCredentials", "authenticatorChangeable",
-  "updateDelivery", "updateDefaults", "secureByDefault", "securityConfigReporting",
+  "updateDelivery", "updateDefaults", "secureByDefault", "securityConfigReporting", "userDataDeletion",
 ];
 
 function load(file: string): Project {
