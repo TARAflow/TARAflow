@@ -809,7 +809,7 @@ against ETSI EN 303 645 V2.1.1 and FprEN 18031-1/-2/-3: the corrected columns ar
 | F-25 | `securityConfiguration` (Multiprocess) | always | none · secure defaults · readable · machine-readable | CR 7.6 (A), RE(1) (A) | 5.6 | GEC |
 | F-26 | `inventoryReporting` (Multiprocess) | always | none · local · over the network | CR 7.8 (A) | — | GEC |
 | F-27 | `updateNotification` (Multiprocess / Process with `updateMechanism`) | `updateMechanism` ≠ none | none · user notified · automatic with notice | CR 3.10 RE(2) (B → A) | 5.3 | SUM |
-| F-28 | `securityContact` / support period (project, not an element) | always (Overview) | text / date | — (62443-4-1, process) | 5.2, 5.3 | — (CRA Annex II) |
+| ~~F-28~~ | ~~`securityContact` / support period (project, not an element)~~ — **dropped** (user 2026-11-02: manufacturer information for the product documentation, not TARA content; the report's CRA view says so) | — | — | — (62443-4-1, process) | 5.2, 5.3 — statement rows of the EN 303 645 module | — (CRA Annex II) |
 
 Remaining type C after F-1 … F-27 (CRA edition): CR 2.11 RE(2) only partly (time
 source integrity needs the protocol), the 2019-only rows SAR 3.2 / HDR 3.2 RE(1)

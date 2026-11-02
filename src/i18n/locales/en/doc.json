@@ -315,6 +315,7 @@
         "notes": "Notes",
         "craTitle": "Regulation (EU) 2024/2847 (CRA), Annex I Part I",
         "craText": "The essential cybersecurity requirements with the rows of the matrix behind them (EN IEC 62443-4-2/prAA, Annex ZZ). Part I (1), (2)(a) and (2)(g) and Part II are met by the development and vulnerability handling process (EN IEC 62443-4-1) — outside this matrix.",
+        "craDocumentation": "Not part of this assessment: the information the CRA requires for the user and in the technical documentation (Annex II), such as the support period, the contact for reporting vulnerabilities and the product identification — it is stated in the product documentation.",
         "craRequirement": "Essential requirement",
         "craRows": "Rows",
         "craOpen": "Not met (SL-C component)",

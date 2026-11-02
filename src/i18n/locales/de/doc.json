@@ -310,6 +310,7 @@
         "notes": "Hinweise",
         "craTitle": "Verordnung (EU) 2024/2847 (CRA), Anhang I Teil I",
         "craText": "Die grundlegenden Cybersicherheitsanforderungen mit den Zeilen der Matrix dahinter (EN IEC 62443-4-2/prAA, Anhang ZZ). Teil I (1), (2)(a) und (2)(g) sowie Teil II werden durch den Entwicklungs- und Schwachstellenprozess erfüllt (EN IEC 62443-4-1) — ausserhalb dieser Matrix.",
+        "craDocumentation": "Nicht Teil dieser Bewertung: die Angaben, die der CRA für die Nutzer und in der technischen Dokumentation verlangt (Anhang II), etwa der Supportzeitraum, die Kontaktstelle für Schwachstellenmeldungen und die Produktkennzeichnung — sie stehen in der Produktdokumentation.",
         "craRequirement": "Grundlegende Anforderung",
         "craRows": "Zeilen",
         "craOpen": "Nicht erfüllt (SL-C Komponente)",

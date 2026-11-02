@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.14 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-6, CM-7a done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.15 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1 … CM-7a done · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -157,7 +157,7 @@ These hold for every field of §4 and are tested once, generically.
 | F-13 `timeSource` | **keep as field**, close P-4 for the time source (no EE type "time_source"); keep the EE type "siem" question for CR 6.1 RE(1) open | one source; a field is cheaper than a modelling convention |
 | F-17 `sessionIdsRandom` | **rename** `sessionControl.sessionIntegrity`, type **B** with checklist (unique, random, invalidated at logout, bound to the session) | CR 3.8 is more than random ids |
 | F-25 `securityConfiguration` | **split**: `secureByDefault` and `securityConfigReporting` | v0.2: both halves are CR 7.6 itself — prAA CR 7.6 a) secure-by-default configuration, b) an interface to the deployed settings (2019: same two sentences); RE(1) machine-readable report. CR 7.6 → A needs both fields |
-| F-28 support data | **project level** (Overview), not an element; no matrix row in 62443-4-2 | CRA Annex II / 62443-4-1 — process, report header only |
+| F-28 support data | **dropped** (v0.15, user 2026-11-02) — product documentation, not TARA content; EN 303 645 5.2-1 / 5.3-13 / 5.3-16 become statement rows of that module, with a reference to the documentation | CRA Annex II, EN 303 645 5.2 / 5.3 — manufacturer statements |
 | others | as in §11, names to be confirmed in §4.2 / §4.3 | — |
 
 ### 4.2 Stage 1 (0.18) — CRA essentials and EN 303 645 core
@@ -179,7 +179,7 @@ references of every field).
 | F-25b | `securityConfigReporting` | Multiprocess | always | none · readable interface · machine-readable report | CR 7.6 RE(1) → A with machine-readable report |
 | F-27 | `updateDelivery` | Multiprocess, Process | `updateMechanism` ∉ {not_specified, none} | manual only · notification of available updates · on request or scheduled · automatic | prAA CR 3.10 RE(2) B → A when ≠ manual only (no row in 2019) |
 | F-27b | `updateDefaults` | Multiprocess, Process | F-27 = automatic | multi-select: enabled by default · user can disable · user can postpone | — (CRA (2)(c), EN 303 645 5.3-6) |
-| F-28 | security contact, support period end, model designation | project (Overview) | always | text · date · text | — (62443-4-1, process) |
+| ~~F-28~~ | ~~security contact, support period end, model designation~~ — **dropped** (§4.1, v0.15) | — | — | — | — |
 | F-29 | `roleMapping` (v0.9, user 2026-11-02) | Process, Multiprocess | `authorizationModel` = rbac (and the element does not state "no authentication") | fixed roles · configurable | CR 2.1 RE(2) stays A, now `roleMapping` = configurable — RBAC alone over-claimed it |
 
 **Answers to the v0.1 open points (instance A, v0.2):**
@@ -412,7 +412,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) (**done**, see §10.1) | CM-5a | A |
 | CM-6 | F-27, F-27b, F-25a, F-25b (lifecycle / configuration) (**done**, see §10.1) | CM-5 | A |
 | CM-7a | F-22 (user data deletion), CR 7.9 for every component (**done**, see §10.1) | CM-5 | A |
-| CM-7b | F-28 support data on the project (Overview), report header | CM-7a | A |
+| CM-7b | ~~F-28 support data on the project (Overview), report header~~ — **withdrawn** (user 2026-11-02: documentation, not TARA; patch 13 reverted, see §10.1) | CM-7a | A |
 | CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
 | CM-9 | report: one chapter per active standard | CM-2 | A |
 | CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
@@ -709,3 +709,28 @@ different place (Overview, report header) → CM-7b.
   factory reset met CR 7.9 before).
 - Tests: visibility and value filter, CR 7.9 without stores (unknown, no longer n/a),
   with the field, with a store, delete function only (gap).
+
+**CM-7b (withdrawn, 2026-11-02).** Patch 13 put the product support data (model
+designation, vulnerability contact, end of the security-update period) into the
+Overview and the report header. User 2026-11-02: does the TARA need it at all — is it
+not part of the documentation? Decided: dropped, patch 13 reverted.
+
+- The data is a manufacturer statement for the product documentation (user
+  information, label, website — CRA Annex II; ETSI EN 303 645 5.2-1, 5.3-13, 5.3-16),
+  not an input or result of the risk assessment; no IEC 62443-4-2 row needs it. A
+  second place for it in the TARA report would drift from its source (R-5).
+- The EN 303 645 module (§8) carries 5.2-1, 5.3-13 and 5.3-16 as statement rows: the
+  analyst states "met" with a reference to the documentation (e.g. "user manual §2"),
+  like the manufacturer statements of its clause 6 and the type C rows of 62443
+  today. The CRA's documented determination of the support period belongs to the
+  technical documentation as well.
+- Where F-28 came from: not from IEC 62443-4-2 (its 62443 column was "— (62443-4-1,
+  process)") but from the CRA Annex II and EN 303 645 5.2 / 5.3 columns of the
+  coverage document §11 (design of 2026-11-01); the v0.1 triage took it over as a
+  project field and K-10 confirmed the list as a whole.
+- Instead a hint (user 2026-11-02): the report's CRA view states that the Annex II
+  information (support period, vulnerability contact, product identification) is
+  not part of the assessment and belongs to the product documentation
+  (`tabs.doc.compliance.craDocumentation`, EN / DE); the coverage document §11 marks
+  F-28 dropped.
+- K-10 ("stage-1 fields as §4.2") holds without F-28.

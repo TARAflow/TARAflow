@@ -194,6 +194,11 @@ export function complianceMatrixSections(compliance: DocCompliance | undefined, 
           `${K}.craText`,
           "The essential cybersecurity requirements with the rows of the matrix behind them (EN IEC 62443-4-2/prAA, Annex ZZ). Part I (1), (2)(a) and (2)(g) and Part II are met by the development and vulnerability handling process (EN IEC 62443-4-1) — outside this matrix.",
         ),
+        // F-28 dropped (user 2026-11-02): manufacturer information is documentation, not TARA content.
+        t(
+          `${K}.craDocumentation`,
+          "Not part of this assessment: the information the CRA requires for the user and in the technical documentation (Annex II), such as the support period, the contact for reporting vulnerabilities and the product identification — it is stated in the product documentation.",
+        ),
       ],
       facts: [],
       table: {

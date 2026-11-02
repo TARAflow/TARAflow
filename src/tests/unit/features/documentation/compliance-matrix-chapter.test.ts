@@ -114,6 +114,11 @@ describe("compliance matrix sections", () => {
     expect(d).toEqual(["(2)(d) protection from unauthorised access", "CR 1.1, CR 1.2, CR 1.8, CR 1.11", "CR 1.2, CR 1.11"]);
   });
 
+  it("CRA view: the manufacturer information of Annex II is named as documentation, outside the assessment (F-28 dropped)", () => {
+    const view = byTitle("Regulation (EU) 2024/2847 (CRA), Annex I Part I");
+    expect(view.paragraphs[1]).toMatch(/^Not part of this assessment: .*Annex II.*support period.*product documentation\.$/);
+  });
+
   it("gaps against the target: rows up to the target that the component does not meet, with suggestions", () => {
     expect(byTitle("Gaps against the SL-T").table?.rows).toEqual([
       ["CR 1.2", "gap", "M-S-009"],
