@@ -705,7 +705,16 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
   );
   const checklist = row.checklist.length > 0 ? descriptions.flatMap((d) => d.checklist) : [];
   return (
-    <Dialog open onClose={onClose} maxWidth="sm" fullWidth data-testid="compliance-info-dialog">
+    // At most 80 % of the window: a long description scrolls inside, title and buttons stay in view.
+    <Dialog
+      open
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      scroll="paper"
+      PaperProps={{ sx: { maxHeight: "80vh" } }}
+      data-testid="compliance-info-dialog"
+    >
       <DialogTitle>
         {row.label} – {descriptions.map((d) => d.title).join(" / ")}
       </DialogTitle>
