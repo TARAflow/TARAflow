@@ -3,6 +3,7 @@ import { applyRegulationPresetToProject } from "app/services/regulation-preset-o
 import { threadWindowOfOpportunity } from "app/services/regulation-preset-orchestrator";
 import { threadUseAssetImpact } from "app/services/regulation-preset-orchestrator";
 import { threadImpactCriteria } from "app/services/regulation-preset-orchestrator";
+import { applyRegulationFromTags, threadSafetyRelevant } from "app/services/regulation-preset-orchestrator";
 import { DEFAULT_ASSET_CONFIGURATION } from "features/assets/models/asset-types";
 import type { AssetData } from "features/assets";
 import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
@@ -118,6 +119,42 @@ describe("applyRegulationPresetToProject — likelihoodMethod", () => {
     expect(res.project.risks!.configuration.likelihoodMethod).toBe(
       "weighted-mean",
     );
+  });
+});
+
+describe("threadSafetyRelevant — the tag mandates the Hazard tab", () => {
+  const info = (regulation: string[], safetyRelevant?: boolean) =>
+    ({
+      name: "P",
+      tags: { domain: [], platform: [], custom: [], regulation },
+      ...(safetyRelevant === undefined ? {} : { safetyRelevant }),
+    }) as unknown as Project["info"];
+
+  it("a file with EN50742_A but without the flag (written outside the app) gets the safety analysis on", () => {
+    const result = threadSafetyRelevant(project({ info: info(["EN50742_A"]) }));
+    expect(result.info.safetyRelevant).toBe(true);
+  });
+
+  it("every tag that mandates hazard analysis switches it on; an explicit false is corrected too", () => {
+    for (const tag of ["EN 50742 A", "EN 50742 B", "IEC 81001", "CLC/TS 50701"]) {
+      expect(threadSafetyRelevant(project({ info: info([tag], false) })).info.safetyRelevant, tag).toBe(true);
+    }
+  });
+
+  it("idempotent; no forcing tag → untouched, a manual on stays", () => {
+    const on = project({ info: info(["EN50742_A"], true) });
+    expect(threadSafetyRelevant(on)).toBe(on);
+    const none = project({ info: info(["IEC 62443"]) });
+    expect(threadSafetyRelevant(none)).toBe(none);
+    const manual = project({ info: info(["IEC 62443"], true) });
+    expect(threadSafetyRelevant(manual)).toBe(manual);
+    const noInfo = project();
+    expect(threadSafetyRelevant(noInfo)).toBe(noInfo);
+  });
+
+  it("part of applyRegulationFromTags — the reconcile that runs when a project is opened", () => {
+    const { project: reconciled } = applyRegulationFromTags(project({ info: info(["EN50742_A"]) }));
+    expect(reconciled.info.safetyRelevant).toBe(true);
   });
 });
 
