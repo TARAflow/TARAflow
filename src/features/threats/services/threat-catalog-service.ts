@@ -88,11 +88,38 @@ const ALL_VERIFICATIONS: VerificationEntry[] = [
  * AND logic across keys, OR logic within a key.
  * Missing or empty array = universal (always matches).
  */
+/**
+ * The context keys matchesContext reads (FX-7) — a catalog key outside this
+ * list would be silently ignored; the guard test checks every catalog entry.
+ */
+export const MATCHED_CONTEXT_KEYS = [
+  "systemClass", "chipType", "technology", "protocol", "entityType", "interfaceType", "regulation", "platform", "domain",
+  "boundaryType", "serviceAccessPolicy", "physicalMobility", "accessibility", "monitoringType", "debugInterfaceAccessible",
+  "removableMediaAccessible", "failSafeOutputState", "processSemantic", "accountManagement", "updateMechanism",
+  "authenticatorStorage", "backupMechanism", "cryptoStandard", "sideChannelProtection", "location", "redundancy",
+  "safetyFunction", "accessMode", "storeAccessModel", "physicalPathProtection", "encryptionInTransit",
+] as const;
+
 export function matchesContext(
   templateCtx: TemplateContext,
   project: ThreatProjectData,
   elementProps: Record<string, unknown> | null = null,
 ): boolean {
+  return contextMatch(templateCtx, project, elementProps).matches;
+}
+
+/**
+ * The match and how many of its constraints rest on an assumed weak value
+ * (FX-7): a template matched by facts is more specific than one matched by
+ * an assumption about an unset property — it is chosen first.
+ */
+export function contextMatch(
+  templateCtx: TemplateContext,
+  project: ThreatProjectData,
+  elementProps: Record<string, unknown> | null = null,
+): { matches: boolean; assumed: number } {
+  let assumed = 0;
+  const no = { matches: false, assumed: 0 };
   const {
     systemClass,
     chipType,
@@ -123,58 +150,84 @@ export function matchesContext(
     safetyFunction,
     accessMode,
     storeAccessModel,
+    physicalPathProtection,
+    encryptionInTransit,
   } = templateCtx;
+  /**
+   * FX-7: a key that names a missing or weak control matches an UNSET
+   * property as that weak value — an unfinished model never looks safer than
+   * a complete one (unset = unknown). Keys that say what an element IS
+   * (systemClass, protocol, …) still need the value.
+   */
+  const weak = (wanted: string[], property: string, weakValue: string): boolean => {
+    const value = elementProps?.[property];
+    const unset = value === undefined || value === null || value === "" || value === "not_specified";
+    const entries = (unset ? [weakValue] : [value].flat()) as string[];
+    const hit = entries.some((v) => wanted.includes(v));
+    if (hit && unset) assumed++;
+    return hit;
+  };
+  // Login settings are weak when unset only where the element authenticates.
+  const authenticates = ((): boolean => {
+    const required = elementProps?.["authenticationRequired"];
+    const boundary = elementProps?.["boundaryAuthentication"];
+    const set = (v: unknown) => v !== undefined && v !== null && v !== "" && v !== "not_specified";
+    return (set(required) && required !== "no") || (set(boundary) && boundary !== "none");
+  })();
+  const weakLogin = (wanted: string[], property: string, weakValue: string): boolean => {
+    const value = elementProps?.[property];
+    if ((value === undefined || value === "" || value === "not_specified") && !authenticates) return false;
+    return weak(wanted, property, weakValue);
+  };
   const tags = project.info?.tags;
 
   // ── Element-level checks ──────────────────────────────────────────────────
 
   if (systemClass?.length) {
     const v = elementProps?.["systemClass"] as string | undefined;
-    if (!v || !systemClass.includes(v)) return false;
+    if (!v || !systemClass.includes(v)) return no;
   }
 
   if (chipType?.length) {
     const v = elementProps?.["chipType"] as string | undefined;
-    if (!v || !chipType.includes(v)) return false;
+    if (!v || !chipType.includes(v)) return no;
   }
 
   if (sideChannelProtection?.length) {
     // Default "none" when property is absent — unprotected chips are in scope.
-    const v =
-      (elementProps?.["sideChannelProtection"] as string | undefined) ?? "none";
-    if (!sideChannelProtection.includes(v)) return false;
+    if (!weak(sideChannelProtection, "sideChannelProtection", "none")) return no;
   }
 
   if (technology?.length) {
     const v = elementProps?.["technology"] as string | undefined;
-    if (!v || !technology.includes(v)) return false;
+    if (!v || !technology.includes(v)) return no;
   }
 
   if (storeAccessModel?.length) {
     const v = elementProps?.["accessModel"] as string | undefined;
-    if (!v || !storeAccessModel.includes(v)) return false;
+    if (!v || !storeAccessModel.includes(v)) return no;
   }
 
   if (protocol?.length) {
     const v = elementProps?.["protocol"] as string | undefined;
-    if (!v || !protocol.includes(v)) return false;
+    if (!v || !protocol.includes(v)) return no;
   }
 
   if (entityType?.length) {
     const v = elementProps?.["entityType"] as string | undefined;
-    if (!v || !entityType.includes(v)) return false;
+    if (!v || !entityType.includes(v)) return no;
   }
 
   if (interfaceType?.length) {
     const v = elementProps?.["type"] as string | undefined;
-    if (!v || !interfaceType.includes(v)) return false;
+    if (!v || !interfaceType.includes(v)) return no;
   }
 
   // ── Physical Boundary context ─────────────────────────────────────────────
 
   if (boundaryType?.length) {
     const v = elementProps?.["boundaryType"] as string | undefined;
-    if (!v || !boundaryType.includes(v)) return false;
+    if (!v || !boundaryType.includes(v)) return no;
   }
 
   if (serviceAccessPolicy?.length) {
@@ -182,107 +235,106 @@ export function matchesContext(
       | Record<string, unknown>
       | undefined;
     const v = controls?.["serviceAccessPolicy"] as string | undefined;
-    if (!v || !serviceAccessPolicy.includes(v)) return false;
+    if (!v || !serviceAccessPolicy.includes(v)) return no;
   }
 
   if (physicalMobility?.length) {
     const v = elementProps?.["physicalMobility"] as string | undefined;
-    if (!v || !physicalMobility.includes(v)) return false;
+    if (!v || !physicalMobility.includes(v)) return no;
   }
 
   if (accessibility?.length) {
     const v = elementProps?.["accessibility"] as string | undefined;
-    if (!v || !accessibility.includes(v)) return false;
+    if (!v || !accessibility.includes(v)) return no;
   }
 
   if (monitoringType?.length) {
-    const v = elementProps?.["monitoringType"] as string | undefined;
-    if (!v || !monitoringType.includes(v)) return false;
+    if (!weak(monitoringType, "monitoringType", "none")) return no;
   }
 
   // Boolean flags — only match when explicitly true in context
   if (debugInterfaceAccessible === true) {
-    if (elementProps?.["debugInterfaceAccessible"] !== true) return false;
+    if (elementProps?.["debugInterfaceAccessible"] !== true) return no;
   }
 
   if (removableMediaAccessible === true) {
-    if (elementProps?.["removableMediaAccessible"] !== true) return false;
+    if (elementProps?.["removableMediaAccessible"] !== true) return no;
   }
 
   // ── Process / Multiprocess context ───────────────────────────────────────
 
   if (failSafeOutputState?.length) {
-    const v = elementProps?.["failSafeOutputState"] as string | undefined;
-    if (!v || !failSafeOutputState.includes(v)) return false;
+    if (!weak(failSafeOutputState, "failSafeOutputState", "not_defined")) return no;
   }
 
   if (processSemantic?.length) {
     const v = elementProps?.["processSemantic"] as string | undefined;
-    if (!v || !processSemantic.includes(v)) return false;
+    if (!v || !processSemantic.includes(v)) return no;
   }
 
   if (accountManagement?.length) {
-    const v = elementProps?.["accountManagement"] as string | undefined;
-    if (!v || !accountManagement.includes(v)) return false;
+    if (!weakLogin(accountManagement, "accountManagement", "local_only")) return no;
   }
 
   if (updateMechanism?.length) {
-    const v = elementProps?.["updateMechanism"] as string | undefined;
-    if (!v || !updateMechanism.includes(v)) return false;
+    if (!weak(updateMechanism, "updateMechanism", "none")) return no;
   }
 
   if (authenticatorStorage?.length) {
-    const v = elementProps?.["authenticatorStorage"] as string | undefined;
-    if (!v || !authenticatorStorage.includes(v)) return false;
+    if (!weakLogin(authenticatorStorage, "authenticatorStorage", "software_only")) return no;
   }
 
   if (backupMechanism?.length) {
-    const v = elementProps?.["backupMechanism"] as string | undefined;
-    if (!v || !backupMechanism.includes(v)) return false;
+    if (!weak(backupMechanism, "backupMechanism", "none")) return no;
   }
 
   if (cryptoStandard?.length) {
-    const v = elementProps?.["cryptoStandard"] as string | undefined;
-    if (!v || !cryptoStandard.includes(v)) return false;
+    if (!weak(cryptoStandard, "cryptoStandard", "not_assessed")) return no;
   }
 
   // ── DataFlow context ──────────────────────────────────────────────────────
 
   if (location?.length) {
     const v = elementProps?.["location"] as string | undefined;
-    if (!v || !location.includes(v)) return false;
+    if (!v || !location.includes(v)) return no;
   }
 
   if (redundancy?.length) {
-    const v = elementProps?.["redundancy"] as string | undefined;
-    if (!v || !redundancy.includes(v)) return false;
+    if (!weak(redundancy, "redundancy", "none")) return no;
   }
 
   if (safetyFunction?.length) {
     const v = elementProps?.["safetyFunction"] as string | undefined;
-    if (!v || !safetyFunction.includes(v)) return false;
+    if (!v || !safetyFunction.includes(v)) return no;
   }
 
   if (accessMode?.length) {
-    const v = elementProps?.["accessMode"] as string | undefined;
-    if (!v || !accessMode.includes(v)) return false;
+    if (!weak(accessMode, "accessMode", "read_write")) return no;
+  }
+
+  if (physicalPathProtection?.length) {
+    if (!weak(physicalPathProtection, "physicalPathProtection", "none")) return no;
+  }
+
+  if (encryptionInTransit?.length) {
+    if (!weak(encryptionInTransit, "encryptionInTransit", "none")) return no;
   }
 
   // ── Project-level checks ──────────────────────────────────────────────────
 
   if (regulation?.length && tags) {
-    if (!regulation.some((r) => tags.regulation.includes(r))) return false;
+    if (!regulation.some((r) => tags.regulation.includes(r))) return no;
   }
 
   if (platform?.length && tags) {
-    if (!platform.some((p) => tags.platform.includes(p))) return false;
+    if (!platform.some((p) => tags.platform.includes(p))) return no;
   }
 
   if (domain?.length && tags) {
-    if (!domain.some((d) => tags.domain.includes(d))) return false;
+    if (!domain.some((d) => tags.domain.includes(d))) return no;
   }
 
-  return true;
+  return { matches: true, assumed };
 }
 
 // ==================== ELEMENT TEMPLATE ACCESS ====================
@@ -301,18 +353,34 @@ export function getApplicableElementTemplates(
   project?: ThreatProjectData,
   elementProps: Record<string, unknown> | null = null,
 ): ElementTemplate[] {
-  return ALL_ELEMENT_TEMPLATES.filter((t) => {
-    if (t.strideCategory !== strideCategory) return false;
-    if (!t.elementTypes.includes(elementType)) return false;
-    if (project && !matchesContext(t.context, project, elementProps))
-      return false;
-    return true;
-  }).sort(
-    // Specificity-first: a template that matched on more context constraints is
-    // more specific than a context-free one. general (context:{}) scores 0 and
-    // therefore acts as the fallback. Stable sort preserves catalog order on ties.
-    (a, b) => contextSpecificity(b.context) - contextSpecificity(a.context),
+  return bySpecificity(
+    ALL_ELEMENT_TEMPLATES.filter((t) => t.strideCategory === strideCategory && t.elementTypes.includes(elementType)),
+    project,
+    elementProps,
   );
+}
+
+/**
+ * Specificity-first: a template that matched on more context constraints is
+ * more specific than a context-free one; general (context:{}) scores 0 and
+ * therefore acts as the fallback. FX-7: constraints met only by an assumed
+ * weak value count after the facts — a fact (technology = rtos_task) beats an
+ * assumption (fail-safe state unset), an assumption beats no constraint.
+ * Stable sort preserves catalog order on ties.
+ */
+function bySpecificity<T extends { context: TemplateContext }>(
+  templates: readonly T[],
+  project: ThreatProjectData | undefined,
+  elementProps: Record<string, unknown> | null,
+): T[] {
+  return templates
+    .map((t) => ({ t, m: project ? contextMatch(t.context, project, elementProps) : { matches: true, assumed: 0 } }))
+    .filter((x) => x.m.matches)
+    .sort((a, b) => {
+      const facts = (x: typeof a) => contextSpecificity(x.t.context) - x.m.assumed;
+      return facts(b) - facts(a) || b.m.assumed - a.m.assumed;
+    })
+    .map((x) => x.t);
 }
 
 /** Number of non-empty context constraints on a template. */
@@ -447,16 +515,11 @@ export function getApplicableInteractionTemplates(
   threatData?: ThreatProjectData,
   elementProps: Record<string, unknown> | null = null,
 ): InteractionTemplate[] {
-    return ALL_INTERACTION_TEMPLATES.filter((t) => {
-      if (t.strideCategory !== strideCategory) return false;
-      if (t.perspective !== perspective) return false;
-      if (threatData && !matchesContext(t.context, threatData, elementProps))
-        return false;
-      return true;
-    }).sort(
-      // Specificity-first (same rule as element templates): a template matching
-      // more context constraints wins; general (context:{}) scores 0 → fallback.
-      (a, b) => contextSpecificity(b.context) - contextSpecificity(a.context),
+    // Specificity-first, facts before assumptions (same rule as element templates).
+    return bySpecificity(
+      ALL_INTERACTION_TEMPLATES.filter((t) => t.strideCategory === strideCategory && t.perspective === perspective),
+      threatData,
+      elementProps,
     );
 }
 
