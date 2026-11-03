@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.24 · stage 1 done (CM-10) · CM-11, CM-12, CM-12b done (EN 50742 A module, evidence, paths to safety functions, 2026-11-03) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.25 · stage 1 done (CM-10) · EN 50742 A module complete: CM-11, CM-12, CM-12b, CM-13 (2026-11-03) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -419,7 +419,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-10 | validation on the examples, coverage document counts, this plan → status (**done**, see §10.1) | all | A |
 | CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) (**done**, see §10.1) | CM-2, CM-3 | A |
 | CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View` in the app layer, model rules for 7.3 / 7.4.3.5.1; golden tests on an own example with `EN50742_A` (mandated control done → row met; WoO unset or risk unrated → unknown) — never customer data (**done**, see §10.1) | CM-11 | A |
-| CM-13 | EN 50742 A report chapter (with CM-9); coverage rows → tracked / met with test references | CM-9, CM-12 | A |
+| CM-13 | EN 50742 A report chapter (with CM-9); coverage rows → tracked / met with test references (**done**, see §10.1) | CM-9, CM-12 | A |
 
 FX-5 / FX-6 (S13-c) join the schema-13 fence of CM-3 when the 0.18 release plan
 schedules them.
@@ -964,3 +964,17 @@ and the interfaces on those flows — derive the relation instead of modelling i
 - SmokeDetector: IF-7 (WLAN), IF-1, IF-3 lead to the measurement, calibration and alarm
   data; the EL1 interfaces IF-2, IF-4, IF-5, IF-6 to no safety function; the firmware
   asset names no DFD element.
+
+**CM-13 (done, 2026-11-03) — EN 50742 A in the report.** Patch 26.
+
+- `buildDocCompliance` keeps every active standard; `DocCompliance.levels` tells the
+  renderer which sections apply, `DocCompliance.srsl` carries the SRSL per safety function
+  with the path interfaces by name, rows carry their group and risks.
+- EN 50742 A part: basis (edition, the whole machine, WoO), SRSL per safety function,
+  SoA with the group instead of "SL-C from" and the risks in the notes, open requirements
+  with their risks; no SL table, CRA view or gaps against an SL-T, no catalog suggestions.
+- The chapter is called "Requirement Matrix" / "Anforderungsmatrix" (it holds every
+  active standard); the intro follows the standards (IEC 62443 only, EN 50742 A only,
+  both).
+- Coverage document v0.3: the §4, §5 and §7 rows with a CT-A row are met (method rows
+  with a project check) or tracked (track / doc rows), with their test references.

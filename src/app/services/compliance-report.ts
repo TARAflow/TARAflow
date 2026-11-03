@@ -271,10 +271,10 @@ export function evaluateProjectCompliance(
 /**
  * The matrix chapter's data (DocProjectData.computed.compliance): one part
  * per active standard, in registry order (CM-9); the model is prepared once.
- * Standards without security levels (EN 50742 A) get their part with CM-13.
+ * EN 50742 A brings its SRSL per safety function instead of SL vectors (CM-13).
  */
 export function buildDocCompliance(project: Project, language = "en"): DocCompliance[] | undefined {
-  const standards = activeStandards(project.info?.tags).filter((s) => s.header === "security-levels");
+  const standards = activeStandards(project.info?.tags);
   const context = standards.length > 0 ? prepareProjectCompliance(project) : undefined;
   if (!context) return undefined;
   return standards.map((standard) => docComplianceOf(project, language, standard, context.evaluate(standard.edition)));
@@ -288,6 +288,7 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
   const familyData = familyCompliance(project.compliance, edition.family);
   const target = familyData.target ?? {};
   const rowById = new Map(edition.rows.map((r) => [r.label, r]));
+  const levels = standard.header === "security-levels";
 
   // Catalog mitigations meeting a requirement on a type of the open elements — suggestions for gaps (D-29).
   const typeOf = complianceTypeOf(project);
@@ -305,13 +306,26 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
     cra: edition.id === "en-iec-62443-4-2-praa-2026",
     ccsc2Label: edition.ccsc2Label,
     component: result.scopeName,
+    levels,
     deviceCategories: edition.rows.some((r) => r.deviceCategories)
       ? {
           categories: [...(familyData.deviceCategories?.categories ?? [])],
           confirmed: familyData.deviceCategories?.source === "manual",
         }
       : undefined,
-    vectors: FOUNDATIONAL_REQUIREMENTS.map((fr) => ({
+    ...(achieved.srsl
+      ? {
+          srsl: {
+            ...(achieved.srsl.windowOfOpportunity ? { windowOfOpportunity: achieved.srsl.windowOfOpportunity } : {}),
+            safetyFunctions: achieved.srsl.safetyFunctions.map((sf) => ({
+              name: sf.name,
+              ...(sf.srsl !== null ? { srsl: sf.srsl } : {}),
+              interfaces: sf.interfaces.map(name),
+            })),
+          },
+        }
+      : {}),
+    vectors: !levels ? [] : FOUNDATIONAL_REQUIREMENTS.map((fr) => ({
       fr,
       target: target[fr],
       achievedComponent: achieved.component[fr],
@@ -342,7 +356,8 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
         statementModelChanged: r.statementModelChanged,
         statementSuperseded: r.statementSuperseded,
         countsForComponent: countsComponent,
-        suggestions: countsComponent || r.status === "n/a" ? [] : suggestionsOf(r.label, [...r.failing, ...r.unknown]),
+        suggestions: !levels || countsComponent || r.status === "n/a" ? [] : suggestionsOf(r.label, [...r.failing, ...r.unknown]),
+        ...(r.risks?.length ? { risks: [...r.risks] } : {}),
       };
     }),
   };

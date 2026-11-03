@@ -466,7 +466,7 @@ export class PdfMakeConverter {
       case "compliance-matrix":
         return this.sectionedChapter(
           "compliance-matrix",
-          complianceMatrixIntro(this.t),
+          complianceMatrixIntro(this.t, this.project.computed.compliance),
           complianceMatrixSections(this.project.computed.compliance, this.t),
         );
       case "accepted-risks":

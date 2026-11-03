@@ -13,7 +13,7 @@ import { AsciidocGenerator } from "features/documentation/utils/generators/ascii
 import { HtmlGenerator } from "features/documentation/utils/generators/html-generator";
 import { StrictdocGenerator } from "features/documentation/utils/generators/strictdoc-generator";
 import { PdfMakeConverter } from "features/documentation/utils/generators/pdfmake-converter";
-import { complianceMatrixSections } from "features/documentation/utils/compliance-matrix-report";
+import { complianceMatrixIntro, complianceMatrixSections } from "features/documentation/utils/compliance-matrix-report";
 import { DEFAULT_CHAPTER_CONFIG, createDefaultDocData, type DocCompliance, type DocComplianceRow } from "features/documentation/models/doc-types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,6 +45,7 @@ const compliance = (extra: Partial<DocCompliance> = {}): DocCompliance => ({
   cra: true,
   ccsc2Label: "supporting measures",
   component: "MP-2 Smoke Detector Controller",
+  levels: true,
   vectors: [{ fr: "IAC", target: 2, achievedComponent: 1, achievedWithSupport: 2, plannedComponent: 2, plannedWithSupport: 2 }],
   rows: [
     row("CR 1.1", { cra: ["d"], checklist: ["each interface authenticates"] }),
@@ -145,22 +146,85 @@ describe("compliance matrix sections", () => {
   });
 });
 
+describe("EN 50742 A part (CM-13)", () => {
+  const en = (extra: Partial<DocCompliance> = {}): DocCompliance => ({
+    standardLabel: "EN 50742 A",
+    editionTitle: "prEN 50742:2025 Approach A (draft)",
+    draft: true,
+    cra: false,
+    ccsc2Label: "measures of the machine's environment",
+    levels: false,
+    vectors: [],
+    srsl: {
+      windowOfOpportunity: "limited",
+      safetyFunctions: [
+        { name: "Emergency stop", srsl: 2, interfaces: ["IF-7 WLAN"] },
+        { name: "Guard door", interfaces: [] },
+      ],
+    },
+    rows: [
+      row("EN-7.3.2/295–296", { fr: "information-collection", minSl: null, checklist: ["minimum content"] }),
+      row("EN-7.4.3.2.1/356–360", { fr: "protection-measures", minSl: null, status: "gap", source: undefined, risks: ["R-IF-7-S-1"], countsForComponent: false }),
+    ],
+    ...extra,
+  });
+  const sections = complianceMatrixSections([en()], t);
+  const byTitle = (title: string) => sections.find((s) => s.title === title)!;
+
+  it("no SL table, no CRA view, no gaps against an SL-T; basis with the whole machine and the WoO", () => {
+    expect(sections.map((s) => s.title)).toEqual(["Basis", "SRSL per safety function", "Statement of Applicability", "Open requirements"]);
+    expect(byTitle("Basis").facts).toEqual([
+      ["Edition", "prEN 50742:2025 Approach A (draft) — draft, may change before it is cited"],
+      ["Scope", "the whole machine"],
+      ["Window of opportunity", "limited"],
+    ]);
+  });
+
+  it("SRSL per safety function with the interfaces on its path; unrated as such", () => {
+    expect(byTitle("SRSL per safety function").table!.rows).toEqual([
+      ["Emergency stop", "SRSL2", "IF-7 WLAN"],
+      ["Guard door", "not rated", "—"],
+    ]);
+  });
+
+  it("SoA: the group instead of SL-C from, the risks in the notes; open requirements name the risks", () => {
+    const soa = byTitle("Statement of Applicability").table!;
+    expect(soa.headers).toEqual(["Requirement", "Summary", "Group", "Status", "Source", "Notes"]);
+    expect(soa.rows[0].slice(2, 4)).toEqual(["Information collection (7.3)", "met"]);
+    expect(soa.rows[1][5]).toBe("risks: R-IF-7-S-1");
+    expect(byTitle("Open requirements").table!.rows).toEqual([["EN-7.4.3.2.1/356–360", "gap", "R-IF-7-S-1"]]);
+  });
+
+  it("the intro follows the standards: EN only, IEC 62443 only, both", () => {
+    expect(complianceMatrixIntro(t, [en()])).toMatch(/^The requirements of EN 50742 Approach A/);
+    expect(complianceMatrixIntro(t, [compliance()])).toMatch(/^The requirements of IEC 62443-4-2/);
+    expect(complianceMatrixIntro(t, [compliance(), en()])).toMatch(/^The requirements of each active standard/);
+  });
+
+  it("with an IEC 62443 edition: one chapter, a part per standard", () => {
+    const md = new MarkdownGenerator({ ...project(compliance()), computed: { moscowLabels: new Map(), impactLabels: new Map(), compliance: [compliance(), en()] } }, cfg(), t).generate().content;
+    expect(md.match(/## Requirement Matrix/g)).toHaveLength(1);
+    expect(md).toContain("### EN 50742 A\n");
+    expect(md).toContain("#### SRSL per safety function");
+  });
+});
+
 describe("compliance matrix in the formats", () => {
   it("markdown, AsciiDoc, HTML, StrictDoc and PDF render the chapter", () => {
     const md = new MarkdownGenerator(project(compliance()), cfg(), t).generate().content;
-    expect(md).toContain("## IEC 62443-4-2 Requirement Matrix");
+    expect(md).toContain("## Requirement Matrix");
     expect(md).toContain("| CR 1.2 | CR 1.2 title — CR 1.2 summary | 2 | d, e | gap |  | not met by: DF-1, DF-2, DF-3, DF-4, DF-5 (+2 more) |");
     expect(new AsciidocGenerator(project(compliance()), cfg(), t).generate().content).toContain("Statement of Applicability");
     expect(new HtmlGenerator(project(compliance()), cfg(), t).generate().content).toContain('<section id="compliance-matrix">');
     expect(new StrictdocGenerator(project(compliance()), cfg(), t).generate().content).toContain("TITLE: Statement of Applicability");
     const pdf = JSON.stringify(new PdfMakeConverter(project(compliance()), cfg(), t).createDocumentDefinition().content);
-    expect(pdf).toContain('"text":"IEC 62443-4-2 Requirement Matrix","style":"h1"');
+    expect(pdf).toContain('"text":"Requirement Matrix","style":"h1"');
   });
 
   it("two standards: one chapter, a heading per standard, sections below — in every format (CM-9)", () => {
     const both: Any = { ...project(compliance()), computed: { moscowLabels: new Map(), impactLabels: new Map(), compliance: [compliance(), compliance({ standardLabel: "IEC 62443-4-2:2019", cra: false })] } };
     const md = new MarkdownGenerator(both, cfg(), t).generate().content;
-    expect(md.match(/## IEC 62443-4-2 Requirement Matrix/g)).toHaveLength(1);
+    expect(md.match(/## Requirement Matrix/g)).toHaveLength(1);
     expect(md).toContain("### EN IEC 62443-4-2 (CRA)\n");
     expect(md).toContain("### IEC 62443-4-2:2019\n");
     expect(md).toContain("#### Statement of Applicability");

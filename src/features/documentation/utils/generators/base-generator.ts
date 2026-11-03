@@ -1526,7 +1526,7 @@ export abstract class BaseDocumentGenerator {
       return { id: chapterId, title, content: "", hasContent: false };
     }
     const body = sections.map((s) => this.formatReportSection(s)).join("");
-    const content = this.formatSectionedChapter(chapterId, title, complianceMatrixIntro(this.ctx.t), body);
+    const content = this.formatSectionedChapter(chapterId, title, complianceMatrixIntro(this.ctx.t, this.ctx.project.computed.compliance), body);
     return { id: chapterId, title, content, hasContent: content !== "" };
   }
 

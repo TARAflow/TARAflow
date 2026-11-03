@@ -120,9 +120,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Cybersecurity Goals and Claims",
     de: "Cybersecurity Goals und Claims",
   },
+  // One chapter for every active standard (CM-9) — IEC 62443-4-2 and EN 50742 A (CM-13).
   "compliance-matrix": {
-    en: "IEC 62443-4-2 Requirement Matrix",
-    de: "IEC 62443-4-2 Anforderungsmatrix",
+    en: "Requirement Matrix",
+    de: "Anforderungsmatrix",
   },
   "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
   appendix: { en: "Appendix", de: "Anhang" },
@@ -302,6 +303,7 @@ export interface DocComplianceVector {
 /** One row of the Statement of Applicability, names already resolved. */
 export interface DocComplianceRow {
   label: string;
+  /** The row's group: FR for IEC 62443-4-2, the group id for EN 50742 A. */
   fr: string;
   minSl: number | null;
   /** CRA Annex I Part I letters (CRA edition). */
@@ -324,6 +326,15 @@ export interface DocComplianceRow {
   countsForComponent: boolean;
   /** Catalog mitigations naming the row's requirements — for gaps. */
   suggestions: string[];
+  /** EN 50742 A: risks (labels) that fail the row or are not rated yet. */
+  risks?: string[];
+}
+
+/** EN 50742 A (CM-13): the SRSL the risks give per safety function (coverage §9.3). */
+export interface DocSrslSummary {
+  /** WoO id (project-global, Overview); absent = not set. */
+  windowOfOpportunity?: string;
+  safetyFunctions: { name: string; srsl?: number; interfaces: string[] }[];
 }
 
 export interface DocCompliance {
@@ -337,7 +348,15 @@ export interface DocCompliance {
   /** Display name of the component; absent = the whole model (D-7). */
   component?: string;
   deviceCategories?: { categories: string[]; confirmed: boolean };
+  /**
+   * The standard has security levels (IEC 62443-4-2): SL table, "SL-C from"
+   * and the gaps against the SL-T. False for EN 50742 A — groups, the SRSL
+   * per safety function and the open requirements instead (CM-13).
+   */
+  levels: boolean;
   vectors: DocComplianceVector[];
+  /** EN 50742 A: SRSL per safety function, WoO. */
+  srsl?: DocSrslSummary;
   rows: DocComplianceRow[];
 }
 

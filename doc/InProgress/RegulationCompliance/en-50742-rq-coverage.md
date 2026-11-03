@@ -1,6 +1,6 @@
 # TARAflow — prEN 50742 requirement coverage
 
-**Status:** v0.2 · 2026-11-03 · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
+**Status:** v0.3 · 2026-11-03 · v0.3: CT-A rows evaluate (CM-12, CM-12b) and are in the report (CM-13) — §4, §5, §7 rows with a CT-A row set to met / tracked with test references · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
 (CLC/TC 44X), licensed copy · code base: `main` 3570655c (CM-2) · v0.1: rows of Approach A
 mapped to the Compliance sub-tab `en-50742-a` (§9, user 2026-11-02); Approach B deferred
 **Belongs to:** `en-50742-approach-a-design.md` (Approach A) and the Compliance sub-tab
@@ -86,11 +86,11 @@ sets `likelihoodFactorIds: ["exposure_level", "attacker_capability"]`.
 |---|---|---|---|---|---|---|---|
 | EN-4.1/198 | Apply either Approach A (Cl. 5 + 7) or B (Cl. 6 + 8) | – | method | [N] | **met?** — exclusive presets `en-50742-a` / `en-50742-b`, tag-driven | P1 | `regulation-preset.ts` / to add |
 | EN-4.2/200 | Design and construction shall not allow hazardous situations via connections | – | method | [N] | **partial** — goal of the whole TARA, no single check | – | – |
-| EN-4.3/217 | After the EN ISO 12100 risk assessment, perform a threat assessment where hazards can be caused via corruption | 1.1.9, 1.2.1a | method | [N] | **partial** — hazard layer + threat generation; hazard import gaps (HI-1, HI-2) | P1 + hazard import + CT-A | `features/hazards`, `features/threats` |
-| EN-4.3/220 | Define the security context of the machine | 1.1.9, 1.2.1a | method | [N] | **partial** — WoO in Overview depends on it; no explicit security-context section | P3 (WoO done) + system definition + CT-A | `project.info` WoO |
-| EN-4.3/221–229 | Principles: a) eliminate vulnerabilities, b) else mitigate, c) remaining ones in the information for use | 1.1.9, 1.2.1a | method | [N] | **partial** — treatment options exist; no rule "remaining → information for use" | P4 / P5 + CT-A | `RISK_TREATMENTS` |
+| EN-4.3/217 | After the EN ISO 12100 risk assessment, perform a threat assessment where hazards can be caused via corruption | 1.1.9, 1.2.1a | method | [N] | **met** — CT-A project check `hazards-linked` (hazards imported and linked, every safety function has risks), in the report part (CM-12, CM-13) | P1 + hazard import + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-4.3/220 | Define the security context of the machine | 1.1.9, 1.2.1a | method | [N] | **met** — CT-A check `system-definition` (WoO, item definition boundary / environment) + checklist (intended use, misuse, user groups, connections) | P3 (WoO done) + system definition + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-4.3/221–229 | Principles: a) eliminate vulnerabilities, b) else mitigate, c) remaining ones in the information for use | 1.1.9, 1.2.1a | method | [N] | **tracked** — c) via CT-A row EN-4.3/229 (remaining requirements named per risk, statement) | P4 / P5 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-4.3/235 | Threat assessment shall be performed (connected machinery) | 1.1.9, 1.2.1a | method | [N] | see EN-4.3/217 | – | – |
-| EN-4.3/238 | Countermeasures shall not negatively affect functional safety | 1.1.9, 1.2.1a | method | [N] | **gap** — no field / check | P4 + CT-A | – |
+| EN-4.3/238 | Countermeasures shall not negatively affect functional safety | 1.1.9, 1.2.1a | method | [N] | **tracked** — CT-A statement row (with 7.2.1/272), in the report; a field per mandated control stays open (O11) | P4 + CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-4.3/242 | Likelihood of being a target not relevant | 1.1.9, 1.2.1a | method | [N] | **met?** — F4 | P3 | preset `likelihoodFactorIds` / to add |
 | EN-4.3/244, 247 | Choice of approach (A without, B with EN IEC 62443) | – | method | [N] | see EN-4.1/198 | – | – |
 
@@ -100,7 +100,7 @@ sets `likelihoodFactorIds: ["exposure_level", "attacker_capability"]`.
 
 | ID | Requirement | ZZ | Role | Marker | Status | Plan | Code / Test |
 |---|---|---|---|---|---|---|---|
-| EN-7.1/260 | Identify all accessible interfaces that can affect safety and protect them (countermeasures or compensating) | 1.1.9, 1.2.1a | method | [N] | **partial** — interfaces as assets, EL derived from trust-boundary crossing | P2 + CT-A | `en50742-exposure-level-adapter.test.ts` |
+| EN-7.1/260 | Identify all accessible interfaces that can affect safety and protect them (countermeasures or compensating) | 1.1.9, 1.2.1a | method | [N] | **met** — CT-A check `interfaces-assessed` on the derived paths to the safety functions (CM-12b) | P2 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts`, `safety-function-paths.test.ts` |
 
 ### 7.2 Security measures
 
@@ -108,42 +108,42 @@ sets `likelihoodFactorIds: ["exposure_level", "attacker_capability"]`.
 |---|---|---|---|---|---|---|---|
 | EN-7.2.1/268 | Select security measures risk-based so that they are adequate | 1.1.9, 1.2.1a | method | [N] | **partial** — SRSL-driven mandated controls + free mitigations | P4 | `en50742-mandated-controls.test.ts` |
 | EN-7.2.1/270 | Risk-based approach considers safety risks and threat risks, intended use and security context | 1.1.9, 1.2.1a | method | [N] | **partial** | P3/P4 | – |
-| EN-7.2.1/272 | Security measures shall not negatively affect functional safety | 1.1.9, 1.2.1a | method | [N] | **gap** (see EN-4.3/238) | P4 + CT-A | – |
+| EN-7.2.1/272 | Security measures shall not negatively affect functional safety | 1.1.9, 1.2.1a | method | [N] | **tracked** — see EN-4.3/238 | P4 + CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-7.2.2/… | Cryptography (state of the art; references in the bibliography) | – | track | [N]? | **gap** — check whether 7.2.2 contains "shall" (none extracted) | – | – |
 
 ### 7.3 Information collection (logging)
 
 | ID | Requirement | ZZ | Role | Marker | Status | Plan | Code / Test |
 |---|---|---|---|---|---|---|---|
-| EN-7.3.1/281 | Types of interventions to be considered (list a–e) | – | track | [N] | **partial** — baseline, no evaluation yet (design §6) | CT-A | – |
-| EN-7.3.2/295–296 | Record interventions that change software or data; minimum content | 1.1.9, 1.2.1f | track | [N] | **partial** — baseline, no evaluation yet | CT-A | – |
-| EN-7.3.3/304–311 | Means for traceability; readable/accessible evidence; documentation how to access; automatic collection | 1.1.9, 1.2.1f | track | [N] | **partial** — baseline, no evaluation yet | CT-A | – |
-| EN-7.3.4/317–319 | Storage: last intervention of each type; ≥ 5 years; from putting into service | 1.1.9, 1.2.1f | track | [N] | **partial** — baseline, no evaluation yet | CT-A | – |
-| EN-7.3.5/321–322 | Logs protected against tampering; deletion only by authorised procedure | – | track | [N] | **partial** — baseline, no evaluation yet | CT-A | – |
+| EN-7.3.1/281 | Types of interventions to be considered (list a–e) | – | track | [N] | **tracked** — CT-A statement row | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.3.2/295–296 | Record interventions that change software or data; minimum content | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A model row (logging element) + checklist | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.3.3/304–311 | Means for traceability; readable/accessible evidence; documentation how to access; automatic collection | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A model row + checklist (readable, documented access, automatic) | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.3.4/317–319 | Storage: last intervention of each type; ≥ 5 years; from putting into service | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A statement row (B with the audit cluster F-11 … F-14) | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.3.5/321–322 | Logs protected against tampering; deletion only by authorised procedure | – | track | [N] | **tracked** — CT-A model row (audit log stores integrity protected) + checklist | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 
 ### 7.4 Protection measures against corruption
 
 | ID | Requirement | ZZ | Role | Marker | Status | Plan | Code / Test |
 |---|---|---|---|---|---|---|---|
-| EN-7.4.2/334 | Determine and document an SRSL for each safety function | 1.1.9, 1.2.1a | method | [N] | **met?** — `calculatedSrsl` per risk; per (safety function × interface) | P4 + CT-A | `en50742-risk-calculation.test.ts` |
+| EN-7.4.2/334 | Determine and document an SRSL for each safety function | 1.1.9, 1.2.1a | method | [N] | **met** — `calculatedSrsl` per risk; CT-A check `srsl-complete` per safety function, SRSL per safety function in tab and report | P4 + CT-A | `en50742-risk-calculation.test.ts`, `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-7.4.2/335 | SRSL based on the threat assessment; correlates with risk reduction of the measure and likelihood of exploitation | 1.1.9, 1.2.1a | method | [N] (method [K], F1) | **partial** — Annex B method implemented; classification as [K] missing (F1) | P3/P4 | `en50742-approach-a-core.test.ts` |
 | EN-7.4.2/342 | Select the measures associated with the SRSL | 1.1.9, 1.2.1a | method | [N] | **partial** — mandated controls in the picker | P4 | `en50742-mandated-controls.test.ts` |
-| EN-7.4.2/344 | Table 2: SRSL0 only for a completely isolated safety system; SRSL1–3 per attack potential (and reversibility) | 1.1.9, 1.2.1a | method | [N] | **gap** — F2 conflict B.6 ↔ Table 2 unchecked | P4 (validator) + CT-A | – |
-| EN-7.4.3.1/347–349 | Meet at least the protection requirements of the determined SRSL; they apply to the safety function and its interfaces | 1.1.9, 1.2.1a | track | [N] | **partial** — `EN50742_SRSL_PROFILE` | P4 + CT-A | `en50742-mandated-controls.test.ts` |
-| EN-7.4.3.2.1/356–360 | Authentication (SRSL1/2: entities authenticated; SRSL3: uniquely) | 1.1.9, 1.2.1a | track | [N] | **tracked?** — in profile | P4 + CT-A | check |
-| EN-7.4.3.3.1/370–374 | Authorization enforcement (SRSL3: specific privileges, e.g. RBAC) | 1.1.9, 1.2.1a | track | [N] | **tracked?** | P4 + CT-A | check |
-| EN-7.4.3.4.1/380–386 | Software and information integrity (SRSL3: cryptographic, at startup and …) | 1.1.9, 1.2.1a | track | [N] | **tracked?** | P4 + CT-A | check |
-| EN-7.4.3.4.2/392–396 | Boot process integrity (SRSL3: secure boot) | 1.1.9, 1.2.1a | track | [N] | **tracked?** | P4 + CT-A | check |
-| EN-7.4.3.4.3/402–406 | Information exchange integrity (SRSL3: secure cryptographic protocols) | 1.1.9, 1.2.1a | track | [N] | **tracked?** | P4 + CT-A | check |
-| EN-7.4.3.4.4/412–421 | Input data validation; reject invalid input (graded rigour) | 1.1.9, 1.2.1a | track | [N] | **tracked?** | P4 + CT-A | check |
-| EN-7.4.3.4.5/426–430 | Physical tampering detected | 1.1.9, 1.2.1a | track | [N] | **tracked?** | P4 + CT-A | check |
-| EN-7.4.3.5.1/438–441 | Authenticity of SRESW/SRASW and critical configuration data | 1.1.9, 1.2.1a | track | [N] | **tracked?** | P4 + CT-A | check |
+| EN-7.4.2/344 | Table 2: SRSL0 only for a completely isolated safety system; SRSL1–3 per attack potential (and reversibility) | 1.1.9, 1.2.1a | method | [N] | **met** — CT-A check `srsl-consistent` (SRSL0 on an interface above EL0 → gap, F2) | P4 (validator) + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.1/347–349 | Meet at least the protection requirements of the determined SRSL; they apply to the safety function and its interfaces | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A summary row `all-mandated` | P4 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.2.1/356–360 | Authentication (SRSL1/2: entities authenticated; SRSL3: uniquely) | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A risk row: mandated control done per risk (planned run: chosen) | P4 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.3.1/370–374 | Authorization enforcement (SRSL3: specific privileges, e.g. RBAC) | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A risk row | P4 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.4.1/380–386 | Software and information integrity (SRSL3: cryptographic, at startup and …) | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A risk row (Interface × T: one integrity control suffices) | P4 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.4.2/392–396 | Boot process integrity (SRSL3: secure boot) | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A risk row | P4 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.4.3/402–406 | Information exchange integrity (SRSL3: secure cryptographic protocols) | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A risk row (DataFlow × T) | P4 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.4.4/412–421 | Input data validation; reject invalid input (graded rigour) | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A risk row | P4 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.4.5/426–430 | Physical tampering detected | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A risk row | P4 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.4.3.5.1/438–441 | Authenticity of SRESW/SRASW and critical configuration data | 1.1.9, 1.2.1a | track | [N] | **tracked** — CT-A model row from SRSL 2 (update / code signing, firmware / safety parameter stores signed) + checklist | P4 + CT-A | `evaluate-matrix.en50742.test.ts`, `en50742-a.golden.test.ts` |
 
 ### 7.5 Identification of software versions and configuration
 
 | ID | Requirement | ZZ | Role | Marker | Status | Plan | Code / Test |
 |---|---|---|---|---|---|---|---|
-| EN-7.5/444–445 | Software versions and configuration relevant for protection available on demand, human-readable | 1.1.9, 1.2.1f | track | [N] | **partial** — baseline, no evaluation yet | CT-A | – |
+| EN-7.5/444–445 | Software versions and configuration relevant for protection available on demand, human-readable | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A statement row (B once a version-reporting field exists, O9) | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 
 ## 6. Clauses 6 and 8 — Approach B
 
@@ -163,8 +163,8 @@ nothing of §9 depends on them.
 
 | ID | Requirement | ZZ | Role | Marker | Status | Plan | Code / Test |
 |---|---|---|---|---|---|---|---|
-| EN-9/491–496 | Information for use includes: security context, software identification, how to access intervention evidence, permission/prohibition of modifications … | 1.1.9 | doc | [N] | **gap** — no report chapter "input for the information for use" | P5 + CT-A | – |
-| EN-4.3/229 (link) | Remaining vulnerabilities documented in the information for use | 1.1.9, 1.2.1a | doc | [N] | **gap** — retained risks not exported as such | P5 + CT-A | – |
+| EN-9/491–496 | Information for use includes: security context, software identification, how to access intervention evidence, permission/prohibition of modifications … | 1.1.9 | doc | [N] | **tracked** — CT-A statement row; the report part lists the open rows (CM-13) | P5 + CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-4.3/229 (link) | Remaining vulnerabilities documented in the information for use | 1.1.9, 1.2.1a | doc | [N] | **tracked** — CT-A row EN-4.3/229: risks with a remaining requirement named, statement | P5 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts` |
 
 ## 8. Informative parts used by TARAflow ([K])
 

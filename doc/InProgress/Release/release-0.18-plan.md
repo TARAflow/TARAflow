@@ -1,6 +1,6 @@
 # TARAflow 0.18.0-beta — release plan
 
-**Status:** v3 · 2026-11-03 · MS-1, CM-11, CM-12 done · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
+**Status:** v3 · 2026-11-03 · MS-1, CM-11 … CM-13 done · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
 exposure level), schema **13** on `feature/0.18-model-coverage`
 **Work split (user 2026-11-02):** instance **A** — the compliance strand (S1); instance
 **B** — issue trackers, maintainability and fixes (S2 – S4), Azure DevOps first. The user
@@ -58,7 +58,7 @@ B: IT-8 ADO ─ IT-7, IT-9 … IT-12 (independent)
 | CM-1 … CM-10 | model coverage stage 1: standard registry, sub-tabs, schema 13 per family, visibility predicates, fields F-1 … F-29 (without F-28, dropped), Security sub-tabs, CR 1.11 on the verifier, report part per standard, validation | **done** (patches 01 – 20) |
 | CM-11 | EN 50742 A module: registry entry, groups, rows of coverage §9.2, header `srsl` (model coverage plan §8.1) | **done** (patch 23): 23 rows, rules, EN / DE texts; one rule / text lookup for every family; tag aliases via the normaliser; whole-machine scope; tab without SL parts; 7.3 rows from the model, R / P rows need a statement until CM-12; report part with CM-13 |
 | CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View`, model rules 7.3 / 7.4.3.5.1, golden tests on an own example | **done** (patch 24): view built in the app layer, risk checks per clause (done / planned), project checks (hazards, WoO, system definition, interfaces, SRSL), `minSrsl` for 7.4.3.5.1, SRSL header per safety function, risks in notes and to-do; golden on the SmokeDetector with the tag set in the test; CM-12b (patch 25): interfaces on a path to a safety function derived from the asset's DFD elements backwards along the flows (one-way boundaries end it) |
-| CM-13 | EN 50742 A report part (CM-9 structure), coverage rows → tracked | open |
+| CM-13 | EN 50742 A report part (CM-9 structure), coverage rows → tracked | **done** (patch 26): own part without levels (basis, SRSL per safety function, SoA with groups and risks, open requirements); chapter renamed "Requirement Matrix"; coverage v0.3 with test references |
 | IEC-6 | claims as evidence for SL-C gaps (D-5) | open |
 | IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | open |
 | D-30c | per-element fields on a black-box Multiprocess (D-30 option c) | open |

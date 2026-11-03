@@ -82,6 +82,23 @@ describe("buildDocCompliance", () => {
     expect(parts.map((p) => p.rows.length)).toEqual([97, 125]);
   });
 
+  it("EN 50742 A (CM-13): its own part without levels — groups, SRSL per safety function with the path interfaces by name", () => {
+    const parts = buildDocCompliance(smokeDetector(["IEC 62443", "EN 50742 A"]))!;
+    expect(parts.map((p) => [p.standardLabel, p.levels])).toEqual([
+      ["IEC 62443-4-2:2019", true],
+      ["EN 50742 A", false],
+    ]);
+    const en = parts[1];
+    expect(en.rows).toHaveLength(23);
+    expect(en.vectors).toEqual([]);
+    expect(en.component).toBeUndefined();
+    expect(en.rows[0].fr).toBe("threat-assessment");
+    expect(en.rows.every((r) => r.suggestions.length === 0)).toBe(true);
+    const smoke = en.srsl!.safetyFunctions.find((s) => s.name === "smoke meas data")!;
+    expect(smoke.srsl).toBeUndefined(); // the fixture's risks carry no SRSL
+    expect(smoke.interfaces.some((n) => n.startsWith("IF-7"))).toBe(true);
+  });
+
   it("classic edition: device rows wait for a confirmed category (K-C1)", () => {
     const [doc] = buildDocCompliance(smokeDetector(["IEC 62443"]))!;
     expect(doc.cra).toBe(false);
