@@ -1752,6 +1752,24 @@
               },
               "warning": "Unverschlüsselter Flow überquert Trust Boundary → Risiko Informationspreisgabe"
             },
+            "accessMode": {
+              "label": "Zugriffsart",
+              "help": "Lesen / Schreiben: der Empfänger nimmt Schreibbefehle an — Manipulationsbedrohungen bei Feldprotokollen. Nur lesend schliesst sie aus.",
+              "options": {
+                "read_only": "Nur lesend",
+                "read_write": "Lesen / Schreiben",
+                "write_only": "Nur schreibend"
+              }
+            },
+            "dataMinimization": {
+              "label": "Datenminimierung",
+              "help": "Nur die Daten, die der Empfänger braucht, verlassen das System (CRA Anhang I (2)(g), DSGVO Datenminimierung).",
+              "options": {
+                "none": "Keine — alle Datenpunkte offen",
+                "filtered": "Gefiltert (Allowlist)",
+                "aggregated_only": "Nur aggregiert / anonymisiert"
+              }
+            },
             "endpointAuthentication": {
               "label": "Endpunkt-Authentifizierung",
               "options": {

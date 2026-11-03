@@ -1747,6 +1747,24 @@
               },
               "warning": "Unencrypted flow crosses trust boundary → Information Disclosure risk"
             },
+            "accessMode": {
+              "label": "Access Mode",
+              "help": "Read / write: the receiver accepts write commands — tampering threats for field protocols. Read only rules them out.",
+              "options": {
+                "read_only": "Read only",
+                "read_write": "Read / write",
+                "write_only": "Write only"
+              }
+            },
+            "dataMinimization": {
+              "label": "Data Minimisation",
+              "help": "Only the data the receiver needs leaves the system (CRA Annex I (2)(g), GDPR data minimisation).",
+              "options": {
+                "none": "None — all data points exposed",
+                "filtered": "Filtered (allowlist)",
+                "aggregated_only": "Aggregated / anonymised only"
+              }
+            },
             "endpointAuthentication": {
               "label": "Endpoint Authentication",
               "options": {
