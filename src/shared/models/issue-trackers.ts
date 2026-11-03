@@ -34,6 +34,12 @@ export interface IssueTrackerDescriptor {
   label: string;
   /** Selectable in this release; the others are listed as coming. */
   available: boolean;
+  /**
+   * Built and tested against recorded answers, not yet against a real
+   * instance (user 2026-11-03) — the form marks it "preview" until a real run
+   * confirmed it.
+   */
+  preview?: boolean;
   availableFrom: string;
   hostLabel: string;
   /** Prefilled host, e.g. https://api.github.com. */
@@ -62,8 +68,8 @@ export const ISSUE_TRACKERS: readonly IssueTrackerDescriptor[] = [
     secretLabel: "API token",
     auth: "basic-user-token",
   },
-  { id: "jira-server", label: "Jira Server / Data Center", available: false, availableFrom: "0.17", hostLabel: "Jira URL", secretLabel: "Personal access token", auth: "bearer" },
-  { id: "azure-devops", label: "Azure DevOps", available: true, availableFrom: "0.18", hostLabel: "Organization URL", defaultHost: "https://dev.azure.com/", secretLabel: "Personal access token", auth: "basic-empty-user", accountFromUrl: "azure-organization" },
+  { id: "jira-server", label: "Jira Server / Data Center", available: true, preview: true, availableFrom: "0.18", hostLabel: "Jira URL", secretLabel: "Personal access token", auth: "bearer" },
+  { id: "azure-devops", label: "Azure DevOps", available: true, preview: true, availableFrom: "0.18", hostLabel: "Organization URL", defaultHost: "https://dev.azure.com/", secretLabel: "Personal access token", auth: "basic-empty-user", accountFromUrl: "azure-organization" },
   { id: "github", label: "GitHub Issues", available: false, availableFrom: "0.17", hostLabel: "API URL", defaultHost: "https://api.github.com", secretLabel: "Personal access token", auth: "bearer" },
   { id: "gitlab", label: "GitLab Issues", available: false, availableFrom: "0.17", hostLabel: "GitLab URL", defaultHost: "https://gitlab.com", secretLabel: "Personal access token", auth: "private-token" },
   { id: "polarion", label: "Polarion", available: false, availableFrom: "0.17", hostLabel: "Polarion URL", secretLabel: "Personal access token", auth: "bearer" },

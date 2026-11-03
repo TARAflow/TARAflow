@@ -27,6 +27,8 @@ export function adapterFor(ref: TrackerRef): TicketAdapter | null {
   switch (ref.tool) {
     case "jira":
       return new JiraAdapter(ref);
+    case "jira-server":
+      return new JiraAdapter(ref, "server");
     case "azure-devops":
       return new AzureDevOpsAdapter(ref);
     default:

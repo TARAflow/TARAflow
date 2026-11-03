@@ -1,5 +1,5 @@
-// ==================== JIRA CLOUD ADAPTER ====================
-// Jira Cloud on the host-bound channel (adapters design IT-2): replaces
+// ==================== JIRA ADAPTER (CLOUD, SERVER / DATA CENTER) ====================
+// Jira on the host-bound channel (adapters design IT-2): replaces
 // integration/services/jira-service.ts (connection test, projects) and — from
 // IT-3 — risks/services/jira-mitigation-service.ts (tickets). No token here:
 // the main process adds it (Basic e-mail:token, issue-trackers.ts).
@@ -11,6 +11,12 @@
 //   when the resolution says won't fix / won't do / declined / duplicate /
 //   rejected / cannot reproduce / invalid / obsolete.
 // JQL values are escaped; ticket keys must look like Jira keys.
+//
+// One adapter, two flavours (user 2026-11-03: one adapter per tracker, no
+// duplicated code): Jira Cloud speaks REST v3 (ADF descriptions, search/jql,
+// the sprint field customfield_10020); Jira Server / Data Center REST v2
+// (wiki-markup descriptions, /search, no fixed sprint field) with a
+// personal access token (Bearer).
 
 import {
   ticketStatusOf,
@@ -62,26 +68,39 @@ export const atlassianDoc = (text: string) => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Json = any;
 
+export type JiraFlavor = "cloud" | "server";
+
 export class JiraAdapter implements TicketAdapter {
-  constructor(readonly ref: TrackerRef) {}
+  constructor(
+    readonly ref: TrackerRef,
+    private readonly flavor: JiraFlavor = "cloud",
+  ) {}
+
+  private get api(): string {
+    return this.flavor === "cloud" ? "/rest/api/3" : "/rest/api/2";
+  }
+
+  private get search(): string {
+    return this.flavor === "cloud" ? "/rest/api/3/search/jql" : "/rest/api/2/search";
+  }
 
   ticketUrl(key: string): string {
     return `${this.ref.host}/browse/${encodeURIComponent(key)}`;
   }
 
   async testConnection(): Promise<ConnectionTestOutcome> {
-    const me = await trackerRequest<Json>(this.ref, "GET", "/rest/api/3/myself");
+    const me = await trackerRequest<Json>(this.ref, "GET", `${this.api}/myself`);
     if (!me.ok) {
       return {
         success: false,
         projects: [],
-        message: connectionFailure(me, "check e-mail and API token"),
+        message: connectionFailure(me, this.flavor === "cloud" ? "check e-mail and API token" : "check the personal access token"),
       };
     }
     const projects = await trackerRequest<Json[]>(
       this.ref,
       "GET",
-      "/rest/api/3/project?expand=insight,description,lead,issueTypes",
+      `${this.api}/project?expand=${this.flavor === "cloud" ? "insight," : ""}description,lead,issueTypes`,
     );
     if (!projects.ok) return { success: false, projects: [], message: `Projects could not be loaded (${projects.status}).` };
     const list: TrackerProject[] = (projects.data ?? []).map((p: Json) => ({
@@ -102,7 +121,7 @@ export class JiraAdapter implements TicketAdapter {
     return {
       success: true,
       projects: list,
-      accountId: me.data?.accountId,
+      ...(me.data?.accountId ? { accountId: me.data.accountId } : {}),
       message: `Connected as ${me.data?.displayName ?? this.ref.account} — ${list.length} project(s).`,
     };
   }
@@ -110,12 +129,12 @@ export class JiraAdapter implements TicketAdapter {
   async fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]> {
     const typeClause = issueType && issueType !== "__all__" ? ` AND issuetype = ${jqlString(issueType)}` : "";
     const jql = `project = ${jqlString(projectKey)}${typeClause} AND statusCategory != Done ORDER BY updated DESC`;
-    // customfield_10020 = sprint on Jira Cloud
-    const fields = "summary,status,resolution,issuetype,assignee,priority,customfield_10020";
+    // customfield_10020 = sprint on Jira Cloud; on Server / DC the field id varies — left out.
+    const fields = `summary,status,resolution,issuetype,assignee,priority${this.flavor === "cloud" ? ",customfield_10020" : ""}`;
     const res = await trackerRequest<Json>(
       this.ref,
       "GET",
-      `/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=${fields}&maxResults=50`,
+      `${this.search}?jql=${encodeURIComponent(jql)}&fields=${fields}&maxResults=50`,
     );
     if (!res.ok) return [];
     return (res.data?.issues ?? []).map((issue: Json) => {
@@ -146,11 +165,12 @@ export class JiraAdapter implements TicketAdapter {
       project: { key: input.projectKey },
       summary: input.summary,
       issuetype: { name: input.issueType },
-      description: atlassianDoc(input.description),
+      // Cloud: Atlassian Document Format; Server / DC: wiki markup (plain lines).
+      description: this.flavor === "cloud" ? atlassianDoc(input.description) : input.description,
       ...(input.priority ? { priority: { name: input.priority } } : {}),
       ...(input.labels?.length ? { labels: input.labels } : {}),
     };
-    const res = await trackerRequest<Json>(this.ref, "POST", "/rest/api/3/issue", { fields });
+    const res = await trackerRequest<Json>(this.ref, "POST", `${this.api}/issue`, { fields });
     if (!res.ok) {
       const errors = res.data?.errors
         ? Object.entries(res.data.errors)
@@ -171,7 +191,7 @@ export class JiraAdapter implements TicketAdapter {
       const res = await trackerRequest<Json>(
         this.ref,
         "GET",
-        `/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=status,resolution&maxResults=${BATCH}`,
+        `${this.search}?jql=${encodeURIComponent(jql)}&fields=status,resolution&maxResults=${BATCH}`,
       );
       if (res.ok) {
         for (const issue of res.data?.issues ?? []) this.addState(states, issue);
@@ -181,7 +201,7 @@ export class JiraAdapter implements TicketAdapter {
           const one = await trackerRequest<Json>(
             this.ref,
             "GET",
-            `/rest/api/3/issue/${encodeURIComponent(key)}?fields=status,resolution`,
+            `${this.api}/issue/${encodeURIComponent(key)}?fields=status,resolution`,
           );
           if (one.ok) this.addState(states, one.data);
         }

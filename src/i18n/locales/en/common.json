@@ -949,6 +949,7 @@
     "connected": "Connected to {{tracker}} — project {{project}} ({{host}}, {{account}})",
     "tracker": "Tracker",
     "from": "from {{version}}",
+    "preview": "preview",
     "secretHelp": "Stored in the OS keychain for this address only.",
     "test": "Test connection",
     "disconnect": "Disconnect",

@@ -34,8 +34,8 @@ const okFetch = () =>
 const keychain = (entries: Record<string, string>) => async (key: string) => entries[key] ?? null;
 
 describe("tracker descriptions", () => {
-  it("one per tracker, Jira Cloud (0.16) and Azure DevOps (0.18) available, every scheme known", () => {
-    expect(ISSUE_TRACKERS.filter((t) => t.available).map((t) => t.id)).toEqual(["jira", "azure-devops"]);
+  it("one per tracker, the built ones available (Polarion later), every scheme known", () => {
+    expect(ISSUE_TRACKERS.filter((t) => t.available).map((t) => t.id)).toEqual(["jira", "jira-server", "azure-devops"]);
     for (const t of ISSUE_TRACKERS) expect(Object.keys(authHeaders(t.auth, "u", "t")).length).toBe(1);
   });
 

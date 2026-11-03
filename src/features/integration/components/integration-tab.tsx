@@ -165,6 +165,7 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
             {ISSUE_TRACKERS.map((tr) => (
               <MenuItem key={tr.id} value={tr.id} disabled={!tr.available}>
                 {tr.label}
+                {tr.available && tr.preview && ` — ${t("integration.preview", { defaultValue: "preview" })}`}
                 {!tr.available &&
                   ` — ${t("integration.from", { defaultValue: "from {{version}}", version: tr.availableFrom })}`}
               </MenuItem>
