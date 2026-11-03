@@ -1,6 +1,6 @@
 # Issue-tracker integration — adapters, secure channel, ticket sync
 
-**Status:** v2 · 2026-10-30 · IT-1 … IT-5 done (§5) · branch `feature/iso21434-item-definition`,
+**Status:** v3 · 2026-11-03 · IT-1 … IT-6, IT-8 (Azure DevOps) done (§5) · branch `feature/iso21434-item-definition`,
 release 0.16.0-beta (Jira); further trackers 0.17
 **Replaces:** `doc/Open/Integration/HANDOVER_Integration_Adapter_v1.md` (removed — it
 predates the OAuth services, the 0.15.2 token fix and the security findings below, and
@@ -164,5 +164,7 @@ new form; the per-tracker tabs and forms (`jira-config.tsx`, `ado-config.tsx`) g
 | IT-4/5 | Merged (user 2026-10-30): what IT-4 planned came with IT-3 (ticket links on the adapter URL, rejected-by-ticket rationale). Integration test over the whole chain (`src/tests/integration/integration/issue-tracker-chain.int.test.ts`): connection test → token in the keychain bound to its reference, none in the project → stored connection → adapter → main-process request (token added, host enforced) → ticket states → mitigation status; a crafted host gets no token and sends nothing. CHANGELOG / release note with the 0.16.0 release patch (users run the connection test once after the update) | 206 | done |
 | IT-6 | Review 2026-10-30, i18n: the form labels come from i18n (`integration.host.<id>`, `integration.user.<kind>`, `integration.secret.<id>`; the descriptions keep the English defaults, `tracker-labels.ts`); the connection test's own errors carry a code (`integration.error.<code>`, the English message stays for other callers); the project cards' issue count; a ticket closed without fix stores its reason as data — `rejectedByTicket: { key, resolution }` instead of an English sentence in `rejectionReason`, rendered in the UI language, counted as the reason, dropped when the ticket moves on (hash and merge treat it with the ticket fields). Ticket texts sent to the tracker stay English (older, separate step) | 215 | done |
 
-0.17: ADO (WIQL, JSON Patch, `System.State`), GitHub (labels / closed state reason),
-GitLab, Polarion (REST v1), OpenProject; Jira Server / Data Center.
+| IT-8 | **Azure DevOps** (0.18, user 2026-11-03): `AzureDevOpsAdapter` (REST 7.1) — connection test `connectionData` + projects with their work item types; tickets to link by WIQL (escaped, newest first, open ones kept); create by JSON Patch (`application/json-patch+json`, HTML description, tags, numeric priority only); ticket states in one batch of 200 (`errorPolicy=omit`), the state **category** (Proposed / InProgress / Resolved / Completed / Removed, read once per project and type) decides, the reason marks a completed item closed without fix. The organization is the account: `accountFromUrl: "azure-organization"` reads it from `https://dev.azure.com/<org>` or `<org>.visualstudio.com`, so the PAT is bound to host **and** organization; the connection keeps the organization URL. Shared pieces for every adapter in `adapter-support.ts` (without-fix / review words, name fallback, batching, HTML paragraphs, connection failure text) — the Jira adapter uses them too (user: one adapter per tracker, no duplicated code). Tests: `azure-devops-adapter.test.ts`, `issue-tracker-chain-ado.int.test.ts` (another organization or host gets no token) | 34 | done |
+
+Next (0.18 if time allows, else 0.19; order decided R-K2): Jira Server / Data Center, GitHub
+(labels / closed state reason), GitLab, OpenProject, Polarion (REST v1).

@@ -76,7 +76,7 @@ tracker is a user check (listed in TESTPLAN-0.18.md).
 
 | Step | Content | Status |
 |---|---|---|
-| IT-8 | **Azure DevOps first**: organisation URL + PAT (`Basic base64(:pat)`, already in §4.1 of the tracker design), WIQL for the batch of states, JSON Patch for creating work items, `System.State` → `TicketState` (incl. "Removed" / closed without fix → `done_without_fix`); issue types from the process template | open |
+| IT-8 | **Azure DevOps first**: organisation URL + PAT (`Basic base64(:pat)`, already in §4.1 of the tracker design), WIQL for the batch of states, JSON Patch for creating work items, `System.State` → `TicketState` (incl. "Removed" / closed without fix → `done_without_fix`); issue types from the process template | **done** (patch 34): adapter, organization-bound PAT, shared `adapter-support.ts`; real run against an ADO organization in the test plan |
 | IT-7 | Jira Server / Data Center (REST v2, PAT bearer, wiki markup instead of ADF) — reuse the Jira adapter | open |
 | IT-9 | GitHub Issues (labels, closed state reason) | open |
 | IT-10 | GitLab Issues | open |

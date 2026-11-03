@@ -23,9 +23,8 @@ import {
 import type { TrackerProject } from "../models/integration-types";
 import type { ConnectionTestOutcome, TicketAdapter } from "./ticket-adapter";
 import { trackerRequest, type TrackerRef } from "./tracker-channel";
+import { categoryFromName, chunks, connectionFailure, REVIEW, WITHOUT_FIX } from "./adapter-support";
 
-const WITHOUT_FIX = /won'?t|declin|reject|duplicate|cannot|can't|invalid|obsolete|not a bug|incomplete/i;
-const REVIEW = /review|test|qa|verif/i;
 const JIRA_KEY = /^[A-Z][A-Z0-9_]*-[0-9]+$/;
 const BATCH = 100;
 
@@ -44,11 +43,7 @@ export function jiraTicketCategory(
       return resolutionName && WITHOUT_FIX.test(resolutionName) ? "done_without_fix" : "done";
   }
   // No category (unusual): fall back to the name.
-  const name = statusName.toLowerCase();
-  if (/done|closed|resolved|complete/.test(name)) return WITHOUT_FIX.test(name) ? "done_without_fix" : "done";
-  if (REVIEW.test(name)) return "review";
-  if (/progress|doing|active|development|reopen/.test(name)) return "in_progress";
-  return "todo";
+  return categoryFromName(statusName, resolutionName);
 }
 
 /** A value inside a JQL string literal. */
@@ -80,10 +75,7 @@ export class JiraAdapter implements TicketAdapter {
       return {
         success: false,
         projects: [],
-        message:
-          me.status === 401 || me.status === 403
-            ? "Authentication failed — check e-mail and API token."
-            : `Connection failed (${me.status || me.error || "no response"}).`,
+        message: connectionFailure(me, "check e-mail and API token"),
       };
     }
     const projects = await trackerRequest<Json[]>(
@@ -174,8 +166,7 @@ export class JiraAdapter implements TicketAdapter {
   async fetchTicketStates(keys: readonly string[]): Promise<Map<string, TicketState>> {
     const valid = [...new Set(keys.filter((k) => JIRA_KEY.test(k)))];
     const states = new Map<string, TicketState>();
-    for (let i = 0; i < valid.length; i += BATCH) {
-      const chunk = valid.slice(i, i + BATCH);
+    for (const chunk of chunks(valid, BATCH)) {
       const jql = `key in (${chunk.join(",")})`;
       const res = await trackerRequest<Json>(
         this.ref,

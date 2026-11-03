@@ -978,6 +978,7 @@
       "unavailable": "Dieser Tracker ist noch nicht verfügbar.",
       "hostNotHttps": "{{host}} muss eine https-Adresse sein.",
       "userRequired": "{{user}} ist erforderlich.",
+      "organizationRequired": "{{host}} muss die Organisation nennen, z. B. https://dev.azure.com/contoso.",
       "secretRequired": "{{secret}} ist erforderlich.",
       "keychain": "Das Token konnte nicht im Schlüsselbund des Betriebssystems gespeichert werden (Desktop-App erforderlich)."
     },

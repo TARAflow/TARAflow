@@ -107,14 +107,14 @@ describe("Integration tab — the token stays out of the project", () => {
     expect(await screen.findByTestId("integration-retest")).toBeTruthy();
   });
 
-  it("one form for all trackers; only Jira Cloud selectable in 0.16", () => {
+  it("one form for all trackers; Jira Cloud and Azure DevOps selectable", () => {
     render(<IntegrationTab data={{ integration: null }} onUpdate={() => {}} />);
     fireEvent.mouseDown(within(screen.getByTestId("integration-tracker").parentElement!).getByRole("combobox"));
     const options = within(screen.getByRole("listbox")).getAllByRole("option");
     expect(options.map((o) => [o.textContent?.split(" — ")[0], o.getAttribute("aria-disabled") === "true"])).toEqual([
       ["Jira Cloud", false],
       ["Jira Server / Data Center", true],
-      ["Azure DevOps", true],
+      ["Azure DevOps", false],
       ["GitHub Issues", true],
       ["GitLab Issues", true],
       ["Polarion", true],

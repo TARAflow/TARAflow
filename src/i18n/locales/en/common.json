@@ -980,6 +980,7 @@
       "unavailable": "This tracker is not available yet.",
       "hostNotHttps": "{{host}} must be an https address.",
       "userRequired": "{{user}} is required.",
+      "organizationRequired": "{{host}} must name the organization, e.g. https://dev.azure.com/contoso.",
       "secretRequired": "{{secret}} is required.",
       "keychain": "The token could not be stored in the OS keychain (desktop app required)."
     },

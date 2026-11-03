@@ -25,7 +25,7 @@ export interface ConnectInput {
 }
 
 /** Why the test did not start — the UI shows integration.error.<code> (labels in the UI language). */
-export type ConnectFailure = "unavailable" | "hostNotHttps" | "userRequired" | "secretRequired" | "keychain";
+export type ConnectFailure = "unavailable" | "hostNotHttps" | "userRequired" | "organizationRequired" | "secretRequired" | "keychain";
 
 export type ConnectResult =
   | (ConnectionTestOutcome & { ref: TrackerRef; credentials: TrackerCredentials })
@@ -36,6 +36,7 @@ export const CONNECT_FAILURE_TEXT: Record<ConnectFailure, string> = {
   unavailable: "This tracker is not available yet.",
   hostNotHttps: "{{host}} must be an https address.",
   userRequired: "{{user}} is required.",
+  organizationRequired: "{{host}} must name the organization, e.g. https://dev.azure.com/contoso.",
   secretRequired: "{{secret}} is required.",
   keychain: "The token could not be stored in the OS keychain (desktop app required).",
 };
@@ -56,8 +57,8 @@ export async function connectTracker(input: ConnectInput): Promise<ConnectResult
   if (!tracker?.available) return fail("unavailable");
   const host = normalizeTrackerHost(input.host);
   if (!host) return fail("hostNotHttps", tracker);
-  const account = trackerAccount(tracker, input.user);
-  if (!account) return fail("userRequired", tracker);
+  const account = trackerAccount(tracker, input.user, input.host);
+  if (!account) return fail(tracker.accountFromUrl ? "organizationRequired" : "userRequired", tracker);
   if (!input.secret.trim()) return fail("secretRequired", tracker);
 
   const ref: TrackerRef = { tool: tracker.id as IssueTrackerId, host, account };
@@ -74,7 +75,8 @@ export async function connectTracker(input: ConnectInput): Promise<ConnectResult
     ref,
     credentials: {
       authMethod: "pat",
-      baseUrl: host,
+      // Azure DevOps keeps the organization URL — the account is read from it.
+      baseUrl: tracker.accountFromUrl ? `${host}${host.endsWith("dev.azure.com") ? `/${account}` : ""}` : host,
       ...(tracker.userField ? { email: account } : {}),
       ...(outcome.accountId ? { accountId: outcome.accountId } : {}),
     },
