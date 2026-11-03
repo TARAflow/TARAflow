@@ -145,6 +145,8 @@ import type { Project } from "../../models/project-types";
 import { syncFromDFD } from "features/assets/services/asset-sync-service";
 
 import { applyRegulationFromTags } from "app/services/regulation-preset-orchestrator";
+import { MatrixRequirementsContext } from "shared/hooks/matrix-requirements";
+import { matrixRequirementOptions } from "app/utils/matrix-requirement-options";
 import { buildGeneralTabPatch } from "app/services/general-tab-update";
 import {
   getRegulationConflicts,
@@ -1140,6 +1142,8 @@ export const WorkspaceLayout: React.FC = () => {
   // prepared only while the tab is open (the analysis view is rebuilt for
   // it), the frame evaluates the selected standard.
   const complianceStandards = useMemo(() => activeStandards(activeProject?.info?.tags), [activeProject?.info?.tags]);
+  // IEC-8b: the 62443 requirements a project mitigation can reference (form in the threat / risk dialogs).
+  const matrixRequirements = useMemo(() => matrixRequirementOptions(complianceStandards), [complianceStandards]);
   const complianceView = useMemo(() => {
     if (!activeProject || complianceStandards.length === 0 || activePhase !== PhaseId.Compliance) return undefined;
     const evaluation = prepareProjectCompliance(activeProject);
@@ -1202,7 +1206,7 @@ export const WorkspaceLayout: React.FC = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <>
+    <MatrixRequirementsContext.Provider value={matrixRequirements}>
       <PhaseTabs
         project={activeProject}
         activePhase={activePhase}
@@ -1575,6 +1579,6 @@ export const WorkspaceLayout: React.FC = () => {
           />
         )}
       </div>
-    </>
+    </MatrixRequirementsContext.Provider>
   );
 }

@@ -226,6 +226,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           ...input,
           description: input.description,
           attackVectors: input.attackVectors,
+          // IEC-8b: an emptied list removes the references; absent (no 62443 edition) keeps them.
+          ...("iec62443" in input ? { iec62443: input.iec62443?.length ? input.iec62443 : undefined } : {}),
         });
         const next = { ...current, configuration: nextConfig };
         threatDataRef.current = next;

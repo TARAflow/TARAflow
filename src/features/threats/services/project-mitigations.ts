@@ -39,6 +39,8 @@ export interface ProjectMitigationInput {
   description?: string;
   attackVectors?: AttackVector[];
   affectsProperties?: MitigationPropertyEffect[];
+  /** IEC 62443-4-2 requirement ids it implements (IEC-8b); absent = keep the stored ones. */
+  iec62443?: string[];
 }
 
 /** Add an entry; returns the configuration and the new id. */
@@ -56,6 +58,7 @@ export function addProjectMitigation(
     affectsProperties: input.affectsProperties ?? [],
     ...(input.description?.trim() ? { description: input.description.trim() } : {}),
     ...(input.attackVectors?.length ? { attackVectors: input.attackVectors } : {}),
+    ...(input.iec62443?.length ? { iec62443: [...new Set(input.iec62443)] } : {}),
   };
   return {
     id,
