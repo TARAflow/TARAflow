@@ -50,7 +50,10 @@ export const hazardValidator = {
       (r) => isEndangers(r) && r.from === item.id,
     );
 
-    if (contributes.length === 0) {
+    // A hazard the analyst ruled out of scope (no path through the system,
+    // e.g. EN 50742: protective measure purely mechanical or organisational)
+    // legitimately has no contributing asset.
+    if (contributes.length === 0 && item.systemRelevance !== "out_of_scope") {
       errors.push(`Hazard "${labelOf(item)}" has no contributes_to input.`);
     }
     if (endangers.length === 0) {
