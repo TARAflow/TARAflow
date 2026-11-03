@@ -112,7 +112,10 @@ describe("Compliance frame", () => {
       windowOfOpportunity: "limited",
       systemDefinition: { boundary: true, environment: false },
       hazards: { total: 1, unlinked: [] },
-      safetyFunctions: [{ id: "sf1", name: "Emergency stop" }, { id: "sf2", name: "Guard door" }],
+      safetyFunctions: [
+        { id: "sf1", name: "Emergency stop", linked: true, interfaces: ["if1"] },
+        { id: "sf2", name: "Guard door", linked: true, interfaces: [] },
+      ],
       interfaces: { exposed: [], unrated: [] },
       risks: [
         {
@@ -131,6 +134,7 @@ describe("Compliance frame", () => {
       ],
     });
     expect(screen.getByTestId("compliance-srsl-sf1").textContent).toContain("SRSL2");
+    expect(screen.getByTestId("compliance-srsl-sf1").textContent).toContain("if1");
     expect(screen.getByTestId("compliance-srsl-sf2").textContent).toContain("not rated");
     expect(screen.getByTestId("compliance-row-EN-7.4.3.2.1/356–360").textContent).toContain("R-IF-1-S-1");
     expect(screen.getByTestId("compliance-todo-risks").textContent).toContain("R-IF-1-S-1");

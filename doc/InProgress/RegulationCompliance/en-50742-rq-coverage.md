@@ -242,11 +242,15 @@ evidence kind differs. Row ids in code: `en-<clause>-<first draft line>`, e.g.
 `en-7.3.2-295`. M rows from the model (CM-11); R and P rows from the En50742View
 (CM-12, `evaluate-en50742.ts`); 7.4.3.5.1 applies once a risk reaches SRSL 2.
 
-**Simplification EN-7.1/260 (CM-12):** the model has no relation "interface on a path to
-safety function X". Every Interface or flow with an EL above EL0 counts as such an
-interface; a risk with SRSL there meets it, a "won't" with justification takes the threat
-out (elimination rationale), anything else is a gap or — EL unset — unknown. A statement
-overrules it where an exposed interface leads to no safety function.
+**Paths to a safety function (EN-7.1/260, CM-12b, user 2026-11-03):** derived, no
+relation to maintain. A safety function is an asset with a physical impact; its DFD
+elements are the asset's `linkedDFDElements`. From them the search runs backwards against
+the flow direction, transitively and without a hop limit, and collects the flows and the
+interfaces they pass (`DataFlowAnalysis.interfaceIds`); it does not cross a trust boundary
+with the control `data_diode` or `unidirectional_gateway`. Each interface or flow on such
+a path with an EL above EL0 needs a risk with SRSL there, or the threat excluded with a
+justification ("won't"); an Interface without EL is unknown, a safety function without DFD
+elements too. A statement overrules the row for special cases.
 
 Row status as in the 62443 sub-tabs (met · planned · stated · open · gap · n/a · unknown).
 An unrated risk or an unset WoO makes the R and P rows `unknown`, never met (D-12).

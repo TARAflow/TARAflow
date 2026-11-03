@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.23 · stage 1 done (CM-10) · CM-11, CM-12 done (EN 50742 A module and evidence, 2026-11-03) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.24 · stage 1 done (CM-10) · CM-11, CM-12, CM-12b done (EN 50742 A module, evidence, paths to safety functions, 2026-11-03) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -935,9 +935,8 @@ could never meet the rows.
   `srsl-complete`, `srsl-consistent` (`services/evaluate-en50742.ts`, pure). Three-valued
   as the property checks: unrated risk, unset WoO, no hazard import → unknown; a clear no →
   gap, gap before unknown. The planned run counts chosen controls.
-- 7.1/260 without a path relation: every interface or flow above EL0 counts as one on a
-  path to a safety function (a "won't" with justification takes one out) — stated in
-  coverage §9.1.
+- 7.1/260: first every interface or flow above EL0; replaced by the derived paths of
+  CM-12b.
 - `minSrsl` (7.4.3.5.1): applies when some risk reaches SRSL 2, n/a when every rated risk
   is lower, unknown while risks are unrated; then the model targets of CM-11.
 - Header `srsl`: highest SRSL per safety function (null = not rated) and the WoO
@@ -947,3 +946,21 @@ could never meet the rows.
 - Tests: the checks on small views, the view builder and the rows on the SmokeDetector
   with the tag set in the test (own example: mandated control done → met, open → gap and
   planned met, unrated → unknown, WoO unset → unknown), frame component test.
+
+**CM-12b (done, 2026-11-03) — paths to the safety functions.** Patch 25. User: the
+knowledge graph shows which DFD elements belong to a safety function, the flows to them
+and the interfaces on those flows — derive the relation instead of modelling it.
+
+- `app/utils/safety-function-paths.ts`: from the asset's `linkedDFDElements` backwards
+  against the flow direction, transitively, no hop limit; flows and their
+  `interfaceIds` are on the path; a flow the asset transports is on it with its source
+  side; a flow into a child of a decomposed element reaches the element; a trust
+  boundary with `data_diode` / `unidirectional_gateway` ends the path.
+- View: per safety function `linked` and its Interfaces on the path; `interfaces.exposed`
+  / `unrated` only on a path. 7.1/260: off-path interfaces no longer count; a safety
+  function without DFD elements leaves the row unknown.
+- Header: the interfaces on the path per safety function. `ProjectComplianceContext`
+  offers `en50742View()` (for the report part of CM-13).
+- SmokeDetector: IF-7 (WLAN), IF-1, IF-3 lead to the measurement, calibration and alarm
+  data; the EL1 interfaces IF-2, IF-4, IF-5, IF-6 to no safety function; the firmware
+  asset names no DFD element.

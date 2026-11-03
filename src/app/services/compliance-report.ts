@@ -36,6 +36,7 @@ import {
   selectEdition,
   suggestMitigations,
   type AnyEdition,
+  type En50742View,
   type ComplianceResult,
   type StandardModule,
   type MitigationEvidence,
@@ -50,6 +51,7 @@ import { deriveControlInstances } from "../hooks/use-control-instance-derivation
 import { attackPathControlTargets } from "../utils/attack-path-control-targets";
 import { buildComplianceMitigationEvidence } from "../utils/build-compliance-mitigation-evidence";
 import { buildEn50742View } from "../utils/build-en50742-view";
+import type { SafetyPathInput } from "../utils/safety-function-paths";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -124,6 +126,9 @@ export function complianceTypeOf(project: Project): (id: string) => string | und
   return (id) => types.get(id);
 }
 
+/** Trust boundary controls that let traffic pass one way only — a path to a safety function ends there. */
+const ONE_WAY_CONTROLS: readonly string[] = ["data_diode", "unidirectional_gateway"];
+
 /** One edition evaluated: both runs and the scope of its family's component (K-5). */
 export interface EditionEvaluation {
   achieved: ComplianceResult;
@@ -139,6 +144,8 @@ export interface ProjectComplianceContext {
   scopeName?: string;
   /** Achieved and planned run of one edition, in its family's scope and with its family's data. */
   evaluate: (edition: AnyEdition) => EditionEvaluation;
+  /** EN 50742 A: risks, safety functions with their paths, hazards, WoO (CM-12). */
+  en50742View: () => En50742View;
 }
 
 /**
@@ -197,13 +204,32 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
   const should = deriveControlInstances(project.threats, project.risks, project.dfd, catalog, anchors);
 
   const planned = plannedView(view, should);
-  // EN 50742 A (CM-12): risks, safety functions, hazards, WoO — built once, on demand.
+  // EN 50742 A (CM-12): risks, safety functions with their paths, hazards,
+  // WoO — built once, on demand. One-way boundaries end a path (CM-12b).
+  const oneWay = new Set(
+    (dfd.elements as Any[])
+      .filter((e) => e.type === "TrustBoundary" && (e.properties?.boundaryControlTypes ?? []).some((c: string) => ONE_WAY_CONTROLS.includes(c)))
+      .map((e) => e.id as string),
+  );
+  const paths: SafetyPathInput = {
+    flows: view.flows,
+    interfacesOf: (id) => graph.dataFlowAnalysis.get(id)?.interfaceIds ?? [],
+    blocked: (id) => {
+      const flow = graph.dataFlowAnalysis.get(id);
+      if (!flow || oneWay.size === 0) return false;
+      const from = new Set<string>(flow.fromTrustBoundaryIds ?? []);
+      const to = new Set<string>(flow.toTrustBoundaryIds ?? []);
+      return [...from, ...to].some((b) => oneWay.has(b) && from.has(b) !== to.has(b));
+    },
+    parentOf: (id) => containmentParent.get(id),
+  };
   let en50742: ReturnType<typeof buildEn50742View> | undefined;
-  const en50742View = () => (en50742 ??= buildEn50742View(project));
+  const en50742View = () => (en50742 ??= buildEn50742View(project, paths));
 
   return {
     scope,
     scopeName: nameOf(componentId),
+    en50742View,
     evaluate: (edition) => {
       const familyData = familyCompliance(project.compliance, edition.family);
       const familyComponent = complianceComponentOf(project.compliance, edition.family);

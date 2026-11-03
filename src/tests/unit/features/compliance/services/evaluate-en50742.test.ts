@@ -20,11 +20,13 @@ const risk = (id: string, extra: Partial<En50742Risk> = {}): En50742Risk => ({
   ...extra,
 });
 
+const sf = (id: string, name: string, interfaces: string[] = []) => ({ id, name, linked: true, interfaces });
+
 const view = (risks: En50742Risk[], extra: Partial<En50742View> = {}): En50742View => ({
   windowOfOpportunity: "limited",
   systemDefinition: { boundary: true, environment: true },
   hazards: { total: 1, unlinked: [] },
-  safetyFunctions: [{ id: "sf1", name: "Emergency stop" }],
+  safetyFunctions: [sf("sf1", "Emergency stop", ["if1"])],
   interfaces: { exposed: ["if1"], unrated: [] },
   risks,
   ...extra,
@@ -109,6 +111,10 @@ describe("project checks", () => {
     expect(check("interfaces-assessed", view([risk("1", { srsl: null, excluded: true })])).status).toBe("met");
     expect(check("interfaces-assessed", view([], { interfaces: { exposed: [], unrated: ["if2"] } })).status).toBe("unknown");
     expect(check("interfaces-assessed", view([], { interfaces: { exposed: [], unrated: [] } })).status).toBe("n/a");
+    // A safety function without DFD elements: its path is unknown, never n/a.
+    const unlinked = view([], { interfaces: { exposed: [], unrated: [] }, safetyFunctions: [{ ...sf("sf1", "Emergency stop"), linked: false }] });
+    expect(check("interfaces-assessed", unlinked)).toMatchObject({ status: "unknown" });
+    expect(check("interfaces-assessed", unlinked).reasoning).toContain("Emergency stop");
   });
 
   it("7.4.2/334: every safety function has risks, all rated", () => {
@@ -137,14 +143,14 @@ describe("SRSL precondition and header", () => {
   it("the header shows the highest SRSL per safety function, not rated as null", () => {
     const summary = srslSummary(
       view([risk("1", { srsl: 1 }), risk("2", { srsl: 3 }), risk("3", { srsl: 3, excluded: true, safetyFunctionIds: ["sf2"] })], {
-        safetyFunctions: [{ id: "sf1", name: "Emergency stop" }, { id: "sf2", name: "Guard door" }],
+        safetyFunctions: [sf("sf1", "Emergency stop", ["if1"]), sf("sf2", "Guard door")],
       }),
     );
     expect(summary).toEqual({
       windowOfOpportunity: "limited",
       safetyFunctions: [
-        { id: "sf1", name: "Emergency stop", srsl: 3 },
-        { id: "sf2", name: "Guard door", srsl: null },
+        { id: "sf1", name: "Emergency stop", srsl: 3, interfaces: ["if1"] },
+        { id: "sf2", name: "Guard door", srsl: null, interfaces: [] },
       ],
     });
   });

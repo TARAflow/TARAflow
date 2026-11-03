@@ -10,9 +10,11 @@
 //                    clauses mandated at that SRSL and the selected mandated
 //                    controls `en50742-<clause>` with their status
 //   safety functions assets with a physical impact (design §2: a safety
-//                    function is an asset carrying the severity)
-//   interfaces       Interface elements and flows with an EL; an Interface
-//                    without one is unrated (flows without EL are internal)
+//                    function is an asset carrying the severity), with the
+//                    interfaces on a path to them (safety-function-paths.ts)
+//   interfaces       on such a path: Interfaces and flows with an EL above
+//                    EL0; an Interface without EL is unrated (flows without
+//                    EL are internal)
 //   hazards          in-scope hazards without a contributes_to input
 //   WoO, system definition (item definition sections boundary / environment)
 
@@ -27,6 +29,7 @@ import {
 import { formatRiskLabel } from "shared";
 import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import type { Project } from "../models/project-types";
+import { pathAnchors, type SafetyPathInput } from "./safety-function-paths";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -45,16 +48,30 @@ function anchorOf(threat: Any): { id?: string; type?: SrslAnchorType } {
   return flow ? { id: flow, type: "DataFlow" } : {};
 }
 
-export function buildEn50742View(project: Project): En50742View {
+export function buildEn50742View(project: Project, paths: SafetyPathInput): En50742View {
   const threats = new Map<string, Any>(
     [
       ...((project.threats as Any)?.perElementTables ?? []).flatMap((t: Any) => t.threats ?? []),
       ...((project.threats as Any)?.perInteractionTables ?? []).flatMap((t: Any) => t.threats ?? []),
     ].map((t: Any) => [t.id, t]),
   );
+  const elements = (project.dfd?.elements ?? []) as Any[];
+  const connections = (project.dfd?.connections ?? []) as Any[];
+  const typeOf = new Map<string, string>(elements.map((e) => [e.id, e.type]));
+  const onPath = new Set<string>();
   const safetyFunctions = ((project.assets?.assets ?? []) as Any[])
     .filter((a) => !!a.physicalImpact)
-    .map((a) => ({ id: a.id as string, name: (a.name as string) ?? a.id }));
+    .map((a) => {
+      const linked = ((a.linkedDFDElements ?? []) as Any[]).map((l) => l.elementId as string).filter(Boolean);
+      const anchors = pathAnchors(linked, paths);
+      for (const id of anchors) onPath.add(id);
+      return {
+        id: a.id as string,
+        name: (a.name as string) ?? a.id,
+        linked: linked.length > 0,
+        interfaces: [...anchors].filter((id) => typeOf.get(id) === "Interface"),
+      };
+    });
   const safetyIds = new Set(safetyFunctions.map((s) => s.id));
 
   const risks: En50742Risk[] = ((project.risks?.risks ?? []) as Any[]).map((risk) => {
@@ -92,12 +109,12 @@ export function buildEn50742View(project: Project): En50742View {
 
   const exposed: string[] = [];
   const unrated: string[] = [];
-  for (const item of [...((project.dfd?.elements ?? []) as Any[]), ...((project.dfd?.connections ?? []) as Any[])]) {
+  for (const item of [...elements.filter((e) => e.type === "Interface"), ...connections]) {
+    if (!onPath.has(item.id)) continue;
     const level = item.properties?.exposureLevel;
-    const isInterface = item.type === "Interface";
     if (!level) {
-      if (isInterface) unrated.push(item.id);
-    } else if (level !== "EL0" && (isInterface || !item.type || item.type === "DataFlow")) {
+      if (item.type === "Interface") unrated.push(item.id);
+    } else if (level !== "EL0") {
       exposed.push(item.id);
     }
   }

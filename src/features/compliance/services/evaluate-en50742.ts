@@ -5,10 +5,11 @@
 // never met and never n/a; a clear "no" is a gap, and a gap wins over
 // unknown (step 9 of the evaluator).
 //
-// Interfaces (7.1): the model has no path relation interface → safety
-// function, so every interface or flow with an EL above EL0 counts as one
-// on a path to a safety function — a risk with SRSL there, or the threat
-// excluded with a justification ("won't"), meets it; otherwise a statement.
+// Interfaces (7.1): the app layer finds the interfaces and flows on a path
+// to a safety function (backwards along the flows from the asset's DFD
+// elements, CM-12b); each one above EL0 needs a risk with SRSL there, or the
+// threat excluded with a justification ("won't"). A safety function without
+// DFD elements leaves the row unknown.
 
 import type { ExternalEvidence, ProjectCheckId } from "../models/compliance-types";
 import type { En50742Risk, En50742View, SrslLevel, SrslSummary } from "../models/en50742-view";
@@ -102,11 +103,16 @@ function projectOutcome(check: ProjectCheckId, view: En50742View): ExternalOutco
       const pending = (id: string) => view.risks.some((r) => r.anchorId === id && !r.excluded && r.srsl === null);
       const failing = view.interfaces.exposed.filter((id) => !assessed(id) && !pending(id));
       const open = view.interfaces.exposed.filter((id) => !assessed(id) && pending(id));
-      if (failing.length > 0) return { status: "gap", failing, unknown: [...open, ...view.interfaces.unrated], reasoning: "exposed without a risk with SRSL" };
+      if (failing.length > 0) {
+        return { status: "gap", failing, unknown: [...open, ...view.interfaces.unrated], reasoning: "on a path to a safety function, exposed, no risk with SRSL" };
+      }
       if (open.length > 0 || view.interfaces.unrated.length > 0) {
         return { status: "unknown", unknown: [...open, ...view.interfaces.unrated], reasoning: "SRSL or EL not rated yet" };
       }
-      if (view.interfaces.exposed.length === 0) return { status: "n/a", reasoning: "no interface above EL0" };
+      const unlinked = view.safetyFunctions.filter((sf) => !sf.linked);
+      if (unlinked.length > 0) return { status: "unknown", reasoning: `safety functions without DFD elements: ${unlinked.map((s) => s.name).join(", ")}` };
+      if (view.safetyFunctions.length === 0) return { status: "unknown", reasoning: "no safety-function asset (asset with a physical impact)" };
+      if (view.interfaces.exposed.length === 0) return { status: "n/a", reasoning: "no interface above EL0 on a path to a safety function" };
       return met();
     }
     case "srsl-complete": {
@@ -155,7 +161,7 @@ export function srslSummary(view: En50742View): SrslSummary {
       const levels = inPlay(view)
         .filter((r) => r.safetyFunctionIds.includes(sf.id) && typeof r.srsl === "number")
         .map((r) => r.srsl as SrslLevel);
-      return { ...sf, srsl: levels.length > 0 ? (Math.max(...levels) as SrslLevel) : null };
+      return { id: sf.id, name: sf.name, interfaces: sf.interfaces, srsl: levels.length > 0 ? (Math.max(...levels) as SrslLevel) : null };
     }),
   };
 }

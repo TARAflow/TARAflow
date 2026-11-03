@@ -111,6 +111,7 @@
     "notSet": "not set",
     "safetyFunction": "Safety function",
     "highestSrsl": "Highest SRSL (from the risks)",
+    "pathInterfaces": "Interfaces on the path",
     "notRated": "not rated",
     "noSafetyFunctions": "No safety function yet — mark the safety functions as assets with a physical impact.",
     "todoTitleAll": "To do",

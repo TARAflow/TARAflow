@@ -414,6 +414,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       <TableRow>
                         <TableCell>{t("safetyFunction", "Safety function")}</TableCell>
                         <TableCell>{t("highestSrsl", "Highest SRSL (from the risks)")}</TableCell>
+                        <TableCell>{t("pathInterfaces", "Interfaces on the path")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -421,6 +422,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                         <TableRow key={sf.id} data-testid={`compliance-srsl-${sf.id}`}>
                           <TableCell>{sf.name}</TableCell>
                           <TableCell>{sf.srsl === null ? t("notRated", "not rated") : `SRSL${sf.srsl}`}</TableCell>
+                          <TableCell>{sf.interfaces.length > 0 ? shortList(sf.interfaces.map(nameOf), 6) : "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

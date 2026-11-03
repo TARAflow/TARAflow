@@ -34,7 +34,7 @@ export type {
   SlVector,
   StandardFamilyId,
 } from "./models/compliance-types";
-export type { En50742Risk, En50742View, MandatedControl, SrslLevel, SrslSummary } from "./models/en50742-view";
+export type { En50742Risk, En50742SafetyFunction, En50742View, MandatedControl, SrslLevel, SrslSummary } from "./models/en50742-view";
 export {
   EN50742_A_REQUIREMENT_IDS,
   FOUNDATIONAL_REQUIREMENTS,

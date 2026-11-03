@@ -8,7 +8,6 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parseAndRepair } from "app/services/migration-service";
 import { prepareProjectCompliance } from "app/services/compliance-report";
-import { buildEn50742View } from "app/utils/build-en50742-view";
 import { activeStandards, EDITION_EN50742_A } from "features/compliance";
 import type { Project } from "app/models/project-types";
 
@@ -61,11 +60,21 @@ const INTEGRITY = "EN-7.4.3.4.1/380–386";
 
 describe("EN 50742 A on the SmokeDetector (own example)", () => {
   it("the view: the WLAN risk with SRSL 2, exposed, Interface × S mandates authentication", () => {
-    const view = buildEn50742View(project([wlanRisk("S", "SRSL2")]));
+    const view = prepareProjectCompliance(project([wlanRisk("S", "SRSL2")]))!.en50742View();
     expect(view.risks).toHaveLength(1);
     expect(view.risks[0]).toMatchObject({ anchorId: "IF-3", srsl: 2, exposed: true, mandated: ["7.4.3.2.1"], safetyFunctionIds: [firmware.id] });
     expect(view.safetyFunctions.map((s) => s.name)).toContain("controller firmware");
     expect(view.interfaces.exposed).toContain("IF-3");
+  });
+
+  it("paths (CM-12b): the WLAN interface leads to the measurement data, the other EL1 interfaces to no safety function", () => {
+    const view = prepareProjectCompliance(project([]))!.en50742View();
+    const smoke = view.safetyFunctions.find((s) => s.name === "smoke meas data")!;
+    expect(smoke.linked).toBe(true);
+    expect(smoke.interfaces).toContain("IF-3"); // IF-7 WLAN
+    expect(view.interfaces.exposed).not.toContain("IF-6"); // IF-4, not on a path
+    // The firmware asset names no DFD element — no path, so 7.1 cannot be n/a.
+    expect(view.safetyFunctions.find((s) => s.name === "controller firmware")!.linked).toBe(false);
   });
 
   it("mandated control done → the clause row is met; the header shows SRSL 2 for the firmware", () => {
@@ -107,10 +116,11 @@ describe("EN 50742 A on the SmokeDetector (own example)", () => {
     expect(row(set.rows, "EN-4.3/220").status).toBe("met");
   });
 
-  it("the fixture's other exposed interfaces have no SRSL risk → 7.1 is a gap naming them", () => {
+  it("the other interfaces on a path have no SRSL risk → 7.1 is a gap naming them, not the ones off any path", () => {
     const r = row(evaluate(project([wlanRisk("S", "SRSL2")])).achieved.rows, "EN-7.1/260");
     expect(r.status).toBe("gap");
     expect(r.failing).not.toContain("IF-3");
+    expect(r.failing).not.toContain("IF-6");
     expect(r.failing.length).toBeGreaterThan(0);
   });
 });

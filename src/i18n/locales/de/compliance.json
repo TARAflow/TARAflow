@@ -111,6 +111,7 @@
     "notSet": "nicht gesetzt",
     "safetyFunction": "Sicherheitsfunktion",
     "highestSrsl": "Höchstes SRSL (aus den Risiken)",
+    "pathInterfaces": "Schnittstellen auf dem Pfad",
     "notRated": "nicht bewertet",
     "noSafetyFunctions": "Noch keine Sicherheitsfunktion — markiere die Sicherheitsfunktionen als Assets mit physischer Auswirkung.",
     "todoTitleAll": "To-do",

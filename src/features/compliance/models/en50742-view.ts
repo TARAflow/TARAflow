@@ -53,14 +53,26 @@ export interface En50742View {
   /** Number of hazards and the labels of in-scope ones without a contributes_to input. */
   hazards: { total: number; unlinked: readonly string[] };
   /** Assets with a physical impact — the safety functions (design §2). */
-  safetyFunctions: readonly { id: string; name: string }[];
-  /** Interfaces and flows with an EL above EL0, and those whose EL is unset. */
+  safetyFunctions: readonly En50742SafetyFunction[];
+  /**
+   * On a path to a safety function (CM-12b): interfaces and flows with an EL
+   * above EL0, and Interfaces whose EL is unset.
+   */
   interfaces: { exposed: readonly string[]; unrated: readonly string[] };
   risks: readonly En50742Risk[];
 }
 
-/** The `srsl` header (coverage §9.3): highest SRSL per safety function, WoO. */
+export interface En50742SafetyFunction {
+  id: string;
+  name: string;
+  /** The asset names DFD elements — without them no path can be found. */
+  linked: boolean;
+  /** Interface elements on a path to it (backwards along the flows, CM-12b). */
+  interfaces: readonly string[];
+}
+
+/** The `srsl` header (coverage §9.3): highest SRSL per safety function, its interfaces, WoO. */
 export interface SrslSummary {
   windowOfOpportunity?: string;
-  safetyFunctions: { id: string; name: string; srsl: SrslLevel | null }[];
+  safetyFunctions: { id: string; name: string; srsl: SrslLevel | null; interfaces: readonly string[] }[];
 }
