@@ -118,7 +118,7 @@ describe("Integration tab — the token stays out of the project", () => {
       ["GitHub Issues", false],
       ["GitLab Issues", false],
       ["Polarion", true],
-      ["OpenProject", true],
+      ["OpenProject", false],
     ]);
   });
 });

@@ -80,7 +80,7 @@ tracker is a user check (listed in TESTPLAN-0.18.md).
 | IT-7 | Jira Server / Data Center (REST v2, PAT bearer, wiki markup instead of ADF) — reuse the Jira adapter | **done** (patch 35, preview): Jira adapter flavour "server" (REST v2, wiki markup, Bearer PAT); every tracker except Polarion in 0.18, marked "preview" until a real run (user 2026-11-03) |
 | IT-9 | GitHub Issues (labels, closed state reason) | **done** (patch 36, preview) |
 | IT-10 | GitLab Issues | **done** (patch 37, preview) |
-| IT-11 | OpenProject (API v3, API key) | open |
+| IT-11 | OpenProject (API v3, API key) | **done** (patch 38, preview) |
 | IT-12 | Polarion (REST v1) | moved: later (user 2026-11-03) |
 
 ### 3.3 Instance B — S3 maintainability, S4 fixes

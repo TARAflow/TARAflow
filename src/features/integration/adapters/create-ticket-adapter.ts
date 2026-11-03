@@ -15,6 +15,7 @@ import { JiraAdapter } from "./jira-adapter";
 import { AzureDevOpsAdapter } from "./azure-devops-adapter";
 import { GitHubAdapter } from "./github-adapter";
 import { GitLabAdapter } from "./gitlab-adapter";
+import { OpenProjectAdapter } from "./openproject-adapter";
 import type { TicketAdapter } from "./ticket-adapter";
 import type { TrackerRef } from "./tracker-channel";
 
@@ -37,6 +38,8 @@ export function adapterFor(ref: TrackerRef): TicketAdapter | null {
       return new GitHubAdapter(ref);
     case "gitlab":
       return new GitLabAdapter(ref);
+    case "openproject":
+      return new OpenProjectAdapter(ref);
     default:
       return null; // not available yet (issue-trackers.ts)
   }
