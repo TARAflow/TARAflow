@@ -49,6 +49,7 @@ import { controlValuePatch, meetsExpected, readControlValue } from "shared/utils
 import { deriveControlInstances } from "../hooks/use-control-instance-derivation";
 import { attackPathControlTargets } from "../utils/attack-path-control-targets";
 import { buildComplianceMitigationEvidence } from "../utils/build-compliance-mitigation-evidence";
+import { buildEn50742View } from "../utils/build-en50742-view";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -196,6 +197,9 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
   const should = deriveControlInstances(project.threats, project.risks, project.dfd, catalog, anchors);
 
   const planned = plannedView(view, should);
+  // EN 50742 A (CM-12): risks, safety functions, hazards, WoO — built once, on demand.
+  let en50742: ReturnType<typeof buildEn50742View> | undefined;
+  const en50742View = () => (en50742 ??= buildEn50742View(project));
 
   return {
     scope,
@@ -212,6 +216,7 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
         statements: editionStatements(edition, familyData.statements),
         mitigations,
         deviceCategories: familyData.deviceCategories,
+        ...(edition.family === "en-50742" ? { en50742: en50742View() } : {}),
       };
       return {
         achieved: evaluateMatrix({ ...base, view, run: "achieved" }),

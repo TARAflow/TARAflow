@@ -1169,6 +1169,10 @@ export const WorkspaceLayout: React.FC = () => {
     activeProject?.attackTrees,
     activeProject?.assets,
     activeProject?.compliance,
+    // EN 50742 A (CM-12): WoO, hazards and the system definition are evidence too.
+    activeProject?.info,
+    activeProject?.hazards,
+    activeProject?.itemDefinition,
   ]);
 
   const securityDrifts = useSecurityDrift(

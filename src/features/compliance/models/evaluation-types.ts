@@ -10,6 +10,7 @@ import type {
   RequirementId,
   SlVector,
 } from "./compliance-types";
+import type { En50742View, SrslSummary } from "./en50742-view";
 
 // ==================== PROPERTY VIEW ====================
 
@@ -99,6 +100,8 @@ export interface ComplianceInput {
   claims?: readonly MatrixClaim[];
   mitigations?: readonly MitigationEvidence[];
   deviceCategories?: DeviceCategoryChoice;
+  /** EN 50742 A: risks, safety functions, hazards, WoO (CM-12); absent for other standards. */
+  en50742?: En50742View;
 }
 
 // ==================== RESULT ====================
@@ -128,6 +131,8 @@ export interface RowResult {
   failing: string[];
   /** Elements whose applicability or satisfaction is unknown (D-12). */
   unknown: string[];
+  /** EN 50742 A: risks (labels) that fail the row or are not rated yet. */
+  risks?: string[];
   /** Environment elements that meet the row as a supporting measure (D-20). */
   supportingElements: string[];
   mitigationIds: string[];
@@ -153,4 +158,6 @@ export interface ComplianceResult {
   component: SlVector;
   /** SL-C with supporting measures and claims (D-14). */
   withSupport: SlVector;
+  /** EN 50742 A: the `srsl` header (coverage §9.3). */
+  srsl?: SrslSummary;
 }

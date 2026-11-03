@@ -130,6 +130,10 @@ export {
   EN50742_EXPOSURE_LEVELS,
   EN50742_ATTACKER_CAPABILITY_LEVELS,
   EN50742_AP_BAND_COUNT,
+  clauseFromMandatedId,
+  mandatedRequirementsForThreat,
+  type Srsl,
+  type SrslAnchorType,
   type AttackPotentialBand,
 } from "./models/en50742-approach-a-core";
 

@@ -33,8 +33,8 @@ const WORDS = {
     model: "Checked in the model",
     noModel: "Not derivable from the model — a statement, a mitigation of the risk treatment or a claim meets it.",
     wholeComponent: "the component as a whole",
-    risks: "Checked on the risks: the SRSL and the mandated controls of the risk treatment (with the next step; until then a statement meets it).",
-    project: "Checked on the project data: hazards, risks, safety functions, way of operation and system definition (with the next step; until then a statement meets it).",
+    risks: "Checked on the risks: the SRSL and the mandated controls of the risk treatment (done; planned in the planned run). A risk without SRSL is unknown.",
+    project: "Checked on the project data: hazards, risks, safety functions, window of opportunity and system definition. What is not set yet is unknown.",
     fromSrsl: "Applies from SRSL",
     crossesComponent: "across the component border (not human input, not physical coupling)",
     conditions: {
@@ -64,8 +64,8 @@ const WORDS = {
     model: "Im Modell geprüft",
     noModel: "Nicht aus dem Modell ableitbar — eine Aussage, eine Massnahme der Risikobehandlung oder ein Claim erfüllt sie.",
     wholeComponent: "die Komponente als Ganzes",
-    risks: "An den Risiken geprüft: SRSL und verlangte Massnahmen der Risikobehandlung (mit dem nächsten Schritt; bis dahin erfüllt sie eine Aussage).",
-    project: "An den Projektdaten geprüft: Gefährdungen, Risiken, Sicherheitsfunktionen, Betriebsart und Systemdefinition (mit dem nächsten Schritt; bis dahin erfüllt sie eine Aussage).",
+    risks: "An den Risiken geprüft: SRSL und verlangte Massnahmen der Risikobehandlung (umgesetzt; im geplanten Lauf gewählt). Ein Risiko ohne SRSL ist unbekannt.",
+    project: "An den Projektdaten geprüft: Gefährdungen, Risiken, Sicherheitsfunktionen, Window of Opportunity und Systemdefinition. Was noch nicht gesetzt ist, ist unbekannt.",
     fromSrsl: "Gilt ab SRSL",
     crossesComponent: "über die Komponentengrenze (keine menschliche Eingabe, keine physische Kopplung)",
     conditions: {

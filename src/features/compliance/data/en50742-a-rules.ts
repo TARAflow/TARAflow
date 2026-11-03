@@ -10,8 +10,8 @@
 //                risks, safety-function assets, WoO and system definition
 //   S  statement type C, or the checklist of a type B row
 //
-// R and P are read from the En50742View (CM-12); until then such a row needs
-// a statement. Type A / B / C as for IEC 62443 (D-11).
+// R and P are read from the En50742View (CM-12, evaluate-en50742.ts). Type
+// A / B / C as for IEC 62443 (D-11).
 
 import type { EvidenceRule, En50742RequirementId } from "../models/compliance-types";
 
@@ -23,7 +23,7 @@ const LOGGING = [
 
 /** A 7.4.3 clause: every risk it is mandated for has the mandated control done. */
 const mandated = (id: En50742RequirementId, clause: string) =>
-  ({ id, type: "A", targets: [], external: { kind: "risk", clause } }) as const;
+  ({ id, type: "A", targets: [], external: { kind: "risk", check: "mandated", clause } }) as const;
 
 const RULES = [
   // ── Threat assessment (4.3, 7.1, 7.2.1, 7.4.2) ─────────────────────────
@@ -79,7 +79,7 @@ const RULES = [
   { id: "en-7.5-444", type: "C", targets: [] },
 
   // ── Protection measures against corruption (7.4.3) ─────────────────────
-  { id: "en-7.4.3.1-347", type: "A", targets: [], external: { kind: "risk" } },
+  { id: "en-7.4.3.1-347", type: "A", targets: [], external: { kind: "risk", check: "all-mandated" } },
   mandated("en-7.4.3.2.1-356", "7.4.3.2.1"),
   mandated("en-7.4.3.3.1-370", "7.4.3.3.1"),
   mandated("en-7.4.3.4.1-380", "7.4.3.4.1"),
@@ -118,7 +118,7 @@ const RULES = [
     id: "en-4.3-229",
     type: "B",
     targets: [],
-    external: { kind: "risk" },
+    external: { kind: "risk", check: "remaining" },
     checklist: ["every remaining requirement is named in the information for use"],
   },
 ] as const satisfies readonly EvidenceRule<En50742RequirementId>[];

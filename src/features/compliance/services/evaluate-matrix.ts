@@ -36,6 +36,7 @@ import type {
   ViewElement,
 } from "../models/evaluation-types";
 import { RULES_BY_ID } from "../data/requirement-registry";
+import { externalOutcome, srslReached, srslSummary } from "./evaluate-en50742";
 
 // ==================== THREE-VALUED LOGIC ====================
 
@@ -194,6 +195,8 @@ interface IdOutcome {
   unknown: string[];
   supporting: string[];
   mitigationIds: string[];
+  /** EN 50742 A: risks that fail or are unrated. */
+  risks?: string[];
   contradiction?: boolean;
   reasoning?: string;
   /** Type B: the checklist items the model does not answer (CM-5b). */
@@ -240,9 +243,24 @@ function blackBoxStandIns(rule: EvidenceRule<AnyRequirementId>, graph: Graph, in
 function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input: ComplianceInput): IdOutcome {
   const typeA = rule.type === "A";
   // EN 50742 A: risk and project evidence and the SRSL come from the
-  // En50742View (CM-12) — until then a statement meets the row.
-  if (rule.external) return outcome("needs-statement", { reasoning: "evaluated from the risks and the project data — not yet available" });
-  if (rule.minSrsl) return outcome("unknown", { reasoning: `applies from SRSL ${rule.minSrsl} — the SRSL comes from the risks` });
+  // En50742View (CM-12); without it a statement meets the row.
+  if (rule.external) {
+    if (!input.en50742) return outcome("needs-statement", { reasoning: "evaluated from the risks and the project data" });
+    const e = externalOutcome(rule.external, input.en50742, input.run);
+    return outcome(e.status, {
+      ...(e.status === "met" ? { source: "model" as const } : {}),
+      failing: e.failing ?? [],
+      unknown: e.unknown ?? [],
+      risks: e.risks ?? [],
+      reasoning: e.reasoning,
+      openChecklist: [...(rule.checklist ?? [])],
+    });
+  }
+  if (rule.minSrsl) {
+    const reached = input.en50742 ? srslReached(rule.minSrsl, input.en50742) : "unknown";
+    if (reached === "no") return outcome("n/a", { reasoning: `no risk reaches SRSL ${rule.minSrsl}` });
+    if (reached === "unknown") return outcome("unknown", { reasoning: `applies from SRSL ${rule.minSrsl} — risks not rated yet` });
+  }
   const inScope = (id: string) => {
     if (input.scope.has(id)) return true;
     const ends = graph.endpoints.get(id);
@@ -404,6 +422,7 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
         ? "model"
         : undefined;
   const merged = (key: "failing" | "unknown" | "supporting" | "mitigationIds") => [...new Set(outcomes.flatMap((o) => o[key]))];
+  const risks = [...new Set(outcomes.flatMap((o) => o.risks ?? []))];
   return {
     status,
     source: status === "met" ? source : undefined,
@@ -411,6 +430,7 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
     unknown: merged("unknown"),
     supporting: merged("supporting"),
     mitigationIds: merged("mitigationIds"),
+    ...(risks.length > 0 ? { risks } : {}),
     contradiction: outcomes.some((o) => o.contradiction) || undefined,
     reasoning: outcomes.map((o) => o.reasoning).find(Boolean),
     openChecklist: outcomes.flatMap((o) => o.openChecklist ?? []),
@@ -475,6 +495,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     unknown: combined.unknown,
     supportingElements: combined.supporting,
     mitigationIds: combined.mitigationIds,
+    ...(combined.risks ? { risks: combined.risks } : {}),
     claimIds,
     checklist: status === "met" ? (combined.openChecklist ?? []) : [],
     reasoning: combined.reasoning,
@@ -533,5 +554,6 @@ export function evaluateMatrix(input: ComplianceInput): ComplianceResult {
     rows,
     component: vectorOf(rows, countsForComponent),
     withSupport: vectorOf(rows, countsWithSupport),
+    ...(input.en50742 ? { srsl: srslSummary(input.en50742) } : {}),
   };
 }

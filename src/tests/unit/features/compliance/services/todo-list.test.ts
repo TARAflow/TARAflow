@@ -36,7 +36,7 @@ describe("buildTodoList", () => {
   });
 
   it("no target → nothing to do", () => {
-    expect(buildTodoList(EDITION_PRAA_2026, achieved, planned, {})).toEqual({ elements: [], component: [], statements: [] });
+    expect(buildTodoList(EDITION_PRAA_2026, achieved, planned, {})).toEqual({ elements: [], component: [], statements: [], risks: [], project: [] });
   });
 
   it("a row one element meets (any) is a component item, not one per element", () => {

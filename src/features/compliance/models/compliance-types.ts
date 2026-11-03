@@ -124,14 +124,23 @@ export interface ChecklistAnswer {
 
 /**
  * Evidence an EN 50742 A rule reads outside the element properties
- * (en-50742-rq-coverage.md §9.1): "risk" — the risks with their SRSL and the
- * mandated controls of `clause`; "project" — a named check over hazards,
- * risks, safety-function assets, WoO and system definition. Evaluated from
- * the En50742View (CM-12); until then such a row needs a statement.
+ * (en-50742-rq-coverage.md §9.1), from the En50742View (CM-12):
+ *   risk "mandated"      every risk that mandates `clause` at its SRSL has the
+ *                        mandated control (done; planned in the planned run)
+ *   risk "all-mandated"  every risk has all its mandated controls (7.4.3.1)
+ *   risk "remaining"     risks with a remaining requirement are passed on (9)
+ *   project              a named check over hazards, risks, safety functions,
+ *                        WoO and system definition
+ * Without a view (a project that is not evaluated for EN 50742) such a row
+ * needs a statement.
  */
 export type ExternalEvidence =
-  | { kind: "risk"; clause?: string }
-  | { kind: "project"; check: string };
+  | { kind: "risk"; check: "mandated"; clause: string }
+  | { kind: "risk"; check: "all-mandated" | "remaining" }
+  | { kind: "project"; check: ProjectCheckId };
+
+/** The project checks of EN 50742 A (coverage §9.2, evidence P). */
+export type ProjectCheckId = "hazards-linked" | "system-definition" | "interfaces-assessed" | "srsl-complete" | "srsl-consistent";
 
 export interface EvidenceRule<R extends string = RequirementId> {
   id: R;

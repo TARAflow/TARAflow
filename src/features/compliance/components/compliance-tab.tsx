@@ -51,6 +51,7 @@ import {
   withComplianceTarget,
   withDeviceCategories,
   withoutComplianceStatement,
+  WINDOW_OF_OPPORTUNITY_OPTIONS,
   type ComplianceData,
   type ComplianceStatement,
   type DeviceCategory,
@@ -240,6 +241,12 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     () => buildTodoList(edition, achieved, planned, levels ? target : "all", typeOf),
     [edition, achieved, planned, target, typeOf, levels],
   );
+  const srsl = achieved.srsl;
+  // The WoO names live with the Overview selector (common namespace).
+  const wooLabel = (id: string | undefined) => {
+    const option = id ? WINDOW_OF_OPPORTUNITY_OPTIONS.find((o) => o.id === id) : undefined;
+    return option ? String(i18n?.t?.(option.nameKey, { ns: "common", defaultValue: id }) ?? id) : id;
+  };
   const statusCounts = useMemo(() => {
     const counts = new Map<RowStatus, number>();
     for (const r of achieved.rows) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
@@ -390,8 +397,37 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
         {!levels && (
           <Paper variant="outlined" sx={{ p: 2 }} data-testid="compliance-summary">
             <Typography variant="subtitle1" gutterBottom>
-              {t("summaryTitle", "Requirements per status")}
+              {srsl ? t("srslTitle", "SRSL per safety function and requirements per status") : t("summaryTitle", "Requirements per status")}
             </Typography>
+            {srsl && (
+              <Box sx={{ mb: 1.5 }} data-testid="compliance-srsl">
+                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                  {t("woo", "Window of opportunity")}: {wooLabel(srsl.windowOfOpportunity) ?? t("notSet", "not set")}
+                </Typography>
+                {srsl.safetyFunctions.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    {t("noSafetyFunctions", "No safety function yet — mark the safety functions as assets with a physical impact.")}
+                  </Typography>
+                ) : (
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>{t("safetyFunction", "Safety function")}</TableCell>
+                        <TableCell>{t("highestSrsl", "Highest SRSL (from the risks)")}</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {srsl.safetyFunctions.map((sf) => (
+                        <TableRow key={sf.id} data-testid={`compliance-srsl-${sf.id}`}>
+                          <TableCell>{sf.name}</TableCell>
+                          <TableCell>{sf.srsl === null ? t("notRated", "not rated") : `SRSL${sf.srsl}`}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </Box>
+            )}
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {(Object.keys(STATUS_DEFAULT) as RowStatus[])
                 .filter((status) => statusCounts.has(status))
@@ -511,7 +547,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           </Typography>
           {!hasTarget ? (
             <Alert severity="info">{t("todoNoTarget", "Set the SL-T above — the to-do list shows what is open up to it.")}</Alert>
-          ) : todo.elements.length === 0 && todo.component.length === 0 && todo.statements.length === 0 ? (
+          ) : todo.elements.length === 0 &&
+            todo.component.length === 0 &&
+            todo.statements.length === 0 &&
+            todo.risks.length === 0 &&
+            todo.project.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               {levels ? t("todoNothing", "Nothing open up to the SL-T.") : t("todoNothingAll", "Nothing open.")}
             </Typography>
@@ -575,6 +615,35 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   </Box>
                 </Box>
               )}
+              {todo.risks.length > 0 && (
+                <Box data-testid="compliance-todo-risks">
+                  <Typography variant="subtitle2">{t("todoRisks", "In the risk tab — rate the risk or choose the mandated control")}</Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    {todo.risks.map((item) => (
+                      <li key={item.label}>
+                        <Typography variant="body2" component="span">
+                          {requirementLink(item.label)}: {shortList(item.risks, 6)}
+                        </Typography>
+                      </li>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+              {todo.project.length > 0 && (
+                <Box data-testid="compliance-todo-project">
+                  <Typography variant="subtitle2">{t("todoProject", "In the project data — hazards, overview, item definition")}</Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    {todo.project.map((item) => (
+                      <li key={item.label}>
+                        <Typography variant="body2" component="span">
+                          {requirementLink(item.label)}
+                          {item.reasoning ? `: ${item.reasoning}` : ""}
+                        </Typography>
+                      </li>
+                    ))}
+                  </Box>
+                </Box>
+              )}
               {todo.statements.length > 0 && (
                 <Box data-testid="compliance-todo-statements">
                   <Typography variant="subtitle2">{t("todoStatements", "Statements needed")}</Typography>
@@ -633,6 +702,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   row.unknown.length > 0 && `${t("unknown", "properties missing on")}: ${shortList(row.unknown.map(nameOf))}`,
                   row.supportingElements.length > 0 && `${t("supporting", "supporting measure")}: ${shortList(row.supportingElements.map(nameOf))}`,
                   row.mitigationIds.length > 0 && `${t("mitigations", "mitigations")}: ${shortList([...new Set(row.mitigationIds)])}`,
+                  row.risks && row.risks.length > 0 && `${t("risks", "risks")}: ${shortList(row.risks)}`,
+                  !levels && row.source !== "statement" && !row.failing.length && !row.unknown.length && !row.risks?.length && row.status !== "met" && row.status !== "n/a" && row.reasoning,
                   checklist.length > 0 && `${t("checklist", "to confirm")}: ${checklist.join("; ")}`,
                   row.source === "statement" && row.reasoning,
                 ].filter(Boolean);

@@ -49,6 +49,10 @@ export interface TodoList {
   component: ComponentTodo[];
   /** Open rows within the target that only a statement (or a mitigation reference) can meet. */
   statements: { label: string; group: string }[];
+  /** EN 50742 A: open rows on risk evidence, with the risks to treat or rate. */
+  risks: { label: string; group: string; risks: string[] }[];
+  /** EN 50742 A: open rows on project data (hazards, WoO, system definition), with what is missing. */
+  project: { label: string; group: string; reasoning?: string }[];
 }
 
 /** SL-T per FR, or "all" for a standard without levels. */
@@ -90,6 +94,8 @@ export function buildTodoList(
   const byElement = new Map<string, TodoItem[]>();
   const statements: TodoList["statements"] = [];
   const component: ComponentTodo[] = [];
+  const risks: TodoList["risks"] = [];
+  const project: TodoList["project"] = [];
 
   for (const row of achieved.rows) {
     if (!withinTarget(row, target)) continue;
@@ -100,6 +106,12 @@ export function buildTodoList(
     if (row.status !== "gap" && row.status !== "unknown") continue;
     const p = plannedRow.get(row.label);
     const rules = (edition.rows.find((r) => r.label === row.label)?.requirementIds ?? []).map((id) => RULES_BY_ID.get(id));
+    // EN 50742 A: risk and project evidence — the risk tab or the project data, not the DFD.
+    if (rules.some((rule) => rule?.external) && row.failing.length === 0 && row.unknown.length === 0) {
+      if (row.risks?.length) risks.push({ label: row.label, group: row.group, risks: row.risks });
+      else project.push({ label: row.label, group: row.group, reasoning: row.reasoning });
+      continue;
+    }
     if (rules.length > 0 && rules.every((rule) => rule?.quantifier === "any")) {
       component.push({
         label: row.label,
@@ -132,5 +144,5 @@ export function buildTodoList(
   const elements = [...byElement]
     .map(([elementId, items]) => ({ elementId, items }))
     .sort((a, b) => b.items.length - a.items.length || a.elementId.localeCompare(b.elementId));
-  return { elements, component, statements };
+  return { elements, component, statements, risks, project };
 }

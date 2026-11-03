@@ -16,6 +16,7 @@ import {
   TAG_EN_IEC_62443_CRA,
   TAG_IEC_62443,
   type AnyEdition,
+  type En50742View,
   type StandardModule,
 } from "features/compliance";
 
@@ -32,12 +33,13 @@ afterEach(cleanup);
 
 const BOTH = activeStandards({ regulation: [TAG_IEC_62443, TAG_EN_IEC_62443_CRA] });
 
-function renderFrame(standards: readonly StandardModule[]) {
+function renderFrame(standards: readonly StandardModule[], en50742?: En50742View) {
   const evaluate = vi.fn((edition: AnyEdition) => {
     const input = {
       edition,
       view: { elements: [{ id: "p1", type: "Process", properties: {} }], flows: [] },
       scope: new Set(["p1"]),
+      ...(en50742 && edition.family === "en-50742" ? { en50742 } : {}),
     };
     return { achieved: evaluateMatrix({ ...input, run: "achieved" }), planned: evaluateMatrix({ ...input, run: "planned" }) };
   });
@@ -103,6 +105,37 @@ describe("Compliance frame", () => {
     expect(screen.getByText("To do")).toBeTruthy();
     const row = screen.getByTestId("compliance-row-EN-7.3.1/281");
     expect(row.textContent).toContain("information-collection");
+  });
+
+  it("EN 50742 A with risks: SRSL per safety function in the header, risks in the notes and the to-do list (CM-12)", () => {
+    renderFrame(activeStandards({ regulation: [TAG_EN_50742_A] }), {
+      windowOfOpportunity: "limited",
+      systemDefinition: { boundary: true, environment: false },
+      hazards: { total: 1, unlinked: [] },
+      safetyFunctions: [{ id: "sf1", name: "Emergency stop" }, { id: "sf2", name: "Guard door" }],
+      interfaces: { exposed: [], unrated: [] },
+      risks: [
+        {
+          id: "r1",
+          label: "R-IF-1-S-1",
+          anchorId: "if1",
+          safetyFunctionIds: ["sf1"],
+          srsl: 2,
+          exposed: true,
+          mandated: ["7.4.3.2.1"],
+          anyOfMandated: false,
+          controls: [],
+          accepted: false,
+          excluded: false,
+        },
+      ],
+    });
+    expect(screen.getByTestId("compliance-srsl-sf1").textContent).toContain("SRSL2");
+    expect(screen.getByTestId("compliance-srsl-sf2").textContent).toContain("not rated");
+    expect(screen.getByTestId("compliance-row-EN-7.4.3.2.1/356–360").textContent).toContain("R-IF-1-S-1");
+    expect(screen.getByTestId("compliance-todo-risks").textContent).toContain("R-IF-1-S-1");
+    // Project data still missing (operational environment) is listed with what is missing.
+    expect(screen.getByTestId("compliance-todo-project").textContent).toContain("operational environment");
   });
 
   it("one standard: no sub-tab bar", () => {

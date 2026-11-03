@@ -24,6 +24,7 @@ export type {
   EvidenceType,
   ExternalEvidence,
   FoundationalRequirement,
+  ProjectCheckId,
   NeighbourCheck,
   PropertyCheck,
   QualifiedRequirementId,
@@ -33,6 +34,7 @@ export type {
   SlVector,
   StandardFamilyId,
 } from "./models/compliance-types";
+export type { En50742Risk, En50742View, MandatedControl, SrslLevel, SrslSummary } from "./models/en50742-view";
 export {
   EN50742_A_REQUIREMENT_IDS,
   FOUNDATIONAL_REQUIREMENTS,
@@ -68,6 +70,7 @@ export type {
   ViewElement,
   ViewFlow,
 } from "./models/evaluation-types";
+export { externalOutcome, srslReached, srslSummary, type ExternalOutcome } from "./services/evaluate-en50742";
 export {
   countsForComponent,
   countsWithSupport,
