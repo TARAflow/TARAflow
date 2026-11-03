@@ -1,4 +1,5 @@
 import { foldLegacyStatements } from "../compliance-statements-legacy";
+import { migrateAndGatePaths } from "./migrate-12-to-13-and-gate-paths";
 
 /**
  * Migrate schema version 12 → 13 (0.18.0-beta).
@@ -20,7 +21,11 @@ import { foldLegacyStatements } from "../compliance-statements-legacy";
  *          value "x" becomes ["x"], an empty one is removed — 1:1, the
  *          measures keep their meaning (as P-1 did for defaultDenyPolicy in
  *          schema 12), so no analysis value changes.
- *   S13-c  (FX-6, when the release plan schedules it) path keys.
+ *   S13-c  (FX-6) an AND gate is one attack path per combination of its
+ *          steps: path analysis recomputed, assessments, risks and the risk
+ *          ids of goals / claims carried over to the new path keys
+ *          (migrate-12-to-13-and-gate-paths.ts); changes the analysis of
+ *          files with an AND gate only.
  *
  * Analysis preservation is reported PER FILE (K-9), not declared for the
  * version: a step returns whether it changed an analysis value of this file.
@@ -34,14 +39,15 @@ import { foldLegacyStatements } from "../compliance-statements-legacy";
 export function migrate_12_to_13(data: any): { data: any; analysisChanged: boolean } {
   const compliance = reshapeCompliance(data?.compliance);
   const dfd = reshapeMultiSelect(data?.dfd);
+  const paths = migrateAndGatePaths(data);
   return {
     data: {
-      ...data,
+      ...paths.data,
       ...(compliance.value ? { compliance: compliance.value } : {}),
       ...(dfd ? { dfd } : {}),
       schemaVersion: 13,
     },
-    analysisChanged: compliance.analysisChanged,
+    analysisChanged: compliance.analysisChanged || paths.analysisChanged,
   };
 }
 

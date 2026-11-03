@@ -75,7 +75,9 @@ describe("analyzeAttackPaths — path extraction", () => {
       "simple",
     );
 
-    expect(analysis.totalPaths).toBe(3); // C1, C2, D
+    // FX-6: the AND gate B is one scenario (C1 and C2), D another.
+    expect(analysis.totalPaths).toBe(2);
+    expect(analysis.paths.map((p) => p.path[p.path.length - 1]).sort()).toEqual(["C1 + C2", "D"]);
   });
 });
 

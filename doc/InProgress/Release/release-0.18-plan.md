@@ -1,10 +1,11 @@
 # TARAflow 0.18.0-beta — release plan
 
-**Status:** v3 · 2026-11-03 · MS-1, CM-11 … CM-13 done · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
+**Status:** v4 · 2026-11-03 · S1 done (patches 21 – 31) · FX-6 done (patch 32) · one branch, one instance (user 2026-11-03) · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
 exposure level), schema **13** on `feature/0.18-model-coverage`
-**Work split (user 2026-11-02):** instance **A** — the compliance strand (S1); instance
-**B** — issue trackers, maintainability and fixes (S2 – S4), Azure DevOps first. The user
-reviews, applies and commits every patch.
+**Work split (user 2026-11-03, replaces the split of 2026-11-02):** instance **A** does every
+strand on `feature/0.18-model-coverage` — the other instance keeps no branch. Order: FX-6,
+FX-7, IT-8 Azure DevOps, FX-1 … FX-5 and MT-3, I18N-1, MT-1 / MT-2, further trackers by effort
+(some may move to 0.19). The user reviews, applies and commits every patch.
 **Sources:** release plan 0.17 (`doc/Done/Release/release-0.17-plan.md`: §3.2 / §3.3 and the
 note "B scope moves to 0.18 unchanged"), release note 0.17 (Azure DevOps promised for
 0.18), `iec-62443-4-2-cra-coverage.md` §9.6, `model-coverage-implementation-plan.md` §8.1 /
@@ -17,9 +18,9 @@ note "B scope moves to 0.18 unchanged"), release note 0.17 (Azure DevOps promise
 | Strand | Content | Owner | Design document |
 |---|---|---|---|
 | S1 Compliance | model coverage stage 1 (**done**, CM-1 … CM-10, patches 01 – 20 on `feature/0.18-model-coverage`); EN 50742 approach A module (CM-11 … CM-13); IEC-6, IEC-8b, D-30 option c; multi-select `physicalPathProtection` / `malwareProtection`; form fields for existing properties | A | `model-coverage-implementation-plan.md`, `iec-62443-4-2-cra-coverage.md`, `en-50742-approach-a-design.md`, `en-50742-rq-coverage.md` |
-| S2 Issue trackers | **Azure DevOps first** (promised in the 0.17 release note), then Jira Server / Data Center, GitHub, GitLab, OpenProject, Polarion | B | `doc/InProgress/Integration/issue-tracker-adapters.md` (§4 design, §5 steps IT-7 …) |
-| S3 Maintainability | split `workspace-layout.tsx` and `risk-dialog.tsx`; threshold-aware risk labels | B | §5 of this plan (B writes a short design note before MT-1) |
-| S4 Fixes / small features | hazard findings panel, audit commit order, report rejection reasons, i18n of risk validation messages, attack-tree relink helper, AND-gate paths; split of `common.json` (`overview.json`) | B | backlog items, §3.3 |
+| S2 Issue trackers | **Azure DevOps first** (promised in the 0.17 release note), then Jira Server / Data Center, GitHub, GitLab, OpenProject, Polarion | A | `doc/InProgress/Integration/issue-tracker-adapters.md` (§4 design, §5 steps IT-7 …) |
+| S3 Maintainability | split `workspace-layout.tsx` and `risk-dialog.tsx`; threshold-aware risk labels | A | §5 of this plan (a short design note before MT-1) |
+| S4 Fixes / small features | hazard findings panel, audit commit order, report rejection reasons, i18n of risk validation messages, attack-tree relink helper, AND-gate paths; split of `common.json` (`overview.json`) | A | backlog items, §3.3 |
 
 Not in 0.18: EN 50742 approach B (user: after the IEC 62443 support is complete), model
 coverage stage 2 (§4.3 of the model coverage plan), hazard graph, common document model,
@@ -64,7 +65,7 @@ B: IT-8 ADO ─ IT-7, IT-9 … IT-12 (independent)
 | D-30c | per-element fields on a black-box Multiprocess (D-30 option c) | **done** (patch 30): seven "inside" fields (core set, user 2026-11-03) in a sub-tab "Inside (black box)", shown only without child page; checked with the Process / DataStore rules, also beside modelled processes |
 | MS-1 | `physicalPathProtection`, `malwareProtection` multi-select (conflicting SHOULDs, backlog after 0.16) — schema-13 step, 1:1 | **done** (patch 22): selections with "none" exclusive (shared helpers `selectionOf` / `withSelected`, also behind `defaultDenyPolicy`); one `MultiSelectField` in the Process, Multiprocess and DataFlow forms (per-technology / per-system-class options kept); defaults, elimination filter (`buried` in a selection), implemented-control hints and the closed loop (`MULTI_SELECT_CONTROL_PROPERTIES`, "none" exclusive) read selections; migration step in `migrate-12-to-13` ("x" → ["x"], analysis-preserving); R-2 test: the same threats for single values and selections. The other pairs of conflicting SHOULDs are true alternatives and stay single-valued |
 | FF-1 | form fields for properties the model has but no form shows: `accessMode`, `dataMinimization`, `volume`, `assumedTrusted`, `connectionSpeed` (with visibility by context) | **done** (patch 31), reduced (user 2026-11-03): `accessMode` (drives the tampering threats of field protocols, closes M-I-007; flows with a transport medium) and `dataMinimization` (CRA (2)(g); flows from / to an external entity) in the data-flow form. Not built: `volume`, `connectionSpeed` (documentation only), `assumedTrusted` (no reader, overlaps "exclude from threat generation") — backlog: remove it from model and report |
-| P-4 | time source — question to the user: F-13 in model coverage stage 2 (plan) or 0.18? | open question |
+| P-4 | time source — not in 0.18 (R-K1 decided): model coverage stage 2, F-13 | moved |
 
 ### 3.2 Instance B — S2 issue trackers
 
@@ -94,7 +95,7 @@ tracker is a user check (listed in TESTPLAN-0.18.md).
 | FX-3 | report shows rejection reasons | open |
 | FX-4 | risk-tab validation messages (`riskService.validate`) via i18n | open |
 | FX-5 | relink helper for goals / claims orphaned by a renamed attack-tree node (pathKey) | open |
-| FX-6 | AND-gate paths: one path per AND gate (combined feasibility) — schema-13 step with the per-file report (K-9) | open |
+| FX-6 | AND-gate paths: one path per AND gate (combined feasibility) — schema-13 step with the per-file report (K-9) | **done** (patch 32): one path per combination of an AND gate's steps (minimal cut set; OR below the gate multiplied out), feasibility of the gate over that combination, key from the sorted legs; S13-c carries assessments (merged; disagreement kept for review), risks (renamed / merged with review note) and goal / claim risk ids over; analysis changed only for files with an AND gate |
 | FX-7 | threat catalog context keys the matcher ignores: `matchesContext` does not read `physicalPathProtection`, so the condition `physicalPathProtection: ["none"]` in `threats-physical.json` has no effect (found with MS-1, 2026-11-02) — a guard test for unknown context keys, then decide per key (wire it in — changes threats, R-2 note in the release notes — or drop it from the catalog). Same check for **unset values** (found with FF-1, 2026-11-03): a condition such as `accessMode: ["read_write"]` (threats-tampering, embedded) drops the threat when the flow leaves the property unset — against "unset = unknown, never safe" (R-1); decide with the R-2 note. **Must be in 0.18** (user 2026-11-03) | open |
 | I18N-1 | split `common.json` into `overview.json` / `common.json` (insert / move keys textually, never re-dump the JSON) | open |
 
@@ -102,7 +103,7 @@ tracker is a user check (listed in TESTPLAN-0.18.md).
 
 | Step | Content | Owner | Status |
 |---|---|---|---|
-| R-1 | `TESTPLAN-0.18.md` (repo root, untracked; A started it for S1, B adds S2 – S4), CHANGELOG, release note `doc/release-notes/v0.18.0-beta.md`, README, version 0.18.0-beta; finished design docs → `doc/Done` | A, after both branches are merged | open |
+| R-1 | `TESTPLAN-0.18.md` (repo root, untracked; one section per step), CHANGELOG, release note `doc/release-notes/v0.18.0-beta.md`, README, version 0.18.0-beta; finished design docs → `doc/Done` | A, after the user ran the test plan | open |
 
 ## 4. Working rules (both instances)
 
@@ -134,5 +135,5 @@ As in the 0.17 plan §6, in short:
 
 | # | Question | Recommendation |
 |---|---|---|
-| R-K1 | P-4 time source in 0.18 or with model coverage stage 2? | stage 2 (F-13 with the audit cluster F-11 … F-14) |
-| R-K2 | Order of the trackers after ADO | Jira Server / DC (reuses the Jira adapter), then GitHub, GitLab, OpenProject, Polarion |
+| R-K1 | P-4 time source in 0.18 or with model coverage stage 2? | **decided** (user 2026-11-03): not in 0.18 — with stage 2 (F-13 with the audit cluster F-11 … F-14) |
+| R-K2 | Order of the trackers after ADO | **decided** (user 2026-11-03): Jira Server / DC (reuses the Jira adapter), then GitHub, GitLab, OpenProject, Polarion |

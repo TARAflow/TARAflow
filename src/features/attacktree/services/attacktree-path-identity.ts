@@ -71,9 +71,22 @@ export function computePathKey(nodeNames: string[]): string {
   return hash64(chain);
 }
 
+/** Separates the names of one leg inside a combined key segment. */
+const LEG_SEPARATOR = "\u241E";
+
+/**
+ * FX-6: identity of a combined path — ROOT → AND gate, then its legs, each
+ * leg's name chain as one segment, sorted: stable under sibling order below
+ * the gate, changed by renaming any node of the combination.
+ */
+export function computeCombinedPathKey(gate: string[], legs: string[][]): string {
+  const segments = legs.map((leg) => leg.map(normalizeSegment).join(LEG_SEPARATOR)).sort();
+  return computePathKey([...gate, ...segments]);
+}
+
 /** Convenience: derive the key straight from an AttackPath. */
 export function computePathKeyFromPath(path: AttackPath): string {
-  return computePathKey(path.path);
+  return path.combination ? computeCombinedPathKey(path.combination.gate, path.combination.legs) : computePathKey(path.path);
 }
 
 // ==================== NODE ID ====================
@@ -140,7 +153,10 @@ export function findPathKeyCollisions(
 
   for (const p of paths) {
     const key = computePathKeyFromPath(p);
-    const chain = p.path.map(normalizeSegment).join(CHAIN_SEPARATOR);
+    const segments = p.combination
+      ? [...p.combination.gate, ...p.combination.legs.map((leg) => leg.join(LEG_SEPARATOR)).sort()]
+      : p.path;
+    const chain = segments.map(normalizeSegment).join(CHAIN_SEPARATOR);
     const chains = byKey.get(key) ?? new Set<string>();
     chains.add(chain);
     byKey.set(key, chains);

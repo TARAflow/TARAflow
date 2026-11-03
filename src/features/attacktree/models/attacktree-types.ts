@@ -562,8 +562,21 @@ export interface AttackPath {
    */
   pathKey: string;
 
+  /**
+   * Node names ROOT → leaf. For a combined path (FX-6) ROOT → the AND gate,
+   * then one last segment naming the combination's steps ("A + B").
+   */
   path: string[];
   nodeIds: string[];
+
+  /**
+   * FX-6: the path is one attack scenario through an AND gate — the attacker
+   * must take every step of the combination (a minimal cut set of the gate's
+   * subtree; an OR below the gate yields one combination per branch).
+   * `gate` = node names ROOT → the AND gate, `legs` = for each step the names
+   * from the gate's child down to the leaf. Absent = a path with no AND gate.
+   */
+  combination?: { gate: string[]; legs: string[][] };
 
   /**
    * Attack feasibility of this path (ISO 21434 Cl. 15.7).

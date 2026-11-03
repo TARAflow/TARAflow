@@ -27,7 +27,9 @@ import {
   computeAttackPotential,
   computeLikelihood,
 } from "./attacktree-feasibility";
-import { computePathKey } from "./attacktree-path-identity";
+import { computeCombinedPathKey, computePathKey } from "./attacktree-path-identity";
+import { ATTACK_VECTORS, type AttackVector } from "shared";
+import type { BenefitLevel } from "../models/attacktree-feasibility-types";
 
 // ==================== RISK SCORE CALCULATION ====================
 
@@ -470,6 +472,17 @@ export function extractAllPaths(
       }
     }
 
+    // FX-6: an AND gate is one attack scenario per combination of the steps
+    // below it (minimal cut set) — not one path per leaf.
+    if (node.type === "AND" && node.children.length > 0) {
+      for (const combination of andCombinations(node)) {
+        paths.push(
+          combinedPath(++pathIdCounter, node, combination, path, nodeIds, mitigations, goals, pathProbability, nodesOnPath, method, feasibilityConfig),
+        );
+      }
+      return;
+    }
+
     // Leaf node - create path
     if (node.children.length === 0) {
       // Calculate path-specific values
@@ -565,6 +578,100 @@ export function extractAllPaths(
 
   extractPath(root, [], [], [], [], 1.0, []);
   return paths;
+}
+
+// ==================== AND GATES (FX-6) ====================
+
+/** One step of a combination: the names and nodes from the gate's child down to a leaf. */
+interface Leg {
+  names: string[];
+  nodes: AttackTreeNode[];
+}
+
+/** The combinations (minimal cut sets) of a subtree, each a list of legs starting at `node`. */
+function combinationsFrom(node: AttackTreeNode): Leg[][] {
+  const prefix = (legs: Leg[]): Leg[] => legs.map((leg) => ({ names: [node.name, ...leg.names], nodes: [node, ...leg.nodes] }));
+  if (node.children.length === 0) return [[{ names: [node.name], nodes: [node] }]];
+  if (node.type === "AND") return andCombinations(node).map(prefix);
+  // OR (and ROOT below a gate): the attacker picks one branch.
+  return node.children.flatMap((child) => combinationsFrom(child).map(prefix));
+}
+
+/** The combinations of an AND gate: every child once, OR choices multiplied out. */
+function andCombinations(gate: AttackTreeNode): Leg[][] {
+  let combinations: Leg[][] = [[]];
+  for (const child of gate.children) {
+    const options = combinationsFrom(child);
+    combinations = combinations.flatMap((partial) => options.map((option) => [...partial, ...option]));
+  }
+  return combinations;
+}
+
+/** The gate's subtree reduced to the nodes of one combination — its feasibility is the combination's. */
+function pruneTo(node: AttackTreeNode, keep: ReadonlySet<string>): AttackTreeNode {
+  return { ...node, children: node.children.filter((c) => keep.has(c.id)).map((c) => pruneTo(c, keep)) };
+}
+
+const BENEFIT_ORDER: readonly BenefitLevel[] = ["negligible", "low", "medium", "high"];
+
+/** The path of one combination below the AND gate `gate`. */
+function combinedPath(
+  number: number,
+  gate: AttackTreeNode,
+  legs: Leg[],
+  gateChain: string[],
+  gateNodeIds: string[],
+  chainMitigations: string[],
+  chainGoals: AttackGoalCategory[],
+  chainProbability: number,
+  chainNodes: AttackTreeNode[],
+  method: EvaluationMethod,
+  feasibilityConfig: FeasibilityConfiguration,
+): AttackPath {
+  const legNodes = legs.flatMap((leg) => leg.nodes);
+  const leaves = legs.map((leg) => leg.nodes[leg.nodes.length - 1]);
+  const keep = new Set(legNodes.map((n) => n.id));
+
+  // Feasibility: the gate aggregated over this combination only (an OR below
+  // it counts the chosen branch, not the cheapest one).
+  const quantity = calculateNodeFeasibilityQuantity(pruneTo(gate, keep), feasibilityConfig);
+  const feasibilityLevel = quantity ? bandQuantity(quantity, feasibilityConfig) : undefined;
+  const benefits = leaves.map((l) => l.evaluation?.benefit).filter((b): b is BenefitLevel => !!b);
+  const benefit = benefits.length > 0 ? BENEFIT_ORDER[Math.max(...benefits.map((b) => BENEFIT_ORDER.indexOf(b)))] : undefined;
+  // Attack vector: the most restrictive one the steps need (all of them must be taken).
+  const vectors = legs
+    .map((leg) => [...chainNodes, ...leg.nodes].reverse().find((n) => n.attackVector)?.attackVector)
+    .filter((v): v is AttackVector => !!v);
+  const attackVector = vectors.length > 0 ? ATTACK_VECTORS[Math.max(...vectors.map((v) => ATTACK_VECTORS.indexOf(v)))] : undefined;
+
+  const extended = method === "extended" ? leaves.map((l) => l.evaluation?.extended).filter((e) => !!e) : [];
+  const simple = method === "simple" ? leaves.map((l) => l.evaluation?.simple).filter((e) => !!e) : [];
+  const impacts = [...extended.map((e) => e!.impact), ...simple.map((e) => e!.impact)];
+  const mitigations = [...new Set([...chainMitigations, ...legNodes.flatMap((n) => n.mitigations)])];
+  const goals = [...new Set([...chainGoals, ...legNodes.map((n) => n.attackGoal).filter((g): g is AttackGoalCategory => !!g)])];
+
+  return {
+    id: "path-" + number,
+    pathKey: computeCombinedPathKey(gateChain, legs.map((leg) => leg.names)),
+    path: [...gateChain, legs.map((leg) => leg.names[leg.names.length - 1]).join(" + ")],
+    combination: { gate: gateChain, legs: legs.map((leg) => leg.names) },
+    nodeIds: [...gateNodeIds, ...legNodes.map((n) => n.id)],
+    riskScore: Math.max(0, ...leaves.map((l) => l.riskScore || 0)),
+    probability: leaves.reduce((p, l) => p * (l.evaluation ? calculateNodeProbability(l, method) : 1), chainProbability),
+    impact: impacts.length > 0 ? Math.max(...impacts) : 0,
+    feasibility: extended.length > 0 ? extended.reduce((p, e) => p * e!.feasibility, 1) : undefined,
+    benefits: extended.length > 0 ? Math.max(...extended.map((e) => e!.benefits)) : undefined,
+    feasibilityLevel,
+    // The sum over the steps; the factor breakdown belongs to single leaves.
+    attackPotential: quantity?.kind === "potential" ? (quantity.value as number) : undefined,
+    likelihoodLevel: feasibilityLevel ? computeLikelihood(feasibilityLevel, benefit, feasibilityConfig) : undefined,
+    benefit,
+    ...(attackVector ? { attackVector } : {}),
+    attackGoals: goals,
+    mitigations,
+    isCritical: false,
+    isFullyMitigated: mitigations.length > 0,
+  };
 }
 
 // ==================== PATH ANALYSIS ====================
