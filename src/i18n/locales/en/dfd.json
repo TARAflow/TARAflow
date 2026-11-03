@@ -354,6 +354,83 @@
         }
       },
       "modelFields": {
+        "innerInputValidation": {
+          "label": "Inside: input validation",
+          "help": "The weakest input validation of the processes this black box contains (e.g. the firmware of a supplier module). IEC 62443-4-2 CR 3.5. Leave unset when the software is not known — the row stays open for a statement or the supplier's evidence.",
+          "values": {
+            "none": "None",
+            "basic": "Basic (type checking)",
+            "strict": "Strict (whitelist + sanitisation)",
+            "schema": "Schema validation"
+          }
+        },
+        "innerErrorHandling": {
+          "label": "Inside: error handling",
+          "help": "How the contained processes report errors — the weakest case. CR 3.7 asks that error messages give no information an attacker could use.",
+          "values": {
+            "silent": "Silent (no details)",
+            "verbose": "Verbose (stack traces)",
+            "sanitized": "Sanitised (user-friendly)"
+          }
+        },
+        "innerFailSafeOutputState": {
+          "label": "Inside: output state on failure",
+          "help": "The state the outputs of the contained processes take on a failure or a security violation. CR 3.6 (deterministic output).",
+          "values": {
+            "not_defined": "Not defined",
+            "unpowered": "Unpowered / de-energised",
+            "hold_last_value": "Hold last value",
+            "fixed_value": "Fixed value",
+            "dynamic": "Dynamic (depends on the situation)"
+          }
+        },
+        "innerDataClassification": {
+          "label": "Inside: data classification",
+          "help": "The classification of the most sensitive data the black box stores (configuration, keys, recipes …). Decides whether CR 4.1 / CR 4.2 apply to its data.",
+          "values": {
+            "public": "Public",
+            "internal": "Internal",
+            "confidential": "Confidential",
+            "restricted": "Restricted",
+            "secret": "Secret"
+          }
+        },
+        "innerEncryptionAtRest": {
+          "label": "Inside: encryption at rest",
+          "help": "How the stored data inside is encrypted — the weakest case. CR 4.1 (data at rest), CR 4.3.",
+          "values": {
+            "none": "None",
+            "aes256": "AES-256",
+            "tde": "Transparent data encryption",
+            "kms": "Key management service",
+            "custom": "Custom"
+          }
+        },
+        "innerIntegrityProtection": {
+          "label": "Inside: integrity protection",
+          "help": "How the stored data and firmware inside are protected against change — the weakest case. CR 3.4, CR 3.4 RE(1) (signature).",
+          "values": {
+            "none": "None",
+            "crc": "CRC",
+            "hash": "Hash",
+            "hmac": "HMAC",
+            "signature": "Signature",
+            "custom": "Custom"
+          }
+        },
+        "innerDeletionMechanism": {
+          "label": "Inside: deletion",
+          "help": "How data inside is deleted when it is no longer needed or the device leaves service. CR 4.2, CR 7.9 (factory reset).",
+          "values": {
+            "none": "None",
+            "overwrite": "Overwrite",
+            "factory_reset": "Factory reset",
+            "crypto_erase": "Crypto erase",
+            "physical": "Physical destruction",
+            "retention_period": "Retention period",
+            "custom": "Custom"
+          }
+        },
         "userAccounts": {
           "label": "User accounts",
           "help": "How human users log in to this element: each person with an account of their own, one login per role (e.g. operator, maintenance, admin — usual in industrial devices), or one login shared by everyone. IEC 62443-4-2 CR 1.1 accepts role- or group-based logins; CR 1.1 RE(1) (SL 2) asks for unique identification of every human user.",
@@ -472,6 +549,7 @@
           "robustness": "Robustness",
           "sessions": "Sessions & traceability",
           "operation": "Operation",
+          "inside": "Inside (black box)",
           "safety": "Safety"
         },
         "title": "Element Descriptions",

@@ -140,6 +140,6 @@
     "todoProject": "In den Projektdaten — Gefährdungen, Übersicht, Item-Definition",
     "todoComponent": "Für die Komponente — ein Element genügt",
     "todoOnOne": "an einem {{types}}",
-    "todoInside": "Prozesse und Speicher auf einer Unterseite modellieren oder eine Aussage erfassen"
+    "todoInside": "die Innen-Felder (Black Box) setzen, Prozesse und Speicher auf einer Unterseite modellieren oder eine Aussage erfassen"
   }
 }

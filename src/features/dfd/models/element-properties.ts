@@ -30,6 +30,13 @@ import type {
 import type {
   AUTHENTICATOR_CHANGEABLE_VALUES,
   DEFAULT_CREDENTIALS_VALUES,
+  INNER_DATA_CLASSIFICATION_VALUES,
+  INNER_DELETION_MECHANISM_VALUES,
+  INNER_ENCRYPTION_AT_REST_VALUES,
+  INNER_ERROR_HANDLING_VALUES,
+  INNER_FAIL_SAFE_OUTPUT_STATE_VALUES,
+  INNER_INPUT_VALIDATION_VALUES,
+  INNER_INTEGRITY_PROTECTION_VALUES,
   LOGIN_LOCKOUT_VALUES,
   PASSWORD_LIFETIME_VALUES,
   PASSWORD_STRENGTH_VALUES,
@@ -615,6 +622,25 @@ export interface MultiprocessProperties {
   securityConfigReporting?: SecurityConfigReporting;
   /** F-22 — shown where the element stands for the component. */
   userDataDeletion?: UserDataDeletion;
+
+  // ── Inside a black box (D-30c) ─────────────────────────────────────────
+  // Shown only without a child page: the weakest case over the processes
+  // and data the multiprocess contains; checked with the Process / DataStore
+  // rules (shared BLACK_BOX_FIELDS). Ignored once a child page exists.
+  /** Contained processes: input validation (CR 3.5). */
+  innerInputValidation?: (typeof INNER_INPUT_VALIDATION_VALUES)[number];
+  /** Contained processes: error handling (CR 3.7). */
+  innerErrorHandling?: (typeof INNER_ERROR_HANDLING_VALUES)[number];
+  /** Contained processes: output state on failure (CR 3.6). */
+  innerFailSafeOutputState?: (typeof INNER_FAIL_SAFE_OUTPUT_STATE_VALUES)[number];
+  /** Contained data: the most sensitive classification (CR 4.1, 4.2). */
+  innerDataClassification?: (typeof INNER_DATA_CLASSIFICATION_VALUES)[number];
+  /** Contained data: encryption at rest (CR 4.1, 4.3). */
+  innerEncryptionAtRest?: (typeof INNER_ENCRYPTION_AT_REST_VALUES)[number];
+  /** Contained data: integrity protection (CR 3.4). */
+  innerIntegrityProtection?: (typeof INNER_INTEGRITY_PROTECTION_VALUES)[number];
+  /** Contained data: how it is deleted (CR 4.2, 7.9). */
+  innerDeletionMechanism?: (typeof INNER_DELETION_MECHANISM_VALUES)[number];
 
   /**
    * Backup and recovery mechanism for this system.

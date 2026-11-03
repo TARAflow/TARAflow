@@ -10,6 +10,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MultiprocessDescriptionForm } from "features/dfd/components/forms/multiprocess-description-form";
 import type { DFDElement } from "features/dfd/models/dfd-types";
+import { ModelFieldProvider } from "features/dfd/components/forms/model-field-inputs";
+import type { VisibilityElement } from "shared";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -50,5 +52,29 @@ describe("MultiprocessDescriptionForm — Security sub-tabs", () => {
 
     fireEvent.click(screen.getByTestId("security-tab-safety"));
     expect(screen.getByText("Safety-Relevant System")).toBeTruthy();
+  });
+});
+
+describe("MultiprocessDescriptionForm — inside a black box (D-30c)", () => {
+  const renderIn = (decomposed?: Set<string>) =>
+    render(
+      <ModelFieldProvider elements={[element as unknown as VisibilityElement]} connections={[]} decomposed={decomposed}>
+        <MultiprocessDescriptionForm element={element} onChange={() => {}} />
+      </ModelFieldProvider>,
+    );
+
+  it("without child page: the tab 'Inside (black box)' before safety, with the seven fields open", () => {
+    renderIn();
+    const tabs = screen.getAllByRole("tab").map((t) => t.getAttribute("data-testid")).filter((id) => id?.startsWith("security-tab-"));
+    expect(tabs.slice(-2)).toEqual(["security-tab-inside", "security-tab-safety"]);
+    expect(screen.getByTestId("security-tab-inside").textContent).toBe("Inside (black box) (7)");
+    fireEvent.click(screen.getByTestId("security-tab-inside"));
+    expect(screen.getByTestId("model-field-innerInputValidation")).toBeTruthy();
+    expect(screen.getByTestId("model-field-innerDeletionMechanism")).toBeTruthy();
+  });
+
+  it("with a child page: no inside tab", () => {
+    renderIn(new Set(["mp1"]));
+    expect(screen.queryByTestId("security-tab-inside")).toBeNull();
   });
 });

@@ -2,7 +2,7 @@
 // The Security section of the Process and Multiprocess forms in light
 // sub-tabs per category (user 2026-11-02; model-coverage-implementation-
 // plan.md CM-5d): login & accounts · authorization · robustness · sessions &
-// traceability · operation (· safety on the Multiprocess). A tab names how
+// traceability · operation (· inside and safety on the Multiprocess). A tab names how
 // many of its shown fields are still open; a tab without a field that fits
 // the element is left out. The chosen tab is kept per element type while the
 // app runs, so moving from element to element stays on the same category.
@@ -26,7 +26,7 @@ export interface SecurityEntry {
   node: React.ReactNode;
 }
 
-const TAB_ORDER: readonly SecurityTabId[] = ["login", "authorization", "robustness", "sessions", "operation", "safety"];
+const TAB_ORDER: readonly SecurityTabId[] = ["login", "authorization", "robustness", "sessions", "operation", "inside", "safety"];
 
 const TAB_DEFAULT: Record<SecurityTabId, string> = {
   login: "Login & accounts",
@@ -34,6 +34,7 @@ const TAB_DEFAULT: Record<SecurityTabId, string> = {
   robustness: "Robustness",
   sessions: "Sessions & traceability",
   operation: "Operation",
+  inside: "Inside (black box)",
   safety: "Safety",
 };
 

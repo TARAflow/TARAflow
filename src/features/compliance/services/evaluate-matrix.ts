@@ -25,7 +25,7 @@ import type {
   SecurityLevel,
   SlVector,
 } from "../models/compliance-types";
-import { MODEL_CONDITIONS, MODEL_FIELDS, visibilityContexts, withoutHiddenFields, type VisibilityContext } from "shared";
+import { BLACK_BOX_FIELDS, isUnset, MODEL_CONDITIONS, MODEL_FIELDS, visibilityContexts, withoutHiddenFields, type VisibilityContext } from "shared";
 import { FOUNDATIONAL_REQUIREMENTS } from "../models/compliance-types";
 import type {
   ComplianceInput,
@@ -99,8 +99,12 @@ interface Graph {
 }
 
 function buildGraph(input: ComplianceInput): Graph {
-  // R-4: a model field its driver hides reads as unset in every check.
-  const options = { componentId: input.componentId };
+  // R-4: a model field its driver hides reads as unset in every check. A
+  // multiprocess that is no black box (it has a child page) hides its
+  // "inside" fields (D-30c).
+  const blackBoxes = input.view.blackBoxes ?? new Set<string>();
+  const decomposed = new Set(input.view.elements.filter((e) => e.type === "Multiprocess" && !blackBoxes.has(e.id)).map((e) => e.id));
+  const options = { componentId: input.componentId, decomposed };
   const view = withoutHiddenFields(input.view.elements, input.view.flows, MODEL_FIELDS, options);
   const elements = new Map(view.elements.map((e) => [e.id, e]));
   const flowElements = new Map<string, ViewElement>();
@@ -239,6 +243,34 @@ function blackBoxStandIns(rule: EvidenceRule<AnyRequirementId>, graph: Graph, in
   return [...graph.blackBoxes].filter((id) => inScope(id) && graph.elements.has(id));
 }
 
+/**
+ * D-30c: a black box with "inside" fields set takes part as a contained
+ * Process / DataStore — its fields read under the property names the rule
+ * checks (BLACK_BOX_FIELDS) — also next to modelled processes and stores
+ * (a supplier module drawn as a black box beside a PLC with a child page).
+ * Without such a field it stays a stand-in only where nothing of the type
+ * is in scope (D-30).
+ */
+function blackBoxElements(graph: Graph, target: EvidenceTarget, inScope: (id: string) => boolean): ViewElement[] {
+  if ((target.elementTypes as readonly string[]).includes("Multiprocess")) return [];
+  const out: ViewElement[] = [];
+  for (const type of ["Process", "DataStore"] as const) {
+    if (!(target.elementTypes as readonly string[]).includes(type)) continue;
+    const map: Readonly<Record<string, string>> = BLACK_BOX_FIELDS[type];
+    for (const id of graph.blackBoxes) {
+      const box = graph.elements.get(id);
+      if (!box || !inScope(id)) continue;
+      const properties: Record<string, unknown> = {};
+      for (const [property, inner] of Object.entries(map)) {
+        const value = box.properties?.[inner];
+        if (!isUnset(value)) properties[property] = value;
+      }
+      if (Object.keys(properties).length > 0) out.push({ id, type, properties });
+    }
+  }
+  return out;
+}
+
 /** Steps 4 – 7 and 9 for one requirement id. */
 function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input: ComplianceInput): IdOutcome {
   const typeA = rule.type === "A";
@@ -280,8 +312,12 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
   const wholeComponent = rule.targets.length === 0;
   const applicableYes: { element: ViewElement; target: EvidenceTarget }[] = [];
   const applicableUnknown: string[] = [];
+  // Black boxes that took part through their "inside" fields are no stand-ins.
+  const viaFields = new Set<string>();
   for (const target of rule.targets) {
-    for (const element of candidates(graph, target, inScope, true)) {
+    const boxes = blackBoxElements(graph, target, inScope);
+    for (const box of boxes) viaFields.add(box.id);
+    for (const element of [...candidates(graph, target, inScope, true), ...boxes]) {
       const tri = applicable(graph, element, target);
       if (tri === "yes") applicableYes.push({ element, target });
       else if (tri === "unknown") applicableUnknown.push(element.id);
@@ -289,7 +325,7 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
   }
   if (!wholeComponent && applicableYes.length === 0) {
     if (applicableUnknown.length > 0) return outcome("unknown", { unknown: applicableUnknown });
-    const standIns = blackBoxStandIns(rule, graph, inScope);
+    const standIns = blackBoxStandIns(rule, graph, inScope).filter((id) => !viaFields.has(id));
     if (standIns.length > 0) {
       return outcome("unknown", {
         unknown: standIns,

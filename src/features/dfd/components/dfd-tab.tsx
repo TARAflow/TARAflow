@@ -281,6 +281,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
     cellRef: selectedCellRef,
   });
   const { identityReview, childPages, lostDefinitions, insertContext } = leveled;
+  // D-30c: a multiprocess with a child page is no black box — its "inside" fields are hidden.
+  const decomposedMultiprocesses = useMemo(
+    () => (leveled.analysis ? new Set(leveled.analysis.tree.childPageOf.keys()) : undefined),
+    [leveled.analysis],
+  );
 
   const { updateElement, updateAsset, createAsset, deleteAsset, dfd } =
     useDFDData(project);
@@ -830,6 +835,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       elements={(project.dfd?.elements ?? EMPTY_LIST) as unknown as VisibilityElement[]}
       connections={(project.dfd?.connections ?? EMPTY_LIST) as unknown as VisibilityFlowInput[]}
       componentId={complianceComponentId}
+      decomposed={decomposedMultiprocesses}
     >
     <Box
       sx={{

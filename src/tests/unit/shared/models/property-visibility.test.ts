@@ -3,6 +3,8 @@
 // tested with a test registry; the real fields join with CM-5 … CM-7.
 import { describe, it, expect } from "vitest";
 import {
+  MODEL_FIELDS,
+  modelField,
   isFieldShown,
   isUnset,
   readModelField,
@@ -91,5 +93,25 @@ describe("withoutHiddenFields (R-4, K-7)", () => {
     const out = withoutHiddenFields(elements, f, []);
     expect(out.elements.every((e, i) => e === elements[i])).toBe(true);
     expect(out.flows[0]).toBe(f[0]);
+  });
+});
+
+describe("inside fields of a black box (D-30c)", () => {
+  const els = [{ id: "mp", type: "Multiprocess", properties: { innerInputValidation: "strict" } }];
+  const field = modelField("innerInputValidation", MODEL_FIELDS)!;
+
+  it("shown on a multiprocess without child page; hidden — and read as unset — once it has one", () => {
+    expect(isFieldShown(field, visibilityContexts(els, [])("mp")!)).toBe(true);
+    const decomposed = visibilityContexts(els, [], { decomposed: new Set(["mp"]) })("mp")!;
+    expect(isFieldShown(field, decomposed)).toBe(false);
+    expect(readModelField(field, decomposed)).toBeUndefined();
+    expect(withoutHiddenFields(els, [], MODEL_FIELDS, { decomposed: new Set(["mp"]) }).elements[0].properties).toEqual({});
+  });
+
+  it("only on multiprocesses, in the sub-tab 'inside'", () => {
+    for (const f of MODEL_FIELDS.filter((x) => x.property.startsWith("inner"))) {
+      expect(f.elementTypes).toEqual(["Multiprocess"]);
+      expect(f.group).toBe("inside");
+    }
   });
 });

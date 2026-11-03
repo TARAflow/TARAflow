@@ -354,6 +354,83 @@
         }
       },
       "modelFields": {
+        "innerInputValidation": {
+          "label": "Innen: Eingabevalidierung",
+          "help": "Die schwächste Eingabevalidierung der Prozesse, die diese Black Box enthält (z. B. die Firmware eines Zulieferer-Moduls). IEC 62443-4-2 CR 3.5. Leer lassen, wenn die Software nicht bekannt ist — die Zeile bleibt offen für eine Aussage oder den Nachweis des Herstellers.",
+          "values": {
+            "none": "Keine",
+            "basic": "Basis (Typprüfung)",
+            "strict": "Streng (Whitelist + Bereinigung)",
+            "schema": "Schema-Validierung"
+          }
+        },
+        "innerErrorHandling": {
+          "label": "Innen: Fehlerbehandlung",
+          "help": "Wie die enthaltenen Prozesse Fehler melden — der schwächste Fall. CR 3.7 verlangt, dass Fehlermeldungen einem Angreifer nichts Verwertbares verraten.",
+          "values": {
+            "silent": "Still (keine Details)",
+            "verbose": "Ausführlich (Stack-Traces)",
+            "sanitized": "Bereinigt (benutzerfreundlich)"
+          }
+        },
+        "innerFailSafeOutputState": {
+          "label": "Innen: Ausgangszustand bei Fehler",
+          "help": "Der Zustand, den die Ausgänge der enthaltenen Prozesse bei einem Fehler oder einer Sicherheitsverletzung annehmen. CR 3.6 (deterministische Ausgänge).",
+          "values": {
+            "not_defined": "Nicht definiert",
+            "unpowered": "Stromlos / abgeschaltet",
+            "hold_last_value": "Letzten Wert halten",
+            "fixed_value": "Fester Wert",
+            "dynamic": "Dynamisch (situationsabhängig)"
+          }
+        },
+        "innerDataClassification": {
+          "label": "Innen: Datenklassifizierung",
+          "help": "Die Einstufung der sensibelsten Daten, die die Black Box speichert (Konfiguration, Schlüssel, Rezepte …). Entscheidet, ob CR 4.1 / CR 4.2 für ihre Daten gelten.",
+          "values": {
+            "public": "Öffentlich",
+            "internal": "Intern",
+            "confidential": "Vertraulich",
+            "restricted": "Eingeschränkt",
+            "secret": "Geheim"
+          }
+        },
+        "innerEncryptionAtRest": {
+          "label": "Innen: Verschlüsselung gespeicherter Daten",
+          "help": "Wie die gespeicherten Daten innen verschlüsselt sind — der schwächste Fall. CR 4.1 (Daten im Ruhezustand), CR 4.3.",
+          "values": {
+            "none": "Keine",
+            "aes256": "AES-256",
+            "tde": "Transparente Datenverschlüsselung",
+            "kms": "Schlüsselverwaltungsdienst",
+            "custom": "Benutzerdefiniert"
+          }
+        },
+        "innerIntegrityProtection": {
+          "label": "Innen: Integritätsschutz",
+          "help": "Wie gespeicherte Daten und Firmware innen gegen Veränderung geschützt sind — der schwächste Fall. CR 3.4, CR 3.4 RE(1) (Signatur).",
+          "values": {
+            "none": "Keiner",
+            "crc": "CRC",
+            "hash": "Hash",
+            "hmac": "HMAC",
+            "signature": "Signatur",
+            "custom": "Benutzerdefiniert"
+          }
+        },
+        "innerDeletionMechanism": {
+          "label": "Innen: Löschung",
+          "help": "Wie Daten innen gelöscht werden, wenn sie nicht mehr gebraucht werden oder das Gerät ausser Betrieb geht. CR 4.2, CR 7.9 (Werksreset).",
+          "values": {
+            "none": "Keine",
+            "overwrite": "Überschreiben",
+            "factory_reset": "Werksreset",
+            "crypto_erase": "Kryptografisches Löschen",
+            "physical": "Physische Zerstörung",
+            "retention_period": "Aufbewahrungsfrist",
+            "custom": "Benutzerdefiniert"
+          }
+        },
         "userAccounts": {
           "label": "Benutzerkonten",
           "help": "Wie sich Menschen an diesem Element anmelden: jede Person mit einem eigenen Konto, ein Login pro Rolle (z. B. Bediener, Wartung, Admin — bei Industriegeräten üblich) oder ein gemeinsamer Login für alle. IEC 62443-4-2 CR 1.1 lässt rollen- oder gruppenbasierte Logins zu; CR 1.1 RE(1) (SL 2) verlangt die eindeutige Identifikation jedes menschlichen Benutzers.",
@@ -472,6 +549,7 @@
           "robustness": "Robustheit",
           "sessions": "Sitzungen & Nachvollziehbarkeit",
           "operation": "Betrieb",
+          "inside": "Innen (Black Box)",
           "safety": "Safety"
         },
         "title": "Element-Beschreibungen",

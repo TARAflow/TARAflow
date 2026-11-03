@@ -56,7 +56,7 @@ describe("buildTodoList", () => {
     ]);
   });
 
-  it("a black-box multiprocess standing in gets the item 'inside' (D-30)", () => {
+  it("a black-box multiprocess standing in gets the item 'inside' (D-30) — naming the inside fields that answer it (D-30c)", () => {
     const edition: Edition = {
       ...EDITION_PRAA_2026,
       rows: [{ label: "CR 3.5", group: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false }],
@@ -73,6 +73,6 @@ describe("buildTodoList", () => {
       { SI: 1 },
       () => "Multiprocess",
     );
-    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", group: "SI", kind: "inside", properties: [], plannedClosed: false }] }]);
+    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", group: "SI", kind: "inside", properties: ["inner input validation"], plannedClosed: false }] }]);
   });
 });

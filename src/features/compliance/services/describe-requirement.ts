@@ -48,6 +48,7 @@ const WORDS = {
       updatable: "that is updated",
       automaticUpdates: "that installs updates automatically",
       machinePasswordUse: "where software processes or devices log in with a password",
+      blackBox: "without child page (black box)",
     },
   },
   de: {
@@ -79,6 +80,7 @@ const WORDS = {
       updatable: "das aktualisiert wird",
       automaticUpdates: "das Updates automatisch installiert",
       machinePasswordUse: "bei dem sich Software-Prozesse oder Geräte mit Passwort anmelden",
+      blackBox: "ohne Unterseite (Black Box)",
     },
   },
 } as const;

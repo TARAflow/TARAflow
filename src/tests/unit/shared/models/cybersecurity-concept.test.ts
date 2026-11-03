@@ -92,4 +92,3 @@ describe("supporting claims (IEC 62443-4-2 D-5, IEC-6)", () => {
     expect(claimsOfRequirements(c, [])).toEqual([]);
   });
 });
-

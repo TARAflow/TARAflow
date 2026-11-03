@@ -58,12 +58,16 @@ export interface VisibilityModel {
   componentId?: string;
   /** Some data store holds user data: personal data, credentials, keys or configuration (EN 303 645 5.11-1). */
   storesUserData?: boolean;
+  /** Multiprocesses with a child page; the others are black boxes (D-30). Absent = none known. */
+  decomposed?: ReadonlySet<string>;
 }
 
 /** Options for building the contexts of a whole model. */
 export interface VisibilityOptions {
   /** The component under evaluation — its settings are asked on it (CM-6). */
   componentId?: string;
+  /** Multiprocesses with a child page (leveled DFD); the others are black boxes. */
+  decomposed?: ReadonlySet<string>;
 }
 
 /** A flow as the DFD and the property view store it. */
@@ -79,7 +83,7 @@ export interface VisibilityFlowInput {
 export const NOT_SPECIFIED = "not_specified";
 
 /** Sub-tab of the Security section an element form shows a field in (CM-5d). */
-export type SecurityGroup = "login" | "authorization" | "robustness" | "sessions" | "operation";
+export type SecurityGroup = "login" | "authorization" | "robustness" | "sessions" | "operation" | "inside";
 
 export interface ModelField {
   /** Property key on the element (top level of `properties`). */
@@ -190,6 +194,12 @@ export const MODEL_CONDITIONS = {
   /** Updates are installed automatically (F-27 updateDelivery = automatic on an updatable element). */
   automaticUpdates: (c: VisibilityContext): boolean =>
     MODEL_CONDITIONS.updatable(c) && prop(c.element, "updateDelivery") === "automatic",
+  /**
+   * A Multiprocess without child page (D-30): it contains processes and data
+   * the model does not show — e.g. a supplier's communication module whose
+   * software stack is not known. Its "inside" fields summarise them (D-30c).
+   */
+  blackBox: (c: VisibilityContext): boolean => c.element.type === "Multiprocess" && !c.model?.decomposed?.has(c.element.id),
   /** Software processes or devices log in with a password: a password flow from a non-human source, or a boundary password with non-human external neighbours. */
   machinePasswordUse: (c: VisibilityContext): boolean =>
     !deniesAuthentication(c) &&
@@ -277,6 +287,46 @@ const LOCAL_UPDATE_MECHANISMS: readonly unknown[] = ["manual_local", "signed_loc
  * fixed in the product.
  */
 export const ROLE_MAPPING_VALUES = ["not_specified", "fixed_roles", "configurable"] as const;
+
+// D-30c (user 2026-11-03): what a black-box Multiprocess contains, in the
+// values of the Process / DataStore fields they stand for. A value is the
+// weakest case over everything inside ("strict" = every contained process
+// validates strictly; the classification of the most sensitive data).
+
+export const INNER_INPUT_VALIDATION_VALUES = ["not_specified", "none", "basic", "strict", "schema"] as const;
+export const INNER_ERROR_HANDLING_VALUES = ["not_specified", "silent", "verbose", "sanitized"] as const;
+export const INNER_FAIL_SAFE_OUTPUT_STATE_VALUES = ["not_specified", "not_defined", "unpowered", "hold_last_value", "fixed_value", "dynamic"] as const;
+export const INNER_ENCRYPTION_AT_REST_VALUES = ["not_specified", "none", "aes256", "tde", "kms", "custom"] as const;
+export const INNER_DATA_CLASSIFICATION_VALUES = ["not_specified", "public", "internal", "confidential", "restricted", "secret"] as const;
+export const INNER_INTEGRITY_PROTECTION_VALUES = ["not_specified", "none", "crc", "hash", "hmac", "signature", "custom"] as const;
+export const INNER_DELETION_MECHANISM_VALUES = ["not_specified", "none", "overwrite", "factory_reset", "crypto_erase", "physical", "retention_period", "custom"] as const;
+
+/**
+ * Which black-box field stands for which property of a contained Process /
+ * DataStore — the evaluator checks the black box with the Process /
+ * DataStore rules through this map (D-30c).
+ */
+export const BLACK_BOX_FIELDS = {
+  Process: {
+    inputValidation: "innerInputValidation",
+    errorHandling: "innerErrorHandling",
+    failSafeOutputState: "innerFailSafeOutputState",
+  },
+  DataStore: {
+    encryptionAtRest: "innerEncryptionAtRest",
+    dataClassification: "innerDataClassification",
+    integrityProtection: "innerIntegrityProtection",
+    deletionMechanism: "innerDeletionMechanism",
+  },
+} as const;
+
+const inside = (property: string, values: readonly string[]): ModelField => ({
+  property,
+  group: "inside",
+  elementTypes: ["Multiprocess"],
+  values,
+  shownWhen: MODEL_CONDITIONS.blackBox,
+});
 
 /** The registered fields; further stage-1 fields join with CM-5b … CM-7. */
 export const MODEL_FIELDS: readonly ModelField[] = [
@@ -382,6 +432,13 @@ export const MODEL_FIELDS: readonly ModelField[] = [
     values: ROLE_MAPPING_VALUES,
     shownWhen: MODEL_CONDITIONS.roleBasedAuthorization,
   },
+  inside("innerInputValidation", INNER_INPUT_VALIDATION_VALUES),
+  inside("innerErrorHandling", INNER_ERROR_HANDLING_VALUES),
+  inside("innerFailSafeOutputState", INNER_FAIL_SAFE_OUTPUT_STATE_VALUES),
+  inside("innerDataClassification", INNER_DATA_CLASSIFICATION_VALUES),
+  inside("innerEncryptionAtRest", INNER_ENCRYPTION_AT_REST_VALUES),
+  inside("innerIntegrityProtection", INNER_INTEGRITY_PROTECTION_VALUES),
+  inside("innerDeletionMechanism", INNER_DELETION_MECHANISM_VALUES),
 ];
 
 export function modelField(property: string, fields: readonly ModelField[] = MODEL_FIELDS): ModelField | undefined {
@@ -420,6 +477,7 @@ export function visibilityContexts(
       (e) => e.type === "DataStore" && [prop(e, "storedDataTypes")].flat().some((t) => USER_DATA_TYPES.includes(t)),
     ),
     ...(options.componentId ? { componentId: options.componentId } : {}),
+    ...(options.decomposed ? { decomposed: options.decomposed } : {}),
   };
   const flowElement = (f: VisibilityFlowInput): VisibilityElement => ({ id: f.id, type: "DataFlow", properties: f.properties });
   const incoming = new Map<string, VisibilityLink[]>();

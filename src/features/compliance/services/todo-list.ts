@@ -8,6 +8,7 @@
 // The tab shows it as "what to do next". A standard without levels
 // (EN 50742 A) has no target: every open row is listed.
 
+import { BLACK_BOX_FIELDS } from "shared";
 import { RULES_BY_ID } from "../data/requirement-registry";
 import type { AnyEdition, FoundationalRequirement, SecurityLevel } from "../models/compliance-types";
 import type { ComplianceResult, RowResult } from "../models/evaluation-types";
@@ -83,6 +84,24 @@ function propertiesFor(edition: AnyEdition, row: RowResult, type: string | undef
   return [...out];
 }
 
+/** D-30c: the black-box "inside" fields that answer the row's Process / DataStore checks. */
+function insideFieldsFor(edition: AnyEdition, row: RowResult): string[] {
+  const ids = edition.rows.find((r) => r.label === row.label)?.requirementIds ?? [];
+  const out = new Set<string>();
+  for (const id of ids) {
+    for (const target of RULES_BY_ID.get(id)?.targets ?? []) {
+      for (const type of ["Process", "DataStore"] as const) {
+        if (!(target.elementTypes as readonly string[]).includes(type)) continue;
+        const map: Readonly<Record<string, string>> = BLACK_BOX_FIELDS[type];
+        for (const check of [...(target.appliesIf ?? []), ...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])]) {
+          if (map[check.property]) out.add(words(map[check.property]));
+        }
+      }
+    }
+  }
+  return [...out];
+}
+
 export function buildTodoList(
   edition: AnyEdition,
   achieved: ComplianceResult,
@@ -128,7 +147,7 @@ export function buildTodoList(
         label: row.label,
         group: row.group,
         kind,
-        properties: kind === "inside" ? [] : propertiesFor(edition, row, typeOf?.(id), kind),
+        properties: kind === "inside" ? insideFieldsFor(edition, row) : propertiesFor(edition, row, typeOf?.(id), kind),
         plannedClosed: p?.status === "met" || !stillOpen.has(id),
       };
       byElement.set(id, [...(byElement.get(id) ?? []), item]);

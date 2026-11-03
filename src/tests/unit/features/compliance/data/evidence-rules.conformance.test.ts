@@ -128,6 +128,20 @@ export type RulesConform = AssertNone<RuleViolation<EvidenceRuleLiterals[number]
 /** The EN 50742 A model rules read the same properties (CM-11, E-4). */
 export type En50742RulesConform = AssertNone<RuleViolation<En50742RuleLiterals[number]>>;
 
+/**
+ * D-30c: every black-box "inside" field takes only values of the Process /
+ * DataStore property it stands for (BLACK_BOX_FIELDS) — the rules check it
+ * under that property's name.
+ */
+type InsideMap = typeof import("shared").BLACK_BOX_FIELDS;
+type InsideViolation<T extends "Process" | "DataStore"> = {
+  [P in keyof InsideMap[T]]: Exclude<
+    NonNullable<MultiprocessProperties[InsideMap[T][P] & keyof MultiprocessProperties]>,
+    NonNullable<PropsByType[T][P & keyof PropsByType[T]]> | "not_specified"
+  >;
+}[keyof InsideMap[T]];
+export type InsideFieldsConform = AssertNone<InsideViolation<"Process"> | InsideViolation<"DataStore">>;
+
 // ==================== NEGATIVE CASES ====================
 // The machinery must reject broken rules — otherwise the check above proves
 // nothing (D-18: `satisfies` without `as const` widened every path to string).

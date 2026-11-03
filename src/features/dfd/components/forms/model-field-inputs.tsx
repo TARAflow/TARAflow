@@ -36,11 +36,13 @@ export const ModelFieldProvider: React.FC<{
   connections: readonly VisibilityFlowInput[];
   /** Component under evaluation (Compliance tab): settings of the whole component are asked on it. */
   componentId?: string;
+  /** Multiprocesses with a child page (leveled DFD) — the others are black boxes (D-30c). */
+  decomposed?: ReadonlySet<string>;
   children: React.ReactNode;
-}> = ({ elements, connections, componentId, children }) => {
+}> = ({ elements, connections, componentId, decomposed, children }) => {
   const contextOf = useMemo(
-    () => visibilityContexts(elements, connections, { componentId }),
-    [elements, connections, componentId],
+    () => visibilityContexts(elements, connections, { componentId, decomposed }),
+    [elements, connections, componentId, decomposed],
   );
   return <ModelFieldContext.Provider value={contextOf}>{children}</ModelFieldContext.Provider>;
 };
