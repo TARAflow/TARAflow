@@ -1,3 +1,40 @@
+## [0.17.1-beta] - 2026-11-03
+
+Bug fixes for EN 50742 machinery projects, no new project schema (still 12).
+
+### Fixed
+- **Hazard tab missing for an EN 50742 project:** a regulation tag that
+  mandates hazard analysis (EN 50742, IEC 81001, IEC TR 60601, IEC 63452,
+  CLC/TS 50701) switched the safety analysis on only while the Overview was
+  edited. A project whose tags were set elsewhere (another tool, an edited
+  file) had the tag but no *Safety Analysis* flag and showed no Hazard tab.
+  The flag is now set from the tags when a project is opened and on every
+  Overview / risk update; it is only ever switched on.
+- **Hazard validation of out-of-scope hazards:** every hazard needed a
+  contributing asset (`contributes_to`), also one the analyst ruled out of
+  scope (system relevance *out of scope* — e.g. a protective measure that is
+  purely mechanical or organisational). An imported risk assessment with
+  such hazards never validated without errors. Out-of-scope hazards are now
+  exempt; unreviewed (*unknown* or unset) and in-scope hazards keep the
+  error, and every hazard still needs a protection target it endangers.
+- **Stale exposure level on a data flow:** a flow that once crossed a trust
+  boundary kept its derived exposure level after both ends came into one
+  zone (boundary enlarged, elements moved) or the boundaries were removed;
+  the old value fed the risk tab and the EN 50742 attack potential. A
+  derived value is now cleared, a manual one stays.
+
+### Changed
+- **Compliance tab:** with both tags `IEC 62443` and `EN IEC 62443 (CRA)`
+  the classic and the CRA edition are shown side by side as sub-tabs (the
+  last one chosen is remembered per user); with one tag the tab looks as
+  before. The report still shows the CRA edition.
+
+### Notes
+- No schema change: projects of 0.17.0-beta open unchanged, and 0.17.0-beta
+  still opens files saved by 0.17.1-beta.
+- Project files saved by a development build of 0.18 (schema 13) do not open
+  in 0.17.x.
+
 ## [0.17.0-beta] - 2026-11-02
 
 IEC 62443-4-2 requirement matrices — the classic edition (2019) and the
