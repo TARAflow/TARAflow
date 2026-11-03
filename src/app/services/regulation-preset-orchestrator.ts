@@ -11,7 +11,7 @@
 import type { Project } from "../models/project-types";
 import type { RegulationPresetId, WindowOfOpportunity } from "shared";
  import { regulationPresetFromTags, EMPTY_PROJECT_TAGS } from "shared";
-import { getRegulationPreset, getRequiredImpactScale } from "shared";
+import { getRegulationPreset, getRequiredImpactScale, requiresHazardAnalysis } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { isAssetImpactMandatory } from "features/risks/services/regulation-preset-service";
 import { getMandatoryAssetCriteriaIds } from "features/risks/services/regulation-preset-service";
@@ -153,6 +153,21 @@ export function threadWindowOfOpportunity(
       configuration: { ...cfg, windowOfOpportunity: woo },
     },
   };
+}
+
+/**
+ * Safety analysis on when a regulation tag mandates it (EN 50742, IEC 81001,
+ * IEC TR 60601, IEC 63452, CLC/TS 50701 — requiresHazardAnalysis). The
+ * Overview switch writes the forced value only in edit mode, so a project
+ * whose tags were set elsewhere (another tool, an edited file) carried the
+ * tag without `info.safetyRelevant` and showed no Hazard tab. Reconciled here,
+ * on open and on every update. Only ever switches on: a manual "on" without a
+ * forcing tag stays (the switch releases its own lock when the tag goes).
+ */
+export function threadSafetyRelevant(project: Project): Project {
+  if (project.info?.safetyRelevant === true) return project;
+  if (!requiresHazardAnalysis(project.info?.tags ?? EMPTY_PROJECT_TAGS)) return project;
+  return { ...project, info: { ...project.info, safetyRelevant: true } };
 }
 
 /**
@@ -319,7 +334,7 @@ export function applyRegulationFromTags(
   const withWoo = threadWindowOfOpportunity(applied.project, woo);
   const withImpact = threadUseAssetImpact(withWoo, presetId);
   const withCriteria = threadImpactCriteria(withImpact, presetId);
-  const withScale = threadImpactScale(withCriteria, presetId);
+  const withScale = threadSafetyRelevant(threadImpactScale(withCriteria, presetId));
   return {
     ...applied,
     project: enforceMandatoryAssetCriteria(withScale, presetId),
