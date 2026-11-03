@@ -26,7 +26,7 @@
 //   REMOVED_RISK        linked to a risk that no longer exists
 //   UNUSED              linked to no existing risk (info)
 
-import type { Assumption, CybersecurityConcept } from "shared";
+import { RISK_CLAIM_KINDS, type Assumption, type CybersecurityConcept } from "shared";
 import type { Risk } from "../models/risk-assessment-types";
 import { conceptKindFor } from "../models/concept-kind";
 
@@ -68,7 +68,8 @@ export interface ConceptFindingsInput {
 export function conceptFindings(input: ConceptFindingsInput): ConceptFinding[] {
   if (!input.isoMode) return [];
   const goals = input.concept?.goals ?? [];
-  const claims = input.concept?.claims ?? [];
+  // Supporting claims cover matrix requirements, not risks (IEC-6) — not checked here.
+  const claims = (input.concept?.claims ?? []).filter((c) => RISK_CLAIM_KINDS.includes(c.kind));
   const riskIds = new Set(input.risks.map((r) => r.id));
   const assumptionById = new Map((input.assumptions ?? []).map((a) => [a.id, a]));
   const out: ConceptFinding[] = [];

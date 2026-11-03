@@ -330,6 +330,18 @@ export interface DocComplianceRow {
   risks?: string[];
 }
 
+/** A claim the system around the component meets requirements (D-5, IEC-6). */
+export interface DocMatrixClaim {
+  /** "CLM-04" */
+  id: string;
+  /** The supporting measure. */
+  statement: string;
+  responsibleParty?: string;
+  reviewBy?: string;
+  /** Rows of the standard it covers. */
+  rows: string[];
+}
+
 /** EN 50742 A (CM-13): the SRSL the risks give per safety function (coverage §9.3). */
 export interface DocSrslSummary {
   /** WoO id (project-global, Overview); absent = not set. */
@@ -357,6 +369,8 @@ export interface DocCompliance {
   vectors: DocComplianceVector[];
   /** EN 50742 A: SRSL per safety function, WoO. */
   srsl?: DocSrslSummary;
+  /** Supporting claims covering rows of this standard (D-5, IEC-6). */
+  claims?: DocMatrixClaim[];
   rows: DocComplianceRow[];
 }
 

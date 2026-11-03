@@ -128,6 +128,16 @@ describe("compliance matrix sections", () => {
     ]);
   });
 
+  it("supporting claims (IEC-6): a section with the measure, who provides it and the rows, after the SoA", () => {
+    const withClaims = complianceMatrixSections(
+      [compliance({ claims: [{ id: "CLM-03", statement: "Plant firewall", responsibleParty: "Operator", rows: ["CR 1.11"] }] })],
+      t,
+    );
+    const titles = withClaims.map((s) => s.title);
+    expect(titles.indexOf("Claims — measures of the system")).toBe(titles.indexOf("Statement of Applicability") + 1);
+    expect(withClaims.find((s) => s.title === "Claims — measures of the system")!.table!.rows).toEqual([["CLM-03", "Plant firewall", "Operator", "—", "CR 1.11"]]);
+  });
+
   it("classic edition: no CRA column or view; no target → no gaps section; nothing → no chapter", () => {
     const classic = complianceMatrixSections([compliance({ cra: false, draft: false, vectors: [{ fr: "IAC", achievedComponent: 1, achievedWithSupport: 1, plannedComponent: 1, plannedWithSupport: 1 }] })], t);
     expect(classic.map((s) => s.title)).toEqual(["Basis", "Security levels per foundational requirement", "Statement of Applicability"]);

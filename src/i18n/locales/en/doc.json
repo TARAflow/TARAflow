@@ -287,6 +287,13 @@
       },
       "compliance": {
         "intro": "The requirements of IEC 62443-4-2 for the component, each with whether it applies and how it is met — the Statement of Applicability, derived from the analysed model. A row is met by the model, by a mitigation of the risk treatment, by a supporting measure outside the component, by an analyst statement or covered by a claim; the source is named for every row.",
+        "claimsTitle": "Claims — measures of the system",
+        "claimsText": "Requirements the system around the component meets (supporting measure, CCSC 2; compensating countermeasure): they count for the value with measures of the system, not for the product itself. The integrator or operator confirms them.",
+        "claimId": "Claim",
+        "claimStatement": "Supporting measure",
+        "claimParty": "Provided by",
+        "claimReviewBy": "Review by",
+        "claimRows": "Requirements",
         "introSrsl": "The requirements of EN 50742 Approach A for the machine, each with whether it applies and how it is met, derived from the analysed model, the risks with their SRSL and the project data. A row is met by the model, by the mandated controls of the risk treatment or by an analyst statement; the source is named for every row.",
         "introMixed": "The requirements of each active standard, each with whether it applies and how it is met — derived from the analysed model, the risk treatment and the analyst statements; the source is named for every row. One part per standard.",
         "risks": "risks",

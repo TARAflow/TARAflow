@@ -43,6 +43,7 @@ import {
 } from "@mui/material";
 import {
   complianceComponentOf,
+  emptyCybersecurityConcept,
   familyCompliance,
   familyHasComponent,
   FOUNDATIONAL_REQUIREMENTS,
@@ -54,6 +55,7 @@ import {
   WINDOW_OF_OPPORTUNITY_OPTIONS,
   type ComplianceData,
   type ComplianceStatement,
+  type CybersecurityConcept,
   type DeviceCategory,
   type StatementStatus,
   type TargetSecurityLevel,
@@ -70,6 +72,8 @@ import {
 } from "../services/describe-requirement";
 import { buildTodoList } from "../services/todo-list";
 import { editionStatements, statementKeyOf } from "../services/edition-statements";
+import { qualifyRequirementId } from "../models/compliance-types";
+import { RowClaims } from "./matrix-claims";
 
 const NS = "compliance";
 
@@ -177,6 +181,10 @@ export interface ComplianceTabProps {
   onShowElement?: (elementId: string) => void;
   /** Element / flow id → type, for the properties of the to-do list. */
   typeOf?: (id: string) => string | undefined;
+  /** Goals and claims of the project — the supporting claims cover matrix rows (D-5, IEC-6). */
+  concept?: CybersecurityConcept;
+  /** Stores claim changes; absent = the info dialog shows no claims. */
+  onConceptChange?: (concept: CybersecurityConcept) => void;
   /** Catalog mitigations for a row; filtered to the types of the elements still open (D-29). */
   mitigationSuggestions?: (
     requirementIds: readonly AnyRequirementId[],
@@ -202,6 +210,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   onShowElement,
   mitigationSuggestions,
   typeOf,
+  concept,
+  onConceptChange,
 }) => {
   const t = useComplianceT();
   const { i18n } = useTranslation(NS);
@@ -759,6 +769,16 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           descriptions={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang))}
           cra={cra ? [...(rowDef.get(info.label)?.cra ?? [])] : undefined}
           levels={levels}
+          claims={
+            onConceptChange ? (
+              <RowClaims
+                concept={concept ?? emptyCybersecurityConcept()}
+                requirements={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(family, id))}
+                onConceptChange={onConceptChange}
+                t={t}
+              />
+            ) : undefined
+          }
           statement={statements[info.label]}
           suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? [], [...info.failing, ...info.unknown]) ?? []}
           nameOf={nameOf}
@@ -816,6 +836,8 @@ interface RequirementInfoDialogProps {
   cra?: readonly string[];
   /** The standard has security levels: the row's SL-C from. */
   levels: boolean;
+  /** The claims covering the row, with add / remove (IEC-6). */
+  claims?: React.ReactNode;
   statement?: ComplianceStatement;
   suggestions: readonly { id: string; text: string }[];
   nameOf: (id: string) => string;
@@ -829,6 +851,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
   descriptions,
   cra,
   levels,
+  claims,
   statement,
   suggestions,
   nameOf,
@@ -950,6 +973,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
             </Typography>
           ),
         )}
+        {claims && row.source !== "edition" && section(t("claimsSection", "Claims (measures of the system)"), claims)}
         <Typography variant="caption" sx={{ fontStyle: "italic" }}>
           {t("summaryDisclaimer", "Summary in our own words — the standard is authoritative.")}
         </Typography>

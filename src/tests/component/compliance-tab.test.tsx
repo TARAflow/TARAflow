@@ -74,6 +74,44 @@ function renderTab(ed: Edition, data?: ComplianceData, extra: Partial<React.Comp
   return onChange;
 }
 
+describe("claims in the info dialog (D-5, IEC-6)", () => {
+  const supporting = {
+    id: "c1", displayId: "CLM-04", statement: "Plant firewall filters the traffic", kind: "supporting" as const,
+    riskIds: [], assumptionIds: [], requirements: ["iec62443:cr-3.7"],
+  };
+
+  it("a new claim covers the row's requirements, qualified by family; numbered after the existing claims", () => {
+    const onConceptChange = vi.fn();
+    renderTab(edition(CRA_ROWS), undefined, { concept: { goals: [], claims: [supporting], verifications: [] }, onConceptChange });
+    fireEvent.click(screen.getByTestId("compliance-req-CR 3.5"));
+    expect(within(screen.getByTestId("compliance-row-claims")).getByText(/No claim/)).toBeTruthy();
+    fireEvent.click(screen.getByTestId("compliance-add-claim"));
+    fireEvent.change(screen.getByTestId("compliance-claim-statement"), { target: { value: "Gateway validates the input" } });
+    fireEvent.change(screen.getByTestId("compliance-claim-party"), { target: { value: "Integrator" } });
+    fireEvent.click(screen.getByTestId("compliance-claim-save"));
+    const next = onConceptChange.mock.lastCall![0];
+    expect(next.claims[1]).toMatchObject({
+      displayId: "CLM-05", kind: "supporting", statement: "Gateway validates the input", responsibleParty: "Integrator", requirements: ["iec62443:cr-3.5"],
+    });
+  });
+
+  it("an existing claim can be linked; a linked one is shown and can be removed from the row", () => {
+    const onConceptChange = vi.fn();
+    renderTab(edition(CRA_ROWS), undefined, { concept: { goals: [], claims: [supporting], verifications: [] }, onConceptChange });
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "all" } });
+    fireEvent.click(screen.getByTestId("compliance-req-CR 3.7"));
+    expect(screen.getByTestId("compliance-claim-CLM-04").textContent).toContain("Plant firewall");
+    fireEvent.click(within(screen.getByTestId("compliance-claim-CLM-04")).getByRole("button"));
+    expect(onConceptChange.mock.lastCall![0].claims[0].requirements).toEqual([]);
+  });
+
+  it("without a concept handler the dialog shows no claims", () => {
+    renderTab(edition(CRA_ROWS));
+    fireEvent.click(screen.getByTestId("compliance-req-CR 3.5"));
+    expect(screen.queryByTestId("compliance-row-claims")).toBeNull();
+  });
+});
+
 describe("Compliance tab", () => {
   it("shows the open rows first; 'All' adds the met ones", () => {
     renderTab(edition(CRA_ROWS));

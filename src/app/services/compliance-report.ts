@@ -33,9 +33,11 @@ import {
   evaluateMatrix,
   FOUNDATIONAL_REQUIREMENTS,
   activeStandards,
+  qualifyRequirementId,
   selectEdition,
   suggestMitigations,
   type AnyEdition,
+  type MatrixClaim,
   type En50742View,
   type ComplianceResult,
   type StandardModule,
@@ -223,6 +225,17 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
     },
     parentOf: (id) => containmentParent.get(id),
   };
+  // IEC-6 (D-5): supporting claims cover the rows whose requirements they all name.
+  const supporting = (project.cybersecurityConcept?.claims ?? []).filter((c) => c.kind === "supporting");
+  const matrixClaims = (edition: AnyEdition): MatrixClaim[] =>
+    supporting
+      .map((c) => ({
+        displayId: c.displayId,
+        rowLabels: edition.rows
+          .filter((r) => r.requirementIds.length > 0 && r.requirementIds.every((id) => c.requirements?.includes(qualifyRequirementId(edition.family, id))))
+          .map((r) => r.label),
+      }))
+      .filter((c) => c.rowLabels.length > 0);
   let en50742: ReturnType<typeof buildEn50742View> | undefined;
   const en50742View = () => (en50742 ??= buildEn50742View(project, paths));
 
@@ -242,6 +255,7 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
         statements: editionStatements(edition, familyData.statements),
         mitigations,
         deviceCategories: familyData.deviceCategories,
+        claims: matrixClaims(edition),
         ...(edition.family === "en-50742" ? { en50742: en50742View() } : {}),
       };
       return {
@@ -299,8 +313,21 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
       new Set(openElementIds.map(typeOf).filter((type): type is string => !!type)),
     ).map((m) => m.id);
 
+  const claimRows = new Map<string, string[]>();
+  for (const r of achieved.rows) for (const id of r.claimIds) claimRows.set(id, [...(claimRows.get(id) ?? []), r.label]);
+  const claims = (project.cybersecurityConcept?.claims ?? [])
+    .filter((c) => c.kind === "supporting" && claimRows.has(c.displayId))
+    .map((c) => ({
+      id: c.displayId,
+      statement: c.statement,
+      ...(c.responsibleParty ? { responsibleParty: c.responsibleParty } : {}),
+      ...(c.reviewBy ? { reviewBy: c.reviewBy } : {}),
+      rows: claimRows.get(c.displayId)!,
+    }));
+
   return {
     standardLabel: standard.label,
+    ...(claims.length > 0 ? { claims } : {}),
     editionTitle: edition.title,
     draft: edition.draft,
     cra: edition.id === "en-iec-62443-4-2-praa-2026",

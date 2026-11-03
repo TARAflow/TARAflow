@@ -232,6 +232,8 @@ function standardSections(c: DocCompliance, t: TranslateFn): ReportSection[] {
     },
   });
 
+  claimsSection(c, t, sections);
+
   // 4 — CRA view (CRA edition)
   if (c.cra) {
     sections.push({
@@ -345,6 +347,8 @@ function srslStandardSections(c: DocCompliance, t: TranslateFn): ReportSection[]
     },
   });
 
+  claimsSection(c, t, sections);
+
   // 4 — open requirements: what the conformity claim still needs
   const open = c.rows.filter((r) => OPEN_STATUSES.includes(r.status));
   if (open.length > 0) {
@@ -364,4 +368,29 @@ function srslStandardSections(c: DocCompliance, t: TranslateFn): ReportSection[]
     });
   }
   return sections;
+}
+
+/** The supporting claims of the standard (D-5, IEC-6): measure, who provides it, the rows. */
+function claimsSection(c: DocCompliance, t: TranslateFn, sections: ReportSection[]): void {
+  if (!c.claims?.length) return;
+  sections.push({
+    title: t(`${K}.claimsTitle`, "Claims — measures of the system"),
+    paragraphs: [
+      t(
+        `${K}.claimsText`,
+        "Requirements the system around the component meets (supporting measure, CCSC 2; compensating countermeasure): they count for the value with measures of the system, not for the product itself. The integrator or operator confirms them.",
+      ),
+    ],
+    facts: [],
+    table: {
+      headers: [
+        t(`${K}.claimId`, "Claim"),
+        t(`${K}.claimStatement`, "Supporting measure"),
+        t(`${K}.claimParty`, "Provided by"),
+        t(`${K}.claimReviewBy`, "Review by"),
+        t(`${K}.claimRows`, "Requirements"),
+      ],
+      rows: c.claims.map((claim) => [claim.id, claim.statement, claim.responsibleParty ?? "—", claim.reviewBy ?? "—", claim.rows.join(", ")]),
+    },
+  });
 }

@@ -287,6 +287,13 @@
       },
       "compliance": {
         "intro": "Die Anforderungen von IEC 62443-4-2 an die Komponente, jeweils mit Anwendbarkeit und Erfüllung — das Statement of Applicability, abgeleitet aus dem analysierten Modell. Eine Zeile ist erfüllt durch das Modell, durch eine Massnahme der Risikobehandlung, durch eine Supporting Measure ausserhalb der Komponente, durch eine Aussage des Analysten oder durch einen Claim abgedeckt; die Quelle steht bei jeder Zeile.",
+        "claimsTitle": "Claims — Massnahmen des Systems",
+        "claimsText": "Anforderungen, die das System um die Komponente erfüllt (unterstützende Massnahme, CCSC 2; kompensierende Gegenmassnahme): Sie zählen für den Wert mit Massnahmen des Systems, nicht für das Produkt selbst. Integrator oder Betreiber bestätigen sie.",
+        "claimId": "Claim",
+        "claimStatement": "Unterstützende Massnahme",
+        "claimParty": "Bereitgestellt durch",
+        "claimReviewBy": "Prüfen bis",
+        "claimRows": "Anforderungen",
         "introSrsl": "Die Anforderungen von EN 50742 Approach A an die Maschine, jeweils ob sie gilt und wie sie erfüllt ist, abgeleitet aus dem analysierten Modell, den Risiken mit ihrem SRSL und den Projektdaten. Eine Zeile ist erfüllt durch das Modell, durch die verlangten Massnahmen der Risikobehandlung oder durch eine Aussage des Analysten; die Quelle ist bei jeder Zeile genannt.",
         "introMixed": "Die Anforderungen jedes aktiven Standards, jeweils ob sie gilt und wie sie erfüllt ist — abgeleitet aus dem analysierten Modell, der Risikobehandlung und den Aussagen des Analysten; die Quelle ist bei jeder Zeile genannt. Ein Teil pro Standard.",
         "risks": "Risiken",

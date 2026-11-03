@@ -8,7 +8,7 @@
 // Goals and claims are linked per risk; the report groups the risks by threat
 // scenario ("AT-2: AT-2.1, AT-2.2").
 
-import type { CybersecurityConcept } from "../../../shared/models/cybersecurity-concept-types";
+import { RISK_CLAIM_KINDS, type CybersecurityConcept } from "../../../shared/models/cybersecurity-concept-types";
 import type { Assumption } from "../../../shared/models/item-definition-types";
 import type { DocProjectData, DocVerification } from "../models/doc-types";
 import type { ReportSection } from "./report-section";
@@ -40,8 +40,11 @@ export const goalsClaimsIntro = (t: TranslateFn): string =>
     "The outcome of the risk treatment decisions (ISO/SAE 21434 9.4, 15.9): a cybersecurity goal for every risk that is reduced, a cybersecurity claim for every risk that is retained or shared, and the verification of the TARA, the goals and the claims.",
   );
 
+/** Claims of the risk treatment; supporting claims belong to the requirement matrix chapter (IEC-6). */
+const riskClaimsOf = (concept: CybersecurityConcept) => concept.claims.filter((c) => RISK_CLAIM_KINDS.includes(c.kind));
+
 export function hasConceptContent(concept: CybersecurityConcept | undefined): boolean {
-  return !!concept && concept.goals.length + concept.claims.length + concept.verifications.length > 0;
+  return !!concept && concept.goals.length + riskClaimsOf(concept).length + concept.verifications.length > 0;
 }
 
 /** The status line: same words as in the Overview (keys verificationStatus.*). */
@@ -143,7 +146,8 @@ export function goalsClaimsReportSections(
     });
   }
 
-  if (concept!.claims.length > 0) {
+  const riskClaims = riskClaimsOf(concept!);
+  if (riskClaims.length > 0) {
     sections.push({
       title: t(`${K}.claims`, "Cybersecurity claims"),
       paragraphs: [],
@@ -157,7 +161,7 @@ export function goalsClaimsReportSections(
           t(`${K}.colReview`, "Review by"),
           t(`${K}.colRisks`, "Threat scenarios / risks"),
         ],
-        rows: concept!.claims.map((c) => [
+        rows: riskClaims.map((c) => [
           c.displayId,
           c.statement,
           t(`${K}.kind.${c.kind}`, c.kind === "retain" ? "Retain" : "Share"),

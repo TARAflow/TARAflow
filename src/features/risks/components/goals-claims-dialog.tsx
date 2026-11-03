@@ -40,6 +40,7 @@ import {
   type CybersecurityClaim,
   type CybersecurityConcept,
   type CybersecurityGoal,
+  RISK_CLAIM_KINDS,
 } from "shared";
 import type { Risk } from "../models/risk-assessment-types";
 import type { ConceptFinding } from "../services/concept-findings";
@@ -97,6 +98,8 @@ export const GoalsClaimsDialog: React.FC<GoalsClaimsDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const concept = stored ?? emptyCybersecurityConcept();
+  // Supporting claims cover matrix requirements (IEC-6); they are edited in the Compliance tab.
+  const riskClaims = concept.claims.filter((c) => RISK_CLAIM_KINDS.includes(c.kind));
   const latest = useRef(concept);
   latest.current = concept;
   const apply = (op: (c: CybersecurityConcept) => CybersecurityConcept) => {
@@ -268,8 +271,8 @@ export const GoalsClaimsDialog: React.FC<GoalsClaimsDialogProps> = ({
 
           <Divider />
           <Typography variant="subtitle1">{t("tabs.risks.goalsClaims.claims", { defaultValue: "Cybersecurity claims" })}</Typography>
-          {concept.claims.length === 0 && <Typography color="text.secondary">–</Typography>}
-          {concept.claims.map((c) => (
+          {riskClaims.length === 0 && <Typography color="text.secondary">–</Typography>}
+          {riskClaims.map((c) => (
             <Paper key={c.id} variant="outlined" sx={{ p: 1.5 }} data-testid={`overview-claim-${c.displayId}`}>
               <Stack spacing={1}>
                 <Stack direction="row" spacing={1} alignItems="center">

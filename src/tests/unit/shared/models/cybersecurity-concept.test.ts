@@ -5,6 +5,10 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  claimsOfRequirements,
+  linkClaimRequirements,
+  newSupportingClaim,
+  unlinkClaimRequirements,
   addClaim,
   addGoal,
   claimsOfRisk,
@@ -65,3 +69,27 @@ describe("cybersecurity concept", () => {
     expect(claimsOfRisk(c, "R-4")[0]).toMatchObject({ displayId: "CLM-02", kind: "share" });
   });
 });
+
+describe("supporting claims (IEC 62443-4-2 D-5, IEC-6)", () => {
+  it("cover requirements, not risks; numbered with the other claims", () => {
+    let c = addClaim(emptyCybersecurityConcept(), newClaim(emptyCybersecurityConcept(), "R-1", "retain", "Accepted"));
+    const claim = newSupportingClaim(c, ["iec62443:cr-2.8", "iec62443:cr-2.8"], "  Plant SIEM collects the audit records ", " Operator ");
+    expect(claim).toMatchObject({ displayId: "CLM-02", kind: "supporting", riskIds: [], requirements: ["iec62443:cr-2.8"], statement: "Plant SIEM collects the audit records", responsibleParty: "Operator" });
+    c = addClaim(c, claim);
+    expect(claimsOfRisk(c, "R-1").map((x) => x.displayId)).toEqual(["CLM-01"]);
+    expect(claimsOfRequirements(c, ["iec62443:cr-2.8"]).map((x) => x.displayId)).toEqual(["CLM-02"]);
+  });
+
+  it("a row is covered only when the claim names all its requirements; link and unlink", () => {
+    let c = addClaim(emptyCybersecurityConcept(), newSupportingClaim(emptyCybersecurityConcept(), ["iec62443:cr-4.1-transit"], "VPN"));
+    const id = c.claims[0].id;
+    const row2019 = ["iec62443:cr-4.1-transit", "iec62443:cr-4.1-rest"];
+    expect(claimsOfRequirements(c, row2019)).toEqual([]);
+    c = linkClaimRequirements(c, id, ["iec62443:cr-4.1-rest"]);
+    expect(claimsOfRequirements(c, row2019)).toHaveLength(1);
+    c = unlinkClaimRequirements(c, id, ["iec62443:cr-4.1-rest"]);
+    expect(c.claims[0].requirements).toEqual(["iec62443:cr-4.1-transit"]);
+    expect(claimsOfRequirements(c, [])).toEqual([]);
+  });
+});
+

@@ -1173,6 +1173,8 @@ export const WorkspaceLayout: React.FC = () => {
     activeProject?.info,
     activeProject?.hazards,
     activeProject?.itemDefinition,
+    // IEC-6: supporting claims cover matrix rows.
+    activeProject?.cybersecurityConcept,
   ]);
 
   const securityDrifts = useSecurityDrift(
@@ -1540,6 +1542,8 @@ export const WorkspaceLayout: React.FC = () => {
               typeOf={complianceView.typeOf}
               today={new Date().toISOString().slice(0, 10)}
               onChange={handleComplianceChange}
+              concept={activeProject.cybersecurityConcept}
+              onConceptChange={handleConceptChange}
               onShowElement={(elementId) => {
                 setElementFocusRequest({ elementId });
                 handlePhaseChange(PhaseId.DFD);

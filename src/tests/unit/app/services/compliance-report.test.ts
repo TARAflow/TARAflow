@@ -13,7 +13,7 @@ import {
   evaluateProjectCompliance,
   prepareProjectCompliance,
 } from "app/services/compliance-report";
-import { EDITION_2019, EDITION_PRAA_2026 } from "features/compliance";
+import { countsForComponent, countsWithSupport, EDITION_2019, EDITION_PRAA_2026 } from "features/compliance";
 import type { Project } from "app/models/project-types";
 import { buildPumpStationProject } from "../../../examples/pump-station-example";
 
@@ -55,6 +55,44 @@ describe("prepareProjectCompliance", () => {
   it("no DFD → nothing to evaluate", () => {
     const project = smokeDetector(["IEC 62443"]);
     expect(prepareProjectCompliance({ ...project, dfd: undefined } as Any)).toBeUndefined();
+  });
+});
+
+describe("supporting claims (D-5, IEC-6)", () => {
+  const withClaim = (requirements: string[]): Project => ({
+    ...smokeDetector(["IEC 62443", "EN IEC 62443 (CRA)"]),
+    cybersecurityConcept: {
+      goals: [],
+      verifications: [],
+      claims: [
+        { id: "c1", displayId: "CLM-01", statement: "Plant SIEM keeps the audit records", kind: "supporting", riskIds: [], assumptionIds: [], requirements, responsibleParty: "Operator" },
+        { id: "c2", displayId: "CLM-02", statement: "Accepted", kind: "retain", riskIds: ["R-x"], assumptionIds: [] },
+      ],
+    },
+  });
+
+  it("a claim covers the row in both editions (shared requirement, D-31) — claimed, never SL-C of the product", () => {
+    const context = prepareProjectCompliance(withClaim(["iec62443:cr-2.9"]))!;
+    for (const edition of [EDITION_PRAA_2026, EDITION_2019]) {
+      const row = context.evaluate(edition).achieved.rows.find((r) => r.label === "CR 2.9")!;
+      expect(row.claimIds, edition.id).toEqual(["CLM-01"]);
+      expect(row.status, edition.id).toBe("claimed");
+      expect(countsForComponent(row)).toBe(false);
+      expect(countsWithSupport(row)).toBe(true);
+    }
+  });
+
+  it("a row with several requirements needs all of them claimed; a risk claim never covers a row", () => {
+    const partial = prepareProjectCompliance(withClaim(["iec62443:cr-4.1-transit"]))!.evaluate(EDITION_2019).achieved;
+    expect(partial.rows.find((r) => r.label === "CR 4.1")!.claimIds).toEqual([]);
+    const full = prepareProjectCompliance(withClaim(["iec62443:cr-4.1-transit", "iec62443:cr-4.1-rest"]))!.evaluate(EDITION_2019).achieved;
+    expect(full.rows.find((r) => r.label === "CR 4.1")!.claimIds).toEqual(["CLM-01"]);
+    expect(full.rows.some((r) => r.claimIds.includes("CLM-02"))).toBe(false);
+  });
+
+  it("the report lists the claim with its measure, party and rows", () => {
+    const [cra] = buildDocCompliance(withClaim(["iec62443:cr-2.9"]))!;
+    expect(cra.claims).toEqual([{ id: "CLM-01", statement: "Plant SIEM keeps the audit records", responsibleParty: "Operator", rows: ["CR 2.9"] }]);
   });
 });
 
