@@ -5,9 +5,8 @@
 
 import type { ComplianceRowStatus, ComplianceStatement, DeviceCategoryChoice } from "shared";
 import type {
-  Edition,
+  AnyEdition,
   EditionRow,
-  FoundationalRequirement,
   RequirementId,
   SlVector,
 } from "./compliance-types";
@@ -88,7 +87,7 @@ export type { DeviceCategoryChoice };
 export type EvaluationRun = "achieved" | "planned";
 
 export interface ComplianceInput {
-  edition: Edition;
+  edition: AnyEdition;
   view: PropertyView;
   /** Element ids of the component and its descendants (D-7); flows touching them are in scope too. */
   scope: ReadonlySet<string>;
@@ -117,7 +116,8 @@ export type RowSource =
 
 export interface RowResult {
   label: string;
-  group: FoundationalRequirement;
+  /** FR for IEC 62443-4-2, the provision group for other standards. */
+  group: string;
   minSl: EditionRow["minSl"];
   status: RowStatus;
   /** Where the status comes from — the report names it (§5). */

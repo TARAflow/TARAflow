@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.21 · stage 1 done (CM-10) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.22 · stage 1 done (CM-10) · CM-11 done (EN 50742 A module, 2026-11-03) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -417,7 +417,7 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-8b | F-5 `loginLockout` on the verifier; CR 1.11 from it; the interface link of CM-8 removed (user 2026-11-02) (**done**, see §10.1) | CM-8 | A |
 | CM-9 | report: one chapter per active standard — realised as one chapter with a part per standard (**done**, see §10.1) | CM-2 | A |
 | CM-10 | validation on the examples, coverage document counts, this plan → status (**done**, see §10.1) | all | A |
-| CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) | CM-2, CM-3 | A |
+| CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) (**done**, see §10.1) | CM-2, CM-3 | A |
 | CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View` in the app layer, model rules for 7.3 / 7.4.3.5.1; golden tests on an own example with `EN50742_A` (mandated control done → row met; WoO unset or risk unrated → unknown) — never customer data | CM-11 | A |
 | CM-13 | EN 50742 A report chapter (with CM-9); coverage rows → tracked / met with test references | CM-9, CM-12 | A |
 
@@ -880,3 +880,39 @@ could never meet the rows.
 - Example: IF-1 without abuse protection (a touch panel has no protocol to
   rate-limit), IF-2 rate-limited. CR 7.1 RE(1) is met now: CRA edition met 57 / gap 12 /
   needs statement 7 / n/a 21 (classic 52 / 11 / 7 / 55); SL vectors unchanged.
+
+**CM-11 (done, 2026-11-03) — EN 50742 A module.** Patch 23 on `feature/0.18-model-coverage`.
+
+- Data: `edition-en-50742-a.ts` (the 23 rows of coverage §9.2 in its order, five groups,
+  `minSl` null, `draft`), `en50742-a-rules.ts` (type and evidence kind per row),
+  `en50742-a-texts.ts` (title and summary in our own words, EN / DE, German checklists).
+  Ids `en-<clause>-<draft line>`, namespace `en50742` (K-4).
+- One lookup for every family: `RULES_BY_ID` / `TEXTS_BY_ID` (`requirement-registry.ts`);
+  the ids are disjoint from the IEC 62443 ids (test), so the evaluator, the tooltip, the
+  info dialog and the to-do list find a row's rule without knowing the family.
+  `Edition<G, R>` / `EditionRow<G, R>` carry the id type; `AnyEdition` is what the
+  evaluator, frame, tab and report take.
+- Evidence kinds: `EvidenceRule.external` (`risk` with the clause, `project` with a named
+  check) and `minSrsl`. In CM-11 an `external` rule needs a statement and a `minSrsl`
+  rule is unknown ("the SRSL comes from the risks") — CM-12 evaluates both from the
+  En50742View. Model rows evaluated now: 7.3.2 / 7.3.3 (an element logs: `nonRepudiation`
+  or an `audit_logs` store, quantifier any), 7.3.5 (audit log stores integrity
+  protected). The EN rules go through the same type-level conformance check as the
+  62443 rules.
+- Registry: `en-50742-a`, label "EN 50742 A", tag "EN 50742 A" plus `matchesTag` =
+  `isEn50742ApproachATag` (shared, the tag normaliser: "EN50742_A", "EN 50742 Approach
+  A", the bare "EN 50742"; never Approach B), header `srsl`. The tag stays a method tag
+  (`tagEffectOf`); `MATRIX_TAGS` are the tags of the matrix-only standards.
+- Whole machine: `familyHasComponent("en-50742")` is false — `complianceComponentOf`
+  returns none for the family, the scope is the whole model even when a 62443
+  component is chosen.
+- Tab without levels (`header` ≠ `security-levels`): no SL table, SL-T, component
+  selector or "SL-C from"; a status summary, a group column, the to-do list over every
+  open row, guide steps without SL; "Scope: the whole machine". The SRSL part of the
+  header follows with CM-12.
+- Report: `buildDocCompliance` keeps the SL standards only — the EN 50742 A part comes
+  with CM-13.
+- Tests: registry (tag aliases, B excluded, sub-tab order with every tag), module
+  completeness against the §9.2 table of the coverage document (label, order, group,
+  type, evidence kind), texts, evaluator (7.3 rows, statement rows, `external`, `minSrsl`,
+  whole-machine scope on the SmokeDetector fixture), frame component test.

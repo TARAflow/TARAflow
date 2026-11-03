@@ -5,16 +5,17 @@
 // the rule reads on that element type; rows only a statement can meet are
 // listed apart, and so are rows one element of the component meets ("any"
 // rules: update, backup — listing them at every element would be noise).
-// The tab shows it as "what to do next".
+// The tab shows it as "what to do next". A standard without levels
+// (EN 50742 A) has no target: every open row is listed.
 
-import { EVIDENCE_RULES } from "../data/evidence-rules";
-import type { Edition, FoundationalRequirement, SecurityLevel } from "../models/compliance-types";
+import { RULES_BY_ID } from "../data/requirement-registry";
+import type { AnyEdition, FoundationalRequirement, SecurityLevel } from "../models/compliance-types";
 import type { ComplianceResult, RowResult } from "../models/evaluation-types";
 import { words } from "./describe-requirement";
 
 export interface TodoItem {
   label: string;
-  group: FoundationalRequirement;
+  group: string;
   /**
    * "not-met": the model shows it not met; "missing": a property is unset (or
    * a neighbour's); "inside": a multiprocess without child page stands in for
@@ -34,7 +35,7 @@ export interface ElementTodo {
 
 export interface ComponentTodo {
   label: string;
-  group: FoundationalRequirement;
+  group: string;
   /** Properties one element of these types must show. */
   properties: string[];
   elementTypes: string[];
@@ -47,20 +48,24 @@ export interface TodoList {
   /** Open rows one element of the component meets (quantifier "any"). */
   component: ComponentTodo[];
   /** Open rows within the target that only a statement (or a mitigation reference) can meet. */
-  statements: { label: string; group: FoundationalRequirement }[];
+  statements: { label: string; group: string }[];
 }
 
+/** SL-T per FR, or "all" for a standard without levels. */
+export type TodoTarget = Partial<Record<FoundationalRequirement, SecurityLevel>> | "all";
+
 /** The row's SL-C level is needed for the target of its FR. */
-function withinTarget(row: RowResult, target: Partial<Record<FoundationalRequirement, SecurityLevel>>): boolean {
-  const level = target[row.group];
+function withinTarget(row: RowResult, target: TodoTarget): boolean {
+  if (target === "all") return true;
+  const level = target[row.group as FoundationalRequirement];
   return level !== undefined && (row.minSl ?? 1) <= level;
 }
 
-function propertiesFor(edition: Edition, row: RowResult, type: string | undefined, kind: TodoItem["kind"]): string[] {
+function propertiesFor(edition: AnyEdition, row: RowResult, type: string | undefined, kind: TodoItem["kind"]): string[] {
   const ids = edition.rows.find((r) => r.label === row.label)?.requirementIds ?? [];
   const out = new Set<string>();
   for (const id of ids) {
-    for (const target of EVIDENCE_RULES.get(id)?.targets ?? []) {
+    for (const target of RULES_BY_ID.get(id)?.targets ?? []) {
       if (type && !(target.elementTypes as readonly string[]).includes(type)) continue;
       for (const check of target.satisfiedIf ?? []) out.add(words(check.property));
       if (kind === "missing") {
@@ -75,10 +80,10 @@ function propertiesFor(edition: Edition, row: RowResult, type: string | undefine
 }
 
 export function buildTodoList(
-  edition: Edition,
+  edition: AnyEdition,
   achieved: ComplianceResult,
   planned: ComplianceResult,
-  target: Partial<Record<FoundationalRequirement, SecurityLevel>>,
+  target: TodoTarget,
   typeOf?: (id: string) => string | undefined,
 ): TodoList {
   const plannedRow = new Map(planned.rows.map((r) => [r.label, r]));
@@ -94,7 +99,7 @@ export function buildTodoList(
     }
     if (row.status !== "gap" && row.status !== "unknown") continue;
     const p = plannedRow.get(row.label);
-    const rules = (edition.rows.find((r) => r.label === row.label)?.requirementIds ?? []).map((id) => EVIDENCE_RULES.get(id));
+    const rules = (edition.rows.find((r) => r.label === row.label)?.requirementIds ?? []).map((id) => RULES_BY_ID.get(id));
     if (rules.length > 0 && rules.every((rule) => rule?.quantifier === "any")) {
       component.push({
         label: row.label,

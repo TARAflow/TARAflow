@@ -5,6 +5,9 @@
 // evaluation (D-7), device categories of the 2019 edition (K-C1), target
 // SL-C per FR with the achieved and planned values (D-2, D-4, D-14), and
 // the rows with their status, source and the analyst statements (D-8, D-17).
+// A standard without security levels (EN 50742 A, CM-11) shows a status
+// summary instead of the SL table, its row groups, and no component when its
+// family assesses the whole model.
 //
 // Presentational: the app layer evaluates the model (compliance-report.ts)
 // and stores what the tab changes (project.compliance).
@@ -41,6 +44,7 @@ import {
 import {
   complianceComponentOf,
   familyCompliance,
+  familyHasComponent,
   FOUNDATIONAL_REQUIREMENTS,
   withComplianceComponent,
   withComplianceStatement,
@@ -53,7 +57,8 @@ import {
   type StatementStatus,
   type TargetSecurityLevel,
 } from "shared";
-import type { Edition, RequirementId } from "../models/compliance-types";
+import type { AnyEdition, AnyRequirementId } from "../models/compliance-types";
+import type { StandardHeader } from "../services/standard-registry";
 import type { ComplianceResult, RowResult, RowStatus } from "../models/evaluation-types";
 import type { DeviceCategoryProposal } from "../services/device-category";
 import {
@@ -152,7 +157,9 @@ const SOURCE_DEFAULT: Record<string, string> = {
 const STATEMENT_DEFAULT: Record<StatementStatus, string> = { met: "met", "not-met": "not met", "n/a": "not applicable" };
 
 export interface ComplianceTabProps {
-  edition: Edition;
+  edition: AnyEdition;
+  /** The standard's header kind; absent = security levels (IEC 62443-4-2). */
+  header?: StandardHeader;
   achieved: ComplianceResult;
   planned: ComplianceResult;
   data: ComplianceData | undefined;
@@ -171,7 +178,7 @@ export interface ComplianceTabProps {
   typeOf?: (id: string) => string | undefined;
   /** Catalog mitigations for a row; filtered to the types of the elements still open (D-29). */
   mitigationSuggestions?: (
-    requirementIds: readonly RequirementId[],
+    requirementIds: readonly AnyRequirementId[],
     openElementIds: readonly string[],
   ) => readonly { id: string; text: string }[];
 }
@@ -182,6 +189,7 @@ const shortList = (items: readonly string[], max = 4) =>
 
 export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   edition,
+  header = "security-levels",
   achieved,
   planned,
   data,
@@ -205,10 +213,12 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   const [guideOpen, setGuideOpen] = useState(() => !guideSeen());
   useEffect(() => markGuideSeen(), []);
   const hasDeviceRows = edition.rows.some((r) => r.deviceCategories);
+  const levels = header === "security-levels";
   const cra = edition.id === "en-iec-62443-4-2-praa-2026";
   // The edition's family block (K-2); component: the family's own, else the default (K-5).
   const family = edition.family;
   const familyData = familyCompliance(data, family);
+  const hasComponent = familyHasComponent(family);
   // D-31: one statement per requirement, shared by the editions of the family.
   const statements = useMemo(() => editionStatements(edition, familyData.statements), [edition, familyData.statements]);
   const keyOf = (label: string) => {
@@ -224,8 +234,17 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   );
 
   const target = useMemo(() => familyData.target ?? {}, [familyData.target]);
-  const hasTarget = Object.keys(target).length > 0;
-  const todo = useMemo(() => buildTodoList(edition, achieved, planned, target, typeOf), [edition, achieved, planned, target, typeOf]);
+  // Without levels there is no target: every open row is to do.
+  const hasTarget = !levels || Object.keys(target).length > 0;
+  const todo = useMemo(
+    () => buildTodoList(edition, achieved, planned, levels ? target : "all", typeOf),
+    [edition, achieved, planned, target, typeOf, levels],
+  );
+  const statusCounts = useMemo(() => {
+    const counts = new Map<RowStatus, number>();
+    for (const r of achieved.rows) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
+    return counts;
+  }, [achieved.rows]);
   const rowByLabel = useMemo(() => new Map(achieved.rows.map((r) => [r.label, r])), [achieved.rows]);
   const openInfo = (label: string) => {
     const row = rowByLabel.get(label);
@@ -274,11 +293,17 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           </AccordionSummary>
           <AccordionDetails>
             <Box component="ol" sx={{ m: 0, pl: 3, "& li": { mb: 0.5 } }}>
-              <li>{t("guide1", "Choose the component under evaluation — or keep the whole model.")}</li>
-              <li>{t("guide2", "Set the SL-T per foundational requirement: what the operator, the zone or your customer requires.")}</li>
+              {hasComponent && <li>{t("guide1", "Choose the component under evaluation — or keep the whole model.")}</li>}
+              {levels ? (
+                <li>{t("guide2", "Set the SL-T per foundational requirement: what the operator, the zone or your customer requires.")}</li>
+              ) : (
+                <li>{t("guideSrsl", "There is no target to set: the SRSL comes from the rated risks in the risk tab, and the requirements apply to the whole machine.")}</li>
+              )}
               <li>{t("guide3", "Work through the to-do list: set the missing properties in the DFD, and choose mitigations in the risk treatment where the model shows a requirement not met.")}</li>
               <li>{t("guide4", "Rows the model cannot show need a statement: reasoning and where the evidence is (manual, test report). Click a requirement number for everything about it.")}</li>
-              <li>{t("guide5", "Compare SL-C (product) with the SL-T: planned shows the value once the chosen mitigations are done; a gap that remains needs a change of the product or a measure of the system around it.")}</li>
+              {levels && (
+                <li>{t("guide5", "Compare SL-C (product) with the SL-T: planned shows the value once the chosen mitigations are done; a gap that remains needs a change of the product or a measure of the system around it.")}</li>
+              )}
             </Box>
           </AccordionDetails>
         </Accordion>
@@ -288,22 +313,25 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
             <Typography variant="h6">{edition.title}</Typography>
             {edition.draft && <Chip size="small" color="warning" label={t("draft", "draft")} />}
-            <TextField
-              select
-              size="small"
-              sx={{ minWidth: 320 }}
-              label={t("component", "Component under evaluation")}
-              value={complianceComponentOf(data, family) ?? ""}
-              onChange={(e) => onChange(withComplianceComponent(data, e.target.value || undefined))}
-              inputProps={{ "data-testid": "compliance-component" }}
-            >
-              <MenuItem value="">{t("wholeModel", "Whole model")}</MenuItem>
-              {componentOptions.map((o) => (
-                <MenuItem key={o.id} value={o.id}>
-                  {o.label}
-                </MenuItem>
-              ))}
-            </TextField>
+            {!hasComponent && <Chip size="small" variant="outlined" label={t("wholeMachine", "Scope: the whole machine")} />}
+            {hasComponent && (
+              <TextField
+                select
+                size="small"
+                sx={{ minWidth: 320 }}
+                label={t("component", "Component under evaluation")}
+                value={complianceComponentOf(data, family) ?? ""}
+                onChange={(e) => onChange(withComplianceComponent(data, e.target.value || undefined))}
+                inputProps={{ "data-testid": "compliance-component" }}
+              >
+                <MenuItem value="">{t("wholeModel", "Whole model")}</MenuItem>
+                {componentOptions.map((o) => (
+                  <MenuItem key={o.id} value={o.id}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             {t(
@@ -358,110 +386,134 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           )}
         </Paper>
 
-        {/* ── SL table (D-26): FRs as columns ─────────────────────── */}
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            {t("vectorTitle", "Security levels per foundational requirement")}
-          </Typography>
-          <Table size="small" data-testid="compliance-vector">
-            <TableHead>
-              <TableRow>
-                <TableCell />
-                {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
-                  <TableCell key={fr} align="center">
-                    {fr}
-                  </TableCell>
+        {/* ── Without levels: rows per status ───────────────────────── */}
+        {!levels && (
+          <Paper variant="outlined" sx={{ p: 2 }} data-testid="compliance-summary">
+            <Typography variant="subtitle1" gutterBottom>
+              {t("summaryTitle", "Requirements per status")}
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {(Object.keys(STATUS_DEFAULT) as RowStatus[])
+                .filter((status) => statusCounts.has(status))
+                .map((status) => (
+                  <Chip
+                    key={status}
+                    size="small"
+                    color={STATUS_COLOR[status]}
+                    label={`${t(`status.${status}`, STATUS_DEFAULT[status])}: ${statusCounts.get(status)}`}
+                    data-testid={`compliance-summary-${status}`}
+                  />
                 ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <span>{t("target", "SL-T (requirement)")}</span>
-                    <TextField
-                      select
-                      size="small"
-                      label={t("targetAll", "all FR")}
-                      value=""
-                      sx={{ minWidth: 96 }}
-                      onChange={(e) => {
-                        const level = e.target.value === "-" ? undefined : (Number(e.target.value) as TargetSecurityLevel);
-                        let next = data;
-                        for (const fr of FOUNDATIONAL_REQUIREMENTS) next = withComplianceTarget(next, family, fr, level);
-                        if (next) onChange(next);
-                      }}
-                      inputProps={{ "data-testid": "compliance-target-all" }}
-                    >
-                      <MenuItem value="-">—</MenuItem>
-                      {["1", "2", "3", "4"].map((n) => (
-                        <MenuItem key={n} value={n}>
-                          {n}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Stack>
-                </TableCell>
-                {FOUNDATIONAL_REQUIREMENTS.map((fr) => {
-                  const target = familyData.target?.[fr];
-                  return (
+            </Stack>
+          </Paper>
+        )}
+
+        {/* ── SL table (D-26): FRs as columns ─────────────────────── */}
+        {levels && (
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              {t("vectorTitle", "Security levels per foundational requirement")}
+            </Typography>
+            <Table size="small" data-testid="compliance-vector">
+              <TableHead>
+                <TableRow>
+                  <TableCell />
+                  {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
                     <TableCell key={fr} align="center">
+                      {fr}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <span>{t("target", "SL-T (requirement)")}</span>
                       <TextField
                         select
                         size="small"
-                        value={target === undefined ? "" : String(target)}
-                        onChange={(e) =>
-                          onChange(withComplianceTarget(data, family, fr, e.target.value === "" ? undefined : (Number(e.target.value) as TargetSecurityLevel)))
-                        }
-                        inputProps={{ "data-testid": `compliance-target-${fr}` }}
+                        label={t("targetAll", "all FR")}
+                        value=""
+                        sx={{ minWidth: 96 }}
+                        onChange={(e) => {
+                          const level = e.target.value === "-" ? undefined : (Number(e.target.value) as TargetSecurityLevel);
+                          let next = data;
+                          for (const fr of FOUNDATIONAL_REQUIREMENTS) next = withComplianceTarget(next, family, fr, level);
+                          if (next) onChange(next);
+                        }}
+                        inputProps={{ "data-testid": "compliance-target-all" }}
                       >
-                        <MenuItem value="">—</MenuItem>
+                        <MenuItem value="-">—</MenuItem>
                         {["1", "2", "3", "4"].map((n) => (
                           <MenuItem key={n} value={n}>
                             {n}
                           </MenuItem>
                         ))}
                       </TextField>
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-              {(
-                [
-                  ["slcProduct", t("achievedComponent", "SL-C (product)"), achieved.component, true],
-                  ["slcPlanned", t("plannedComponent", "SL-C planned"), planned.component, true],
-                  ["withSystem", t("achievedWithSupport", "With measures of the system"), achieved.withSupport, false],
-                ] as const
-              ).map(([key, label, values, compare]) => (
-                <TableRow key={key} data-testid={`compliance-vector-${key}`}>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>{label}</TableCell>
-                  {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
-                    <TableCell key={fr} align="center">
-                      <LevelChip value={values[fr]} target={compare ? familyData.target?.[fr] : undefined} />
-                    </TableCell>
-                  ))}
+                    </Stack>
+                  </TableCell>
+                  {FOUNDATIONAL_REQUIREMENTS.map((fr) => {
+                    const target = familyData.target?.[fr];
+                    return (
+                      <TableCell key={fr} align="center">
+                        <TextField
+                          select
+                          size="small"
+                          value={target === undefined ? "" : String(target)}
+                          onChange={(e) =>
+                            onChange(withComplianceTarget(data, family, fr, e.target.value === "" ? undefined : (Number(e.target.value) as TargetSecurityLevel)))
+                          }
+                          inputProps={{ "data-testid": `compliance-target-${fr}` }}
+                        >
+                          <MenuItem value="">—</MenuItem>
+                          {["1", "2", "3", "4"].map((n) => (
+                            <MenuItem key={n} value={n}>
+                              {n}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {t(
-              "vectorText",
-              "SL-T: what the operator or the zone requires. SL-C (product): what the product provides according to the model; planned: after the chosen open mitigations. With measures of the system: what the plant can reach if it provides the listed supporting measures and claims — the basis for the SL-A, which only arises in the operated plant.",
-            )}
-          </Typography>
-        </Paper>
+                {(
+                  [
+                    ["slcProduct", t("achievedComponent", "SL-C (product)"), achieved.component, true],
+                    ["slcPlanned", t("plannedComponent", "SL-C planned"), planned.component, true],
+                    ["withSystem", t("achievedWithSupport", "With measures of the system"), achieved.withSupport, false],
+                  ] as const
+                ).map(([key, label, values, compare]) => (
+                  <TableRow key={key} data-testid={`compliance-vector-${key}`}>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>{label}</TableCell>
+                    {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
+                      <TableCell key={fr} align="center">
+                        <LevelChip value={values[fr]} target={compare ? familyData.target?.[fr] : undefined} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {t(
+                "vectorText",
+                "SL-T: what the operator or the zone requires. SL-C (product): what the product provides according to the model; planned: after the chosen open mitigations. With measures of the system: what the plant can reach if it provides the listed supporting measures and claims — the basis for the SL-A, which only arises in the operated plant.",
+              )}
+            </Typography>
+          </Paper>
+        )}
 
         {/* ── To do up to the SL-T ───────────────────────────────────── */}
         <Paper variant="outlined" sx={{ p: 2 }} data-testid="compliance-todo">
           <Typography variant="subtitle1" gutterBottom>
-            {t("todoTitle", "To do up to the SL-T")}
+            {levels ? t("todoTitle", "To do up to the SL-T") : t("todoTitleAll", "To do")}
           </Typography>
           {!hasTarget ? (
             <Alert severity="info">{t("todoNoTarget", "Set the SL-T above — the to-do list shows what is open up to it.")}</Alert>
           ) : todo.elements.length === 0 && todo.component.length === 0 && todo.statements.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
-              {t("todoNothing", "Nothing open up to the SL-T.")}
+              {levels ? t("todoNothing", "Nothing open up to the SL-T.") : t("todoNothingAll", "Nothing open.")}
             </Typography>
           ) : (
             <Stack spacing={1.5}>
@@ -564,7 +616,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
             <TableHead>
               <TableRow>
                 <TableCell>{t("requirement", "Requirement")}</TableCell>
-                <TableCell>{t("minSl", "SL-C from")}</TableCell>
+                {levels ? <TableCell>{t("minSl", "SL-C from")}</TableCell> : <TableCell>{t("groupColumn", "Group")}</TableCell>}
                 {cra && <TableCell>{t("cra", "CRA")}</TableCell>}
                 <TableCell>{t("statusColumn", "Status")}</TableCell>
                 <TableCell>{t("sourceColumn", "Source")}</TableCell>
@@ -589,7 +641,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       {requirementLink(row.label, `compliance-req-${row.label}`)}
                     </TableCell>
-                    <TableCell>{row.minSl ?? "—"}</TableCell>
+                    <TableCell>{levels ? (row.minSl ?? "—") : t(`group.${row.group}`, row.group)}</TableCell>
                     {cra && <TableCell>{(rowDef.get(row.label)?.cra ?? []).join(", ") || "—"}</TableCell>}
                     <TableCell>
                       <Chip size="small" color={STATUS_COLOR[row.status]} label={t(`status.${row.status}`, STATUS_DEFAULT[row.status])} />
@@ -633,6 +685,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           row={info}
           descriptions={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang))}
           cra={cra ? [...(rowDef.get(info.label)?.cra ?? [])] : undefined}
+          levels={levels}
           statement={statements[info.label]}
           suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? [], [...info.failing, ...info.unknown]) ?? []}
           nameOf={nameOf}
@@ -688,6 +741,8 @@ interface RequirementInfoDialogProps {
   row: RowResult;
   descriptions: readonly RequirementDescription[];
   cra?: readonly string[];
+  /** The standard has security levels: the row's SL-C from. */
+  levels: boolean;
   statement?: ComplianceStatement;
   suggestions: readonly { id: string; text: string }[];
   nameOf: (id: string) => string;
@@ -700,6 +755,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
   row,
   descriptions,
   cra,
+  levels,
   statement,
   suggestions,
   nameOf,
@@ -730,7 +786,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
       </DialogTitle>
       <DialogContent dividers>
         <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
-          <Chip size="small" label={`${t("minSl", "SL-C from")} ${row.minSl ?? "—"}`} />
+          {levels && <Chip size="small" label={`${t("minSl", "SL-C from")} ${row.minSl ?? "—"}`} />}
           {cra && cra.length > 0 && <Chip size="small" label={`CRA ${cra.map((c) => `(2)(${c})`).join(", ")}`} />}
           <Chip size="small" color={STATUS_COLOR[row.status]} label={t(`status.${row.status}`, STATUS_DEFAULT[row.status])} />
           {row.source && <Chip size="small" variant="outlined" label={t(`sourceName.${row.source}`, SOURCE_DEFAULT[row.source])} />}

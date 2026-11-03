@@ -21,14 +21,14 @@ export type FoundationalRequirement = (typeof FOUNDATIONAL_REQUIREMENTS)[number]
 /** A level 1 … 4 an analyst can target. */
 export type TargetSecurityLevel = 1 | 2 | 3 | 4;
 
-export type ComplianceEditionId = "iec-62443-4-2-2019" | "en-iec-62443-4-2-praa-2026";
+export type ComplianceEditionId = "iec-62443-4-2-2019" | "en-iec-62443-4-2-praa-2026" | "en-50742-a";
 
 /**
  * A standard family — the editions of one standard; statements and the
  * component are shared inside a family, never across (model coverage plan
  * §2.4, K-6). Further families (EN 303 645, EN 18031) join with their module.
  */
-export type StandardFamilyId = "iec-62443-4-2";
+export type StandardFamilyId = "iec-62443-4-2" | "en-50742";
 
 /** 2019 component types (Clauses 12–15). */
 export type DeviceCategory = "SAR" | "EDR" | "HDR" | "NDR";
@@ -113,8 +113,15 @@ export function familyCompliance(data: ComplianceData | undefined, family: Stand
   return data?.families?.[family] ?? NO_FAMILY_DATA;
 }
 
-/** The component a family evaluates: its own, else the default (K-5). */
+/** Families evaluated on the whole model — EN 50742 assesses the machine (model coverage plan §8.1). */
+const WHOLE_MODEL_FAMILIES: readonly StandardFamilyId[] = ["en-50742"];
+
+/** The family evaluates a component under evaluation (D-7); otherwise always the whole model. */
+export const familyHasComponent = (family: StandardFamilyId): boolean => !WHOLE_MODEL_FAMILIES.includes(family);
+
+/** The component a family evaluates: its own, else the default (K-5); none for whole-model families. */
 export function complianceComponentOf(data: ComplianceData | undefined, family: StandardFamilyId): string | undefined {
+  if (!familyHasComponent(family)) return undefined;
   return data?.families?.[family]?.componentId ?? data?.componentId;
 }
 

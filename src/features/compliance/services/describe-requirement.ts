@@ -3,14 +3,13 @@
 // title, our own summary and "how TARAflow checks it" — generated from the
 // evidence rule, so it always matches what the evaluator does.
 
-import type { EvidenceRule, EvidenceTarget, NeighbourCheck, PropertyCheck, RequirementId } from "../models/compliance-types";
-import { EVIDENCE_RULES } from "../data/evidence-rules";
-import { REQUIREMENT_TEXTS } from "../data/requirement-texts";
+import type { AnyRequirementId, EvidenceRule, EvidenceTarget, NeighbourCheck, PropertyCheck } from "../models/compliance-types";
+import { RULES_BY_ID, TEXTS_BY_ID } from "../data/requirement-registry";
 
 export type DescribeLanguage = "en" | "de";
 
 export interface RequirementDescription {
-  id: RequirementId;
+  id: AnyRequirementId;
   title: string;
   summary: string;
   /** How the evaluator decides the row, in the given language. */
@@ -34,6 +33,9 @@ const WORDS = {
     model: "Checked in the model",
     noModel: "Not derivable from the model — a statement, a mitigation of the risk treatment or a claim meets it.",
     wholeComponent: "the component as a whole",
+    risks: "Checked on the risks: the SRSL and the mandated controls of the risk treatment (with the next step; until then a statement meets it).",
+    project: "Checked on the project data: hazards, risks, safety functions, way of operation and system definition (with the next step; until then a statement meets it).",
+    fromSrsl: "Applies from SRSL",
     crossesComponent: "across the component border (not human input, not physical coupling)",
     conditions: {
       authenticates: "that authenticates",
@@ -62,6 +64,9 @@ const WORDS = {
     model: "Im Modell geprüft",
     noModel: "Nicht aus dem Modell ableitbar — eine Aussage, eine Massnahme der Risikobehandlung oder ein Claim erfüllt sie.",
     wholeComponent: "die Komponente als Ganzes",
+    risks: "An den Risiken geprüft: SRSL und verlangte Massnahmen der Risikobehandlung (mit dem nächsten Schritt; bis dahin erfüllt sie eine Aussage).",
+    project: "An den Projektdaten geprüft: Gefährdungen, Risiken, Sicherheitsfunktionen, Betriebsart und Systemdefinition (mit dem nächsten Schritt; bis dahin erfüllt sie eine Aussage).",
+    fromSrsl: "Gilt ab SRSL",
     crossesComponent: "über die Komponentengrenze (keine menschliche Eingabe, keine physische Kopplung)",
     conditions: {
       authenticates: "das authentifiziert",
@@ -107,9 +112,11 @@ function targetText(target: EvidenceTarget, quantifier: string, w: (typeof WORDS
   return condition ? `${head}: ${condition}` : head;
 }
 
-export function describeRule(rule: EvidenceRule, lang: DescribeLanguage): string {
+export function describeRule(rule: EvidenceRule<AnyRequirementId>, lang: DescribeLanguage): string {
   const w = WORDS[lang];
   const sentences: string[] = [];
+  if (rule.minSrsl) sentences.push(`${w.fromSrsl} ${rule.minSrsl}.`);
+  if (rule.external) return [...sentences, rule.external.kind === "risk" ? w.risks : w.project].join(" ");
   if (rule.appliesWhen?.length) {
     sentences.push(`${w.appliesWhen}: ${rule.appliesWhen.map((t) => targetText(t, w.atLeastOne, w)).join(` ${w.or} `)}.`);
   }
@@ -123,9 +130,9 @@ export function describeRule(rule: EvidenceRule, lang: DescribeLanguage): string
   return sentences.join(" ");
 }
 
-export function describeRequirement(id: RequirementId, lang: DescribeLanguage): RequirementDescription {
-  const text = REQUIREMENT_TEXTS[id];
-  const rule = EVIDENCE_RULES.get(id)!;
+export function describeRequirement(id: AnyRequirementId, lang: DescribeLanguage): RequirementDescription {
+  const text = TEXTS_BY_ID[id];
+  const rule = RULES_BY_ID.get(id)!;
   const checklist = lang === "de" && text.checklistDe ? [...text.checklistDe] : [...(rule.checklist ?? [])];
   return { id, title: text.title, summary: lang === "de" ? text.de : text.en, check: describeRule(rule, lang), checklist };
 }
@@ -138,7 +145,7 @@ export function describeRequirement(id: RequirementId, lang: DescribeLanguage): 
 export function localizedChecklist(descriptions: readonly RequirementDescription[], open: readonly string[]): string[] {
   if (open.length === 0) return [];
   return descriptions.flatMap((d) => {
-    const items = EVIDENCE_RULES.get(d.id)?.checklist ?? [];
+    const items = RULES_BY_ID.get(d.id)?.checklist ?? [];
     return items.flatMap((item, i) => (open.includes(item) ? [d.checklist[i] ?? item] : []));
   });
 }

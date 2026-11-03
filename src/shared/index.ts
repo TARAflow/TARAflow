@@ -188,6 +188,7 @@ export {
 export {
   FOUNDATIONAL_REQUIREMENTS,
   complianceComponentOf,
+  familyHasComponent,
   familyCompliance,
   withComplianceComponent,
   withComplianceStatement,
@@ -527,6 +528,7 @@ export {
   getTagWarnings,
   requiresHazardAnalysis,
   tagEffectOf,
+  isEn50742ApproachATag,
   MATRIX_TAGS,
 } from "./services/tag-validator";
 

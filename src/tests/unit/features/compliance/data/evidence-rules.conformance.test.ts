@@ -22,7 +22,8 @@ import type {
   TrustBoundaryProperties,
 } from "features/dfd/models/element-properties";
 import type { EvidenceRuleLiterals } from "features/compliance/data/evidence-rules";
-import { ALL_EVIDENCE_RULES } from "features/compliance";
+import type { En50742RuleLiterals } from "features/compliance/data/en50742-a-rules";
+import { ALL_EVIDENCE_RULES, EN50742_A_RULES } from "features/compliance";
 
 // ==================== TYPE MACHINERY ====================
 
@@ -124,6 +125,9 @@ type AssertNone<V extends never> = V;
 /** Every rule: no unknown path, no value outside its property's type. */
 export type RulesConform = AssertNone<RuleViolation<EvidenceRuleLiterals[number]>>;
 
+/** The EN 50742 A model rules read the same properties (CM-11, E-4). */
+export type En50742RulesConform = AssertNone<RuleViolation<En50742RuleLiterals[number]>>;
+
 // ==================== NEGATIVE CASES ====================
 // The machinery must reject broken rules — otherwise the check above proves
 // nothing (D-18: `satisfies` without `as const` widened every path to string).
@@ -166,7 +170,7 @@ export type RejectsWrongElementType = AssertNone<RuleViolation<ProbeRule<{ reado
 
 describe("evidence rules conformance", () => {
   it("is checked by the compiler (npm run build); every check names a property", () => {
-    for (const rule of ALL_EVIDENCE_RULES) {
+    for (const rule of [...ALL_EVIDENCE_RULES, ...EN50742_A_RULES]) {
       for (const target of [...rule.targets, ...(rule.appliesWhen ?? [])]) {
         expect(target.elementTypes.length, rule.id).toBeGreaterThan(0);
         const checks = [

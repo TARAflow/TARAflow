@@ -1,6 +1,6 @@
 # TARAflow — prEN 50742 requirement coverage
 
-**Status:** v0.1 · 2026-11-02 · source: prEN 50742:2025 (E), Draft for Enquiry
+**Status:** v0.2 · 2026-11-03 · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
 (CLC/TC 44X), licensed copy · code base: `main` 3570655c (CM-2) · v0.1: rows of Approach A
 mapped to the Compliance sub-tab `en-50742-a` (§9, user 2026-11-02); Approach B deferred
 **Belongs to:** `en-50742-approach-a-design.md` (Approach A) and the Compliance sub-tab
@@ -234,6 +234,13 @@ Row ids are the ids of this list (unqualified inside the family `en-50742`, name
 | | EN-7.4.3.5.1/438–441 | B | M + S | applies when some SRSL ≥ SRSL2; the element that loads safety software or critical configuration has `updateMechanism` ∈ signed_local / signed_ota or `malwareProtection` = code_signing, and stores with `firmware` or `safety_params` on the safety path have `integrityProtection` = signature — the properties the IEC 62443-4-2 rules use (plan §8.1, E-4). Checklist: verified at installation time. No STRIDE row mandates this clause (§10 O10) | CR 3.4 RE(1), CR 3.10 RE(1) |
 | Information for use (9) | EN-9/491–496 | C | S | one statement per item: security context, software identification, access to intervention evidence, permitted / prohibited modifications | — |
 | | EN-4.3/229 | B | R + S | every risk with a remaining requirement (mandated control not done, or treatment retained) is named in the information-for-use statement | — |
+
+**Implementation (CM-11, 2026-11-03):** `src/features/compliance/data/edition-en-50742-a.ts`
+(rows), `en50742-a-rules.ts` (type, evidence kind), `en50742-a-texts.ts` (EN / DE); the test
+`en50742-a-module.test.ts` reads this table and fails when a row, its order, group, type or
+evidence kind differs. Row ids in code: `en-<clause>-<first draft line>`, e.g.
+`en-7.3.2-295`. M rows of 7.3 are evaluated from the model now; R and P rows need a
+statement until the En50742View (CM-12); 7.4.3.5.1 stays unknown until the SRSL is read.
 
 Row status as in the 62443 sub-tabs (met · planned · stated · open · gap · n/a · unknown).
 An unrated risk or an unset WoO makes the R and P rows `unknown`, never met (D-12).

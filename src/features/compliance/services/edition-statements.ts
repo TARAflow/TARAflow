@@ -7,14 +7,14 @@
 // requirement and with it the statement.
 
 import { requirementKey, type ComplianceStatement } from "shared";
-import type { Edition, EditionRow } from "../models/compliance-types";
+import type { AnyEdition, AnyEditionRow } from "../models/compliance-types";
 
 /** The storage key of a row's statement. */
-export const statementKeyOf = (row: Pick<EditionRow, "requirementIds">): string => requirementKey(row.requirementIds);
+export const statementKeyOf = (row: Pick<AnyEditionRow, "requirementIds">): string => requirementKey(row.requirementIds);
 
 /** Row label → statement, for the rows of `edition` that have one. */
 export function editionStatements(
-  edition: Edition,
+  edition: AnyEdition,
   statements: Readonly<Record<string, ComplianceStatement>> | undefined,
 ): Record<string, ComplianceStatement> {
   if (!statements) return {};

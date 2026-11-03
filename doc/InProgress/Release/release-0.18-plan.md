@@ -1,6 +1,6 @@
 # TARAflow 0.18.0-beta — release plan
 
-**Status:** v2 · 2026-11-02 · MS-1 done · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
+**Status:** v3 · 2026-11-03 · MS-1, CM-11 done · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
 exposure level), schema **13** on `feature/0.18-model-coverage`
 **Work split (user 2026-11-02):** instance **A** — the compliance strand (S1); instance
 **B** — issue trackers, maintainability and fixes (S2 – S4), Azure DevOps first. The user
@@ -56,7 +56,7 @@ B: IT-8 ADO ─ IT-7, IT-9 … IT-12 (independent)
 | Step | Content | Status |
 |---|---|---|
 | CM-1 … CM-10 | model coverage stage 1: standard registry, sub-tabs, schema 13 per family, visibility predicates, fields F-1 … F-29 (without F-28, dropped), Security sub-tabs, CR 1.11 on the verifier, report part per standard, validation | **done** (patches 01 – 20) |
-| CM-11 | EN 50742 A module: registry entry, groups, rows of coverage §9.2, header `srsl` (model coverage plan §8.1) | open |
+| CM-11 | EN 50742 A module: registry entry, groups, rows of coverage §9.2, header `srsl` (model coverage plan §8.1) | **done** (patch 23): 23 rows, rules, EN / DE texts; one rule / text lookup for every family; tag aliases via the normaliser; whole-machine scope; tab without SL parts; 7.3 rows from the model, R / P rows need a statement until CM-12; report part with CM-13 |
 | CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View`, model rules 7.3 / 7.4.3.5.1, golden tests on an own example | open |
 | CM-13 | EN 50742 A report part (CM-9 structure), coverage rows → tracked | open |
 | IEC-6 | claims as evidence for SL-C gaps (D-5) | open |

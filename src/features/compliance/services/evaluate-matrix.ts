@@ -1,5 +1,5 @@
 // ==================== MATRIX EVALUATOR ====================
-// Evaluates one IEC 62443-4-2 edition against the model of a project
+// Evaluates one edition of a standard (IEC 62443-4-2, EN 50742 A) against the model of a project
 // (iec-62443-4-2-cra-coverage.md §9.4). Pure: the app layer passes the
 // property view of one run (achieved / planned, D-4), the component scope,
 // statements, claims and mitigations.
@@ -14,14 +14,14 @@
 //                               9 no → gap, else unknown, else needs-statement
 
 import type {
+  AnyEditionRow,
+  AnyRequirementId,
   ChecklistAnswer,
-  EditionRow,
   EvidenceRule,
   EvidenceTarget,
   FoundationalRequirement,
   NeighbourCheck,
   PropertyCheck,
-  RequirementId,
   SecurityLevel,
   SlVector,
 } from "../models/compliance-types";
@@ -35,7 +35,7 @@ import type {
   RowStatus,
   ViewElement,
 } from "../models/evaluation-types";
-import { EVIDENCE_RULES } from "../data/evidence-rules";
+import { RULES_BY_ID } from "../data/requirement-registry";
 
 // ==================== THREE-VALUED LOGIC ====================
 
@@ -222,7 +222,7 @@ const STAND_IN_TYPES: readonly string[] = ["Process", "DataStore"];
  * scope at all (the case §9.4 step 4 otherwise reports as n/a). Targets
  * that check Multiprocess themselves need no stand-in.
  */
-function blackBoxStandIns(rule: EvidenceRule, graph: Graph, inScope: (id: string) => boolean): string[] {
+function blackBoxStandIns(rule: EvidenceRule<AnyRequirementId>, graph: Graph, inScope: (id: string) => boolean): string[] {
   const standInTargets = rule.targets.filter(
     (t) =>
       !(t.elementTypes as readonly string[]).includes("Multiprocess") &&
@@ -237,8 +237,12 @@ function blackBoxStandIns(rule: EvidenceRule, graph: Graph, inScope: (id: string
 }
 
 /** Steps 4 – 7 and 9 for one requirement id. */
-function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput): IdOutcome {
+function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input: ComplianceInput): IdOutcome {
   const typeA = rule.type === "A";
+  // EN 50742 A: risk and project evidence and the SRSL come from the
+  // En50742View (CM-12) — until then a statement meets the row.
+  if (rule.external) return outcome("needs-statement", { reasoning: "evaluated from the risks and the project data — not yet available" });
+  if (rule.minSrsl) return outcome("unknown", { reasoning: `applies from SRSL ${rule.minSrsl} — the SRSL comes from the risks` });
   const inScope = (id: string) => {
     if (input.scope.has(id)) return true;
     const ends = graph.endpoints.get(id);
@@ -315,7 +319,7 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
   // Step 6 — mitigations naming the requirement, chosen for risks in scope (D-16).
   const mitigations = (input.mitigations ?? []).filter(
     (m) =>
-      m.requirementIds.includes(rule.id) &&
+      (m.requirementIds as readonly string[]).includes(rule.id) &&
       // A flow counts when it touches the scope, as for the evidence (a threat
       // on a flow concerns the flow itself).
       m.concernsElementIds.some(inScope) &&
@@ -367,7 +371,7 @@ function answerOf(element: ViewElement, answer: ChecklistAnswer): Tri {
 }
 
 /** The checklist items still open and the elements whose fields fail one (CM-5b). */
-function answerChecklist(rule: EvidenceRule, elements: readonly ViewElement[]): { open: string[]; failing: string[] } {
+function answerChecklist(rule: EvidenceRule<AnyRequirementId>, elements: readonly ViewElement[]): { open: string[]; failing: string[] } {
   const checklist = rule.checklist ?? [];
   if (rule.type !== "B" || !rule.answers?.length || elements.length === 0) return { open: [...checklist], failing: [] };
   const any = rule.quantifier === "any";
@@ -413,7 +417,7 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
   };
 }
 
-function evaluateRow(row: EditionRow, graph: Graph, input: ComplianceInput): RowResult {
+function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): RowResult {
   const statement = input.statements?.[row.label];
   const base = {
     label: row.label,
@@ -450,7 +454,7 @@ function evaluateRow(row: EditionRow, graph: Graph, input: ComplianceInput): Row
   }
 
   // Steps 4 – 7 per requirement id, combined (all ids of a row must be met).
-  const rules = row.requirementIds.map((id: RequirementId) => EVIDENCE_RULES.get(id)!);
+  const rules = row.requirementIds.map((id) => RULES_BY_ID.get(id)!);
   const combined = combine(rules.map((rule) => evaluateRule(rule, graph, input)));
   let status: RowStatus = combined.status;
   let source: RowSource | undefined = combined.source;

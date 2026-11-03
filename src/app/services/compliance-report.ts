@@ -35,8 +35,8 @@ import {
   activeStandards,
   selectEdition,
   suggestMitigations,
+  type AnyEdition,
   type ComplianceResult,
-  type Edition,
   type StandardModule,
   type MitigationEvidence,
   type PropertyView,
@@ -137,7 +137,7 @@ export interface ProjectComplianceContext {
   scope: Set<string>;
   scopeName?: string;
   /** Achieved and planned run of one edition, in its family's scope and with its family's data. */
-  evaluate: (edition: Edition) => EditionEvaluation;
+  evaluate: (edition: AnyEdition) => EditionEvaluation;
 }
 
 /**
@@ -230,7 +230,7 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
  */
 export function evaluateProjectCompliance(
   project: Project,
-  edition: Edition | null = selectEdition(project.info?.tags),
+  edition: AnyEdition | null = selectEdition(project.info?.tags),
 ): EditionEvaluation | undefined {
   const context = edition ? prepareProjectCompliance(project) : undefined;
   if (!edition || !context) return undefined;
@@ -240,9 +240,10 @@ export function evaluateProjectCompliance(
 /**
  * The matrix chapter's data (DocProjectData.computed.compliance): one part
  * per active standard, in registry order (CM-9); the model is prepared once.
+ * Standards without security levels (EN 50742 A) get their part with CM-13.
  */
 export function buildDocCompliance(project: Project, language = "en"): DocCompliance[] | undefined {
-  const standards = activeStandards(project.info?.tags);
+  const standards = activeStandards(project.info?.tags).filter((s) => s.header === "security-levels");
   const context = standards.length > 0 ? prepareProjectCompliance(project) : undefined;
   if (!context) return undefined;
   return standards.map((standard) => docComplianceOf(project, language, standard, context.evaluate(standard.edition)));
