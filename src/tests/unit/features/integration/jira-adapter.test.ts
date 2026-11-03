@@ -113,12 +113,12 @@ describe("references and connecting", () => {
     expect(trackerRefOf(conn("https://ACME.atlassian.net/", "Someone@Example.com"))).toEqual(REF);
     expect(trackerRefOf(conn("http://acme.atlassian.net", "a@b"))).toBeNull();
     expect(trackerRefOf(conn("https://acme.atlassian.net"))).toBeNull();
-    expect(createTicketAdapter(conn("https://acme.atlassian.net", "a@b", "github"))).toBeNull();
+    expect(createTicketAdapter(conn("https://acme.atlassian.net", "a@b", "polarion"))).toBeNull();
     expect(createTicketAdapter(conn("https://acme.atlassian.net", "a@b"))).toBeInstanceOf(JiraAdapter);
   });
 
   it("connectTracker checks before storing a secret", async () => {
-    expect(await connectTracker({ tool: "github", host: "https://api.github.com", secret: "x" })).toMatchObject({ success: false });
+    expect(await connectTracker({ tool: "polarion", host: "https://polarion.example.com", secret: "x" })).toMatchObject({ success: false });
     expect(await connectTracker({ tool: "jira", host: "http://acme.atlassian.net", user: "a@b", secret: "x" })).toMatchObject({
       success: false,
       message: "Jira URL must be an https address.",

@@ -78,7 +78,7 @@ tracker is a user check (listed in TESTPLAN-0.18.md).
 |---|---|---|
 | IT-8 | **Azure DevOps first**: organisation URL + PAT (`Basic base64(:pat)`, already in §4.1 of the tracker design), WIQL for the batch of states, JSON Patch for creating work items, `System.State` → `TicketState` (incl. "Removed" / closed without fix → `done_without_fix`); issue types from the process template | **done** (patch 34): adapter, organization-bound PAT, shared `adapter-support.ts`; real run against an ADO organization in the test plan |
 | IT-7 | Jira Server / Data Center (REST v2, PAT bearer, wiki markup instead of ADF) — reuse the Jira adapter | **done** (patch 35, preview): Jira adapter flavour "server" (REST v2, wiki markup, Bearer PAT); every tracker except Polarion in 0.18, marked "preview" until a real run (user 2026-11-03) |
-| IT-9 | GitHub Issues (labels, closed state reason) | open |
+| IT-9 | GitHub Issues (labels, closed state reason) | **done** (patch 36, preview) |
 | IT-10 | GitLab Issues | open |
 | IT-11 | OpenProject (API v3, API key) | open |
 | IT-12 | Polarion (REST v1) | moved: later (user 2026-11-03) |

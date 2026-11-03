@@ -115,7 +115,7 @@ describe("Integration tab — the token stays out of the project", () => {
       ["Jira Cloud", false],
       ["Jira Server / Data Center", false],
       ["Azure DevOps", false],
-      ["GitHub Issues", true],
+      ["GitHub Issues", false],
       ["GitLab Issues", true],
       ["Polarion", true],
       ["OpenProject", true],

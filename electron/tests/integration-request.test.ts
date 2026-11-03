@@ -35,7 +35,7 @@ const keychain = (entries: Record<string, string>) => async (key: string) => ent
 
 describe("tracker descriptions", () => {
   it("one per tracker, the built ones available (Polarion later), every scheme known", () => {
-    expect(ISSUE_TRACKERS.filter((t) => t.available).map((t) => t.id)).toEqual(["jira", "jira-server", "azure-devops"]);
+    expect(ISSUE_TRACKERS.filter((t) => t.available).map((t) => t.id)).toEqual(["jira", "jira-server", "azure-devops", "github"]);
     for (const t of ISSUE_TRACKERS) expect(Object.keys(authHeaders(t.auth, "u", "t")).length).toBe(1);
   });
 
@@ -81,6 +81,11 @@ describe("checkIntegrationRequest", () => {
     expect(checkIntegrationRequest(req({ path: "//evil.example/x" }))).toEqual({ error: "path must be relative to the host" });
     expect(checkIntegrationRequest(req({ method: "DELETE" }))).toEqual({ error: "method DELETE not allowed" });
     expect(checkIntegrationRequest(req({ account: " " }))).toEqual({ error: "account missing" });
+  });
+
+  it("GitHub's API version header passes; anything else still does not", () => {
+    const c = checkIntegrationRequest(req({ headers: { "X-GitHub-Api-Version": "2022-11-28", "X-Other": "x" } })) as { headers: Record<string, string> };
+    expect(c.headers).toEqual({ "X-GitHub-Api-Version": "2022-11-28" });
   });
 
   it("passes only Accept / Content-Type / X-Atlassian-Token from the renderer; JSON body", () => {

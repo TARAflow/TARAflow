@@ -168,5 +168,6 @@ new form; the per-tracker tabs and forms (`jira-config.tsx`, `ado-config.tsx`) g
 
 | IT-7 | **Jira Server / Data Center** (0.18): the Jira adapter in a second flavour — REST v2 (`/rest/api/2/…`, `/search`), wiki-markup descriptions, no fixed sprint field, PAT as Bearer (account "default", bound to the host); no second adapter. Trackers built and tested against recorded answers only carry `preview` in `issue-trackers.ts` — the form marks them until a real run confirmed them (user 2026-11-03: every tracker except Polarion in 0.18, real tests over time) | 35 | done (preview) |
 
-Next in 0.18 (user 2026-11-03): GitHub (labels / closed state reason), GitLab, OpenProject.
-Polarion (REST v1) later.
+| IT-9 | **GitHub Issues** (0.18, preview): `GitHubAdapter` — repositories as projects (key `owner/repo`; GitHub has no issue types: the type is a label, "Issue" = none), ticket key `owner/repo#n`; state + close reason (completed → done; not_planned / duplicate, or a won't-fix label → closed without fix), open issues with a progress / review label; ticket states in one GraphQL query (aliases; owner / repo checked by pattern before they enter the query); Enterprise Server under `/api/v3` and `/api/graphql`. Main process lets `X-GitHub-Api-Version` pass | 36 | done (preview) |
+
+Next in 0.18 (user 2026-11-03): GitLab, OpenProject. Polarion (REST v1) later.

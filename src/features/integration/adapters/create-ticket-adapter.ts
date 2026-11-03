@@ -13,6 +13,7 @@ import {
 import type { IntegrationConnection } from "../models/integration-types";
 import { JiraAdapter } from "./jira-adapter";
 import { AzureDevOpsAdapter } from "./azure-devops-adapter";
+import { GitHubAdapter } from "./github-adapter";
 import type { TicketAdapter } from "./ticket-adapter";
 import type { TrackerRef } from "./tracker-channel";
 
@@ -31,6 +32,8 @@ export function adapterFor(ref: TrackerRef): TicketAdapter | null {
       return new JiraAdapter(ref, "server");
     case "azure-devops":
       return new AzureDevOpsAdapter(ref);
+    case "github":
+      return new GitHubAdapter(ref);
     default:
       return null; // not available yet (issue-trackers.ts)
   }
