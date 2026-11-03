@@ -48,6 +48,40 @@ describe("hazardValidator", () => {
     expect(v.isComplete).toBe(false);
   });
 
+  it("accepts an out-of-scope hazard without contributes_to", () => {
+    let d = createEmptyHazardData();
+    const item = {
+      ...hazardService.createHazardItem(d, { label: "x" }),
+      systemRelevance: "out_of_scope" as const,
+    };
+    d = hazardService.addHazard(d, item);
+    d = hazardRelationService.addEndangers(d, {
+      hazardId: item.id,
+      targetAssetId: "HUM-1",
+      impact: { target: "human", severity: "fatal" },
+    });
+    const v = hazardValidator.validate(d);
+    expect(v.errors).toEqual([]);
+  });
+
+  it("still errors for an unreviewed or in-scope hazard without contributes_to", () => {
+    for (const scope of [undefined, "unknown", "in_scope"] as const) {
+      let d = createEmptyHazardData();
+      const item = {
+        ...hazardService.createHazardItem(d, { label: "x" }),
+        ...(scope ? { systemRelevance: scope } : {}),
+      };
+      d = hazardService.addHazard(d, item);
+      d = hazardRelationService.addEndangers(d, {
+        hazardId: item.id,
+        targetAssetId: "HUM-1",
+        impact: { target: "human", severity: "fatal" },
+      });
+      const v = hazardValidator.validate(d);
+      expect(v.errors.some((e) => e.includes("contributes_to"))).toBe(true);
+    }
+  });
+
   it("errors when endangers is missing", () => {
     let d = createEmptyHazardData();
     const item = hazardService.createHazardItem(d, { label: "x" });
