@@ -170,4 +170,6 @@ new form; the per-tracker tabs and forms (`jira-config.tsx`, `ado-config.tsx`) g
 
 | IT-9 | **GitHub Issues** (0.18, preview): `GitHubAdapter` — repositories as projects (key `owner/repo`; GitHub has no issue types: the type is a label, "Issue" = none), ticket key `owner/repo#n`; state + close reason (completed → done; not_planned / duplicate, or a won't-fix label → closed without fix), open issues with a progress / review label; ticket states in one GraphQL query (aliases; owner / repo checked by pattern before they enter the query); Enterprise Server under `/api/v3` and `/api/graphql`. Main process lets `X-GitHub-Api-Version` pass | 36 | done (preview) |
 
-Next in 0.18 (user 2026-11-03): GitLab, OpenProject. Polarion (REST v1) later.
+| IT-10 | **GitLab Issues** (0.18, preview): `GitLabAdapter` (API v4, gitlab.com or self-managed) — projects by full path (`group/sub/project`), the type is a label ("Issue" = none), key `group/project#iid`; opened / closed — GitLab has no close reason, so a won't-fix / duplicate / invalid label marks closed without fix; review / progress labels (scoped ones too); states per project in one request with `iids[]` | 37 | done (preview) |
+
+Next in 0.18 (user 2026-11-03): OpenProject. Polarion (REST v1) later.

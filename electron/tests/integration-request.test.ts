@@ -35,7 +35,7 @@ const keychain = (entries: Record<string, string>) => async (key: string) => ent
 
 describe("tracker descriptions", () => {
   it("one per tracker, the built ones available (Polarion later), every scheme known", () => {
-    expect(ISSUE_TRACKERS.filter((t) => t.available).map((t) => t.id)).toEqual(["jira", "jira-server", "azure-devops", "github"]);
+    expect(ISSUE_TRACKERS.filter((t) => t.available).map((t) => t.id)).toEqual(["jira", "jira-server", "azure-devops", "github", "gitlab"]);
     for (const t of ISSUE_TRACKERS) expect(Object.keys(authHeaders(t.auth, "u", "t")).length).toBe(1);
   });
 
