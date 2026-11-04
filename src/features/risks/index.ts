@@ -141,6 +141,7 @@ export {
 
 // ==================== SERVICES ====================
 export { riskService } from "./services/risk-service";
+export { riskFindings, riskFindingLines, type RiskFinding } from "./services/risk-findings";
 export { calculateRiskValues } from "./services/risk-calculation-service";
 export {
   en50742RiskFromResolved,

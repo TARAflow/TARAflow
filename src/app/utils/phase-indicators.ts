@@ -40,7 +40,7 @@ export interface PhaseIndicatorInput {
   dfdStatus?: PhaseStatus;
   /** The Hazard tab's validation (safety-relevant projects with hazards). */
   hazardValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
-  /** The Risk tab's validation of the current state (riskService.validate). */
+  /** The Risk tab's validation of the current state, translated (riskFindingLines, FX-4). */
   riskValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   /** Stored threats the current rules would no longer / additionally generate. */
   threatDrift?: { obsolete: number; added: number };

@@ -429,6 +429,22 @@
           "label": "Übertragen"
         }
       },
+      "findings": {
+        "unrated_one": "{{count}} Risiko ist nicht bewertet",
+        "unrated_other": "{{count}} Risiken sind nicht bewertet",
+        "wontNoJustification_one": "{{count}} „Won't“-Risiko ohne Begründung",
+        "wontNoJustification_other": "{{count}} „Won't“-Risiken ohne Begründung",
+        "treatmentNoJustification_one": "{{count}} Risiko mit Behandlung Akzeptieren/Transferieren/Teilen braucht eine Begründung",
+        "treatmentNoJustification_other": "{{count}} Risiken mit Behandlung Akzeptieren/Transferieren/Teilen brauchen eine Begründung",
+        "transferToReview_one": "{{count}} Risiko mit Behandlung „Transferieren“ — ISO/SAE 21434 kennt kein Transferieren; als Teilen bestätigen",
+        "transferToReview_other": "{{count}} Risiken mit Behandlung „Transferieren“ — ISO/SAE 21434 kennt kein Transferieren; als Teilen bestätigen",
+        "reduceUnmitigated_one": "{{count}} zu reduzierendes Risiko hat keine Massnahme ({{list}})",
+        "reduceUnmitigated_other": "{{count}} zu reduzierende Risiken haben keine Massnahme ({{list}})",
+        "residualMissing_one": "{{count}} zu reduzierendes Risiko hat keine Restrisiko-Bewertung ({{list}})",
+        "residualMissing_other": "{{count}} zu reduzierende Risiken haben keine Restrisiko-Bewertung ({{list}})",
+        "uncertainThreats_one": "{{count}} Risiko beruht auf einer unsicheren Bedrohung — Relevanz im Tab „Bedrohungen“ bestätigen",
+        "uncertainThreats_other": "{{count}} Risiken beruhen auf unsicheren Bedrohungen — Relevanz im Tab „Bedrohungen“ bestätigen"
+      },
       "validation": {
         "required": "Pflichtfeld"
       },
