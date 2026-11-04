@@ -328,9 +328,10 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   // Audit tab → TARA verification entries (ISO 21434 plan Phase 4, decision 25).
-  const handleVerificationsChange = useCallback(
-    (verifications: VerificationEntry[]) => {
-      const current = activeProjectRef.current;
+  // Pinned to the Audit tab's project (see makeAuditHandlers below).
+  const makeVerificationsChangeHandler = useCallback(
+    (projectId: string) => (verifications: VerificationEntry[]) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       const concept = current.cybersecurityConcept ?? emptyCybersecurityConcept();
       updateProject({ id: current.id, cybersecurityConcept: { ...concept, verifications } });
@@ -701,27 +702,37 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── Audit tab ─────────────────────────────────────────────────────────────
 
-  const handleAuditUpdate = useCallback(
-    (updates: AuditUpdateResult) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-      rememberLocalSettings(current.id, updates.audit, null);
-      updateProject({
-        id: current.id,
-        audit: updates.audit,
-        phaseStatus: updates.phaseStatus,
-      });
-    },
-    [updateProject],
+  // Pinned to the project the Audit tab shows (like the Asset tab): a save
+  // that lands after a project switch — the flush when the tab unmounts, or a
+  // commit that finishes after the switch — belongs to the project it was made
+  // in, not to whatever is active by then. The same holds for the local
+  // settings (credentials/config) remembered per project id.
+  const makeAuditHandlers = useCallback(
+    (projectId: string) => ({
+      onUpdate: (updates: AuditUpdateResult) => {
+        const current = projectsRef.current.find((p) => p.id === projectId);
+        if (!current) return;
+        rememberLocalSettings(current.id, updates.audit, null);
+        updateProject({
+          id: current.id,
+          audit: updates.audit,
+          phaseStatus: updates.phaseStatus,
+        });
+      },
+      onDirtyChange: (isDirty: boolean) => {
+        const current = projectsRef.current.find((p) => p.id === projectId);
+        if (!current) return;
+        updateProject({ id: current.id, hasUnsavedChanges: isDirty });
+      },
+      onVerificationsChange: makeVerificationsChangeHandler(projectId),
+    }),
+    [updateProject, makeVerificationsChangeHandler],
   );
 
-  const handleAuditDirtyChange = useCallback(
-    (isDirty: boolean) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-      updateProject({ id: current.id, hasUnsavedChanges: isDirty });
-    },
-    [updateProject],
+  const auditProjectId = activeProject?.id ?? "";
+  const auditHandlers = useMemo(
+    () => makeAuditHandlers(auditProjectId),
+    [auditProjectId, makeAuditHandlers],
   );
 
   // ── Documentation tab ─────────────────────────────────────────────────────
@@ -1517,6 +1528,7 @@ export const WorkspaceLayout: React.FC = () => {
 
         {activePhase === PhaseId.Audit && (
           <AuditTab
+            key={activeProject.id}
             project={{
               id: activeProject.id,
               name: activeProject.info?.name || "",
@@ -1535,9 +1547,9 @@ export const WorkspaceLayout: React.FC = () => {
               verification: memoizedVerificationInput,
               lastModified: activeProject.info?.lastModified || "",
             }}
-            onUpdate={handleAuditUpdate}
-            onVerificationsChange={handleVerificationsChange}
-            onDirtyChange={handleAuditDirtyChange}
+            onUpdate={auditHandlers.onUpdate}
+            onVerificationsChange={auditHandlers.onVerificationsChange}
+            onDirtyChange={auditHandlers.onDirtyChange}
           />
         )}
 
