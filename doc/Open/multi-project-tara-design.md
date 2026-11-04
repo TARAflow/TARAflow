@@ -1,7 +1,9 @@
 # TARAflow — Multi-Project TARA (Component Profiles) — Design
 
-Status: draft for review · Author: (Juergen) · Supersedes the content scope of
-`multi-diagram-linking-design.md` (its navigation link becomes one action of this feature, §11).
+Status: draft v2 · 2026-11-04 · **target release 0.19** (user 2026-11-04), project schema
+**≥ 14** · review findings and the user's answers in §15 · Author: (Juergen) · Supersedes the
+content scope of `multi-diagram-linking-design.md` (its navigation link becomes one action of
+this feature, §11).
 
 A machine TARA (integrator) consumes the security-relevant result of one or more **platform
 component TARAs** (supplier side, possibly another team, another repository). The component TARA
@@ -94,7 +96,8 @@ interface ExportedInterface {
 }
 
 interface ExportedThreat {
-  key: string;             // stable: hash(component.id, source threat id)
+  key: string;             // stable: hash(component.id, source threat UUID) — the threat's
+                           // `id`, never its displayId, so a DFD renumber changes nothing (§15)
   stride: StrideCategory;
   title: string;
   description: string;
@@ -151,7 +154,9 @@ values, risk values, aggregated feasibility/likelihood levels, context-dependent
 ### 5.1 Component boundary
 
 The component TARA declares which of its interfaces are reachable by an integrator. Default:
-interface elements on the outermost physical boundary of the top page. The analyst can add or
+the interface elements on the **physical boundary that encloses the component** — the
+multiprocess (or system) of the component sits inside a physical boundary, its interfaces on that
+boundary are the component's border (user 2026-11-04: a clear boundary, no further rule). The analyst can add or
 remove interfaces with a flag `exposedToIntegrator` on the interface element. The component TARA
 is marked as a component project (project tag `component`), which enables the export action.
 
@@ -319,12 +324,16 @@ for them.
 
 ## 8. Audit — separate repositories
 
-- The bound profile is **vendored** into the machine repo:
-  `.tara/components/<componentId>/rev-<N>.tara-component.json`. It is immutable; the binding holds
-  its content hash.
+- The bound profile is **imported into the machine's `.tara.json`** (recommended, §15 point 6 /
+  D1): the binding holds the profile content in canonical form and its content hash. Everything
+  the machine needs — threats, interfaces, assumptions, capabilities, the report — comes from
+  that copy; the platform repository is never needed, not for the report and not for the CLI
+  reporter, and the browser mode works without file access. (Alternative: a vendored file
+  `.tara/components/<componentId>/rev-<N>.tara-component.json` in the machine repo — then the CLI
+  reporter and the browser mode need that file too.)
 - The machine TARA is therefore verifiable without the platform repo. New AVE check
-  `component-profile`: vendored file exists, `canonicalStringify(JSON.parse(blob)) === blob`,
-  hash matches the binding → `CMP_PROFILE_MISSING` / `CMP_PROFILE_HASH_MISMATCH` (error).
+  `component-profile`: the embedded profile is canonical and its hash matches the binding →
+  `CMP_PROFILE_HASH_MISMATCH` (error).
 - Optional (when the platform repo is reachable): verify that `source.commitSha` exists and the
   platform repo's own AVE passes at that commit — informational, the platform trail is the
   platform team's responsibility.
@@ -338,8 +347,12 @@ for them.
 - Moving the binding to revision N+1 runs a reconciliation preview, per exported threat:
   **new** / **unchanged** / **changed** (text, interfaces, feasibility or residual) / **obsolete**;
   same for assumptions and capabilities. Same pattern as the leveled-DFD threat reconciliation
-  (D9): ratings never transferred automatically, changed threats are flagged for review, obsolete
-  threats are retired with their history, not deleted silently.
+  (D9): ratings never transferred automatically, changed threats are flagged for review.
+- **Risks follow their threats (user 2026-11-04):** an imported component threat gets its risk
+  through the normal risk sync like every generated threat; a threat that becomes obsolete loses
+  its risk — orphaned risks are deleted, as everywhere in TARAflow. The preview lists the risks
+  that will go (with their rating and treatment) before the move is confirmed, and the audit
+  diff of the move commit names them.
 - The move is one commit in the machine repo (vendored file + binding + reconciled threats).
 
 ## 10. Architecture
@@ -414,8 +427,10 @@ section "exported vs. internal".
 
 ## 14. Decisions to confirm
 
-- **D1 Export unit.** Separate profile file, vendored and hash-pinned *(recommended)* — or read the
-  component `.tara.json` directly at a pinned commit?
+- **D1 Export unit.** A separate profile file written by the component side, **imported into the
+  machine's `.tara.json` with its hash** *(recommended, v2 — no file access for report, CLI and
+  browser, §8, §15 point 6)* — or vendored as a file in the machine repo — or read the component
+  `.tara.json` directly at a pinned commit?
 - **D2 Export rule.** Reachable + handed over + override with rationale *(recommended)*; reduced
   threats as capabilities, not threats.
 - **D3 Bound vs. decomposed.** A multiprocess is either bound or decomposed, never both
@@ -431,3 +446,21 @@ section "exported vs. internal".
 - **D7 AoU violation severity.** `not_fulfilled` as error *(recommended)* or warning?
 - **D8 Who owns `repoUrl`.** In the profile (platform team publishes where it lives)
   *(recommended)* or only in the machine's binding?
+
+## 15. Review 2026-11-04 — findings and answers
+
+Code check of the draft against TARAflow 0.18 (feature/0.18-model-coverage), answers by the user
+(2026-11-04):
+
+| # | Finding | Answer / consequence |
+|---|---|---|
+| 1 | Binding, mappings, AoU status, `componentBindingId`, `exposedToIntegrator` are stored project data — the draft names no schema | **Schema ≥ 14.** Schema 13 is closed with 0.18; this feature opens its own fence (additive fields, a `migrate-13-to-14` only where data is reshaped) |
+| 2 | The export key must not depend on display ids (a DFD renumber) | Threats already carry a UUID `id` next to `displayId` — the key uses it (§4); nothing else to do |
+| 3 | §9 said obsolete threats are "retired with history", but the risk sync deletes orphaned risks | **Risks follow their threats:** imported threats get their risks through the normal sync, orphaned risks are deleted. The reconciliation preview lists the risks that will go before the move (§9) |
+| 4 | No field "intrinsic / context-dependent" in `RiskFactorDefinition`, no scale version | **Accepted:** a `factorClass` on the factor definitions (component-intrinsic / context-dependent, §7.2); the scale version is the existing tables hash `mappingVersion` of the calc stamps — no new version counter |
+| 5 | Interplay with 0.18 features | **To be worked out** before phase 4: (a) a bound multiprocess is a black box — its "inside" fields (D-30c) are hidden, the profile replaces them; (b) component capabilities as evidence in the requirement matrix (62443 rows, claims as in IEC-6) or not; (c) EN 50742 A paths to a safety function (CM-12b) continue through the interface mapping into the component's exported interfaces |
+| 6 | Report / CLI / browser need the profile | Everything the plant report needs is imported (§8): the component repository is never needed. Recommendation: profile embedded in the machine's `.tara.json` (D1) — then no file access at all |
+| 7 | "Outermost physical boundary of the top page" ambiguous | A multiprocess inside a physical boundary with interfaces on it is a clear border — that is the default (§5.1) |
+
+Release: **0.19** (user 2026-11-04) — not 0.18, which is closed in scope. Before phase 0: decide
+D1 (embedded, recommended), D2 – D4, D6 – D8, and work out §15 point 5.
