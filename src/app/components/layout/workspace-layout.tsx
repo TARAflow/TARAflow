@@ -649,9 +649,12 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── Risks tab ─────────────────────────────────────────────────────────────
 
-  const handleRisksUpdate = useCallback(
-    async (updates: RiskUpdateResult) => {
-      const current = activeProjectRef.current;
+  // Pinned to the project the Risk tab shows (like the Asset tab): a save that
+  // lands after a project switch — the flush when the tab unmounts — belongs
+  // to the project it was made in, not to whatever is active by then.
+  const makeRisksUpdateHandler = useCallback(
+    (projectId: string) => async (updates: RiskUpdateResult) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       const withRisks: Project = { ...current, risks: updates.risks };
       const { project } = applyRegulationFromTags(
@@ -666,6 +669,11 @@ export const WorkspaceLayout: React.FC = () => {
       });
     },
     [updateProject],
+  );
+
+  const handleRisksUpdate = useMemo(
+    () => makeRisksUpdateHandler(activeProjectId ?? ""),
+    [activeProjectId, makeRisksUpdateHandler],
   );
 
   // ── Attack tree tab ───────────────────────────────────────────────────────
@@ -1381,6 +1389,7 @@ export const WorkspaceLayout: React.FC = () => {
 
         {activePhase === PhaseId.Risk && (
           <RisksTab
+            key={activeProject.id}
             project={{
               id: activeProject.id,
               name: activeProject.info?.name || "",
