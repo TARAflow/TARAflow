@@ -14,7 +14,7 @@ import {
 } from "../cybersecurity-concept-report";
 import { complianceMatrixIntro, complianceMatrixSections } from "../compliance-matrix-report";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
-import { controlLabels } from "../control-text";
+import { controlLabels, mitigationLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
 import {
   attackTreeReportSections,
@@ -1249,7 +1249,7 @@ export abstract class BaseDocumentGenerator {
    */
   protected generateAttackPathThreats(title: string): ChapterContent {
     const chapterId: DocChapterId = "threats-attack-path";
-    const rows = attackPathThreatRows(this.ctx.project).map((row) =>
+    const rows = attackPathThreatRows(this.ctx.project, this.ctx.lang).map((row) =>
       replacePlaceholders(this.getAttackPathThreatRowTemplate(), {
         anchor: row.anchor, // <a id="threat-{{anchor}}"> — link target
         tsId: row.tsId, // AT-<n>.<m> — same label the matrix shows
@@ -1314,10 +1314,7 @@ export abstract class BaseDocumentGenerator {
       riskBeforeLabel,
       // "ID — text" per control, one per line (like the threat tables).
       mitigations: this.controlList(
-        controlLabels(
-          risk.selectedMitigations.filter((m) => m.status !== "rejected"),
-          "mitigation",
-        ),
+        mitigationLabels(risk.selectedMitigations, this.ctx.lang),
       ),
       riskAfterLabel,
       moscowLabel,

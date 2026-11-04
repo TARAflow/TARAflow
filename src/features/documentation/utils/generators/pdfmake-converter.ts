@@ -7,7 +7,7 @@
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { isoScenarioSummary, isoScenarioTitle } from "../iso-scenario-text";
-import { controlLabels } from "../control-text";
+import { controlLabels, mitigationLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
 import { itemDefinitionIntro, itemDefinitionReportSections } from "../item-definition-report";
 import {
@@ -611,7 +611,7 @@ export class PdfMakeConverter {
   }
 
   private createAttackPathThreats(): Content[] {
-    const rows = attackPathThreatRows(this.project);
+    const rows = attackPathThreatRows(this.project, this.lang);
     if (rows.length === 0) return [];
     const list = (items: string[]) => (items.length > 0 ? items.map((x) => `• ${x}`).join("\n") : "-");
     return [
@@ -1441,10 +1441,7 @@ export class PdfMakeConverter {
 
       // "ID — text" per control, one per line (same as base-generator.ts).
       const mitigations =
-        controlLabels(
-          risk.selectedMitigations.filter((m) => m.status !== "rejected"),
-          "mitigation",
-        )
+        mitigationLabels(risk.selectedMitigations, this.lang)
           .map((s) => `• ${s}`)
           .join("\n") || "-";
 
