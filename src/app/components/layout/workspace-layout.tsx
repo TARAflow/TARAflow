@@ -24,12 +24,6 @@ import {
   getPhaseStatusColor,
   useToast,
   dfdPreviewPagesOf,
-  emptyItemDefinition,
-  newAssumption,
-  issuedAssumptionNumber,
-  withAssumptions,
-  type Assumption,
-  type CybersecurityConcept,
   emptyCybersecurityConcept,
   type VerificationEntry,
 } from "shared";
@@ -57,7 +51,6 @@ import {
 
 import {
   DFDTab,
-  DFDUpdateResult,
   DFDGraphAnalysisContext,
 } from "features/dfd";
 import {
@@ -94,7 +87,6 @@ import {
   StrideMethod,
   ThreatData,
   ThreatsTab,
-  type ThreatUpdateResult,
   getAllMitigations,
   syncThreatsWithGraph,
   type ThreatRiskAttachment,
@@ -104,11 +96,6 @@ import {
 } from "features/threats";
 
 import { RisksTab, RiskUpdateResult, riskFindingLines, riskFindings } from "features/risks";
-import {
-  mergeProjectMitigationConflicts,
-  mergeProjectMitigationRefs,
-  projectMitigationUsage,
-} from "app/services/project-mitigation-usage";
 import { getMandatoryAssetCriteriaIds } from "features/risks/services/regulation-preset-service";
 
 import {
@@ -121,11 +108,10 @@ import {
   extractMitigationReferences,
 } from "features/attacktree";
 
-import { DocTab, DocUpdateResult } from "features/documentation";
-import { IntegrationTab, createTicketAdapter, type IntegrationTabData } from "features/integration";
+import { DocTab } from "features/documentation";
+import { IntegrationTab, createTicketAdapter } from "features/integration";
 import { AuditTab, useAuditHints } from "features/audit";
 import { activeStandards, ComplianceFrame, proposeDeviceCategories, suggestMitigations } from "features/compliance";
-import type { ComplianceData } from "shared";
 import { complianceNameOf, complianceTypeOf, prepareProjectCompliance } from "app/services/compliance-report";
 import type { AuditUpdateResult } from "features/audit/models/audit-types";
 
@@ -157,7 +143,7 @@ import {
   getRegulationPreset,
 } from "shared";
 import { resolveDfdGraph } from "../../utils/resolve-dfd-graph";
-import { buildDfdUpdate } from "app/services/dfd-update-patch";
+import { useProjectUpdateHandlers } from "app/hooks/use-project-update-handlers";
 import { buildAssetsUpdate } from "app/services/assets-update-patch";
 import {
   AssetDeletionBlockedError,
@@ -321,24 +307,6 @@ export const WorkspaceLayout: React.FC = () => {
     [generalTabProjectId, makeGeneralTabUpdateHandler],
   );
 
-  // Trust boundary form → a new Item Definition assumption (A-3). Synchronous:
-  // the form links the returned id right away.
-  const handleCreateAssumption = useCallback(
-    (text: string): Assumption => {
-      const current = activeProjectRef.current;
-      const def = current?.itemDefinition ?? emptyItemDefinition();
-      const created = newAssumption(def.assumptions, text, issuedAssumptionNumber(def));
-      if (current) {
-        updateProject({
-          id: current.id,
-          itemDefinition: withAssumptions(def, [...def.assumptions, created]),
-        });
-      }
-      return created;
-    },
-    [updateProject],
-  );
-
   // Audit tab → TARA verification entries (ISO 21434 plan Phase 4, decision 25).
   // Pinned to the Audit tab's project (see makeAuditHandlers below).
   const makeVerificationsChangeHandler = useCallback(
@@ -347,24 +315,6 @@ export const WorkspaceLayout: React.FC = () => {
       if (!current) return;
       const concept = current.cybersecurityConcept ?? emptyCybersecurityConcept();
       updateProject({ id: current.id, cybersecurityConcept: { ...concept, verifications } });
-    },
-    [updateProject],
-  );
-
-  // Compliance tab → project.compliance (iec-62443-4-2-cra-coverage.md D-8).
-  const handleComplianceChange = useCallback(
-    (compliance: ComplianceData) => {
-      const current = activeProjectRef.current;
-      if (current) updateProject({ id: current.id, compliance });
-    },
-    [updateProject],
-  );
-
-  // Risk dialog → goals and claims (ISO 21434 plan Phase 4, decision 25).
-  const handleConceptChange = useCallback(
-    (cybersecurityConcept: CybersecurityConcept) => {
-      const current = activeProjectRef.current;
-      if (current) updateProject({ id: current.id, cybersecurityConcept });
     },
     [updateProject],
   );
@@ -420,32 +370,40 @@ export const WorkspaceLayout: React.FC = () => {
     ],
   );
 
-  const handleDFDUpdate = useCallback(
-    async (updates: DFDUpdateResult) => {
-      // Read via ref — always current, never stale
-      const current = activeProjectRef.current;
-      if (!current) return;
-      const { patch, rejectedA2AOps } = buildDfdUpdate(current, updates);
-      if (rejectedA2AOps.length > 0) {
-        // The dialog prevents these; reaching here means stale data (e.g. an
-        // asset deleted meanwhile) or an import with relations the rules no
-        // longer allow.
-        toast.warning(
-          t("assets.relations.a2a.rejected", {
-            defaultValue:
-              "{{count}} asset relation(s) were not applied: {{reasons}}",
-            count: rejectedA2AOps.length,
-            reasons: [...new Set(rejectedA2AOps.map((r) => r.reason))].join(", "),
-          }),
-        );
-      }
-      await updateProject(patch);
-    },
 
-    // Stable — reads current project via ref, never via closure
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [updateProject, toast, t],
+  // Writing tab handlers, pinned to the project they were made for (FX-8):
+  // DFD, threats, assumptions, compliance, concept, documentation,
+  // integration, project mitigations.
+  const handleRejectedRelations = useCallback(
+    (rejected: readonly { reason: string }[]) => {
+      // The dialog prevents these; reaching here means stale data (e.g. an
+      // asset deleted meanwhile) or an import with relations the rules no
+      // longer allow.
+      toast.warning(
+        t("assets.relations.a2a.rejected", {
+          defaultValue: "{{count}} asset relation(s) were not applied: {{reasons}}",
+          count: rejected.length,
+          reasons: [...new Set(rejected.map((r) => r.reason))].join(", "),
+        }),
+      );
+    },
+    [toast, t],
   );
+  const {
+    handleDFDUpdate,
+    handleThreatsUpdate,
+    handleCreateAssumption,
+    handleComplianceChange,
+    handleConceptChange,
+    handleDocUpdate,
+    handleIntegrationUpdate,
+    projectMitigationRefs,
+  } = useProjectUpdateHandlers({
+    projectId: activeProject?.id ?? "",
+    projectsRef,
+    updateProject,
+    onRejectedRelations: handleRejectedRelations,
+  });
 
   // ── Hazard tab ────────────────────────────────────────────────────────────
   // Pinned to the project the Hazard tab shows (like the Asset tab): a save
@@ -601,21 +559,6 @@ export const WorkspaceLayout: React.FC = () => {
     [updateProject],
   );
 
-  // ── Threats tab ───────────────────────────────────────────────────────────
-
-  const handleThreatsUpdate = useCallback(
-    async (updates: ThreatUpdateResult) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-      await updateProject({
-        id: current.id,
-        threats: updates.threats,
-        phaseStatus: updates.phaseStatus,
-      });
-    },
-    [updateProject],
-  );
-
   // Personal values (commit author, tracker account and connection state) live
   // on this machine, not in the file (local-user-settings, user 2026-10-30):
   // the tabs see the project's blocks with them filled in. A file written
@@ -643,30 +586,6 @@ export const WorkspaceLayout: React.FC = () => {
   // derived from the stored connection; the main process holds the token.
   const integrationConnection = localIntegration?.connection ?? null;
   const ticketPort = useMemo(() => createTicketAdapter(integrationConnection), [integrationConnection]);
-
-  // Project mitigations M-C-nnn (custom mitigation catalog CM-3): usage and
-  // merge span threats, risks and attack trees.
-  const projectMitigationRefs = useMemo(
-    () => ({
-      usage: (id: string) => {
-        const current = activeProjectRef.current;
-        return current
-          ? projectMitigationUsage(current, id)
-          : { threats: [], risks: [], attackTrees: [] };
-      },
-      mergeConflicts: (fromId: string, intoId: string) => {
-        const current = activeProjectRef.current;
-        return current ? mergeProjectMitigationConflicts(current, fromId, intoId) : [];
-      },
-      merge: (fromId: string, intoId: string) => {
-        const current = activeProjectRef.current;
-        if (!current || mergeProjectMitigationConflicts(current, fromId, intoId).length > 0) return;
-        const merged = mergeProjectMitigationRefs(current, fromId, intoId);
-        void updateProject({ id: current.id, ...merged });
-      },
-    }),
-    [updateProject],
-  );
 
   // ── Risks tab ─────────────────────────────────────────────────────────────
 
@@ -754,36 +673,6 @@ export const WorkspaceLayout: React.FC = () => {
   const auditHandlers = useMemo(
     () => makeAuditHandlers(auditProjectId),
     [auditProjectId, makeAuditHandlers],
-  );
-
-  // ── Documentation tab ─────────────────────────────────────────────────────
-
-  const handleDocUpdate = useCallback(
-    (updates: DocUpdateResult) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-      updateProject({
-        id: current.id,
-        documentation: updates.documentation,
-        phaseStatus: updates.phaseStatus,
-      });
-    },
-    [updateProject],
-  );
-
-  // ── Integration tab ───────────────────────────────────────────────────────
-
-  const handleIntegrationUpdate = useCallback(
-    (data: IntegrationTabData) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-      rememberLocalSettings(current.id, null, data.integration);
-      updateProject({
-        id: current.id,
-        integration: data.integration,
-      });
-    },
-    [updateProject],
   );
 
   // ── Memoized DFD data ─────────────────────────────────────────────────────
@@ -1409,6 +1298,9 @@ export const WorkspaceLayout: React.FC = () => {
 
         {activePhase === PhaseId.Threats && memoizedDFDContext && (
           <ThreatsTab
+            // One instance per project (FX-8): its local threat tables never
+            // carry over into the next project.
+            key={activeProject.id}
             project={{
               id: activeProject.id,
               name: activeProject.info?.name || "",
