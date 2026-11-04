@@ -6,7 +6,7 @@
 // - Branch management
 // - Configuration management
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Alert, Button } from "@mui/material";
 import type {
@@ -52,7 +52,20 @@ import { AuditVerifyPanel } from "./audit-verify-panel";
 
 // ==================== COMPONENT ====================
 
-export const AuditTab: React.FC<AuditTabProps> = ({
+/**
+ * One tab instance per project. The tab keeps a local working copy of the
+ * audit data with a debounced auto-save, and its re-sync from the project
+ * skips a project without audit data (project.audit === undefined/null): on a
+ * prop-only project swap the outgoing project's audit config stayed in the tab
+ * and the next save wrote it into the incoming project. Keying by project id
+ * makes a switch an unmount/mount, so project identity never changes inside
+ * the view.
+ */
+export const AuditTab: React.FC<AuditTabProps> = (props) => (
+  <AuditTabView key={props.project.id} {...props} />
+);
+
+const AuditTabView: React.FC<AuditTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
@@ -254,6 +267,26 @@ export const AuditTab: React.FC<AuditTabProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo.outcome?.kind]);
+
+  // ── Flush-on-unmount ───────────────────────────────────────────────────
+  // A project switch (or leaving the Audit phase) unmounts this view. A change
+  // still inside the debounce window would be dropped with the cleared timer,
+  // so it is saved here through the handler the app pinned to this view's
+  // project. Refs, because the cleanup is registered once.
+  const flushRef = useRef({ isDirty, auditData, phaseStatus: project.phaseStatus, onUpdate });
+  flushRef.current = { isDirty, auditData, phaseStatus: project.phaseStatus, onUpdate };
+  useEffect(
+    () => () => {
+      const pending = flushRef.current;
+      if (!pending.isDirty) return;
+      pending.onUpdate({
+        audit: pending.auditData,
+        phaseStatus: pending.phaseStatus,
+        lastModified: new Date().toISOString(),
+      });
+    },
+    [],
+  );
 
   // Auto-save when dirty (debounced)
   useEffect(() => {

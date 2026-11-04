@@ -2,7 +2,7 @@
 // Manages attack tree data state and CRUD operations
 // Handles sync with project data and auto-save
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   AttackTree,
   AttackTreeData,
@@ -135,6 +135,26 @@ export function useAttackTreeData(
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
+
+  // Flush-on-unmount. The Attack Tree tab is keyed by project id, so a
+  // project switch (or closing the project) unmounts it. A change still inside
+  // the debounce window would be dropped with the cleared timer, so it is
+  // saved here through the handler the app pinned to this tab's project.
+  // Refs, because the cleanup is registered once.
+  const flushRef = useRef({ isDirty, attackTreeData, phaseStatus: project.phaseStatus, onUpdate });
+  flushRef.current = { isDirty, attackTreeData, phaseStatus: project.phaseStatus, onUpdate };
+  useEffect(
+    () => () => {
+      const pending = flushRef.current;
+      if (!pending.isDirty) return;
+      pending.onUpdate({
+        attackTrees: pending.attackTreeData,
+        phaseStatus: pending.phaseStatus,
+        lastModified: new Date().toISOString(),
+      });
+    },
+    [],
+  );
 
   // Auto-save when dirty (debounced)
   useEffect(() => {

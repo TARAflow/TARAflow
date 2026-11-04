@@ -300,15 +300,25 @@ export const WorkspaceLayout: React.FC = () => {
       }
     : undefined;
 
-  const handleGeneralTabUpdate = useCallback(
-    (data: GeneralTabData) => {
-      const current = activeProjectRef.current;
+  // Pinned to the project the Overview shows (like the Asset tab): a source
+  // binding resolve / drift check finishes after a network round-trip and may
+  // land after a project switch. It belongs to the project it was started in —
+  // resolving "whatever is active now" wrote the outgoing project's info,
+  // settings and Definition into the incoming project.
+  const makeGeneralTabUpdateHandler = useCallback(
+    (projectId: string) => (data: GeneralTabData) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       updateProject(buildGeneralTabPatch(current, data));
       const conflicts = getRegulationConflicts(data.info.tags);
       if (conflicts.length > 0) toast.warning(conflicts[0].message);
     },
     [updateProject, toast],
+  );
+  const generalTabProjectId = activeProject?.id ?? "";
+  const handleGeneralTabUpdate = useMemo(
+    () => makeGeneralTabUpdateHandler(generalTabProjectId),
+    [generalTabProjectId, makeGeneralTabUpdateHandler],
   );
 
   // Trust boundary form → a new Item Definition assumption (A-3). Synchronous:
@@ -330,9 +340,10 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   // Audit tab → TARA verification entries (ISO 21434 plan Phase 4, decision 25).
-  const handleVerificationsChange = useCallback(
-    (verifications: VerificationEntry[]) => {
-      const current = activeProjectRef.current;
+  // Pinned to the Audit tab's project (see makeAuditHandlers below).
+  const makeVerificationsChangeHandler = useCallback(
+    (projectId: string) => (verifications: VerificationEntry[]) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       const concept = current.cybersecurityConcept ?? emptyCybersecurityConcept();
       updateProject({ id: current.id, cybersecurityConcept: { ...concept, verifications } });
@@ -437,9 +448,12 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   // ── Hazard tab ────────────────────────────────────────────────────────────
-  const handleHazardsUpdate = useCallback(
-    async (updates: HazardUpdateResult) => {
-      const current = activeProjectRef.current;
+  // Pinned to the project the Hazard tab shows (like the Asset tab): a save
+  // that lands after a project switch — the flush when the tab unmounts —
+  // belongs to the project it was made in, not to whatever is active by then.
+  const makeHazardsUpdateHandler = useCallback(
+    (projectId: string) => async (updates: HazardUpdateResult) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       const status = hazardService.deriveHazardPhaseStatus(updates.hazards);
 
@@ -474,6 +488,11 @@ export const WorkspaceLayout: React.FC = () => {
       });
     },
     [updateProject],
+  );
+  const hazardsProjectId = activeProject?.id ?? "";
+  const handleHazardsUpdate = useMemo(
+    () => makeHazardsUpdateHandler(hazardsProjectId),
+    [hazardsProjectId, makeHazardsUpdateHandler],
   );
 
   // ── Assets tab ────────────────────────────────────────────────────────────
@@ -651,9 +670,12 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── Risks tab ─────────────────────────────────────────────────────────────
 
-  const handleRisksUpdate = useCallback(
-    async (updates: RiskUpdateResult) => {
-      const current = activeProjectRef.current;
+  // Pinned to the project the Risk tab shows (like the Asset tab): a save that
+  // lands after a project switch — the flush when the tab unmounts — belongs
+  // to the project it was made in, not to whatever is active by then.
+  const makeRisksUpdateHandler = useCallback(
+    (projectId: string) => async (updates: RiskUpdateResult) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       const withRisks: Project = { ...current, risks: updates.risks };
       const { project } = applyRegulationFromTags(
@@ -670,11 +692,20 @@ export const WorkspaceLayout: React.FC = () => {
     [updateProject],
   );
 
+  const handleRisksUpdate = useMemo(
+    () => makeRisksUpdateHandler(activeProjectId ?? ""),
+    [activeProjectId, makeRisksUpdateHandler],
+  );
+
   // ── Attack tree tab ───────────────────────────────────────────────────────
 
-  const handleAttackTreeUpdate = useCallback(
-    (updates: AttackTreeUpdateResult) => {
-      const current = activeProjectRef.current;
+  // Pinned to the project the Attack Tree tab shows (the tab is keyed by
+  // project id, like the Asset tab): its flush-on-unmount fires just after the
+  // active project has already switched, so resolving "whatever is active now"
+  // would write the outgoing project's trees into the incoming project.
+  const makeAttackTreeUpdateHandler = useCallback(
+    (projectId: string) => (updates: AttackTreeUpdateResult) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       updateProject({
         id: current.id,
@@ -684,30 +715,45 @@ export const WorkspaceLayout: React.FC = () => {
     },
     [updateProject],
   );
+  const attackTreeProjectId = activeProject?.id ?? "";
+  const handleAttackTreeUpdate = useMemo(
+    () => makeAttackTreeUpdateHandler(attackTreeProjectId),
+    [attackTreeProjectId, makeAttackTreeUpdateHandler],
+  );
 
   // ── Audit tab ─────────────────────────────────────────────────────────────
 
-  const handleAuditUpdate = useCallback(
-    (updates: AuditUpdateResult) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-      rememberLocalSettings(current.id, updates.audit, null);
-      updateProject({
-        id: current.id,
-        audit: updates.audit,
-        phaseStatus: updates.phaseStatus,
-      });
-    },
-    [updateProject],
+  // Pinned to the project the Audit tab shows (like the Asset tab): a save
+  // that lands after a project switch — the flush when the tab unmounts, or a
+  // commit that finishes after the switch — belongs to the project it was made
+  // in, not to whatever is active by then. The same holds for the local
+  // settings (credentials/config) remembered per project id.
+  const makeAuditHandlers = useCallback(
+    (projectId: string) => ({
+      onUpdate: (updates: AuditUpdateResult) => {
+        const current = projectsRef.current.find((p) => p.id === projectId);
+        if (!current) return;
+        rememberLocalSettings(current.id, updates.audit, null);
+        updateProject({
+          id: current.id,
+          audit: updates.audit,
+          phaseStatus: updates.phaseStatus,
+        });
+      },
+      onDirtyChange: (isDirty: boolean) => {
+        const current = projectsRef.current.find((p) => p.id === projectId);
+        if (!current) return;
+        updateProject({ id: current.id, hasUnsavedChanges: isDirty });
+      },
+      onVerificationsChange: makeVerificationsChangeHandler(projectId),
+    }),
+    [updateProject, makeVerificationsChangeHandler],
   );
 
-  const handleAuditDirtyChange = useCallback(
-    (isDirty: boolean) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-      updateProject({ id: current.id, hasUnsavedChanges: isDirty });
-    },
-    [updateProject],
+  const auditProjectId = activeProject?.id ?? "";
+  const auditHandlers = useMemo(
+    () => makeAuditHandlers(auditProjectId),
+    [auditProjectId, makeAuditHandlers],
   );
 
   // ── Documentation tab ─────────────────────────────────────────────────────
@@ -1220,6 +1266,7 @@ export const WorkspaceLayout: React.FC = () => {
       <div className="flex-1 overflow-y-auto">
         {activePhase === PhaseId.General && (
           <GeneralTab
+            key={activeProject.id}
             data={generalTabData}
             phases={PHASES}
             progressPhaseIds={getProgressPhaseIds(
@@ -1246,6 +1293,7 @@ export const WorkspaceLayout: React.FC = () => {
         {activePhase === PhaseId.Hazard &&
           (activeProject.info?.safetyRelevant ?? false) && (
             <HazardsTab
+              key={activeProject.id}
               project={{
                 id: activeProject.id,
                 name: activeProject.info?.name || "",
@@ -1392,6 +1440,7 @@ export const WorkspaceLayout: React.FC = () => {
 
         {activePhase === PhaseId.Risk && (
           <RisksTab
+            key={activeProject.id}
             project={{
               id: activeProject.id,
               name: activeProject.info?.name || "",
@@ -1510,6 +1559,7 @@ export const WorkspaceLayout: React.FC = () => {
 
         {activePhase === PhaseId.Audit && (
           <AuditTab
+            key={activeProject.id}
             project={{
               id: activeProject.id,
               name: activeProject.info?.name || "",
@@ -1528,9 +1578,9 @@ export const WorkspaceLayout: React.FC = () => {
               verification: memoizedVerificationInput,
               lastModified: activeProject.info?.lastModified || "",
             }}
-            onUpdate={handleAuditUpdate}
-            onVerificationsChange={handleVerificationsChange}
-            onDirtyChange={handleAuditDirtyChange}
+            onUpdate={auditHandlers.onUpdate}
+            onVerificationsChange={auditHandlers.onVerificationsChange}
+            onDirtyChange={auditHandlers.onDirtyChange}
           />
         )}
 

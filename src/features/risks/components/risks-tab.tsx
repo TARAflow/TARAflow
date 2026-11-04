@@ -97,7 +97,19 @@ export interface RiskTabProps {
   ticketPort?: TicketPort | null;
 }
 
-export const RisksTab: React.FC<RiskTabProps> = ({
+/**
+ * One tab instance per project. The tab keeps a local working copy of the
+ * risks (riskData) with a debounced auto-save; if the project changed in
+ * place (a prop-only swap on a project switch), effects that react to the
+ * incoming project's data ran against the outgoing project's copy and the
+ * auto-save wrote it into the incoming project. Keying by project id makes a
+ * switch an unmount/mount, so project identity never changes inside the view.
+ */
+export const RisksTab: React.FC<RiskTabProps> = (props) => (
+  <RisksTabView key={props.project.id} {...props} />
+);
+
+const RisksTabView: React.FC<RiskTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
@@ -528,6 +540,32 @@ export const RisksTab: React.FC<RiskTabProps> = ({
     }, 1000);
     return () => clearTimeout(timeoutId);
   }, [isDirty, riskData, project, onUpdate]);
+
+  // ── Flush-on-unmount ───────────────────────────────────────────────────
+  // A project switch unmounts this view (keyed by project id). A change still
+  // inside the debounce window would be dropped with the cleared timer, so it
+  // is saved here — against THIS view's project, through the handler the app
+  // pinned to that project. Refs, because the cleanup is registered once.
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  useEffect(
+    () => () => {
+      if (!isDirtyRef.current) return;
+      const result = riskService.saveRiskData(projectRef.current, riskDataRef.current);
+      if (result.success) {
+        onUpdateRef.current({
+          risks: result.risks,
+          phaseStatus: result.phaseStatus,
+          lastModified: result.lastModified,
+        });
+      }
+    },
+    [],
+  );
 
   // ==================== DIRTY TRACKING ====================
 
