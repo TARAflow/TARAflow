@@ -148,8 +148,8 @@ const GenericRiskMatrix = React.memo<RiskMatrixProps>(
     // ==================== GENERATE MATRIX (for complex) ====================
 
     const matrix = useMemo(
-      () => generateRiskMatrix(configuration.scale),
-      [configuration.scale],
+      () => generateRiskMatrix(configuration),
+      [configuration],
     );
 
     // ==================== MAP RISKS TO CELLS (for complex) ====================
@@ -272,35 +272,17 @@ const GenericRiskMatrix = React.memo<RiskMatrixProps>(
 
     const getRiskChipTooltip = (risk: Risk) => {
       const before = risk.calculatedRiskBeforeMitigation;
-      const beforeColor = getRiskColor(
-        before,
-        configuration.scale,
-        configuration.roundingMethod,
-        configuration.severityThresholds,
-      );
+      const beforeColor = getRiskColor(before, configuration);
       const after = risk.calculatedRiskAfterMitigation;
-      const afterColor = getRiskColor(
-        after,
-        configuration.scale,
-        configuration.roundingMethod,
-        configuration.severityThresholds,
-      );
+      const afterColor = getRiskColor(after, configuration);
       const beforeLabel =
         before > 0
-          ? getRiskLabel(
-              before,
-              configuration.scale,
-              configuration.roundingMethod,
-            )
+          ? getRiskLabel(before, configuration)
           : undefined;
 
       const afterLabel =
         after > 0
-          ? getRiskLabel(
-              after,
-              configuration.scale,
-              configuration.roundingMethod,
-            )
+          ? getRiskLabel(after, configuration)
           : undefined;
 
       const impact = getWorstImpactForRisk(risk, assetDataRef);

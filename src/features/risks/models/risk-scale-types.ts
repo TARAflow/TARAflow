@@ -163,17 +163,20 @@ export interface RiskMatrixCell {
   label: string;
 }
 
-export function generateRiskMatrix(scale: RiskScaleType): RiskMatrixCell[][] {
-  const scaleConfig = RISK_SCALES[scale];
-  const size = scaleConfig.levels.length;
+/**
+ * The I × L grid, highest impact first. A cell has the level of its risk
+ * value I × L by the same rule as every risk chip (MT-3) — the project's
+ * severity thresholds included.
+ */
+export function generateRiskMatrix(settings: RiskLevelSettings): RiskMatrixCell[][] {
+  const size = RISK_SCALES[settings.scale].levels.length;
   const matrix: RiskMatrixCell[][] = [];
 
   for (let i = size; i >= 1; i--) {
     const row: RiskMatrixCell[] = [];
     for (let l = 1; l <= size; l++) {
-      const riskLevel = Math.ceil((i * l) / size);
-      const level = scaleConfig.levels[Math.min(riskLevel - 1, size - 1)];
-      row.push({ impact: i, likelihood: l, riskLevel, color: level.color, label: level.label });
+      const level = riskSeverityLevel(i * l, settings.scale, settings.severityThresholds);
+      row.push({ impact: i, likelihood: l, riskLevel: level.value, color: level.color, label: level.label });
     }
     matrix.push(row);
   }
@@ -213,24 +216,25 @@ export function riskSeverityLevel(
   return levels[levels.length - 1];
 }
 
+/**
+ * What decides the level of a risk value: the scale and the project's own
+ * severity thresholds (MT-3). Callers pass the risk configuration itself —
+ * never the scale alone, or the thresholds are lost and labels / colors
+ * disagree with the matrix and the report.
+ */
+export interface RiskLevelSettings {
+  scale: RiskScaleType;
+  severityThresholds?: Record<number, number>;
+}
+
 /** Color of a risk value; gray (#6b7280) for unrated (value <= 0). */
-export function getRiskColor(
-  value: number,
-  scale: RiskScaleType,
-  _roundingMethod?: RiskRoundingMethod,
-  severityThresholds?: Record<number, number>,
-): string {
+export function getRiskColor(value: number, settings: RiskLevelSettings): string {
   if (value <= 0) return "#6b7280";
-  return riskSeverityLevel(value, scale, severityThresholds).color;
+  return riskSeverityLevel(value, settings.scale, settings.severityThresholds).color;
 }
 
 /** Label of a risk value; "-" for unrated. */
-export function getRiskLabel(
-  value: number,
-  scale: RiskScaleType,
-  _roundingMethod?: RiskRoundingMethod,
-  severityThresholds?: Record<number, number>,
-): string {
+export function getRiskLabel(value: number, settings: RiskLevelSettings): string {
   if (value <= 0) return "-";
-  return riskSeverityLevel(value, scale, severityThresholds).label;
+  return riskSeverityLevel(value, settings.scale, settings.severityThresholds).label;
 }

@@ -35,11 +35,7 @@ export const RiskScorePanel = ({
     });
   };
 
-  const riskColor = getRiskColor(
-    risk,
-    configuration.scale,
-    configuration.roundingMethod,
-  );
+  const riskColor = getRiskColor(risk, configuration);
 
   const renderBox = (
     title: string,
@@ -99,7 +95,7 @@ export const RiskScorePanel = ({
         {renderBox(
           "Risk Score",
           risk,
-          scaleLabel("impact", getRiskLabel(risk, configuration.scale)),
+          scaleLabel("impact", getRiskLabel(risk, configuration)),
           4,
           highlightRisk,
         )}
