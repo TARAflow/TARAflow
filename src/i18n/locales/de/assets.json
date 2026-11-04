@@ -547,6 +547,15 @@
           "raiseAsset": "Asset-Wert erhöhen"
         }
       },
+      "filter": {
+        "criticality": "Kritikalität",
+        "allLevels": "Alle Stufen",
+        "fromLevel": "ab {{level}}",
+        "includeUnrated": "auch unbewertete",
+        "shown": "{{shown}} von {{total}} Assets angezeigt",
+        "reset": "Filter zurücksetzen",
+        "none": "Kein Asset entspricht dem Filter."
+      },
       "reviewFilter": {
         "label": "Nur prüfbedürftige ({{count}})",
         "tooltip": "Nur Assets mit Fehlern oder Warnungen in den Befunden anzeigen",

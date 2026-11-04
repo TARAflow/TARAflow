@@ -1,6 +1,6 @@
 # TARAflow 0.18.0-beta — release plan
 
-**Status:** v4 · 2026-11-03 · S1 done (patches 21 – 31) · FX-6 done (patch 32) · one branch, one instance (user 2026-11-03) · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
+**Status:** v5 · 2026-11-04 · AF-1 added, MT-1 / MT-2 moved to 0.19 · order: AF-1, MT-3, FX-2, FX-3, FX-4, FX-8, FX-1, FX-5, I18N-1 · S1 done (patches 21 – 31) · FX-6 done (patch 32) · one branch, one instance (user 2026-11-03) · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
 exposure level), schema **13** on `feature/0.18-model-coverage`
 **Work split (user 2026-11-03, replaces the split of 2026-11-02):** instance **A** does every
 strand on `feature/0.18-model-coverage` — the other instance keeps no branch. Order: FX-6,
@@ -87,8 +87,9 @@ tracker is a user check (listed in TESTPLAN-0.18.md).
 
 | Step | Content | Status |
 |---|---|---|
-| MT-1 | split `src/app/components/layout/workspace-layout.tsx` into per-strand hooks; no behaviour change; design note in §5 first | open |
-| MT-2 | split `src/features/risks/components/risk-dialog.tsx` into panels; no behaviour change | open |
+| AF-1 | asset tab filter (user 2026-11-04): asset type and criticality "from level" across all group accordions | **done** (patch 39): one bar above the table — also without groups — with chips for the asset types present (count each; none selected = all) and criticality "from level" on the level of the Overall column, unrated assets on request; combines (AND) with "Needs review only"; accordion counts follow, empty accordions disappear; "x of y assets shown" with "Reset filter"; kept per project for the session, never in the file; "Show in table" lifts a filter that hides the asset |
+| MT-1 | split `src/app/components/layout/workspace-layout.tsx` into per-strand hooks; no behaviour change; design note in §5 first | moved: first step of 0.19 (user 2026-11-04) |
+| MT-2 | split `src/features/risks/components/risk-dialog.tsx` into panels; no behaviour change | moved: first step of 0.19 (user 2026-11-04) |
 | MT-3 | `getRiskLabel(score, scale)` in the risk-dialog tooltips gets the project's `severityThresholds` | open |
 | FX-1 | Hazard tab findings window: the asset notification panel becomes a shared findings panel; hazard messages as structured findings (also translates the Overview tooltip) | open |
 | FX-2 | audit commit: check out the branch first, then stage the project file | open |
