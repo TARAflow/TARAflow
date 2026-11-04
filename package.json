@@ -1,6 +1,6 @@
 {
   "name": "taraflow",
-  "version": "0.17.1-beta",
+  "version": "0.17.2-beta",
   "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",

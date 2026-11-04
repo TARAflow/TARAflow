@@ -1,3 +1,38 @@
+## [0.17.2-beta] - 2026-11-04
+
+Bug fixes: data of one project could end up in another when switching or
+closing projects. No new project schema (still 12).
+
+### Fixed
+- **Risks written into the wrong project:** with the Risk tab open in two
+  projects, closing one could copy all of its risks into the other. The
+  tab kept the risks of the project shown before and its auto-save wrote
+  them into the project that was active when the save ran. The Risk tab is
+  now rebuilt for every project, saves only into the project it shows, and
+  an edit made just before the switch is saved to that project.
+- **Hazards, audit settings, Overview:** the same kind of mix-up —
+  - Hazard tab: a project without hazards showed the hazards of the
+    project before and saved them with the next edit;
+  - Audit tab: a project without audit data took over author and signing
+    settings of the project before; a commit finishing after a switch
+    landed in the other project;
+  - Overview: an open *Project info* edit survived the switch and saving
+    it renamed the other project; a source binding resolve or drift check
+    finishing after a switch wrote name, settings and Item Definition of
+    the project it started in into the active one, and could roll back
+    edits made meanwhile.
+  Each tab is now rebuilt per project and saves into its own project only.
+- **Attack trees:** a change made within the last second before a project
+  switch was lost; it is now saved, into its own project. (DSL typed in the
+  last half second is not yet parsed and still not taken over.)
+
+### Notes
+- No schema change: projects of 0.17.1-beta open unchanged, and 0.17.1-beta
+  still opens files saved by 0.17.2-beta.
+- A project that already received data of another project is not repaired
+  automatically — check projects that were open together with another one
+  (risks, hazards, Overview data) and remove what does not belong.
+
 ## [0.17.1-beta] - 2026-11-03
 
 Bug fixes for EN 50742 machinery projects, no new project schema (still 12).
