@@ -65,7 +65,19 @@ export interface HazardTabProps {
 
 // ==================== COMPONENT ====================
 
-export const HazardsTab: React.FC<HazardTabProps> = ({
+/**
+ * One tab instance per project. The tab keeps a local working copy of the
+ * hazards with a debounced auto-save, and its re-sync from the project skips a
+ * project without hazards (project.hazards === null): on a prop-only project
+ * swap the outgoing project's hazards stayed in the tab and the next save wrote
+ * them into the incoming project. Keying by project id makes a switch an
+ * unmount/mount, so project identity never changes inside the view.
+ */
+export const HazardsTab: React.FC<HazardTabProps> = (props) => (
+  <HazardsTabView key={props.project.id} {...props} />
+);
+
+const HazardsTabView: React.FC<HazardTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
@@ -233,6 +245,27 @@ export const HazardsTab: React.FC<HazardTabProps> = ({
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDirty, hazardData, pendingCreatedAssets, onUpdate]);
+
+  // ── Flush-on-unmount ───────────────────────────────────────────────────
+  // A project switch unmounts this view (keyed by project id). A change still
+  // inside the debounce window would be dropped with the cleared timer, so it
+  // is saved here through the handler the app pinned to this view's project.
+  // Refs, because the cleanup is registered once.
+  const flushRef = useRef({ isDirty, hazardData, pendingCreatedAssets, onUpdate });
+  flushRef.current = { isDirty, hazardData, pendingCreatedAssets, onUpdate };
+  useEffect(
+    () => () => {
+      const pending = flushRef.current;
+      if (!pending.isDirty) return;
+      const stamped = hazardService.toUpdateResult(pending.hazardData);
+      pending.onUpdate({
+        hazards: stamped.hazards,
+        lastModified: stamped.lastModified,
+        createdAssets: pending.pendingCreatedAssets.length ? pending.pendingCreatedAssets : undefined,
+      });
+    },
+    [],
+  );
 
   const markDirty = useCallback(() => {
     setIsDirty((prev) => (prev ? prev : true));

@@ -435,9 +435,12 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   // ── Hazard tab ────────────────────────────────────────────────────────────
-  const handleHazardsUpdate = useCallback(
-    async (updates: HazardUpdateResult) => {
-      const current = activeProjectRef.current;
+  // Pinned to the project the Hazard tab shows (like the Asset tab): a save
+  // that lands after a project switch — the flush when the tab unmounts —
+  // belongs to the project it was made in, not to whatever is active by then.
+  const makeHazardsUpdateHandler = useCallback(
+    (projectId: string) => async (updates: HazardUpdateResult) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       const status = hazardService.deriveHazardPhaseStatus(updates.hazards);
 
@@ -472,6 +475,11 @@ export const WorkspaceLayout: React.FC = () => {
       });
     },
     [updateProject],
+  );
+  const hazardsProjectId = activeProject?.id ?? "";
+  const handleHazardsUpdate = useMemo(
+    () => makeHazardsUpdateHandler(hazardsProjectId),
+    [hazardsProjectId, makeHazardsUpdateHandler],
   );
 
   // ── Assets tab ────────────────────────────────────────────────────────────
@@ -1244,6 +1252,7 @@ export const WorkspaceLayout: React.FC = () => {
         {activePhase === PhaseId.Hazard &&
           (activeProject.info?.safetyRelevant ?? false) && (
             <HazardsTab
+              key={activeProject.id}
               project={{
                 id: activeProject.id,
                 name: activeProject.info?.name || "",
