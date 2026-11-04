@@ -697,9 +697,13 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── Attack tree tab ───────────────────────────────────────────────────────
 
-  const handleAttackTreeUpdate = useCallback(
-    (updates: AttackTreeUpdateResult) => {
-      const current = activeProjectRef.current;
+  // Pinned to the project the Attack Tree tab shows (the tab is keyed by
+  // project id, like the Asset tab): its flush-on-unmount fires just after the
+  // active project has already switched, so resolving "whatever is active now"
+  // would write the outgoing project's trees into the incoming project.
+  const makeAttackTreeUpdateHandler = useCallback(
+    (projectId: string) => (updates: AttackTreeUpdateResult) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       updateProject({
         id: current.id,
@@ -708,6 +712,11 @@ export const WorkspaceLayout: React.FC = () => {
       });
     },
     [updateProject],
+  );
+  const attackTreeProjectId = activeProject?.id ?? "";
+  const handleAttackTreeUpdate = useMemo(
+    () => makeAttackTreeUpdateHandler(attackTreeProjectId),
+    [attackTreeProjectId, makeAttackTreeUpdateHandler],
   );
 
   // ── Audit tab ─────────────────────────────────────────────────────────────
