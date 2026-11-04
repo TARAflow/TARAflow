@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   PhaseDefinition,
@@ -106,7 +106,19 @@ interface GeneralTabProps {
   onOpenAuditTab?: () => void;
 }
 
-export const GeneralTab: React.FC<GeneralTabProps> = ({
+/**
+ * One tab instance per project. The forms keep local drafts (Project info in
+ * edit mode, Definition cards, the source binding editor): on a prop-only
+ * project swap an open draft of the outgoing project stayed on screen, and
+ * saving it wrote the outgoing project's name, version, team … into the
+ * incoming project. Keying by project id makes a switch an unmount/mount, so
+ * drafts never cross projects.
+ */
+export const GeneralTab: React.FC<GeneralTabProps> = (props) => (
+  <GeneralTabView key={props.projectId} {...props} />
+);
+
+const GeneralTabView: React.FC<GeneralTabProps> = ({
   data,
   phases,
   progressPhaseIds,
@@ -194,9 +206,16 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
   // implementation plan §3.5/§4 — the project-wide "analysed against repo
   // X, release Y" reference; element-level bindings are a separate,
   // non-inheriting collection edited elsewhere).
+  //
+  // Resolve and drift check finish after a network round-trip (and a consent
+  // prompt), so the data captured when the button was clicked may be stale by
+  // then: build the update from the latest data, not the click-time closure,
+  // or edits made meanwhile (name, settings, Definition) would be rolled back.
+  const latestDataRef = useRef(data);
+  latestDataRef.current = data;
   const handleSourceBindingsUpdate = (sourceBindings: SourceBinding[]) => {
     onUpdate({
-      ...data,
+      ...latestDataRef.current,
       sourceBindings,
     });
   };

@@ -298,15 +298,25 @@ export const WorkspaceLayout: React.FC = () => {
       }
     : undefined;
 
-  const handleGeneralTabUpdate = useCallback(
-    (data: GeneralTabData) => {
-      const current = activeProjectRef.current;
+  // Pinned to the project the Overview shows (like the Asset tab): a source
+  // binding resolve / drift check finishes after a network round-trip and may
+  // land after a project switch. It belongs to the project it was started in —
+  // resolving "whatever is active now" wrote the outgoing project's info,
+  // settings and Definition into the incoming project.
+  const makeGeneralTabUpdateHandler = useCallback(
+    (projectId: string) => (data: GeneralTabData) => {
+      const current = projectsRef.current.find((p) => p.id === projectId);
       if (!current) return;
       updateProject(buildGeneralTabPatch(current, data));
       const conflicts = getRegulationConflicts(data.info.tags);
       if (conflicts.length > 0) toast.warning(conflicts[0].message);
     },
     [updateProject, toast],
+  );
+  const generalTabProjectId = activeProject?.id ?? "";
+  const handleGeneralTabUpdate = useMemo(
+    () => makeGeneralTabUpdateHandler(generalTabProjectId),
+    [generalTabProjectId, makeGeneralTabUpdateHandler],
   );
 
   // Trust boundary form → a new Item Definition assumption (A-3). Synchronous:
@@ -1237,6 +1247,7 @@ export const WorkspaceLayout: React.FC = () => {
       <div className="flex-1 overflow-y-auto">
         {activePhase === PhaseId.General && (
           <GeneralTab
+            key={activeProject.id}
             data={generalTabData}
             phases={PHASES}
             progressPhaseIds={getProgressPhaseIds(
