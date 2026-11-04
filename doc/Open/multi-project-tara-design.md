@@ -54,7 +54,7 @@ not hold for an **immutable, versioned release**:
 |---|---|---|---|
 | What crosses | arbitrary internals | everything, unpinned | a defined subset, pinned |
 | Drift | silent | silent, every open differs | explicit: pin vs. upstream (§9) |
-| Audit | not reproducible | not reproducible (other repo) | reproducible (vendored + hash, §8) |
+| Audit | not reproducible | not reproducible (other repo) | reproducible (embedded + hash, §8) |
 | Reuse n:m | no | yes, but unstable | yes |
 
 The profile behaves like a dependency release (a lockfile entry): the platform team publishes
@@ -113,9 +113,10 @@ interface ExportedThreat {
 
 interface MethodologyFingerprint {
   likelihoodMethod: string;      // LikelihoodMethod of the component project
-  factorIds: string[];           // active likelihood factors, sorted
-  scaleVersion: number;          // version of the factor scale definitions
-  hash: string;                  // hash over the three fields above
+  /** Active component-intrinsic factors only, sorted by factorId. Context-dependent factors and
+   *  all impact / risk configuration are deliberately NOT part of the fingerprint. */
+  factors: { factorId: string; scaleHash: string }[];
+  hash: string;                  // over likelihoodMethod + factors
 }
 
 interface ExportedFactorRating {
@@ -203,7 +204,7 @@ interface ComponentBinding {
   id: string;
   componentId: string;
   profileRevision: number;
-  contentHash: string;     // hash of the vendored profile (§8)
+  contentHash: string;     // hash of the embedded profile (§8)
   repoUrl?: string;        // where newer revisions are looked for
   refLabel?: string;       // e.g. "main", "release/2.x"
 }
@@ -270,8 +271,16 @@ methods is not traceable and is not done.
 | context-dependent | window of opportunity, exposure level (EN 50742 EL, derived from trust-boundary crossing), benefit (IEC 62443) | always the machine, from its own DFD — never exported |
 
 **Methodology fingerprint.** The profile carries the component's `MethodologyFingerprint`
-(likelihood method + sorted active factor ids + scale version, hashed). It is derived from the
-methodology record, never edited by hand. The machine compares it with its own fingerprint at
+(likelihood method + one scale hash per active component-intrinsic factor). It is derived, never
+edited by hand.
+
+`scaleHash` = 12-hex FNV-1a over the canonical JSON of that one factor's scale definition (its
+levels and their numeric values) — computed, no version counter. It is **per factor** and
+**method-independent** on purpose; the calc stamps' `mappingVersion` is not used because it
+(a) hashes the whole risk configuration including the impact scale, which is never imported — an
+impact change on the component side would flip the fingerprint and force a full re-rating;
+(b) is one project-wide value, so the per-factor rule below could not be evaluated; and (c) exists
+only under ISO/SAE 21434, not for EN 50742 or IEC 62443. The machine compares it with its own fingerprint at
 bind time and again on every revision move:
 
 - **Same fingerprint:** the exported intrinsic factor values are taken as **prefill**, marked
@@ -286,7 +295,7 @@ bind time and again on every revision move:
   rated.
 - **Partial overlap:** a factor whose id **and** scale exist identically on both sides (e.g. the
   same elapsed-time scale used by two presets) is taken as prefill even on a fingerprint mismatch;
-  everything else is re-rated. "Identical" is decided by factor id + scale version, never by label.
+  everything else is re-rated. "Identical" is decided by factor id + `scaleHash`, never by label.
 
 No conversion tables between methods in this version. If a method pair is needed later, a
 factor-level mapping registry (source method, factor → target method, factor, with a documented
@@ -348,12 +357,18 @@ for them.
   **new** / **unchanged** / **changed** (text, interfaces, feasibility or residual) / **obsolete**;
   same for assumptions and capabilities. Same pattern as the leveled-DFD threat reconciliation
   (D9): ratings never transferred automatically, changed threats are flagged for review.
+- **Manual pairing obsolete ↔ new.** The export key follows the component threat's UUID, which
+  survives regeneration but not a deleted and re-created element on the component side. Such a
+  threat arrives as one *obsolete* plus one *new*. The preview lets the analyst pair them
+  (same pattern as the leveled-DFD assignment dialog): the machine threat keeps its id, its risk
+  and its ratings, and is flagged *changed* for review. Pairing is explicit, never automatic; the
+  move commit lists each pairing.
 - **Risks follow their threats (user 2026-11-04):** an imported component threat gets its risk
   through the normal risk sync like every generated threat; a threat that becomes obsolete loses
   its risk — orphaned risks are deleted, as everywhere in TARAflow. The preview lists the risks
   that will go (with their rating and treatment) before the move is confirmed, and the audit
   diff of the move commit names them.
-- The move is one commit in the machine repo (vendored file + binding + reconciled threats).
+- The move is one commit in the machine repo (embedded profile + binding + reconciled threats).
 
 ## 10. Architecture
 
@@ -418,11 +433,13 @@ section "exported vs. internal".
   profile revision that keeps the keys; unmapped flow / unused interface / unmapped asset findings.
 - Methodology: same fingerprint → intrinsic factors prefilled with provenance, context factors
   unrated; different fingerprint → all non-identical factors unrated, source hint shown,
-  `CMP_METHOD_MISMATCH` + `CMP_FACTOR_UNRATED`; identical factor id + scale version is prefilled
-  across a mismatch; context-dependent factors never appear in an export.
+  `CMP_METHOD_MISMATCH` + `CMP_FACTOR_UNRATED`; identical factor id + `scaleHash` is prefilled
+  across a mismatch; context-dependent factors never appear in an export or in the fingerprint;
+  an impact-scale or risk-matrix change on the component side leaves the fingerprint unchanged.
 - Reconciliation: new / unchanged / changed / obsolete for threats, assumptions, capabilities;
-  ratings never copied.
-- AVE: vendored profile missing, tampered (hash mismatch), non-canonical.
+  ratings never copied; a manual obsolete ↔ new pairing keeps the machine threat id, risk and
+  ratings and marks it changed.
+- AVE: embedded profile tampered (hash mismatch), non-canonical.
 - diff-service: binding / mapping / AoU status changes open the commit gate.
 
 ## 14. Decisions to confirm
@@ -457,8 +474,8 @@ Code check of the draft against TARAflow 0.18 (feature/0.18-model-coverage), ans
 | 1 | Binding, mappings, AoU status, `componentBindingId`, `exposedToIntegrator` are stored project data — the draft names no schema | **Schema ≥ 14.** Schema 13 is closed with 0.18; this feature opens its own fence (additive fields, a `migrate-13-to-14` only where data is reshaped) |
 | 2 | The export key must not depend on display ids (a DFD renumber) | Threats already carry a UUID `id` next to `displayId` — the key uses it (§4); nothing else to do |
 | 3 | §9 said obsolete threats are "retired with history", but the risk sync deletes orphaned risks | **Risks follow their threats:** imported threats get their risks through the normal sync, orphaned risks are deleted. The reconciliation preview lists the risks that will go before the move (§9) |
-| 4 | No field "intrinsic / context-dependent" in `RiskFactorDefinition`, no scale version | **Accepted:** a `factorClass` on the factor definitions (component-intrinsic / context-dependent, §7.2); the scale version is the existing tables hash `mappingVersion` of the calc stamps — no new version counter |
-| 5 | Interplay with 0.18 features | **To be worked out** before phase 4: (a) a bound multiprocess is a black box — its "inside" fields (D-30c) are hidden, the profile replaces them; (b) component capabilities as evidence in the requirement matrix (62443 rows, claims as in IEC-6) or not; (c) EN 50742 A paths to a safety function (CM-12b) continue through the interface mapping into the component's exported interfaces |
+| 4 | No field "intrinsic / context-dependent" in `RiskFactorDefinition`, no scale version | **Accepted:** a `factorClass` on the factor definitions (component-intrinsic / context-dependent, §7.2); the scale version is a **per-factor `scaleHash`** over that factor's scale definition — computed, no version counter. *Revised (follow-up review 2026-11-04):* the calc stamps' `mappingVersion` was considered and rejected — it covers the whole risk configuration incl. the impact scale, is project-wide (no per-factor match) and exists only under ISO/SAE 21434 (§7.2) |
+| 5 | Interplay with 0.18 features | **To be worked out** before phase 4: (a) a bound multiprocess is a black box — its "inside" fields (D-30c) are hidden, the profile replaces them; (b) component capabilities as evidence in the requirement matrix (62443 rows, claims as in IEC-6) or not; (c) EN 50742 A paths to a safety function (CM-12b) continue through the interface mapping **up to** the component's exported interfaces and from there only via its exported threats and capabilities — never into the component's internal DFD (that would be balancing across projects, a non-goal). Open: when the safety function itself is implemented inside the component (likely for machine controllers), the profile must export it as an asset (`ExportedAsset`, group function, marked safety-relevant); its severity (reversible / non-reversible / fatal) is still rated by the machine, as impact stays behind (§5.3) |
 | 6 | Report / CLI / browser need the profile | Everything the plant report needs is imported (§8): the component repository is never needed. Recommendation: profile embedded in the machine's `.tara.json` (D1) — then no file access at all |
 | 7 | "Outermost physical boundary of the top page" ambiguous | A multiprocess inside a physical boundary with interfaces on it is a clear border — that is the default (§5.1) |
 
