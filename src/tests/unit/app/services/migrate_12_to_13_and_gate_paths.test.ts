@@ -71,6 +71,8 @@ describe("S13-c: AND gate paths", () => {
     const key = one.attackTrees.trees[0].pathAnalysis.paths.find((p: Any) => p.combination).pathKey;
     expect(one.risks.risks.map((r: Any) => r.id)).toEqual([`R-AT-t1-${key}-T`]);
     expect(one.risks.risks[0].treatment).toBe("accept");
+    // Only one step had a risk: carried over, with a review note (audit trail).
+    expect(one.risks.risks[0].riskBeforeRationale).toMatch(/^Carried over from AT-1\.\w+ \(AND gate = one attack path, TARAflow 0\.18\): review the rating and the treatment\.$/);
 
     const two = migrateAndGatePaths(
       project([], [
@@ -100,6 +102,30 @@ describe("S13-c: AND gate paths", () => {
     const { data, analysisChanged } = migrate_12_to_13(project([assessment(OLD_A)], []));
     expect(analysisChanged).toBe(true);
     expect(data.schemaVersion).toBe(13);
-    expect(data.attackTrees.trees[0].pathAssessments[0].pathKey).not.toBe(OLD_A);
+    const keys = data.attackTrees.trees[0].pathAssessments.map((a: Any) => a.pathKey);
+    expect(keys.some((k: string) => ![OLD_A, OLD_B].includes(k))).toBe(true);
+  });
+
+  it("a step without an assessment is not assessed — never 'not relevant' (other step not relevant)", () => {
+    const { data } = migrateAndGatePaths(project([assessment(OLD_A, "not_relevant")], []));
+    const tree = data.attackTrees.trees[0];
+    const combinedKey = tree.pathAnalysis.paths.find((p: Any) => p.combination).pathKey;
+    expect(tree.pathAssessments.find((a: Any) => a.pathKey === combinedKey).relevance).toBe("relevant");
+    // the old assessment stays for review in the banner
+    expect(tree.pathAssessments.map((a: Any) => a.pathKey)).toContain(OLD_A);
+  });
+
+  it("both steps assessed alike: one combined assessment, nothing left for review", () => {
+    const { data } = migrateAndGatePaths(project([assessment(OLD_A, "not_relevant"), assessment(OLD_B, "not_relevant")], []));
+    const tree = data.attackTrees.trees[0];
+    expect(tree.pathAssessments).toHaveLength(1);
+    expect(tree.pathAssessments[0].relevance).toBe("not_relevant");
+  });
+
+  it("two risks with the same decisions: merged with a note, no review request", () => {
+    const { data } = migrateAndGatePaths(project([], [risk(OLD_A), risk(OLD_B)]));
+    const merged = data.risks.risks[0];
+    expect(data.risks.risks).toHaveLength(1);
+    expect(merged.riskBeforeRationale).toMatch(/^Merged from .+ \(AND gate = one attack path, TARAflow 0\.18\)\.$/);
   });
 });

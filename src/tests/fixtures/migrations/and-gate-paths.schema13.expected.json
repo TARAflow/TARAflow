@@ -1,0 +1,112 @@
+{
+  "paths": [
+    {
+      "pathKey": "9354e8b1b62a",
+      "combination": {
+        "gate": [
+          "Tamper",
+          "Both"
+        ],
+        "legs": [
+          [
+            "Port",
+            "Debug port"
+          ],
+          [
+            "Bypass"
+          ]
+        ]
+      },
+      "riskScore": 8,
+      "probability": 0.2,
+      "feasibilityLevel": "very-low"
+    },
+    {
+      "pathKey": "90a5f071f6e9",
+      "combination": {
+        "gate": [
+          "Tamper",
+          "Both"
+        ],
+        "legs": [
+          [
+            "Port",
+            "JTAG"
+          ],
+          [
+            "Bypass"
+          ]
+        ]
+      },
+      "riskScore": 8,
+      "probability": 0.12,
+      "feasibilityLevel": "very-low"
+    },
+    {
+      "pathKey": "e713f93c0d5d",
+      "combination": null,
+      "riskScore": 2,
+      "probability": 0.2,
+      "feasibilityLevel": "very-low"
+    }
+  ],
+  "pathAssessments": [
+    {
+      "pathKey": "671c04a3acdb",
+      "strideCategory": "T",
+      "relevance": "not_relevant"
+    },
+    {
+      "pathKey": "3e7760ebc98b",
+      "strideCategory": "T",
+      "relevance": "relevant"
+    },
+    {
+      "pathKey": "e713f93c0d5d",
+      "strideCategory": "T",
+      "relevance": "relevant"
+    },
+    {
+      "pathKey": "9354e8b1b62a",
+      "strideCategory": "T",
+      "relevance": "relevant"
+    },
+    {
+      "pathKey": "90a5f071f6e9",
+      "strideCategory": "T",
+      "relevance": "relevant"
+    }
+  ],
+  "risks": [
+    {
+      "id": "R-AT-tree-1-e713f93c0d5d-T",
+      "threatId": "AT-tree-1-e713f93c0d5d-T",
+      "treatment": "reduce",
+      "calculatedRiskBeforeMitigation": 2,
+      "riskBeforeRationale": ""
+    },
+    {
+      "id": "R-AT-tree-1-9354e8b1b62a-T",
+      "threatId": "AT-tree-1-9354e8b1b62a-T",
+      "treatment": "accept",
+      "calculatedRiskBeforeMitigation": 9,
+      "riskBeforeRationale": "Carried over from AT-1.3 (AND gate = one attack path, TARAflow 0.18): review the rating and the treatment."
+    },
+    {
+      "id": "R-AT-tree-1-90a5f071f6e9-T",
+      "threatId": "AT-tree-1-90a5f071f6e9-T",
+      "treatment": "accept",
+      "calculatedRiskBeforeMitigation": 9,
+      "riskBeforeRationale": "Merged from AT-1.3, AT-1.2 (AND gate = one attack path, TARAflow 0.18): review the rating and the treatment."
+    }
+  ],
+  "goals": [
+    {
+      "id": "g1",
+      "riskIds": [
+        "R-AT-tree-1-9354e8b1b62a-T",
+        "R-AT-tree-1-90a5f071f6e9-T"
+      ]
+    }
+  ]
+}

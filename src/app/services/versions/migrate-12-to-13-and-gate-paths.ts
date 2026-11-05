@@ -8,27 +8,41 @@
  *   path analysis   recomputed for every tree with an AND gate
  *   assessments     (pathKey, STRIDE) of the old leaf paths → the combined
  *                   path: relevance, notes, mitigations, verifications merged;
- *                   when the old paths disagree on relevance the combined one
- *                   is "relevant" and the old assessments stay — they show in
- *                   the attack-tree banner (vanished assessed path) for review
+ *                   when the old paths disagree on relevance — or one of them
+ *                   has no assessment, which means "not assessed yet", never
+ *                   "not relevant" — the combined one is "relevant" and the
+ *                   old assessments stay: they show in the attack-tree banner
+ *                   (vanished assessed path) for review
  *   risks           R-AT-<tree>-<key>-<STRIDE> → the combined path's id; one
  *                   old risk is renamed; several are merged into the one with
  *                   the highest risk before mitigation, selected mitigations
- *                   united, and a review note added when their decisions differ
+ *                   united. Every carried risk notes where it came from (audit
+ *                   trail); the note asks for a review when the decisions
+ *                   differ or not every step had a risk
  *   goals / claims  their risk ids follow
  *
  * Reports per file whether an analysis value changed (K-9): only files with
  * an AND gate in a tree that has a path analysis.
+ *
+ * The step uses the attack-tree calculator of this version; a golden test
+ * (migrate_12_to_13_and_gate_golden.test.ts) pins its output, so a later
+ * change of the calculator that would migrate a 0.17 file differently fails
+ * there and is decided on purpose.
  */
 
-import { attackTreeCalculator, computePathKey, resolveFeasibilityConfiguration } from "features/attacktree";
+import {
+  attackTreeCalculator,
+  buildThreatId,
+  computePathKey,
+  resolveFeasibilityConfiguration,
+} from "features/attacktree";
+import type { StrideCategory } from "shared";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 
 const hasAnd = (node: Any): boolean => node?.type === "AND" || (node?.children ?? []).some(hasAnd);
 
-const threatIdOf = (treeId: string, key: string, stride: string) => `AT-${treeId}-${key}-${stride}`;
 const riskIdOf = (threatId: string) => `R-${threatId}`;
 
 /** The decisions of a risk that must agree before risks are merged silently. */
@@ -65,13 +79,16 @@ export function migrateAndGatePaths(data: Any): { data: Any; analysisChanged: bo
         const group = olds.filter((a) => a.strideCategory === stride);
         group.forEach((a) => usedOld.add(a));
         const relevances = new Set(group.map((a) => a.relevance));
-        if (relevances.size > 1) group.forEach((a) => keepOld.add(a));
+        // A step without an assessment is not assessed yet — not "not relevant".
+        const complete = new Set(group.map((a) => a.pathKey)).size === oldKeys.size;
+        const review = relevances.size > 1 || !complete;
+        if (review) group.forEach((a) => keepOld.add(a));
         const union = (key: string) => [...new Set(group.flatMap((a) => a[key] ?? []))];
         const notes = [...new Set(group.map((a) => a.evalNote?.trim()).filter(Boolean))];
         merged.push({
           pathKey: path.pathKey,
           strideCategory: stride,
-          relevance: relevances.has("relevant") ? "relevant" : group[0].relevance,
+          relevance: review || relevances.has("relevant") ? "relevant" : group[0].relevance,
           ...(notes.length ? { evalNote: notes.join("\n") } : {}),
           ...(union("mitigationIds").length ? { mitigationIds: union("mitigationIds") } : {}),
           ...(union("verificationIds").length ? { verificationIds: union("verificationIds") } : {}),
@@ -79,24 +96,32 @@ export function migrateAndGatePaths(data: Any): { data: Any; analysisChanged: bo
         });
       }
 
-      // Risks, per STRIDE category.
-      const oldRisks = risks.filter((r) =>
-        [...oldKeys].some((key) => typeof r.threatId === "string" && r.threatId.startsWith(`AT-${tree.id}-${key}-`)),
-      );
-      for (const stride of new Set(oldRisks.map((r) => r.threatId.slice(r.threatId.lastIndexOf("-") + 1)))) {
-        const group = oldRisks.filter((r) => r.threatId.endsWith(`-${stride}`));
+      // Risks, per STRIDE category: the risks of the old leaf paths of this combination.
+      // The STRIDE category is the id's suffix — the id is the risk's identity.
+      const strideOf = (r: Any) => String(r.threatId).slice(String(r.threatId).lastIndexOf("-") + 1) as StrideCategory;
+      const legOf = (r: Any) =>
+        typeof r.threatId === "string"
+          ? [...oldKeys].find((key) => r.threatId === buildThreatId(tree.id, key, strideOf(r)))
+          : undefined;
+      const oldRisks = risks.filter((r) => legOf(r) !== undefined);
+      for (const stride of new Set(oldRisks.map(strideOf))) {
+        const group = oldRisks.filter((r) => strideOf(r) === stride);
         const base = [...group].sort((a, b) => (b.calculatedRiskBeforeMitigation ?? 0) - (a.calculatedRiskBeforeMitigation ?? 0))[0];
-        const threatId = threatIdOf(tree.id, path.pathKey, stride);
+        const threatId = buildThreatId(tree.id, path.pathKey, stride);
         const mitigations = [...(base.selectedMitigations ?? [])];
         for (const r of group) for (const m of r.selectedMitigations ?? []) if (!mitigations.some((x) => x.id === m.id)) mitigations.push(m);
         const differ = new Set(group.map(decisionOf)).size > 1;
-        const note = `Merged from ${group.map((r) => r.threatDisplayId ?? r.id).join(", ")} (AND gate = one attack path, TARAflow 0.18): review the rating and the treatment.`;
+        const everyStep = new Set(group.map(legOf)).size === oldKeys.size;
+        const note =
+          `${group.length > 1 ? "Merged" : "Carried over"} from ${group.map((r) => r.threatDisplayId ?? r.id).join(", ")} ` +
+          `(AND gate = one attack path, TARAflow 0.18)` +
+          (differ || !everyStep ? ": review the rating and the treatment." : ".");
         const next = {
           ...base,
           id: riskIdOf(threatId),
           threatId,
           selectedMitigations: mitigations,
-          ...(differ ? { riskBeforeRationale: [base.riskBeforeRationale, note].filter(Boolean).join("\n") } : {}),
+          riskBeforeRationale: [base.riskBeforeRationale, note].filter(Boolean).join("\n"),
         };
         risks = [...risks.filter((r) => r.id !== next.id), next];
         for (const r of group) renamed.set(r.id, new Set([...(renamed.get(r.id) ?? []), next.id]));

@@ -96,10 +96,14 @@ when opened (with a backup) and then no longer open in 0.17.x.
   analysis — a TARA verification stays valid.
 - **Attack trees with an AND gate:** the conversion recomputes their
   paths. Assessments of the former leaf paths are merged onto the
-  combined path; risks are renamed or merged (with a note *Merged from …
-  review the rating and the treatment* where the decisions differed) —
-  nothing is lost, but review these risks. The conversion reports this
-  per file; a verification of such a file asks to be confirmed again.
+  combined path; where they disagree or a step had none (not assessed is
+  never *not relevant*), the combined path is *relevant* and the old
+  assessments stay for review. Risks are renamed or merged; each one
+  notes where it came from (*Carried over from …* / *Merged from …*),
+  with *review the rating and the treatment* where the decisions differ
+  or not every step had a risk — nothing is lost, but review these
+  risks. The conversion reports this per file; a verification of such a
+  file asks to be confirmed again.
 - **Regenerated threats** (catalog matcher): a threat may now name the
   variant for the missing control where the property is unset (e.g. the
   read / write tampering threat on a flow without access mode). No threat
