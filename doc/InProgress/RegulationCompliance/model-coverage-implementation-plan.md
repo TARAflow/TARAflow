@@ -291,7 +291,7 @@ Contents (each a pure function in its own file, one call line in `migrate-12-to-
 |---|---|---|
 | S13-a | new optional fields of stage 1 (additive) | yes — no value changes |
 | S13-b | `ComplianceData` reshape into `families` (if K-2 = reshape) | yes, 1:1; verification re-sealed on load (as P-1) |
-| S13-c | FX-6 path keys (AND gate = one path) + FX-5 relink, release plan 0.18 — **done** (patch 32, `migrate-12-to-13-and-gate-paths.ts`; FX-5 relink follows) | **no** for files with AND gates in attack trees (reported per file, K-9) |
+| S13-c | FX-6 path keys (AND gate = one path) + FX-5 relink, release plan 0.18 — **done** (patch 32, `migrate-12-to-13-and-gate-paths.ts`; FX-5 relink: patch 46) | **no** for files with AND gates in attack trees (reported per file, K-9) |
 
 The current mechanism declares preservation **per version number**
 (`ANALYSIS_PRESERVING_MIGRATIONS`): with S13-c in schema 13, every 0.17 verification

@@ -99,6 +99,8 @@
         "title": "Cybersecurity Goals und Claims",
         "removedRisk": "entfernt ({{id}})",
         "mergeInto": "Zusammenführen in …",
+        "relinkTo": "Neu verknüpfen mit …",
+        "dropLink": "Link entfernen",
         "openRisk": "Öffnen",
         "proposals": "Vorgeschlagene Goals für Risiken ohne Goal",
         "acceptProposal": "Goal für {{count}} Risiko/Risiken anlegen",

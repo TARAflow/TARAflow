@@ -46,6 +46,7 @@ import type { Risk } from "../models/risk-assessment-types";
 import type { ConceptFinding } from "../services/concept-findings";
 import { openGoalProposals } from "../services/concept-proposals";
 import { conceptFindingText } from "./concept-finding-text";
+import { relinkCandidates, relinkConceptItem, type ConceptItemKind } from "../services/concept-relink";
 
 export interface GoalsClaimsDialogProps {
   open: boolean;
@@ -112,34 +113,86 @@ export const GoalsClaimsDialog: React.FC<GoalsClaimsDialogProps> = ({
   const riskLabel = (id: string) => risksById.get(id)?.threatDisplayId ?? id;
   const proposals = openGoalProposals(risks, concept, assetDataRef);
 
-  /** Risk chips grouped by scenario: "AT-2: AT-2.1, AT-2.2". */
-  const riskGroups = (riskIds: readonly string[]) => {
+  /**
+   * A dead link (risk removed — e.g. its attack-tree node was renamed, FX-5):
+   * re-link it to a path of the same tree and STRIDE category, or drop it.
+   */
+  const deadLink = (item: CybersecurityGoal | CybersecurityClaim, kind: ConceptItemKind, riskId: string) => {
+    const candidates = relinkCandidates(riskId, item, kind, risks, concept);
+    return (
+      <Stack
+        key={riskId}
+        direction="row"
+        spacing={0.5}
+        alignItems="center"
+        flexWrap="wrap"
+        useFlexGap
+        data-testid={`dead-link-${item.displayId}`}
+      >
+        <Chip
+          size="small"
+          variant="outlined"
+          color="warning"
+          label={t("tabs.risks.goalsClaims.removedRisk", { defaultValue: "removed ({{id}})", id: riskId })}
+        />
+        {candidates.length > 0 && (
+          <TextField
+            select
+            size="small"
+            sx={{ minWidth: 180 }}
+            label={t("tabs.risks.goalsClaims.relinkTo", { defaultValue: "Re-link to …" })}
+            value=""
+            onChange={(e) => apply((cc) => relinkConceptItem(cc, kind, item.id, riskId, e.target.value))}
+            inputProps={{ "data-testid": `relink-${item.displayId}` }}
+          >
+            {candidates.map((r) => (
+              <MenuItem key={r.id} value={r.id}>
+                {r.threatDisplayId}
+                {r.threatDescription ? ` — ${r.threatDescription}` : ""}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
+        <Button
+          size="small"
+          onClick={() => apply((cc) => relinkConceptItem(cc, kind, item.id, riskId, null))}
+          data-testid={`drop-link-${item.displayId}`}
+        >
+          {t("tabs.risks.goalsClaims.dropLink", { defaultValue: "Remove link" })}
+        </Button>
+      </Stack>
+    );
+  };
+
+  /** Risk chips grouped by scenario: "AT-2: AT-2.1, AT-2.2"; dead links below with their fix. */
+  const riskGroups = (item: CybersecurityGoal | CybersecurityClaim, kind: ConceptItemKind) => {
     const groups = new Map<string, string[]>();
-    for (const id of riskIds) {
-      const key = risksById.has(id) ? scenarioLabel(risksById.get(id), id) : "—";
+    for (const id of item.riskIds.filter((r) => risksById.has(r))) {
+      const key = scenarioLabel(risksById.get(id), id);
       groups.set(key, [...(groups.get(key) ?? []), id]);
     }
-    return [...groups].map(([scenario, ids]) => (
-      <Stack key={scenario} direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" useFlexGap>
-        <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 40 }}>
-          {scenario}
-        </Typography>
-        {ids.map((id) => (
-          <Chip
-            key={id}
-            size="small"
-            variant="outlined"
-            color={risksById.has(id) ? "default" : "warning"}
-            label={
-              risksById.has(id)
-                ? riskLabel(id)
-                : t("tabs.risks.goalsClaims.removedRisk", { defaultValue: "removed ({{id}})", id })
-            }
-            onClick={risksById.has(id) && onOpenRisk ? () => onOpenRisk(id) : undefined}
-          />
+    const dead = item.riskIds.filter((r) => !risksById.has(r));
+    return (
+      <>
+        {[...groups].map(([scenario, ids]) => (
+          <Stack key={scenario} direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Typography variant="caption" sx={{ fontWeight: 600, minWidth: 40 }}>
+              {scenario}
+            </Typography>
+            {ids.map((id) => (
+              <Chip
+                key={id}
+                size="small"
+                variant="outlined"
+                label={riskLabel(id)}
+                onClick={onOpenRisk ? () => onOpenRisk(id) : undefined}
+              />
+            ))}
+          </Stack>
         ))}
-      </Stack>
-    ));
+        {dead.map((id) => deadLink(item, kind, id))}
+      </>
+    );
   };
 
   const mergeSelect = (
@@ -264,7 +317,7 @@ export const GoalsClaimsDialog: React.FC<GoalsClaimsDialogProps> = ({
                   testId={`overview-goal-statement-${g.displayId}`}
                   onCommit={(statement) => apply((cc) => updateGoal(cc, g.id, { statement }))}
                 />
-                {riskGroups(g.riskIds)}
+                {riskGroups(g, "goal")}
               </Stack>
             </Paper>
           ))}
@@ -303,7 +356,7 @@ export const GoalsClaimsDialog: React.FC<GoalsClaimsDialogProps> = ({
                   testId={`overview-claim-statement-${c.displayId}`}
                   onCommit={(statement) => apply((cc) => updateClaim(cc, c.id, { statement }))}
                 />
-                {riskGroups(c.riskIds)}
+                {riskGroups(c, "claim")}
               </Stack>
             </Paper>
           ))}
