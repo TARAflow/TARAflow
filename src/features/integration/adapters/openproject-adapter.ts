@@ -26,7 +26,7 @@ import {
 import type { TrackerProject } from "../models/integration-types";
 import type { ConnectionTestOutcome, TicketAdapter } from "./ticket-adapter";
 import { trackerRequest, type TrackerRef } from "./tracker-channel";
-import { chunks, connectionFailure, REVIEW, WITHOUT_FIX } from "./adapter-support";
+import { chunks, connectionFailure, noted, REVIEW, WITHOUT_FIX } from "./adapter-support";
 
 const API = "/api/v3";
 const BATCH = 100;
@@ -59,10 +59,10 @@ export class OpenProjectAdapter implements TicketAdapter {
   async testConnection(): Promise<ConnectionTestOutcome> {
     const me = await trackerRequest<Json>(this.ref, "GET", `${API}/users/me`);
     if (!me.ok || me.data?._type === "AnonymousUser") {
-      return { success: false, projects: [], message: connectionFailure(me.ok ? { ...me, status: 401 } : me, "check the API key") };
+      return { success: false, projects: [], ...noted(connectionFailure(me.ok ? { ...me, status: 401 } : me, "apiKey")) };
     }
     const res = await trackerRequest<Json>(this.ref, "GET", `${API}/projects?pageSize=100`);
-    if (!res.ok) return { success: false, projects: [], message: `Projects could not be loaded (${res.status}).` };
+    if (!res.ok) return { success: false, projects: [], ...noted({ code: "listFailed", status: res.status, unit: "projects" }) };
     const projects: TrackerProject[] = [];
     for (const p of res.data?._embedded?.elements ?? []) {
       const types = await this.projectTypes(p.identifier);
@@ -78,7 +78,7 @@ export class OpenProjectAdapter implements TicketAdapter {
       success: true,
       projects,
       ...(me.data?.id ? { accountId: String(me.data.id) } : {}),
-      message: `Connected as ${me.data?.name ?? this.ref.account} — ${projects.length} project(s).`,
+      ...noted({ code: "connected", account: me.data?.name ?? this.ref.account, count: projects.length, unit: "projects" }),
     };
   }
 

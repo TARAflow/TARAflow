@@ -25,7 +25,7 @@ import {
 import type { TrackerProject } from "../models/integration-types";
 import type { ConnectionTestOutcome, TicketAdapter } from "./ticket-adapter";
 import { trackerRequest, type TrackerRef } from "./tracker-channel";
-import { chunks, connectionFailure, REVIEW, WITHOUT_FIX } from "./adapter-support";
+import { chunks, connectionFailure, noted, REVIEW, WITHOUT_FIX } from "./adapter-support";
 
 const HEADERS = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
 const ISSUE_KEY = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)#([1-9][0-9]*)$/;
@@ -76,9 +76,9 @@ export class GitHubAdapter implements TicketAdapter {
 
   async testConnection(): Promise<ConnectionTestOutcome> {
     const me = await trackerRequest<Json>(this.ref, "GET", `${this.rest}/user`, undefined, HEADERS);
-    if (!me.ok) return { success: false, projects: [], message: connectionFailure(me, "check the personal access token") };
+    if (!me.ok) return { success: false, projects: [], ...noted(connectionFailure(me, "pat")) };
     const repos = await trackerRequest<Json[]>(this.ref, "GET", `${this.rest}/user/repos?per_page=100&sort=updated`, undefined, HEADERS);
-    if (!repos.ok) return { success: false, projects: [], message: `Repositories could not be loaded (${repos.status}).` };
+    if (!repos.ok) return { success: false, projects: [], ...noted({ code: "listFailed", status: repos.status, unit: "repositories" }) };
     const projects: TrackerProject[] = (repos.data ?? [])
       .filter((r: Json) => r.has_issues !== false)
       .map((r: Json) => ({
@@ -94,7 +94,7 @@ export class GitHubAdapter implements TicketAdapter {
       success: true,
       projects,
       ...(me.data?.id ? { accountId: String(me.data.id) } : {}),
-      message: `Connected as ${me.data?.login ?? this.ref.account} — ${projects.length} repositories.`,
+      ...noted({ code: "connected", account: me.data?.login ?? this.ref.account, count: projects.length, unit: "repositories" }),
     };
   }
 

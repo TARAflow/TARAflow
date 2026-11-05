@@ -76,7 +76,8 @@ when opened (with a backup) and then no longer open in 0.17.x.
   chips (before, I=2 / L=2 read *Low* in the matrix and *Medium* on the
   chip); impact and likelihood chips are coloured on their own scale.
 - **Translated messages:** the Risk tab's validation (toolbar chip, phase
-  bar, Overview) and the hazard findings in the UI language.
+  bar, Overview), the hazard findings and the issue trackers' connection
+  test in the UI language.
 - **CR 7.1:** only exposed protocol interfaces are checked for abuse
   protection (a touch panel can never meet it).
 

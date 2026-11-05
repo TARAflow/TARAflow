@@ -27,6 +27,7 @@ import {
   type TrackerProject,
 } from "../models/integration-types";
 import { CONNECT_FAILURE_TEXT, connectTracker } from "../services/connect-tracker";
+import { connectionNoteText } from "../services/connection-note-text";
 import { trackerLabels } from "../services/tracker-labels";
 import { trackerRefOf } from "../adapters/create-ticket-adapter";
 import { deleteTrackerToken, hasTrackerToken } from "../adapters/tracker-channel";
@@ -72,11 +73,14 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
     const outcome = await connectTracker({ tool: tracker.id, host, user, secret });
     setTesting(false);
     const code = !outcome.success && "code" in outcome ? outcome.code : undefined;
+    const note = "note" in outcome ? outcome.note : undefined;
     setResult({
       success: outcome.success,
       message: code
         ? t(`integration.error.${code}`, { defaultValue: CONNECT_FAILURE_TEXT[code], ...labels })
-        : outcome.message,
+        : note
+          ? connectionNoteText(note, t)
+          : outcome.message,
     });
     if (!outcome.success || !("credentials" in outcome)) return;
     setSecret("");

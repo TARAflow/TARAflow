@@ -824,6 +824,25 @@
       "secretRequired": "{{secret}} is required.",
       "keychain": "The token could not be stored in the OS keychain (desktop app required)."
     },
+    "connection": {
+      "connected": {
+        "projects_one": "Connected as {{account}} — {{count}} project.",
+        "projects_other": "Connected as {{account}} — {{count}} projects.",
+        "repositories_one": "Connected as {{account}} — {{count}} repository.",
+        "repositories_other": "Connected as {{account}} — {{count}} repositories."
+      },
+      "authFailed": {
+        "pat": "Authentication failed — check the personal access token.",
+        "emailApiToken": "Authentication failed — check e-mail and API token.",
+        "organizationPat": "Authentication failed — check the organization URL and the personal access token.",
+        "apiKey": "Authentication failed — check the API key."
+      },
+      "connectionFailed": "Connection failed ({{detail}}).",
+      "listFailed": {
+        "projects": "Projects could not be loaded ({{status}}).",
+        "repositories": "Repositories could not be loaded ({{status}})."
+      }
+    },
     "issueCount": "{{count}} issues"
   }
 }

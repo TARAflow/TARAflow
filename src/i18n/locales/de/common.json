@@ -822,6 +822,25 @@
       "secretRequired": "{{secret}} ist erforderlich.",
       "keychain": "Das Token konnte nicht im Schlüsselbund des Betriebssystems gespeichert werden (Desktop-App erforderlich)."
     },
+    "connection": {
+      "connected": {
+        "projects_one": "Verbunden als {{account}} — {{count}} Projekt.",
+        "projects_other": "Verbunden als {{account}} — {{count}} Projekte.",
+        "repositories_one": "Verbunden als {{account}} — {{count}} Repository.",
+        "repositories_other": "Verbunden als {{account}} — {{count}} Repositories."
+      },
+      "authFailed": {
+        "pat": "Anmeldung fehlgeschlagen — Personal Access Token prüfen.",
+        "emailApiToken": "Anmeldung fehlgeschlagen — E-Mail und API-Token prüfen.",
+        "organizationPat": "Anmeldung fehlgeschlagen — Organisations-URL und Personal Access Token prüfen.",
+        "apiKey": "Anmeldung fehlgeschlagen — API-Schlüssel prüfen."
+      },
+      "connectionFailed": "Verbindung fehlgeschlagen ({{detail}}).",
+      "listFailed": {
+        "projects": "Projekte konnten nicht geladen werden ({{status}}).",
+        "repositories": "Repositories konnten nicht geladen werden ({{status}})."
+      }
+    },
     "issueCount": "{{count}} Issues"
   }
 }

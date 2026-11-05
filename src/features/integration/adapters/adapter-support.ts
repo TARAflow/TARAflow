@@ -42,9 +42,50 @@ export const htmlParagraphs = (text: string) =>
     .map((line) => (line.trim() ? `<p>${escapeHtml(line)}</p>` : "<p></p>"))
     .join("");
 
-/** The message of a failed connection test. */
-export function connectionFailure(res: TrackerResponse, authHint: string): string {
+// ==================== CONNECTION TEST NOTE ====================
+// What a connection test reports, as a code with parameters: the Integration
+// tab shows it in the UI language (integration.connection.<code>), `message`
+// keeps the English sentence (logs, tests).
+
+/** What the connection test asks the user to check when the tracker refuses the login. */
+export type AuthHint = "pat" | "emailApiToken" | "organizationPat" | "apiKey";
+
+/** What a tracker lists for the project choice. */
+export type TrackerListUnit = "projects" | "repositories";
+
+export type ConnectionNote =
+  | { code: "connected"; account: string; count: number; unit: TrackerListUnit }
+  | { code: "authFailed"; hint: AuthHint }
+  | { code: "connectionFailed"; detail: string }
+  | { code: "listFailed"; status: number; unit: TrackerListUnit };
+
+const AUTH_HINT_TEXT: Record<AuthHint, string> = {
+  pat: "check the personal access token",
+  emailApiToken: "check e-mail and API token",
+  organizationPat: "check the organization URL and the personal access token",
+  apiKey: "check the API key",
+};
+
+/** The English sentence of a note — the stored / logged form and the UI fallback. */
+export function connectionNoteEnglish(note: ConnectionNote): string {
+  switch (note.code) {
+    case "connected":
+      return `Connected as ${note.account} — ${note.count} ${note.unit === "repositories" ? "repositories" : "project(s)"}.`;
+    case "authFailed":
+      return `Authentication failed — ${AUTH_HINT_TEXT[note.hint]}.`;
+    case "connectionFailed":
+      return `Connection failed (${note.detail}).`;
+    case "listFailed":
+      return `${note.unit === "repositories" ? "Repositories" : "Projects"} could not be loaded (${note.status}).`;
+  }
+}
+
+/** A note with its English sentence, as the connection test returns it. */
+export const noted = (note: ConnectionNote) => ({ note, message: connectionNoteEnglish(note) });
+
+/** The note of a failed login request: refused (401 / 403) or not reached. */
+export function connectionFailure(res: TrackerResponse, hint: AuthHint): ConnectionNote {
   return res.status === 401 || res.status === 403
-    ? `Authentication failed — ${authHint}.`
-    : `Connection failed (${res.status || res.error || "no response"}).`;
+    ? { code: "authFailed", hint }
+    : { code: "connectionFailed", detail: String(res.status || res.error || "no response") };
 }

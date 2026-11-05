@@ -13,10 +13,13 @@ import type {
 } from "shared/models/ticket-types";
 import type { TrackerProject } from "../models/integration-types";
 import type { TrackerRef } from "./tracker-channel";
+import type { ConnectionNote } from "./adapter-support";
 
 export interface ConnectionTestOutcome {
   success: boolean;
+  /** English sentence (logs); the UI shows `note` in its language. */
   message: string;
+  note?: ConnectionNote;
   projects: TrackerProject[];
   /** Tracker-side account id, when the tracker reports one (Jira). */
   accountId?: string;

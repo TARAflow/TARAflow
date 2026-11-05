@@ -87,6 +87,7 @@ describe("OpenProjectAdapter", () => {
     request.mockResolvedValue(ok({ _type: "AnonymousUser" }));
     const outcome = await new OpenProjectAdapter(REF).testConnection();
     expect(outcome).toMatchObject({ success: false, message: "Authentication failed — check the API key." });
+    expect(outcome.note).toEqual({ code: "authFailed", hint: "apiKey" });
   });
 
   it("the factory gives the OpenProject adapter", () => {

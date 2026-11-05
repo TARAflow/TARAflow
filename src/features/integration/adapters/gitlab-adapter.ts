@@ -25,7 +25,7 @@ import {
 import type { TrackerProject } from "../models/integration-types";
 import type { ConnectionTestOutcome, TicketAdapter } from "./ticket-adapter";
 import { trackerRequest, type TrackerRef } from "./tracker-channel";
-import { chunks, connectionFailure, REVIEW, WITHOUT_FIX } from "./adapter-support";
+import { chunks, connectionFailure, noted, REVIEW, WITHOUT_FIX } from "./adapter-support";
 
 const API = "/api/v4";
 const ISSUE_KEY = /^([A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+)#([1-9][0-9]*)$/;
@@ -62,9 +62,9 @@ export class GitLabAdapter implements TicketAdapter {
 
   async testConnection(): Promise<ConnectionTestOutcome> {
     const me = await trackerRequest<Json>(this.ref, "GET", `${API}/user`);
-    if (!me.ok) return { success: false, projects: [], message: connectionFailure(me, "check the personal access token") };
+    if (!me.ok) return { success: false, projects: [], ...noted(connectionFailure(me, "pat")) };
     const res = await trackerRequest<Json[]>(this.ref, "GET", `${API}/projects?membership=true&order_by=last_activity_at&per_page=100&simple=true`);
-    if (!res.ok) return { success: false, projects: [], message: `Projects could not be loaded (${res.status}).` };
+    if (!res.ok) return { success: false, projects: [], ...noted({ code: "listFailed", status: res.status, unit: "projects" }) };
     const projects: TrackerProject[] = (res.data ?? [])
       .filter((p: Json) => p.issues_enabled !== false)
       .map((p: Json) => ({
@@ -79,7 +79,7 @@ export class GitLabAdapter implements TicketAdapter {
       success: true,
       projects,
       ...(me.data?.id ? { accountId: String(me.data.id) } : {}),
-      message: `Connected as ${me.data?.username ?? this.ref.account} — ${projects.length} project(s).`,
+      ...noted({ code: "connected", account: me.data?.username ?? this.ref.account, count: projects.length, unit: "projects" }),
     };
   }
 

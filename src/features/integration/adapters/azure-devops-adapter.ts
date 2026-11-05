@@ -28,7 +28,7 @@ import {
 import type { TrackerProject } from "../models/integration-types";
 import type { ConnectionTestOutcome, TicketAdapter } from "./ticket-adapter";
 import { trackerRequest, type TrackerRef } from "./tracker-channel";
-import { categoryFromName, chunks, connectionFailure, htmlParagraphs, WITHOUT_FIX } from "./adapter-support";
+import { categoryFromName, chunks, connectionFailure, noted, htmlParagraphs, WITHOUT_FIX } from "./adapter-support";
 
 const API = "api-version=7.1";
 const BATCH = 200;
@@ -78,9 +78,9 @@ export class AzureDevOpsAdapter implements TicketAdapter {
 
   async testConnection(): Promise<ConnectionTestOutcome> {
     const me = await trackerRequest<Json>(this.ref, "GET", `${this.base}/_apis/connectionData?${API}`);
-    if (!me.ok) return { success: false, projects: [], message: connectionFailure(me, "check the organization URL and the personal access token") };
+    if (!me.ok) return { success: false, projects: [], ...noted(connectionFailure(me, "organizationPat")) };
     const res = await trackerRequest<Json>(this.ref, "GET", `${this.base}/_apis/projects?${API}`);
-    if (!res.ok) return { success: false, projects: [], message: `Projects could not be loaded (${res.status}).` };
+    if (!res.ok) return { success: false, projects: [], ...noted({ code: "listFailed", status: res.status, unit: "projects" }) };
     const projects: TrackerProject[] = [];
     for (const p of res.data?.value ?? []) {
       const types = await trackerRequest<Json>(this.ref, "GET", `${this.project(p.name)}/_apis/wit/workitemtypes?${API}`);
@@ -99,7 +99,7 @@ export class AzureDevOpsAdapter implements TicketAdapter {
       success: true,
       projects,
       ...(user?.id ? { accountId: String(user.id) } : {}),
-      message: `Connected as ${user?.providerDisplayName ?? this.ref.account} — ${projects.length} project(s).`,
+      ...noted({ code: "connected", account: user?.providerDisplayName ?? this.ref.account, count: projects.length, unit: "projects" }),
     };
   }
 

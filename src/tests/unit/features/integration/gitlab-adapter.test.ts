@@ -65,6 +65,9 @@ describe("GitLabAdapter", () => {
     );
     const outcome = await new GitLabAdapter(REF).testConnection();
     expect(outcome).toMatchObject({ success: true, accountId: "3", projects: [{ key: "plant/fw", name: "Plant / FW" }] });
+    // A coded note the Integration tab translates; the English sentence for logs.
+    expect(outcome.note).toEqual({ code: "connected", account: "someone", count: 1, unit: "projects" });
+    expect(outcome.message).toBe("Connected as someone — 1 project(s).");
     expect(new GitLabAdapter(REF).ticketUrl("plant/fw#5")).toBe("https://gitlab.example.com/plant/fw/-/issues/5");
   });
 

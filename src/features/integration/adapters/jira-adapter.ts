@@ -29,7 +29,7 @@ import {
 import type { TrackerProject } from "../models/integration-types";
 import type { ConnectionTestOutcome, TicketAdapter } from "./ticket-adapter";
 import { trackerRequest, type TrackerRef } from "./tracker-channel";
-import { categoryFromName, chunks, connectionFailure, REVIEW, WITHOUT_FIX } from "./adapter-support";
+import { categoryFromName, chunks, connectionFailure, noted, REVIEW, WITHOUT_FIX } from "./adapter-support";
 
 const JIRA_KEY = /^[A-Z][A-Z0-9_]*-[0-9]+$/;
 const BATCH = 100;
@@ -94,7 +94,7 @@ export class JiraAdapter implements TicketAdapter {
       return {
         success: false,
         projects: [],
-        message: connectionFailure(me, this.flavor === "cloud" ? "check e-mail and API token" : "check the personal access token"),
+        ...noted(connectionFailure(me, this.flavor === "cloud" ? "emailApiToken" : "pat")),
       };
     }
     const projects = await trackerRequest<Json[]>(
@@ -102,7 +102,7 @@ export class JiraAdapter implements TicketAdapter {
       "GET",
       `${this.api}/project?expand=${this.flavor === "cloud" ? "insight," : ""}description,lead,issueTypes`,
     );
-    if (!projects.ok) return { success: false, projects: [], message: `Projects could not be loaded (${projects.status}).` };
+    if (!projects.ok) return { success: false, projects: [], ...noted({ code: "listFailed", status: projects.status, unit: "projects" }) };
     const list: TrackerProject[] = (projects.data ?? []).map((p: Json) => ({
       id: String(p.id),
       key: p.key,
@@ -122,7 +122,7 @@ export class JiraAdapter implements TicketAdapter {
       success: true,
       projects: list,
       ...(me.data?.accountId ? { accountId: me.data.accountId } : {}),
-      message: `Connected as ${me.data?.displayName ?? this.ref.account} — ${list.length} project(s).`,
+      ...noted({ code: "connected", account: me.data?.displayName ?? this.ref.account, count: list.length, unit: "projects" }),
     };
   }
 
