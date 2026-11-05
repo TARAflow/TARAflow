@@ -1,3 +1,114 @@
+## [0.18.0-beta] - 2026-11-05
+
+More of the requirement matrices from the model, EN 50742 Approach A as a
+matrix of its own, Azure DevOps and further issue trackers, AND gates as
+one attack scenario. New project schema **13**: projects are converted
+when opened (with a backup) and then no longer open in 0.17.x.
+
+### Added
+- **Model fields for the requirement matrices** (process, multiprocess,
+  data flow — each shown only where the settings before it make it
+  meaningful): user accounts (per person / per role / shared), password
+  rules and lifetime, role-to-permission mapping, default credentials and
+  whether authenticators can be changed, login lockout on the element
+  that verifies a login, update delivery and update defaults, secure by
+  default and security-configuration reporting, deletion of user data,
+  access mode and data minimisation on data flows. More IEC 62443-4-2
+  rows are derived from the model instead of needing a statement (CR 1.1
+  RE(1), CR 1.5, CR 1.7, CR 1.11, CR 2.1 RE(2), CR 3.10, CR 7.6, CR 7.9).
+- **Security section in sub-tabs** on processes and multiprocesses (Login
+  & accounts, Authorization, Robustness, Sessions & traceability,
+  Operation, Safety); a tab names its open fields.
+- **Black-box multiprocess:** a multiprocess without a child page — a PLC
+  drawn as a box, a supplier's module — gets a sub-tab *Inside (black
+  box)* with seven fields for the processes and data it contains; the
+  matrix checks it with the process and data-store rules.
+- **EN 50742 Approach A** as a standard of its own in the Compliance tab
+  (sub-tab next to the IEC 62443 editions, shown by the EN 50742 A tag):
+  23 baseline requirements checked against the model, the risks (SRSL,
+  mandated §7.4.3 controls) and the project data (hazards, safety
+  functions, window of opportunity, system definition); the header shows
+  the highest SRSL per safety function and the interfaces on the path to
+  it, derived from the DFD (a one-way boundary ends the path); its own
+  part in the report.
+- **Report:** the requirement matrix chapter has one part per active
+  standard (both IEC 62443 editions, EN 50742 A); rejected mitigations
+  are listed with their reason (the analyst's text or the ticket closed
+  without a fix) instead of being left out.
+- **Claims for measures of the system:** a requirement the system around
+  the component meets is covered by a cybersecurity claim of the kind
+  *supporting* (row info dialog: new, link, remove); it counts for the
+  value with measures of the system, never for the SL-C of the product;
+  own report section.
+- **Project mitigations** name the IEC 62443-4-2 requirements they
+  implement (searchable field while a 62443 edition is active).
+- **Issue trackers:** **Azure DevOps** (Azure Boards work items, PAT bound
+  to the organization), and in *preview* — selectable, real runs follow —
+  **Jira Server / Data Center**, **GitHub Issues**, **GitLab Issues** and
+  **OpenProject**. Polarion follows later.
+- **Asset tab filter:** by asset type and by criticality "from level",
+  across all group accordions, combinable with *Needs review only*; kept
+  per project for the session, never in the file.
+- **Hazard tab findings panel** below the table, like the Asset tab: the
+  validation's errors and warnings in the UI language, a click opens the
+  hazard.
+- **Goals & Claims:** a goal or claim linked to a risk that no longer
+  exists — its attack-tree node was renamed — offers *Re-link to …* (the
+  paths of the same tree and STRIDE category) and *Remove link*.
+
+### Changed
+- **AND gates in attack trees:** an AND gate is one attack path per
+  combination of its steps (minimal cut set; an OR below the gate gives
+  one path per branch), with the feasibility of the gate over exactly
+  that combination. Before, every leaf was a path of its own — one
+  scenario became several threats and risks.
+- **Multi-select:** malware protection (process, multiprocess) and
+  physical path protection (data flows) hold several measures.
+- **Threat catalog:** the matcher reads the conditions on physical path
+  protection and encryption in transit, and a condition naming a missing
+  or weak control (e.g. access mode read / write, no backup, no fail-safe
+  state) also matches an unset property — an unfinished model no longer
+  looks safer than a complete one. Templates matched by facts rank before
+  those matched by an assumption.
+- **Risk levels:** labels and colours of risk values follow the project's
+  own severity thresholds everywhere (risk dialog, score panel, risk
+  table, matrix tooltips), and the matrix cells use the same rule as the
+  chips (before, I=2 / L=2 read *Low* in the matrix and *Medium* on the
+  chip); impact and likelihood chips are coloured on their own scale.
+- **Translated messages:** the Risk tab's validation (toolbar chip, phase
+  bar, Overview) and the hazard findings in the UI language.
+- **CR 7.1:** only exposed protocol interfaces are checked for abuse
+  protection (a touch panel can never meet it).
+
+### Fixed
+- **Audit commit:** the branch is checked out before the project file is
+  staged — a failed switch left the file staged on the old branch.
+- **Project switch:** the DFD, threat, compliance, concept, documentation
+  and integration updates are pinned to their project like the fixes of
+  0.17.2 — a DFD save flushed on switching wrote into the next project.
+- Included from 0.17.1 / 0.17.2: Hazard tab from the regulation tag,
+  out-of-scope hazards, stale exposure level, cross-project overwrites.
+
+### Upgrade notes
+- Projects are converted to schema 13 when opened (backup alongside):
+  the matrix data is stored per standard family; malware and physical
+  path protection become a selection of one (1:1). Both steps keep the
+  analysis — a TARA verification stays valid.
+- **Attack trees with an AND gate:** the conversion recomputes their
+  paths. Assessments of the former leaf paths are merged onto the
+  combined path; risks are renamed or merged (with a note *Merged from …
+  review the rating and the treatment* where the decisions differed) —
+  nothing is lost, but review these risks. The conversion reports this
+  per file; a verification of such a file asks to be confirmed again.
+- **Regenerated threats** (catalog matcher): a threat may now name the
+  variant for the missing control where the property is unset (e.g. the
+  read / write tampering threat on a flow without access mode). No threat
+  is added or removed in the examples; a few templates switch.
+- The trackers marked *preview* were built and tested against recorded
+  answers; report problems with a real instance.
+- Not in 0.18: Polarion, the time source (EN 50742 / IEC 62443 stage 2),
+  the split of the workspace layout and the risk dialog (0.19).
+
 ## [0.17.2-beta] - 2026-11-04
 
 Bug fixes: data of one project could end up in another when switching or

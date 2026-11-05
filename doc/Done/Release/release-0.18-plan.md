@@ -1,6 +1,6 @@
 # TARAflow 0.18.0-beta — release plan
 
-**Status:** v5 · 2026-11-04 · AF-1 (patch 39), MT-3 (patch 40), FX-2 (patch 41), FX-3 (patch 42), FX-4 (patch 43), FX-8 (patch 44), FX-1 (patch 45), FX-5 (patch 46), I18N-1 (patch 47) done — 0.18 scope complete, next R-1 after the test run, MT-1 / MT-2 moved to 0.19 · order: AF-1, MT-3, FX-2, FX-3, FX-4, FX-8, FX-1, FX-5, I18N-1 · S1 done (patches 21 – 31) · FX-6 done (patch 32) · one branch, one instance (user 2026-11-03) · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
+**Status:** v5 · 2026-11-04 · AF-1 (patch 39), MT-3 (patch 40), FX-2 (patch 41), FX-3 (patch 42), FX-4 (patch 43), FX-8 (patch 44), FX-1 (patch 45), FX-5 (patch 46), I18N-1 (patch 47), R-1 (patch 48) done — released as 0.18.0-beta, MT-1 / MT-2 moved to 0.19 · order: AF-1, MT-3, FX-2, FX-3, FX-4, FX-8, FX-1, FX-5, I18N-1 · S1 done (patches 21 – 31) · FX-6 done (patch 32) · one branch, one instance (user 2026-11-03) · base: `main` 9d80b637 (0.17.0-beta + fix of the stale flow
 exposure level), schema **13** on `feature/0.18-model-coverage`
 **Work split (user 2026-11-03, replaces the split of 2026-11-02):** instance **A** does every
 strand on `feature/0.18-model-coverage` — the other instance keeps no branch. Order: FX-6,
@@ -105,7 +105,7 @@ tracker is a user check (listed in TESTPLAN-0.18.md).
 
 | Step | Content | Owner | Status |
 |---|---|---|---|
-| R-1 | `TESTPLAN-0.18.md` (repo root, untracked; one section per step), CHANGELOG, release note `doc/release-notes/v0.18.0-beta.md`, README, version 0.18.0-beta; finished design docs → `doc/Done` | A, after the user ran the test plan | open |
+| R-1 | `TESTPLAN-0.18.md` (repo root, untracked; one section per step), CHANGELOG, release note `doc/release-notes/v0.18.0-beta.md`, README, version 0.18.0-beta; finished design docs → `doc/Done` | A, after the user ran the test plan | **done** (patch 48): CHANGELOG 0.18.0-beta (incl. the R-2 notes: AND-gate conversion FX-6, catalog matcher FX-7, trackers in preview), release note, README (version, schema 13, trackers, EN 50742 A, release list), version 0.18.0-beta; this plan → `doc/Done/Release`; committed after the user's test run |
 
 ## 4. Working rules (both instances)
 
