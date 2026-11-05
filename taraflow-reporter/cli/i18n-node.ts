@@ -29,6 +29,7 @@ import i18n from "i18next";
 
 // ==================== EN NAMESPACE IMPORTS ====================
 import enCommon from "../../src/i18n/locales/en/common.json";
+import enOverview from "../../src/i18n/locales/en/overview.json";
 import enHazards from "../../src/i18n/locales/en/hazards.json";
 import enDfd from "../../src/i18n/locales/en/dfd.json";
 import enAssets from "../../src/i18n/locales/en/assets.json";
@@ -62,6 +63,7 @@ import enVerificationsPhysicalboundary from "../../src/i18n/locales/en/verificat
 
 // ==================== DE NAMESPACE IMPORTS ====================
 import deCommon from "../../src/i18n/locales/de/common.json";
+import deOverview from "../../src/i18n/locales/de/overview.json";
 import deHazards from "../../src/i18n/locales/de/hazards.json";
 import deDfd from "../../src/i18n/locales/de/dfd.json";
 import deAssets from "../../src/i18n/locales/de/assets.json";
@@ -107,6 +109,7 @@ const NAMESPACES = [
   "interaction-threats-attacks",
   "mitigations",
   "verifications",
+  "overview",
   "common",
 ] as const;
 
@@ -116,6 +119,7 @@ export type AppNamespace = (typeof NAMESPACES)[number];
 const resources = {
   en: {
     common: enCommon,
+    overview: enOverview,
     hazards: enHazards,
     dfd: enDfd,
     assets: enAssets,
@@ -151,6 +155,7 @@ const resources = {
   },
   de: {
     common: deCommon,
+    overview: deOverview,
     hazards: deHazards,
     dfd: deDfd,
     assets: deAssets,
@@ -224,6 +229,7 @@ export async function initI18nNode(lng: "en" | "de" = "en"): Promise<typeof i18n
       "interaction-threats-attacks",
       "mitigations",
       "verifications",
+      "overview",
       "common",
     ],
 
