@@ -47,6 +47,7 @@ import {
   type HazardUpdateResult,
   hazardService,
   hazardValidator,
+  hazardFindingLines,
 } from "features/hazards";
 
 import {
@@ -1028,7 +1029,10 @@ export const WorkspaceLayout: React.FC = () => {
             // The Hazard tab's validation, only where the phase is shown.
             hazardValidation:
               activeProject.info?.safetyRelevant && activeProject.hazards?.hazards.length
-                ? hazardValidator.validate(activeProject.hazards, memoizedAssetDataRef?.assets)
+                ? hazardFindingLines(
+                    hazardValidator.validate(activeProject.hazards, memoizedAssetDataRef?.assets).findings,
+                    t,
+                  )
                 : null,
             riskValidation: activeProject.risks?.risks?.length
               ? riskFindingLines(riskFindings(activeProject.risks), t)

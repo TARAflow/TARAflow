@@ -342,6 +342,12 @@ export {
   type GroupAccordionSection,
   type GroupSummaryRow,
 } from "./components/group-accordions";
+export {
+  FindingsPanel,
+  type FindingSeverity,
+  type FindingsPanelLabels,
+  type PanelFinding,
+} from "./components/findings-panel";
 export { LazyTooltip } from "./components/lazy-tooltip";
 export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";

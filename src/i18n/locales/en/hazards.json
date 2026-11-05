@@ -2,6 +2,28 @@
   "tabs": {
     "hazards": {
       "hazards": "Hazards",
+      "findings": {
+        "danglingContributesTo": "Dangling cause edge: unknown hazard \"{{id}}\".",
+        "danglingEndangers": "Dangling protection-target edge from unknown hazard \"{{id}}\".",
+        "noContributor": "Hazard \"{{hazard}}\" has no cause (contributes_to).",
+        "endangersNothing": "Hazard \"{{hazard}}\" endangers no protection target.",
+        "noHazardType": "Hazard \"{{hazard}}\" has no ISO 12100 hazard type.",
+        "noDescription": "Hazard \"{{hazard}}\" has no description.",
+        "noRationale": "Hazard \"{{hazard}}\" has no rationale.",
+        "allWithSingleInput": "Hazard \"{{hazard}}\" combines its causes with ALL but has only one — ALL has no effect here.",
+        "negativeDistance": "Hazard \"{{hazard}}\": a cause has a negative hazard distance ({{distance}}).",
+        "contributorGroup": "Hazard \"{{hazard}}\": asset group \"{{group}}\" cannot be a cause.",
+        "targetGroup": "Hazard \"{{hazard}}\": asset group \"{{group}}\" is not a valid protection target.",
+        "targetMismatch": "Hazard \"{{hazard}}\": impact target \"{{target}}\" does not match the protection target's asset group \"{{group}}\"."
+      },
+      "notifications": {
+        "title_one": "{{count}} finding",
+        "title_other": "{{count}} findings",
+        "open": "Open the hazard where this is fixed",
+        "showInfos": "Show infos",
+        "hideInfos": "Hide infos",
+        "onlyInfos": "No errors or warnings — infos are hidden."
+      },
       "addHazard": "Add Hazard",
       "configuration": "Hazard Settings",
       "proceed": "Continue",

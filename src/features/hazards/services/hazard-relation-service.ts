@@ -31,6 +31,7 @@ import {
   HAZARD_TARGET_GROUPS,
   targetKindForAssetGroup,
 } from "./eligible-assets-service";
+import { hazardFindingText, type EdgeFinding } from "./hazard-findings";
 
 // ==================== PARAMS ====================
 
@@ -198,42 +199,52 @@ export const hazardRelationService = {
   // assets is optional: without the snapshot only endpoint-independent checks
   // run (category and discriminator consistency are skipped, not failed).
 
+  contributesToFindings(
+    rel: ContributesToRelation,
+    assets?: readonly AssetReference[],
+  ): EdgeFinding[] {
+    const out: EdgeFinding[] = [];
+    if (rel.hazardDistance < 0) {
+      out.push({ code: "negativeDistance", params: { distance: rel.hazardDistance } });
+    }
+    const asset = findAsset(assets, rel.from);
+    if (asset && !HAZARD_CONTRIBUTOR_GROUPS.includes(asset.assetGroup)) {
+      out.push({ code: "contributorGroup", params: { group: asset.assetGroup } });
+    }
+    return out;
+  },
+
+  endangersFindings(
+    rel: EndangersRelation,
+    assets?: readonly AssetReference[],
+  ): EdgeFinding[] {
+    const out: EdgeFinding[] = [];
+    const asset = findAsset(assets, rel.to);
+    if (asset) {
+      if (!HAZARD_TARGET_GROUPS.includes(asset.assetGroup)) {
+        out.push({ code: "targetGroup", params: { group: asset.assetGroup } });
+      }
+      const expected = targetKindForAssetGroup(asset.assetGroup);
+      if (expected && rel.impact.target !== expected) {
+        out.push({ code: "targetMismatch", params: { target: rel.impact.target, group: asset.assetGroup } });
+      }
+    }
+    return out;
+  },
+
+  /** The English sentences of contributesToFindings. */
   validateContributesTo(
     rel: ContributesToRelation,
     assets?: readonly AssetReference[],
   ): string[] {
-    const errors: string[] = [];
-    if (rel.hazardDistance < 0) {
-      errors.push(`contributes_to: hazardDistance must be >= 0 (got ${rel.hazardDistance})`);
-    }
-    const asset = findAsset(assets, rel.from);
-    if (asset && !HAZARD_CONTRIBUTOR_GROUPS.includes(asset.assetGroup)) {
-      errors.push(
-        `contributes_to: asset group "${asset.assetGroup}" is not an allowed hazard source`,
-      );
-    }
-    return errors;
+    return this.contributesToFindings(rel, assets).map((f) => hazardFindingText(f));
   },
 
+  /** The English sentences of endangersFindings. */
   validateEndangers(
     rel: EndangersRelation,
     assets?: readonly AssetReference[],
   ): string[] {
-    const errors: string[] = [];
-    const asset = findAsset(assets, rel.to);
-    if (asset) {
-      if (!HAZARD_TARGET_GROUPS.includes(asset.assetGroup)) {
-        errors.push(
-          `endangers: asset group "${asset.assetGroup}" is not a valid protection target`,
-        );
-      }
-      const expected = targetKindForAssetGroup(asset.assetGroup);
-      if (expected && rel.impact.target !== expected) {
-        errors.push(
-          `endangers: impact.target "${rel.impact.target}" does not match target asset group "${asset.assetGroup}"`,
-        );
-      }
-    }
-    return errors;
+    return this.endangersFindings(rel, assets).map((f) => hazardFindingText(f));
   },
 };

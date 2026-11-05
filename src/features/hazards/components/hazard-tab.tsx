@@ -35,6 +35,7 @@ import {
 } from "../models/hazard-data-types";
 import { hazardService } from "../services/hazard-service";
 import { hazardValidator, type HazardValidation } from "../services/hazard-validator";
+import { hazardFindingText } from "../services/hazard-findings";
 import { recordProfileUse, saveProfile } from "../services/import-profile-store";
 import { findMatchingProfile, trackProfileColumns } from "../services/import-profile-tracking";
 import { applyReimport, planReimport, type ReimportPlan } from "../services/hazard-reimport";
@@ -45,7 +46,7 @@ import { HazardTable } from "./hazard-table";
 import { HazardDialog } from "./hazard-dialog";
 import { HazardConfigDialog } from "./hazard-config-dialog";
 import { useHazardImport, type HazardImportOutcome } from "../hooks/use-hazard-import";
-import { createAsset } from "shared";
+import { createAsset, FindingsPanel, type PanelFinding } from "shared";
 
 import { HazardImportProfileDialog } from "./hazard-import-profile-dialog";
 import type { ImportProfile } from "../models/import-profile-types";
@@ -429,6 +430,30 @@ const HazardsTabView: React.FC<HazardTabProps> = ({
     }
   }, [importHazards, hazardData, finishImport]);
 
+  // ── Findings panel (FX-1) ─────────────────────────────────────────────────
+  // The validation's findings in the UI language below the table; a click
+  // opens the hazard in its dialog.
+  const findingItems = useMemo<PanelFinding[]>(
+    () =>
+      (validation?.findings ?? []).map((f, i) => ({
+        id: String(i),
+        severity: f.severity,
+        text: hazardFindingText(f, t),
+        clickable: !!f.hazardId && hazardData.hazards.some((h) => h.id === f.hazardId),
+      })),
+    [validation, hazardData.hazards, t],
+  );
+  const handleOpenFinding = useCallback(
+    (id: string) => {
+      const hazardId = validation?.findings[Number(id)]?.hazardId;
+      const item = hazardData.hazards.find((h) => h.id === hazardId);
+      if (!item) return;
+      setEditingHazardId(item.id);
+      setShowDialog(true);
+    },
+    [validation, hazardData.hazards],
+  );
+
   // ==================== RENDER ====================
 
   return (
@@ -459,6 +484,22 @@ const HazardsTabView: React.FC<HazardTabProps> = ({
           labelVocabulary={project.labelVocabulary}
         />
       </Box>
+
+      {/* Findings — below the table, like the Asset and DFD tabs */}
+      <FindingsPanel
+        findings={findingItems}
+        onOpen={handleOpenFinding}
+        testIdPrefix="hazard-notification"
+        labels={{
+          title: (count) => t("tabs.hazards.notifications.title", { count, defaultValue: "{{count}} finding(s)" }),
+          open: t("tabs.hazards.notifications.open", { defaultValue: "Open the hazard where this is fixed" }),
+          showInfos: t("tabs.hazards.notifications.showInfos", { defaultValue: "Show infos" }),
+          hideInfos: t("tabs.hazards.notifications.hideInfos", { defaultValue: "Hide infos" }),
+          onlyInfos: t("tabs.hazards.notifications.onlyInfos", {
+            defaultValue: "No errors or warnings — infos are hidden.",
+          }),
+        }}
+      />
 
       {showDialog && (
         <HazardDialog

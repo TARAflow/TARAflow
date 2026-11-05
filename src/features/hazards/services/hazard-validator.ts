@@ -9,23 +9,30 @@
 //   - no ISO 12100 hazard type, no description, no rationale        (warning —
 //     the hazard is incomplete for the report; user 2026-10-30)
 //
-// Output shape mirrors AssetValidation for UI consistency.
+// Output shape mirrors AssetValidation for UI consistency. The rules yield
+// coded findings (hazard-findings.ts, FX-1) — the UI translates them; errors
+// and warnings are their English sentences.
 
 import type { HazardData } from "../models/hazard-data-types";
 import type { AssetReference, HazardItem, HazardRelation } from "shared";
 import { isContributesTo, isEndangers } from "shared";
 import { hazardRelationService } from "./hazard-relation-service";
+import { hazardFindingLines, type HazardFinding } from "./hazard-findings";
 
 export interface HazardIssue {
   errors: string[];
   warnings: string[];
+  findings: HazardFinding[];
 }
 
 export interface HazardValidation {
   /** true only when at least one hazard exists and there are no errors. */
   isComplete: boolean;
+  /** English sentences of the findings. */
   errors: string[];
   warnings: string[];
+  /** The same, coded — for the findings panel in the UI language. */
+  findings: HazardFinding[];
   lastValidated: string;
 }
 
@@ -40,8 +47,10 @@ export const hazardValidator = {
     relations: readonly HazardRelation[],
     assets?: readonly AssetReference[],
   ): HazardIssue {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+    const findings: HazardFinding[] = [];
+    const hazard = labelOf(item);
+    const add = (code: HazardFinding["code"], severity: HazardFinding["severity"], params = {}) =>
+      findings.push({ code, severity, hazardId: item.id, params: { hazard, ...params } });
 
     const contributes = relations.filter(
       (r) => isContributesTo(r) && r.to === item.id,
@@ -53,71 +62,54 @@ export const hazardValidator = {
     // A hazard the analyst ruled out of scope (no path through the system,
     // e.g. EN 50742: protective measure purely mechanical or organisational)
     // legitimately has no contributing asset.
-    if (contributes.length === 0 && item.systemRelevance !== "out_of_scope") {
-      errors.push(`Hazard "${labelOf(item)}" has no contributes_to input.`);
-    }
-    if (endangers.length === 0) {
-      errors.push(`Hazard "${labelOf(item)}" endangers no protection target.`);
-    }
-    if (!item.hazardType) {
-      warnings.push(`Hazard "${labelOf(item)}" has no ISO 12100 hazard type.`);
-    }
-    if (!item.description?.trim()) {
-      warnings.push(`Hazard "${labelOf(item)}" has no description.`);
-    }
-    if (!item.rationale?.trim()) {
-      warnings.push(`Hazard "${labelOf(item)}" has no rationale.`);
-    }
-    if (item.combinationType === "ALL" && contributes.length < 2) {
-      warnings.push(
-        `Hazard "${labelOf(item)}" uses combinationType "ALL" with a single input — combinatorics has no effect here.`,
-      );
-    }
+    if (contributes.length === 0 && item.systemRelevance !== "out_of_scope") add("noContributor", "error");
+    if (endangers.length === 0) add("endangersNothing", "error");
+    if (!item.hazardType) add("noHazardType", "warning");
+    if (!item.description?.trim()) add("noDescription", "warning");
+    if (!item.rationale?.trim()) add("noRationale", "warning");
+    if (item.combinationType === "ALL" && contributes.length < 2) add("allWithSingleInput", "warning");
 
     for (const r of contributes) {
       if (isContributesTo(r)) {
-        errors.push(...hazardRelationService.validateContributesTo(r, assets));
+        for (const f of hazardRelationService.contributesToFindings(r, assets)) add(f.code, "error", f.params);
       }
     }
     for (const r of endangers) {
       if (isEndangers(r)) {
-        errors.push(...hazardRelationService.validateEndangers(r, assets));
+        for (const f of hazardRelationService.endangersFindings(r, assets)) add(f.code, "error", f.params);
       }
     }
 
-    return { errors, warnings };
+    return { ...hazardFindingLines(findings), findings };
   },
 
-  /** Validates the whole hazard graph. */
   validate(
     data: HazardData,
     assets?: readonly AssetReference[],
   ): HazardValidation {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
+    const findings: HazardFinding[] = [];
     const ids = new Set(data.hazards.map((h) => h.id));
 
     // Dangling edges (referential integrity at the data level).
     for (const r of data.relations) {
       if (isContributesTo(r) && !ids.has(r.to)) {
-        errors.push(`Dangling contributes_to edge -> unknown hazard "${r.to}".`);
+        findings.push({ code: "danglingContributesTo", severity: "error", params: { id: r.to } });
       }
       if (isEndangers(r) && !ids.has(r.from)) {
-        errors.push(`Dangling endangers edge from unknown hazard "${r.from}".`);
+        findings.push({ code: "danglingEndangers", severity: "error", params: { id: r.from } });
       }
     }
 
     for (const item of data.hazards) {
-      const issue = this.validateHazard(item, data.relations, assets);
-      errors.push(...issue.errors);
-      warnings.push(...issue.warnings);
+      findings.push(...this.validateHazard(item, data.relations, assets).findings);
     }
 
+    const { errors, warnings } = hazardFindingLines(findings);
     return {
       isComplete: data.hazards.length > 0 && errors.length === 0,
       errors,
       warnings,
+      findings,
       lastValidated: new Date().toISOString(),
     };
   },

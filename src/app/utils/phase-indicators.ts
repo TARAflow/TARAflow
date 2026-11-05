@@ -38,7 +38,7 @@ export interface PhaseIndicatorInput {
   dfdValidation: { errors: readonly ValidationFinding[]; warnings: readonly ValidationFinding[] } | null;
   /** The DFD phase status that validation stands for (dfdService.phaseStatusOf). */
   dfdStatus?: PhaseStatus;
-  /** The Hazard tab's validation (safety-relevant projects with hazards). */
+  /** The Hazard tab's validation (safety-relevant projects with hazards), translated (hazardFindingLines, FX-1). */
   hazardValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   /** The Risk tab's validation of the current state, translated (riskFindingLines, FX-4). */
   riskValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
