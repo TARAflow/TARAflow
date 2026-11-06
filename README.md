@@ -703,7 +703,7 @@ Recent development versions include:
 * `v0.17.0-beta` — IEC 62443-4-2 requirement matrices (classic and CRA edition) with Compliance tab and report chapter; update mechanism and session control on processes and multiprocesses, traffic policy multi-select (schema 12)
 * `v0.17.1-beta` — fixes for EN 50742 projects: Hazard tab from the regulation tag, out-of-scope hazards need no contributing asset, stale exposure level on data flows; both 62443 editions as sub-tabs
 * `v0.17.2-beta` — fix: switching or closing projects no longer writes risks, hazards, audit settings or Overview data of one project into another; attack-tree changes saved on switch
-* `v0.18.0-beta` — more matrix rows from new model fields (Security sub-tabs, black-box multiprocess), EN 50742 Approach A requirement matrix, Azure DevOps plus Jira Server / DC, GitHub, GitLab, OpenProject (preview), AND gate = one attack path, asset filter, hazard findings panel (schema 13)
+* `v0.18.0-beta` — more matrix rows from new model fields (Security sub-tabs, black-box multiprocess), EN 50742 Approach A requirement matrix, secure channels (TLS, mTLS, VPN, SSH, application level), "Information missing" with the empty field, Azure DevOps plus Jira Server / DC, GitHub, GitLab, OpenProject (preview), AND gate = one attack path, asset filter, hazard findings panel (schema 13)
 
 The current development state is represented by:
 

@@ -1,4 +1,4 @@
-## [0.18.0-beta] - 2026-11-05
+## [0.18.0-beta] - 2026-11-06
 
 More of the requirement matrices from the model, EN 50742 Approach A as a
 matrix of its own, Azure DevOps and further issue trackers, AND gates as
