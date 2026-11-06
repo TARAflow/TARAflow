@@ -136,7 +136,7 @@ describe("Compliance tab", () => {
     fireEvent.mouseDown(within(screen.getByTestId("compliance-filter").parentElement!).getByRole("combobox"));
     const options = screen.getAllByRole("option").map((o) => o.textContent);
     expect(options).toEqual([
-      "All (2)", "Open (1)", "Gap (1)", "Statement needed (0)", "Unknown (0)", "Not applicable (0)", "Met (incl. claimed) (1)",
+      "All (2)", "Open (1)", "Gap (1)", "Statement needed (0)", "Information missing (0)", "Not applicable (0)", "Met (incl. claimed) (1)",
     ]);
   });
 
@@ -193,7 +193,7 @@ describe("Compliance tab", () => {
       fam({ statements: { "cr-3.6": { status: "met", reasoning: "Outputs go to a safe state", modelStatusAtStatement: "unknown", date: "2026-11-02" } } }),
     );
     fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "met" } });
-    expect(within(screen.getByTestId("compliance-row-CR 3.6")).getByText(/model still open — properties missing on P-1 Controller/)).toBeTruthy();
+    expect(within(screen.getByTestId("compliance-row-CR 3.6")).getByText(/model still open — information missing on P-1 Controller \(fail safe output state\)/)).toBeTruthy();
   });
 
   it("met by the model: no such hint", () => {

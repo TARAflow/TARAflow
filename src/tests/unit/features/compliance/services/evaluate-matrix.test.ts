@@ -260,6 +260,33 @@ describe("a multiprocess without child page stands in for processes and stores (
   });
 });
 
+describe("the unset fields of the unknown elements (FX-21)", () => {
+  const ed = edition(
+    { label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI" },
+    { label: "CR 3.6", requirementIds: ["cr-3.6"], group: "SI" },
+  );
+
+  it("names the unset evidence field per element; a set field is not named", () => {
+    const r = row(run(ed, [el("p", "Process"), el("q", "Process", { inputValidation: "strict" })]), "CR 3.5");
+    expect(r.unknown).toEqual(["p"]);
+    expect(r.unsetFields).toEqual({ p: ["inputValidation"] });
+  });
+
+  it("an unset precondition field is named too", () => {
+    expect(row(run(ed, [el("p", "Process")]), "CR 3.6").unsetFields).toEqual({ p: ["failSafeOutputState"] });
+  });
+
+  it("a black box standing in for a process names its inside field", () => {
+    const view = { elements: [], flows: [], blackBoxes: new Set(["m"]) };
+    const standIn = row(run(ed, [el("m", "Multiprocess")], [], { view }), "CR 3.5");
+    expect(standIn.unsetFields).toEqual({ m: ["innerInputValidation"] });
+  });
+
+  it("met or gap from the model: no unset fields", () => {
+    expect(row(run(ed, [el("p", "Process", { inputValidation: "strict" })]), "CR 3.5").unsetFields).toBeUndefined();
+  });
+});
+
 describe("the inside fields of a black box (D-30c)", () => {
   const ed = edition(
     { label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI" },

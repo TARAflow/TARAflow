@@ -68,6 +68,7 @@ import {
   describeLanguageOf,
   describeRequirement,
   localizedChecklist,
+  words,
   type RequirementDescription,
 } from "../services/describe-requirement";
 import { buildTodoList } from "../services/todo-list";
@@ -114,7 +115,7 @@ const FILTER_DEFAULT: Record<RowFilter, string> = {
   open: "Open",
   gap: "Gap",
   "needs-statement": "Statement needed",
-  unknown: "Unknown",
+  unknown: "Information missing",
   "n/a": "Not applicable",
   met: "Met (incl. claimed)",
 };
@@ -136,7 +137,7 @@ const STATUS_DEFAULT: Record<RowStatus, string> = {
   met: "met",
   claimed: "claimed",
   "n/a": "not applicable",
-  unknown: "unknown",
+  unknown: "information missing",
   "pending-category": "confirm category",
   "needs-statement": "statement needed",
   gap: "gap",
@@ -200,6 +201,35 @@ export interface ComplianceTabProps {
   ) => readonly { id: string; text: string }[];
 }
 
+/** Element type → its block under tabs.dfd.element_description (dfd namespace). */
+const DESCRIPTION_KEY: Readonly<Record<string, string>> = {
+  ExternalEntity: "external_entity",
+  DataFlow: "dataflow",
+  DataStore: "datastore",
+};
+
+/**
+ * FX-21: "MP-1 Controller (Password lifetime limit)" — the unknown element
+ * with the fields it lacks, under the DFD form's label where one exists.
+ */
+function useUnknownNames(nameOf: (id: string) => string, typeOf?: (id: string) => string | undefined) {
+  const { t, i18n } = useTranslation("dfd");
+  const label = (path: string, id: string): string => {
+    const type = typeOf?.(id);
+    const keys = [
+      `tabs.dfd.modelFields.${path.split(".").pop()}.label`,
+      ...(type ? [`tabs.dfd.element_description.${DESCRIPTION_KEY[type] ?? type.toLowerCase()}.fields.${path}.label`] : []),
+    ];
+    const key = keys.find((k) => i18n?.exists?.(k, { ns: "dfd" }));
+    return key ? String(t(key)) : words(path);
+  };
+  return (row: RowResult): string[] =>
+    row.unknown.map((id) => {
+      const fields = row.unsetFields?.[id] ?? [];
+      return fields.length > 0 ? `${nameOf(id)} (${fields.map((f) => label(f, id)).join(", ")})` : nameOf(id);
+    });
+}
+
 /** First items of a list, the rest counted. */
 const shortList = (items: readonly string[], max = 4) =>
   items.length <= max ? items.join(", ") : `${items.slice(0, max).join(", ")} (+${items.length - max})`;
@@ -223,6 +253,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
 }) => {
   const t = useComplianceT();
   const { i18n } = useTranslation(NS);
+  const unknownNames = useUnknownNames(nameOf, typeOf);
   const lang = describeLanguageOf(i18n?.language);
   const [filter, setFilter] = useState<RowFilter>("open");
   const [editing, setEditing] = useState<RowResult | null>(null);
@@ -721,8 +752,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   row.failing.length > 0 && `${t("failing", "not met by")}: ${shortList(row.failing.map(nameOf))}`,
                   row.unknown.length > 0 &&
                     (modelStillOpen(row)
-                      ? t("modelUnknown", "model still open — properties missing on {{elements}}", { elements: shortList(row.unknown.map(nameOf)) })
-                      : `${t("unknown", "properties missing on")}: ${shortList(row.unknown.map(nameOf))}`),
+                      ? t("modelUnknown", "model still open — information missing on {{elements}}", { elements: shortList(unknownNames(row)) })
+                      : `${t("unknown", "information missing on")} ${shortList(unknownNames(row))}`),
                   row.supportingElements.length > 0 && `${t("supporting", "supporting measure")}: ${shortList(row.supportingElements.map(nameOf))}`,
                   row.mitigationIds.length > 0 && `${t("mitigations", "mitigations")}: ${shortList([...new Set(row.mitigationIds)])}`,
                   row.risks && row.risks.length > 0 && `${t("risks", "risks")}: ${shortList(row.risks)}`,
@@ -793,6 +824,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           statement={statements[info.label]}
           suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? [], [...info.failing, ...info.unknown]) ?? []}
           nameOf={nameOf}
+          unknownNames={unknownNames(info)}
           t={t}
           onClose={() => setInfo(null)}
           onStatement={() => {
@@ -852,6 +884,8 @@ interface RequirementInfoDialogProps {
   statement?: ComplianceStatement;
   suggestions: readonly { id: string; text: string }[];
   nameOf: (id: string) => string;
+  /** FX-21: the unknown elements with their missing fields. */
+  unknownNames: readonly string[];
   t: ReturnType<typeof useComplianceT>;
   onClose: () => void;
   onStatement: () => void;
@@ -866,6 +900,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
   statement,
   suggestions,
   nameOf,
+  unknownNames,
   t,
   onClose,
   onStatement,
@@ -933,7 +968,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
               {row.unknown.length > 0 && (
                 <Typography variant="body2">
                   {modelStillOpen(row) ? `${t("modelPrefix", "Model")}: ` : ""}
-                  {t("unknown", "properties missing on")}: {row.unknown.map(nameOf).join(", ")}
+                  {t("unknown", "information missing on")} {unknownNames.join(", ")}
                 </Typography>
               )}
               {row.supportingElements.length > 0 && (

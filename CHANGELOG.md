@@ -130,6 +130,12 @@ when opened (with a backup) and then no longer open in 0.17.x.
   protection (a touch panel can never meet it).
 
 ### Fixed
+- **Compliance tab — "Information missing":** the status and filter
+  "Unknown" read "Information missing" (DE "Angaben fehlen"), also in the
+  compliance report; the row note and the info dialog name the empty
+  fields per element, e.g. "information missing on MP-1 Controller
+  (Password lifetime limit)" — only the fields the row reads that are
+  unset, under their DFD form label.
 - **Compliance tab — met by a statement:** a row met by a statement,
   mitigation, supporting measure or claim while the model alone still
   has gaps or missing properties (e.g. CR 1.7) said only "properties

@@ -205,6 +205,8 @@ interface IdOutcome {
   reasoning?: string;
   /** Type B: the checklist items the model does not answer (CM-5b). */
   openChecklist?: string[];
+  /** Element id → the fields it lacks for this requirement (FX-21). */
+  unset?: Record<string, string[]>;
 }
 
 const outcome = (status: IdStatus, extra: Partial<IdOutcome> = {}): IdOutcome => ({
@@ -271,6 +273,39 @@ function blackBoxElements(graph: Graph, target: EvidenceTarget, inScope: (id: st
   return out;
 }
 
+/**
+ * FX-21: the element's own fields among the checks that read as unset — under
+ * the field the user sets (a black box's "inside" field for a contained
+ * Process / DataStore, D-30c). Unknowns that come from a neighbour list none.
+ */
+function unsetFields(element: ViewElement, checks: readonly PropertyCheck[], typeA: boolean, viaBox: boolean): string[] {
+  const map: Readonly<Record<string, string>> | undefined = viaBox
+    ? BLACK_BOX_FIELDS[element.type as keyof typeof BLACK_BOX_FIELDS]
+    : undefined;
+  return checks
+    .filter((check) => evaluateCheck(element, check, typeA) === "unknown")
+    .map((check) => map?.[check.property] ?? check.property);
+}
+
+/** D-30c: the "inside" fields a black box would answer the rule's Process / DataStore checks with. */
+function standInFields(rule: EvidenceRule<AnyRequirementId>): string[] {
+  const out = new Set<string>();
+  for (const target of rule.targets) {
+    for (const type of STAND_IN_TYPES as readonly (keyof typeof BLACK_BOX_FIELDS)[]) {
+      if (!(target.elementTypes as readonly string[]).includes(type)) continue;
+      const map: Readonly<Record<string, string>> = BLACK_BOX_FIELDS[type];
+      for (const check of [...(target.appliesIf ?? []), ...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])]) {
+        if (map[check.property]) out.add(map[check.property]);
+      }
+    }
+  }
+  return [...out];
+}
+
+const addUnset = (unset: Record<string, string[]>, id: string, fields: readonly string[]) => {
+  if (fields.length > 0) unset[id] = [...new Set([...(unset[id] ?? []), ...fields])];
+};
+
 /** Steps 4 – 7 and 9 for one requirement id. */
 function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input: ComplianceInput): IdOutcome {
   const typeA = rule.type === "A";
@@ -312,6 +347,7 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
   const wholeComponent = rule.targets.length === 0;
   const applicableYes: { element: ViewElement; target: EvidenceTarget }[] = [];
   const applicableUnknown: string[] = [];
+  const unset: Record<string, string[]> = {};
   // Black boxes that took part through their "inside" fields are no stand-ins.
   const viaFields = new Set<string>();
   for (const target of rule.targets) {
@@ -320,15 +356,20 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
     for (const element of [...candidates(graph, target, inScope, true), ...boxes]) {
       const tri = applicable(graph, element, target);
       if (tri === "yes") applicableYes.push({ element, target });
-      else if (tri === "unknown") applicableUnknown.push(element.id);
+      else if (tri === "unknown") {
+        applicableUnknown.push(element.id);
+        addUnset(unset, element.id, unsetFields(element, target.appliesIf ?? [], false, boxes.includes(element)));
+      }
     }
   }
   if (!wholeComponent && applicableYes.length === 0) {
-    if (applicableUnknown.length > 0) return outcome("unknown", { unknown: applicableUnknown });
+    if (applicableUnknown.length > 0) return outcome("unknown", { unknown: applicableUnknown, unset });
     const standIns = blackBoxStandIns(rule, graph, inScope).filter((id) => !viaFields.has(id));
     if (standIns.length > 0) {
+      for (const id of standIns) addUnset(unset, id, standInFields(rule));
       return outcome("unknown", {
         unknown: standIns,
+        unset,
         reasoning: `no ${describeTargets(rule.targets)} modelled — a multiprocess without child page may contain one`,
       });
     }
@@ -342,7 +383,14 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
   if (rule.type === "C") {
     model = outcome("needs-statement");
   } else {
-    const results = applicableYes.map(({ element, target }) => ({ id: element.id, tri: satisfied(element, target, typeA) }));
+    const results = applicableYes.map(({ element, target }) => {
+      const tri = satisfied(element, target, typeA);
+      if (tri === "unknown") {
+        const checks = [...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])];
+        addUnset(unset, element.id, unsetFields(element, checks, typeA, viaFields.has(element.id) && STAND_IN_TYPES.includes(element.type)));
+      }
+      return { id: element.id, tri };
+    });
     const yes = results.filter((r) => r.tri === "yes").map((r) => r.id);
     const no = results.filter((r) => r.tri === "no").map((r) => r.id);
     const unknown = [...results.filter((r) => r.tri === "unknown").map((r) => r.id), ...applicableUnknown];
@@ -350,9 +398,9 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       // D-19: an element with unknown applicability blocks "met" too; step 9: no before unknown.
       model =
         no.length > 0
-          ? outcome("gap", { failing: no, unknown })
+          ? outcome("gap", { failing: no, unknown, unset })
           : unknown.length > 0
-            ? outcome("unknown", { unknown })
+            ? outcome("unknown", { unknown, unset })
             : outcome("met", { source: "model" });
     } else {
       // "any": one satisfying element suffices; an unknown one might still satisfy.
@@ -360,12 +408,12 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
         yes.length > 0
           ? outcome("met", { source: "model" })
           : unknown.length > 0
-            ? outcome("unknown", { failing: no, unknown })
+            ? outcome("unknown", { failing: no, unknown, unset })
             : outcome("gap", { failing: no });
     }
   }
   if (answered.failing.length > 0 && (model.status === "met" || model.status === "unknown")) {
-    model = outcome("gap", { failing: answered.failing, unknown: model.unknown });
+    model = outcome("gap", { failing: answered.failing, unknown: model.unknown, unset: model.unset });
   }
   model = { ...model, openChecklist: answered.open };
   if (model.status === "met") return model;
@@ -459,6 +507,8 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
         : undefined;
   const merged = (key: "failing" | "unknown" | "supporting" | "mitigationIds") => [...new Set(outcomes.flatMap((o) => o[key]))];
   const risks = [...new Set(outcomes.flatMap((o) => o.risks ?? []))];
+  const unset: Record<string, string[]> = {};
+  for (const o of outcomes) for (const [id, fields] of Object.entries(o.unset ?? {})) addUnset(unset, id, fields);
   return {
     status,
     source: status === "met" ? source : undefined,
@@ -470,7 +520,14 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
     contradiction: outcomes.some((o) => o.contradiction) || undefined,
     reasoning: outcomes.map((o) => o.reasoning).find(Boolean),
     openChecklist: outcomes.flatMap((o) => o.openChecklist ?? []),
+    unset,
   };
+}
+
+/** FX-21: the fields of the row's unknown elements, only for those still unknown. */
+function unsetOf(combined: IdOutcome): Pick<RowResult, "unsetFields"> {
+  const out = Object.fromEntries(Object.entries(combined.unset ?? {}).filter(([id]) => combined.unknown.includes(id)));
+  return Object.keys(out).length > 0 ? { unsetFields: out } : {};
 }
 
 function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): RowResult {
@@ -529,6 +586,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     modelStatus: status,
     failing: combined.failing,
     unknown: combined.unknown,
+    ...unsetOf(combined),
     supportingElements: combined.supporting,
     mitigationIds: combined.mitigationIds,
     ...(combined.risks ? { risks: combined.risks } : {}),

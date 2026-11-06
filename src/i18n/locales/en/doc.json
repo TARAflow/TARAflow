@@ -361,7 +361,7 @@
         "gapsText": "Rows needed for the SL-T that the product does not meet itself (SL-C) — each is closed by a change of the product (mitigation), a statement, or a measure the plant provides (supporting measure, claim).",
         "suggestions": "Catalog mitigations",
         "failing": "not met by",
-        "unknownElements": "properties missing on",
+        "unknownElements": "information missing on",
         "supporting": "supporting measure",
         "mitigations": "mitigations",
         "claims": "claims",
@@ -369,7 +369,7 @@
           "met": "met",
           "claimed": "claimed",
           "n/a": "not applicable",
-          "unknown": "unknown — properties not set",
+          "unknown": "information missing — properties not set",
           "pending-category": "device category to confirm",
           "needs-statement": "statement needed",
           "gap": "gap"

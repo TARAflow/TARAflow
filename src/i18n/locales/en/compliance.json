@@ -23,7 +23,7 @@
       "open": "Open",
       "gap": "Gap",
       "needs-statement": "Statement needed",
-      "unknown": "Unknown",
+      "unknown": "Information missing",
       "n/a": "Not applicable",
       "met": "Met (incl. claimed)"
     },
@@ -42,8 +42,8 @@
     "sourceColumn": "Source",
     "notes": "Notes",
     "failing": "not met by",
-    "unknown": "properties missing on",
-    "modelUnknown": "model still open — properties missing on {{elements}}",
+    "unknown": "information missing on",
+    "modelUnknown": "model still open — information missing on {{elements}}",
     "modelPrefix": "Model",
     "metModelOpen": "Met by the {{source}}. The model alone does not show it yet — see the elements below; once their properties meet the requirement, the model does too.",
     "supporting": "supporting measure",
@@ -84,7 +84,7 @@
       "met": "met",
       "claimed": "claimed",
       "n/a": "not applicable",
-      "unknown": "unknown",
+      "unknown": "information missing",
       "pending-category": "confirm category",
       "needs-statement": "statement needed",
       "gap": "gap"

@@ -131,6 +131,11 @@ export interface RowResult {
   failing: string[];
   /** Elements whose applicability or satisfaction is unknown (D-12). */
   unknown: string[];
+  /**
+   * FX-21: unknown element id → its unset fields (property paths) the row
+   * reads; absent where the unknown comes from a neighbour.
+   */
+  unsetFields?: Record<string, string[]>;
   /** EN 50742 A: risks (labels) that fail the row or are not rated yet. */
   risks?: string[];
   /** Environment elements that meet the row as a supporting measure (D-20). */

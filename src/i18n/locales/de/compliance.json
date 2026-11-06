@@ -23,7 +23,7 @@
       "open": "Offen",
       "gap": "Lücke",
       "needs-statement": "Aussage nötig",
-      "unknown": "Unbekannt",
+      "unknown": "Angaben fehlen",
       "n/a": "Nicht anwendbar",
       "met": "Erfüllt (inkl. per Claim)"
     },
@@ -42,7 +42,7 @@
     "sourceColumn": "Quelle",
     "notes": "Hinweise",
     "failing": "nicht erfüllt durch",
-    "unknown": "Eigenschaften fehlen bei",
+    "unknown": "Angaben fehlen an",
     "modelUnknown": "Modell noch offen — Angaben fehlen an {{elements}}",
     "modelPrefix": "Modell",
     "metModelOpen": "Erfüllt — Quelle: {{source}}. Das Modell allein belegt es noch nicht — siehe die Elemente unten; sobald ihre Angaben die Anforderung erfüllen, tut es auch das Modell.",
@@ -84,7 +84,7 @@
       "met": "erfüllt",
       "claimed": "per Claim",
       "n/a": "nicht anwendbar",
-      "unknown": "unbekannt",
+      "unknown": "Angaben fehlen",
       "pending-category": "Kategorie bestätigen",
       "needs-statement": "Aussage nötig",
       "gap": "Lücke"

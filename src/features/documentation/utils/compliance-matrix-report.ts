@@ -30,7 +30,7 @@ const STATUS_DEFAULTS: Record<string, string> = {
   met: "met",
   claimed: "claimed",
   "n/a": "not applicable",
-  unknown: "unknown — properties not set",
+  unknown: "information missing — properties not set",
   "pending-category": "device category to confirm",
   "needs-statement": "statement needed",
   gap: "gap",
@@ -116,7 +116,7 @@ function rowNotes(row: DocComplianceRow, t: TranslateFn): string {
     parts.push(`${t(`${K}.${key}`, def)}: ${shown}${rest}`);
   };
   list("failing", "not met by", row.failing);
-  list("unknownElements", "properties missing on", row.unknown);
+  list("unknownElements", "information missing on", row.unknown);
   list("supporting", "supporting measure", row.supporting);
   list("mitigations", "mitigations", row.mitigations);
   list("claims", "claims", row.claims);

@@ -356,7 +356,7 @@
         "gapsText": "Zeilen, die für das SL-T nötig sind und die das Produkt nicht selbst erfüllt (SL-C) — jede wird durch eine Änderung am Produkt (Massnahme), eine Aussage oder eine Massnahme der Anlage (Supporting Measure, Claim) geschlossen.",
         "suggestions": "Massnahmen aus dem Katalog",
         "failing": "nicht erfüllt durch",
-        "unknownElements": "Eigenschaften fehlen bei",
+        "unknownElements": "Angaben fehlen an",
         "supporting": "Supporting Measure",
         "mitigations": "Massnahmen",
         "claims": "Claims",
@@ -369,7 +369,7 @@
           "met": "erfüllt",
           "claimed": "per Claim abgedeckt",
           "n/a": "nicht anwendbar",
-          "unknown": "unbekannt — Eigenschaften nicht gesetzt",
+          "unknown": "Angaben fehlen — Eigenschaften nicht gesetzt",
           "pending-category": "Gerätekategorie bestätigen",
           "needs-statement": "Aussage nötig",
           "gap": "Lücke"
