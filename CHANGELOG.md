@@ -130,6 +130,10 @@ when opened (with a backup) and then no longer open in 0.17.x.
   protection (a touch panel can never meet it).
 
 ### Fixed
+- **Compliance tab — void rows:** rows the edition declares void or
+  without a component requirement (e.g. CR 1.14, CR 2.3, CR 7.5) were
+  plain text; they now link to the info dialog, which gives the reason
+  ("Why not applicable") in EN / DE — no statement section there.
 - **Compliance tab — "Information missing":** the status and filter
   "Unknown" read "Information missing" (DE "Angaben fehlen"), also in the
   compliance report; the row note and the info dialog name the empty

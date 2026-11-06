@@ -143,6 +143,13 @@
     "todoProject": "In the project data — hazards, overview, item definition",
     "todoComponent": "For the component — one element suffices",
     "todoOnOne": "on one {{types}}",
-    "todoInside": "set its inside fields (black box), model its processes and stores on a child page, or make a statement"
+    "todoInside": "set its inside fields (black box), model its processes and stores on a child page, or make a statement",
+    "whyNotApplicable": "Why not applicable",
+    "voidReason": {
+      "voidInPraa": "The CRA edition (EN IEC 62443-4-2/prAA) declares this requirement void — it does not apply to the component.",
+      "noComponentRequirement": "The standard sets no component requirement under this number — the topic is left to the system (IEC 62443-3-3).",
+      "noComponentRequirementSr23": "The standard sets no component requirement under this number — SR 2.3 is a system requirement (IEC 62443-3-3).",
+      "noComponentRequirementPower": "The standard sets no component requirement under this number — emergency power is a matter of the system (IEC 62443-3-3)."
+    }
   }
 }

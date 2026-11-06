@@ -230,6 +230,32 @@ function useUnknownNames(nameOf: (id: string) => string, typeOf?: (id: string) =
     });
 }
 
+/** FX-22: the edition's reason for a void row (EditionRow.void) → its text key. */
+export const VOID_REASONS: Readonly<Record<string, { key: string; text: string }>> = {
+  "void in prAA": {
+    key: "voidInPraa",
+    text: "The CRA edition (EN IEC 62443-4-2/prAA) declares this requirement void — it does not apply to the component.",
+  },
+  "no component requirement": {
+    key: "noComponentRequirement",
+    text: "The standard sets no component requirement under this number — the topic is left to the system (IEC 62443-3-3).",
+  },
+  "no component requirement (SR 2.3 is system level)": {
+    key: "noComponentRequirementSr23",
+    text: "The standard sets no component requirement under this number — SR 2.3 is a system requirement (IEC 62443-3-3).",
+  },
+  "no component requirement (emergency power, system level)": {
+    key: "noComponentRequirementPower",
+    text: "The standard sets no component requirement under this number — emergency power is a matter of the system (IEC 62443-3-3).",
+  },
+};
+
+/** The reason of a void row in the UI language; an unknown reason as written in the edition. */
+const voidReasonText = (t: ReturnType<typeof useComplianceT>, reasoning: string | undefined): string => {
+  const known = reasoning ? VOID_REASONS[reasoning] : undefined;
+  return known ? t(`voidReason.${known.key}`, known.text) : (reasoning ?? "");
+};
+
 /** First items of a list, the rest counted. */
 const shortList = (items: readonly string[], max = 4) =>
   items.length <= max ? items.join(", ") : `${items.slice(0, max).join(", ")} (+${items.length - max})`;
@@ -321,8 +347,17 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
         {label}
       </Link>
     );
-    // Void rows have no description: plain text, as before.
-    if (descriptions.length === 0) return label;
+    // FX-22: a void row has no description — the tooltip and the dialog give the edition's reason.
+    if (descriptions.length === 0) {
+      const reason = voidReasonText(t, rowByLabel.get(label)?.reasoning);
+      return reason ? (
+        <Tooltip arrow placement="right" title={<Box sx={{ maxWidth: 360 }}>{reason}</Box>}>
+          {link}
+        </Tooltip>
+      ) : (
+        link
+      );
+    }
     return (
       <Tooltip arrow placement="right" title={<RequirementTooltip label={label} descriptions={descriptions} />}>
         {link}
@@ -912,6 +947,8 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
     </Box>
   );
   const checklist = localizedChecklist(descriptions, row.checklist);
+  /** FX-22: a row the edition declares void — only its reason, nothing to check or state. */
+  const isVoid = row.source === "edition";
   return (
     // At most 80 % of the window: a long description scrolls inside, title and buttons stay in view.
     <Dialog
@@ -924,7 +961,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
       data-testid="compliance-info-dialog"
     >
       <DialogTitle>
-        {row.label} – {descriptions.map((d) => d.title).join(" / ")}
+        {descriptions.length > 0 ? `${row.label} – ${descriptions.map((d) => d.title).join(" / ")}` : row.label}
       </DialogTitle>
       <DialogContent dividers>
         <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
@@ -940,22 +977,31 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
             })}
           </Alert>
         )}
-        {section(
-          t("whatItIsAbout", "What it is about"),
-          descriptions.map((d) => (
-            <Typography key={d.id} variant="body2">
-              {d.summary}
-            </Typography>
-          )),
-        )}
-        {section(
-          t("howChecked", "How TARAflow checks it"),
-          descriptions.map((d) => (
-            <Typography key={d.id} variant="body2">
-              {d.check}
-            </Typography>
-          )),
-        )}
+        {isVoid &&
+          section(
+            t("whyNotApplicable", "Why not applicable"),
+            <Typography variant="body2" data-testid="compliance-void-reason">
+              {voidReasonText(t, row.reasoning)}
+            </Typography>,
+          )}
+        {descriptions.length > 0 &&
+          section(
+            t("whatItIsAbout", "What it is about"),
+            descriptions.map((d) => (
+              <Typography key={d.id} variant="body2">
+                {d.summary}
+              </Typography>
+            )),
+          )}
+        {descriptions.length > 0 &&
+          section(
+            t("howChecked", "How TARAflow checks it"),
+            descriptions.map((d) => (
+              <Typography key={d.id} variant="body2">
+                {d.check}
+              </Typography>
+            )),
+          )}
         {(row.failing.length > 0 || row.unknown.length > 0 || row.supportingElements.length > 0) &&
           section(
             t("elements", "Elements"),
@@ -1003,30 +1049,31 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
               </Typography>
             )),
           )}
-        {section(
-          t("statementSection", "Statement"),
-          statement ? (
-            <>
-              <Typography variant="body2">
-                {t(`statementStatusName.${statement.status}`, STATEMENT_DEFAULT[statement.status])} — {statement.reasoning}
-              </Typography>
-              {statement.supportingMeasure && (
+        {!isVoid &&
+          section(
+            t("statementSection", "Statement"),
+            statement ? (
+              <>
                 <Typography variant="body2">
-                  {t("supportingMeasure", "Supporting measure (outside the component)")}: {statement.supportingMeasure}
+                  {t(`statementStatusName.${statement.status}`, STATEMENT_DEFAULT[statement.status])} — {statement.reasoning}
                 </Typography>
-              )}
-              {row.statementModelChanged && (
-                <Typography variant="body2" color="warning.main">
-                  {t("modelChanged", "The model changed since the statement — review it.")}
-                </Typography>
-              )}
-            </>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              {t("noStatement", "No statement yet.")}
-            </Typography>
-          ),
-        )}
+                {statement.supportingMeasure && (
+                  <Typography variant="body2">
+                    {t("supportingMeasure", "Supporting measure (outside the component)")}: {statement.supportingMeasure}
+                  </Typography>
+                )}
+                {row.statementModelChanged && (
+                  <Typography variant="body2" color="warning.main">
+                    {t("modelChanged", "The model changed since the statement — review it.")}
+                  </Typography>
+                )}
+              </>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                {t("noStatement", "No statement yet.")}
+              </Typography>
+            ),
+          )}
         {claims && row.source !== "edition" && section(t("claimsSection", "Claims (measures of the system)"), claims)}
         <Typography variant="caption" sx={{ fontStyle: "italic" }}>
           {t("summaryDisclaimer", "Summary in our own words — the standard is authoritative.")}

@@ -143,6 +143,13 @@
     "todoProject": "In den Projektdaten — Gefährdungen, Übersicht, Item-Definition",
     "todoComponent": "Für die Komponente — ein Element genügt",
     "todoOnOne": "an einem {{types}}",
-    "todoInside": "die Innen-Felder (Black Box) setzen, Prozesse und Speicher auf einer Unterseite modellieren oder eine Aussage erfassen"
+    "todoInside": "die Innen-Felder (Black Box) setzen, Prozesse und Speicher auf einer Unterseite modellieren oder eine Aussage erfassen",
+    "whyNotApplicable": "Warum nicht anwendbar",
+    "voidReason": {
+      "voidInPraa": "Die CRA-Ausgabe (EN IEC 62443-4-2/prAA) erklärt diese Anforderung für entfallen (void) — sie gilt nicht für die Komponente.",
+      "noComponentRequirement": "Die Norm stellt unter dieser Nummer keine Anforderung an die Komponente — das Thema liegt beim System (IEC 62443-3-3).",
+      "noComponentRequirementSr23": "Die Norm stellt unter dieser Nummer keine Anforderung an die Komponente — SR 2.3 ist eine Systemanforderung (IEC 62443-3-3).",
+      "noComponentRequirementPower": "Die Norm stellt unter dieser Nummer keine Anforderung an die Komponente — die Notstromversorgung ist Sache des Systems (IEC 62443-3-3)."
+    }
   }
 }

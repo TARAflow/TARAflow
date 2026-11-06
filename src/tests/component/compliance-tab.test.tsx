@@ -13,9 +13,12 @@ import {
   editionStatements,
   evaluateMatrix,
   FOUNDATIONAL_REQUIREMENTS,
+  EDITION_2019,
+  EDITION_PRAA_2026,
   type ComplianceInput,
   type Edition,
 } from "features/compliance";
+import { VOID_REASONS } from "features/compliance/components/compliance-tab";
 import { familyCompliance, type ComplianceData, type FamilyComplianceData } from "shared";
 
 vi.mock("react-i18next", () => ({
@@ -201,6 +204,25 @@ describe("Compliance tab", () => {
     fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "all" } });
     fireEvent.click(screen.getByTestId("compliance-req-CR 3.7"));
     expect(screen.queryByTestId("compliance-met-model-open")).toBeNull();
+  });
+
+  it("a void row links to the dialog with the edition's reason, without statement (FX-22)", () => {
+    const rows: Edition["rows"] = [
+      { label: "CR 1.14", group: "IAC", minSl: null, requirementIds: [], void: "void in prAA", supportingMeasuresAllowed: false },
+      ...CRA_ROWS,
+    ];
+    renderTab(edition(rows));
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "all" } });
+    fireEvent.click(screen.getByTestId("compliance-req-CR 1.14"));
+    expect(screen.getByTestId("compliance-void-reason").textContent).toMatch(/^The CRA edition .* declares this requirement void/);
+    expect(screen.queryByTestId("compliance-info-statement")).toBeNull();
+    expect(within(screen.getByTestId("compliance-info-dialog")).queryByText("Statement")).toBeNull();
+  });
+
+  it("every void reason of the editions has a text (FX-22)", () => {
+    const reasons = [...EDITION_PRAA_2026.rows, ...EDITION_2019.rows].flatMap((r) => (r.void ? [r.void] : []));
+    expect(reasons.length).toBeGreaterThan(0);
+    for (const reason of reasons) expect(VOID_REASONS[reason], reason).toBeDefined();
   });
 
   it("a statement needs a reasoning", () => {
