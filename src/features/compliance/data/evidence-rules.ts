@@ -537,7 +537,7 @@ const RULES = [
         ...COMPONENT_BORDER_FLOWS,
         satisfiedIf: [
           { property: "integrityProtection", in: ["hmac", "signature", "aead"] },
-          { property: "encryptionInTransit", in: ["tls", "mtls", "vpn"] },
+          { property: "encryptionInTransit", in: ["tls", "mtls", "vpn", "ssh", "application"] },
         ],
       },
     ],

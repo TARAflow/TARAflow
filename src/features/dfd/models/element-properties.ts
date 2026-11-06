@@ -1326,7 +1326,8 @@ export interface DataFlowProperties {
   dataMinimization?: "none" | "filtered" | "aggregated_only";
 
   volume?: string;
-  encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "custom";
+  /** ssh / application (e.g. OPC UA Secure Channel) since 2026-11-06 — like the endpoint's secure channels. */
+  encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "ssh" | "application" | "custom";
   integrityProtection?: IntegrityProtection;
   endpointAuthentication?: EndpointAuthentication;
 

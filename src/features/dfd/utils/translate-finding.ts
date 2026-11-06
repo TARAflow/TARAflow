@@ -82,7 +82,12 @@ function messageTypeOptionLabel(t: TFn, value: string): string {
 // Generic dispatch table: param name -> resolver. No message-shape
 // branching, no parts.length guessing — just "does this param name need a
 // second i18n lookup, and if so, which dictionary?"
+function channelLabel(t: TFn, value: string): string {
+  return t(`tabs.dfd.element_description.process.fields.tlsTermination.options.${value}`, { defaultValue: value });
+}
+
 const PARAM_RESOLVERS: Record<string, (t: TFn, value: string) => string> = {
+  channel: channelLabel,
   type: elementTypeLabel,
   elementType: elementTypeLabel,
   targetType: elementTypeLabel,

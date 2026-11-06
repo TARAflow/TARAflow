@@ -274,7 +274,10 @@
           "tls": {
             "noTerminator": "{{detail}}: Der Datenfluss nutzt TLS, aber kein Endpunkt bietet es an. Beim terminierenden Prozess unter Kommunikation → Sicherer Kanal (Endpunkt) „TLS (Server)“ oder „Gegenseitiges TLS“ anhaken.",
             "mtlsRequiresBothMutual": "{{detail}}: Gegenseitiges TLS verlangt, dass beide Endpunkte es anbieten. An beiden unter Kommunikation → Sicherer Kanal (Endpunkt) „Gegenseitiges TLS“ anhaken.",
-            "handshakeMismatch": "{{detail}}: Ein Endpunkt bietet nur gegenseitiges TLS an, der andere gar kein TLS (kein Client-Zertifikat). Kommunikation → Sicherer Kanal (Endpunkt) an beiden abgleichen."
+            "handshakeMismatch": "{{detail}}: Ein Endpunkt bietet nur gegenseitiges TLS an, der andere gar kein TLS (kein Client-Zertifikat). Kommunikation → Sicherer Kanal (Endpunkt) an beiden abgleichen.",
+            "sshNoEndpoint": "{{detail}}: Der Datenfluss nutzt SSH, aber kein Endpunkt bietet es an. Beim SSH-Server unter Kommunikation → Sicherer Kanal (Endpunkt) „SSH“ anhaken.",
+            "applicationRequiresBoth": "{{detail}}: Der Datenfluss ist auf Anwendungsebene gesichert (z. B. OPC UA Secure Channel) — beide Endpunkte müssen das unter Kommunikation → Sicherer Kanal (Endpunkt) anbieten.",
+            "channelUnused": "{{detail}} bietet {{channel}} an, aber keiner seiner Datenflüsse nutzt es — ein offener Dienst ohne erkennbaren Zweck? Entfernen oder den Fluss zeichnen, der es nutzt."
           }
         },
         "label_property": {}
@@ -1775,6 +1778,8 @@
                 "tls": "TLS",
                 "mtls": "mTLS (Mutual TLS)",
                 "vpn": "VPN / IPSec",
+                "ssh": "SSH",
+                "application": "Anwendungsebene (z. B. OPC UA Secure Channel)",
                 "custom": "Benutzerdefinierte Verschlüsselung"
               },
               "warning": "Unverschlüsselter Flow überquert Trust Boundary → Risiko Informationspreisgabe"

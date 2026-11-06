@@ -922,7 +922,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                       })}
                     </em>
                   </MenuItem>
-                  {(["none", "tls", "mtls", "vpn", "custom"] as const).map(
+                  {(["none", "tls", "mtls", "vpn", "ssh", "application", "custom"] as const).map(
                     (opt) => (
                       <MenuItem key={opt} value={opt}>
                         {t(

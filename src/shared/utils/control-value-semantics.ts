@@ -46,7 +46,7 @@ export const CONTROL_VALUE_MEETS: Readonly<Record<string, Readonly<Record<string
   },
   encryptionInTransit: {
     tls: ["mtls"],
-    custom: ["tls", "mtls", "vpn"],
+    custom: ["tls", "mtls", "vpn", "ssh", "application"],
   },
   endpointAuthentication: {
     certificate: ["mutual_tls"],

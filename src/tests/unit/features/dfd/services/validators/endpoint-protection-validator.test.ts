@@ -138,3 +138,44 @@ describe("endpoint protection validator — secure channels as a selection (user
     expect(run(els, [flow("A", "B", "tls")])).toHaveLength(0);
   });
 });
+
+describe("endpoint protection validator — SSH, application level, unused channels (user 2026-11-06)", () => {
+  const runAll = (elements: DFDElement[], connections: DFDConnection[]) => {
+    const errors: ValidationFinding[] = [];
+    const warnings: ValidationFinding[] = [];
+    validateEndpointProtection(connections, elements, errors, warnings);
+    return { errors: errors.map((e) => e.key), warnings };
+  };
+
+  it("an SSH flow needs one endpoint offering SSH (client / server)", () => {
+    expect(runAll([proc("A", ["none"]), proc("B", ["server"])], [flow("A", "B", "ssh")]).errors).toEqual([
+      "tabs.dfd.validation.df.tls.sshNoEndpoint",
+    ]);
+    expect(runAll([proc("A", ["none"]), proc("B", ["ssh"])], [flow("A", "B", "ssh")]).errors).toEqual([]);
+  });
+
+  it("an application-level flow (OPC UA Secure Channel) needs both endpoints", () => {
+    expect(runAll([proc("A", ["application"]), proc("B", ["server"])], [flow("A", "B", "application")]).errors).toEqual([
+      "tabs.dfd.validation.df.tls.applicationRequiresBoth",
+    ]);
+    expect(runAll([proc("A", ["application"]), proc("B", ["application"])], [flow("A", "B", "application")]).errors).toEqual([]);
+  });
+
+  it("a channel offered but used by no flow is a warning, naming element and channel", () => {
+    const { warnings } = runAll([proc("P1", ["server", "ssh"]), proc("MP1", ["server"])], [flow("P1", "MP1", "tls")]);
+    expect(warnings.map((w) => [w.elementId, w.params?.channel])).toEqual([["P1", "ssh"]]);
+    expect(warnings[0].key).toBe("tabs.dfd.validation.df.tls.channelUnused");
+  });
+
+  it("mutual TLS counts as used by a tls flow; a server-only offer is unused next to mtls flows only", () => {
+    expect(runAll([proc("A", ["mutual"]), proc("B", ["server"])], [flow("A", "B", "tls")]).warnings).toEqual([]);
+    const { warnings } = runAll([proc("A", ["server", "mutual"]), proc("B", ["mutual"])], [flow("A", "B", "mtls")]);
+    expect(warnings.map((w) => [w.elementId, w.params?.channel])).toEqual([["A", "server"]]);
+  });
+
+  it("'none' and elements without an offer give no warning; physical edges do not count as use", () => {
+    expect(runAll([proc("A", ["none"]), proc("B")], [flow("A", "B", "tls", { medium: "physical" })]).warnings).toEqual([]);
+    const { warnings } = runAll([proc("A", ["ssh"]), proc("B")], [flow("A", "B", "ssh", { medium: "physical" })]);
+    expect(warnings.map((w) => w.params?.channel)).toEqual(["ssh"]);
+  });
+});

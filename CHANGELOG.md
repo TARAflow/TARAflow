@@ -24,8 +24,12 @@ when opened (with a backup) and then no longer open in 0.17.x.
   the **secure channels** an element terminates — a multi-select instead
   of TLS only: TLS (server), mutual TLS, VPN / IPsec, SSH, application
   level (e.g. OPC UA Secure Channel), other; only where the element has a
-  flow over a network or bus. The DFD check that a TLS flow has a TLS
-  endpoint reads TLS and mutual TLS from the selection. A multiprocess's safety fields
+  flow over a network or bus. A data flow's *encryption in transit* also
+  offers SSH and application level. The DFD checks each flow against its
+  endpoints — TLS / mTLS as before, SSH needs one endpoint offering it,
+  application level both — and warns about a channel an element offers
+  that none of its flows uses (an open service without a visible
+  purpose, EN 303 645 5.6 / CR 7.7). A multiprocess's safety fields
   (safety-relevant, rationale) sit below the tabs, always in view.
 - **Black-box multiprocess:** a multiprocess without a child page — a PLC
   drawn as a box, a supplier's module — gets seven fields for the

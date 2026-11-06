@@ -77,7 +77,7 @@ export const CONTROL_PROPERTY_OPTIONS: Readonly<Record<string, readonly unknown[
     "none", "process_enforced", "mpu_protected", "os_permissions", "crypto_erase", "custom",
   ]),
 
-  "DataFlow.encryptionInTransit": o<DataFlowProperties["encryptionInTransit"]>(["none", "tls", "mtls", "vpn", "custom"]),
+  "DataFlow.encryptionInTransit": o<DataFlowProperties["encryptionInTransit"]>(["none", "tls", "mtls", "vpn", "ssh", "application", "custom"]),
   "DataFlow.integrityProtection": o<DataFlowProperties["integrityProtection"]>([
     "none", "crc", "hash", "hmac", "signature", "aead", "custom",
   ]),
