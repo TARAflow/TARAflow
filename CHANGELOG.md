@@ -130,6 +130,12 @@ when opened (with a backup) and then no longer open in 0.17.x.
   protection (a touch panel can never meet it).
 
 ### Fixed
+- **Compliance tab — met by a statement:** a row met by a statement,
+  mitigation, supporting measure or claim while the model alone still
+  has gaps or missing properties (e.g. CR 1.7) said only "properties
+  missing on …"; the note now says *model still open*, and the info
+  dialog explains that the row is met by that source and the model will
+  show it once the elements' properties meet it.
 - **Security sub-tabs:** coming back to an element, the chosen tab (e.g.
   *Operation*) was shown cut off or at another place of the scrolling
   tab bar; the bar no longer scrolls — in a narrow panel the tabs wrap

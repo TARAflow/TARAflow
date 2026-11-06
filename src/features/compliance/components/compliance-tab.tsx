@@ -161,6 +161,14 @@ const SOURCE_DEFAULT: Record<string, string> = {
 };
 const STATEMENT_DEFAULT: Record<StatementStatus, string> = { met: "met", "not-met": "not met", "n/a": "not applicable" };
 
+/**
+ * A row met by a statement, mitigation, supporting measure or claim while the
+ * model alone still has gaps or missing properties (user 2026-11-06, CR 1.7):
+ * the missing properties are said to be the model's, not the row's.
+ */
+const modelStillOpen = (row: { status: string; source?: string; modelStatus: string }) =>
+  row.status === "met" && !!row.source && row.source !== "model" && (row.modelStatus === "unknown" || row.modelStatus === "gap");
+
 export interface ComplianceTabProps {
   edition: AnyEdition;
   /** The standard's header kind; absent = security levels (IEC 62443-4-2). */
@@ -711,7 +719,10 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                 const checklist = localizedChecklist(descriptions, row.checklist);
                 const notes = [
                   row.failing.length > 0 && `${t("failing", "not met by")}: ${shortList(row.failing.map(nameOf))}`,
-                  row.unknown.length > 0 && `${t("unknown", "properties missing on")}: ${shortList(row.unknown.map(nameOf))}`,
+                  row.unknown.length > 0 &&
+                    (modelStillOpen(row)
+                      ? t("modelUnknown", "model still open — properties missing on {{elements}}", { elements: shortList(row.unknown.map(nameOf)) })
+                      : `${t("unknown", "properties missing on")}: ${shortList(row.unknown.map(nameOf))}`),
                   row.supportingElements.length > 0 && `${t("supporting", "supporting measure")}: ${shortList(row.supportingElements.map(nameOf))}`,
                   row.mitigationIds.length > 0 && `${t("mitigations", "mitigations")}: ${shortList([...new Set(row.mitigationIds)])}`,
                   row.risks && row.risks.length > 0 && `${t("risks", "risks")}: ${shortList(row.risks)}`,
@@ -887,6 +898,13 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
           <Chip size="small" color={STATUS_COLOR[row.status]} label={t(`status.${row.status}`, STATUS_DEFAULT[row.status])} />
           {row.source && <Chip size="small" variant="outlined" label={t(`sourceName.${row.source}`, SOURCE_DEFAULT[row.source])} />}
         </Stack>
+        {modelStillOpen(row) && (
+          <Alert severity="info" sx={{ mb: 1.5 }} data-testid="compliance-met-model-open">
+            {t("metModelOpen", "Met by the {{source}}. The model alone does not show it yet — see the elements below; once their properties meet the requirement, the model does too.", {
+              source: t(`sourceName.${row.source}`, SOURCE_DEFAULT[row.source!]),
+            })}
+          </Alert>
+        )}
         {section(
           t("whatItIsAbout", "What it is about"),
           descriptions.map((d) => (
@@ -914,6 +932,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
               )}
               {row.unknown.length > 0 && (
                 <Typography variant="body2">
+                  {modelStillOpen(row) ? `${t("modelPrefix", "Model")}: ` : ""}
                   {t("unknown", "properties missing on")}: {row.unknown.map(nameOf).join(", ")}
                 </Typography>
               )}

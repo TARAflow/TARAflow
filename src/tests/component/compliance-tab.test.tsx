@@ -174,6 +174,35 @@ describe("Compliance tab", () => {
     );
   });
 
+  it("met by a statement while the model still has a gap: the dialog says so (user 2026-11-06, CR 1.7)", () => {
+    renderTab(
+      edition(CRA_ROWS),
+      fam({ statements: { "cr-3.5": { status: "met", reasoning: "Validated by the protocol stack", modelStatusAtStatement: "gap", date: "2026-11-02" } } }),
+    );
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "met" } });
+    fireEvent.click(screen.getByTestId("compliance-req-CR 3.5"));
+    expect(screen.getByTestId("compliance-met-model-open").textContent).toMatch(/^Met by the statement\. The model alone does not show it yet/);
+  });
+
+  it("met by a statement while the model lacks properties: the note says the model is still open", () => {
+    const rows: Edition["rows"] = [
+      { label: "CR 3.6", group: "SI", minSl: 1, requirementIds: ["cr-3.6"], supportingMeasuresAllowed: false },
+    ];
+    renderTab(
+      edition(rows),
+      fam({ statements: { "cr-3.6": { status: "met", reasoning: "Outputs go to a safe state", modelStatusAtStatement: "unknown", date: "2026-11-02" } } }),
+    );
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "met" } });
+    expect(within(screen.getByTestId("compliance-row-CR 3.6")).getByText(/model still open — properties missing on P-1 Controller/)).toBeTruthy();
+  });
+
+  it("met by the model: no such hint", () => {
+    renderTab(edition(CRA_ROWS));
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "all" } });
+    fireEvent.click(screen.getByTestId("compliance-req-CR 3.7"));
+    expect(screen.queryByTestId("compliance-met-model-open")).toBeNull();
+  });
+
   it("a statement needs a reasoning", () => {
     renderTab(edition(CRA_ROWS));
     fireEvent.click(screen.getByTestId("compliance-statement-CR 3.5"));
