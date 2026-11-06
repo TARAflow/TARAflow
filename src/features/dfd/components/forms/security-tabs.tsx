@@ -2,7 +2,9 @@
 // The Security section of the Process and Multiprocess forms in light
 // sub-tabs per category (user 2026-11-02; model-coverage-implementation-
 // plan.md CM-5d): login & accounts · authorization · robustness · sessions &
-// traceability · operation (· inside and safety on the Multiprocess). A tab names how
+// traceability · operation (· data on a black-box Multiprocess: its "inside"
+// fields are spread over the tabs of their topic; the safety fields sit below
+// the tabs, user 2026-11-06). A tab names how
 // many of its shown fields are still open; a tab without a field that fits
 // the element is left out. The chosen tab is kept per element type while the
 // app runs, so moving from element to element stays on the same category.
@@ -12,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { Box, Grid, Tab, Tabs } from "@mui/material";
 import type { SecurityGroup } from "shared";
 
-export type SecurityTabId = SecurityGroup | "safety";
+export type SecurityTabId = SecurityGroup;
 
 /** One field of the section. */
 export interface SecurityEntry {
@@ -26,7 +28,7 @@ export interface SecurityEntry {
   node: React.ReactNode;
 }
 
-const TAB_ORDER: readonly SecurityTabId[] = ["login", "authorization", "robustness", "sessions", "operation", "inside", "safety"];
+const TAB_ORDER: readonly SecurityTabId[] = ["login", "authorization", "robustness", "sessions", "operation", "data"];
 
 const TAB_DEFAULT: Record<SecurityTabId, string> = {
   login: "Login & accounts",
@@ -34,8 +36,7 @@ const TAB_DEFAULT: Record<SecurityTabId, string> = {
   robustness: "Robustness",
   sessions: "Sessions & traceability",
   operation: "Operation",
-  inside: "Inside (black box)",
-  safety: "Safety",
+  data: "Data",
 };
 
 /** Last chosen tab per form (element type), for this run of the app. */

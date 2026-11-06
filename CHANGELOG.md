@@ -18,11 +18,14 @@ when opened (with a backup) and then no longer open in 0.17.x.
   RE(1), CR 1.5, CR 1.7, CR 1.11, CR 2.1 RE(2), CR 3.10, CR 7.6, CR 7.9).
 - **Security section in sub-tabs** on processes and multiprocesses (Login
   & accounts, Authorization, Robustness, Sessions & traceability,
-  Operation, Safety); a tab names its open fields.
+  Operation); a tab names its open fields. A multiprocess's safety fields
+  (safety-relevant, rationale) sit below the tabs, always in view.
 - **Black-box multiprocess:** a multiprocess without a child page — a PLC
-  drawn as a box, a supplier's module — gets a sub-tab *Inside (black
-  box)* with seven fields for the processes and data it contains; the
-  matrix checks it with the process and data-store rules.
+  drawn as a box, a supplier's module — gets seven *Inside* fields for
+  the processes and data it contains, in the tab of their topic
+  (robustness, operation, and a tab *Data* for the stored data); the
+  matrix checks it with the process and data-store rules once one is
+  set.
 - **EN 50742 Approach A** as a standard of its own in the Compliance tab
   (sub-tab next to the IEC 62443 editions, shown by the EN 50742 A tag):
   23 baseline requirements checked against the model, the risks (SRSL,

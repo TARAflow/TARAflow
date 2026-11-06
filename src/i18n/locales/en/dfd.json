@@ -560,7 +560,7 @@
           "robustness": "Robustness",
           "sessions": "Sessions & traceability",
           "operation": "Operation",
-          "inside": "Inside (black box)",
+          "data": "Data",
           "safety": "Safety"
         },
         "title": "Element Descriptions",

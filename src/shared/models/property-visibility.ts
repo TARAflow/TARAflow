@@ -83,7 +83,13 @@ export interface VisibilityFlowInput {
 export const NOT_SPECIFIED = "not_specified";
 
 /** Sub-tab of the Security section an element form shows a field in (CM-5d). */
-export type SecurityGroup = "login" | "authorization" | "robustness" | "sessions" | "operation" | "inside";
+/**
+ * Security sub-tab of a field. A black box's "inside" fields sit in the tab of
+ * their topic (user 2026-11-06): process fields under robustness like on the
+ * process, deletion under operation, the stored-data fields in "data" (a tab
+ * only black boxes have).
+ */
+export type SecurityGroup = "login" | "authorization" | "robustness" | "sessions" | "operation" | "data";
 
 export interface ModelField {
   /** Property key on the element (top level of `properties`). */
@@ -320,9 +326,9 @@ export const BLACK_BOX_FIELDS = {
   },
 } as const;
 
-const inside = (property: string, values: readonly string[]): ModelField => ({
+const inside = (property: string, values: readonly string[], group: SecurityGroup): ModelField => ({
   property,
-  group: "inside",
+  group,
   elementTypes: ["Multiprocess"],
   values,
   shownWhen: MODEL_CONDITIONS.blackBox,
@@ -432,13 +438,13 @@ export const MODEL_FIELDS: readonly ModelField[] = [
     values: ROLE_MAPPING_VALUES,
     shownWhen: MODEL_CONDITIONS.roleBasedAuthorization,
   },
-  inside("innerInputValidation", INNER_INPUT_VALIDATION_VALUES),
-  inside("innerErrorHandling", INNER_ERROR_HANDLING_VALUES),
-  inside("innerFailSafeOutputState", INNER_FAIL_SAFE_OUTPUT_STATE_VALUES),
-  inside("innerDataClassification", INNER_DATA_CLASSIFICATION_VALUES),
-  inside("innerEncryptionAtRest", INNER_ENCRYPTION_AT_REST_VALUES),
-  inside("innerIntegrityProtection", INNER_INTEGRITY_PROTECTION_VALUES),
-  inside("innerDeletionMechanism", INNER_DELETION_MECHANISM_VALUES),
+  inside("innerInputValidation", INNER_INPUT_VALIDATION_VALUES, "robustness"),
+  inside("innerErrorHandling", INNER_ERROR_HANDLING_VALUES, "robustness"),
+  inside("innerFailSafeOutputState", INNER_FAIL_SAFE_OUTPUT_STATE_VALUES, "robustness"),
+  inside("innerDataClassification", INNER_DATA_CLASSIFICATION_VALUES, "data"),
+  inside("innerEncryptionAtRest", INNER_ENCRYPTION_AT_REST_VALUES, "data"),
+  inside("innerIntegrityProtection", INNER_INTEGRITY_PROTECTION_VALUES, "data"),
+  inside("innerDeletionMechanism", INNER_DELETION_MECHANISM_VALUES, "operation"),
 ];
 
 export function modelField(property: string, fields: readonly ModelField[] = MODEL_FIELDS): ModelField | undefined {

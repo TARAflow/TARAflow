@@ -1024,13 +1024,19 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
               </>
             ),
           },
-          // Safety Relevant + Rationale — embedded_controller, scada_hmi, safety_system; last in the section
-          {
-            key: "safetyRelevant",
-            group: "safety",
-            visible: isVisible(sc, SHOW_SAFETY),
-            set: true,
-            node: (
+          // Model coverage fields last in each tab — after the settings that show them.
+          ...modelFieldEntries,
+        ]}
+      />
+
+      {/* Safety Relevant + Rationale — embedded_controller, scada_hmi, safety_system:
+          below the tabs, always in view (user 2026-11-06, test plan C3). */}
+      {isVisible(sc, SHOW_SAFETY) && (
+        <Box data-testid="multiprocess-safety" sx={{ mt: 2 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+            {t("tabs.dfd.element_description.securityTabs.safety", { defaultValue: "Safety" })}
+          </Typography>
+          <Grid container rowSpacing={2} columnSpacing={2}>
               <>
                 <>
                   <Grid
@@ -1080,12 +1086,9 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
                   )}
                 </>
               </>
-            ),
-          },
-          // Model coverage fields last in each tab — after the settings that show them.
-          ...modelFieldEntries,
-        ]}
-      />
+          </Grid>
+        </Box>
+      )}
 
       {/* ── DOCUMENTATION ─────────────────────────────────────────────── */}
       <SectionLabel

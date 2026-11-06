@@ -108,10 +108,21 @@ describe("inside fields of a black box (D-30c)", () => {
     expect(withoutHiddenFields(els, [], MODEL_FIELDS, { decomposed: new Set(["mp"]) }).elements[0].properties).toEqual({});
   });
 
-  it("only on multiprocesses, in the sub-tab 'inside'", () => {
-    for (const f of MODEL_FIELDS.filter((x) => x.property.startsWith("inner"))) {
-      expect(f.elementTypes).toEqual(["Multiprocess"]);
-      expect(f.group).toBe("inside");
-    }
+  it("only on multiprocesses, in the tab of their topic (user 2026-11-06)", () => {
+    const groups = Object.fromEntries(
+      MODEL_FIELDS.filter((x) => x.property.startsWith("inner")).map((f) => {
+        expect(f.elementTypes).toEqual(["Multiprocess"]);
+        return [f.property, f.group];
+      }),
+    );
+    expect(groups).toEqual({
+      innerInputValidation: "robustness",
+      innerErrorHandling: "robustness",
+      innerFailSafeOutputState: "robustness",
+      innerDataClassification: "data",
+      innerEncryptionAtRest: "data",
+      innerIntegrityProtection: "data",
+      innerDeletionMechanism: "operation",
+    });
   });
 });
