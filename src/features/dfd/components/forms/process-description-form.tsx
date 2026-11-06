@@ -463,6 +463,23 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
             </span>
           </Tooltip>
         </Grid>
+
+        {/* Exposed to Internet — context, not a control (user 2026-11-06, as on the
+            multiprocess); not applicable for embedded processes (no network stack) */}
+        {!isEmbedded && (
+          <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.exposedToInternet || false}
+                  onChange={(e) => handlePropertyChange("exposedToInternet", e.target.checked)}
+                />
+              }
+              label={t("tabs.dfd.element_description.process.fields.exposedToInternet.label")}
+              data-testid="field-exposedToInternet"
+            />
+          </Grid>
+        )}
       </Grid>
 
       {/* ── Security ─────────────────────────────── */}
@@ -976,37 +993,6 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
                   value={props.updateMechanism}
                   onChange={(v) => handlePropertyChange("updateMechanism", v)}
                 />
-              </>
-            ),
-          },
-          // Exposed to Internet — not applicable for embedded processes (no network stack)
-          {
-            key: "exposedToInternet",
-            group: "operation",
-            visible: !isEmbedded,
-            set: true,
-            node: (
-              <>
-                <Grid
-                  item
-                  xs={12}
-                  sm={6}
-                  sx={{ display: "flex", alignItems: "center" }}
-                >
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={props.exposedToInternet || false}
-                        onChange={(e) =>
-                          handlePropertyChange("exposedToInternet", e.target.checked)
-                        }
-                      />
-                    }
-                    label={t(
-                      "tabs.dfd.element_description.process.fields.exposedToInternet.label",
-                    )}
-                  />
-                </Grid>
               </>
             ),
           },

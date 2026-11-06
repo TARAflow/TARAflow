@@ -32,7 +32,9 @@ when opened (with a backup) and then no longer open in 0.17.x.
   purpose, EN 303 645 5.6 / CR 7.7), and asks for the secure channel
   where an element has a flow over a network or fieldbus but none is
   chosen (unset is unknown — "none" is a choice; on-board chip buses are
-  not asked). A multiprocess's safety fields
+  not asked). *Exposed to Internet* is context, not a control: on the
+  process it moved from *Operation* up to the context, as on the
+  multiprocess. A multiprocess's safety fields
   (safety-relevant, rationale) sit below the tabs, always in view.
 - **Black-box multiprocess:** a multiprocess without a child page — a PLC
   drawn as a box, a supplier's module — gets seven fields for the

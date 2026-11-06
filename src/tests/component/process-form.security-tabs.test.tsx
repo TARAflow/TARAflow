@@ -115,5 +115,13 @@ describe("ProcessDescriptionForm — Communication tab (user 2026-11-06)", () =>
     const last = onChange.mock.calls.at(-1)![0];
     expect(last.properties.tlsTermination).toEqual(["server", "ssh"]);
   });
+
+  it("'Exposed to Internet' sits in the context, not in a security tab (user 2026-11-06)", () => {
+    renderForm(process("p10", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p10", properties: { protocol: "opc_ua" } }]);
+    const field = screen.getByTestId("field-exposedToInternet");
+    expect(screen.getByTestId("security-tabs").contains(field)).toBe(false);
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    expect(screen.getAllByTestId("field-exposedToInternet")).toHaveLength(1);
+  });
 });
 
