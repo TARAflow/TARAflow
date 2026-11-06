@@ -272,9 +272,9 @@
             "missingCoupling": "Physische Kopplung {{detail}}: couplingMode/stimulusDomain fehlt"
           },
           "tls": {
-            "noTerminator": "{{detail}}: Datenfluss nutzt TLS, aber kein Endpunkt terminiert es. Setze tlsTermination (server oder mutual) am terminierenden Prozess.",
-            "mtlsRequiresBothMutual": "{{detail}}: Mutual TLS verlangt, dass beide Endpunkte mutual-fähig sind. Setze tlsTermination=mutual an beiden Prozessen.",
-            "handshakeMismatch": "{{detail}}: Ein Endpunkt verlangt Mutual TLS, während der andere kein Client-Zertifikat vorweisen kann. Gleiche tlsTermination an beiden Endpunkten ab."
+            "noTerminator": "{{detail}}: Der Datenfluss nutzt TLS, aber kein Endpunkt bietet es an. Beim terminierenden Prozess unter Kommunikation → Sicherer Kanal (Endpunkt) „TLS (Server)“ oder „Gegenseitiges TLS“ anhaken.",
+            "mtlsRequiresBothMutual": "{{detail}}: Gegenseitiges TLS verlangt, dass beide Endpunkte es anbieten. An beiden unter Kommunikation → Sicherer Kanal (Endpunkt) „Gegenseitiges TLS“ anhaken.",
+            "handshakeMismatch": "{{detail}}: Ein Endpunkt bietet nur gegenseitiges TLS an, der andere gar kein TLS (kein Client-Zertifikat). Kommunikation → Sicherer Kanal (Endpunkt) an beiden abgleichen."
           }
         },
         "label_property": {}

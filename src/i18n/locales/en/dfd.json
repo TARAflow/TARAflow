@@ -272,9 +272,9 @@
             "missingCoupling": "physical coupling {{detail}}: couplingMode/stimulusDomain missing"
           },
           "tls": {
-            "noTerminator": "{{detail}}: flow uses TLS but neither endpoint terminates it. Set tlsTermination (server or mutual) on the terminating process.",
-            "mtlsRequiresBothMutual": "{{detail}}: mutual TLS requires both endpoints to be mutual-capable. Set tlsTermination=mutual on both processes.",
-            "handshakeMismatch": "{{detail}}: one endpoint requires mutual TLS while the other cannot present a client certificate. Align tlsTermination on both endpoints."
+            "noTerminator": "{{detail}}: the flow uses TLS but neither endpoint offers it. Tick “TLS (server)” or “Mutual TLS” under Communication → Secure channel (endpoint) of the terminating process.",
+            "mtlsRequiresBothMutual": "{{detail}}: mutual TLS requires both endpoints to offer it. Tick “Mutual TLS” under Communication → Secure channel (endpoint) on both.",
+            "handshakeMismatch": "{{detail}}: one endpoint offers only mutual TLS while the other offers no TLS (no client certificate). Align Communication → Secure channel (endpoint) on both."
           }
         },
         "label_property": {}
