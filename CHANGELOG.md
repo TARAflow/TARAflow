@@ -49,6 +49,13 @@ when opened (with a backup) and then no longer open in 0.17.x.
 - **Asset tab filter:** by asset type and by criticality "from level",
   across all group accordions, combinable with *Needs review only*; kept
   per project for the session, never in the file.
+- **Asset graph rows:** every category lane, the DFD-element lane and the
+  two free rows hold three rows to align assets on (dragging or Ctrl / ⌘ +
+  Shift + ↑ / ↓ snaps onto them, a lane's asset stays in its lane);
+  *Rearrange* spreads a crowded lane over its rows by the asset's links —
+  links to the layer above put it on the top row, to the layer below on
+  the bottom row — at most a third per row. Positions remembered by an
+  earlier version are placed anew once (view only, not in the file).
 - **Hazard tab findings panel** below the table, like the Asset tab: the
   validation's errors and warnings in the UI language, a click opens the
   hazard.

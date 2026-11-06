@@ -12,6 +12,7 @@ import React from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssetGraphView, positionsStorageKey, type AssetGraphSource } from "features/dfd/asset-graph";
+import { LANE_HEIGHT, ROW_HEIGHT } from "features/dfd/asset-graph/layout-asset-graph";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -136,14 +137,15 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     act(() => {
       window.dispatchEvent(new PointerEvent("pointerup", { clientX: 100, clientY: -5000 }));
     });
-    // Dragged far up: the topmost row, the second free row.
-    const free2Y = Number(screen.getByTestId("asset-graph-free-row-2").getAttribute("y")) - 6 + 140 / 2;
-    expect(at("h1")).toEqual([hx, free2Y]);
+    // Dragged far up: the topmost row — the upper of the second free row's three rows.
+    const free2Y = Number(screen.getByTestId("asset-graph-free-row-2").getAttribute("y")) - 6 + LANE_HEIGHT / 2;
+    expect(at("h1")).toEqual([hx, free2Y - ROW_HEIGHT]);
   });
 
-  it("a vertical-lane node does not leave its lane", () => {
+  it("a vertical-lane node does not leave its lane — it snaps onto one of its three rows", () => {
     view();
     const [x1, y1] = at("d1");
+    expect(screen.getAllByTestId("asset-graph-row-data")).toHaveLength(3);
     const node = screen.getByTestId("asset-graph-node-d1");
     fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 100 });
     act(() => {
@@ -152,7 +154,8 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     act(() => {
       window.dispatchEvent(new PointerEvent("pointerup", { clientX: 150, clientY: 400 }));
     });
-    expect(at("d1")).toEqual([x1 + 50, y1]);
+    // Far down: the lane's bottom row, not the lane below.
+    expect(at("d1")).toEqual([x1 + 50, y1 + ROW_HEIGHT]);
   });
 
   it("the move is remembered locally and kept on reopening; Rearrange discards it", () => {
@@ -175,9 +178,11 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     node.focus();
     fireEvent.keyDown(node, { key: "ArrowRight", ctrlKey: true, shiftKey: true });
     expect(at("d1")).toEqual([x1 + 50, y1]);
-    // ↑/↓ do not move a vertical-lane node.
+    // ↑/↓ move a vertical-lane node one row, inside its lane.
     fireEvent.keyDown(node, { key: "ArrowDown", ctrlKey: true, shiftKey: true });
-    expect(at("d1")).toEqual([x1 + 50, y1]);
+    expect(at("d1")).toEqual([x1 + 50, y1 + ROW_HEIGHT]);
+    fireEvent.keyDown(node, { key: "ArrowDown", ctrlKey: true, shiftKey: true });
+    expect(at("d1")).toEqual([x1 + 50, y1 + ROW_HEIGHT]);
   });
 
   it("Ctrl / ⌘ + Shift + ↓ moves a side-column node one row down", () => {
@@ -187,6 +192,6 @@ describe("AssetGraphView — moving a node (FR-V17)", () => {
     const node = screen.getByTestId("asset-graph-node-h1");
     node.focus();
     fireEvent.keyDown(node, { key: "ArrowDown", ctrlKey: true, shiftKey: true });
-    expect(at("h1")).toEqual([hx, hy + 140]);
+    expect(at("h1")).toEqual([hx, hy + ROW_HEIGHT]);
   });
 });

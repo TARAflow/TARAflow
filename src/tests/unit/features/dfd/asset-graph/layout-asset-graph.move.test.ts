@@ -1,16 +1,21 @@
 // tests/unit/features/dfd/asset-graph/layout-asset-graph.move.test.ts
 //
 // Asset graph design FR-V17 / FR-V17d (doc/InProgress/DFD/asset-graph-
-// hazards-and-node-move.md): moveNode moves a vertical-lane node along its
-// lane only; a side-column node moves freely in x and snaps in y to a row
-// (the lane heights, plus the free row above the top lane, FR-V17g); the
-// moved position stays put in the next layout (AR-12).
+// hazards-and-node-move.md): moveNode keeps a vertical-lane node in its lane
+// and snaps it onto one of the lane's three rows (user 2026-11-06); a
+// side-column node moves freely in x and snaps in y to the row grid (lanes
+// and the two free rows above the top lane, three rows each, FR-V17g); the
+// moved position stays put in the next layout (AR-12). A full layout spreads
+// a crowded lane over its rows by the nodes' links.
 
 import { describe, it, expect } from "vitest";
 import {
   FREE_LANE,
   FREE_LANE_2,
   LANE_HEIGHT,
+  ROW_HEIGHT,
+  SPREAD_FROM,
+  laneRows,
   layoutAssetGraph,
   moveNode,
 } from "features/dfd/asset-graph/layout-asset-graph";
@@ -35,11 +40,19 @@ describe("moveNode", () => {
   const lane = (id: string) => layout.lanes.find((l) => l.id === id)!;
   const opts = (sideColumn: boolean) => ({ sideColumn, lanes: layout.lanes });
 
-  it("a vertical-lane node moves along its lane only", () => {
-    const moved = moveNode(layout.positions, "d1", 123.4, 300, opts(false));
+  it("a vertical-lane node starts on the middle row and moves onto the lane's rows only", () => {
     const before = layout.positions.get("d1")!;
-    expect(moved.get("d1")).toEqual({ x: Math.round(before.x + 123.4), y: before.y });
-    for (const id of ["d2", "f1", "s1", "h1"]) expect(moved.get(id)).toEqual(layout.positions.get(id));
+    expect(before.y).toBe(lane("data").y);
+    const down = moveNode(layout.positions, "d1", 123.4, ROW_HEIGHT * 0.8, opts(false));
+    expect(down.get("d1")).toEqual({ x: Math.round(before.x + 123.4), y: lane("data").y + ROW_HEIGHT });
+    // Far up: the lane's top row, never the lane above.
+    expect(moveNode(layout.positions, "d1", 0, -10000, opts(false)).get("d1")!.y).toBe(lane("data").y - ROW_HEIGHT);
+    for (const id of ["d2", "f1", "s1", "h1"]) expect(down.get(id)).toEqual(layout.positions.get(id));
+  });
+
+  it("a node moved onto another row of its lane keeps it in the next layout", () => {
+    const moved = moveNode(layout.positions, "d1", 0, -ROW_HEIGHT, opts(false));
+    expect(layoutAssetGraph(graph, moved).positions.get("d1")).toEqual(moved.get("d1"));
   });
 
   it("a side-column node moves freely in x, into the vertical lanes too", () => {
@@ -51,11 +64,15 @@ describe("moveNode", () => {
   it("…and snaps in y to the nearest row, between the top and the bottom lane", () => {
     const before = layout.positions.get("h1")!;
     const toSystem = lane("system").y - before.y;
-    expect(moveNode(layout.positions, "h1", 0, toSystem + LANE_HEIGHT * 0.3, opts(true)).get("h1")!.y).toBe(
+    expect(moveNode(layout.positions, "h1", 0, toSystem + ROW_HEIGHT * 0.3, opts(true)).get("h1")!.y).toBe(
       lane("system").y,
     );
-    const top = Math.min(...layout.lanes.map((l) => l.y));
-    const bottom = Math.max(...layout.lanes.map((l) => l.y));
+    expect(moveNode(layout.positions, "h1", 0, toSystem + ROW_HEIGHT * 0.8, opts(true)).get("h1")!.y).toBe(
+      lane("system").y + ROW_HEIGHT,
+    );
+    const rows = layout.lanes.flatMap(laneRows);
+    const top = Math.min(...rows);
+    const bottom = Math.max(...rows);
     expect(moveNode(layout.positions, "h1", 0, -10000, opts(true)).get("h1")!.y).toBe(top);
     expect(moveNode(layout.positions, "h1", 0, 10000, opts(true)).get("h1")!.y).toBe(bottom);
   });
@@ -79,18 +96,63 @@ describe("moveNode", () => {
   });
 });
 
-describe("layout rows (vertical lanes at one height)", () => {
-  it("all nodes of a vertical lane share the lane's height", () => {
-    const many = {
-      nodes: Array.from({ length: 12 }, (_, i) => node(`d${i}`, "data")).concat([node("h1", "human"), node("h2", "human")]),
-      edges: Array.from({ length: 12 }, (_, i) => ({ id: `e${i}`, kind: "a2a" as const, source: `d${i}`, target: "h1", relationType: "x" })),
+const edge = (source: string, target: string, i: number) => ({ id: `e${i}`, kind: "a2a" as const, source, target, relationType: "x" });
+
+describe("layout rows (three per vertical lane)", () => {
+  it("a lane with few nodes keeps them on its middle row; the side column on its lane", () => {
+    const few = {
+      nodes: Array.from({ length: SPREAD_FROM - 1 }, (_, i) => node(`d${i}`, "data")).concat([node("h1", "human"), node("h2", "human")]),
+      edges: [],
     };
-    const { positions, lanes } = layoutAssetGraph(many);
+    const { positions, lanes } = layoutAssetGraph(few);
     const dataY = lanes.find((l) => l.id === "data")!.y;
-    for (let i = 0; i < 12; i++) expect(positions.get(`d${i}`)!.y).toBe(dataY);
+    for (let i = 0; i < SPREAD_FROM - 1; i++) expect(positions.get(`d${i}`)!.y).toBe(dataY);
     const humanY = lanes.find((l) => l.id === "human")!.y;
     expect(positions.get("h1")!.y).toBe(humanY);
     expect(positions.get("h2")!.y).toBe(humanY);
+  });
+
+  it("a crowded lane is spread over its three rows, at most a third each", () => {
+    const many = {
+      nodes: Array.from({ length: 12 }, (_, i) => node(`d${i}`, "data")).concat([node("h1", "human")]),
+      edges: Array.from({ length: 12 }, (_, i) => edge(`d${i}`, "h1", i)),
+    };
+    const { positions, lanes } = layoutAssetGraph(many);
+    const rows = laneRows(lanes.find((l) => l.id === "data")!);
+    const perRow = rows.map((y) => [...Array(12).keys()].filter((i) => positions.get(`d${i}`)!.y === y).length);
+    expect(perRow).toEqual([4, 4, 4]);
+  });
+
+  it("spread by links: up to the lane above → top row, down to the DFD elements → bottom row", () => {
+    const anchor = (id: string) => ({ kind: "anchor", id, displayId: id, name: id }) as unknown as AssetGraphNode;
+    const nodes = [
+      ...Array.from({ length: 9 }, (_, i) => node(`d${i}`, "data")),
+      node("f1", "function"),
+      anchor("anchor:p1"),
+    ];
+    // d0–d2 feed a function (up), d3–d5 sit on a DFD element (down), d6–d8 have no links.
+    const edges = [
+      ...[0, 1, 2].map((i) => edge(`d${i}`, "f1", i)),
+      ...[3, 4, 5].map((i) => edge("anchor:p1", `d${i}`, i)),
+    ];
+    const { positions, lanes } = layoutAssetGraph({ nodes, edges });
+    const [top, middle, bottom] = laneRows(lanes.find((l) => l.id === "data")!);
+    for (const i of [0, 1, 2]) expect(positions.get(`d${i}`)!.y).toBe(top);
+    for (const i of [3, 4, 5]) expect(positions.get(`d${i}`)!.y).toBe(bottom);
+    for (const i of [6, 7, 8]) expect(positions.get(`d${i}`)!.y).toBe(middle);
+  });
+
+  it("the spread is deterministic and only a full layout spreads — a new node takes the middle row", () => {
+    const many = {
+      nodes: Array.from({ length: 9 }, (_, i) => node(`d${i}`, "data")).concat([node("f1", "function")]),
+      edges: Array.from({ length: 9 }, (_, i) => edge(`d${i}`, "f1", i)),
+    };
+    const a = layoutAssetGraph(many);
+    expect([...layoutAssetGraph(many).positions]).toEqual([...a.positions]);
+    const grown = { nodes: [...many.nodes, node("d9", "data")], edges: [...many.edges, edge("d9", "f1", 9)] };
+    const next = layoutAssetGraph(grown, a.positions);
+    expect(next.positions.get("d9")!.y).toBe(a.lanes.find((l) => l.id === "data")!.y);
+    for (let i = 0; i < 9; i++) expect(next.positions.get(`d${i}`)).toEqual(a.positions.get(`d${i}`));
   });
 
   it("a remembered position slightly off its lane snaps back onto it", () => {
@@ -128,13 +190,17 @@ describe("two free rows above the top lane (FR-V17g)", () => {
   it("a side-column node can be moved into either and stays there; a vertical-lane node cannot", () => {
     const freeY = lane(FREE_LANE)!.y;
     const free2Y = lane(FREE_LANE_2)!.y;
+    // Three rows in each free row as well (user 2026-11-06).
+    expect(laneRows(lane(FREE_LANE)!)).toEqual([freeY - ROW_HEIGHT, freeY, freeY + ROW_HEIGHT]);
     const moved = moveNode(layout.positions, "h1", 0, -10000, { sideColumn: true, lanes: layout.lanes });
-    expect(moved.get("h1")!.y).toBe(free2Y);
-    const oneRow = moveNode(layout.positions, "h1", 0, freeY - layout.positions.get("h1")!.y, { sideColumn: true, lanes: layout.lanes });
-    expect(oneRow.get("h1")!.y).toBe(freeY);
+    expect(moved.get("h1")!.y).toBe(free2Y - ROW_HEIGHT);
+    for (const y of [...laneRows(lane(FREE_LANE)!), ...laneRows(lane(FREE_LANE_2)!)]) {
+      const to = moveNode(layout.positions, "h1", 0, y - layout.positions.get("h1")!.y, { sideColumn: true, lanes: layout.lanes });
+      expect(to.get("h1")!.y).toBe(y);
+    }
     expect(layoutAssetGraph(graph, moved).positions.get("h1")).toEqual(moved.get("h1"));
-    const d1 = moveNode(layout.positions, "s1", 0, -10000, { sideColumn: false, lanes: layout.lanes });
-    expect(d1.get("s1")).toEqual(layout.positions.get("s1"));
+    const s1 = moveNode(layout.positions, "s1", 0, -10000, { sideColumn: false, lanes: layout.lanes });
+    expect(s1.get("s1")!.y).toBe(lane("system")!.y - ROW_HEIGHT);
   });
 
   it("no free row without a side column", () => {

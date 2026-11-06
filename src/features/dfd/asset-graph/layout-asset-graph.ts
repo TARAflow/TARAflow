@@ -7,9 +7,15 @@
 //     (process, service, physical, human; environment next to human).
 //     Element anchors get their own lane below data. Hazard Items get a lane
 //     in the side column directly above human (G1).
-//   - Every node sits exactly on a row (fixed y): the nodes of a vertical
-//     lane all at the lane's height, side-column nodes on their row — or, once
-//     moved, on the row they were moved to (FR-V17, rows = lane heights).
+//   - Every node sits exactly on a row (fixed y). A vertical lane, the anchor
+//     lane and the free rows hold three rows each (ROWS_PER_LANE, user
+//     2026-11-06): new nodes take the middle one, a node moved up or down
+//     snaps onto one of the three. Side-column nodes sit on their lane's row
+//     — or, once moved, on any row of the ROW_HEIGHT grid (FR-V17).
+//   - A full layout ("Rearrange", first build) spreads a crowded lane over
+//     its three rows by the node's links: mostly to the lanes above → top
+//     row, mostly below → bottom row, else middle; then balanced, so no row
+//     holds more than a third (rounded up). Fewer crossings, a narrower lane.
 //     d3-force only spreads them horizontally: a pull to the node's slot
 //     (vertical lanes) or to the column (side column), weak link forces,
 //     collision. Run synchronously to rest.
@@ -43,7 +49,13 @@ export interface Point {
 
 export type Positions = ReadonlyMap<string, Point>;
 
-export const LANE_HEIGHT = 140;
+/** Distance between two rows — a node with its name below needs about 100 px. */
+export const ROW_HEIGHT = 100;
+/** Rows of a vertical lane, the anchor lane and a free row: above, middle, below. */
+export const ROWS_PER_LANE = 3;
+export const LANE_HEIGHT = ROW_HEIGHT * ROWS_PER_LANE;
+/** A full layout spreads a lane over its rows from this many nodes on. */
+export const SPREAD_FROM = 7;
 export const NODE_SPACING = 150;
 export const NODE_RADIUS = 34;
 /** Gap between the widest vertical lane and the side column. */
@@ -105,6 +117,8 @@ function laneKey(node: AssetGraphNode): string {
 function computeLanes(
   nodes: readonly AssetGraphNode[],
   extraLanes: readonly string[] = [],
+  /** Nodes on the fullest row of the vertical / anchor lanes — sets the side column's x. */
+  widestRow?: number,
 ): Map<string, LaneSlot> {
   const counts = new Map<string, number>();
   for (const n of nodes) counts.set(laneKey(n), (counts.get(laneKey(n)) ?? 0) + 1);
@@ -126,7 +140,7 @@ function computeLanes(
 
   const widest = Math.max(
     1,
-    ...[...VERTICAL_LAYERS, ANCHOR_LANE].map((l) => counts.get(l) ?? 0),
+    widestRow ?? Math.max(0, ...[...VERTICAL_LAYERS, ANCHOR_LANE].map((l) => counts.get(l) ?? 0)),
   );
   const columnX = (widest - 1) * NODE_SPACING + COLUMN_GAP;
   // Side column rows; environment shares the human row, one step further out.
@@ -168,12 +182,89 @@ interface SimNode extends SimulationNodeDatum {
   slotX?: number;
 }
 
-/** The rows a side-column node can sit on: lane heights, top to bottom lane. */
+/** A lane with three rows (vertical lanes, anchors, free rows); the side column has one per lane. */
+const hasRows = (lane: AssetGraphLane) => lane.kind !== "orthogonal";
+
+/** The rows of a lane, top to bottom. */
+export function laneRows(lane: AssetGraphLane): number[] {
+  if (!hasRows(lane)) return [lane.y];
+  const half = Math.floor(ROWS_PER_LANE / 2);
+  return Array.from({ length: ROWS_PER_LANE }, (_, i) => lane.y + (i - half) * ROW_HEIGHT);
+}
+
+/** The rows a side-column node can sit on: the ROW_HEIGHT grid from the top to the bottom row. */
 function snapToRow(y: number, lanes: readonly AssetGraphLane[]): number {
   if (lanes.length === 0) return y;
-  const ys = lanes.map((l) => l.y);
-  const row = Math.round(y / LANE_HEIGHT) * LANE_HEIGHT;
+  const ys = lanes.flatMap(laneRows);
+  const row = Math.round(y / ROW_HEIGHT) * ROW_HEIGHT;
   return Math.min(Math.max(row, Math.min(...ys)), Math.max(...ys));
+}
+
+/** The row of `lane` nearest to `y` — a node of a lane with rows stays inside its lane. */
+function snapToLaneRow(y: number, lane: AssetGraphLane): number {
+  return laneRows(lane).reduce((best, r) => (Math.abs(r - y) < Math.abs(best - y) ? r : best));
+}
+
+/** Bottom → top position of the lanes with rows that links point between (anchors below data). */
+function laneLevel(key: string): number | undefined {
+  if (key === ANCHOR_LANE) return -1;
+  const i = VERTICAL_LAYERS.indexOf(key as (typeof VERTICAL_LAYERS)[number]);
+  return i === -1 ? undefined : i;
+}
+
+/**
+ * Row offset per node of a crowded lane for a full layout: -1 top, 0 middle,
+ * +1 bottom (in rows). By its links — up to a higher lane → top, down → bottom,
+ * both or none → middle; then each row holds at most ceil(n / 3), the nodes
+ * with the weakest preference move first, towards the middle. Deterministic:
+ * ties keep the node order.
+ */
+function spreadOverRows(
+  nodes: readonly AssetGraphNode[],
+  edges: AssetGraph["edges"],
+): Map<string, number> {
+  const keyOf = new Map(nodes.map((n) => [n.id, laneKey(n)]));
+  const pull = new Map<string, number>();
+  for (const e of edges) {
+    const a = laneLevel(keyOf.get(e.source) ?? "");
+    const b = laneLevel(keyOf.get(e.target) ?? "");
+    if (a === undefined || b === undefined || a === b) continue;
+    pull.set(e.source, (pull.get(e.source) ?? 0) + Math.sign(b - a));
+    pull.set(e.target, (pull.get(e.target) ?? 0) + Math.sign(a - b));
+  }
+  const offsets = new Map<string, number>();
+  const byLane = new Map<string, AssetGraphNode[]>();
+  for (const n of nodes) {
+    if (laneLevel(laneKey(n)) === undefined) continue;
+    (byLane.get(laneKey(n)) ?? byLane.set(laneKey(n), []).get(laneKey(n))!).push(n);
+  }
+  for (const members of byLane.values()) {
+    if (members.length < SPREAD_FROM) continue;
+    const cap = Math.ceil(members.length / ROWS_PER_LANE);
+    const rows = new Map<number, AssetGraphNode[]>([[-1, []], [0, []], [1, []]]);
+    for (const n of members) {
+      const p = pull.get(n.id) ?? 0;
+      rows.get(p > 0 ? -1 : p < 0 ? 1 : 0)!.push(n);
+    }
+    const strength = (n: AssetGraphNode) => Math.abs(pull.get(n.id) ?? 0);
+    // Outer rows give their weakest to the middle, then the middle gives to the emptier outer row.
+    for (const outer of [-1, 1]) {
+      const row = rows.get(outer)!;
+      row.sort((a, b) => strength(b) - strength(a) || members.indexOf(a) - members.indexOf(b));
+      while (row.length > cap) rows.get(0)!.push(row.pop()!);
+    }
+    const middle = rows.get(0)!;
+    middle.sort((a, b) => members.indexOf(a) - members.indexOf(b));
+    while (middle.length > cap) {
+      const target = rows.get(-1)!.length <= rows.get(1)!.length ? -1 : 1;
+      // The node whose links lean that way, else the last one.
+      const lean = (n: AssetGraphNode) => Math.sign(pull.get(n.id) ?? 0) === (target === -1 ? 1 : -1);
+      const i = middle.findIndex(lean);
+      rows.get(target)!.push(middle.splice(i === -1 ? middle.length - 1 : i, 1)[0]);
+    }
+    for (const [offset, row] of rows) for (const n of row) offsets.set(n.id, offset);
+  }
+  return offsets;
 }
 
 /**
@@ -185,7 +276,24 @@ export function layoutAssetGraph(
   previous: Positions = new Map(),
   options: { readonly extraLanes?: readonly string[] } = {},
 ): AssetGraphLayout {
-  const slots = computeLanes(graph.nodes, options.extraLanes);
+  // Rows: a full layout spreads crowded lanes; otherwise new nodes take the middle row.
+  const spread = previous.size === 0 ? spreadOverRows(graph.nodes, graph.edges) : new Map<string, number>();
+  const baseSlots = computeLanes(graph.nodes, options.extraLanes);
+  const rowOffset = (n: AssetGraphNode): number => {
+    const slot = baseSlots.get(laneKey(n))!;
+    const stored = previous.get(n.id);
+    if (stored && hasRows(slot.lane) && Math.abs(stored.y - slot.lane.y) <= LANE_HEIGHT / 2) {
+      return Math.round((snapToLaneRow(stored.y, slot.lane) - slot.lane.y) / ROW_HEIGHT);
+    }
+    return spread.get(n.id) ?? 0;
+  };
+  const rowCounts = new Map<string, number>();
+  for (const n of graph.nodes) {
+    if (laneLevel(laneKey(n)) === undefined) continue;
+    const k = `${laneKey(n)}:${rowOffset(n)}`;
+    rowCounts.set(k, (rowCounts.get(k) ?? 0) + 1);
+  }
+  const slots = computeLanes(graph.nodes, options.extraLanes, Math.max(0, ...rowCounts.values()));
   const lanes = [...slots.values()].map((s) => s.lane);
 
   // Neighbours (for placing new nodes next to a positioned one).
@@ -195,34 +303,35 @@ export function layoutAssetGraph(
     (neighbours.get(e.target) ?? neighbours.set(e.target, []).get(e.target)!).push(e.source);
   }
 
-  const indexInLane = new Map<string, number>();
-  const seenInLane = new Map<string, number>();
+  // Start slots per row (vertical lanes) or per lane (side column).
+  const indexInRow = new Map<string, number>();
+  const seenInRow = new Map<string, number>();
   for (const n of graph.nodes) {
-    const k = laneKey(n);
-    const i = seenInLane.get(k) ?? 0;
-    indexInLane.set(n.id, i);
-    seenInLane.set(k, i + 1);
+    const k = `${laneKey(n)}:${rowOffset(n)}`;
+    const i = seenInRow.get(k) ?? 0;
+    indexInRow.set(n.id, i);
+    seenInRow.set(k, i + 1);
   }
 
   const simNodes: SimNode[] = graph.nodes.map((n) => {
     const slot = slots.get(laneKey(n))!;
-    const laneY = slot.lane.y;
     const sideColumn = slot.lane.kind === "orthogonal";
+    const rowY = slot.lane.y + rowOffset(n) * ROW_HEIGHT;
     const stored = previous.get(n.id);
     const known =
-      stored && (sideColumn || Math.abs(stored.y - laneY) <= LANE_HEIGHT / 2)
+      stored && (sideColumn || Math.abs(stored.y - slot.lane.y) <= LANE_HEIGHT / 2)
         ? stored
         : undefined;
     if (known) {
-      // A vertical lane's nodes share its height; a side-column node keeps
-      // its row. Older remembered positions snap back onto it.
-      const y = sideColumn ? snapToRow(known.y, lanes) : laneY;
+      // A node of a lane with rows keeps its row inside the lane; a
+      // side-column node keeps its row. Older remembered positions snap.
+      const y = sideColumn ? snapToRow(known.y, lanes) : rowY;
       return { id: n.id, targetX: slot.targetX, x: known.x, y, fx: known.x, fy: y };
     }
     const placedNeighbour = (neighbours.get(n.id) ?? [])
       .map((id) => previous.get(id))
       .find((p): p is Point => p !== undefined);
-    const i = indexInLane.get(n.id)!;
+    const i = indexInRow.get(n.id)!;
     const x = placedNeighbour
       ? placedNeighbour.x + NODE_SPACING / 2
       : slot.targetX !== undefined
@@ -233,8 +342,8 @@ export function layoutAssetGraph(
       targetX: slot.targetX,
       slotX: slot.targetX === undefined ? x : undefined,
       x,
-      y: laneY,
-      fy: laneY,
+      y: rowY,
+      fy: rowY,
     };
   });
 
@@ -281,9 +390,10 @@ function round(v: number): number {
 /**
  * The positions after moving `id` by (`dx`, `dy`) graph units; every other
  * node stays where it is (FR-V17). A node of a vertical lane (or an anchor)
- * moves along its lane only: y stays the lane's height. A side-column node
- * (orthogonal layers, hazards) moves freely in x and snaps in y to the
- * nearest row — the lane heights from the top to the bottom lane (FR-V17d).
+ * stays in its lane: in y it snaps to the nearest of the lane's three rows.
+ * A side-column node (orthogonal layers, hazards) moves freely in x and
+ * snaps in y to the nearest row of the ROW_HEIGHT grid, from the top to the
+ * bottom row (FR-V17d).
  * The result is a known position for the next layout (AR-12).
  */
 export function moveNode(
@@ -296,7 +406,10 @@ export function moveNode(
   const next = new Map(positions);
   const p = positions.get(id);
   if (!p) return next;
-  const y = options.sideColumn ? snapToRow(p.y + dy, options.lanes) : p.y;
+  const own = options.lanes
+    .filter((l) => l.kind === "vertical" || l.kind === "anchors")
+    .reduce<AssetGraphLane | undefined>((best, l) => (!best || Math.abs(l.y - p.y) < Math.abs(best.y - p.y) ? l : best), undefined);
+  const y = options.sideColumn ? snapToRow(p.y + dy, options.lanes) : own ? snapToLaneRow(p.y + dy, own) : p.y;
   next.set(id, { x: round(p.x + dx), y });
   return next;
 }

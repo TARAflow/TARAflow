@@ -77,6 +77,8 @@ import {
   FREE_LANE,
   HAZARD_LANE,
   LANE_HEIGHT,
+  ROW_HEIGHT,
+  laneRows,
   NODE_SPACING,
   NODE_RADIUS,
   layoutAssetGraph,
@@ -865,12 +867,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     const node = nodeId ? graph.nodes.find((n) => n.id === nodeId) : undefined;
 
     // FR-V17e: Ctrl / ⌘ + Shift + arrows move the focused node — ←/→ by a
-    // third of the spacing, ↑/↓ a row (side column only).
+    // third of the spacing, ↑/↓ one row (inside its lane for a lane's node).
     const moveStep: Record<string, [number, number]> = {
       ArrowLeft: [-NODE_SPACING / 3, 0],
       ArrowRight: [NODE_SPACING / 3, 0],
-      ArrowUp: [0, -LANE_HEIGHT],
-      ArrowDown: [0, LANE_HEIGHT],
+      ArrowUp: [0, -ROW_HEIGHT],
+      ArrowDown: [0, ROW_HEIGHT],
     };
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && moveStep[e.key]) {
       const id = nodeId ?? focusedNodeId;
@@ -1572,6 +1574,21 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 ) : lane.kind !== "orthogonal" ? (
                   <rect x={-2000} y={lane.y - LANE_HEIGHT / 2 + 6} width={8000} height={LANE_HEIGHT - 12} fill={laneFill} />
                 ) : null}
+                {/* The lane's three rows to align nodes on (user 2026-11-06). */}
+                {lane.kind !== "orthogonal" &&
+                  laneRows(lane).map((y) => (
+                    <line
+                      key={y}
+                      x1={-2000}
+                      x2={6000}
+                      y1={y}
+                      y2={y}
+                      stroke={muted}
+                      strokeOpacity={0.18}
+                      strokeDasharray="2 8"
+                      data-testid={`asset-graph-row-${lane.id}`}
+                    />
+                  ))}
                 <text
                   x={lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2}
                   y={lane.y - LANE_HEIGHT / 2 + 20}
