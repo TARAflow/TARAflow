@@ -1,15 +1,16 @@
 // src/tests/component/asset-graph-view.unlinked.test.tsx
 //
-// User 2026-11-06: a filter in the asset graph's layer view that shows only
-// the assets without an asset-to-asset relation — also those linked only to
-// DFD elements or hazards — combinable with the layer presets.
+// User 2026-11-06: a relation filter in the asset graph's layer view — the
+// work lists of assets still to be linked: without an asset relation, without
+// a hazard relation, without any relation (asset, hazard, DFD element);
+// combinable with the layer presets.
 
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AssetGraphView, type AssetGraphSource } from "features/dfd/asset-graph";
-import { assetIdsWithoutA2A } from "features/dfd/asset-graph/asset-graph-query";
-import type { A2ARelation } from "shared";
+import { assetIdsByRelationFilter } from "features/dfd/asset-graph/asset-graph-query";
+import type { A2ARelation, HazardItem, HazardRelation } from "shared";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -24,9 +25,16 @@ afterEach(cleanup);
 const rel = (id: string, s: string, t: string) =>
   ({ id, sourceAssetId: s, targetAssetId: t, relationType: "required_by" }) as A2ARelation;
 
-// d1 – f1 linked; d2 only on a DFD element; d3 nothing; p1 nothing (process);
-// a relation to a deleted asset does not count (d4).
-const source: AssetGraphSource = {
+// d1 – f1 linked; d2 only on a DFD element; d3 nothing; d4 only a relation to
+// a deleted asset; p1 contributes to a hazard; h1 (human) endangered.
+const hazards = {
+  items: [{ id: "H1", label: "Fire", combinationType: "ANY", source: "manual" } as unknown as HazardItem],
+  relations: [
+    { type: "contributes_to", from: "p1", to: "H1", relevance: "direct", hazardDistance: 1 },
+    { type: "endangers", from: "H1", to: "h1", impact: { target: "human", severity: "fatal" } },
+  ] as unknown as HazardRelation[],
+};
+const base: AssetGraphSource = {
   assets: [
     { id: "d1", displayId: "DA-001", name: "Measure Data", assetGroup: "data" },
     { id: "d2", displayId: "DA-002", name: "Calibration", assetGroup: "data" },
@@ -34,52 +42,77 @@ const source: AssetGraphSource = {
     { id: "d4", displayId: "DA-004", name: "Orphan link", assetGroup: "data" },
     { id: "f1", displayId: "FU-001", name: "E-Stop", assetGroup: "function" },
     { id: "p1", displayId: "PR-001", name: "Shutdown", assetGroup: "process" },
+    { id: "h1", displayId: "HU-001", name: "Operator", assetGroup: "human" },
   ],
   relations: [rel("r1", "d1", "f1"), rel("r2", "d4", "gone")],
   elements: [{ id: "pe", displayId: "P-1", type: "Process", assetRelations: [{ assetId: "d2", relationType: "processes" }] }],
 };
+const withHazards: AssetGraphSource = { ...base, hazards };
 
-const view = () =>
+const view = (source: AssetGraphSource) =>
   render(<AssetGraphView source={source} selectedAssetId={null} onSelectAsset={vi.fn()} onShowElement={vi.fn()} />);
 const node = (id: string) => screen.queryByTestId(`asset-graph-node-${id}`);
+const open = () => fireEvent.mouseDown(within(screen.getByTestId("asset-graph-relation-filter")).getByRole("combobox"));
+const choose = (f: string) => {
+  open();
+  fireEvent.click(screen.getByTestId(`asset-graph-relation-filter-${f}`));
+};
+const shown = (ids: string[]) => ids.filter((id) => node(id));
 
-describe("asset graph — without asset relation", () => {
-  it("helper: no relation, only a DFD link, or a link to a deleted asset", () => {
-    expect([...assetIdsWithoutA2A(source)].sort()).toEqual(["d2", "d3", "d4", "p1"]);
+describe("asset graph — relation filter", () => {
+  it("helper: the assets each filter keeps", () => {
+    const by = assetIdsByRelationFilter(withHazards);
+    expect([...by.noAsset].sort()).toEqual(["d2", "d3", "d4", "h1", "p1"]);
+    expect([...by.noHazard].sort()).toEqual(["d1", "d2", "d3", "d4", "f1"]);
+    expect([...by.none].sort()).toEqual(["d3", "d4"]);
   });
 
-  it("the chip counts them and shows only them; off again shows everything", () => {
-    view();
-    const chip = screen.getByTestId("asset-graph-unlinked");
-    expect(chip).toHaveTextContent("Without asset relation (4)");
-    fireEvent.click(chip);
-    expect(chip).toHaveAttribute("aria-pressed", "true");
-    for (const id of ["d2", "d3", "d4", "p1"]) expect(node(id)).toBeInTheDocument();
-    for (const id of ["d1", "f1"]) expect(node(id)).toBeNull();
-    fireEvent.click(chip);
-    for (const id of ["d1", "f1", "d2"]) expect(node(id)).toBeInTheDocument();
+  it("offers all four with their counts; each shows only its assets; All shows everything", () => {
+    view(withHazards);
+    open();
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "All assets",
+      "Without asset relation (5)",
+      "Without hazard relation (5)",
+      "Without any relation (2)",
+    ]);
+    fireEvent.click(screen.getByTestId("asset-graph-relation-filter-none"));
+    const ids = ["d1", "d2", "d3", "d4", "f1", "p1", "h1"];
+    expect(shown(ids)).toEqual(["d3", "d4"]);
+    choose("noHazard");
+    expect(shown(ids)).toEqual(["d1", "d2", "d3", "d4", "f1"]);
+    choose("noAsset");
+    expect(shown(ids)).toEqual(["d2", "d3", "d4", "p1", "h1"]);
+    choose("all");
+    expect(shown(ids)).toEqual(ids);
   });
 
-  it("combines with a preset: architecture hides the process", () => {
-    view();
+  it("combines with a preset: counts and assets of the architecture layers only", () => {
+    view(withHazards);
     fireEvent.mouseDown(within(screen.getByTestId("asset-graph-preset")).getByRole("combobox"));
     fireEvent.click(within(screen.getByRole("listbox")).getByRole("option", { name: "architecture" }));
-    const chip = screen.getByTestId("asset-graph-unlinked");
-    expect(chip).toHaveTextContent("(3)");
-    fireEvent.click(chip);
-    for (const id of ["d2", "d3", "d4"]) expect(node(id)).toBeInTheDocument();
-    expect(node("p1")).toBeNull();
-    expect(node("d1")).toBeNull();
+    open();
+    expect(screen.getByTestId("asset-graph-relation-filter-noAsset")).toHaveTextContent("(3)");
+    fireEvent.click(screen.getByTestId("asset-graph-relation-filter-noAsset"));
+    expect(shown(["d2", "d3", "d4", "p1", "d1"])).toEqual(["d2", "d3", "d4"]);
   });
 
-  it("not offered in the focus view; Reset turns it off", () => {
-    view();
-    fireEvent.click(screen.getByTestId("asset-graph-unlinked"));
+  it("without hazards in the project: no hazard entry; 'any' checks asset and DFD links", () => {
+    view(base);
+    open();
+    expect(screen.queryByTestId("asset-graph-relation-filter-noHazard")).toBeNull();
+    expect(screen.getByTestId("asset-graph-relation-filter-none")).toHaveTextContent("(4)"); // d3, d4, p1, h1
+  });
+
+  it("not offered in the focus view; Reset sets All", () => {
+    view(withHazards);
+    choose("none");
     fireEvent.click(screen.getByTestId("asset-graph-view-focus"));
-    expect(screen.queryByTestId("asset-graph-unlinked")).toBeNull();
+    expect(screen.queryByTestId("asset-graph-relation-filter")).toBeNull();
     fireEvent.click(screen.getByTestId("asset-graph-view-layers"));
     fireEvent.click(screen.getByText("Reset"));
-    expect(screen.getByTestId("asset-graph-unlinked")).toHaveAttribute("aria-pressed", "false");
     expect(node("d1")).toBeInTheDocument();
+    open();
+    expect(screen.getByTestId("asset-graph-relation-filter-all")).toHaveAttribute("aria-selected", "true");
   });
 });

@@ -134,7 +134,9 @@ import {
   assetVisibility,
   invalidLinks,
   relationTypesIn,
-  assetIdsWithoutA2A,
+  assetIdsByRelationFilter,
+  ASSET_RELATION_FILTERS,
+  type AssetRelationFilter,
   searchAssets,
   sourceOnPages,
   type AssetVisibility,
@@ -201,8 +203,8 @@ interface ViewState {
   showHazards: boolean;
   /** Shown relation types; null = all (FR-V10). */
   relationTypes: string[] | null;
-  /** Layer view: only assets without an asset-to-asset relation (user 2026-11-06). */
-  onlyUnlinked: boolean;
+  /** Layer view: only assets without some kind of relation (user 2026-11-06). */
+  relationFilter: AssetRelationFilter;
 }
 
 // Start (and "Reset"): preset "All" with the Hazard Items — everything is
@@ -216,7 +218,14 @@ const DEFAULT_STATE: ViewState = {
   anchorsInFocus: true,
   showHazards: true,
   relationTypes: null,
-  onlyUnlinked: false,
+  relationFilter: "all",
+};
+
+/** English default of each relation filter entry (FR: user 2026-11-06). */
+const RELATION_FILTER_TEXT: Record<Exclude<AssetRelationFilter, "all">, string> = {
+  noAsset: "Without asset relation ({{count}})",
+  noHazard: "Without hazard relation ({{count}})",
+  none: "Without any relation ({{count}})",
 };
 
 /** Presets that show the Hazard Items (G3). */
@@ -329,18 +338,20 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     [shownSource, source],
   );
 
-  // Assets without an asset-to-asset relation — over the whole model, not the page.
-  const unlinkedIds = useMemo(() => assetIdsWithoutA2A(source), [source]);
-  const unlinkedCount = useMemo(
-    () =>
-      shownSource.assets.filter((a) => unlinkedIds.has(a.id) && state.layers.includes(a.assetGroup as AssetGroup))
-        .length,
-    [shownSource, unlinkedIds, state.layers],
-  );
-  const unlinkedOnly = state.onlyUnlinked && state.view === "layers";
+  // Relation filter — the matching assets over the whole model, not the page.
+  const byRelation = useMemo(() => assetIdsByRelationFilter(source), [source]);
+  const hasHazards = (source.hazards?.items.length ?? 0) > 0;
+  const relationFilters = ASSET_RELATION_FILTERS.filter((f) => f !== "noHazard" || hasHazards);
+  const relationFilter = relationFilters.includes(state.relationFilter) ? state.relationFilter : "all";
+  const relationCount = (f: Exclude<AssetRelationFilter, "all">) =>
+    shownSource.assets.filter((a) => byRelation[f].has(a.id) && state.layers.includes(a.assetGroup as AssetGroup)).length;
+  const filterOn = relationFilter !== "all" && state.view === "layers";
   const graphSource = useMemo(
-    () => (unlinkedOnly ? { ...shownSource, assets: shownSource.assets.filter((a) => unlinkedIds.has(a.id)) } : shownSource),
-    [unlinkedOnly, shownSource, unlinkedIds],
+    () =>
+      filterOn
+        ? { ...shownSource, assets: shownSource.assets.filter((a) => byRelation[relationFilter].has(a.id)) }
+        : shownSource,
+    [filterOn, relationFilter, shownSource, byRelation],
   );
 
   const graph = useMemo(
@@ -1261,31 +1272,29 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         </Tooltip>
         {state.view === "layers" && (
           <Tooltip
-            title={
-              unlinkedCount === 0 && !state.onlyUnlinked
-                ? t("tabs.dfd.assetGraph.unlinked.none", { defaultValue: "Every asset has an asset relation" })
-                : t("tabs.dfd.assetGraph.unlinked.tooltip", {
-                    defaultValue:
-                      "Show only the assets without a relation to another asset — links to DFD elements and hazards do not count",
-                  })
-            }
+            title={t("tabs.dfd.assetGraph.relationFilter.tooltip", {
+              defaultValue: "Show only the assets still to be linked",
+            })}
           >
-            <span>
-              <Chip
-                size="small"
-                icon={<LinkOffIcon />}
-                label={t("tabs.dfd.assetGraph.unlinked.label", {
-                  defaultValue: "Without asset relation ({{count}})",
-                  count: unlinkedCount,
-                })}
-                color={state.onlyUnlinked ? "warning" : "default"}
-                variant={state.onlyUnlinked ? "filled" : "outlined"}
-                disabled={unlinkedCount === 0 && !state.onlyUnlinked}
-                onClick={() => setState((s) => ({ ...s, onlyUnlinked: !s.onlyUnlinked }))}
-                aria-pressed={state.onlyUnlinked}
-                data-testid="asset-graph-unlinked"
-              />
-            </span>
+            <Select
+              size="small"
+              value={relationFilter}
+              onChange={(e) => setState((s) => ({ ...s, relationFilter: e.target.value as AssetRelationFilter }))}
+              data-testid="asset-graph-relation-filter"
+              startAdornment={<LinkOffIcon fontSize="small" sx={{ mr: 0.5, color: relationFilter === "all" ? "action.active" : "warning.main" }} />}
+              sx={{ minWidth: 200 }}
+            >
+              {relationFilters.map((f) => (
+                <MenuItem key={f} value={f} data-testid={`asset-graph-relation-filter-${f}`}>
+                  {f === "all"
+                    ? t("tabs.dfd.assetGraph.relationFilter.all", { defaultValue: "All assets" })
+                    : t(`tabs.dfd.assetGraph.relationFilter.${f}`, {
+                        defaultValue: RELATION_FILTER_TEXT[f],
+                        count: relationCount(f),
+                      })}
+                </MenuItem>
+              ))}
+            </Select>
           </Tooltip>
         )}
         <Menu anchorEl={layerMenu} open={!!layerMenu} onClose={() => setLayerMenu(null)}>

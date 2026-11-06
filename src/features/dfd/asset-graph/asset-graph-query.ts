@@ -40,19 +40,45 @@ export function relationTypesIn(source: AssetGraphSource): RelationTypeCount[] {
 }
 
 /**
- * Assets without any asset-to-asset relation (user 2026-11-06): the work list
- * of assets still to be linked. Links to DFD elements and hazard edges do not
- * count; a relation to an asset that no longer exists does not either.
+ * Relation filter of the layer view (user 2026-11-06): the work lists of
+ * assets still to be linked.
+ *   noAsset   no asset-to-asset relation (DFD and hazard links allowed)
+ *   noHazard  linked to no hazard — neither contributes_to nor endangers
+ *   none      no relation at all: no asset, no hazard, no DFD element
+ * A relation to an asset or hazard that no longer exists does not count.
  */
-export function assetIdsWithoutA2A(source: AssetGraphSource): Set<string> {
+export type AssetRelationFilter = "all" | "noAsset" | "noHazard" | "none";
+
+export const ASSET_RELATION_FILTERS: readonly AssetRelationFilter[] = ["all", "noAsset", "noHazard", "none"];
+
+/** The asset ids each filter keeps (over the whole model, not a page). */
+export function assetIdsByRelationFilter(source: AssetGraphSource): Record<Exclude<AssetRelationFilter, "all">, Set<string>> {
   const ids = new Set(source.assets.map((a) => a.id));
-  const linked = new Set<string>();
+  const withAsset = new Set<string>();
   for (const r of source.relations) {
     if (!ids.has(r.sourceAssetId) || !ids.has(r.targetAssetId)) continue;
-    linked.add(r.sourceAssetId);
-    linked.add(r.targetAssetId);
+    withAsset.add(r.sourceAssetId);
+    withAsset.add(r.targetAssetId);
   }
-  return new Set([...ids].filter((id) => !linked.has(id)));
+  const hazardIds = new Set((source.hazards?.items ?? []).map((h) => h.id as string));
+  const withHazard = new Set<string>();
+  for (const r of source.hazards?.relations ?? []) {
+    if (isContributesTo(r) && hazardIds.has(r.to)) withHazard.add(r.from);
+    if (isEndangers(r) && hazardIds.has(r.from)) withHazard.add(r.to);
+  }
+  const withElement = new Set<string>();
+  for (const el of source.elements) for (const r of el.assetRelations ?? []) withElement.add(r.assetId);
+  const without = (...linked: Set<string>[]) => new Set([...ids].filter((id) => !linked.some((l) => l.has(id))));
+  return {
+    noAsset: without(withAsset),
+    noHazard: without(withHazard),
+    none: without(withAsset, withHazard, withElement),
+  };
+}
+
+/** Assets without any asset-to-asset relation (filter "noAsset"). */
+export function assetIdsWithoutA2A(source: AssetGraphSource): Set<string> {
+  return assetIdsByRelationFilter(source).noAsset;
 }
 
 /** Assets whose displayId or name contains the query (case-insensitive). */
