@@ -565,6 +565,13 @@
         },
         "title": "Element-Beschreibungen",
         "safetyAnnotation": { "title": "Safety-Annotationen" },
+        "newAsset": {
+          "tooltip": "Neues Asset — später mit Elementen verknüpfen",
+          "name": "Name",
+          "group": "Kategorie",
+          "create": "Anlegen",
+          "none": "Noch keine Assets — mit „+“ anlegen oder in einem Element verknüpfen."
+        },
         "assets": "Assets",
         "dataFlows": "Datenflüsse",
         "tabs": {

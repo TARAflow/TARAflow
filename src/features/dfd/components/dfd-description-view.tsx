@@ -6,7 +6,7 @@
 // 3. Improved React.memo with shallow equality instead of JSON.stringify
 // 4. Eliminated unnecessary re-renders through stable dependencies
 
-import React, { useMemo, useCallback, useEffect } from "react";
+import React, { useMemo, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -18,6 +18,8 @@ import {
   Stack,
   Alert,
   Paper,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import {
   ExpandMore as ExpandMoreIcon,
@@ -32,6 +34,7 @@ import {
   Cable as InterfaceIcon,
   MonetizationOnOutlined as AssetIcon,
   Memory as ChipBoundaryIcon,
+  Add as AddIcon,
   LockOutlined as PhysicalBoundaryIcon,
   Sensors as SensorIcon,
   PrecisionManufacturing as ActuatorIcon,
@@ -63,6 +66,7 @@ import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form"
 import { SensorDescriptionForm } from "./forms/sensor-description-form";
 import { ActuatorDescriptionForm } from "./forms/actuator-description-form";
 import { AssetDescriptionForm } from "./forms/asset-description-form";
+import { NewAssetInline } from "./new-asset-inline";
 import { RecordDescriptionField } from "./forms/record-description-field";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 
@@ -274,6 +278,8 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
   refinementCandidates,
 }) => {
   const { t } = useTranslation();
+  // "+" in the Assets accordion: the inline form for a new asset (user 2026-11-06).
+  const [creatingAsset, setCreatingAsset] = useState(false);
 
   // Convert assets to AvailableAsset format for forms
   const availableAssets = useMemo(
@@ -474,56 +480,93 @@ export const DFDDescriptionView: React.FC<DFDDescriptionViewProps> = ({
           );
         })}
 
-        {/* Assets */}
-        {assets.length > 0 && (
-          <Accordion
-            expanded={expandedGroups.includes("assets")}
-            onChange={(event, isExpanded) => onToggleGroup("assets")} // ✅ Inline callback!
-            sx={{ mb: 2 }}
+        {/* Assets — always shown, with "+" for a new asset (user 2026-11-06) */}
+        <Accordion
+          expanded={expandedGroups.includes("assets")}
+          onChange={() => onToggleGroup("assets")}
+          sx={{ mb: 2 }}
+          data-testid="description-assets"
+        >
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            sx={{
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "action.hover" },
+            }}
           >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              sx={{
-                bgcolor: "background.paper",
-                "&:hover": { bgcolor: "action.hover" },
-              }}
-            >
-              <Stack direction="row" spacing={2} alignItems="center">
-                <AssetIcon fontSize="small" sx={{ mr: 1 }} />
-                <Typography variant="subtitle1">
-                  {t("tabs.dfd.element_description.assets", {
-                    defaultValue: "Assets",
+            <Stack direction="row" spacing={2} alignItems="center">
+              <AssetIcon fontSize="small" sx={{ mr: 1 }} />
+              <Typography variant="subtitle1">
+                {t("tabs.dfd.element_description.assets", {
+                  defaultValue: "Assets",
+                })}
+              </Typography>
+              <Chip
+                label={`${stats.describedAssets}/${stats.totalAssets}`}
+                size="small"
+                color={
+                  stats.totalAssets > 0 && stats.describedAssets === stats.totalAssets
+                    ? "success"
+                    : "default"
+                }
+                variant="outlined"
+              />
+              {onCreateAsset && (
+                <Tooltip
+                  title={t("tabs.dfd.element_description.newAsset.tooltip", {
+                    defaultValue: "New asset — link it to elements later",
                   })}
-                </Typography>
-                <Chip
-                  label={`${stats.describedAssets}/${stats.totalAssets}`}
-                  size="small"
-                  color={
-                    stats.describedAssets === stats.totalAssets
-                      ? "success"
-                      : "default"
-                  }
-                  variant="outlined"
-                />
-              </Stack>
-            </AccordionSummary>
+                >
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCreatingAsset(true);
+                      if (!expandedGroups.includes("assets")) onToggleGroup("assets");
+                    }}
+                    data-testid="description-new-asset"
+                  >
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Stack>
+          </AccordionSummary>
 
-            <AccordionDetails sx={{ p: 0 }}>
-              {assets.map((asset) => (
-                <AssetAccordion
-                  key={asset.id}
-                  asset={asset}
-                  allAssets={assets}
-                  elements={elements}
-                  connections={connections}
-                  onUpdate={assetUpdateHandlers.get(asset.id)!} // ✅ Stable function!
-                  isExpanded={expandedElements.includes(asset.id)}
-                  onToggle={(event, isExpanded) => onToggleElement(asset.id)} // ✅ Inline callback!
-                />
-              ))}
-            </AccordionDetails>
-          </Accordion>
-        )}
+          <AccordionDetails sx={{ p: 0 }}>
+            {creatingAsset && onCreateAsset && (
+              <NewAssetInline
+                onCreate={(name, group) => {
+                  const created = onCreateAsset(name, group);
+                  setCreatingAsset(false);
+                  // Open the new asset to describe it right away.
+                  if (!expandedElements.includes(created.id)) onToggleElement(created.id);
+                }}
+                onCancel={() => setCreatingAsset(false)}
+              />
+            )}
+            {assets.length === 0 && !creatingAsset && (
+              <Typography variant="body2" color="text.secondary" sx={{ p: 2 }} data-testid="description-no-assets">
+                {t("tabs.dfd.element_description.newAsset.none", {
+                  defaultValue: "No assets yet — create one with “+” or link one in an element.",
+                })}
+              </Typography>
+            )}
+            {assets.map((asset) => (
+              <AssetAccordion
+                key={asset.id}
+                asset={asset}
+                allAssets={assets}
+                elements={elements}
+                connections={connections}
+                onUpdate={assetUpdateHandlers.get(asset.id)!}
+                isExpanded={expandedElements.includes(asset.id)}
+                onToggle={() => onToggleElement(asset.id)}
+              />
+            ))}
+          </AccordionDetails>
+        </Accordion>
 
         {/* Connections */}
         {connections.length > 0 && (

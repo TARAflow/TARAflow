@@ -72,6 +72,9 @@ when opened (with a backup) and then no longer open in 0.17.x.
 - **Asset graph shows only relevant hazards** — those marked *in scope*
   in the Hazard tab; out-of-scope and unreviewed hazards and their edges
   are left out, also from the counts.
+- **New asset from the description view:** the *Assets* accordion is
+  always shown, with "+" for a new asset by name and category — linked
+  to elements later; the new asset opens to be described.
 - **Hazard tab findings panel** below the table, like the Asset tab: the
   validation's errors and warnings in the UI language, a click opens the
   hazard.
