@@ -30,6 +30,7 @@ import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
 import { useElementVisibilityContext, useModelFieldEntries } from "./model-field-inputs";
+import { hasChannelCapableFlow } from "../../utils/secure-channel";
 import { SecurityTabs } from "./security-tabs";
 import { MultiSelectField } from "./multi-select-field";
 import { isUnset, MODEL_CONDITIONS, type VisibilityElement } from "shared";
@@ -528,11 +529,12 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
               </>
             ),
           },
-          // TLS Termination — capability, decoupled from auth
+          // TLS Termination — capability, decoupled from auth; only where a flow can
+          // carry a secure channel (network / bus), user 2026-11-06
           {
             key: "tlsTermination",
-            group: "login",
-            visible: true,
+            group: "communication",
+            visible: hasChannelCapableFlow(visibility),
             set: !isUnset(props.tlsTermination),
             node: (
               <>

@@ -89,7 +89,14 @@ export const NOT_SPECIFIED = "not_specified";
  * process, deletion under operation, the stored-data fields in "data" (a tab
  * only black boxes have).
  */
-export type SecurityGroup = "login" | "authorization" | "robustness" | "sessions" | "operation" | "data";
+export type SecurityGroup =
+  | "login"
+  | "authorization"
+  | "communication"
+  | "robustness"
+  | "sessions"
+  | "operation"
+  | "data";
 
 export interface ModelField {
   /** Property key on the element (top level of `properties`). */

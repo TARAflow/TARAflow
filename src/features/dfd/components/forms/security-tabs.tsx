@@ -28,11 +28,26 @@ export interface SecurityEntry {
   node: React.ReactNode;
 }
 
-const TAB_ORDER: readonly SecurityTabId[] = ["login", "authorization", "robustness", "sessions", "operation", "data"];
+/**
+ * The tabs follow the categories common to the standards the matrices cover
+ * (verified 2026-11-06 against the model coverage plan §4, F-1 … F-29):
+ *   login          EN 303 645 5.1 · EN 18031 AUM · IEC 62443-4-2 FR1 (user / authenticators)
+ *   authorization  EN 18031 ACM · IEC 62443-4-2 FR2 (use control)
+ *   communication  EN 303 645 5.5 · EN 18031 SCM, CCK, CRY · CR 1.2 (device authentication), CR 3.1, CR 4.1 (in transit)
+ *   robustness     EN 303 645 5.7, 5.9, 5.13 · EN 18031 RLM, GEC (integrity) · FR3, CR 7.1 / 7.2
+ *   sessions       EN 303 645 5.10 · EN 18031 LGM · CR 2.5 – 2.12, FR6
+ *   operation      EN 303 645 5.3, 5.6, 5.11 · EN 18031 SUM, DLM, GEC (defaults) · CR 3.10, 7.3, 7.4, 7.6
+ *   data           EN 303 645 5.4, 5.8 · EN 18031 SSM · FR4 at rest (black-box fields today)
+ * Not element fields: EN 303 645 5.2 / 5.12, EN 18031 UNM (manufacturer
+ * statements); EN 18031 NMM / TCM and IEC 62443 FR5 sit on trust boundaries
+ * and interfaces.
+ */
+const TAB_ORDER: readonly SecurityTabId[] = ["login", "authorization", "communication", "robustness", "sessions", "operation", "data"];
 
 const TAB_DEFAULT: Record<SecurityTabId, string> = {
   login: "Login & accounts",
   authorization: "Authorization",
+  communication: "Communication",
   robustness: "Robustness",
   sessions: "Sessions & traceability",
   operation: "Operation",

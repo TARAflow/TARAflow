@@ -33,6 +33,7 @@ import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
 import { useElementVisibilityContext, useModelFieldEntries } from "./model-field-inputs";
+import { hasChannelCapableFlow } from "../../utils/secure-channel";
 import { SecurityTabs } from "./security-tabs";
 import { MultiSelectField } from "./multi-select-field";
 import { isUnset, MODEL_CONDITIONS, type VisibilityElement } from "shared";
@@ -572,10 +573,11 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
       <SecurityTabs
         formKey="multiprocess"
         entries={[
-          // Boundary Authentication — always shown
+          // Boundary Authentication — how peers authenticate when they connect
+          // (device authentication, CR 1.2) — always shown
           {
             key: "boundaryAuthentication",
-            group: "login",
+            group: "communication",
             visible: true,
             set: !isUnset(props.boundaryAuthentication),
             node: (
@@ -630,11 +632,12 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
               </>
             ),
           },
-          // TLS Termination — capability, decoupled from boundary auth
+          // TLS Termination — capability, decoupled from boundary auth; only where a
+          // flow can carry a secure channel (network / bus), user 2026-11-06
           {
             key: "tlsTermination",
-            group: "login",
-            visible: true,
+            group: "communication",
+            visible: hasChannelCapableFlow(visibility),
             set: !isUnset(props.tlsTermination),
             node: (
               <>

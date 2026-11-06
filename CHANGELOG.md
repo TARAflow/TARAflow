@@ -17,8 +17,12 @@ when opened (with a backup) and then no longer open in 0.17.x.
   rows are derived from the model instead of needing a statement (CR 1.1
   RE(1), CR 1.5, CR 1.7, CR 1.11, CR 2.1 RE(2), CR 3.10, CR 7.6, CR 7.9).
 - **Security section in sub-tabs** on processes and multiprocesses (Login
-  & accounts, Authorization, Robustness, Sessions & traceability,
-  Operation); a tab names its open fields. A multiprocess's safety fields
+  & accounts, Authorization, Communication, Robustness, Sessions &
+  traceability, Operation, Data) — the categories the standards share
+  (EN 303 645, EN 18031, IEC 62443-4-2); a tab names its open fields.
+  TLS termination (and the multiprocess's boundary authentication) sit
+  under *Communication*; TLS termination only where the element has a
+  flow over a network or bus. A multiprocess's safety fields
   (safety-relevant, rationale) sit below the tabs, always in view.
 - **Black-box multiprocess:** a multiprocess without a child page — a PLC
   drawn as a box, a supplier's module — gets seven fields for the

@@ -37,6 +37,7 @@ describe("MultiprocessDescriptionForm — Security sub-tabs", () => {
     expect(tabs.filter((id) => id?.startsWith("security-tab-"))).toEqual([
       "security-tab-login",
       "security-tab-authorization",
+      "security-tab-communication",
       "security-tab-robustness",
       "security-tab-sessions",
       "security-tab-operation",

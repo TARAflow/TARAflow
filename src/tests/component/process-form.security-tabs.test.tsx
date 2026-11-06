@@ -71,3 +71,30 @@ describe("ProcessDescriptionForm — Security sub-tabs", () => {
     expect(screen.getByTestId("model-field-securityConfigReporting")).toBeTruthy();
   });
 });
+
+describe("ProcessDescriptionForm — Communication tab (user 2026-11-06)", () => {
+  it("a flow over a network: tab 'Communication' after authorization, with TLS termination", () => {
+    renderForm(process("p5", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p5", properties: { protocol: "opc_ua" } }]);
+    const tabs = tabIds();
+    expect(tabs.indexOf("security-tab-communication")).toBe(tabs.indexOf("security-tab-authorization") + 1);
+    fireEvent.click(screen.getByTestId("security-tab-communication"));
+    expect(screen.getAllByText("tabs.dfd.element_description.process.fields.tlsTermination.label").length).toBeGreaterThan(0);
+    // No longer under login.
+    fireEvent.click(screen.getByTestId("security-tab-login"));
+    expect(screen.queryByText("tabs.dfd.element_description.process.fields.tlsTermination.label")).toBeNull();
+  });
+
+  it("only human input (an operator at a touch panel): no TLS field, no tab", () => {
+    renderForm(process("p6", { technology: "ui" }), [{ id: "f", from: "op", to: "p6", properties: { protocol: "human_input" } }]);
+    expect(tabIds()).not.toContain("security-tab-communication");
+  });
+
+  it("protocol not set yet, or no flow at all: unknown — the field is offered", () => {
+    renderForm(process("p7", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p7" }]);
+    expect(tabIds()).toContain("security-tab-communication");
+    cleanup();
+    renderForm(process("p8", { technology: "daemon" }), []);
+    expect(tabIds()).toContain("security-tab-communication");
+  });
+});
+

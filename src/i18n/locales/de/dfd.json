@@ -557,6 +557,7 @@
         "securityTabs": {
           "login": "Anmeldung & Konten",
           "authorization": "Berechtigungen",
+          "communication": "Kommunikation",
           "robustness": "Robustheit",
           "sessions": "Sitzungen & Nachvollziehbarkeit",
           "operation": "Betrieb",
