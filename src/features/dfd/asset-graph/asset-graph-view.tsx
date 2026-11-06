@@ -80,6 +80,7 @@ import {
   LANE_HEIGHT,
   ROW_HEIGHT,
   laneRows,
+  type AssetGraphLane,
   NODE_SPACING,
   NODE_RADIUS,
   layoutAssetGraph,
@@ -223,15 +224,64 @@ const DEFAULT_STATE: ViewState = {
   relationKinds: [...RELATION_KINDS],
 };
 
-/** Approximate width of a 12 px lane label — enough to keep it left of its lane. */
+/** Approximate width of a 12 px label. */
 const labelWidth = (text: string) => text.length * 7;
 
+/** Where the labels of the lanes start when nothing is scrolled — one line for all. */
+export const LANE_LABEL_LEFT = -NODE_RADIUS * 2 - 120;
+/** Line distance of labels stacked at one height. */
+const LABEL_LINE = 16;
+
+export interface LaneLabelInput {
+  readonly id: string;
+  readonly text: string;
+  readonly kind: AssetGraphLane["kind"];
+  /** Top of the lane (its label's baseline is 20 below). */
+  readonly top: number;
+  /** Side column: x of the column. */
+  readonly columnX?: number;
+}
+
+export interface LaneLabel {
+  readonly id: string;
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly anchor: "start" | "end";
+  /** Kept at the visible left edge. */
+  readonly sticky: boolean;
+}
+
 /**
- * x of a lane's label (start of the text): left of the lane, never left of the
- * visible area — scrolled to the right it stays at the left edge.
+ * The lane labels (user 2026-11-06): left-aligned on one line before the
+ * lanes, never left of the visible area — scrolled to the right they stay at
+ * its left edge. A side-column label stays at its column while that is in
+ * view and moves to the left edge once the column is scrolled out, below the
+ * label already at that height.
  */
-export function laneLabelX(label: string, viewLeft: number, k: number): number {
-  return Math.max(-NODE_RADIUS * 2 - labelWidth(label), viewLeft + 8 / (k || 1));
+export function laneLabels(lanes: readonly LaneLabelInput[], viewLeft: number, k: number): LaneLabel[] {
+  const edge = viewLeft + 8 / (k || 1);
+  const left = Math.max(LANE_LABEL_LEFT, edge);
+  const out: LaneLabel[] = [];
+  const perHeight = new Map<number, number>();
+  const stack = (top: number) => {
+    const n = perHeight.get(top) ?? 0;
+    perHeight.set(top, n + 1);
+    return top + 20 + n * LABEL_LINE;
+  };
+  // Lanes with rows first, so a side-column label stacks below them.
+  for (const l of lanes.filter((x) => x.kind !== "orthogonal")) {
+    out.push({ id: l.id, text: l.text, x: left, y: stack(l.top), anchor: "start", sticky: edge > LANE_LABEL_LEFT });
+  }
+  for (const l of lanes.filter((x) => x.kind === "orthogonal")) {
+    const atColumn = (l.columnX ?? 0) - NODE_RADIUS;
+    if (atColumn - labelWidth(l.text) >= edge) {
+      out.push({ id: l.id, text: l.text, x: atColumn, y: l.top + 20, anchor: "end", sticky: false });
+    } else {
+      out.push({ id: l.id, text: l.text, x: edge, y: stack(l.top), anchor: "start", sticky: true });
+    }
+  }
+  return out;
 }
 
 /** English default of each relation kind of the filter. */
@@ -1688,42 +1738,6 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                       data-testid={`asset-graph-row-${lane.id}`}
                     />
                   ))}
-                {(() => {
-                  const label =
-                    lane.id === ANCHOR_LANE
-                      ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
-                      : lane.kind === "free"
-                        ? t("tabs.dfd.assetGraph.freeRow", { defaultValue: "Free row" })
-                        : lane.id === HAZARD_LANE
-                          ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
-                          : groupLabel(lane.id);
-                  const y = lane.y - LANE_HEIGHT / 2 + 20;
-                  if (lane.kind === "orthogonal") {
-                    return (
-                      <text x={(lane.x ?? 0) - NODE_RADIUS} y={y} fontSize={12} fill={muted} textAnchor="end">
-                        {label}
-                      </text>
-                    );
-                  }
-                  // Left of the lane, never left of the visible area: scrolled to
-                  // the right, the label stays at the left edge (user 2026-11-06).
-                  const x = laneLabelX(label, viewLeft, transform.k);
-                  return (
-                    <text
-                      x={x}
-                      y={y}
-                      fontSize={12}
-                      fill={muted}
-                      stroke={darkMode ? "#1a1a1a" : "#fafafa"}
-                      strokeWidth={3}
-                      paintOrder="stroke"
-                      style={{ pointerEvents: "none" }}
-                      data-testid={`asset-graph-lane-label-${lane.id}`}
-                    >
-                      {label}
-                    </text>
-                  );
-                })()}
                 {canCreate && lane.id !== ANCHOR_LANE && lane.id !== HAZARD_LANE && lane.kind !== "free" && (
                   <g
                     transform={`translate(${(lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2) + 14},${lane.y - LANE_HEIGHT / 2 + 16})`}
@@ -2103,6 +2117,44 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 </g>
               );
             })}
+
+            {/* Lane labels — on top of nodes and edges, left-aligned, kept at the
+                visible left edge when scrolled to the right (user 2026-11-06). */}
+            {laneLabels(
+              layout.lanes.map((lane) => ({
+                id: lane.id,
+                kind: lane.kind,
+                top: lane.y - LANE_HEIGHT / 2,
+                columnX: lane.x,
+                text:
+                  lane.id === ANCHOR_LANE
+                    ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
+                    : lane.kind === "free"
+                      ? t("tabs.dfd.assetGraph.freeRow", { defaultValue: "Free row" })
+                      : lane.id === HAZARD_LANE
+                        ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
+                        : groupLabel(lane.id),
+              })),
+              viewLeft,
+              transform.k,
+            ).map((l) => (
+              <text
+                key={l.id}
+                x={l.x}
+                y={l.y}
+                fontSize={12}
+                fill={muted}
+                textAnchor={l.anchor}
+                stroke={darkMode ? "#1a1a1a" : "#fafafa"}
+                strokeWidth={3}
+                paintOrder="stroke"
+                style={{ pointerEvents: "none" }}
+                data-testid={`asset-graph-lane-label-${l.id}`}
+                data-sticky={l.sticky ? "true" : undefined}
+              >
+                {l.text}
+              </text>
+            ))}
           </g>
         </svg>
 
