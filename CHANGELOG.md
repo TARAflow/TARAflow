@@ -55,7 +55,9 @@ when opened (with a backup) and then no longer open in 0.17.x.
   *Rearrange* spreads a crowded lane over its rows by the asset's links —
   links to the layer above put it on the top row, to the layer below on
   the bottom row — at most a third per row. Positions remembered by an
-  earlier version are placed anew once (view only, not in the file).
+  earlier version are placed anew once (view only, not in the file). A
+  lane's label stays at the left edge when the graph is scrolled to the
+  right.
 - **Asset graph relation filter:** a menu *Relations* next to the presets
   with one checkbox per kind of relation — DFD element, asset, hazard —
   all ticked. Unticking a kind hides the assets and hazards that have

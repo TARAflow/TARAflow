@@ -223,6 +223,17 @@ const DEFAULT_STATE: ViewState = {
   relationKinds: [...RELATION_KINDS],
 };
 
+/** Approximate width of a 12 px lane label — enough to keep it left of its lane. */
+const labelWidth = (text: string) => text.length * 7;
+
+/**
+ * x of a lane's label (start of the text): left of the lane, never left of the
+ * visible area — scrolled to the right it stays at the left edge.
+ */
+export function laneLabelX(label: string, viewLeft: number, k: number): number {
+  return Math.max(-NODE_RADIUS * 2 - labelWidth(label), viewLeft + 8 / (k || 1));
+}
+
 /** English default of each relation kind of the filter. */
 const RELATION_KIND_TEXT: Record<RelationKind, string> = {
   element: "DFD element",
@@ -568,6 +579,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [transform, setTransform] = useState({ x: 40, y: 40, k: 1 });
+  /** Left edge of the visible area in graph coordinates (sticky lane labels). */
+  const viewLeft = -transform.x / (transform.k || 1);
   useEffect(() => {
     if (!svgRef.current) return;
     const el = svgRef.current;
@@ -1675,21 +1688,42 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                       data-testid={`asset-graph-row-${lane.id}`}
                     />
                   ))}
-                <text
-                  x={lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2}
-                  y={lane.y - LANE_HEIGHT / 2 + 20}
-                  fontSize={12}
-                  fill={muted}
-                  textAnchor="end"
-                >
-                  {lane.id === ANCHOR_LANE
-                    ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
-                    : lane.kind === "free"
-                      ? t("tabs.dfd.assetGraph.freeRow", { defaultValue: "Free row" })
-                      : lane.id === HAZARD_LANE
-                        ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
-                        : groupLabel(lane.id)}
-                </text>
+                {(() => {
+                  const label =
+                    lane.id === ANCHOR_LANE
+                      ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
+                      : lane.kind === "free"
+                        ? t("tabs.dfd.assetGraph.freeRow", { defaultValue: "Free row" })
+                        : lane.id === HAZARD_LANE
+                          ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
+                          : groupLabel(lane.id);
+                  const y = lane.y - LANE_HEIGHT / 2 + 20;
+                  if (lane.kind === "orthogonal") {
+                    return (
+                      <text x={(lane.x ?? 0) - NODE_RADIUS} y={y} fontSize={12} fill={muted} textAnchor="end">
+                        {label}
+                      </text>
+                    );
+                  }
+                  // Left of the lane, never left of the visible area: scrolled to
+                  // the right, the label stays at the left edge (user 2026-11-06).
+                  const x = laneLabelX(label, viewLeft, transform.k);
+                  return (
+                    <text
+                      x={x}
+                      y={y}
+                      fontSize={12}
+                      fill={muted}
+                      stroke={darkMode ? "#1a1a1a" : "#fafafa"}
+                      strokeWidth={3}
+                      paintOrder="stroke"
+                      style={{ pointerEvents: "none" }}
+                      data-testid={`asset-graph-lane-label-${lane.id}`}
+                    >
+                      {label}
+                    </text>
+                  );
+                })()}
                 {canCreate && lane.id !== ANCHOR_LANE && lane.id !== HAZARD_LANE && lane.kind !== "free" && (
                   <g
                     transform={`translate(${(lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2) + 14},${lane.y - LANE_HEIGHT / 2 + 16})`}
