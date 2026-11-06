@@ -79,38 +79,68 @@ function renderTab(p = project(), highlight: { assetId: string } | null = null) 
 
 /** Picks "from level" in the criticality select (opens the menu like a user). */
 function pickLevel(level: number) {
-  fireEvent.mouseDown(within(screen.getByTestId("asset-table-toolbar")).getByRole("combobox"));
+  fireEvent.mouseDown(screen.getByTestId("asset-criticality-filter-select"));
   fireEvent.click(screen.getByRole("option", { name: new RegExp(`4-level\\.${level}\\.label or higher`) }));
+}
+
+const PRESENT_TYPES = ["data", "system", "physical"];
+const typeItem = (type: string) => screen.getByTestId(`asset-type-filter-${type}`);
+const openTypes = () => fireEvent.mouseDown(screen.getByTestId("asset-type-filter-select"));
+const closeMenu = () => fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+
+/** AF-2: unticks every present type but the given ones in the type dropdown. */
+function onlyTypes(...keep: string[]) {
+  openTypes();
+  for (const type of PRESENT_TYPES) {
+    if (!keep.includes(type) && typeItem(type).getAttribute("aria-checked") === "true") fireEvent.click(typeItem(type));
+  }
+  closeMenu();
 }
 
 const count = (key: string) =>
   within(screen.getByTestId(`asset-group-${key}`)).getAllByText(/^\d+$/)[0].textContent;
 
-describe("Asset tab — type and criticality filter (AF-1)", () => {
-  it("offers only the types present, with their count", () => {
+describe("Asset tab — type and criticality filter (AF-1, AF-2)", () => {
+  it("the type dropdown offers only the types present, with their count, all ticked", () => {
     renderTab();
-    const bar = screen.getByTestId("asset-type-filter");
-    expect(within(bar).getByTestId("asset-type-filter-data")).toHaveTextContent("Data (2)");
-    expect(within(bar).getByTestId("asset-type-filter-system")).toHaveTextContent("(1)");
-    expect(within(bar).queryByTestId("asset-type-filter-human")).toBeNull();
+    expect(screen.getByTestId("asset-type-filter-select")).toHaveTextContent("All types");
+    openTypes();
+    expect(typeItem("data")).toHaveTextContent("Data (2)");
+    expect(typeItem("system")).toHaveTextContent("(1)");
+    expect(screen.queryByTestId("asset-type-filter-human")).toBeNull();
+    for (const type of PRESENT_TYPES) expect(typeItem(type)).toHaveAttribute("aria-checked", "true");
   });
 
-  it("type filter works across all accordions; counts follow, empty ones disappear", () => {
+  it("unticking hides a type across all accordions; counts follow, empty ones disappear", () => {
     renderTab();
     expect(count(TOP_LEVEL_GROUP)).toBe("2");
     expect(count("mp1")).toBe("2");
 
-    fireEvent.click(screen.getByTestId("asset-type-filter-system"));
+    onlyTypes("system");
+    expect(screen.getByTestId("asset-type-filter-select")).toHaveTextContent("System");
     expect(screen.queryByTestId(`asset-group-${TOP_LEVEL_GROUP}`)).toBeNull();
     expect(count("mp1")).toBe("1");
     expect(screen.getByText("Controller")).toBeTruthy();
     expect(screen.queryByText("Log")).toBeNull();
     expect(screen.getByTestId("asset-filter-count")).toHaveTextContent("1 of 4 assets shown");
 
-    // A second type widens the filter.
-    fireEvent.click(screen.getByTestId("asset-type-filter-data"));
+    // Ticking a second type widens the filter.
+    openTypes();
+    fireEvent.click(typeItem("data"));
+    closeMenu();
     expect(count(TOP_LEVEL_GROUP)).toBe("1");
     expect(count("mp1")).toBe("2");
+  });
+
+  it("the last ticked type cannot be unticked; 'Show all types' ticks all again", () => {
+    renderTab();
+    onlyTypes("system");
+    openTypes();
+    expect(typeItem("system")).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(screen.getByTestId("asset-type-filter-all"));
+    closeMenu();
+    expect(screen.getByTestId("asset-type-filter-select")).toHaveTextContent("All types");
+    expect(screen.queryByTestId("asset-filter-count")).toBeNull();
   });
 
   it("criticality from level hides lower and unrated assets; unrated on request", () => {
@@ -127,7 +157,7 @@ describe("Asset tab — type and criticality filter (AF-1)", () => {
 
   it("nothing matches → a note instead of empty accordions; reset shows all again", () => {
     renderTab();
-    fireEvent.click(screen.getByTestId("asset-type-filter-physical"));
+    onlyTypes("physical");
     pickLevel(2);
     expect(screen.getByTestId("asset-filter-empty")).toHaveTextContent("No asset matches the filter.");
     expect(screen.queryByTestId(`asset-group-${TOP_LEVEL_GROUP}`)).toBeNull();
@@ -141,28 +171,31 @@ describe("Asset tab — type and criticality filter (AF-1)", () => {
   it("classic DFD without groups: the same bar filters the one table", () => {
     renderTab(project("p-1", undefined));
     expect(screen.getAllByTestId("asset-table-toolbar")).toHaveLength(1);
-    fireEvent.click(screen.getByTestId("asset-type-filter-data"));
+    onlyTypes("data");
     expect(screen.getByText("Calibration")).toBeTruthy();
     expect(screen.queryByText("Controller")).toBeNull();
   });
 
   it("kept per project for the session, not shared between projects", () => {
     const first = renderTab();
-    fireEvent.click(screen.getByTestId("asset-type-filter-system"));
+    onlyTypes("system");
     first.unmount();
 
     renderTab();
-    expect(screen.getByTestId("asset-type-filter-system")).toHaveAttribute("aria-pressed", "true");
+    openTypes();
+    expect(typeItem("system")).toHaveAttribute("aria-checked", "true");
+    expect(typeItem("data")).toHaveAttribute("aria-checked", "false");
+    closeMenu();
     expect(screen.getByTestId("asset-filter-count")).toHaveTextContent("1 of 4 assets shown");
     cleanup();
 
     renderTab(project("p-2"));
-    expect(screen.getByTestId("asset-type-filter-system")).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("asset-type-filter-select")).toHaveTextContent("All types");
   });
 
   it("'Show in table' for an asset the filter hides lifts the filter", () => {
     const { rerender } = renderTab();
-    fireEvent.click(screen.getByTestId("asset-type-filter-system"));
+    onlyTypes("system");
     expect(screen.queryByText("Calibration")).toBeNull();
     rerender(
       <div style={{ width: 1800, height: 900 }}>

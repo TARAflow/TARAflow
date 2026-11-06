@@ -554,7 +554,11 @@
         "includeUnrated": "auch unbewertete",
         "shown": "{{shown}} von {{total}} Assets angezeigt",
         "reset": "Filter zurücksetzen",
-        "none": "Kein Asset entspricht dem Filter."
+        "none": "Kein Asset entspricht dem Filter.",
+        "type": "Asset-Typ",
+        "allTypes": "Alle Typen",
+        "someTypes": "{{shown}} von {{total}} Typen",
+        "showAllTypes": "Alle Typen anzeigen"
       },
       "reviewFilter": {
         "label": "Nur prüfbedürftige ({{count}})",

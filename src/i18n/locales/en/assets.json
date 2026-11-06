@@ -554,7 +554,11 @@
         "includeUnrated": "also unrated",
         "shown": "{{shown}} of {{total}} assets shown",
         "reset": "Reset filter",
-        "none": "No asset matches the filter."
+        "none": "No asset matches the filter.",
+        "type": "Asset type",
+        "allTypes": "All types",
+        "someTypes": "{{shown}} of {{total}} types",
+        "showAllTypes": "Show all types"
       },
       "reviewFilter": {
         "label": "Needs review only ({{count}})",

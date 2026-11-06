@@ -128,6 +128,12 @@ when opened (with a backup) and then no longer open in 0.17.x.
   test in the UI language.
 - **CR 7.1:** only exposed protocol interfaces are checked for abuse
   protection (a touch panel can never meet it).
+- **Asset tab — filter bar (AF-2):** the asset types are a dropdown with
+  checkboxes (icon and count per type) instead of a row of chips — all
+  ticked by default, unticking hides a type, as the relation filter of
+  the asset graph; the last ticked type stays. Criticality is a select
+  like "Risk level" in the risk tab (filter icon, colour per level,
+  highest first); the bar is as high as the risk tab's.
 
 ### Fixed
 - **Compliance tab — delete unused claims:** a supporting claim removed
