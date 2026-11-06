@@ -4,7 +4,7 @@ import type { DFDElement, DFDConnection, ValidationFinding } from "../../../../.
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
 
-function proc(id: string, tlsTermination?: string): DFDElement {
+function proc(id: string, tlsTermination?: string | string[]): DFDElement {
   return {
     id,
     displayId: id,
@@ -113,5 +113,28 @@ describe("endpoint protection validator — TLS capability/usage, pair-level (A5
     const els = [proc("A", "none"), proc("B", "none")];
     expect(run(els, [flow("A", "B", "vpn")])).toHaveLength(0);
     expect(run(els, [flow("A", "B", undefined)])).toHaveLength(0);
+  });
+});
+
+describe("endpoint protection validator — secure channels as a selection (user 2026-11-06)", () => {
+  it("TLS among other channels counts: [server, ssh] terminates a tls flow", () => {
+    const els = [proc("A", ["none"]), proc("B", ["server", "ssh"])];
+    expect(run(els, [flow("A", "B", "tls")])).toHaveLength(0);
+  });
+
+  it("only non-TLS channels (ssh, vpn, application) terminate no TLS: a tls flow between them is flagged", () => {
+    const els = [proc("A", ["ssh"]), proc("B", ["vpn", "application"])];
+    const f = run(els, [flow("A", "B", "tls")]);
+    expect(f.map((x) => x.key)).toEqual(["tabs.dfd.validation.df.tls.noTerminator"]);
+  });
+
+  it("mutual in a selection: mtls between [mutual, ssh] and [mutual] is fine", () => {
+    const els = [proc("A", ["mutual", "ssh"]), proc("B", ["mutual"])];
+    expect(run(els, [flow("A", "B", "mtls")])).toHaveLength(0);
+  });
+
+  it("an older single value still counts as one entry", () => {
+    const els = [proc("A", "none"), proc("B", "server")];
+    expect(run(els, [flow("A", "B", "tls")])).toHaveLength(0);
   });
 });

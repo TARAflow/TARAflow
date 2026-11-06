@@ -150,7 +150,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     operatingSystem: "rtos",
     updateMechanism: "signed_ota",
     boundaryAuthentication: "certificate",
-    tlsTermination: "server",
+    tlsTermination: ["server"],
     authorizationModel: "rbac",
     accountManagement: "local_only",
     authenticatorStorage: "secure_element",
@@ -296,7 +296,7 @@ const FORM_COMPLETION: Record<string, Record<string, unknown>> = {
     notes: "Key held by the maintenance team; door switch alarm goes to SCADA.",
   }),
   "P-1": as<ProcessProperties>({
-    tlsTermination: "server",
+    tlsTermination: ["server"],
     updateMechanism: "signed_ota",
     owner: VENDOR,
     notes: "Updated together with the controller firmware.",

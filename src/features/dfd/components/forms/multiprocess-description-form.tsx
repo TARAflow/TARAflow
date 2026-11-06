@@ -26,7 +26,7 @@ import {
 import { BufferedTextField } from "../shared/buffered-text-field";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
-import { MALWARE_PROTECTION_OPTIONS, type MultiprocessProperties } from "../../models/element-properties";
+import { MALWARE_PROTECTION_OPTIONS, type MultiprocessProperties, SECURE_CHANNEL_OPTIONS, selectionOf } from "../../models/element-properties";
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
@@ -641,40 +641,14 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
             set: !isUnset(props.tlsTermination),
             node: (
               <>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>
-                      {t(
-                        "tabs.dfd.element_description.multiprocess.fields.tlsTermination.label",
-                        { defaultValue: "TLS Termination" },
-                      )}
-                    </InputLabel>
-                    <Select
-                      value={props.tlsTermination ?? ""}
-                      onChange={(e) =>
-                        handlePropertyChange("tlsTermination", e.target.value)
-                      }
-                      label={t(
-                        "tabs.dfd.element_description.multiprocess.fields.tlsTermination.label",
-                        { defaultValue: "TLS Termination" },
-                      )}
-                    >
-                      <MenuItem value="">
-                        <em>
-                          {t("common.not_specified", { defaultValue: "Not specified" })}
-                        </em>
-                      </MenuItem>
-                      {(["none", "server", "mutual"] as const).map((opt) => (
-                        <MenuItem key={opt} value={opt}>
-                          {t(
-                            `tabs.dfd.element_description.multiprocess.fields.tlsTermination.options.${opt}`,
-                            { defaultValue: opt },
-                          )}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+                <MultiSelectField
+                  label={t("tabs.dfd.element_description.multiprocess.fields.tlsTermination.label", { defaultValue: "Secure channel (endpoint)" })}
+                  options={SECURE_CHANNEL_OPTIONS}
+                  value={selectionOf(SECURE_CHANNEL_OPTIONS, props.tlsTermination)}
+                  onChange={(next) => handlePropertyChange("tlsTermination", next)}
+                  optionLabel={(opt) => t(`tabs.dfd.element_description.multiprocess.fields.tlsTermination.options.${opt}`, { defaultValue: opt })}
+                  testId="field-tlsTermination"
+                />
               </>
             ),
           },

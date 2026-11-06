@@ -31,17 +31,24 @@ import type {
   ProcessProperties,
   MultiprocessProperties,
 } from "../../models/element-properties";
+import { SECURE_CHANNEL_OPTIONS, selectionOf } from "../../models/element-properties";
 
 /** TLS termination capability of an endpoint. mutual ⊃ server ⊃ none. */
 type TlsTermination = "none" | "server" | "mutual";
 
-/** Read the explicit tlsTermination capability (Option B). Defaults to none. */
+/**
+ * The TLS level an endpoint terminates (Option B): mutual if its secure
+ * channels include mutual TLS, else server if they include TLS, else none.
+ * Other channels (VPN, SSH, application level) are no TLS. A single value of
+ * an older file counts as one entry.
+ */
 function endpointTls(el: DFDElement | undefined): TlsTermination {
   if (!el) return "none";
   const p = el.properties as
     | (ProcessProperties & MultiprocessProperties)
     | undefined;
-  return p?.tlsTermination ?? "none";
+  const channels = selectionOf(SECURE_CHANNEL_OPTIONS, p?.tlsTermination);
+  return channels.includes("mutual") ? "mutual" : channels.includes("server") ? "server" : "none";
 }
 
 /**

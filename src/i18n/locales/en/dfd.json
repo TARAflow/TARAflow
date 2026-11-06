@@ -821,11 +821,15 @@
               }
             },
             "tlsTermination": {
-              "label": "TLS termination",
+              "label": "Secure channel (endpoint)",
               "options": {
                 "none": "None",
-                "server": "Server-side (TLS)",
-                "mutual": "Mutual (mTLS)"
+                "server": "TLS (server)",
+                "mutual": "Mutual TLS (mTLS)",
+                "vpn": "VPN / IPsec",
+                "ssh": "SSH",
+                "application": "Application level (e.g. OPC UA Secure Channel)",
+                "custom": "Other method"
               }
             },
             "authorizationModel": {
@@ -1190,11 +1194,15 @@
               }
             },
             "tlsTermination": {
-              "label": "TLS termination",
+              "label": "Secure channel (endpoint)",
               "options": {
                 "none": "None",
-                "server": "Server-side (TLS)",
-                "mutual": "Mutual (mTLS)"
+                "server": "TLS (server)",
+                "mutual": "Mutual TLS (mTLS)",
+                "vpn": "VPN / IPsec",
+                "ssh": "SSH",
+                "application": "Application level (e.g. OPC UA Secure Channel)",
+                "custom": "Other method"
               }
             },
             "authorizationModel": {

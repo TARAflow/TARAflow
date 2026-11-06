@@ -167,6 +167,26 @@ describe("MS-1: combinable controls become selections (1:1)", () => {
     expect(analysisChanged).toBe(false);
   });
 
+  it("the secure channels an element terminates (tlsTermination) become a selection too", () => {
+    const { data, analysisChanged } = migrate_12_to_13({
+      schemaVersion: 12,
+      dfd: {
+        elements: [
+          { id: "p", type: "Process", properties: { tlsTermination: "server" } },
+          { id: "mp", type: "Multiprocess", properties: { tlsTermination: "mutual", malwareProtection: "code_signing" } },
+          { id: "n", type: "Process", properties: { tlsTermination: "none" } },
+        ],
+        connections: [],
+      },
+    });
+    expect(data.dfd.elements.map((e: Any) => e.properties)).toEqual([
+      { tlsTermination: ["server"] },
+      { tlsTermination: ["mutual"], malwareProtection: ["code_signing"] },
+      { tlsTermination: ["none"] },
+    ]);
+    expect(analysisChanged).toBe(false);
+  });
+
   it("a verified file with such values is re-sealed, not reopened", () => {
     const current: Any = parseAndRepairWithMetadata(JSON.parse(readFileSync("src/tests/fixtures/SmokeDetector.tara.json", "utf-8")))!.project;
     const file: Any = JSON.parse(JSON.stringify({ ...current, schemaVersion: 12 }));

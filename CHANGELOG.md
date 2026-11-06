@@ -20,9 +20,12 @@ when opened (with a backup) and then no longer open in 0.17.x.
   & accounts, Authorization, Communication, Robustness, Sessions &
   traceability, Operation, Data) — the categories the standards share
   (EN 303 645, EN 18031, IEC 62443-4-2); a tab names its open fields.
-  TLS termination (and the multiprocess's boundary authentication) sit
-  under *Communication*; TLS termination only where the element has a
-  flow over a network or bus. A multiprocess's safety fields
+  *Communication* holds the multiprocess's boundary authentication and
+  the **secure channels** an element terminates — a multi-select instead
+  of TLS only: TLS (server), mutual TLS, VPN / IPsec, SSH, application
+  level (e.g. OPC UA Secure Channel), other; only where the element has a
+  flow over a network or bus. The DFD check that a TLS flow has a TLS
+  endpoint reads TLS and mutual TLS from the selection. A multiprocess's safety fields
   (safety-relevant, rationale) sit below the tabs, always in view.
 - **Black-box multiprocess:** a multiprocess without a child page — a PLC
   drawn as a box, a supplier's module — gets seven fields for the
@@ -127,7 +130,8 @@ when opened (with a backup) and then no longer open in 0.17.x.
 ### Upgrade notes
 - Projects are converted to schema 13 when opened (backup alongside):
   the matrix data is stored per standard family; malware and physical
-  path protection become a selection of one (1:1). Both steps keep the
+  path protection and the TLS termination (now *secure channel*) become
+  a selection of one (1:1). Both steps keep the
   analysis — a TARA verification stays valid.
 - **Attack trees with an AND gate:** the conversion recomputes their
   paths. Assessments of the former leaf paths are merged onto the

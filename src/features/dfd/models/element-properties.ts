@@ -110,6 +110,17 @@ export const PHYSICAL_PATH_PROTECTION_OPTIONS = [
 ] as const;
 export type PhysicalPathProtection = (typeof PHYSICAL_PATH_PROTECTION_OPTIONS)[number];
 
+/**
+ * Secure channels an element can terminate (user 2026-11-06: TLS is not the
+ * only way). Stored under the historic key `tlsTermination`; a multi-select
+ * since then — an element may serve TLS and SSH, say. "none" excludes the
+ * others. server / mutual: TLS (mutual ⊃ server) — checked against the flows'
+ * encryptionInTransit tls / mtls; vpn, ssh, application (e.g. OPC UA Secure
+ * Channel), custom: documented, not paired.
+ */
+export const SECURE_CHANNEL_OPTIONS = ["none", "server", "mutual", "vpn", "ssh", "application", "custom"] as const;
+export type SecureChannel = (typeof SECURE_CHANNEL_OPTIONS)[number];
+
 /** The stored selection in option order; a single value of an older file counts as one entry. */
 export function selectionOf<T extends string>(options: readonly T[], value: unknown): T[] {
   const values = Array.isArray(value) ? value : value ? [value] : [];
@@ -187,15 +198,13 @@ export interface ProcessProperties {
     | "jwt"
     | "mtls";
   /**
-   * TLS termination capability of this endpoint — DECOUPLED from auth.
-   * Encryption capability ≠ auth mechanism (an HTTPS server with a password
-   * login is tlsTermination="server" + authenticationRequired="password").
-   * Usage side: DataFlow.encryptionInTransit. Validated pair-level in A5b.
-   *   none   → does not terminate TLS
-   *   server → server-side TLS (presents server cert)
-   *   mutual → mutual TLS (presents + verifies client cert)  [mutual ⊃ server]
+   * Secure channels this endpoint terminates (SECURE_CHANNEL_OPTIONS) —
+   * DECOUPLED from auth (an HTTPS server with a password login terminates
+   * TLS and has authenticationRequired="password"). Historic key name; a
+   * selection since 2026-11-06, a single value of an older file counts as one.
+   * Usage side: DataFlow.encryptionInTransit. TLS validated pair-level in A5b.
    */
-  tlsTermination?: "none" | "server" | "mutual";
+  tlsTermination?: SecureChannel[];
 
   authorizationModel?:
     | "not_specified"
@@ -483,15 +492,13 @@ export interface MultiprocessProperties {
     | "hardware_token";
 
   /**
-   * TLS termination capability of this endpoint — DECOUPLED from auth.
-   * Encryption capability ≠ auth mechanism (an HTTPS server with a password
-   * login is tlsTermination="server" + authenticationRequired="password").
-   * Usage side: DataFlow.encryptionInTransit. Validated pair-level in A5b.
-   *   none   → does not terminate TLS
-   *   server → server-side TLS (presents server cert)
-   *   mutual → mutual TLS (presents + verifies client cert)  [mutual ⊃ server]
+   * Secure channels this endpoint terminates (SECURE_CHANNEL_OPTIONS) —
+   * DECOUPLED from auth (an HTTPS server with a password login terminates
+   * TLS and has authenticationRequired="password"). Historic key name; a
+   * selection since 2026-11-06, a single value of an older file counts as one.
+   * Usage side: DataFlow.encryptionInTransit. TLS validated pair-level in A5b.
    */
-  tlsTermination?: "none" | "server" | "mutual";
+  tlsTermination?: SecureChannel[];
 
   /**
    * Authorization model enforced at the system boundary.

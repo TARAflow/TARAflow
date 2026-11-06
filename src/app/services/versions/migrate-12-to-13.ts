@@ -20,7 +20,10 @@ import { migrateAndGatePaths } from "./migrate-12-to-13-and-gate-paths";
  *          `physicalPathProtection` (data flows) become multi-select: a stored
  *          value "x" becomes ["x"], an empty one is removed — 1:1, the
  *          measures keep their meaning (as P-1 did for defaultDenyPolicy in
- *          schema 12), so no analysis value changes.
+ *          schema 12), so no analysis value changes. The same for
+ *          `tlsTermination` (Process, Multiprocess), the secure channels an
+ *          element terminates (user 2026-11-06: TLS, VPN, SSH, application
+ *          level …): "server" becomes ["server"].
  *   S13-c  (FX-6) an AND gate is one attack path per combination of its
  *          steps: path analysis recomputed, assessments, risks and the risk
  *          ids of goals / claims carried over to the new path keys
@@ -56,7 +59,9 @@ function reshapeMultiSelect(dfd: any): any {
   if (!dfd || typeof dfd !== "object") return dfd;
   const elements = Array.isArray(dfd.elements)
     ? dfd.elements.map((e: any) =>
-        e?.type === "Process" || e?.type === "Multiprocess" ? toSelection(e, "malwareProtection") : e,
+        e?.type === "Process" || e?.type === "Multiprocess"
+          ? toSelection(toSelection(e, "malwareProtection"), "tlsTermination")
+          : e,
       )
     : dfd.elements;
   const connections = Array.isArray(dfd.connections)

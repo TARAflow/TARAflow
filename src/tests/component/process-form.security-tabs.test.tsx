@@ -5,7 +5,7 @@
 // condition humanUsers that the matrix rules use too; a tab names its open
 // fields; the chosen tab stays when the next process is opened.
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProcessDescriptionForm } from "features/dfd/components/forms/process-description-form";
 import { ModelFieldProvider } from "features/dfd/components/forms/model-field-inputs";
@@ -73,15 +73,15 @@ describe("ProcessDescriptionForm — Security sub-tabs", () => {
 });
 
 describe("ProcessDescriptionForm — Communication tab (user 2026-11-06)", () => {
-  it("a flow over a network: tab 'Communication' after authorization, with TLS termination", () => {
+  it("a flow over a network: tab 'Communication' after authorization, with the secure channel field", () => {
     renderForm(process("p5", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p5", properties: { protocol: "opc_ua" } }]);
     const tabs = tabIds();
     expect(tabs.indexOf("security-tab-communication")).toBe(tabs.indexOf("security-tab-authorization") + 1);
     fireEvent.click(screen.getByTestId("security-tab-communication"));
-    expect(screen.getAllByText("tabs.dfd.element_description.process.fields.tlsTermination.label").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Secure channel (endpoint)").length).toBeGreaterThan(0);
     // No longer under login.
     fireEvent.click(screen.getByTestId("security-tab-login"));
-    expect(screen.queryByText("tabs.dfd.element_description.process.fields.tlsTermination.label")).toBeNull();
+    expect(screen.queryByText("Secure channel (endpoint)")).toBeNull();
   });
 
   it("only human input (an operator at a touch panel): no TLS field, no tab", () => {
@@ -95,6 +95,25 @@ describe("ProcessDescriptionForm — Communication tab (user 2026-11-06)", () =>
     cleanup();
     renderForm(process("p8", { technology: "daemon" }), []);
     expect(tabIds()).toContain("security-tab-communication");
+  });
+
+  it("secure channels are a selection: TLS and SSH together, an older single value shows ticked", () => {
+    const onChange = vi.fn();
+    const element = process("p9", { technology: "daemon", tlsTermination: "server" });
+    render(
+      <ModelFieldProvider elements={[element as unknown as VisibilityElement, plc]} connections={[{ id: "f", from: "plc", to: "p9", properties: { protocol: "opc_ua" } }]}>
+        <ProcessDescriptionForm element={element} onChange={onChange} />
+      </ModelFieldProvider>,
+    );
+    fireEvent.click(screen.getByTestId("security-tab-communication"));
+    const field = screen.getByTestId("field-tlsTermination").closest(".MuiFormControl-root")!;
+    fireEvent.mouseDown(within(field as HTMLElement).getByRole("combobox"));
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("data-value"))).toEqual([
+      "none", "server", "mutual", "vpn", "ssh", "application", "custom",
+    ]);
+    fireEvent.click(screen.getByRole("option", { name: "ssh" }));
+    const last = onChange.mock.calls.at(-1)![0];
+    expect(last.properties.tlsTermination).toEqual(["server", "ssh"]);
   });
 });
 
