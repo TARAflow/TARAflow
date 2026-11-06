@@ -7,7 +7,7 @@
 // the element is left out. The chosen tab is kept per element type while the
 // app runs, so moving from element to element stays on the same category.
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Grid, Tab, Tabs } from "@mui/material";
 import type { SecurityGroup } from "shared";
@@ -53,6 +53,36 @@ export const SecurityTabs: React.FC<{
   }).filter((tab) => tab.shown.length > 0);
   const [chosen, setChosen] = useState<SecurityTabId | undefined>(() => lastTab.get(formKey));
   const active = tabs.find((tab) => tab.id === chosen) ?? tabs[0];
+
+  // The chosen tab fully in view (user 2026-11-06): the form is rebuilt when
+  // the selection moves to another element and comes back; MUI scrolls the
+  // tab into view while the panel is still settling, before the scroll
+  // buttons appear — afterwards the tab was cut off. Again on every change
+  // of the bar's width and of the chosen tab.
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const activeId = active?.id;
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar || !activeId) return;
+    // Only the bar scrolls (horizontally) — never the form around it.
+    const reveal = () => {
+      const scroller = bar.querySelector<HTMLElement>(".MuiTabs-scroller");
+      const tab = bar.querySelector<HTMLElement>(`[data-testid="security-tab-${activeId}"]`);
+      if (!scroller || !tab) return;
+      const left = tab.offsetLeft;
+      const right = left + tab.offsetWidth;
+      if (left < scroller.scrollLeft) scroller.scrollLeft = left;
+      else if (right > scroller.scrollLeft + scroller.clientWidth) scroller.scrollLeft = right - scroller.clientWidth;
+    };
+    const frame = requestAnimationFrame(reveal);
+    const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(reveal);
+    observer?.observe(bar);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [activeId, tabs.length]);
+
   if (!active) return null;
 
   const choose = (id: SecurityTabId) => {
@@ -63,6 +93,7 @@ export const SecurityTabs: React.FC<{
   return (
     <Box data-testid="security-tabs">
       <Tabs
+        ref={barRef}
         value={active.id}
         onChange={(_, id: SecurityTabId) => choose(id)}
         variant="scrollable"

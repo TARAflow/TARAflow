@@ -102,6 +102,9 @@ when opened (with a backup) and then no longer open in 0.17.x.
   protection (a touch panel can never meet it).
 
 ### Fixed
+- **Security sub-tabs:** coming back to an element, the chosen tab (e.g.
+  *Operation*) was shown cut off at the edge of the tab bar; the bar now
+  brings it fully into view once the panel has its width.
 - **Audit commit:** the branch is checked out before the project file is
   staged — a failed switch left the file staged on the old branch.
 - **Project switch:** the DFD, threat, compliance, concept, documentation
