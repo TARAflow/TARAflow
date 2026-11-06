@@ -277,7 +277,10 @@
             "handshakeMismatch": "{{detail}}: one endpoint offers only mutual TLS while the other offers no TLS (no client certificate). Align Communication → Secure channel (endpoint) on both.",
             "sshNoEndpoint": "{{detail}}: the flow uses SSH but neither endpoint offers it. Tick “SSH” under Communication → Secure channel (endpoint) of the SSH server.",
             "applicationRequiresBoth": "{{detail}}: the flow is secured at application level (e.g. OPC UA Secure Channel) — both endpoints must offer it under Communication → Secure channel (endpoint).",
-            "channelUnused": "{{detail}} offers {{channel}}, but none of its flows uses it — an open service without a visible purpose? Remove it or draw the flow that uses it."
+            "channelUnused": "{{detail}} offers {{channel}}, but none of its flows uses it — an open service without a visible purpose? Remove it or draw the flow that uses it.",
+            "keyRenewalPlaintext": "{{detail}}: keys and certificates are renewed unencrypted — new keys travel in plain. Renew them over a secure channel, in an encrypted update package or on site.",
+            "keyRenewalNoChannel": "{{detail}}: keys are renewed over a secure channel, but the element offers none under Communication → Secure channel (endpoint).",
+            "keyRenewalUpdateNotEncrypted": "{{detail}}: keys are renewed in an encrypted update package, but the update package is not encrypted (Operation → Update package encrypted) or the element is not updated."
           }
         },
         "label_property": {}
@@ -368,6 +371,26 @@
         }
       },
       "modelFields": {
+        "updateEncryption": {
+          "label": "Update package encrypted",
+          "help": "Whether the update package is encrypted, not only signed. The signature proves origin and integrity; encryption keeps the firmware and what it carries (keys, configuration) from being read. Per device: each device decrypts with its own key.",
+          "values": {
+            "none": "No (signed only)",
+            "per_type": "Yes, per device type",
+            "per_device": "Yes, per device"
+          }
+        },
+        "keyRenewal": {
+          "label": "Key / certificate renewal",
+          "help": "How the element's keys and certificates are renewed (EN 18031 CCK, IEC 62443-4-2 CR 1.8, 4.3). New keys must not travel in plain: “unencrypted” is reported in the DFD.",
+          "values": {
+            "not_possible": "Not possible",
+            "encrypted_update": "In an encrypted update package",
+            "secure_channel": "Over a secure channel (e.g. EST / SCEP over TLS)",
+            "on_site": "On site (physical access)",
+            "plaintext": "Unencrypted"
+          }
+        },
         "innerInputValidation": {
           "label": "Input validation",
           "help": "The weakest input validation of the processes this black box contains (e.g. the firmware of a supplier module). IEC 62443-4-2 CR 3.5. Leave unset when the software is not known — the row stays open for a statement or the supplier's evidence.",

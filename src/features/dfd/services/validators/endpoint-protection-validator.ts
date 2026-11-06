@@ -34,6 +34,7 @@ import type {
 import { SECURE_CHANNEL_OPTIONS, selectionOf } from "../../models/element-properties";
 import { NO_TRANSPORT_MEDIUM_PROTOCOLS } from "../../models/element-property-defaults";
 import { PROTOCOL_META } from "../../models/protocol-registry";
+import { MODEL_FIELDS, isFieldShown, readModelField, visibilityContexts } from "shared";
 
 /** TLS termination capability of an endpoint. mutual ⊃ server ⊃ none. */
 type TlsTermination = "none" | "server" | "mutual";
@@ -158,6 +159,7 @@ export function validateEndpointProtection(
   if (warnings) {
     warnUnusedChannels(connections, elements, warnings);
     warnUnsetChannels(connections, elements, warnings);
+    warnKeyRenewal(connections, elements, warnings);
   }
 }
 
@@ -244,3 +246,46 @@ function warnUnusedChannels(
     }
   }
 }
+
+const KEY_RENEWAL_FIELD = MODEL_FIELDS.find((f) => f.property === "keyRenewal")!;
+const UPDATE_ENCRYPTION_FIELD = MODEL_FIELDS.find((f) => f.property === "updateEncryption")!;
+
+/**
+ * Key renewal (user 2026-11-06): new keys must not travel in plain. Read
+ * through the field predicates (R-3) — a hidden field says nothing.
+ *   plaintext                                → warning
+ *   secure_channel, element offers none      → warning (no channel to renew over)
+ *   encrypted_update, update not encrypted   → warning ("none", or no updates at all)
+ */
+function warnKeyRenewal(
+  connections: DFDConnection[],
+  elements: DFDElement[],
+  warnings: ValidationFinding[],
+): void {
+  const contextOf = visibilityContexts(
+    elements.map((e) => ({ id: e.id, type: e.type, properties: e.properties as Record<string, unknown> | undefined })),
+    connections.map((c) => ({ id: c.id, from: c.from, to: c.to, properties: c.properties as Record<string, unknown> | undefined })),
+  );
+  for (const el of elements) {
+    if (el.type !== "Process" && el.type !== "Multiprocess") continue;
+    const context = contextOf(el.id);
+    if (!context) continue;
+    const renewal = readModelField(KEY_RENEWAL_FIELD, context);
+    const finding = (key: string): ValidationFinding => ({
+      key,
+      displayId: el.displayId ?? el.name,
+      elementId: el.id,
+      params: { detail: el.name || el.displayId || el.id },
+    });
+    if (renewal === "plaintext") warnings.push(finding(ValidationMessages.KEY_RENEWAL_PLAINTEXT));
+    if (renewal === "secure_channel" && channelsOf(el).length === 0) {
+      warnings.push(finding(ValidationMessages.KEY_RENEWAL_NO_CHANNEL));
+    }
+    if (renewal === "encrypted_update") {
+      const encryption = readModelField(UPDATE_ENCRYPTION_FIELD, context);
+      const updatable = isFieldShown(UPDATE_ENCRYPTION_FIELD, context);
+      if (!updatable || encryption === "none") warnings.push(finding(ValidationMessages.KEY_RENEWAL_UPDATE_NOT_ENCRYPTED));
+    }
+  }
+}
+

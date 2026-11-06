@@ -204,6 +204,15 @@ export const MODEL_CONDITIONS = {
     const mechanism = prop(c.element, "updateMechanism");
     return !isUnset(mechanism) && mechanism !== "none";
   },
+  /**
+   * The element holds keys to renew: it terminates a secure channel, or it
+   * or its peers authenticate by certificate (user 2026-11-06).
+   */
+  usesKeys: (c: VisibilityContext): boolean => {
+    const channels = [prop(c.element, "tlsTermination")].flat().filter((v) => typeof v === "string" && v !== "none");
+    const certificate = (v: unknown) => v === "certificate" || v === "mtls" || v === "mutual_tls";
+    return channels.length > 0 || certificate(prop(c.element, "boundaryAuthentication")) || certificate(prop(c.element, "authenticationRequired"));
+  },
   /** Updates are installed automatically (F-27 updateDelivery = automatic on an updatable element). */
   automaticUpdates: (c: VisibilityContext): boolean =>
     MODEL_CONDITIONS.updatable(c) && prop(c.element, "updateDelivery") === "automatic",
@@ -270,6 +279,26 @@ export const AUTHENTICATOR_CHANGEABLE_VALUES = ["not_specified", "yes", "no"] as
  * notification of an available update, on request or scheduled, automatic.
  */
 export const UPDATE_DELIVERY_VALUES = ["not_specified", "manual_only", "notification", "on_request_or_scheduled", "automatic"] as const;
+
+/**
+ * Update package confidentiality (user 2026-11-06): the signature proves origin
+ * and integrity; encryption keeps the firmware and what it carries from being
+ * read — per device type or per device.
+ */
+export const UPDATE_ENCRYPTION_VALUES = ["not_specified", "none", "per_type", "per_device"] as const;
+
+/**
+ * How the element's keys and certificates are renewed (user 2026-11-06; EN
+ * 18031 CCK, IEC 62443-4-2 CR 1.8 / 4.3) — new keys must not travel in plain.
+ */
+export const KEY_RENEWAL_VALUES = [
+  "not_specified",
+  "not_possible",
+  "encrypted_update",
+  "secure_channel",
+  "on_site",
+  "plaintext",
+] as const;
 
 /** F-27b — CRA Annex I (2)(c), EN 303 645 5.3-6: automatic updates on by default, can be switched off, postponed. */
 export const UPDATE_DEFAULTS_VALUES = ["not_specified", "enabled_by_default", "user_can_disable", "user_can_postpone"] as const;
@@ -399,6 +428,20 @@ export const MODEL_FIELDS: readonly ModelField[] = [
       LOCAL_UPDATE_MECHANISMS.includes(prop(c.element, "updateMechanism"))
         ? ["manual_only", "notification"]
         : UPDATE_DELIVERY_VALUES.slice(1),
+  },
+  {
+    property: "updateEncryption",
+    group: "operation",
+    elementTypes: ["Process", "Multiprocess"],
+    values: UPDATE_ENCRYPTION_VALUES,
+    shownWhen: MODEL_CONDITIONS.updatable,
+  },
+  {
+    property: "keyRenewal",
+    group: "communication",
+    elementTypes: ["Process", "Multiprocess"],
+    values: KEY_RENEWAL_VALUES,
+    shownWhen: MODEL_CONDITIONS.usesKeys,
   },
   {
     property: "updateDefaults",

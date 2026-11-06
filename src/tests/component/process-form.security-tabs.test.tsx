@@ -123,5 +123,23 @@ describe("ProcessDescriptionForm — Communication tab (user 2026-11-06)", () =>
     fireEvent.click(screen.getByTestId("security-tab-operation"));
     expect(screen.getAllByTestId("field-exposedToInternet")).toHaveLength(1);
   });
+
+  it("update encryption under Operation once updated; key renewal under Communication once keys are held (user 2026-11-06)", () => {
+    renderForm(process("p11", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p11", properties: { protocol: "opc_ua" } }]);
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    expect(screen.queryByTestId("model-field-updateEncryption")).toBeNull();
+    fireEvent.click(screen.getByTestId("security-tab-communication"));
+    expect(screen.queryByTestId("model-field-keyRenewal")).toBeNull();
+    cleanup();
+
+    renderForm(
+      process("p12", { technology: "daemon", updateMechanism: "signed_ota", tlsTermination: ["server"] }),
+      [{ id: "f", from: "plc", to: "p12", properties: { protocol: "opc_ua" } }],
+    );
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    expect(screen.getByTestId("model-field-updateEncryption")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("security-tab-communication"));
+    expect(screen.getByTestId("model-field-keyRenewal")).toBeTruthy();
+  });
 });
 

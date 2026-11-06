@@ -34,7 +34,13 @@ when opened (with a backup) and then no longer open in 0.17.x.
   chosen (unset is unknown — "none" is a choice; on-board chip buses are
   not asked). *Exposed to Internet* is context, not a control: on the
   process it moved from *Operation* up to the context, as on the
-  multiprocess. A multiprocess's safety fields
+  multiprocess. Two new fields: *update package encrypted* (no / per
+  device type / per device, under *Operation* once the element is
+  updated) and *key / certificate renewal* (not possible · in an
+  encrypted update package · over a secure channel · on site ·
+  unencrypted, under *Communication* where the element holds keys); the
+  DFD warns about keys renewed in plain, over a channel the element does
+  not offer, or in an update that is not encrypted. A multiprocess's safety fields
   (safety-relevant, rationale) sit below the tabs, always in view.
 - **Black-box multiprocess:** a multiprocess without a child page — a PLC
   drawn as a box, a supplier's module — gets seven fields for the

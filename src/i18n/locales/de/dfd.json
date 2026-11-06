@@ -277,7 +277,10 @@
             "handshakeMismatch": "{{detail}}: Ein Endpunkt bietet nur gegenseitiges TLS an, der andere gar kein TLS (kein Client-Zertifikat). Kommunikation → Sicherer Kanal (Endpunkt) an beiden abgleichen.",
             "sshNoEndpoint": "{{detail}}: Der Datenfluss nutzt SSH, aber kein Endpunkt bietet es an. Beim SSH-Server unter Kommunikation → Sicherer Kanal (Endpunkt) „SSH“ anhaken.",
             "applicationRequiresBoth": "{{detail}}: Der Datenfluss ist auf Anwendungsebene gesichert (z. B. OPC UA Secure Channel) — beide Endpunkte müssen das unter Kommunikation → Sicherer Kanal (Endpunkt) anbieten.",
-            "channelUnused": "{{detail}} bietet {{channel}} an, aber keiner seiner Datenflüsse nutzt es — ein offener Dienst ohne erkennbaren Zweck? Entfernen oder den Fluss zeichnen, der es nutzt."
+            "channelUnused": "{{detail}} bietet {{channel}} an, aber keiner seiner Datenflüsse nutzt es — ein offener Dienst ohne erkennbaren Zweck? Entfernen oder den Fluss zeichnen, der es nutzt.",
+            "keyRenewalPlaintext": "{{detail}}: Schlüssel und Zertifikate werden unverschlüsselt erneuert — neue Schlüssel gehen im Klartext über die Leitung. Über einen gesicherten Kanal, im verschlüsselten Update-Paket oder vor Ort erneuern.",
+            "keyRenewalNoChannel": "{{detail}}: Schlüssel werden über einen gesicherten Kanal erneuert, aber das Element bietet unter Kommunikation → Sicherer Kanal (Endpunkt) keinen an.",
+            "keyRenewalUpdateNotEncrypted": "{{detail}}: Schlüssel werden im verschlüsselten Update-Paket erneuert, aber das Update-Paket ist nicht verschlüsselt (Betrieb → Update-Paket verschlüsselt) oder das Element wird nicht aktualisiert."
           }
         },
         "label_property": {}
@@ -368,6 +371,26 @@
         }
       },
       "modelFields": {
+        "updateEncryption": {
+          "label": "Update-Paket verschlüsselt",
+          "help": "Ob das Update-Paket verschlüsselt ist, nicht nur signiert. Die Signatur belegt Herkunft und Unversehrtheit; die Verschlüsselung schützt die Firmware und was sie enthält (Schlüssel, Konfiguration) vor dem Auslesen. Pro Gerät: jedes Gerät entschlüsselt mit eigenem Schlüssel.",
+          "values": {
+            "none": "Nein (nur signiert)",
+            "per_type": "Ja, pro Gerätetyp",
+            "per_device": "Ja, pro Gerät"
+          }
+        },
+        "keyRenewal": {
+          "label": "Schlüssel-/Zertifikatserneuerung",
+          "help": "Wie die Schlüssel und Zertifikate des Elements erneuert werden (EN 18031 CCK, IEC 62443-4-2 CR 1.8, 4.3). Neue Schlüssel dürfen nicht im Klartext übertragen werden: „unverschlüsselt“ meldet der DFD.",
+          "values": {
+            "not_possible": "Nicht möglich",
+            "encrypted_update": "Im verschlüsselten Update-Paket",
+            "secure_channel": "Über gesicherten Kanal (z. B. EST / SCEP über TLS)",
+            "on_site": "Vor Ort (physischer Zugang)",
+            "plaintext": "Unverschlüsselt"
+          }
+        },
         "innerInputValidation": {
           "label": "Eingabevalidierung",
           "help": "Die schwächste Eingabevalidierung der Prozesse, die diese Black Box enthält (z. B. die Firmware eines Zulieferer-Moduls). IEC 62443-4-2 CR 3.5. Leer lassen, wenn die Software nicht bekannt ist — die Zeile bleibt offen für eine Aussage oder den Nachweis des Herstellers.",

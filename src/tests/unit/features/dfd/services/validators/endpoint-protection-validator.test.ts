@@ -206,3 +206,33 @@ describe("endpoint protection validator — secure channel not stated (user 2026
     expect(warningsOf([proc("A"), proc("B")], [flow("A", "B", undefined, { protocol: "uart" })])).toEqual([]);
   });
 });
+
+describe("endpoint protection validator — key renewal (user 2026-11-06)", () => {
+  const keyWarnings = (props: Record<string, unknown>) => {
+    const el = { ...proc("A"), properties: props as any };
+    const errors: ValidationFinding[] = [];
+    const warnings: ValidationFinding[] = [];
+    validateEndpointProtection([], [el], errors, warnings);
+    return warnings.map((w) => w.key.split(".").pop()).filter((k) => k?.startsWith("keyRenewal"));
+  };
+
+  it("unencrypted renewal is reported", () => {
+    expect(keyWarnings({ tlsTermination: ["server"], keyRenewal: "plaintext" })).toEqual(["keyRenewalPlaintext"]);
+  });
+
+  it("over a secure channel needs a channel; a certificate login alone has none", () => {
+    expect(keyWarnings({ tlsTermination: ["server"], keyRenewal: "secure_channel" })).toEqual([]);
+    expect(keyWarnings({ authenticationRequired: "certificate", keyRenewal: "secure_channel" })).toEqual(["keyRenewalNoChannel"]);
+  });
+
+  it("in an encrypted update package needs an encrypted update", () => {
+    const base = { tlsTermination: ["server"], keyRenewal: "encrypted_update" };
+    expect(keyWarnings({ ...base, updateMechanism: "signed_ota", updateEncryption: "per_device" })).toEqual([]);
+    expect(keyWarnings({ ...base, updateMechanism: "signed_ota", updateEncryption: "none" })).toEqual(["keyRenewalUpdateNotEncrypted"]);
+    expect(keyWarnings({ ...base, updateMechanism: "none" })).toEqual(["keyRenewalUpdateNotEncrypted"]);
+  });
+
+  it("a hidden field says nothing: no keys held → the renewal value is not read", () => {
+    expect(keyWarnings({ tlsTermination: ["none"], keyRenewal: "plaintext" })).toEqual([]);
+  });
+});

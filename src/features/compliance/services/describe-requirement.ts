@@ -49,6 +49,7 @@ const WORDS = {
       automaticUpdates: "that installs updates automatically",
       machinePasswordUse: "where software processes or devices log in with a password",
       blackBox: "without child page (black box)",
+      usesKeys: "that holds keys (secure channel or certificate)",
     },
   },
   de: {
@@ -81,6 +82,7 @@ const WORDS = {
       automaticUpdates: "das Updates automatisch installiert",
       machinePasswordUse: "bei dem sich Software-Prozesse oder Geräte mit Passwort anmelden",
       blackBox: "ohne Unterseite (Black Box)",
+      usesKeys: "das Schlüssel hält (sicherer Kanal oder Zertifikat)",
     },
   },
 } as const;

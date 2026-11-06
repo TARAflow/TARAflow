@@ -45,6 +45,8 @@ import type {
   SECURITY_CONFIG_REPORTING_VALUES,
   UPDATE_DEFAULTS_VALUES,
   UPDATE_DELIVERY_VALUES,
+  UPDATE_ENCRYPTION_VALUES,
+  KEY_RENEWAL_VALUES,
   USER_ACCOUNTS_VALUES,
   USER_DATA_DELETION_VALUES,
 } from "shared";
@@ -73,6 +75,10 @@ export type LoginLockout = (typeof LOGIN_LOCKOUT_VALUES)[number];
 
 /** How updates reach the element (prAA CR 3.10 RE(2)). */
 export type UpdateDelivery = (typeof UPDATE_DELIVERY_VALUES)[number];
+/** Confidentiality of the update package (user 2026-11-06). */
+export type UpdateEncryption = (typeof UPDATE_ENCRYPTION_VALUES)[number];
+/** How keys and certificates are renewed (user 2026-11-06; EN 18031 CCK). */
+export type KeyRenewal = (typeof KEY_RENEWAL_VALUES)[number];
 /** Defaults of automatic updates (CRA Annex I (2)(c)); multi-select. */
 export type UpdateDefault = Exclude<(typeof UPDATE_DEFAULTS_VALUES)[number], "not_specified">;
 /** Configured to its secure-by-default settings (CR 7.6 a). */
@@ -359,6 +365,10 @@ export interface ProcessProperties {
   loginLockout?: LoginLockout;
   /** F-27 — shown when the element is updated (updateMechanism set, not none). */
   updateDelivery?: UpdateDelivery;
+  /** Update package encrypted — shown when the element is updated (user 2026-11-06). */
+  updateEncryption?: UpdateEncryption;
+  /** Key / certificate renewal — shown where the element holds keys (user 2026-11-06). */
+  keyRenewal?: KeyRenewal;
   /** F-27b — shown with automatic updates. */
   updateDefaults?: UpdateDefault[];
   /** F-25a — shown where the element stands for the component. */
@@ -621,6 +631,10 @@ export interface MultiprocessProperties {
   loginLockout?: LoginLockout;
   /** F-27 — shown when the element is updated (updateMechanism set, not none). */
   updateDelivery?: UpdateDelivery;
+  /** Update package encrypted — shown when the element is updated (user 2026-11-06). */
+  updateEncryption?: UpdateEncryption;
+  /** Key / certificate renewal — shown where the element holds keys (user 2026-11-06). */
+  keyRenewal?: KeyRenewal;
   /** F-27b — shown with automatic updates. */
   updateDefaults?: UpdateDefault[];
   /** F-25a — shown where the element stands for the component. */
