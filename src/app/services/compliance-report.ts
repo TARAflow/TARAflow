@@ -20,6 +20,7 @@
 //
 // Used by doc-transform (app) and the CLI reporter alike.
 
+import { i18n } from "i18n";
 import type { Project } from "../models/project-types";
 import { buildAnalysisView, buildDfdGraph, analyseLeveled, isLeveled } from "features/dfd";
 import { getAllMitigations } from "features/threats";
@@ -46,7 +47,7 @@ import {
   type ViewElement,
   type ViewFlow,
 } from "features/compliance";
-import type { DocCompliance } from "features/documentation";
+import type { DocCompliance, DocMitigationSuggestion } from "features/documentation";
 import { complianceComponentOf, familyCompliance } from "shared";
 import { controlValuePatch, meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import { deriveControlInstances } from "../hooks/use-control-instance-derivation";
@@ -306,12 +307,17 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
 
   // Catalog mitigations meeting a requirement on a type of the open elements — suggestions for gaps (D-29).
   const typeOf = complianceTypeOf(project);
-  const suggestionsOf = (label: string, openElementIds: readonly string[]): string[] =>
+  // FX-23: with their text in the document language — project mitigations carry their own.
+  const mitigationT = i18n.getFixedT(language, "mitigations");
+  const suggestionsOf = (label: string, openElementIds: readonly string[]): DocMitigationSuggestion[] =>
     suggestMitigations(
       getAllMitigations(),
       rowById.get(label)?.requirementIds ?? [],
       new Set(openElementIds.map(typeOf).filter((type): type is string => !!type)),
-    ).map((m) => m.id);
+    ).map((m) => ({
+      id: m.id,
+      text: (m as { text?: string }).text ?? String(mitigationT(`${m.id}.mitigation`, { defaultValue: m.id })),
+    }));
 
   const claimRows = new Map<string, string[]>();
   for (const r of achieved.rows) for (const id of r.claimIds) claimRows.set(id, [...(claimRows.get(id) ?? []), r.label]);

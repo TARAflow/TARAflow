@@ -130,6 +130,10 @@ when opened (with a backup) and then no longer open in 0.17.x.
   protection (a touch panel can never meet it).
 
 ### Fixed
+- **Report — gaps against the SL-T:** the column "Catalog mitigations"
+  listed only ids; it now gives each mitigation with its text in the
+  document language ("M-S-009: Authenticate the sensor per device …"),
+  a project mitigation with its own text.
 - **Compliance tab — void rows:** rows the edition declares void or
   without a component requirement (e.g. CR 1.14, CR 2.3, CR 7.5) were
   plain text; they now link to the info dialog, which gives the reason

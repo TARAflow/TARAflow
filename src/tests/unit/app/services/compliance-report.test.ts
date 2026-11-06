@@ -111,6 +111,18 @@ describe("buildDocCompliance", () => {
     expect(doc.component).toBeUndefined();
   });
 
+  it("gap suggestions carry the mitigation text in the document language (FX-23)", () => {
+    const withSuggestions = (language: string) =>
+      buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"]), language)![0].rows.flatMap((r) => r.suggestions);
+    const en = withSuggestions("en");
+    const de = withSuggestions("de");
+    expect(en.length).toBeGreaterThan(0);
+    expect(de.map((m) => m.id)).toEqual(en.map((m) => m.id));
+    expect(en.every((m) => m.text !== "" && m.text !== m.id)).toBe(true);
+    const first = en.findIndex((m, i) => m.text !== de[i].text);
+    expect(first).toBeGreaterThanOrEqual(0); // the German catalog text, not the English one
+  });
+
   it("both tags → one part per edition, the CRA edition first (K-1, CM-9)", () => {
     const parts = buildDocCompliance(smokeDetector(["IEC 62443", "EN IEC 62443 (CRA)"]))!;
     expect(parts.map((p) => [p.standardLabel, p.cra])).toEqual([

@@ -56,7 +56,10 @@ const compliance = (extra: Partial<DocCompliance> = {}): DocCompliance => ({
       source: undefined,
       failing: ["DF-1", "DF-2", "DF-3", "DF-4", "DF-5", "DF-6", "DF-7"],
       countsForComponent: false,
-      suggestions: ["M-S-009"],
+      suggestions: [
+        { id: "M-S-009", text: "Authenticate the sensor per device" },
+        { id: "M-X-001", text: "M-X-001" },
+      ],
     }),
     row("CR 1.8", { cra: ["d"], minSl: 2, status: "met", source: "mitigation", mitigations: ["M-S-002"], contradiction: false }),
     row("CR 1.11", { cra: ["d"], status: "claimed", source: "claim", claims: ["CLM-03"], countsForComponent: false }),
@@ -121,9 +124,10 @@ describe("compliance matrix sections", () => {
     expect(view.paragraphs[1]).toMatch(/^Not part of this assessment: .*Annex II.*support period.*product documentation\.$/);
   });
 
-  it("gaps against the target: rows up to the target that the component does not meet, with suggestions", () => {
+  it("gaps against the target: rows up to the target that the component does not meet, with the suggestions' texts (FX-23)", () => {
     expect(byTitle("Gaps against the SL-T").table?.rows).toEqual([
-      ["CR 1.2", "gap", "M-S-009"],
+      // A text missing in the catalog falls back to the id alone.
+      ["CR 1.2", "gap", "M-S-009: Authenticate the sensor per device; M-X-001"],
       ["CR 1.11", "claimed", "—"],
     ]);
   });

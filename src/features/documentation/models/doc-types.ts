@@ -301,6 +301,12 @@ export interface DocComplianceVector {
 }
 
 /** One row of the Statement of Applicability, names already resolved. */
+/** A catalog (or project) mitigation suggested for a gap, its text in the document language (FX-23). */
+export interface DocMitigationSuggestion {
+  id: string;
+  text: string;
+}
+
 export interface DocComplianceRow {
   label: string;
   /** The row's group: FR for IEC 62443-4-2, the group id for EN 50742 A. */
@@ -324,8 +330,8 @@ export interface DocComplianceRow {
   statementSuperseded?: boolean;
   /** Counts for SL-C (component) in the achieved run (D-14). */
   countsForComponent: boolean;
-  /** Catalog mitigations naming the row's requirements — for gaps. */
-  suggestions: string[];
+  /** Catalog mitigations naming the row's requirements, with their text in the document language — for gaps. */
+  suggestions: DocMitigationSuggestion[];
   /** EN 50742 A: risks (labels) that fail the row or are not rated yet. */
   risks?: string[];
 }

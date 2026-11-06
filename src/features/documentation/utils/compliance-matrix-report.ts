@@ -279,7 +279,8 @@ function standardSections(c: DocCompliance, t: TranslateFn): ReportSection[] {
       facts: [],
       table: {
         headers: [t(`${K}.requirement`, "Requirement"), t(`${K}.statusColumn`, "Status"), t(`${K}.suggestions`, "Catalog mitigations")],
-        rows: gaps.map((r) => [r.label, statusText(r, t), r.suggestions.join(", ") || "—"]),
+        // FX-23: the mitigation's text, not only its id.
+        rows: gaps.map((r) => [r.label, statusText(r, t), r.suggestions.map((m) => (m.text && m.text !== m.id ? `${m.id}: ${m.text}` : m.id)).join("; ") || "—"]),
       },
     });
   }

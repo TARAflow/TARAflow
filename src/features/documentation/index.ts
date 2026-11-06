@@ -19,6 +19,7 @@ export type {
   DocTabProps,
   DocCompliance,
   DocComplianceRow,
+  DocMitigationSuggestion,
   DocComplianceVector,
 } from "./models/doc-types";
 
