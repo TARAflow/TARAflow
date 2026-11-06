@@ -108,6 +108,20 @@ describe("claims in the info dialog (D-5, IEC-6)", () => {
     expect(onConceptChange.mock.lastCall![0].claims[0].requirements).toEqual([]);
   });
 
+  it("an unused claim can be deleted for good in the claim dialog; a used one cannot (FX-24)", () => {
+    const onConceptChange = vi.fn();
+    const unused = { ...supporting, id: "c2", displayId: "CLM-06", statement: "Old gateway rule", requirements: [] };
+    const otherRow = { ...supporting, id: "c3", displayId: "CLM-07", statement: "Plant VPN", requirements: ["iec62443:cr-3.7"] };
+    renderTab(edition(CRA_ROWS), undefined, { concept: { goals: [], claims: [supporting, unused, otherRow], verifications: [] }, onConceptChange });
+    fireEvent.click(screen.getByTestId("compliance-req-CR 3.5"));
+    fireEvent.click(screen.getByTestId("compliance-add-claim"));
+    const box = screen.getByTestId("compliance-claim-unused");
+    expect(within(box).getByText("Old gateway rule")).toBeTruthy();
+    expect(within(box).queryByText("Plant VPN")).toBeNull();
+    fireEvent.click(screen.getByTestId("compliance-claim-delete-CLM-06"));
+    expect(onConceptChange.mock.lastCall![0].claims.map((c: { displayId: string }) => c.displayId)).toEqual(["CLM-04", "CLM-07"]);
+  });
+
   it("without a concept handler the dialog shows no claims", () => {
     renderTab(edition(CRA_ROWS));
     fireEvent.click(screen.getByTestId("compliance-req-CR 3.5"));

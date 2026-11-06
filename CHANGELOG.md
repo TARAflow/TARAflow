@@ -130,6 +130,10 @@ when opened (with a backup) and then no longer open in 0.17.x.
   protection (a touch panel can never meet it).
 
 ### Fixed
+- **Compliance tab — delete unused claims:** a supporting claim removed
+  from all its requirements stayed in the project with no way to delete
+  it; the dialog "Add claim" now lists unused claims (no requirement, no
+  risk) with "Delete". A claim still in use cannot be deleted there.
 - **Report — gaps against the SL-T:** the column "Catalog mitigations"
   listed only ids; it now gives each mitigation with its text in the
   document language ("M-S-009: Authenticate the sensor per device …"),

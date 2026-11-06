@@ -150,6 +150,8 @@
       "noComponentRequirement": "Die Norm stellt unter dieser Nummer keine Anforderung an die Komponente — das Thema liegt beim System (IEC 62443-3-3).",
       "noComponentRequirementSr23": "Die Norm stellt unter dieser Nummer keine Anforderung an die Komponente — SR 2.3 ist eine Systemanforderung (IEC 62443-3-3).",
       "noComponentRequirementPower": "Die Norm stellt unter dieser Nummer keine Anforderung an die Komponente — die Notstromversorgung ist Sache des Systems (IEC 62443-3-3)."
-    }
+    },
+    "unusedClaims": "Ungenutzte Claims — keine Anforderung und kein Risiko verweist darauf",
+    "deleteClaim": "Löschen"
   }
 }

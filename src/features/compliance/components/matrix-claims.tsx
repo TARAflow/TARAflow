@@ -29,6 +29,7 @@ import {
   claimsOfRequirements,
   linkClaimRequirements,
   newSupportingClaim,
+  removeClaim,
   unlinkClaimRequirements,
   type CybersecurityClaim,
   type CybersecurityConcept,
@@ -47,6 +48,13 @@ export function applyClaimChoice(concept: CybersecurityConcept, requirements: re
   const claim = newSupportingClaim(concept, requirements, choice.statement, choice.responsibleParty);
   return addClaim(concept, choice.reviewBy ? { ...claim, reviewBy: choice.reviewBy } : claim);
 }
+
+/**
+ * FX-24: a supporting claim no requirement and no risk uses any more — only
+ * such a claim can be deleted (as in the risk tab: a used claim stays).
+ */
+export const isUnusedClaim = (c: CybersecurityClaim): boolean =>
+  c.kind === "supporting" && (c.requirements ?? []).length === 0 && c.riskIds.length === 0;
 
 /** The claims of one row in the info dialog, with "add" and "remove from this row". */
 export const RowClaims: React.FC<{
@@ -90,6 +98,7 @@ export const RowClaims: React.FC<{
         <ClaimDialog
           existing={concept.claims.filter((c) => c.kind === "supporting" && !claims.includes(c))}
           t={t}
+          onDelete={(id) => onConceptChange(removeClaim(concept, id))}
           onClose={() => setAdding(false)}
           onSave={(choice) => {
             onConceptChange(applyClaimChoice(concept, requirements, choice));
@@ -106,10 +115,15 @@ const NEW = "";
 const ClaimDialog: React.FC<{
   existing: readonly CybersecurityClaim[];
   t: T;
+  /** FX-24: delete an unused claim for good. */
+  onDelete: (claimId: string) => void;
   onClose: () => void;
   onSave: (choice: ClaimChoice) => void;
-}> = ({ existing, t, onClose, onSave }) => {
-  const [existingId, setExistingId] = useState(NEW);
+}> = ({ existing, t, onDelete, onClose, onSave }) => {
+  const [chosenId, setExistingId] = useState(NEW);
+  // A deleted claim can no longer be the choice.
+  const existingId = chosenId === NEW || existing.some((c) => c.id === chosenId) ? chosenId : NEW;
+  const unused = existing.filter(isUnusedClaim);
   const [statement, setStatement] = useState("");
   const [party, setParty] = useState("");
   const [reviewBy, setReviewBy] = useState("");
@@ -141,6 +155,23 @@ const ClaimDialog: React.FC<{
                 </MenuItem>
               ))}
             </TextField>
+          )}
+          {unused.length > 0 && (
+            <Box data-testid="compliance-claim-unused">
+              <Typography variant="caption" color="text.secondary">
+                {t("unusedClaims", "Unused claims — no requirement and no risk refers to them")}
+              </Typography>
+              {unused.map((c) => (
+                <Stack key={c.id} direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    <b>{c.displayId}</b> {c.statement}
+                  </Typography>
+                  <Button size="small" color="error" onClick={() => onDelete(c.id)} data-testid={`compliance-claim-delete-${c.displayId}`}>
+                    {t("deleteClaim", "Delete")}
+                  </Button>
+                </Stack>
+              ))}
+            </Box>
           )}
           {isNew && (
             <>
