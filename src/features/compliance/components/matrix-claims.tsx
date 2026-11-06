@@ -10,6 +10,7 @@
 // the component (D-14).
 
 import React, { useState } from "react";
+import { DeleteOutline as DeleteIcon } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -123,14 +124,22 @@ const ClaimDialog: React.FC<{
   const [chosenId, setExistingId] = useState(NEW);
   // A deleted claim can no longer be the choice.
   const existingId = chosenId === NEW || existing.some((c) => c.id === chosenId) ? chosenId : NEW;
-  const unused = existing.filter(isUnusedClaim);
   const [statement, setStatement] = useState("");
   const [party, setParty] = useState("");
   const [reviewBy, setReviewBy] = useState("");
   const isNew = existingId === NEW;
   const valid = !isNew || statement.trim().length > 0;
   return (
-    <Dialog open onClose={onClose} maxWidth="sm" fullWidth data-testid="compliance-claim-dialog">
+    // At most 80 % of the window, scrolling inside — title and buttons stay in view.
+    <Dialog
+      open
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      scroll="paper"
+      PaperProps={{ sx: { maxHeight: "80vh" } }}
+      data-testid="compliance-claim-dialog"
+    >
       <DialogTitle>{t("claimTitle", "Claim: the system provides the requirement")}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
@@ -147,31 +156,49 @@ const ClaimDialog: React.FC<{
               value={existingId}
               onChange={(e) => setExistingId(e.target.value)}
               inputProps={{ "data-testid": "compliance-claim-choice" }}
+              SelectProps={{
+                // The field shows the claim, not the row's delete button.
+                renderValue: (value) => {
+                  const claim = existing.find((c) => c.id === value);
+                  return claim ? `${claim.displayId} ${claim.statement}` : t("newClaim", "New claim");
+                },
+                // A long list scrolls inside the menu (FX-24b).
+                MenuProps: { PaperProps: { sx: { maxHeight: 320 } } },
+              }}
             >
               <MenuItem value={NEW}>{t("newClaim", "New claim")}</MenuItem>
               {existing.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.displayId} {c.statement}
+                <MenuItem key={c.id} value={c.id} data-testid={`compliance-claim-option-${c.displayId}`}>
+                  <Typography variant="body2" noWrap sx={{ flex: 1, minWidth: 0 }} title={c.statement}>
+                    <b>{c.displayId}</b> {c.statement}
+                  </Typography>
+                  {/* FX-24b: an unused claim is deleted right in the list. */}
+                  {isUnusedClaim(c) && (
+                    <>
+                      <Typography variant="caption" color="text.secondary" sx={{ ml: 1, flexShrink: 0 }}>
+                        {t("unusedClaim", "unused")}
+                      </Typography>
+                      <Tooltip title={t("deleteClaim", "Delete this unused claim for good")}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          sx={{ ml: 0.5, flexShrink: 0 }}
+                          aria-label={t("deleteClaim", "Delete this unused claim for good")}
+                          onClick={(e) => {
+                            // Delete only — do not choose the claim.
+                            e.stopPropagation();
+                            onDelete(c.id);
+                          }}
+                          data-testid={`compliance-claim-delete-${c.displayId}`}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </>
+                  )}
                 </MenuItem>
               ))}
             </TextField>
-          )}
-          {unused.length > 0 && (
-            <Box data-testid="compliance-claim-unused">
-              <Typography variant="caption" color="text.secondary">
-                {t("unusedClaims", "Unused claims — no requirement and no risk refers to them")}
-              </Typography>
-              {unused.map((c) => (
-                <Stack key={c.id} direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    <b>{c.displayId}</b> {c.statement}
-                  </Typography>
-                  <Button size="small" color="error" onClick={() => onDelete(c.id)} data-testid={`compliance-claim-delete-${c.displayId}`}>
-                    {t("deleteClaim", "Delete")}
-                  </Button>
-                </Stack>
-              ))}
-            </Box>
           )}
           {isNew && (
             <>

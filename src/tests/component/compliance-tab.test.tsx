@@ -108,18 +108,21 @@ describe("claims in the info dialog (D-5, IEC-6)", () => {
     expect(onConceptChange.mock.lastCall![0].claims[0].requirements).toEqual([]);
   });
 
-  it("an unused claim can be deleted for good in the claim dialog; a used one cannot (FX-24)", () => {
+  it("an unused claim is deleted for good from the claim list; a used one cannot be (FX-24)", () => {
     const onConceptChange = vi.fn();
     const unused = { ...supporting, id: "c2", displayId: "CLM-06", statement: "Old gateway rule", requirements: [] };
     const otherRow = { ...supporting, id: "c3", displayId: "CLM-07", statement: "Plant VPN", requirements: ["iec62443:cr-3.7"] };
     renderTab(edition(CRA_ROWS), undefined, { concept: { goals: [], claims: [supporting, unused, otherRow], verifications: [] }, onConceptChange });
     fireEvent.click(screen.getByTestId("compliance-req-CR 3.5"));
     fireEvent.click(screen.getByTestId("compliance-add-claim"));
-    const box = screen.getByTestId("compliance-claim-unused");
-    expect(within(box).getByText("Old gateway rule")).toBeTruthy();
-    expect(within(box).queryByText("Plant VPN")).toBeNull();
+    // The delete button sits in the dropdown, next to the unused claim only.
+    fireEvent.mouseDown(within(screen.getByTestId("compliance-claim-dialog")).getByRole("combobox"));
+    expect(within(screen.getByTestId("compliance-claim-option-CLM-06")).getByTestId("compliance-claim-delete-CLM-06")).toBeTruthy();
+    expect(screen.queryByTestId("compliance-claim-delete-CLM-07")).toBeNull();
     fireEvent.click(screen.getByTestId("compliance-claim-delete-CLM-06"));
     expect(onConceptChange.mock.lastCall![0].claims.map((c: { displayId: string }) => c.displayId)).toEqual(["CLM-04", "CLM-07"]);
+    // Deleting does not choose the claim: the form for a new claim stays.
+    expect(screen.getByTestId("compliance-claim-statement")).toBeTruthy();
   });
 
   it("without a concept handler the dialog shows no claims", () => {

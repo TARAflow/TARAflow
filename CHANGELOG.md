@@ -138,8 +138,10 @@ when opened (with a backup) and then no longer open in 0.17.x.
 ### Fixed
 - **Compliance tab — delete unused claims:** a supporting claim removed
   from all its requirements stayed in the project with no way to delete
-  it; the dialog "Add claim" now lists unused claims (no requirement, no
-  risk) with "Delete". A claim still in use cannot be deleted there.
+  it; in the dialog "Add claim" an unused claim (no requirement, no
+  risk) is marked *unused* in the claim dropdown, with a delete button
+  next to it. A claim still in use cannot be deleted there. The list
+  and the dialog scroll when they grow long.
 - **Report — gaps against the SL-T:** the column "Catalog mitigations"
   listed only ids; it now gives each mitigation with its text in the
   document language ("M-S-009: Authenticate the sensor per device …"),

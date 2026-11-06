@@ -151,7 +151,7 @@
       "noComponentRequirementSr23": "The standard sets no component requirement under this number — SR 2.3 is a system requirement (IEC 62443-3-3).",
       "noComponentRequirementPower": "The standard sets no component requirement under this number — emergency power is a matter of the system (IEC 62443-3-3)."
     },
-    "unusedClaims": "Unused claims — no requirement and no risk refers to them",
-    "deleteClaim": "Delete"
+    "deleteClaim": "Delete this unused claim for good",
+    "unusedClaim": "unused"
   }
 }
