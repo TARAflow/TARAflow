@@ -56,13 +56,16 @@ when opened (with a backup) and then no longer open in 0.17.x.
   links to the layer above put it on the top row, to the layer below on
   the bottom row — at most a third per row. Positions remembered by an
   earlier version are placed anew once (view only, not in the file).
-- **Asset graph relation filter:** next to the presets, a choice of the
-  assets still to be linked — *without asset relation* (DFD and hazard
-  links allowed), *DFD element relation, no asset relation* (drawn in the
-  DFD, not yet placed in the asset model), *without hazard relation*,
-  *without any relation* (no
-  asset, hazard or DFD element) — each with its number, combinable with
-  the presets, layer view only.
+- **Asset graph relation filter:** a menu *Relations* next to the presets
+  with one checkbox per kind of relation — DFD element, asset, hazard —
+  all ticked. Unticking a kind hides the assets and hazards that have
+  such a relation (a hazard's link to an asset counts as an asset
+  relation); nothing ticked leaves the assets and hazards without any
+  relation — the work list of what is still to be linked. Layer view
+  only, combinable with the presets.
+- **Asset graph shows only relevant hazards** — those marked *in scope*
+  in the Hazard tab; out-of-scope and unreviewed hazards and their edges
+  are left out, also from the counts.
 - **Hazard tab findings panel** below the table, like the Asset tab: the
   validation's errors and warnings in the UI language, a click opens the
   hazard.

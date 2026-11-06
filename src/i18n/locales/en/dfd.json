@@ -23,12 +23,15 @@
         "noFocus": "Select an asset (click in the asset panel or double-click in the graph)",
         "depth": "Depth {{depth}}",
         "relationFilter": {
-          "tooltip": "Show only the assets still to be linked",
-          "all": "All assets",
-          "noAsset": "Without asset relation ({{count}})",
-          "elementNoAsset": "DFD element relation, no asset relation ({{count}})",
-          "noHazard": "Without hazard relation ({{count}})",
-          "none": "Without any relation ({{count}})"
+          "tooltip": "Untick a kind of relation to hide the assets and hazards that have one",
+          "label": "Relations",
+          "active": "Relations: filtered ({{count}})",
+          "showAll": "Show all",
+          "kind": {
+            "element": "DFD element",
+            "asset": "Asset",
+            "hazard": "Hazard"
+          }
         },
         "anchors": "DFD elements",
         "counts": "{{visible}} of {{total}} assets visible · {{hiddenLayers}} in hidden layers · {{outsideFocus}} outside focus · {{filtered}} links filtered",

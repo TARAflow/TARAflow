@@ -134,9 +134,11 @@ import {
   assetVisibility,
   invalidLinks,
   relationTypesIn,
-  assetIdsByRelationFilter,
-  ASSET_RELATION_FILTERS,
-  type AssetRelationFilter,
+  filterByRelations,
+  onlyRelevantHazards,
+  relationIndex,
+  RELATION_KINDS,
+  type RelationKind,
   searchAssets,
   sourceOnPages,
   type AssetVisibility,
@@ -203,8 +205,8 @@ interface ViewState {
   showHazards: boolean;
   /** Shown relation types; null = all (FR-V10). */
   relationTypes: string[] | null;
-  /** Layer view: only assets without some kind of relation (user 2026-11-06). */
-  relationFilter: AssetRelationFilter;
+  /** Layer view: the kinds of relation whose nodes are shown — all by default (user 2026-11-06). */
+  relationKinds: RelationKind[];
 }
 
 // Start (and "Reset"): preset "All" with the Hazard Items — everything is
@@ -218,15 +220,14 @@ const DEFAULT_STATE: ViewState = {
   anchorsInFocus: true,
   showHazards: true,
   relationTypes: null,
-  relationFilter: "all",
+  relationKinds: [...RELATION_KINDS],
 };
 
-/** English default of each relation filter entry (FR: user 2026-11-06). */
-const RELATION_FILTER_TEXT: Record<Exclude<AssetRelationFilter, "all">, string> = {
-  noAsset: "Without asset relation ({{count}})",
-  elementNoAsset: "DFD element relation, no asset relation ({{count}})",
-  noHazard: "Without hazard relation ({{count}})",
-  none: "Without any relation ({{count}})",
+/** English default of each relation kind of the filter. */
+const RELATION_KIND_TEXT: Record<RelationKind, string> = {
+  element: "DFD element",
+  asset: "Asset",
+  hazard: "Hazard",
 };
 
 /** Presets that show the Hazard Items (G3). */
@@ -241,7 +242,7 @@ function groupColor(group: string): { color: string; colorLight: string } {
 }
 
 export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
-  source,
+  source: rawSource,
   selectedAssetId,
   onSelectAsset,
   onShowElement,
@@ -259,6 +260,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   darkMode = false,
   pageScope,
 }) => {
+  // Only the hazards marked relevant in the Hazard tab (in scope) — everywhere in the graph (user 2026-11-06).
+  const source = useMemo(() => onlyRelevantHazards(rawSource), [rawSource]);
   const { t, i18n } = useTranslation();
   const [state, setState] = useState<ViewState>(DEFAULT_STATE);
   const [showLegend, setShowLegend] = useState(false);
@@ -339,21 +342,27 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     [shownSource, source],
   );
 
-  // Relation filter — the matching assets over the whole model, not the page.
-  const byRelation = useMemo(() => assetIdsByRelationFilter(source), [source]);
+  // Relation filter — relations over the whole model, applied to the shown page.
+  const relations = useMemo(() => relationIndex(source), [source]);
   const hasHazards = (source.hazards?.items.length ?? 0) > 0;
-  const relationFilters = ASSET_RELATION_FILTERS.filter((f) => f !== "noHazard" || hasHazards);
-  const relationFilter = relationFilters.includes(state.relationFilter) ? state.relationFilter : "all";
-  const relationCount = (f: Exclude<AssetRelationFilter, "all">) =>
-    shownSource.assets.filter((a) => byRelation[f].has(a.id) && state.layers.includes(a.assetGroup as AssetGroup)).length;
-  const filterOn = relationFilter !== "all" && state.view === "layers";
+  const relationKinds = RELATION_KINDS.filter((k) => k !== "hazard" || hasHazards);
+  // Without hazards in the project the hazard box is not offered and counts as ticked.
+  const ticked = state.relationKinds.concat(hasHazards ? [] : ["hazard"]);
+  const filterOn = state.view === "layers" && RELATION_KINDS.some((k) => !ticked.includes(k));
   const graphSource = useMemo(
-    () =>
-      filterOn
-        ? { ...shownSource, assets: shownSource.assets.filter((a) => byRelation[relationFilter].has(a.id)) }
-        : shownSource,
-    [filterOn, relationFilter, shownSource, byRelation],
+    () => (filterOn ? filterByRelations(shownSource, relations, ticked) : shownSource),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filterOn, shownSource, relations, ticked.join()],
   );
+  const filteredCount = filterOn
+    ? graphSource.assets.filter((a) => state.layers.includes(a.assetGroup as AssetGroup)).length
+    : 0;
+  const [relationMenu, setRelationMenu] = useState<HTMLElement | null>(null);
+  const toggleRelationKind = (kind: RelationKind) =>
+    setState((s) => ({
+      ...s,
+      relationKinds: s.relationKinds.includes(kind) ? s.relationKinds.filter((k) => k !== kind) : [...s.relationKinds, kind],
+    }));
 
   const graph = useMemo(
     () =>
@@ -1272,31 +1281,50 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           </IconButton>
         </Tooltip>
         {state.view === "layers" && (
-          <Tooltip
-            title={t("tabs.dfd.assetGraph.relationFilter.tooltip", {
-              defaultValue: "Show only the assets still to be linked",
-            })}
-          >
-            <Select
-              size="small"
-              value={relationFilter}
-              onChange={(e) => setState((s) => ({ ...s, relationFilter: e.target.value as AssetRelationFilter }))}
-              data-testid="asset-graph-relation-filter"
-              startAdornment={<LinkOffIcon fontSize="small" sx={{ mr: 0.5, color: relationFilter === "all" ? "action.active" : "warning.main" }} />}
-              sx={{ minWidth: 200 }}
+          <>
+            <Tooltip
+              title={t("tabs.dfd.assetGraph.relationFilter.tooltip", {
+                defaultValue: "Untick a kind of relation to hide the assets and hazards that have one",
+              })}
             >
-              {relationFilters.map((f) => (
-                <MenuItem key={f} value={f} data-testid={`asset-graph-relation-filter-${f}`}>
-                  {f === "all"
-                    ? t("tabs.dfd.assetGraph.relationFilter.all", { defaultValue: "All assets" })
-                    : t(`tabs.dfd.assetGraph.relationFilter.${f}`, {
-                        defaultValue: RELATION_FILTER_TEXT[f],
-                        count: relationCount(f),
-                      })}
+              <Button
+                size="small"
+                variant={filterOn ? "contained" : "outlined"}
+                color={filterOn ? "warning" : "inherit"}
+                startIcon={<LinkOffIcon fontSize="small" />}
+                onClick={(e) => setRelationMenu(e.currentTarget)}
+                data-testid="asset-graph-relation-filter"
+                sx={{ textTransform: "none" }}
+              >
+                {filterOn
+                  ? t("tabs.dfd.assetGraph.relationFilter.active", {
+                      defaultValue: "Relations: filtered ({{count}})",
+                      count: filteredCount,
+                    })
+                  : t("tabs.dfd.assetGraph.relationFilter.label", { defaultValue: "Relations" })}
+              </Button>
+            </Tooltip>
+            <Menu anchorEl={relationMenu} open={!!relationMenu} onClose={() => setRelationMenu(null)}>
+              {relationKinds.map((k) => (
+                <MenuItem key={k} dense onClick={() => toggleRelationKind(k)} data-testid={`asset-graph-relation-${k}`}>
+                  <Checkbox size="small" checked={state.relationKinds.includes(k)} sx={{ p: 0.5, mr: 1 }} />
+                  <ListItemText
+                    primary={t(`tabs.dfd.assetGraph.relationFilter.kind.${k}`, { defaultValue: RELATION_KIND_TEXT[k] })}
+                  />
                 </MenuItem>
               ))}
-            </Select>
-          </Tooltip>
+              <Divider />
+              <MenuItem
+                dense
+                onClick={() => setState((s) => ({ ...s, relationKinds: [...RELATION_KINDS] }))}
+                data-testid="asset-graph-relation-all"
+              >
+                <ListItemText
+                  primary={t("tabs.dfd.assetGraph.relationFilter.showAll", { defaultValue: "Show all" })}
+                />
+              </MenuItem>
+            </Menu>
+          </>
         )}
         <Menu anchorEl={layerMenu} open={!!layerMenu} onClose={() => setLayerMenu(null)}>
           {ALL_LAYERS.map((g) => (

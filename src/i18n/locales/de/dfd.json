@@ -23,12 +23,15 @@
         "noFocus": "Asset wählen (Klick im Asset-Panel oder Doppelklick im Graph)",
         "depth": "Tiefe {{depth}}",
         "relationFilter": {
-          "tooltip": "Nur die Assets zeigen, die noch zu verknüpfen sind",
-          "all": "Alle Assets",
-          "noAsset": "Ohne Asset-Beziehung ({{count}})",
-          "elementNoAsset": "Mit DFD-Element-Beziehung, ohne Asset-Beziehung ({{count}})",
-          "noHazard": "Ohne Gefährdungs-Beziehung ({{count}})",
-          "none": "Ohne jede Beziehung ({{count}})"
+          "tooltip": "Häkchen entfernen blendet die Assets und Gefährdungen mit dieser Beziehungsart aus",
+          "label": "Beziehungen",
+          "active": "Beziehungen: gefiltert ({{count}})",
+          "showAll": "Alle zeigen",
+          "kind": {
+            "element": "DFD-Element",
+            "asset": "Asset",
+            "hazard": "Gefährdung"
+          }
         },
         "anchors": "DFD-Elemente",
         "counts": "{{visible}} von {{total}} Assets sichtbar · {{hiddenLayers}} in ausgeblendeten Ebenen · {{outsideFocus}} ausserhalb des Fokus · {{filtered}} Links gefiltert",

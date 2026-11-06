@@ -42,7 +42,8 @@ const source: AssetGraphSource = {
         systemRelevance: "in_scope",
         source: "manual",
       } as HazardItem,
-      { id: "H2", label: "Unlinked hazard", combinationType: "ANY", source: "manual" } as HazardItem,
+      // Relevant (in scope) — the graph shows only those (user 2026-11-06).
+      { id: "H2", label: "Unlinked hazard", combinationType: "ANY", source: "manual", systemRelevance: "in_scope" } as HazardItem,
     ],
     relations: [
       { type: "contributes_to", from: "f1", to: "H1", relevance: "direct", hazardDistance: 1 } as unknown as HazardRelation,
