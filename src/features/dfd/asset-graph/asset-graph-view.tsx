@@ -44,6 +44,7 @@ import {
   CenterFocusStrong as FitIcon,
   Refresh as RearrangeIcon,
   RestartAlt as ResetIcon,
+  LinkOff as LinkOffIcon,
   HelpOutline as LegendIcon,
   Layers as LayersIcon,
   FilterAlt as FilterIcon,
@@ -133,6 +134,7 @@ import {
   assetVisibility,
   invalidLinks,
   relationTypesIn,
+  assetIdsWithoutA2A,
   searchAssets,
   sourceOnPages,
   type AssetVisibility,
@@ -199,6 +201,8 @@ interface ViewState {
   showHazards: boolean;
   /** Shown relation types; null = all (FR-V10). */
   relationTypes: string[] | null;
+  /** Layer view: only assets without an asset-to-asset relation (user 2026-11-06). */
+  onlyUnlinked: boolean;
 }
 
 // Start (and "Reset"): preset "All" with the Hazard Items — everything is
@@ -212,6 +216,7 @@ const DEFAULT_STATE: ViewState = {
   anchorsInFocus: true,
   showHazards: true,
   relationTypes: null,
+  onlyUnlinked: false,
 };
 
 /** Presets that show the Hazard Items (G3). */
@@ -324,9 +329,23 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     [shownSource, source],
   );
 
+  // Assets without an asset-to-asset relation — over the whole model, not the page.
+  const unlinkedIds = useMemo(() => assetIdsWithoutA2A(source), [source]);
+  const unlinkedCount = useMemo(
+    () =>
+      shownSource.assets.filter((a) => unlinkedIds.has(a.id) && state.layers.includes(a.assetGroup as AssetGroup))
+        .length,
+    [shownSource, unlinkedIds, state.layers],
+  );
+  const unlinkedOnly = state.onlyUnlinked && state.view === "layers";
+  const graphSource = useMemo(
+    () => (unlinkedOnly ? { ...shownSource, assets: shownSource.assets.filter((a) => unlinkedIds.has(a.id)) } : shownSource),
+    [unlinkedOnly, shownSource, unlinkedIds],
+  );
+
   const graph = useMemo(
     () =>
-      buildAssetGraph(shownSource, {
+      buildAssetGraph(graphSource, {
         view: state.view,
         layers: state.layers,
         focusAssetId: state.focusAssetId,
@@ -335,7 +354,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         showHazards: state.showHazards,
         relationTypes: state.relationTypes,
       }),
-    [shownSource, state],
+    [graphSource, state],
   );
   const availableTypes = useMemo(() => relationTypesIn(source), [source]);
   // UX-4 stage 4: invalid links get a small symbol (link and source node).
@@ -1240,6 +1259,35 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             <LayersIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        {state.view === "layers" && (
+          <Tooltip
+            title={
+              unlinkedCount === 0 && !state.onlyUnlinked
+                ? t("tabs.dfd.assetGraph.unlinked.none", { defaultValue: "Every asset has an asset relation" })
+                : t("tabs.dfd.assetGraph.unlinked.tooltip", {
+                    defaultValue:
+                      "Show only the assets without a relation to another asset — links to DFD elements and hazards do not count",
+                  })
+            }
+          >
+            <span>
+              <Chip
+                size="small"
+                icon={<LinkOffIcon />}
+                label={t("tabs.dfd.assetGraph.unlinked.label", {
+                  defaultValue: "Without asset relation ({{count}})",
+                  count: unlinkedCount,
+                })}
+                color={state.onlyUnlinked ? "warning" : "default"}
+                variant={state.onlyUnlinked ? "filled" : "outlined"}
+                disabled={unlinkedCount === 0 && !state.onlyUnlinked}
+                onClick={() => setState((s) => ({ ...s, onlyUnlinked: !s.onlyUnlinked }))}
+                aria-pressed={state.onlyUnlinked}
+                data-testid="asset-graph-unlinked"
+              />
+            </span>
+          </Tooltip>
+        )}
         <Menu anchorEl={layerMenu} open={!!layerMenu} onClose={() => setLayerMenu(null)}>
           {ALL_LAYERS.map((g) => (
             <MenuItem key={g} dense onClick={() => toggleLayer(g)}>

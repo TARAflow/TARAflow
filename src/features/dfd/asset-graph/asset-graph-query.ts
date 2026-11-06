@@ -39,6 +39,22 @@ export function relationTypesIn(source: AssetGraphSource): RelationTypeCount[] {
   );
 }
 
+/**
+ * Assets without any asset-to-asset relation (user 2026-11-06): the work list
+ * of assets still to be linked. Links to DFD elements and hazard edges do not
+ * count; a relation to an asset that no longer exists does not either.
+ */
+export function assetIdsWithoutA2A(source: AssetGraphSource): Set<string> {
+  const ids = new Set(source.assets.map((a) => a.id));
+  const linked = new Set<string>();
+  for (const r of source.relations) {
+    if (!ids.has(r.sourceAssetId) || !ids.has(r.targetAssetId)) continue;
+    linked.add(r.sourceAssetId);
+    linked.add(r.targetAssetId);
+  }
+  return new Set([...ids].filter((id) => !linked.has(id)));
+}
+
 /** Assets whose displayId or name contains the query (case-insensitive). */
 export function searchAssets(
   source: AssetGraphSource,

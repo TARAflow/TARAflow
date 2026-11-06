@@ -56,6 +56,10 @@ when opened (with a backup) and then no longer open in 0.17.x.
   links to the layer above put it on the top row, to the layer below on
   the bottom row — at most a third per row. Positions remembered by an
   earlier version are placed anew once (view only, not in the file).
+- **Asset graph filter *Without asset relation*:** a chip next to the
+  presets shows only the assets not linked to any other asset (links to
+  DFD elements and hazards do not count), with their number —
+  combinable with the presets, layer view only.
 - **Hazard tab findings panel** below the table, like the Asset tab: the
   validation's errors and warnings in the UI language, a click opens the
   hazard.
