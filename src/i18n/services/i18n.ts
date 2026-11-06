@@ -11,6 +11,8 @@
 //   doc                      → tabs.doc.*
 //   audit                    → audit.*
 //   compliance               → compliance.* (IEC 62443-4-2 matrix tab)
+//   overview                 → itemDefinition.*, sourceBinding.*, overviewViews.*,
+//                              verificationStatus.* (Overview tab; split from common, I18N-1)
 //
 // Threat catalog namespaces (keyed by template ID, e.g. "T-S-001.threat"):
 //   element-threats-attacks  → threat + attack texts for element templates (merged from threats/{domain}/*)
@@ -31,6 +33,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 // EN namespace imports
 import enCommon from "../locales/en/common.json";
+import enOverview from "../locales/en/overview.json";
 import enHazards from "../locales/en/hazards.json";
 import enDfd from "../locales/en/dfd.json";
 import enAssets from "../locales/en/assets.json";
@@ -65,6 +68,7 @@ import enVerificationsPhysicalboundary from "../locales/en/verifications/verific
 
 // DE namespace imports
 import deCommon from "../locales/de/common.json";
+import deOverview from "../locales/de/overview.json";
 import deHazards from "../locales/de/hazards.json";
 import deDfd from "../locales/de/dfd.json";
 import deAssets from "../locales/de/assets.json";
@@ -111,6 +115,7 @@ const NAMESPACES = [
   "interaction-threats-attacks",
   "mitigations",
   "verifications",
+  "overview",
   "common",
 ] as const;
 
@@ -120,6 +125,7 @@ export type AppNamespace = (typeof NAMESPACES)[number];
 const resources = {
   en: {
     common: enCommon,
+    overview: enOverview,
     hazards: enHazards,
     dfd: enDfd,
     assets: enAssets,
@@ -156,6 +162,7 @@ const resources = {
   },
   de: {
     common: deCommon,
+    overview: deOverview,
     hazards: deHazards,
     dfd: deDfd,
     assets: deAssets,
@@ -214,6 +221,7 @@ i18n
       "interaction-threats-attacks",
       "mitigations",
       "verifications",
+      "overview",
       "common",
     ],
 

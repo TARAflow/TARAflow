@@ -1,5 +1,5 @@
 // ==================== MATRIX EVALUATOR ====================
-// Evaluates one IEC 62443-4-2 edition against the model of a project
+// Evaluates one edition of a standard (IEC 62443-4-2, EN 50742 A) against the model of a project
 // (iec-62443-4-2-cra-coverage.md §9.4). Pure: the app layer passes the
 // property view of one run (achieved / planned, D-4), the component scope,
 // statements, claims and mitigations.
@@ -14,16 +14,18 @@
 //                               9 no → gap, else unknown, else needs-statement
 
 import type {
-  EditionRow,
+  AnyEditionRow,
+  AnyRequirementId,
+  ChecklistAnswer,
   EvidenceRule,
   EvidenceTarget,
   FoundationalRequirement,
   NeighbourCheck,
   PropertyCheck,
-  RequirementId,
   SecurityLevel,
   SlVector,
 } from "../models/compliance-types";
+import { BLACK_BOX_FIELDS, isUnset, MODEL_CONDITIONS, MODEL_FIELDS, visibilityContexts, withoutHiddenFields, type VisibilityContext } from "shared";
 import { FOUNDATIONAL_REQUIREMENTS } from "../models/compliance-types";
 import type {
   ComplianceInput,
@@ -33,7 +35,8 @@ import type {
   RowStatus,
   ViewElement,
 } from "../models/evaluation-types";
-import { EVIDENCE_RULES } from "../data/evidence-rules";
+import { RULES_BY_ID } from "../data/requirement-registry";
+import { externalOutcome, srslReached, srslSummary } from "./evaluate-en50742";
 
 // ==================== THREE-VALUED LOGIC ====================
 
@@ -91,10 +94,19 @@ interface Graph {
   fallbackContained: ReadonlySet<string>;
   blackBoxes: ReadonlySet<string>;
   scope: ReadonlySet<string>;
+  /** Element / flow id → what the model conditions see of it (EvidenceTarget.when). */
+  contextOf: (id: string) => VisibilityContext | undefined;
 }
 
 function buildGraph(input: ComplianceInput): Graph {
-  const elements = new Map(input.view.elements.map((e) => [e.id, e]));
+  // R-4: a model field its driver hides reads as unset in every check. A
+  // multiprocess that is no black box (it has a child page) hides its
+  // "inside" fields (D-30c).
+  const blackBoxes = input.view.blackBoxes ?? new Set<string>();
+  const decomposed = new Set(input.view.elements.filter((e) => e.type === "Multiprocess" && !blackBoxes.has(e.id)).map((e) => e.id));
+  const options = { componentId: input.componentId, decomposed };
+  const view = withoutHiddenFields(input.view.elements, input.view.flows, MODEL_FIELDS, options);
+  const elements = new Map(view.elements.map((e) => [e.id, e]));
   const flowElements = new Map<string, ViewElement>();
   const neighbours = new Map<string, Set<string>>();
   const endpoints = new Map<string, [string, string]>();
@@ -102,7 +114,7 @@ function buildGraph(input: ComplianceInput): Graph {
     if (!neighbours.has(a)) neighbours.set(a, new Set());
     neighbours.get(a)!.add(b);
   };
-  for (const flow of input.view.flows) {
+  for (const flow of view.flows) {
     flowElements.set(flow.id, { id: flow.id, type: "DataFlow", properties: flow.properties });
     endpoints.set(flow.id, [flow.from, flow.to]);
     link(flow.from, flow.to);
@@ -116,6 +128,7 @@ function buildGraph(input: ComplianceInput): Graph {
     fallbackContained: input.view.fallbackContained ?? new Set(),
     blackBoxes: input.view.blackBoxes ?? new Set(),
     scope: input.scope,
+    contextOf: visibilityContexts(view.elements, view.flows, options),
   };
 }
 
@@ -153,6 +166,10 @@ function crossesComponent(graph: Graph, flow: ViewElement): boolean {
 
 function applicable(graph: Graph, element: ViewElement, target: EvidenceTarget): Tri {
   if (target.crossesComponent && element.type === "DataFlow" && !crossesComponent(graph, element)) return "no";
+  if (target.when) {
+    const context = graph.contextOf(element.id);
+    if (!context || !target.when.every((id) => MODEL_CONDITIONS[id](context))) return "no";
+  }
   const parts: Tri[] = (target.appliesIf ?? []).map((c) => evaluateCheck(element, c, false));
   if (target.endpointIf && element.type === "DataFlow") {
     parts.push(neighbourTri(graph, graph.endpoints.get(element.id) ?? [], target.endpointIf));
@@ -166,7 +183,9 @@ function applicable(graph: Graph, element: ViewElement, target: EvidenceTarget):
 }
 
 function satisfied(element: ViewElement, target: EvidenceTarget, typeA: boolean): Tri {
-  return or((target.satisfiedIf ?? []).map((c) => evaluateCheck(element, c, typeA)));
+  if (!target.satisfiedIfAll?.length) return or((target.satisfiedIf ?? []).map((c) => evaluateCheck(element, c, typeA)));
+  const all = and(target.satisfiedIfAll.map((c) => evaluateCheck(element, c, typeA)));
+  return target.satisfiedIf?.length ? and([or(target.satisfiedIf.map((c) => evaluateCheck(element, c, typeA))), all]) : all;
 }
 
 // ==================== ONE REQUIREMENT ====================
@@ -180,8 +199,14 @@ interface IdOutcome {
   unknown: string[];
   supporting: string[];
   mitigationIds: string[];
+  /** EN 50742 A: risks that fail or are unrated. */
+  risks?: string[];
   contradiction?: boolean;
   reasoning?: string;
+  /** Type B: the checklist items the model does not answer (CM-5b). */
+  openChecklist?: string[];
+  /** Element id → the fields it lacks for this requirement (FX-21). */
+  unset?: Record<string, string[]>;
 }
 
 const outcome = (status: IdStatus, extra: Partial<IdOutcome> = {}): IdOutcome => ({
@@ -206,7 +231,7 @@ const STAND_IN_TYPES: readonly string[] = ["Process", "DataStore"];
  * scope at all (the case §9.4 step 4 otherwise reports as n/a). Targets
  * that check Multiprocess themselves need no stand-in.
  */
-function blackBoxStandIns(rule: EvidenceRule, graph: Graph, inScope: (id: string) => boolean): string[] {
+function blackBoxStandIns(rule: EvidenceRule<AnyRequirementId>, graph: Graph, inScope: (id: string) => boolean): string[] {
   const standInTargets = rule.targets.filter(
     (t) =>
       !(t.elementTypes as readonly string[]).includes("Multiprocess") &&
@@ -220,9 +245,89 @@ function blackBoxStandIns(rule: EvidenceRule, graph: Graph, inScope: (id: string
   return [...graph.blackBoxes].filter((id) => inScope(id) && graph.elements.has(id));
 }
 
+/**
+ * D-30c: a black box with "inside" fields set takes part as a contained
+ * Process / DataStore — its fields read under the property names the rule
+ * checks (BLACK_BOX_FIELDS) — also next to modelled processes and stores
+ * (a supplier module drawn as a black box beside a PLC with a child page).
+ * Without such a field it stays a stand-in only where nothing of the type
+ * is in scope (D-30).
+ */
+function blackBoxElements(graph: Graph, target: EvidenceTarget, inScope: (id: string) => boolean): ViewElement[] {
+  if ((target.elementTypes as readonly string[]).includes("Multiprocess")) return [];
+  const out: ViewElement[] = [];
+  for (const type of ["Process", "DataStore"] as const) {
+    if (!(target.elementTypes as readonly string[]).includes(type)) continue;
+    const map: Readonly<Record<string, string>> = BLACK_BOX_FIELDS[type];
+    for (const id of graph.blackBoxes) {
+      const box = graph.elements.get(id);
+      if (!box || !inScope(id)) continue;
+      const properties: Record<string, unknown> = {};
+      for (const [property, inner] of Object.entries(map)) {
+        const value = box.properties?.[inner];
+        if (!isUnset(value)) properties[property] = value;
+      }
+      if (Object.keys(properties).length > 0) out.push({ id, type, properties });
+    }
+  }
+  return out;
+}
+
+/**
+ * FX-21: the element's own fields among the checks that read as unset — under
+ * the field the user sets (a black box's "inside" field for a contained
+ * Process / DataStore, D-30c). Unknowns that come from a neighbour list none.
+ */
+function unsetFields(element: ViewElement, checks: readonly PropertyCheck[], typeA: boolean, viaBox: boolean): string[] {
+  const map: Readonly<Record<string, string>> | undefined = viaBox
+    ? BLACK_BOX_FIELDS[element.type as keyof typeof BLACK_BOX_FIELDS]
+    : undefined;
+  return checks
+    .filter((check) => evaluateCheck(element, check, typeA) === "unknown")
+    .map((check) => map?.[check.property] ?? check.property);
+}
+
+/** D-30c: the "inside" fields a black box would answer the rule's Process / DataStore checks with. */
+function standInFields(rule: EvidenceRule<AnyRequirementId>): string[] {
+  const out = new Set<string>();
+  for (const target of rule.targets) {
+    for (const type of STAND_IN_TYPES as readonly (keyof typeof BLACK_BOX_FIELDS)[]) {
+      if (!(target.elementTypes as readonly string[]).includes(type)) continue;
+      const map: Readonly<Record<string, string>> = BLACK_BOX_FIELDS[type];
+      for (const check of [...(target.appliesIf ?? []), ...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])]) {
+        if (map[check.property]) out.add(map[check.property]);
+      }
+    }
+  }
+  return [...out];
+}
+
+const addUnset = (unset: Record<string, string[]>, id: string, fields: readonly string[]) => {
+  if (fields.length > 0) unset[id] = [...new Set([...(unset[id] ?? []), ...fields])];
+};
+
 /** Steps 4 – 7 and 9 for one requirement id. */
-function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput): IdOutcome {
+function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input: ComplianceInput): IdOutcome {
   const typeA = rule.type === "A";
+  // EN 50742 A: risk and project evidence and the SRSL come from the
+  // En50742View (CM-12); without it a statement meets the row.
+  if (rule.external) {
+    if (!input.en50742) return outcome("needs-statement", { reasoning: "evaluated from the risks and the project data" });
+    const e = externalOutcome(rule.external, input.en50742, input.run);
+    return outcome(e.status, {
+      ...(e.status === "met" ? { source: "model" as const } : {}),
+      failing: e.failing ?? [],
+      unknown: e.unknown ?? [],
+      risks: e.risks ?? [],
+      reasoning: e.reasoning,
+      openChecklist: [...(rule.checklist ?? [])],
+    });
+  }
+  if (rule.minSrsl) {
+    const reached = input.en50742 ? srslReached(rule.minSrsl, input.en50742) : "unknown";
+    if (reached === "no") return outcome("n/a", { reasoning: `no risk reaches SRSL ${rule.minSrsl}` });
+    if (reached === "unknown") return outcome("unknown", { reasoning: `applies from SRSL ${rule.minSrsl} — risks not rated yet` });
+  }
   const inScope = (id: string) => {
     if (input.scope.has(id)) return true;
     const ends = graph.endpoints.get(id);
@@ -242,19 +347,29 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
   const wholeComponent = rule.targets.length === 0;
   const applicableYes: { element: ViewElement; target: EvidenceTarget }[] = [];
   const applicableUnknown: string[] = [];
+  const unset: Record<string, string[]> = {};
+  // Black boxes that took part through their "inside" fields are no stand-ins.
+  const viaFields = new Set<string>();
   for (const target of rule.targets) {
-    for (const element of candidates(graph, target, inScope, true)) {
+    const boxes = blackBoxElements(graph, target, inScope);
+    for (const box of boxes) viaFields.add(box.id);
+    for (const element of [...candidates(graph, target, inScope, true), ...boxes]) {
       const tri = applicable(graph, element, target);
       if (tri === "yes") applicableYes.push({ element, target });
-      else if (tri === "unknown") applicableUnknown.push(element.id);
+      else if (tri === "unknown") {
+        applicableUnknown.push(element.id);
+        addUnset(unset, element.id, unsetFields(element, target.appliesIf ?? [], false, boxes.includes(element)));
+      }
     }
   }
   if (!wholeComponent && applicableYes.length === 0) {
-    if (applicableUnknown.length > 0) return outcome("unknown", { unknown: applicableUnknown });
-    const standIns = blackBoxStandIns(rule, graph, inScope);
+    if (applicableUnknown.length > 0) return outcome("unknown", { unknown: applicableUnknown, unset });
+    const standIns = blackBoxStandIns(rule, graph, inScope).filter((id) => !viaFields.has(id));
     if (standIns.length > 0) {
+      for (const id of standIns) addUnset(unset, id, standInFields(rule));
       return outcome("unknown", {
         unknown: standIns,
+        unset,
         reasoning: `no ${describeTargets(rule.targets)} modelled — a multiprocess without child page may contain one`,
       });
     }
@@ -263,10 +378,19 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
 
   // Step 5 — satisfaction in scope (types A / B); type C needs a statement.
   let model: IdOutcome;
+  // Type B: checklist items answered by model fields (CM-5b) — "no" fails the row.
+  const answered = answerChecklist(rule, applicableYes.map((a) => a.element));
   if (rule.type === "C") {
     model = outcome("needs-statement");
   } else {
-    const results = applicableYes.map(({ element, target }) => ({ id: element.id, tri: satisfied(element, target, typeA) }));
+    const results = applicableYes.map(({ element, target }) => {
+      const tri = satisfied(element, target, typeA);
+      if (tri === "unknown") {
+        const checks = [...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])];
+        addUnset(unset, element.id, unsetFields(element, checks, typeA, viaFields.has(element.id) && STAND_IN_TYPES.includes(element.type)));
+      }
+      return { id: element.id, tri };
+    });
     const yes = results.filter((r) => r.tri === "yes").map((r) => r.id);
     const no = results.filter((r) => r.tri === "no").map((r) => r.id);
     const unknown = [...results.filter((r) => r.tri === "unknown").map((r) => r.id), ...applicableUnknown];
@@ -274,9 +398,9 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
       // D-19: an element with unknown applicability blocks "met" too; step 9: no before unknown.
       model =
         no.length > 0
-          ? outcome("gap", { failing: no, unknown })
+          ? outcome("gap", { failing: no, unknown, unset })
           : unknown.length > 0
-            ? outcome("unknown", { unknown })
+            ? outcome("unknown", { unknown, unset })
             : outcome("met", { source: "model" });
     } else {
       // "any": one satisfying element suffices; an unknown one might still satisfy.
@@ -284,16 +408,20 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
         yes.length > 0
           ? outcome("met", { source: "model" })
           : unknown.length > 0
-            ? outcome("unknown", { failing: no, unknown })
+            ? outcome("unknown", { failing: no, unknown, unset })
             : outcome("gap", { failing: no });
     }
   }
+  if (answered.failing.length > 0 && (model.status === "met" || model.status === "unknown")) {
+    model = outcome("gap", { failing: answered.failing, unknown: model.unknown, unset: model.unset });
+  }
+  model = { ...model, openChecklist: answered.open };
   if (model.status === "met") return model;
 
   // Step 6 — mitigations naming the requirement, chosen for risks in scope (D-16).
   const mitigations = (input.mitigations ?? []).filter(
     (m) =>
-      m.requirementIds.includes(rule.id) &&
+      (m.requirementIds as readonly string[]).includes(rule.id) &&
       // A flow counts when it touches the scope, as for the evidence (a threat
       // on a flow concerns the flow itself).
       m.concernsElementIds.some(inScope) &&
@@ -337,6 +465,32 @@ function evaluateRule(rule: EvidenceRule, graph: Graph, input: ComplianceInput):
   return model;
 }
 
+/** One element's answer to a checklist item: yes, no, or open (unknown). */
+function answerOf(element: ViewElement, answer: ChecklistAnswer): Tri {
+  if (answer.yesIf.some((c) => evaluateCheck(element, c, false) === "yes")) return "yes";
+  if ((answer.noIf ?? []).some((c) => evaluateCheck(element, c, false) === "yes")) return "no";
+  return "unknown";
+}
+
+/** The checklist items still open and the elements whose fields fail one (CM-5b). */
+function answerChecklist(rule: EvidenceRule<AnyRequirementId>, elements: readonly ViewElement[]): { open: string[]; failing: string[] } {
+  const checklist = rule.checklist ?? [];
+  if (rule.type !== "B" || !rule.answers?.length || elements.length === 0) return { open: [...checklist], failing: [] };
+  const any = rule.quantifier === "any";
+  const answeredYes = new Set<number>();
+  const failing = new Set<string>();
+  for (const answer of rule.answers) {
+    const own = answer.elementTypes ? elements.filter((e) => answer.elementTypes!.includes(e.type as never)) : elements;
+    if (own.length === 0) continue;
+    const results = own.map((e) => ({ id: e.id, tri: answerOf(e, answer) }));
+    const tris = results.map((r) => r.tri);
+    const tri = any ? (tris.includes("yes") ? "yes" : tris.every((t) => t === "no") ? "no" : "unknown") : and(tris);
+    if (tri === "yes") answeredYes.add(answer.item);
+    if (tri === "no") for (const r of results) if (r.tri === "no") failing.add(r.id);
+  }
+  return { open: checklist.filter((_, i) => !answeredYes.has(i)), failing: [...failing] };
+}
+
 // ==================== ONE ROW ====================
 
 const STATUS_ORDER: readonly IdStatus[] = ["gap", "unknown", "needs-statement", "met", "n/a"];
@@ -352,6 +506,9 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
         ? "model"
         : undefined;
   const merged = (key: "failing" | "unknown" | "supporting" | "mitigationIds") => [...new Set(outcomes.flatMap((o) => o[key]))];
+  const risks = [...new Set(outcomes.flatMap((o) => o.risks ?? []))];
+  const unset: Record<string, string[]> = {};
+  for (const o of outcomes) for (const [id, fields] of Object.entries(o.unset ?? {})) addUnset(unset, id, fields);
   return {
     status,
     source: status === "met" ? source : undefined,
@@ -359,12 +516,21 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
     unknown: merged("unknown"),
     supporting: merged("supporting"),
     mitigationIds: merged("mitigationIds"),
+    ...(risks.length > 0 ? { risks } : {}),
     contradiction: outcomes.some((o) => o.contradiction) || undefined,
     reasoning: outcomes.map((o) => o.reasoning).find(Boolean),
+    openChecklist: outcomes.flatMap((o) => o.openChecklist ?? []),
+    unset,
   };
 }
 
-function evaluateRow(row: EditionRow, graph: Graph, input: ComplianceInput): RowResult {
+/** FX-21: the fields of the row's unknown elements, only for those still unknown. */
+function unsetOf(combined: IdOutcome): Pick<RowResult, "unsetFields"> {
+  const out = Object.fromEntries(Object.entries(combined.unset ?? {}).filter(([id]) => combined.unknown.includes(id)));
+  return Object.keys(out).length > 0 ? { unsetFields: out } : {};
+}
+
+function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): RowResult {
   const statement = input.statements?.[row.label];
   const base = {
     label: row.label,
@@ -401,7 +567,7 @@ function evaluateRow(row: EditionRow, graph: Graph, input: ComplianceInput): Row
   }
 
   // Steps 4 – 7 per requirement id, combined (all ids of a row must be met).
-  const rules = row.requirementIds.map((id: RequirementId) => EVIDENCE_RULES.get(id)!);
+  const rules = row.requirementIds.map((id) => RULES_BY_ID.get(id)!);
   const combined = combine(rules.map((rule) => evaluateRule(rule, graph, input)));
   let status: RowStatus = combined.status;
   let source: RowSource | undefined = combined.source;
@@ -420,10 +586,12 @@ function evaluateRow(row: EditionRow, graph: Graph, input: ComplianceInput): Row
     modelStatus: status,
     failing: combined.failing,
     unknown: combined.unknown,
+    ...unsetOf(combined),
     supportingElements: combined.supporting,
     mitigationIds: combined.mitigationIds,
+    ...(combined.risks ? { risks: combined.risks } : {}),
     claimIds,
-    checklist: status === "met" ? rules.flatMap((r) => (r.type === "B" ? [...(r.checklist ?? [])] : [])) : [],
+    checklist: status === "met" ? (combined.openChecklist ?? []) : [],
     reasoning: combined.reasoning,
     contradiction: combined.contradiction,
   };
@@ -480,5 +648,6 @@ export function evaluateMatrix(input: ComplianceInput): ComplianceResult {
     rows,
     component: vectorOf(rows, countsForComponent),
     withSupport: vectorOf(rows, countsWithSupport),
+    ...(input.en50742 ? { srsl: srslSummary(input.en50742) } : {}),
   };
 }

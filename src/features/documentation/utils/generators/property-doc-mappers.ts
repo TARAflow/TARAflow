@@ -22,6 +22,14 @@ import type {
   TrustBoundaryProperties,
 } from "../../../dfd/models/element-properties";
 import type { DocLanguage } from "../../models/doc-types";
+import {
+  isFieldShown,
+  isUnset,
+  MODEL_CONDITIONS,
+  MODEL_FIELDS,
+  readModelField,
+  type VisibilityContext,
+} from "../../../../shared/models/property-visibility";
 // Configured i18next singleton — adjust path/alias to your project.
 import {i18n} from "i18n"
 
@@ -257,6 +265,8 @@ function makePropFactory(elementType: string, lang: DocLanguage) {
 export function getElementPropertiesGrouped(
   element: DFDElement,
   lang: DocLanguage,
+  /** The element in its model — without it no model coverage field is listed (R-4). */
+  context?: VisibilityContext,
 ): PropertyGroup[] {
   const props = (element.properties ?? {}) as Record<string, unknown>;
   const implementedControls = (props.implementedControls ?? {}) as Record<
@@ -276,7 +286,26 @@ export function getElementPropertiesGrouped(
     }
     return props[field];
   };
-  return buildGroupsFromLayout(element.type, lang, read);
+  // Session settings only where human users reach the element — the form's condition (CM-5d).
+  const withoutSessions = !!context && !MODEL_CONDITIONS.humanUsers(context);
+  const groups = buildGroupsFromLayout(element.type, lang, read, (field) => withoutSessions && field.startsWith("sessionControl."));
+  const fields = context ? modelFieldEntries(context, lang) : [];
+  if (fields.length > 0 && groups[1]) groups[1] = { ...groups[1], properties: [...groups[1].properties, ...fields] };
+  return groups;
+}
+
+/** The model coverage fields its predicate shows, with the labels of tabs.dfd.modelFields (R-7). */
+function modelFieldEntries(context: VisibilityContext, lang: DocLanguage): PropertyEntry[] {
+  const t = i18n.getFixedT(lang, "dfd");
+  return MODEL_FIELDS.filter((field) => isFieldShown(field, context)).map((field) => {
+    const base = `tabs.dfd.modelFields.${field.property}`;
+    const value = readModelField(field, context);
+    const values = (Array.isArray(value) ? value : [value]).filter((v) => !isUnset(v)).map(String);
+    return {
+      label: t(`${base}.label`, { defaultValue: humanizeValue(field.property) }),
+      value: values.length ? values.map((v) => t(`${base}.values.${v}`, { defaultValue: humanizeValue(v) })).join(", ") : "N/A",
+    };
+  });
 }
 
 export function getConnectionPropertiesGrouped(
@@ -481,13 +510,14 @@ function buildGroupsFromLayout(
   elementType: string,
   lang: DocLanguage,
   read: (field: string) => unknown,
+  skip: (field: string) => boolean = () => false,
 ): PropertyGroup[] {
   const layout = ELEMENT_FIELD_LAYOUT[elementType];
   if (!layout) return [];
   const prop = makePropFactory(layout.segment, lang);
   const grp = (key: string, fields: string[]): PropertyGroup => ({
     groupName: getGroupName(key, lang),
-    properties: fields.map((f) => prop(f, read(f))),
+    properties: fields.filter((f) => !skip(f)).map((f) => prop(f, read(f))),
   });
   // Order matters: the generator overrides bucket positionally
   // (first = Context, middle = Security Controls, last = Meta).

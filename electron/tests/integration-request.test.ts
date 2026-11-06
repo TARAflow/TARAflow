@@ -34,8 +34,8 @@ const okFetch = () =>
 const keychain = (entries: Record<string, string>) => async (key: string) => entries[key] ?? null;
 
 describe("tracker descriptions", () => {
-  it("one per tracker, Jira Cloud available in 0.16, every scheme known", () => {
-    expect(ISSUE_TRACKERS.filter((t) => t.available).map((t) => t.id)).toEqual(["jira"]);
+  it("one per tracker, the built ones available (Polarion later), every scheme known", () => {
+    expect(ISSUE_TRACKERS.filter((t) => t.available).map((t) => t.id)).toEqual(["jira", "jira-server", "azure-devops", "github", "gitlab", "openproject"]);
     for (const t of ISSUE_TRACKERS) expect(Object.keys(authHeaders(t.auth, "u", "t")).length).toBe(1);
   });
 
@@ -46,12 +46,15 @@ describe("tracker descriptions", () => {
     expect(normalizeTrackerHost("not a url")).toBeNull();
   });
 
-  it("account: the user in lower case, or default for token-only trackers", () => {
+  it("account: the user in lower case, the organization (Azure DevOps), or default for token-only trackers", () => {
     const jira = ISSUE_TRACKERS.find((t) => t.id === "jira")!;
     const ado = ISSUE_TRACKERS.find((t) => t.id === "azure-devops")!;
     expect(trackerAccount(jira, " Someone@Example.com ")).toBe("someone@example.com");
     expect(trackerAccount(jira, "")).toBeNull();
-    expect(trackerAccount(ado)).toBe("default");
+    expect(trackerAccount(ado)).toBeNull();
+    expect(trackerAccount(ado, undefined, "https://dev.azure.com/Contoso")).toBe("contoso");
+    const github = ISSUE_TRACKERS.find((t) => t.id === "github")!;
+    expect(trackerAccount(github)).toBe("default");
   });
 });
 
@@ -78,6 +81,11 @@ describe("checkIntegrationRequest", () => {
     expect(checkIntegrationRequest(req({ path: "//evil.example/x" }))).toEqual({ error: "path must be relative to the host" });
     expect(checkIntegrationRequest(req({ method: "DELETE" }))).toEqual({ error: "method DELETE not allowed" });
     expect(checkIntegrationRequest(req({ account: " " }))).toEqual({ error: "account missing" });
+  });
+
+  it("GitHub's API version header passes; anything else still does not", () => {
+    const c = checkIntegrationRequest(req({ headers: { "X-GitHub-Api-Version": "2022-11-28", "X-Other": "x" } })) as { headers: Record<string, string> };
+    expect(c.headers).toEqual({ "X-GitHub-Api-Version": "2022-11-28" });
   });
 
   it("passes only Accept / Content-Type / X-Atlassian-Token from the renderer; JSON body", () => {

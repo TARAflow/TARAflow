@@ -8,7 +8,7 @@ import { buildPumpStationProject } from "../../../../examples/pump-station-examp
 
 const project = parseAndRepair(buildPumpStationProject())!;
 const { achieved, planned } = evaluateProjectCompliance(project)!;
-const todo = buildTodoList(EDITION_PRAA_2026, achieved, planned, project.compliance!.target!, complianceTypeOf(project));
+const todo = buildTodoList(EDITION_PRAA_2026, achieved, planned, project.compliance!.families!["iec-62443-4-2"]!.target!, complianceTypeOf(project));
 const itemsOf = (id: string) => todo.elements.find((e) => e.elementId === id)?.items ?? [];
 
 describe("buildTodoList", () => {
@@ -36,7 +36,7 @@ describe("buildTodoList", () => {
   });
 
   it("no target → nothing to do", () => {
-    expect(buildTodoList(EDITION_PRAA_2026, achieved, planned, {})).toEqual({ elements: [], component: [], statements: [] });
+    expect(buildTodoList(EDITION_PRAA_2026, achieved, planned, {})).toEqual({ elements: [], component: [], statements: [], risks: [], project: [] });
   });
 
   it("a row one element meets (any) is a component item, not one per element", () => {
@@ -56,7 +56,7 @@ describe("buildTodoList", () => {
     ]);
   });
 
-  it("a black-box multiprocess standing in gets the item 'inside' (D-30)", () => {
+  it("a black-box multiprocess standing in gets the item 'inside' (D-30) — naming the inside fields that answer it (D-30c)", () => {
     const edition: Edition = {
       ...EDITION_PRAA_2026,
       rows: [{ label: "CR 3.5", group: "SI", minSl: 1, requirementIds: ["cr-3.5"], supportingMeasuresAllowed: false }],
@@ -73,6 +73,6 @@ describe("buildTodoList", () => {
       { SI: 1 },
       () => "Multiprocess",
     );
-    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", group: "SI", kind: "inside", properties: [], plannedClosed: false }] }]);
+    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", group: "SI", kind: "inside", properties: ["inner input validation"], plannedClosed: false }] }]);
   });
 });

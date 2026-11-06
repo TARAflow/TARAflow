@@ -29,7 +29,22 @@ import {
   GridRenderCellParams,
   useGridApiRef,
 } from "@mui/x-data-grid";
-import { Box, Button, Chip, Stack, Tooltip, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  InputLabel,
+  ListItemText,
+  MenuItem,
+  Select,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import type { AssetHazardSummary } from "shared/models/asset-hazard-reference-types"; // or barrel: "shared"
 import { resolveAssetPhysicalImpact } from "app/utils/resolve-asset-physical-impact";
 import {
@@ -42,6 +57,7 @@ import {
   EditNote as ManualIcon,
   TableRows as ShowColumnsIcon,
   FilterAlt as ReviewFilterIcon,
+  FilterList as FilterIcon,
   // Category icons — kept local, shared cannot hold React elements
   Article as DataIcon,
   Functions as FunctionIcon,
@@ -58,6 +74,12 @@ import type { Asset, AssetConfiguration, AssetToAssetRelationReference } from ".
 import type { DFDElementLink } from "../models/dfd-asset-link-types";
 import { getDownstreamCount } from "../utils/asset-graph-utils";
 import { buildAssetLinks } from "../utils/asset-links";
+import {
+  NO_ASSET_FILTER,
+  getCategoryFromAsset,
+  isAssetFilterActive,
+  type AssetFilter,
+} from "../utils/asset-filter";
 import { AssetLinkChips } from "./asset-link-chips";
 import { SecurityGoalChips } from "./security-goal-chips";
 import {
@@ -143,37 +165,186 @@ export interface AssetTableToolbarProps {
   needsReview?: ReadonlySet<string>;
   /** Assets counted for the review filter. */
   reviewCount: number;
+  /** Asset type and criticality filter (AF-1); given → offered. */
+  filter?: AssetTableFilterProps;
 }
 
-/** "Show factors" and "Needs review only" — per table or once above the groups. */
+export interface AssetTableFilterProps {
+  value: AssetFilter;
+  onChange: (filter: AssetFilter) => void;
+  /** The asset types present, with their count. */
+  typeCounts: readonly { type: AssetGroup; count: number }[];
+  /** Criticality levels of the project's impact scale, lowest first. */
+  levels: readonly { value: number; labelKey: string; color?: string }[];
+  /** Assets shown after every filter of the bar, and all assets. */
+  shown: number;
+  total: number;
+}
+
+/**
+ * "Show factors", "Needs review only" and the type / criticality filter —
+ * per table or once above the groups.
+ */
 export const AssetTableToolbar: React.FC<AssetTableToolbarProps> = ({
   view,
   onChange,
   needsReview,
   reviewCount,
+  filter,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isGerman = i18n.language === "de";
+  const filtered = !!filter && (isAssetFilterActive(filter.value) || (view.reviewOnly && !!needsReview));
+  // AF-2: every present type is ticked by default; unticking hides the type
+  // (as the relation filter of the asset graph). The filter keeps the shown
+  // types — all ticked = no type filter (types: []). The last ticked type
+  // cannot be unticked: the table would be empty without a filter to see.
+  const presentTypes = filter?.typeCounts.map((c) => c.type) ?? [];
+  const shownTypes = filter && filter.value.types.length > 0 ? presentTypes.filter((type) => filter.value.types.includes(type)) : presentTypes;
+  const setShownTypes = (next: readonly AssetGroup[]) => {
+    if (!filter || next.length === 0) return;
+    const all = presentTypes.every((type) => next.includes(type));
+    filter.onChange({ ...filter.value, types: all ? [] : presentTypes.filter((type) => next.includes(type)) });
+  };
+  const toggleType = (type: AssetGroup) =>
+    setShownTypes(shownTypes.includes(type) ? shownTypes.filter((other) => other !== type) : [...shownTypes, type]);
+  const typeLabel = (type: AssetGroup) => (isGerman ? ASSET_GROUP_CONFIG[type].labelDE : ASSET_GROUP_CONFIG[type].label);
   return (
     <Box
       sx={{
         display: "flex",
+        flexWrap: "wrap",
         alignItems: "center",
-        gap: 1,
+        gap: 2,
         px: 1,
-        py: 0.5,
+        py: 1,
         borderBottom: "1px solid",
         borderColor: "divider",
         backgroundColor: "grey.50",
       }}
       data-testid="asset-table-toolbar"
     >
+      {/* AF-2b: the two filter dropdowns first, then the buttons. */}
+      {filter && filter.typeCounts.length > 0 && (
+        <FormControl size="small" sx={{ minWidth: 190 }} data-testid="asset-type-filter">
+          <InputLabel id="asset-type-filter-label">{t("tabs.assets.filter.type", { defaultValue: "Asset type" })}</InputLabel>
+          <Select
+            multiple
+            labelId="asset-type-filter-label"
+            label={t("tabs.assets.filter.type", { defaultValue: "Asset type" })}
+            value={[...shownTypes]}
+            onChange={() => {
+              /* the items toggle themselves (the last ticked one stays) */
+            }}
+            renderValue={() =>
+              shownTypes.length === presentTypes.length
+                ? t("tabs.assets.filter.allTypes", { defaultValue: "All types" })
+                : shownTypes.length <= 2
+                  ? shownTypes.map(typeLabel).join(", ")
+                  : t("tabs.assets.filter.someTypes", {
+                      shown: shownTypes.length,
+                      total: presentTypes.length,
+                      defaultValue: "{{shown}} of {{total}} types",
+                    })
+            }
+            startAdornment={<FilterIcon fontSize="small" sx={{ mr: 1 }} />}
+            SelectDisplayProps={{ "data-testid": "asset-type-filter-select" } as React.HTMLAttributes<HTMLDivElement>}
+          >
+            {filter.typeCounts.map(({ type, count }) => {
+              const checked = shownTypes.includes(type);
+              const last = checked && shownTypes.length === 1;
+              return (
+                <MenuItem
+                  key={type}
+                  value={type}
+                  dense
+                  disabled={last}
+                  onClick={() => toggleType(type)}
+                  aria-checked={checked}
+                  data-testid={`asset-type-filter-${type}`}
+                >
+                  <Checkbox size="small" checked={checked} sx={{ p: 0.5, mr: 1 }} />
+                  <Box component="span" sx={{ display: "inline-flex", mr: 1, color: ASSET_GROUP_CONFIG[type].color }}>
+                    {ASSET_GROUP_ICONS[type]}
+                  </Box>
+                  <ListItemText primary={`${typeLabel(type)} (${count})`} />
+                </MenuItem>
+              );
+            })}
+            <Divider />
+            <MenuItem
+              dense
+              disabled={shownTypes.length === presentTypes.length}
+              onClick={() => setShownTypes(presentTypes)}
+              data-testid="asset-type-filter-all"
+            >
+              <ListItemText primary={t("tabs.assets.filter.showAllTypes", { defaultValue: "Show all types" })} />
+            </MenuItem>
+          </Select>
+        </FormControl>
+      )}
+      {filter && filter.levels.length > 0 && (
+        <FormControl size="small" sx={{ minWidth: 170 }}>
+          <InputLabel id="asset-criticality-filter-label">{t("tabs.assets.filter.criticality", { defaultValue: "Criticality" })}</InputLabel>
+          <Select
+            labelId="asset-criticality-filter-label"
+            label={t("tabs.assets.filter.criticality", { defaultValue: "Criticality" })}
+            value={filter.value.minLevel ?? ""}
+            onChange={(e) => {
+              const raw = e.target.value as string | number;
+              filter.onChange({ ...filter.value, minLevel: raw === "" ? null : Number(raw) });
+            }}
+            displayEmpty
+            startAdornment={<FilterIcon fontSize="small" sx={{ mr: 1 }} />}
+            inputProps={{ "data-testid": "asset-criticality-filter" }}
+            SelectDisplayProps={{ "data-testid": "asset-criticality-filter-select" } as React.HTMLAttributes<HTMLDivElement>}
+          >
+            <MenuItem value="">
+              <em>{t("tabs.assets.filter.allLevels", { defaultValue: "All levels" })}</em>
+            </MenuItem>
+            {[...filter.levels].reverse().map((level, index) => (
+              <MenuItem key={level.value} value={level.value}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {level.color && (
+                    <Box component="span" sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: level.color, flexShrink: 0 }} />
+                  )}
+                  <span>
+                    {/* AF-2b: nothing is above the highest level — its name alone. */}
+                    {index === 0
+                      ? t(level.labelKey)
+                      : t("tabs.assets.filter.fromLevel", {
+                          level: t(level.labelKey),
+                          defaultValue: "{{level}} or higher",
+                        })}
+                  </span>
+                </Stack>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
+      {filter && filter.value.minLevel !== null && (
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={filter.value.includeUnrated}
+              onChange={(e) => filter.onChange({ ...filter.value, includeUnrated: e.target.checked })}
+              inputProps={{ "aria-label": "include-unrated" }}
+              data-testid="asset-unrated-filter"
+            />
+          }
+          label={t("tabs.assets.filter.includeUnrated", { defaultValue: "also unrated" })}
+          sx={{ "& .MuiFormControlLabel-label": { fontSize: "0.875rem" }, mr: 0 }}
+        />
+      )}
       <Button
         size="small"
         variant="outlined"
         startIcon={<ShowColumnsIcon />}
         onClick={() => onChange({ ...view, factorsVisible: !view.factorsVisible })}
         color={view.factorsVisible ? "primary" : "inherit"}
-        sx={{ fontSize: "0.72rem", py: 0.25, textTransform: "none" }}
+        sx={{ textTransform: "none" }}
       >
         {t(
           view.factorsVisible
@@ -197,7 +368,7 @@ export const AssetTableToolbar: React.FC<AssetTableToolbarProps> = ({
             color={view.reviewOnly ? "warning" : "inherit"}
             aria-pressed={view.reviewOnly}
             data-testid="asset-review-filter"
-            sx={{ fontSize: "0.72rem", py: 0.25, textTransform: "none" }}
+            sx={{ textTransform: "none" }}
           >
             {t("tabs.assets.reviewFilter.label", {
               count: reviewCount,
@@ -205,6 +376,28 @@ export const AssetTableToolbar: React.FC<AssetTableToolbarProps> = ({
             })}
           </Button>
         </Tooltip>
+      )}
+      {filtered && filter && (
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: "auto" }}>
+          <Typography variant="caption" color="text.secondary" data-testid="asset-filter-count">
+            {t("tabs.assets.filter.shown", {
+              shown: filter.shown,
+              total: filter.total,
+              defaultValue: "{{shown}} of {{total}} assets shown",
+            })}
+          </Typography>
+          <Button
+            size="small"
+            onClick={() => {
+              filter.onChange(NO_ASSET_FILTER);
+              if (view.reviewOnly) onChange({ ...view, reviewOnly: false });
+            }}
+            data-testid="asset-filter-reset"
+            sx={{ textTransform: "none" }}
+          >
+            {t("tabs.assets.filter.reset", { defaultValue: "Reset filter" })}
+          </Button>
+        </Stack>
       )}
     </Box>
   );
@@ -224,44 +417,6 @@ const ASSET_GROUP_ICONS: Record<AssetGroup, React.ReactElement> = {
   human: <HumanIcon sx={{ fontSize: 14 }} />,
   environment: <EnvironmentIcon sx={{ fontSize: 14 }} />,
 };
-
-// ==================== CATEGORY LOOKUP ====================
-// Primary:  asset.properties.category  — set by asset-sync-service from dfdAsset.assetGroup
-// Fallback: ID prefix heuristic        — for assets in storage before the sync fix was deployed
-//   DA-xxx → data  |  SY-xxx → system  |  PR-xxx → process
-//   IN-xxx → infrastructure  |  HU-xxx → human
-
-const ID_PREFIX_TO_CATEGORY: Record<string, AssetGroup> = {
-  DA: "data",
-  FU: "function",
-  SY: "system",
-  IF: "infrastructure",
-  PR: "process",
-  PH: "physical",
-  SV: "service",
-  HU: "human",
-  EN: "environment",
-};
-
-function getCategoryFromAsset(asset: Asset): AssetGroup | undefined {
-  // 1. Canonical field on the Asset itself (used elsewhere, e.g. showHVAColumn's
-  //    `a.assetGroup === "infrastructure"` check) — this was previously not
-  //    consulted here at all, which is why Physical/Process/Service/Human/
-  //    Environment assets fell through to "–": their properties.category was
-  //    unset and their ID prefix didn't match ID_PREFIX_TO_CATEGORY.
-  if (asset.assetGroup && asset.assetGroup in ASSET_GROUP_CONFIG)
-    return asset.assetGroup as AssetGroup;
-
-  // 2. properties.category — populated by asset-sync-service since sync fix
-  const fromProperties = asset.properties?.category;
-  if (fromProperties && fromProperties in ASSET_GROUP_CONFIG)
-    return fromProperties as AssetGroup;
-
-  // 3. Fallback: derive from displayId prefix for legacy / manually-created
-  //    assets (displayId keeps the group prefix even once id becomes a UUID).
-  const prefix = (asset.displayId ?? asset.id)?.split("-")[0]?.toUpperCase();
-  return prefix ? ID_PREFIX_TO_CATEGORY[prefix] : undefined;
-}
 
 // ==================== IMPACT STYLES ====================
 

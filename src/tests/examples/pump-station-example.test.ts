@@ -46,7 +46,7 @@ describe("Pump Station Controller example", () => {
     expect(project).not.toBeNull();
     expect(project.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(project.info.tags.regulation).toEqual(["EN IEC 62443 (CRA)", "CRA"]);
-    expect(project.compliance?.target).toEqual({ IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 });
+    expect(project.compliance?.families?.["iec-62443-4-2"]?.target).toEqual({ IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 });
     // Not safety-relevant: no hazard analysis, no safety criterion, no safety risk factor.
     expect(project.info.safetyRelevant).toBe(false);
     expect(project.assets!.configuration.impactCriteria.some((c) => c.id === "safety")).toBe(false);
@@ -167,8 +167,12 @@ describe("Pump Station Controller example", () => {
     const { achieved, planned } = evaluateProjectCompliance(project)!;
     const count = (rows: { status: string }[]) =>
       rows.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});
-    expect(count(achieved.rows)).toEqual({ met: 55, gap: 12, "n/a": 21, "needs-statement": 9 });
-    expect(count(planned.rows)).toEqual({ met: 58, gap: 9, "n/a": 21, "needs-statement": 9 });
+    // CR 1.1 RE(1), CR 1.7, CR 1.7 RE(2) from the model fields (CM-5a); CR 7.6
+    // from the model, CR 7.6 RE(1) (SL 3, above the target) now a gap: the
+    // settings are readable on the HMI, not as a machine-readable report (CM-6).
+    // CR 7.1 RE(1) met since 0.18: only protocol interfaces are checked (IF-2, IF-3 rate-limited).
+    expect(count(achieved.rows)).toEqual({ met: 57, gap: 12, "n/a": 21, "needs-statement": 7 });
+    expect(count(planned.rows)).toEqual({ met: 60, gap: 9, "n/a": 21, "needs-statement": 7 });
 
     // SL-T 2: UC and RDF reach it; IAC stays at 1 even planned (no device
     // authentication on the fieldbus — a claim or a fix is needed); RA waits
@@ -205,7 +209,17 @@ describe("Pump Station Controller example", () => {
     } as Project;
     const { achieved, planned } = evaluateProjectCompliance(classic)!;
     const row = (label: string) => achieved.rows.find((r) => r.label === label)!;
-    expect(row("CR 1.7")).toMatchObject({ status: "met", source: "statement" }); // made with the CRA edition
+    expect(row("CR 1.10")).toMatchObject({ status: "met", source: "statement" }); // made with the CRA edition
+    // CR 1.5 from the model: F-3 / F-3b answer the whole checklist (CM-5b).
+    expect(row("CR 1.5")).toMatchObject({ status: "met", source: "model", checklist: [] });
+    // CR 1.11 from the model: the verifiers lock after failed logins (loginLockout, CM-8b).
+    expect(row("CR 1.11")).toMatchObject({ status: "met", source: "model" });
+    // CR 7.6 from secureByDefault / securityConfigReporting in the classic edition too (CM-6).
+    expect(row("CR 7.6")).toMatchObject({ status: "met", source: "model" });
+    // From the model fields in both editions; 2019 RE(1) / RE(2) as well.
+    for (const label of ["CR 1.1 RE(1)", "CR 1.7", "CR 1.7 RE(1)", "CR 1.7 RE(2)"]) {
+      expect(row(label), label).toMatchObject({ status: "met", source: "model" });
+    }
     expect(row("EDR 2.4").status).toBe("n/a"); // device row of the confirmed category, "no mobile code"
     expect(row("CR 7.8").status).toBe("needs-statement");
     // The CRA edition's picture, the graph's gaps included; RDF reaches 4 —

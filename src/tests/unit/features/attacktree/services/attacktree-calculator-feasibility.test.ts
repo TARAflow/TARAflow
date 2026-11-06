@@ -39,8 +39,11 @@ function analyse(dsl: string, config = isoConfig()) {
   return attackTreeCalculator.analyzeAttackPaths(ast, "simple", config);
 }
 
+/** The path that takes `leaf` — alone, or as a step of an AND combination (FX-6). */
 function pathTo(analysis: ReturnType<typeof analyse>, leaf: string) {
-  return analysis.paths.find((p) => p.path[p.path.length - 1] === leaf)!;
+  return analysis.paths.find(
+    (p) => p.path[p.path.length - 1] === leaf || !!p.combination?.legs.some((leg) => leg[leg.length - 1] === leaf),
+  )!;
 }
 
 // ──────────────────────────────────────────────────────────────────────────

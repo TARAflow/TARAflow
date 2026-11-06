@@ -2,6 +2,28 @@
   "tabs": {
     "hazards": {
       "hazards": "Gefährdungen",
+      "findings": {
+        "danglingContributesTo": "Verwaiste Ursachen-Kante: unbekannte Gefährdung „{{id}}“.",
+        "danglingEndangers": "Verwaiste Schutzziel-Kante von unbekannter Gefährdung „{{id}}“.",
+        "noContributor": "Gefährdung „{{hazard}}“ hat keine Ursache (contributes_to).",
+        "endangersNothing": "Gefährdung „{{hazard}}“ gefährdet kein Schutzziel.",
+        "noHazardType": "Gefährdung „{{hazard}}“ hat keinen ISO-12100-Gefährdungstyp.",
+        "noDescription": "Gefährdung „{{hazard}}“ hat keine Beschreibung.",
+        "noRationale": "Gefährdung „{{hazard}}“ hat keine Begründung.",
+        "allWithSingleInput": "Gefährdung „{{hazard}}“ verknüpft ihre Ursachen mit ALL, hat aber nur eine — ALL wirkt hier nicht.",
+        "negativeDistance": "Gefährdung „{{hazard}}“: eine Ursache hat eine negative Gefährdungsdistanz ({{distance}}).",
+        "contributorGroup": "Gefährdung „{{hazard}}“: Asset-Gruppe „{{group}}“ kann keine Ursache sein.",
+        "targetGroup": "Gefährdung „{{hazard}}“: Asset-Gruppe „{{group}}“ ist kein gültiges Schutzziel.",
+        "targetMismatch": "Gefährdung „{{hazard}}“: Auswirkungsziel „{{target}}“ passt nicht zur Asset-Gruppe „{{group}}“ des Schutzziels."
+      },
+      "notifications": {
+        "title_one": "{{count}} Befund",
+        "title_other": "{{count}} Befunde",
+        "open": "Gefährdung öffnen, wo das behoben wird",
+        "showInfos": "Infos zeigen",
+        "hideInfos": "Infos ausblenden",
+        "onlyInfos": "Keine Fehler oder Warnungen — Infos sind ausgeblendet."
+      },
       "addHazard": "Gefährdung hinzufügen",
       "configuration": "Gefährdungs-Einstellungen",
       "proceed": "Weiter",

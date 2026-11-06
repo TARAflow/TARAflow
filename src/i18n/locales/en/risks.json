@@ -99,6 +99,8 @@
         "title": "Cybersecurity goals and claims",
         "removedRisk": "removed ({{id}})",
         "mergeInto": "Merge into …",
+        "relinkTo": "Re-link to …",
+        "dropLink": "Remove link",
         "openRisk": "Open",
         "proposals": "Proposed goals for risks without a goal",
         "acceptProposal": "Create goal for {{count}} risk(s)",
@@ -428,6 +430,22 @@
         "transferred": {
           "label": "Transferred"
         }
+      },
+      "findings": {
+        "unrated_one": "{{count}} risk has not been rated",
+        "unrated_other": "{{count}} risks have not been rated",
+        "wontNoJustification_one": "{{count}} \"Won't\" risk is missing its justification",
+        "wontNoJustification_other": "{{count}} \"Won't\" risks are missing their justification",
+        "treatmentNoJustification_one": "{{count}} risk with accept/transfer/share treatment requires a justification",
+        "treatmentNoJustification_other": "{{count}} risks with accept/transfer/share treatment require a justification",
+        "transferToReview_one": "{{count}} risk with treatment \"transfer\" — ISO/SAE 21434 offers no transfer option; confirm as share",
+        "transferToReview_other": "{{count}} risks with treatment \"transfer\" — ISO/SAE 21434 offers no transfer option; confirm as share",
+        "reduceUnmitigated_one": "{{count}} risk to reduce has no mitigation ({{list}})",
+        "reduceUnmitigated_other": "{{count}} risks to reduce have no mitigation ({{list}})",
+        "residualMissing_one": "{{count}} risk to reduce has no residual risk rating ({{list}})",
+        "residualMissing_other": "{{count}} risks to reduce have no residual risk rating ({{list}})",
+        "uncertainThreats_one": "{{count}} risk is based on an uncertain threat — confirm relevance in Threat Eval",
+        "uncertainThreats_other": "{{count}} risks are based on uncertain threats — confirm relevance in Threat Eval"
       },
       "validation": {
         "required": "Required"

@@ -23,7 +23,7 @@ import { getRegulationTags } from "../../../shared/utils/tag-categories";
 import { flattenProjectTags } from "../../../shared/models/project-tags";
 import { isoRiskLabel } from "./iso-risk-label";
 import { goalsClaimsOfRisk } from "./cybersecurity-concept-report";
-import { controlLabels } from "./control-text";
+import { controlLabels, mitigationLabels } from "./control-text";
 import { resolveAttackPathChain } from "./iso-scenario-text";
 import { getRelationTypeLabel } from "./generators/property-doc-mappers";
 
@@ -127,7 +127,7 @@ export interface AttackPathThreatRow {
  * address risks left out (they are in the accepted-risks chapter). ISO mode:
  * mitigations and verifications are the ones selected on the path's risk.
  */
-export function attackPathThreatRows(project: DocProjectData): AttackPathThreatRow[] {
+export function attackPathThreatRows(project: DocProjectData, lang: DocLanguage): AttackPathThreatRow[] {
   const assets = project.assets?.assets ?? [];
   const assetLabel = (ids?: string[]): string => {
     const first = ids?.[0];
@@ -150,10 +150,7 @@ export function attackPathThreatRows(project: DocProjectData): AttackPathThreatR
       strideCategory: r.attackTreeAssessment?.strideCategory ?? "-",
       asset: assetLabel(r.linkedAssetIds),
       threat: chain ? chain.join(" → ") : r.threatDescription || "-",
-      mitigations: controlLabels(
-        (r.selectedMitigations ?? []).filter((m) => m.status !== "rejected"),
-        "mitigation",
-      ),
+      mitigations: mitigationLabels(r.selectedMitigations ?? [], lang),
       verifications: controlLabels((r.selectedVerifications ?? []).map((id) => ({ id })), "verification"),
     });
   }

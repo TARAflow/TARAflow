@@ -124,23 +124,23 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | ID | Requirement | SL-C | CRA | Applicability in the model | Evidence in the model | Type | Gap |
 |---|---|---|---|---|---|---|---|
 | CR 1.1 (l. 526) | identify and authenticate human users on every external interface with human access (directly or by supporting measures) | 1 | d | IF / DF with a human EE (operator, maintenance, …) | Proc.`authenticationRequired` ≠ no; MP.`boundaryAuthentication`; DF.`endpointAuthentication` ≠ none | B | which interfaces allow human access is implicit (EE type) |
-| CR 1.1 RE(1) (l. 568) | unique identification and authentication of all human users | 2 | d | as CR 1.1 | — | C | "shared account" flag |
+| CR 1.1 RE(1) (l. 568) | unique identification and authentication of all human users | 2 | d | as CR 1.1 | — | A (0.18) | F-1 `userAccounts` = individual on every element that authenticates human users |
 | CR 1.1 RE(2) (l. 593) | multifactor authentication for human users | 3 | d | as CR 1.1 | MP.`boundaryAuthentication` = mfa; DF.`endpointAuthentication` = mfa; EE.`authenticationMethod` = mfa | A | — |
 | CR 1.2 (l. 624) | identify and authenticate other components on external interfaces, and itself towards them | 2 | d, e | DF between Proc / MP and a non-human EE or another component | DF.`endpointAuthentication` ∈ certificate, mutual_tls, symmetric_key, token, apikey; Proc.`tlsTermination` = mutual; IF.ic.`linkAuthentication` ≠ none | A | — |
 | CR 1.2 RE(1) (l. 665) | unique identification and authentication of components | 3 | d, e | as CR 1.2 | DF.`endpointAuthentication` ∈ certificate, mutual_tls (per-device identity) | B | shared vs. per-device key not modelled |
 | CR 1.3 (l. 699) | account management, directly or by supporting measures | 1 | d | Proc / MP with authentication | Proc / MP.`accountManagement` | A | — |
 | CR 1.4 (l. 732) | identifier management | 1 | d | as CR 1.3 | Proc / MP.`accountManagement` (implies identifier management) | B | — |
-| CR 1.5 (l. 773) | authenticator management: initial authenticator, detect unchanged defaults, change / refresh, protect stored / used / transmitted authenticators | 1 | b, d | every authentication mechanism | Proc / MP / CB.`authenticatorStorage` (protection at rest); DF encryption (in transit) | B | default-credential handling (a–c) not modelled |
+| CR 1.5 (l. 773) | authenticator management: initial authenticator, detect unchanged defaults, change / refresh, protect stored / used / transmitted authenticators | 1 | b, d | every authentication mechanism | Proc / MP / CB.`authenticatorStorage` (protection at rest); DF encryption (in transit) | B | a–c answered by F-3 `defaultCredentials` / F-3b `authenticatorChangeable` (0.18): set → a; none pre-installed or change enforced → b; changeable → c, not changeable → gap; open items stay on the checklist |
 | CR 1.5 RE(1) (l. 817) | hardware protection of authenticators | 3 | b, d | every authenticating Proc / MP | each: `authenticatorStorage` ∈ tpm, secure_element, hsm | A | — |
 | CR 1.6 (l. 853) | identify and authenticate all users of wireless communication | 1 | d | IF.`type` ∈ wifi, bluetooth, nfc; DF.`protocol` wireless (wireless_hart, bluetooth, …) | IF.ic.`linkAuthentication` ≠ none; DF.`endpointAuthentication` ≠ none | A | — |
 | CR 1.6 RE(1) (l. 887) | unique identification on wireless | 2 | d | as CR 1.6 | IF.ic.`linkAuthentication` ∈ certificate_based, mutual_pairing | B | — |
-| CR 1.7 (l. 918) | configurable password strength per recognised guidelines | 1 | d | any password-based mechanism (`…Authentication` = password) | — | C | — |
+| CR 1.7 (l. 918) | configurable password strength per recognised guidelines | 1 | d | any password-based mechanism (`…Authentication` = password) | — | A (0.18) | F-2a `passwordStrength` = configurable policy on the element a password reaches |
 | CR 1.7 RE(1) (l. 947) | *void in prAA* | — | — | — | — | n/a | — |
-| CR 1.7 RE(2) (l. 949) | password lifetime limits for software processes / devices | 4 | d | password-based machine authentication | — | C | — |
+| CR 1.7 RE(2) (l. 949) | password lifetime limits for software processes / devices | 4 | d | password-based machine authentication | — | A (0.18) | F-2b `passwordLifetime` = machine / all where software processes or devices log in with a password |
 | CR 1.8 (l. 979) | PKI operation per best practice | 2 | d, e, f | `…Authentication` ∈ certificate, mutual_tls | — | C | — |
 | CR 1.9 (l. 1019) | public-key authentication: signature / data validity, proof of possession | 2 | d, e, f | as CR 1.8 | DF.`endpointAuthentication` ∈ certificate, mutual_tls (mechanism only) | B | — |
 | CR 1.10 (l. 1087) | obscure authentication feedback | 1 | d | human-user authentication present | — | C | — |
-| CR 1.11 (l. 1122) | limit consecutive failed logins, lock for a period / until unlocked | 1 | d | every authentication mechanism | — (IF.ic.`abuseProtection` = lockout sits on the interface; which interface a human-access flow passes is not modelled, P-7) | C | interface ↔ flow link (P-7) |
+| CR 1.11 (l. 1122) | limit consecutive failed logins, lock for a period / until unlocked | 1 | d | a login with a guessable authenticator (password, pairing, MFA, biometric) reaches an element that authenticates, or a link pairs with PIN / PSK | (0.18, F-5 `loginLockout`) the verifier locks for a period or until an admin unlocks — a delay alone has no lock; a self-authenticating link: IF.ic.`abuseProtection` = lockout | A | user 2026-11-02: the lockout belongs to the element that verifies the login, not to the port |
 | CR 1.12 (l. 1173) | configurable system-use notification before login on local HMI | 1 | — | local human UI (IF.`type` touchscreen, HMI EE) | — | C | — |
 | CR 1.13 (l. 1222) | monitor and control all access via untrusted networks | 1 | j | MP.`remoteAccessEnabled` / `exposedToInternet`; TB of type network / cloud | each such TB: `boundaryControlTypes` ∋ vpn_gateway, jump_host, authentication_gateway, firewall; TB.`monitoringEnabled` | B | — |
 | CR 1.13 RE(1) (l. 1253) | deny untrusted-network access unless explicitly approved by a role | 3 | j | as CR 1.13 | — | C | — |
@@ -152,7 +152,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 |---|---|---|---|---|---|---|---|
 | CR 2.1 (l. 1315) | authorization enforcement for identified and authenticated users | 1 | d | Proc / MP with authentication | Proc / MP.`authorizationModel` ≠ none; DF.`accessMode` | A | — |
 | CR 2.1 RE(1) (l. 1351) | authorization for all users by responsibility and least privilege | 2 | d | as CR 2.1 | `authorizationModel` + Proc.`privilegeLevel` / `runsAs` (least privilege) | B | — |
-| CR 2.1 RE(2) (l. 1375) | authorized role maps permissions to roles | 2 | d | as CR 2.1 | `authorizationModel` = rbac | A | — |
+| CR 2.1 RE(2) (l. 1375) | authorized role maps permissions to roles | 2 | d | as CR 2.1 | `authorizationModel` = rbac **and** (0.18, F-29) `roleMapping` = configurable — fixed roles do not meet it | A | — |
 | CR 2.1 RE(3) (l. 1401) | supervisor manual override | 3 | d | as CR 2.1 | — | C | — |
 | CR 2.1 RE(4) (l. 1425) | dual approval for actions with serious impact on essential functions | 4 | d | as CR 2.1, safety-relevant functions | — | C | — |
 | CR 2.2 (l. 1458) | wireless usage authorization, monitoring, restriction | 1 | d | wireless IF / DF (as CR 1.6) | IF.ic.`monitoringControl` ≠ none, IF.ic.`serviceAccessPolicy` | B | — |
@@ -195,7 +195,7 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 | CR 3.9 RE(1) (l. 2588) | audit records on hardware write-once media | 4 | — | as CR 3.9 | — | C | — |
 | CR 3.10 (l. 2613) | support updates and upgrades | 1 | c, f | always | at least one Proc / MP: `updateMechanism` ≠ none | A | not on CB |
 | CR 3.10 RE(1) (l. 2638) | validate authenticity and integrity of updates before installation | 2 | c, f | as CR 3.10 | `updateMechanism` ∈ signed_local, signed_ota | A | — |
-| CR 3.10 RE(2) (l. 2664) | automatic loading, update notification or scheduled update (should: rollback) | 2 | c, f | as CR 3.10 | `updateMechanism` ∈ signed_ota, mdm_managed, ci_cd | B | rollback not modelled |
+| CR 3.10 RE(2) (l. 2664) | automatic loading, update notification or scheduled update (should: rollback) | 2 | c, f | as CR 3.10 | (0.18, F-27) every updated element: `updateDelivery` ∈ notification, on_request_or_scheduled, automatic (a / b / c of the text); no updates → gap | B | rollback ("should") stays on the checklist |
 | CR 3.11 (l. 2709) | physical tamper resistance and detection (not for software-only components) | 2 | d, e, f | component with hardware (PB / CB present) | PB.`tamperProtection` ≠ none; CB.`tamperProtection` ≠ none | A | — |
 | CR 3.11 RE(1) (l. 2751) | notify on tampering attempts | 3 | d, e, f | as CR 3.11 | PB.`tamperProtection` = active_detection; PB.`monitoringType` = tamper_monitoring; CB.`tamperProtection` = active | A | — |
 | CR 3.12 (l. 2784) | provision and protect product supplier roots of trust at manufacture | 2 | f | component with secure boot / signed updates | CB.`secureBootEnabled`; `authenticatorStorage` ∈ secure_element, tpm, hsm | B | no root-of-trust field |
@@ -238,18 +238,18 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | ID | Requirement | SL-C | CRA | Applicability in the model | Evidence in the model | Type | Gap |
 |---|---|---|---|---|---|---|---|
-| CR 7.1 (l. 3505) | keep essential functions in degraded mode under DoS | 1 | h, i, k | every IF with `exposureLevel` EL2–EL4 | each: IF.ic.`abuseProtection` ≠ none | B | — |
+| CR 7.1 (l. 3505) | keep essential functions in degraded mode under DoS | 1 | h, i, k | every IF with `exposureLevel` EL2–EL4 **and a protocol to flood** (0.18: `ABUSE_PROTECTION_INTERFACE_TYPES`; a touch panel or GPIO is no longer checked — the form never offered the field there) | each: IF.ic.`abuseProtection` ≠ none | B | — |
 | CR 7.1 RE(1) (l. 3538) | mitigate message flooding | 2 | h, i, k | as CR 7.1 | each: IF.ic.`abuseProtection` ∈ flood_protection, rate_limited | A | — |
 | CR 7.2 (l. 3568) | limit resource use by security functions | 1 | h, k | always | — | C | — |
 | CR 7.3 (l. 3606) | backup directly or by supporting measures, without affecting operation | 1 | f, h, m | DS / MP with state worth restoring | MP.`backupMechanism` ≠ none; DS.`backupEnabled` | A | — |
 | CR 7.3 RE(1) (l. 3646) | verify backup integrity before restore | 2 | f, h, m | as CR 7.3 | — | C | — |
 | CR 7.4 (l. 3674) | recover and reconstitute to a known secure state | 1 | b, m | always | MP.`backupMechanism` (partly) | B | — |
 | CR 7.5 (l. 3713) | *no component requirement (emergency power, system level)* | — | — | — | — | n/a | — |
-| CR 7.6 (l. 3715) | secure-by-default network and security configuration; interface to read current settings | 1 | b, k, l | always | — | C | secure-by-default is a CRA headline (2)(b); no model field |
-| CR 7.6 RE(1) (l. 3744) | machine-readable report of current security settings | 3 | b, k | as CR 7.6 | — | C | — |
+| CR 7.6 (l. 3715) | secure-by-default network and security configuration; interface to read current settings | 1 | b, k | always | (0.18, F-25) on the element that stands for the component (Multiprocess, or the Process under evaluation): `secureByDefault` = yes **and** `securityConfigReporting` ∈ readable interface, machine-readable | A | secure-by-default is a CRA headline (2)(b); ZZ.1 has no (l) for CR 7.6 (patch 44) |
+| CR 7.6 RE(1) (l. 3744) | machine-readable report of current security settings | 3 | b, k | as CR 7.6 | (0.18, F-25b) `securityConfigReporting` = machine-readable | A | — |
 | CR 7.7 (l. 3770) | restrict unnecessary interfaces, functions, ports, protocols, services | 1 | b, j, k | every IF / service | IF.`operationalState` ∈ sw_disabled, hw_disabled, permanent_disabled for unused IF; IF.ic.`serviceAccessPolicy` ≠ always_enabled | B | "needed for intended use" not modelled per IF |
 | CR 7.8 (l. 3808) | provide component information to an inventory | 2 | — | always | — | C | — |
-| CR 7.9 (l. 3840) | reset to a supplier-defined state (**new in prAA**) | 1 | b | always | DS.`deletionMechanism` = factory_reset (partly) | B | reset capability per component not modelled |
+| CR 7.9 (l. 3840) | reset to a supplier-defined state (**new in prAA**) | 1 | b | always | (0.18, F-22) the element that stands for the component: `userDataDeletion` ∈ factory reset, both — or a DS.`deletionMechanism` = factory_reset; both answer the checklist item | B | before 0.18 a component without data stores was n/a although the requirement applies to all components |
 
 ### Common component security constraints and process
 
@@ -264,16 +264,16 @@ PB = PhysicalBoundary, EE = ExternalEntity.
 
 | | A | B | C | n/a |
 |---|---|---|---|---|
-| FR 1 (22 rows) | 5 | 7 | 8 | 2 |
+| FR 1 (22 rows) | 9 | 7 | 4 | 2 |
 | FR 2 (24) | 9 | 3 | 11 | 1 |
 | FR 3 (23) | 12 | 6 | 4 | 1 |
 | FR 4 (6) | 4 | 0 | 2 | 0 |
 | FR 5 (7) | 4 | 1 | 0 | 2 |
 | FR 6 (3) | 0 | 2 | 1 | 0 |
-| FR 7 (12) | 2 | 4 | 5 | 1 |
-| **Total (97)** | **36** | **23** | **31** | **7** |
+| FR 7 (12) | 4 | 4 | 3 | 1 |
+| **Total (97)** | **42** | **23** | **25** | **7** |
 
-About two thirds of the 90 live rows (59) can be pre-filled from the model (A + B). The C rows
+About two thirds of the 90 live rows (65 since 0.18 CM-8; 59 before 0.18) can be pre-filled from the model (A + B). The C rows
 need an analyst statement (applicable / met / not met / n/a + reasoning + evidence
 reference) — that is what makes the matrix a complete SoA.
 
@@ -305,7 +305,7 @@ Per project, from one model (consistency per EA-6-1):
 | P-3 | no "human access" marker per interface / flow | CR 1.1, 1.10, 1.12, 2.5 | derive from the connected EE type (operator, maintenance, … — external-entity-type-registry) |
 | P-4 | no log-sink / time-source markers (audit-log stores are marked: `DS.storedDataTypes` ∋ audit_logs) | CR 2.11 RE(1)/(2), 6.1 RE(1) | EE types "siem", "time_source" |
 | P-5 | secure-by-default, reset, default-credential handling not modelled | CR 1.5 a–c, 7.6, 7.9 (CRA (2)(b)) | component-level fields (K2), or C rows |
-| P-7 | which interface a flow passes is not in the reference view (`viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | the dfd graph already has `interfaceIds` per flow (`DataFlowAnalysis`, used by the validator), the effective model `EffectiveFlow.interfaces` — carry the ids into the property view, then CR 1.11 can return to type A |
+| P-7 | which interface a flow passes is not in the reference view (`viaInterface: true/false` only) | CR 1.11 (lockout on the interface of human-access flows) | **not needed (0.18 CM-8b):** the login lockout belongs to the verifier (F-5 `loginLockout`, user 2026-11-02), not to the interface — CR 1.11 is type A without the interface link; the interface ids stay in the DFD graph |
 | P-6 | `secureErase` / `auditLogRetentionYears` from the architecture doc | CR 4.2 / EN 50742 8.5 | `DS.deletionMechanism` already covers CR 4.2 — drop `secureErase`; retention only for EN 50742 B |
 
 ## 7. Decisions and open points
@@ -343,7 +343,7 @@ Per project, from one model (consistency per EA-6-1):
 | D-27 | **What a requirement is about** (user 2026-11-01): every row shows the requirement's short title and a **summary in our own words** (English, German) — **never the normative text** (no "shall" sentences, rationale or acceptance criteria; TARAflow is public, the standard licensed), always with "summary — the standard is authoritative". In the tab: a **compact tooltip** (title, summary) on the requirement number; a **click opens an info dialog** with all of it — SL-C from, CRA letters, current status and source, "how TARAflow checks it" (generated from the evidence rule), affected elements, checklist, catalog mitigations, the statement; its "statement" button closes the info dialog first, then opens the statement dialog (the button in the row stays). In the report: a compact column "title — summary" in the SoA. The type B checklists are translated as well. | `data/requirement-texts.ts`, `services/describe-requirement.ts`. |
 | D-28 (K-E15) | **Transmitted information = flows across the component border** (user 2026-11-01): CR 3.1, CR 3.1 RE(1) and CR 4.1 (transit) apply only to a flow with an endpoint that is an ExternalEntity or outside the component scope, and not to human input on the component's own panel (protocol `human_input`) or a transducer coupling (medium `physical`). CR 4.3 keeps every encrypted flow. | `EvidenceTarget.crossesComponent`, rules via `COMPONENT_BORDER_FLOWS` (patch 15); without a selected component the scope is the whole model, so the flows to and from external entities count |
 | D-29 | **Mitigations cover element by element; references fit the element types** (user 2026-11-01): (1) on a rule every element must meet (`all`, type A / B) a mitigation covers only the elements its risks concern — the rest stays open and listed; C rows and `any` rules stay row-level. (2) Besides the hand-kept `iec62443` references a mitigation meets the requirements its `affectsProperties` satisfy (effect type ∈ rule target types, expected value accepted), bound to that element type. (3) Catalog test: a hand reference on an A / B rule must fit a type the rule checks when the mitigation has property effects; wider references only listed with a reason (5). (4) Suggestions for a row: only mitigations meeting it on a type of the elements still open. | evaluator step 6, `mitigation-requirements.ts`, evidence builder with `typeOf`, tab / report suggestions (patch 17). Pump Station planned run: CR 1.1 RE(2), CR 1.5 RE(1), CR 7.1 RE(1) back to gaps |
-| D-30 (K-E16) | **A multiprocess without child page stands in for processes and stores** (user 2026-11-01, option b): a rule that checks Process or DataStore, with no element of those types in scope, is `unknown` with the black-box multiprocesses listed — not `n/a`; the to-do list asks to model the inside or make a statement. Narrow: models that show processes / stores are unchanged; rules that check Multiprocess themselves need no stand-in. Option (c), the missing properties directly on the Multiprocess, stays for 0.18 | `PropertyView.blackBoxes`, evaluator step 4, to-do item "inside" (patch 25) |
+| D-30 (K-E16) | **A multiprocess without child page stands in for processes and stores** (user 2026-11-01, option b): a rule that checks Process or DataStore, with no element of those types in scope, is `unknown` with the black-box multiprocesses listed — not `n/a`; the to-do list asks to model the inside or make a statement. Narrow: models that show processes / stores are unchanged; rules that check Multiprocess themselves need no stand-in. Option (c), the missing properties directly on the Multiprocess, stays for 0.18. **Option (c) done (0.18, patch 30, user 2026-11-03):** a black box carries "inside" fields — `innerInputValidation`, `innerErrorHandling`, `innerFailSafeOutputState` (contained processes; CR 3.5, 3.7, 3.6) and `innerDataClassification`, `innerEncryptionAtRest`, `innerIntegrityProtection`, `innerDeletionMechanism` (contained data; CR 4.1, 4.2, 4.3, 3.4, 7.9), the weakest case over its contents, shown only without child page (sub-tab "Inside"). The evaluator checks it with the Process / DataStore rules (`BLACK_BOX_FIELDS`); a black box with a field of the group set counts **also next to modelled processes / stores** (supplier module as black box beside a PLC with child page); without fields D-30 (b) as before; with a child page the fields are hidden and ignored (K-7) | `PropertyView.blackBoxes`, evaluator step 4, to-do item "inside" (patch 25); `property-visibility.ts` (`blackBox`, `BLACK_BOX_FIELDS`), `evaluate-matrix.ts` (`blackBoxElements`), to-do lists the inside fields (patch 30) |
 | D-31 | **Statements per requirement, shared by both editions** (user 2026-11-01): a statement describes the product, not the edition — it is stored per requirement (`ComplianceData.statements` keyed by `requirementKey`: the row's requirement ids, sorted, "+"-joined) and holds in the classic and the CRA edition wherever the requirement is the same (110 of 122 classic rows; device rows SAR / EDR / HDR / NDR share theirs). Switching the tags re-evaluates the graph and keeps the statements. Supersedes the per-edition storage of D-8. Files of the 0.17 development (per edition and row label) are folded on load; the newer statement wins where both editions held one | `editionStatements` / `statementKeyOf` (compliance), `foldLegacyStatements` in the load path, tab and report read per row (patch 41) |
 
 Achieved SL-C per FR, as decided in D-2:
@@ -486,6 +486,7 @@ whole; the completeness test fails for any other "any" rule:
 | `cr-6.1-re1` | one programmatic access / forwarding channel for the audit records suffices |
 | `cr-6.2` | the capability to report detected issues to monitoring |
 | `cr-7.3`, `cr-7.4` | backup and recovery of the component |
+| `cr-7.6`, `cr-7.6-re1` | the secure-by-default configuration and its reporting interface belong to the component as a whole, asked on the element that stands for it (0.18 CM-6, condition `componentLevel`) |
 | `cr-7.9` | reset of the component to the supplier state |
 
 **Edition row** additionally carries `supportingMeasuresAllowed: boolean` (D-14): true where
@@ -503,8 +504,11 @@ model-coverage-implementation-plan.md §2.1) returns every selected standard —
 editions with both tags (K-1). `selectEdition` is the first of them until the sub-tabs
 (CM-2) and the per-standard report chapters (CM-9). `EditionRow.fr` is now
 `EditionRow.group` (the FR for 62443, plan §2.3). CM-2: the Compliance tab shows one
-sub-tab per active standard (`ComplianceFrame`); only the report still uses
-`selectEdition`.
+sub-tab per active standard (`ComplianceFrame`). CM-9: the report chapter has one
+part per active standard (`buildDocCompliance` returns one `DocCompliance` each). CM-3 (schema 13): `project.compliance` holds one block per standard family —
+the D-8 data (target, device categories, statements) now lives in
+`compliance.families["iec-62443-4-2"]`, the component stays the default at the top
+(plan §2.4, K-2, K-5).
 
 ### 9.4 Evaluation (D-2, D-4 … D-8, D-12 … D-17, K-C1)
 
@@ -643,8 +647,8 @@ four numbers per FR, the report states *achieved (component)* as the SL-C.
 | IEC-2a | types, evidence rules, both edition files, completeness test, conformance test — no UI, no i18n | `feature/iec62443-cra-matrix` | — | done (patches 264, 266: D-22 quantifiers, `connectedIf`) |
 | IEC-3 | evaluator, edition selection, vectors, property view, evaluator tests, smoke test | same | IEC-2a | done (patch 269) |
 | IEC-2b | regulation tag `EN IEC 62443 (CRA)` (catalogue, tooltip, document description, context hint, hint to add the CRA tag); checklist / reasoning texts came with D-27 | same | — (done without waiting for B's i18n split, user 2026-11-01) | done (patch 11) |
-| IEC-6 | claims for SL-C gaps (D-5) | — | — | **0.18** (user 2026-11-01): statements with a supporting measure cover the case in 0.17 |
-| IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | — | — | **0.18** (user 2026-11-01) |
+| IEC-6 | claims for SL-C gaps (D-5) | `shared/models/cybersecurity-concept-types.ts` (kind `supporting`, `requirements` qualified K-4), `compliance/components/matrix-claims.tsx`, `app/services/compliance-report.ts` (rows covered → `claimed`, report section) | `cybersecurity-concept.test.ts`, `compliance-report.test.ts`, `compliance-tab.test.tsx`, `compliance-matrix-chapter.test.ts` | **done** (0.18, patch 28): CLM-nn of kind "supporting" — measure, who provides it, review date, the requirements it covers; created and linked in the row's info dialog; a row is covered when all its requirements are, in every edition (D-31); counts for "with measures of the system", never SL-C of the product (D-14); own section in the report part; the ISO goal / claim views and findings show the risk claims only |
+| IEC-8b | `iec62443` references on project mitigations in the custom mitigation dialog | `threats/components/shared/project-mitigation-form.tsx`, `shared/hooks/matrix-requirements.ts`, `app/utils/matrix-requirement-options.ts` | `project-mitigation-requirements.test.tsx`, `matrix-requirement-options.test.ts` | **done** (0.18, patch 29): field only while a 62443 edition is active (the app provides the list — threats does not import compliance); options "row — title" of the active editions; requirements the effects meet already listed, not stored (D-29); without the field stored references stay; a chosen M-C mitigation with references meets the row like a catalog entry (D-6). EN 50742 stays with its mandated controls `en50742-<clause>` (user 2026-11-03) |
 | IEC-9 | model gaps: P-2 (update mechanism / session control on both element types) and P-1 (`defaultDenyPolicy` multi-select, schema-12 migration) in 0.17; P-4, P-7 in 0.18 | same | IEC-1 | done: P-2 (patch 13), P-1 (patch 21) |
 | IEC-10 | validation: general example "Pump Station Controller" (CRA tag, SL-T 2, every row status; generator `src/tests/examples/pump-station-example.ts` through the real services, `WRITE_EXAMPLES=<dir>` writes the project); the seminar uses SmokeDetector; check SmokeDetector-leveled / Headlamp | same | all IEC | done: example (patch 12), D-28 (15), D-29 (17), to-do fix (23), D-30 (25); results §9.7. Headlamp is an ISO 21434 example, not a 62443 case |
 | IEC-1 | schema 12 version fence (no data change, declared analysis-preserving) | same | — | done (patch 270) |
@@ -757,7 +761,9 @@ Compliance tab (IEC-8).
 ## 11. Model coverage of the type C rows (0.18 design, user 2026-11-01)
 
 About a third of the rows can only be met by a statement today — the model has no
-property for them: 31 of 90 rows of the CRA edition, 44 of 122 of the classic one.
+property for them: 31 of 90 rows of the CRA edition, 44 of 122 of the classic one
+(0.17). After 0.18 stage 1 (model-coverage-implementation-plan.md, CM-10): 25 of 90 and
+37 of 122.
 Most are capabilities of the component or of its human-facing parts that fit as
 element properties.
 
@@ -805,7 +811,7 @@ against ETSI EN 303 645 V2.1.1 and FprEN 18031-1/-2/-3: the corrected columns ar
 | F-25 | `securityConfiguration` (Multiprocess) | always | none · secure defaults · readable · machine-readable | CR 7.6 (A), RE(1) (A) | 5.6 | GEC |
 | F-26 | `inventoryReporting` (Multiprocess) | always | none · local · over the network | CR 7.8 (A) | — | GEC |
 | F-27 | `updateNotification` (Multiprocess / Process with `updateMechanism`) | `updateMechanism` ≠ none | none · user notified · automatic with notice | CR 3.10 RE(2) (B → A) | 5.3 | SUM |
-| F-28 | `securityContact` / support period (project, not an element) | always (Overview) | text / date | — (62443-4-1, process) | 5.2, 5.3 | — (CRA Annex II) |
+| ~~F-28~~ | ~~`securityContact` / support period (project, not an element)~~ — **dropped** (user 2026-11-02: manufacturer information for the product documentation, not TARA content; the report's CRA view says so) | — | — | — (62443-4-1, process) | 5.2, 5.3 — statement rows of the EN 303 645 module | — (CRA Annex II) |
 
 Remaining type C after F-1 … F-27 (CRA edition): CR 2.11 RE(2) only partly (time
 source integrity needs the protocol), the 2019-only rows SAR 3.2 / HDR 3.2 RE(1)

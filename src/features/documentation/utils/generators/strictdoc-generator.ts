@@ -209,7 +209,7 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
     ].join("\n") + "\n\n";
   }
 
-  formatReportSection(section: ReportSection): string {
+  formatReportSection(section: ReportSection, depth = 0): string {
     const row = (cells: string[]) =>
       cells
         .map((c, i) => `${i === 0 ? "   * - " : "     - "}${this.escapeTableText(c)}`)
@@ -226,6 +226,8 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
       `TITLE: ${section.title}`,
       "",
       ...(body.length ? ["[FREETEXT]", ...body, "[/FREETEXT]", ""] : []),
+      // Sub-sections nest inside the section (StrictDoc has no heading levels).
+      ...(section.children ?? []).map((c) => this.formatReportSection(c, depth + 1)),
       "[/SECTION]",
     ].join("\n") + "\n\n";
   }

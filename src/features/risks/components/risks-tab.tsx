@@ -45,6 +45,7 @@ import {
 } from "../models/risk-assessment-types";
 
 import { RiskConfiguration, RiskValidation } from "../models/risk-config-types";
+import { riskFindingLines, riskFindings } from "../services/risk-findings";
 import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
 import {
@@ -384,8 +385,9 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   const perElementCount = project.perElementThreats.length;
   const perInteractionCount = project.perInteractionThreats.length;
   // The validation of the current state, for the toolbar chip (user
-  // 2026-10-30 — the stored one was never shown, and may be stale).
-  const currentValidation = useMemo(() => riskService.validate(riskData), [riskData]);
+  // 2026-10-30 — the stored one was never shown, and may be stale), in the
+  // UI language (FX-4).
+  const currentValidation = useMemo(() => riskFindingLines(riskFindings(riskData), t), [riskData, t]);
   // The method buttons show risks, not threats (user 2026-10-30).
   const risksOfMethod = (method: "per-element" | "per-interaction") =>
     riskData.risks.filter((r) => r.sourceStrideMethod === method).length;

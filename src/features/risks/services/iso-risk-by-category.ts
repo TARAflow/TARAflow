@@ -59,12 +59,7 @@ export function isoRiskByCategory(
       short,
       impact: v.impact,
       risk: v.risk,
-      level: getRiskLabel(
-        v.risk,
-        configuration.scale,
-        configuration.roundingMethod,
-        configuration.severityThresholds,
-      ),
+      level: getRiskLabel(v.risk, configuration),
     });
   }
   return out;

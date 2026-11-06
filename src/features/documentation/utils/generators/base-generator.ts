@@ -14,7 +14,7 @@ import {
 } from "../cybersecurity-concept-report";
 import { complianceMatrixIntro, complianceMatrixSections } from "../compliance-matrix-report";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
-import { controlLabels } from "../control-text";
+import { controlLabels, mitigationLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
 import {
   attackTreeReportSections,
@@ -44,6 +44,12 @@ import {
   type StatsTable,
 } from "../threat-risk-stats";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
+import {
+  visibilityContexts,
+  type VisibilityContext,
+  type VisibilityElement,
+  type VisibilityFlowInput,
+} from "../../../../shared/models/property-visibility";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import type {
   DocConfiguration,
@@ -294,7 +300,8 @@ export abstract class BaseDocumentGenerator {
   protected formatSectionedChapter(_chapterId: string, _title: string, _intro: string, _body: string): string {
     return "";
   }
-  protected formatReportSection(_section: ReportSection): string {
+  /** `depth`: 0 for a section of the chapter, 1 for its sub-sections (ReportSection.children). */
+  protected formatReportSection(_section: ReportSection, _depth = 0): string {
     return "";
   }
   /** A status line below the header (verification, plan Phase 4). */
@@ -746,6 +753,12 @@ export abstract class BaseDocumentGenerator {
 
     const elements = project.dfd.elements;
     const connections = project.dfd.connections ?? [];
+    // Model coverage fields are listed where their predicate shows them (R-4).
+    const contextOf = visibilityContexts(
+      elements as unknown as VisibilityElement[],
+      connections as unknown as VisibilityFlowInput[],
+      { componentId: project.complianceComponentId },
+    );
 
     // Overview table. Leveled DFD (7b): the overview is the element table of
     // each page section in the DFD chapter — not repeated here.
@@ -767,7 +780,7 @@ export abstract class BaseDocumentGenerator {
       content += typeHeader;
 
       for (const element of typeElements) {
-        content += this.generateDfdElementDetailedEntry(element);
+        content += this.generateDfdElementDetailedEntry(element, contextOf);
       }
       content += this.getDfdSubsectionCloseTemplate();
     }
@@ -798,10 +811,13 @@ export abstract class BaseDocumentGenerator {
   /**
    * Generate detailed element entry with grouped properties
    */
-  protected generateDfdElementDetailedEntry(element: DFDElement): string {
+  protected generateDfdElementDetailedEntry(
+    element: DFDElement,
+    contextOf?: (id: string) => VisibilityContext | undefined,
+  ): string {
     const { lang } = this.ctx;
 
-    const propertyGroups = getElementPropertiesGrouped(element, lang);
+    const propertyGroups = getElementPropertiesGrouped(element, lang, contextOf?.(element.id));
     const propertyGroupsText = this.formatPropertyGroups(propertyGroups);
     const assetRelations = formatElementAssetRelations(element, lang, this.resolveAssetName);
 
@@ -1233,7 +1249,7 @@ export abstract class BaseDocumentGenerator {
    */
   protected generateAttackPathThreats(title: string): ChapterContent {
     const chapterId: DocChapterId = "threats-attack-path";
-    const rows = attackPathThreatRows(this.ctx.project).map((row) =>
+    const rows = attackPathThreatRows(this.ctx.project, this.ctx.lang).map((row) =>
       replacePlaceholders(this.getAttackPathThreatRowTemplate(), {
         anchor: row.anchor, // <a id="threat-{{anchor}}"> — link target
         tsId: row.tsId, // AT-<n>.<m> — same label the matrix shows
@@ -1298,10 +1314,7 @@ export abstract class BaseDocumentGenerator {
       riskBeforeLabel,
       // "ID — text" per control, one per line (like the threat tables).
       mitigations: this.controlList(
-        controlLabels(
-          risk.selectedMitigations.filter((m) => m.status !== "rejected"),
-          "mitigation",
-        ),
+        mitigationLabels(risk.selectedMitigations, this.ctx.lang),
       ),
       riskAfterLabel,
       moscowLabel,
@@ -1510,7 +1523,7 @@ export abstract class BaseDocumentGenerator {
       return { id: chapterId, title, content: "", hasContent: false };
     }
     const body = sections.map((s) => this.formatReportSection(s)).join("");
-    const content = this.formatSectionedChapter(chapterId, title, complianceMatrixIntro(this.ctx.t), body);
+    const content = this.formatSectionedChapter(chapterId, title, complianceMatrixIntro(this.ctx.t, this.ctx.project.computed.compliance), body);
     return { id: chapterId, title, content, hasContent: content !== "" };
   }
 

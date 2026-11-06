@@ -1,0 +1,302 @@
+// CR 1.1 RE(1), CR 1.7 (+ RE(1), RE(2)) and CR 2.1 RE(2) from the identity
+// fields (model-coverage-implementation-plan.md §4.2 F-1, F-2a, F-2b, F-29;
+// CM-5a, CM-5c): type A
+// in both editions, decided on the element that verifies the login, with the
+// same conditions that show the fields. An unset field is unknown, never met
+// (R-1, R-8).
+import { describe, it, expect } from "vitest";
+import {
+  describeRequirement,
+  EDITION_2019,
+  EDITION_PRAA_2026,
+  evaluateMatrix,
+  localizedChecklist,
+  type Edition,
+  type ViewElement,
+  type ViewFlow,
+} from "features/compliance";
+
+const operator: ViewElement = { id: "op", type: "ExternalEntity", properties: { entityType: "operator" } };
+const scada: ViewElement = { id: "scada", type: "ExternalEntity", properties: { entityType: "scada_hmi" } };
+const flow = (id: string, from: string, to: string, endpointAuthentication?: string): ViewFlow => ({
+  id,
+  from,
+  to,
+  properties: endpointAuthentication ? { endpointAuthentication } : {},
+});
+
+function rowStatus(edition: Edition, label: string, element: ViewElement, flows: ViewFlow[]) {
+  const row = edition.rows.find((r) => r.label === label)!;
+  return evaluateMatrix({
+    edition: { ...edition, rows: [row] },
+    view: { elements: [element, operator, scada], flows },
+    scope: new Set([element.id]),
+    run: "achieved",
+  }).rows[0];
+}
+const hmi = (properties: Record<string, unknown>): ViewElement => ({ id: "p", type: "Process", properties });
+
+describe("CR 1.1 RE(1) — individual accounts (F-1)", () => {
+  const login = [flow("f", "op", "p", "password")];
+  it.each([EDITION_PRAA_2026, EDITION_2019])("$id: individual met, shared gap, unset unknown", (edition) => {
+    expect(rowStatus(edition, "CR 1.1 RE(1)", hmi({ authenticationRequired: "yes", userAccounts: "individual" }), login).status).toBe("met");
+    expect(rowStatus(edition, "CR 1.1 RE(1)", hmi({ authenticationRequired: "yes", userAccounts: "shared" }), login).status).toBe("gap");
+    expect(rowStatus(edition, "CR 1.1 RE(1)", hmi({ authenticationRequired: "yes" }), login).status).toBe("unknown");
+  });
+
+  it("a login per role or one shared login: CR 1.1 met (role-based identification is allowed), RE(1) not", () => {
+    for (const userAccounts of ["per_role", "shared"]) {
+      const element = hmi({ authenticationRequired: "yes", userAccounts });
+      expect(rowStatus(EDITION_2019, "CR 1.1 RE(1)", element, login).status, userAccounts).toBe("gap");
+      expect(rowStatus(EDITION_2019, "CR 1.1", element, login).status, userAccounts).toBe("met");
+    }
+  });
+
+  it("a process serving humans that states it does not authenticate fails — a stored value does not help", () => {
+    const row = rowStatus(EDITION_PRAA_2026, "CR 1.1 RE(1)", hmi({ authenticationRequired: "no", userAccounts: "individual" }), login);
+    expect(row).toMatchObject({ status: "gap", failing: ["p"] });
+  });
+
+  it("authentication not decided yet: unknown; no human users: n/a", () => {
+    expect(rowStatus(EDITION_PRAA_2026, "CR 1.1 RE(1)", hmi({}), login).status).toBe("unknown");
+    expect(rowStatus(EDITION_PRAA_2026, "CR 1.1 RE(1)", hmi({ authenticationRequired: "yes" }), [flow("f", "scada", "p")]).status).toBe("n/a");
+  });
+});
+
+describe("CR 1.7 — configurable password strength (F-2a)", () => {
+  const login = [flow("f", "op", "p", "password")];
+  it.each([EDITION_PRAA_2026, EDITION_2019])("$id: configurable policy met, fixed rules gap, unset unknown", (edition) => {
+    expect(rowStatus(edition, "CR 1.7", hmi({ passwordStrength: "configurable_policy" }), login).status).toBe("met");
+    expect(rowStatus(edition, "CR 1.7", hmi({ passwordStrength: "fixed_rules" }), login).status).toBe("gap");
+    expect(rowStatus(edition, "CR 1.7", hmi({}), login).status).toBe("unknown");
+  });
+
+  it("no password reaches the component: n/a — also when it logs in elsewhere with one", () => {
+    expect(rowStatus(EDITION_PRAA_2026, "CR 1.7", hmi({}), [flow("f", "op", "p", "certificate")]).status).toBe("n/a");
+    expect(rowStatus(EDITION_PRAA_2026, "CR 1.7", hmi({}), [flow("f", "p", "scada", "password")]).status).toBe("n/a");
+  });
+});
+
+describe("CR 1.7 RE(1) / RE(2) — password lifetime (F-2b)", () => {
+  const humans = [flow("f", "op", "p", "password")];
+  const machines = [flow("f", "scada", "p", "password")];
+  const both = [...humans, flow("g", "scada", "p", "password")];
+
+  it("2019 RE(1): human accounts or all; n/a without human password logins", () => {
+    expect(rowStatus(EDITION_2019, "CR 1.7 RE(1)", hmi({ passwordLifetime: "human_accounts" }), humans).status).toBe("met");
+    expect(rowStatus(EDITION_2019, "CR 1.7 RE(1)", hmi({ passwordLifetime: "none" }), humans).status).toBe("gap");
+    expect(rowStatus(EDITION_2019, "CR 1.7 RE(1)", hmi({}), machines).status).toBe("n/a");
+  });
+
+  it("2019 RE(2): every kind of account in use — humans only: human accounts suffice; both: all accounts", () => {
+    expect(rowStatus(EDITION_2019, "CR 1.7 RE(2)", hmi({ passwordLifetime: "human_accounts" }), humans).status).toBe("met");
+    expect(rowStatus(EDITION_2019, "CR 1.7 RE(2)", hmi({ passwordLifetime: "human_accounts" }), both).status).toBe("gap");
+    expect(rowStatus(EDITION_2019, "CR 1.7 RE(2)", hmi({ passwordLifetime: "all_accounts" }), both).status).toBe("met");
+  });
+
+  it("prAA RE(2): software processes and devices only", () => {
+    expect(rowStatus(EDITION_PRAA_2026, "CR 1.7 RE(2)", hmi({ passwordLifetime: "machine_accounts" }), machines).status).toBe("met");
+    expect(rowStatus(EDITION_PRAA_2026, "CR 1.7 RE(2)", hmi({ passwordLifetime: "human_accounts" }), machines).status).toBe("gap");
+    expect(rowStatus(EDITION_PRAA_2026, "CR 1.7 RE(2)", hmi({}), humans).status).toBe("n/a");
+    expect(rowStatus(EDITION_PRAA_2026, "CR 1.7 RE(2)", hmi({}), machines).status).toBe("unknown");
+  });
+});
+
+describe("CR 2.1 RE(2) — permission mapping to roles (F-29)", () => {
+  const status = (properties: Record<string, unknown>) =>
+    rowStatus(EDITION_PRAA_2026, "CR 2.1 RE(2)", hmi({ authenticationRequired: "yes", ...properties }), []).status;
+
+  it("RBAC: configurable met, fixed roles gap, not stated unknown — RBAC alone no longer meets it", () => {
+    expect(status({ authorizationModel: "rbac", roleMapping: "configurable" })).toBe("met");
+    expect(status({ authorizationModel: "rbac", roleMapping: "fixed_roles" })).toBe("gap");
+    expect(status({ authorizationModel: "rbac" })).toBe("unknown");
+  });
+
+  it("another authorization model has no roles to map: gap; none chosen yet: unknown", () => {
+    expect(status({ authorizationModel: "acl", roleMapping: "configurable" })).toBe("gap");
+    expect(status({})).toBe("unknown");
+  });
+});
+
+describe("CR 1.5 — checklist items answered by F-3 / F-3b (CM-5b)", () => {
+  const ITEMS = [
+    "initial authenticators can be provisioned",
+    "unchanged default authenticators are recognised",
+    "authenticators can be changed or refreshed",
+  ];
+  const row = (properties: Record<string, unknown>, extra: ViewElement[] = []) => {
+    const r = EDITION_PRAA_2026.rows.find((x) => x.label === "CR 1.5")!;
+    return evaluateMatrix({
+      edition: { ...EDITION_PRAA_2026, rows: [r] },
+      view: { elements: [hmi({ authenticationRequired: "yes", authenticatorStorage: "software_only", ...properties }), ...extra], flows: [] },
+      scope: new Set(["p", ...extra.map((e) => e.id)]),
+      run: "achieved",
+    }).rows[0];
+  };
+
+  it("fields unset: met (type B) with the whole checklist to confirm — an unset field answers nothing", () => {
+    expect(row({})).toMatchObject({ status: "met", checklist: ITEMS });
+  });
+
+  it("change enforced at first use and changeable: nothing left to confirm", () => {
+    expect(row({ defaultCredentials: "change_enforced", authenticatorChangeable: "yes" })).toMatchObject({ status: "met", checklist: [] });
+  });
+
+  it("unique per device / universal: recognising unchanged defaults stays to confirm", () => {
+    for (const defaultCredentials of ["unique_per_device", "universal"]) {
+      expect(row({ defaultCredentials, authenticatorChangeable: "yes" }).checklist, defaultCredentials).toEqual([ITEMS[1]]);
+    }
+  });
+
+  it("not changeable: gap on the element", () => {
+    expect(row({ defaultCredentials: "none_preinstalled", authenticatorChangeable: "no" })).toMatchObject({ status: "gap", failing: ["p"] });
+  });
+
+  it("a capability of the component (any): one element that can change its authenticators answers it", () => {
+    const other: ViewElement = { id: "q", type: "Process", properties: { authenticationRequired: "yes", authenticatorChangeable: "no" } };
+    expect(row({ authenticatorChangeable: "yes" }, [other]).status).toBe("met");
+  });
+
+  it("the open items in the document language", () => {
+    const open = row({ defaultCredentials: "unique_per_device", authenticatorChangeable: "yes" }).checklist;
+    expect(localizedChecklist([describeRequirement("cr-1.5", "de")], open)).toEqual(["unveränderte Standard-Authentisierungsmerkmale werden erkannt"]);
+  });
+});
+
+describe("CR 3.10 RE(2) and CR 7.6 from the lifecycle fields (CM-6)", () => {
+  const run = (edition: Edition, label: string, elements: ViewElement[], componentId?: string) => {
+    const r = edition.rows.find((x) => x.label === label)!;
+    return evaluateMatrix({
+      edition: { ...edition, rows: [r] },
+      view: { elements, flows: [] },
+      scope: new Set(elements.map((e) => e.id)),
+      run: "achieved",
+      componentId,
+    }).rows[0];
+  };
+  const mp = (properties: Record<string, unknown>): ViewElement => ({ id: "mp", type: "Multiprocess", properties });
+
+  it("prAA RE(2): notification, on request / schedule or automatic met — the recovery 'should' stays to confirm", () => {
+    for (const updateDelivery of ["notification", "on_request_or_scheduled", "automatic"]) {
+      expect(run(EDITION_PRAA_2026, "CR 3.10 RE(2)", [mp({ updateMechanism: "signed_ota", updateDelivery })]), updateDelivery).toMatchObject({
+        status: "met",
+        checklist: ["recovery to an earlier version on failure (should)"],
+      });
+    }
+  });
+
+  it("prAA RE(2): manual only gap, not stated unknown, no updates gap", () => {
+    expect(run(EDITION_PRAA_2026, "CR 3.10 RE(2)", [mp({ updateMechanism: "signed_ota", updateDelivery: "manual_only" })]).status).toBe("gap");
+    expect(run(EDITION_PRAA_2026, "CR 3.10 RE(2)", [mp({ updateMechanism: "signed_ota" })]).status).toBe("unknown");
+    expect(run(EDITION_PRAA_2026, "CR 3.10 RE(2)", [mp({ updateMechanism: "none" })]).status).toBe("gap");
+  });
+
+  it.each([EDITION_PRAA_2026, EDITION_2019])("$id CR 7.6: secure by default and a readable interface; RE(1) machine-readable", (edition) => {
+    const both = mp({ secureByDefault: "yes", securityConfigReporting: "readable_interface" });
+    expect(run(edition, "CR 7.6", [both]).status).toBe("met");
+    expect(run(edition, "CR 7.6 RE(1)", [both]).status).toBe("gap");
+    expect(run(edition, "CR 7.6", [mp({ secureByDefault: "yes", securityConfigReporting: "none" })]).status).toBe("gap");
+    expect(run(edition, "CR 7.6", [mp({ secureByDefault: "yes" })]).status).toBe("unknown");
+    expect(run(edition, "CR 7.6 RE(1)", [mp({ securityConfigReporting: "machine_readable" })]).status).toBe("met");
+  });
+
+  it("CR 7.6 on a process: only where it stands for the component", () => {
+    const p = hmi({ secureByDefault: "yes", securityConfigReporting: "readable_interface" });
+    const other = mp({});
+    // A multiprocess elsewhere in the model: the process is no component element — the multiprocess is asked.
+    expect(run(EDITION_PRAA_2026, "CR 7.6", [p, other]).status).toBe("unknown");
+    // The process is the component under evaluation: its settings count.
+    expect(run(EDITION_PRAA_2026, "CR 7.6", [p, other], "p").status).toBe("met");
+  });
+});
+
+describe("prAA CR 7.9 — component reset (CM-7a)", () => {
+  const run = (elements: ViewElement[]) => {
+    const r = EDITION_PRAA_2026.rows.find((x) => x.label === "CR 7.9")!;
+    return evaluateMatrix({
+      edition: { ...EDITION_PRAA_2026, rows: [r] },
+      view: { elements, flows: [] },
+      scope: new Set(elements.map((e) => e.id)),
+      run: "achieved",
+    }).rows[0];
+  };
+  const mp = (properties: Record<string, unknown>): ViewElement => ({ id: "mp", type: "Multiprocess", properties });
+  const ds = (properties: Record<string, unknown>): ViewElement => ({ id: "ds", type: "DataStore", properties });
+
+  it("applies to every component: without data stores and without the field it is unknown — no longer n/a", () => {
+    expect(run([mp({})]).status).toBe("unknown");
+  });
+
+  it("reset to the supplier state on the component: met, nothing left to confirm", () => {
+    for (const userDataDeletion of ["factory_reset", "both"]) {
+      expect(run([mp({ userDataDeletion })]), userDataDeletion).toMatchObject({ status: "met", checklist: [] });
+    }
+  });
+
+  it("a store wiped by factory reset shows the reset too; no reset at all is a gap", () => {
+    expect(run([mp({}), ds({ deletionMechanism: "factory_reset" })])).toMatchObject({ status: "met", checklist: [] });
+    expect(run([mp({ userDataDeletion: "by_user" })]).status).toBe("gap");
+  });
+});
+
+describe("CR 1.11 — the verifier locks after failed logins (F-5, CM-8b)", () => {
+  const run = (edition: Edition, element: ViewElement, flows: ViewFlow[], extra: ViewElement[] = []) => {
+    const r = edition.rows.find((x) => x.label === "CR 1.11")!;
+    return evaluateMatrix({
+      edition: { ...edition, rows: [r] },
+      view: { elements: [element, operator, scada, ...extra], flows },
+      scope: new Set([element.id, ...extra.map((e) => e.id)]),
+      run: "achieved",
+    }).rows[0];
+  };
+  const login = [flow("f", "op", "p", "password")];
+
+  it.each([EDITION_PRAA_2026, EDITION_2019])("$id: lock for a period or until unlocked met; a delay alone is a gap", (edition) => {
+    for (const loginLockout of ["timed_lockout", "admin_unlock"]) {
+      expect(run(edition, hmi({ authenticationRequired: "yes", loginLockout }), login).status, loginLockout).toBe("met");
+    }
+    expect(run(edition, hmi({ authenticationRequired: "yes", loginLockout: "delay" }), login)).toMatchObject({ status: "gap", failing: ["p"] });
+  });
+
+  it("not stated: unknown; login authentication not decided yet: unknown, never n/a", () => {
+    expect(run(EDITION_PRAA_2026, hmi({ authenticationRequired: "yes" }), login).status).toBe("unknown");
+    expect(run(EDITION_PRAA_2026, hmi({ authenticationRequired: "yes" }), [flow("f", "op", "p")]).status).toBe("unknown");
+  });
+
+  it("no guessable login (certificates only) or no authentication: n/a", () => {
+    expect(run(EDITION_PRAA_2026, hmi({ authenticationRequired: "yes" }), [flow("f", "scada", "p", "certificate")]).status).toBe("n/a");
+    expect(run(EDITION_PRAA_2026, hmi({ authenticationRequired: "no" }), login).status).toBe("n/a");
+  });
+
+  it("a link that authenticates itself with a PIN locks the pairing attempts on the interface", () => {
+    const ble = (abuseProtection: string): ViewElement => ({
+      id: "if-ble",
+      type: "Interface",
+      properties: { implementedControls: { linkAuthentication: "pairing", abuseProtection } },
+    });
+    expect(run(EDITION_PRAA_2026, hmi({}), [], [ble("lockout")]).status).toBe("met");
+    expect(run(EDITION_PRAA_2026, hmi({}), [], [ble("rate_limited")]).status).toBe("gap");
+  });
+});
+
+describe("CR 7.1 / RE(1) — only interfaces with a protocol to flood (OQ3, 2026-11-02)", () => {
+  const run = (label: string, iface: ViewElement) => {
+    const r = EDITION_PRAA_2026.rows.find((x) => x.label === label)!;
+    return evaluateMatrix({ edition: { ...EDITION_PRAA_2026, rows: [r] }, view: { elements: [iface], flows: [] }, scope: new Set([iface.id]), run: "achieved" }).rows[0];
+  };
+  const iface = (type: string, abuseProtection?: string): ViewElement => ({
+    id: "if",
+    type: "Interface",
+    properties: { type, exposureLevel: "EL3", ...(abuseProtection ? { implementedControls: { abuseProtection } } : {}) },
+  });
+
+  it("an exposed touch panel is not checked — the form has no abuse protection for it", () => {
+    expect(run("CR 7.1 RE(1)", iface("touchscreen")).status).toBe("n/a");
+  });
+
+  it("an exposed Ethernet port: rate limiting met, nothing set unknown, lockout no rate limit", () => {
+    expect(run("CR 7.1 RE(1)", iface("ethernet", "rate_limited")).status).toBe("met");
+    expect(run("CR 7.1 RE(1)", iface("ethernet")).status).toBe("unknown");
+    expect(run("CR 7.1 RE(1)", iface("ethernet", "lockout")).status).toBe("gap");
+  });
+});

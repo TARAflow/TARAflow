@@ -1,3 +1,206 @@
+## [0.18.0-beta] - 2026-11-06
+
+More of the requirement matrices from the model, EN 50742 Approach A as a
+matrix of its own, Azure DevOps and further issue trackers, AND gates as
+one attack scenario. New project schema **13**: projects are converted
+when opened (with a backup) and then no longer open in 0.17.x.
+
+### Added
+- **Model fields for the requirement matrices** (process, multiprocess,
+  data flow — each shown only where the settings before it make it
+  meaningful): user accounts (per person / per role / shared), password
+  rules and lifetime, role-to-permission mapping, default credentials and
+  whether authenticators can be changed, login lockout on the element
+  that verifies a login, update delivery and update defaults, secure by
+  default and security-configuration reporting, deletion of user data,
+  access mode and data minimisation on data flows. More IEC 62443-4-2
+  rows are derived from the model instead of needing a statement (CR 1.1
+  RE(1), CR 1.5, CR 1.7, CR 1.11, CR 2.1 RE(2), CR 3.10, CR 7.6, CR 7.9).
+- **Security section in sub-tabs** on processes and multiprocesses (Login
+  & accounts, Authorization, Communication, Robustness, Sessions &
+  traceability, Operation, Data) — the categories the standards share
+  (EN 303 645, EN 18031, IEC 62443-4-2); a tab names its open fields.
+  *Communication* holds the multiprocess's boundary authentication and
+  the **secure channels** an element terminates — a multi-select instead
+  of TLS only: TLS (server), mutual TLS, VPN / IPsec, SSH, application
+  level (e.g. OPC UA Secure Channel), other; only where the element has a
+  flow over a network or bus. A data flow's *encryption in transit* also
+  offers SSH and application level. The DFD checks each flow against its
+  endpoints — TLS / mTLS as before, SSH needs one endpoint offering it,
+  application level both — and warns about a channel an element offers
+  that none of its flows uses (an open service without a visible
+  purpose, EN 303 645 5.6 / CR 7.7), and asks for the secure channel
+  where an element has a flow over a network or fieldbus but none is
+  chosen (unset is unknown — "none" is a choice; on-board chip buses are
+  not asked). *Exposed to Internet* is context, not a control: on the
+  process it moved from *Operation* up to the context, as on the
+  multiprocess. Two new fields: *update package encrypted* (no / per
+  device type / per device, under *Operation* once the element is
+  updated) and *key / certificate renewal* (not possible · in an
+  encrypted update package · over a secure channel · on site ·
+  unencrypted, under *Communication* where the element holds keys); the
+  DFD warns about keys renewed in plain, over a channel the element does
+  not offer, or in an update that is not encrypted. A multiprocess's safety fields
+  (safety-relevant, rationale) sit below the tabs, always in view.
+- **Black-box multiprocess:** a multiprocess without a child page — a PLC
+  drawn as a box, a supplier's module — gets seven fields for the
+  processes and data it contains, in the tab of their topic
+  (robustness, operation, and a tab *Data* for the stored data); the
+  matrix checks it with the process and data-store rules once one is
+  set.
+- **EN 50742 Approach A** as a standard of its own in the Compliance tab
+  (sub-tab next to the IEC 62443 editions, shown by the EN 50742 A tag):
+  23 baseline requirements checked against the model, the risks (SRSL,
+  mandated §7.4.3 controls) and the project data (hazards, safety
+  functions, window of opportunity, system definition); the header shows
+  the highest SRSL per safety function and the interfaces on the path to
+  it, derived from the DFD (a one-way boundary ends the path); its own
+  part in the report.
+- **Report:** the requirement matrix chapter has one part per active
+  standard (both IEC 62443 editions, EN 50742 A); rejected mitigations
+  are listed with their reason (the analyst's text or the ticket closed
+  without a fix) instead of being left out.
+- **Claims for measures of the system:** a requirement the system around
+  the component meets is covered by a cybersecurity claim of the kind
+  *supporting* (row info dialog: new, link, remove); it counts for the
+  value with measures of the system, never for the SL-C of the product;
+  own report section.
+- **Project mitigations** name the IEC 62443-4-2 requirements they
+  implement (searchable field while a 62443 edition is active).
+- **Issue trackers:** **Azure DevOps** (Azure Boards work items, PAT bound
+  to the organization), and in *preview* — selectable, real runs follow —
+  **Jira Server / Data Center**, **GitHub Issues**, **GitLab Issues** and
+  **OpenProject**. Polarion follows later.
+- **Asset tab filter:** by asset type and by criticality "from level",
+  across all group accordions, combinable with *Needs review only*; kept
+  per project for the session, never in the file.
+- **Asset graph rows:** every category lane, the DFD-element lane and the
+  two free rows hold three rows to align assets on (dragging or Ctrl / ⌘ +
+  Shift + ↑ / ↓ snaps onto them, a lane's asset stays in its lane);
+  *Rearrange* spreads a crowded lane over its rows by the asset's links —
+  links to the layer above put it on the top row, to the layer below on
+  the bottom row — at most a third per row. Positions remembered by an
+  earlier version are placed anew once (view only, not in the file). The
+  lane labels are left-aligned, drawn on top of nodes and stay at the
+  left edge when the graph is scrolled to the right — side-column labels
+  (persons, hazards, …) too, once their column is out of view.
+- **Asset graph relation filter:** a menu *Relations* next to the presets
+  with one checkbox per kind of relation — DFD element, asset, hazard —
+  all ticked. Unticking a kind hides the assets and hazards that have
+  such a relation (a hazard's link to an asset counts as an asset
+  relation); nothing ticked leaves the assets and hazards without any
+  relation — the work list of what is still to be linked. Layer view
+  only, combinable with the presets.
+- **Asset graph shows only relevant hazards** — those marked *in scope*
+  in the Hazard tab; out-of-scope and unreviewed hazards and their edges
+  are left out, also from the counts.
+- **New asset from the description view:** the *Assets* accordion is
+  always shown, with "+" for a new asset by name and category — linked
+  to elements later; the new asset opens to be described.
+- **Hazard tab findings panel** below the table, like the Asset tab: the
+  validation's errors and warnings in the UI language, a click opens the
+  hazard.
+- **Goals & Claims:** a goal or claim linked to a risk that no longer
+  exists — its attack-tree node was renamed — offers *Re-link to …* (the
+  paths of the same tree and STRIDE category) and *Remove link*.
+
+### Changed
+- **AND gates in attack trees:** an AND gate is one attack path per
+  combination of its steps (minimal cut set; an OR below the gate gives
+  one path per branch), with the feasibility of the gate over exactly
+  that combination. Before, every leaf was a path of its own — one
+  scenario became several threats and risks.
+- **Multi-select:** malware protection (process, multiprocess) and
+  physical path protection (data flows) hold several measures.
+- **Threat catalog:** the matcher reads the conditions on physical path
+  protection and encryption in transit, and a condition naming a missing
+  or weak control (e.g. access mode read / write, no backup, no fail-safe
+  state) also matches an unset property — an unfinished model no longer
+  looks safer than a complete one. Templates matched by facts rank before
+  those matched by an assumption.
+- **Risk levels:** labels and colours of risk values follow the project's
+  own severity thresholds everywhere (risk dialog, score panel, risk
+  table, matrix tooltips), and the matrix cells use the same rule as the
+  chips (before, I=2 / L=2 read *Low* in the matrix and *Medium* on the
+  chip); impact and likelihood chips are coloured on their own scale.
+- **Translated messages:** the Risk tab's validation (toolbar chip, phase
+  bar, Overview), the hazard findings and the issue trackers' connection
+  test in the UI language.
+- **CR 7.1:** only exposed protocol interfaces are checked for abuse
+  protection (a touch panel can never meet it).
+- **Asset tab — filter bar (AF-2):** the asset types are a dropdown with
+  checkboxes (icon and count per type) instead of a row of chips — all
+  ticked by default, unticking hides a type, as the relation filter of
+  the asset graph; the last ticked type stays. Criticality is a select
+  like "Risk level" in the risk tab (filter icon, colour per level,
+  highest first; the highest level reads its name alone, e.g.
+  "Critical", not "Critical or higher"); the bar is as high as the risk
+  tab's, the two filter dropdowns come first, then the buttons.
+
+### Fixed
+- **Compliance tab — delete unused claims:** a supporting claim removed
+  from all its requirements stayed in the project with no way to delete
+  it; in the dialog "Add claim" an unused claim (no requirement, no
+  risk) is marked *unused* in the claim dropdown, with a delete button
+  next to it. A claim still in use cannot be deleted there. The list
+  and the dialog scroll when they grow long.
+- **Report — gaps against the SL-T:** the column "Catalog mitigations"
+  listed only ids; it now gives each mitigation with its text in the
+  document language ("M-S-009: Authenticate the sensor per device …"),
+  a project mitigation with its own text.
+- **Compliance tab — void rows:** rows the edition declares void or
+  without a component requirement (e.g. CR 1.14, CR 2.3, CR 7.5) were
+  plain text; they now link to the info dialog, which gives the reason
+  ("Why not applicable") in EN / DE — no statement section there.
+- **Compliance tab — "Information missing":** the status and filter
+  "Unknown" read "Information missing" (DE "Angaben fehlen"), also in the
+  compliance report; the row note and the info dialog name the empty
+  fields per element, e.g. "information missing on MP-1 Controller
+  (Password lifetime limit)" — only the fields the row reads that are
+  unset, under their DFD form label.
+- **Compliance tab — met by a statement:** a row met by a statement,
+  mitigation, supporting measure or claim while the model alone still
+  has gaps or missing properties (e.g. CR 1.7) said only "properties
+  missing on …"; the note now says *model still open*, and the info
+  dialog explains that the row is met by that source and the model will
+  show it once the elements' properties meet it.
+- **Security sub-tabs:** coming back to an element, the chosen tab (e.g.
+  *Operation*) was shown cut off or at another place of the scrolling
+  tab bar; the bar no longer scrolls — in a narrow panel the tabs wrap
+  onto a second line, the chosen one marked by a fixed underline.
+- **Audit commit:** the branch is checked out before the project file is
+  staged — a failed switch left the file staged on the old branch.
+- **Project switch:** the DFD, threat, compliance, concept, documentation
+  and integration updates are pinned to their project like the fixes of
+  0.17.2 — a DFD save flushed on switching wrote into the next project.
+- Included from 0.17.1 / 0.17.2: Hazard tab from the regulation tag,
+  out-of-scope hazards, stale exposure level, cross-project overwrites.
+
+### Upgrade notes
+- Projects are converted to schema 13 when opened (backup alongside):
+  the matrix data is stored per standard family; malware and physical
+  path protection and the TLS termination (now *secure channel*) become
+  a selection of one (1:1). Both steps keep the
+  analysis — a TARA verification stays valid.
+- **Attack trees with an AND gate:** the conversion recomputes their
+  paths. Assessments of the former leaf paths are merged onto the
+  combined path; where they disagree or a step had none (not assessed is
+  never *not relevant*), the combined path is *relevant* and the old
+  assessments stay for review. Risks are renamed or merged; each one
+  notes where it came from (*Carried over from …* / *Merged from …*),
+  with *review the rating and the treatment* where the decisions differ
+  or not every step had a risk — nothing is lost, but review these
+  risks. The conversion reports this per file; a verification of such a
+  file asks to be confirmed again.
+- **Regenerated threats** (catalog matcher): a threat may now name the
+  variant for the missing control where the property is unset (e.g. the
+  read / write tampering threat on a flow without access mode). No threat
+  is added or removed in the examples; a few templates switch.
+- The trackers marked *preview* were built and tested against recorded
+  answers; report problems with a real instance.
+- Not in 0.18: Polarion, the time source (EN 50742 / IEC 62443 stage 2),
+  the split of the workspace layout and the risk dialog (0.19).
+
 ## [0.17.2-beta] - 2026-11-04
 
 Bug fixes: data of one project could end up in another when switching or

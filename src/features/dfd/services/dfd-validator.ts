@@ -130,7 +130,7 @@ export class DFDValidator {
     validateTransducerConnections(connections, elements, errors);
     validateDataflowLabels(connections, elements, errors, warnings);
     validateDataflowProperties(connections, errors, warnings);
-    validateEndpointProtection(connections, elements, errors);
+    validateEndpointProtection(connections, elements, errors, warnings);
 
     // 3. Validate Asset Properties
     validateAssetProperties(assets, warnings);

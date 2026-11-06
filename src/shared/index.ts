@@ -138,6 +138,11 @@ export {
   addClaim,
   addGoal,
   claimsOfRisk,
+  claimsOfRequirements,
+  linkClaimRequirements,
+  newSupportingClaim,
+  RISK_CLAIM_KINDS,
+  unlinkClaimRequirements,
   emptyCybersecurityConcept,
   goalsOfRisk,
   linkClaim,
@@ -184,9 +189,12 @@ export {
   type SourceRef,
 } from "./models/item-definition-types";
 
-// ==================== IEC 62443-4-2 MATRIX DATA (schema 12) ====================
+// ==================== REQUIREMENT MATRIX DATA (schema 13) ====================
 export {
   FOUNDATIONAL_REQUIREMENTS,
+  complianceComponentOf,
+  familyHasComponent,
+  familyCompliance,
   withComplianceComponent,
   withComplianceStatement,
   withComplianceTarget,
@@ -199,11 +207,58 @@ export {
   type ComplianceStatement,
   type DeviceCategory,
   type DeviceCategoryChoice,
+  type FamilyComplianceData,
   type FoundationalRequirement,
   type StandardFamilyId,
   type StatementStatus,
   type TargetSecurityLevel,
 } from "./models/compliance-data-types";
+
+// ==================== MODEL FIELD VISIBILITY (model coverage plan §3) ====================
+export {
+  AUTHENTICATOR_CHANGEABLE_VALUES,
+  DEFAULT_CREDENTIALS_VALUES,
+  HUMAN_ENTITY_TYPES,
+  LOGIN_LOCKOUT_VALUES,
+  isFieldShown,
+  isUnset,
+  MODEL_CONDITION_IDS,
+  MODEL_CONDITIONS,
+  MODEL_FIELDS,
+  PASSWORD_LIFETIME_VALUES,
+  PASSWORD_STRENGTH_VALUES,
+  ROLE_MAPPING_VALUES,
+  BLACK_BOX_FIELDS,
+  INNER_DATA_CLASSIFICATION_VALUES,
+  INNER_DELETION_MECHANISM_VALUES,
+  INNER_ENCRYPTION_AT_REST_VALUES,
+  INNER_ERROR_HANDLING_VALUES,
+  INNER_FAIL_SAFE_OUTPUT_STATE_VALUES,
+  INNER_INPUT_VALIDATION_VALUES,
+  INNER_INTEGRITY_PROTECTION_VALUES,
+  SECURE_BY_DEFAULT_VALUES,
+  SECURITY_CONFIG_REPORTING_VALUES,
+  UPDATE_DEFAULTS_VALUES,
+  UPDATE_DELIVERY_VALUES,
+  UPDATE_ENCRYPTION_VALUES,
+  KEY_RENEWAL_VALUES,
+  USER_DATA_DELETION_VALUES,
+  USER_ACCOUNTS_VALUES,
+  modelField,
+  NOT_SPECIFIED,
+  readModelField,
+  visibilityContexts,
+  withoutHiddenFields,
+  type ModelConditionId,
+  type ModelField,
+  type SecurityGroup,
+  type VisibilityContext,
+  type VisibilityElement,
+  type VisibilityFlowInput,
+  type VisibilityLink,
+  type VisibilityModel,
+  type VisibilityOptions,
+} from "./models/property-visibility";
 
 // ==================== ASSET RELATION UNION TYPES ====================
 // String union types for asset relations — used by dfd and threats features.
@@ -289,6 +344,12 @@ export {
   type GroupAccordionSection,
   type GroupSummaryRow,
 } from "./components/group-accordions";
+export {
+  FindingsPanel,
+  type FindingSeverity,
+  type FindingsPanelLabels,
+  type PanelFinding,
+} from "./components/findings-panel";
 export { LazyTooltip } from "./components/lazy-tooltip";
 export { OuterHeader } from "./components/outer-header";
 export { InnerHeader } from "./components/inner-header";
@@ -488,6 +549,7 @@ export {
   getTagWarnings,
   requiresHazardAnalysis,
   tagEffectOf,
+  isEn50742ApproachATag,
   MATRIX_TAGS,
 } from "./services/tag-validator";
 

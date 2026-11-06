@@ -5,16 +5,18 @@
 // the rule reads on that element type; rows only a statement can meet are
 // listed apart, and so are rows one element of the component meets ("any"
 // rules: update, backup — listing them at every element would be noise).
-// The tab shows it as "what to do next".
+// The tab shows it as "what to do next". A standard without levels
+// (EN 50742 A) has no target: every open row is listed.
 
-import { EVIDENCE_RULES } from "../data/evidence-rules";
-import type { Edition, FoundationalRequirement, SecurityLevel } from "../models/compliance-types";
+import { BLACK_BOX_FIELDS } from "shared";
+import { RULES_BY_ID } from "../data/requirement-registry";
+import type { AnyEdition, FoundationalRequirement, SecurityLevel } from "../models/compliance-types";
 import type { ComplianceResult, RowResult } from "../models/evaluation-types";
 import { words } from "./describe-requirement";
 
 export interface TodoItem {
   label: string;
-  group: FoundationalRequirement;
+  group: string;
   /**
    * "not-met": the model shows it not met; "missing": a property is unset (or
    * a neighbour's); "inside": a multiprocess without child page stands in for
@@ -34,7 +36,7 @@ export interface ElementTodo {
 
 export interface ComponentTodo {
   label: string;
-  group: FoundationalRequirement;
+  group: string;
   /** Properties one element of these types must show. */
   properties: string[];
   elementTypes: string[];
@@ -47,20 +49,28 @@ export interface TodoList {
   /** Open rows one element of the component meets (quantifier "any"). */
   component: ComponentTodo[];
   /** Open rows within the target that only a statement (or a mitigation reference) can meet. */
-  statements: { label: string; group: FoundationalRequirement }[];
+  statements: { label: string; group: string }[];
+  /** EN 50742 A: open rows on risk evidence, with the risks to treat or rate. */
+  risks: { label: string; group: string; risks: string[] }[];
+  /** EN 50742 A: open rows on project data (hazards, WoO, system definition), with what is missing. */
+  project: { label: string; group: string; reasoning?: string }[];
 }
 
+/** SL-T per FR, or "all" for a standard without levels. */
+export type TodoTarget = Partial<Record<FoundationalRequirement, SecurityLevel>> | "all";
+
 /** The row's SL-C level is needed for the target of its FR. */
-function withinTarget(row: RowResult, target: Partial<Record<FoundationalRequirement, SecurityLevel>>): boolean {
-  const level = target[row.group];
+function withinTarget(row: RowResult, target: TodoTarget): boolean {
+  if (target === "all") return true;
+  const level = target[row.group as FoundationalRequirement];
   return level !== undefined && (row.minSl ?? 1) <= level;
 }
 
-function propertiesFor(edition: Edition, row: RowResult, type: string | undefined, kind: TodoItem["kind"]): string[] {
+function propertiesFor(edition: AnyEdition, row: RowResult, type: string | undefined, kind: TodoItem["kind"]): string[] {
   const ids = edition.rows.find((r) => r.label === row.label)?.requirementIds ?? [];
   const out = new Set<string>();
   for (const id of ids) {
-    for (const target of EVIDENCE_RULES.get(id)?.targets ?? []) {
+    for (const target of RULES_BY_ID.get(id)?.targets ?? []) {
       if (type && !(target.elementTypes as readonly string[]).includes(type)) continue;
       for (const check of target.satisfiedIf ?? []) out.add(words(check.property));
       if (kind === "missing") {
@@ -74,17 +84,37 @@ function propertiesFor(edition: Edition, row: RowResult, type: string | undefine
   return [...out];
 }
 
+/** D-30c: the black-box "inside" fields that answer the row's Process / DataStore checks. */
+function insideFieldsFor(edition: AnyEdition, row: RowResult): string[] {
+  const ids = edition.rows.find((r) => r.label === row.label)?.requirementIds ?? [];
+  const out = new Set<string>();
+  for (const id of ids) {
+    for (const target of RULES_BY_ID.get(id)?.targets ?? []) {
+      for (const type of ["Process", "DataStore"] as const) {
+        if (!(target.elementTypes as readonly string[]).includes(type)) continue;
+        const map: Readonly<Record<string, string>> = BLACK_BOX_FIELDS[type];
+        for (const check of [...(target.appliesIf ?? []), ...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])]) {
+          if (map[check.property]) out.add(words(map[check.property]));
+        }
+      }
+    }
+  }
+  return [...out];
+}
+
 export function buildTodoList(
-  edition: Edition,
+  edition: AnyEdition,
   achieved: ComplianceResult,
   planned: ComplianceResult,
-  target: Partial<Record<FoundationalRequirement, SecurityLevel>>,
+  target: TodoTarget,
   typeOf?: (id: string) => string | undefined,
 ): TodoList {
   const plannedRow = new Map(planned.rows.map((r) => [r.label, r]));
   const byElement = new Map<string, TodoItem[]>();
   const statements: TodoList["statements"] = [];
   const component: ComponentTodo[] = [];
+  const risks: TodoList["risks"] = [];
+  const project: TodoList["project"] = [];
 
   for (const row of achieved.rows) {
     if (!withinTarget(row, target)) continue;
@@ -94,7 +124,13 @@ export function buildTodoList(
     }
     if (row.status !== "gap" && row.status !== "unknown") continue;
     const p = plannedRow.get(row.label);
-    const rules = (edition.rows.find((r) => r.label === row.label)?.requirementIds ?? []).map((id) => EVIDENCE_RULES.get(id));
+    const rules = (edition.rows.find((r) => r.label === row.label)?.requirementIds ?? []).map((id) => RULES_BY_ID.get(id));
+    // EN 50742 A: risk and project evidence — the risk tab or the project data, not the DFD.
+    if (rules.some((rule) => rule?.external) && row.failing.length === 0 && row.unknown.length === 0) {
+      if (row.risks?.length) risks.push({ label: row.label, group: row.group, risks: row.risks });
+      else project.push({ label: row.label, group: row.group, reasoning: row.reasoning });
+      continue;
+    }
     if (rules.length > 0 && rules.every((rule) => rule?.quantifier === "any")) {
       component.push({
         label: row.label,
@@ -111,7 +147,7 @@ export function buildTodoList(
         label: row.label,
         group: row.group,
         kind,
-        properties: kind === "inside" ? [] : propertiesFor(edition, row, typeOf?.(id), kind),
+        properties: kind === "inside" ? insideFieldsFor(edition, row) : propertiesFor(edition, row, typeOf?.(id), kind),
         plannedClosed: p?.status === "met" || !stillOpen.has(id),
       };
       byElement.set(id, [...(byElement.get(id) ?? []), item]);
@@ -127,5 +163,5 @@ export function buildTodoList(
   const elements = [...byElement]
     .map(([elementId, items]) => ({ elementId, items }))
     .sort((a, b) => b.items.length - a.items.length || a.elementId.localeCompare(b.elementId));
-  return { elements, component, statements };
+  return { elements, component, statements, risks, project };
 }

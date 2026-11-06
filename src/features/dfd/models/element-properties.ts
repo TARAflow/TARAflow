@@ -27,6 +27,122 @@ import type {
   Controllability,
 } from "./transducer-properties";
 
+import type {
+  AUTHENTICATOR_CHANGEABLE_VALUES,
+  DEFAULT_CREDENTIALS_VALUES,
+  INNER_DATA_CLASSIFICATION_VALUES,
+  INNER_DELETION_MECHANISM_VALUES,
+  INNER_ENCRYPTION_AT_REST_VALUES,
+  INNER_ERROR_HANDLING_VALUES,
+  INNER_FAIL_SAFE_OUTPUT_STATE_VALUES,
+  INNER_INPUT_VALIDATION_VALUES,
+  INNER_INTEGRITY_PROTECTION_VALUES,
+  LOGIN_LOCKOUT_VALUES,
+  PASSWORD_LIFETIME_VALUES,
+  PASSWORD_STRENGTH_VALUES,
+  ROLE_MAPPING_VALUES,
+  SECURE_BY_DEFAULT_VALUES,
+  SECURITY_CONFIG_REPORTING_VALUES,
+  UPDATE_DEFAULTS_VALUES,
+  UPDATE_DELIVERY_VALUES,
+  UPDATE_ENCRYPTION_VALUES,
+  KEY_RENEWAL_VALUES,
+  USER_ACCOUNTS_VALUES,
+  USER_DATA_DELETION_VALUES,
+} from "shared";
+
+// ==================== SHARED: IDENTITY (model coverage F-1 … F-3b, F-29) ====================
+// On Process AND Multiprocess — the element that verifies the login. Shown
+// only where the earlier settings make them meaningful; the predicates and
+// the value lists live in shared/models/property-visibility.ts.
+
+/** An account per person, one login per role, or one shared login (CR 1.1, CR 1.1 RE(1)). */
+export type UserAccounts = (typeof USER_ACCOUNTS_VALUES)[number];
+/** Password strength rules: none, fixed in the product, or a configurable policy (CR 1.7). */
+export type PasswordStrength = (typeof PASSWORD_STRENGTH_VALUES)[number];
+/** Accounts with password lifetime (and reuse) limits (CR 1.7 RE(1) / RE(2)). */
+export type PasswordLifetime = (typeof PASSWORD_LIFETIME_VALUES)[number];
+/** Roles fixed in the product, or the permission mapping of roles configurable (CR 2.1 RE(2)). */
+export type RoleMapping = (typeof ROLE_MAPPING_VALUES)[number];
+/** How the first authenticators come into being (CR 1.5 a / b). */
+export type DefaultCredentials = (typeof DEFAULT_CREDENTIALS_VALUES)[number];
+/** The authenticators can be changed / refreshed (CR 1.5 c). */
+export type AuthenticatorChangeable = (typeof AUTHENTICATOR_CHANGEABLE_VALUES)[number];
+/** What the verifier does after failed login attempts (CR 1.11). */
+export type LoginLockout = (typeof LOGIN_LOCKOUT_VALUES)[number];
+
+// ==================== SHARED: LIFECYCLE / CONFIGURATION (model coverage F-25, F-27) ====================
+
+/** How updates reach the element (prAA CR 3.10 RE(2)). */
+export type UpdateDelivery = (typeof UPDATE_DELIVERY_VALUES)[number];
+/** Confidentiality of the update package (user 2026-11-06). */
+export type UpdateEncryption = (typeof UPDATE_ENCRYPTION_VALUES)[number];
+/** How keys and certificates are renewed (user 2026-11-06; EN 18031 CCK). */
+export type KeyRenewal = (typeof KEY_RENEWAL_VALUES)[number];
+/** Defaults of automatic updates (CRA Annex I (2)(c)); multi-select. */
+export type UpdateDefault = Exclude<(typeof UPDATE_DEFAULTS_VALUES)[number], "not_specified">;
+/** Configured to its secure-by-default settings (CR 7.6 a). */
+export type SecureByDefault = (typeof SECURE_BY_DEFAULT_VALUES)[number];
+/** Interface to the deployed settings (CR 7.6 b, RE(1)). */
+export type SecurityConfigReporting = (typeof SECURITY_CONFIG_REPORTING_VALUES)[number];
+/** How the user's data leaves the component (EN 303 645 5.11-1, CR 7.9). */
+export type UserDataDeletion = (typeof USER_DATA_DELETION_VALUES)[number];
+
+// ==================== SHARED: MULTI-SELECT CONTROLS ====================
+// Controls whose measures combine (backlog after 0.16 "conflicting SHOULDs",
+// release plan 0.18 MS-1): two mitigations may set different values and both
+// hold — a cable duct and a tamper seal, code signing and a sandbox. Stored
+// as a selection since schema 13; "none" excludes every other value.
+
+export const MALWARE_PROTECTION_OPTIONS = [
+  "none",
+  "av_software",
+  "application_whitelist",
+  "code_signing",
+  "nx_dep",
+  "sandbox",
+  "custom",
+] as const;
+export type MalwareProtection = (typeof MALWARE_PROTECTION_OPTIONS)[number];
+
+export const PHYSICAL_PATH_PROTECTION_OPTIONS = [
+  "none",
+  "cable_duct",
+  "conduit",
+  "armored_cable",
+  "tamper_seal",
+  "locked_cabinet",
+  "buried",
+] as const;
+export type PhysicalPathProtection = (typeof PHYSICAL_PATH_PROTECTION_OPTIONS)[number];
+
+/**
+ * Secure channels an element can terminate (user 2026-11-06: TLS is not the
+ * only way). Stored under the historic key `tlsTermination`; a multi-select
+ * since then — an element may serve TLS and SSH, say. "none" excludes the
+ * others. server / mutual: TLS (mutual ⊃ server) — checked against the flows'
+ * encryptionInTransit tls / mtls; vpn, ssh, application (e.g. OPC UA Secure
+ * Channel), custom: documented, not paired.
+ */
+export const SECURE_CHANNEL_OPTIONS = ["none", "server", "mutual", "vpn", "ssh", "application", "custom"] as const;
+export type SecureChannel = (typeof SECURE_CHANNEL_OPTIONS)[number];
+
+/** The stored selection in option order; a single value of an older file counts as one entry. */
+export function selectionOf<T extends string>(options: readonly T[], value: unknown): T[] {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return options.filter((o) => values.includes(o));
+}
+
+/**
+ * The selection after choosing one more value: an exclusive value ("none",
+ * "allow_all") replaces the others, any other value removes the exclusive ones.
+ */
+export function withSelected<T extends string>(options: readonly T[], current: readonly T[], added: T, exclusive: readonly T[]): T[] {
+  if (exclusive.includes(added)) return [added];
+  const rest = current.filter((v) => !exclusive.includes(v) && v !== added);
+  return options.filter((o) => o === added || rest.includes(o));
+}
+
 // ==================== SHARED: UPDATE / SESSIONS ====================
 // On Process AND Multiprocess (iec-62443-4-2-cra-coverage.md P-2): a
 // component drawn as a single process updates and holds sessions as well as
@@ -88,15 +204,13 @@ export interface ProcessProperties {
     | "jwt"
     | "mtls";
   /**
-   * TLS termination capability of this endpoint — DECOUPLED from auth.
-   * Encryption capability ≠ auth mechanism (an HTTPS server with a password
-   * login is tlsTermination="server" + authenticationRequired="password").
-   * Usage side: DataFlow.encryptionInTransit. Validated pair-level in A5b.
-   *   none   → does not terminate TLS
-   *   server → server-side TLS (presents server cert)
-   *   mutual → mutual TLS (presents + verifies client cert)  [mutual ⊃ server]
+   * Secure channels this endpoint terminates (SECURE_CHANNEL_OPTIONS) —
+   * DECOUPLED from auth (an HTTPS server with a password login terminates
+   * TLS and has authenticationRequired="password"). Historic key name; a
+   * selection since 2026-11-06, a single value of an older file counts as one.
+   * Usage side: DataFlow.encryptionInTransit. TLS validated pair-level in A5b.
    */
-  tlsTermination?: "none" | "server" | "mutual";
+  tlsTermination?: SecureChannel[];
 
   authorizationModel?:
     | "not_specified"
@@ -163,14 +277,8 @@ export interface ProcessProperties {
    *
    * Relevant for: rtos_task, driver, bootloader, bare_metal, protocol_stack
    */
-  malwareProtection?:
-    | "none"
-    | "av_software"
-    | "application_whitelist"
-    | "code_signing"
-    | "nx_dep"
-    | "sandbox"
-    | "custom";
+  /** Multi-select since schema 13 (MS-1): measures combine; "none" excludes the others. */
+  malwareProtection?: MalwareProtection[];
 
   /**
    * Fail-safe output state when normal operation cannot be maintained.
@@ -240,6 +348,35 @@ export interface ProcessProperties {
     | "hsm"
     | "keychain_os"
     | "custom";
+
+  /** F-1 — shown when the process authenticates human users. */
+  userAccounts?: UserAccounts;
+  /** F-2a — shown when a password reaches the process. */
+  passwordStrength?: PasswordStrength;
+  /** F-2b — shown when a password reaches the process. */
+  passwordLifetime?: PasswordLifetime;
+  /** F-29 — shown with role-based authorization (authorizationModel = rbac). */
+  roleMapping?: RoleMapping;
+  /** F-3 — shown when the element authenticates. */
+  defaultCredentials?: DefaultCredentials;
+  /** F-3b — shown when the element authenticates. */
+  authenticatorChangeable?: AuthenticatorChangeable;
+  /** F-5 — shown where logins with a guessable authenticator reach the element. */
+  loginLockout?: LoginLockout;
+  /** F-27 — shown when the element is updated (updateMechanism set, not none). */
+  updateDelivery?: UpdateDelivery;
+  /** Update package encrypted — shown when the element is updated (user 2026-11-06). */
+  updateEncryption?: UpdateEncryption;
+  /** Key / certificate renewal — shown where the element holds keys (user 2026-11-06). */
+  keyRenewal?: KeyRenewal;
+  /** F-27b — shown with automatic updates. */
+  updateDefaults?: UpdateDefault[];
+  /** F-25a — shown where the element stands for the component. */
+  secureByDefault?: SecureByDefault;
+  /** F-25b — shown where the element stands for the component. */
+  securityConfigReporting?: SecurityConfigReporting;
+  /** F-22 — shown where the element stands for the component. */
+  userDataDeletion?: UserDataDeletion;
 
   /**
    * Session management for a process with human users (SessionControl).
@@ -365,15 +502,13 @@ export interface MultiprocessProperties {
     | "hardware_token";
 
   /**
-   * TLS termination capability of this endpoint — DECOUPLED from auth.
-   * Encryption capability ≠ auth mechanism (an HTTPS server with a password
-   * login is tlsTermination="server" + authenticationRequired="password").
-   * Usage side: DataFlow.encryptionInTransit. Validated pair-level in A5b.
-   *   none   → does not terminate TLS
-   *   server → server-side TLS (presents server cert)
-   *   mutual → mutual TLS (presents + verifies client cert)  [mutual ⊃ server]
+   * Secure channels this endpoint terminates (SECURE_CHANNEL_OPTIONS) —
+   * DECOUPLED from auth (an HTTPS server with a password login terminates
+   * TLS and has authenticationRequired="password"). Historic key name; a
+   * selection since 2026-11-06, a single value of an older file counts as one.
+   * Usage side: DataFlow.encryptionInTransit. TLS validated pair-level in A5b.
    */
-  tlsTermination?: "none" | "server" | "mutual";
+  tlsTermination?: SecureChannel[];
 
   /**
    * Authorization model enforced at the system boundary.
@@ -443,14 +578,8 @@ export interface MultiprocessProperties {
    *
    * @see ProcessProperties.malwareProtection for per-process granularity.
    */
-  malwareProtection?:
-    | "none"
-    | "av_software"
-    | "application_whitelist"
-    | "code_signing"
-    | "nx_dep"
-    | "sandbox"
-    | "custom";
+  /** Multi-select since schema 13 (MS-1): measures combine; "none" excludes the others. */
+  malwareProtection?: MalwareProtection[];
 
   /**
    * Account management at system boundary.
@@ -485,6 +614,54 @@ export interface MultiprocessProperties {
     | "secure_element"
     | "hsm"
     | "custom";
+
+  /** F-1 — shown when the system authenticates human users at its boundary. */
+  userAccounts?: UserAccounts;
+  /** F-2a — shown when passwords are used at the boundary. */
+  passwordStrength?: PasswordStrength;
+  /** F-2b — shown when passwords are used at the boundary. */
+  passwordLifetime?: PasswordLifetime;
+  /** F-29 — shown with role-based authorization (authorizationModel = rbac). */
+  roleMapping?: RoleMapping;
+  /** F-3 — shown when the element authenticates. */
+  defaultCredentials?: DefaultCredentials;
+  /** F-3b — shown when the element authenticates. */
+  authenticatorChangeable?: AuthenticatorChangeable;
+  /** F-5 — shown where logins with a guessable authenticator reach the element. */
+  loginLockout?: LoginLockout;
+  /** F-27 — shown when the element is updated (updateMechanism set, not none). */
+  updateDelivery?: UpdateDelivery;
+  /** Update package encrypted — shown when the element is updated (user 2026-11-06). */
+  updateEncryption?: UpdateEncryption;
+  /** Key / certificate renewal — shown where the element holds keys (user 2026-11-06). */
+  keyRenewal?: KeyRenewal;
+  /** F-27b — shown with automatic updates. */
+  updateDefaults?: UpdateDefault[];
+  /** F-25a — shown where the element stands for the component. */
+  secureByDefault?: SecureByDefault;
+  /** F-25b — shown where the element stands for the component. */
+  securityConfigReporting?: SecurityConfigReporting;
+  /** F-22 — shown where the element stands for the component. */
+  userDataDeletion?: UserDataDeletion;
+
+  // ── Inside a black box (D-30c) ─────────────────────────────────────────
+  // Shown only without a child page: the weakest case over the processes
+  // and data the multiprocess contains; checked with the Process / DataStore
+  // rules (shared BLACK_BOX_FIELDS). Ignored once a child page exists.
+  /** Contained processes: input validation (CR 3.5). */
+  innerInputValidation?: (typeof INNER_INPUT_VALIDATION_VALUES)[number];
+  /** Contained processes: error handling (CR 3.7). */
+  innerErrorHandling?: (typeof INNER_ERROR_HANDLING_VALUES)[number];
+  /** Contained processes: output state on failure (CR 3.6). */
+  innerFailSafeOutputState?: (typeof INNER_FAIL_SAFE_OUTPUT_STATE_VALUES)[number];
+  /** Contained data: the most sensitive classification (CR 4.1, 4.2). */
+  innerDataClassification?: (typeof INNER_DATA_CLASSIFICATION_VALUES)[number];
+  /** Contained data: encryption at rest (CR 4.1, 4.3). */
+  innerEncryptionAtRest?: (typeof INNER_ENCRYPTION_AT_REST_VALUES)[number];
+  /** Contained data: integrity protection (CR 3.4). */
+  innerIntegrityProtection?: (typeof INNER_INTEGRITY_PROTECTION_VALUES)[number];
+  /** Contained data: how it is deleted (CR 4.2, 7.9). */
+  innerDeletionMechanism?: (typeof INNER_DELETION_MECHANISM_VALUES)[number];
 
   /**
    * Backup and recovery mechanism for this system.
@@ -1163,7 +1340,8 @@ export interface DataFlowProperties {
   dataMinimization?: "none" | "filtered" | "aggregated_only";
 
   volume?: string;
-  encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "custom";
+  /** ssh / application (e.g. OPC UA Secure Channel) since 2026-11-06 — like the endpoint's secure channels. */
+  encryptionInTransit?: "none" | "tls" | "mtls" | "vpn" | "ssh" | "application" | "custom";
   integrityProtection?: IntegrityProtection;
   endpointAuthentication?: EndpointAuthentication;
 
@@ -1308,14 +1486,8 @@ export interface DataFlowProperties {
    * CRA relevance: Article 13 "minimise attack surfaces"
    * IEC 62443-3-3 SR 3.4: Physical access to communication paths
    */
-  physicalPathProtection?:
-    | "none"
-    | "cable_duct"
-    | "conduit"
-    | "armored_cable"
-    | "tamper_seal"
-    | "locked_cabinet"
-    | "buried";
+  /** Multi-select since schema 13 (MS-1): e.g. a duct and a tamper seal; "none" excludes the others. */
+  physicalPathProtection?: PhysicalPathProtection[];
 
   // ---- Safety annotation (optional, non-invasive) ----
   // "Safety Context/Boundary" is NOT a separate DFD element (unlike TrustBoundary).
@@ -1663,7 +1835,10 @@ export interface InterfaceProperties {
      *
      * none           → No abuse protection — flooding/brute-force threat active
      * rate_limited   → Request rate capped; sustained flood mitigated
-     * lockout        → Interface locked after N failed attempts; brute-force mitigated
+     * lockout        → Pairing / link authentication locked after N failed attempts —
+     *                  only where the link authenticates itself (hasLinkAuth). Login
+     *                  lockout belongs to the verifier: Process / Multiprocess
+     *                  loginLockout (CR 1.11, user 2026-11-02).
      * flood_protection → Protocol-level flood detection (e.g. CAN bus load limiter)
      */
     abuseProtection?: "none" | "rate_limited" | "lockout" | "flood_protection";
@@ -1773,8 +1948,7 @@ export type DefaultDenyPolicy = (typeof DEFAULT_DENY_POLICY_OPTIONS)[number];
 
 /** The stored policies; a single value of a file written before the reshape counts as one entry. */
 export function defaultDenyPoliciesOf(value: unknown): DefaultDenyPolicy[] {
-  const values = Array.isArray(value) ? value : value ? [value] : [];
-  return DEFAULT_DENY_POLICY_OPTIONS.filter((p) => values.includes(p));
+  return selectionOf(DEFAULT_DENY_POLICY_OPTIONS, value);
 }
 
 /**
@@ -1782,9 +1956,7 @@ export function defaultDenyPoliciesOf(value: unknown): DefaultDenyPolicy[] {
  * any other one removes "allow_all".
  */
 export function withDefaultDenyPolicy(current: readonly DefaultDenyPolicy[] | undefined, added: DefaultDenyPolicy): DefaultDenyPolicy[] {
-  if (added === "allow_all") return ["allow_all"];
-  const rest = (current ?? []).filter((p) => p !== "allow_all" && p !== added);
-  return DEFAULT_DENY_POLICY_OPTIONS.filter((p) => p === added || rest.includes(p));
+  return withSelected(DEFAULT_DENY_POLICY_OPTIONS, current ?? [], added, ["allow_all"]);
 }
 
 export interface TrustBoundaryProperties {

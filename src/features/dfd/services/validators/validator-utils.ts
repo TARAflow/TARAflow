@@ -217,6 +217,14 @@ export const ValidationMessages = {
   DF_MTLS_REQUIRES_BOTH_MUTUAL:
     "tabs.dfd.validation.df.tls.mtlsRequiresBothMutual",
   DF_TLS_HANDSHAKE_MISMATCH: "tabs.dfd.validation.df.tls.handshakeMismatch",
+  DF_SSH_NO_ENDPOINT: "tabs.dfd.validation.df.tls.sshNoEndpoint",
+  DF_APPLICATION_REQUIRES_BOTH: "tabs.dfd.validation.df.tls.applicationRequiresBoth",
+  /** Key renewal (user 2026-11-06): new keys in plain, over a channel the element does not offer, in an update that is not encrypted (warnings). */
+  KEY_RENEWAL_PLAINTEXT: "tabs.dfd.validation.df.tls.keyRenewalPlaintext",
+  KEY_RENEWAL_NO_CHANNEL: "tabs.dfd.validation.df.tls.keyRenewalNoChannel",
+  KEY_RENEWAL_UPDATE_NOT_ENCRYPTED: "tabs.dfd.validation.df.tls.keyRenewalUpdateNotEncrypted",
+  /** A secure channel an element offers that none of its flows uses (warning). */
+  EL_CHANNEL_UNUSED: "tabs.dfd.validation.df.tls.channelUnused",
 } as const;
 
 /**

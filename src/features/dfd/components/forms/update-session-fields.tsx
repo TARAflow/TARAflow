@@ -56,7 +56,9 @@ export const SessionControlFields: React.FC<{
   i18nBase: string;
   value: SessionControl | undefined;
   onChange: (value: SessionControl | undefined) => void;
-}> = ({ i18nBase, value, onChange }) => {
+  /** One setting only — the Security sub-tabs count each setting (CM-5d). */
+  only?: keyof SessionControl;
+}> = ({ i18nBase, value, onChange, only }) => {
   const { t } = useTranslation();
   const base = `${i18nBase}.sessionControl`;
 
@@ -83,10 +85,12 @@ export const SessionControlFields: React.FC<{
     );
   };
 
+  const shows = (key: keyof SessionControl) => !only || only === key;
   return (
     <>
-      {switchField("sessionLockEnabled", "Session Lock after Inactivity")}
-      {switchField("remoteTerminationEnabled", "Remote Session Termination")}
+      {shows("sessionLockEnabled") && switchField("sessionLockEnabled", "Session Lock after Inactivity")}
+      {shows("remoteTerminationEnabled") && switchField("remoteTerminationEnabled", "Remote Session Termination")}
+      {shows("maxConcurrentSessions") && (
       <Grid item xs={12} sm={6}>
         <TextField
           fullWidth
@@ -101,6 +105,7 @@ export const SessionControlFields: React.FC<{
           }}
         />
       </Grid>
+      )}
     </>
   );
 };

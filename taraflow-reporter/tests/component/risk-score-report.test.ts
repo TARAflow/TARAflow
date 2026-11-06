@@ -30,7 +30,7 @@ describe("risk score text", () => {
     expect(riskScoreText(6.4, cfg, "de")).toBe("6.4 – Hoch");
     expect(riskScoreText(0, cfg, "en")).toBe("-");
     for (const v of [1, 3, 3.1, 6, 6.1, 11, 11.1, 16]) {
-      expect(riskScoreText(v, cfg, "en").split(" – ")[1]).toBe(getRiskLabel(v, "4-level"));
+      expect(riskScoreText(v, cfg, "en").split(" – ")[1]).toBe(getRiskLabel(v, cfg));
     }
     expect(isCriticalRiskScore(11, cfg)).toBe(false);
     expect(isCriticalRiskScore(11.2, cfg)).toBe(true);

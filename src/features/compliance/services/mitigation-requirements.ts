@@ -48,7 +48,9 @@ export function requirementsMetBy(effect: PropertyEffect): RequirementId[] {
       rule.targets.some(
         (target) =>
           (target.elementTypes as readonly string[]).includes(effect.targetType) &&
-          (target.satisfiedIf ?? []).some((check) => check.property === effect.property && accepts(check, effect.expectedValue)),
+          [...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])].some(
+            (check) => check.property === effect.property && accepts(check, effect.expectedValue),
+          ),
       ),
   ).map((rule) => rule.id);
 }
@@ -83,13 +85,14 @@ export function ruleElementTypes(id: RequirementId): Set<string> {
  * when the mitigation sets no property of the rule's types (a deliberately
  * wider reference) or sets one on an open type; without open elements (C
  * rows, statements needed) every mitigation meeting the requirement is shown.
+ * Ids of other families match nothing: the catalog references IEC 62443 only.
  */
 export function suggestMitigations<T extends MitigationRequirementSource>(
   catalog: readonly T[],
-  requirementIds: readonly RequirementId[],
+  requirementIds: readonly string[],
   openElementTypes: ReadonlySet<string> = new Set(),
 ): T[] {
-  const wanted = new Set(requirementIds);
+  const wanted: ReadonlySet<string> = new Set(requirementIds);
   return catalog.filter((mitigation) =>
     mitigationRequirements(mitigation).some((req) => {
       if (!wanted.has(req.requirementId)) return false;

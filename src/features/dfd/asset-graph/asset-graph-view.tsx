@@ -44,6 +44,7 @@ import {
   CenterFocusStrong as FitIcon,
   Refresh as RearrangeIcon,
   RestartAlt as ResetIcon,
+  LinkOff as LinkOffIcon,
   HelpOutline as LegendIcon,
   Layers as LayersIcon,
   FilterAlt as FilterIcon,
@@ -77,6 +78,9 @@ import {
   FREE_LANE,
   HAZARD_LANE,
   LANE_HEIGHT,
+  ROW_HEIGHT,
+  laneRows,
+  type AssetGraphLane,
   NODE_SPACING,
   NODE_RADIUS,
   layoutAssetGraph,
@@ -131,6 +135,11 @@ import {
   assetVisibility,
   invalidLinks,
   relationTypesIn,
+  filterByRelations,
+  onlyRelevantHazards,
+  relationIndex,
+  RELATION_KINDS,
+  type RelationKind,
   searchAssets,
   sourceOnPages,
   type AssetVisibility,
@@ -197,6 +206,8 @@ interface ViewState {
   showHazards: boolean;
   /** Shown relation types; null = all (FR-V10). */
   relationTypes: string[] | null;
+  /** Layer view: the kinds of relation whose nodes are shown — all by default (user 2026-11-06). */
+  relationKinds: RelationKind[];
 }
 
 // Start (and "Reset"): preset "All" with the Hazard Items — everything is
@@ -210,6 +221,74 @@ const DEFAULT_STATE: ViewState = {
   anchorsInFocus: true,
   showHazards: true,
   relationTypes: null,
+  relationKinds: [...RELATION_KINDS],
+};
+
+/** Approximate width of a 12 px label. */
+const labelWidth = (text: string) => text.length * 7;
+
+/** Where the labels of the lanes start when nothing is scrolled — one line for all. */
+export const LANE_LABEL_LEFT = -NODE_RADIUS * 2 - 120;
+/** Line distance of labels stacked at one height. */
+const LABEL_LINE = 16;
+
+export interface LaneLabelInput {
+  readonly id: string;
+  readonly text: string;
+  readonly kind: AssetGraphLane["kind"];
+  /** Top of the lane (its label's baseline is 20 below). */
+  readonly top: number;
+  /** Side column: x of the column. */
+  readonly columnX?: number;
+}
+
+export interface LaneLabel {
+  readonly id: string;
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly anchor: "start" | "end";
+  /** Kept at the visible left edge. */
+  readonly sticky: boolean;
+}
+
+/**
+ * The lane labels (user 2026-11-06): left-aligned on one line before the
+ * lanes, never left of the visible area — scrolled to the right they stay at
+ * its left edge. A side-column label stays at its column while that is in
+ * view and moves to the left edge once the column is scrolled out, below the
+ * label already at that height.
+ */
+export function laneLabels(lanes: readonly LaneLabelInput[], viewLeft: number, k: number): LaneLabel[] {
+  const edge = viewLeft + 8 / (k || 1);
+  const left = Math.max(LANE_LABEL_LEFT, edge);
+  const out: LaneLabel[] = [];
+  const perHeight = new Map<number, number>();
+  const stack = (top: number) => {
+    const n = perHeight.get(top) ?? 0;
+    perHeight.set(top, n + 1);
+    return top + 20 + n * LABEL_LINE;
+  };
+  // Lanes with rows first, so a side-column label stacks below them.
+  for (const l of lanes.filter((x) => x.kind !== "orthogonal")) {
+    out.push({ id: l.id, text: l.text, x: left, y: stack(l.top), anchor: "start", sticky: edge > LANE_LABEL_LEFT });
+  }
+  for (const l of lanes.filter((x) => x.kind === "orthogonal")) {
+    const atColumn = (l.columnX ?? 0) - NODE_RADIUS;
+    if (atColumn - labelWidth(l.text) >= edge) {
+      out.push({ id: l.id, text: l.text, x: atColumn, y: l.top + 20, anchor: "end", sticky: false });
+    } else {
+      out.push({ id: l.id, text: l.text, x: edge, y: stack(l.top), anchor: "start", sticky: true });
+    }
+  }
+  return out;
+}
+
+/** English default of each relation kind of the filter. */
+const RELATION_KIND_TEXT: Record<RelationKind, string> = {
+  element: "DFD element",
+  asset: "Asset",
+  hazard: "Hazard",
 };
 
 /** Presets that show the Hazard Items (G3). */
@@ -224,7 +303,7 @@ function groupColor(group: string): { color: string; colorLight: string } {
 }
 
 export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
-  source,
+  source: rawSource,
   selectedAssetId,
   onSelectAsset,
   onShowElement,
@@ -242,6 +321,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   darkMode = false,
   pageScope,
 }) => {
+  // Only the hazards marked relevant in the Hazard tab (in scope) — everywhere in the graph (user 2026-11-06).
+  const source = useMemo(() => onlyRelevantHazards(rawSource), [rawSource]);
   const { t, i18n } = useTranslation();
   const [state, setState] = useState<ViewState>(DEFAULT_STATE);
   const [showLegend, setShowLegend] = useState(false);
@@ -322,9 +403,31 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     [shownSource, source],
   );
 
+  // Relation filter — relations over the whole model, applied to the shown page.
+  const relations = useMemo(() => relationIndex(source), [source]);
+  const hasHazards = (source.hazards?.items.length ?? 0) > 0;
+  const relationKinds = RELATION_KINDS.filter((k) => k !== "hazard" || hasHazards);
+  // Without hazards in the project the hazard box is not offered and counts as ticked.
+  const ticked = state.relationKinds.concat(hasHazards ? [] : ["hazard"]);
+  const filterOn = state.view === "layers" && RELATION_KINDS.some((k) => !ticked.includes(k));
+  const graphSource = useMemo(
+    () => (filterOn ? filterByRelations(shownSource, relations, ticked) : shownSource),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filterOn, shownSource, relations, ticked.join()],
+  );
+  const filteredCount = filterOn
+    ? graphSource.assets.filter((a) => state.layers.includes(a.assetGroup as AssetGroup)).length
+    : 0;
+  const [relationMenu, setRelationMenu] = useState<HTMLElement | null>(null);
+  const toggleRelationKind = (kind: RelationKind) =>
+    setState((s) => ({
+      ...s,
+      relationKinds: s.relationKinds.includes(kind) ? s.relationKinds.filter((k) => k !== kind) : [...s.relationKinds, kind],
+    }));
+
   const graph = useMemo(
     () =>
-      buildAssetGraph(shownSource, {
+      buildAssetGraph(graphSource, {
         view: state.view,
         layers: state.layers,
         focusAssetId: state.focusAssetId,
@@ -333,7 +436,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
         showHazards: state.showHazards,
         relationTypes: state.relationTypes,
       }),
-    [shownSource, state],
+    [graphSource, state],
   );
   const availableTypes = useMemo(() => relationTypesIn(source), [source]);
   // UX-4 stage 4: invalid links get a small symbol (link and source node).
@@ -526,6 +629,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [transform, setTransform] = useState({ x: 40, y: 40, k: 1 });
+  /** Left edge of the visible area in graph coordinates (sticky lane labels). */
+  const viewLeft = -transform.x / (transform.k || 1);
   useEffect(() => {
     if (!svgRef.current) return;
     const el = svgRef.current;
@@ -865,12 +970,12 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     const node = nodeId ? graph.nodes.find((n) => n.id === nodeId) : undefined;
 
     // FR-V17e: Ctrl / ⌘ + Shift + arrows move the focused node — ←/→ by a
-    // third of the spacing, ↑/↓ a row (side column only).
+    // third of the spacing, ↑/↓ one row (inside its lane for a lane's node).
     const moveStep: Record<string, [number, number]> = {
       ArrowLeft: [-NODE_SPACING / 3, 0],
       ArrowRight: [NODE_SPACING / 3, 0],
-      ArrowUp: [0, -LANE_HEIGHT],
-      ArrowDown: [0, LANE_HEIGHT],
+      ArrowUp: [0, -ROW_HEIGHT],
+      ArrowDown: [0, ROW_HEIGHT],
     };
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && moveStep[e.key]) {
       const id = nodeId ?? focusedNodeId;
@@ -1238,6 +1343,52 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             <LayersIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        {state.view === "layers" && (
+          <>
+            <Tooltip
+              title={t("tabs.dfd.assetGraph.relationFilter.tooltip", {
+                defaultValue: "Untick a kind of relation to hide the assets and hazards that have one",
+              })}
+            >
+              <Button
+                size="small"
+                variant={filterOn ? "contained" : "outlined"}
+                color={filterOn ? "warning" : "inherit"}
+                startIcon={<LinkOffIcon fontSize="small" />}
+                onClick={(e) => setRelationMenu(e.currentTarget)}
+                data-testid="asset-graph-relation-filter"
+                sx={{ textTransform: "none" }}
+              >
+                {filterOn
+                  ? t("tabs.dfd.assetGraph.relationFilter.active", {
+                      defaultValue: "Relations: filtered ({{count}})",
+                      count: filteredCount,
+                    })
+                  : t("tabs.dfd.assetGraph.relationFilter.label", { defaultValue: "Relations" })}
+              </Button>
+            </Tooltip>
+            <Menu anchorEl={relationMenu} open={!!relationMenu} onClose={() => setRelationMenu(null)}>
+              {relationKinds.map((k) => (
+                <MenuItem key={k} dense onClick={() => toggleRelationKind(k)} data-testid={`asset-graph-relation-${k}`}>
+                  <Checkbox size="small" checked={state.relationKinds.includes(k)} sx={{ p: 0.5, mr: 1 }} />
+                  <ListItemText
+                    primary={t(`tabs.dfd.assetGraph.relationFilter.kind.${k}`, { defaultValue: RELATION_KIND_TEXT[k] })}
+                  />
+                </MenuItem>
+              ))}
+              <Divider />
+              <MenuItem
+                dense
+                onClick={() => setState((s) => ({ ...s, relationKinds: [...RELATION_KINDS] }))}
+                data-testid="asset-graph-relation-all"
+              >
+                <ListItemText
+                  primary={t("tabs.dfd.assetGraph.relationFilter.showAll", { defaultValue: "Show all" })}
+                />
+              </MenuItem>
+            </Menu>
+          </>
+        )}
         <Menu anchorEl={layerMenu} open={!!layerMenu} onClose={() => setLayerMenu(null)}>
           {ALL_LAYERS.map((g) => (
             <MenuItem key={g} dense onClick={() => toggleLayer(g)}>
@@ -1572,21 +1723,21 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 ) : lane.kind !== "orthogonal" ? (
                   <rect x={-2000} y={lane.y - LANE_HEIGHT / 2 + 6} width={8000} height={LANE_HEIGHT - 12} fill={laneFill} />
                 ) : null}
-                <text
-                  x={lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2}
-                  y={lane.y - LANE_HEIGHT / 2 + 20}
-                  fontSize={12}
-                  fill={muted}
-                  textAnchor="end"
-                >
-                  {lane.id === ANCHOR_LANE
-                    ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
-                    : lane.kind === "free"
-                      ? t("tabs.dfd.assetGraph.freeRow", { defaultValue: "Free row" })
-                      : lane.id === HAZARD_LANE
-                        ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
-                        : groupLabel(lane.id)}
-                </text>
+                {/* The lane's three rows to align nodes on (user 2026-11-06). */}
+                {lane.kind !== "orthogonal" &&
+                  laneRows(lane).map((y) => (
+                    <line
+                      key={y}
+                      x1={-2000}
+                      x2={6000}
+                      y1={y}
+                      y2={y}
+                      stroke={muted}
+                      strokeOpacity={0.18}
+                      strokeDasharray="2 8"
+                      data-testid={`asset-graph-row-${lane.id}`}
+                    />
+                  ))}
                 {canCreate && lane.id !== ANCHOR_LANE && lane.id !== HAZARD_LANE && lane.kind !== "free" && (
                   <g
                     transform={`translate(${(lane.kind === "orthogonal" ? (lane.x ?? 0) - NODE_RADIUS : -NODE_RADIUS * 2) + 14},${lane.y - LANE_HEIGHT / 2 + 16})`}
@@ -1966,6 +2117,44 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 </g>
               );
             })}
+
+            {/* Lane labels — on top of nodes and edges, left-aligned, kept at the
+                visible left edge when scrolled to the right (user 2026-11-06). */}
+            {laneLabels(
+              layout.lanes.map((lane) => ({
+                id: lane.id,
+                kind: lane.kind,
+                top: lane.y - LANE_HEIGHT / 2,
+                columnX: lane.x,
+                text:
+                  lane.id === ANCHOR_LANE
+                    ? t("tabs.dfd.assetGraph.anchors", { defaultValue: "DFD elements" })
+                    : lane.kind === "free"
+                      ? t("tabs.dfd.assetGraph.freeRow", { defaultValue: "Free row" })
+                      : lane.id === HAZARD_LANE
+                        ? t("tabs.dfd.assetGraph.hazard.lane", { defaultValue: "Hazards" })
+                        : groupLabel(lane.id),
+              })),
+              viewLeft,
+              transform.k,
+            ).map((l) => (
+              <text
+                key={l.id}
+                x={l.x}
+                y={l.y}
+                fontSize={12}
+                fill={muted}
+                textAnchor={l.anchor}
+                stroke={darkMode ? "#1a1a1a" : "#fafafa"}
+                strokeWidth={3}
+                paintOrder="stroke"
+                style={{ pointerEvents: "none" }}
+                data-testid={`asset-graph-lane-label-${l.id}`}
+                data-sticky={l.sticky ? "true" : undefined}
+              >
+                {l.text}
+              </text>
+            ))}
           </g>
         </svg>
 

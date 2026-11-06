@@ -15,12 +15,11 @@
 // Declared `as const satisfies` (D-18): the literal paths and values stay
 // visible to the conformance test (src/tests/…/evidence-rules.conformance.test.ts).
 
+import { HUMAN_ENTITY_TYPES } from "shared";
+import { ABUSE_PROTECTION_INTERFACE_TYPES } from "shared/models/interface-capability-registry";
 import type { EvidenceRule, RequirementId } from "../models/compliance-types";
 
 // ==================== SHARED PIECES ====================
-
-/** External-entity types that are humans (external-entity-type-registry). */
-const HUMAN_ENTITY_TYPES = ["user", "admin_user", "operator", "maintenance", "contractor", "device_owner"] as const;
 
 /** Every flow to or from a human external entity — interfaces with human access. */
 const HUMAN_ACCESS_FLOWS = {
@@ -64,11 +63,6 @@ const DEBUG_CHIPS = {
   appliesIf: [{ property: "debugInterfacePresent", notIn: ["none"] }],
 } as const;
 
-const PASSWORD_USE = [
-  { elementTypes: ["DataFlow"], appliesIf: [{ property: "endpointAuthentication", in: ["password"] }] },
-  { elementTypes: ["Multiprocess"], appliesIf: [{ property: "boundaryAuthentication", in: ["password"] }] },
-] as const;
-
 const PUBLIC_KEY_USE = [
   { elementTypes: ["DataFlow"], appliesIf: [{ property: "endpointAuthentication", in: ["certificate", "mutual_tls"] }] },
   { elementTypes: ["Multiprocess"], appliesIf: [{ property: "boundaryAuthentication", in: ["certificate", "mtls"] }] },
@@ -95,6 +89,59 @@ const HUMAN_NEIGHBOUR = { elementTypes: ["ExternalEntity"], checks: [{ property:
 /** Processes and multiprocesses with a human neighbour — both carry sessionControl (P-2). */
 const PROCESSES_WITH_HUMAN_USERS = { elementTypes: ["Process", "Multiprocess"], connectedIf: HUMAN_NEIGHBOUR } as const;
 
+/** Process / multiprocess that serves human users but states it does not authenticate — fails any "authenticate the user" rule. */
+const WITHOUT_AUTHENTICATION_FOR_HUMANS = [
+  {
+    elementTypes: ["Process"],
+    appliesIf: [{ property: "authenticationRequired", in: ["no"] }],
+    connectedIf: HUMAN_NEIGHBOUR,
+    satisfiedIf: [{ property: "authenticationRequired", notIn: ["no"] }],
+  },
+  {
+    elementTypes: ["Multiprocess"],
+    appliesIf: [{ property: "boundaryAuthentication", in: ["none"] }],
+    connectedIf: HUMAN_NEIGHBOUR,
+    satisfiedIf: [{ property: "boundaryAuthentication", notIn: ["none"] }],
+  },
+] as const;
+
+/** Some login with a guessable authenticator reaches an element that authenticates, or a link pairs with PIN / PSK (CR 1.11). */
+const GUESSABLE_LOGIN_USE = [
+  {
+    elementTypes: ["DataFlow"],
+    appliesIf: [{ property: "endpointAuthentication", in: ["password", "pairing", "mfa", "biometric"] }],
+    endpointIf: { elementTypes: ["Process"], checks: [{ property: "authenticationRequired", notIn: ["not_specified", "no"] }] },
+  },
+  {
+    elementTypes: ["DataFlow"],
+    appliesIf: [{ property: "endpointAuthentication", in: ["password", "pairing", "mfa", "biometric"] }],
+    endpointIf: { elementTypes: ["Multiprocess"], checks: [{ property: "boundaryAuthentication", notIn: ["not_specified", "none"] }] },
+  },
+  { elementTypes: ["Multiprocess"], appliesIf: [{ property: "boundaryAuthentication", in: ["password", "mfa"] }] },
+  { elementTypes: ["Interface"], appliesIf: [{ property: "implementedControls.linkAuthentication", in: ["pairing", "pre_shared_key"] }] },
+] as const;
+
+/** The elements that verify a password and carry the password fields (F-2). */
+const PASSWORD_VERIFIERS = { elementTypes: ["Process", "Multiprocess"] } as const;
+
+const HUMAN_PASSWORD_LIFETIME = {
+  ...PASSWORD_VERIFIERS,
+  when: ["humanPasswordUse"],
+  satisfiedIf: [{ property: "passwordLifetime", in: ["human_accounts", "all_accounts"] }],
+} as const;
+
+const MACHINE_PASSWORD_LIFETIME = {
+  ...PASSWORD_VERIFIERS,
+  when: ["machinePasswordUse"],
+  satisfiedIf: [{ property: "passwordLifetime", in: ["machine_accounts", "all_accounts"] }],
+} as const;
+
+/** Update deliveries prAA CR 3.10 RE(2) accepts: everything but "manual only" (F-27). */
+const UPDATE_DELIVERY_WITHOUT_ACTION = ["notification", "on_request_or_scheduled", "automatic"] as const;
+
+/** The element that stands for the component — a Multiprocess, or the process under evaluation (F-25). */
+const COMPONENT_ELEMENTS = { elementTypes: ["Process", "Multiprocess"], when: ["componentLevel"] } as const;
+
 /** Elements that carry updateMechanism (P-2): a component drawn as one process updates too. */
 const UPDATABLE = { elementTypes: ["Process", "Multiprocess"] } as const;
 
@@ -106,9 +153,17 @@ const UPDATABLE = { elementTypes: ["Process", "Multiprocess"] } as const;
 const COMPONENT_BORDER_FLOWS = { elementTypes: ["DataFlow"], crossesComponent: true } as const;
 
 /** Interfaces reachable over a network (EL2 local network … EL4 internet). */
-const EXPOSED_INTERFACES = {
+/**
+ * Exposed interfaces whose protocol can be flooded — the ones that carry
+ * abuseProtection (CR 7.1). A touch panel or a GPIO line has no protocol to
+ * rate-limit; before 0.18 they were checked too and could never be met.
+ */
+const EXPOSED_PROTOCOL_INTERFACES = {
   elementTypes: ["Interface"],
-  appliesIf: [{ property: "exposureLevel", in: ["EL2", "EL3", "EL4"] }],
+  appliesIf: [
+    { property: "exposureLevel", in: ["EL2", "EL3", "EL4"] },
+    { property: "type", in: ABUSE_PROTECTION_INTERFACE_TYPES },
+  ],
 } as const;
 
 /** Data stores holding audit records. */
@@ -156,7 +211,17 @@ const RULES = [
     targets: [{ ...HUMAN_ACCESS_FLOWS, satisfiedIf: [{ property: "endpointAuthentication", notIn: ["none"] }] }],
     checklist: ["each external interface with human access identifies and authenticates the user"],
   },
-  { id: "cr-1.1-re1", type: "C", targets: [HUMAN_ACCESS_FLOWS] },
+  {
+    // F-1: individual accounts on every element that authenticates human
+    // users; one that serves humans without authenticating fails outright.
+    id: "cr-1.1-re1",
+    type: "A",
+    targets: [
+      { ...PROCESS_WITH_AUTH, connectedIf: HUMAN_NEIGHBOUR, satisfiedIf: [{ property: "userAccounts", in: ["individual"] }] },
+      { ...MULTIPROCESS_WITH_AUTH, connectedIf: HUMAN_NEIGHBOUR, satisfiedIf: [{ property: "userAccounts", in: ["individual"] }] },
+      ...WITHOUT_AUTHENTICATION_FOR_HUMANS,
+    ],
+  },
   {
     id: "cr-1.1-re2",
     type: "A",
@@ -210,6 +275,18 @@ const RULES = [
       "unchanged default authenticators are recognised",
       "authenticators can be changed or refreshed",
     ],
+    // F-3 / F-3b (CM-5b): the provisioning scheme answers a; no default, or a
+    // change enforced at first use, answers b (unique per device / universal
+    // leave it to confirm); changeable answers c, not changeable fails it.
+    answers: [
+      { item: 0, yesIf: [{ property: "defaultCredentials" }] },
+      { item: 1, yesIf: [{ property: "defaultCredentials", in: ["none_preinstalled", "change_enforced"] }] },
+      {
+        item: 2,
+        yesIf: [{ property: "authenticatorChangeable", in: ["yes"] }],
+        noIf: [{ property: "authenticatorChangeable", in: ["no"] }],
+      },
+    ],
   },
   { id: "cr-1.5-re1", type: "A", targets: AUTHENTICATORS_IN_HARDWARE },
   {
@@ -229,10 +306,19 @@ const RULES = [
     ],
     checklist: ["each wireless user has a unique identity"],
   },
-  { id: "cr-1.7", type: "C", targets: PASSWORD_USE },
-  { id: "cr-1.7-re1-human", type: "C", targets: PASSWORD_USE },
-  { id: "cr-1.7-re2-all-users", type: "C", targets: PASSWORD_USE },
-  { id: "cr-1.7-re2-machines", type: "C", targets: PASSWORD_USE },
+  // F-2a / F-2b on the element that verifies the password (the same
+  // conditions show the fields). A password flow to an element outside these
+  // types (e.g. the component logging in to an external server) is not the
+  // component's password-based authentication.
+  {
+    id: "cr-1.7",
+    type: "A",
+    targets: [{ ...PASSWORD_VERIFIERS, when: ["passwordInUse"], satisfiedIf: [{ property: "passwordStrength", in: ["configurable_policy"] }] }],
+  },
+  { id: "cr-1.7-re1-human", type: "A", targets: [HUMAN_PASSWORD_LIFETIME] },
+  // 2019 RE(2): every kind of account that logs in with a password has limits.
+  { id: "cr-1.7-re2-all-users", type: "A", targets: [HUMAN_PASSWORD_LIFETIME, MACHINE_PASSWORD_LIFETIME] },
+  { id: "cr-1.7-re2-machines", type: "A", targets: [MACHINE_PASSWORD_LIFETIME] },
   { id: "cr-1.8", type: "C", targets: PUBLIC_KEY_USE },
   {
     // The mechanism in use is the evidence; how it validates is the checklist.
@@ -249,9 +335,25 @@ const RULES = [
   },
   { id: "cr-1.9-re1", type: "A", appliesWhen: PUBLIC_KEY_USE, targets: AUTHENTICATORS_IN_HARDWARE },
   { id: "cr-1.10", type: "C", targets: [HUMAN_ACCESS_FLOWS] },
-  // Type C: lockout (abuseProtection) sits on the Interface, but the model does
-  // not link a human-access flow to the interface it passes (model gap P-7).
-  { id: "cr-1.11", type: "C", targets: AUTHENTICATION_USE },
+  {
+    // F-5 (CM-8b, user 2026-11-02): the element that verifies a guessable
+    // login counts the failed attempts and locks — for a period or until an
+    // administrator unlocks; a delay alone has no lock (CR 1.11 asks for limit
+    // and lock). A link that authenticates itself (PIN / PSK pairing) locks
+    // the pairing attempts on the interface.
+    id: "cr-1.11",
+    type: "A",
+    // n/a only where no guessable login is modelled; logins not decided yet → unknown.
+    appliesWhen: GUESSABLE_LOGIN_USE,
+    targets: [
+      { ...PASSWORD_VERIFIERS, when: ["guessableLogin"], satisfiedIf: [{ property: "loginLockout", in: ["timed_lockout", "admin_unlock"] }] },
+      {
+        elementTypes: ["Interface"],
+        appliesIf: [{ property: "implementedControls.linkAuthentication", in: ["pairing", "pre_shared_key"] }],
+        satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["lockout"] }],
+      },
+    ],
+  },
   {
     id: "cr-1.12",
     type: "C",
@@ -302,11 +404,31 @@ const RULES = [
     checklist: ["authorization for all users incl. software processes and devices, least privilege"],
   },
   {
+    // F-29: roles fixed in the product do not let an authorised role change
+    // the permission mapping; without roles there is no mapping to change.
     id: "cr-2.1-re2",
     type: "A",
     targets: [
-      { ...PROCESS_WITH_AUTH, satisfiedIf: [{ property: "authorizationModel", in: ["rbac"] }] },
-      { ...MULTIPROCESS_WITH_AUTH, satisfiedIf: [{ property: "authorizationModel", in: ["rbac"] }] },
+      {
+        ...PROCESS_WITH_AUTH,
+        appliesIf: [...PROCESS_WITH_AUTH.appliesIf, { property: "authorizationModel", in: ["rbac"] }],
+        satisfiedIf: [{ property: "roleMapping", in: ["configurable"] }],
+      },
+      {
+        ...MULTIPROCESS_WITH_AUTH,
+        appliesIf: [...MULTIPROCESS_WITH_AUTH.appliesIf, { property: "authorizationModel", in: ["rbac"] }],
+        satisfiedIf: [{ property: "roleMapping", in: ["configurable"] }],
+      },
+      {
+        ...PROCESS_WITH_AUTH,
+        appliesIf: [...PROCESS_WITH_AUTH.appliesIf, { property: "authorizationModel", notIn: ["not_specified", "rbac"] }],
+        satisfiedIf: [{ property: "authorizationModel", in: ["rbac"] }],
+      },
+      {
+        ...MULTIPROCESS_WITH_AUTH,
+        appliesIf: [...MULTIPROCESS_WITH_AUTH.appliesIf, { property: "authorizationModel", notIn: ["not_specified", "rbac"] }],
+        satisfiedIf: [{ property: "authorizationModel", in: ["rbac"] }],
+      },
     ],
   },
   { id: "cr-2.1-re3", type: "C", targets: AUTHENTICATION_USE },
@@ -415,7 +537,7 @@ const RULES = [
         ...COMPONENT_BORDER_FLOWS,
         satisfiedIf: [
           { property: "integrityProtection", in: ["hmac", "signature", "aead"] },
-          { property: "encryptionInTransit", in: ["tls", "mtls", "vpn"] },
+          { property: "encryptionInTransit", in: ["tls", "mtls", "vpn", "ssh", "application"] },
         ],
       },
     ],
@@ -502,11 +624,23 @@ const RULES = [
     targets: [{ ...UPDATABLE, satisfiedIf: [{ property: "updateMechanism", in: ["signed_local", "signed_ota"] }] }],
   },
   {
+    // F-27 (CM-6): prAA RE(2) accepts any of a) automatic loading, b)
+    // notification, c) updating on request or schedule — the delivery shows
+    // which; the recovery to an earlier version is a "should" and stays on the
+    // checklist (the row stays B). An element without updates fails it.
     id: "cr-3.10-re2",
     type: "B",
     quantifier: "any",
-    targets: [{ ...UPDATABLE, satisfiedIf: [{ property: "updateMechanism", in: ["signed_ota", "mdm_managed", "ci_cd"] }] }],
+    targets: [
+      {
+        ...UPDATABLE,
+        appliesIf: [{ property: "updateMechanism", notIn: ["none"] }],
+        satisfiedIf: [{ property: "updateDelivery", in: UPDATE_DELIVERY_WITHOUT_ACTION }],
+      },
+      { ...UPDATABLE, appliesIf: [{ property: "updateMechanism", in: ["none"] }], satisfiedIf: [{ property: "updateMechanism", notIn: ["none"] }] },
+    ],
     checklist: ["automatic loading, notification or scheduled updating", "recovery to an earlier version on failure (should)"],
+    answers: [{ item: 0, yesIf: [{ property: "updateDelivery", in: UPDATE_DELIVERY_WITHOUT_ACTION }] }],
   },
   {
     id: "cr-3.11",
@@ -660,13 +794,13 @@ const RULES = [
   {
     id: "cr-7.1",
     type: "B",
-    targets: [{ ...EXPOSED_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", notIn: ["none"] }] }],
+    targets: [{ ...EXPOSED_PROTOCOL_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", notIn: ["none"] }] }],
     checklist: ["essential functions continue in degraded mode during a DoS event"],
   },
   {
     id: "cr-7.1-re1",
     type: "A",
-    targets: [{ ...EXPOSED_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["flood_protection", "rate_limited"] }] }],
+    targets: [{ ...EXPOSED_PROTOCOL_INTERFACES, satisfiedIf: [{ property: "implementedControls.abuseProtection", in: ["flood_protection", "rate_limited"] }] }],
   },
   { id: "cr-7.2", type: "C", targets: [] },
   {
@@ -686,8 +820,29 @@ const RULES = [
     targets: [{ elementTypes: ["Multiprocess"], satisfiedIf: [{ property: "backupMechanism", notIn: ["none"] }] }],
     checklist: ["the component recovers to a known secure state after disruption or failure"],
   },
-  { id: "cr-7.6", type: "C", targets: [] },
-  { id: "cr-7.6-re1", type: "C", targets: [] },
+  {
+    // F-25a / F-25b (CM-6): a) configured to its secure-by-default settings
+    // and b) an interface to the deployed settings — on the element that
+    // stands for the component (any: a capability of the component, D-22).
+    id: "cr-7.6",
+    type: "A",
+    quantifier: "any",
+    targets: [
+      {
+        ...COMPONENT_ELEMENTS,
+        satisfiedIfAll: [
+          { property: "secureByDefault", in: ["yes"] },
+          { property: "securityConfigReporting", in: ["readable_interface", "machine_readable"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "cr-7.6-re1",
+    type: "A",
+    quantifier: "any",
+    targets: [{ ...COMPONENT_ELEMENTS, satisfiedIf: [{ property: "securityConfigReporting", in: ["machine_readable"] }] }],
+  },
   {
     id: "cr-7.7",
     type: "B",
@@ -703,11 +858,21 @@ const RULES = [
   },
   { id: "cr-7.8", type: "C", targets: [] },
   {
+    // prAA: applicable to every component — the element that stands for the
+    // component carries the reset (F-22, CM-7a); a store reset by factory
+    // reset shows it too. Before, a component without data stores was n/a.
     id: "cr-7.9",
     type: "B",
     quantifier: "any",
-    targets: [{ elementTypes: ["DataStore"], satisfiedIf: [{ property: "deletionMechanism", in: ["factory_reset"] }] }],
+    targets: [
+      { ...COMPONENT_ELEMENTS, satisfiedIf: [{ property: "userDataDeletion", in: ["factory_reset", "both"] }] },
+      { elementTypes: ["DataStore"], satisfiedIf: [{ property: "deletionMechanism", in: ["factory_reset"] }] },
+    ],
     checklist: ["the component can be reset to the supplier-defined state"],
+    answers: [
+      { item: 0, elementTypes: ["Process", "Multiprocess"], yesIf: [{ property: "userDataDeletion", in: ["factory_reset", "both"] }] },
+      { item: 0, elementTypes: ["DataStore"], yesIf: [{ property: "deletionMechanism", in: ["factory_reset"] }] },
+    ],
   },
 ] as const satisfies readonly EvidenceRule[];
 

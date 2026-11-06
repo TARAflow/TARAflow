@@ -37,6 +37,14 @@ import { assetService } from "../services/asset-service";
 import { AssetsToolbar } from "./asset-toolbar";
 import { AssetTable, AssetTableToolbar, type AssetTableView } from "./asset-table";
 import { AssetGroupSections } from "./asset-group-sections";
+import { impactScaleFor } from "../models/asset-impact-types";
+import {
+  NO_ASSET_FILTER,
+  assetTypeCounts,
+  filterAssets,
+  isAssetFilterActive,
+  type AssetFilter,
+} from "../utils/asset-filter";
 import { AssetDialog } from "./asset-dialog";
 import { AssetNotificationPanel } from "./asset-notification-panel";
 import {
@@ -93,6 +101,28 @@ export interface AssetTabProps {
    * the app layer. Given → threat ↔ goal cross-checks in the findings panel.
    */
   threatLinks?: ThreatGoalLink[];
+}
+
+// ==================== VIEW MEMORY ====================
+// Toolbar settings and the asset filter (AF-1) are a view, not project data:
+// kept per project for the session (the tab remounts on every phase change),
+// never written to the file.
+
+interface AssetTabView {
+  table: AssetTableView;
+  filter: AssetFilter;
+}
+
+const DEFAULT_VIEW: AssetTabView = {
+  table: { factorsVisible: false, reviewOnly: false },
+  filter: NO_ASSET_FILTER,
+};
+
+const viewMemory = new Map<string, AssetTabView>();
+
+/** Test hook: forget the remembered views. */
+export function resetAssetTabViewMemory(): void {
+  viewMemory.clear();
 }
 
 // ==================== COMPONENT ====================
@@ -713,30 +743,53 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   );
   const needsReview = useMemo(() => assetIdsNeedingReview(findings), [findings]);
 
-  // Leveled DFD (6c): one toolbar above all group tables.
-  const grouped = !!project.dfdTableGroups;
-  const [tableView, setTableView] = useState<AssetTableView>({
-    factorsVisible: false,
-    reviewOnly: false,
-  });
-  const reviewFilterActive = grouped && tableView.reviewOnly;
-  const groupedAssets = useMemo(
+  // One toolbar above the table — above all group tables with a leveled DFD (6c).
+  const [tabView, setTabView] = useState<AssetTabView>(() => viewMemory.get(project.id) ?? DEFAULT_VIEW);
+  useEffect(() => {
+    viewMemory.set(project.id, tabView);
+  }, [project.id, tabView]);
+  const tableView = tabView.table;
+  const assetFilter = tabView.filter;
+  const setTableView = useCallback((table: AssetTableView) => setTabView((v) => ({ ...v, table })), []);
+  const setAssetFilter = useCallback((filter: AssetFilter) => setTabView((v) => ({ ...v, filter })), []);
+  const reviewFilterActive = tableView.reviewOnly;
+  const rounding = assetData.configuration.roundingMethod;
+  const shownAssets = useMemo(
     () =>
-      reviewFilterActive
-        ? assetData.assets.filter((a) => needsReview.has(a.id))
-        : assetData.assets,
-    [reviewFilterActive, assetData.assets, needsReview],
+      filterAssets(
+        reviewFilterActive ? assetData.assets.filter((a) => needsReview.has(a.id)) : assetData.assets,
+        assetFilter,
+        rounding,
+      ),
+    [reviewFilterActive, assetData.assets, needsReview, assetFilter, rounding],
   );
-  // "Show in table" for an asset the review filter hides lifts the filter —
-  // once per request; a later change of the findings does not lift it again.
+  const filterEmpty =
+    assetData.assets.length > 0 &&
+    shownAssets.length === 0 &&
+    (reviewFilterActive || isAssetFilterActive(assetFilter));
+  const typeCounts = useMemo(() => assetTypeCounts(assetData.assets), [assetData.assets]);
+  const criticalityLevels = useMemo(
+    () => impactScaleFor(assetData.configuration.impactScale, project.impactLabelVocabulary).levels,
+    [assetData.configuration.impactScale, project.impactLabelVocabulary],
+  );
+  // "Show in table" for an asset a filter hides lifts that filter — once
+  // per request; a later change of the findings does not lift it again.
   const handledHighlight = useRef<AssetTabProps["tableHighlightRequest"]>(null);
   useEffect(() => {
-    if (!grouped || !tableHighlightRequest || handledHighlight.current === tableHighlightRequest) return;
+    if (!tableHighlightRequest || handledHighlight.current === tableHighlightRequest) return;
     handledHighlight.current = tableHighlightRequest;
-    if (!needsReview.has(tableHighlightRequest.assetId)) {
-      setTableView((v) => (v.reviewOnly ? { ...v, reviewOnly: false } : v));
-    }
-  }, [grouped, tableHighlightRequest, needsReview]);
+    const asset = assetData.assets.find((a) => a.id === tableHighlightRequest.assetId);
+    if (!asset) return;
+    setTabView((v) => {
+      const liftReview = v.table.reviewOnly && !needsReview.has(asset.id);
+      const liftFilter = filterAssets([asset], v.filter, rounding).length === 0;
+      if (!liftReview && !liftFilter) return v;
+      return {
+        table: liftReview ? { ...v.table, reviewOnly: false } : v.table,
+        filter: liftFilter ? NO_ASSET_FILTER : v.filter,
+      };
+    });
+  }, [tableHighlightRequest, assetData.assets, needsReview, rounding]);
 
   const handleOpenFinding = useCallback(
     (finding: AssetFinding) => {
@@ -870,9 +923,9 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           </>
         )}
 
-        {/* Leveled DFD (6c): one toolbar for all group tables, outside the
-            scroll area so it stays in place. */}
-        {grouped && assetData.assets.length > 0 && (
+        {/* One toolbar for the table — for all group tables with a leveled
+            DFD (6c) — outside the scroll area so it stays in place. */}
+        {assetData.assets.length > 0 && (
           <Box
             sx={{
               flexShrink: 0,
@@ -889,6 +942,14 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
               onChange={setTableView}
               needsReview={needsReview}
               reviewCount={assetData.assets.filter((a) => needsReview.has(a.id)).length}
+              filter={{
+                value: assetFilter,
+                onChange: setAssetFilter,
+                typeCounts,
+                levels: criticalityLevels,
+                shown: shownAssets.length,
+                total: assetData.assets.length,
+              }}
             />
           </Box>
         )}
@@ -902,32 +963,41 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
             minHeight: MIN_PANEL_HEIGHT,
           }}
         >
-          {reviewFilterActive && groupedAssets.length === 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }} data-testid="asset-review-empty">
-              {t("tabs.assets.reviewFilter.none", { defaultValue: "No asset needs review." })}
+          {filterEmpty && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ p: 2 }}
+              data-testid={isAssetFilterActive(assetFilter) ? "asset-filter-empty" : "asset-review-empty"}
+            >
+              {isAssetFilterActive(assetFilter)
+                ? t("tabs.assets.filter.none", { defaultValue: "No asset matches the filter." })
+                : t("tabs.assets.reviewFilter.none", { defaultValue: "No asset needs review." })}
             </Typography>
           )}
-          <AssetGroupSections
-            groups={project.dfdTableGroups}
-            assets={grouped ? groupedAssets : assetData.assets}
-            highlightRequest={tableHighlightRequest}
-            renderTable={(groupAssets, groupKey) => (
-              <AssetTable
-                assets={groupAssets}
-                configuration={assetData.configuration}
-                impactLabelVocabulary={project.impactLabelVocabulary}
-                hazardLinks={hazardLinks}
-                assetLinkRelations={assetData.relations}
-                needsReview={needsReview}
-                onEdit={handleEditAsset}
-                onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
-                onShowInGraph={onShowInGraph ? (a) => onShowInGraph(a.id) : undefined}
-                highlightRequest={tableHighlightRequest}
-                autoHeight={groupKey !== ""}
-                view={groupKey !== "" ? tableView : undefined}
-              />
-            )}
-          />
+          {!filterEmpty && (
+            <AssetGroupSections
+              groups={project.dfdTableGroups}
+              assets={shownAssets}
+              highlightRequest={tableHighlightRequest}
+              renderTable={(groupAssets, groupKey) => (
+                <AssetTable
+                  assets={groupAssets}
+                  configuration={assetData.configuration}
+                  impactLabelVocabulary={project.impactLabelVocabulary}
+                  hazardLinks={hazardLinks}
+                  assetLinkRelations={assetData.relations}
+                  needsReview={needsReview}
+                  onEdit={handleEditAsset}
+                  onDelete={onDeleteAsset ? handleRequestDeleteAsset : undefined}
+                  onShowInGraph={onShowInGraph ? (a) => onShowInGraph(a.id) : undefined}
+                  highlightRequest={tableHighlightRequest}
+                  autoHeight={groupKey !== ""}
+                  view={tableView}
+                />
+              )}
+            />
+          )}
         </Box>
 
         {/* Findings — below the table, like the DFD tab */}

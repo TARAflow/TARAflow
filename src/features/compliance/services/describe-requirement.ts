@@ -3,14 +3,13 @@
 // title, our own summary and "how TARAflow checks it" — generated from the
 // evidence rule, so it always matches what the evaluator does.
 
-import type { EvidenceRule, EvidenceTarget, NeighbourCheck, PropertyCheck, RequirementId } from "../models/compliance-types";
-import { EVIDENCE_RULES } from "../data/evidence-rules";
-import { REQUIREMENT_TEXTS } from "../data/requirement-texts";
+import type { AnyRequirementId, EvidenceRule, EvidenceTarget, NeighbourCheck, PropertyCheck } from "../models/compliance-types";
+import { RULES_BY_ID, TEXTS_BY_ID } from "../data/requirement-registry";
 
 export type DescribeLanguage = "en" | "de";
 
 export interface RequirementDescription {
-  id: RequirementId;
+  id: AnyRequirementId;
   title: string;
   summary: string;
   /** How the evaluator decides the row, in the given language. */
@@ -29,11 +28,29 @@ const WORDS = {
     set: "set",
     setNot: "set, not",
     or: "or",
+    and: "and",
     appliesWhen: "Applies when",
     model: "Checked in the model",
     noModel: "Not derivable from the model — a statement, a mitigation of the risk treatment or a claim meets it.",
     wholeComponent: "the component as a whole",
+    risks: "Checked on the risks: the SRSL and the mandated controls of the risk treatment (done; planned in the planned run). A risk without SRSL is unknown.",
+    project: "Checked on the project data: hazards, risks, safety functions, window of opportunity and system definition. What is not set yet is unknown.",
+    fromSrsl: "Applies from SRSL",
     crossesComponent: "across the component border (not human input, not physical coupling)",
+    conditions: {
+      authenticates: "that authenticates",
+      humanUsers: "with human users",
+      passwordInUse: "that a password reaches",
+      humanPasswordUse: "where humans log in with a password",
+      roleBasedAuthorization: "with role-based authorization",
+      guessableLogin: "that logins with a guessable authenticator reach",
+      componentLevel: "that stands for the component (a multiprocess, or the process under evaluation)",
+      updatable: "that is updated",
+      automaticUpdates: "that installs updates automatically",
+      machinePasswordUse: "where software processes or devices log in with a password",
+      blackBox: "without child page (black box)",
+      usesKeys: "that holds keys (secure channel or certificate)",
+    },
   },
   de: {
     every: "jedes",
@@ -44,11 +61,29 @@ const WORDS = {
     set: "gesetzt",
     setNot: "gesetzt, nicht",
     or: "oder",
+    and: "und",
     appliesWhen: "Gilt, wenn",
     model: "Im Modell geprüft",
     noModel: "Nicht aus dem Modell ableitbar — eine Aussage, eine Massnahme der Risikobehandlung oder ein Claim erfüllt sie.",
     wholeComponent: "die Komponente als Ganzes",
+    risks: "An den Risiken geprüft: SRSL und verlangte Massnahmen der Risikobehandlung (umgesetzt; im geplanten Lauf gewählt). Ein Risiko ohne SRSL ist unbekannt.",
+    project: "An den Projektdaten geprüft: Gefährdungen, Risiken, Sicherheitsfunktionen, Window of Opportunity und Systemdefinition. Was noch nicht gesetzt ist, ist unbekannt.",
+    fromSrsl: "Gilt ab SRSL",
     crossesComponent: "über die Komponentengrenze (keine menschliche Eingabe, keine physische Kopplung)",
+    conditions: {
+      authenticates: "das authentifiziert",
+      humanUsers: "mit menschlichen Benutzern",
+      passwordInUse: "das ein Passwort erreicht",
+      humanPasswordUse: "bei dem sich Menschen mit Passwort anmelden",
+      roleBasedAuthorization: "mit rollenbasierter Autorisierung",
+      guessableLogin: "das Logins mit erratbarem Merkmal erreichen",
+      componentLevel: "das für die Komponente steht (ein Multiprocess oder der bewertete Process)",
+      updatable: "das aktualisiert wird",
+      automaticUpdates: "das Updates automatisch installiert",
+      machinePasswordUse: "bei dem sich Software-Prozesse oder Geräte mit Passwort anmelden",
+      blackBox: "ohne Unterseite (Black Box)",
+      usesKeys: "das Schlüssel hält (sicherer Kanal oder Zertifikat)",
+    },
   },
 } as const;
 
@@ -70,16 +105,22 @@ function neighbourText(n: NeighbourCheck, prefix: string, w: (typeof WORDS)[Desc
 function targetText(target: EvidenceTarget, quantifier: string, w: (typeof WORDS)[DescribeLanguage]): string {
   const parts = [`${quantifier} ${target.elementTypes.join(" / ")}`];
   if (target.crossesComponent) parts.push(w.crossesComponent);
+  for (const id of target.when ?? []) parts.push(w.conditions[id]);
   if (target.appliesIf?.length) parts.push(`${w.with} ${target.appliesIf.map((c) => checkText(c, w)).join(", ")}`);
   if (target.endpointIf) parts.push(neighbourText(target.endpointIf, w.fromOrTo, w));
   if (target.connectedIf) parts.push(neighbourText(target.connectedIf, w.connectedTo, w));
   const head = parts.join(" ");
-  return target.satisfiedIf?.length ? `${head}: ${target.satisfiedIf.map((c) => checkText(c, w)).join(` ${w.or} `)}` : head;
+  const anyOf = target.satisfiedIf?.length ? target.satisfiedIf.map((c) => checkText(c, w)).join(` ${w.or} `) : "";
+  const allOf = target.satisfiedIfAll?.length ? target.satisfiedIfAll.map((c) => checkText(c, w)).join(` ${w.and} `) : "";
+  const condition = [anyOf, allOf].filter(Boolean).join(` ${w.and} `);
+  return condition ? `${head}: ${condition}` : head;
 }
 
-export function describeRule(rule: EvidenceRule, lang: DescribeLanguage): string {
+export function describeRule(rule: EvidenceRule<AnyRequirementId>, lang: DescribeLanguage): string {
   const w = WORDS[lang];
   const sentences: string[] = [];
+  if (rule.minSrsl) sentences.push(`${w.fromSrsl} ${rule.minSrsl}.`);
+  if (rule.external) return [...sentences, rule.external.kind === "risk" ? w.risks : w.project].join(" ");
   if (rule.appliesWhen?.length) {
     sentences.push(`${w.appliesWhen}: ${rule.appliesWhen.map((t) => targetText(t, w.atLeastOne, w)).join(` ${w.or} `)}.`);
   }
@@ -93,11 +134,24 @@ export function describeRule(rule: EvidenceRule, lang: DescribeLanguage): string
   return sentences.join(" ");
 }
 
-export function describeRequirement(id: RequirementId, lang: DescribeLanguage): RequirementDescription {
-  const text = REQUIREMENT_TEXTS[id];
-  const rule = EVIDENCE_RULES.get(id)!;
+export function describeRequirement(id: AnyRequirementId, lang: DescribeLanguage): RequirementDescription {
+  const text = TEXTS_BY_ID[id];
+  const rule = RULES_BY_ID.get(id)!;
   const checklist = lang === "de" && text.checklistDe ? [...text.checklistDe] : [...(rule.checklist ?? [])];
   return { id, title: text.title, summary: lang === "de" ? text.de : text.en, check: describeRule(rule, lang), checklist };
+}
+
+/**
+ * The open checklist items of a row, in the language of `descriptions`:
+ * `open` holds the evaluator's items (RowResult.checklist, English rule
+ * texts) — items the model answers are not among them (CM-5b).
+ */
+export function localizedChecklist(descriptions: readonly RequirementDescription[], open: readonly string[]): string[] {
+  if (open.length === 0) return [];
+  return descriptions.flatMap((d) => {
+    const items = RULES_BY_ID.get(d.id)?.checklist ?? [];
+    return items.flatMap((item, i) => (open.includes(item) ? [d.checklist[i] ?? item] : []));
+  });
 }
 
 /** The language of a UI / document language code ("de", "de-CH", "en" …). */

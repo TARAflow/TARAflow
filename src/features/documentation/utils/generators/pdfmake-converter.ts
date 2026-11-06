@@ -7,7 +7,7 @@
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
 import { isoScenarioSummary, isoScenarioTitle } from "../iso-scenario-text";
-import { controlLabels } from "../control-text";
+import { controlLabels, mitigationLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
 import { itemDefinitionIntro, itemDefinitionReportSections } from "../item-definition-report";
 import {
@@ -29,6 +29,11 @@ import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { reportGroupsOf } from "../dfd-report-groups";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
+import {
+  visibilityContexts,
+  type VisibilityElement,
+  type VisibilityFlowInput,
+} from "../../../../shared/models/property-visibility";
 import {
   riskGroupSummary,
   riskStatsTable,
@@ -461,7 +466,7 @@ export class PdfMakeConverter {
       case "compliance-matrix":
         return this.sectionedChapter(
           "compliance-matrix",
-          complianceMatrixIntro(this.t),
+          complianceMatrixIntro(this.t, this.project.computed.compliance),
           complianceMatrixSections(this.project.computed.compliance, this.t),
         );
       case "accepted-risks":
@@ -543,6 +548,12 @@ export class PdfMakeConverter {
     const elements = this.project.dfd?.elements ?? [];
     if (elements.length === 0) return [];
     const connections = this.project.dfd?.connections ?? [];
+    // Model coverage fields are listed where their predicate shows them (R-4).
+    const contextOf = visibilityContexts(
+      elements as unknown as VisibilityElement[],
+      connections as unknown as VisibilityFlowInput[],
+      { componentId: this.project.complianceComponentId },
+    );
     const resolveAssetName = (assetId: string) =>
       this.project.assets?.assets?.find((a) => a.id === assetId)?.name ?? assetId;
     const linked = (text: string): Content[] =>
@@ -554,7 +565,7 @@ export class PdfMakeConverter {
       for (const element of typeElements) {
         content.push(
           { text: `${element.displayId || element.id}: ${element.name}`, bold: true, margin: [0, 8, 0, 2] },
-          ...this.propertyGroups(getElementPropertiesGrouped(element, this.lang)),
+          ...this.propertyGroups(getElementPropertiesGrouped(element, this.lang, contextOf(element.id))),
           ...linked(formatElementAssetRelations(element, this.lang, resolveAssetName)),
         );
       }
@@ -600,7 +611,7 @@ export class PdfMakeConverter {
   }
 
   private createAttackPathThreats(): Content[] {
-    const rows = attackPathThreatRows(this.project);
+    const rows = attackPathThreatRows(this.project, this.lang);
     if (rows.length === 0) return [];
     const list = (items: string[]) => (items.length > 0 ? items.map((x) => `• ${x}`).join("\n") : "-");
     return [
@@ -1370,8 +1381,13 @@ export class PdfMakeConverter {
       { text: this.chapterTitle(id), style: "h1", tocItem: true },
       { text: intro, margin: [0, 0, 0, 8] },
     ];
-    for (const section of sections) {
-      content.push({ text: section.title, style: "h2" });
+    const add = (section: ReportSection, depth: number) => {
+      // A part with sub-sections (e.g. one standard, CM-9) gets its own TOC entry.
+      content.push({
+        text: section.title,
+        style: depth === 0 ? "h2" : "h3",
+        ...(section.children?.length ? { tocItem: true, tocMargin: [20, 2, 0, 0] as [number, number, number, number] } : {}),
+      });
       for (const p of section.paragraphs) content.push({ text: p, margin: [0, 0, 0, 4] });
       for (const [label, value] of section.facts) {
         content.push({ text: [{ text: `${label}: `, bold: true }, value] });
@@ -1390,7 +1406,9 @@ export class PdfMakeConverter {
           margin: [0, 6, 0, 12],
         });
       }
-    }
+      for (const child of section.children ?? []) add(child, depth + 1);
+    };
+    for (const section of sections) add(section, 0);
     content.push({ text: "", pageBreak: "after" });
     return content;
   }
@@ -1423,10 +1441,7 @@ export class PdfMakeConverter {
 
       // "ID — text" per control, one per line (same as base-generator.ts).
       const mitigations =
-        controlLabels(
-          risk.selectedMitigations.filter((m) => m.status !== "rejected"),
-          "mitigation",
-        )
+        mitigationLabels(risk.selectedMitigations, this.lang)
           .map((s) => `• ${s}`)
           .join("\n") || "-";
 

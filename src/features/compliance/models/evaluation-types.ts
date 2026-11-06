@@ -5,12 +5,12 @@
 
 import type { ComplianceRowStatus, ComplianceStatement, DeviceCategoryChoice } from "shared";
 import type {
-  Edition,
+  AnyEdition,
   EditionRow,
-  FoundationalRequirement,
   RequirementId,
   SlVector,
 } from "./compliance-types";
+import type { En50742View, SrslSummary } from "./en50742-view";
 
 // ==================== PROPERTY VIEW ====================
 
@@ -88,16 +88,20 @@ export type { DeviceCategoryChoice };
 export type EvaluationRun = "achieved" | "planned";
 
 export interface ComplianceInput {
-  edition: Edition;
+  edition: AnyEdition;
   view: PropertyView;
   /** Element ids of the component and its descendants (D-7); flows touching them are in scope too. */
   scope: ReadonlySet<string>;
+  /** The component under evaluation — model fields of the whole component are read on it (CM-6). */
+  componentId?: string;
   run: EvaluationRun;
   /** Keyed by row label. */
   statements?: Readonly<Record<string, RowStatement>>;
   claims?: readonly MatrixClaim[];
   mitigations?: readonly MitigationEvidence[];
   deviceCategories?: DeviceCategoryChoice;
+  /** EN 50742 A: risks, safety functions, hazards, WoO (CM-12); absent for other standards. */
+  en50742?: En50742View;
 }
 
 // ==================== RESULT ====================
@@ -115,7 +119,8 @@ export type RowSource =
 
 export interface RowResult {
   label: string;
-  group: FoundationalRequirement;
+  /** FR for IEC 62443-4-2, the provision group for other standards. */
+  group: string;
   minSl: EditionRow["minSl"];
   status: RowStatus;
   /** Where the status comes from — the report names it (§5). */
@@ -126,6 +131,13 @@ export interface RowResult {
   failing: string[];
   /** Elements whose applicability or satisfaction is unknown (D-12). */
   unknown: string[];
+  /**
+   * FX-21: unknown element id → its unset fields (property paths) the row
+   * reads; absent where the unknown comes from a neighbour.
+   */
+  unsetFields?: Record<string, string[]>;
+  /** EN 50742 A: risks (labels) that fail the row or are not rated yet. */
+  risks?: string[];
   /** Environment elements that meet the row as a supporting measure (D-20). */
   supportingElements: string[];
   mitigationIds: string[];
@@ -151,4 +163,6 @@ export interface ComplianceResult {
   component: SlVector;
   /** SL-C with supporting measures and claims (D-14). */
   withSupport: SlVector;
+  /** EN 50742 A: the `srsl` header (coverage §9.3). */
+  srsl?: SrslSummary;
 }

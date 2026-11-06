@@ -9,7 +9,8 @@
 //
 //   - host: https origin only (normalizeTrackerHost); the path must stay on it
 //   - methods GET / POST / PUT; JSON bodies
-//   - renderer headers: only Accept / Content-Type / X-Atlassian-Token pass
+//   - renderer headers: only Accept / Content-Type / X-Atlassian-Token /
+//     X-GitHub-Api-Version pass
 //     (an Authorization or Cookie from the renderer is dropped)
 //   - redirects are not followed (a redirect could carry the header elsewhere)
 //
@@ -42,7 +43,7 @@ export interface IntegrationResponse {
 }
 
 const METHODS = new Set(["GET", "POST", "PUT"]);
-const PASS_HEADERS = new Set(["accept", "content-type", "x-atlassian-token"]);
+const PASS_HEADERS = new Set(["accept", "content-type", "x-atlassian-token", "x-github-api-version"]);
 
 /** The authorization header of a scheme. */
 export function authHeaders(scheme: TrackerAuthScheme, account: string, token: string): Record<string, string> {

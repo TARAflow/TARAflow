@@ -15,7 +15,14 @@ describe("describeRequirement", () => {
   });
 
   it("type C: not derivable from the model", () => {
-    expect(describeRequirement("cr-1.7", "en").check).toContain("Not derivable from the model");
+    expect(describeRequirement("cr-1.8", "en").check).toContain("Not derivable from the model");
+  });
+
+  it("a model condition is named in words (EN / DE)", () => {
+    expect(describeRequirement("cr-1.7", "en").check).toBe(
+      "Checked in the model: every Process / Multiprocess that a password reaches: password strength = configurable_policy.",
+    );
+    expect(describeRequirement("cr-1.7-re2-machines", "de").check).toContain("bei dem sich Software-Prozesse oder Geräte mit Passwort anmelden");
   });
 
   it("German: summary, check and checklist", () => {

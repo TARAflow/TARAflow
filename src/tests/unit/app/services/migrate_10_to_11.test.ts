@@ -23,8 +23,8 @@ describe("migrate 10 → 11 (version fence)", () => {
     expect(out).toEqual({ ...v10, schemaVersion: 11 });
   });
 
-  it("is followed by the schema-12 fence", () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(12);
-    expect(applyMigrations(structuredClone(v10)).data.schemaVersion).toBe(12);
+  it("is followed by the later fences up to the current version", () => {
+    expect(CURRENT_SCHEMA_VERSION).toBeGreaterThan(11);
+    expect(applyMigrations(structuredClone(v10)).data.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 });

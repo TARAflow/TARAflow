@@ -1695,36 +1695,6 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
     );
   };
 
-  // ── Risk score chip ───────────────────────────────────────────────────────
-  const RiskScoreChip = ({
-    value,
-    label,
-  }: {
-    value: number;
-    label: string;
-  }) => (
-    <Box sx={{ textAlign: "center" }}>
-      <Typography variant="caption" color="text.secondary" display="block">
-        {label}
-      </Typography>
-      <Chip
-        label={value > 0 ? value.toFixed(1) : "–"}
-        size="small"
-        sx={{
-          bgcolor: getRiskColor(
-            value,
-            configuration.scale,
-            configuration.roundingMethod,
-          ),
-          color: "white",
-          fontWeight: "bold",
-          minWidth: 48,
-          mt: 0.25,
-        }}
-      />
-    </Box>
-  );
-
   // ==================== RENDER ====================
 
   return (
@@ -1853,8 +1823,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   : {
                       show: true,
                       label: beforeScore > 0 ? beforeScore.toFixed(1) : "–",
-                      color: getRiskColor(beforeScore, configuration.scale, configuration.roundingMethod),
-                      tip: beforeScore > 0 ? getRiskLabel(beforeScore, configuration.scale) : "",
+                      color: getRiskColor(beforeScore, configuration),
+                      tip: beforeScore > 0 ? getRiskLabel(beforeScore, configuration) : "",
                     };
                 const residualValue = isISO ? iso?.residual?.value : undefined;
                 const after = isISO
@@ -1867,8 +1837,8 @@ export const RiskDialog: React.FC<RiskDialogProps> = ({
                   : {
                       show: afterScore > 0,
                       label: afterScore.toFixed(1),
-                      color: getRiskColor(afterScore, configuration.scale, configuration.roundingMethod),
-                      tip: getRiskLabel(afterScore, configuration.scale),
+                      color: getRiskColor(afterScore, configuration),
+                      tip: getRiskLabel(afterScore, configuration),
                     };
                 const uncertain = risk.threatRelevance === "uncertain";
                 return (

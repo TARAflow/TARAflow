@@ -11,4 +11,6 @@ export interface ReportSection {
   /** Label / value lines. */
   facts: [string, string][];
   table?: { headers: string[]; rows: string[][] };
+  /** Sub-sections one heading level deeper (e.g. one part per standard, CM-9). */
+  children?: ReportSection[];
 }

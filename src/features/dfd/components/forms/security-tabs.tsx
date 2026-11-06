@@ -1,0 +1,128 @@
+// ==================== SECURITY SUB-TABS ====================
+// The Security section of the Process and Multiprocess forms in light
+// sub-tabs per category (user 2026-11-02; model-coverage-implementation-
+// plan.md CM-5d): login & accounts · authorization · robustness · sessions &
+// traceability · operation (· data on a black-box Multiprocess: its "inside"
+// fields are spread over the tabs of their topic; the safety fields sit below
+// the tabs, user 2026-11-06). A tab names how
+// many of its shown fields are still open; a tab without a field that fits
+// the element is left out. The chosen tab is kept per element type while the
+// app runs, so moving from element to element stays on the same category.
+
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Box, Grid, Tab, Tabs } from "@mui/material";
+import type { SecurityGroup } from "shared";
+
+export type SecurityTabId = SecurityGroup;
+
+/** One field of the section. */
+export interface SecurityEntry {
+  key: string;
+  group: SecurityTabId;
+  /** Fits the element (the form's own condition or the field's predicate). */
+  visible: boolean;
+  /** Has a value; a checkbox counts as set. */
+  set: boolean;
+  /** Grid item(s) of the field. */
+  node: React.ReactNode;
+}
+
+/**
+ * The tabs follow the categories common to the standards the matrices cover
+ * (verified 2026-11-06 against the model coverage plan §4, F-1 … F-29):
+ *   login          EN 303 645 5.1 · EN 18031 AUM · IEC 62443-4-2 FR1 (user / authenticators)
+ *   authorization  EN 18031 ACM · IEC 62443-4-2 FR2 (use control)
+ *   communication  EN 303 645 5.5 · EN 18031 SCM, CCK, CRY · CR 1.2 (device authentication), CR 3.1, CR 4.1 (in transit)
+ *   robustness     EN 303 645 5.7, 5.9, 5.13 · EN 18031 RLM, GEC (integrity) · FR3, CR 7.1 / 7.2
+ *   sessions       EN 303 645 5.10 · EN 18031 LGM · CR 2.5 – 2.12, FR6
+ *   operation      EN 303 645 5.3, 5.6, 5.11 · EN 18031 SUM, DLM, GEC (defaults) · CR 3.10, 7.3, 7.4, 7.6
+ *   data           EN 303 645 5.4, 5.8 · EN 18031 SSM · FR4 at rest (black-box fields today)
+ * Not element fields: EN 303 645 5.2 / 5.12, EN 18031 UNM (manufacturer
+ * statements); EN 18031 NMM / TCM and IEC 62443 FR5 sit on trust boundaries
+ * and interfaces.
+ */
+const TAB_ORDER: readonly SecurityTabId[] = ["login", "authorization", "communication", "robustness", "sessions", "operation", "data"];
+
+const TAB_DEFAULT: Record<SecurityTabId, string> = {
+  login: "Login & accounts",
+  authorization: "Authorization",
+  communication: "Communication",
+  robustness: "Robustness",
+  sessions: "Sessions & traceability",
+  operation: "Operation",
+  data: "Data",
+};
+
+/** Last chosen tab per form (element type), for this run of the app. */
+const lastTab = new Map<string, SecurityTabId>();
+
+export const SecurityTabs: React.FC<{
+  /** Form key, e.g. "process" — the chosen tab is kept per key. */
+  formKey: string;
+  entries: readonly SecurityEntry[];
+}> = ({ formKey, entries }) => {
+  const { t } = useTranslation();
+  const tabs = TAB_ORDER.map((id) => {
+    const shown = entries.filter((e) => e.group === id && e.visible);
+    return { id, shown, open: shown.filter((e) => !e.set).length };
+  }).filter((tab) => tab.shown.length > 0);
+  const [chosen, setChosen] = useState<SecurityTabId | undefined>(() => lastTab.get(formKey));
+  const active = tabs.find((tab) => tab.id === chosen) ?? tabs[0];
+
+  if (!active) return null;
+
+  const choose = (id: SecurityTabId) => {
+    setChosen(id);
+    lastTab.set(formKey, id);
+  };
+
+  return (
+    <Box data-testid="security-tabs">
+      {/* The bar never scrolls (user 2026-11-06): in a narrow panel the tabs
+          wrap onto a second line, so every tab and the chosen one stay in
+          view at the same place. A fixed underline marks the chosen tab —
+          MUI's sliding indicator assumes one line. */}
+      <Tabs
+        value={active.id}
+        onChange={(_, id: SecurityTabId) => choose(id)}
+        variant="standard"
+        TabIndicatorProps={{ style: { display: "none" } }}
+        sx={{
+          minHeight: 32,
+          mb: 1.5,
+          borderBottom: 1,
+          borderColor: "divider",
+          "& .MuiTabs-flexContainer": { flexWrap: "wrap" },
+          "& .MuiTab-root": {
+            minHeight: 32,
+            py: 0.5,
+            px: 1.5,
+            textTransform: "none",
+            fontSize: "0.8rem",
+            borderBottom: 2,
+            borderColor: "transparent",
+          },
+          "& .MuiTab-root.Mui-selected": { borderColor: "primary.main" },
+        }}
+      >
+        {tabs.map((tab) => {
+          const label = t(`tabs.dfd.element_description.securityTabs.${tab.id}`, { defaultValue: TAB_DEFAULT[tab.id] });
+          return (
+            <Tab
+              key={tab.id}
+              value={tab.id}
+              label={tab.open > 0 ? `${label} (${tab.open})` : label}
+              data-testid={`security-tab-${tab.id}`}
+            />
+          );
+        })}
+      </Tabs>
+      <Grid container rowSpacing={2} columnSpacing={2}>
+        {active.shown.map((entry) => (
+          <React.Fragment key={entry.key}>{entry.node}</React.Fragment>
+        ))}
+      </Grid>
+    </Box>
+  );
+};

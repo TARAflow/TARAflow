@@ -21,6 +21,7 @@ import { conceptFindingText } from "../concept-finding-text";
 import {
   MOSCOW_PRIORITIES,
   RISK_TREATMENTS,
+  getLikelihoodColor,
 } from "../../models/risk-scale-types";
 import { RiskConfiguration } from "../../models/risk-config-types";
 import {
@@ -46,6 +47,7 @@ import {
   deriveImplementationProgress,
 } from "../../models/risk-mitigation-types";
 import {
+  getFactorColor,
   getRiskColor,
   getRiskLabel,
 } from "../../services/risk-calculation-service";
@@ -140,8 +142,8 @@ const FactorTooltipContent: React.FC<FactorTooltipContentProps> = ({
 
 interface RiskChipProps {
   value: number;
-  scale: string;
-  rounding: string;
+  /** Chip color — the level on the axis the value belongs to (MT-3). */
+  color: string;
   tooltipLines: string;
   tooltipLabel: string | null;
   tooltipColor: string | null;
@@ -149,8 +151,7 @@ interface RiskChipProps {
 
 const RiskChipCell: React.FC<RiskChipProps> = ({
   value,
-  scale,
-  rounding,
+  color,
   tooltipLines,
   tooltipLabel,
   tooltipColor,
@@ -169,7 +170,7 @@ const RiskChipCell: React.FC<RiskChipProps> = ({
       label={value > 0 ? value.toFixed(1) : "–"}
       size="small"
       sx={{
-        bgcolor: getRiskColor(value, scale as any, rounding as any),
+        bgcolor: color,
         color: "white",
         fontWeight: "bold",
         cursor: "help",
@@ -325,16 +326,8 @@ export const useRiskColumns = ({
       return {
         lines,
         value,
-        color: getRiskColor(
-          value,
-          configuration.scale,
-          configuration.roundingMethod,
-        ),
-        label: getRiskLabel(
-          value,
-          configuration.scale,
-          configuration.roundingMethod,
-        ),
+        color: getRiskColor(value, configuration),
+        label: getRiskLabel(value, configuration),
       };
     };
 
@@ -471,8 +464,7 @@ export const useRiskColumns = ({
           return (
             <RiskChipCell
               value={risk.calculatedImpact}
-              scale={configuration.scale}
-              rounding={configuration.roundingMethod}
+              color={getFactorColor(risk.calculatedImpact, configuration.scale)}
               tooltipLines={d.lines}
               tooltipLabel={d.label}
               tooltipColor={d.color}
@@ -492,8 +484,11 @@ export const useRiskColumns = ({
           return (
             <RiskChipCell
               value={risk.calculatedLikelihood}
-              scale={configuration.scale}
-              rounding={configuration.roundingMethod}
+              color={getLikelihoodColor(
+                risk.calculatedLikelihood,
+                configuration.scale,
+                configuration.roundingMethod,
+              )}
               tooltipLines={d.lines}
               tooltipLabel={d.label}
               tooltipColor={d.color}
@@ -511,8 +506,7 @@ export const useRiskColumns = ({
           return (
             <RiskChipCell
               value={risk.calculatedRiskBeforeMitigation}
-              scale={configuration.scale}
-              rounding={configuration.roundingMethod}
+              color={getRiskColor(risk.calculatedRiskBeforeMitigation, configuration)}
               tooltipLines={d.lines}
               tooltipLabel={d.label}
               tooltipColor={d.color}
@@ -646,8 +640,7 @@ export const useRiskColumns = ({
         return (
           <RiskChipCell
             value={risk.calculatedRiskAfterMitigation}
-            scale={configuration.scale}
-            rounding={configuration.roundingMethod}
+            color={getRiskColor(risk.calculatedRiskAfterMitigation, configuration)}
             tooltipLines={d.lines}
             tooltipLabel={d.label}
             tooltipColor={d.color}

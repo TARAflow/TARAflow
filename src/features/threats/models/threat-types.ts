@@ -811,9 +811,24 @@ export interface TemplateContext {
   /**
    * Element-level: matches DataFlow.accessMode.
    * Used to generate Tampering threat on OT protocols with read_write access.
+   * Unset counts as "read_write" (FX-7: unset = unknown, never the safe case).
    * @example ["read_write"]
    */
   accessMode?: string[];
+
+  /**
+   * Element-level: matches DataFlow.physicalPathProtection (multi-select since
+   * schema 13 — any entry matches). Unset counts as "none" (FX-7).
+   * @example ["none"]
+   */
+  physicalPathProtection?: string[];
+
+  /**
+   * Element-level: matches DataFlow.encryptionInTransit. Unset counts as
+   * "none" (FX-7).
+   * @example ["none"]
+   */
+  encryptionInTransit?: string[];
 }
 
 // ==================== CONFIGURATION ====================

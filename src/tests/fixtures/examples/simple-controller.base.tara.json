@@ -262,6 +262,7 @@
           "y": 270.53999999999996
         },
         "properties": {
+          "tlsTermination": ["none"],
           "technology": "daemon",
           "processSemantic": "execution_unit",
           "runsAs": "service",
@@ -282,6 +283,7 @@
           "y": 270.54
         },
         "properties": {
+          "tlsTermination": ["none"],
           "technology": "daemon",
           "processSemantic": "execution_unit",
           "runsAs": "root"

@@ -29,6 +29,12 @@ import { SecurityControlOwnershipDisplay } from "./security-control-ownership-di
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
+import { useElementVisibilityContext, useModelFieldEntries } from "./model-field-inputs";
+import { hasChannelCapableFlow } from "../../utils/secure-channel";
+import { SecurityTabs } from "./security-tabs";
+import { SECURE_CHANNEL_OPTIONS, selectionOf } from "../../models/element-properties";
+import { MultiSelectField } from "./multi-select-field";
+import { isUnset, MODEL_CONDITIONS, type VisibilityElement } from "shared";
 import { useElementForm } from "../../hooks/use-element-form";
 import {
   updateProcessProperties,
@@ -172,6 +178,15 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
     },
     [element.properties, onChange],
   );
+
+  // Security sub-tabs (CM-5d): the model coverage fields from the registry,
+  // and the session settings only where human users reach the element —
+  // without the DFD tab's model they stay as before.
+  const modelFieldEntries = useModelFieldEntries(element as unknown as VisibilityElement, (property, value) =>
+    handlePropertyChange(property as keyof ProcessProperties, value),
+  );
+  const visibility = useElementVisibilityContext(element as unknown as VisibilityElement);
+  const sessionsShown = !visibility || MODEL_CONDITIONS.humanUsers(visibility);
 
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
@@ -448,6 +463,23 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
             </span>
           </Tooltip>
         </Grid>
+
+        {/* Exposed to Internet — context, not a control (user 2026-11-06, as on the
+            multiprocess); not applicable for embedded processes (no network stack) */}
+        {!isEmbedded && (
+          <Grid item xs={12} sm={6} sx={{ display: "flex", alignItems: "center" }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={props.exposedToInternet || false}
+                  onChange={(e) => handlePropertyChange("exposedToInternet", e.target.checked)}
+                />
+              }
+              label={t("tabs.dfd.element_description.process.fields.exposedToInternet.label")}
+              data-testid="field-exposedToInternet"
+            />
+          </Grid>
+        )}
       </Grid>
 
       {/* ── Security ─────────────────────────────── */}
@@ -457,462 +489,517 @@ const ProcessGeneralTab: React.FC<ProcessGeneralTabProps> = ({
         })}
       />
 
-      <Grid container rowSpacing={2} columnSpacing={2}>
-        {/* Authentication Required */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.process.fields.authenticationRequired.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.authenticationRequired ?? ""}
-              onChange={(e) =>
-                handlePropertyChange(
-                  "authenticationRequired",
-                  e.target.value === "" ? undefined : e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.authenticationRequired.label",
-              )}
-            >
-              <MenuItem value="">
-                <em>{t("common.not_specified")}</em>
-              </MenuItem>
-              {(
-                [
-                  "no",
-                  "yes",
-                  "optional",
-                  "oauth",
-                  "saml",
-                  "certificate",
-                  "apikey",
-                  "jwt",
-                  "mtls",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.process.fields.authenticationRequired.options.${opt}`,
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* TLS Termination — capability, decoupled from auth */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.process.fields.tlsTermination.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.tlsTermination ?? ""}
-              onChange={(e) =>
-                handlePropertyChange(
-                  "tlsTermination",
-                  e.target.value === "" ? undefined : e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.tlsTermination.label",
-              )}
-            >
-              <MenuItem value="">
-                <em>{t("common.not_specified")}</em>
-              </MenuItem>
-              {(["none", "server", "mutual"] as const).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.process.fields.tlsTermination.options.${opt}`,
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Authorization Model */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.process.fields.authorizationModel.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.authorizationModel ?? ""}
-              onChange={(e) =>
-                handlePropertyChange(
-                  "authorizationModel",
-                  e.target.value === "" ? undefined : e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.authorizationModel.label",
-              )}
-            >
-              <MenuItem value="">
-                <em>{t("common.not_specified")}</em>
-              </MenuItem>
-              {(["none", "rbac", "abac", "acl", "custom"] as const).map(
-                (opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.process.fields.authorizationModel.options.${opt}`,
-                    )}
-                  </MenuItem>
-                ),
-              )}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Input Validation */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.process.fields.inputValidation.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.inputValidation ?? ""}
-              onChange={(e) =>
-                handlePropertyChange(
-                  "inputValidation",
-                  e.target.value === "" ? undefined : e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.inputValidation.label",
-              )}
-            >
-              <MenuItem value="">
-                <em>{t("common.not_specified")}</em>
-              </MenuItem>
-              {(["none", "basic", "strict", "schema"] as const).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.process.fields.inputValidation.options.${opt}`,
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Error Handling */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.process.fields.errorHandling.label",
-              )}
-            </InputLabel>
-            <Select
-              value={props.errorHandling ?? ""}
-              onChange={(e) =>
-                handlePropertyChange(
-                  "errorHandling",
-                  e.target.value === "" ? undefined : e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.errorHandling.label",
-              )}
-            >
-              <MenuItem value="">
-                <em>{t("common.not_specified")}</em>
-              </MenuItem>
-              {(["silent", "verbose", "sanitized"] as const).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.process.fields.errorHandling.options.${opt}`,
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Malware Protection — CR 3.2 / EDR 3.2 */}
-        {/* Options filtered per technology: AV requires OS, code_signing requires loader */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.process.fields.malwareProtection.label",
-                { defaultValue: "Malware Protection" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.malwareProtection ?? ""}
-              onChange={(e) =>
-                handlePropertyChange(
-                  "malwareProtection",
-                  e.target.value === "" ? undefined : e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.malwareProtection.label",
-                { defaultValue: "Malware Protection" },
-              )}
-            >
-              <MenuItem value="">
-                <em>{t("common.not_specified")}</em>
-              </MenuItem>
-              {(props.technology != null
-                ? (MALWARE_PROTECTION_OPTIONS[props.technology] ??
-                  ALL_MALWARE_OPTIONS)
-                : ALL_MALWARE_OPTIONS
-              ).map((opt: string) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.process.fields.malwareProtection.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Account Management — CR 1.3 — not applicable for embedded (no user account concept) */}
-        {!isEmbedded && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.process.fields.accountManagement.label",
-                  { defaultValue: "Account Management" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.accountManagement ?? ""}
-                onChange={(e) =>
-                  handlePropertyChange(
-                    "accountManagement",
-                    e.target.value === "" ? undefined : e.target.value,
-                  )
-                }
-                label={t(
-                  "tabs.dfd.element_description.process.fields.accountManagement.label",
-                  { defaultValue: "Account Management" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>{t("common.not_specified")}</em>
-                </MenuItem>
-                {(
-                  [
-                    "local_only",
-                    "ldap",
-                    "active_directory",
-                    "radius",
-                    "iam",
-                    "custom",
-                  ] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.process.fields.accountManagement.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        )}
-
-        {/* Authenticator Storage — CR 1.5 RE(1) */}
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel>
-              {t(
-                "tabs.dfd.element_description.process.fields.authenticatorStorage.label",
-                { defaultValue: "Authenticator Storage" },
-              )}
-            </InputLabel>
-            <Select
-              value={props.authenticatorStorage ?? ""}
-              onChange={(e) =>
-                handlePropertyChange(
-                  "authenticatorStorage",
-                  e.target.value === "" ? undefined : e.target.value,
-                )
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.authenticatorStorage.label",
-                { defaultValue: "Authenticator Storage" },
-              )}
-            >
-              <MenuItem value="">
-                <em>{t("common.not_specified")}</em>
-              </MenuItem>
-              {(
-                [
-                  "software_only",
-                  "tpm",
-                  "secure_element",
-                  "hsm",
-                  "keychain_os",
-                  "custom",
-                ] as const
-              ).map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {t(
-                    `tabs.dfd.element_description.process.fields.authenticatorStorage.options.${opt}`,
-                    { defaultValue: opt },
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Non-Repudiation — CR 2.12 — only for UI/API/websocket */}
-        {props.technology != null &&
-          (["ui", "api", "websocket", "cli"] as const).includes(
-            props.technology as "ui" | "api" | "websocket" | "cli",
-          ) && (
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>
-                  {t(
-                    "tabs.dfd.element_description.process.fields.nonRepudiation.label",
-                    { defaultValue: "Non-Repudiation" },
-                  )}
-                </InputLabel>
-                <Select
-                  value={props.nonRepudiation ?? ""}
-                  onChange={(e) =>
-                    handlePropertyChange(
-                      "nonRepudiation",
-                      e.target.value === "" ? undefined : e.target.value,
-                    )
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.process.fields.nonRepudiation.label",
-                    { defaultValue: "Non-Repudiation" },
-                  )}
-                >
-                  <MenuItem value="">
-                    <em>{t("common.not_specified")}</em>
-                  </MenuItem>
-                  {(
-                    [
-                      "none",
-                      "audit_log",
-                      "digital_signature",
-                      "hardware_backed",
-                    ] as const
-                  ).map((opt) => (
-                    <MenuItem key={opt} value={opt}>
+      <SecurityTabs
+        formKey="process"
+        entries={[
+          // Authentication Required
+          {
+            key: "authenticationRequired",
+            group: "login",
+            visible: true,
+            set: !isUnset(props.authenticationRequired),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
                       {t(
-                        `tabs.dfd.element_description.process.fields.nonRepudiation.options.${opt}`,
-                        { defaultValue: opt },
+                        "tabs.dfd.element_description.process.fields.authenticationRequired.label",
                       )}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          )}
-
-        {/* Fail-Safe Output State — CR 3.6 — only for functional_block / safetyRelevant */}
-        {((props as any).processSemantic === "functional_block" ||
-          (props as any).safetyRelevant) && (
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="small">
-              <InputLabel>
-                {t(
-                  "tabs.dfd.element_description.process.fields.failSafeOutputState.label",
-                  { defaultValue: "Fail-Safe Output State" },
-                )}
-              </InputLabel>
-              <Select
-                value={props.failSafeOutputState ?? ""}
-                onChange={(e) =>
-                  handlePropertyChange(
-                    "failSafeOutputState",
-                    e.target.value === "" ? undefined : e.target.value,
-                  )
-                }
-                label={t(
-                  "tabs.dfd.element_description.process.fields.failSafeOutputState.label",
-                  { defaultValue: "Fail-Safe Output State" },
-                )}
-              >
-                <MenuItem value="">
-                  <em>{t("common.not_specified")}</em>
-                </MenuItem>
-                {(
-                  [
-                    "not_defined",
-                    "unpowered",
-                    "hold_last_value",
-                    "fixed_value",
-                    "dynamic",
-                  ] as const
-                ).map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {t(
-                      `tabs.dfd.element_description.process.fields.failSafeOutputState.options.${opt}`,
-                      { defaultValue: opt },
-                    )}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        )}
-
-        {/* Update Mechanism — CR 3.10, when the process is updated on its own */}
-        <UpdateMechanismField
-          i18nBase="tabs.dfd.element_description.process.fields"
-          value={props.updateMechanism}
-          onChange={(v) => handlePropertyChange("updateMechanism", v)}
-        />
-
-        {/* Session Control — CR 2.5 – 2.7, for processes with human users */}
-        <SessionControlFields
-          i18nBase="tabs.dfd.element_description.process.fields"
-          value={props.sessionControl}
-          onChange={(v) => handlePropertyChange("sessionControl", v)}
-        />
-
-        {/* Exposed to Internet — not applicable for embedded processes (no network stack) */}
-        {!isEmbedded && (
-          <Grid
-            item
-            xs={12}
-            sm={6}
-            sx={{ display: "flex", alignItems: "center" }}
-          >
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={props.exposedToInternet || false}
-                  onChange={(e) =>
-                    handlePropertyChange("exposedToInternet", e.target.checked)
-                  }
+                    </InputLabel>
+                    <Select
+                      value={props.authenticationRequired ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange(
+                          "authenticationRequired",
+                          e.target.value === "" ? undefined : e.target.value,
+                        )
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.process.fields.authenticationRequired.label",
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>{t("common.not_specified")}</em>
+                      </MenuItem>
+                      {(
+                        [
+                          "no",
+                          "yes",
+                          "optional",
+                          "oauth",
+                          "saml",
+                          "certificate",
+                          "apikey",
+                          "jwt",
+                          "mtls",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.process.fields.authenticationRequired.options.${opt}`,
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // TLS Termination — capability, decoupled from auth; only where a flow can
+          // carry a secure channel (network / bus), user 2026-11-06
+          {
+            key: "tlsTermination",
+            group: "communication",
+            visible: hasChannelCapableFlow(visibility),
+            set: !isUnset(props.tlsTermination),
+            node: (
+              <>
+                <MultiSelectField
+                  label={t("tabs.dfd.element_description.process.fields.tlsTermination.label", { defaultValue: "Secure channel (endpoint)" })}
+                  options={SECURE_CHANNEL_OPTIONS}
+                  value={selectionOf(SECURE_CHANNEL_OPTIONS, props.tlsTermination)}
+                  onChange={(next) => handlePropertyChange("tlsTermination", next)}
+                  optionLabel={(opt) => t(`tabs.dfd.element_description.process.fields.tlsTermination.options.${opt}`, { defaultValue: opt })}
+                  testId="field-tlsTermination"
                 />
-              }
-              label={t(
-                "tabs.dfd.element_description.process.fields.exposedToInternet.label",
-              )}
-            />
-          </Grid>
-        )}
-      </Grid>
+              </>
+            ),
+          },
+          // Account Management — CR 1.3 — not applicable for embedded (no user account concept)
+          {
+            key: "accountManagement",
+            group: "login",
+            visible: !isEmbedded,
+            set: !isUnset(props.accountManagement),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.process.fields.accountManagement.label",
+                        { defaultValue: "Account Management" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.accountManagement ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange(
+                          "accountManagement",
+                          e.target.value === "" ? undefined : e.target.value,
+                        )
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.process.fields.accountManagement.label",
+                        { defaultValue: "Account Management" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>{t("common.not_specified")}</em>
+                      </MenuItem>
+                      {(
+                        [
+                          "local_only",
+                          "ldap",
+                          "active_directory",
+                          "radius",
+                          "iam",
+                          "custom",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.process.fields.accountManagement.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Authenticator Storage — CR 1.5 RE(1)
+          {
+            key: "authenticatorStorage",
+            group: "login",
+            visible: true,
+            set: !isUnset(props.authenticatorStorage),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.process.fields.authenticatorStorage.label",
+                        { defaultValue: "Authenticator Storage" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.authenticatorStorage ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange(
+                          "authenticatorStorage",
+                          e.target.value === "" ? undefined : e.target.value,
+                        )
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.process.fields.authenticatorStorage.label",
+                        { defaultValue: "Authenticator Storage" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>{t("common.not_specified")}</em>
+                      </MenuItem>
+                      {(
+                        [
+                          "software_only",
+                          "tpm",
+                          "secure_element",
+                          "hsm",
+                          "keychain_os",
+                          "custom",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.process.fields.authenticatorStorage.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Authorization Model
+          {
+            key: "authorizationModel",
+            group: "authorization",
+            visible: true,
+            set: !isUnset(props.authorizationModel),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.process.fields.authorizationModel.label",
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.authorizationModel ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange(
+                          "authorizationModel",
+                          e.target.value === "" ? undefined : e.target.value,
+                        )
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.process.fields.authorizationModel.label",
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>{t("common.not_specified")}</em>
+                      </MenuItem>
+                      {(["none", "rbac", "abac", "acl", "custom"] as const).map(
+                        (opt) => (
+                          <MenuItem key={opt} value={opt}>
+                            {t(
+                              `tabs.dfd.element_description.process.fields.authorizationModel.options.${opt}`,
+                            )}
+                          </MenuItem>
+                        ),
+                      )}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Input Validation
+          {
+            key: "inputValidation",
+            group: "robustness",
+            visible: true,
+            set: !isUnset(props.inputValidation),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.process.fields.inputValidation.label",
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.inputValidation ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange(
+                          "inputValidation",
+                          e.target.value === "" ? undefined : e.target.value,
+                        )
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.process.fields.inputValidation.label",
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>{t("common.not_specified")}</em>
+                      </MenuItem>
+                      {(["none", "basic", "strict", "schema"] as const).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.process.fields.inputValidation.options.${opt}`,
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Error Handling
+          {
+            key: "errorHandling",
+            group: "robustness",
+            visible: true,
+            set: !isUnset(props.errorHandling),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.process.fields.errorHandling.label",
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.errorHandling ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange(
+                          "errorHandling",
+                          e.target.value === "" ? undefined : e.target.value,
+                        )
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.process.fields.errorHandling.label",
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>{t("common.not_specified")}</em>
+                      </MenuItem>
+                      {(["silent", "verbose", "sanitized"] as const).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.process.fields.errorHandling.options.${opt}`,
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Malware Protection — CR 3.2 / EDR 3.2
+          // Options filtered per technology: AV requires OS, code_signing requires loader
+          {
+            key: "malwareProtection",
+            group: "robustness",
+            visible: true,
+            set: !isUnset(props.malwareProtection),
+            node: (
+              <>
+                <MultiSelectField
+                  label={t("tabs.dfd.element_description.process.fields.malwareProtection.label", { defaultValue: "Malware Protection" })}
+                  options={props.technology != null ? (MALWARE_PROTECTION_OPTIONS[props.technology] ?? ALL_MALWARE_OPTIONS) : ALL_MALWARE_OPTIONS}
+                  value={props.malwareProtection}
+                  onChange={(next) => handlePropertyChange("malwareProtection", next)}
+                  optionLabel={(opt) => t(`tabs.dfd.element_description.process.fields.malwareProtection.options.${opt}`, { defaultValue: opt })}
+                  testId="process-malware-protection"
+                />
+              </>
+            ),
+          },
+          // Fail-Safe Output State — CR 3.6 — only for functional_block / safetyRelevant
+          {
+            key: "failSafeOutputState",
+            group: "robustness",
+            visible: (props as any).processSemantic === "functional_block" || !!(props as any).safetyRelevant,
+            set: !isUnset(props.failSafeOutputState),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.process.fields.failSafeOutputState.label",
+                        { defaultValue: "Fail-Safe Output State" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.failSafeOutputState ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange(
+                          "failSafeOutputState",
+                          e.target.value === "" ? undefined : e.target.value,
+                        )
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.process.fields.failSafeOutputState.label",
+                        { defaultValue: "Fail-Safe Output State" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>{t("common.not_specified")}</em>
+                      </MenuItem>
+                      {(
+                        [
+                          "not_defined",
+                          "unpowered",
+                          "hold_last_value",
+                          "fixed_value",
+                          "dynamic",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.process.fields.failSafeOutputState.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Session Control — CR 2.5 – 2.7, only for elements with human users (condition humanUsers)
+          {
+            key: "sessionControl.sessionLockEnabled",
+            group: "sessions",
+            visible: sessionsShown,
+            set: props.sessionControl?.sessionLockEnabled !== undefined,
+            node: (
+              <SessionControlFields
+                i18nBase="tabs.dfd.element_description.process.fields"
+                value={props.sessionControl}
+                onChange={(v) => handlePropertyChange("sessionControl", v)}
+                only="sessionLockEnabled"
+              />
+            ),
+          },
+          {
+            key: "sessionControl.remoteTerminationEnabled",
+            group: "sessions",
+            visible: sessionsShown,
+            set: props.sessionControl?.remoteTerminationEnabled !== undefined,
+            node: (
+              <SessionControlFields
+                i18nBase="tabs.dfd.element_description.process.fields"
+                value={props.sessionControl}
+                onChange={(v) => handlePropertyChange("sessionControl", v)}
+                only="remoteTerminationEnabled"
+              />
+            ),
+          },
+          {
+            key: "sessionControl.maxConcurrentSessions",
+            group: "sessions",
+            visible: sessionsShown,
+            set: props.sessionControl?.maxConcurrentSessions !== undefined,
+            node: (
+              <SessionControlFields
+                i18nBase="tabs.dfd.element_description.process.fields"
+                value={props.sessionControl}
+                onChange={(v) => handlePropertyChange("sessionControl", v)}
+                only="maxConcurrentSessions"
+              />
+            ),
+          },
+          // Non-Repudiation — CR 2.12 — only for UI/API/websocket
+          {
+            key: "nonRepudiation",
+            group: "sessions",
+            visible:
+              props.technology != null &&
+              (["ui", "api", "websocket", "cli"] as const).includes(props.technology as "ui" | "api" | "websocket" | "cli"),
+            set: !isUnset(props.nonRepudiation),
+            node: (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>
+                      {t(
+                        "tabs.dfd.element_description.process.fields.nonRepudiation.label",
+                        { defaultValue: "Non-Repudiation" },
+                      )}
+                    </InputLabel>
+                    <Select
+                      value={props.nonRepudiation ?? ""}
+                      onChange={(e) =>
+                        handlePropertyChange(
+                          "nonRepudiation",
+                          e.target.value === "" ? undefined : e.target.value,
+                        )
+                      }
+                      label={t(
+                        "tabs.dfd.element_description.process.fields.nonRepudiation.label",
+                        { defaultValue: "Non-Repudiation" },
+                      )}
+                    >
+                      <MenuItem value="">
+                        <em>{t("common.not_specified")}</em>
+                      </MenuItem>
+                      {(
+                        [
+                          "none",
+                          "audit_log",
+                          "digital_signature",
+                          "hardware_backed",
+                        ] as const
+                      ).map((opt) => (
+                        <MenuItem key={opt} value={opt}>
+                          {t(
+                            `tabs.dfd.element_description.process.fields.nonRepudiation.options.${opt}`,
+                            { defaultValue: opt },
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </>
+            ),
+          },
+          // Update Mechanism — CR 3.10, when the process is updated on its own
+          {
+            key: "updateMechanism",
+            group: "operation",
+            visible: true,
+            set: !isUnset(props.updateMechanism),
+            node: (
+              <>
+                <UpdateMechanismField
+                  i18nBase="tabs.dfd.element_description.process.fields"
+                  value={props.updateMechanism}
+                  onChange={(v) => handlePropertyChange("updateMechanism", v)}
+                />
+              </>
+            ),
+          },
+          // Model coverage fields last in each tab — after the settings that show them.
+          ...modelFieldEntries,
+        ]}
+      />
 
       {/* ── Documentation ───────────────────────── */}
       <SectionLabel

@@ -10,6 +10,11 @@
 //                  by a measure marked done is never read as model evidence)
 //   4 CRA view     Annex I Part I → rows (CRA edition only)
 //   5 gaps         rows below the target, with catalog suggestions
+// One part per active standard (CM-9): both 62443 tags → the CRA edition and
+// the classic edition, each with these sections. EN 50742 A (CM-13) has no
+// security levels: basis (whole machine, WoO), SRSL per safety function with
+// the interfaces on its path, SoA with the group instead of "SL-C from" and
+// the risks per row, and the open requirements.
 
 import type { DocCompliance, DocComplianceRow } from "../models/doc-types";
 import type { ReportSection } from "./report-section";
@@ -25,7 +30,7 @@ const STATUS_DEFAULTS: Record<string, string> = {
   met: "met",
   claimed: "claimed",
   "n/a": "not applicable",
-  unknown: "unknown — properties not set",
+  unknown: "information missing — properties not set",
   "pending-category": "device category to confirm",
   "needs-statement": "statement needed",
   gap: "gap",
@@ -55,11 +60,41 @@ const CRA_REQUIREMENTS: { id: string; label: string }[] = [
   { id: "m", label: "(2)(m) secure removal of data" },
 ];
 
-export const complianceMatrixIntro = (t: TranslateFn): string =>
-  t(
+const GROUP_DEFAULTS: Record<string, string> = {
+  "threat-assessment": "Threat assessment",
+  "information-collection": "Information collection (7.3)",
+  "software-identification": "Software identification (7.5)",
+  "protection-measures": "Protection measures (7.4.3)",
+  "information-for-use": "Information for use (9)",
+};
+
+const WOO_DEFAULTS: Record<string, string> = {
+  very_restricted: "very restricted",
+  moderately_restricted: "moderately restricted",
+  limited: "limited",
+  unlimited: "unlimited",
+};
+
+/** The chapter intro: IEC 62443-4-2, EN 50742 A, or both kinds of standard. */
+export const complianceMatrixIntro = (t: TranslateFn, compliance?: readonly DocCompliance[]): string => {
+  const parts = (compliance ?? []).filter((c) => c.rows.length > 0);
+  if (parts.length > 0 && parts.every((c) => !c.levels)) {
+    return t(
+      `${K}.introSrsl`,
+      "The requirements of EN 50742 Approach A for the machine, each with whether it applies and how it is met, derived from the analysed model, the risks with their SRSL and the project data. A row is met by the model, by the mandated controls of the risk treatment or by an analyst statement; the source is named for every row.",
+    );
+  }
+  if (parts.some((c) => !c.levels)) {
+    return t(
+      `${K}.introMixed`,
+      "The requirements of each active standard, each with whether it applies and how it is met — derived from the analysed model, the risk treatment and the analyst statements; the source is named for every row. One part per standard.",
+    );
+  }
+  return t(
     `${K}.intro`,
     "The requirements of IEC 62443-4-2 for the component, each with whether it applies and how it is met — the Statement of Applicability, derived from the analysed model. A row is met by the model, by a mitigation of the risk treatment, by a supporting measure outside the component, by an analyst statement or covered by a claim; the source is named for every row.",
   );
+};
 
 const statusText = (row: DocComplianceRow, t: TranslateFn) =>
   t(`${K}.status.${row.status}`, STATUS_DEFAULTS[row.status] ?? row.status);
@@ -81,10 +116,11 @@ function rowNotes(row: DocComplianceRow, t: TranslateFn): string {
     parts.push(`${t(`${K}.${key}`, def)}: ${shown}${rest}`);
   };
   list("failing", "not met by", row.failing);
-  list("unknownElements", "properties missing on", row.unknown);
+  list("unknownElements", "information missing on", row.unknown);
   list("supporting", "supporting measure", row.supporting);
   list("mitigations", "mitigations", row.mitigations);
   list("claims", "claims", row.claims);
+  list("risks", "risks", row.risks ?? []);
   if (row.reasoning) parts.push(row.reasoning);
   if (row.checklist.length > 0) parts.push(`${t(`${K}.confirm`, "to confirm")}: ${row.checklist.join("; ")}`);
   if (row.contradiction) {
@@ -97,13 +133,24 @@ function rowNotes(row: DocComplianceRow, t: TranslateFn): string {
   return parts.join(" · ");
 }
 
-export function hasComplianceContent(compliance: DocCompliance | undefined): boolean {
-  return !!compliance && compliance.rows.length > 0;
+export function hasComplianceContent(compliance: readonly DocCompliance[] | undefined): boolean {
+  return !!compliance && compliance.some((c) => c.rows.length > 0);
 }
 
-export function complianceMatrixSections(compliance: DocCompliance | undefined, t: TranslateFn): ReportSection[] {
-  if (!hasComplianceContent(compliance)) return [];
-  const c = compliance!;
+/**
+ * The chapter's sections: one part per active standard (CM-9). With several
+ * standards each standard is a heading of its own with its sections one
+ * level below (user 2026-11-02: many standards can be active); with one the
+ * chapter reads as before.
+ */
+export function complianceMatrixSections(compliance: readonly DocCompliance[] | undefined, t: TranslateFn): ReportSection[] {
+  const parts = (compliance ?? []).filter((c) => c.rows.length > 0);
+  if (parts.length <= 1) return parts.length === 1 ? standardSections(parts[0], t) : [];
+  return parts.map((c) => ({ title: c.standardLabel, paragraphs: [c.editionTitle], facts: [], children: standardSections(c, t) }));
+}
+
+function standardSections(c: DocCompliance, t: TranslateFn): ReportSection[] {
+  if (!c.levels) return srslStandardSections(c, t);
   const sections: ReportSection[] = [];
 
   // 1 — basis
@@ -185,6 +232,8 @@ export function complianceMatrixSections(compliance: DocCompliance | undefined, 
     },
   });
 
+  claimsSection(c, t, sections);
+
   // 4 — CRA view (CRA edition)
   if (c.cra) {
     sections.push({
@@ -193,6 +242,11 @@ export function complianceMatrixSections(compliance: DocCompliance | undefined, 
         t(
           `${K}.craText`,
           "The essential cybersecurity requirements with the rows of the matrix behind them (EN IEC 62443-4-2/prAA, Annex ZZ). Part I (1), (2)(a) and (2)(g) and Part II are met by the development and vulnerability handling process (EN IEC 62443-4-1) — outside this matrix.",
+        ),
+        // F-28 dropped (user 2026-11-02): manufacturer information is documentation, not TARA content.
+        t(
+          `${K}.craDocumentation`,
+          "Not part of this assessment: the information the CRA requires for the user and in the technical documentation (Annex II), such as the support period, the contact for reporting vulnerabilities and the product identification — it is stated in the product documentation.",
         ),
       ],
       facts: [],
@@ -225,10 +279,119 @@ export function complianceMatrixSections(compliance: DocCompliance | undefined, 
       facts: [],
       table: {
         headers: [t(`${K}.requirement`, "Requirement"), t(`${K}.statusColumn`, "Status"), t(`${K}.suggestions`, "Catalog mitigations")],
-        rows: gaps.map((r) => [r.label, statusText(r, t), r.suggestions.join(", ") || "—"]),
+        // FX-23: the mitigation's text, not only its id.
+        rows: gaps.map((r) => [r.label, statusText(r, t), r.suggestions.map((m) => (m.text && m.text !== m.id ? `${m.id}: ${m.text}` : m.id)).join("; ") || "—"]),
       },
     });
   }
 
   return sections;
+}
+
+// ==================== STANDARDS WITHOUT LEVELS (EN 50742 A) ====================
+
+const OPEN_STATUSES = ["gap", "unknown", "needs-statement", "pending-category"];
+
+function srslStandardSections(c: DocCompliance, t: TranslateFn): ReportSection[] {
+  const sections: ReportSection[] = [];
+  const groupText = (id: string) => t(`${K}.group.${id}`, GROUP_DEFAULTS[id] ?? id);
+  const woo = c.srsl?.windowOfOpportunity;
+
+  // 1 — basis: the whole machine, the WoO the SRSL rests on
+  sections.push({
+    title: t(`${K}.basisTitle`, "Basis"),
+    paragraphs: [],
+    facts: [
+      [t(`${K}.edition`, "Edition"), c.draft ? `${c.editionTitle} — ${t(`${K}.draft`, "draft, may change before it is cited")}` : c.editionTitle],
+      [t(`${K}.scope`, "Scope"), t(`${K}.wholeMachine`, "the whole machine")],
+      [t(`${K}.woo`, "Window of opportunity"), woo ? t(`${K}.wooLevel.${woo}`, WOO_DEFAULTS[woo] ?? woo) : t(`${K}.notSet`, "not set")],
+    ],
+  });
+
+  // 2 — SRSL per safety function (coverage §9.3)
+  if (c.srsl) {
+    sections.push({
+      title: t(`${K}.srslTitle`, "SRSL per safety function"),
+      paragraphs: [
+        t(
+          `${K}.srslText`,
+          "The highest SRSL the rated risks give for each safety function (an asset with a physical impact), and the interfaces on a path to it — found backwards along the data flows from the safety function's elements. The SRSL is derived in the risk assessment; it is not entered here.",
+        ),
+      ],
+      facts: [],
+      table: {
+        headers: [t(`${K}.safetyFunction`, "Safety function"), t(`${K}.highestSrsl`, "Highest SRSL"), t(`${K}.pathInterfaces`, "Interfaces on the path")],
+        rows: c.srsl.safetyFunctions.map((sf) => [
+          sf.name,
+          sf.srsl === undefined ? t(`${K}.notRated`, "not rated") : `SRSL${sf.srsl}`,
+          sf.interfaces.join(", ") || "—",
+        ]),
+      },
+    });
+  }
+
+  // 3 — Statement of Applicability, grouped as the standard
+  sections.push({
+    title: t(`${K}.soaTitle`, "Statement of Applicability"),
+    paragraphs: [t(`${K}.summaryDisclaimer`, "The summaries are in our own words — the standard is authoritative.")],
+    facts: [],
+    table: {
+      headers: [
+        t(`${K}.requirement`, "Requirement"),
+        t(`${K}.summaryColumn`, "Summary"),
+        t(`${K}.groupColumn`, "Group"),
+        t(`${K}.statusColumn`, "Status"),
+        t(`${K}.sourceColumn`, "Source"),
+        t(`${K}.notes`, "Notes"),
+      ],
+      rows: c.rows.map((row) => [row.label, row.summary, groupText(row.fr), statusText(row, t), sourceText(row, t), rowNotes(row, t)]),
+    },
+  });
+
+  claimsSection(c, t, sections);
+
+  // 4 — open requirements: what the conformity claim still needs
+  const open = c.rows.filter((r) => OPEN_STATUSES.includes(r.status));
+  if (open.length > 0) {
+    sections.push({
+      title: t(`${K}.openTitle`, "Open requirements"),
+      paragraphs: [
+        t(
+          `${K}.openText`,
+          "Rows not yet met — each is closed by rating the risk, choosing and implementing the mandated control, completing the project data, or a statement with its evidence.",
+        ),
+      ],
+      facts: [],
+      table: {
+        headers: [t(`${K}.requirement`, "Requirement"), t(`${K}.statusColumn`, "Status"), t(`${K}.risksColumn`, "Risks")],
+        rows: open.map((r) => [r.label, statusText(r, t), (r.risks ?? []).join(", ") || "—"]),
+      },
+    });
+  }
+  return sections;
+}
+
+/** The supporting claims of the standard (D-5, IEC-6): measure, who provides it, the rows. */
+function claimsSection(c: DocCompliance, t: TranslateFn, sections: ReportSection[]): void {
+  if (!c.claims?.length) return;
+  sections.push({
+    title: t(`${K}.claimsTitle`, "Claims — measures of the system"),
+    paragraphs: [
+      t(
+        `${K}.claimsText`,
+        "Requirements the system around the component meets (supporting measure, CCSC 2; compensating countermeasure): they count for the value with measures of the system, not for the product itself. The integrator or operator confirms them.",
+      ),
+    ],
+    facts: [],
+    table: {
+      headers: [
+        t(`${K}.claimId`, "Claim"),
+        t(`${K}.claimStatement`, "Supporting measure"),
+        t(`${K}.claimParty`, "Provided by"),
+        t(`${K}.claimReviewBy`, "Review by"),
+        t(`${K}.claimRows`, "Requirements"),
+      ],
+      rows: c.claims.map((claim) => [claim.id, claim.statement, claim.responsibleParty ?? "—", claim.reviewBy ?? "—", claim.rows.join(", ")]),
+    },
+  });
 }

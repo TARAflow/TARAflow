@@ -14,6 +14,7 @@ import {
   Divider,
   FormControl,
   FormControlLabel,
+  FormHelperText,
   Grid,
   InputLabel,
   MenuItem,
@@ -32,8 +33,11 @@ import {
   ENDPOINT_AUTHENTICATION_OPTIONS,
   INTEGRITY_PROTECTION_OPTIONS,
   MESSAGE_TYPE_OPTIONS,
+  PHYSICAL_PATH_PROTECTION_OPTIONS,
   type Protocol,
 } from "../../models/element-properties";
+import { MultiSelectField } from "./multi-select-field";
+import { useElementVisibilityContext } from "./model-field-inputs";
 import type { ExposureLevel } from "../../models/element-shared-types";
 import {
   EXPOSURE_LEVEL_LABEL_KEYS,
@@ -57,6 +61,10 @@ import { computeDataFlowCoverage } from "../../models/dataflow-coverage";
 // ==================== PROPS ====================
 
 /** A flow this flow may refine (leveled DFDs, §6.4). */
+/** FF-1: values of DataFlowProperties.accessMode / dataMinimization, in display order. */
+const ACCESS_MODE_OPTIONS = ["read_only", "read_write", "write_only"] as const satisfies readonly NonNullable<DataFlowProperties["accessMode"]>[];
+const DATA_MINIMIZATION_OPTIONS = ["none", "filtered", "aggregated_only"] as const satisfies readonly NonNullable<DataFlowProperties["dataMinimization"]>[];
+
 export interface RefinementCandidate {
   tfId: string;
   label: string;
@@ -129,6 +137,10 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
   const { t } = useTranslation();
   const form = useConnectionForm<DataFlowProperties>(connection, onChange);
   const { props } = form;
+  // FF-1: data minimisation is a question where data leaves the system — a
+  // flow from or to an external entity (needs the DFD tab's model).
+  const flowContext = useElementVisibilityContext({ id: connection.id, type: "DataFlow", properties: props as Record<string, unknown> });
+  const reachesExternal = [flowContext?.endpoints?.from, flowContext?.endpoints?.to].some((e) => e?.type === "ExternalEntity");
 
   const PROTOCOL_LIST: Protocol[] = Object.keys(PROTOCOL_META) as Protocol[];
   const PROTOCOL_GROUPS = groupBy(PROTOCOL_LIST, (p) => PROTOCOL_META[p].group);
@@ -910,7 +922,7 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                       })}
                     </em>
                   </MenuItem>
-                  {(["none", "tls", "mtls", "vpn", "custom"] as const).map(
+                  {(["none", "tls", "mtls", "vpn", "ssh", "application", "custom"] as const).map(
                     (opt) => (
                       <MenuItem key={opt} value={opt}>
                         {t(
@@ -979,6 +991,62 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
                 </Select>
               </FormControl>
             </Grid>
+            {/* Access mode (FF-1): read-only flows rule out tampering by write commands */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small" data-testid="dataflow-access-mode">
+                <InputLabel>
+                  {t("tabs.dfd.element_description.dataflow.fields.accessMode.label", { defaultValue: "Access Mode" })}
+                </InputLabel>
+                <Select
+                  value={props.accessMode ?? ""}
+                  onChange={(e) => form.handlePropertyChange("accessMode", e.target.value || undefined)}
+                  label={t("tabs.dfd.element_description.dataflow.fields.accessMode.label", { defaultValue: "Access Mode" })}
+                >
+                  <MenuItem value="">
+                    <em>{t("common.not_specified", { defaultValue: "Not specified" })}</em>
+                  </MenuItem>
+                  {ACCESS_MODE_OPTIONS.map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {t(`tabs.dfd.element_description.dataflow.fields.accessMode.options.${opt}`, { defaultValue: opt })}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>
+                  {t("tabs.dfd.element_description.dataflow.fields.accessMode.help", {
+                    defaultValue: "Read / write: the receiver accepts write commands — tampering threats for field protocols. Read only rules them out.",
+                  })}
+                </FormHelperText>
+              </FormControl>
+            </Grid>
+            {/* Data minimisation (FF-1): only where data leaves the system */}
+            {reachesExternal && (
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small" data-testid="dataflow-data-minimization">
+                  <InputLabel>
+                    {t("tabs.dfd.element_description.dataflow.fields.dataMinimization.label", { defaultValue: "Data Minimisation" })}
+                  </InputLabel>
+                  <Select
+                    value={props.dataMinimization ?? ""}
+                    onChange={(e) => form.handlePropertyChange("dataMinimization", e.target.value || undefined)}
+                    label={t("tabs.dfd.element_description.dataflow.fields.dataMinimization.label", { defaultValue: "Data Minimisation" })}
+                  >
+                    <MenuItem value="">
+                      <em>{t("common.not_specified", { defaultValue: "Not specified" })}</em>
+                    </MenuItem>
+                    {DATA_MINIMIZATION_OPTIONS.map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {t(`tabs.dfd.element_description.dataflow.fields.dataMinimization.options.${opt}`, { defaultValue: opt })}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>
+                    {t("tabs.dfd.element_description.dataflow.fields.dataMinimization.help", {
+                      defaultValue: "Only the data the receiver needs leaves the system (CRA Annex I (2)(g), GDPR data minimisation).",
+                    })}
+                  </FormHelperText>
+                </FormControl>
+              </Grid>
+            )}
             {/* Integrity Protection */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small">
@@ -1057,56 +1125,15 @@ const DataFlowGeneralTab: React.FC<DataFlowGeneralTabProps> = ({
           )}
 
           <Grid container rowSpacing={2} columnSpacing={2}>
-            {/* Physical Path Protection */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>
-                  {t(
-                    "tabs.dfd.element_description.dataflow.fields.physicalPathProtection.label",
-                    { defaultValue: "Physical Path Protection" },
-                  )}
-                </InputLabel>
-                <Select
-                  value={props.physicalPathProtection ?? ""}
-                  onChange={(e) =>
-                    form.handlePropertyChange(
-                      "physicalPathProtection",
-                      e.target.value || undefined,
-                    )
-                  }
-                  label={t(
-                    "tabs.dfd.element_description.dataflow.fields.physicalPathProtection.label",
-                    { defaultValue: "Physical Path Protection" },
-                  )}
-                >
-                  <MenuItem value="">
-                    <em>
-                      {t("common.not_specified", {
-                        defaultValue: "Not specified",
-                      })}
-                    </em>
-                  </MenuItem>
-                  {(
-                    [
-                      "none",
-                      "cable_duct",
-                      "conduit",
-                      "armored_cable",
-                      "tamper_seal",
-                      "locked_cabinet",
-                      "buried",
-                    ] as const
-                  ).map((opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {t(
-                        `tabs.dfd.element_description.dataflow.fields.physicalPathProtection.options.${opt}`,
-                        { defaultValue: opt },
-                      )}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+            {/* Physical Path Protection — multi-select since schema 13 (MS-1): e.g. a duct and a tamper seal */}
+            <MultiSelectField
+              label={t("tabs.dfd.element_description.dataflow.fields.physicalPathProtection.label", { defaultValue: "Physical Path Protection" })}
+              options={PHYSICAL_PATH_PROTECTION_OPTIONS}
+              value={props.physicalPathProtection}
+              onChange={(next) => form.handlePropertyChange("physicalPathProtection", next)}
+              optionLabel={(opt) => t(`tabs.dfd.element_description.dataflow.fields.physicalPathProtection.options.${opt}`, { defaultValue: opt })}
+              testId="dataflow-physical-path-protection"
+            />
           </Grid>
         </>
       )}

@@ -22,6 +22,17 @@
         "focus": "Fokus",
         "noFocus": "Asset wählen (Klick im Asset-Panel oder Doppelklick im Graph)",
         "depth": "Tiefe {{depth}}",
+        "relationFilter": {
+          "tooltip": "Häkchen entfernen blendet die Assets und Gefährdungen mit dieser Beziehungsart aus",
+          "label": "Beziehungen",
+          "active": "Beziehungen: gefiltert ({{count}})",
+          "showAll": "Alle zeigen",
+          "kind": {
+            "element": "DFD-Element",
+            "asset": "Asset",
+            "hazard": "Gefährdung"
+          }
+        },
         "anchors": "DFD-Elemente",
         "counts": "{{visible}} von {{total}} Assets sichtbar · {{hiddenLayers}} in ausgeblendeten Ebenen · {{outsideFocus}} ausserhalb des Fokus · {{filtered}} Links gefiltert",
         "fit": "Alles einpassen",
@@ -261,9 +272,15 @@
             "missingCoupling": "Physische Kopplung {{detail}}: couplingMode/stimulusDomain fehlt"
           },
           "tls": {
-            "noTerminator": "{{detail}}: Datenfluss nutzt TLS, aber kein Endpunkt terminiert es. Setze tlsTermination (server oder mutual) am terminierenden Prozess.",
-            "mtlsRequiresBothMutual": "{{detail}}: Mutual TLS verlangt, dass beide Endpunkte mutual-fähig sind. Setze tlsTermination=mutual an beiden Prozessen.",
-            "handshakeMismatch": "{{detail}}: Ein Endpunkt verlangt Mutual TLS, während der andere kein Client-Zertifikat vorweisen kann. Gleiche tlsTermination an beiden Endpunkten ab."
+            "noTerminator": "{{detail}}: Der Datenfluss nutzt TLS, aber kein Endpunkt bietet es an. Beim terminierenden Prozess unter Kommunikation → Sicherer Kanal (Endpunkt) „TLS (Server)“ oder „Gegenseitiges TLS“ anhaken.",
+            "mtlsRequiresBothMutual": "{{detail}}: Gegenseitiges TLS verlangt, dass beide Endpunkte es anbieten. An beiden unter Kommunikation → Sicherer Kanal (Endpunkt) „Gegenseitiges TLS“ anhaken.",
+            "handshakeMismatch": "{{detail}}: Ein Endpunkt bietet nur gegenseitiges TLS an, der andere gar kein TLS (kein Client-Zertifikat). Kommunikation → Sicherer Kanal (Endpunkt) an beiden abgleichen.",
+            "sshNoEndpoint": "{{detail}}: Der Datenfluss nutzt SSH, aber kein Endpunkt bietet es an. Beim SSH-Server unter Kommunikation → Sicherer Kanal (Endpunkt) „SSH“ anhaken.",
+            "applicationRequiresBoth": "{{detail}}: Der Datenfluss ist auf Anwendungsebene gesichert (z. B. OPC UA Secure Channel) — beide Endpunkte müssen das unter Kommunikation → Sicherer Kanal (Endpunkt) anbieten.",
+            "channelUnused": "{{detail}} bietet {{channel}} an, aber keiner seiner Datenflüsse nutzt es — ein offener Dienst ohne erkennbaren Zweck? Entfernen oder den Fluss zeichnen, der es nutzt.",
+            "keyRenewalPlaintext": "{{detail}}: Schlüssel und Zertifikate werden unverschlüsselt erneuert — neue Schlüssel gehen im Klartext über die Leitung. Über einen gesicherten Kanal, im verschlüsselten Update-Paket oder vor Ort erneuern.",
+            "keyRenewalNoChannel": "{{detail}}: Schlüssel werden über einen gesicherten Kanal erneuert, aber das Element bietet unter Kommunikation → Sicherer Kanal (Endpunkt) keinen an.",
+            "keyRenewalUpdateNotEncrypted": "{{detail}}: Schlüssel werden im verschlüsselten Update-Paket erneuert, aber das Update-Paket ist nicht verschlüsselt (Betrieb → Update-Paket verschlüsselt) oder das Element wird nicht aktualisiert."
           }
         },
         "label_property": {}
@@ -353,9 +370,235 @@
           "description": "Transducer — wandelt einen Befehl in eine physische Wirkung"
         }
       },
+      "modelFields": {
+        "updateEncryption": {
+          "label": "Update-Paket verschlüsselt",
+          "help": "Ob das Update-Paket verschlüsselt ist, nicht nur signiert. Die Signatur belegt Herkunft und Unversehrtheit; die Verschlüsselung schützt die Firmware und was sie enthält (Schlüssel, Konfiguration) vor dem Auslesen. Pro Gerät: jedes Gerät entschlüsselt mit eigenem Schlüssel.",
+          "values": {
+            "none": "Nein (nur signiert)",
+            "per_type": "Ja, pro Gerätetyp",
+            "per_device": "Ja, pro Gerät"
+          }
+        },
+        "keyRenewal": {
+          "label": "Schlüssel-/Zertifikatserneuerung",
+          "help": "Wie die Schlüssel und Zertifikate des Elements erneuert werden (EN 18031 CCK, IEC 62443-4-2 CR 1.8, 4.3). Neue Schlüssel dürfen nicht im Klartext übertragen werden: „unverschlüsselt“ meldet der DFD.",
+          "values": {
+            "not_possible": "Nicht möglich",
+            "encrypted_update": "Im verschlüsselten Update-Paket",
+            "secure_channel": "Über gesicherten Kanal (z. B. EST / SCEP über TLS)",
+            "on_site": "Vor Ort (physischer Zugang)",
+            "plaintext": "Unverschlüsselt"
+          }
+        },
+        "innerInputValidation": {
+          "label": "Eingabevalidierung",
+          "help": "Die schwächste Eingabevalidierung der Prozesse, die diese Black Box enthält (z. B. die Firmware eines Zulieferer-Moduls). IEC 62443-4-2 CR 3.5. Leer lassen, wenn die Software nicht bekannt ist — die Zeile bleibt offen für eine Aussage oder den Nachweis des Herstellers.",
+          "values": {
+            "none": "Keine",
+            "basic": "Basis (Typprüfung)",
+            "strict": "Streng (Whitelist + Bereinigung)",
+            "schema": "Schema-Validierung"
+          }
+        },
+        "innerErrorHandling": {
+          "label": "Fehlerbehandlung",
+          "help": "Wie die enthaltenen Prozesse Fehler melden — der schwächste Fall. CR 3.7 verlangt, dass Fehlermeldungen einem Angreifer nichts Verwertbares verraten.",
+          "values": {
+            "silent": "Still (keine Details)",
+            "verbose": "Ausführlich (Stack-Traces)",
+            "sanitized": "Bereinigt (benutzerfreundlich)"
+          }
+        },
+        "innerFailSafeOutputState": {
+          "label": "Ausgangszustand bei Fehler",
+          "help": "Der Zustand, den die Ausgänge der enthaltenen Prozesse bei einem Fehler oder einer Sicherheitsverletzung annehmen. CR 3.6 (deterministische Ausgänge).",
+          "values": {
+            "not_defined": "Nicht definiert",
+            "unpowered": "Stromlos / abgeschaltet",
+            "hold_last_value": "Letzten Wert halten",
+            "fixed_value": "Fester Wert",
+            "dynamic": "Dynamisch (situationsabhängig)"
+          }
+        },
+        "innerDataClassification": {
+          "label": "Datenklassifizierung",
+          "help": "Die Einstufung der sensibelsten Daten, die die Black Box speichert (Konfiguration, Schlüssel, Rezepte …). Entscheidet, ob CR 4.1 / CR 4.2 für ihre Daten gelten.",
+          "values": {
+            "public": "Öffentlich",
+            "internal": "Intern",
+            "confidential": "Vertraulich",
+            "restricted": "Eingeschränkt",
+            "secret": "Geheim"
+          }
+        },
+        "innerEncryptionAtRest": {
+          "label": "Verschlüsselung gespeicherter Daten",
+          "help": "Wie die gespeicherten Daten innen verschlüsselt sind — der schwächste Fall. CR 4.1 (Daten im Ruhezustand), CR 4.3.",
+          "values": {
+            "none": "Keine",
+            "aes256": "AES-256",
+            "tde": "Transparente Datenverschlüsselung",
+            "kms": "Schlüsselverwaltungsdienst",
+            "custom": "Benutzerdefiniert"
+          }
+        },
+        "innerIntegrityProtection": {
+          "label": "Integritätsschutz gespeicherter Daten",
+          "help": "Wie gespeicherte Daten und Firmware innen gegen Veränderung geschützt sind — der schwächste Fall. CR 3.4, CR 3.4 RE(1) (Signatur).",
+          "values": {
+            "none": "Keiner",
+            "crc": "CRC",
+            "hash": "Hash",
+            "hmac": "HMAC",
+            "signature": "Signatur",
+            "custom": "Benutzerdefiniert"
+          }
+        },
+        "innerDeletionMechanism": {
+          "label": "Löschung gespeicherter Daten",
+          "help": "Wie Daten innen gelöscht werden, wenn sie nicht mehr gebraucht werden oder das Gerät ausser Betrieb geht. CR 4.2, CR 7.9 (Werksreset).",
+          "values": {
+            "none": "Keine",
+            "overwrite": "Überschreiben",
+            "factory_reset": "Werksreset",
+            "crypto_erase": "Kryptografisches Löschen",
+            "physical": "Physische Zerstörung",
+            "retention_period": "Aufbewahrungsfrist",
+            "custom": "Benutzerdefiniert"
+          }
+        },
+        "userAccounts": {
+          "label": "Benutzerkonten",
+          "help": "Wie sich Menschen an diesem Element anmelden: jede Person mit einem eigenen Konto, ein Login pro Rolle (z. B. Bediener, Wartung, Admin — bei Industriegeräten üblich) oder ein gemeinsamer Login für alle. IEC 62443-4-2 CR 1.1 lässt rollen- oder gruppenbasierte Logins zu; CR 1.1 RE(1) (SL 2) verlangt die eindeutige Identifikation jedes menschlichen Benutzers.",
+          "values": {
+            "individual": "Ein Konto pro Person",
+            "per_role": "Ein Login pro Rolle",
+            "shared": "Ein gemeinsamer Login"
+          }
+        },
+        "passwordStrength": {
+          "label": "Regeln zur Passwortstärke",
+          "help": "Die Regeln für Passwörter, die hier geprüft werden: keine, im Produkt fest vorgegeben oder eine vom Betreiber konfigurierbare Richtlinie (Mindestlänge, Zeichenklassen). IEC 62443-4-2 CR 1.7 verlangt eine konfigurierbare Stärke.",
+          "values": {
+            "none": "Keine",
+            "fixed_rules": "Feste Regeln",
+            "configurable_policy": "Konfigurierbare Richtlinie"
+          }
+        },
+        "passwordLifetime": {
+          "label": "Begrenzung der Passwort-Gültigkeit",
+          "help": "Für welche Konten die Gültigkeitsdauer eines Passworts und die Wiederverwendung alter Passwörter begrenzt sind. Angeboten werden nur die Kontenarten, die sich hier mit Passwort anmelden. IEC 62443-4-2:2019 CR 1.7 RE(1) (menschliche Benutzer, Dauer und Wiederverwendung) und RE(2) (alle Benutzer); in der CRA-Ausgabe gilt RE(2) für Software-Prozesse und Geräte.",
+          "values": {
+            "none": "Keine",
+            "human_accounts": "Konten menschlicher Benutzer",
+            "machine_accounts": "Konten von Software-Prozessen und Geräten",
+            "all_accounts": "Alle Konten"
+          }
+        },
+        "defaultCredentials": {
+          "label": "Erstmalige Authentisierungsmerkmale",
+          "help": "Wie die ersten Passwörter, PINs oder Schlüssel entstehen: keine vorinstalliert (bei der Inbetriebnahme gesetzt), eindeutig pro Gerät (zufällig, nicht aus Seriennummer oder MAC abgeleitet), ein Standardwert, dessen Änderung beim ersten Gebrauch erzwungen wird, oder ein Standardwert, der auf allen Geräten gleich ist. IEC 62443-4-2 CR 1.5 a / b; ETSI EN 303 645 5.1-1 und EN 18031 AUM-5 lassen universelle Standardwerte nicht zu.",
+          "values": {
+            "none_preinstalled": "Keine vorinstalliert",
+            "unique_per_device": "Eindeutig pro Gerät",
+            "change_enforced": "Standardwert, Änderung beim ersten Gebrauch erzwungen",
+            "universal": "Gleicher Standardwert auf allen Geräten"
+          }
+        },
+        "authenticatorChangeable": {
+          "label": "Authentisierungsmerkmale änderbar",
+          "help": "Lassen sich Passwörter, PINs oder Schlüssel im Betrieb ändern und erneuern? IEC 62443-4-2 CR 1.5 c; ETSI EN 303 645 5.1-4.",
+          "values": {
+            "yes": "Ja",
+            "no": "Nein"
+          }
+        },
+        "updateDelivery": {
+          "label": "Update-Auslieferung",
+          "help": "Wie Updates zum Element kommen: nur manuell, Benachrichtigung über ein verfügbares Update, Installation auf Anforderung oder nach Zeitplan, oder automatisch. EN IEC 62443-4-2/prAA CR 3.10 RE(2) akzeptiert jede der letzten drei. Ein Mechanismus mit physischem Zugriff bietet nur manuell oder Benachrichtigung an.",
+          "values": {
+            "manual_only": "Nur manuell",
+            "notification": "Benachrichtigung über verfügbare Updates",
+            "on_request_or_scheduled": "Auf Anforderung oder nach Zeitplan",
+            "automatic": "Automatisch"
+          }
+        },
+        "updateDefaults": {
+          "label": "Einstellungen automatischer Updates",
+          "help": "Wie automatische Updates bei Auslieferung eingestellt sind: standardmässig eingeschaltet, der Benutzer kann sie abschalten, der Benutzer kann sie aufschieben. CRA Anhang I (2)(c), ETSI EN 303 645 5.3-6.",
+          "values": {
+            "enabled_by_default": "Standardmässig eingeschaltet",
+            "user_can_disable": "Benutzer kann sie abschalten",
+            "user_can_postpone": "Benutzer kann sie aufschieben"
+          }
+        },
+        "secureByDefault": {
+          "label": "Secure by Default",
+          "help": "Wird die Komponente mit ihren sicheren Standardeinstellungen für Netzwerk und Sicherheit ausgeliefert und lässt sie sich darauf konfigurieren? IEC 62443-4-2 CR 7.6 a). Gefragt am Element, das für die Komponente steht: ein Multiprocess oder der bewertete Process.",
+          "values": {
+            "yes": "Ja",
+            "no": "Nein"
+          }
+        },
+        "securityConfigReporting": {
+          "label": "Bericht der Sicherheitseinstellungen",
+          "help": "Lassen sich die aktuellen Netzwerk- und Sicherheitseinstellungen auslesen: nein, über eine Schnittstelle (z. B. eine Konfigurationsseite) oder als maschinenlesbarer Bericht? IEC 62443-4-2 CR 7.6 b) und RE(1).",
+          "values": {
+            "none": "Nein",
+            "readable_interface": "Über eine Schnittstelle lesbar",
+            "machine_readable": "Maschinenlesbarer Bericht"
+          }
+        },
+        "userDataDeletion": {
+          "label": "Löschen von Benutzerdaten",
+          "help": "Wie die Daten des Benutzers (personenbezogene Daten, Benutzerkonfiguration, Passwörter und Schlüssel) die Komponente verlassen: gar nicht, über eine Löschfunktion für den Benutzer, über ein Zurücksetzen in den Lieferzustand (Factory Reset) oder beides. ETSI EN 303 645 5.11-1, CRA Anhang I (2)(m), EN IEC 62443-4-2/prAA CR 7.9 (Reset). Welcher Speicher wie gelöscht wird, steht beim Datenspeicher (Löschmechanismus). Die Löschfunktion wird nur angeboten, wo ein Datenspeicher Benutzerdaten hält.",
+          "values": {
+            "none": "Nicht möglich",
+            "by_user": "Löschfunktion für den Benutzer",
+            "factory_reset": "Zurücksetzen in den Lieferzustand",
+            "both": "Beides"
+          }
+        },
+        "loginLockout": {
+          "label": "Nach fehlgeschlagenen Logins",
+          "help": "Was dieses Element nach aufeinanderfolgenden fehlgeschlagenen Anmeldeversuchen tut: nichts, eine Verzögerung bzw. Ratenbegrenzung, eine Sperre für eine Zeit oder eine Sperre bis zur Freigabe durch einen Administrator. Es zählt die Versuche, weil es die Anmeldung prüft — ein Port sieht keine Logins. IEC 62443-4-2 CR 1.11 verlangt Grenze und Sperre; ETSI EN 303 645 5.1-5 und EN 18031 AUM-6 akzeptieren auch eine Verzögerung.",
+          "values": {
+            "none": "Nichts",
+            "delay": "Verzögerung / Ratenbegrenzung",
+            "timed_lockout": "Sperre für eine Zeit",
+            "admin_unlock": "Sperre bis zur Freigabe durch den Admin"
+          }
+        },
+        "roleMapping": {
+          "label": "Rollen-Berechtigungen",
+          "help": "Bei rollenbasierter Autorisierung: Kann eine berechtigte Rolle (z. B. der Administrator) festlegen und ändern, welche Rechte jede Rolle hat, oder sind Rollen und Rechte im Produkt fest vorgegeben? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) verlangt die konfigurierbare Zuordnung.",
+          "values": {
+            "fixed_roles": "Im Produkt fest vorgegeben",
+            "configurable": "Durch eine berechtigte Rolle konfigurierbar"
+          }
+        }
+      },
       "element_description": {
+        "securityTabs": {
+          "login": "Anmeldung & Konten",
+          "authorization": "Berechtigungen",
+          "communication": "Kommunikation",
+          "robustness": "Robustheit",
+          "sessions": "Sitzungen & Nachvollziehbarkeit",
+          "operation": "Betrieb",
+          "data": "Daten",
+          "safety": "Safety"
+        },
         "title": "Element-Beschreibungen",
         "safetyAnnotation": { "title": "Safety-Annotationen" },
+        "newAsset": {
+          "tooltip": "Neues Asset — später mit Elementen verknüpfen",
+          "name": "Name",
+          "group": "Kategorie",
+          "create": "Anlegen",
+          "none": "Noch keine Assets — mit „+“ anlegen oder in einem Element verknüpfen."
+        },
         "assets": "Assets",
         "dataFlows": "Datenflüsse",
         "tabs": {
@@ -606,11 +849,15 @@
               }
             },
             "tlsTermination": {
-              "label": "TLS-Terminierung",
+              "label": "Sicherer Kanal (Endpunkt)",
               "options": {
-                "none": "Keine",
-                "server": "Serverseitig (TLS)",
-                "mutual": "Gegenseitig (mTLS)"
+                "none": "Keiner",
+                "server": "TLS (Server)",
+                "mutual": "Gegenseitiges TLS (mTLS)",
+                "vpn": "VPN / IPsec",
+                "ssh": "SSH",
+                "application": "Anwendungsebene (z. B. OPC UA Secure Channel)",
+                "custom": "Anderes Verfahren"
               }
             },
             "authorizationModel": {
@@ -978,11 +1225,15 @@
               }
             },
             "tlsTermination": {
-              "label": "TLS-Terminierung",
+              "label": "Sicherer Kanal (Endpunkt)",
               "options": {
-                "none": "Keine",
-                "server": "Serverseitig (TLS)",
-                "mutual": "Gegenseitig (mTLS)"
+                "none": "Keiner",
+                "server": "TLS (Server)",
+                "mutual": "Gegenseitiges TLS (mTLS)",
+                "vpn": "VPN / IPsec",
+                "ssh": "SSH",
+                "application": "Anwendungsebene (z. B. OPC UA Secure Channel)",
+                "custom": "Anderes Verfahren"
               }
             },
             "authorizationModel": {
@@ -1550,9 +1801,29 @@
                 "tls": "TLS",
                 "mtls": "mTLS (Mutual TLS)",
                 "vpn": "VPN / IPSec",
+                "ssh": "SSH",
+                "application": "Anwendungsebene (z. B. OPC UA Secure Channel)",
                 "custom": "Benutzerdefinierte Verschlüsselung"
               },
               "warning": "Unverschlüsselter Flow überquert Trust Boundary → Risiko Informationspreisgabe"
+            },
+            "accessMode": {
+              "label": "Zugriffsart",
+              "help": "Lesen / Schreiben: der Empfänger nimmt Schreibbefehle an — Manipulationsbedrohungen bei Feldprotokollen. Nur lesend schliesst sie aus.",
+              "options": {
+                "read_only": "Nur lesend",
+                "read_write": "Lesen / Schreiben",
+                "write_only": "Nur schreibend"
+              }
+            },
+            "dataMinimization": {
+              "label": "Datenminimierung",
+              "help": "Nur die Daten, die der Empfänger braucht, verlassen das System (CRA Anhang I (2)(g), DSGVO Datenminimierung).",
+              "options": {
+                "none": "Keine — alle Datenpunkte offen",
+                "filtered": "Gefiltert (Allowlist)",
+                "aggregated_only": "Nur aggregiert / anonymisiert"
+              }
             },
             "endpointAuthentication": {
               "label": "Endpunkt-Authentifizierung",

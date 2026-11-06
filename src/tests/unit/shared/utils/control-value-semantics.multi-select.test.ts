@@ -65,3 +65,26 @@ describe("the form's selection rules", () => {
     expect(defaultDenyPoliciesOf(undefined)).toEqual([]);
   });
 });
+
+// MS-1 (release plan 0.18, schema 13): malware protection and physical path
+// protection combine — the conflicting SHOULDs of the backlog after 0.16.
+describe("multi-select: malwareProtection and physicalPathProtection (MS-1)", () => {
+  it("two mitigations with different values both hold once both are applied", () => {
+    let props: Record<string, unknown> = { physicalPathProtection: ["cable_duct"] };
+    props = { ...props, ...controlValuePatch(props, "physicalPathProtection", "tamper_seal") };
+    expect(props.physicalPathProtection).toEqual(["cable_duct", "tamper_seal"]);
+    expect(meetsExpected("physicalPathProtection", props.physicalPathProtection, "cable_duct")).toBe(true);
+    expect(meetsExpected("physicalPathProtection", props.physicalPathProtection, "tamper_seal")).toBe(true);
+  });
+
+  it("the order of strength still counts per entry; a single value counts as one", () => {
+    expect(meetsExpected("physicalPathProtection", ["conduit"], "cable_duct")).toBe(true);
+    expect(meetsExpected("malwareProtection", "code_signing", "code_signing")).toBe(true);
+    expect(meetsExpected("malwareProtection", ["sandbox", "code_signing"], "code_signing")).toBe(true);
+  });
+
+  it("applying a measure removes none; none replaces the selection", () => {
+    expect(controlValuePatch({ malwareProtection: ["none"] }, "malwareProtection", "code_signing")).toEqual({ malwareProtection: ["code_signing"] });
+    expect(controlValuePatch({ malwareProtection: ["sandbox"] }, "malwareProtection", "none")).toEqual({ malwareProtection: ["none"] });
+  });
+});

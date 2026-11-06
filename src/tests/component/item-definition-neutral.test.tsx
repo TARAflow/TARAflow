@@ -9,11 +9,14 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ItemDefinitionView } from "features/overview/components/item-definition-view";
 
-// The key is the text; "exists" knows the real EN keys.
+// The key is the text; "exists" knows the real EN keys (common and, since
+// I18N-1, the overview namespace — the app finds both through fallbackNS).
 vi.mock("react-i18next", async () => {
   const common = (await import("../../i18n/locales/en/common.json")).default as Record<string, unknown>;
-  const exists = (k: string) =>
-    k.split(".").reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], common) !== undefined;
+  const overview = (await import("../../i18n/locales/en/overview.json")).default as Record<string, unknown>;
+  const has = (ns: Record<string, unknown>, k: string) =>
+    k.split(".").reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], ns) !== undefined;
+  const exists = (k: string) => has(common, k) || has(overview, k);
   return { useTranslation: () => ({ t: (k: string) => k, i18n: { language: "en", exists } }) };
 });
 

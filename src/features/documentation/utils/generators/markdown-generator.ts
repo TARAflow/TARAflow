@@ -184,11 +184,11 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
     return `## ${title}\n\n${intro}\n\n${body}`;
   }
 
-  formatReportSection(section: ReportSection): string {
+  formatReportSection(section: ReportSection, depth = 0): string {
     const row = (cells: string[]) =>
       `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")} |`;
     return [
-      `### ${section.title}`,
+      `${"#".repeat(3 + depth)} ${section.title}`,
       "",
       ...section.paragraphs.flatMap((p) => [p, ""]),
       ...section.facts.map(([label, value]) => `**${label}**: ${value}  `),
@@ -200,7 +200,7 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
             ...section.table.rows.map(row),
           ]
         : []),
-    ].join("\n") + "\n\n";
+    ].join("\n") + "\n\n" + (section.children ?? []).map((c) => this.formatReportSection(c, depth + 1)).join("");
   }
 
   formatAttackTreesChapter(title: string, intro: string, body: string): string {

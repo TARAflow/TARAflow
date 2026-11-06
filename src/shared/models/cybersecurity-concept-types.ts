@@ -38,7 +38,16 @@ export interface CybersecurityGoal {
   calRationale?: string;
 }
 
-export type ClaimKind = "retain" | "share";
+/**
+ * retain / share: a risk treatment (ISO/SAE 21434). supporting: a requirement
+ * of a matrix the system around the component meets (IEC 62443-4-2 D-5, IEC-6:
+ * prAA CCSC 2 "supporting measure", 2019 compensating countermeasure) — it
+ * covers requirements, not risks; the statement describes the measure.
+ */
+export type ClaimKind = "retain" | "share" | "supporting";
+
+/** The claim kinds of the risk treatment — the ISO goal / claim views show only these. */
+export const RISK_CLAIM_KINDS: readonly ClaimKind[] = ["retain", "share"];
 
 export interface CybersecurityClaim {
   id: string;
@@ -46,11 +55,17 @@ export interface CybersecurityClaim {
   displayId: string;
   statement: string;
   kind: ClaimKind;
-  /** Risks treated "retain" / "share" this claim covers. */
+  /** Risks treated "retain" / "share" this claim covers; empty for "supporting". */
   riskIds: string[];
+  /**
+   * "supporting": the requirements it covers, qualified by family
+   * ("iec62443:cr-1.1", K-4) — a row is covered when all its requirements
+   * are; the classic and the CRA edition share them (D-31).
+   */
+  requirements?: string[];
   /** Assumptions of the Item Definition it relies on (retain: ≥ 1). */
   assumptionIds: string[];
-  /** Share: who carries the risk. */
+  /** Share: who carries the risk; supporting: who provides the measure. */
   responsibleParty?: string;
   /** ISO date by which the claim is to be reviewed (Clause 8 monitoring). */
   reviewBy?: string;
@@ -235,6 +250,51 @@ export function unlinkClaim(concept: CybersecurityConcept, claimId: string, risk
     ...concept,
     claims: concept.claims.map((c) => (c.id === claimId ? { ...c, riskIds: c.riskIds.filter((r) => r !== riskId) } : c)),
   };
+}
+
+/** A new supporting claim covering requirements of a matrix (not yet stored). */
+export function newSupportingClaim(
+  concept: CybersecurityConcept,
+  requirements: readonly string[],
+  statement: string,
+  responsibleParty?: string,
+): CybersecurityClaim {
+  return {
+    id: newId("clm"),
+    displayId: nextConceptDisplayId("CLM", concept.claims, concept.claimSeq),
+    statement: statement.trim(),
+    kind: "supporting",
+    riskIds: [],
+    assumptionIds: [],
+    requirements: [...new Set(requirements)],
+    ...(responsibleParty?.trim() ? { responsibleParty: responsibleParty.trim() } : {}),
+  };
+}
+
+/** Let a supporting claim cover more requirements (no-op for those it covers). */
+export function linkClaimRequirements(concept: CybersecurityConcept, claimId: string, requirements: readonly string[]): CybersecurityConcept {
+  return {
+    ...concept,
+    claims: concept.claims.map((c) =>
+      c.id === claimId ? { ...c, requirements: [...new Set([...(c.requirements ?? []), ...requirements])] } : c,
+    ),
+  };
+}
+
+/** Stop a supporting claim covering requirements; the claim itself stays. */
+export function unlinkClaimRequirements(concept: CybersecurityConcept, claimId: string, requirements: readonly string[]): CybersecurityConcept {
+  return {
+    ...concept,
+    claims: concept.claims.map((c) =>
+      c.id === claimId ? { ...c, requirements: (c.requirements ?? []).filter((r) => !requirements.includes(r)) } : c,
+    ),
+  };
+}
+
+/** Supporting claims covering every one of `requirements` (qualified ids). */
+export function claimsOfRequirements(concept: CybersecurityConcept | undefined, requirements: readonly string[]): CybersecurityClaim[] {
+  if (requirements.length === 0) return [];
+  return (concept?.claims ?? []).filter((c) => c.kind === "supporting" && requirements.every((r) => c.requirements?.includes(r)));
 }
 
 export function claimsOfRisk(concept: CybersecurityConcept | undefined, riskId: string): CybersecurityClaim[] {

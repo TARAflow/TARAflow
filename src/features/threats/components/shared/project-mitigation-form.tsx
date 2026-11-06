@@ -3,12 +3,16 @@
 // New / edit a project mitigation M-C-nnn (custom mitigation catalog design
 // CM-3): text, STRIDE category, optional attack vectors and the DFD effects
 // that let the closed loop check it. Effects come from the vocabulary of the
-// built-in catalog (target, property, value), always "heuristic".
+// built-in catalog (target, property, value), always "heuristic". With an
+// IEC 62443 edition active (IEC-8b) also the requirements the mitigation
+// implements — for rows the model cannot show; those its effects meet already
+// are listed, not stored.
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -24,6 +28,7 @@ import {
 } from "@mui/material";
 import { Delete as DeleteIcon, Add as AddIcon } from "@mui/icons-material";
 import { ATTACK_VECTORS, type AttackVector, type StrideCategory } from "shared";
+import { useMatrixRequirements } from "shared/hooks/matrix-requirements";
 import type { MitigationPropertyEffect } from "../../models/threat-types";
 import { getAllMitigations } from "../../services/threat-catalog-service";
 import {
@@ -54,6 +59,8 @@ export const ProjectMitigationForm: React.FC<ProjectMitigationFormProps> = ({ op
   const [stride, setStride] = useState<StrideCategory>("S");
   const [vectors, setVectors] = useState<AttackVector[]>([]);
   const [effects, setEffects] = useState<MitigationPropertyEffect[]>([]);
+  const [requirements, setRequirements] = useState<string[]>([]);
+  const matrix = useMatrixRequirements();
   // effect row being composed
   const [target, setTarget] = useState("");
   const [property, setProperty] = useState("");
@@ -66,6 +73,7 @@ export const ProjectMitigationForm: React.FC<ProjectMitigationFormProps> = ({ op
     setStride(initial?.strideCategory ?? "S");
     setVectors(initial?.attackVectors ?? []);
     setEffects(initial?.affectsProperties ?? []);
+    setRequirements(initial?.iec62443 ?? []);
     setTarget("");
     setProperty("");
     setValue("");
@@ -79,6 +87,8 @@ export const ProjectMitigationForm: React.FC<ProjectMitigationFormProps> = ({ op
   );
   const properties = vocabulary.filter((v) => targetKey(v) === target);
   const chosen = properties.find((v) => v.property === property);
+  const derived = useMemo(() => (matrix ? matrix.derivedFrom(effects) : []), [matrix, effects]);
+  const optionLabel = (id: string) => matrix?.options.find((o) => o.id === id)?.label ?? id;
 
   const targetLabel = (v: { targetType: string; role?: string }) =>
     v.role
@@ -236,6 +246,42 @@ export const ProjectMitigationForm: React.FC<ProjectMitigationFormProps> = ({ op
               </IconButton>
             </Stack>
           </Box>
+
+          {matrix && (
+            <Box data-testid="pm-requirements">
+              <Typography variant="subtitle2">
+                {t("tabs.threats.projectMitigation.requirements", { defaultValue: "IEC 62443-4-2 requirements it implements" })}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                {t("tabs.threats.projectMitigation.requirementsHelp", {
+                  defaultValue:
+                    "For requirements the model cannot show (statements, documents, processes): chosen for a risk and done, the mitigation meets the row of the requirement matrix.",
+                })}
+              </Typography>
+              <Autocomplete
+                multiple
+                size="small"
+                options={matrix.options.map((o) => o.id)}
+                value={requirements}
+                onChange={(_, next) => setRequirements(next)}
+                getOptionLabel={optionLabel}
+                filterSelectedOptions
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={t("tabs.threats.projectMitigation.requirementsField", { defaultValue: "Requirements" })}
+                    inputProps={{ ...params.inputProps, "data-testid": "pm-requirements-input" }}
+                  />
+                )}
+              />
+              {derived.length > 0 && (
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }} data-testid="pm-requirements-derived">
+                  {t("tabs.threats.projectMitigation.requirementsDerived", { defaultValue: "Met through the effects already" })}:{" "}
+                  {derived.map(optionLabel).join(", ")}
+                </Typography>
+              )}
+            </Box>
+          )}
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -251,6 +297,8 @@ export const ProjectMitigationForm: React.FC<ProjectMitigationFormProps> = ({ op
               ...(description.trim() ? { description } : {}),
               ...(vectors.length ? { attackVectors: vectors } : {}),
               affectsProperties: effects,
+              // Without an active 62443 edition the field is hidden: stored references stay.
+              ...(matrix ? { iec62443: requirements } : {}),
             })
           }
         >

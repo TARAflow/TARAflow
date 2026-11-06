@@ -22,6 +22,17 @@
         "focus": "Focus",
         "noFocus": "Select an asset (click in the asset panel or double-click in the graph)",
         "depth": "Depth {{depth}}",
+        "relationFilter": {
+          "tooltip": "Untick a kind of relation to hide the assets and hazards that have one",
+          "label": "Relations",
+          "active": "Relations: filtered ({{count}})",
+          "showAll": "Show all",
+          "kind": {
+            "element": "DFD element",
+            "asset": "Asset",
+            "hazard": "Hazard"
+          }
+        },
         "anchors": "DFD elements",
         "counts": "{{visible}} of {{total}} assets visible · {{hiddenLayers}} in hidden layers · {{outsideFocus}} outside focus · {{filtered}} links filtered",
         "fit": "Fit to view",
@@ -261,9 +272,15 @@
             "missingCoupling": "physical coupling {{detail}}: couplingMode/stimulusDomain missing"
           },
           "tls": {
-            "noTerminator": "{{detail}}: flow uses TLS but neither endpoint terminates it. Set tlsTermination (server or mutual) on the terminating process.",
-            "mtlsRequiresBothMutual": "{{detail}}: mutual TLS requires both endpoints to be mutual-capable. Set tlsTermination=mutual on both processes.",
-            "handshakeMismatch": "{{detail}}: one endpoint requires mutual TLS while the other cannot present a client certificate. Align tlsTermination on both endpoints."
+            "noTerminator": "{{detail}}: the flow uses TLS but neither endpoint offers it. Tick “TLS (server)” or “Mutual TLS” under Communication → Secure channel (endpoint) of the terminating process.",
+            "mtlsRequiresBothMutual": "{{detail}}: mutual TLS requires both endpoints to offer it. Tick “Mutual TLS” under Communication → Secure channel (endpoint) on both.",
+            "handshakeMismatch": "{{detail}}: one endpoint offers only mutual TLS while the other offers no TLS (no client certificate). Align Communication → Secure channel (endpoint) on both.",
+            "sshNoEndpoint": "{{detail}}: the flow uses SSH but neither endpoint offers it. Tick “SSH” under Communication → Secure channel (endpoint) of the SSH server.",
+            "applicationRequiresBoth": "{{detail}}: the flow is secured at application level (e.g. OPC UA Secure Channel) — both endpoints must offer it under Communication → Secure channel (endpoint).",
+            "channelUnused": "{{detail}} offers {{channel}}, but none of its flows uses it — an open service without a visible purpose? Remove it or draw the flow that uses it.",
+            "keyRenewalPlaintext": "{{detail}}: keys and certificates are renewed unencrypted — new keys travel in plain. Renew them over a secure channel, in an encrypted update package or on site.",
+            "keyRenewalNoChannel": "{{detail}}: keys are renewed over a secure channel, but the element offers none under Communication → Secure channel (endpoint).",
+            "keyRenewalUpdateNotEncrypted": "{{detail}}: keys are renewed in an encrypted update package, but the update package is not encrypted (Operation → Update package encrypted) or the element is not updated."
           }
         },
         "label_property": {}
@@ -353,9 +370,235 @@
           "description": "Transducer — converts a command into a physical effect"
         }
       },
+      "modelFields": {
+        "updateEncryption": {
+          "label": "Update package encrypted",
+          "help": "Whether the update package is encrypted, not only signed. The signature proves origin and integrity; encryption keeps the firmware and what it carries (keys, configuration) from being read. Per device: each device decrypts with its own key.",
+          "values": {
+            "none": "No (signed only)",
+            "per_type": "Yes, per device type",
+            "per_device": "Yes, per device"
+          }
+        },
+        "keyRenewal": {
+          "label": "Key / certificate renewal",
+          "help": "How the element's keys and certificates are renewed (EN 18031 CCK, IEC 62443-4-2 CR 1.8, 4.3). New keys must not travel in plain: “unencrypted” is reported in the DFD.",
+          "values": {
+            "not_possible": "Not possible",
+            "encrypted_update": "In an encrypted update package",
+            "secure_channel": "Over a secure channel (e.g. EST / SCEP over TLS)",
+            "on_site": "On site (physical access)",
+            "plaintext": "Unencrypted"
+          }
+        },
+        "innerInputValidation": {
+          "label": "Input validation",
+          "help": "The weakest input validation of the processes this black box contains (e.g. the firmware of a supplier module). IEC 62443-4-2 CR 3.5. Leave unset when the software is not known — the row stays open for a statement or the supplier's evidence.",
+          "values": {
+            "none": "None",
+            "basic": "Basic (type checking)",
+            "strict": "Strict (whitelist + sanitisation)",
+            "schema": "Schema validation"
+          }
+        },
+        "innerErrorHandling": {
+          "label": "Error handling",
+          "help": "How the contained processes report errors — the weakest case. CR 3.7 asks that error messages give no information an attacker could use.",
+          "values": {
+            "silent": "Silent (no details)",
+            "verbose": "Verbose (stack traces)",
+            "sanitized": "Sanitised (user-friendly)"
+          }
+        },
+        "innerFailSafeOutputState": {
+          "label": "Output state on failure",
+          "help": "The state the outputs of the contained processes take on a failure or a security violation. CR 3.6 (deterministic output).",
+          "values": {
+            "not_defined": "Not defined",
+            "unpowered": "Unpowered / de-energised",
+            "hold_last_value": "Hold last value",
+            "fixed_value": "Fixed value",
+            "dynamic": "Dynamic (depends on the situation)"
+          }
+        },
+        "innerDataClassification": {
+          "label": "Data classification",
+          "help": "The classification of the most sensitive data the black box stores (configuration, keys, recipes …). Decides whether CR 4.1 / CR 4.2 apply to its data.",
+          "values": {
+            "public": "Public",
+            "internal": "Internal",
+            "confidential": "Confidential",
+            "restricted": "Restricted",
+            "secret": "Secret"
+          }
+        },
+        "innerEncryptionAtRest": {
+          "label": "Encryption at rest",
+          "help": "How the stored data inside is encrypted — the weakest case. CR 4.1 (data at rest), CR 4.3.",
+          "values": {
+            "none": "None",
+            "aes256": "AES-256",
+            "tde": "Transparent data encryption",
+            "kms": "Key management service",
+            "custom": "Custom"
+          }
+        },
+        "innerIntegrityProtection": {
+          "label": "Integrity protection of stored data",
+          "help": "How the stored data and firmware inside are protected against change — the weakest case. CR 3.4, CR 3.4 RE(1) (signature).",
+          "values": {
+            "none": "None",
+            "crc": "CRC",
+            "hash": "Hash",
+            "hmac": "HMAC",
+            "signature": "Signature",
+            "custom": "Custom"
+          }
+        },
+        "innerDeletionMechanism": {
+          "label": "Deletion of stored data",
+          "help": "How data inside is deleted when it is no longer needed or the device leaves service. CR 4.2, CR 7.9 (factory reset).",
+          "values": {
+            "none": "None",
+            "overwrite": "Overwrite",
+            "factory_reset": "Factory reset",
+            "crypto_erase": "Crypto erase",
+            "physical": "Physical destruction",
+            "retention_period": "Retention period",
+            "custom": "Custom"
+          }
+        },
+        "userAccounts": {
+          "label": "User accounts",
+          "help": "How human users log in to this element: each person with an account of their own, one login per role (e.g. operator, maintenance, admin — usual in industrial devices), or one login shared by everyone. IEC 62443-4-2 CR 1.1 accepts role- or group-based logins; CR 1.1 RE(1) (SL 2) asks for unique identification of every human user.",
+          "values": {
+            "individual": "One account per person",
+            "per_role": "One login per role",
+            "shared": "One shared login"
+          }
+        },
+        "passwordStrength": {
+          "label": "Password strength rules",
+          "help": "The rules for passwords checked here: none, rules fixed in the product, or a policy the operator can configure (minimum length, character classes). IEC 62443-4-2 CR 1.7 asks for configurable strength.",
+          "values": {
+            "none": "None",
+            "fixed_rules": "Fixed rules",
+            "configurable_policy": "Configurable policy"
+          }
+        },
+        "passwordLifetime": {
+          "label": "Password lifetime limits",
+          "help": "Which accounts have limits on how long a password is valid and on reusing old passwords. Only the kinds of accounts that log in with a password here are offered. IEC 62443-4-2:2019 CR 1.7 RE(1) (human users, lifetime and reuse) and RE(2) (all users); in the CRA edition RE(2) covers software processes and devices.",
+          "values": {
+            "none": "None",
+            "human_accounts": "Human user accounts",
+            "machine_accounts": "Accounts of software processes and devices",
+            "all_accounts": "All accounts"
+          }
+        },
+        "defaultCredentials": {
+          "label": "Initial authenticators",
+          "help": "How the first passwords, PINs or keys come into being: none pre-installed (set when the device is commissioned), unique per device (random, not derived from serial number or MAC), a default whose change is enforced at first use, or one default that is the same on every device. IEC 62443-4-2 CR 1.5 a / b; ETSI EN 303 645 5.1-1 and EN 18031 AUM-5 do not allow universal defaults.",
+          "values": {
+            "none_preinstalled": "None pre-installed",
+            "unique_per_device": "Unique per device",
+            "change_enforced": "Default, change enforced at first use",
+            "universal": "Same default on every device"
+          }
+        },
+        "authenticatorChangeable": {
+          "label": "Authenticators changeable",
+          "help": "Can passwords, PINs or keys be changed and refreshed during operation? IEC 62443-4-2 CR 1.5 c; ETSI EN 303 645 5.1-4.",
+          "values": {
+            "yes": "Yes",
+            "no": "No"
+          }
+        },
+        "updateDelivery": {
+          "label": "Update delivery",
+          "help": "How updates reach the element: only manually, a notification of an available update, installation on request or on a schedule, or automatically. EN IEC 62443-4-2/prAA CR 3.10 RE(2) accepts any of the last three. A mechanism that needs physical access offers manual only or notification.",
+          "values": {
+            "manual_only": "Manual only",
+            "notification": "Notification of available updates",
+            "on_request_or_scheduled": "On request or scheduled",
+            "automatic": "Automatic"
+          }
+        },
+        "updateDefaults": {
+          "label": "Automatic update settings",
+          "help": "How automatic updates are set up when delivered: switched on by default, the user can switch them off, the user can postpone them. CRA Annex I (2)(c), ETSI EN 303 645 5.3-6.",
+          "values": {
+            "enabled_by_default": "On by default",
+            "user_can_disable": "User can switch them off",
+            "user_can_postpone": "User can postpone them"
+          }
+        },
+        "secureByDefault": {
+          "label": "Secure by default",
+          "help": "Is the component delivered with — and configurable to — its secure-by-default network and security settings? IEC 62443-4-2 CR 7.6 a). Asked on the element that stands for the component: a multiprocess, or the process under evaluation.",
+          "values": {
+            "yes": "Yes",
+            "no": "No"
+          }
+        },
+        "securityConfigReporting": {
+          "label": "Security settings report",
+          "help": "Can the deployed network and security settings be read: no, through an interface (e.g. a configuration page), or as a machine-readable report? IEC 62443-4-2 CR 7.6 b) and RE(1).",
+          "values": {
+            "none": "No",
+            "readable_interface": "Readable through an interface",
+            "machine_readable": "Machine-readable report"
+          }
+        },
+        "userDataDeletion": {
+          "label": "Deleting user data",
+          "help": "How the user's data (personal data, user configuration, passwords and keys) leaves the component: not at all, by a delete function the user can trigger, by a reset to the supplier-defined state (factory reset), or both. ETSI EN 303 645 5.11-1, CRA Annex I (2)(m), EN IEC 62443-4-2/prAA CR 7.9 (reset). Which store is wiped how is set on the data store (deletion mechanism). The delete function is offered only where a data store holds user data.",
+          "values": {
+            "none": "Not possible",
+            "by_user": "Delete function for the user",
+            "factory_reset": "Reset to the supplier state",
+            "both": "Both"
+          }
+        },
+        "loginLockout": {
+          "label": "After failed logins",
+          "help": "What this element does after consecutive failed login attempts: nothing, a delay or rate limit, a lock for a period, or a lock until an administrator unlocks. It counts the attempts because it verifies the login — a port does not see logins. IEC 62443-4-2 CR 1.11 asks for a limit and a lock; ETSI EN 303 645 5.1-5 and EN 18031 AUM-6 also accept a delay.",
+          "values": {
+            "none": "Nothing",
+            "delay": "Delay / rate limit",
+            "timed_lockout": "Lock for a period",
+            "admin_unlock": "Lock until an administrator unlocks"
+          }
+        },
+        "roleMapping": {
+          "label": "Role permissions",
+          "help": "With role-based authorization: can an authorised role (e.g. the administrator) define and change which permissions each role has, or are the roles and their permissions fixed in the product? IEC 62443-4-2 CR 2.1 RE(2) (SL 2) asks for the configurable mapping.",
+          "values": {
+            "fixed_roles": "Fixed in the product",
+            "configurable": "Configurable by an authorised role"
+          }
+        }
+      },
       "element_description": {
+        "securityTabs": {
+          "login": "Login & accounts",
+          "authorization": "Authorization",
+          "communication": "Communication",
+          "robustness": "Robustness",
+          "sessions": "Sessions & traceability",
+          "operation": "Operation",
+          "data": "Data",
+          "safety": "Safety"
+        },
         "title": "Element Descriptions",
         "safetyAnnotation": { "title": "Safety Annotations" },
+        "newAsset": {
+          "tooltip": "New asset — link it to elements later",
+          "name": "Name",
+          "group": "Category",
+          "create": "Create",
+          "none": "No assets yet — create one with “+” or link one in an element."
+        },
         "assets": "Assets",
         "dataFlows": "Data Flows",
         "tabs": {
@@ -604,11 +847,15 @@
               }
             },
             "tlsTermination": {
-              "label": "TLS termination",
+              "label": "Secure channel (endpoint)",
               "options": {
                 "none": "None",
-                "server": "Server-side (TLS)",
-                "mutual": "Mutual (mTLS)"
+                "server": "TLS (server)",
+                "mutual": "Mutual TLS (mTLS)",
+                "vpn": "VPN / IPsec",
+                "ssh": "SSH",
+                "application": "Application level (e.g. OPC UA Secure Channel)",
+                "custom": "Other method"
               }
             },
             "authorizationModel": {
@@ -973,11 +1220,15 @@
               }
             },
             "tlsTermination": {
-              "label": "TLS termination",
+              "label": "Secure channel (endpoint)",
               "options": {
                 "none": "None",
-                "server": "Server-side (TLS)",
-                "mutual": "Mutual (mTLS)"
+                "server": "TLS (server)",
+                "mutual": "Mutual TLS (mTLS)",
+                "vpn": "VPN / IPsec",
+                "ssh": "SSH",
+                "application": "Application level (e.g. OPC UA Secure Channel)",
+                "custom": "Other method"
               }
             },
             "authorizationModel": {
@@ -1545,9 +1796,29 @@
                 "tls": "TLS",
                 "mtls": "mTLS (Mutual TLS)",
                 "vpn": "VPN / IPSec",
+                "ssh": "SSH",
+                "application": "Application level (e.g. OPC UA Secure Channel)",
                 "custom": "Custom Encryption"
               },
               "warning": "Unencrypted flow crosses trust boundary → Information Disclosure risk"
+            },
+            "accessMode": {
+              "label": "Access Mode",
+              "help": "Read / write: the receiver accepts write commands — tampering threats for field protocols. Read only rules them out.",
+              "options": {
+                "read_only": "Read only",
+                "read_write": "Read / write",
+                "write_only": "Write only"
+              }
+            },
+            "dataMinimization": {
+              "label": "Data Minimisation",
+              "help": "Only the data the receiver needs leaves the system (CRA Annex I (2)(g), GDPR data minimisation).",
+              "options": {
+                "none": "None — all data points exposed",
+                "filtered": "Filtered (allowlist)",
+                "aggregated_only": "Aggregated / anonymised only"
+              }
             },
             "endpointAuthentication": {
               "label": "Endpoint Authentication",

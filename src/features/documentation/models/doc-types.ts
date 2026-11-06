@@ -120,9 +120,10 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     en: "Cybersecurity Goals and Claims",
     de: "Cybersecurity Goals und Claims",
   },
+  // One chapter for every active standard (CM-9) — IEC 62443-4-2 and EN 50742 A (CM-13).
   "compliance-matrix": {
-    en: "IEC 62443-4-2 Requirement Matrix",
-    de: "IEC 62443-4-2 Anforderungsmatrix",
+    en: "Requirement Matrix",
+    de: "Anforderungsmatrix",
   },
   "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
   appendix: { en: "Appendix", de: "Anhang" },
@@ -281,11 +282,12 @@ export interface DocComputedValues {
    */
   verification?: DocVerification;
   /**
-   * IEC 62443-4-2 requirement matrix (iec-62443-4-2-cra-coverage.md §5),
-   * evaluated by the app layer (buildDocCompliance) — only for projects whose
-   * tags select an edition. Absent → no matrix chapter.
+   * Requirement matrices (iec-62443-4-2-cra-coverage.md §5), one per active
+   * standard in registry order (model coverage plan §2.5, CM-9), evaluated by
+   * the app layer (buildDocCompliance) — only for projects whose tags select
+   * a standard. Absent → no matrix chapter.
    */
-  compliance?: DocCompliance;
+  compliance?: DocCompliance[];
 }
 
 /** SL-C values of one FR (D-2, D-4, D-14). */
@@ -299,8 +301,15 @@ export interface DocComplianceVector {
 }
 
 /** One row of the Statement of Applicability, names already resolved. */
+/** A catalog (or project) mitigation suggested for a gap, its text in the document language (FX-23). */
+export interface DocMitigationSuggestion {
+  id: string;
+  text: string;
+}
+
 export interface DocComplianceRow {
   label: string;
+  /** The row's group: FR for IEC 62443-4-2, the group id for EN 50742 A. */
   fr: string;
   minSl: number | null;
   /** CRA Annex I Part I letters (CRA edition). */
@@ -321,11 +330,34 @@ export interface DocComplianceRow {
   statementSuperseded?: boolean;
   /** Counts for SL-C (component) in the achieved run (D-14). */
   countsForComponent: boolean;
-  /** Catalog mitigations naming the row's requirements — for gaps. */
-  suggestions: string[];
+  /** Catalog mitigations naming the row's requirements, with their text in the document language — for gaps. */
+  suggestions: DocMitigationSuggestion[];
+  /** EN 50742 A: risks (labels) that fail the row or are not rated yet. */
+  risks?: string[];
+}
+
+/** A claim the system around the component meets requirements (D-5, IEC-6). */
+export interface DocMatrixClaim {
+  /** "CLM-04" */
+  id: string;
+  /** The supporting measure. */
+  statement: string;
+  responsibleParty?: string;
+  reviewBy?: string;
+  /** Rows of the standard it covers. */
+  rows: string[];
+}
+
+/** EN 50742 A (CM-13): the SRSL the risks give per safety function (coverage §9.3). */
+export interface DocSrslSummary {
+  /** WoO id (project-global, Overview); absent = not set. */
+  windowOfOpportunity?: string;
+  safetyFunctions: { name: string; srsl?: number; interfaces: string[] }[];
 }
 
 export interface DocCompliance {
+  /** Short name of the standard — the part's title when the chapter has several (CM-9). */
+  standardLabel: string;
   editionTitle: string;
   draft: boolean;
   /** CRA edition: with the Annex I Part I view. */
@@ -334,7 +366,17 @@ export interface DocCompliance {
   /** Display name of the component; absent = the whole model (D-7). */
   component?: string;
   deviceCategories?: { categories: string[]; confirmed: boolean };
+  /**
+   * The standard has security levels (IEC 62443-4-2): SL table, "SL-C from"
+   * and the gaps against the SL-T. False for EN 50742 A — groups, the SRSL
+   * per safety function and the open requirements instead (CM-13).
+   */
+  levels: boolean;
   vectors: DocComplianceVector[];
+  /** EN 50742 A: SRSL per safety function, WoO. */
+  srsl?: DocSrslSummary;
+  /** Supporting claims covering rows of this standard (D-5, IEC-6). */
+  claims?: DocMatrixClaim[];
   rows: DocComplianceRow[];
 }
 
@@ -399,6 +441,8 @@ export interface DocProjectData {
   itemDefinition?: ItemDefinition;
   /** Goals, claims, verifications (WP-09-03/04/05, plan Phase 4); absent = none. */
   cybersecurityConcept?: CybersecurityConcept;
+  /** Component under evaluation of the Compliance tab — model fields of the whole component are listed on it (CM-6). */
+  complianceComponentId?: string;
 
   // Computed values (performance optimization)
   computed: DocComputedValues;

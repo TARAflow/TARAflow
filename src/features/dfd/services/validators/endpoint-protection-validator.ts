@@ -31,17 +31,27 @@ import type {
   ProcessProperties,
   MultiprocessProperties,
 } from "../../models/element-properties";
+import { SECURE_CHANNEL_OPTIONS, selectionOf } from "../../models/element-properties";
+import { NO_TRANSPORT_MEDIUM_PROTOCOLS } from "../../models/element-property-defaults";
+import { PROTOCOL_META } from "../../models/protocol-registry";
+import { MODEL_FIELDS, isFieldShown, readModelField, visibilityContexts } from "shared";
 
 /** TLS termination capability of an endpoint. mutual ⊃ server ⊃ none. */
 type TlsTermination = "none" | "server" | "mutual";
 
-/** Read the explicit tlsTermination capability (Option B). Defaults to none. */
+/**
+ * The TLS level an endpoint terminates (Option B): mutual if its secure
+ * channels include mutual TLS, else server if they include TLS, else none.
+ * Other channels (VPN, SSH, application level) are no TLS. A single value of
+ * an older file counts as one entry.
+ */
 function endpointTls(el: DFDElement | undefined): TlsTermination {
   if (!el) return "none";
   const p = el.properties as
     | (ProcessProperties & MultiprocessProperties)
     | undefined;
-  return p?.tlsTermination ?? "none";
+  const channels = selectionOf(SECURE_CHANNEL_OPTIONS, p?.tlsTermination);
+  return channels.includes("mutual") ? "mutual" : channels.includes("server") ? "server" : "none";
 }
 
 /**
@@ -58,13 +68,19 @@ function endpointTls(el: DFDElement | undefined): TlsTermination {
  *   → DF_TLS_HANDSHAKE_MISMATCH
  *   (a server+mutual pair still succeeds: the mutual side also serves simple TLS.)
  *
- * Only `tls` / `mtls` usage is gated. `vpn` / `custom` / `none` / undefined and
- * physical-medium edges are out of scope.
+ * Gated usages: `tls` / `mtls` (above), `ssh` (one endpoint offers SSH —
+ * client / server) and `application` (both endpoints offer it — e.g. an OPC UA
+ * Secure Channel needs both sides). `vpn` usually ends at a gateway between
+ * the endpoints, `custom` / `none` / undefined and physical-medium edges are
+ * out of scope. With `warnings`: a channel an element offers that none of its
+ * flows uses — an open service without a visible purpose (EN 303 645 5.6,
+ * IEC 62443-4-2 CR 7.7), user 2026-11-06.
  */
 export function validateEndpointProtection(
   connections: DFDConnection[],
   elements: DFDElement[],
   errors: ValidationFinding[],
+  warnings?: ValidationFinding[],
 ): void {
   const elementById = new Map(elements.map((e) => [e.id, e]));
 
@@ -76,11 +92,24 @@ export function validateEndpointProtection(
     if (props.medium === "physical") continue;
 
     const enc = props.encryptionInTransit;
-    if (enc !== "tls" && enc !== "mtls") continue; // only TLS usage is gated
-
     const a = elementById.get(conn.from);
     const b = elementById.get(conn.to);
     if (!a || !b) continue; // dangling — reported elsewhere
+
+    if (enc === "ssh" || enc === "application") {
+      const offers = (el: DFDElement) => channelsOf(el).includes(enc);
+      const ok = enc === "ssh" ? offers(a) || offers(b) : offers(a) && offers(b);
+      if (!ok) {
+        errors.push({
+          key: enc === "ssh" ? ValidationMessages.DF_SSH_NO_ENDPOINT : ValidationMessages.DF_APPLICATION_REQUIRES_BOTH,
+          displayId: conn.displayId ?? conn.id,
+          elementId: conn.id,
+          params: { detail: conn.name || `(unnamed DF ${conn.id})` },
+        });
+      }
+      continue;
+    }
+    if (enc !== "tls" && enc !== "mtls") continue; // vpn / custom / none: not gated
 
     const capA = endpointTls(a);
     const capB = endpointTls(b);
@@ -126,4 +155,137 @@ export function validateEndpointProtection(
       });
     }
   }
+
+  if (warnings) {
+    warnUnusedChannels(connections, elements, warnings);
+    warnUnsetChannels(connections, elements, warnings);
+    warnKeyRenewal(connections, elements, warnings);
+  }
 }
+
+/**
+ * A flow over a network or fieldbus, where a secure channel is expected to be
+ * stated; the protocol must be known. On-board chip buses (UART, SPI, I²C)
+ * may carry one — the field is offered there — but are not asked for.
+ */
+function overNetwork(props: DataFlowProperties | undefined): boolean {
+  const protocol = props?.protocol;
+  if (!protocol || props?.medium === "physical") return false;
+  if (NO_TRANSPORT_MEDIUM_PROTOCOLS.has(protocol)) return false;
+  const group = PROTOCOL_META[protocol]?.group;
+  return group !== "electrical" && group !== "embedded";
+}
+
+/**
+ * The secure channels not stated on an element with a flow over a network or
+ * bus (user 2026-11-06): unset is unknown, not "none" — ask for a choice,
+ * "none" included. Same finding as other missing properties.
+ */
+function warnUnsetChannels(
+  connections: DFDConnection[],
+  elements: DFDElement[],
+  warnings: ValidationFinding[],
+): void {
+  for (const el of elements) {
+    if (el.type !== "Process" && el.type !== "Multiprocess") continue;
+    const p = el.properties as (ProcessProperties & MultiprocessProperties) | undefined;
+    if (selectionOf(SECURE_CHANNEL_OPTIONS, p?.tlsTermination).length > 0) continue;
+    const networked = connections.some(
+      (c) => (c.from === el.id || c.to === el.id) && overNetwork(c.properties as DataFlowProperties | undefined),
+    );
+    if (!networked) continue;
+    warnings.push({
+      key: ValidationMessages.ELEMENT_MISSING_PROPERTY,
+      displayId: el.displayId ?? el.name,
+      elementId: el.id,
+      params: { elementType: el.type, field: "tlsTermination", name: el.name },
+    });
+  }
+}
+
+/** The secure channels an element offers (Process / Multiprocess), "none" left out. */
+function channelsOf(el: DFDElement): string[] {
+  if (el.type !== "Process" && el.type !== "Multiprocess") return [];
+  const p = el.properties as (ProcessProperties & MultiprocessProperties) | undefined;
+  return selectionOf(SECURE_CHANNEL_OPTIONS, p?.tlsTermination).filter((c) => c !== "none");
+}
+
+/** Which offered channels a flow's encryption uses. */
+const USES: Record<string, readonly string[]> = {
+  tls: ["server", "mutual"],
+  mtls: ["mutual"],
+  vpn: ["vpn"],
+  ssh: ["ssh"],
+  application: ["application"],
+  custom: ["custom"],
+};
+
+function warnUnusedChannels(
+  connections: DFDConnection[],
+  elements: DFDElement[],
+  warnings: ValidationFinding[],
+): void {
+  for (const el of elements) {
+    const offered = channelsOf(el);
+    if (offered.length === 0) continue;
+    const used = new Set<string>();
+    for (const conn of connections) {
+      if (conn.from !== el.id && conn.to !== el.id) continue;
+      const props = conn.properties as DataFlowProperties | undefined;
+      if (!props || props.medium === "physical") continue;
+      for (const c of USES[props.encryptionInTransit ?? ""] ?? []) used.add(c);
+    }
+    for (const channel of offered) {
+      if (used.has(channel)) continue;
+      warnings.push({
+        key: ValidationMessages.EL_CHANNEL_UNUSED,
+        displayId: el.displayId ?? el.id,
+        elementId: el.id,
+        params: { detail: el.name || el.displayId || el.id, channel },
+      });
+    }
+  }
+}
+
+const KEY_RENEWAL_FIELD = MODEL_FIELDS.find((f) => f.property === "keyRenewal")!;
+const UPDATE_ENCRYPTION_FIELD = MODEL_FIELDS.find((f) => f.property === "updateEncryption")!;
+
+/**
+ * Key renewal (user 2026-11-06): new keys must not travel in plain. Read
+ * through the field predicates (R-3) — a hidden field says nothing.
+ *   plaintext                                → warning
+ *   secure_channel, element offers none      → warning (no channel to renew over)
+ *   encrypted_update, update not encrypted   → warning ("none", or no updates at all)
+ */
+function warnKeyRenewal(
+  connections: DFDConnection[],
+  elements: DFDElement[],
+  warnings: ValidationFinding[],
+): void {
+  const contextOf = visibilityContexts(
+    elements.map((e) => ({ id: e.id, type: e.type, properties: e.properties as Record<string, unknown> | undefined })),
+    connections.map((c) => ({ id: c.id, from: c.from, to: c.to, properties: c.properties as Record<string, unknown> | undefined })),
+  );
+  for (const el of elements) {
+    if (el.type !== "Process" && el.type !== "Multiprocess") continue;
+    const context = contextOf(el.id);
+    if (!context) continue;
+    const renewal = readModelField(KEY_RENEWAL_FIELD, context);
+    const finding = (key: string): ValidationFinding => ({
+      key,
+      displayId: el.displayId ?? el.name,
+      elementId: el.id,
+      params: { detail: el.name || el.displayId || el.id },
+    });
+    if (renewal === "plaintext") warnings.push(finding(ValidationMessages.KEY_RENEWAL_PLAINTEXT));
+    if (renewal === "secure_channel" && channelsOf(el).length === 0) {
+      warnings.push(finding(ValidationMessages.KEY_RENEWAL_NO_CHANNEL));
+    }
+    if (renewal === "encrypted_update") {
+      const encryption = readModelField(UPDATE_ENCRYPTION_FIELD, context);
+      const updatable = isFieldShown(UPDATE_ENCRYPTION_FIELD, context);
+      if (!updatable || encryption === "none") warnings.push(finding(ValidationMessages.KEY_RENEWAL_UPDATE_NOT_ENCRYPTED));
+    }
+  }
+}
+

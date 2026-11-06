@@ -34,6 +34,12 @@ export interface IssueTrackerDescriptor {
   label: string;
   /** Selectable in this release; the others are listed as coming. */
   available: boolean;
+  /**
+   * Built and tested against recorded answers, not yet against a real
+   * instance (user 2026-11-03) — the form marks it "preview" until a real run
+   * confirmed it.
+   */
+  preview?: boolean;
   availableFrom: string;
   hostLabel: string;
   /** Prefilled host, e.g. https://api.github.com. */
@@ -42,6 +48,13 @@ export interface IssueTrackerDescriptor {
   userField?: { label: string; kind: "email" | "username" };
   secretLabel: string;
   auth: TrackerAuthScheme;
+  /**
+   * The account a secret is bound to comes from the URL, not from a user
+   * field: Azure DevOps names the organization in the path
+   * (https://dev.azure.com/<org>) or the subdomain (<org>.visualstudio.com) —
+   * the token is bound to host + organization (IT-8).
+   */
+  accountFromUrl?: "azure-organization";
 }
 
 export const ISSUE_TRACKERS: readonly IssueTrackerDescriptor[] = [
@@ -55,12 +68,12 @@ export const ISSUE_TRACKERS: readonly IssueTrackerDescriptor[] = [
     secretLabel: "API token",
     auth: "basic-user-token",
   },
-  { id: "jira-server", label: "Jira Server / Data Center", available: false, availableFrom: "0.17", hostLabel: "Jira URL", secretLabel: "Personal access token", auth: "bearer" },
-  { id: "azure-devops", label: "Azure DevOps", available: false, availableFrom: "0.17", hostLabel: "Organization URL", defaultHost: "https://dev.azure.com", secretLabel: "Personal access token", auth: "basic-empty-user" },
-  { id: "github", label: "GitHub Issues", available: false, availableFrom: "0.17", hostLabel: "API URL", defaultHost: "https://api.github.com", secretLabel: "Personal access token", auth: "bearer" },
-  { id: "gitlab", label: "GitLab Issues", available: false, availableFrom: "0.17", hostLabel: "GitLab URL", defaultHost: "https://gitlab.com", secretLabel: "Personal access token", auth: "private-token" },
-  { id: "polarion", label: "Polarion", available: false, availableFrom: "0.17", hostLabel: "Polarion URL", secretLabel: "Personal access token", auth: "bearer" },
-  { id: "openproject", label: "OpenProject", available: false, availableFrom: "0.17", hostLabel: "OpenProject URL", secretLabel: "API key", auth: "basic-apikey" },
+  { id: "jira-server", label: "Jira Server / Data Center", available: true, preview: true, availableFrom: "0.18", hostLabel: "Jira URL", secretLabel: "Personal access token", auth: "bearer" },
+  { id: "azure-devops", label: "Azure DevOps", available: true, preview: true, availableFrom: "0.18", hostLabel: "Organization URL", defaultHost: "https://dev.azure.com/", secretLabel: "Personal access token", auth: "basic-empty-user", accountFromUrl: "azure-organization" },
+  { id: "github", label: "GitHub Issues", available: true, preview: true, availableFrom: "0.18", hostLabel: "API URL", defaultHost: "https://api.github.com", secretLabel: "Personal access token", auth: "bearer" },
+  { id: "gitlab", label: "GitLab Issues", available: true, preview: true, availableFrom: "0.18", hostLabel: "GitLab URL", defaultHost: "https://gitlab.com", secretLabel: "Personal access token", auth: "private-token" },
+  { id: "polarion", label: "Polarion", available: false, availableFrom: "0.19", hostLabel: "Polarion URL", secretLabel: "Personal access token", auth: "bearer" },
+  { id: "openproject", label: "OpenProject", available: true, preview: true, availableFrom: "0.18", hostLabel: "OpenProject URL", secretLabel: "API key", auth: "basic-apikey" },
 ];
 
 export function issueTracker(id: string): IssueTrackerDescriptor | undefined {
@@ -83,8 +96,35 @@ export function normalizeTrackerHost(url: string | undefined | null): string | n
   }
 }
 
-/** The account a secret is stored under: the user (lower case), or "default" for token-only trackers. */
-export function trackerAccount(tracker: IssueTrackerDescriptor, user?: string): string | null {
+/**
+ * The Azure DevOps organization of a URL: the first path segment on
+ * dev.azure.com, the subdomain of <org>.visualstudio.com; null otherwise.
+ */
+export function azureOrganizationOf(url: string | undefined | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url.trim());
+    const host = u.hostname.toLowerCase();
+    const org =
+      host === "dev.azure.com"
+        ? u.pathname.split("/").filter(Boolean)[0]
+        : host.endsWith(".visualstudio.com")
+          ? host.slice(0, -".visualstudio.com".length)
+          : undefined;
+    const value = org ? decodeURIComponent(org).toLowerCase() : "";
+    return /^[a-z0-9][a-z0-9-]*$/.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The account a secret is stored under: the user (lower case); for a tracker
+ * that names the account in its URL (Azure DevOps) the organization; else
+ * "default" for token-only trackers.
+ */
+export function trackerAccount(tracker: IssueTrackerDescriptor, user?: string, url?: string): string | null {
+  if (tracker.accountFromUrl === "azure-organization") return azureOrganizationOf(url);
   if (!tracker.userField) return "default";
   const v = user?.trim().toLowerCase();
   return v ? v : null;

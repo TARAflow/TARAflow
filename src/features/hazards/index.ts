@@ -11,6 +11,7 @@ export * from "./services/severity-scale-service";
 export * from "./services/eligible-assets-service";
 export * from "./services/hazard-relation-service";
 export * from "./services/hazard-validator";
+export * from "./services/hazard-findings";
 export * from "./services/hazard-service";
 
 export { HazardsTab } from "./components/hazard-tab";

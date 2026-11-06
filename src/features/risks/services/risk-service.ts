@@ -22,11 +22,8 @@ import type {
 } from "../models/risk-config-types";
 import type { FactorRating } from "../models/risk-factor-types";
 import { ALL_PREDEFINED_FACTORS } from "../models/risk-factor-types";
-import {
-  isTreatmentToReview,
-  treatmentVocabulary,
-} from "../models/risk-treatment-vocabulary";
 import type { MoSCoWPriority, RiskTreatment } from "../models/risk-scale-types";
+import { riskFindingLines, riskFindings } from "./risk-findings";
 import type { SelectedMitigation } from "../models/risk-mitigation-types";
 import { calculateRiskValues } from "./risk-calculation-service";
 
@@ -240,95 +237,9 @@ export const riskService = {
   // ==================== VALIDATION ====================
 
   validate(riskData: RiskData): RiskValidation {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const now = new Date().toISOString();
-
-    const unrated = riskData.risks.filter(
-      (r) => r.calculatedRiskBeforeMitigation === 0,
-    );
-    if (unrated.length > 0)
-      warnings.push(`${unrated.length} risk(s) have not been rated`);
-
-    const wontNoJustification = riskData.risks.filter(
-      (r) => r.moscowPriority === "wont" && !r.wontJustification.trim(),
-    );
-    if (wontNoJustification.length > 0)
-      errors.push(
-        `${wontNoJustification.length} "Won't" risk(s) missing justification`,
-      );
-
-    // Treatment justification is mandatory for accept / transfer / share
-    const passiveTreatments = ["accept", "transfer", "share"] as const;
-    const treatmentNoJustification = riskData.risks.filter(
-      (r) =>
-        passiveTreatments.includes(r.treatment as any) &&
-        !r.treatmentJustification?.trim(),
-    );
-    if (treatmentNoJustification.length > 0)
-      errors.push(
-        `${treatmentNoJustification.length} risk(s) with accept/transfer/share treatment require a justification`,
-      );
-
-    // ISO/SAE 21434 15.9 has no "transfer" option: a stored transfer is a
-    // decision to review (confirm as share), never changed automatically.
-    const vocabulary = treatmentVocabulary(riskData.configuration);
-    const transferToReview = riskData.risks.filter((r) =>
-      isTreatmentToReview(r.treatment, vocabulary),
-    );
-    if (transferToReview.length > 0)
-      warnings.push(
-        `${transferToReview.length} risk(s) with treatment "transfer" — ISO/SAE 21434 offers no transfer option; confirm as share`,
-      );
-
-    // A risk to reduce needs a mitigation, at any risk value (user
-    // 2026-10-30). Accept / transfer / share need none — their justification
-    // is checked above; the former "high risk without mitigation" rule
-    // flagged exactly those accepted risks.
-    const reduceUnmitigated = riskData.risks.filter(
-      (r) =>
-        r.treatment === "reduce" &&
-        r.selectedMitigations.filter((m) => m.status !== "rejected").length ===
-          0 &&
-        r.moscowPriority !== "wont",
-    );
-    if (reduceUnmitigated.length > 0)
-      warnings.push(
-        `${reduceUnmitigated.length} risk(s) to reduce have no mitigation (${reduceUnmitigated
-          .slice(0, 5)
-          .map((r) => r.threatDisplayId)
-          .join(", ")}${reduceUnmitigated.length > 5 ? ", …" : ""})`,
-      );
-
-    // A risk to reduce needs its residual rated — the factors after
-    // mitigation (user 2026-10-30, Smoke Detector SHE-D-1). Not under
-    // ISO/SAE 21434: there the residual is isoRisk.residual and its absence
-    // is the RESIDUAL_MISSING finding; the classic after-value stays 0.
-    if (riskData.configuration?.likelihoodMethod !== "iso-21434") {
-      const residualMissing = riskData.risks.filter(
-        (r) =>
-          r.treatment === "reduce" &&
-          r.calculatedRiskBeforeMitigation > 0 &&
-          !(r.calculatedRiskAfterMitigation > 0) &&
-          r.moscowPriority !== "wont",
-      );
-      if (residualMissing.length > 0)
-        warnings.push(
-          `${residualMissing.length} risk(s) to reduce have no residual risk rating (${residualMissing
-            .slice(0, 5)
-            .map((r) => r.threatDisplayId)
-            .join(", ")}${residualMissing.length > 5 ? ", …" : ""})`,
-        );
-    }
-
-    const uncertainRisks = riskData.risks.filter(
-      (r) => r.threatRelevance === "uncertain",
-    );
-    if (uncertainRisks.length > 0)
-      warnings.push(
-        `${uncertainRisks.length} risk(s) based on uncertain threats — confirm relevance in Threat Eval`,
-      );
-
+    // The stored form: English sentences (risk-findings.ts, FX-4).
+    const { errors, warnings } = riskFindingLines(riskFindings(riskData));
+    const unrated = riskData.risks.filter((r) => r.calculatedRiskBeforeMitigation === 0);
     return {
       isComplete:
         errors.length === 0 &&
@@ -336,7 +247,7 @@ export const riskService = {
         unrated.length === 0,
       errors,
       warnings,
-      lastValidated: now,
+      lastValidated: new Date().toISOString(),
     };
   },
 

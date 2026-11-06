@@ -1,11 +1,15 @@
 // ==================== AUDIT COMMIT FLOW (pure) ====================
-// The commit orchestration extracted from audit-tab's handleCommit: stage →
-// branch → (signed) commit → optional push. Pure and dependency-injected so it
+// The commit orchestration extracted from audit-tab's handleCommit: branch →
+// stage → (signed) commit → optional push. Pure and dependency-injected so it
 // is unit-testable; `useAuditGit` supplies the real GitService methods.
 //
 // Signing is threaded through as `options.signCommit` (previously dropped before
 // reaching main). Push failure is non-fatal (returns a warning), matching the
 // existing behaviour.
+//
+// The branch comes first (FX-2): staging before the switch left the project
+// file staged on the old branch whenever the switch failed — the next plain
+// `git commit` there would have taken it along.
 
 import type { AuditConfig, CommitOptions } from "../models/audit-types";
 import type {
@@ -57,11 +61,6 @@ export async function runCommitFlow(
 ): Promise<CommitFlowResult> {
   const { options, config, currentBranch } = input;
 
-  const stage = await deps.stage(input.relPaths);
-  if (!stage.success) {
-    return { ok: false, error: stage.error ?? "Failed to stage changes" };
-  }
-
   // Branch: create new, or switch to an existing one that isn't current.
   if (options.createBranch) {
     const c = await deps.createBranch(options.branchName, true);
@@ -73,6 +72,11 @@ export async function runCommitFlow(
     if (!co.success) {
       return { ok: false, error: co.error ?? "Failed to checkout branch" };
     }
+  }
+
+  const stage = await deps.stage(input.relPaths);
+  if (!stage.success) {
+    return { ok: false, error: stage.error ?? "Failed to stage changes" };
   }
 
   const commit = await deps.commit(

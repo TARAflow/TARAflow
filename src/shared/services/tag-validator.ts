@@ -177,6 +177,15 @@ function en50742ApproachOf(tag: string): "A" | "B" | null {
   return null;
 }
 
+/**
+ * The tag selects EN 50742 Approach A — "EN 50742 A", "EN50742_A", "EN 50742
+ * Approach A" and the bare "EN 50742" (the preset defaults to A). One rule for
+ * the preset and the Compliance sub-tab `en-50742-a` (model coverage plan §8.1).
+ */
+export function isEn50742ApproachATag(tag: string): boolean {
+  return methodGroupOf(tag) === "EN 50742" && en50742ApproachOf(tag) !== "B";
+}
+
 // ==================== SAFETY / HAZARD IMPLICATION ====================
 
 /**

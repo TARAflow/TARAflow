@@ -130,6 +130,10 @@ export {
   EN50742_EXPOSURE_LEVELS,
   EN50742_ATTACKER_CAPABILITY_LEVELS,
   EN50742_AP_BAND_COUNT,
+  clauseFromMandatedId,
+  mandatedRequirementsForThreat,
+  type Srsl,
+  type SrslAnchorType,
   type AttackPotentialBand,
 } from "./models/en50742-approach-a-core";
 
@@ -137,6 +141,7 @@ export {
 
 // ==================== SERVICES ====================
 export { riskService } from "./services/risk-service";
+export { riskFindings, riskFindingLines, type RiskFinding } from "./services/risk-findings";
 export { calculateRiskValues } from "./services/risk-calculation-service";
 export {
   en50742RiskFromResolved,

@@ -192,4 +192,61 @@ describe("runCommitFlow", () => {
     expect(r.ok).toBe(false);
     expect(commit).not.toHaveBeenCalled();
   });
+
+  // FX-2: the branch first, then stage — a failed switch leaves nothing staged.
+  it("switches the branch before staging the project file", async () => {
+    const calls: string[] = [];
+    await runCommitFlow(
+      deps({
+        checkoutBranch: async () => (calls.push("checkout"), okRes()),
+        stage: async () => (calls.push("stage"), okRes()),
+        commit: async () => (calls.push("commit"), okRes({ commit: "x" })),
+      }),
+      { options: opts({ branchName: "dev" }), config: cfg(), currentBranch: "main", relPaths: ["p.tara.json"] },
+    );
+    expect(calls).toEqual(["checkout", "stage", "commit"]);
+  });
+
+  it("creates the new branch before staging", async () => {
+    const calls: string[] = [];
+    await runCommitFlow(
+      deps({
+        createBranch: async () => (calls.push("create"), okRes()),
+        stage: async () => (calls.push("stage"), okRes()),
+      }),
+      {
+        options: opts({ createBranch: true, branchName: "round-2" }),
+        config: cfg(),
+        currentBranch: "main",
+        relPaths: ["p.tara.json"],
+      },
+    );
+    expect(calls.slice(0, 2)).toEqual(["create", "stage"]);
+  });
+
+  it("a failed checkout stages nothing", async () => {
+    const stage = vi.fn(async () => okRes());
+    const r = await runCommitFlow(
+      deps({ checkoutBranch: async () => failRes("would be overwritten"), stage }),
+      { options: opts({ branchName: "dev" }), config: cfg(), currentBranch: "main", relPaths: ["p.tara.json"] },
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/would be overwritten/);
+    expect(stage).not.toHaveBeenCalled();
+  });
+
+  it("a failed branch creation stages nothing", async () => {
+    const stage = vi.fn(async () => okRes());
+    const r = await runCommitFlow(
+      deps({ createBranch: async () => failRes("exists"), stage }),
+      {
+        options: opts({ createBranch: true, branchName: "b" }),
+        config: cfg(),
+        currentBranch: "main",
+        relPaths: ["p.tara.json"],
+      },
+    );
+    expect(r.ok).toBe(false);
+    expect(stage).not.toHaveBeenCalled();
+  });
 });

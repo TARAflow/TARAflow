@@ -98,6 +98,11 @@ describe("concept findings", () => {
     expect(f.find((x) => x.code === "UNUSED")!.severity).toBe("info");
   });
 
+  it("a supporting claim (matrix, IEC-6) covers no risk and is no finding", () => {
+    const supporting = { id: "c9", displayId: "CLM-09", statement: "", kind: "supporting" as const, riskIds: [], assumptionIds: [], requirements: ["iec62443:cr-2.8"] };
+    expect(conceptFindings({ ...base, risks: [], concept: concept({ claims: [supporting] }) })).toEqual([]);
+  });
+
   it("other presets: no findings", () => {
     expect(conceptFindings({ ...base, isoMode: false, risks: [risk("R1", "reduce")], concept: undefined })).toEqual([]);
   });

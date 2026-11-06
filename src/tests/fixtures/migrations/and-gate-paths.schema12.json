@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 12,
+  "info": {
+    "name": "AND gate golden (schema 12)"
+  },
+  "attackTrees": {
+    "configuration": {},
+    "trees": [
+      {
+        "id": "tree-1",
+        "name": "Tamper",
+        "dsl": "Tamper;ROOT\n\tBoth;AND\n\t\tPort;OR\n\t\t\tDebug port;p=0.5,i=3\n\t\t\tJTAG;p=0.3,i=3\n\t\tBypass;p=0.4,i=4\n\tAlone;p=0.2,i=2",
+        "ast": {
+          "id": "node-dfec9410e790",
+          "name": "Tamper",
+          "type": "ROOT",
+          "level": 0,
+          "children": [
+            {
+              "id": "node-e7b7bd7a9e7e",
+              "name": "Both",
+              "type": "AND",
+              "level": 1,
+              "children": [
+                {
+                  "id": "node-828b920822d7",
+                  "name": "Port",
+                  "type": "OR",
+                  "level": 2,
+                  "children": [
+                    {
+                      "id": "node-671c04a3acdb",
+                      "name": "Debug port",
+                      "type": "LEAF",
+                      "level": 3,
+                      "children": [],
+                      "mitigations": [],
+                      "evaluation": {
+                        "simple": {
+                          "probability": 0.5,
+                          "impact": 3
+                        }
+                      },
+                      "lineNumber": 4,
+                      "parentId": "node-828b920822d7"
+                    },
+                    {
+                      "id": "node-3e7760ebc98b",
+                      "name": "JTAG",
+                      "type": "LEAF",
+                      "level": 3,
+                      "children": [],
+                      "mitigations": [],
+                      "evaluation": {
+                        "simple": {
+                          "probability": 0.3,
+                          "impact": 3
+                        }
+                      },
+                      "lineNumber": 5,
+                      "parentId": "node-828b920822d7"
+                    }
+                  ],
+                  "mitigations": [],
+                  "lineNumber": 3,
+                  "parentId": "node-e7b7bd7a9e7e"
+                },
+                {
+                  "id": "node-899f8ceb51d2",
+                  "name": "Bypass",
+                  "type": "LEAF",
+                  "level": 2,
+                  "children": [],
+                  "mitigations": [],
+                  "evaluation": {
+                    "simple": {
+                      "probability": 0.4,
+                      "impact": 4
+                    }
+                  },
+                  "lineNumber": 6,
+                  "parentId": "node-e7b7bd7a9e7e"
+                }
+              ],
+              "mitigations": [],
+              "lineNumber": 2,
+              "parentId": "node-dfec9410e790"
+            },
+            {
+              "id": "node-e713f93c0d5d",
+              "name": "Alone",
+              "type": "LEAF",
+              "level": 1,
+              "children": [],
+              "mitigations": [],
+              "evaluation": {
+                "simple": {
+                  "probability": 0.2,
+                  "impact": 2
+                }
+              },
+              "lineNumber": 7,
+              "parentId": "node-dfec9410e790"
+            }
+          ],
+          "mitigations": [],
+          "lineNumber": 1
+        },
+        "configuration": {
+          "evaluationMethod": "simple"
+        },
+        "pathAnalysis": {
+          "paths": []
+        },
+        "pathAssessments": [
+          {
+            "pathKey": "671c04a3acdb",
+            "strideCategory": "T",
+            "relevance": "not_relevant",
+            "lastModified": "2026-10-01T00:00:00.000Z"
+          },
+          {
+            "pathKey": "3e7760ebc98b",
+            "strideCategory": "T",
+            "relevance": "relevant",
+            "lastModified": "2026-10-01T00:00:00.000Z"
+          },
+          {
+            "pathKey": "e713f93c0d5d",
+            "strideCategory": "T",
+            "relevance": "relevant",
+            "lastModified": "2026-10-01T00:00:00.000Z"
+          }
+        ]
+      }
+    ]
+  },
+  "risks": {
+    "risks": [
+      {
+        "id": "R-AT-tree-1-899f8ceb51d2-T",
+        "threatId": "AT-tree-1-899f8ceb51d2-T",
+        "threatDisplayId": "AT-1.3",
+        "strideCategory": "T",
+        "treatment": "accept",
+        "moscowPriority": "must",
+        "factorRatings": [],
+        "selectedMitigations": [],
+        "calculatedRiskBeforeMitigation": 9,
+        "riskBeforeRationale": ""
+      },
+      {
+        "id": "R-AT-tree-1-3e7760ebc98b-T",
+        "threatId": "AT-tree-1-3e7760ebc98b-T",
+        "threatDisplayId": "AT-1.2",
+        "strideCategory": "T",
+        "treatment": "reduce",
+        "moscowPriority": "must",
+        "factorRatings": [],
+        "selectedMitigations": [],
+        "calculatedRiskBeforeMitigation": 6,
+        "riskBeforeRationale": ""
+      },
+      {
+        "id": "R-AT-tree-1-e713f93c0d5d-T",
+        "threatId": "AT-tree-1-e713f93c0d5d-T",
+        "threatDisplayId": "AT-1.4",
+        "strideCategory": "T",
+        "treatment": "reduce",
+        "moscowPriority": "must",
+        "factorRatings": [],
+        "selectedMitigations": [],
+        "calculatedRiskBeforeMitigation": 2,
+        "riskBeforeRationale": ""
+      }
+    ]
+  },
+  "cybersecurityConcept": {
+    "goals": [
+      {
+        "id": "g1",
+        "displayId": "CSG-01",
+        "statement": "Keep the firmware genuine",
+        "riskIds": [
+          "R-AT-tree-1-899f8ceb51d2-T"
+        ],
+        "assetProperties": []
+      }
+    ],
+    "claims": [],
+    "verifications": []
+  }
+}

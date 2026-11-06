@@ -22,7 +22,8 @@ import type {
   TrustBoundaryProperties,
 } from "features/dfd/models/element-properties";
 import type { EvidenceRuleLiterals } from "features/compliance/data/evidence-rules";
-import { ALL_EVIDENCE_RULES } from "features/compliance";
+import type { En50742RuleLiterals } from "features/compliance/data/en50742-a-rules";
+import { ALL_EVIDENCE_RULES, EN50742_A_RULES } from "features/compliance";
 
 // ==================== TYPE MACHINERY ====================
 
@@ -85,7 +86,8 @@ type ForEachType<E, C> = E extends ElementType ? CheckViolation<E, C> : never;
 
 type ChecksOf<T> =
   | (T extends { readonly appliesIf: readonly (infer C)[] } ? C : never)
-  | (T extends { readonly satisfiedIf: readonly (infer C)[] } ? C : never);
+  | (T extends { readonly satisfiedIf: readonly (infer C)[] } ? C : never)
+  | (T extends { readonly satisfiedIfAll: readonly (infer C)[] } ? C : never);
 
 type TargetViolation<T> =
   | (T extends { readonly elementTypes: readonly (infer E)[] } ? ForEachType<E, ChecksOf<T>> : never)
@@ -96,10 +98,23 @@ type TargetViolation<T> =
       ? ForEachType<E, C>
       : never);
 
+/** Checks of the checklist answers (CM-5b), read on the rule's target elements. */
+type AnswerChecks<A> =
+  | (A extends { readonly yesIf: readonly (infer C)[] } ? C : never)
+  | (A extends { readonly noIf: readonly (infer C)[] } ? C : never);
+
+/** An answer with its own element types is checked on those, else on the rule's target types. */
+type AnswerViolation<T, A> = A extends { readonly elementTypes: readonly (infer E)[] }
+  ? ForEachType<E, AnswerChecks<A>>
+  : T extends { readonly elementTypes: readonly (infer E)[] }
+    ? ForEachType<E, AnswerChecks<A>>
+    : never;
+
 type RuleViolation<R> = R extends { readonly targets: readonly (infer T)[] }
   ?
       | TargetViolation<T>
       | (R extends { readonly appliesWhen: readonly (infer W)[] } ? TargetViolation<W> : never)
+      | (R extends { readonly answers: readonly (infer A)[] } ? AnswerViolation<T, A> : never)
   : never;
 
 /** Compiles only for `never`; the error message shows the offending check. */
@@ -109,6 +124,23 @@ type AssertNone<V extends never> = V;
 
 /** Every rule: no unknown path, no value outside its property's type. */
 export type RulesConform = AssertNone<RuleViolation<EvidenceRuleLiterals[number]>>;
+
+/** The EN 50742 A model rules read the same properties (CM-11, E-4). */
+export type En50742RulesConform = AssertNone<RuleViolation<En50742RuleLiterals[number]>>;
+
+/**
+ * D-30c: every black-box "inside" field takes only values of the Process /
+ * DataStore property it stands for (BLACK_BOX_FIELDS) — the rules check it
+ * under that property's name.
+ */
+type InsideMap = typeof import("shared").BLACK_BOX_FIELDS;
+type InsideViolation<T extends "Process" | "DataStore"> = {
+  [P in keyof InsideMap[T]]: Exclude<
+    NonNullable<MultiprocessProperties[InsideMap[T][P] & keyof MultiprocessProperties]>,
+    NonNullable<PropsByType[T][P & keyof PropsByType[T]]> | "not_specified"
+  >;
+}[keyof InsideMap[T]];
+export type InsideFieldsConform = AssertNone<InsideViolation<"Process"> | InsideViolation<"DataStore">>;
 
 // ==================== NEGATIVE CASES ====================
 // The machinery must reject broken rules — otherwise the check above proves
@@ -140,6 +172,9 @@ export type RejectsStringTypedProperty = AssertNone<RuleViolation<ProbeRule<{ re
 // @ts-expect-error — a connectedIf check on the neighbour's type is checked too
 export type RejectsUnknownNeighbourPath = AssertNone<RuleViolation<{ readonly targets: readonly [{ readonly elementTypes: readonly ["Process"]; readonly connectedIf: { readonly elementTypes: readonly ["ExternalEntity"]; readonly checks: readonly [{ readonly property: "noSuchProperty" }] } }] }>>;
 
+// @ts-expect-error — a checklist answer reads a property the target type does not have
+export type RejectsUnknownAnswerPath = AssertNone<RuleViolation<{ readonly targets: readonly [{ readonly elementTypes: readonly ["Process"] }]; readonly answers: readonly [{ readonly item: 0; readonly yesIf: readonly [{ readonly property: "noSuchProperty" }] }] }>>;
+
 // @ts-expect-error — a property of another element type (DataFlow) on a Process
 export type RejectsWrongElementType = AssertNone<RuleViolation<ProbeRule<{ readonly property: "encryptionInTransit" }>>>;
 
@@ -149,18 +184,24 @@ export type RejectsWrongElementType = AssertNone<RuleViolation<ProbeRule<{ reado
 
 describe("evidence rules conformance", () => {
   it("is checked by the compiler (npm run build); every check names a property", () => {
-    for (const rule of ALL_EVIDENCE_RULES) {
+    for (const rule of [...ALL_EVIDENCE_RULES, ...EN50742_A_RULES]) {
       for (const target of [...rule.targets, ...(rule.appliesWhen ?? [])]) {
         expect(target.elementTypes.length, rule.id).toBeGreaterThan(0);
         const checks = [
           ...(target.appliesIf ?? []),
           ...(target.satisfiedIf ?? []),
+          ...(target.satisfiedIfAll ?? []),
           ...(target.endpointIf?.checks ?? []),
           ...(target.connectedIf?.checks ?? []),
         ];
         for (const check of checks) {
           expect(check.property, rule.id).toMatch(/^[a-zA-Z]+(\.[a-zA-Z]+)*$/);
         }
+      }
+      for (const answer of rule.answers ?? []) {
+        expect(rule.type, rule.id).toBe("B");
+        expect(answer.item, rule.id).toBeLessThan(rule.checklist?.length ?? 0);
+        for (const check of [...answer.yesIf, ...(answer.noIf ?? [])]) expect(check.property, rule.id).toMatch(/^[a-zA-Z]+(\.[a-zA-Z]+)*$/);
       }
     }
   });

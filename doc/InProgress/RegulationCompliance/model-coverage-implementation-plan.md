@@ -1,6 +1,6 @@
 # TARAflow — Model coverage and multi-standard compliance: implementation plan
 
-**Status:** v0.6 · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended) · CM-1, CM-2 done · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
+**Status:** v0.25 · stage 1 done (CM-10) · EN 50742 A module complete: CM-11, CM-12, CM-12b, CM-13 (2026-11-03) · 2026-11-02 · K-1 … K-15 decided (user 2026-11-02: all as recommended; K-11 F-5 reversed) · CM-1 … CM-9 done (CM-7b withdrawn) · F-28 dropped (user 2026-11-02) · EN 50742 A module planned for 0.18 (§8.1, E-1 … E-5 decided 2026-11-02) · base: `main` d8b6d6fd (0.17.0-beta, schema 12) ·
 target 0.18.0-beta (stage 1), later releases (stage 2)
 **Author:** reviewer instance (v0.1, first draft for the user); instance A (v0.2,
 standard references verified against the licensed texts — §4.4).
@@ -25,7 +25,7 @@ Two strands that belong together:
 
 1. **Model coverage** — DFD element properties that let the model show what the type C
    rows ask for today only by a statement (§11 of the coverage document: 31 of 90 CRA
-   rows, 44 of 122 classic rows). The fields describe the product, not a regulation:
+   rows, 44 of 122 classic rows in 0.17; 25 and 37 after stage 1, §10.1 CM-10). The fields describe the product, not a regulation:
    threat generation, the closed loop, mitigation effects and every matrix read the same
    field.
 2. **Multi-standard Compliance tab** — the tab becomes a frame with **one sub-tab per
@@ -150,14 +150,14 @@ These hold for every field of §4 and are tested once, generically.
 
 | § 11 field | Proposal | Reason |
 |---|---|---|
-| F-5 `loginAttemptLimit` | **drop**; close P-7 instead (carry `interfaceIds` of the flow into the property view, read the existing `Interface.implementedControls.abuseProtection` = `lockout`) | R-5 — the capability already exists on the interface. v0.2: CR 1.11 needs a limit **and** a denial period → `lockout` only; EN 303 645 5.1-5 and EN 18031 AUM-6 accept rate limiting → `rate_limited` or `lockout` |
+| F-5 `loginAttemptLimit` | **v0.17: back as `loginLockout` on the verifier** (user 2026-11-02, reverses this triage): the element that checks the login counts the failed attempts; a port sees no logins. `abuseProtection` on the interface keeps rate limiting / flood protection (CR 7.1) and the lockout of a self-authenticating link (pairing). v0.1–v0.16: dropped in favour of the interface field via P-7 | R-5 was applied to the wrong source — the interface field answered a different question (protocol abuse), so one value could not hold both rate limiting (CR 7.1 RE(1)) and lockout (CR 1.11) |
 | F-2 `passwordPolicy` | **split** (v0.2): `passwordStrength` and `passwordLifetime` | strength (CR 1.7) and lifetime (CR 1.7 RE(1)/RE(2)) are separate rows; prAA voids RE(1) and narrows RE(2) to software processes and devices |
 | F-3 `defaultCredentials` | **add** `authenticatorChangeable` as F-3b (v0.2, K-12) | mandatory in EN 303 645 (5.1-4) and EN 18031 (AUM-4); CR 1.5 item c |
 | F-27 `updateNotification` | **rename** `updateDelivery`, values after CR 3.10 RE(2) a/b/c; **add** `updateDefaults` as F-27b (v0.2, K-12) | RE(2) accepts any of automatic / notification / on request or schedule; the CRA asks more (enabled by default, opt-out, postpone) |
 | F-13 `timeSource` | **keep as field**, close P-4 for the time source (no EE type "time_source"); keep the EE type "siem" question for CR 6.1 RE(1) open | one source; a field is cheaper than a modelling convention |
 | F-17 `sessionIdsRandom` | **rename** `sessionControl.sessionIntegrity`, type **B** with checklist (unique, random, invalidated at logout, bound to the session) | CR 3.8 is more than random ids |
 | F-25 `securityConfiguration` | **split**: `secureByDefault` and `securityConfigReporting` | v0.2: both halves are CR 7.6 itself — prAA CR 7.6 a) secure-by-default configuration, b) an interface to the deployed settings (2019: same two sentences); RE(1) machine-readable report. CR 7.6 → A needs both fields |
-| F-28 support data | **project level** (Overview), not an element; no matrix row in 62443-4-2 | CRA Annex II / 62443-4-1 — process, report header only |
+| F-28 support data | **dropped** (v0.15, user 2026-11-02) — product documentation, not TARA content; EN 303 645 5.2-1 / 5.3-13 / 5.3-16 become statement rows of that module, with a reference to the documentation | CRA Annex II, EN 303 645 5.2 / 5.3 — manufacturer statements |
 | others | as in §11, names to be confirmed in §4.2 / §4.3 | — |
 
 ### 4.2 Stage 1 (0.18) — CRA essentials and EN 303 645 core
@@ -169,7 +169,7 @@ references of every field).
 
 | # | Field | On | Shown when (R-3) | Values (`not_specified` first, R-1) | 62443 rows after |
 |---|---|---|---|---|---|
-| F-1 | `userAccounts` | Process, Multiprocess | the element authenticates (Process `authenticationRequired` ∉ {not_specified, no}; Multiprocess `boundaryAuthentication` ∉ {not_specified, none}) **and** has a human neighbour (D-24) | individual · shared | CR 1.1 RE(1) → A (both editions) |
+| F-1 | `userAccounts` | Process, Multiprocess | the element authenticates (Process `authenticationRequired` ∉ {not_specified, no}; Multiprocess `boundaryAuthentication` ∉ {not_specified, none}) **and** has a human neighbour (D-24) | individual · per role · shared (v0.9: the login per role of industrial devices) | CR 1.1 RE(1) → A (both editions); per role / shared meet CR 1.1, not RE(1) |
 | F-2a | `passwordStrength` | Process, Multiprocess | a password is in use: an incoming flow with `endpointAuthentication` = password, or Multiprocess `boundaryAuthentication` = password | none · fixed rules · configurable policy | CR 1.7 → A with "configurable policy" (both editions) |
 | F-2b | `passwordLifetime` | Process, Multiprocess | as F-2a | none · human accounts · machine accounts · all accounts | 2019: RE(1) ← human / all (help text: lifetime **and** reuse limit), RE(2) ← all; prAA: RE(1) void, RE(2) ← machine / all |
 | F-3 | `defaultCredentials` | Process, Multiprocess | the element authenticates (as F-1, without the human condition) | none pre-installed · unique per device · change enforced at first use · universal | CR 1.5 items a, b (checklist; the row stays B) |
@@ -179,7 +179,8 @@ references of every field).
 | F-25b | `securityConfigReporting` | Multiprocess | always | none · readable interface · machine-readable report | CR 7.6 RE(1) → A with machine-readable report |
 | F-27 | `updateDelivery` | Multiprocess, Process | `updateMechanism` ∉ {not_specified, none} | manual only · notification of available updates · on request or scheduled · automatic | prAA CR 3.10 RE(2) B → A when ≠ manual only (no row in 2019) |
 | F-27b | `updateDefaults` | Multiprocess, Process | F-27 = automatic | multi-select: enabled by default · user can disable · user can postpone | — (CRA (2)(c), EN 303 645 5.3-6) |
-| F-28 | security contact, support period end, model designation | project (Overview) | always | text · date · text | — (62443-4-1, process) |
+| ~~F-28~~ | ~~security contact, support period end, model designation~~ — **dropped** (§4.1, v0.15) | — | — | — | — |
+| F-29 | `roleMapping` (v0.9, user 2026-11-02) | Process, Multiprocess | `authorizationModel` = rbac (and the element does not state "no authentication") | fixed roles · configurable | CR 2.1 RE(2) stays A, now `roleMapping` = configurable — RBAC alone over-claimed it |
 
 **Answers to the v0.1 open points (instance A, v0.2):**
 
@@ -290,7 +291,7 @@ Contents (each a pure function in its own file, one call line in `migrate-12-to-
 |---|---|---|
 | S13-a | new optional fields of stage 1 (additive) | yes — no value changes |
 | S13-b | `ComplianceData` reshape into `families` (if K-2 = reshape) | yes, 1:1; verification re-sealed on load (as P-1) |
-| S13-c | FX-6 path keys (AND gate = one path) + FX-5 relink, release plan 0.18 | **no** for files with AND gates in attack trees |
+| S13-c | FX-6 path keys (AND gate = one path) + FX-5 relink, release plan 0.18 — **done** (patch 32, `migrate-12-to-13-and-gate-paths.ts`; FX-5 relink: patch 46) | **no** for files with AND gates in attack trees (reported per file, K-9) |
 
 The current mechanism declares preservation **per version number**
 (`ANALYSIS_PRESERVING_MIGRATIONS`): with S13-c in schema 13, every 0.17 verification
@@ -403,17 +404,22 @@ updated. Owner suggestions: A = standards strand, B = maintenance strand.
 | CM-0 | this plan: K-points decided, standard references verified by A (**done**: references verified v0.2, K decided 2026-11-02) | — | A |
 | CM-1 | standard registry `activeStandards`, generalised `EditionRow.group`, requirement id namespace (K-4) — no UI change, both editions still evaluate (**done**, see below) | CM-0 | A |
 | CM-2 | sub-tab frame in `compliance-tab.tsx`, D-3 superseded, per-viewer last sub-tab (**done**, see §10.1) | CM-1 | A |
-| CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) | CM-0 | A |
-| CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) | CM-0 | A |
-| CM-5 | F-1, F-2, F-3 (identity) — model, form, i18n, rules, report, golden | CM-3, CM-4 | A |
-| CM-6 | F-27, F-25a, F-25b (lifecycle / configuration) | CM-5 | A |
-| CM-7 | F-22, F-28 (data deletion, support data) | CM-5 | A |
-| CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) | CM-1 | A |
-| CM-9 | report: one chapter per active standard | CM-2 | A |
-| CM-10 | validation on the examples, coverage document counts, this plan → status | all | A |
-| CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) | CM-2, CM-3 | A |
-| CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View` in the app layer, model rules for 7.3 / 7.4.3.5.1; golden tests on an own example with `EN50742_A` (mandated control done → row met; WoO unset or risk unrated → unknown) — never customer data | CM-11 | A |
-| CM-13 | EN 50742 A report chapter (with CM-9); coverage rows → tracked / met with test references | CM-9, CM-12 | A |
+| CM-3 | schema 13 skeleton (`migrate-12-to-13.ts`, fence, fixtures) + S13-b reshape + per-file preservation (K-9) (**done**, see §10.1) | CM-0 | A |
+| CM-4 | `property-visibility.ts` + generic tests R-1 … R-4 (no field yet) (**done**, see §10.1) | CM-0 | A |
+| CM-5a | F-1, F-2a, F-2b (accounts, passwords) — model, form, i18n, rules, report, golden (**done**, see §10.1) | CM-3, CM-4 | A |
+| CM-5c | `userAccounts` per role; F-29 `roleMapping`, CR 2.1 RE(2) corrected (user 2026-11-02) (**done**, see §10.1) | CM-5a | A |
+| CM-5d | light sub-tabs per category under the Security divider of the Process / Multiprocess forms, open-field count per tab, tabs without fields hidden; context predicates for existing fields where they match the rule's applicability (user 2026-11-02) (**done**, see §10.1) | CM-5c | A |
+| CM-5b | F-3, F-3b (default credentials, changeable authenticators) — checklist items answered by fields (CR 1.5 stays B) (**done**, see §10.1) | CM-5a | A |
+| CM-6 | F-27, F-27b, F-25a, F-25b (lifecycle / configuration) (**done**, see §10.1) | CM-5 | A |
+| CM-7a | F-22 (user data deletion), CR 7.9 for every component (**done**, see §10.1) | CM-5 | A |
+| CM-7b | ~~F-28 support data on the project (Overview), report header~~ — **withdrawn** (user 2026-11-02: documentation, not TARA; patch 13 reverted, see §10.1) | CM-7a | A |
+| CM-8 | P-7: interface ids in the property view; CR 1.11 back to A (replaces F-5) (**done**, see §10.1) | CM-1 | A |
+| CM-8b | F-5 `loginLockout` on the verifier; CR 1.11 from it; the interface link of CM-8 removed (user 2026-11-02) (**done**, see §10.1) | CM-8 | A |
+| CM-9 | report: one chapter per active standard — realised as one chapter with a part per standard (**done**, see §10.1) | CM-2 | A |
+| CM-10 | validation on the examples, coverage document counts, this plan → status (**done**, see §10.1) | all | A |
+| CM-11 | EN 50742 A module (§8.1): registry entry, groups, rows of coverage §9.2 with statements and checklists, header `srsl`, i18n EN / DE; tests: tag and aliases → sub-tab, every §9.2 row in the module (completeness) (**done**, see §10.1) | CM-2, CM-3 | A |
+| CM-12 | EN 50742 A evidence: risk and project rule kinds, `En50742View` in the app layer, model rules for 7.3 / 7.4.3.5.1; golden tests on an own example with `EN50742_A` (mandated control done → row met; WoO unset or risk unrated → unknown) — never customer data (**done**, see §10.1) | CM-11 | A |
+| CM-13 | EN 50742 A report chapter (with CM-9); coverage rows → tracked / met with test references (**done**, see §10.1) | CM-9, CM-12 | A |
 
 FX-5 / FX-6 (S13-c) join the schema-13 fence of CM-3 when the 0.18 release plan
 schedules them.
@@ -465,3 +471,510 @@ schedules them.
 - Tests: frame (two sub-tabs, CRA first, only the selected one evaluated, remembered,
   fallback after tag removal, no bar for one standard); `prepareProjectCompliance`
   gives the same result per edition as `evaluateProjectCompliance`.
+
+**CM-3 (done, 2026-11-02; branch `feature/0.18-model-coverage`).**
+
+- Schema 13: `CURRENT_SCHEMA_VERSION = 13`, `versions/migrate-12-to-13.ts`, conversion
+  dialog text v13 (EN / DE).
+- S13-b (K-2): `ComplianceData` = `{ componentId?, families? }`, `FamilyComplianceData` =
+  `{ componentId?, target?, deviceCategories?, statements? }` as in §2.4; schema 12's
+  `target`, `deviceCategories`, `statements` move 1:1 into
+  `families["iec-62443-4-2"]`, `componentId` stays the default (K-5). Data already
+  per family passes unchanged.
+- The fold of the 0.17-development statement form (D-31) moved from the load path
+  (former step 3b of `parseAndRepairWithMetadata`) into the migration, before the
+  move: it is a format conversion of schema-12 files and now reports what it drops.
+- K-9: from schema 13 on, a migration returns `{ data, analysisChanged }` for the
+  file; `applyMigrations` returns `analysisPreserved` (versions < 13: the declared
+  set, unchanged; ≥ 13: the per-file report). The reshape reports no change — a TARA
+  verification is re-sealed; a legacy statement dropped because both editions held
+  different ones on one requirement (newer wins) reports a change → reconfirm. FX-6
+  (S13-c) plugs into the same report when it is scheduled.
+- Helpers in `shared` take the family: `familyCompliance`, `complianceComponentOf`
+  (family's own component, else the default), `withComplianceStatement /
+  withoutComplianceStatement / withComplianceTarget / withDeviceCategories (data,
+  family, …)`; `withComplianceComponent` sets the default. The tab reads and writes
+  the block of its edition's family; the component selector still edits the default
+  (no per-family override in the UI until a second family exists).
+- `prepareProjectCompliance`: `evaluate(edition)` uses the family's component scope
+  and data and returns its own `scope` / `scopeName`; the context keeps the default
+  scope (device-category proposal).
+- K-3 unchanged: the verification hash covers the whole `project.compliance`,
+  hidden families included.
+- Tests: `migrate_12_to_13.test.ts` (reshape, no-op cases, legacy fold, per-file
+  report, re-seal vs. reconfirm on load), helpers per family incl. K-5, report scope
+  per family, fixtures and the Pump Station example in the new form; version checks
+  of older migration tests no longer pin 12.
+
+**CM-4 (done, 2026-11-02).**
+
+- `shared/models/property-visibility.ts`: registry `MODEL_FIELDS` (empty until CM-5)
+  with `property`, `elementTypes`, `values` (`not_specified` first), `multiple?`,
+  `shownWhen(context)`. The context is the element (or flow) with its incoming and
+  outgoing flows and the element at their other end (for a flow: its endpoints) —
+  enough for the §4.2 drivers (incoming password flow, human neighbour,
+  `updateMechanism`). `visibilityContexts(elements, flows)` builds it for the whole
+  model.
+- Readers: `isFieldShown`, `readModelField` (hidden → unset), `withoutHiddenFields`
+  (copies of elements and flows without hidden fields; the stored model untouched —
+  K-7). `isUnset` treats absent, empty, `not_specified` and an empty selection alike
+  (both conventions of the model exist today).
+- Evaluator: `buildGraph` masks hidden fields once, so every check — own properties
+  and neighbour checks — sees a hidden field as unset (R-4); the evidence rules stay
+  declarative.
+- Generic tests, run for every registered field (CM-5 … CM-7 need no extra test for
+  these rules): R-1 value list, R-6 element types and the declaration in
+  `element-properties.ts`, R-7 label / help / value labels EN + DE under
+  `dfd.json` `tabs.dfd.modelFields.<property>`, and a source guard (R-3 / R-4): a
+  source file that names a registered field must use the predicate, except the
+  declarations (registry, property types, evidence rules, migrations). The guard
+  checks itself on `inputValidation`. The evaluator's masking is tested with a test
+  registry.
+- R-2 (threat generation unchanged for `not_specified`) is checked per field when it
+  gets a threat effect (stage 2, §4.3); stage-1 fields have none.
+
+**CM-5a (done, 2026-11-02).** CM-5 split: the CR 1.5 checklist items of F-3 / F-3b need
+a mechanism of their own (CM-5b).
+
+- Fields in the registry (values as `const` arrays in `property-visibility.ts`, the
+  types in `element-properties.ts` derive from them): `userAccounts` (individual ·
+  shared), `passwordStrength` (none · fixed rules · configurable policy),
+  `passwordLifetime` (none · human accounts · machine accounts · all accounts) on
+  Process and Multiprocess.
+- **Shown only where the earlier settings make them meaningful** (user 2026-11-02),
+  through named conditions `MODEL_CONDITIONS` shared by the fields and the rules:
+  `authenticates` (Process `authenticationRequired` / Multiprocess
+  `boundaryAuthentication` set and not "no" / "none"), `humanUsers` (a flow to a
+  human external entity), `passwordInUse` (an incoming password flow or a boundary
+  password — never where the element states it does not authenticate),
+  `humanPasswordUse`, `machinePasswordUse` (by the source of the password flow;
+  boundary password: by the kinds of external neighbours). F-1 = authenticates ∧
+  humanUsers; F-2a / F-2b = passwordInUse. Value level: `passwordLifetime` offers
+  human / machine / all only for the kinds of accounts that log in with a password
+  there (`ModelField.valuesFor`); a stored value outside them stays selectable.
+- Rules: `EvidenceTarget.when` (condition ids, yes / no) next to the property checks.
+  CR 1.1 RE(1) A: `userAccounts` = individual on every element that authenticates
+  human users; one that serves humans but states it does not authenticate fails.
+  CR 1.7 A: `passwordStrength` = configurable policy where a password reaches the
+  element. 2019 RE(1): lifetime human / all where humans log in with a password;
+  2019 RE(2): every kind in use covered; prAA RE(2): machine / all where software
+  processes or devices do. A password flow to an element outside Process /
+  Multiprocess (the component logging in elsewhere) no longer makes CR 1.7
+  applicable — it is not the component's password check. HUMAN_ENTITY_TYPES moved to
+  `shared` (one list for rules and fields). Rule descriptions name the conditions in
+  words (EN / DE).
+- Type split: prAA A 39 · B 23 · C 28 (was 36 / 23 / 31); 2019 CR rows A 28 · B 17 ·
+  C 25 (was 24 / 17 / 29); coverage documents updated.
+- Form: `ModelFieldInputs` (generic, from the registry) in the Process and
+  Multiprocess forms after the authenticator storage; the DFD tab provides the model
+  (`ModelFieldProvider`: elements and connections → contexts), because the element
+  form alone does not know its flows. Labels / help (tooltip) / values in `dfd.json`
+  `tabs.dfd.modelFields`.
+- Report: the element table lists the shown fields in the security group with the
+  form's labels (`getElementPropertiesGrouped(element, lang, context)`; HTML /
+  Markdown and pdfmake pass the context); hidden ones are left out.
+- Pump Station example: the fields set on P-1 (HMI) and MP-1 (PLC); the statements
+  on CR 1.1 RE(1) and CR 1.7 removed — the model shows them now (achieved: met 56,
+  needs-statement 8). The generated root file has to be written again
+  (`WRITE_EXAMPLES=.`).
+- Tests: conditions and visibility per driver value and back (K-7), value filter,
+  rules per edition (met / gap / unknown / n/a), form component, report rows, golden
+  (SmokeDetector, CNC reference: unset fields never meet a row); the generic R-1 /
+  R-3 / R-4 / R-6 / R-7 tests now run for the three fields.
+
+**CM-5c (done, 2026-11-02).** User question 2026-11-02: industrial devices usually
+have role-based logins and RBAC — how does the model show it?
+
+- IEC 62443-4-2:2019 CR 1.1 (rationale) allows role- or group-based identification —
+  several users may share one identity; CR 1.1 RE(1) (SL 2) asks for unique
+  identification. `userAccounts` therefore has three values: one account per person ·
+  one login per role · one shared login; per role and shared meet CR 1.1 (decided on
+  the flows as before) and fail RE(1).
+- CR 2.1 RE(2) (SL 2): an authorised role defines and changes the mapping of
+  permissions to roles. The rule accepted `authorizationModel = rbac` alone — an
+  over-claim for devices with roles fixed in the product. New field F-29
+  `roleMapping` (fixed roles · configurable), shown with `authorizationModel = rbac`
+  (condition `roleBasedAuthorization`); RE(2) met only with "configurable"; another
+  authorization model has no roles to map → gap; unset → unknown. Projects with RBAC
+  see RE(2) as unknown until the field is set (golden: never met while unset).
+- Pump Station example: `roleMapping = configurable` on P-1 and MP-1 (counts
+  unchanged).
+- The Security section gets sub-tabs in CM-5d (user 2026-11-02: light tabs under the
+  Security divider; hide a field only when it does not fit the context).
+
+**CM-5d (done, 2026-11-02).**
+
+- `components/forms/security-tabs.tsx`: the Security section of the Process and the
+  Multiprocess form in light sub-tabs — Login & accounts · Authorization · Robustness ·
+  Sessions & traceability · Operation (· Safety on the Multiprocess, last). Each field
+  is an entry with tab, `visible` (the form's existing condition, or the field's
+  predicate) and `set`; a tab names its open fields ("Login & accounts (3)"),
+  checkboxes count as set; a tab without a visible field is left out; the chosen tab
+  is kept per element type while the app runs. The fields' JSX is unchanged, only
+  moved into entries.
+- Model coverage fields carry their tab in the registry (`ModelField.group`);
+  `useModelFieldEntries` turns the registry into entries.
+- Context for existing fields (hide only what does not fit, user 2026-11-02): the
+  session settings appear only where human users reach the element (condition
+  `humanUsers`, as the CR 2.5 – 2.7 rules); the report leaves them out there too.
+  Not hidden: account management and authenticator storage — threat generation and
+  the closed loop read them (R-2), hiding them would change threats; their form
+  conditions stay as they were.
+- Tests: Multiprocess tab order and fields per tab, Process sessions tab with / without
+  human users and the kept tab, model fields per tab with open counts, report session
+  rows.
+
+**CM-5b (done, 2026-11-02).**
+
+- Fields `defaultCredentials` (none pre-installed · unique per device · default, change
+  enforced at first use · same default on every device) and `authenticatorChangeable`
+  (yes · no, three-valued) on Process and Multiprocess, tab "Login & accounts", shown
+  where the element authenticates (condition `authenticates`, machines included).
+- Mechanism: `EvidenceRule.answers` — checklist items of a type B rule that model
+  fields answer (`ChecklistAnswer`: item index, `yesIf`, `noIf`), read on the rule's
+  applicable elements and combined like the rule (any / all). Yes removes the item
+  from the checklist, no fails the row on those elements, otherwise the item stays.
+  Hidden fields read as unset (R-4), so an unset or hidden field answers nothing.
+  The conformance test (D-15) checks the answers' property paths and values too.
+- CR 1.5 (text of both editions: a initial authenticator, b recognising unchanged
+  defaults, c change / refresh, d protection): a ← `defaultCredentials` set; b ← none
+  pre-installed or change enforced (unique per device / universal leave b to
+  confirm — not a 62443 gap; EN 303 645 5.1-1 / EN 18031 AUM-5 will treat
+  "universal" in their modules); c ← changeable, not changeable → gap. d stays with
+  `authenticatorStorage` (the row's evidence) and the flows' encryption.
+- The evaluator returns only the open items (`RowResult.checklist`); tab, info dialog
+  and report localise exactly those (`localizedChecklist`) — before, they rebuilt the
+  whole checklist.
+- Pump Station example: P-1 change enforced, MP-1 unique per device, both changeable —
+  CR 1.5 met from the model with nothing left to confirm.
+- Tests: answers per value (met / open item / gap), any-quantifier, German open items,
+  visibility, golden (unset fields keep the whole checklist, never a gap), conformance
+  negative case for an unknown answer path.
+
+**CM-6 (done, 2026-11-02).** Texts checked: prAA CR 3.10 RE(2) (a automatic loading,
+b notification, c on request or schedule; recovery is a "should"), CR 7.6 a) secure by
+default, b) interface to the deployed settings, RE(1) machine-readable.
+
+- Fields, tab "Operation" (after the settings that show them):
+  - `updateDelivery` (manual only · notification · on request or scheduled ·
+    automatic), shown where the element is updated (condition `updatable`:
+    `updateMechanism` set, not none); a mechanism with physical access
+    (manual_local, signed_local) offers manual only or notification.
+  - `updateDefaults` (multi-select: on by default · user can switch off · user can
+    postpone), shown with automatic delivery (`automaticUpdates`); no 62443 row —
+    CRA (2)(c) / EN 303 645 5.3-6, report only.
+  - `secureByDefault` (yes · no), `securityConfigReporting` (none · readable
+    interface · machine-readable), on the element that stands for the component
+    (condition `componentLevel`): every Multiprocess, a Process when it is the
+    component under evaluation or the model has no Multiprocess. Deviation from §4.2
+    ("Multiprocess, always"): a component drawn as a process would otherwise make
+    CR 7.6 n/a. The component under evaluation reaches the contexts as
+    `VisibilityModel.componentId` (DFD tab provider, evaluator input, report data).
+- Rules: CR 3.10 RE(2) stays B (the "should" remains to confirm), now satisfied by
+  the delivery instead of a list of mechanisms; an element with `updateMechanism`
+  none fails it; the first checklist item is answered by the delivery (CM-5b
+  mechanism). CR 7.6 A with `satisfiedIfAll` (new: every check must hold) — secure
+  by default **and** a readable interface; CR 7.6 RE(1) A with machine-readable;
+  both quantifier "any" (D-22 list extended: one function of the component).
+- Type split: prAA A 41 · B 23 · C 26; 2019 CR rows A 30 · B 17 · C 23. Coverage
+  documents updated (also the stray (l) on CR 7.6 in the §4 table, fixed in code by
+  patch 44).
+- Pump Station example: MP-1 delivers on request / schedule, secure by default,
+  settings readable on the HMI; the CR 7.6 statement removed. CR 7.6 RE(1) (SL 3,
+  above the target) is now a gap — no machine-readable report — instead of
+  needs-statement.
+- Tests: visibility per driver (incl. a stored automatic delivery without mechanism,
+  componentId), values for local mechanisms, rules per value and edition, process vs
+  multiprocess as component element, golden rows extended, Process form operation tab
+  (delivery after mechanism).
+
+**CM-7a (done, 2026-11-02).** CM-7 split: the project-level support data (F-28) is a
+different place (Overview, report header) → CM-7b.
+
+- R-5 check: DataStore already has `deletionMechanism` (overwrite, factory reset,
+  crypto erase …) and it already decides CR 4.2 — the store-level part of §4.2 F-22
+  would duplicate it. New is only who can remove the user's data, a capability of the
+  component: F-22 `userDataDeletion` (none · delete function for the user · reset to
+  the supplier state · both) on the element that stands for the component
+  (`componentLevel`, like F-25), tab "Operation". "Delete function" / "both" are
+  offered only where a data store holds user data (`VisibilityModel.storesUserData`:
+  pii, credentials, keys_certificates, config — EN 303 645 5.11-1's user data).
+- CR 4.2 unchanged (stores, `deletionMechanism`). prAA CR 7.9 (text: applicable to all
+  components) gets the component element as a target: reset ∈ factory reset, both;
+  a store with factory reset still shows it; both answer the checklist item. Before,
+  a component without data stores was n/a — counted as met for the SL.
+- `ChecklistAnswer.elementTypes`: an answer can be read on some of the applicable
+  types only (CR 7.9: the field on the component, `deletionMechanism` on stores); the
+  conformance test checks it on those types.
+- Pump Station example: MP-1 resets to the supplier state (counts unchanged — DS-1's
+  factory reset met CR 7.9 before).
+- Tests: visibility and value filter, CR 7.9 without stores (unknown, no longer n/a),
+  with the field, with a store, delete function only (gap).
+
+**CM-7b (withdrawn, 2026-11-02).** Patch 13 put the product support data (model
+designation, vulnerability contact, end of the security-update period) into the
+Overview and the report header. User 2026-11-02: does the TARA need it at all — is it
+not part of the documentation? Decided: dropped, patch 13 reverted.
+
+- The data is a manufacturer statement for the product documentation (user
+  information, label, website — CRA Annex II; ETSI EN 303 645 5.2-1, 5.3-13, 5.3-16),
+  not an input or result of the risk assessment; no IEC 62443-4-2 row needs it. A
+  second place for it in the TARA report would drift from its source (R-5).
+- The EN 303 645 module (§8) carries 5.2-1, 5.3-13 and 5.3-16 as statement rows: the
+  analyst states "met" with a reference to the documentation (e.g. "user manual §2"),
+  like the manufacturer statements of its clause 6 and the type C rows of 62443
+  today. The CRA's documented determination of the support period belongs to the
+  technical documentation as well.
+- Where F-28 came from: not from IEC 62443-4-2 (its 62443 column was "— (62443-4-1,
+  process)") but from the CRA Annex II and EN 303 645 5.2 / 5.3 columns of the
+  coverage document §11 (design of 2026-11-01); the v0.1 triage took it over as a
+  project field and K-10 confirmed the list as a whole.
+- Instead a hint (user 2026-11-02): the report's CRA view states that the Annex II
+  information (support period, vulnerability contact, product identification) is
+  not part of the assessment and belongs to the product documentation
+  (`tabs.doc.compliance.craDocumentation`, EN / DE); the coverage document §11 marks
+  F-28 dropped.
+- K-10 ("stage-1 fields as §4.2") holds without F-28.
+
+**CM-8 (done, 2026-11-02).**
+
+- `ViewFlow.interfaceIds`: the app layer carries the interfaces each flow passes from
+  the DFD graph (`dataFlowAnalysis.interfaceIds`) into the property view.
+- `EvidenceTarget.interfaceIf`: a DataFlow target is satisfied when an interface the
+  flow passes meets every check; no interface modelled on the flow → unknown (the
+  model does not show where the control sits). The conformance test checks the
+  paths on the Interface type; `ruleElementTypes` includes Interface for such rules,
+  `requirementsMetBy` derives a requirement from an interface effect, and the
+  suggestions treat open flows of such a rule as open interfaces (D-29).
+- CR 1.11 A (both editions): every login with a guessable authenticator (password,
+  pairing, MFA, biometric) into an element that authenticates passes an interface with
+  `abuseProtection` = lockout. Rate limiting has no lock period — CR 1.11 asks for
+  limit **and** lock; EN 303 645 5.1-5 / EN 18031 AUM-6 will accept rate limiting in
+  their modules (§4.1 F-5). F-5 stays dropped.
+- Type split: prAA A 42 · B 23 · C 25; 2019 CR rows A 31 · B 17 · C 22.
+- Pump Station example: the model found a contradiction — the statement said
+  "locked after five failed logins", but IF-3 (Ethernet, engineering workstation
+  login DF-7) was only rate-limited. IF-3 now locks; the CR 1.11 statement is gone,
+  the model shows it.
+- Tests: CR 1.11 per interface value, without interface, not guessable, not
+  authenticating; mitigation derivation and suggestion via the interface; example.
+
+**CM-8b (done, 2026-11-02).** User question after CM-8: does the security property
+belong to IF-3 or to the process that uses IF-3? Answer: the login lockout belongs to
+the element that verifies the login — it counts the failed attempts per account; the
+port sees packets, not logins (as decided in Phase A1: authentication on the flow and
+the verifier, link authentication on the interface). CM-8 had followed the §4.1
+triage (K-11: F-5 dropped in favour of the interface field) and exposed its flaw:
+`abuseProtection` is one value, so an Ethernet port could not have rate limiting
+(CR 7.1 RE(1)) and lockout (CR 1.11) at once. Decided: lockout on the process.
+
+- F-5 back as `loginLockout` (none · delay / rate limit · lock for a period · lock
+  until an administrator unlocks) on Process and Multiprocess, tab "Login &
+  accounts", shown where a guessable login arrives (condition `guessableLogin`:
+  incoming password / pairing / MFA / biometric flow, or a boundary password / MFA).
+- CR 1.11 A: the verifier locks (period or admin unlock; a delay has no lock); a link
+  that authenticates itself with PIN / PSK pairing locks on the interface. A
+  three-valued precondition: n/a only where no guessable login is modelled, logins not
+  decided yet → unknown.
+- Interface `abuseProtection`: "lockout" is offered only for link-authenticating types
+  (Bluetooth, Wi-Fi, NFC; a stored value stays); rate limiting and flood protection as
+  before. Threat generation unchanged (R-2): it still reads the interface lockout for
+  brute-force spoofing; the new field gets its threat effect in stage 2.
+- The CM-8 mechanism (`ViewFlow.interfaceIds`, `EvidenceTarget.interfaceIf`, the
+  mitigation mapping via interfaces) is removed again — no rule needs it.
+- Pump Station example: IF-3 back to rate limiting; P-1 and MP-1 lock for a period
+  after failed logins; CR 1.11 from the model.
+- Tests: CR 1.11 per value and edition, unstated / undecided (unknown), no guessable
+  login (n/a), pairing link; visibility; Interface form values.
+
+**CM-9 (done, 2026-11-02).**
+
+- `buildDocCompliance` returns one `DocCompliance` per active standard in registry
+  order (CRA edition, classic edition), preparing the model once
+  (`prepareProjectCompliance`); `DocCompliance.standardLabel` names the standard;
+  `computed.compliance` is the list.
+- Deviation from §2.5 ("one chapter per standard"): **one chapter "compliance-matrix"
+  with one part per standard** — separate chapters would need dynamic chapter ids in
+  the chapter configuration (enable / order / custom titles), the TOC and the CLI
+  chapter list for something the user switches by tag anyway. With several standards
+  each section title names its standard ("EN IEC 62443-4-2 (CRA): Basis"); with one the
+  chapter reads as before. All formats (HTML, Markdown, AsciiDoc, StrictDoc, pdfmake)
+  render the same sections.
+- `selectEdition` remains only as the default of `evaluateProjectCompliance`.
+- README: both editions in the report with both tags.
+- Tests: two parts with prefixed titles, the CRA view only in the CRA part, one chapter
+  in Markdown, the app-layer parts in registry order.
+
+**CM-9 refined (2026-11-02, user):** all standards may be active at once (IEC 62443,
+EN IEC 62443 (CRA), EN 18031, EN 50742 A, EN 303 645) — the Compliance tab shows one
+sub-tab each (CM-2, unchanged); in the report, title prefixes do not scale to five
+parts. Decided (option 1): one chapter, **each standard a heading of its own** with
+its sections one level below.
+
+- `ReportSection.children`: sub-sections one heading level deeper; every format nests
+  them — Markdown `###` / `####`, AsciiDoc `===` / `====`, HTML `h3` / `h4`, StrictDoc
+  nested `[SECTION]`, pdfmake `h2` / `h3`.
+- With several standards `complianceMatrixSections` returns one part per standard
+  (title = standard, the edition as its first paragraph, the sections as children);
+  with one standard the chapter is flat as before.
+- Table of contents: the PDF lists each standard as an indented entry under the
+  chapter; AsciiDoc / StrictDoc build theirs from the headings in their toolchain;
+  the HTML and Markdown TOC stay at chapter level (they list chapters only).
+
+**CM-10 (done, 2026-11-02) — stage 1 complete.**
+
+Type split from the code (edition files × evidence rules; the completeness test pins
+it):
+
+| Edition | live rows | A | B | C | C before 0.18 |
+|---|---|---|---|---|---|
+| EN IEC 62443-4-2/prAA (CRA) | 90 | 42 | 23 | 25 | 31 |
+| IEC 62443-4-2:2019 (incl. device rows) | 122 | 60 | 25 | 37 | 44 |
+
+C → A in stage 1: CR 1.1 RE(1), CR 1.7 (+ 2019 RE(1), RE(2), prAA RE(2)), CR 1.11,
+CR 7.6, CR 7.6 RE(1). Rules made stricter or correct on the way: CR 2.1 RE(2) (RBAC alone
+no longer meets it, F-29), prAA CR 7.9 (no longer n/a without data stores), CR 3.10
+RE(2) (delivery instead of a mechanism list).
+
+Validation on the examples (achieved run, CRA edition / classic edition):
+
+| Example | met | from the model | gap | unknown | needs statement | n/a | pending category |
+|---|---|---|---|---|---|---|---|
+| Pump Station Controller (fields set) | 56 / 51 | 44 / 39 | 13 / 12 | 0 / 0 | 7 / 7 | 21 / 55 | — / 0 |
+| SmokeDetector (fixture, new fields unset) | 7 / 6 | 7 / 6 | 20 / 16 | 33 / 19 | 23 / 21 | 14 / 11 | — / 52 |
+| CNC reference (fixture, sparse model) | 0 / 0 | 0 / 0 | 0 / 0 | 68 / 56 | 9 / 7 | 20 / 10 | — / 52 |
+
+- Pump Station: 0.17 had met 55, gap 12, needs-statement 9 (CRA edition). Now three
+  statements are replaced by model evidence (CR 1.1 RE(1), CR 1.7, CR 7.6) plus CR 1.11
+  and CR 1.5 without open checklist items; CR 7.6 RE(1) (SL 3, above the target) became
+  a gap — no machine-readable report. The example still passes its own checks.
+- SmokeDetector / CNC: the new fields are unset — the golden test confirms no row
+  became met by the model through them; their rows are unknown until the analyst
+  fills them (R-1, R-8).
+
+**Open after stage 1 (0.18 scope beyond this plan, or stage 2):**
+
+- From the coverage document: IEC-6 (claims as 62443 row evidence), IEC-8b, P-4 (time
+  source as F-13 in stage 2), D-30 option c (per-element fields on a black-box
+  Multiprocess).
+- EN 50742 approach A module (§8.1, other instance) — a sub-tab via the registry; the
+  report part per standard is ready (CM-9).
+- Stage 2 fields (§4.3) and the threat-generation / closed-loop / mitigation-effect
+  coupling of all new fields (R-2: none of the stage-1 fields changes threats yet;
+  `loginLockout` next to the interface lockout is the first candidate).
+- Schema 13: FX-6 path keys (S13-c) can use the per-file preservation report (K-9).
+- Manual test of the 0.18 changes: TESTPLAN-0.18.md (user 2026-11-02).
+
+**Follow-up after CM-10 (2026-11-02, user: "adapt the open question").** The Pump
+Station's IF-1 (touch panel) and IF-2 (USB) still carried `abuseProtection` = lockout
+from before CM-8b. Changing them exposed one more mismatch: CR 7.1 / RE(1) checked every
+exposed interface, but the Interface form offers abuse protection only for interfaces
+with a protocol (UART, Bluetooth, CAN, RS-485, Ethernet, Wi-Fi, USB, NFC) — a touch panel
+could never meet the rows.
+
+- `ABUSE_PROTECTION_INTERFACE_TYPES` in `shared/models/interface-capability-registry.ts`
+  — one list for the Interface form and the CR 7.1 rules; open question OQ3 ("home of
+  abuse protection") answered with CM-8b: protocol / link level on the interface, login
+  lockout on the verifier.
+- CR 7.1 / RE(1) check exposed protocol interfaces only.
+- Example: IF-1 without abuse protection (a touch panel has no protocol to
+  rate-limit), IF-2 rate-limited. CR 7.1 RE(1) is met now: CRA edition met 57 / gap 12 /
+  needs statement 7 / n/a 21 (classic 52 / 11 / 7 / 55); SL vectors unchanged.
+
+**CM-11 (done, 2026-11-03) — EN 50742 A module.** Patch 23 on `feature/0.18-model-coverage`.
+
+- Data: `edition-en-50742-a.ts` (the 23 rows of coverage §9.2 in its order, five groups,
+  `minSl` null, `draft`), `en50742-a-rules.ts` (type and evidence kind per row),
+  `en50742-a-texts.ts` (title and summary in our own words, EN / DE, German checklists).
+  Ids `en-<clause>-<draft line>`, namespace `en50742` (K-4).
+- One lookup for every family: `RULES_BY_ID` / `TEXTS_BY_ID` (`requirement-registry.ts`);
+  the ids are disjoint from the IEC 62443 ids (test), so the evaluator, the tooltip, the
+  info dialog and the to-do list find a row's rule without knowing the family.
+  `Edition<G, R>` / `EditionRow<G, R>` carry the id type; `AnyEdition` is what the
+  evaluator, frame, tab and report take.
+- Evidence kinds: `EvidenceRule.external` (`risk` with the clause, `project` with a named
+  check) and `minSrsl`. In CM-11 an `external` rule needs a statement and a `minSrsl`
+  rule is unknown ("the SRSL comes from the risks") — CM-12 evaluates both from the
+  En50742View. Model rows evaluated now: 7.3.2 / 7.3.3 (an element logs: `nonRepudiation`
+  or an `audit_logs` store, quantifier any), 7.3.5 (audit log stores integrity
+  protected). The EN rules go through the same type-level conformance check as the
+  62443 rules.
+- Registry: `en-50742-a`, label "EN 50742 A", tag "EN 50742 A" plus `matchesTag` =
+  `isEn50742ApproachATag` (shared, the tag normaliser: "EN50742_A", "EN 50742 Approach
+  A", the bare "EN 50742"; never Approach B), header `srsl`. The tag stays a method tag
+  (`tagEffectOf`); `MATRIX_TAGS` are the tags of the matrix-only standards.
+- Whole machine: `familyHasComponent("en-50742")` is false — `complianceComponentOf`
+  returns none for the family, the scope is the whole model even when a 62443
+  component is chosen.
+- Tab without levels (`header` ≠ `security-levels`): no SL table, SL-T, component
+  selector or "SL-C from"; a status summary, a group column, the to-do list over every
+  open row, guide steps without SL; "Scope: the whole machine". The SRSL part of the
+  header follows with CM-12.
+- Report: `buildDocCompliance` keeps the SL standards only — the EN 50742 A part comes
+  with CM-13.
+- Tests: registry (tag aliases, B excluded, sub-tab order with every tag), module
+  completeness against the §9.2 table of the coverage document (label, order, group,
+  type, evidence kind), texts, evaluator (7.3 rows, statement rows, `external`, `minSrsl`,
+  whole-machine scope on the SmokeDetector fixture), frame component test.
+
+**CM-12 (done, 2026-11-03) — EN 50742 A evidence.** Patch 24.
+
+- `En50742View` (`features/compliance/models/en50742-view.ts`), built by
+  `app/utils/build-en50742-view.ts` once per prepared project and passed only to the
+  `en-50742` family: per risk the SRSL (`calculatedSrsl`, null = not rated), the anchor
+  (Interface / DataFlow of the threat) and its EL from the `exposure_level` rating, the
+  clauses `mandatedRequirementsForThreat` gives at that SRSL (several = one suffices,
+  Interface × T, design §11.4), the selected `en50742-<clause>` controls (done / chosen),
+  treatment accept, "won't" with justification (= excluded); safety functions = assets
+  with a physical impact; interfaces / flows with EL above EL0 and Interfaces without EL;
+  in-scope hazards without a `contributes_to` input; WoO; item definition sections
+  boundary / environment.
+- `ExternalEvidence` refined: risk `mandated` (clause), `all-mandated` (7.4.3.1),
+  `remaining` (4.3/229 — remaining requirements need the statement that names them);
+  project checks `hazards-linked`, `system-definition`, `interfaces-assessed`,
+  `srsl-complete`, `srsl-consistent` (`services/evaluate-en50742.ts`, pure). Three-valued
+  as the property checks: unrated risk, unset WoO, no hazard import → unknown; a clear no →
+  gap, gap before unknown. The planned run counts chosen controls.
+- 7.1/260: first every interface or flow above EL0; replaced by the derived paths of
+  CM-12b.
+- `minSrsl` (7.4.3.5.1): applies when some risk reaches SRSL 2, n/a when every rated risk
+  is lower, unknown while risks are unrated; then the model targets of CM-11.
+- Header `srsl`: highest SRSL per safety function (null = not rated) and the WoO
+  (`ComplianceResult.srsl`), above the status counts. Rows name their risks
+  (`RowResult.risks`); the to-do list has two more groups — risks to rate or treat, and
+  project data still missing.
+- Tests: the checks on small views, the view builder and the rows on the SmokeDetector
+  with the tag set in the test (own example: mandated control done → met, open → gap and
+  planned met, unrated → unknown, WoO unset → unknown), frame component test.
+
+**CM-12b (done, 2026-11-03) — paths to the safety functions.** Patch 25. User: the
+knowledge graph shows which DFD elements belong to a safety function, the flows to them
+and the interfaces on those flows — derive the relation instead of modelling it.
+
+- `app/utils/safety-function-paths.ts`: from the asset's `linkedDFDElements` backwards
+  against the flow direction, transitively, no hop limit; flows and their
+  `interfaceIds` are on the path; a flow the asset transports is on it with its source
+  side; a flow into a child of a decomposed element reaches the element; a trust
+  boundary with `data_diode` / `unidirectional_gateway` ends the path.
+- View: per safety function `linked` and its Interfaces on the path; `interfaces.exposed`
+  / `unrated` only on a path. 7.1/260: off-path interfaces no longer count; a safety
+  function without DFD elements leaves the row unknown.
+- Header: the interfaces on the path per safety function. `ProjectComplianceContext`
+  offers `en50742View()` (for the report part of CM-13).
+- SmokeDetector: IF-7 (WLAN), IF-1, IF-3 lead to the measurement, calibration and alarm
+  data; the EL1 interfaces IF-2, IF-4, IF-5, IF-6 to no safety function; the firmware
+  asset names no DFD element.
+
+**CM-13 (done, 2026-11-03) — EN 50742 A in the report.** Patch 26.
+
+- `buildDocCompliance` keeps every active standard; `DocCompliance.levels` tells the
+  renderer which sections apply, `DocCompliance.srsl` carries the SRSL per safety function
+  with the path interfaces by name, rows carry their group and risks.
+- EN 50742 A part: basis (edition, the whole machine, WoO), SRSL per safety function,
+  SoA with the group instead of "SL-C from" and the risks in the notes, open requirements
+  with their risks; no SL table, CRA view or gaps against an SL-T, no catalog suggestions.
+- The chapter is called "Requirement Matrix" / "Anforderungsmatrix" (it holds every
+  active standard); the intro follows the standards (IEC 62443 only, EN 50742 A only,
+  both).
+- Coverage document v0.3: the §4, §5 and §7 rows with a CT-A row are met (method rows
+  with a project check) or tracked (track / doc rows), with their test references.

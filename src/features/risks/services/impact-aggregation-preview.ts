@@ -32,8 +32,7 @@ export interface ImpactChangeRow {
  */
 export function previewRiskDataChange(current: RiskData, next: RiskData): ImpactChangeRow[] {
   const config = current.configuration;
-  const label = (v: number) =>
-    getRiskLabel(v, config.scale, config.roundingMethod, config.severityThresholds);
+  const label = (v: number) => getRiskLabel(v, config);
   const nextById = new Map((next.risks as Risk[]).map((r) => [r.id, r]));
 
   const rows: ImpactChangeRow[] = [];

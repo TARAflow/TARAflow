@@ -260,6 +260,76 @@ describe("a multiprocess without child page stands in for processes and stores (
   });
 });
 
+describe("the unset fields of the unknown elements (FX-21)", () => {
+  const ed = edition(
+    { label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI" },
+    { label: "CR 3.6", requirementIds: ["cr-3.6"], group: "SI" },
+  );
+
+  it("names the unset evidence field per element; a set field is not named", () => {
+    const r = row(run(ed, [el("p", "Process"), el("q", "Process", { inputValidation: "strict" })]), "CR 3.5");
+    expect(r.unknown).toEqual(["p"]);
+    expect(r.unsetFields).toEqual({ p: ["inputValidation"] });
+  });
+
+  it("an unset precondition field is named too", () => {
+    expect(row(run(ed, [el("p", "Process")]), "CR 3.6").unsetFields).toEqual({ p: ["failSafeOutputState"] });
+  });
+
+  it("a black box standing in for a process names its inside field", () => {
+    const view = { elements: [], flows: [], blackBoxes: new Set(["m"]) };
+    const standIn = row(run(ed, [el("m", "Multiprocess")], [], { view }), "CR 3.5");
+    expect(standIn.unsetFields).toEqual({ m: ["innerInputValidation"] });
+  });
+
+  it("met or gap from the model: no unset fields", () => {
+    expect(row(run(ed, [el("p", "Process", { inputValidation: "strict" })]), "CR 3.5").unsetFields).toBeUndefined();
+  });
+});
+
+describe("the inside fields of a black box (D-30c)", () => {
+  const ed = edition(
+    { label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI" },
+    { label: "CR 4.1", requirementIds: ["cr-4.1-rest"], group: "DC" },
+  );
+  const view = (...ids: string[]) => ({ elements: [], flows: [], blackBoxes: new Set(ids) });
+  const box = (id: string, inside: Record<string, unknown>) => el(id, "Multiprocess", inside);
+
+  it("strict input validation inside → met from the model; none → gap naming the black box", () => {
+    const met = row(run(ed, [box("hilscher", { innerInputValidation: "strict" })], [], { view: view("hilscher") }), "CR 3.5");
+    expect(met.status).toBe("met");
+    expect(met.source).toBe("model");
+    const gap = row(run(ed, [box("hilscher", { innerInputValidation: "none" })], [], { view: view("hilscher") }), "CR 3.5");
+    expect(gap.status).toBe("gap");
+    expect(gap.failing).toEqual(["hilscher"]);
+  });
+
+  it("next to a modelled process (PLC with child page) a black box with fields counts too; without fields it does not", () => {
+    const plcProcess = el("plc-app", "Process", { inputValidation: "strict" });
+    const withFields = row(run(ed, [plcProcess, box("hilscher", { innerInputValidation: "basic" })], [], { view: view("hilscher") }), "CR 3.5");
+    expect(withFields.status).toBe("gap");
+    expect(withFields.failing).toEqual(["hilscher"]);
+    expect(row(run(ed, [plcProcess, box("hilscher", {})], [], { view: view("hilscher") }), "CR 3.5").status).toBe("met");
+  });
+
+  it("data inside: public data → n/a; confidential and not encrypted → gap; encryption alone without classification → unknown", () => {
+    expect(row(run(ed, [box("m", { innerDataClassification: "public" })], [], { view: view("m") }), "CR 4.1").status).toBe("n/a");
+    const gap = row(run(ed, [box("m", { innerDataClassification: "confidential", innerEncryptionAtRest: "none" })], [], { view: view("m") }), "CR 4.1");
+    expect(gap.status).toBe("gap");
+    expect(row(run(ed, [box("m", { innerEncryptionAtRest: "aes256" })], [], { view: view("m") }), "CR 4.1").status).toBe("unknown");
+  });
+
+  it("a multiprocess with a child page ignores its inside fields (K-7: kept, not read)", () => {
+    expect(row(run(ed, [box("plc", { innerInputValidation: "strict" })]), "CR 3.5").status).toBe("n/a");
+  });
+
+  it("unset inside fields: as before — the black box is a stand-in, the row unknown", () => {
+    const r = row(run(ed, [box("m", {})], [], { view: view("m") }), "CR 3.5");
+    expect(r.status).toBe("unknown");
+    expect(r.unknown).toEqual(["m"]);
+  });
+});
+
 // ==================== D-23 CUSTOM ====================
 
 describe('"custom" (D-23)', () => {

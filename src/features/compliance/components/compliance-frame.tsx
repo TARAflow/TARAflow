@@ -10,7 +10,7 @@
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Tab, Tabs } from "@mui/material";
-import type { Edition, EditionId } from "../models/compliance-types";
+import type { AnyEdition, EditionId } from "../models/compliance-types";
 import type { ComplianceResult } from "../models/evaluation-types";
 import type { StandardModule } from "../services/standard-registry";
 import { ComplianceTab, type ComplianceTabProps } from "./compliance-tab";
@@ -33,11 +33,11 @@ function storeSubTab(id: EditionId): void {
   }
 }
 
-export interface ComplianceFrameProps extends Omit<ComplianceTabProps, "edition" | "achieved" | "planned"> {
+export interface ComplianceFrameProps extends Omit<ComplianceTabProps, "edition" | "header" | "achieved" | "planned"> {
   /** The active standards in registry order (activeStandards); at least one. */
   standards: readonly StandardModule[];
   /** Achieved and planned run of one edition — called for the selected sub-tab only. */
-  evaluate: (edition: Edition) => { achieved: ComplianceResult; planned: ComplianceResult };
+  evaluate: (edition: AnyEdition) => { achieved: ComplianceResult; planned: ComplianceResult };
 }
 
 export const ComplianceFrame: React.FC<ComplianceFrameProps> = ({ standards, evaluate, ...tabProps }) => {
@@ -69,7 +69,7 @@ export const ComplianceFrame: React.FC<ComplianceFrameProps> = ({ standards, eva
         </Box>
       )}
       {/* key: filter, open dialogs and the like belong to one standard. */}
-      <ComplianceTab key={selected.id} {...tabProps} edition={selected.edition} achieved={result.achieved} planned={result.planned} />
+      <ComplianceTab key={selected.id} {...tabProps} edition={selected.edition} header={selected.header} achieved={result.achieved} planned={result.planned} />
     </Box>
   );
 };

@@ -167,7 +167,8 @@
         "v9": "The DFD can span several pages (top level and sub-diagrams); older TARAflow versions can no longer open the file, because they would merge the pages. Person-harm severity uses a 5-level scale (reversible minor/major, irreversible minor/major, fatal). Old values are mapped to the higher level: irreversible injury becomes irreversible major. Safety relevance of assets is derived from safety annotations and hazard items: the asset fields \"safety-relevant\" and \"Safety Impact\" are removed; a Safety Impact without another rating becomes a manual override.",
         "v10": "Risks that take their likelihood from an attack tree are corrected: on a 3- or 4-level risk scale a \"high\" attack path counted as 5, outside the scale; the value now fits the scale (e.g. 4 on a 4-level scale) and the risk is recalculated. 5-level projects are unchanged. Old names of person-harm severities still left in the file (e.g. \"fatality\") get the current names; no rating changes. In ISO/SAE 21434 projects every risk gets its risk value 1–5 (impact × attack feasibility, matrix of Annex H.8), and risks and attack-tree analyses record with which calculation version and tables their values were computed. Treatments and priorities are not changed. Older TARAflow versions can no longer open the file, so they do not drop these values on save.",
         "v11": "A person endangered by a hazard can be rated \"None (no injury)\" — S0 under ISO/SAE 21434. Such a rating counts as no harm: the person does not become a hazard target and its causes do not become safety-relevant. Older TARAflow versions can no longer open the file, because they would count it as harm. No values change. The project can carry an Item Definition (boundary, functions, architecture, operational environment, assumptions), edited in the Overview's Definition view; the project description becomes its \"Purpose and functions\". Risks can be linked to cybersecurity goals (treatment Reduce) and claims (Retain, Share), and the TARA verification is recorded.",
-        "v12": "The project can carry an IEC 62443-4-2 requirement matrix (classic edition or the CRA edition EN IEC 62443-4-2): the component under evaluation, the target security level per foundational requirement and the analyst statements per requirement. Older TARAflow versions can no longer open the file, because they would drop this data on save. The traffic policy of a trust boundary becomes a selection (one stored policy becomes a selection of one), and an old free-text boundary control moves into the field for further boundary controls. Values keep their meaning; a recorded TARA verification stays valid."
+        "v12": "The project can carry an IEC 62443-4-2 requirement matrix (classic edition or the CRA edition EN IEC 62443-4-2): the component under evaluation, the target security level per foundational requirement and the analyst statements per requirement. Older TARAflow versions can no longer open the file, because they would drop this data on save. The traffic policy of a trust boundary becomes a selection (one stored policy becomes a selection of one), and an old free-text boundary control moves into the field for further boundary controls. Values keep their meaning; a recorded TARA verification stays valid.",
+        "v13": "The requirement matrix data is stored per standard (one block per standard family), so that further standards can follow with their own target and statements; the IEC 62443-4-2 data moves into its block unchanged, the component under evaluation stays the default for every standard. Malware protection and physical path protection can hold several measures (a stored value becomes a selection of one). Older TARAflow versions can no longer open the file. Values keep their meaning; a recorded TARA verification stays valid."
       }
     },
     "confirmAssetDelete": {
@@ -270,117 +271,6 @@
     "imported": "Project imported",
     "phaseChanged": "Phase {{phase}} → {{status}}",
     "noActivity": "No activity recorded yet"
-  },
-  "verificationStatus": {
-    "label": "TARA verification",
-    "verified": "Verified on {{date}} by {{reviewer}} — state unchanged.",
-    "changed": "Changed since the verification on {{date}} — verify again in the Audit tab.",
-    "reconfirm": "The verification on {{date}} cannot vouch for the current state — recorded with an earlier TARAflow version, or the file was converted on loading. Confirm it again in the Audit tab.",
-    "outdated": "The verification on {{date}} is older than {{days}} days — verify again in the Audit tab.",
-    "failed": "The verification on {{date}} did not pass.",
-    "none": "Not verified yet — record the verification in the Audit tab.",
-    "openAudit": "Audit tab"
-  },
-  "overviewViews": {
-    "label": "Overview views",
-    "project": "Project",
-    "definition": "Definition",
-    "methodology": "Methodology",
-    "sources": "Sources",
-    "methodologyTitle": "Methodology (read-only)",
-    "methodologyHint": "Derived from the project's configuration — the same record the report's methodology chapter uses. Scales, matrix and acceptance criteria are set in the Risk tab's configuration.",
-    "openRiskConfiguration": "Change in the Risk tab"
-  },
-  "itemDefinition": {
-    "intro": "What is analysed: the item (ISO/SAE 21434 9.3), its boundary, functions, preliminary architecture and operational environment. Describe it here or refer to the architecture document it comes from.",
-    "purpose": {
-      "title": "Purpose and functions",
-      "hint": "What the item is for and what it does — the former project description.",
-      "placeholder": "Describe the item's purpose and its main functions..."
-    },
-    "sections": {
-      "boundary": {
-        "title": "Item boundary",
-        "hint": "What belongs to the item and what does not; its interfaces to other items and to the environment (9.3 a)."
-      },
-      "architecture": {
-        "title": "Preliminary architecture",
-        "hint": "The item's main building blocks and how they work together (9.3 c) — refer to the DFD instead of redrawing it."
-      },
-      "environment": {
-        "title": "Operational environment",
-        "hint": "Where and how the item is used, as far as relevant to cybersecurity (9.3, RQ-09-02)."
-      },
-      "constraints": {
-        "title": "Constraints and legal requirements",
-        "hint": "Technical, organisational and legal constraints the analysis has to respect."
-      }
-    },
-    "source": {
-      "label": "Source",
-      "document": "Source document (e.g. arc42)",
-      "section": "Section (e.g. §3 Context)",
-      "version": "Version"
-    },
-    "modelRefs": {
-      "label": "Refers to (DFD, assets)",
-      "missing": "removed ({{id}})"
-    },
-    "kinds": {
-      "element": "DFD elements",
-      "flow": "Data flows",
-      "page": "DFD pages",
-      "asset": "Assets"
-    },
-    "functions": {
-      "title": "Functions over the lifecycle",
-      "hint": "The item's functions and the lifecycle phases they are active in (ISO/SAE 21434 9.3 b).",
-      "name": "Function",
-      "description": "Short description",
-      "asset": "Function asset (optional)",
-      "add": "Add function",
-      "remove": "Remove function"
-    },
-    "lifecycle": {
-      "production": "Production",
-      "operation": "Operation",
-      "maintenance": "Maintenance",
-      "decommissioning": "Decommissioning"
-    },
-    "assumptions": {
-      "title": "Assumptions",
-      "hint": "What the analysis assumes about the environment (9.3, RQ-09-02 NOTE 8). Trust boundaries link them; an invalid assumption flags every boundary that relies on it.",
-      "text": "Assumption",
-      "statusLabel": "Status",
-      "status": {
-        "open": "open",
-        "confirmed": "confirmed",
-        "invalid": "invalid"
-      },
-      "owner": "Owner",
-      "reviewBy": "Review by",
-      "usedBy": "used by {{list}}",
-      "add": "Add assumption",
-      "remove": "Remove assumption"
-    },
-    "findings": {
-      "purposeMissing": "Purpose and functions are not described.",
-      "sectionMissing": "{{section}} is not described.",
-      "assumptionInvalidInUse": "{{assumption}} is invalid but still relied on by {{boundaries}} — review them.",
-      "assumptionReviewDue": "{{assumption}} is still open after its review date.",
-      "linkRemoved": "{{section}}: {{count}} link(s) to removed model items."
-    },
-    "neutral": {
-      "intro": "What is analysed: the system, its boundary, functions, architecture and operational environment — for the CRA the intended purpose and the description of the product. Describe it here or refer to the architecture document it comes from.",
-      "purpose": { "hint": "What the system is for and what it does (intended purpose) — the former project description.", "placeholder": "Describe the system's intended purpose and its main functions..." },
-      "sections": {
-        "boundary": { "title": "System boundary", "hint": "What belongs to the system and what does not; its interfaces to other systems and to the environment." },
-        "architecture": { "title": "Architecture", "hint": "The system's main building blocks and how they work together — refer to the DFD instead of redrawing it." },
-        "environment": { "hint": "Where and how the system is used, as far as relevant to cybersecurity." }
-      },
-      "functions": { "hint": "The system's functions and the lifecycle phases they are active in." },
-      "assumptions": { "hint": "What the analysis assumes about the environment. Trust boundaries link them; an invalid assumption flags every boundary that relies on it." }
-    }
   },
   "projectInfo": {
     "title": "Project Information",
@@ -879,56 +769,6 @@
     }
   },
   "UNRATED": "Unrated",
-  "sourceBinding": {
-    "projectScope": {
-      "title": "Project Source Reference",
-      "description": "The repository and release this TARA was performed against. An analysis reference for the whole project — it is not automatically applied to individual elements."
-    },
-    "empty": "No source references recorded.",
-    "addReference": "Add reference",
-    "repoUrl": "Repository URL",
-    "localPathWarning": "This looks like a local path — only the remote URL is stored.",
-    "refLabel": "Ref label",
-    "refLabelPlaceholder": "main, v2.3.1…",
-    "refType": {
-      "label": "Ref type",
-      "branch": "Branch",
-      "releaseBranch": "Release branch",
-      "tag": "Tag",
-      "commit": "Commit"
-    },
-    "resolve": "Resolve",
-    "reResolve": "Re-resolve",
-    "resolving": "Resolving…",
-    "resolvedAs": "Resolved to {{sha}}",
-    "notResolvedYet": "Not yet resolved to a commit.",
-    "resolveError": {
-      "consentDenied": "Network access was not allowed.",
-      "unreachable": "Could not reach {{host}}.",
-      "refNotFound": "Reached the repository, but \"{{ref}}\" was not found there."
-    },
-    "consent": {
-      "title": "Allow network access?",
-      "body": "TARAflow wants to contact the following host to resolve a source reference:",
-      "scope": "This asks once per host for this session — other bindings on the same host won't ask again until TARAflow restarts.",
-      "allow": "Allow"
-    },
-      "drift": {
-        "check": "Check for changes",
-        "checking": "Checking…",
-        "checkFailed": "Could not check {{host}} for changes.",
-        "aborted": "Check was not completed.",
-        "history": "Drift history ({{n}})",
-        "status": {
-          "clean": "In sync",
-          "branch_advanced": "Branch advanced",
-          "branch_advanced_expected": "Release branch advanced (expected)",
-          "tag_moved": "Tag moved",
-          "ref_missing": "Ref no longer exists",
-          "unreachable": "Could not reach the repository"
-        }
-      }
-  },
   "devBuild": {
     "electronOutdated": "The Electron part is older than its sources (electron/ changed). Quit the app and restart npm run dev:electron."
   },
@@ -948,6 +788,7 @@
     "connected": "Connected to {{tracker}} — project {{project}} ({{host}}, {{account}})",
     "tracker": "Tracker",
     "from": "from {{version}}",
+    "preview": "preview",
     "secretHelp": "Stored in the OS keychain for this address only.",
     "test": "Test connection",
     "disconnect": "Disconnect",
@@ -979,8 +820,28 @@
       "unavailable": "This tracker is not available yet.",
       "hostNotHttps": "{{host}} must be an https address.",
       "userRequired": "{{user}} is required.",
+      "organizationRequired": "{{host}} must name the organization, e.g. https://dev.azure.com/contoso.",
       "secretRequired": "{{secret}} is required.",
       "keychain": "The token could not be stored in the OS keychain (desktop app required)."
+    },
+    "connection": {
+      "connected": {
+        "projects_one": "Connected as {{account}} — {{count}} project.",
+        "projects_other": "Connected as {{account}} — {{count}} projects.",
+        "repositories_one": "Connected as {{account}} — {{count}} repository.",
+        "repositories_other": "Connected as {{account}} — {{count}} repositories."
+      },
+      "authFailed": {
+        "pat": "Authentication failed — check the personal access token.",
+        "emailApiToken": "Authentication failed — check e-mail and API token.",
+        "organizationPat": "Authentication failed — check the organization URL and the personal access token.",
+        "apiKey": "Authentication failed — check the API key."
+      },
+      "connectionFailed": "Connection failed ({{detail}}).",
+      "listFailed": {
+        "projects": "Projects could not be loaded ({{status}}).",
+        "repositories": "Repositories could not be loaded ({{status}})."
+      }
     },
     "issueCount": "{{count}} issues"
   }

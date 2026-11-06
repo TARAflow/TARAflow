@@ -163,8 +163,8 @@ export const INTERFACE_CAPABILITY: Record<InterfaceType, InterfaceCapability> = 
  * features/dfd/models/interface-type-registry.ts when the closed loop became a
  * second consumer (closed-loop review CL-1b).
  *
- * `abuseProtection` is intentionally absent — its home (interface vs.
- * flow/protocol terminus) is open question OQ3.
+ * `abuseProtection` is gated by its own list (ABUSE_PROTECTION_INTERFACE_TYPES
+ * below), not by this key set.
  */
 export type InterfaceControlKey =
   | "physicalAccessProtection"
@@ -224,3 +224,14 @@ export function isInterfaceControlKeyApplicable(type: string | undefined, key: s
       return true;
   }
 }
+
+/**
+ * Interface types whose protocol can be abused — flooding, request storms,
+ * pairing spam — and therefore carry `implementedControls.abuseProtection`
+ * (rate limiting, flood protection; lockout only where the link authenticates
+ * itself). OQ3 answered (user 2026-11-02): abuse protection on the interface is
+ * protocol / link level; locking after failed logins belongs to the element
+ * that verifies them (Process / Multiprocess). One list for the Interface
+ * form and the IEC 62443-4-2 CR 7.1 rules.
+ */
+export const ABUSE_PROTECTION_INTERFACE_TYPES = ["uart", "bluetooth", "can", "rs485", "ethernet", "wifi", "usb", "nfc"] as const satisfies readonly InterfaceType[];

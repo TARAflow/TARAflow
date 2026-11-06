@@ -1,0 +1,145 @@
+// src/tests/component/process-form.security-tabs.test.tsx
+//
+// Security sub-tabs on the Process form (user 2026-11-02, CM-5d): the
+// session settings appear only where human users reach the process — the
+// condition humanUsers that the matrix rules use too; a tab names its open
+// fields; the chosen tab stays when the next process is opened.
+import React from "react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ProcessDescriptionForm } from "features/dfd/components/forms/process-description-form";
+import { ModelFieldProvider } from "features/dfd/components/forms/model-field-inputs";
+import type { DFDElement } from "features/dfd/models/dfd-types";
+import type { VisibilityElement, VisibilityFlowInput } from "shared";
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, o?: { defaultValue?: string }) => o?.defaultValue ?? key,
+    i18n: { language: "en", exists: () => false },
+  }),
+}));
+
+afterEach(cleanup);
+
+const process = (id: string, properties: Record<string, unknown>) =>
+  ({ id, type: "Process", displayId: id, name: id, properties }) as unknown as DFDElement;
+const operator = { id: "op", type: "ExternalEntity", properties: { entityType: "operator" } };
+const plc = { id: "plc", type: "ExternalEntity", properties: { entityType: "plc" } };
+
+function renderForm(element: DFDElement, flows: VisibilityFlowInput[]) {
+  return render(
+    <ModelFieldProvider elements={[element as unknown as VisibilityElement, operator, plc]} connections={flows}>
+      <ProcessDescriptionForm element={element} onChange={() => {}} />
+    </ModelFieldProvider>,
+  );
+}
+
+const tabIds = () =>
+  screen
+    .getAllByRole("tab")
+    .map((t) => t.getAttribute("data-testid"))
+    .filter((id) => id?.startsWith("security-tab-"));
+
+describe("ProcessDescriptionForm — Security sub-tabs", () => {
+  it("with an operator: sessions tab with three open settings", () => {
+    renderForm(process("p1", { technology: "ui" }), [{ id: "f", from: "op", to: "p1" }]);
+    expect(tabIds()).toContain("security-tab-sessions");
+    // nonRepudiation (ui) + the three session settings, all open.
+    expect(screen.getByTestId("security-tab-sessions").textContent).toBe("Sessions & traceability (4)");
+  });
+
+  it("only machines around: no session settings — the tab stays for non-repudiation only where it applies", () => {
+    renderForm(process("p2", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p2" }]);
+    expect(tabIds()).not.toContain("security-tab-sessions");
+  });
+
+  it("the chosen tab stays when the next process is opened", () => {
+    const { unmount } = renderForm(process("p3", { technology: "ui" }), [{ id: "f", from: "op", to: "p3" }]);
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    unmount();
+    renderForm(process("p4", { technology: "ui" }), [{ id: "f", from: "op", to: "p4" }]);
+    expect(screen.getByTestId("security-tab-operation").getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("operation tab: update delivery after the update mechanism; the component's settings on a process in a model without multiprocess", () => {
+    renderForm(process("p5", { technology: "ui", updateMechanism: "signed_ota" }), [{ id: "f", from: "op", to: "p5" }]);
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    const mechanism = screen.getAllByText("Update Mechanism")[0];
+    const delivery = screen.getByTestId("model-field-updateDelivery");
+    expect(mechanism.compareDocumentPosition(delivery) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("model-field-secureByDefault")).toBeTruthy();
+    expect(screen.getByTestId("model-field-securityConfigReporting")).toBeTruthy();
+  });
+});
+
+describe("ProcessDescriptionForm — Communication tab (user 2026-11-06)", () => {
+  it("a flow over a network: tab 'Communication' after authorization, with the secure channel field", () => {
+    renderForm(process("p5", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p5", properties: { protocol: "opc_ua" } }]);
+    const tabs = tabIds();
+    expect(tabs.indexOf("security-tab-communication")).toBe(tabs.indexOf("security-tab-authorization") + 1);
+    fireEvent.click(screen.getByTestId("security-tab-communication"));
+    expect(screen.getAllByText("Secure channel (endpoint)").length).toBeGreaterThan(0);
+    // No longer under login.
+    fireEvent.click(screen.getByTestId("security-tab-login"));
+    expect(screen.queryByText("Secure channel (endpoint)")).toBeNull();
+  });
+
+  it("only human input (an operator at a touch panel): no TLS field, no tab", () => {
+    renderForm(process("p6", { technology: "ui" }), [{ id: "f", from: "op", to: "p6", properties: { protocol: "human_input" } }]);
+    expect(tabIds()).not.toContain("security-tab-communication");
+  });
+
+  it("protocol not set yet, or no flow at all: unknown — the field is offered", () => {
+    renderForm(process("p7", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p7" }]);
+    expect(tabIds()).toContain("security-tab-communication");
+    cleanup();
+    renderForm(process("p8", { technology: "daemon" }), []);
+    expect(tabIds()).toContain("security-tab-communication");
+  });
+
+  it("secure channels are a selection: TLS and SSH together, an older single value shows ticked", () => {
+    const onChange = vi.fn();
+    const element = process("p9", { technology: "daemon", tlsTermination: "server" });
+    render(
+      <ModelFieldProvider elements={[element as unknown as VisibilityElement, plc]} connections={[{ id: "f", from: "plc", to: "p9", properties: { protocol: "opc_ua" } }]}>
+        <ProcessDescriptionForm element={element} onChange={onChange} />
+      </ModelFieldProvider>,
+    );
+    fireEvent.click(screen.getByTestId("security-tab-communication"));
+    const field = screen.getByTestId("field-tlsTermination").closest(".MuiFormControl-root")!;
+    fireEvent.mouseDown(within(field as HTMLElement).getByRole("combobox"));
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("data-value"))).toEqual([
+      "none", "server", "mutual", "vpn", "ssh", "application", "custom",
+    ]);
+    fireEvent.click(screen.getByRole("option", { name: "ssh" }));
+    const last = onChange.mock.calls.at(-1)![0];
+    expect(last.properties.tlsTermination).toEqual(["server", "ssh"]);
+  });
+
+  it("'Exposed to Internet' sits in the context, not in a security tab (user 2026-11-06)", () => {
+    renderForm(process("p10", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p10", properties: { protocol: "opc_ua" } }]);
+    const field = screen.getByTestId("field-exposedToInternet");
+    expect(screen.getByTestId("security-tabs").contains(field)).toBe(false);
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    expect(screen.getAllByTestId("field-exposedToInternet")).toHaveLength(1);
+  });
+
+  it("update encryption under Operation once updated; key renewal under Communication once keys are held (user 2026-11-06)", () => {
+    renderForm(process("p11", { technology: "daemon" }), [{ id: "f", from: "plc", to: "p11", properties: { protocol: "opc_ua" } }]);
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    expect(screen.queryByTestId("model-field-updateEncryption")).toBeNull();
+    fireEvent.click(screen.getByTestId("security-tab-communication"));
+    expect(screen.queryByTestId("model-field-keyRenewal")).toBeNull();
+    cleanup();
+
+    renderForm(
+      process("p12", { technology: "daemon", updateMechanism: "signed_ota", tlsTermination: ["server"] }),
+      [{ id: "f", from: "plc", to: "p12", properties: { protocol: "opc_ua" } }],
+    );
+    fireEvent.click(screen.getByTestId("security-tab-operation"));
+    expect(screen.getByTestId("model-field-updateEncryption")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("security-tab-communication"));
+    expect(screen.getByTestId("model-field-keyRenewal")).toBeTruthy();
+  });
+});
+

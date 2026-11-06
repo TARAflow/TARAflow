@@ -70,7 +70,8 @@ export function shouldEliminateThreat(
   if (elementType === "DataFlow") {
     // buried: underground cable — excavation required for physical access.
     // Out of scope for standard TARA threat model.
-    if (props["physicalPathProtection"] === "buried" && strideCategory === "T")
+    // A selection since schema 13 (MS-1); a single value of an older file counts as one.
+    if ([props["physicalPathProtection"]].flat().includes("buried") && strideCategory === "T")
       return true;
   }
 

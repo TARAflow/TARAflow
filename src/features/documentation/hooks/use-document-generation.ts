@@ -220,7 +220,7 @@ export const useDocumentGeneration = ({
         isConceptPreset(project.info?.tags) &&
         (hasConceptContent(project.cybersecurityConcept) || !!project.computed.verification),
       // IEC 62443-4-2 matrix — when the tags select an edition (app layer).
-      "compliance-matrix": !!project.computed.compliance,
+      "compliance-matrix": !!project.computed.compliance?.length,
       appendix: true, // Always has content
     };
     return map;

@@ -113,12 +113,12 @@ describe("references and connecting", () => {
     expect(trackerRefOf(conn("https://ACME.atlassian.net/", "Someone@Example.com"))).toEqual(REF);
     expect(trackerRefOf(conn("http://acme.atlassian.net", "a@b"))).toBeNull();
     expect(trackerRefOf(conn("https://acme.atlassian.net"))).toBeNull();
-    expect(createTicketAdapter(conn("https://acme.atlassian.net", "a@b", "github"))).toBeNull();
+    expect(createTicketAdapter(conn("https://acme.atlassian.net", "a@b", "polarion"))).toBeNull();
     expect(createTicketAdapter(conn("https://acme.atlassian.net", "a@b"))).toBeInstanceOf(JiraAdapter);
   });
 
   it("connectTracker checks before storing a secret", async () => {
-    expect(await connectTracker({ tool: "github", host: "https://api.github.com", secret: "x" })).toMatchObject({ success: false });
+    expect(await connectTracker({ tool: "polarion", host: "https://polarion.example.com", secret: "x" })).toMatchObject({ success: false });
     expect(await connectTracker({ tool: "jira", host: "http://acme.atlassian.net", user: "a@b", secret: "x" })).toMatchObject({
       success: false,
       message: "Jira URL must be an https address.",
@@ -127,5 +127,39 @@ describe("references and connecting", () => {
       success: false,
     });
     expect(saveToken).not.toHaveBeenCalled();
+  });
+});
+
+describe("Jira Server / Data Center (same adapter, REST v2)", () => {
+  const SERVER = { tool: "jira-server" as const, host: "https://jira.example.com", account: "default" };
+
+  it("the factory gives the Jira adapter in its server flavour; the PAT is bound to the host", () => {
+    const ref = trackerRefOf({ tool: "jira-server", credentials: { authMethod: "pat", baseUrl: "https://jira.example.com" } as any });
+    expect(ref).toEqual(SERVER);
+    expect(createTicketAdapter({ tool: "jira-server", status: "connected", credentials: { authMethod: "pat", baseUrl: SERVER.host } } as any)).toBeInstanceOf(JiraAdapter);
+  });
+
+  it("v2 paths, /search, wiki-markup description, no sprint field", async () => {
+    request.mockImplementation(async (req: any) =>
+      req.method === "POST"
+        ? { ok: true, status: 201, data: { key: "OPS-7" } }
+        : { ok: true, status: 200, data: { issues: [{ key: "OPS-1", fields: { status: { name: "Done", statusCategory: { key: "done" } } } }] } },
+    );
+    const adapter = new JiraAdapter(SERVER, "server");
+    await adapter.fetchTicketStates(["OPS-1"]);
+    await adapter.fetchTickets("OPS", "Task");
+    await adapter.createTicket({ projectKey: "OPS", issueType: "Task", summary: "S", description: "line 1\nline 2" } as any);
+    const paths = request.mock.calls.map(([r]) => r.path);
+    expect(paths[0]).toMatch(/^\/rest\/api\/2\/search\?jql=/);
+    expect(paths[1]).toMatch(/^\/rest\/api\/2\/search\?jql=.*fields=summary,status,resolution,issuetype,assignee,priority&/);
+    expect(paths[2]).toBe("/rest/api/2/issue");
+    expect(request.mock.calls[2][0].body.fields.description).toBe("line 1\nline 2");
+  });
+
+  it("connection test on /rest/api/2/myself with the PAT hint", async () => {
+    request.mockResolvedValue({ ok: false, status: 401, data: null });
+    const outcome = await new JiraAdapter(SERVER, "server").testConnection();
+    expect(request.mock.calls[0][0].path).toBe("/rest/api/2/myself");
+    expect(outcome.message).toBe("Authentication failed — check the personal access token.");
   });
 });

@@ -15,7 +15,7 @@
 // The primitives the project stores (FRs, device categories, edition ids)
 // live in shared (compliance-data-types.ts, schema 12); re-exported here.
 
-import type { ComplianceEditionId, DeviceCategory, FoundationalRequirement, StandardFamilyId } from "shared";
+import type { ComplianceEditionId, DeviceCategory, FoundationalRequirement, ModelConditionId, StandardFamilyId } from "shared";
 export { FOUNDATIONAL_REQUIREMENTS } from "shared";
 export type { DeviceCategory, FoundationalRequirement, StandardFamilyId };
 
@@ -68,6 +68,12 @@ export interface EvidenceTarget {
   /** Element targets: some flow connects the element to one that passes the checks. */
   connectedIf?: NeighbourCheck;
   /**
+   * Named conditions of the model (shared/models/property-visibility.ts) the
+   * element must meet — the same facts that show the model fields (R-3), e.g.
+   * "passwordInUse". Plain yes / no: a condition reads unset drivers as "no".
+   */
+  when?: readonly ModelConditionId[];
+  /**
    * DataFlow targets: only flows that transmit information across the
    * component's border — an endpoint is an ExternalEntity or outside the
    * scope; key presses on the component's own panel (protocol human_input)
@@ -75,6 +81,8 @@ export interface EvidenceTarget {
    */
   crossesComponent?: true;
   satisfiedIf?: readonly PropertyCheck[];
+  /** Every one of these checks must hold (and with `satisfiedIf` when both are given). */
+  satisfiedIfAll?: readonly PropertyCheck[];
 }
 
 /** Checks on the element at the other end of a flow. */
@@ -99,8 +107,43 @@ export type EvidenceType = "A" | "B" | "C";
  */
 export type EvidenceQuantifier = "all" | "any";
 
-export interface EvidenceRule {
-  id: RequirementId;
+/**
+ * A checklist item of a type B rule that model fields can answer (model
+ * coverage plan CM-5b): on the rule's applicable elements, `yesIf` answers it
+ * (the item leaves the checklist), `noIf` fails the row; otherwise it stays
+ * on the checklist. Combined like the rule (quantifier any / all).
+ */
+export interface ChecklistAnswer {
+  /** Index into the rule's checklist. */
+  item: number;
+  /** Read only on these of the applicable elements; absent = all of them. */
+  elementTypes?: readonly EvidenceElementType[];
+  yesIf: readonly PropertyCheck[];
+  noIf?: readonly PropertyCheck[];
+}
+
+/**
+ * Evidence an EN 50742 A rule reads outside the element properties
+ * (en-50742-rq-coverage.md §9.1), from the En50742View (CM-12):
+ *   risk "mandated"      every risk that mandates `clause` at its SRSL has the
+ *                        mandated control (done; planned in the planned run)
+ *   risk "all-mandated"  every risk has all its mandated controls (7.4.3.1)
+ *   risk "remaining"     risks with a remaining requirement are passed on (9)
+ *   project              a named check over hazards, risks, safety functions,
+ *                        WoO and system definition
+ * Without a view (a project that is not evaluated for EN 50742) such a row
+ * needs a statement.
+ */
+export type ExternalEvidence =
+  | { kind: "risk"; check: "mandated"; clause: string }
+  | { kind: "risk"; check: "all-mandated" | "remaining" }
+  | { kind: "project"; check: ProjectCheckId };
+
+/** The project checks of EN 50742 A (coverage §9.2, evidence P). */
+export type ProjectCheckId = "hazards-linked" | "system-definition" | "interfaces-assessed" | "srsl-complete" | "srsl-consistent";
+
+export interface EvidenceRule<R extends string = RequirementId> {
+  id: R;
   type: EvidenceType;
   /**
    * Component-level precondition: the row applies only if some element in
@@ -114,6 +157,12 @@ export interface EvidenceRule {
   quantifier?: EvidenceQuantifier;
   /** Criteria the model cannot show (type B); paraphrased, i18n in IEC-2b. */
   checklist?: readonly string[];
+  /** Checklist items model fields answer (type B). */
+  answers?: readonly ChecklistAnswer[];
+  /** Risk or project evidence (EN 50742 A); the element targets add to it. */
+  external?: ExternalEvidence;
+  /** Applies only where some risk reaches this SRSL (EN 50742 A, from the risks). */
+  minSrsl?: 1 | 2 | 3;
 }
 
 // ==================== REQUIREMENT IDS ====================
@@ -175,6 +224,30 @@ export const REQUIREMENT_IDS = [
 
 export type RequirementId = (typeof REQUIREMENT_IDS)[number];
 
+/**
+ * EN 50742 Approach A (en-50742-rq-coverage.md §9.2): clause and draft line
+ * of the requirement heading, "en-" first — disjoint from the IEC 62443 ids,
+ * so one lookup serves every family (completeness test).
+ */
+export const EN50742_A_REQUIREMENT_IDS = [
+  // threat assessment
+  "en-4.3-217", "en-4.3-220", "en-4.3-238", "en-7.1-260", "en-7.4.2-334", "en-7.4.2-344",
+  // information collection (7.3)
+  "en-7.3.1-281", "en-7.3.2-295", "en-7.3.3-304", "en-7.3.4-317", "en-7.3.5-321",
+  // identification of software versions and configuration (7.5)
+  "en-7.5-444",
+  // protection measures against corruption (7.4.3)
+  "en-7.4.3.1-347", "en-7.4.3.2.1-356", "en-7.4.3.3.1-370", "en-7.4.3.4.1-380", "en-7.4.3.4.2-392",
+  "en-7.4.3.4.3-402", "en-7.4.3.4.4-412", "en-7.4.3.4.5-426", "en-7.4.3.5.1-438",
+  // information for use (9)
+  "en-9-491", "en-4.3-229",
+] as const;
+
+export type En50742RequirementId = (typeof EN50742_A_REQUIREMENT_IDS)[number];
+
+/** A requirement id of any family. */
+export type AnyRequirementId = RequirementId | En50742RequirementId;
+
 // ==================== REQUIREMENT NAMESPACES ====================
 // Requirement ids are unique inside their family; a family's namespace makes
 // them unique across families (model coverage plan §2.3, K-4) — e.g.
@@ -186,6 +259,7 @@ export type RequirementId = (typeof REQUIREMENT_IDS)[number];
 /** Namespace per family; for IEC 62443-4-2 also the mitigation catalog's reference field. */
 export const REQUIREMENT_NAMESPACES = {
   "iec-62443-4-2": "iec62443",
+  "en-50742": "en50742",
 } as const satisfies Record<StandardFamilyId, string>;
 
 export type RequirementNamespace = (typeof REQUIREMENT_NAMESPACES)[StandardFamilyId];
@@ -219,15 +293,15 @@ export type CraEssentialRequirement =
  * the foundational requirement (the SL-C vector is per group), for other
  * standards e.g. the provision group (model coverage plan §2.3).
  */
-export interface EditionRow<G extends string = FoundationalRequirement> {
+export interface EditionRow<G extends string = FoundationalRequirement, R extends string = RequirementId> {
   /** Row label as the standard numbers it, e.g. "CR 1.1 RE(1)", "EDR 3.10". */
   label: string;
   /** The group the row belongs to; one of the edition's `groups`. */
   group: G;
-  /** Lowest SL-C at which the row is selected (x.y.4); null for void rows. */
+  /** Lowest SL-C at which the row is selected (x.y.4); null for void rows and standards without levels. */
   minSl: Exclude<SecurityLevel, 0> | null;
   /** Requirement ids the row consists of — all must be met. Empty only for void rows. */
-  requirementIds: readonly RequirementId[];
+  requirementIds: readonly R[];
   /** Void / "no component requirement" in this edition, with the reason. */
   void?: string;
   /**
@@ -244,7 +318,7 @@ export interface EditionRow<G extends string = FoundationalRequirement> {
   sourceLine?: number;
 }
 
-export interface Edition<G extends string = FoundationalRequirement> {
+export interface Edition<G extends string = FoundationalRequirement, R extends string = RequirementId> {
   id: EditionId;
   /** The standard the edition belongs to — statements are shared inside it (D-31). */
   family: StandardFamilyId;
@@ -256,5 +330,9 @@ export interface Edition<G extends string = FoundationalRequirement> {
   ccsc2Label: string;
   /** The row groups in display order; every row's `group` is one of them. */
   groups: readonly G[];
-  rows: readonly EditionRow<G>[];
+  rows: readonly EditionRow<G, R>[];
 }
+
+/** An edition of any standard — what the evaluator, the tab and the report take. */
+export type AnyEdition = Edition<string, AnyRequirementId>;
+export type AnyEditionRow = EditionRow<string, AnyRequirementId>;

@@ -165,7 +165,8 @@
         "v9": "Das DFD kann mehrere Seiten umfassen (Top-Ebene und Unterdiagramme); ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie die Seiten zusammenführen würden. Die Schwere von Personenschäden nutzt eine 5-stufige Skala (reversibel leicht/schwer, irreversibel leicht/schwer, tödlich). Alte Werte werden auf die höhere Stufe abgebildet: irreversible Verletzung wird irreversibel schwer. Die Safety-Relevanz von Assets wird aus Safety-Annotationen und Hazard Items abgeleitet: die Asset-Felder \"safety-relevant\" und \"Safety Impact\" entfallen; ein Safety Impact ohne andere Bewertung wird zum manuellen Override.",
         "v10": "Risiken, deren Wahrscheinlichkeit aus einem Angriffsbaum stammt, werden korrigiert: Auf einer 3- oder 4-stufigen Risikoskala zählte ein „hoher“ Angriffspfad als 5, also ausserhalb der Skala; der Wert passt jetzt zur Skala (z. B. 4 bei 4 Stufen) und das Risiko wird neu berechnet. 5-stufige Projekte bleiben unverändert. Alte Namen von Personenschaden-Schweren, die noch in der Datei stehen (z. B. „fatality“), erhalten die aktuellen Namen; keine Bewertung ändert sich. In ISO/SAE-21434-Projekten erhält jedes Risiko seinen Risikowert 1–5 (Impact × Angriffsmöglichkeit, Matrix aus Annex H.8), und Risiken und Attack-Tree-Analysen halten fest, mit welcher Rechenversion und welchen Tabellen ihre Werte berechnet wurden. Behandlungen und Prioritäten werden nicht geändert. Ältere TARAflow-Versionen können die Datei nicht mehr öffnen, damit sie diese Werte beim Speichern nicht verlieren.",
         "v11": "Eine durch eine Gefährdung betroffene Person kann mit \"Keine (keine Verletzung)\" bewertet werden — S0 nach ISO/SAE 21434. Diese Bewertung zählt nicht als Schaden: Die Person wird kein Gefährdungsziel, ihre Ursachen werden nicht safety-relevant. Ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie die Bewertung als Schaden zählen würden. Es ändern sich keine Werte. Das Projekt kann eine Item Definition enthalten (Grenze, Funktionen, Architektur, Betriebsumgebung, Annahmen), bearbeitet in der Ansicht Definition der Übersicht; die Projektbeschreibung wird zu deren \"Zweck und Funktionen\". Risiken können mit Cybersecurity Goals (Behandlung Reduzieren) und Claims (Behalten, Teilen) verknüpft werden, und die Verifikation der TARA wird festgehalten.",
-        "v12": "Das Projekt kann eine Anforderungsmatrix nach IEC 62443-4-2 enthalten (klassische Ausgabe oder die CRA-Ausgabe EN IEC 62443-4-2): die bewertete Komponente, das Ziel-Security-Level pro Foundational Requirement und die Aussagen des Analysten pro Anforderung. Ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie diese Daten beim Speichern verwerfen würden. Die Verkehrsrichtlinie einer Trust Boundary wird zur Auswahl (eine gespeicherte Richtlinie wird zur Auswahl mit einem Eintrag), und ein alter Freitext zu Grenzkontrollen wandert in das Feld für weitere Grenzkontrollen. Die Werte behalten ihre Bedeutung; eine festgehaltene Verifikation der TARA bleibt gültig."
+        "v12": "Das Projekt kann eine Anforderungsmatrix nach IEC 62443-4-2 enthalten (klassische Ausgabe oder die CRA-Ausgabe EN IEC 62443-4-2): die bewertete Komponente, das Ziel-Security-Level pro Foundational Requirement und die Aussagen des Analysten pro Anforderung. Ältere TARAflow-Versionen können die Datei nicht mehr öffnen, weil sie diese Daten beim Speichern verwerfen würden. Die Verkehrsrichtlinie einer Trust Boundary wird zur Auswahl (eine gespeicherte Richtlinie wird zur Auswahl mit einem Eintrag), und ein alter Freitext zu Grenzkontrollen wandert in das Feld für weitere Grenzkontrollen. Die Werte behalten ihre Bedeutung; eine festgehaltene Verifikation der TARA bleibt gültig.",
+        "v13": "Die Daten der Anforderungsmatrix werden pro Norm gespeichert (ein Block pro Normfamilie), damit weitere Normen mit eigenem Ziel und eigenen Aussagen folgen können; die Daten nach IEC 62443-4-2 wandern unverändert in ihren Block, die bewertete Komponente bleibt die Vorgabe für jede Norm. Malware-Schutz und physischer Leitungsschutz können mehrere Massnahmen tragen (ein gespeicherter Wert wird zur Auswahl mit einem Eintrag). Ältere TARAflow-Versionen können die Datei nicht mehr öffnen. Die Werte behalten ihre Bedeutung; eine festgehaltene Verifikation der TARA bleibt gültig."
       }
     },
     "confirmAssetDelete": {
@@ -268,117 +269,6 @@
     "imported": "Projekt importiert",
     "phaseChanged": "Phase {{phase}} → {{status}}",
     "noActivity": "Noch keine Aktivitäten aufgezeichnet"
-  },
-  "verificationStatus": {
-    "label": "TARA-Verifikation",
-    "verified": "Verifiziert am {{date}} durch {{reviewer}} — Stand unverändert.",
-    "changed": "Seit der Verifikation vom {{date}} geändert — im Audit-Tab erneut verifizieren.",
-    "reconfirm": "Die Verifikation vom {{date}} kann den aktuellen Stand nicht belegen — sie stammt aus einer früheren TARAflow-Version, oder die Datei wurde beim Laden umgewandelt. Im Audit-Tab erneut bestätigen.",
-    "outdated": "Die Verifikation vom {{date}} ist älter als {{days}} Tage — im Audit-Tab erneut verifizieren.",
-    "failed": "Die Verifikation vom {{date}} wurde nicht bestanden.",
-    "none": "Noch nicht verifiziert — die Verifikation im Audit-Tab erfassen.",
-    "openAudit": "Audit-Tab"
-  },
-  "overviewViews": {
-    "label": "Übersicht-Ansichten",
-    "project": "Projekt",
-    "definition": "Definition",
-    "methodology": "Methodik",
-    "sources": "Quellen",
-    "methodologyTitle": "Methodik (nur lesend)",
-    "methodologyHint": "Aus der Projektkonfiguration abgeleitet — derselbe Record wie im Methodik-Kapitel des Reports. Skalen, Matrix und Akzeptanzkriterien werden in der Konfiguration des Risk-Tabs eingestellt.",
-    "openRiskConfiguration": "Im Risk-Tab ändern"
-  },
-  "itemDefinition": {
-    "intro": "Was analysiert wird: das Item (ISO/SAE 21434 9.3), seine Grenze, Funktionen, vorläufige Architektur und Betriebsumgebung. Beschreibe es hier oder verweise auf das Architekturdokument, aus dem es stammt.",
-    "purpose": {
-      "title": "Zweck und Funktionen",
-      "hint": "Wofür das Item da ist und was es tut — die bisherige Projektbeschreibung.",
-      "placeholder": "Beschreibe den Zweck des Items und seine wichtigsten Funktionen..."
-    },
-    "sections": {
-      "boundary": {
-        "title": "Item-Grenze",
-        "hint": "Was zum Item gehört und was nicht; seine Schnittstellen zu anderen Items und zur Umgebung (9.3 a)."
-      },
-      "architecture": {
-        "title": "Vorläufige Architektur",
-        "hint": "Die wichtigsten Bausteine des Items und ihr Zusammenspiel (9.3 c) — auf das DFD verweisen statt es nachzuzeichnen."
-      },
-      "environment": {
-        "title": "Betriebsumgebung",
-        "hint": "Wo und wie das Item eingesetzt wird, soweit für die Cybersecurity relevant (9.3, RQ-09-02)."
-      },
-      "constraints": {
-        "title": "Randbedingungen und rechtliche Anforderungen",
-        "hint": "Technische, organisatorische und rechtliche Randbedingungen, die die Analyse beachten muss."
-      }
-    },
-    "source": {
-      "label": "Quelle",
-      "document": "Quelldokument (z. B. arc42)",
-      "section": "Abschnitt (z. B. §3 Kontext)",
-      "version": "Version"
-    },
-    "modelRefs": {
-      "label": "Bezieht sich auf (DFD, Assets)",
-      "missing": "entfernt ({{id}})"
-    },
-    "kinds": {
-      "element": "DFD-Elemente",
-      "flow": "Datenflüsse",
-      "page": "DFD-Seiten",
-      "asset": "Assets"
-    },
-    "functions": {
-      "title": "Funktionen über den Lebenszyklus",
-      "hint": "Die Funktionen des Items und die Lebenszyklus-Phasen, in denen sie aktiv sind (ISO/SAE 21434 9.3 b).",
-      "name": "Funktion",
-      "description": "Kurzbeschreibung",
-      "asset": "Function-Asset (optional)",
-      "add": "Funktion hinzufügen",
-      "remove": "Funktion entfernen"
-    },
-    "lifecycle": {
-      "production": "Produktion",
-      "operation": "Betrieb",
-      "maintenance": "Wartung",
-      "decommissioning": "Stilllegung"
-    },
-    "assumptions": {
-      "title": "Annahmen",
-      "hint": "Was die Analyse über die Umgebung annimmt (9.3, RQ-09-02 NOTE 8). Trust Boundaries verweisen darauf; eine ungültige Annahme markiert jede Grenze, die sich darauf stützt.",
-      "text": "Annahme",
-      "statusLabel": "Status",
-      "status": {
-        "open": "offen",
-        "confirmed": "bestätigt",
-        "invalid": "ungültig"
-      },
-      "owner": "Verantwortlich",
-      "reviewBy": "Prüfen bis",
-      "usedBy": "verwendet von {{list}}",
-      "add": "Annahme hinzufügen",
-      "remove": "Annahme entfernen"
-    },
-    "findings": {
-      "purposeMissing": "Zweck und Funktionen sind nicht beschrieben.",
-      "sectionMissing": "{{section}} ist nicht beschrieben.",
-      "assumptionInvalidInUse": "{{assumption}} ist ungültig, aber {{boundaries}} stützt sich noch darauf — überprüfen.",
-      "assumptionReviewDue": "{{assumption}} ist nach dem Prüfdatum noch offen.",
-      "linkRemoved": "{{section}}: {{count}} Verweis(e) auf entfernte Modell-Elemente."
-    },
-    "neutral": {
-      "intro": "Was analysiert wird: das System, seine Grenze, Funktionen, Architektur und Einsatzumgebung — für den CRA die bestimmungsgemässe Verwendung und die Beschreibung des Produkts. Hier beschreiben oder auf das Architekturdokument verweisen, aus dem es stammt.",
-      "purpose": { "hint": "Wofür das System da ist und was es tut (bestimmungsgemässe Verwendung) — die frühere Projektbeschreibung.", "placeholder": "Bestimmungsgemässe Verwendung des Systems und seine Hauptfunktionen beschreiben..." },
-      "sections": {
-        "boundary": { "title": "Systemgrenze", "hint": "Was zum System gehört und was nicht; seine Schnittstellen zu anderen Systemen und zur Umgebung." },
-        "architecture": { "title": "Architektur", "hint": "Die wichtigsten Bausteine des Systems und ihr Zusammenspiel — auf das DFD verweisen statt es neu zu zeichnen." },
-        "environment": { "hint": "Wo und wie das System eingesetzt wird, soweit für die Cybersecurity relevant." }
-      },
-      "functions": { "hint": "Die Funktionen des Systems und die Lebenszyklusphasen, in denen sie aktiv sind." },
-      "assumptions": { "hint": "Was die Analyse über die Umgebung annimmt. Trust Boundaries verweisen darauf; eine ungültige Annahme markiert jede Grenze, die sich darauf stützt." }
-    }
   },
   "projectInfo": {
     "title": "Projektinformationen",
@@ -877,56 +767,6 @@
     }
   },
   "UNRATED": "Nicht bewertet",
-  "sourceBinding": {
-    "projectScope": {
-      "title": "Projekt-Quellreferenz",
-      "description": "Das Repository und der Release, gegen die diese TARA durchgeführt wurde. Eine Analysereferenz für das gesamte Projekt — sie wird nicht automatisch auf einzelne Elemente angewendet."
-    },
-    "empty": "Keine Quellreferenzen erfasst.",
-    "addReference": "Referenz hinzufügen",
-    "repoUrl": "Repository-URL",
-    "localPathWarning": "Das sieht nach einem lokalen Pfad aus — es wird nur die Remote-URL gespeichert.",
-    "refLabel": "Ref-Bezeichnung",
-    "refLabelPlaceholder": "main, v2.3.1…",
-    "refType": {
-      "label": "Ref-Typ",
-      "branch": "Branch",
-      "releaseBranch": "Release-Branch",
-      "tag": "Tag",
-      "commit": "Commit"
-    },
-    "resolve": "Auflösen",
-    "reResolve": "Erneut auflösen",
-    "resolving": "Wird aufgelöst…",
-    "resolvedAs": "Aufgelöst auf {{sha}}",
-    "notResolvedYet": "Noch nicht auf einen Commit aufgelöst.",
-    "resolveError": {
-      "consentDenied": "Netzwerkzugriff wurde nicht erlaubt.",
-      "unreachable": "{{host}} konnte nicht erreicht werden.",
-      "refNotFound": "Repository erreicht, aber \"{{ref}}\" wurde dort nicht gefunden."
-    },
-    "consent": {
-      "title": "Netzwerkzugriff erlauben?",
-      "body": "TARAflow möchte den folgenden Host kontaktieren, um eine Quellreferenz aufzulösen:",
-      "scope": "Die Abfrage erfolgt einmal pro Host für diese Sitzung — weitere Bindungen auf demselben Host fragen erst nach einem Neustart von TARAflow erneut.",
-      "allow": "Erlauben"
-    },
-      "drift": {
-        "check": "Auf Änderungen prüfen",
-        "checking": "Wird geprüft…",
-        "checkFailed": "{{host}} konnte nicht auf Änderungen geprüft werden.",
-        "aborted": "Prüfung wurde nicht abgeschlossen.",
-        "history": "Drift-Verlauf ({{n}})",
-        "status": {
-          "clean": "Aktuell",
-          "branch_advanced": "Branch weitergewandert",
-          "branch_advanced_expected": "Release-Branch weitergewandert (erwartet)",
-          "tag_moved": "Tag verschoben",
-          "ref_missing": "Ref existiert nicht mehr",
-          "unreachable": "Repository nicht erreichbar"
-        }
-      }
-  },
   "devBuild": {
     "electronOutdated": "Der Electron-Teil ist älter als sein Quellcode (electron/ wurde geändert). Bitte beenden Sie die App und starten Sie npm run dev:electron neu."
   },
@@ -946,6 +786,7 @@
     "connected": "Verbunden mit {{tracker}} — Projekt {{project}} ({{host}}, {{account}})",
     "tracker": "Tracker",
     "from": "ab {{version}}",
+    "preview": "Vorschau",
     "secretHelp": "Wird nur für diese Adresse im Schlüsselbund gespeichert.",
     "test": "Verbindung testen",
     "disconnect": "Trennen",
@@ -977,8 +818,28 @@
       "unavailable": "Dieser Tracker ist noch nicht verfügbar.",
       "hostNotHttps": "{{host}} muss eine https-Adresse sein.",
       "userRequired": "{{user}} ist erforderlich.",
+      "organizationRequired": "{{host}} muss die Organisation nennen, z. B. https://dev.azure.com/contoso.",
       "secretRequired": "{{secret}} ist erforderlich.",
       "keychain": "Das Token konnte nicht im Schlüsselbund des Betriebssystems gespeichert werden (Desktop-App erforderlich)."
+    },
+    "connection": {
+      "connected": {
+        "projects_one": "Verbunden als {{account}} — {{count}} Projekt.",
+        "projects_other": "Verbunden als {{account}} — {{count}} Projekte.",
+        "repositories_one": "Verbunden als {{account}} — {{count}} Repository.",
+        "repositories_other": "Verbunden als {{account}} — {{count}} Repositories."
+      },
+      "authFailed": {
+        "pat": "Anmeldung fehlgeschlagen — Personal Access Token prüfen.",
+        "emailApiToken": "Anmeldung fehlgeschlagen — E-Mail und API-Token prüfen.",
+        "organizationPat": "Anmeldung fehlgeschlagen — Organisations-URL und Personal Access Token prüfen.",
+        "apiKey": "Anmeldung fehlgeschlagen — API-Schlüssel prüfen."
+      },
+      "connectionFailed": "Verbindung fehlgeschlagen ({{detail}}).",
+      "listFailed": {
+        "projects": "Projekte konnten nicht geladen werden ({{status}}).",
+        "repositories": "Repositories konnten nicht geladen werden ({{status}})."
+      }
     },
     "issueCount": "{{count}} Issues"
   }

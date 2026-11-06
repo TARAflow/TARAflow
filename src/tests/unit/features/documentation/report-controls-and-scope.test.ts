@@ -93,11 +93,11 @@ describe("F8 — controls as ID and text", () => {
     expect(controlLabels([{ id: "V-T-001" }, {}], "verification")).toEqual([`V-T-001 — ${V}`]);
   });
 
-  it("risk table (any preset): text, rejected controls left out", () => {
+  it("risk table (any preset): text; a rejected control only with its reason (FX-3)", () => {
     const row = gen(project([])).riskRow(risk("P1-T-1", "per-element"));
     expect(row).toContain(`M-T-001 — ${M}`);
     expect(row).toContain("Custom gasket");
-    expect(row).not.toContain("M-T-002");
+    expect(row).toMatch(/Rejected: M-T-002[^<]*· Reason: none given/);
   });
 
   it("attack-path threat chapter (ISO): controls and verifications of the risk", () => {

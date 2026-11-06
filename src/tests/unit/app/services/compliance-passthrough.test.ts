@@ -1,6 +1,6 @@
 // tests/unit/app/services/compliance-passthrough.test.ts
 //
-// IEC 62443-4-2 matrix data (iec-62443-4-2-cra-coverage.md D-8, schema 12):
+// Requirement matrix data (iec-62443-4-2-cra-coverage.md D-8, schema 12; per family since 13):
 // project.compliance survives every write path — the write channel, the
 // disk form and loading, including the repair path, which rebuilds a project
 // from known fields.
@@ -19,12 +19,16 @@ type Any = any;
 
 const compliance = (): ComplianceData => ({
   componentId: "mp_ctl",
-  target: { IAC: 2, UC: 2, SI: 3 },
-  deviceCategories: { categories: ["EDR"], source: "manual" },
-  // Per requirement (D-31).
-  statements: {
-    "cr-1.7": { status: "met", reasoning: "NIST SP 800-63B rules in the login service", evidenceRef: "TR-12 §4", modelStatusAtStatement: "needs-statement", date: "2026-11-02" },
-    "cr-3.10": { status: "met", reasoning: "signed OTA", supportingMeasure: "update server", date: "2026-11-02" },
+  families: {
+    "iec-62443-4-2": {
+      target: { IAC: 2, UC: 2, SI: 3 },
+      deviceCategories: { categories: ["EDR"], source: "manual" },
+      // Per requirement (D-31).
+      statements: {
+        "cr-1.7": { status: "met", reasoning: "NIST SP 800-63B rules in the login service", evidenceRef: "TR-12 §4", modelStatusAtStatement: "needs-statement", date: "2026-11-02" },
+        "cr-3.10": { status: "met", reasoning: "signed OTA", supportingMeasure: "update server", date: "2026-11-02" },
+      },
+    },
   },
 });
 
@@ -48,7 +52,7 @@ const project = (extra: Partial<Project> = {}): Project =>
     ...extra,
   }) as unknown as Project;
 
-describe("project.compliance survives every write path (schema 12)", () => {
+describe("project.compliance survives every write path (schema 13)", () => {
   it("write channel and disk form", () => {
     const merged = mergeProjectPatch(project(), { id: "P", compliance: compliance() } as Any, "t1");
     expect(merged.compliance).toEqual(compliance());

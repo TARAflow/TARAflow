@@ -126,28 +126,59 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     inputValidation: "strict",
     errorHandling: "sanitized",
     nonRepudiation: "audit_log",
-    malwareProtection: "application_whitelist",
+    malwareProtection: ["application_whitelist"],
     privilegeLevel: "low",
     runsAs: "user",
     exposedToInternet: false,
     failSafeOutputState: "hold_last_value",
     sessionControl: { sessionLockEnabled: true, remoteTerminationEnabled: true, maxConcurrentSessions: 1 },
+    // Operators log in with a password (DF-1): personal accounts, the policy
+    // (length, complexity, lifetime) is configurable — CR 1.1 RE(1), CR 1.7.
+    userAccounts: "individual",
+    passwordStrength: "configurable_policy",
+    passwordLifetime: "human_accounts",
+    // Roles operator / maintenance / admin; the admin maps permissions to roles (CR 2.1 RE(2)).
+    roleMapping: "configurable",
+    // Shipped with a default password whose change is enforced at the first login (CR 1.5).
+    defaultCredentials: "change_enforced",
+    authenticatorChangeable: "yes",
+    // Five failed logins lock the account for 15 minutes (CR 1.11).
+    loginLockout: "timed_lockout",
   }),
   "MP-1": as<MultiprocessProperties>({
     systemClass: "embedded_controller",
     operatingSystem: "rtos",
     updateMechanism: "signed_ota",
     boundaryAuthentication: "certificate",
-    tlsTermination: "server",
+    tlsTermination: ["server"],
     authorizationModel: "rbac",
     accountManagement: "local_only",
     authenticatorStorage: "secure_element",
-    malwareProtection: "code_signing",
+    malwareProtection: ["code_signing"],
     backupMechanism: "manual_local",
     nonRepudiation: "audit_log",
     remoteAccessEnabled: true,
     // Engineering, SCADA and remote service sessions (CR 2.5 – 2.7).
     sessionControl: { sessionLockEnabled: true, remoteTerminationEnabled: true, maxConcurrentSessions: 2 },
+    // Technicians (DF-9) and the engineering workstation (DF-7) log in with a
+    // password: personal accounts, configurable policy, lifetime for both.
+    userAccounts: "individual",
+    passwordStrength: "configurable_policy",
+    passwordLifetime: "all_accounts",
+    roleMapping: "configurable",
+    // Device password and key unique per controller, set in production (CR 1.5).
+    defaultCredentials: "unique_per_device",
+    authenticatorChangeable: "yes",
+    // Technician and engineering logins lock after five failed attempts for 15 minutes (CR 1.11).
+    loginLockout: "timed_lockout",
+    // Signed updates installed on the operator's request or in a maintenance
+    // window (prAA CR 3.10 RE(2) c); a secure-defaults profile, the current
+    // settings readable on the HMI (CR 7.6).
+    updateDelivery: "on_request_or_scheduled",
+    secureByDefault: "yes",
+    securityConfigReporting: "readable_interface",
+    // A factory reset from the HMI wipes configuration and accounts (CR 7.9).
+    userDataDeletion: "factory_reset",
     exposedToInternet: false,
     airGapped: false,
   }),
@@ -166,7 +197,8 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     location: "external_panel",
     ...exposure("EL2", "Operator panel in the cabinet door, reachable on site."),
     operationalState: "enabled",
-    implementedControls: { linkAuthentication: "none", abuseProtection: "lockout", serviceAccessPolicy: "always_enabled" },
+    // A touch panel has no protocol to rate-limit; the login lockout sits on P-1 (CM-8b).
+    implementedControls: { linkAuthentication: "none", serviceAccessPolicy: "always_enabled" },
   }),
   "IF-2": as<InterfaceProperties>({
     type: "usb",
@@ -174,7 +206,7 @@ const PROPERTIES: Record<string, Record<string, unknown>> = {
     location: "in_enclosure",
     operationalState: "enabled",
     ...exposure("EL2", "Behind the locked cabinet door; maintenance staff only."),
-    implementedControls: { linkAuthentication: "none", abuseProtection: "lockout", serviceAccessPolicy: "maintenance_only" },
+    implementedControls: { linkAuthentication: "none", abuseProtection: "rate_limited", serviceAccessPolicy: "maintenance_only" },
   }),
   "IF-3": as<InterfaceProperties>({
     type: "ethernet",
@@ -264,7 +296,7 @@ const FORM_COMPLETION: Record<string, Record<string, unknown>> = {
     notes: "Key held by the maintenance team; door switch alarm goes to SCADA.",
   }),
   "P-1": as<ProcessProperties>({
-    tlsTermination: "server",
+    tlsTermination: ["server"],
     updateMechanism: "signed_ota",
     owner: VENDOR,
     notes: "Updated together with the controller firmware.",
@@ -302,20 +334,20 @@ const FORM_COMPLETION: Record<string, Record<string, unknown>> = {
   "EE-6": as<ExternalEntityProperties>({ authorizationScope: "Download the PLC program", threatActor: "compromised", contractExists: true, rateLimited: false, owner: OT, notes: "Engineering laptop of the automation team." }),
   "EE-7": as<ExternalEntityProperties>({ authenticationMethod: "none", authorizationScope: "Execute actuator commands, report sensor values", threatActor: "benign", contractExists: true, rateLimited: false, owner: OT, notes: "Pumps, valves and their sensors on the fieldbus." }),
   "EE-8": as<ExternalEntityProperties>({ authenticationMethod: "none", authorizationScope: "Production programming only", threatActor: "insider", contractExists: true, rateLimited: false, owner: VENDOR, notes: "Used at the vendor's production line." }),
-  "DF-1": flow({ frequency: "ondemand", dataTypeNotes: "Pump start / stop, setpoint changes", location: "in_enclosure", locationRationale: "Touch panel in the cabinet door", redundancy: "none", physicalPathProtection: "none", notes: "Masked PIN entry before changes." }),
-  "DF-2": flow({ frequency: "ondemand", dataTypeNotes: "Setpoints", location: "in_enclosure", locationRationale: "Cabinet-internal Ethernet", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "OPC UA Sign & Encrypt." }),
-  "DF-3": flow({ frequency: "continuous", dataTypeNotes: "Pressures, flows, levels", location: "in_enclosure", locationRationale: "Cabinet-internal Ethernet", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "OPC UA subscription." }),
-  "DF-4": flow({ frequency: "continuous", dataTypeNotes: "Process values and alarms", location: "local_network", locationRationale: "Plant control network to the control room", redundancy: "buffered", physicalPathProtection: "cable_duct", notes: "Buffered in the controller when SCADA is unreachable." }),
-  "DF-5": flow({ frequency: "ondemand", dataTypeNotes: "Remote setpoints", location: "local_network", locationRationale: "Plant control network from the control room", redundancy: "none", physicalPathProtection: "cable_duct", notes: "Range-checked by the controller." }),
-  "DF-6": flow({ frequency: "ondemand", dataTypeNotes: "Firmware image", location: "enterprise_network", locationRationale: "From the vendor's update server through the utility's firewall", redundancy: "none", physicalPathProtection: "none", notes: "Signature checked before installation." }),
-  "DF-7": flow({ frequency: "ondemand", dataTypeNotes: "PLC program", location: "local_network", locationRationale: "Engineering laptop on the control network", redundancy: "none", physicalPathProtection: "cable_duct", notes: "Sign & Encrypt planned (mitigations in progress)." }),
-  "DF-8": flow({ frequency: "ondemand", dataTypeNotes: "Service commands and diagnostics", location: "enterprise_network", locationRationale: "Vendor session through the utility's DMZ gateway", redundancy: "none", physicalPathProtection: "none", notes: "Mutual TLS inside a VPN; approved per ticket." }),
-  "DF-9": flow({ frequency: "ondemand", dataTypeNotes: "Service commands", location: "in_enclosure", locationRationale: "USB port inside the locked cabinet", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "Maintenance role required." }),
-  "DF-10": flow({ frequency: "periodic", dataTypeNotes: "Actuator commands", location: "field_cable", locationRationale: "RS-485 cable to the pumps in the station", redundancy: "none", physicalPathProtection: "cable_duct", notes: "No authentication on Modbus RTU (gap, planned mitigation)." }),
-  "DF-11": flow({ frequency: "continuous", dataTypeNotes: "Sensor values", location: "field_cable", locationRationale: "RS-485 cable from the pumps in the station", redundancy: "none", physicalPathProtection: "cable_duct", notes: "No authentication on Modbus RTU (gap, planned mitigation)." }),
-  "DF-12": flow({ frequency: "ondemand", dataTypeNotes: "Recipes", location: "on_board", locationRationale: "Controller-internal flash", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "Signed records." }),
-  "DF-13": flow({ frequency: "event_based", dataTypeNotes: "Configuration", location: "on_board", locationRationale: "Read at start-up", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "Signature checked on read." }),
-  "DF-14": flow({ frequency: "ondemand", dataTypeNotes: "Production image, debug commands", location: "on_board", locationRationale: "Probe on the board's JTAG header", redundancy: "none", physicalPathProtection: "locked_cabinet", notes: "Only at the production line; fused off afterwards." }),
+  "DF-1": flow({ frequency: "ondemand", dataTypeNotes: "Pump start / stop, setpoint changes", location: "in_enclosure", locationRationale: "Touch panel in the cabinet door", redundancy: "none", physicalPathProtection: ["none"], notes: "Masked PIN entry before changes." }),
+  "DF-2": flow({ frequency: "ondemand", dataTypeNotes: "Setpoints", location: "in_enclosure", locationRationale: "Cabinet-internal Ethernet", redundancy: "none", physicalPathProtection: ["locked_cabinet"], notes: "OPC UA Sign & Encrypt." }),
+  "DF-3": flow({ frequency: "continuous", dataTypeNotes: "Pressures, flows, levels", location: "in_enclosure", locationRationale: "Cabinet-internal Ethernet", redundancy: "none", physicalPathProtection: ["locked_cabinet"], notes: "OPC UA subscription." }),
+  "DF-4": flow({ frequency: "continuous", dataTypeNotes: "Process values and alarms", location: "local_network", locationRationale: "Plant control network to the control room", redundancy: "buffered", physicalPathProtection: ["cable_duct"], notes: "Buffered in the controller when SCADA is unreachable." }),
+  "DF-5": flow({ frequency: "ondemand", dataTypeNotes: "Remote setpoints", location: "local_network", locationRationale: "Plant control network from the control room", redundancy: "none", physicalPathProtection: ["cable_duct"], notes: "Range-checked by the controller." }),
+  "DF-6": flow({ frequency: "ondemand", dataTypeNotes: "Firmware image", location: "enterprise_network", locationRationale: "From the vendor's update server through the utility's firewall", redundancy: "none", physicalPathProtection: ["none"], notes: "Signature checked before installation." }),
+  "DF-7": flow({ frequency: "ondemand", dataTypeNotes: "PLC program", location: "local_network", locationRationale: "Engineering laptop on the control network", redundancy: "none", physicalPathProtection: ["cable_duct"], notes: "Sign & Encrypt planned (mitigations in progress)." }),
+  "DF-8": flow({ frequency: "ondemand", dataTypeNotes: "Service commands and diagnostics", location: "enterprise_network", locationRationale: "Vendor session through the utility's DMZ gateway", redundancy: "none", physicalPathProtection: ["none"], notes: "Mutual TLS inside a VPN; approved per ticket." }),
+  "DF-9": flow({ frequency: "ondemand", dataTypeNotes: "Service commands", location: "in_enclosure", locationRationale: "USB port inside the locked cabinet", redundancy: "none", physicalPathProtection: ["locked_cabinet"], notes: "Maintenance role required." }),
+  "DF-10": flow({ frequency: "periodic", dataTypeNotes: "Actuator commands", location: "field_cable", locationRationale: "RS-485 cable to the pumps in the station", redundancy: "none", physicalPathProtection: ["cable_duct"], notes: "No authentication on Modbus RTU (gap, planned mitigation)." }),
+  "DF-11": flow({ frequency: "continuous", dataTypeNotes: "Sensor values", location: "field_cable", locationRationale: "RS-485 cable from the pumps in the station", redundancy: "none", physicalPathProtection: ["cable_duct"], notes: "No authentication on Modbus RTU (gap, planned mitigation)." }),
+  "DF-12": flow({ frequency: "ondemand", dataTypeNotes: "Recipes", location: "on_board", locationRationale: "Controller-internal flash", redundancy: "none", physicalPathProtection: ["locked_cabinet"], notes: "Signed records." }),
+  "DF-13": flow({ frequency: "event_based", dataTypeNotes: "Configuration", location: "on_board", locationRationale: "Read at start-up", redundancy: "none", physicalPathProtection: ["locked_cabinet"], notes: "Signature checked on read." }),
+  "DF-14": flow({ frequency: "ondemand", dataTypeNotes: "Production image, debug commands", location: "on_board", locationRationale: "Probe on the board's JTAG header", redundancy: "none", physicalPathProtection: ["locked_cabinet"], notes: "Only at the production line; fused off afterwards." }),
 };
 
 /** The analyst's description of every element and flow (the DFD counts as complete only with them). */
@@ -675,10 +707,9 @@ const statement = (status: ComplianceStatement["status"], reasoning: string, evi
  * purpose: CR 7.8 (inventory, SL 2) and every row above the target.
  */
 export const STATEMENTS: Record<string, ComplianceStatement> = {
-  "CR 1.1 RE(1)": statement("met", "Every operator and technician logs in with a personal account; there is no shared login.", "User manual §4.1"),
-  "CR 1.7": statement("met", "Minimum length, complexity and lifetime of passwords are configurable; the defaults follow NIST SP 800-63B.", "Security manual §2.3"),
+  // CR 1.1 RE(1) and CR 1.7 come from the model (userAccounts, passwordStrength, passwordLifetime).
   "CR 1.10": statement("met", "PIN and password entry on the touch panel is masked."),
-  "CR 1.11": statement("met", "After five failed logins the account is locked for 15 minutes; the limit is configurable.", "Security manual §2.4"),
+  // CR 1.11 comes from the model: the HMI and the PLC lock after failed logins (loginLockout).
   "CR 1.12": statement("met", "The HMI shows a configurable notice before the login screen."),
   "CR 2.4": statement("n/a", "Neither the PLC nor the HMI runtime loads scripts, plug-ins or other mobile code."),
   "CR 2.4 RE(1)": statement("n/a", "No mobile code (see CR 2.4)."),
@@ -691,7 +722,7 @@ export const STATEMENTS: Record<string, ComplianceStatement> = {
   "CR 3.13": statement("not-met", "Trust anchors are provisioned by the vendor at production; owner provisioning is planned for firmware 2.0."),
   "CR 6.1": statement("met", "The audit log can be read, read-only, over OPC UA by the maintenance role and exported as CSV."),
   "CR 7.3 RE(1)": statement("met", "Configuration backups carry a signature that is checked before a restore.", "Service manual §5.3"),
-  "CR 7.6": statement("met", "A secure-defaults profile can be applied from the HMI; the current settings can be viewed there."),
+  // CR 7.6 comes from the model (secureByDefault, securityConfigReporting on MP-1).
 };
 
 /** Statements on rows only the classic edition (2019) has. */
@@ -700,25 +731,30 @@ const CLASSIC_ONLY_STATEMENTS: Record<string, ComplianceStatement> = {
 };
 
 /**
- * Stored per requirement (D-31): the statements hold in the CRA and in the
- * classic edition alike. Device category EDR confirmed for the classic one.
+ * Stored per requirement (D-31) in the IEC 62443-4-2 family block (schema
+ * 13): the statements hold in the CRA and in the classic edition alike.
+ * Device category EDR confirmed for the classic one.
  */
 export const COMPLIANCE: ComplianceData = {
-  target: { IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 },
-  deviceCategories: { categories: ["EDR"], source: "manual" },
-  statements: Object.fromEntries([
-    ...Object.entries(STATEMENTS).map(([label, statement]) => {
-      const row = EDITION_PRAA_2026.rows.find((r) => r.label === label);
-      if (!row) throw new Error(`no CRA row ${label}`);
-      return [statementKeyOf(row), statement] as const;
-    }),
-    // Rows only the classic edition has.
-    ...Object.entries(CLASSIC_ONLY_STATEMENTS).map(([label, statement]) => {
-      const row = EDITION_2019.rows.find((r) => r.label === label);
-      if (!row) throw new Error(`no classic row ${label}`);
-      return [statementKeyOf(row), statement] as const;
-    }),
-  ]),
+  families: {
+    "iec-62443-4-2": {
+      target: { IAC: 2, UC: 2, SI: 2, DC: 2, RDF: 2, TRE: 2, RA: 2 },
+      deviceCategories: { categories: ["EDR"], source: "manual" },
+      statements: Object.fromEntries([
+        ...Object.entries(STATEMENTS).map(([label, statement]) => {
+          const row = EDITION_PRAA_2026.rows.find((r) => r.label === label);
+          if (!row) throw new Error(`no CRA row ${label}`);
+          return [statementKeyOf(row), statement] as const;
+        }),
+        // Rows only the classic edition has.
+        ...Object.entries(CLASSIC_ONLY_STATEMENTS).map(([label, statement]) => {
+          const row = EDITION_2019.rows.find((r) => r.label === label);
+          if (!row) throw new Error(`no classic row ${label}`);
+          return [statementKeyOf(row), statement] as const;
+        }),
+      ]),
+    },
+  },
 };
 
 // ── System definition (Overview → Definition) ───────────────────────────────

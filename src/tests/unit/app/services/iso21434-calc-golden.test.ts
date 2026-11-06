@@ -105,8 +105,8 @@ describe("golden: attack-tree feasibility core", () => {
       pa.paths.map((p) => [p.pathKey, p.attackPotential, p.feasibilityLevel]),
       BUMP_FEAS,
     ).toEqual([
-      ["9b602c120115", 8, "high"],
-      ["9a602a7f0415", 4, "high"],
+      // FX-6: the AND gate is one scenario — both steps, attack potential summed.
+      ["c67bb4a7d0b5", 12, "high"],
       ["88b21a4c4613", 47, "very-low"],
     ]);
     expect(pa.aggregatedFeasibility, BUMP_FEAS).toBe("high");
