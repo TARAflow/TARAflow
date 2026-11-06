@@ -366,7 +366,7 @@
       },
       "modelFields": {
         "innerInputValidation": {
-          "label": "Inside: input validation",
+          "label": "Input validation",
           "help": "The weakest input validation of the processes this black box contains (e.g. the firmware of a supplier module). IEC 62443-4-2 CR 3.5. Leave unset when the software is not known — the row stays open for a statement or the supplier's evidence.",
           "values": {
             "none": "None",
@@ -376,7 +376,7 @@
           }
         },
         "innerErrorHandling": {
-          "label": "Inside: error handling",
+          "label": "Error handling",
           "help": "How the contained processes report errors — the weakest case. CR 3.7 asks that error messages give no information an attacker could use.",
           "values": {
             "silent": "Silent (no details)",
@@ -385,7 +385,7 @@
           }
         },
         "innerFailSafeOutputState": {
-          "label": "Inside: output state on failure",
+          "label": "Output state on failure",
           "help": "The state the outputs of the contained processes take on a failure or a security violation. CR 3.6 (deterministic output).",
           "values": {
             "not_defined": "Not defined",
@@ -396,7 +396,7 @@
           }
         },
         "innerDataClassification": {
-          "label": "Inside: data classification",
+          "label": "Data classification",
           "help": "The classification of the most sensitive data the black box stores (configuration, keys, recipes …). Decides whether CR 4.1 / CR 4.2 apply to its data.",
           "values": {
             "public": "Public",
@@ -407,7 +407,7 @@
           }
         },
         "innerEncryptionAtRest": {
-          "label": "Inside: encryption at rest",
+          "label": "Encryption at rest",
           "help": "How the stored data inside is encrypted — the weakest case. CR 4.1 (data at rest), CR 4.3.",
           "values": {
             "none": "None",
@@ -418,7 +418,7 @@
           }
         },
         "innerIntegrityProtection": {
-          "label": "Inside: integrity protection",
+          "label": "Integrity protection of stored data",
           "help": "How the stored data and firmware inside are protected against change — the weakest case. CR 3.4, CR 3.4 RE(1) (signature).",
           "values": {
             "none": "None",
@@ -430,7 +430,7 @@
           }
         },
         "innerDeletionMechanism": {
-          "label": "Inside: deletion",
+          "label": "Deletion of stored data",
           "help": "How data inside is deleted when it is no longer needed or the device leaves service. CR 4.2, CR 7.9 (factory reset).",
           "values": {
             "none": "None",

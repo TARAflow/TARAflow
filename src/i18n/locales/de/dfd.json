@@ -366,7 +366,7 @@
       },
       "modelFields": {
         "innerInputValidation": {
-          "label": "Innen: Eingabevalidierung",
+          "label": "Eingabevalidierung",
           "help": "Die schwächste Eingabevalidierung der Prozesse, die diese Black Box enthält (z. B. die Firmware eines Zulieferer-Moduls). IEC 62443-4-2 CR 3.5. Leer lassen, wenn die Software nicht bekannt ist — die Zeile bleibt offen für eine Aussage oder den Nachweis des Herstellers.",
           "values": {
             "none": "Keine",
@@ -376,7 +376,7 @@
           }
         },
         "innerErrorHandling": {
-          "label": "Innen: Fehlerbehandlung",
+          "label": "Fehlerbehandlung",
           "help": "Wie die enthaltenen Prozesse Fehler melden — der schwächste Fall. CR 3.7 verlangt, dass Fehlermeldungen einem Angreifer nichts Verwertbares verraten.",
           "values": {
             "silent": "Still (keine Details)",
@@ -385,7 +385,7 @@
           }
         },
         "innerFailSafeOutputState": {
-          "label": "Innen: Ausgangszustand bei Fehler",
+          "label": "Ausgangszustand bei Fehler",
           "help": "Der Zustand, den die Ausgänge der enthaltenen Prozesse bei einem Fehler oder einer Sicherheitsverletzung annehmen. CR 3.6 (deterministische Ausgänge).",
           "values": {
             "not_defined": "Nicht definiert",
@@ -396,7 +396,7 @@
           }
         },
         "innerDataClassification": {
-          "label": "Innen: Datenklassifizierung",
+          "label": "Datenklassifizierung",
           "help": "Die Einstufung der sensibelsten Daten, die die Black Box speichert (Konfiguration, Schlüssel, Rezepte …). Entscheidet, ob CR 4.1 / CR 4.2 für ihre Daten gelten.",
           "values": {
             "public": "Öffentlich",
@@ -407,7 +407,7 @@
           }
         },
         "innerEncryptionAtRest": {
-          "label": "Innen: Verschlüsselung gespeicherter Daten",
+          "label": "Verschlüsselung gespeicherter Daten",
           "help": "Wie die gespeicherten Daten innen verschlüsselt sind — der schwächste Fall. CR 4.1 (Daten im Ruhezustand), CR 4.3.",
           "values": {
             "none": "Keine",
@@ -418,7 +418,7 @@
           }
         },
         "innerIntegrityProtection": {
-          "label": "Innen: Integritätsschutz",
+          "label": "Integritätsschutz gespeicherter Daten",
           "help": "Wie gespeicherte Daten und Firmware innen gegen Veränderung geschützt sind — der schwächste Fall. CR 3.4, CR 3.4 RE(1) (Signatur).",
           "values": {
             "none": "Keiner",
@@ -430,7 +430,7 @@
           }
         },
         "innerDeletionMechanism": {
-          "label": "Innen: Löschung",
+          "label": "Löschung gespeicherter Daten",
           "help": "Wie Daten innen gelöscht werden, wenn sie nicht mehr gebraucht werden oder das Gerät ausser Betrieb geht. CR 4.2, CR 7.9 (Werksreset).",
           "values": {
             "none": "Keine",

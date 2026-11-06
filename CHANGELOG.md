@@ -21,8 +21,8 @@ when opened (with a backup) and then no longer open in 0.17.x.
   Operation); a tab names its open fields. A multiprocess's safety fields
   (safety-relevant, rationale) sit below the tabs, always in view.
 - **Black-box multiprocess:** a multiprocess without a child page — a PLC
-  drawn as a box, a supplier's module — gets seven *Inside* fields for
-  the processes and data it contains, in the tab of their topic
+  drawn as a box, a supplier's module — gets seven fields for the
+  processes and data it contains, in the tab of their topic
   (robustness, operation, and a tab *Data* for the stored data); the
   matrix checks it with the process and data-store rules once one is
   set.
@@ -106,8 +106,9 @@ when opened (with a backup) and then no longer open in 0.17.x.
 
 ### Fixed
 - **Security sub-tabs:** coming back to an element, the chosen tab (e.g.
-  *Operation*) was shown cut off at the edge of the tab bar; the bar now
-  brings it fully into view once the panel has its width.
+  *Operation*) was shown cut off or at another place of the scrolling
+  tab bar; the bar no longer scrolls — in a narrow panel the tabs wrap
+  onto a second line, the chosen one marked by a fixed underline.
 - **Audit commit:** the branch is checked out before the project file is
   staged — a failed switch left the file staged on the old branch.
 - **Project switch:** the DFD, threat, compliance, concept, documentation
