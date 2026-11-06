@@ -32,6 +32,8 @@ import type {
   MultiprocessProperties,
 } from "../../models/element-properties";
 import { SECURE_CHANNEL_OPTIONS, selectionOf } from "../../models/element-properties";
+import { NO_TRANSPORT_MEDIUM_PROTOCOLS } from "../../models/element-property-defaults";
+import { PROTOCOL_META } from "../../models/protocol-registry";
 
 /** TLS termination capability of an endpoint. mutual ⊃ server ⊃ none. */
 type TlsTermination = "none" | "server" | "mutual";
@@ -153,7 +155,50 @@ export function validateEndpointProtection(
     }
   }
 
-  if (warnings) warnUnusedChannels(connections, elements, warnings);
+  if (warnings) {
+    warnUnusedChannels(connections, elements, warnings);
+    warnUnsetChannels(connections, elements, warnings);
+  }
+}
+
+/**
+ * A flow over a network or fieldbus, where a secure channel is expected to be
+ * stated; the protocol must be known. On-board chip buses (UART, SPI, I²C)
+ * may carry one — the field is offered there — but are not asked for.
+ */
+function overNetwork(props: DataFlowProperties | undefined): boolean {
+  const protocol = props?.protocol;
+  if (!protocol || props?.medium === "physical") return false;
+  if (NO_TRANSPORT_MEDIUM_PROTOCOLS.has(protocol)) return false;
+  const group = PROTOCOL_META[protocol]?.group;
+  return group !== "electrical" && group !== "embedded";
+}
+
+/**
+ * The secure channels not stated on an element with a flow over a network or
+ * bus (user 2026-11-06): unset is unknown, not "none" — ask for a choice,
+ * "none" included. Same finding as other missing properties.
+ */
+function warnUnsetChannels(
+  connections: DFDConnection[],
+  elements: DFDElement[],
+  warnings: ValidationFinding[],
+): void {
+  for (const el of elements) {
+    if (el.type !== "Process" && el.type !== "Multiprocess") continue;
+    const p = el.properties as (ProcessProperties & MultiprocessProperties) | undefined;
+    if (selectionOf(SECURE_CHANNEL_OPTIONS, p?.tlsTermination).length > 0) continue;
+    const networked = connections.some(
+      (c) => (c.from === el.id || c.to === el.id) && overNetwork(c.properties as DataFlowProperties | undefined),
+    );
+    if (!networked) continue;
+    warnings.push({
+      key: ValidationMessages.ELEMENT_MISSING_PROPERTY,
+      displayId: el.displayId ?? el.name,
+      elementId: el.id,
+      params: { elementType: el.type, field: "tlsTermination", name: el.name },
+    });
+  }
 }
 
 /** The secure channels an element offers (Process / Multiprocess), "none" left out. */

@@ -179,3 +179,30 @@ describe("endpoint protection validator — SSH, application level, unused chann
     expect(warnings.map((w) => w.params?.channel)).toEqual(["ssh"]);
   });
 });
+
+describe("endpoint protection validator — secure channel not stated (user 2026-11-06)", () => {
+  const warningsOf = (elements: DFDElement[], connections: DFDConnection[]) => {
+    const errors: ValidationFinding[] = [];
+    const warnings: ValidationFinding[] = [];
+    validateEndpointProtection(connections, elements, errors, warnings);
+    return warnings.filter((w) => w.key === "tabs.dfd.validation.element.missingProperty");
+  };
+
+  it("a flow over a network and nothing chosen: asks for a choice (missing property)", () => {
+    const w = warningsOf([proc("A"), proc("B", ["server"])], [flow("A", "B", "tls", { protocol: "opc_ua" })]);
+    expect(w.map((x) => [x.elementId, x.params?.field, x.params?.elementType])).toEqual([["A", "tlsTermination", "Process"]]);
+  });
+
+  it("'none' is a choice: no warning", () => {
+    expect(warningsOf([proc("A", ["none"]), proc("B", ["server"])], [flow("A", "B", "tls", { protocol: "opc_ua" })])).toEqual([]);
+  });
+
+  it("only human input or an unknown protocol: not asked (the field is not offered / still open)", () => {
+    expect(warningsOf([proc("A"), proc("B")], [flow("A", "B", undefined, { protocol: "human_input" })])).toEqual([]);
+    expect(warningsOf([proc("A"), proc("B")], [flow("A", "B", undefined)])).toEqual([]);
+  });
+
+  it("an on-board chip bus (UART, SPI, I²C) may carry one but is not asked for", () => {
+    expect(warningsOf([proc("A"), proc("B")], [flow("A", "B", undefined, { protocol: "uart" })])).toEqual([]);
+  });
+});

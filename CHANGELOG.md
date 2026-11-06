@@ -29,7 +29,10 @@ when opened (with a backup) and then no longer open in 0.17.x.
   endpoints — TLS / mTLS as before, SSH needs one endpoint offering it,
   application level both — and warns about a channel an element offers
   that none of its flows uses (an open service without a visible
-  purpose, EN 303 645 5.6 / CR 7.7). A multiprocess's safety fields
+  purpose, EN 303 645 5.6 / CR 7.7), and asks for the secure channel
+  where an element has a flow over a network or fieldbus but none is
+  chosen (unset is unknown — "none" is a choice; on-board chip buses are
+  not asked). A multiprocess's safety fields
   (safety-relevant, rationale) sit below the tabs, always in view.
 - **Black-box multiprocess:** a multiprocess without a child page — a PLC
   drawn as a box, a supplier's module — gets seven fields for the
