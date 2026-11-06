@@ -133,7 +133,9 @@ when opened (with a backup) and then no longer open in 0.17.x.
   ticked by default, unticking hides a type, as the relation filter of
   the asset graph; the last ticked type stays. Criticality is a select
   like "Risk level" in the risk tab (filter icon, colour per level,
-  highest first); the bar is as high as the risk tab's.
+  highest first; the highest level reads its name alone, e.g.
+  "Critical", not "Critical or higher"); the bar is as high as the risk
+  tab's, the two filter dropdowns come first, then the buttons.
 
 ### Fixed
 - **Compliance tab — delete unused claims:** a supporting claim removed

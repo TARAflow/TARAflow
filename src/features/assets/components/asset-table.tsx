@@ -224,45 +224,7 @@ export const AssetTableToolbar: React.FC<AssetTableToolbarProps> = ({
       }}
       data-testid="asset-table-toolbar"
     >
-      <Button
-        size="small"
-        variant="outlined"
-        startIcon={<ShowColumnsIcon />}
-        onClick={() => onChange({ ...view, factorsVisible: !view.factorsVisible })}
-        color={view.factorsVisible ? "primary" : "inherit"}
-        sx={{ textTransform: "none" }}
-      >
-        {t(
-          view.factorsVisible
-            ? "tabs.assets.tooltips.hideFactors"
-            : "tabs.assets.tooltips.showFactors",
-        )}
-      </Button>
-      {needsReview && (
-        <Tooltip
-          arrow
-          title={t("tabs.assets.reviewFilter.tooltip", {
-            defaultValue:
-              "Show only assets with errors or warnings in the findings",
-          })}
-        >
-          <Button
-            size="small"
-            variant={view.reviewOnly ? "contained" : "outlined"}
-            startIcon={<ReviewFilterIcon />}
-            onClick={() => onChange({ ...view, reviewOnly: !view.reviewOnly })}
-            color={view.reviewOnly ? "warning" : "inherit"}
-            aria-pressed={view.reviewOnly}
-            data-testid="asset-review-filter"
-            sx={{ textTransform: "none" }}
-          >
-            {t("tabs.assets.reviewFilter.label", {
-              count: reviewCount,
-              defaultValue: "Needs review only ({{count}})",
-            })}
-          </Button>
-        </Tooltip>
-      )}
+      {/* AF-2b: the two filter dropdowns first, then the buttons. */}
       {filter && filter.typeCounts.length > 0 && (
         <FormControl size="small" sx={{ minWidth: 190 }} data-testid="asset-type-filter">
           <InputLabel id="asset-type-filter-label">{t("tabs.assets.filter.type", { defaultValue: "Asset type" })}</InputLabel>
@@ -340,17 +302,20 @@ export const AssetTableToolbar: React.FC<AssetTableToolbarProps> = ({
             <MenuItem value="">
               <em>{t("tabs.assets.filter.allLevels", { defaultValue: "All levels" })}</em>
             </MenuItem>
-            {[...filter.levels].reverse().map((level) => (
+            {[...filter.levels].reverse().map((level, index) => (
               <MenuItem key={level.value} value={level.value}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   {level.color && (
                     <Box component="span" sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: level.color, flexShrink: 0 }} />
                   )}
                   <span>
-                    {t("tabs.assets.filter.fromLevel", {
-                      level: t(level.labelKey),
-                      defaultValue: "{{level}} or higher",
-                    })}
+                    {/* AF-2b: nothing is above the highest level — its name alone. */}
+                    {index === 0
+                      ? t(level.labelKey)
+                      : t("tabs.assets.filter.fromLevel", {
+                          level: t(level.labelKey),
+                          defaultValue: "{{level}} or higher",
+                        })}
                   </span>
                 </Stack>
               </MenuItem>
@@ -372,6 +337,45 @@ export const AssetTableToolbar: React.FC<AssetTableToolbarProps> = ({
           label={t("tabs.assets.filter.includeUnrated", { defaultValue: "also unrated" })}
           sx={{ "& .MuiFormControlLabel-label": { fontSize: "0.875rem" }, mr: 0 }}
         />
+      )}
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<ShowColumnsIcon />}
+        onClick={() => onChange({ ...view, factorsVisible: !view.factorsVisible })}
+        color={view.factorsVisible ? "primary" : "inherit"}
+        sx={{ textTransform: "none" }}
+      >
+        {t(
+          view.factorsVisible
+            ? "tabs.assets.tooltips.hideFactors"
+            : "tabs.assets.tooltips.showFactors",
+        )}
+      </Button>
+      {needsReview && (
+        <Tooltip
+          arrow
+          title={t("tabs.assets.reviewFilter.tooltip", {
+            defaultValue:
+              "Show only assets with errors or warnings in the findings",
+          })}
+        >
+          <Button
+            size="small"
+            variant={view.reviewOnly ? "contained" : "outlined"}
+            startIcon={<ReviewFilterIcon />}
+            onClick={() => onChange({ ...view, reviewOnly: !view.reviewOnly })}
+            color={view.reviewOnly ? "warning" : "inherit"}
+            aria-pressed={view.reviewOnly}
+            data-testid="asset-review-filter"
+            sx={{ textTransform: "none" }}
+          >
+            {t("tabs.assets.reviewFilter.label", {
+              count: reviewCount,
+              defaultValue: "Needs review only ({{count}})",
+            })}
+          </Button>
+        </Tooltip>
       )}
       {filtered && filter && (
         <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: "auto" }}>

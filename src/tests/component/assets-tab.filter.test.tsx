@@ -143,6 +143,24 @@ describe("Asset tab — type and criticality filter (AF-1, AF-2)", () => {
     expect(screen.queryByTestId("asset-filter-count")).toBeNull();
   });
 
+  it("criticality: the highest level reads its name alone, the others 'or higher' (AF-2b)", () => {
+    renderTab();
+    fireEvent.mouseDown(screen.getByTestId("asset-criticality-filter-select"));
+    const options = screen.getAllByRole("option").map((o) => o.textContent);
+    const L = (n: number) => `tabs.assets.impactScale.4-level.${n}.label`;
+    expect(options).toEqual(["All levels", L(4), `${L(3)} or higher`, `${L(2)} or higher`, `${L(1)} or higher`]);
+  });
+
+  it("the filter dropdowns come first, then the buttons (AF-2b)", () => {
+    renderTab();
+    const bar = screen.getAllByTestId("asset-table-toolbar")[0];
+    const type = within(bar).getByTestId("asset-type-filter");
+    const review = within(bar).getByTestId("asset-review-filter");
+    expect(type.compareDocumentPosition(review) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const criticality = within(bar).getByTestId("asset-criticality-filter-select");
+    expect(criticality.compareDocumentPosition(review) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("criticality from level hides lower and unrated assets; unrated on request", () => {
     renderTab();
     pickLevel(3);
