@@ -26,6 +26,7 @@
           "tooltip": "Show only the assets still to be linked",
           "all": "All assets",
           "noAsset": "Without asset relation ({{count}})",
+          "elementNoAsset": "DFD element relation, no asset relation ({{count}})",
           "noHazard": "Without hazard relation ({{count}})",
           "none": "Without any relation ({{count}})"
         },

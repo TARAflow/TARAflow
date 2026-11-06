@@ -26,6 +26,7 @@
           "tooltip": "Nur die Assets zeigen, die noch zu verknüpfen sind",
           "all": "Alle Assets",
           "noAsset": "Ohne Asset-Beziehung ({{count}})",
+          "elementNoAsset": "Mit DFD-Element-Beziehung, ohne Asset-Beziehung ({{count}})",
           "noHazard": "Ohne Gefährdungs-Beziehung ({{count}})",
           "none": "Ohne jede Beziehung ({{count}})"
         },

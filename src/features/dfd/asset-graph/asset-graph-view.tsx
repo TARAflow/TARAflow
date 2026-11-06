@@ -224,6 +224,7 @@ const DEFAULT_STATE: ViewState = {
 /** English default of each relation filter entry (FR: user 2026-11-06). */
 const RELATION_FILTER_TEXT: Record<Exclude<AssetRelationFilter, "all">, string> = {
   noAsset: "Without asset relation ({{count}})",
+  elementNoAsset: "DFD element relation, no asset relation ({{count}})",
   noHazard: "Without hazard relation ({{count}})",
   none: "Without any relation ({{count}})",
 };

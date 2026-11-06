@@ -58,7 +58,9 @@ when opened (with a backup) and then no longer open in 0.17.x.
   earlier version are placed anew once (view only, not in the file).
 - **Asset graph relation filter:** next to the presets, a choice of the
   assets still to be linked — *without asset relation* (DFD and hazard
-  links allowed), *without hazard relation*, *without any relation* (no
+  links allowed), *DFD element relation, no asset relation* (drawn in the
+  DFD, not yet placed in the asset model), *without hazard relation*,
+  *without any relation* (no
   asset, hazard or DFD element) — each with its number, combinable with
   the presets, layer view only.
 - **Hazard tab findings panel** below the table, like the Asset tab: the

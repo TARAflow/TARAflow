@@ -43,13 +43,15 @@ export function relationTypesIn(source: AssetGraphSource): RelationTypeCount[] {
  * Relation filter of the layer view (user 2026-11-06): the work lists of
  * assets still to be linked.
  *   noAsset   no asset-to-asset relation (DFD and hazard links allowed)
+ *   elementNoAsset  linked to a DFD element but to no other asset — drawn
+ *             in the DFD, not yet placed in the asset model
  *   noHazard  linked to no hazard — neither contributes_to nor endangers
  *   none      no relation at all: no asset, no hazard, no DFD element
  * A relation to an asset or hazard that no longer exists does not count.
  */
-export type AssetRelationFilter = "all" | "noAsset" | "noHazard" | "none";
+export type AssetRelationFilter = "all" | "noAsset" | "elementNoAsset" | "noHazard" | "none";
 
-export const ASSET_RELATION_FILTERS: readonly AssetRelationFilter[] = ["all", "noAsset", "noHazard", "none"];
+export const ASSET_RELATION_FILTERS: readonly AssetRelationFilter[] = ["all", "noAsset", "elementNoAsset", "noHazard", "none"];
 
 /** The asset ids each filter keeps (over the whole model, not a page). */
 export function assetIdsByRelationFilter(source: AssetGraphSource): Record<Exclude<AssetRelationFilter, "all">, Set<string>> {
@@ -71,6 +73,7 @@ export function assetIdsByRelationFilter(source: AssetGraphSource): Record<Exclu
   const without = (...linked: Set<string>[]) => new Set([...ids].filter((id) => !linked.some((l) => l.has(id))));
   return {
     noAsset: without(withAsset),
+    elementNoAsset: new Set([...without(withAsset)].filter((id) => withElement.has(id))),
     noHazard: without(withHazard),
     none: without(withAsset, withHazard, withElement),
   };

@@ -1,8 +1,9 @@
 // src/tests/component/asset-graph-view.unlinked.test.tsx
 //
 // User 2026-11-06: a relation filter in the asset graph's layer view — the
-// work lists of assets still to be linked: without an asset relation, without
-// a hazard relation, without any relation (asset, hazard, DFD element);
+// work lists of assets still to be linked: without an asset relation, on a
+// DFD element but without an asset relation, without a hazard relation,
+// without any relation (asset, hazard, DFD element);
 // combinable with the layer presets.
 
 import React from "react";
@@ -63,6 +64,8 @@ describe("asset graph — relation filter", () => {
   it("helper: the assets each filter keeps", () => {
     const by = assetIdsByRelationFilter(withHazards);
     expect([...by.noAsset].sort()).toEqual(["d2", "d3", "d4", "h1", "p1"]);
+    // On a DFD element, but on no other asset (d1 is on none and linked to f1).
+    expect([...by.elementNoAsset].sort()).toEqual(["d2"]);
     expect([...by.noHazard].sort()).toEqual(["d1", "d2", "d3", "d4", "f1"]);
     expect([...by.none].sort()).toEqual(["d3", "d4"]);
   });
@@ -73,12 +76,15 @@ describe("asset graph — relation filter", () => {
     expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
       "All assets",
       "Without asset relation (5)",
+      "DFD element relation, no asset relation (1)",
       "Without hazard relation (5)",
       "Without any relation (2)",
     ]);
     fireEvent.click(screen.getByTestId("asset-graph-relation-filter-none"));
     const ids = ["d1", "d2", "d3", "d4", "f1", "p1", "h1"];
     expect(shown(ids)).toEqual(["d3", "d4"]);
+    choose("elementNoAsset");
+    expect(shown(ids)).toEqual(["d2"]);
     choose("noHazard");
     expect(shown(ids)).toEqual(["d1", "d2", "d3", "d4", "f1"]);
     choose("noAsset");
