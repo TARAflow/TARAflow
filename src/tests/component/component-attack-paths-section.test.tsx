@@ -1,6 +1,8 @@
 // src/tests/component/component-attack-paths-section.test.tsx
 // Multi-project TARA, patch 17: the window of opportunity of an imported
 // component's attack path, rated per instance and path in the Attack Tree tab.
+// Review 2026-11-07: the component's value is a suggestion, taken over only
+// explicitly.
 import React from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -20,7 +22,7 @@ const groups = [
     key: "inst",
     label: "HL1 · Headlamp",
     paths: [
-      { treeKey: "t1", treeName: "Spoof light command", pathKey: "p1", path: ["root", "CAN", "inject"], componentWindow: "difficult" as const, feasibility: "very-low", ratable: true },
+      { treeKey: "t1", treeName: "Spoof light command", pathKey: "p1", path: ["root", "CAN", "inject"], componentWindow: "difficult" as const, ratable: true },
       { treeKey: "t1", treeName: "Spoof light command", pathKey: "p2", path: ["root", "OBD"], componentWindow: "moderate" as const, machineWindow: "easy" as const, feasibility: "medium", ratable: true },
       { treeKey: "t2", treeName: "Quick tree", pathKey: "p3", path: ["root", "x"], ratable: false },
     ],
@@ -48,6 +50,19 @@ describe("ComponentAttackPathsSection", () => {
     await act(async () => { fireEvent.mouseDown(second); });
     await act(async () => { fireEvent.click(within(screen.getByRole("listbox")).getByText(/not rated/)); });
     expect(onSet).toHaveBeenLastCalledWith("inst", "t1", "p2", null);
+  });
+
+  it("an unrated path offers the component's value; taking it over is explicit", () => {
+    const onSet = vi.fn();
+    render(<ComponentAttackPathsSection groups={groups} onSetWindow={onSet} />);
+    fireEvent.click(screen.getByText(/Attack paths from imported components/));
+    expect(screen.getByTestId("component-path-p1").textContent).toContain("not rated — no risk");
+    expect(onSet).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId("component-path-adopt-p1"));
+    expect(onSet).toHaveBeenCalledWith("inst", "t1", "p1", "difficult");
+    // rated by the machine: no offer; quick mode: nothing to take over
+    expect(screen.queryByTestId("component-path-adopt-p2")).toBeNull();
+    expect(screen.queryByTestId("component-path-adopt-p3")).toBeNull();
   });
 
   it("nothing without paths", () => {

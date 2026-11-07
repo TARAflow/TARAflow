@@ -23,7 +23,7 @@
 //     except on boundary flows, where the machine may override the
 //     relevance with a rationale (I3, patch 15)
 
-import type { Threat, ThreatData, ThreatTable, StrideMethod } from "features/threats";
+import { createDefaultThreatData, type Threat, type ThreatData, type ThreatTable, type StrideMethod } from "features/threats";
 import { componentInstanceTfId, instanceAssetId } from "features/dfd";
 import { compareFingerprints, type ThreatReference } from "shared";
 import { projectMethodologyFingerprint } from "../services/component-import/snapshot-builder";
@@ -55,6 +55,15 @@ export interface ComponentThreatGroup {
 }
 
 type Components = NonNullable<Project["components"]>;
+
+/**
+ * Complete threat data around derived tables — no cast hiding a missing
+ * field (review 2026-11-07). The configuration is the default; readers of
+ * the imported threats use the tables only.
+ */
+function threatDataOf(perElementTables: ThreatTable[], perInteractionTables: ThreatTable[]): ThreatData {
+  return { ...createDefaultThreatData(), perElementTables, perInteractionTables, lastModified: "" };
+}
 type Instance = Components["instances"][number];
 
 function remapThreat(threat: Threat, instance: Instance, mapId: (id: string) => string): Threat {
@@ -162,7 +171,7 @@ export function componentThreatData(project: Pick<Project, "components">): Threa
     perElementTables.push(...t.perElement);
     perInteractionTables.push(...t.perInteraction);
   }
-  return { perElementTables, perInteractionTables, lastModified: "" } as unknown as ThreatData;
+  return threatDataOf(perElementTables, perInteractionTables);
 }
 
 /** The imported threats per instance — the read-only section of the Threats tab. */
@@ -205,7 +214,7 @@ export function withComponentThreats(
 ): ThreatData | null | undefined {
   const imported = componentThreatData(project);
   if (!imported) return threats;
-  const base = threats ?? ({ perElementTables: [], perInteractionTables: [], lastModified: "" } as unknown as ThreatData);
+  const base = threats ?? threatDataOf([], []);
   return {
     ...base,
     perElementTables: [...base.perElementTables, ...imported.perElementTables],

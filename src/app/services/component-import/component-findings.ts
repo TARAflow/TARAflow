@@ -20,6 +20,13 @@
 //                                  component without attack paths — only
 //                                  attack-path threats make risks there, it
 //                                  would add none, silently (patch 17)
+//   CMP_PATH_WINDOW_UNRATED        ISO: component attack paths without the
+//                    (warning)     machine's window of opportunity — unrated,
+//                                  they make no risk (§7.2, review 2026-11-07)
+//   CMP_PATH_NOT_RATABLE           ISO: quick-mode component paths (no factor
+//                    (warning)     breakdown) — the machine cannot rate them,
+//                                  they make no risk until the component
+//                                  rates them in audit mode
 //   CMP_COMPONENT_PAGE_CHANGED     the component's pages differ from the
 //                    (warning)     imported state — elements missing or
 //                                  added there (the pages are locked in the
@@ -39,6 +46,7 @@ import type { Project } from "../../models/project-types";
 import { compareFingerprints } from "shared";
 import { factorClassOf, getFactorDefinition } from "features/risks";
 import { projectMethodologyFingerprint } from "./snapshot-builder";
+import { componentPathRatingGaps } from "../../utils/component-attack-trees";
 
 export interface ComponentFindings {
   errors: ValidationFinding[];
@@ -90,6 +98,11 @@ export function componentFindings(
       if (!hasPaths) {
         out.warnings.push({ key: KEY("CMP_NO_ATTACK_PATHS"), params: { component: imported.name } });
       }
+    }
+    for (const gap of componentPathRatingGaps({ components })) {
+      const params = { prefix: gap.instance.prefix, component: gap.imported.name };
+      if (gap.unrated > 0) out.warnings.push({ key: KEY("CMP_PATH_WINDOW_UNRATED"), params: { ...params, count: gap.unrated } });
+      if (gap.notRatable > 0) out.warnings.push({ key: KEY("CMP_PATH_NOT_RATABLE"), params: { ...params, count: gap.notRatable } });
     }
   }
   const isLikelihood = (factorId: string) =>

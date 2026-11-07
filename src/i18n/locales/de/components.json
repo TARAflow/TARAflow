@@ -50,7 +50,9 @@
       "CMP_METHOD_MISMATCH": "Komponente {{component}} wurde mit einer anderen Likelihood-Methodik bewertet ({{method}}; dieses Projekt: {{machineMethod}}) — nur identische Faktoren wurden übernommen, die übrigen in der Methode dieses Projekts bewerten.",
       "CMP_FACTOR_UNRATED": "Komponente {{prefix}} ({{component}}): {{count}} importierte(s) Risiko/Risiken mit noch unbewerteten Likelihood-Faktoren.",
       "CMP_FACTOR_OVERRIDE_RATIONALE": "Komponente {{prefix}} ({{component}}): {{count}} Risiko/Risiken überschreiben einen von der Komponente übernommenen Faktorwert ohne Begründung.",
-      "CMP_NO_ATTACK_PATHS": "Komponente {{component}} hat keine Angriffspfade — in einem ISO/SAE-21434-Projekt erzeugen nur Angriffspfade Risiken, sie trägt also keine bei. Ihre Attack Trees in der Komponenten-TARA modellieren."
+      "CMP_NO_ATTACK_PATHS": "Komponente {{component}} hat keine Angriffspfade — in einem ISO/SAE-21434-Projekt erzeugen nur Angriffspfade Risiken, sie trägt also keine bei. Ihre Attack Trees in der Komponenten-TARA modellieren.",
+      "CMP_PATH_WINDOW_UNRATED": "Komponente {{prefix}} ({{component}}): {{count}} Angriffspfad(e) ohne Window of Opportunity dieser Maschine — unbewertet, sie erzeugen kein Risiko. Im Tab Attack Tree bewerten.",
+      "CMP_PATH_NOT_RATABLE": "Komponente {{prefix}} ({{component}}): {{count}} Angriffspfad(e) im Schnellmodus bewertet — ohne Faktor-Aufschlüsselung kann diese Maschine ihr Window of Opportunity nicht bewerten, sie erzeugen also kein Risiko. Die Pfade in der Komponenten-TARA im Audit-Modus bewerten und aktualisieren."
     },
     "instanceRemoved": "Komponenten-Instanz mit ihrem Multiprozess entfernt: {{list}}",
     "details": {
@@ -76,14 +78,16 @@
     },
     "paths": {
       "title": "Angriffspfade aus importierten Komponenten ({{count}}) — Window of Opportunity zu bewerten: {{open}}",
-      "intro": "Das Window of Opportunity hängt davon ab, wo die Komponente in dieser Maschine sitzt — pro Pfad bewerten. Bis dahin gilt der Wert der Komponente.",
+      "intro": "Das Window of Opportunity hängt davon ab, wo die Komponente in dieser Maschine sitzt — pro Pfad bewerten. Ein unbewerteter Pfad hat keine Machbarkeit und erzeugt kein Risiko; der Wert der Komponente ist nur ein Vorschlag.",
       "tree": "Baum",
       "path": "Pfad",
       "component": "Komponente",
       "machine": "Diese Maschine",
       "feasibility": "Machbarkeit",
-      "notRated": "nicht bewertet (Wert der Komponente)",
-      "notRatable": "Schnellmodus — wird am Baum bewertet"
+      "notRated": "nicht bewertet — kein Risiko",
+      "notRatable": "Schnellmodus — hier nicht bewertbar",
+      "adopt": "{{value}} übernehmen",
+      "adoptTitle": "Den Wert der Komponente als Bewertung dieser Maschine übernehmen"
     }
   }
 }

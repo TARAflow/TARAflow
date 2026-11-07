@@ -50,7 +50,9 @@
       "CMP_METHOD_MISMATCH": "Component {{component}} was rated with another likelihood methodology ({{method}}; this project: {{machineMethod}}) — only identical factors were taken over, rate the others in this project's method.",
       "CMP_FACTOR_UNRATED": "Component {{prefix}} ({{component}}): {{count}} imported risk(s) with likelihood factors still unrated.",
       "CMP_FACTOR_OVERRIDE_RATIONALE": "Component {{prefix}} ({{component}}): {{count}} risk(s) override a factor value taken over from the component without a rationale.",
-      "CMP_NO_ATTACK_PATHS": "Component {{component}} has no attack paths — in an ISO/SAE 21434 project only attack paths make risks, so it adds none. Model its attack trees in the component TARA."
+      "CMP_NO_ATTACK_PATHS": "Component {{component}} has no attack paths — in an ISO/SAE 21434 project only attack paths make risks, so it adds none. Model its attack trees in the component TARA.",
+      "CMP_PATH_WINDOW_UNRATED": "Component {{prefix}} ({{component}}): {{count}} attack path(s) without this machine's window of opportunity — unrated, they make no risk. Rate them in the Attack Tree tab.",
+      "CMP_PATH_NOT_RATABLE": "Component {{prefix}} ({{component}}): {{count}} attack path(s) rated in quick mode — without the factor breakdown this machine cannot rate their window of opportunity, so they make no risk. Rate the paths in audit mode in the component TARA and update."
     },
     "instanceRemoved": "Component instance removed with its multiprocess: {{list}}",
     "details": {
@@ -76,14 +78,16 @@
     },
     "paths": {
       "title": "Attack paths from imported components ({{count}}) — window of opportunity to rate: {{open}}",
-      "intro": "The window of opportunity depends on where the component sits in this machine — rate it per path. Until then the component's value applies.",
+      "intro": "The window of opportunity depends on where the component sits in this machine — rate it per path. An unrated path has no feasibility and makes no risk; the component's value is a suggestion only.",
       "tree": "Tree",
       "path": "Path",
       "component": "Component",
       "machine": "This machine",
       "feasibility": "Feasibility",
-      "notRated": "not rated (component's value)",
-      "notRatable": "quick mode — rated on the tree"
+      "notRated": "not rated — no risk",
+      "notRatable": "quick mode — cannot be rated here",
+      "adopt": "Take {{value}}",
+      "adoptTitle": "Take the component's value as this machine's rating"
     }
   }
 }

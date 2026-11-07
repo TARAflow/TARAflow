@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test fixes 18–19; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–20; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -268,6 +268,15 @@ definition (levels and numeric values). Per factor and method-independent on pur
 stamps' `mappingVersion` is not used (it hashes the whole risk configuration incl. the impact scale,
 is project-wide and exists only under ISO/SAE 21434). Impact scale, risk matrix and thresholds are
 not part of the fingerprint.
+
+**Attack paths (ISO/SAE 21434).** The window of opportunity of a component attack path is
+context-dependent: a path is rated **only with the machine's rating** (per instance and pathKey),
+and its attack potential and feasibility are computed with the **machine's** feasibility
+configuration (weights, bands, likelihood model) — never the component's. Without the machine's
+rating the path stays unrated: no feasibility, no attack-path threat, no likelihood
+(`CMP_PATH_WINDOW_UNRATED`); the component's value is offered as a suggestion and taken over only
+explicitly. Quick-mode paths (no factor breakdown) cannot be rated per path and make no risk
+(`CMP_PATH_NOT_RATABLE` — the component rates them in audit mode).
 
 - **Same fingerprint:** the component's intrinsic factor values are **prefilled**, marked
   `source: "component"` with the commit. The machine can override a prefilled value; a rationale is
@@ -692,6 +701,18 @@ became flows of their own, the parent-page flows ended on the multiprocess (`BAL
 invalid flow ends). Now `persistence.commitXml` saves the import's XML with its records at once and
 hands it on before draw.io loads it (replaces `primeBase`), and `save()` uses the freshest base like
 `savePages` and the autosave.
+*Patch 20 done (2026-11-07, code review):* attack paths rated by the machine only (§7.2). Before,
+a path without the machine's overlay kept the component's window of opportunity and feasibility —
+the component's context judgement entered the machine's risks silently; and overlays were computed
+with the component's feasibility configuration, the tree data for the likelihoods carried the first
+instance's configuration for all. Now unrated and quick-mode paths have no feasibility (no threat,
+no likelihood; `CMP_PATH_WINDOW_UNRATED`, `CMP_PATH_NOT_RATABLE`), the machine's configuration is
+used throughout, the trees' aggregates (most feasible path) follow the machine's ratings, and the
+rating section offers the component's value as an explicit "Take …". Threat / attack-tree data of
+the read models are built complete (no casts). Test added for the sync and the generator seeing the
+same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
+change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
+instance or commit; the report's provenance wants the commit.
 *Patch 19 done (2026-11-07, manual test):* shells on the parent page (§6.2, I4).
 `shellBoundaryIds` (features/dfd, pure) takes the membership from the component's dfd graph; the
 shells are nested around the multiprocess (outer first, behind the machine's cells), their records

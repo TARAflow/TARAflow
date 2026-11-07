@@ -157,4 +157,27 @@ describe("per interaction", () => {
     const inside = [...excluded].filter((id) => !boundaryFlows.has(id));
     for (const id of inside) expect(missing.includes(`"${id}"`), id).toBe(false);
   });
+
+  // Review 2026-11-07: the sync checks the graph's connection.from / to, the
+  // generator the data flow's fromElementId / toElementId. On the parent page
+  // a boundary flow ends on the multiprocess; both must see the stitched
+  // (inner) end, or the drift badge reports a "missing" boundary flow.
+  it("boundary flows: sync and generator see the same stitched ends — none reported missing", () => {
+    expect(boundaryFlows.size).toBeGreaterThan(0);
+    const flows = new Map([...ctx.getDataFlows()].map((df) => [df.connectionId, df]));
+    for (const id of boundaryFlows) {
+      const conn = graph.connectionsById.get(id)!;
+      const df = flows.get(id)!;
+      // I2 (EE → boundary element): not a data flow for either side
+      if (!df) continue;
+      expect(conn, id).toBeDefined();
+      expect([conn.from, conn.to], id).toEqual([df.fromElementId, df.toElementId]);
+      // stitched: the component end is the inner element, not the multiprocess
+      expect([conn.from, conn.to].includes(applied.instance.multiprocessTfId), id).toBe(false);
+    }
+    const status = interactionThreatSync.checkSyncStatus(project(true), tables);
+    const missing = JSON.stringify(status);
+    for (const id of boundaryFlows) expect(missing.includes(`"${id}"`), id).toBe(false);
+    expect(status.inSync, missing.slice(0, 300)).toBe(true);
+  });
 });

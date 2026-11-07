@@ -3,8 +3,10 @@
 // the window of opportunity of an imported component's attack path is the
 // machine's rating (context-dependent). Per instance, every path of the
 // component's trees with the component's value and the machine's rating;
-// feasibility follows. Paths without a factor breakdown (quick mode) cannot
-// be rated per path. The read-only tree view follows later.
+// feasibility follows. An unrated path makes no risk; the component's value
+// is only a suggestion, taken over explicitly (review 2026-11-07). Paths
+// without a factor breakdown (quick mode) cannot be rated per path. The
+// read-only tree view follows later.
 
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +15,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Box,
+  Button,
   MenuItem,
   Select,
   Table,
@@ -64,7 +67,7 @@ export const ComponentAttackPathsSection: React.FC<ComponentAttackPathsSectionPr
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           {t("components.paths.intro", {
             defaultValue:
-              "The window of opportunity depends on where the component sits in this machine — rate it per path. Until then the component's value applies.",
+              "The window of opportunity depends on where the component sits in this machine — rate it per path. An unrated path has no feasibility and makes no risk; the component's value is a suggestion only.",
           })}
         </Typography>
         {groups.map((g) => (
@@ -90,6 +93,7 @@ export const ComponentAttackPathsSection: React.FC<ComponentAttackPathsSectionPr
                     <TableCell sx={{ fontSize: "0.8rem" }}>{p.componentWindow ?? "–"}</TableCell>
                     <TableCell>
                       {p.ratable ? (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Select
                           size="small"
                           value={p.machineWindow ?? ""}
@@ -99,7 +103,7 @@ export const ComponentAttackPathsSection: React.FC<ComponentAttackPathsSectionPr
                           sx={{ minWidth: 140 }}
                         >
                           <MenuItem value="">
-                            <em>{t("components.paths.notRated", { defaultValue: "not rated (component's value)" })}</em>
+                            <em>{t("components.paths.notRated", { defaultValue: "not rated — no risk" })}</em>
                           </MenuItem>
                           {WINDOWS.map((w) => (
                             <MenuItem key={w} value={w}>
@@ -107,9 +111,21 @@ export const ComponentAttackPathsSection: React.FC<ComponentAttackPathsSectionPr
                             </MenuItem>
                           ))}
                         </Select>
+                        {!p.machineWindow && p.componentWindow && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            title={t("components.paths.adoptTitle", { defaultValue: "Take the component's value as this machine's rating" })}
+                            onClick={() => onSetWindow(g.key, p.treeKey, p.pathKey, p.componentWindow!)}
+                            data-testid={`component-path-adopt-${p.pathKey}`}
+                          >
+                            {t("components.paths.adopt", { value: p.componentWindow, defaultValue: "Take {{value}}" })}
+                          </Button>
+                        )}
+                        </Box>
                       ) : (
                         <Typography variant="caption" color="text.secondary">
-                          {t("components.paths.notRatable", { defaultValue: "quick mode — rated on the tree" })}
+                          {t("components.paths.notRatable", { defaultValue: "quick mode — cannot be rated here" })}
                         </Typography>
                       )}
                     </TableCell>
