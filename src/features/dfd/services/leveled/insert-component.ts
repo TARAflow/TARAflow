@@ -1,8 +1,8 @@
 // ==================== INSERT COMPONENT INSTANCE ====================
 // Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §5, §6):
 // puts one instance of an imported component into the machine DFD. Pure —
-// XML in, XML out; the caller loads the result into draw.io and saves it
-// (the renumber pattern: programmatic XML edit, loadXml, save).
+// XML in, XML out; the caller saves the result at once with its records
+// (persistence.commitXml) and loads it into draw.io.
 //
 // What it builds (leveled DFD, doc/Done/DFD/leveled-dfd-multi-diagram-design.md):
 //   - a multiprocess on the parent page, linked to its child page
@@ -15,6 +15,14 @@
 //     occurrence on the child page (context copy ↔ inner element) — endpoint
 //     stitching ("deepest wins") resolves it to the inner element, so the
 //     pages balance by construction
+//   - the component's outer boundaries ("shells": those every part of the
+//     component is inside — trust boundaries without the interfaces, which
+//     sit on their border) are DEFINED around the multiprocess on the parent
+//     page, with their occurrence on the child page: the machine's top page
+//     shows the case and the trust zone the component brings, as a leveled
+//     DFD drawn by hand would (definition on the highest page,
+//     BAL_HOME_NOT_HIGHEST). Inner boundaries (e.g. a chip that not every
+//     interface is on) stay on the child page.
 //   - flows between two EEs are dropped (out of scope, DFD_EE_TO_EE_FLOW)
 //   - records with the component's properties for every new tfId, so the
 //     save keeps them (properties travel with the record id)
@@ -40,6 +48,7 @@ import type { DFDCellLink, DFDConnection, DFDElement, DFDPage } from "../../mode
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import { collectCellIdentities, identityOf, type CellIdentity } from "../parsers/identity-reader";
 import { pageLink, ROOT_PAGE_NAME } from "./child-pages";
+import { buildDfdGraph } from "../build-dfd-graph";
 
 export interface ComponentDfdInput {
   xml: string;
@@ -165,6 +174,43 @@ function idlabelXml(id: string, parent: string, text: string): string {
   return `<object label="${esc(text)}" type="idlabel" id="${esc(id)}"><mxCell connectable="0" parent="${esc(parent)}" style="${IDLABEL_STYLE}" vertex="1"><mxGeometry height="18.08" relative="1" width="35" as="geometry"/></mxCell></object>`;
 }
 
+const BOUNDARY_TYPES = new Set(["TrustBoundary", "PhysicalBoundary", "ChipBoundary"]);
+
+/**
+ * The component's shells: boundaries every part of the component (not its
+ * EEs, not other boundaries) is inside, by the membership the analysis uses
+ * (dfd graph). An interface counts for physical and chip boundaries only —
+ * on a trust boundary it is the crossing point, not a member (D14).
+ */
+export function shellBoundaryIds(component: ComponentDfdInput): string[] {
+  const members = component.elements.filter((e) => e.type !== "ExternalEntity" && !BOUNDARY_TYPES.has(e.type));
+  const boundaries = component.elements.filter((e) => BOUNDARY_TYPES.has(e.type));
+  if (members.length === 0 || boundaries.length === 0) return [];
+  let graph: ReturnType<typeof buildDfdGraph>;
+  try {
+    graph = buildDfdGraph({
+      xml: component.xml,
+      pages: component.pages as DFDPage[] | undefined,
+      elements: component.elements as DFDElement[],
+      connections: component.connections as DFDConnection[],
+      assets: [],
+    });
+  } catch {
+    return [];
+  }
+  const membership = (type: string, id: string): readonly string[] =>
+    (type === "TrustBoundary"
+      ? graph.elementTrustBoundaries.get(id)
+      : type === "ChipBoundary"
+        ? graph.elementChipBoundaries.get(id)
+        : graph.elementPhysicalBoundaries.get(id)) ?? [];
+  return boundaries
+    .filter((b) =>
+      members.every((m) => (b.type === "TrustBoundary" && m.type === "Interface") || membership(b.type, m.id).includes(b.id)),
+    )
+    .map((b) => b.id);
+}
+
 /** Puts one component instance into the machine DFD (design §5, §6). */
 export function insertComponentInstance(input: InsertComponentInput): InsertComponentResult {
   const { machine, component, instanceId, prefix, multiprocess, eeMapping } = input;
@@ -242,6 +288,9 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
     });
   }
   const mapTf = (tfId: string) => idMap[tfId] ?? (idMap[tfId] = ns(tfId));
+  const shellIds = new Set(shellBoundaryIds(component));
+  /** Shell tfId → its cell on the component's root page, as the component drew it. */
+  const shellCells = new Map<string, Element>();
 
   // ---- the multiprocess on the parent page
   const childPageId = ns(`page|${componentRootPage.pageId}`);
@@ -321,6 +370,12 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
           continue;
         }
       }
+      if (cPage === componentRootPage && identity.role === "definition" && shellIds.has(tf)) {
+        // the definition moves around the multiprocess on the parent page
+        shellCells.set(tf, cell.cloneNode(true) as Element);
+        newCellId.set(id, ns(`ref|${cPage.pageId}|${id}`));
+        continue;
+      }
       newCellId.set(id, identity.role === "definition" ? mapTf(tf) : ns(`ref|${cPage.pageId}|${id}`));
     }
 
@@ -380,7 +435,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
         if (label) label.setAttribute("label", "DF-xx");
         continue;
       }
-      if (identity.role === "ref") {
+      if (identity.role === "ref" || (cPage === componentRootPage && shellCells.has(tf))) {
         links.push({ cellId: nid, tfId: mapTf(tf), role: "ref" });
       }
       if (cell.getAttribute("link")?.startsWith("data:page/id,")) {
@@ -416,6 +471,41 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
   }
   for (const xml of parentAdditions) parentRoot.appendChild(el(machineDoc, xml));
 
+  // ---- the shells around the multiprocess: outer first, behind everything
+  const shellGeometry = new Map<string, { x: number; y: number; width: number; height: number }>();
+  const area = (tf: string) => {
+    const e = elementById.get(tf);
+    return (e?.size?.width ?? 0) * (e?.size?.height ?? 0);
+  };
+  const shells = [...shellCells.keys()].sort((a, b) => area(b) - area(a));
+  const layerCell = cellsOf(parentRoot).find((c) => c.getAttribute("id") === "1");
+  let insertAfter: Element | null = layerCell ?? null;
+  shells.forEach((tf, index) => {
+    const ring = shells.length - 1 - index; // 0 = innermost
+    const side = 30 + 30 * ring;
+    const top = 40 + 30 * ring;
+    const geometry = {
+      x: multiprocess.x - side,
+      y: multiprocess.y - top,
+      width: 160 + 2 * side,
+      height: 60 + top + side,
+    };
+    shellGeometry.set(tf, geometry);
+    const cell = machineDoc.importNode(shellCells.get(tf)!, true) as Element;
+    cell.setAttribute("id", mapTf(tf));
+    cell.removeAttribute("link");
+    const mx = mxCellOf(cell);
+    mx.setAttribute("parent", "1");
+    const old = mx.getElementsByTagName("mxGeometry")[0];
+    if (old) mx.removeChild(old);
+    mx.appendChild(
+      el(machineDoc, `<mxGeometry x="${geometry.x}" y="${geometry.y}" width="${geometry.width}" height="${geometry.height}" as="geometry"/>`),
+    );
+    const next: ChildNode | null = insertAfter ? insertAfter.nextSibling : parentRoot.firstChild;
+    parentRoot.insertBefore(cell, next);
+    insertAfter = cell;
+  });
+
   // ---- records with the component's properties
   const prefixed = (displayId: string) => (displayId ? `${prefix}:${displayId}` : displayId);
   const assetIds = new Set((component.assets ?? []).map((a) => a.id));
@@ -425,14 +515,17 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
     (relations ?? []).filter((r) => assetIds.has(r.assetId)).map((r) => ({ ...r, assetId: mapAsset(r.assetId) }));
   // Boundaries carry their display id in their label ("… [SHE]"), not in an
   // idlabel — it stays as the component named it.
-  const LABEL_IDS = new Set(["TrustBoundary", "PhysicalBoundary", "ChipBoundary"]);
+  const LABEL_IDS = BOUNDARY_TYPES;
   for (const e of component.elements) {
     if (eeIds.has(e.id)) continue;
+    const shell = shellGeometry.get(e.id);
     newElements.push({
       ...e,
       id: mapTf(e.id),
       displayId: LABEL_IDS.has(e.type) ? e.displayId : prefixed(e.displayId),
       assetRelations: remapRelations(e.assetRelations),
+      // a shell's record follows its definition on the parent page
+      ...(shell ? { position: { x: shell.x, y: shell.y }, size: { width: shell.width, height: shell.height } } : {}),
     });
   }
   const newConnections: DFDConnection[] = [];

@@ -6,7 +6,7 @@
 // leveled findings), not only by looking at the XML.
 //
 // Component: the SmokeDetector fixture (single page, five external entities,
-// one EE → EE flow). Machine: a small fire panel drawn with the leveled
+// one EE → EE flow). The shells use a small case component built here. Machine: a small fire panel drawn with the leveled
 // test builders — a "Fire Panel Controller" EE and an alarm process.
 
 import { describe, expect, it } from "vitest";
@@ -17,6 +17,7 @@ import {
   prefixDisplayLabel,
   InsertComponentError,
   instanceAssetId,
+  shellBoundaryIds,
 } from "features/dfd/services/leveled/insert-component";
 import { flow, mxfile, node, page } from "../../../../../fixtures/leveled-dfd-xml";
 import { analyseLeveled } from "features/dfd/services/leveled/leveled-analysis";
@@ -277,5 +278,105 @@ describe("insertComponentInstance — refusals and helpers", () => {
     expect(prefixDisplayLabel("MP-1.2", "CAM1")).toBe("CAM1:MP-1.2");
     expect(prefixDisplayLabel("SDC", "CAM1")).toBe("CAM1:SDC");
     expect(prefixDisplayLabel('<font style="font-size: 10px">SDC</font>', "CAM1")).toBe('<font style="font-size: 10px">CAM1:SDC</font>');
+  });
+});
+
+// Manual test 2026-11-07: the machine's top page showed the multiprocess
+// alone — the case and the trust zone of the component were only on its
+// child page. Shells (boundaries every part of the component is inside)
+// are now defined around the multiprocess on the parent page.
+describe("insertComponentInstance — shells around the multiprocess", () => {
+  const box = (id: string, type: string, label: string, x: number, y: number, w: number, h: number) =>
+    `<object label="${label}" type="${type}" id="${id}"><mxCell style="rounded=0;dashed=1;" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell></object>`;
+  const idl = (id: string, text: string) =>
+    `<object label="${text}" type="idlabel" id="${id}_id"><mxCell connectable="0" parent="${id}" vertex="1"><mxGeometry width="35" height="18" relative="1" as="geometry"/></mxCell></object>`;
+  // Case ⊃ Zone ⊃ Chip ⊃ P-1; DS-1 in Zone, not in Chip; IF-1 in Case, not in Zone; EE outside.
+  const caseXml = mxfile(
+    page(
+      "c_top",
+      "Page-1",
+      box("c_case", "physicalboundary", "Case [CASE]", 0, 0, 700, 420) +
+        box("c_zone", "trustboundary", "Zone [Z]", 20, 40, 460, 340) +
+        box("c_chip", "chipboundary", "Chip [CH]", 40, 80, 180, 120) +
+        box("c_p1", "process", "Measure", 60, 110, 120, 60) + idl("c_p1", "P-1") +
+        box("c_ds1", "datastorage", "Calibration", 280, 240, 120, 60) + idl("c_ds1", "DS-1") +
+        box("c_if1", "interface", "Port", 600, 180, 40, 40) + idl("c_if1", "IF-1") +
+        box("c_ee", "externalentity", "Controller", 900, 180, 120, 60) + idl("c_ee", "EE-1") +
+        flow("c_df1", "command", "DF-1", "c_ee", "c_p1") +
+        flow("c_df2", "write", "DF-2", "c_p1", "c_ds1"),
+    ),
+  );
+  const parsed = dfdService.saveDFDFromXml(
+    { id: "c", name: "c", phaseStatus: {}, dfd: { xml: caseXml, elements: [], connections: [], assets: [] } } as unknown as DFDProjectData,
+    caseXml,
+  );
+  const caseComponent = { xml: caseXml, elements: parsed.dfd.elements, connections: parsed.dfd.connections, assets: [] };
+  const insertCase = () =>
+    insertComponentInstance({
+      machine: { xml: machineXml, elements: machineElements, connections: machineConnections },
+      component: caseComponent,
+      instanceId: "inst-c",
+      prefix: "C1",
+      parentPageId: "top",
+      multiprocess: { name: "Case", x: 600, y: 200 },
+      eeMapping: { c_ee: "m_plc" },
+    });
+  const pageXml = (xml: string, pageId: string) => xml.match(new RegExp(`<diagram[^>]*id="${pageId}"[\\s\\S]*?</diagram>`))![0];
+  const geometryOf = (pageText: string, cellId: string) => {
+    const cell = pageText.match(new RegExp(`id="${cellId}"[\\s\\S]*?<mxGeometry ([^>]*)>`))![1];
+    const n = (k: string) => Number(cell.match(new RegExp(`${k}="([-0-9.]+)"`))![1]);
+    return { x: n("x"), y: n("y"), w: n("width"), h: n("height") };
+  };
+
+  it("shells: the case and the zone; not the chip (DS-1 and IF-1 are outside it)", () => {
+    expect(shellBoundaryIds(caseComponent).sort()).toEqual(["c_case", "c_zone"]);
+  });
+
+  it("no shells without boundaries, or for the SmokeDetector fixture where no boundary holds both modules", () => {
+    expect(shellBoundaryIds({ ...caseComponent, elements: caseComponent.elements.filter((e) => !BOUNDARY_TYPES.has(e.type)) })).toEqual([]);
+    expect(shellBoundaryIds(component)).toEqual([]);
+  });
+
+  it("defines the shells on the parent page around the multiprocess, nested; the child page keeps linked copies", () => {
+    const r = insertCase();
+    const top = pageXml(r.xml, "top");
+    const mp = geometryOf(top, r.multiprocessTfId);
+    const outer = geometryOf(top, r.idMap.c_case);
+    const inner = geometryOf(top, r.idMap.c_zone);
+    const encloses = (a: typeof mp, b: typeof mp) => a.x < b.x && a.y < b.y && a.x + a.w > b.x + b.w && a.y + a.h > b.y + b.h;
+    expect(encloses(inner, mp)).toBe(true);
+    expect(encloses(outer, inner)).toBe(true);
+    // behind the machine's cells: right after the layer cell, outer first
+    expect(top.indexOf(`id="${r.idMap.c_case}"`)).toBeLessThan(top.indexOf(`id="${r.idMap.c_zone}"`));
+    expect(top.indexOf(`id="${r.idMap.c_zone}"`)).toBeLessThan(top.indexOf('id="m_plc"'));
+    // the chip stays on the child page only, as a definition
+    expect(top).not.toContain(`id="${r.idMap.c_chip}"`);
+    const child = r.pages.find((p) => p.pageId === r.childPageId)!;
+    const shellLinks = (child.links ?? []).filter((l) => [r.idMap.c_case, r.idMap.c_zone].includes(l.tfId));
+    expect(shellLinks.map((l) => l.role)).toEqual(["ref", "ref"]);
+    for (const l of shellLinks) expect(pageXml(r.xml, r.childPageId)).toContain(`id="${l.cellId}"`);
+    expect(pageXml(r.xml, r.childPageId)).toContain(`id="${r.idMap.c_chip}"`);
+    // the shell record follows its definition
+    const rec = r.elements.find((e) => e.id === r.idMap.c_case)!;
+    expect([rec.position.x, rec.position.y, rec.size.width, rec.size.height]).toEqual([outer.x, outer.y, outer.w, outer.h]);
+  });
+
+  it("through the save: no balancing / page errors, same effective boundaries as in the component", () => {
+    const r = insertCase();
+    const saved = save(r);
+    expect(saved.success).toBe(true);
+    expect(saved.validation.errors.filter((f) => /leveled\.(BAL_|PAGE_)/.test(f.key))).toEqual([]);
+    expect(saved.validation.warnings.filter((f) => /leveled\.(BAL_|PAGE_)/.test(f.key))).toEqual([]);
+    const model = analyseLeveled({ xml: r.xml, pages: r.pages, elements: saved.dfd.elements, connections: saved.dfd.connections }).model;
+    const boundariesOf = (componentId: string) => {
+      const b = model.elements.find((e) => e.tfId === r.idMap[componentId])!.boundaries!;
+      return [...b.trust, ...b.chip, ...b.physical].sort();
+    };
+    expect(boundariesOf("c_p1")).toEqual([r.idMap.c_case, r.idMap.c_chip, r.idMap.c_zone].sort());
+    expect(boundariesOf("c_ds1")).toEqual([r.idMap.c_case, r.idMap.c_zone].sort());
+    expect(boundariesOf("c_if1")).toEqual([r.idMap.c_case]);
+    // the boundary flow still resolves to the inner element
+    const f = model.flows.find((x) => x.tfId === r.idMap.c_df1)!;
+    expect([f.from, f.to]).toEqual(["m_plc", r.idMap.c_p1]);
   });
 });

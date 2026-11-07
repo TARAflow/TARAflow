@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17); next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test fixes 18–19; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -176,6 +176,14 @@ obsolete: an imported multiprocess is both, by construction.
   by construction.
 - Flow properties of boundary flows (protocol, data, security tabs) come from the component and are
   read-only; the machine may route them on the parent page (layout only).
+- **Shells on the parent page (I4).** The component's outer boundaries — those every part of the
+  component is inside (by the analysis' membership; a trust boundary without the interfaces, which
+  sit on its border, D14) — are **defined around the multiprocess on the parent page** and appear on
+  the child page as linked copies: the machine's top page shows the case and the trust zone the
+  component brings, as a hand-drawn leveled DFD would (definition on the highest page,
+  `BAL_HOME_NOT_HIGHEST`). Inner boundaries (e.g. a chip that not every interface is on) stay on the
+  child page. The shells on the parent page are machine layout (position, size); the analysis is
+  unchanged (inheritance is additive, the children are inside them on the child page anyway).
 
 ### 6.3 No additional flows (Q3)
 
@@ -674,6 +682,23 @@ the overlay changes the leaf's factors; the gate's combined quantity is not reco
 the update / report work.
 Phase 2 done with patch 17 — the first tag is possible again.
 
+*Patch 18 done (2026-11-07, manual test):* the import's save is committed at once. The import
+primed the base of the next save and left the save to draw.io's autosave; until that autosave the
+project prop still held the page tree before the import, and the thumbnail save after the autosave
+(`persistence.save`, which read the prop) refused the new child page as not adopted
+(`ID_ADOPTION_PENDING`). Confirming "Adopt pages" re-linked the copies by display id — the EE copies
+came back, the boundary flows (`DF-xx`, no real display id) did not: their child-page occurrences
+became flows of their own, the parent-page flows ended on the multiprocess (`BAL_MISSING_PARENT_FLOW`,
+invalid flow ends). Now `persistence.commitXml` saves the import's XML with its records at once and
+hands it on before draw.io loads it (replaces `primeBase`), and `save()` uses the freshest base like
+`savePages` and the autosave.
+*Patch 19 done (2026-11-07, manual test):* shells on the parent page (§6.2, I4).
+`shellBoundaryIds` (features/dfd, pure) takes the membership from the component's dfd graph; the
+shells are nested around the multiprocess (outer first, behind the machine's cells), their records
+follow the parent-page geometry, the child-page cells become `ref` copies. Deleting the
+multiprocess leaves the shells on the parent page — delete them with it (noted for the delete /
+update work).
+
 Further constraints (review 2026-11-07):
 - The threats are derived, but the machine's own ratings on them are stored data: the WoO overlay
   per instance and pathKey (patch 17), the overrides of prefilled factors with their rationale
@@ -776,4 +801,5 @@ All decided with the user on 2026-11-04 (D5) and 2026-11-07 (all others).
 | I1 | Phase 0 (2026-11-07) | **Migration must be deterministic.** Old component files get fresh ids on every migration: migrate 4→5 and 5→6 (and 6→7 on an id collision, the legacy asset-link lift) use `crypto.randomUUID` — e.g. the schema-2 cnc-ref fixture gets new threat UUIDs each time. Migrated on import (§4.1) and again on every drift check or update, the same component state would give different threat ids → every imported threat "obsolete + new", ratings and risks lost. | **Decided (user 2026-11-07):** the import migrates the file twice and compares the snapshot hashes; if they differ, it refuses with "open and save the component TARA in TARAflow ≥ 0.19 and commit it first". Generic, no list of affected schema versions to maintain. Applies to every read of a component state (import, drift check, update). |
 | I2 | Patch 07 (2026-11-07) | **Flows from an EE to a boundary element.** A component flow that ends on a boundary (e.g. the SmokeDetector's debugger flows into a chip boundary, DF-8 / DF-18) cannot be stitched in the machine: boundaries are never inside a decomposed multiprocess (leveled design §5.3.1), so the inner end is ambiguous → `BAL_AMBIGUOUS_ENDPOINT` (error) on the boundary flow. Valid on a single page, so the component team sees nothing. | **Decided (user 2026-11-07): (a).** The import preview lists these flows as "will not resolve — draw the flow to the element inside the boundary in the component TARA"; the import still runs. (b) — the leveled model treating a boundary defined on a child page as inside — only if it turns out to be common. Rationale: e.g. a debugger is quickly re-attached to the right element and carries its own threats. |
 | I3 | Review 2026-11-07 | **Relevance of threats on boundary flows.** Per-element flow threats on a boundary flow belong to the component (the flow's properties come from it), but whether tampering or information disclosure on it is relevant depends on where the flow runs in the machine (inside the cabinet or over the plant network). The component judged it with its own EE, without the machine context; a component `not_relevant` would make a risk vanish in the machine silently. | **Decided (user 2026-11-07): the machine may override.** (1) Only threats on **boundary flows** — threats on component-internal elements stay read-only (otherwise the machine re-analyses the internals and the model tips over). (2) **Both directions**, each with a mandatory rationale (raising to relevant is the common case; lowering is legitimate too, e.g. the flow runs entirely inside a locked cabinet). (3) The component's decision stays visible beside the override. (4) Stored per instance in `project.components`, detected by the diff-service (commit gate). (5) **Re-check on update:** if the component later changes its relevance decision for an overridden threat, the override does not simply carry on — the update preview marks it "to review" like a changed threat. (6) **Feedback channel:** the report gets per component a short section "Deviations from the component's assessment" that can be handed back to the platform team — the source for assumptions (AoU) in its next revision. Rejected alternative (AoU only): the platform team cannot foresee every installation context under n:m reuse, and a forgotten assumption is the worst case. |
+| I4 | Manual test 2026-11-07 | **Top page shows the multiprocess alone.** The component's case and trust zone were only on the child page; the machine's top page lost the visual context a hand-drawn leveled DFD has (the analysis was right: the child page's boundaries are inherited additively). | **Decided (user 2026-11-07): shells on the parent page too.** Boundaries every part of the component is inside are defined around the multiprocess on the parent page, copies on the child page (§6.2, patch 19). Inner boundaries stay on the child page. |
 
