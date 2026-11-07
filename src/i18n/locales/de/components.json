@@ -49,7 +49,8 @@
       "CMP_COMPONENT_PAGE_CHANGED": "Die Seiten der Komponente {{prefix}} ({{component}}) weichen vom importierten Stand ab: {{missing}} Element(e) fehlen, {{added}} hinzugekommen. Komponentenseiten sind schreibgeschützt — das Update stellt sie wieder her.",
       "CMP_METHOD_MISMATCH": "Komponente {{component}} wurde mit einer anderen Likelihood-Methodik bewertet ({{method}}; dieses Projekt: {{machineMethod}}) — nur identische Faktoren wurden übernommen, die übrigen in der Methode dieses Projekts bewerten.",
       "CMP_FACTOR_UNRATED": "Komponente {{prefix}} ({{component}}): {{count}} importierte(s) Risiko/Risiken mit noch unbewerteten Likelihood-Faktoren.",
-      "CMP_FACTOR_OVERRIDE_RATIONALE": "Komponente {{prefix}} ({{component}}): {{count}} Risiko/Risiken überschreiben einen von der Komponente übernommenen Faktorwert ohne Begründung."
+      "CMP_FACTOR_OVERRIDE_RATIONALE": "Komponente {{prefix}} ({{component}}): {{count}} Risiko/Risiken überschreiben einen von der Komponente übernommenen Faktorwert ohne Begründung.",
+      "CMP_NO_ATTACK_PATHS": "Komponente {{component}} hat keine Angriffspfade — in einem ISO/SAE-21434-Projekt erzeugen nur Angriffspfade Risiken, sie trägt also keine bei. Ihre Attack Trees in der Komponenten-TARA modellieren."
     },
     "instanceRemoved": "Komponenten-Instanz mit ihrem Multiprozess entfernt: {{list}}",
     "details": {
@@ -72,6 +73,17 @@
       "rationale": "Begründung (Pflicht)",
       "removeOverride": "Zurück zur Entscheidung der Komponente",
       "saveOverride": "Speichern"
+    },
+    "paths": {
+      "title": "Angriffspfade aus importierten Komponenten ({{count}}) — Window of Opportunity zu bewerten: {{open}}",
+      "intro": "Das Window of Opportunity hängt davon ab, wo die Komponente in dieser Maschine sitzt — pro Pfad bewerten. Bis dahin gilt der Wert der Komponente.",
+      "tree": "Baum",
+      "path": "Pfad",
+      "component": "Komponente",
+      "machine": "Diese Maschine",
+      "feasibility": "Machbarkeit",
+      "notRated": "nicht bewertet (Wert der Komponente)",
+      "notRatable": "Schnellmodus — wird am Baum bewertet"
     }
   }
 }

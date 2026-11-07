@@ -199,6 +199,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
   project,
   onUpdate,
   onDirtyChange,
+  extraSection,
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -899,6 +900,7 @@ export const AttackTreeTab: React.FC<AttackTreeTabProps> = ({
     >
       {/* Toolbar */}
       {renderToolbar()}
+      {extraSection}
 
       {/* DFD Preview Panel */}
       {showDfdPreview && (

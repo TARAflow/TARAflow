@@ -78,6 +78,8 @@ import { transformProjectToDocData } from "app/services/doc-transform";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/extract-threat-references";
 import { withComponentPrefill, withComponentThreats } from "app/utils/component-threats";
+import { componentAttackPathThreatReferences, componentAttackTreeData } from "app/utils/component-attack-trees";
+import { ComponentAttackPathsSection } from "features/components";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
 import { useWorkspaceNavigation } from "app/hooks/workspace/use-workspace-navigation";
@@ -423,16 +425,25 @@ export const WorkspaceLayout: React.FC = () => {
                 // Controls are proposed only when their context fits the
                 // project (mitigation catalog design D4).
                 activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-              ).map((ref) => ({
+              ).map((ref): ThreatReference => ({
                 ...ref,
                 // Where the path's controls go, for the coverage badge
                 // (closed-loop review CL-4).
                 controlTargets: anchorTargets(ref.id),
-              })),
-              attackTreeLikelihoods: buildAttackTreeLikelihoodReferences(
-                activeProject.attackTrees,
-                activeProject.risks?.configuration?.scale,
+              })).concat(
+                // The attack paths of imported components (patch 17).
+                componentAttackPathThreatReferences(activeProject, !isoMode, activeProject.info?.tags ?? EMPTY_PROJECT_TAGS),
               ),
+              attackTreeLikelihoods: [
+                ...buildAttackTreeLikelihoodReferences(
+                  activeProject.attackTrees,
+                  activeProject.risks?.configuration?.scale,
+                ),
+                ...buildAttackTreeLikelihoodReferences(
+                  componentAttackTreeData(activeProject),
+                  activeProject.risks?.configuration?.scale,
+                ),
+              ],
               recommendedImpactAggregation: getRegulationPreset(presetId).impactAggregation,
               disabledStrideMethods: getDisabledThreatGenerators(presetId),
               isoMode,
@@ -489,6 +500,14 @@ export const WorkspaceLayout: React.FC = () => {
               lastModified: activeProject.info?.lastModified || "",
             }}
             onUpdate={handlers.handleAttackTreeUpdate}
+            extraSection={
+              isoMode && componentImport.attackPathGroups.length > 0 ? (
+                <ComponentAttackPathsSection
+                  groups={componentImport.attackPathGroups}
+                  onSetWindow={componentImport.setPathWindow}
+                />
+              ) : undefined
+            }
           />
         </div>
 

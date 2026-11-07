@@ -16,6 +16,10 @@
 //                                  likelihood factors still unrated
 //   CMP_FACTOR_OVERRIDE_RATIONALE  a value taken over from the component was
 //                    (warning)     overridden without a rationale (§7.2)
+//   CMP_NO_ATTACK_PATHS (warning)  an ISO/SAE 21434 machine imports a
+//                                  component without attack paths — only
+//                                  attack-path threats make risks there, it
+//                                  would add none, silently (patch 17)
 //   CMP_COMPONENT_PAGE_CHANGED     the component's pages differ from the
 //                    (warning)     imported state — elements missing or
 //                                  added there (the pages are locked in the
@@ -78,6 +82,16 @@ export function componentFindings(
     }
   }
   const riskConfig = project.risks?.configuration;
+  if (riskConfig?.likelihoodMethod === "iso-21434") {
+    for (const imported of components.imports) {
+      const hasPaths = (imported.snapshot.attackTrees?.trees ?? []).some(
+        (t) => t.anchor?.type === "asset" && (t.pathAnalysis?.paths.length ?? 0) > 0,
+      );
+      if (!hasPaths) {
+        out.warnings.push({ key: KEY("CMP_NO_ATTACK_PATHS"), params: { component: imported.name } });
+      }
+    }
+  }
   const isLikelihood = (factorId: string) =>
     !!riskConfig && getFactorDefinition(factorId, riskConfig.customFactors)?.category === "likelihood";
   const isIntrinsic = (factorId: string) =>

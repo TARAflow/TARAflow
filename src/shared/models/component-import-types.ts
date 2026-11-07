@@ -126,6 +126,20 @@ export interface ComponentRelevanceOverride {
   date: string;
 }
 
+/**
+ * The machine's window of opportunity on one path of a component's attack
+ * tree (design §7.2, patch 17): context-dependent, so rated by the machine
+ * per instance and pathKey. A renamed node changes the pathKey — the entry
+ * is then orphaned (update preview, phase 5).
+ */
+export interface ComponentPathOverlay {
+  /** Id of the tree in the component (snapshot). */
+  treeKey: string;
+  pathKey: string;
+  windowOfOpportunity: "unlimited" | "easy" | "moderate" | "difficult";
+  date: string;
+}
+
 /** One use of an imported component in the machine DFD (design §6.4). */
 export interface ComponentInstance {
   id: string;
@@ -137,4 +151,6 @@ export interface ComponentInstance {
   assumptions: ComponentAssumptionStatus[];
   /** Relevance overrides on boundary-flow threats (I3). Absent: none. */
   relevanceOverrides?: ComponentRelevanceOverride[];
+  /** Window of opportunity per component attack path (ISO, patch 17). Absent: none. */
+  pathOverlays?: ComponentPathOverlay[];
 }

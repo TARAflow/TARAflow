@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10); next: phase 2 (threats and risks)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17); next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -658,6 +658,21 @@ not compare a risk's factor ratings at all (only the calculated values, priority
 a rationale or a value change that leaves the risk value unchanged left the commit gate silent; it
 now lists "Factor ratings" (before / after mitigation) as a change (test: the commit gate opens on a
 rationale alone).
+
+*Patch 17 done (2026-11-07):* ISO/SAE 21434. `app/utils/component-attack-trees.ts` derives the
+component's attack trees per instance — tree id hashed per instance before deriving (path threat ids
+`AT-<instance tree id>-<pathKey>-<S>` cannot collide), anchor asset / threat / risk remapped, tree
+names and path-threat display ids with the prefix. The Risk tab gets their path threats and tree
+likelihoods next to the machine's own. Window of opportunity: `ComponentInstance.pathOverlays`
+(treeKey, pathKey, level, date) — the path's attack potential and feasibility are recomputed with
+the machine's rating (audit-mode paths with the factor breakdown; quick-mode paths are rated on the
+tree). The rating list is shown in the Attack Tree tab (generic `extraSection` slot, the UI in
+`features/components`), ISO projects only; the read-only tree view follows later. The audit diff
+sees a rating with the instance (test: the commit gate opens). `CMP_NO_ATTACK_PATHS` (warning) for an
+ISO machine importing a component without asset-anchored attack paths. Paths under an AND gate:
+the overlay changes the leaf's factors; the gate's combined quantity is not recomputed — noted for
+the update / report work.
+Phase 2 done with patch 17 — the first tag is possible again.
 
 Further constraints (review 2026-11-07):
 - The threats are derived, but the machine's own ratings on them are stored data: the WoO overlay

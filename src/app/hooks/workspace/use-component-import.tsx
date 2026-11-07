@@ -35,6 +35,8 @@ import {
   machineElementOptions,
 } from "../../services/component-import/import-flow";
 import { withRelevanceOverride, type RelevanceDecision } from "../../services/component-import/relevance-overrides";
+import { withPathOverlay } from "../../services/component-import/path-overlays";
+import { componentAttackPathGroups } from "../../utils/component-attack-trees";
 import {
   componentSourceLabel,
   rememberComponentPath,
@@ -202,8 +204,25 @@ export function useComponentImport({
     [activeProjectRef, updateProject],
   );
 
+  // ISO: the machine's window of opportunity per component attack path (patch 17).
+  const setPathWindow = useCallback(
+    (instanceId: string, treeKey: string, pathKey: string, window: "unlimited" | "easy" | "moderate" | "difficult" | null) => {
+      const current = activeProjectRef.current;
+      if (!current?.components) return;
+      const next = withPathOverlay(current.components, instanceId, treeKey, pathKey, window, new Date().toISOString().slice(0, 10));
+      void updateProject({ id: current.id, components: next });
+    },
+    [activeProjectRef, updateProject],
+  );
+  const attackPathGroups = useMemo(
+    () => (components ? componentAttackPathGroups({ components }) : []),
+    [components],
+  );
+
   return {
     overrideRelevance,
+    setPathWindow,
+    attackPathGroups,
     /** For the DFD tab; undefined outside Electron (design §2: no browser mode). */
     runner: componentImportAvailable() ? runner : undefined,
     dialog,

@@ -730,6 +730,12 @@ export interface AttackTreeTabProps {
   project: AttackTreeProjectData;
   onUpdate: (updates: AttackTreeUpdateResult) => void;
   onDirtyChange?: (isDirty: boolean) => void;
+  /**
+   * Content of other layers shown below the toolbar — e.g. the attack paths
+   * of imported components to rate (multi-project TARA, patch 17). The tab
+   * renders it as given.
+   */
+  extraSection?: import("react").ReactNode;
 }
 
 // ==================== PARSER RESULT ====================

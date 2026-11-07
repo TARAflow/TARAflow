@@ -573,6 +573,7 @@ export type {
   ComponentAssumptionStatus,
   ComponentInstance,
   ComponentRelevanceOverride,
+  ComponentPathOverlay,
   ProjectComponents,
 } from "./models/component-import-types";
 export {

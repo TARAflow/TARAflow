@@ -49,7 +49,8 @@
       "CMP_COMPONENT_PAGE_CHANGED": "The pages of component {{prefix}} ({{component}}) differ from the imported state: {{missing}} element(s) missing, {{added}} added. Component pages are read-only — the update restores them.",
       "CMP_METHOD_MISMATCH": "Component {{component}} was rated with another likelihood methodology ({{method}}; this project: {{machineMethod}}) — only identical factors were taken over, rate the others in this project's method.",
       "CMP_FACTOR_UNRATED": "Component {{prefix}} ({{component}}): {{count}} imported risk(s) with likelihood factors still unrated.",
-      "CMP_FACTOR_OVERRIDE_RATIONALE": "Component {{prefix}} ({{component}}): {{count}} risk(s) override a factor value taken over from the component without a rationale."
+      "CMP_FACTOR_OVERRIDE_RATIONALE": "Component {{prefix}} ({{component}}): {{count}} risk(s) override a factor value taken over from the component without a rationale.",
+      "CMP_NO_ATTACK_PATHS": "Component {{component}} has no attack paths — in an ISO/SAE 21434 project only attack paths make risks, so it adds none. Model its attack trees in the component TARA."
     },
     "instanceRemoved": "Component instance removed with its multiprocess: {{list}}",
     "details": {
@@ -72,6 +73,17 @@
       "rationale": "Rationale (required)",
       "removeOverride": "Back to the component's decision",
       "saveOverride": "Save"
+    },
+    "paths": {
+      "title": "Attack paths from imported components ({{count}}) — window of opportunity to rate: {{open}}",
+      "intro": "The window of opportunity depends on where the component sits in this machine — rate it per path. Until then the component's value applies.",
+      "tree": "Tree",
+      "path": "Path",
+      "component": "Component",
+      "machine": "This machine",
+      "feasibility": "Feasibility",
+      "notRated": "not rated (component's value)",
+      "notRatable": "quick mode — rated on the tree"
     }
   }
 }
