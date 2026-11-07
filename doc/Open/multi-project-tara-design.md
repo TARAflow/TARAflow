@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 in progress (patch 05: schema 14, source loader)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -379,7 +379,12 @@ analysis is not valid in this machine until resolved. The component's own assump
 
 ## 10. Data model (schema 14)
 
-Additive fields; a `migrate-13-to-14` only where data is reshaped (schema 13 is closed with 0.18).
+Additive fields in one optional block `project.components`
+(`ProjectComponents { imports: ComponentImport[]; instances: ComponentInstance[] }`, shared types);
+`migrate-13-to-14` is a version fence without data change (an older release would drop the block on
+save), reporting no analysis change. The repair path keeps the block; the audit diff shows imports
+(without the snapshot — the content hash stands for it) and instances; the TARA verification hash
+includes the block when present.
 
 ```ts
 // project level
@@ -473,7 +478,17 @@ with the first stored field (the import record); phase 0 stores nothing. Tests u
 (weighted mean, rated factors) and Headlamp (ISO/SAE 21434) fixtures — the SmokeDetector fixture
 has no rated factors.
 
-**Phase 1 — Import into the DFD.** Import action, source checks (clean, committed, schema, cycle),
+**Phase 1 — Import into the DFD.** In four patches: 05 schema 14 + source loader, 06 DFD
+generation (pure), 07 import UI, 08 read-only + rest. No developer switch (nobody works on an
+untagged build), but no release tag before phase 2. Until the update path (phase 5) a second import
+with a newer state creates the instance at the existing state, with a hint.
+*Patch 05 done (2026-11-07):* `project.components`, schema 14 fence, repair / diff / verification
+hash; `readComponentSource` (app layer, injected git runner and file reader; Electron adapters via
+the one git path `git:rawInDir`) with the checks valid project, git working copy, tracked, clean,
+schema not too new, migration deterministic (I1), and the source record (commit, branch, remote,
+tag — never the local path); `isComponentCycle` over nested components (the snapshot keeps the
+component's own `components` block, §6.5).
+Then: import action, source checks (clean, committed, schema, cycle),
 already-imported handling (§6.4), prefix, EE mapping dialog, multiprocess + read-only child pages +
 boundary flows, numbering with prefix, `CMP_FLOW_NOT_IN_COMPONENT`, delete instance, "Open component
 TARA".
@@ -563,5 +578,5 @@ All decided with the user on 2026-11-04 (D5) and 2026-11-07 (all others).
 
 | # | Found | Point | Proposal |
 |---|---|---|---|
-| I1 | Phase 0 (2026-11-07) | **Migration must be deterministic.** Old component files get fresh ids on every migration: migrate 4→5 and 5→6 (and 6→7 on an id collision, the legacy asset-link lift) use `crypto.randomUUID` — e.g. the schema-2 cnc-ref fixture gets new threat UUIDs each time. Migrated on import (§4.1) and again on every drift check or update, the same component state would give different threat ids → every imported threat "obsolete + new", ratings and risks lost. | Decide before phase 1: the import migrates the file twice and compares the snapshot hashes; if they differ, it refuses with "open and save the component TARA in TARAflow ≥ 0.19 and commit it first". Generic, no list of affected schema versions to maintain. |
+| I1 | Phase 0 (2026-11-07) | **Migration must be deterministic.** Old component files get fresh ids on every migration: migrate 4→5 and 5→6 (and 6→7 on an id collision, the legacy asset-link lift) use `crypto.randomUUID` — e.g. the schema-2 cnc-ref fixture gets new threat UUIDs each time. Migrated on import (§4.1) and again on every drift check or update, the same component state would give different threat ids → every imported threat "obsolete + new", ratings and risks lost. | **Decided (user 2026-11-07):** the import migrates the file twice and compares the snapshot hashes; if they differ, it refuses with "open and save the component TARA in TARAflow ≥ 0.19 and commit it first". Generic, no list of affected schema versions to maintain. Applies to every read of a component state (import, drift check, update). |
 

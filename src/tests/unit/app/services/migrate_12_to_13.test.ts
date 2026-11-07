@@ -83,9 +83,9 @@ describe("migrate_12_to_13", () => {
 });
 
 describe("schema 13 in the pipeline", () => {
-  it("is the current version", () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(13);
-    expect(applyMigrations({ schemaVersion: 12 }).data.schemaVersion).toBe(13);
+  it("runs on the way to the current version", () => {
+    expect(CURRENT_SCHEMA_VERSION).toBeGreaterThanOrEqual(13);
+    expect(applyMigrations({ schemaVersion: 12 }).data.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 
   it("preservation is per file: the reshape keeps it, a dropped statement does not", () => {
@@ -124,7 +124,7 @@ describe("schema 13 in the pipeline", () => {
   it("the reshape changes the hashed matrix data, the verification is re-sealed", () => {
     const { file, readHash } = verifiedV12(v12Compliance());
     const { project: loaded }: Any = parseAndRepairWithMetadata(file);
-    expect(loaded.schemaVersion).toBe(13);
+    expect(loaded.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(loaded.compliance.families["iec-62443-4-2"].target).toEqual({ IAC: 2, SI: 3 });
     expect(verificationStateHash(loaded)).not.toBe(readHash);
     const entry = loaded.cybersecurityConcept.verifications[0];

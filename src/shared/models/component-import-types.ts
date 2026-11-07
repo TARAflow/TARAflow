@@ -86,6 +86,15 @@ export interface ComponentAssumptionStatus {
   rationale?: string;
 }
 
+/**
+ * project.components (schema 14): the imported component states — one per
+ * component (design §6.4, E12) — and their instances in the DFD.
+ */
+export interface ProjectComponents<TSnapshot = unknown> {
+  imports: ComponentImport<TSnapshot>[];
+  instances: ComponentInstance[];
+}
+
 /** One use of an imported component in the machine DFD (design §6.4). */
 export interface ComponentInstance {
   id: string;

@@ -571,6 +571,7 @@ export type {
   ComponentImport,
   ComponentAssumptionStatus,
   ComponentInstance,
+  ProjectComponents,
 } from "./models/component-import-types";
 export {
   scaleHash,
