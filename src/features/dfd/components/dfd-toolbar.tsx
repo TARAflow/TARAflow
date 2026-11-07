@@ -32,6 +32,7 @@ import {
   Description as DescriptionIcon,
   Hub as AssetGraphIcon,
   AddLink as InsertContextIcon,
+  Widgets as ComponentImportIcon,
 } from "@mui/icons-material";
 
 import {
@@ -61,6 +62,8 @@ interface DFDToolbarProps {
   onSave: () => void;
   /** Leveled DFD (5h): "Insert as context…"; absent = not offered. */
   onInsertContext?: () => void;
+  /** Multi-project TARA: "Import component TARA…"; absent = not offered. */
+  onImportComponent?: () => void;
   /**
    * Leveled DFD (5l): renumber the page shown and its child pages. Present
    * = the numbering button opens a menu (all pages / this page).
@@ -102,6 +105,7 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
     onImport,
     onSave,
     onInsertContext,
+    onImportComponent,
     onAutoNumberPage,
     getCurrentPageName,
     getPageNumberingBlocker,
@@ -307,6 +311,22 @@ export const DFDToolbar = React.memo<DFDToolbarProps>(
                   data-testid="toolbar-insert-context"
                 >
                   <InsertContextIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onImportComponent && (
+              <Tooltip
+                title={t("tabs.dfd.toolbar.importComponent", {
+                  defaultValue: "Import component TARA…",
+                })}
+                slotProps={{ popper: { modifiers: NO_RESIZE_POPPER_MODIFIERS } }}
+              >
+                <IconButton
+                  size="small"
+                  onClick={onImportComponent}
+                  data-testid="toolbar-import-component"
+                >
+                  <ComponentImportIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}

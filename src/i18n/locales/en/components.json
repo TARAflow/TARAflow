@@ -1,0 +1,46 @@
+{
+  "components": {
+    "import": {
+      "title": "Import component TARA",
+      "intro": "The component's DFD becomes the child page of a new multiprocess on this page; its threats, measures and assumptions come along. Choose the component's .tara.json.",
+      "pick": "Choose file…",
+      "pickTitle": "Choose the component TARA",
+      "error": {
+        "not_found": "The file was not found.",
+        "invalid": "The file is not a TARAflow project.",
+        "schema_too_new": "The file was written by a newer TARAflow — update TARAflow first.",
+        "not_deterministic": "The file was written by an old TARAflow. Open and save it in TARAflow 0.19 or later, commit it, then import it.",
+        "cycle": "This TARA is the project itself or contains it — it cannot be imported.",
+        "no_dfd": "The component TARA has no data flow diagram.",
+        "failed": "The import failed."
+      },
+      "unpinned": {
+        "no_repo": "The file is not in a git repository.",
+        "untracked": "The file is not committed in its repository.",
+        "dirty": "The file has uncommitted changes.",
+        "consequence": "The import is not pinned to a commit: only its content identifies the state, the machine keeps a warning until it is replaced by a committed state.",
+        "confirm": "Import the unpinned state anyway"
+      },
+      "existingSame": "This component is imported already in this state — a further instance is added.",
+      "existingOther": "This component is imported in another state ({{label}}). The new instance uses that state; moving all instances to a newer state comes with the update.",
+      "unresolvable": "These flows end on a boundary and will not resolve in the machine — draw them to the element inside the boundary in the component TARA:",
+      "name": "Multiprocess name",
+      "prefix": "Prefix",
+      "prefixHint": "Before the component's ids, e.g. {{example}}",
+      "prefixInvalid": "1–12 letters, digits, - or _",
+      "prefixTaken": "Already used by another instance",
+      "mappingTitle": "External entities of the component",
+      "noEntities": "The component has no external entities.",
+      "entity": "Component entity",
+      "standsFor": "Stands for in the machine",
+      "newElement": "Take over as a new element",
+      "commit": "commit {{sha}}",
+      "tag": "tag {{tag}}",
+      "branch": "branch {{branch}}",
+      "sameRepo": "same repository as this project",
+      "cancel": "Cancel",
+      "confirm": "Import",
+      "applyFailed": "The component could not be imported: {{message}}"
+    }
+  }
+}

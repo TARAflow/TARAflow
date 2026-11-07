@@ -21,6 +21,9 @@ export type {
   // App integration
   DFDProjectData,
   DFDUpdateResult,
+  ComponentInsertContext,
+  ComponentInsertOutcome,
+  ComponentImportRunner,
   DFDViewMode,
 
   // Export

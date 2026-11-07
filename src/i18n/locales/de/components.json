@@ -1,0 +1,46 @@
+{
+  "components": {
+    "import": {
+      "title": "Komponenten-TARA importieren",
+      "intro": "Die DFD der Komponente wird zur Unterseite eines neuen Multiprozesses auf dieser Seite; ihre Bedrohungen, Massnahmen und Annahmen kommen mit. Wählen Sie die .tara.json der Komponente.",
+      "pick": "Datei wählen…",
+      "pickTitle": "Komponenten-TARA wählen",
+      "error": {
+        "not_found": "Die Datei wurde nicht gefunden.",
+        "invalid": "Die Datei ist kein TARAflow-Projekt.",
+        "schema_too_new": "Die Datei stammt von einer neueren TARAflow-Version — bitte TARAflow zuerst aktualisieren.",
+        "not_deterministic": "Die Datei stammt von einer alten TARAflow-Version. Öffnen und speichern Sie sie in TARAflow 0.19 oder neuer, committen Sie sie und importieren Sie sie dann.",
+        "cycle": "Diese TARA ist das Projekt selbst oder enthält es — sie kann nicht importiert werden.",
+        "no_dfd": "Die Komponenten-TARA hat kein Datenflussdiagramm.",
+        "failed": "Der Import ist fehlgeschlagen."
+      },
+      "unpinned": {
+        "no_repo": "Die Datei liegt in keinem Git-Repository.",
+        "untracked": "Die Datei ist in ihrem Repository nicht committet.",
+        "dirty": "Die Datei hat nicht committete Änderungen.",
+        "consequence": "Der Import ist an keinen Commit gebunden: nur sein Inhalt kennzeichnet den Stand, die Maschine behält eine Warnung, bis er durch einen committeten Stand ersetzt ist.",
+        "confirm": "Den ungebundenen Stand trotzdem importieren"
+      },
+      "existingSame": "Diese Komponente ist in diesem Stand bereits importiert — eine weitere Instanz wird angelegt.",
+      "existingOther": "Diese Komponente ist in einem anderen Stand importiert ({{label}}). Die neue Instanz verwendet diesen Stand; alle Instanzen auf einen neueren Stand zu bringen, kommt mit dem Update.",
+      "unresolvable": "Diese Flows enden auf einer Boundary und werden in der Maschine nicht aufgelöst — zeichnen Sie sie in der Komponenten-TARA zum Element innerhalb der Boundary:",
+      "name": "Name des Multiprozesses",
+      "prefix": "Präfix",
+      "prefixHint": "Vor den IDs der Komponente, z. B. {{example}}",
+      "prefixInvalid": "1–12 Buchstaben, Ziffern, - oder _",
+      "prefixTaken": "Bereits von einer anderen Instanz verwendet",
+      "mappingTitle": "Externe Entitäten der Komponente",
+      "noEntities": "Die Komponente hat keine externen Entitäten.",
+      "entity": "Entität der Komponente",
+      "standsFor": "Steht in der Maschine für",
+      "newElement": "Als neues Element übernehmen",
+      "commit": "Commit {{sha}}",
+      "tag": "Tag {{tag}}",
+      "branch": "Branch {{branch}}",
+      "sameRepo": "gleiches Repository wie dieses Projekt",
+      "cancel": "Abbrechen",
+      "confirm": "Importieren",
+      "applyFailed": "Die Komponente konnte nicht importiert werden: {{message}}"
+    }
+  }
+}

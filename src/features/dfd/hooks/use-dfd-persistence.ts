@@ -85,6 +85,18 @@ export interface UseDFDPersistenceReturn {
    */
   scheduleSave: (updater: (base: DFDData) => DFDUpdateResult) => void;
   scheduleDrawioSave: (xml: string) => void; // Debounced autosave triggered by DrawIO changes
+  /**
+   * The freshest known dfd (pending edit, last committed or the project
+   * prop) — the base a programmatic XML edit builds on.
+   */
+  getBase: () => DFDData | undefined;
+  /**
+   * Multi-project TARA (component import): flush pending edits, then make
+   * `dfd` the base of the next save — the records of a programmatic XML edit
+   * (new pages, records with properties) must be known when its XML is
+   * saved, or their properties are lost. Give it a fresh lastModified.
+   */
+  primeBase: (dfd: DFDData) => void;
   /** Queue A2A operations for the next emitted update (e.g. before save()). */
   queueA2AOps: (ops: A2AOp[]) => void;
   /**
@@ -504,6 +516,19 @@ export function useDFDPersistence(
     [queueA2AOps, flush, emit],
   );
 
+  const getBase = useCallback(
+    () => pendingSaveRef.current?.dfd ?? freshestOf(lastCommittedDfdRef.current, projectRef.current.dfd) ?? undefined,
+    [],
+  );
+
+  const primeBase = useCallback(
+    (dfd: DFDData) => {
+      flush();
+      lastCommittedDfdRef.current = dfd;
+    },
+    [flush],
+  );
+
   // ==================== CLEANUP ====================
 
   useEffect(() => {
@@ -521,6 +546,8 @@ export function useDFDPersistence(
     savePages,
     scheduleSave,
     scheduleDrawioSave,
+    getBase,
+    primeBase,
     queueA2AOps,
     commitA2AOps,
     flush,

@@ -414,6 +414,33 @@ export interface DFDProjectData {
 
 // ==================== DFD UPDATE RESULT ====================
 
+/**
+ * Multi-project TARA (design v3 §5): what the DFD hands to the app when the
+ * analyst imports a component TARA — the diagram as it is in the editor now
+ * and the page shown (the multiprocess goes there).
+ */
+export interface ComponentInsertContext {
+  xml: string;
+  pages: DFDPage[];
+  /** draw.io page id of the page shown; "" when unknown (first page). */
+  pageId: string;
+  elements: DFDElement[];
+  connections: DFDConnection[];
+}
+
+/** The DFD after the import — complete arrays, loaded into draw.io and saved as they are. */
+export interface ComponentInsertOutcome {
+  xml: string;
+  pages: DFDPage[];
+  elements: DFDElement[];
+  connections: DFDConnection[];
+}
+
+/** The app's import flow (dialog etc.); null = cancelled. */
+export type ComponentImportRunner = (
+  context: ComponentInsertContext,
+) => Promise<ComponentInsertOutcome | null>;
+
 export interface DFDUpdateResult {
   dfd: DFDData;
   phaseStatus: PhaseStatusMap;
