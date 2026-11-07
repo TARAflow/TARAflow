@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 in progress (patches 05–09: schema 14, source loader, DFD generation, import UI, findings / numbering)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10); next: phase 2 (threats and risks)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -508,6 +508,20 @@ the one git path `git:rawInDir`) with the checks valid project, git working copy
 schema not too new, migration deterministic (I1), and the source record (commit, branch, remote,
 tag — never the local path); `isComponentCycle` over nested components (the snapshot keeps the
 component's own `components` block, §6.5).
+*Patch 10 (2026-11-07):* read-only pages and instance lifecycle (user 2026-11-07: "just implement it,
+using it will tell whether it is right"). The pages of imported components are locked in the editor
+— the draw.io plugin's `isCellLocked` / `isCellDeletable` / `isCellEditable` / `isCellConnectable`
+read the page ids pushed by `drawio:setLockedPages` (Electron). A change that gets in anyway (e.g.
+external draw.io) is detected, not repaired yet: `CMP_COMPONENT_PAGE_CHANGED` (warning: component
+elements missing, foreign definitions on the component pages) — the repair comes with the update
+path (phase 5), which re-renders the instance. Deleting the multiprocess removes the instance with
+the next DFD save (and the import with its last instance) and says what went; no confirmation
+before (draw.io deletes at once — undo before the save, the audit diff names it); an instance
+whose multiprocess was never saved stays (`CMP_INSTANCE_ORPHANED`). "Open component TARA" in the
+details of an imported multiprocess (name, prefix, source): the file is found from the machine's
+repository root + the path in the repository (`sameRepo`), otherwise from the local path remembered
+at import in `localStorage` only, and opened as a further project (`openProjectFile` in the project
+context).
 *Patch 09 (2026-11-07):* findings and numbering. App layer `component-findings.ts`, shown with the
 DFD's own findings (DFD tab: toolbar chip and notification panel, `externalFindings`):
 `CMP_SOURCE_UNPINNED` (warning, on the instance's multiprocess), `CMP_INSTANCE_ORPHANED` (error —

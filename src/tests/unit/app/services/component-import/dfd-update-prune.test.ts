@@ -1,0 +1,42 @@
+// src/tests/unit/app/services/component-import/dfd-update-prune.test.ts
+// Multi-project TARA (design §6.7) in the production chain: a DFD update
+// without the instance's multiprocess removes the instance in the same
+// patch and reports it.
+import { describe, expect, it } from "vitest";
+import type { Project } from "app/models/project-types";
+import { buildDfdUpdate } from "app/services/dfd-update-patch";
+
+const element = (id: string, type: string) => ({ id, displayId: id, name: id, type, position: { x: 0, y: 0 }, size: { width: 10, height: 10 }, properties: {} });
+
+const current = {
+  id: "machine",
+  info: { name: "Panel", tags: { domain: [], platform: [], regulation: [], custom: [] } },
+  phaseStatus: {},
+  assets: null,
+  threats: null,
+  risks: null,
+  hazards: null,
+  dfd: { elements: [element("p1", "Process"), element("mp1", "Multiprocess")], connections: [], assets: [] },
+  components: {
+    imports: [{ id: "imp", componentId: "cam", name: "Camera", source: { commitSha: "a", schemaVersion: 14 }, importedAt: "t", methodology: { likelihoodMethod: "x", factors: [], hash: "" }, snapshot: {}, contentHash: "h" }],
+    instances: [{ id: "i1", importId: "imp", multiprocessTfId: "mp1", prefix: "CAM1", eeMapping: [], assumptions: [] }],
+  },
+} as unknown as Project;
+
+describe("buildDfdUpdate — deleted component multiprocess", () => {
+  it("removes the instance (and the import with its last instance) and reports it", () => {
+    const out = buildDfdUpdate(current, {
+      dfd: { elements: [element("p1", "Process")], connections: [], assets: [] },
+      phaseStatus: {},
+      lastModified: "x",
+    } as never);
+    expect(out.removedComponentInstances).toEqual([{ prefix: "CAM1", component: "Camera" }]);
+    expect(out.patch.components).toEqual({ imports: [], instances: [] });
+  });
+
+  it("keeps components untouched when the multiprocess stays", () => {
+    const out = buildDfdUpdate(current, { dfd: current.dfd, phaseStatus: {}, lastModified: "x" } as never);
+    expect(out.removedComponentInstances).toEqual([]);
+    expect("components" in out.patch).toBe(false);
+  });
+});

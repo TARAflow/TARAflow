@@ -201,6 +201,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("drawio:setContextCells", cells),
   setDrawioPageTabInfo: (info: Record<string, unknown>) =>
     ipcRenderer.invoke("drawio:setPageTabInfo", info),
+  setDrawioLockedPages: (pages: Record<string, true>) =>
+    ipcRenderer.invoke("drawio:setLockedPages", pages),
   injectDrawioLibraries: (dfd1Xml: string, dfd2Xml: string) =>
     ipcRenderer.invoke("drawio:injectLibraries", dfd1Xml, dfd2Xml),
   // Issue trackers (adapters design §4.1): token in the main process only.

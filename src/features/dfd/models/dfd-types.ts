@@ -436,6 +436,18 @@ export interface ComponentInsertOutcome {
   connections: DFDConnection[];
 }
 
+/** What the details panel shows about an imported multiprocess (multi-project TARA). */
+export interface ComponentMultiprocessInfo {
+  /** Component name. */
+  name: string;
+  /** Where it comes from, e.g. "tag sd/v1 · commit 01234567" or "unpinned". */
+  source: string;
+  /** Instance prefix, e.g. "SD1". */
+  prefix: string;
+  /** Opens the component TARA as a further project; absent = not available. */
+  onOpen?: () => void;
+}
+
 /** The app's import flow (dialog etc.); null = cancelled. */
 export type ComponentImportRunner = (
   context: ComponentInsertContext,

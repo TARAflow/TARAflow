@@ -29,6 +29,10 @@ import { buildAssetHazardLinks } from "../utils/build-asset-hazard-links";
 import { buildAssetDataReference } from "../utils/build-asset-data-reference";
 import { resolveDfdGraph } from "../utils/resolve-dfd-graph";
 import { purgeAssetFromProject } from "./asset-deletion";
+import {
+  pruneDeletedInstances,
+  type RemovedComponentInstance,
+} from "./component-import/instance-lifecycle";
 
 const normDesc = (s: string | undefined): string | undefined =>
   s && s.trim().length > 0 ? s : undefined;
@@ -37,6 +41,8 @@ export interface DfdUpdateOutcome {
   patch: Partial<Project> & { id: string };
   /** A2A operations the relations service refused (to tell the user). */
   rejectedA2AOps: readonly { op: A2AOp; reason: A2ARejection }[];
+  /** Component instances whose multiprocess was deleted (to tell the user). */
+  removedComponentInstances: RemovedComponentInstance[];
 }
 
 export function buildDfdUpdatePatch(
@@ -178,6 +184,10 @@ export function buildDfdUpdate(
   );
 
 
+  // 4) A deleted multiprocess of a component instance removes the instance
+  //    (multi-project TARA §6.7).
+  const pruned = pruneDeletedInstances(current, dfd.elements ?? []);
+
   const patch = {
     id: current.id,
     dfd,
@@ -185,6 +195,7 @@ export function buildDfdUpdate(
     phaseStatus: updates.phaseStatus,
     threats,
     ...(updates.deletedAssetIds?.length ? { hazards, risks } : {}),
+    ...(pruned.components ? { components: pruned.components } : {}),
   };
-  return { patch, rejectedA2AOps };
+  return { patch, rejectedA2AOps, removedComponentInstances: pruned.removed };
 }

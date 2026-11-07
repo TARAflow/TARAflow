@@ -15,7 +15,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useTranslation } from "react-i18next";
 import { AssetGroup } from "shared";
-import type { DFDConnection, DFDElement } from "../models/dfd-types";
+import type { ComponentMultiprocessInfo, DFDConnection, DFDElement } from "../models/dfd-types";
+import { Button } from "@mui/material";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
@@ -88,6 +89,8 @@ interface DFDDetailsPanelProps {
    * "Asset" tab shows it instead of editable relations.
    */
   assetRollup?: AssetRollupContextValue;
+  /** Multi-project TARA: the selected multiprocess is an imported component. */
+  componentInfo?: ComponentMultiprocessInfo;
 }
 
 // ==================== COMPONENT ====================
@@ -119,6 +122,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   childPage,
   identity,
   assetRollup,
+  componentInfo,
 }) => {
   const { t } = useTranslation();
 
@@ -322,6 +326,9 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
             {activeTab === "element" && hasSelection && (
               <Box sx={{ flexGrow: 1, overflow: "auto" }}>
                 {identity && <IdentitySection {...identity} />}
+                {componentInfo && element?.type === "Multiprocess" && (
+                  <ComponentSection info={componentInfo} />
+                )}
                 {childPage && element?.type === "Multiprocess" && (
                   <ChildPageSection info={childPage} />
                 )}
@@ -367,3 +374,26 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
 };
 
 export default DFDDetailsPanel;
+
+/** An imported component: name, prefix, source, "Open component TARA". */
+const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo }> = ({ info }) => {
+  const { t } = useTranslation();
+  return (
+    <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }} data-testid="component-section">
+      <Typography variant="caption" color="text.secondary" display="block">
+        {t("components.details.title", { ns: "components", defaultValue: "Imported component ({{prefix}}) — read-only", prefix: info.prefix })}
+      </Typography>
+      <Typography variant="body2" fontWeight="medium">
+        {info.name}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" display="block">
+        {info.source}
+      </Typography>
+      {info.onOpen && (
+        <Button size="small" sx={{ mt: 0.5, px: 0 }} onClick={info.onOpen} data-testid="component-open">
+          {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
+        </Button>
+      )}
+    </Box>
+  );
+};

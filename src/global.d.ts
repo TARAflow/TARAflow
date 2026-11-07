@@ -113,6 +113,9 @@ declare global {
       setDrawioPageTabInfo?: (
         info: Record<string, unknown>,
       ) => Promise<{ success: boolean; error?: string }>;
+      setDrawioLockedPages?: (
+        pages: Record<string, true>,
+      ) => Promise<{ success: boolean; error?: string }>;
       injectDrawioLibraries: (
         dfd1Xml: string,
         dfd2Xml: string,

@@ -20,6 +20,7 @@ import type {
   AssetRelation,
   DFDElementType,
   ComponentImportRunner,
+  ComponentMultiprocessInfo,
   DFDPage,
   ValidationFinding,
 } from "../models/dfd-types";
@@ -160,6 +161,8 @@ export interface DFDTabProps {
    * ones) — their pages are not renumbered.
    */
   importedMultiprocessIds?: readonly string[];
+  /** Multi-project TARA: details of an imported multiprocess (by tfId). */
+  componentInfoOf?: (tfId: string) => ComponentMultiprocessInfo | undefined;
   /** Findings of other layers (e.g. imported components), shown with the DFD's own. */
   externalFindings?: {
     errors: ValidationFinding[];
@@ -182,6 +185,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   onImportComponent,
   importedMultiprocessIds,
   externalFindings,
+  componentInfoOf,
   graphFocusRequest,
   elementFocusRequest,
   hazards,
@@ -289,6 +293,13 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   );
 
   const editor = useDFDEditor(project, editorOptions);
+
+  // Pages of imported components are read-only in the editor (§6.2).
+  const lockedPageKey = [...lockedPageIdsOf(project.dfd?.pages, importedMultiprocessIds)].sort().join("|");
+  const { pluginReady, setLockedPages } = editor;
+  useEffect(() => {
+    if (pluginReady) void setLockedPages(lockedPageKey ? lockedPageKey.split("|") : []);
+  }, [pluginReady, setLockedPages, lockedPageKey]);
 
   // The DFD's own findings plus those of other layers (imported components).
   const shownValidation = useMemo(
@@ -518,6 +529,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       setPageTabInfo: async () => {},
       syncPages: async () => ({ success: false }),
       setContextCells: async () => {},
+      setLockedPages: async () => {},
       exportPageSvgs: async () => ({ success: false }),
     },
     {
@@ -1038,6 +1050,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onToggle={() => setDetailsPanelOpen((prev) => !prev)}
             onClose={() => setDetailsPanelOpen(false)}
             element={selectedElement}
+            componentInfo={selectedElement ? componentInfoOf?.(selectedElement.id) : undefined}
             connection={selectedConnection}
             onChange={(updates) => {
               if (selectedElement) {

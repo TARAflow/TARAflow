@@ -79,6 +79,36 @@ describe("componentFindings", () => {
   });
 });
 
+describe("componentFindings — changed component pages", () => {
+  function withXml() {
+    const { project, applied } = imported();
+    return { project: { ...project, dfd: { ...project.dfd!, xml: applied.outcome.xml, pages: applied.outcome.pages } } as Project, applied };
+  }
+
+  it("the imported state: no change", () => {
+    expect(componentFindings(withXml().project).warnings).toEqual([]);
+  });
+
+  it("a component element missing: a warning on the multiprocess", () => {
+    const { project, applied } = withXml();
+    const victim = project.dfd!.elements.find((e) => e.displayId?.startsWith("SD1:P-"))!;
+    const changed = { ...project, dfd: { ...project.dfd!, elements: project.dfd!.elements.filter((e) => e.id !== victim.id) } } as Project;
+    const [w] = componentFindings(changed).warnings;
+    expect(w).toMatchObject({ key: "components.findings.CMP_COMPONENT_PAGE_CHANGED", elementId: applied.instance.multiprocessTfId, params: { missing: 1, added: 0 } });
+  });
+
+  it("an element drawn on the component page: counted as added", () => {
+    const { project, applied } = withXml();
+    const childPage = applied.outcome.pages.find((p) => p.decomposes === applied.instance.multiprocessTfId)!.pageId;
+    const cell = '<object label="Intruder" type="process" id="intruder"><mxCell vertex="1" parent="1"><mxGeometry x="1" y="1" width="10" height="10" as="geometry"/></mxCell></object>';
+    const xml = project.dfd!.xml!.replace(new RegExp(`(<diagram id="${childPage}"[^>]*>[\\s\\S]*?<mxCell id="1" parent="0"\\s*/>)`), `$1${cell}`);
+    expect(xml).toContain("Intruder");
+    const changed = { ...project, dfd: { ...project.dfd!, xml } } as Project;
+    const [w] = componentFindings(changed).warnings;
+    expect(w).toMatchObject({ key: "components.findings.CMP_COMPONENT_PAGE_CHANGED", params: { missing: 0, added: 1 } });
+  });
+});
+
 describe("importedMultiprocessIds", () => {
   it("the instance's multiprocess and the component's own multiprocesses as machine tfIds", () => {
     const { project, applied, snapshot } = imported();

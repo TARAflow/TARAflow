@@ -125,11 +125,25 @@ export function usePinnedTabHandlers({
     },
     [toast, t],
   );
+  // Multi-project TARA §6.7: a deleted multiprocess removed its component instance.
+  const handleRemovedComponentInstances = useCallback(
+    (removed: readonly { prefix: string; component: string }[]) => {
+      toast.info(
+        t("components.instanceRemoved", {
+          ns: "components",
+          defaultValue: "Component instance removed with its multiprocess: {{list}}",
+          list: removed.map((r) => `${r.prefix} (${r.component})`).join(", "),
+        }),
+      );
+    },
+    [toast, t],
+  );
   const shared = useProjectUpdateHandlers({
     projectId,
     projectsRef,
     updateProject,
     onRejectedRelations: handleRejectedRelations,
+    onRemovedComponentInstances: handleRemovedComponentInstances,
   });
 
   // ── Hazard tab ────────────────────────────────────────────────────────────

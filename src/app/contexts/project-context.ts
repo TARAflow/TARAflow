@@ -33,6 +33,8 @@ export interface ProjectContextValue {
 
   switchProject: (projectId: string) => void;
   saveProject: (projectId: string) => Promise<void>;
+  /** Opens a project file as a further project (e.g. "Open component TARA"). */
+  openProjectFile?: (filePath: string) => Promise<void>;
 }
 
 // ==================== CONTEXT ============================================

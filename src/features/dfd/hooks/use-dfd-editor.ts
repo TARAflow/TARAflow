@@ -117,6 +117,7 @@ export interface UseDFDEditorReturn {
   syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
   /** Context copies shown faded and dashed (leveled DFD 5g). */
   setContextCells: (cells: ContextCellMap) => Promise<void>;
+  setLockedPages: (pageIds: readonly string[]) => Promise<void>;
   /** Select one particular cell (page + cell), e.g. "Go to definition". */
   selectCellAt: (pageId: string, cellId: string) => Promise<void>;
   /** Open a draw.io page without selecting a cell (leveled DFD). */
@@ -686,6 +687,7 @@ export function useDFDEditor(
     setPageTabInfo: bridge.setPageTabInfo,
     syncPages: bridge.syncPages,
     setContextCells: bridge.setContextCells,
+    setLockedPages: bridge.setLockedPages,
     selectCellAt,
     openPage,
     getCurrentPageId,

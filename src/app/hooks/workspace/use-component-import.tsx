@@ -9,7 +9,13 @@
 import React, { useCallback, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { useToast } from "shared";
-import type { ComponentImportRunner, ComponentInsertContext, ComponentInsertOutcome } from "features/dfd";
+import type {
+  ComponentImportRunner,
+  ComponentInsertContext,
+  ComponentInsertOutcome,
+  ComponentMultiprocessInfo,
+} from "features/dfd";
+import { createIpcGitRunner } from "features/audit/services/audit-git-adapters";
 import {
   ComponentImportDialog,
   type ComponentImportDialogChoice,
@@ -27,6 +33,11 @@ import {
   candidateFrom,
   machineElementOptions,
 } from "../../services/component-import/import-flow";
+import {
+  componentSourceLabel,
+  rememberComponentPath,
+  resolveComponentPath,
+} from "../../services/component-import/component-paths";
 
 type Toast = ReturnType<typeof useToast>;
 
@@ -37,13 +48,24 @@ interface PendingImport {
 }
 
 export interface UseComponentImportInput {
+  /** The active project — for the details of its imported multiprocesses. */
+  activeProject?: Project;
+  /** Opens a project file as a further project ("Open component TARA"). */
+  openProjectFile?: (filePath: string) => Promise<void>;
   projectsRef: MutableRefObject<Project[]>;
   activeProjectRef: MutableRefObject<Project | undefined>;
   updateProject: (patch: Partial<Project> & { id: string }) => Promise<void>;
   toast: Toast;
 }
 
-export function useComponentImport({ projectsRef, activeProjectRef, updateProject, toast }: UseComponentImportInput) {
+export function useComponentImport({
+  activeProject,
+  openProjectFile,
+  projectsRef,
+  activeProjectRef,
+  updateProject,
+  toast,
+}: UseComponentImportInput) {
   const { t } = useTranslation("components");
   const [pending, setPending] = useState<PendingImport | null>(null);
   const resultRef = useRef<ComponentSourceOk | null>(null);
@@ -77,6 +99,8 @@ export function useComponentImport({ projectsRef, activeProjectRef, updateProjec
     if (isComponentCycle(project.id, result.snapshot)) return { ok: false, error: "cycle" };
     if (!result.snapshot.dfd?.xml) return { ok: false, error: "no_dfd" };
     resultRef.current = result;
+    // For "Open component TARA" — on this machine only, never in the file.
+    rememberComponentPath(result.snapshot.component.projectId, path);
     return { ok: true, candidate: candidateFrom(result, project) };
   }, [pending?.projectId, projectsRef, t]);
 
@@ -124,9 +148,43 @@ export function useComponentImport({ projectsRef, activeProjectRef, updateProjec
     />
   );
 
+  // Details of an imported multiprocess, with "Open component TARA".
+  const components = activeProject?.components;
+  const machineFilePath = activeProject?.filePath;
+  const componentInfoOf = useCallback(
+    (tfId: string): ComponentMultiprocessInfo | undefined => {
+      const instance = components?.instances.find((i) => i.multiprocessTfId === tfId);
+      const imported = instance && components?.imports.find((i) => i.id === instance.importId);
+      if (!instance || !imported) return undefined;
+      return {
+        name: imported.name,
+        prefix: instance.prefix,
+        source: componentSourceLabel(imported.source),
+        ...(openProjectFile && componentImportAvailable()
+          ? {
+              onOpen: () => {
+                void (async () => {
+                  const path = await resolveComponentPath(imported.componentId, imported.source, machineFilePath, createIpcGitRunner());
+                  if (path) await openProjectFile(path);
+                  else
+                    toast.warning(
+                      t("components.details.pathUnknown", {
+                        defaultValue: "Where the component TARA lies on this computer is not known — open it via File → Open.",
+                      }),
+                    );
+                })();
+              },
+            }
+          : {}),
+      };
+    },
+    [components, machineFilePath, openProjectFile, t, toast],
+  );
+
   return {
     /** For the DFD tab; undefined outside Electron (design §2: no browser mode). */
     runner: componentImportAvailable() ? runner : undefined,
     dialog,
+    componentInfoOf,
   };
 }

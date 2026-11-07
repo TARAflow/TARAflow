@@ -195,6 +195,17 @@ export class DrawioBridge implements IDrawioBridge {
   }
 
   /**
+   * Pages of imported components, read-only in the editor (multi-project
+   * TARA §6.2). Electron only.
+   */
+  async setLockedPages(pageIds: readonly string[]): Promise<void> {
+    if (!this.isReady() || !window.electronAPI?.setDrawioLockedPages) return;
+    await window.electronAPI.setDrawioLockedPages(
+      Object.fromEntries(pageIds.map((id) => [id, true as const])),
+    );
+  }
+
+  /**
    * Tooltip and finding badge per draw.io page tab (leveled DFD 5c).
    * Electron only — the plugin that decorates the tabs is injected there.
    */

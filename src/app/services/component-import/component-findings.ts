@@ -9,11 +9,21 @@
 //                                  import was refused)
 //   CMP_FLOW_NOT_IN_COMPONENT      a flow on an imported multiprocess that is
 //                    (error)       none of the component's boundary flows (Q3)
+//   CMP_COMPONENT_PAGE_CHANGED     the component's pages differ from the
+//                    (warning)     imported state — elements missing or
+//                                  added there (the pages are locked in the
+//                                  editor; e.g. edited in external draw.io).
+//                                  Repaired with the update path (phase 5).
 //
 // Also the multiprocesses whose pages belong to a component (renumber skips
 // them, §6.6).
 
-import { componentInstanceTfId, type ValidationFinding } from "features/dfd";
+import {
+  componentInstanceTfId,
+  lockedPageIdsOf,
+  parseDfd,
+  type ValidationFinding,
+} from "features/dfd";
 import type { Project } from "../../models/project-types";
 
 export interface ComponentFindings {
@@ -69,8 +79,54 @@ export function componentFindings(project: Pick<Project, "components" | "dfd">):
         params: { flow: [c.displayId, c.name].filter(Boolean).join(" "), component: name, prefix: instance.prefix },
       });
     }
+
+    const changed = pageChanges(project, instance.id, instance.multiprocessTfId, imported.snapshot.dfd);
+    if (changed.missing + changed.added > 0) {
+      out.warnings.push({
+        key: KEY("CMP_COMPONENT_PAGE_CHANGED"),
+        elementId: mp.id,
+        displayId: mp.displayId,
+        params: { prefix: instance.prefix, component: name, missing: changed.missing, added: changed.added },
+      });
+    }
   }
   return out;
+}
+
+/**
+ * How the instance's pages differ from the imported state: component
+ * elements / flows missing in the DFD, and definitions on the component's
+ * pages that are not the component's (copies of machine elements are fine).
+ */
+function pageChanges(
+  project: Pick<Project, "dfd">,
+  instanceId: string,
+  multiprocessTfId: string,
+  snapshotDfd: { elements?: { id: string; type: string }[]; connections?: { id: string; from: string; to: string }[] } | null | undefined,
+): { missing: number; added: number } {
+  const dfd = project.dfd;
+  if (!dfd?.xml || !snapshotDfd) return { missing: 0, added: 0 };
+  const ees = new Set((snapshotDfd.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+  const expected = new Set<string>();
+  for (const e of snapshotDfd.elements ?? []) if (!ees.has(e.id)) expected.add(componentInstanceTfId(instanceId, e.id));
+  for (const c of snapshotDfd.connections ?? []) {
+    if (ees.has(c.from) && ees.has(c.to)) continue;
+    expected.add(componentInstanceTfId(instanceId, c.id));
+  }
+  const present = new Set([...(dfd.elements ?? []), ...(dfd.connections ?? [])].map((x) => x.id));
+  const missing = [...expected].filter((id) => !present.has(id)).length;
+
+  const componentMps = (snapshotDfd.elements ?? [])
+    .filter((e) => e.type === "Multiprocess")
+    .map((e) => componentInstanceTfId(instanceId, e.id));
+  const pages = lockedPageIdsOf(dfd.pages, [multiprocessTfId, ...componentMps]);
+  let added = 0;
+  if (pages.size > 0) {
+    for (const o of parseDfd(dfd.xml, dfd.pages).occurrences) {
+      if (pages.has(o.pageId) && o.role === "definition" && !expected.has(o.tfId)) added++;
+    }
+  }
+  return { missing, added };
 }
 
 /**

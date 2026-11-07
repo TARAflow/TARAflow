@@ -102,6 +102,7 @@ export const WorkspaceLayout: React.FC = () => {
     activePhase,
     setActivePhase,
     updateProject,
+    openProjectFile,
   } = useProjectContext();
 
   // ── Stable ref — stale-closure protection ─────────────────────────────────
@@ -183,7 +184,14 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   // Multi-project TARA: "Import component TARA…" in the DFD tab (design v3 §5).
-  const componentImport = useComponentImport({ projectsRef, activeProjectRef, updateProject, toast });
+  const componentImport = useComponentImport({
+    activeProject,
+    openProjectFile,
+    projectsRef,
+    activeProjectRef,
+    updateProject,
+    toast,
+  });
 
   const { complianceStandards, matrixRequirements, complianceView } = useComplianceView(
     activeProject,
@@ -299,6 +307,7 @@ export const WorkspaceLayout: React.FC = () => {
               onImportComponent={componentImport.runner}
               importedMultiprocessIds={dfdData.componentMultiprocessIds}
               externalFindings={dfdData.componentDfdFindings}
+              componentInfoOf={componentImport.componentInfoOf}
               graphFocusRequest={navigation.graphFocusRequest}
               elementFocusRequest={navigation.elementFocusRequest}
               hazards={assetData.graphHazards}

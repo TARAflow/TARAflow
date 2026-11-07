@@ -41,6 +41,8 @@ export interface ProjectUpdateHandlerDeps {
   updateProject: UpdateProject;
   /** Asset relations the DFD update could not apply (stale data, rules). */
   onRejectedRelations?: (rejected: readonly { reason: string }[]) => void;
+  /** Component instances removed because their multiprocess was deleted. */
+  onRemovedComponentInstances?: (removed: readonly { prefix: string; component: string }[]) => void;
 }
 
 export function makeProjectUpdateHandlers({
@@ -48,6 +50,7 @@ export function makeProjectUpdateHandlers({
   projectsRef,
   updateProject,
   onRejectedRelations,
+  onRemovedComponentInstances,
 }: ProjectUpdateHandlerDeps) {
   const project = () => projectsRef.current.find((p) => p.id === projectId);
 
@@ -55,8 +58,9 @@ export function makeProjectUpdateHandlers({
     handleDFDUpdate: async (updates: DFDUpdateResult) => {
       const current = project();
       if (!current) return;
-      const { patch, rejectedA2AOps } = buildDfdUpdate(current, updates);
+      const { patch, rejectedA2AOps, removedComponentInstances } = buildDfdUpdate(current, updates);
       if (rejectedA2AOps.length > 0) onRejectedRelations?.(rejectedA2AOps);
+      if (removedComponentInstances?.length) onRemovedComponentInstances?.(removedComponentInstances);
       await updateProject(patch);
     },
 
@@ -127,9 +131,16 @@ export type ProjectUpdateHandlers = ReturnType<typeof makeProjectUpdateHandlers>
 
 /** The handlers for the project shown now; new handlers only when the project changes. */
 export function useProjectUpdateHandlers(deps: ProjectUpdateHandlerDeps): ProjectUpdateHandlers {
-  const { projectId, projectsRef, updateProject, onRejectedRelations } = deps;
+  const { projectId, projectsRef, updateProject, onRejectedRelations, onRemovedComponentInstances } = deps;
   return useMemo(
-    () => makeProjectUpdateHandlers({ projectId, projectsRef, updateProject, onRejectedRelations }),
-    [projectId, projectsRef, updateProject, onRejectedRelations],
+    () =>
+      makeProjectUpdateHandlers({
+        projectId,
+        projectsRef,
+        updateProject,
+        onRejectedRelations,
+        onRemovedComponentInstances,
+      }),
+    [projectId, projectsRef, updateProject, onRejectedRelations, onRemovedComponentInstances],
   );
 }

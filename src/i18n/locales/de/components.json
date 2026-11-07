@@ -45,7 +45,14 @@
     "findings": {
       "CMP_SOURCE_UNPINNED": "Komponente {{component}} ist ungebunden importiert ({{reason}}) — nur ihr Inhalt kennzeichnet den Stand. Für eine auditierte TARA einen committeten Stand importieren.",
       "CMP_INSTANCE_ORPHANED": "Komponenten-Instanz {{prefix}} ({{component}}) hat keinen Multiprozess im DFD — Instanz löschen oder die Komponente erneut importieren.",
-      "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} hängt an der importierten Komponente {{prefix}} ({{component}}), ist aber keine ihrer Schnittstellen — die Komponenten-TARA deckt ihn nicht ab. Schnittstelle in der Komponenten-TARA ergänzen und aktualisieren oder den Flow anders anschliessen."
+      "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} hängt an der importierten Komponente {{prefix}} ({{component}}), ist aber keine ihrer Schnittstellen — die Komponenten-TARA deckt ihn nicht ab. Schnittstelle in der Komponenten-TARA ergänzen und aktualisieren oder den Flow anders anschliessen.",
+      "CMP_COMPONENT_PAGE_CHANGED": "Die Seiten der Komponente {{prefix}} ({{component}}) weichen vom importierten Stand ab: {{missing}} Element(e) fehlen, {{added}} hinzugekommen. Komponentenseiten sind schreibgeschützt — das Update stellt sie wieder her."
+    },
+    "instanceRemoved": "Komponenten-Instanz mit ihrem Multiprozess entfernt: {{list}}",
+    "details": {
+      "title": "Importierte Komponente ({{prefix}}) — schreibgeschützt",
+      "open": "Komponenten-TARA öffnen",
+      "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
     }
   }
 }

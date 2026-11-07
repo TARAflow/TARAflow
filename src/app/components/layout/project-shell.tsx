@@ -345,6 +345,7 @@ export const ProjectShell: React.FC = () => {
       updateProject,
       switchProject: handleProjectSwitch,
       saveProject,
+      openProjectFile: (filePath: string) => handleOpenFromFile(filePath, confirmMigration),
     }),
     [
       projects,
@@ -358,6 +359,8 @@ export const ProjectShell: React.FC = () => {
       updateProject,
       handleProjectSwitch,
       saveProject,
+      handleOpenFromFile,
+      confirmMigration,
     ],
   );
 

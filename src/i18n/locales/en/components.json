@@ -45,7 +45,14 @@
     "findings": {
       "CMP_SOURCE_UNPINNED": "Component {{component}} is imported unpinned ({{reason}}) — only its content identifies the state. Import a committed state for an audited TARA.",
       "CMP_INSTANCE_ORPHANED": "Component instance {{prefix}} ({{component}}) has no multiprocess in the DFD — delete the instance or import the component again.",
-      "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} is attached to the imported component {{prefix}} ({{component}}) but is none of its interfaces — the component TARA does not cover it. Add the interface in the component TARA and update, or attach the flow elsewhere."
+      "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} is attached to the imported component {{prefix}} ({{component}}) but is none of its interfaces — the component TARA does not cover it. Add the interface in the component TARA and update, or attach the flow elsewhere.",
+      "CMP_COMPONENT_PAGE_CHANGED": "The pages of component {{prefix}} ({{component}}) differ from the imported state: {{missing}} element(s) missing, {{added}} added. Component pages are read-only — the update restores them."
+    },
+    "instanceRemoved": "Component instance removed with its multiprocess: {{list}}",
+    "details": {
+      "title": "Imported component ({{prefix}}) — read-only",
+      "open": "Open component TARA",
+      "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
     }
   }
 }
