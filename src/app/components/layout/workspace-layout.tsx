@@ -392,6 +392,7 @@ export const WorkspaceLayout: React.FC = () => {
             dfdContext={dfdData.dfdContext}
             onUpdate={handlers.handleThreatsUpdate}
             projectMitigationRefs={handlers.projectMitigationRefs}
+            onOverrideImportedRelevance={componentImport.overrideRelevance}
           />
         )}
 

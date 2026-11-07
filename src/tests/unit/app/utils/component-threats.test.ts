@@ -151,3 +151,76 @@ describe("groups, references, merge", () => {
     for (const r of relevant) expect(riskIds.has(`R-${r.id}`), r.displayId).toBe(true);
   });
 });
+
+// ==================== RELEVANCE OVERRIDE (I3, patch 15) ====================
+
+import { withRelevanceOverride } from "app/services/component-import/relevance-overrides";
+import { DiffService } from "features/audit/services/diff-service";
+
+describe("relevance override on boundary flows (I3)", () => {
+  const base = machine([{ id: "inst-1", prefix: "SD1" }]);
+  const groups = componentThreatGroups(base);
+  const boundaryRow = groups[0].rows.find((r) => r.boundary)!;
+  const internalRow = groups[0].rows.find((r) => !r.boundary)!;
+  const decide = (row: typeof boundaryRow, relevance: "relevant" | "not_relevant") =>
+    ({ ...base, components: withRelevanceOverride(base.components!, "inst-1", row.threatKey, { relevance, rationale: "Runs over the plant network", componentRelevance: row.componentRelevance }, "2026-11-07") }) as Project;
+
+  it("the rows know which threats lie on a boundary flow", () => {
+    expect(boundaryRow).toBeDefined();
+    expect(internalRow).toBeDefined();
+  });
+
+  it("an override on a boundary-flow threat changes the machine's relevance; the component's stays visible", () => {
+    const target = boundaryRow.componentRelevance === "relevant" ? "not_relevant" : "relevant";
+    const row = componentThreatGroups(decide(boundaryRow, target))[0].rows.find((r) => r.threatKey === boundaryRow.threatKey)!;
+    expect(row.threat.relevance).toBe(target);
+    expect(row.componentRelevance).toBe(boundaryRow.componentRelevance);
+    expect(row.override).toMatchObject({ relevance: target, rationale: "Runs over the plant network" });
+    expect(row.stale).toBeUndefined();
+  });
+
+  it("an override stored for an internal threat has no effect (internals stay read-only)", () => {
+    const p = decide(internalRow, internalRow.componentRelevance === "relevant" ? "not_relevant" : "relevant");
+    const row = componentThreatGroups(p)[0].rows.find((r) => r.threatKey === internalRow.threatKey)!;
+    expect(row.threat.relevance).toBe(internalRow.componentRelevance);
+    expect(row.override).toBeUndefined();
+  });
+
+  it("raised to relevant, the threat gets a risk", () => {
+    const p = decide(boundaryRow, "relevant");
+    const refs = [...componentThreatReferences(p, "per-element"), ...componentThreatReferences(p, "per-interaction")];
+    const result = syncRisksFromThreats({ configuration: DEFAULT_CONFIGURATION, risks: [], lastModified: "" } as never, refs);
+    expect(result.riskData.risks.some((r) => r.id === `R-${boundaryRow.threat.id}`)).toBe(true);
+  });
+
+  it("re-check: when the component changed its decision since, the override is to review", () => {
+    const p = decide(boundaryRow, "relevant");
+    const stale = { ...p, components: { ...p.components!, instances: p.components!.instances.map((i) => ({ ...i, relevanceOverrides: i.relevanceOverrides!.map((o) => ({ ...o, componentRelevance: "uncertain" as const })) })) } } as Project;
+    const row = componentThreatGroups(stale)[0].rows.find((r) => r.threatKey === boundaryRow.threatKey)!;
+    expect(boundaryRow.componentRelevance).not.toBe("uncertain");
+    expect(row.stale).toBe(true);
+  });
+
+  it("set, replace, remove; a rationale is required", () => {
+    const c1 = withRelevanceOverride(base.components!, "inst-1", "k", { relevance: "relevant", rationale: " a ", componentRelevance: "not_relevant" }, "d1");
+    expect(c1.instances[0].relevanceOverrides).toEqual([{ threatKey: "k", relevance: "relevant", rationale: "a", componentRelevance: "not_relevant", date: "d1" }]);
+    const c2 = withRelevanceOverride(c1, "inst-1", "k", { relevance: "uncertain", rationale: "b", componentRelevance: "not_relevant" }, "d2");
+    expect(c2.instances[0].relevanceOverrides).toHaveLength(1);
+    expect(c2.instances[0].relevanceOverrides![0].relevance).toBe("uncertain");
+    const c3 = withRelevanceOverride(c2, "inst-1", "k", null, "d3");
+    expect("relevanceOverrides" in c3.instances[0]).toBe(false);
+    expect(() => withRelevanceOverride(base.components!, "inst-1", "k", { relevance: "relevant", rationale: "  ", componentRelevance: "unrated" }, "d")).toThrow();
+  });
+
+  it("the commit gate opens: the audit diff sees an override", () => {
+    const p = decide(boundaryRow, "relevant");
+    const changes = new DiffService().detectChanges(
+      { ...p, dfd: null, assets: null, threats: null, risks: null, attackTrees: null } as never,
+      { ...base, dfd: null, assets: null, threats: null, risks: null, attackTrees: null } as never,
+    );
+    const section = changes.find((c) => c.phase === "components")!;
+    expect(section).toBeDefined();
+    expect(section.changes[0]).toMatchObject({ type: "modified", name: "SD1" });
+    expect(section.changes[0].details!.map((d) => d.field)).toContain("relevanceOverrides");
+  });
+});

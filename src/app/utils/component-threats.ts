@@ -19,7 +19,9 @@
 //     on EE → EE flows, which were dropped on import
 //   - per-interaction threats whose victim is the EE side are not taken
 //     over — the machine generates that perspective (victimRole rule, patch 12)
-//   - text, STRIDE, relevance as the component decided (read-only, Q2)
+//   - text, STRIDE, relevance as the component decided (read-only, Q2) —
+//     except on boundary flows, where the machine may override the
+//     relevance with a rationale (I3, patch 15)
 
 import type { Threat, ThreatData, ThreatTable, StrideMethod } from "features/threats";
 import { componentInstanceTfId, instanceAssetId } from "features/dfd";
@@ -27,12 +29,28 @@ import type { ThreatReference } from "shared";
 import type { Project } from "../models/project-types";
 import { extractThreatReferences } from "./extract-threat-references";
 
+/** One imported threat as the Threats tab shows it. */
+export interface ComponentThreatRow {
+  /** The threat as the machine uses it (relevance override applied). */
+  threat: Threat;
+  /** Id of the threat in the component — key of a relevance override. */
+  threatKey: string;
+  /** The component's relevance decision. */
+  componentRelevance: Threat["relevance"];
+  /** On a boundary flow — the machine may override the relevance (I3). */
+  boundary: boolean;
+  override?: { relevance: Threat["relevance"]; rationale: string; date: string };
+  /** The component changed its decision since the override — to review (I3). */
+  stale?: boolean;
+}
+
 export interface ComponentThreatGroup {
   /** Instance id. */
   key: string;
   /** "SD1 · Smoke Detector" */
   label: string;
   threats: Threat[];
+  rows: ComponentThreatRow[];
 }
 
 type Components = NonNullable<Project["components"]>;
@@ -68,10 +86,10 @@ function remapThreat(threat: Threat, instance: Instance, mapId: (id: string) => 
 function instanceTables(
   instance: Instance,
   imported: Components["imports"][number],
-): { perElement: ThreatTable[]; perInteraction: ThreatTable[] } {
+): { perElement: ThreatTable[]; perInteraction: ThreatTable[]; rows: ComponentThreatRow[] } {
   const snapshot = imported.snapshot;
   const threats = snapshot.threats;
-  if (!threats) return { perElement: [], perInteraction: [] };
+  if (!threats) return { perElement: [], perInteraction: [], rows: [] };
   const elements = snapshot.dfd?.elements ?? [];
   const ees = new Set(elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id));
   const eeMap = new Map(instance.eeMapping.map((m) => [m.componentEeId, m.machineTfId]));
@@ -92,8 +110,32 @@ function instanceTables(
     const victim = t.interactionContext?.victimRole === "source" ? t.dataFlow.sourceId : t.dataFlow.targetId;
     return !ees.has(victim);
   };
+  // Boundary flows: component flows with exactly one EE end (I3).
+  const boundaryFlows = new Set(
+    (snapshot.dfd?.connections ?? []).filter((c) => ees.has(c.from) !== ees.has(c.to)).map((c) => c.id),
+  );
+  const onBoundary = (t: Threat) =>
+    (!!t.dataFlow && boundaryFlows.has(t.dataFlow.connectionId)) ||
+    (!!t.linkedElement && boundaryFlows.has(t.linkedElement.elementId));
+  const overrides = new Map((instance.relevanceOverrides ?? []).map((o) => [o.threatKey, o]));
+
+  const rows: ComponentThreatRow[] = [];
   const table = (all: ThreatTable[], keep: (t: Threat) => boolean): ThreatTable[] => {
-    const list = all.flatMap((tb) => tb.threats.filter(keep)).map((t) => remapThreat(t, instance, mapId));
+    const list = all.flatMap((tb) => tb.threats.filter(keep)).map((original) => {
+      const boundary = onBoundary(original);
+      const o = boundary ? overrides.get(original.id) : undefined;
+      let threat = remapThreat(original, instance, mapId);
+      if (o) threat = { ...threat, relevance: o.relevance, relevanceOverridden: true, evalNote: o.rationale };
+      rows.push({
+        threat,
+        threatKey: original.id,
+        componentRelevance: original.relevance,
+        boundary,
+        ...(o ? { override: { relevance: o.relevance, rationale: o.rationale, date: o.date } } : {}),
+        ...(o && o.componentRelevance !== original.relevance ? { stale: true } : {}),
+      });
+      return threat;
+    });
     return list.length > 0
       ? [{ trustBoundaryId: null, trustBoundaryName: label, displayIdentifier: `[${instance.prefix}]`, threats: list }]
       : [];
@@ -101,6 +143,7 @@ function instanceTables(
   return {
     perElement: table(threats.perElementTables ?? [], keepElementThreat),
     perInteraction: table(threats.perInteractionTables ?? [], keepInteractionThreat),
+    rows,
   };
 }
 
@@ -130,8 +173,10 @@ export function componentThreatGroups(project: Pick<Project, "components">): Com
     const imported = importsById.get(instance.importId);
     if (!imported) return [];
     const t = instanceTables(instance, imported);
-    const threats = [...t.perElement, ...t.perInteraction].flatMap((tb) => tb.threats);
-    return threats.length > 0 ? [{ key: instance.id, label: `${instance.prefix} · ${imported.name}`, threats }] : [];
+    const threats = t.rows.map((r) => r.threat);
+    return threats.length > 0
+      ? [{ key: instance.id, label: `${instance.prefix} · ${imported.name}`, threats, rows: t.rows }]
+      : [];
   });
 }
 

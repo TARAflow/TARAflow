@@ -572,6 +572,7 @@ export type {
   ComponentImport,
   ComponentAssumptionStatus,
   ComponentInstance,
+  ComponentRelevanceOverride,
   ProjectComponents,
 } from "./models/component-import-types";
 export {

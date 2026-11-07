@@ -51,4 +51,47 @@ describe("ImportedThreatsSection", () => {
     expect(screen.getByTestId("imported-threats-i2").textContent).toContain("SD2 · Smoke Detector");
     expect(section.querySelector("button[aria-label='delete']")).toBeNull();
   });
+
+  it("boundary-flow threats can be overridden with a rationale; internal ones cannot", async () => {
+    const onOverride = vi.fn();
+    const boundary = threat("b1", "SD1:DF7-T-1", "not_relevant");
+    const internal = threat("i1", "SD1:P3-T-1", "relevant");
+    render(
+      <ImportedThreatsSection
+        groups={[{ key: "inst", label: "SD1 · Smoke Detector", threats: [boundary, internal], rows: [
+          { threat: boundary, threatKey: "kb", componentRelevance: "not_relevant", boundary: true },
+          { threat: internal, threatKey: "ki", componentRelevance: "relevant", boundary: false },
+        ] }]}
+        onOverrideRelevance={onOverride}
+      />,
+    );
+    fireEvent.click(screen.getByText(/Threats from imported components/));
+    expect(screen.queryByTestId("imported-threat-edit-ki")).toBeNull();
+    fireEvent.click(screen.getByTestId("imported-threat-edit-kb"));
+    const save = screen.getByTestId("imported-threat-override-save") as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.change(screen.getByTestId("imported-threat-override-rationale"), { target: { value: "Runs over the plant network" } });
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+    expect(onOverride).toHaveBeenCalledWith("inst", "kb", { relevance: "relevant", rationale: "Runs over the plant network", componentRelevance: "not_relevant" });
+  });
+
+  it("an override shows beside the component's decision, can be removed, and is marked to review when stale", () => {
+    const onOverride = vi.fn();
+    const boundary = threat("b1", "SD1:DF7-T-1", "relevant");
+    render(
+      <ImportedThreatsSection
+        groups={[{ key: "inst", label: "SD1", threats: [boundary], rows: [
+          { threat: boundary, threatKey: "kb", componentRelevance: "not_relevant", boundary: true, override: { relevance: "relevant", rationale: "network", date: "d" }, stale: true },
+        ] }]}
+        onOverrideRelevance={onOverride}
+      />,
+    );
+    fireEvent.click(screen.getByText(/Threats from imported components/));
+    expect(screen.getByTestId("imported-threat-override-kb").textContent).toContain("machine: relevant");
+    expect(screen.getByTestId("imported-threat-kb").textContent).toContain("to review");
+    fireEvent.click(screen.getByTestId("imported-threat-edit-kb"));
+    fireEvent.click(screen.getByTestId("imported-threat-override-remove"));
+    expect(onOverride).toHaveBeenCalledWith("inst", "kb", null);
+  });
 });

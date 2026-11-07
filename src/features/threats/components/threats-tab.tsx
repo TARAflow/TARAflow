@@ -2,6 +2,7 @@
 // Main orchestrator for threat management
 // FIXED: Split view, toolbar connections, export/import, dialog management
 
+import type { ImportedRelevanceDecision } from "../models/threat-types";
 import { ImportedThreatsSection } from "./shared/imported-threats-section";
 import { withThreatPhaseStatus } from "../services/threat-phase-status";
 import React, {
@@ -103,6 +104,8 @@ export interface ThreatTabProps {
    * app supplies them.
    */
   projectMitigationRefs?: Pick<ProjectMitigationRefs, "usage" | "mergeConflicts" | "merge">;
+  /** Multi-project TARA (I3): relevance override on an imported boundary-flow threat. */
+  onOverrideImportedRelevance?: (instanceKey: string, threatKey: string, decision: ImportedRelevanceDecision) => void;
 }
 
 // ==================== COMPONENT ====================
@@ -113,6 +116,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   onUpdate,
   onDirtyChange,
   projectMitigationRefs,
+  onOverrideImportedRelevance,
 }) => {
   const { t } = useTranslation();
   // ==================== STATE ====================
@@ -755,7 +759,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             pt: 2,
           }}
         >
-          <ImportedThreatsSection groups={project.importedThreatGroups} />
+          <ImportedThreatsSection groups={project.importedThreatGroups} onOverrideRelevance={onOverrideImportedRelevance} />
           {activeMethod === "per-element" ? (
             <ElementThreatsView
               tables={elementHook.tables}

@@ -965,9 +965,31 @@ export interface ThreatProjectData {
     key: string;
     label: string;
     threats: Threat[];
+    /** Per threat: the component's decision, boundary flow, override (I3). */
+    rows?: readonly ImportedThreatRow[];
   }[];
   lastModified: string;
 }
+
+/** An imported threat with the component's decision and the machine's override (I3). */
+export interface ImportedThreatRow {
+  threat: Threat;
+  /** Id of the threat in the component — key of the override. */
+  threatKey: string;
+  componentRelevance: ThreatRelevance;
+  /** On a boundary flow — the relevance may be overridden. */
+  boundary: boolean;
+  override?: { relevance: ThreatRelevance; rationale: string; date: string };
+  /** The component changed its decision since the override. */
+  stale?: boolean;
+}
+
+/** The machine's relevance decision on an imported boundary-flow threat (null = remove). */
+export type ImportedRelevanceDecision = {
+  relevance: ThreatRelevance;
+  rationale: string;
+  componentRelevance: ThreatRelevance;
+} | null;
 
 export interface ThreatRiskAttachment {
   /** Number of mitigations selected on the risk. */

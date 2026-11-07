@@ -59,7 +59,16 @@
       "where": "Element / Flow",
       "threat": "Bedrohung",
       "relevance": "Relevanz (Komponente)",
-      "templateText": "(Katalogtext)"
+      "templateText": "(Katalogtext)",
+      "overridden": "Maschine: {{relevance}}",
+      "toReview": "zur Prüfung — die Komponente hat ihre Entscheidung geändert",
+      "editOverride": "Ändern",
+      "override": "Überstimmen",
+      "overrideTitle": "Relevanz von {{id}} in dieser Maschine",
+      "overrideIntro": "Die Komponente hat diese Bedrohung auf ihrem Grenz-Flow als „{{relevance}}“ bewertet — ohne den Maschinenkontext. Wo der Flow in dieser Maschine verläuft, kann das ändern. Die Begründung erscheint im Report (Abweichungen von der Komponenten-Bewertung).",
+      "rationale": "Begründung (Pflicht)",
+      "removeOverride": "Zurück zur Entscheidung der Komponente",
+      "saveOverride": "Speichern"
     }
   }
 }

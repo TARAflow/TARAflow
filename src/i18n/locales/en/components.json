@@ -59,7 +59,16 @@
       "where": "Element / flow",
       "threat": "Threat",
       "relevance": "Relevance (component)",
-      "templateText": "(catalog text)"
+      "templateText": "(catalog text)",
+      "overridden": "machine: {{relevance}}",
+      "toReview": "to review — the component changed its decision",
+      "editOverride": "Change",
+      "override": "Override",
+      "overrideTitle": "Relevance of {{id}} in this machine",
+      "overrideIntro": "The component rated this threat on its boundary flow as “{{relevance}}” — without the machine context. Where the flow runs in this machine may change that. The rationale goes into the report (deviations from the component's assessment).",
+      "rationale": "Rationale (required)",
+      "removeOverride": "Back to the component's decision",
+      "saveOverride": "Save"
     }
   }
 }

@@ -109,6 +109,23 @@ export interface ProjectComponents<TSnapshot = unknown> {
   instances: ComponentInstance[];
 }
 
+/**
+ * The machine's relevance decision on a threat of a component's boundary
+ * flow (design §17 I3, patch 15): only boundary flows, both directions,
+ * rationale mandatory. `componentRelevance` is the component's decision at
+ * the time of the override — when the component later changes it, the
+ * override is "to review" (re-check on update).
+ */
+export interface ComponentRelevanceOverride {
+  /** Id of the threat in the component (snapshot). */
+  threatKey: string;
+  relevance: "unrated" | "relevant" | "not_relevant" | "uncertain";
+  rationale: string;
+  componentRelevance: "unrated" | "relevant" | "not_relevant" | "uncertain";
+  /** ISO date of the decision. */
+  date: string;
+}
+
 /** One use of an imported component in the machine DFD (design §6.4). */
 export interface ComponentInstance {
   id: string;
@@ -118,4 +135,6 @@ export interface ComponentInstance {
   prefix: string;
   eeMapping: { componentEeId: string; machineTfId: string }[];
   assumptions: ComponentAssumptionStatus[];
+  /** Relevance overrides on boundary-flow threats (I3). Absent: none. */
+  relevanceOverrides?: ComponentRelevanceOverride[];
 }

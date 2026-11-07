@@ -34,6 +34,7 @@ import {
   candidateFrom,
   machineElementOptions,
 } from "../../services/component-import/import-flow";
+import { withRelevanceOverride, type RelevanceDecision } from "../../services/component-import/relevance-overrides";
 import {
   componentSourceLabel,
   rememberComponentPath,
@@ -189,7 +190,20 @@ export function useComponentImport({
     [components, machineFilePath, openProjectFile, t, toast],
   );
 
+  // Relevance override on an imported boundary-flow threat (I3) — written
+  // into the instance; the audit diff detects it with the instance.
+  const overrideRelevance = useCallback(
+    (instanceId: string, threatKey: string, decision: RelevanceDecision | null) => {
+      const current = activeProjectRef.current;
+      if (!current?.components) return;
+      const components = withRelevanceOverride(current.components, instanceId, threatKey, decision, new Date().toISOString().slice(0, 10));
+      void updateProject({ id: current.id, components });
+    },
+    [activeProjectRef, updateProject],
+  );
+
   return {
+    overrideRelevance,
     /** For the DFD tab; undefined outside Electron (design §2: no browser mode). */
     runner: componentImportAvailable() ? runner : undefined,
     dialog,

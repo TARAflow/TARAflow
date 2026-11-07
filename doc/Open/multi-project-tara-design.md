@@ -630,6 +630,20 @@ threat ↔ goal links, the read-only section "Threats from imported components" 
 (above the method's tables, per instance). Still to connect (as planned): findings and matrix
 (phase 4), report and CLI (phase 6). ISO machines: only attack-path threats make risks — patch 17.
 
+*Patch 15 done (2026-11-07):* relevance override on boundary-flow threats (I3).
+`ComponentInstance.relevanceOverrides` (`threatKey` = the component's threat id, `relevance`,
+`rationale`, `componentRelevance` at the time, `date`); `withRelevanceOverride` (rationale mandatory,
+remove = back to the component's decision). The read model applies an override only to a threat
+on a boundary flow (component flow with exactly one EE end — per-element flow threats and
+per-interaction threats on it); a stored override on an internal threat has no effect. The Threats
+tab section shows the component's decision struck through beside the machine's, "Override" /
+"Change" only on boundary-flow rows, a dialog with relevance (both directions) and mandatory
+rationale, "Back to the component's decision"; an override whose component decision changed since
+is marked "to review" (`stale`). Raised to relevant, the threat gets a risk through the normal sync.
+The audit diff sees the change with the instance (test: the commit gate opens). Not yet: the report
+section "Deviations from the component's assessment" (phase 6) and the update preview listing
+stale overrides (phase 5).
+
 Further constraints (review 2026-11-07):
 - The threats are derived, but the machine's own ratings on them are stored data: the WoO overlay
   per instance and pathKey (patch 17), the overrides of prefilled factors with their rationale
