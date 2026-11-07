@@ -5,6 +5,7 @@
 // Dependencies: risk-scale-types (RiskScaleType, RiskScaleConfig)
 
 import type { RiskScaleType } from "./risk-scale-types";
+import type { FactorClass } from "shared";
 
 // ==================== FACTOR CATEGORY ====================
 
@@ -27,6 +28,14 @@ export interface RiskFactorDefinition {
     | "FAIR"
     | "CVSS"
     | "custom";
+  /**
+   * Likelihood factors only: who rates the factor of an imported component
+   * risk (multi-project TARA design §7.2). "intrinsic" describes the
+   * component and is taken over from it; "context" depends on where the
+   * component is used and is always rated by the machine. Absent = context
+   * (custom factors until classified) — see factorClassOf.
+   */
+  factorClass?: FactorClass;
 }
 
 // ==================== PREDEFINED FACTORS ====================
@@ -42,6 +51,7 @@ export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   {
     id: "skill_level",
     category: "likelihood",
+    factorClass: "intrinsic",
     name: "Skill Level",
     description: "",
     defaultWeight: 1.0,
@@ -50,6 +60,7 @@ export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   {
     id: "motive",
     category: "likelihood",
+    factorClass: "context",
     name: "Motive",
     description: "",
     defaultWeight: 1.0,
@@ -58,6 +69,7 @@ export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   {
     id: "opportunity",
     category: "likelihood",
+    factorClass: "context",
     name: "Opportunity",
     description: "",
     defaultWeight: 1.0,
@@ -66,6 +78,7 @@ export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   {
     id: "size",
     category: "likelihood",
+    factorClass: "context",
     name: "Size",
     description: "",
     defaultWeight: 1.0,
@@ -74,6 +87,7 @@ export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   {
     id: "ease_of_discovery",
     category: "likelihood",
+    factorClass: "intrinsic",
     name: "Ease of Discovery",
     description: "",
     defaultWeight: 1.0,
@@ -82,6 +96,7 @@ export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   {
     id: "ease_of_exploit",
     category: "likelihood",
+    factorClass: "intrinsic",
     name: "Ease of Exploit",
     description: "",
     defaultWeight: 1.0,
@@ -90,6 +105,7 @@ export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   {
     id: "awareness",
     category: "likelihood",
+    factorClass: "context",
     name: "Awareness",
     description: "",
     defaultWeight: 1.0,
@@ -98,6 +114,7 @@ export const STANDARD_LIKELIHOOD_FACTORS: RiskFactorDefinition[] = [
   {
     id: "intrusion_detection",
     category: "likelihood",
+    factorClass: "context",
     name: "Intrusion Detection",
     description: "",
     defaultWeight: 1.0,
@@ -215,6 +232,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
   {
     id: "knowledge",
     category: "likelihood",
+    factorClass: "intrinsic",
     name: "Knowledge Factor",
     description: "",
     defaultWeight: 1.0,
@@ -223,6 +241,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
   {
     id: "expertise",
     category: "likelihood",
+    factorClass: "intrinsic",
     name: "Expertise Factor",
     description: "",
     defaultWeight: 1.0,
@@ -231,6 +250,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
   {
     id: "time",
     category: "likelihood",
+    factorClass: "intrinsic",
     name: "Time Factor",
     description: "",
     defaultWeight: 1.0,
@@ -239,6 +259,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
   {
     id: "equipment",
     category: "likelihood",
+    factorClass: "intrinsic",
     name: "Equipment Factor",
     description: "",
     defaultWeight: 1.0,
@@ -247,6 +268,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
   {
     id: "etsi_opportunity",
     category: "likelihood",
+    factorClass: "context",
     name: "Opportunity Factor",
     description: "",
     defaultWeight: 1.0,
@@ -255,6 +277,7 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
   {
     id: "etsi_intensity",
     category: "likelihood",
+    factorClass: "context",
     name: "Intensity Factor",
     description: "",
     defaultWeight: 1.0,
@@ -264,9 +287,9 @@ export const ETSI_FACTORS: RiskFactorDefinition[] = [
 
 /** EN 50742 / IEC 62443-3-2 Attacker Potential factors */
 export const EN50742_FACTORS: RiskFactorDefinition[] = [
-  { id: "window_of_opportunity", category: "likelihood", name: "Window of Opportunity (WoO)", description: "", defaultWeight: 1.0, source: "EN50742" },
-  { id: "attacker_capability",   category: "likelihood", name: "Attacker Capability (AC)",    description: "", defaultWeight: 1.0, source: "EN50742" },
-  { id: "exposure_level",        category: "likelihood", name: "Exposure Level (EL)",          description: "", defaultWeight: 1.0, source: "EN50742" },
+  { id: "window_of_opportunity", category: "likelihood", name: "Window of Opportunity (WoO)", description: "", defaultWeight: 1.0, factorClass: "context", source: "EN50742" },
+  { id: "attacker_capability",   category: "likelihood", name: "Attacker Capability (AC)",    description: "", defaultWeight: 1.0, factorClass: "intrinsic", source: "EN50742" },
+  { id: "exposure_level",        category: "likelihood", name: "Exposure Level (EL)",          description: "", defaultWeight: 1.0, factorClass: "context", source: "EN50742" },
 ];
 
 /**
@@ -278,17 +301,18 @@ export const EN50742_FACTORS: RiskFactorDefinition[] = [
 // per-level point tables + aggregation live in iso21434-core.ts; these are the
 // factor identities the catalog/rating reference.
 export const ISO21434_FACTORS: RiskFactorDefinition[] = [
-  { id: "iso_elapsed_time",         category: "likelihood", name: "Elapsed Time",          description: "", defaultWeight: 1.0, source: "ISO21434" },
-  { id: "iso_expertise",            category: "likelihood", name: "Specialist Expertise",   description: "", defaultWeight: 1.0, source: "ISO21434" },
-  { id: "iso_knowledge",            category: "likelihood", name: "Knowledge of the Item",  description: "", defaultWeight: 1.0, source: "ISO21434" },
-  { id: "iso_window_of_opportunity",category: "likelihood", name: "Window of Opportunity",  description: "", defaultWeight: 1.0, source: "ISO21434" },
-  { id: "iso_equipment",            category: "likelihood", name: "Equipment",              description: "", defaultWeight: 1.0, source: "ISO21434" },
+  { id: "iso_elapsed_time",         category: "likelihood", name: "Elapsed Time",          description: "", defaultWeight: 1.0, factorClass: "intrinsic", source: "ISO21434" },
+  { id: "iso_expertise",            category: "likelihood", name: "Specialist Expertise",   description: "", defaultWeight: 1.0, factorClass: "intrinsic", source: "ISO21434" },
+  { id: "iso_knowledge",            category: "likelihood", name: "Knowledge of the Item",  description: "", defaultWeight: 1.0, factorClass: "intrinsic", source: "ISO21434" },
+  { id: "iso_window_of_opportunity",category: "likelihood", name: "Window of Opportunity",  description: "", defaultWeight: 1.0, factorClass: "context", source: "ISO21434" },
+  { id: "iso_equipment",            category: "likelihood", name: "Equipment",              description: "", defaultWeight: 1.0, factorClass: "intrinsic", source: "ISO21434" },
 ];
 
 export const TARAFLOW_FACTORS: RiskFactorDefinition[] = [
   {
     id: "deployment_scope",
     category: "likelihood",
+    factorClass: "context",
     name: "Deployment Scope",
     description: "",
     defaultWeight: 1.0,
@@ -303,6 +327,7 @@ export const TARAFLOW_FACTORS: RiskFactorDefinition[] = [
   {
     id: "attack_tree_likelihood",
     category: "likelihood",
+    factorClass: "context",
     name: "Attack Tree Likelihood",
     description: "",
     defaultWeight: 1.0,
@@ -453,4 +478,16 @@ export function getFactorDefinition(
     ALL_PREDEFINED_FACTORS.find((f) => f.id === factorId) ||
     customFactors.find((f) => f.id === factorId)
   );
+}
+/**
+ * The class of a likelihood factor (multi-project TARA design §7.2);
+ * undefined for impact factors. A likelihood factor without a class (custom
+ * factor, not yet classified) counts as context-dependent: its value is
+ * never taken over from an imported component.
+ */
+export function factorClassOf(
+  definition: Pick<RiskFactorDefinition, "category" | "factorClass"> | undefined,
+): FactorClass | undefined {
+  if (!definition || definition.category !== "likelihood") return undefined;
+  return definition.factorClass ?? "context";
 }

@@ -48,6 +48,7 @@ export {
   migrateFactorRatings,
   migrateActiveFactors,
   getFactorDefinition,
+  factorClassOf,
 } from "./models/risk-factor-types";
 
 // Mitigation lifecycle
@@ -143,6 +144,12 @@ export {
 export { riskService } from "./services/risk-service";
 export { riskFindings, riskFindingLines, type RiskFinding } from "./services/risk-findings";
 export { calculateRiskValues } from "./services/risk-calculation-service";
+// Multi-project TARA: factor scales for the methodology fingerprint (design §7.2).
+export {
+  factorScaleDefinition,
+  intrinsicFactorScales,
+  likelihoodMethodOf,
+} from "./services/factor-scale-definitions";
 export {
   en50742RiskFromResolved,
   calculateEN50742RiskValues,

@@ -561,3 +561,20 @@ export type {
   AssetUsageBlocker,
   AssetUsageLookup,
 } from "./models/asset-usage-types";
+// Multi-project TARA — component import (design v3, phase 0).
+export type {
+  FactorClass,
+  FactorScaleDefinition,
+  FingerprintFactor,
+  MethodologyFingerprint,
+  ComponentSource,
+  ComponentImport,
+  ComponentAssumptionStatus,
+  ComponentInstance,
+} from "./models/component-import-types";
+export {
+  scaleHash,
+  buildMethodologyFingerprint,
+  compareFingerprints,
+  type FingerprintComparison,
+} from "./utils/methodology-fingerprint";

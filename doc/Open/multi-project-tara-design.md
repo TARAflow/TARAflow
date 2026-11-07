@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided, ready for phase 0** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -425,10 +425,23 @@ source?: "component";                    // prefilled from the snapshot (§7.2)
 
 ## 11. Architecture
 
-- New feature `features/components`: snapshot builder (pure: component project → snapshot +
-  fingerprint), import checks, EE mapping dialog, instance rendering of child pages, AoU checklist,
-  update preview. It does not import `features/threats` or `features/risks`.
-- Shared types in `shared/models/component-import-types.ts`.
+Every feature stands alone — no imports between features (user 2026-11-07); what several features
+need goes to `shared/`, what reads several features' data lives in the app layer.
+
+- `shared/models/component-import-types.ts`: the feature-agnostic types — `FactorClass`,
+  `FactorScaleDefinition`, `MethodologyFingerprint`, `ComponentImport`, `ComponentInstance`,
+  `ComponentAssumptionStatus`.
+- `shared/utils/methodology-fingerprint.ts`: `scaleHash`, `buildMethodologyFingerprint`,
+  `compareFingerprints` — pure, without factor knowledge.
+- `features/risks` owns the factors: `factorClass` on the factor definitions, `factorClassOf`,
+  `factorScaleDefinition` / `intrinsicFactorScales` (the scale of a factor as the calculation
+  reads it), exported through its barrel.
+- App layer: `app/models/component-snapshot-types.ts` (the snapshot, typed with the features' data)
+  and `app/services/component-import/snapshot-builder.ts` (`buildComponentSnapshot`,
+  `snapshotContentHash`, `projectMethodologyFingerprint` — joins the risks scales with the shared
+  fingerprint). Later phases: import checks, instance rendering, update preview.
+- New feature `features/components` (from phase 1): the UI only — import dialog, EE mapping
+  dialog, AoU checklist, update preview; imports only `shared`.
 - The app layer bridges: builds the imported threat references per instance and feeds them to the
   threat sync (like `build-attack-path-threat-references.ts`), suppresses the generators on imported
   elements, feeds imported measures to the risk view, AoU / measure findings to the findings panels.
@@ -450,6 +463,15 @@ Each phase ships on its own and leaves the app consistent.
 **Phase 0 — Model and snapshot builder.** Schema 14 types, `factorClass` on all factor definitions
 (§7.2 table), fingerprint with `scaleHash`, pure snapshot builder, canonical hash, unit tests
 against the SmokeDetector example.
+*Done (patch 04, 2026-11-07):* placement per §11; the scale of a factor follows the calculation —
+ISO/SAE 21434 Table G levels + points, EN 50742 EL / AC levels + scores (en-50742-a), ETSI TVRA
+levels + points (etsi-tvra), otherwise the project's likelihood scale. The snapshot also drops
+timestamps (`created`, `lastModified`, `statusChangedAt`), the DFD's derived data (graph, stats,
+validation, thumbnail) and an asset's `protectionNeed` (a rating in the component's context, like
+impact), so a save without analysis change keeps the hash. The schema bump to 14 moves to phase 1,
+with the first stored field (the import record); phase 0 stores nothing. Tests use the cnc-ref
+(weighted mean, rated factors) and Headlamp (ISO/SAE 21434) fixtures — the SmokeDetector fixture
+has no rated factors.
 
 **Phase 1 — Import into the DFD.** Import action, source checks (clean, committed, schema, cycle),
 already-imported handling (§6.4), prefix, EE mapping dialog, multiprocess + read-only child pages +
@@ -536,3 +558,10 @@ All decided with the user on 2026-11-04 (D5) and 2026-11-07 (all others).
 | E10 | Report | Normal tables with provenance + one section per component (§8.3) |
 | E11 | Change detection | Content-based against the branch tip, optional tag pattern, never automatic (§9.1) |
 | E12 | Several imports of one component | One state per component; same state → new instance; newer → update all; older → explicit rollback; two versions not supported (§6.4) |
+
+## 17. Open points found during implementation
+
+| # | Found | Point | Proposal |
+|---|---|---|---|
+| I1 | Phase 0 (2026-11-07) | **Migration must be deterministic.** Old component files get fresh ids on every migration: migrate 4→5 and 5→6 (and 6→7 on an id collision, the legacy asset-link lift) use `crypto.randomUUID` — e.g. the schema-2 cnc-ref fixture gets new threat UUIDs each time. Migrated on import (§4.1) and again on every drift check or update, the same component state would give different threat ids → every imported threat "obsolete + new", ratings and risks lost. | Decide before phase 1: the import migrates the file twice and compares the snapshot hashes; if they differ, it refuses with "open and save the component TARA in TARAflow ≥ 0.19 and commit it first". Generic, no list of affected schema versions to maintain. |
+
