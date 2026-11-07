@@ -492,6 +492,27 @@ export function applyAssetImpactToFactorRatings(
  * Reset a single FactorRating back to its derived value.
  * Called when analyst clicks "Reset to derived" in the Risk Dialog.
  */
+/**
+ * Prefills factor values taken over from an imported component (§7.2,
+ * patch 16): only factors the risk rates (enabled), as derived values from
+ * the component. A manual override keeps its value — only the derived value
+ * follows, so "reset" returns to the component's current value. Attack-tree
+ * ratings are never touched.
+ */
+export function applyFactorPrefill(
+  ratings: FactorRating[],
+  prefill: readonly { factorId: string; value: number }[] | undefined,
+): FactorRating[] {
+  if (!prefill || prefill.length === 0) return ratings;
+  const byId = new Map(prefill.map((p) => [p.factorId, p.value]));
+  return ratings.map((r) => {
+    const value = byId.get(r.factorId);
+    if (value === undefined || r.source === "attack-tree") return r;
+    if (r.source === "manual") return { ...r, derivedValue: value, derivedFrom: "component" };
+    return { ...r, value, derivedValue: value, source: "derived", derivedFrom: "component" };
+  });
+}
+
 export function resetFactorToDerived(rating: FactorRating): FactorRating {
   if (rating.derivedValue === undefined) return rating;
   return {

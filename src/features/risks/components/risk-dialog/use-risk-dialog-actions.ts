@@ -147,6 +147,21 @@ export function useRiskDialogActions({
     [],
   );
 
+  /** Why a value taken over from a component was overridden (§7.2, patch 16). */
+  const setFactorRationale = useCallback(
+    (factorId: string, rationale: string, mitigated: boolean) => {
+      setLocal((prev) => {
+        if (!prev) return prev;
+        const key = mitigated ? "mitigatedFactorRatings" : "factorRatings";
+        return {
+          ...prev,
+          [key]: prev[key].map((r) => (r.factorId === factorId ? { ...r, overrideRationale: rationale } : r)),
+        };
+      });
+    },
+    [setLocal],
+  );
+
   /** Reset a factor back to its Asset-derived value. Clears the Overridden chip. */
   const handleResetFactor = useCallback(
     (factorId: string, mitigated: boolean) => {
@@ -239,6 +254,7 @@ export function useRiskDialogActions({
     handleSave,
     updateFactor,
     handleResetFactor,
+    setFactorRationale,
     setScopeOverride,
     toggleVerification,
     handleCopyToMitigated,

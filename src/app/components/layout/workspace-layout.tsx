@@ -77,7 +77,7 @@ import { MatrixRequirementsContext } from "shared/hooks/matrix-requirements";
 import { transformProjectToDocData } from "app/services/doc-transform";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/extract-threat-references";
-import { withComponentThreats } from "app/utils/component-threats";
+import { withComponentPrefill, withComponentThreats } from "app/utils/component-threats";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
 import { useWorkspaceNavigation } from "app/hooks/workspace/use-workspace-navigation";
@@ -212,14 +212,17 @@ export const WorkspaceLayout: React.FC = () => {
   const extractThreatReferences = (
     threatData: ThreatData | null | undefined,
     strideMethod: StrideMethod,
-  ): ThreatReference[] =>
-    extractThreatReferencesOf(
+  ): ThreatReference[] => {
+    const refs = extractThreatReferencesOf(
       // Stored threats plus those of imported components (patch 14).
       activeProject ? withComponentThreats(threatData, activeProject) : threatData,
       strideMethod,
       activeProject?.assets?.assets,
       (activeProject?.dfd as any)?.elements,
     );
+    // The component's intrinsic factor values for their risks (patch 16).
+    return activeProject ? withComponentPrefill(refs, activeProject) : refs;
+  };
 
   // ── Guard ─────────────────────────────────────────────────────────────────
 

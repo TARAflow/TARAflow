@@ -25,7 +25,8 @@
 
 import type { Threat, ThreatData, ThreatTable, StrideMethod } from "features/threats";
 import { componentInstanceTfId, instanceAssetId } from "features/dfd";
-import type { ThreatReference } from "shared";
+import { compareFingerprints, type ThreatReference } from "shared";
+import { projectMethodologyFingerprint } from "../services/component-import/snapshot-builder";
 import type { Project } from "../models/project-types";
 import { extractThreatReferences } from "./extract-threat-references";
 
@@ -182,15 +183,16 @@ export function componentThreatGroups(project: Pick<Project, "components">): Com
 
 /** The imported threats as the risk register sees them (ThreatReference). */
 export function componentThreatReferences(
-  project: Pick<Project, "components" | "assets" | "dfd">,
+  project: Pick<Project, "components" | "assets" | "dfd"> & Partial<Pick<Project, "risks">>,
   method: StrideMethod,
 ): ThreatReference[] {
-  return extractThreatReferences(
+  const refs = extractThreatReferences(
     componentThreatData(project),
     method,
     project.assets?.assets,
     (project.dfd as { elements?: unknown } | null)?.elements as Parameters<typeof extractThreatReferences>[3],
   );
+  return withComponentPrefill(refs, { components: project.components, risks: project.risks ?? null });
 }
 
 /**
@@ -209,4 +211,44 @@ export function withComponentThreats(
     perElementTables: [...base.perElementTables, ...imported.perElementTables],
     perInteractionTables: [...base.perInteractionTables, ...imported.perInteractionTables],
   };
+}
+
+// ==================== FACTOR PREFILL (§7.2, patch 16) ====================
+
+/**
+ * Which intrinsic factor values of each imported risk may be taken over:
+ * per import, the component's fingerprint against the machine's — identical
+ * → every intrinsic factor, otherwise only factors with the same id and
+ * scale. Keyed by the instance threat id.
+ */
+export function componentFactorPrefills(
+  project: Pick<Project, "components" | "risks">,
+): Map<string, { factorId: string; value: number }[]> {
+  const out = new Map<string, { factorId: string; value: number }[]>();
+  const components = project.components;
+  const machine = projectMethodologyFingerprint(project);
+  if (!components || !machine) return out;
+  const importsById = new Map(components.imports.map((i) => [i.id, i]));
+  for (const instance of components.instances) {
+    const imported = importsById.get(instance.importId);
+    if (!imported) continue;
+    const allowed = new Set(compareFingerprints(imported.methodology, machine).prefillFactorIds);
+    if (allowed.size === 0) continue;
+    for (const risk of imported.snapshot.risks) {
+      const values = risk.intrinsicFactors.filter((f) => allowed.has(f.factorId));
+      if (values.length === 0) continue;
+      out.set(componentInstanceTfId(instance.id, `threat|${risk.threatId}`), values);
+    }
+  }
+  return out;
+}
+
+/** References with the component's factor values attached (risk sync prefill). */
+export function withComponentPrefill(
+  references: ThreatReference[],
+  project: Pick<Project, "components" | "risks">,
+): ThreatReference[] {
+  const prefills = componentFactorPrefills(project);
+  if (prefills.size === 0) return references;
+  return references.map((r) => (prefills.has(r.id) ? { ...r, factorPrefill: prefills.get(r.id) } : r));
 }

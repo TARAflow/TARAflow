@@ -9,6 +9,13 @@
 //                                  import was refused)
 //   CMP_FLOW_NOT_IN_COMPONENT      a flow on an imported multiprocess that is
 //                    (error)       none of the component's boundary flows (Q3)
+//   CMP_METHOD_MISMATCH (info)     the component's likelihood methodology
+//                                  differs from the machine's (§7.2): only
+//                                  identical factors are prefilled
+//   CMP_FACTOR_UNRATED (warning)   with a mismatch: imported risks with
+//                                  likelihood factors still unrated
+//   CMP_FACTOR_OVERRIDE_RATIONALE  a value taken over from the component was
+//                    (warning)     overridden without a rationale (§7.2)
 //   CMP_COMPONENT_PAGE_CHANGED     the component's pages differ from the
 //                    (warning)     imported state — elements missing or
 //                                  added there (the pages are locked in the
@@ -25,6 +32,9 @@ import {
   type ValidationFinding,
 } from "features/dfd";
 import type { Project } from "../../models/project-types";
+import { compareFingerprints } from "shared";
+import { factorClassOf, getFactorDefinition } from "features/risks";
+import { projectMethodologyFingerprint } from "./snapshot-builder";
 
 export interface ComponentFindings {
   errors: ValidationFinding[];
@@ -35,7 +45,9 @@ export interface ComponentFindings {
 const EMPTY: ComponentFindings = { errors: [], warnings: [], infos: [] };
 const KEY = (code: string) => `components.findings.${code}`;
 
-export function componentFindings(project: Pick<Project, "components" | "dfd">): ComponentFindings {
+export function componentFindings(
+  project: Pick<Project, "components" | "dfd"> & Partial<Pick<Project, "risks">>,
+): ComponentFindings {
   const components = project.components;
   if (!components || (components.imports.length === 0 && components.instances.length === 0)) return EMPTY;
   const out: ComponentFindings = { errors: [], warnings: [], infos: [] };
@@ -52,9 +64,47 @@ export function componentFindings(project: Pick<Project, "components" | "dfd">):
     });
   }
 
+  // Methodology (§7.2, patch 16).
+  const machineFingerprint = project.risks ? projectMethodologyFingerprint({ risks: project.risks }) : null;
+  const mismatched = new Set<string>();
+  if (machineFingerprint) {
+    for (const imported of components.imports) {
+      if (compareFingerprints(imported.methodology, machineFingerprint).identical) continue;
+      mismatched.add(imported.id);
+      out.infos.push({
+        key: KEY("CMP_METHOD_MISMATCH"),
+        params: { component: imported.name, method: imported.methodology.likelihoodMethod, machineMethod: machineFingerprint.likelihoodMethod },
+      });
+    }
+  }
+  const riskConfig = project.risks?.configuration;
+  const isLikelihood = (factorId: string) =>
+    !!riskConfig && getFactorDefinition(factorId, riskConfig.customFactors)?.category === "likelihood";
+  const isIntrinsic = (factorId: string) =>
+    !!riskConfig && factorClassOf(getFactorDefinition(factorId, riskConfig.customFactors)) === "intrinsic";
+  const risksByThreat = new Map((project.risks?.risks ?? []).map((r) => [r.threatId, r]));
+
   for (const instance of components.instances) {
     const imported = importsById.get(instance.importId);
     const name = imported?.name ?? instance.prefix;
+
+    // Imported risks: unrated factors (only with a mismatch) and overrides without rationale.
+    if (imported) {
+      let unrated = 0;
+      let withoutRationale = 0;
+      for (const sr of imported.snapshot.risks) {
+        const risk = risksByThreat.get(componentInstanceTfId(instance.id, `threat|${sr.threatId}`));
+        if (!risk) continue;
+        if (mismatched.has(imported.id) && risk.factorRatings.some((f) => isLikelihood(f.factorId) && isIntrinsic(f.factorId) && f.value === 0)) unrated++;
+        if (risk.factorRatings.some((f) => f.derivedFrom === "component" && f.source === "manual" && f.value !== f.derivedValue && !(f.overrideRationale ?? "").trim())) withoutRationale++;
+      }
+      if (unrated > 0) {
+        out.warnings.push({ key: KEY("CMP_FACTOR_UNRATED"), params: { prefix: instance.prefix, component: name, count: unrated } });
+      }
+      if (withoutRationale > 0) {
+        out.warnings.push({ key: KEY("CMP_FACTOR_OVERRIDE_RATIONALE"), params: { prefix: instance.prefix, component: name, count: withoutRationale } });
+      }
+    }
     const mp = elements.get(instance.multiprocessTfId);
     if (!mp) {
       out.errors.push({ key: KEY("CMP_INSTANCE_ORPHANED"), params: { prefix: instance.prefix, component: name } });

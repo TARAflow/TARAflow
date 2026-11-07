@@ -46,7 +46,10 @@
       "CMP_SOURCE_UNPINNED": "Component {{component}} is imported unpinned ({{reason}}) — only its content identifies the state. Import a committed state for an audited TARA.",
       "CMP_INSTANCE_ORPHANED": "Component instance {{prefix}} ({{component}}) has no multiprocess in the DFD — delete the instance or import the component again.",
       "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} is attached to the imported component {{prefix}} ({{component}}) but is none of its interfaces — the component TARA does not cover it. Add the interface in the component TARA and update, or attach the flow elsewhere.",
-      "CMP_COMPONENT_PAGE_CHANGED": "The pages of component {{prefix}} ({{component}}) differ from the imported state: {{missing}} element(s) missing, {{added}} added. Component pages are read-only — the update restores them."
+      "CMP_COMPONENT_PAGE_CHANGED": "The pages of component {{prefix}} ({{component}}) differ from the imported state: {{missing}} element(s) missing, {{added}} added. Component pages are read-only — the update restores them.",
+      "CMP_METHOD_MISMATCH": "Component {{component}} was rated with another likelihood methodology ({{method}}; this project: {{machineMethod}}) — only identical factors were taken over, rate the others in this project's method.",
+      "CMP_FACTOR_UNRATED": "Component {{prefix}} ({{component}}): {{count}} imported risk(s) with likelihood factors still unrated.",
+      "CMP_FACTOR_OVERRIDE_RATIONALE": "Component {{prefix}} ({{component}}): {{count}} risk(s) override a factor value taken over from the component without a rationale."
     },
     "instanceRemoved": "Component instance removed with its multiprocess: {{list}}",
     "details": {

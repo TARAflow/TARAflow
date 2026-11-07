@@ -224,3 +224,67 @@ describe("relevance override on boundary flows (I3)", () => {
     expect(section.changes[0].details!.map((d) => d.field)).toContain("relevanceOverrides");
   });
 });
+
+// ==================== FACTOR PREFILL (§7.2, patch 16) ====================
+
+import { componentFactorPrefills } from "app/utils/component-threats";
+import { componentFindings } from "app/services/component-import/component-findings";
+
+describe("factor prefill per fingerprint (patch 16)", () => {
+  // cnc-ref: weighted mean, 4-level, skill_level / ease_of_exploit rated.
+  const cncProject = parseAndRepair(loadProjectFixture("cnc-ref.tara.json")) as Project;
+  const cncSnapshot = buildComponentSnapshot(cncProject);
+  const imported = () => {
+    const applied = applyComponentImport({
+      context: context(),
+      machine: {},
+      result: { snapshot: cncSnapshot, contentHash: snapshotContentHash(cncSnapshot), methodology: projectMethodologyFingerprint(cncProject), source: { commitSha: "a", schemaVersion: 14 } },
+      choice: { prefix: "CNC1", name: "CNC", eeMapping: {} },
+      ids: { importId: "imp", instanceId: "inst-c" },
+      importedAt: "t",
+    });
+    return applied.components;
+  };
+  const withRisks = (configuration: Record<string, unknown>) =>
+    ({ components: imported(), risks: { configuration: { ...cncProject.risks!.configuration, ...configuration }, risks: [], lastModified: "" } }) as unknown as Project;
+
+  it("identical methodology: every rated intrinsic factor of each risk", () => {
+    const prefills = componentFactorPrefills(withRisks({}));
+    expect(prefills.size).toBeGreaterThan(0);
+    for (const values of prefills.values()) {
+      for (const v of values) expect(["skill_level", "ease_of_exploit"]).toContain(v.factorId);
+    }
+    const sr = cncSnapshot.risks.find((x) => x.intrinsicFactors.length > 0)!;
+    expect(prefills.get(componentInstanceTfId("inst-c", `threat|${sr.threatId}`))).toEqual(sr.intrinsicFactors);
+  });
+
+  it("another likelihood scale: nothing is taken over", () => {
+    expect(componentFactorPrefills(withRisks({ scale: "5-level" })).size).toBe(0);
+  });
+
+  it("findings: method mismatch (info), unrated imported risks, overrides without rationale", () => {
+    const p = withRisks({ scale: "5-level" });
+    const inst = p.components!.instances[0];
+    const sr = cncSnapshot.risks[0];
+    const riskOf = (ratings: Record<string, unknown>[]) => ({ id: "r", threatId: componentInstanceTfId(inst.id, `threat|${sr.threatId}`), factorRatings: ratings });
+    const project = {
+      ...p,
+      dfd: { elements: [], connections: [] },
+      risks: { ...p.risks!, risks: [riskOf([{ factorId: "skill_level", value: 0, weight: 1 }, { factorId: "ease_of_exploit", value: 2, weight: 1, source: "manual", derivedValue: 3, derivedFrom: "component" }])] },
+    } as unknown as Project;
+    const f = componentFindings(project);
+    expect(f.infos.map((x) => x.key)).toEqual(["components.findings.CMP_METHOD_MISMATCH"]);
+    expect(f.warnings.map((x) => x.key)).toEqual(expect.arrayContaining(["components.findings.CMP_FACTOR_UNRATED", "components.findings.CMP_FACTOR_OVERRIDE_RATIONALE"]));
+    // with a rationale the override finding goes
+    const withRationale = { ...project, risks: { ...project.risks!, risks: [riskOf([{ factorId: "skill_level", value: 1, weight: 1 }, { factorId: "ease_of_exploit", value: 2, weight: 1, source: "manual", derivedValue: 3, derivedFrom: "component", overrideRationale: "network" }])] } } as unknown as Project;
+    expect(componentFindings(withRationale).warnings.map((x) => x.key)).not.toContain("components.findings.CMP_FACTOR_OVERRIDE_RATIONALE");
+  });
+
+  it("the commit gate opens on an override rationale alone (risk factor ratings in the audit diff)", () => {
+    const risk = (rationale: string) => ({ id: "r1", threatId: "t", threatDisplayId: "X", strideCategory: "T", calculatedRiskBeforeMitigation: 6, calculatedRiskAfterMitigation: 0, moscowPriority: "must", selectedMitigations: [], factorRatings: [{ factorId: "skill_level", value: 2, weight: 1, source: "manual", derivedValue: 3, derivedFrom: "component", overrideRationale: rationale }], mitigatedFactorRatings: [] });
+    const project = (rationale: string) => ({ dfd: null, assets: null, threats: null, attackTrees: null, risks: { configuration: DEFAULT_CONFIGURATION, risks: [risk(rationale)], lastModified: "" } }) as never;
+    const changes = new DiffService().detectChanges(project("plant network"), project(""));
+    const section = changes.find((c) => c.phase === "risks")!;
+    expect(section.changes[0].details!.map((d) => d.field)).toEqual(["factorRatings"]);
+  });
+});

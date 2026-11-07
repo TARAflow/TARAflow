@@ -174,9 +174,10 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
 
   // ── Imported components (multi-project TARA) ─────────────────────────────
   const components = activeProject?.components;
+  const risks = activeProject?.risks;
   const componentDfdFindings = useMemo(
-    () => (components ? componentFindings({ components, dfd: dfd ?? null }) : undefined),
-    [components, dfd],
+    () => (components ? componentFindings({ components, dfd: dfd ?? null, risks: risks ?? null }) : undefined),
+    [components, dfd, risks],
   );
   const componentMultiprocessIds = useMemo(
     () => (components ? importedMultiprocessIds({ components }) : undefined),

@@ -113,6 +113,13 @@ export interface ThreatReference {
       targetType: string;
     } | null;
   }[];
+  /**
+   * Factor values taken over from elsewhere — the intrinsic likelihood
+   * factors of an imported component's risk, where the methodologies allow
+   * it (multi-project TARA §7.2, patch 16). The risk sync prefills them as
+   * derived values; an analyst override wins. Absent: none.
+   */
+  factorPrefill?: { factorId: string; value: number }[];
 }
 
 // ==================== THREAT → GOAL LINK ====================

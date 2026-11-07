@@ -943,6 +943,27 @@ export class DiffService {
       });
     }
 
+    // Factor ratings (value, source, override rationale) — a rationale or a
+    // value change that leaves the calculated risk unchanged must still open
+    // the commit gate (multi-project TARA §7.2, patch 16).
+    for (const key of ["factorRatings", "mitigatedFactorRatings"] as const) {
+      const text = (r: Risk) =>
+        (r[key] ?? [])
+          .map((f) => `${f.factorId}=${f.value}${f.source ? ` (${f.source})` : ""}${f.overrideRationale ? ` — ${f.overrideRationale}` : ""}`)
+          .join(", ");
+      const before = text(previous);
+      const after = text(current);
+      if (before !== after) {
+        details.push({
+          field: key,
+          fieldLabel: key === "factorRatings" ? "Factor ratings" : "Factor ratings after mitigation",
+          oldValue: before,
+          newValue: after,
+          valueType: "string",
+        });
+      }
+    }
+
     return details;
   }
 

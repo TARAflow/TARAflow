@@ -6,7 +6,7 @@
 import React from "react";
 import type { RiskDialogModel } from "./use-risk-dialog-model";
 import { ISO_AP_POINTS_BY_FACTOR } from "./local-risk-state";
-import { Box, Typography, Chip, Stack, Tooltip, IconButton, Paper, Select, MenuItem } from "@mui/material";
+import { Box, Typography, Chip, Stack, Tooltip, IconButton, Paper, Select, MenuItem, TextField } from "@mui/material";
 import { Refresh as ResetIcon } from "@mui/icons-material";
 import { ATTACK_TREE_LIKELIHOOD_FACTOR_ID } from "../../models/risk-factor-types";
 import { ISO21434_FACTOR_LEVELS } from "../../models/iso21434-core";
@@ -24,7 +24,7 @@ export interface FactorRowFactor {
 
   // ── Factor row renderer ───────────────────────────────────────────────────
 export function renderFactorRowOf(m: RiskDialogModel, factor: FactorRowFactor, mitigated: boolean) {
-  const { t, configuration, local, isEN50742, updateFactor, handleResetFactor } = m;
+  const { t, configuration, local, isEN50742, updateFactor, handleResetFactor, setFactorRationale } = m;
   const def = factor.definition;
   if (!def) return null;
 
@@ -47,18 +47,32 @@ export function renderFactorRowOf(m: RiskDialogModel, factor: FactorRowFactor, m
   // prefill. The badge/tooltip text must say which, or it actively
   // misleads the analyst about where to go fix a wrong value.
   const isDfdDerived = factor.factorId === "exposure_level";
-  const derivedLabel = isDfdDerived
-    ? t("tabs.risks.dialog.factorDerivedDfd", { defaultValue: "DFD" })
-    : t("tabs.risks.dialog.factorDerived", { defaultValue: "Assets" });
-  const derivedTooltip = isDfdDerived
-    ? t("tabs.risks.dialog.factorDerivedDfdTooltip", {
-        defaultValue:
-          "Derived from the linked DFD element/DataFlow's Exposure Level",
+  // Multi-project TARA (§7.2, patch 16): an intrinsic factor taken over
+  // from an imported component.
+  const isComponentDerived = rating?.derivedFrom === "component";
+  const derivedLabel = isComponentDerived
+    ? t("tabs.risks.dialog.factorDerivedComponent", { defaultValue: "Component" })
+    : isDfdDerived
+      ? t("tabs.risks.dialog.factorDerivedDfd", { defaultValue: "DFD" })
+      : t("tabs.risks.dialog.factorDerived", { defaultValue: "Assets" });
+  const derivedTooltip = isComponentDerived
+    ? t("tabs.risks.dialog.factorDerivedComponentTooltip", {
+        defaultValue: "Taken over from the imported component's rating (intrinsic factor)",
       })
-    : t("tabs.risks.dialog.factorDerivedTooltip", {
-        defaultValue: "Pre-filled from Asset Tab data",
-      });
-  const overriddenTooltip = isDfdDerived
+    : isDfdDerived
+      ? t("tabs.risks.dialog.factorDerivedDfdTooltip", {
+          defaultValue:
+            "Derived from the linked DFD element/DataFlow's Exposure Level",
+        })
+      : t("tabs.risks.dialog.factorDerivedTooltip", {
+          defaultValue: "Pre-filled from Asset Tab data",
+        });
+  const overriddenTooltip = isComponentDerived
+    ? t("tabs.risks.dialog.factorOverriddenTooltipComponent", {
+        value: rating?.derivedValue,
+        defaultValue: `Component's value: ${rating?.derivedValue}. Click ↺ to reset.`,
+      })
+    : isDfdDerived
     ? t("tabs.risks.dialog.factorOverriddenTooltipDfd", {
         value: rating?.derivedValue,
         defaultValue: `DFD-derived value: ${rating?.derivedValue}. Click ↺ to reset.`,
@@ -216,6 +230,21 @@ export function renderFactorRowOf(m: RiskDialogModel, factor: FactorRowFactor, m
           );
         })}
       </Select>
+      {isOverridden && isComponentDerived && (
+        <TextField
+          size="small"
+          fullWidth
+          multiline
+          sx={{ mt: 1 }}
+          label={t("tabs.risks.dialog.factorOverrideRationale", {
+            defaultValue: "Why this differs from the component's rating (required)",
+          })}
+          value={rating?.overrideRationale ?? ""}
+          error={!(rating?.overrideRationale ?? "").trim()}
+          onChange={(e) => setFactorRationale(factor.factorId, e.target.value, mitigated)}
+          inputProps={{ "data-testid": `factor-override-rationale-${factor.factorId}` }}
+        />
+      )}
       {directionHint && (
         <Typography
           variant="caption"

@@ -371,6 +371,17 @@ export interface FactorRating {
    * undefined    → no derivation available
    */
   source?: "derived" | "manual" | "attack-tree";
+  /**
+   * Where a derived value comes from, when not the Asset Tab / DFD: an
+   * imported component's intrinsic factor (multi-project TARA §7.2,
+   * patch 16). Absent: Asset Tab (or DFD for the exposure level).
+   */
+  derivedFrom?: "component";
+  /**
+   * Why the analyst overrode a value taken over from a component — mandatory
+   * there (§7.2); a finding names overrides without one.
+   */
+  overrideRationale?: string;
 }
 
 // ==================== ACTIVE FACTOR ====================

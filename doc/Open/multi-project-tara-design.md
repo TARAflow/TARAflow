@@ -644,6 +644,21 @@ The audit diff sees the change with the instance (test: the commit gate opens). 
 section "Deviations from the component's assessment" (phase 6) and the update preview listing
 stale overrides (phase 5).
 
+*Patch 16 done (2026-11-07):* prefill per fingerprint (§7.2). `componentFactorPrefills` (read model):
+per import `compareFingerprints(component, machine)` → the intrinsic factor values of each imported
+risk that may be taken over, keyed by the instance threat id; attached to the risk references as
+`ThreatReference.factorPrefill`. The risk sync (`applyFactorPrefill`) fills them as derived values
+(`source: "derived"`, `derivedFrom: "component"`) on new and existing risks; an override keeps its
+value (only the derived value follows, so "reset" returns to the component's current value).
+The risk dialog labels the origin "Component" and asks for a rationale on an override
+(`FactorRating.overrideRationale`, saved with the rating). Findings: `CMP_METHOD_MISMATCH` (info),
+`CMP_FACTOR_UNRATED` (warning, with a mismatch, imported risks with unrated intrinsic likelihood
+factors), `CMP_FACTOR_OVERRIDE_RATIONALE` (warning). Found and fixed on the way: the audit diff did
+not compare a risk's factor ratings at all (only the calculated values, priority and mitigations) —
+a rationale or a value change that leaves the risk value unchanged left the commit gate silent; it
+now lists "Factor ratings" (before / after mitigation) as a change (test: the commit gate opens on a
+rationale alone).
+
 Further constraints (review 2026-11-07):
 - The threats are derived, but the machine's own ratings on them are stored data: the WoO overlay
   per instance and pathKey (patch 17), the overrides of prefilled factors with their rationale

@@ -36,6 +36,7 @@ import {
 } from "shared";
  import {
    applyAssetCriteriaToFactorRatings,
+   applyFactorPrefill,
    calculateRiskValues,
    setAttackTreeLikelihoodFactor,
    type TreeLikelihoodContribution,
@@ -690,6 +691,8 @@ export function syncRisksFromThreats(
       threat,
       dfd,
     );
+    // Imported component: its intrinsic factor values (§7.2, patch 16).
+    updatedFactorRatings = applyFactorPrefill(updatedFactorRatings, threat.factorPrefill);
 
     const ratingsChanged = !sameContent(updatedFactorRatings, reconciledRatings);
 
@@ -781,6 +784,8 @@ export function syncRisksFromThreats(
       threat,
       dfd,
     );
+    // Imported component: its intrinsic factor values (§7.2, patch 16).
+    factorRatings = applyFactorPrefill(factorRatings, threat.factorPrefill);
 
     const beforeValues = calculateGatedRiskValues(
       factorRatings,
