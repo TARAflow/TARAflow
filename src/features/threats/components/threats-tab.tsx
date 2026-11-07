@@ -350,6 +350,20 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     setDeleteManualThreats(false);
   }, [activeHook, deleteManualThreats]);
 
+  // Imported component threats open read-only (design §7.1; manual test
+  // 2026-11-07: a click on an imported threat opened nothing).
+  const [importedView, setImportedView] = useState<{
+    label: string;
+    threats: Threat[];
+    index: number;
+  } | null>(null);
+  const openImportedThreat = useCallback(
+    (group: { key: string; label: string }, threats: Threat[], index: number) =>
+      setImportedView({ label: group.label, threats, index }),
+    [],
+  );
+  const noSave = useCallback(() => {}, []);
+
   const handleOpenEditDialog = useCallback(
     (tableIndex: number, threat: Threat) => {
       // Store threatId — initialIndex is computed live at render time
@@ -759,7 +773,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             pt: 2,
           }}
         >
-          <ImportedThreatsSection groups={project.importedThreatGroups} onOverrideRelevance={onOverrideImportedRelevance} />
+          <ImportedThreatsSection
+            groups={project.importedThreatGroups}
+            onOverrideRelevance={onOverrideImportedRelevance}
+            method={activeMethod}
+            onOpenThreat={openImportedThreat}
+          />
           {activeMethod === "per-element" ? (
             <ElementThreatsView
               tables={elementHook.tables}
@@ -830,6 +849,30 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             />
           );
         })()}
+
+      {/* Imported threat — read-only */}
+      {importedView && (
+        <ThreatEvalDialog
+          open
+          threats={importedView.threats}
+          initialIndex={importedView.index}
+          configuration={configuration}
+          assetDataRef={project.assetDataRef}
+          dfdData={project.dfd ?? null}
+          onSave={noSave}
+          onClose={() => setImportedView(null)}
+          readOnly
+          readOnlyNote={t("tabs.threats.dialog.importedReadOnly", {
+            source: importedView.label,
+            defaultValue:
+              "Imported from {{source}} — read-only. The component TARA decides text, STRIDE and relevance; a boundary-flow threat's relevance can be overridden in the list.",
+          })}
+          isoMode={
+            regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) ===
+            "iso-21434"
+          }
+        />
+      )}
 
       {/* Config Dialog */}
       {showConfigDialog && (

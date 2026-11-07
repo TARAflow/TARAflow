@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -171,6 +172,15 @@ export interface ThreatEvalDialogProps {
   onClose: () => void;
   /** ISO 21434 mode: relevance is asset-derived; overrides need a note. */
   isoMode?: boolean;
+  /**
+   * Read-only (threats of an imported component, design §7.1): everything
+   * is shown, nothing can be changed — no edit / add / delete controls, the
+   * fields are disabled, the footer only navigates and closes; onSave is
+   * never called.
+   */
+  readOnly?: boolean;
+  /** Shown above the details in read-only mode, e.g. where the threat comes from. */
+  readOnlyNote?: string;
 }
 
 // ==================== LOCAL TYPES ====================
@@ -229,6 +239,8 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   onSave,
   onClose,
   isoMode = false,
+  readOnly = false,
+  readOnlyNote,
 }) => {
   const { t } = useTranslation();
 
@@ -480,7 +492,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
   const navigateTo = (index: number) => {
     // Auto-save current if dirty
-    if (local && currentThreat && isDirtyState(local, currentThreat)) {
+    if (!readOnly && local && currentThreat && isDirtyState(local, currentThreat)) {
       onSave(currentThreat.id, buildUpdates());
     }
     setCurrentIndex(index);
@@ -655,7 +667,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
           <ReviewBadge review={currentThreat.review} />
           {/* Undo a drift-review Keep — the threat returns to its generated
               source and reappears in the drift review if still not produced */}
-          {currentThreat.retainedAfterRuleChange && (
+          {currentThreat.retainedAfterRuleChange && !readOnly && (
             <Tooltip
               title={t("tabs.threats.drift.undoKeep.tooltip", {
                 defaultValue:
@@ -840,6 +852,18 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
         {/* ── Right: threat detail ──────────────────────────────────────── */}
         <Box sx={{ flex: 1, overflow: "auto", p: 2.5 }}>
+          {readOnly && (
+            <Alert severity="info" sx={{ mb: 2 }} data-testid="threat-dialog-read-only">
+              {readOnlyNote ??
+                t("tabs.threats.dialog.readOnly", { defaultValue: "Read-only" })}
+            </Alert>
+          )}
+          {/* Read-only: a disabled fieldset turns every field below off. */}
+          <Box
+            component="fieldset"
+            disabled={readOnly}
+            sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}
+          >
           <Stack spacing={2.5}>
             {/* CAUSE — read-only, amber */}
             {currentThreat.causeDescription && (
@@ -926,6 +950,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                 >
                   <IconButton
                     size="small"
+                    sx={readOnly ? { display: "none" } : undefined}
                     onClick={() => setEditingThreat((v) => !v)}
                     color={editingThreat ? "primary" : "default"}
                   >
@@ -993,6 +1018,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                 >
                   <IconButton
                     size="small"
+                    sx={readOnly ? { display: "none" } : undefined}
                     onClick={() => setEditingAttack((v) => !v)}
                     color={editingAttack ? "primary" : "default"}
                   >
@@ -1123,7 +1149,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     one is a project mitigation — tracked by id (report,
                     tickets, merge), with a DFD effect in the closed loop.
                     Free text written earlier stays editable and convertible. */}
-                {projectMitigations && (
+                {projectMitigations && !readOnly && (
                   <Button
                     size="small"
                     startIcon={<AddIcon />}
@@ -1136,7 +1162,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   </Button>
                 )}
               </Stack>
-              {(isManual || (projectMitigations?.entries.length ?? 0) > 0) && (
+              {!readOnly && (isManual || (projectMitigations?.entries.length ?? 0) > 0) && (
                 <CatalogEntryPicker
                   kind="mitigation"
                   strideCategory={currentThreat.strideCategory}
@@ -1169,12 +1195,12 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             },
                           )}
                         />
-                        <LinkToCatalogButton
+                        {!readOnly && <LinkToCatalogButton
                           kind="mitigation"
                           text={m.notes}
                           onLink={(id) => linkMitigation(index, id)}
-                        />
-                        {projectMitigations && !!m.notes?.trim() && (
+                        />}
+                        {projectMitigations && !readOnly && !!m.notes?.trim() && (
                           <Button
                             size="small"
                             variant="text"
@@ -1195,6 +1221,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <IconButton
                             size="small"
                             onClick={() => deleteMitigation(index)}
+                            style={readOnly ? { display: "none" } : undefined}
                             sx={{ mt: 0.25 }}
                           >
                             <DeleteIcon fontSize="small" />
@@ -1217,7 +1244,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <MitigationCoverageBadge
                             coverage={mitigationCoverage.get(m.id ?? "")}
                           />
-                          {projectMitigations && isProjectMitigationId(m.id) && (
+                          {projectMitigations && !readOnly && isProjectMitigationId(m.id) && (
                             <Button
                               size="small"
                               onClick={() => setPmForm({ mode: "edit", id: m.id! })}
@@ -1226,7 +1253,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                               {t("common.edit", { defaultValue: "Edit" })}
                             </Button>
                           )}
-                          {(isManual || isProjectMitigationId(m.id)) && (
+                          {!readOnly && (isManual || isProjectMitigationId(m.id)) && (
                             <IconButton
                               size="small"
                               sx={{ ml: "auto" }}
@@ -1300,6 +1327,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     )
                   </Typography>
                 </Box>
+                {!readOnly && (
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
@@ -1310,8 +1338,9 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     defaultValue: "Add custom verification",
                   })}
                 </Button>
+                )}
               </Stack>
-              {isManual && (
+              {isManual && !readOnly && (
                 <CatalogEntryPicker
                   kind="verification"
                   strideCategory={currentThreat.strideCategory}
@@ -1343,11 +1372,11 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             },
                           )}
                         />
-                        <LinkToCatalogButton
+                        {!readOnly && <LinkToCatalogButton
                           kind="verification"
                           text={v.notes}
                           onLink={(id) => linkVerification(index, id)}
-                        />
+                        />}
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1356,6 +1385,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <IconButton
                             size="small"
                             onClick={() => deleteVerification(index)}
+                            style={readOnly ? { display: "none" } : undefined}
                             sx={{ mt: 0.25 }}
                           >
                             <DeleteIcon fontSize="small" />
@@ -1368,7 +1398,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <Typography variant="body2" fontWeight="medium" sx={{ flexGrow: 1 }}>
                             {v.text}
                           </Typography>
-                          {isManual && (
+                          {isManual && !readOnly && (
                             <IconButton
                               size="small"
                               onClick={() => removeCatalogEntry("verification", index)}
@@ -1516,6 +1546,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     </InputLabel>
                     <Select
                       value={local.threatActor}
+                      disabled={readOnly}
                       label={t("tabs.threats.threatActor", {
                         defaultValue: "Threat Actor",
                       })}
@@ -1557,6 +1588,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               </Accordion>
             )}
           </Stack>
+          </Box>
         </Box>
       </DialogContent>
 
@@ -1601,6 +1633,21 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
         </Stack>
 
         {/* Right: actions */}
+        {readOnly ? (
+          <Stack direction="row" spacing={1}>
+            <IconButton
+              size="small"
+              onClick={() => navigateTo(currentIndex + 1)}
+              disabled={currentIndex >= sortedThreats.length - 1}
+              data-testid="threat-dialog-next"
+            >
+              <NextIcon fontSize="small" />
+            </IconButton>
+            <Button size="small" variant="contained" onClick={onClose}>
+              {t("common.close", { defaultValue: "Close" })}
+            </Button>
+          </Stack>
+        ) : (
         <Stack direction="row" spacing={1}>
           <Button
             size="small"
@@ -1644,6 +1691,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             {t("common.ok", { defaultValue: "OK" })}
           </Button>
         </Stack>
+        )}
       </DialogActions>
       {projectMitigations && (
         <ProjectMitigationForm

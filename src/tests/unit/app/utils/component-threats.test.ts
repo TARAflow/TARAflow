@@ -129,6 +129,15 @@ describe("groups, references, merge", () => {
     expect(groups[0].threats.length).toBeGreaterThan(0);
   });
 
+  it("each row names its method — the Threats tab shows the active one (manual test 2026-11-07)", () => {
+    const rows = componentThreatGroups(m)[0].rows;
+    const data = componentThreatData(m)!;
+    const count = (tables: { threats: unknown[] }[]) => tables.reduce((n, t) => n + t.threats.length, 0);
+    expect(rows.filter((r) => r.method === "per-element").length).toBe(count(data.perElementTables));
+    expect(rows.filter((r) => r.method === "per-interaction").length).toBe(count(data.perInteractionTables));
+    expect(rows.every((r) => r.method === "per-element" || r.method === "per-interaction")).toBe(true);
+  });
+
   it("references for the risk register, per method", () => {
     const refs = componentThreatReferences(m, "per-element");
     expect(refs.length).toBe(componentThreatData(m)!.perElementTables[0].threats.length);

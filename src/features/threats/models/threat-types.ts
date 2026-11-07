@@ -982,6 +982,8 @@ export interface ImportedThreatRow {
   override?: { relevance: ThreatRelevance; rationale: string; date: string };
   /** The component changed its decision since the override. */
   stale?: boolean;
+  /** The analysis method the threat belongs to (absent: shown in both). */
+  method?: StrideMethod;
 }
 
 /** The machine's relevance decision on an imported boundary-flow threat (null = remove). */

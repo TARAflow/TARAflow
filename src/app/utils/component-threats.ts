@@ -43,6 +43,8 @@ export interface ComponentThreatRow {
   override?: { relevance: Threat["relevance"]; rationale: string; date: string };
   /** The component changed its decision since the override — to review (I3). */
   stale?: boolean;
+  /** The analysis method the threat belongs to — the Threats tab shows the active one. */
+  method: StrideMethod;
 }
 
 export interface ComponentThreatGroup {
@@ -130,7 +132,7 @@ function instanceTables(
   const overrides = new Map((instance.relevanceOverrides ?? []).map((o) => [o.threatKey, o]));
 
   const rows: ComponentThreatRow[] = [];
-  const table = (all: ThreatTable[], keep: (t: Threat) => boolean): ThreatTable[] => {
+  const table = (all: ThreatTable[], keep: (t: Threat) => boolean, method: StrideMethod): ThreatTable[] => {
     const list = all.flatMap((tb) => tb.threats.filter(keep)).map((original) => {
       const boundary = onBoundary(original);
       const o = boundary ? overrides.get(original.id) : undefined;
@@ -141,6 +143,7 @@ function instanceTables(
         threatKey: original.id,
         componentRelevance: original.relevance,
         boundary,
+        method,
         ...(o ? { override: { relevance: o.relevance, rationale: o.rationale, date: o.date } } : {}),
         ...(o && o.componentRelevance !== original.relevance ? { stale: true } : {}),
       });
@@ -151,8 +154,8 @@ function instanceTables(
       : [];
   };
   return {
-    perElement: table(threats.perElementTables ?? [], keepElementThreat),
-    perInteraction: table(threats.perInteractionTables ?? [], keepInteractionThreat),
+    perElement: table(threats.perElementTables ?? [], keepElementThreat, "per-element"),
+    perInteraction: table(threats.perInteractionTables ?? [], keepInteractionThreat, "per-interaction"),
     rows,
   };
 }

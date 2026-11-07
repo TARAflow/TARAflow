@@ -1,6 +1,8 @@
 // src/tests/component/imported-threats-section.test.tsx
 // Multi-project TARA, patch 14: the Threats tab shows the threats of
 // imported components read-only, grouped per instance.
+// Manual test 2026-11-07: only the active method's threats; a row opens the
+// threat read-only.
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -93,5 +95,48 @@ describe("ImportedThreatsSection", () => {
     fireEvent.click(screen.getByTestId("imported-threat-edit-kb"));
     fireEvent.click(screen.getByTestId("imported-threat-override-remove"));
     expect(onOverride).toHaveBeenCalledWith("inst", "kb", null);
+  });
+
+  it("shows only the active method's threats, with that count", () => {
+    const el = threat("e1", "SD1:P3-T-1", "relevant");
+    const ia = threat("x1", "SD1:DF7-I-1", "relevant");
+    const rows = [
+      { threat: el, threatKey: "e1", componentRelevance: "relevant", boundary: false, method: "per-element" },
+      { threat: ia, threatKey: "x1", componentRelevance: "relevant", boundary: false, method: "per-interaction" },
+    ] as never;
+    const groups = [{ key: "inst", label: "SD1", threats: [el, ia], rows }];
+    const { rerender } = render(<ImportedThreatsSection groups={groups} method="per-element" />);
+    expect(screen.getByTestId("imported-threats-section").textContent).toContain("(1)");
+    fireEvent.click(screen.getByText(/Threats from imported components/));
+    expect(screen.queryByTestId("imported-threat-e1")).not.toBeNull();
+    expect(screen.queryByTestId("imported-threat-x1")).toBeNull();
+    rerender(<ImportedThreatsSection groups={groups} method="per-interaction" />);
+    expect(screen.queryByTestId("imported-threat-x1")).not.toBeNull();
+    expect(screen.queryByTestId("imported-threat-e1")).toBeNull();
+    rerender(<ImportedThreatsSection groups={groups} />);
+    expect(screen.getByTestId("imported-threats-section").textContent).toContain("(2)");
+  });
+
+  it("a row opens the threat with the group's shown threats; the override button does not", () => {
+    const onOpen = vi.fn();
+    const a = threat("a", "SD1:P3-T-1", "relevant");
+    const b = threat("b", "SD1:P3-T-2", "relevant");
+    render(
+      <ImportedThreatsSection
+        groups={[{ key: "inst", label: "SD1 · Smoke Detector", threats: [a, b], rows: [
+          { threat: a, threatKey: "ka", componentRelevance: "relevant", boundary: false },
+          { threat: b, threatKey: "kb", componentRelevance: "relevant", boundary: true },
+        ] }]}
+        onOverrideRelevance={vi.fn()}
+        onOpenThreat={onOpen}
+      />,
+    );
+    fireEvent.click(screen.getByText(/Threats from imported components/));
+    fireEvent.click(screen.getByTestId("imported-threat-kb"));
+    expect(onOpen).toHaveBeenCalledWith({ key: "inst", label: "SD1 · Smoke Detector" }, [a, b], 1);
+    onOpen.mockClear();
+    fireEvent.click(screen.getByTestId("imported-threat-edit-kb"));
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(screen.getByTestId("imported-threat-override-dialog")).toBeTruthy();
   });
 });

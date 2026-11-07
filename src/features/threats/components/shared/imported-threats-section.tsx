@@ -8,6 +8,10 @@
 // directions, with a mandatory rationale; the component's decision stays
 // visible beside it. An override whose component decision changed since is
 // marked "to review".
+//
+// Manual test 2026-11-07: only the active method's threats are shown (the
+// count matches the machine's own tables), and a row opens the threat in
+// the threat dialog, read-only.
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,6 +42,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type {
   ImportedRelevanceDecision,
   ImportedThreatRow,
+  StrideMethod,
   Threat,
   ThreatRelevance,
 } from "../../models/threat-types";
@@ -63,13 +68,29 @@ export interface ImportedThreatsSectionProps {
   groups?: readonly ImportedThreatGroup[];
   /** Absent: no override offered (read-only everywhere). */
   onOverrideRelevance?: (groupKey: string, threatKey: string, decision: ImportedRelevanceDecision) => void;
+  /** The active method: only its threats are shown. Absent: all. */
+  method?: StrideMethod;
+  /** Open a threat read-only: the group's shown threats in display order and the index clicked. */
+  onOpenThreat?: (group: { key: string; label: string }, threats: Threat[], index: number) => void;
 }
 
-export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = ({ groups, onOverrideRelevance }) => {
+/** The rows of a group as shown: the active method only, sorted by label. */
+function rowsOf(g: ImportedThreatGroup, method: StrideMethod | undefined): ImportedThreatRow[] {
+  const rows: ImportedThreatRow[] = g.rows
+    ? [...g.rows]
+    : g.threats.map((threat) => ({ threat, threatKey: threat.id, componentRelevance: threat.relevance, boundary: false }));
+  return rows
+    .filter((r) => !method || !r.method || r.method === method)
+    .sort((a, b) => compareThreatsByLabel(a.threat, b.threat));
+}
+
+export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = ({ groups, onOverrideRelevance, method, onOpenThreat }) => {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<{ groupKey: string; row: ImportedThreatRow } | null>(null);
   if (!groups || groups.length === 0) return null;
-  const total = groups.reduce((n, g) => n + g.threats.length, 0);
+  const shown = groups.map((g) => ({ group: g, rows: rowsOf(g, method) })).filter((x) => x.rows.length > 0);
+  if (shown.length === 0) return null;
+  const total = shown.reduce((n, x) => n + x.rows.length, 0);
   return (
     <Accordion disableGutters sx={{ mb: 1.5, flexShrink: 0 }} data-testid="imported-threats-section">
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -78,11 +99,9 @@ export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = ({ 
         </Typography>
       </AccordionSummary>
       <AccordionDetails sx={{ maxHeight: 360, overflow: "auto", pt: 0 }}>
-        {groups.map((g) => {
-          const rows: ImportedThreatRow[] = g.rows
-            ? [...g.rows]
-            : g.threats.map((threat) => ({ threat, threatKey: threat.id, componentRelevance: threat.relevance, boundary: false }));
-          rows.sort((a, b) => compareThreatsByLabel(a.threat, b.threat));
+        {shown.map(({ group: g, rows }) => {
+          const open = (index: number) =>
+            onOpenThreat?.({ key: g.key, label: g.label }, rows.map((r) => r.threat), index);
           return (
             <Box key={g.key} sx={{ mb: 2 }} data-testid={`imported-threats-${g.key}`}>
               <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5 }}>
@@ -100,8 +119,14 @@ export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = ({ 
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.threat.id} data-testid={`imported-threat-${row.threatKey}`}>
+                  {rows.map((row, index) => (
+                    <TableRow
+                      key={row.threat.id}
+                      data-testid={`imported-threat-${row.threatKey}`}
+                      hover={!!onOpenThreat}
+                      onClick={onOpenThreat ? () => open(index) : undefined}
+                      sx={onOpenThreat ? { cursor: "pointer" } : undefined}
+                    >
                       <TableCell>
                         <ThreatIdCell id={row.threat.displayId} />
                       </TableCell>
@@ -146,7 +171,10 @@ export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = ({ 
                         {row.boundary && onOverrideRelevance && (
                           <Button
                             size="small"
-                            onClick={() => setEditing({ groupKey: g.key, row })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditing({ groupKey: g.key, row });
+                            }}
                             data-testid={`imported-threat-edit-${row.threatKey}`}
                           >
                             {row.override

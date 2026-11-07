@@ -271,6 +271,8 @@
         "mitigationPlaceholder": "Describe the mitigation...",
         "verificationPlaceholder": "Describe the verification...",
         "notePlaceholder": "Optional note for audit trail...",
+        "readOnly": "Read-only",
+        "importedReadOnly": "Imported from {{source}} — read-only. The component TARA decides text, STRIDE and relevance; a boundary-flow threat's relevance can be overridden in the list.",
         "noteLabel": "Note",
         "overrideNeedsNote": "A justification is required to deviate from the asset-derived relevance.",
         "relevanceAutoDerived": "Relevance is derived from the asset relationship; overriding it needs a justification.",

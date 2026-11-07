@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–21; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–22; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -713,6 +713,17 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 22 done (2026-11-07, manual test):* imported threats in the Threats tab. A click on an
+imported threat opened nothing — it now opens the threat dialog read-only (`readOnly`: a note on the
+source, no edit / add / delete controls, the fields disabled, the footer only navigates and closes,
+nothing is saved), navigating within the instance's shown threats. The section shows only the active
+method's threats (each read-model row names its method), so its count matches the machine's own
+tables (it showed both methods: 157 instead of 80). UX note: the section is a collapsed accordion
+above the empty state and easy to miss before the machine generates its own threats. New test for
+the usual order — the machine has its threats and risks before the import: its threats survive
+untouched (no orphan, removal or change), the sync adds nothing on the component's parts (boundary
+flows: only the machine-side perspective), both methods are in sync afterwards, the machine's risks
+stay and the imported ones join.
 *Patch 21 done (2026-11-07, review of 18–20):* the machine's attack trees are a required input of
 the component attack-tree read model (`attackTrees: … | null`) — a caller that forgot them rated
 with the default bands silently; ties at the most feasible level go to the lowest attack potential
