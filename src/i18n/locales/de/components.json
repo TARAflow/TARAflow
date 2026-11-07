@@ -41,6 +41,11 @@
       "cancel": "Abbrechen",
       "confirm": "Importieren",
       "applyFailed": "Die Komponente konnte nicht importiert werden: {{message}}"
+    },
+    "findings": {
+      "CMP_SOURCE_UNPINNED": "Komponente {{component}} ist ungebunden importiert ({{reason}}) — nur ihr Inhalt kennzeichnet den Stand. Für eine auditierte TARA einen committeten Stand importieren.",
+      "CMP_INSTANCE_ORPHANED": "Komponenten-Instanz {{prefix}} ({{component}}) hat keinen Multiprozess im DFD — Instanz löschen oder die Komponente erneut importieren.",
+      "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} hängt an der importierten Komponente {{prefix}} ({{component}}), ist aber keine ihrer Schnittstellen — die Komponenten-TARA deckt ihn nicht ab. Schnittstelle in der Komponenten-TARA ergänzen und aktualisieren oder den Flow anders anschliessen."
     }
   }
 }

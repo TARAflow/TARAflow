@@ -77,6 +77,20 @@ export interface InsertComponentResult {
 
 export class InsertComponentError extends Error {}
 
+/**
+ * The machine tfId of a component element / flow in one instance —
+ * deterministic, so an update keeps it and the app can recompute it (e.g.
+ * the boundary flows of an instance for CMP_FLOW_NOT_IN_COMPONENT).
+ */
+export function componentInstanceTfId(instanceId: string, componentTfId: string): string {
+  return `cmp${fnv1aHex12(`${instanceId}|${componentTfId}`)}`;
+}
+
+/** The tfId of an instance's multiprocess. */
+export function instanceMultiprocessTfId(instanceId: string): string {
+  return componentInstanceTfId(instanceId, "multiprocess");
+}
+
 const MP_STYLE = "shape=ext;double=1;rounded=1;whiteSpace=wrap;html=1;arcSize=50;margin=1;strokeWidth=2;";
 const EE_STYLE = "rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;";
 const FLOW_STYLE = "endArrow=classic;html=1;rounded=0;enumerate=0;";
@@ -142,7 +156,7 @@ function idlabelXml(id: string, parent: string, text: string): string {
 /** Puts one component instance into the machine DFD (design §5, §6). */
 export function insertComponentInstance(input: InsertComponentInput): InsertComponentResult {
   const { machine, component, instanceId, prefix, multiprocess, eeMapping } = input;
-  const ns = (key: string) => `cmp${fnv1aHex12(`${instanceId}|${key}`)}`;
+  const ns = (key: string) => componentInstanceTfId(instanceId, key);
 
   // ---- machine document and its parent page
   const machineDoc = asMxfile(parseXml(machine.xml), "page-1");
@@ -307,6 +321,9 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
 
     // rewrite ids, references, labels; collect links
     const remap = (id: string | null) => (id === null || isRoot(id) ? id : (newCellId.get(id) ?? id));
+    // Pass 1: ids and references first — an idlabel follows its cell in the
+    // document, so labels can only be found by the new id once all are done.
+    const originalIdOf = new Map<string, string>();
     for (const cell of cellsOf(root)) {
       const id = cell.getAttribute("id")!;
       if (isRoot(id)) continue;
@@ -317,6 +334,14 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       }
       const nid = newCellId.get(id)!;
       cell.setAttribute("id", nid);
+      originalIdOf.set(nid, id);
+    }
+    // Pass 2: copies, links, labels.
+    for (const cell of cellsOf(root)) {
+      const nid = cell.getAttribute("id")!;
+      if (isRoot(nid)) continue;
+      const id = originalIdOf.get(nid)!;
+      const mx = mxCellOf(cell);
       const type = typeOf(cell);
       if (type === "idlabel") continue;
       const identity = cellIdentity.get(id)!;
@@ -381,9 +406,17 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
 
   // ---- records with the component's properties
   const prefixed = (displayId: string) => (displayId ? `${prefix}:${displayId}` : displayId);
+  // Boundaries carry their display id in their label ("… [SHE]"), not in an
+  // idlabel — it stays as the component named it.
+  const LABEL_IDS = new Set(["TrustBoundary", "PhysicalBoundary", "ChipBoundary"]);
   for (const e of component.elements) {
     if (eeIds.has(e.id)) continue;
-    newElements.push({ ...e, id: mapTf(e.id), displayId: prefixed(e.displayId), assetRelations: [] });
+    newElements.push({
+      ...e,
+      id: mapTf(e.id),
+      displayId: LABEL_IDS.has(e.type) ? e.displayId : prefixed(e.displayId),
+      assetRelations: [],
+    });
   }
   const newConnections: DFDConnection[] = [];
   for (const c of component.connections) {
@@ -420,5 +453,9 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
  * label may be wrapped in a <font> / <span> (shape library).
  */
 export function prefixDisplayLabel(text: string, prefix: string): string {
-  return text.replace(/([A-Z]{1,3}-[0-9x.]+[a-z]?)/, `${prefix}:$1`);
+  if (/[A-Z]{1,3}-[0-9x.]+[a-z]?/.test(text)) {
+    return text.replace(/([A-Z]{1,3}-[0-9x.]+[a-z]?)/, `${prefix}:$1`);
+  }
+  // A free display id (e.g. a boundary's "SDC"): before the first text.
+  return text.replace(/(^|>)(\s*)([^<\s][^<]*)/, `$1$2${prefix}:$3`);
 }

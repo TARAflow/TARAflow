@@ -41,6 +41,11 @@
       "cancel": "Cancel",
       "confirm": "Import",
       "applyFailed": "The component could not be imported: {{message}}"
+    },
+    "findings": {
+      "CMP_SOURCE_UNPINNED": "Component {{component}} is imported unpinned ({{reason}}) — only its content identifies the state. Import a committed state for an audited TARA.",
+      "CMP_INSTANCE_ORPHANED": "Component instance {{prefix}} ({{component}}) has no multiprocess in the DFD — delete the instance or import the component again.",
+      "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} is attached to the imported component {{prefix}} ({{component}}) but is none of its interfaces — the component TARA does not cover it. Add the interface in the component TARA and update, or attach the flow elsewhere."
     }
   }
 }

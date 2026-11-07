@@ -67,6 +67,8 @@ export interface UseDFDEditorOptions {
     weightX?: number;
     weightY?: number;
   };
+  /** Pages of imported components (multi-project TARA) — never numbered. */
+  getLockedPageIds?: () => ReadonlySet<string> | undefined;
 }
 
 export interface UseDFDEditorReturn {
@@ -507,6 +509,7 @@ export function useDFDEditor(
     validateAfter: true,
     validationDelay: 500,
     getPages: getProjectPages,
+    getLockedPageIds: options.getLockedPageIds,
   });
 
   // Export/Import layer

@@ -223,6 +223,7 @@ i18n
       "doc",
       "audit",
       "compliance",
+      "components",
       "element-threats-attacks",
       "interaction-threats-attacks",
       "mitigations",

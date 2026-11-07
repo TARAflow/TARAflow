@@ -21,6 +21,10 @@ import {
 } from "../../utils/dfd-to-asset-mapper";
 import { toReferenceGraph } from "../../utils/to-reference-graph";
 import { resolveDfdGraph } from "../../utils/resolve-dfd-graph";
+import {
+  componentFindings,
+  importedMultiprocessIds,
+} from "../../services/component-import/component-findings";
 
 export function useDfdDerivedData(activeProject: Project | undefined) {
   // ── DFD tab project ───────────────────────────────────────────────────────
@@ -166,8 +170,21 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
     };
   }, [dfd]);
 
+  // ── Imported components (multi-project TARA) ─────────────────────────────
+  const components = activeProject?.components;
+  const componentDfdFindings = useMemo(
+    () => (components ? componentFindings({ components, dfd: dfd ?? null }) : undefined),
+    [components, dfd],
+  );
+  const componentMultiprocessIds = useMemo(
+    () => (components ? importedMultiprocessIds({ components }) : undefined),
+    [components],
+  );
+
   return {
     dfdTabProject,
+    componentDfdFindings,
+    componentMultiprocessIds,
     dfdAssets,
     dfdElements,
     dfdConnections,

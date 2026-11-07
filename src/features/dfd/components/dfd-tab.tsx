@@ -20,7 +20,11 @@ import type {
   AssetRelation,
   DFDElementType,
   ComponentImportRunner,
+  DFDPage,
+  ValidationFinding,
 } from "../models/dfd-types";
+import { lockedPageIdsOf } from "../services/leveled/locked-pages";
+import { withExternalFindings } from "../utils/with-external-findings";
 
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ControlInstance } from "shared/models/control-instance";
@@ -150,6 +154,18 @@ export interface DFDTabProps {
    * the toolbar offers "Import component TARA…" (with the draw.io plugin).
    */
   onImportComponent?: ComponentImportRunner;
+  /**
+   * Multi-project TARA (design v3 §6.6): the multiprocesses of imported
+   * components (instance multiprocess and the component's own decomposed
+   * ones) — their pages are not renumbered.
+   */
+  importedMultiprocessIds?: readonly string[];
+  /** Findings of other layers (e.g. imported components), shown with the DFD's own. */
+  externalFindings?: {
+    errors: ValidationFinding[];
+    warnings: ValidationFinding[];
+    infos: ValidationFinding[];
+  };
 }
 
 // ==================== COMPONENT ====================
@@ -164,6 +180,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   assetUsage,
   threatCountOf,
   onImportComponent,
+  importedMultiprocessIds,
+  externalFindings,
   graphFocusRequest,
   elementFocusRequest,
   hazards,
@@ -246,8 +264,17 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   // Stabilize options object — inline object literal creates new reference
   // on every render, causing useDFDEditor internals to reset.
+  // Read at numbering time (stable function, no editor re-init).
+  const lockedPagesRef = useRef<{ mps?: readonly string[]; pages?: readonly DFDPage[] }>({});
+  lockedPagesRef.current = { mps: importedMultiprocessIds, pages: project.dfd?.pages };
+  const getLockedPageIds = useCallback(
+    () => lockedPageIdsOf(lockedPagesRef.current.pages, lockedPagesRef.current.mps),
+    [],
+  );
+
   const editorOptions = useMemo(
     () => ({
+      getLockedPageIds,
       onUpdate,
       onDirtyChange,
       darkMode,
@@ -258,10 +285,16 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       autoNumberingConfig,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [darkMode, handleSelectionChanged, autoNumberingConfig],
+    [darkMode, handleSelectionChanged, autoNumberingConfig, getLockedPageIds],
   );
 
   const editor = useDFDEditor(project, editorOptions);
+
+  // The DFD's own findings plus those of other layers (imported components).
+  const shownValidation = useMemo(
+    () => withExternalFindings(editor.validation, externalFindings),
+    [editor.validation, externalFindings],
+  );
 
   // Stabilize graphContext — new DFDGraphAnalysisContext() on every render
   // causes all consumers to remount. useMemo ensures stable reference.
@@ -859,7 +892,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         isDirty={editor.isDirty}
-        validation={editor.validation}
+        validation={shownValidation}
         stats={editor.stats ?? null}
         darkMode={darkMode}
         onToggleDarkMode={handleToggleDarkMode}
@@ -1045,7 +1078,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
       {/* Notifications Panel — validation errors/warnings + security gaps */}
       <DFDNotificationsPanel
-        validation={editor.validation}
+        validation={shownValidation}
         controlInstances={controlInstances}
         securityDrifts={securityDrifts}
         elements={project.dfd?.elements ?? []}

@@ -297,6 +297,8 @@ export const WorkspaceLayout: React.FC = () => {
               assetUsage={handlers.assetUsageLookup}
               threatCountOf={handlers.threatCountLookup}
               onImportComponent={componentImport.runner}
+              importedMultiprocessIds={dfdData.componentMultiprocessIds}
+              externalFindings={dfdData.componentDfdFindings}
               graphFocusRequest={navigation.graphFocusRequest}
               elementFocusRequest={navigation.elementFocusRequest}
               hazards={assetData.graphHazards}

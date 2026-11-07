@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 in progress (patches 05–08: schema 14, source loader, DFD generation, import UI)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 in progress (patches 05–09: schema 14, source loader, DFD generation, import UI, findings / numbering)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -508,6 +508,19 @@ the one git path `git:rawInDir`) with the checks valid project, git working copy
 schema not too new, migration deterministic (I1), and the source record (commit, branch, remote,
 tag — never the local path); `isComponentCycle` over nested components (the snapshot keeps the
 component's own `components` block, §6.5).
+*Patch 09 (2026-11-07):* findings and numbering. App layer `component-findings.ts`, shown with the
+DFD's own findings (DFD tab: toolbar chip and notification panel, `externalFindings`):
+`CMP_SOURCE_UNPINNED` (warning, on the instance's multiprocess), `CMP_INSTANCE_ORPHANED` (error —
+the multiprocess is gone, e.g. the DFD save of the import was refused; closes the open point of
+patch 08), `CMP_FLOW_NOT_IN_COMPONENT` (error, Q3 — the instance's boundary flows are recomputed with
+`componentInstanceTfId`). The renumber skips the pages of imported components (`lockedPageIdsOf`
+over the instance's and the component's own multiprocesses): the component's ids keep their prefix,
+the multiprocess and the boundary flows are numbered, copies of machine elements on the component
+page follow their definition. Fixed from patch 07: the instance prefix is now written into the
+idlabels (it only reached the records, the save read the ids back without it); boundaries keep their
+label-borne display id unprefixed. The phase-bar badge does not count the component findings yet.
+Patch 10: read-only component pages (draw.io plugin lock, repair from the snapshot), delete an
+instance, "Open component TARA".
 *Patch 08 (2026-11-07):* import UI. DFD toolbar "Import component TARA…" (only with the
 Electron draw.io plugin); the DFD tab hands the diagram as it is in the editor and the page shown
 to the app (`ComponentImportRunner`), the result becomes the base of the save (`primeBase`), is
@@ -518,8 +531,8 @@ element; options: the mappable elements on the page shown), hints for an existin
 for flows that will not resolve (I2). App layer: `import-flow.ts` (candidate, mappable elements,
 default prefix, `applyComponentImport`) and `useComponentImport` (dialog state, Electron reading,
 `project.components` written on confirm). A second import of the same component reuses the import
-and its state. Open for patch 09: the instance is recorded when the import is confirmed — a
-refused DFD save would leave an instance without its multiprocess (consistency check / finding).
+and its state. The instance is recorded when the import is confirmed — a refused DFD save leaves an instance
+without its multiprocess (finding `CMP_INSTANCE_ORPHANED`, patch 09).
 *Patch 07 (2026-11-07):* `insertComponentInstance` (features/dfd, pure, XML in / out): the
 multiprocess with its page link, the component's pages as child pages (ids per instance, FNV-1a of
 instance id + component id), EEs as context copies of the mapped machine elements or of new EEs on

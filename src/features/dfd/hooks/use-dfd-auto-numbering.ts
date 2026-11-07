@@ -28,6 +28,8 @@ export interface UseDFDAutoNumberingOptions {
    * read at the moment of numbering. Absent / undefined = classic project.
    */
   getPages?: () => readonly DFDPage[] | undefined;
+  /** Pages of imported components (multi-project TARA) — never numbered. */
+  getLockedPageIds?: () => ReadonlySet<string> | undefined;
 }
 
 export interface UseDFDAutoNumberingReturn {
@@ -58,6 +60,7 @@ export function useDFDAutoNumbering(
     validateAfter = true,
     validationDelay = 500,
     getPages,
+    getLockedPageIds,
   } = options;
 
   // ==================== STATE ====================
@@ -97,7 +100,7 @@ export function useDFDAutoNumbering(
       );
 
       // Apply auto-numbering
-      const numberedXml = numbering.autoNumber(currentXml, getPages?.(), pageId);
+      const numberedXml = numbering.autoNumber(currentXml, getPages?.(), pageId, getLockedPageIds?.());
 
       // Check if anything changed
       if (numberedXml === currentXml) {
@@ -144,6 +147,7 @@ export function useDFDAutoNumbering(
     validateAfter,
     validationDelay,
     getPages,
+    getLockedPageIds,
   ]);
 
   // ==================== RETURN ====================

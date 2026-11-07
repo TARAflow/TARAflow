@@ -177,6 +177,21 @@ describe("insertComponentInstance — through the real save path", () => {
     expect(saved.validation.errors.filter((f) => f.key === "dfdValidation.assetRelationInconsistent")).toEqual([]);
   });
 
+  it("display ids keep the instance prefix after the save (read back from the idlabels)", () => {
+    const r = insert();
+    const saved = save(r);
+    for (const e of smoke.dfd!.elements) {
+      if (EES.includes(e.id) || !e.displayId) continue;
+      // boundaries carry their id in the label and keep it as named
+      const expected = BOUNDARY_TYPES.has(e.type) ? e.displayId : `SD1:${e.displayId}`;
+      expect(saved.dfd.elements.find((x) => x.id === r.idMap[e.id])?.displayId, e.id).toBe(expected);
+    }
+    for (const c of smoke.dfd!.connections) {
+      if (EES.includes(c.from) || EES.includes(c.to) || !c.displayId) continue;
+      expect(saved.dfd.connections.find((x) => x.id === r.idMap[c.id])?.displayId, c.id).toBe(`SD1:${c.displayId}`);
+    }
+  });
+
   it("properties survive the save", () => {
     const r = insert();
     const saved = save(r);
@@ -247,5 +262,7 @@ describe("insertComponentInstance — refusals and helpers", () => {
     expect(prefixDisplayLabel("P-3", "CAM1")).toBe("CAM1:P-3");
     expect(prefixDisplayLabel('<font style="font-size: 10px">DF-12a</font>', "CAM1")).toBe('<font style="font-size: 10px">CAM1:DF-12a</font>');
     expect(prefixDisplayLabel("MP-1.2", "CAM1")).toBe("CAM1:MP-1.2");
+    expect(prefixDisplayLabel("SDC", "CAM1")).toBe("CAM1:SDC");
+    expect(prefixDisplayLabel('<font style="font-size: 10px">SDC</font>', "CAM1")).toBe('<font style="font-size: 10px">CAM1:SDC</font>');
   });
 });

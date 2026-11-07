@@ -232,12 +232,15 @@ export { multiprocessGroupsOf, multiprocessGroupsFrom } from "./services/leveled
 // Multi-project TARA: one instance of an imported component into the DFD (design v3 §5, §6).
 export {
   insertComponentInstance,
+  componentInstanceTfId,
+  instanceMultiprocessTfId,
   prefixDisplayLabel,
   InsertComponentError,
   type InsertComponentInput,
   type InsertComponentResult,
   type ComponentDfdInput,
 } from "./services/leveled/insert-component";
+export { lockedPageIdsOf } from "./services/leveled/locked-pages";
 export {
   analyseLeveled,
   parseDfd,
