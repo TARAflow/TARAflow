@@ -226,6 +226,15 @@ export {
 
 // Leveled DFD (6a, D20): accordion groups of the asset / threat / risk tables.
 export { multiprocessGroupsOf, multiprocessGroupsFrom } from "./services/leveled/table-groups";
+// Multi-project TARA: one instance of an imported component into the DFD (design v3 §5, §6).
+export {
+  insertComponentInstance,
+  prefixDisplayLabel,
+  InsertComponentError,
+  type InsertComponentInput,
+  type InsertComponentResult,
+  type ComponentDfdInput,
+} from "./services/leveled/insert-component";
 export {
   analyseLeveled,
   parseDfd,
