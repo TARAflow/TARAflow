@@ -183,7 +183,7 @@ export class DiffService {
       ...this.compareById(
         (currentProject.components?.imports ?? []).map(({ snapshot: _s, ...rest }) => rest),
         (previousProject?.components?.imports ?? []).map(({ snapshot: _s, ...rest }) => rest),
-        (x) => `${x.name} @ ${x.source.tag ?? x.source.commitSha.slice(0, 8)}`,
+        (x) => `${x.name} @ ${x.source.tag ?? x.source.commitSha?.slice(0, 8) ?? "unpinned"}`,
         () => "Component import",
       ),
       ...this.compareById(

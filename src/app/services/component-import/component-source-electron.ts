@@ -23,8 +23,14 @@ export async function pickComponentFile(title: string): Promise<string | undefin
   return res?.success && res.data ? res.data : undefined;
 }
 
-/** readComponentSource with the Electron file reader and git runner. */
-export function readComponentSourceFromDisk(filePath: string): Promise<ComponentSourceResult> {
+/**
+ * readComponentSource with the Electron file reader and git runner;
+ * machineFilePath tells whether the component lies in the machine's repository.
+ */
+export function readComponentSourceFromDisk(
+  filePath: string,
+  machineFilePath?: string,
+): Promise<ComponentSourceResult> {
   const io = createIpcFileIO();
-  return readComponentSource(filePath, (p) => io.read(p), createIpcGitRunner());
+  return readComponentSource(filePath, (p) => io.read(p), createIpcGitRunner(), { machineFilePath });
 }

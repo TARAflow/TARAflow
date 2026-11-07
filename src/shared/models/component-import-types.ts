@@ -48,16 +48,30 @@ export interface MethodologyFingerprint {
   hash: string;
 }
 
+/**
+ * Why a component state could not be pinned to a commit (design §4.1, user
+ * 2026-11-07): imported anyway, with a clear warning (CMP_SOURCE_UNPINNED) —
+ * only the content hash identifies the state.
+ */
+export type ComponentUnpinnedReason = "no_repo" | "untracked" | "dirty";
+
 /** Where an imported component TARA came from (design §4.1). */
 export interface ComponentSource {
   /** Remote URL of the component repository — never a local path. */
   repoUrl?: string;
+  /** Path of the file inside its repository, e.g. "components/camera.tara.json". */
+  path?: string;
+  /** The component lies in the same repository as the machine file. */
+  sameRepo?: boolean;
   branch?: string;
   /** Only tagged states are offered when set, e.g. "camera-tara/v*". */
   tagPattern?: string;
   /** Tag of the imported commit, if any. */
   tag?: string;
-  commitSha: string;
+  /** The pinned commit; absent for an unpinned import (see `unpinned`). */
+  commitSha?: string;
+  /** Set when the state is not a commit — then commitSha, branch, tag are absent. */
+  unpinned?: ComponentUnpinnedReason;
   /** Schema of the component file before it was migrated on import. */
   schemaVersion: number;
 }

@@ -568,6 +568,7 @@ export type {
   FingerprintFactor,
   MethodologyFingerprint,
   ComponentSource,
+  ComponentUnpinnedReason,
   ComponentImport,
   ComponentAssumptionStatus,
   ComponentInstance,

@@ -37,6 +37,12 @@ describe("audit diff — components", () => {
     ]);
   });
 
+  it("an unpinned import is named as such", () => {
+    const unpinned = { ...imp("x", "111"), source: { schemaVersion: 14, unpinned: "no_repo" } };
+    const [section] = svc.detectChanges(base({ imports: [unpinned], instances: [] }), base());
+    expect(section.changes[0].name).toBe("Camera system @ unpinned");
+  });
+
   it("a moved state names the changed fields, never the snapshot", () => {
     const prev = base({ imports: [imp("aaaaaaaa", "111")], instances: [] });
     const cur = base({ imports: [imp("bbbbbbbb", "222")], instances: [] });
