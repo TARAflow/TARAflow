@@ -3,10 +3,20 @@
 // and coordinate all tab-level updates back to ProjectContext.
 //
 // What lives here:
-//   - Phase tab bar + tab routing
-//   - All feature tab handlers (DFD, Assets, Threats, Risks, etc.)
-//   - All memoized data transformations for feature tabs
-//   - activeProjectRef (stale-closure protection for async handlers)
+//   - Phase tab bar + tab routing (rendering)
+//   - The project mitigation registry assignment (before anything reads it)
+//   - activeProjectRef / projectsRef (stale-closure protection)
+//
+// The wiring is split into hooks per strand (MT-1, app/hooks/workspace/):
+//   - useWorkspaceNavigation   phase change, jump requests, safety gate
+//   - usePinnedTabHandlers     writing handlers pinned to their project
+//   - useLocalProjectSettings  machine-local audit / tracker values
+//   - useDfdDerivedData        DFD tab project, graph, leveled analysis
+//   - useAssetDerivedData      asset data reference, hazard/threat links
+//   - useOverviewData          item model, methodology, verification
+//   - usePhaseIndicators       phase bar badges, audit hints
+//   - useClosedLoopData        control instances, security drift
+//   - useComplianceView        requirement matrices
 //
 // What does NOT live here:
 //   - Project list state (ProjectShell / useProjectManager)
@@ -16,7 +26,7 @@
 // All project writes go through context.updateProject() — a single,
 // stable, ref-based write channel. No stale-closure risk.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   PHASES,
@@ -24,133 +34,60 @@ import {
   getPhaseStatusColor,
   useToast,
   dfdPreviewPagesOf,
-  emptyCybersecurityConcept,
-  type VerificationEntry,
+  ThreatReference,
+  getRequiredImpactScale,
+  EMPTY_PROJECT_TAGS,
+  getDisabledThreatGenerators,
+  getRegulationPreset,
+  regulationPresetFromTags,
 } from "shared";
 import { PhaseId, getProgressPhaseIds } from "../../models/phase-types";
-import {
-  AssetDataReference,
-  DFDReference,
-  ThreatReference,
-  toGraphReference,
-} from "shared";
+import type { Project } from "../../models/project-types";
 
 import { useProjectContext } from "../../contexts/project-context";
-
 import { PhaseTabs } from "../navigation/phase-tab-bar";
 
-import { GeneralTab, verificationStatusText } from "features/overview";
-import type { GeneralTabData } from "features/overview";
-
-import {
-  HazardsTab,
-  type HazardUpdateResult,
-  hazardService,
-  hazardValidator,
-  hazardFindingLines,
-} from "features/hazards";
-
-import {
-  DFDTab,
-  DFDGraphAnalysisContext,
-} from "features/dfd";
-import {
-  addCreatedAssets,
-  analyseLeveled,
-  dfdService,
-  isLeveled,
-  multiprocessGroupsFrom,
-  parentLevelFlowsFrom,
-  translateFinding,
-} from "features/dfd";
-
-import { AssetsTab, AssetUpdateResult } from "features/assets";
-import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
-import { buildAssumptionUsage, buildItemModelItems } from "app/utils/build-item-model-items";
-import { buildMethodologySummary } from "app/utils/build-methodology-summary";
-import { buildVerificationChecklist } from "app/utils/build-verification-checklist";
-import { notifyProjectMitigations, setProjectMitigations } from "shared/services/project-mitigation-registry";
-import { verificationStateHash, verificationStatus } from "app/services/verification-state";
-import {
-  rememberLocalSettings,
-  withLocalAudit,
-  withLocalIntegration,
-} from "app/services/local-user-settings";
-import { phaseIndicators } from "app/utils/phase-indicators";
-import { attackPathControlTargets } from "app/utils/attack-path-control-targets";
-import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
-import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
-import { buildThreatGoalLinks } from "app/utils/build-threat-goal-links";
-import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/extract-threat-references";
-import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
-
+import { GeneralTab, type GeneralTabData } from "features/overview";
+import { HazardsTab } from "features/hazards";
+import { DFDTab } from "features/dfd";
+import { AssetsTab } from "features/assets";
 import {
   StrideMethod,
   ThreatData,
   ThreatsTab,
   getAllMitigations,
-  syncThreatsWithGraph,
-  type ThreatRiskAttachment,
-  type ThreatProjectData,
-  projectGenerationDrift,
-  NO_DRIFT,
 } from "features/threats";
-
-import { RisksTab, RiskUpdateResult, riskFindingLines, riskFindings } from "features/risks";
+import { RisksTab } from "features/risks";
 import { getMandatoryAssetCriteriaIds } from "features/risks/services/regulation-preset-service";
-
 import {
   AttackTreeTab,
-  AttackTreeUpdateResult,
   extractAssetReferences,
   extractThreatReferencesForAttackTree,
   extractRiskReferences,
   extractDFDElementReferences,
   extractMitigationReferences,
 } from "features/attacktree";
-
 import { DocTab } from "features/documentation";
-import { IntegrationTab, createTicketAdapter } from "features/integration";
-import { AuditTab, useAuditHints } from "features/audit";
-import { activeStandards, ComplianceFrame, proposeDeviceCategories, suggestMitigations } from "features/compliance";
-import { complianceNameOf, complianceTypeOf, prepareProjectCompliance } from "app/services/compliance-report";
-import type { AuditUpdateResult } from "features/audit/models/audit-types";
+import { IntegrationTab } from "features/integration";
+import { AuditTab } from "features/audit";
+import { ComplianceFrame, suggestMitigations } from "features/compliance";
 
-import { transformProjectToDocData } from "app/services/doc-transform";
-import { useControlInstanceDerivation } from "app/hooks/use-control-instance-derivation";
-import { useSecurityDrift } from "app/hooks/use-security-drift";
-
-import {
-  mapDFDAssetsToAssetFeature,
-  mapDFDConnectionsToAssetFeature,
-  mapDFDElementsToAssetFeature,
-} from "../../utils/dfd-to-asset-mapper";
- 
-import { toReferenceGraph } from "../../utils/to-reference-graph";
-
-import type { Project } from "../../models/project-types";
-import { syncFromDFD } from "features/assets/services/asset-sync-service";
-
-import { applyRegulationFromTags } from "app/services/regulation-preset-orchestrator";
+import { notifyProjectMitigations, setProjectMitigations } from "shared/services/project-mitigation-registry";
 import { MatrixRequirementsContext } from "shared/hooks/matrix-requirements";
-import { matrixRequirementOptions } from "app/utils/matrix-requirement-options";
-import { buildGeneralTabPatch } from "app/services/general-tab-update";
-import {
-  getRegulationConflicts,
-  regulationPresetFromTags,
-  getRequiredImpactScale,
-  EMPTY_PROJECT_TAGS,
-  getDisabledThreatGenerators,
-  getRegulationPreset,
-} from "shared";
-import { resolveDfdGraph } from "../../utils/resolve-dfd-graph";
-import { useProjectUpdateHandlers } from "app/hooks/use-project-update-handlers";
-import { buildAssetsUpdate } from "app/services/assets-update-patch";
-import {
-  AssetDeletionBlockedError,
-  collectAssetUsage,
-  purgeAssetFromProject,
-} from "app/services/asset-deletion";
+import { transformProjectToDocData } from "app/services/doc-transform";
+import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
+import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/extract-threat-references";
+import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
+
+import { useWorkspaceNavigation } from "app/hooks/workspace/use-workspace-navigation";
+import { usePinnedTabHandlers } from "app/hooks/workspace/use-pinned-tab-handlers";
+import { useLocalProjectSettings } from "app/hooks/workspace/use-local-project-settings";
+import { useDfdDerivedData } from "app/hooks/workspace/use-dfd-derived-data";
+import { useAssetDerivedData } from "app/hooks/workspace/use-asset-derived-data";
+import { useOverviewData } from "app/hooks/workspace/use-overview-data";
+import { usePhaseIndicators } from "app/hooks/workspace/use-phase-indicators";
+import { useClosedLoopData } from "app/hooks/workspace/use-closed-loop-data";
+import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 
 // ==================== COMPONENT ====================
 
@@ -169,7 +106,6 @@ export const WorkspaceLayout: React.FC = () => {
   // ── Stable ref — stale-closure protection ─────────────────────────────────
   // Async handlers (DFD autosave, thumbnail) read the CURRENT activeProject
   // at call time, not the one captured when the callback was created.
-
   const activeProjectRef = useRef<Project | undefined>(undefined);
   activeProjectRef.current = activeProject;
 
@@ -186,946 +122,76 @@ export const WorkspaceLayout: React.FC = () => {
   // for a handler that fires AFTER a project switch — most importantly the
   // Assets flush-on-unmount: when AssetsTab (keyed by project id) unmounts on
   // switch, its pending-edit flush calls onUpdate with the OUTGOING project's
-  // assets, but by then activeProject is already the incoming one. Resolving
-  // the target project by its explicit id (see makeAssetsUpdateHandler) against
-  // this ref writes the flushed edit — and mirrors its name/description onto
-  // the correct dfd.assets — into the project the edit actually belongs to.
+  // assets, but by then activeProject is already the incoming one. The
+  // pinned handlers (usePinnedTabHandlers) resolve their target project by
+  // its explicit id against this ref.
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  // ── Bidirectional asset sync ──────────────────────────────────────────────
-  // REMOVED (see handleAssetsUpdate / handleDFDUpdate below): name and
-  // description edits are now mirrored synchronously, in the SAME
-  // updateProject call as the edit itself. There is never any ambiguity
-  // about which side is "the change" — the handler that receives the edit
-  // IS the source of truth for that edit, by construction (Asset-Tab edits
-  // arrive via handleAssetsUpdate, DFD-Tab edits via handleDFDUpdate /
-  // updateAssetDescription — never both for the same edit).
-  //
-  // The old design wrote each side independently and used a separate,
-  // debounced effect (useBidirectionalAssetSync) to reconcile them
-  // afterwards via snapshot-history heuristics ("which side still matches
-  // the last known baseline"). That gap between the two writes — and the
-  // heuristics needed to guess across it — was the root cause of every
-  // description-loss bug found in this investigation (the DrawIO-autosave
-  // race, the StrictMode double-invoke issue, and the assets-tab
-  // cross-contamination bug). Writing both sides atomically in one
-  // updateProject call removes the gap entirely, so there is nothing left
-  // to guess and nothing left to race.
+  // Name and description edits between the Asset tab and the DFD are
+  // mirrored synchronously, in the SAME updateProject call as the edit
+  // itself (see usePinnedTabHandlers / useProjectUpdateHandlers): the
+  // handler that receives the edit IS the source of truth for it. The former
+  // debounced bidirectional sync guessed across the gap between two writes
+  // and caused every description-loss bug of that investigation.
 
-  // ── Phase change ──────────────────────────────────────────────────────────
+  const navigation = useWorkspaceNavigation({
+    activeProject,
+    activeProjectRef,
+    activePhase,
+    setActivePhase,
+    updateProject,
+    toast,
+  });
+  const { handlePhaseChange } = navigation;
 
-  // "Show in graph" from the asset table (FR-V13): DFD tab, asset graph view.
-  const [graphFocusRequest, setGraphFocusRequest] = useState<{
-    assetId: string;
-  } | null>(null);
-  // "Show in the diagram" from the Compliance to-do list: DFD tab, drawing,
-  // the element selected.
-  const [elementFocusRequest, setElementFocusRequest] = useState<{
-    elementId: string;
-  } | null>(null);
-  // "Show in table" from the asset graph (FR-V13, way back).
-  const [tableHighlightRequest, setTableHighlightRequest] = useState<{
-    assetId: string;
-  } | null>(null);
-  // "Open in Hazard tab" from a hazard's card in the asset graph (G9).
-  const [hazardOpenRequest, setHazardOpenRequest] = useState<{
-    hazardId: string;
-  } | null>(null);
-
-  const handlePhaseChange = useCallback(
-    (phaseId: number) => {
-      const current = activeProjectRef.current;
-      if (!current) return;
-
-      if (current.settings?.strictMode) {
-        const currentStatus =
-          current.phaseStatus[phaseId as keyof typeof current.phaseStatus];
-        if (currentStatus === "not-started" && phaseId > 0) {
-          const prevPhase =
-            current.phaseStatus[
-              (phaseId - 1) as keyof typeof current.phaseStatus
-            ];
-          if (prevPhase !== "complete") {
-            toast.warning(
-              "⚠️ Warning: Previous phase is not complete. Strict mode is enabled.",
-            );
-          }
-        }
-      }
-
-      // A "show in table" mark belongs to that one jump; leaving the Assets
-      // tab drops it, so a later visit does not mark the row again.
-      if (phaseId !== PhaseId.Assets) setTableHighlightRequest(null);
-      if (phaseId !== PhaseId.Hazard) setHazardOpenRequest(null);
-      setActivePhase(phaseId);
-      updateProject({ id: current.id, currentPhase: phaseId });
-    },
-    [setActivePhase, toast, updateProject],
-  );
-
-  // ── Safety gating ─────────────────────────────────────────────────────────
-  // If safety relevance is turned off while the Hazard tab is active,
-  // fall back to Overview so we never render a hidden/empty phase.
-  useEffect(() => {
-    if (!activeProject) return;
-    const safetyRelevant = activeProject.info?.safetyRelevant ?? false;
-    if (!safetyRelevant && activePhase === PhaseId.Hazard) {
-      setActivePhase(PhaseId.General);
-    }
-  }, [activeProject, activePhase, setActivePhase]);
-
-  // ── General tab ───────────────────────────────────────────────────────────
-
-  const generalTabData: GeneralTabData | undefined = activeProject?.info
-    ? {
-        info: activeProject.info,
-        settings: activeProject.settings,
-        phaseStatus: activeProject.phaseStatus,
-        sourceBindings: activeProject.sourceBindings,
-        itemDefinition: activeProject.itemDefinition,
-      }
-    : undefined;
-
-  // Pinned to the project the Overview shows (like the Asset tab): a source
-  // binding resolve / drift check finishes after a network round-trip and may
-  // land after a project switch. It belongs to the project it was started in —
-  // resolving "whatever is active now" wrote the outgoing project's info,
-  // settings and Definition into the incoming project.
-  const makeGeneralTabUpdateHandler = useCallback(
-    (projectId: string) => (data: GeneralTabData) => {
-      const current = projectsRef.current.find((p) => p.id === projectId);
-      if (!current) return;
-      updateProject(buildGeneralTabPatch(current, data));
-      const conflicts = getRegulationConflicts(data.info.tags);
-      if (conflicts.length > 0) toast.warning(conflicts[0].message);
-    },
-    [updateProject, toast],
-  );
-  const generalTabProjectId = activeProject?.id ?? "";
-  const handleGeneralTabUpdate = useMemo(
-    () => makeGeneralTabUpdateHandler(generalTabProjectId),
-    [generalTabProjectId, makeGeneralTabUpdateHandler],
-  );
-
-  // Audit tab → TARA verification entries (ISO 21434 plan Phase 4, decision 25).
-  // Pinned to the Audit tab's project (see makeAuditHandlers below).
-  const makeVerificationsChangeHandler = useCallback(
-    (projectId: string) => (verifications: VerificationEntry[]) => {
-      const current = projectsRef.current.find((p) => p.id === projectId);
-      if (!current) return;
-      const concept = current.cybersecurityConcept ?? emptyCybersecurityConcept();
-      updateProject({ id: current.id, cybersecurityConcept: { ...concept, verifications } });
-    },
-    [updateProject],
-  );
-
-  // ── DFD tab ───────────────────────────────────────────────────────────────
-
-  // Stable memoized project object for DFDTab — prevents iframe reload
-  // and Popper listener accumulation on unrelated re-renders.
-  // Stable project object for DFDTab.
-  // CRITICAL: phaseStatus and settings are objects — comparing them via ===
-  // always returns false after a spread (...current) even if content is equal.
-  // We use JSON-serialized strings as dependency proxies so the memo only
-  // invalidates when the content actually changes, not the reference.
-  const phaseStatusKey = JSON.stringify(activeProject?.phaseStatus);
-  const settingsKey = JSON.stringify(activeProject?.settings);
-  // Invalidate dfdTabProject when the canonical asset registry (ids/names)
-  // changes, so DFD validation always sees the current asset set.
-  const knownAssetsKey = JSON.stringify(
-    activeProject?.assets?.assets?.map((a) => [a.id, a.name, a.assetGroup]) ?? [],
-  );
-
-  const dfdTabProject = useMemo(
-    () =>
-      activeProject
-        ? {
-            id: activeProject.id,
-            name: activeProject.info?.name ?? "",
-            dfd: activeProject.dfd ?? null,
-            // Canonical asset registry — validate DFD relations against the
-            // feature store (truth), not the lagging dfd.assets mirror.
-            knownAssets:
-              activeProject.assets?.assets?.map((a) => ({
-                id: a.id,
-                name: a.name,
-                assetGroup: a.assetGroup,
-              })) ?? [],
-            phaseStatus: activeProject.phaseStatus,
-            settings: activeProject.settings,
-            lastModified: activeProject.info?.lastModified ?? "",
-          }
-        : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      activeProject?.id,
-      activeProject?.info?.name,
-      activeProject?.info?.lastModified,
-      activeProject?.dfd?.lastModified,
-      // Use serialized strings instead of object references —
-      // prevents memo invalidation when spread creates new object identity.
-      phaseStatusKey,
-      settingsKey,
-      knownAssetsKey,
-    ],
-  );
-
-
-  // Writing tab handlers, pinned to the project they were made for (FX-8):
-  // DFD, threats, assumptions, compliance, concept, documentation,
-  // integration, project mitigations.
-  const handleRejectedRelations = useCallback(
-    (rejected: readonly { reason: string }[]) => {
-      // The dialog prevents these; reaching here means stale data (e.g. an
-      // asset deleted meanwhile) or an import with relations the rules no
-      // longer allow.
-      toast.warning(
-        t("assets.relations.a2a.rejected", {
-          defaultValue: "{{count}} asset relation(s) were not applied: {{reasons}}",
-          count: rejected.length,
-          reasons: [...new Set(rejected.map((r) => r.reason))].join(", "),
-        }),
-      );
-    },
-    [toast, t],
-  );
-  const {
-    handleDFDUpdate,
-    handleThreatsUpdate,
-    handleCreateAssumption,
-    handleComplianceChange,
-    handleConceptChange,
-    handleDocUpdate,
-    handleIntegrationUpdate,
-    projectMitigationRefs,
-  } = useProjectUpdateHandlers({
+  const handlers = usePinnedTabHandlers({
     projectId: activeProject?.id ?? "",
+    activeProjectRef,
     projectsRef,
     updateProject,
-    onRejectedRelations: handleRejectedRelations,
+    toast,
+    t,
   });
 
-  // ── Hazard tab ────────────────────────────────────────────────────────────
-  // Pinned to the project the Hazard tab shows (like the Asset tab): a save
-  // that lands after a project switch — the flush when the tab unmounts —
-  // belongs to the project it was made in, not to whatever is active by then.
-  const makeHazardsUpdateHandler = useCallback(
-    (projectId: string) => async (updates: HazardUpdateResult) => {
-      const current = projectsRef.current.find((p) => p.id === projectId);
-      if (!current) return;
-      const status = hazardService.deriveHazardPhaseStatus(updates.hazards);
-
-      const dfd = updates.createdAssets?.length
-        ? addCreatedAssets(current.dfd, updates.createdAssets)
-        : current.dfd;
-
-      // Keep both stores consistent: the hazard-minted humans were just folded into dfd.assets,
-      // but assetDataRef is built from project.assets.assets.
-      // Run the canonical DFD→Assets sync so they surface there too (and stay resolvable in Hazard/Threat/Risk).
-      let assets = current.assets;
-      if (updates.createdAssets?.length && dfd?.assets && current.assets) {
-        const { assetData } = syncFromDFD(
-          current.assets,
-          mapDFDAssetsToAssetFeature(
-            dfd.assets,
-            dfd.elements ?? [],
-            dfd.connections ?? [],
-          ),
-          mapDFDElementsToAssetFeature(dfd.elements ?? []),
-          mapDFDConnectionsToAssetFeature(dfd.connections ?? []),
-        );
-        assets = assetData;
-      }
-
-      await updateProject({
-        id: current.id,
-        hazards: updates.hazards,
-        dfd,
-        assets, // ← synchronisierter Assets-Store
-        phaseStatus: { ...current.phaseStatus, [PhaseId.Hazard]: status },
-      });
-    },
-    [updateProject],
-  );
-  const hazardsProjectId = activeProject?.id ?? "";
-  const handleHazardsUpdate = useMemo(
-    () => makeHazardsUpdateHandler(hazardsProjectId),
-    [hazardsProjectId, makeHazardsUpdateHandler],
+  const { localAudit, localIntegration, ticketPort } = useLocalProjectSettings(
+    activeProject?.id,
+    activeProject?.audit ?? null,
+    activeProject?.integration ?? null,
   );
 
-  // ── Assets tab ────────────────────────────────────────────────────────────
+  const dfdData = useDfdDerivedData(activeProject);
+  const assetData = useAssetDerivedData(activeProject);
+  const overview = useOverviewData(activeProject);
 
-  // Bound to a specific project id, NOT to "whatever is active now". AssetsTab
-  // is keyed by project id, so each mounted instance owns a handler pinned to
-  // its own project. This matters for the flush-on-unmount edit, which fires
-  // just after the active project has already switched: we must resolve the
-  // target — and its dfd — by the pinned id, or the outgoing project's assets
-  // would be written into (and mirrored onto) the incoming project.
-  const makeAssetsUpdateHandler = useCallback(
-    (projectId: string) => async (updates: AssetUpdateResult) => {
-      const current = projectsRef.current.find((p) => p.id === projectId);
-      if (!current) return;
+  const phase = usePhaseIndicators({
+    activeProject,
+    activePhase,
+    dfdTabProject: dfdData.dfdTabProject,
+    dfdContext: dfdData.dfdContext,
+    dfdGraphRef: dfdData.dfdGraphRef,
+    dfdReference: dfdData.dfdReference,
+    assetDataRef: assetData.assetDataRef,
+    verificationStatus: overview.verificationStatus,
+    t,
+  });
 
-      // Mirror name/description edits from the Asset-Tab onto dfd.assets in
-      // THIS SAME updateProject call (the Asset-Tab is the known source of
-      // the edit — see the note above on the former bidirectional sync).
-      // Asset links travel only as operations (asset import, AR-5).
-      const { patch, rejectedA2AOps } = buildAssetsUpdate(current, updates);
-      if (rejectedA2AOps.length > 0) {
-        toast.warning(
-          t("assets.relations.a2a.rejected", {
-            defaultValue:
-              "{{count}} asset relation(s) were not applied: {{reasons}}",
-            count: rejectedA2AOps.length,
-            reasons: [...new Set(rejectedA2AOps.map((r) => r.reason))].join(", "),
-          }),
-        );
-      }
-      await updateProject(patch);
-    },
-    [updateProject, toast, t],
+  const { anchorTargets, controlInstances, securityDrifts } = useClosedLoopData(
+    activeProject,
+    customMitigations,
   );
 
-  // ── Asset deletion (Asset tab) ────────────────────────────────────────────
-  // One project-wide operation: asset store, DFD (record + all relations),
-  // hazard edges, risks — then threats re-derive from the rebuilt graph. The
-  // confirm dialog shows collectAssetUsage() first and blocks while attack
-  // trees are anchored on the asset.
-  const assetUsageLookup = useCallback((assetId: string) => {
-    const current = activeProjectRef.current;
-    return current
-      ? collectAssetUsage(current, assetId)
-      : {
-          dfdRelations: 0,
-          assetToAssetRelations: 0,
-          hazardRelations: 0,
-          blockingAttackTrees: [],
-        };
-  }, []);
-
-  // Leveled DFD (5k): threats referring to a DFD element / flow (tfId), for
-  // the question when a linked definition is lost.
-  const threatCountLookup = useCallback((tfId: string) => {
-    const threats = activeProjectRef.current?.threats;
-    if (!threats) return 0;
-    let count = 0;
-    for (const table of [...threats.perElementTables, ...threats.perInteractionTables]) {
-      for (const threat of table.threats) {
-        if (
-          threat.linkedElement?.elementId === tfId ||
-          threat.dataFlow?.connectionId === tfId
-        ) {
-          count++;
-        }
-      }
-    }
-    return count;
-  }, []);
-
-  const makeAssetDeleteHandler = useCallback(
-    (projectId: string) => async (assetId: string) => {
-      const current = projectsRef.current.find((p) => p.id === projectId);
-      if (!current) return;
-
-      let purged;
-      try {
-        purged = purgeAssetFromProject(current, assetId);
-      } catch (err) {
-        if (err instanceof AssetDeletionBlockedError) return; // dialog blocks this
-        throw err;
-      }
-
-      const assetDataRef = purged.assets
-        ? buildAssetDataReference(
-            purged.assets.assets,
-            buildAssetHazardLinks(purged.hazards ?? null),
-            purged.assets.configuration?.impactScale ?? "4-level",
-          )
-        : undefined;
-      const graph = resolveDfdGraph(purged.dfd as Project["dfd"]);
-      const threats = graph
-        ? syncThreatsWithGraph(
-            current.threats ?? null,
-            toGraphReference(graph),
-            assetDataRef,
-            regulationPresetFromTags(
-              current.info?.tags ?? EMPTY_PROJECT_TAGS,
-            ) === "iso-21434",
-          )
-        : current.threats;
-
-      await updateProject({ id: projectId, ...purged, threats });
-    },
-    [updateProject],
+  const { complianceStandards, matrixRequirements, complianceView } = useComplianceView(
+    activeProject,
+    activePhase,
   );
 
-  // Personal values (commit author, tracker account and connection state) live
-  // on this machine, not in the file (local-user-settings, user 2026-10-30):
-  // the tabs see the project's blocks with them filled in. A file written
-  // before keeps its values until the next save — adopted once on opening.
-  const activeProjectId = activeProject?.id;
-  const activeAudit = activeProject?.audit ?? null;
-  const activeIntegration = activeProject?.integration ?? null;
-  useEffect(() => {
-    if (activeProjectId) {
-      rememberLocalSettings(activeProjectId, activeAudit, activeIntegration, { onlyMissing: true });
-    }
-    // Once per opened project — later edits go through the update handlers.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId]);
-  const localAudit = useMemo(
-    () => (activeProjectId ? withLocalAudit(activeProjectId, activeAudit) : activeAudit),
-    [activeProjectId, activeAudit],
-  );
-  const localIntegration = useMemo(
-    () => (activeProjectId ? withLocalIntegration(activeProjectId, activeIntegration) : activeIntegration),
-    [activeProjectId, activeIntegration],
-  );
-
-  // The issue tracker's adapter for the Risk tab (adapters design §4.3) —
-  // derived from the stored connection; the main process holds the token.
-  const integrationConnection = localIntegration?.connection ?? null;
-  const ticketPort = useMemo(() => createTicketAdapter(integrationConnection), [integrationConnection]);
-
-  // ── Risks tab ─────────────────────────────────────────────────────────────
-
-  // Pinned to the project the Risk tab shows (like the Asset tab): a save that
-  // lands after a project switch — the flush when the tab unmounts — belongs
-  // to the project it was made in, not to whatever is active by then.
-  const makeRisksUpdateHandler = useCallback(
-    (projectId: string) => async (updates: RiskUpdateResult) => {
-      const current = projectsRef.current.find((p) => p.id === projectId);
-      if (!current) return;
-      const withRisks: Project = { ...current, risks: updates.risks };
-      const { project } = applyRegulationFromTags(
-        withRisks,
-        current.info.windowOfOpportunity,
-      );
-      await updateProject({
-        id: current.id,
-        risks: project.risks,
-        phaseStatus: updates.phaseStatus,
-        settings: project.settings,
-      });
-    },
-    [updateProject],
-  );
-
-  const handleRisksUpdate = useMemo(
-    () => makeRisksUpdateHandler(activeProjectId ?? ""),
-    [activeProjectId, makeRisksUpdateHandler],
-  );
-
-  // ── Attack tree tab ───────────────────────────────────────────────────────
-
-  // Pinned to the project the Attack Tree tab shows (the tab is keyed by
-  // project id, like the Asset tab): its flush-on-unmount fires just after the
-  // active project has already switched, so resolving "whatever is active now"
-  // would write the outgoing project's trees into the incoming project.
-  const makeAttackTreeUpdateHandler = useCallback(
-    (projectId: string) => (updates: AttackTreeUpdateResult) => {
-      const current = projectsRef.current.find((p) => p.id === projectId);
-      if (!current) return;
-      updateProject({
-        id: current.id,
-        attackTrees: updates.attackTrees,
-        phaseStatus: updates.phaseStatus,
-      });
-    },
-    [updateProject],
-  );
-  const attackTreeProjectId = activeProject?.id ?? "";
-  const handleAttackTreeUpdate = useMemo(
-    () => makeAttackTreeUpdateHandler(attackTreeProjectId),
-    [attackTreeProjectId, makeAttackTreeUpdateHandler],
-  );
-
-  // ── Audit tab ─────────────────────────────────────────────────────────────
-
-  // Pinned to the project the Audit tab shows (like the Asset tab): a save
-  // that lands after a project switch — the flush when the tab unmounts, or a
-  // commit that finishes after the switch — belongs to the project it was made
-  // in, not to whatever is active by then. The same holds for the local
-  // settings (credentials/config) remembered per project id.
-  const makeAuditHandlers = useCallback(
-    (projectId: string) => ({
-      onUpdate: (updates: AuditUpdateResult) => {
-        const current = projectsRef.current.find((p) => p.id === projectId);
-        if (!current) return;
-        rememberLocalSettings(current.id, updates.audit, null);
-        updateProject({
-          id: current.id,
-          audit: updates.audit,
-          phaseStatus: updates.phaseStatus,
-        });
-      },
-      onDirtyChange: (isDirty: boolean) => {
-        const current = projectsRef.current.find((p) => p.id === projectId);
-        if (!current) return;
-        updateProject({ id: current.id, hasUnsavedChanges: isDirty });
-      },
-      onVerificationsChange: makeVerificationsChangeHandler(projectId),
-    }),
-    [updateProject, makeVerificationsChangeHandler],
-  );
-
-  const auditProjectId = activeProject?.id ?? "";
-  const auditHandlers = useMemo(
-    () => makeAuditHandlers(auditProjectId),
-    [auditProjectId, makeAuditHandlers],
-  );
-
-  // ── Memoized DFD data ─────────────────────────────────────────────────────
-
-  const memoizedDFDAssets = useMemo(
-    () =>
-      activeProject?.dfd?.assets
-        ? mapDFDAssetsToAssetFeature(
-            activeProject.dfd.assets,
-            activeProject.dfd.elements ?? [],
-            activeProject.dfd.connections ?? [],
-          )
-        : undefined,
-    // Must also depend on elements/connections: linkedElements (incl.
-    // safety) is rebuilt from their assetRelations, so a safety-only edit
-    // on an element/connection — with the assets array reference
-    // unchanged — must still invalidate this memo.
-    [
-      activeProject?.dfd?.assets,
-      activeProject?.dfd?.elements,
-      activeProject?.dfd?.connections,
-    ],
-  );
-
-  const memoizedDFDElements = useMemo(
-    () =>
-      activeProject?.dfd?.elements
-        ? mapDFDElementsToAssetFeature(activeProject.dfd.elements)
-        : undefined,
-    [activeProject?.dfd?.elements],
-  );
-
-  const memoizedDFDConnections = useMemo(
-    () =>
-      activeProject?.dfd?.connections
-        ? mapDFDConnectionsToAssetFeature(activeProject.dfd.connections)
-        : undefined,
-    [activeProject?.dfd?.connections],
-  );
-
-  // Stored graph, or rebuilt from the persisted DFD when missing — the
-  // Threats tab is only rendered when a DFD context exists (see
-  // resolveDfdGraph for why this must not depend on a side-effect save).
-  const activeDfdGraph = useMemo(
-    () => resolveDfdGraph(activeProject?.dfd),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      activeProject?.dfd?.graph,
-      activeProject?.dfd?.elements,
-      activeProject?.dfd?.connections,
-      activeProject?.dfd?.assets,
-    ],
-  );
-
-  const memoizedDFDGraphRef = useMemo(
-    () => (activeDfdGraph ? toReferenceGraph(activeDfdGraph) : undefined),
-    [activeDfdGraph],
-  );
-
-  // Leveled DFD: one shared analysis (parse + effective model) for the
-  // parent-level flows (5j) and the table groups (Phase 6, D20).
-  const activeDfd = activeProject?.dfd;
-  const leveledAnalysis = useMemo(
-    () =>
-      activeDfd?.xml && activeDfd.pages && activeDfd.pages.length > 1 && isLeveled(activeDfd.xml)
-        ? analyseLeveled({
-            xml: activeDfd.xml,
-            pages: activeDfd.pages,
-            elements: activeDfd.elements ?? [],
-            connections: activeDfd.connections ?? [],
-          })
-        : null,
-    [activeDfd?.xml, activeDfd?.pages, activeDfd?.elements, activeDfd?.connections],
-  );
-  const memoizedParentLevelFlows = useMemo(
-    () => (leveledAnalysis ? parentLevelFlowsFrom(leveledAnalysis) : []),
-    [leveledAnalysis],
-  );
-  const memoizedTableGroups = useMemo(
-    () => (leveledAnalysis ? multiprocessGroupsFrom(leveledAnalysis) : undefined),
-    [leveledAnalysis],
-  );
-
-  const memoizedDFDContext = useMemo(
-    () => (activeDfdGraph ? new DFDGraphAnalysisContext(activeDfdGraph) : null),
-    [activeDfdGraph],
-  );
-
-  const memoizedDFDReference = useMemo((): DFDReference | null => {
-    const dfd = activeProject?.dfd;
-    if (!dfd) return null;
-    return {
-      processes: dfd.elements
-        ?.filter((e) => e.type === "Process" || e.type === "Multiprocess")
-        .map((e) => ({
-          id: e.id,
-          label: e.name ?? e.id,
-          safetyAnnotation: (e.properties as any)?.safetyAnnotation
-            ? {
-                severity: (e.properties as any).safetyAnnotation.severity,
-                description: (e.properties as any).safetyAnnotation.description,
-              }
-            : undefined,
-        })),
-      elements: dfd.elements?.map((e) => ({
-        id: e.id,
-        properties: e.properties as Record<string, unknown>,
-      })),
-      connections: dfd.connections?.map((c) => ({
-        id: c.id,
-        properties: c.properties as Record<string, unknown>,
-      })),
-    };
-  }, [activeProject?.dfd]);
-
-  // ── Memoized asset data ───────────────────────────────────────────────────
-
-  // Hazard Items and their edges for the asset graph (FR-V11, read-only); a
-  // stable object so the graph is rebuilt only when the hazard data changes.
-  const memoizedGraphHazards = useMemo(
-    () =>
-      activeProject?.hazards
-        ? { items: activeProject.hazards.hazards, relations: activeProject.hazards.relations }
-        : null,
-    [activeProject?.hazards],
-  );
-
-  // The asset registry for the asset graph: the manual assets (e.g. hazard
-  // protection targets) are not in the dfd.assets mirror.
-  const memoizedGraphRegistry = useMemo(
-    () =>
-      activeProject?.assets
-        ? {
-            assets: activeProject.assets.assets.map((a) => ({
-              id: a.id,
-              displayId: a.displayId,
-              name: a.name,
-              assetGroup: a.assetGroup,
-              ...(a.properties?.protectionNeed ? { protectionNeed: String(a.properties.protectionNeed) } : {}),
-            })),
-            relations: activeProject.assets.relations ?? [],
-          }
-        : null,
-    [activeProject?.assets],
-  );
-
-  // What the Item Definition can link to (Overview → Definition, A-2).
-  const memoizedItemModelItems = useMemo(
-    () => (activeProject ? buildItemModelItems(activeProject) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeProject?.dfd, activeProject?.assets],
-  );
-  // TARA verification (plan Phase 4, decision 25): the hash of the current
-  // analysis content, the checklist of a new entry, and — under iso-21434 —
-  // the status the Overview shows.
-  const verificationHash = useMemo(
-    () => (activeProject ? verificationStateHash(activeProject) : ""),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      activeProject?.info?.description,
-      activeProject?.itemDefinition,
-      activeProject?.hazards,
-      activeProject?.dfd,
-      activeProject?.assets,
-      activeProject?.threats,
-      activeProject?.attackTrees,
-      activeProject?.risks,
-      activeProject?.cybersecurityConcept,
-    ],
-  );
-  // TARA verification (RQ-09-07) only under iso-21434 — the Audit tab shows
-  // no verification panel otherwise (user 2026-10-30, amends decision 25).
-  const memoizedVerificationInput = useMemo(
-    () =>
-      activeProject &&
-      regulationPresetFromTags(activeProject.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
-        ? {
-            currentStateHash: verificationHash,
-            checklist: buildVerificationChecklist(activeProject, new Date().toISOString().slice(0, 10)),
-            ...(activeProject.info?.version ? { projectVersion: activeProject.info.version } : {}),
-          }
-        : undefined,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [verificationHash, activeProject?.info?.version, activeProject?.info?.tags],
-  );
-  const memoizedVerificationStatus = useMemo(
-    () =>
-      activeProject &&
-      regulationPresetFromTags(activeProject.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
-        ? verificationStatus(
-            activeProject.cybersecurityConcept?.verifications,
-            verificationHash,
-            new Date().toISOString().slice(0, 10),
-            activeProject.audit?.config?.verificationMaxAgeDays,
-          )
-        : undefined,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [verificationHash, activeProject?.cybersecurityConcept?.verifications, activeProject?.info?.tags, activeProject?.audit?.config?.verificationMaxAgeDays],
-  );
-
-  // Methodology sub-tab of the Overview (A-4): the record, read-only.
-  const memoizedMethodologySummary = useMemo(
-    () => (activeProject ? buildMethodologySummary(activeProject) : undefined),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeProject?.info?.tags, activeProject?.assets?.configuration, activeProject?.risks?.configuration, activeProject?.attackTrees?.configuration],
-  );
-  const memoizedAssumptionUsage = useMemo(
-    () => (activeProject ? buildAssumptionUsage(activeProject) : {}),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeProject?.dfd],
-  );
-
+  // The regulation preset of the project's tags, read by several tabs.
+  const presetId = regulationPresetFromTags(activeProject?.info?.tags ?? EMPTY_PROJECT_TAGS);
+  const isoMode = presetId === "iso-21434";
   // Label vocabulary of the preset: under iso-21434 person-harm severities
   // show their ISO 26262 class (S0–S3, conformance plan 1H-S).
-  const labelVocabulary: "default" | "iso-21434" =
-    regulationPresetFromTags(activeProject?.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434"
-      ? "iso-21434"
-      : "default";
-
-  // Hazard → asset projection (§6): endangeredBy / contributesTo per asset.
-  // Read-only; the assets feature never imports features/hazards.
-  const memoizedHazardRef = useMemo(
-    () => buildAssetHazardLinks(activeProject?.hazards ?? null),
-    [activeProject?.hazards],
-  );
-
-  // Risk work per threat id — lets the Threats tab warn before an action would
-  // drop a threat that carries a risk assessment (threats ⊥ risks: built here).
-  const memoizedRiskAttachments = useMemo(() => {
-    const out: Record<string, ThreatRiskAttachment> = {};
-    for (const r of activeProject?.risks?.risks ?? []) {
-      out[r.threatId] = { mitigationCount: r.selectedMitigations?.length ?? 0 };
-    }
-    return out;
-  }, [activeProject?.risks?.risks]);
-
-  // Threats → linked assets, for the threat ↔ goal cross-checks of the asset
-  // tab (assets ⊥ threats: projected here). Same generators and link rule as
-  // the risk register.
-  const memoizedThreatGoalLinks = useMemo(
-    () =>
-      buildThreatGoalLinks({
-        threats: activeProject?.threats,
-        assets: activeProject?.assets?.assets,
-        dfdElements: (activeProject?.dfd as any)?.elements,
-        attackTrees: activeProject?.attackTrees,
-        disabledStrideMethods: getDisabledThreatGenerators(
-          regulationPresetFromTags(activeProject?.info?.tags ?? EMPTY_PROJECT_TAGS),
-        ),
-      }),
-    [
-      activeProject?.threats,
-      activeProject?.assets?.assets,
-      activeProject?.dfd,
-      activeProject?.attackTrees,
-      activeProject?.info?.tags,
-    ],
-  );
-
-  const memoizedAssetDataRef = useMemo((): AssetDataReference | undefined => {
-    const assets = activeProject?.assets?.assets;
-    if (!assets || assets.length === 0) return undefined;
-    return buildAssetDataReference(
-      assets,
-      memoizedHazardRef,
-      activeProject?.assets?.configuration?.impactScale ?? "4-level",
-      activeProject?.assets?.configuration?.impactCriteria,
-    );
-  }, [
-    activeProject?.assets?.assets,
-    activeProject?.assets?.configuration?.impactScale,
-    activeProject?.assets?.configuration?.impactCriteria,
-    memoizedHazardRef,
-  ]);
-
-  // ── Threat generation drift (phase tab badge) ────────────────────────────
-  // Same check as the Threats tab banner, evaluated here so the badge appears
-  // right after e.g. a security-goal change in the Asset tab. Runs the threat
-  // generator without writing — cheap for typical DFD sizes; memoized on the
-  // inputs the generator reads.
-  const threatDriftCounts = useMemo(() => {
-    if (!activeProject?.threats || !memoizedDFDContext) return undefined;
-    const driftProject = {
-      id: activeProject.id,
-      name: activeProject.info?.name || "",
-      threats: activeProject.threats,
-      phaseStatus: activeProject.phaseStatus,
-      dfdElements: activeProject.dfd?.elements ?? [],
-      dfdConnections: activeProject.dfd?.connections ?? [],
-      dfdGraph: memoizedDFDGraphRef,
-      assetDataRef: memoizedAssetDataRef,
-      dfd: memoizedDFDReference,
-      info: { tags: activeProject.info?.tags ?? EMPTY_PROJECT_TAGS },
-      lastModified: "",
-    } as unknown as ThreatProjectData;
-    let drift = NO_DRIFT;
-    try {
-      drift = projectGenerationDrift(driftProject, memoizedDFDContext);
-    } catch {
-      // A badge must never break the workspace; the tab shows details.
-    }
-    return { obsolete: drift.obsolete.length, added: drift.addedCount };
-  }, [
-    activeProject?.threats,
-    activeProject?.dfd?.elements,
-    activeProject?.dfd?.connections,
-    activeProject?.info?.tags,
-    memoizedDFDContext,
-    memoizedDFDGraphRef,
-    memoizedAssetDataRef,
-    memoizedDFDReference,
-  ]);
-
-  // ── Phase indicators (tabs + Overview phase progress) ─────────────────────
-  // One computation keyed by PhaseId; the DFD part validates the stored
-  // diagram now instead of trusting the validation stored in the file.
-  const dfdSavedValidation = useMemo(
-    () => (dfdTabProject ? dfdService.validateSavedState(dfdTabProject) : null),
-    [dfdTabProject],
-  );
-  // Audit entry of the phase bar (user 2026-10-30): no audit repository for
-  // the project file, verification entries not committed — chip + tooltip.
-  const auditHints = useAuditHints({
-    id: activeProject?.id ?? "",
-    filePath: activeProject?.filePath,
-    verificationIds: activeProject?.cybersecurityConcept?.verifications?.map((v) => v.id) ?? [],
-    refreshKey: `${activePhase}|${activeProject?.audit?.lastModified ?? ""}`,
-  });
-  const auditHintLines = useMemo(() => {
-    const lines: string[] = [];
-    if (auditHints?.repoMissing) {
-      lines.push(t("phases.audit.repoMissing", { defaultValue: "No audit repository for this project file — set it up in the Audit tab." }));
-    }
-    if (auditHints && auditHints.uncommittedVerifications > 0) {
-      lines.push(
-        t("phases.audit.uncommitted", {
-          count: auditHints.uncommittedVerifications,
-          defaultValue: "{{count}} TARA verification(s) not committed — commit in the Audit tab.",
-        }),
-      );
-    }
-    return lines;
-  }, [auditHints, t]);
-
-  const memoizedPhaseIndicators = useMemo(
-    () =>
-      activeProject
-        ? phaseIndicators({
-            phaseStatus: activeProject.phaseStatus,
-            info: activeProject.info,
-            dfdValidation: dfdSavedValidation,
-            dfdStatus: dfdSavedValidation ? dfdService.phaseStatusOf(dfdSavedValidation) : undefined,
-            // The Hazard tab's validation, only where the phase is shown.
-            hazardValidation:
-              activeProject.info?.safetyRelevant && activeProject.hazards?.hazards.length
-                ? hazardFindingLines(
-                    hazardValidator.validate(activeProject.hazards, memoizedAssetDataRef?.assets).findings,
-                    t,
-                  )
-                : null,
-            riskValidation: activeProject.risks?.risks?.length
-              ? riskFindingLines(riskFindings(activeProject.risks), t)
-              : null,
-            threatDrift: threatDriftCounts,
-            verification: memoizedVerificationStatus
-              ? { kind: memoizedVerificationStatus.kind, text: verificationStatusText(memoizedVerificationStatus, t) }
-              : undefined,
-            t,
-          })
-        : null,
-    [activeProject, dfdSavedValidation, threatDriftCounts, memoizedAssetDataRef, memoizedVerificationStatus, t],
-  );
-
-  // ── Control instances + security drift ───────────────────────────────────
-
-  // getAllMitigations() is a module-level singleton — memoize to ensure
-  // stable reference across renders so useControlInstanceDerivation
-  // does not re-run unnecessarily.
-  const mitigationCatalog = useMemo(
-    () => getAllMitigations(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [customMitigations],
-  );
-
-  // Attack-path risks reach the closed loop through their tree's anchor
-  // (closed-loop review CL-3).
-  const anchorTargets = useMemo(
-    () =>
-      attackPathControlTargets(
-        activeProject?.attackTrees,
-        activeProject?.assets?.assets,
-        activeProject?.dfd,
-      ),
-    [activeProject?.attackTrees, activeProject?.assets?.assets, activeProject?.dfd],
-  );
-
-  const controlInstances = useControlInstanceDerivation(
-    activeProject?.threats ?? null,
-    activeProject?.risks ?? null,
-    activeProject?.dfd ?? null,
-    mitigationCatalog,
-    anchorTargets,
-  );
-
-  // ── Requirement matrices (Compliance tab, D-9) ──────────────────────────
-  // The tags select the standards, one sub-tab each (K-1); the model is
-  // prepared only while the tab is open (the analysis view is rebuilt for
-  // it), the frame evaluates the selected standard.
-  const complianceStandards = useMemo(() => activeStandards(activeProject?.info?.tags), [activeProject?.info?.tags]);
-  // IEC-8b: the 62443 requirements a project mitigation can reference (form in the threat / risk dialogs).
-  const matrixRequirements = useMemo(() => matrixRequirementOptions(complianceStandards), [complianceStandards]);
-  const complianceView = useMemo(() => {
-    if (!activeProject || complianceStandards.length === 0 || activePhase !== PhaseId.Compliance) return undefined;
-    const evaluation = prepareProjectCompliance(activeProject);
-    if (!evaluation) return undefined;
-    const elements = activeProject.dfd?.elements ?? [];
-    const componentId = activeProject.compliance?.componentId;
-    const component = elements.find((e) => e.id === componentId);
-    return {
-      ...evaluation,
-      nameOf: complianceNameOf(activeProject),
-      typeOf: complianceTypeOf(activeProject),
-      componentOptions: elements
-        .filter((e) => e.type === "Multiprocess" || e.type === "Process")
-        .map((e) => ({ id: e.id, label: [e.displayId, e.name].filter(Boolean).join(" ") })),
-      deviceProposal: proposeDeviceCategories(
-        component ? { type: component.type, properties: component.properties as unknown as Record<string, unknown> } : undefined,
-        elements.some((e) => e.type === "ChipBoundary" && evaluation.scope.has(e.id)),
-      ),
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    activePhase,
-    complianceStandards,
-    activeProject?.dfd,
-    activeProject?.threats,
-    activeProject?.risks,
-    activeProject?.attackTrees,
-    activeProject?.assets,
-    activeProject?.compliance,
-    // EN 50742 A (CM-12): WoO, hazards and the system definition are evidence too.
-    activeProject?.info,
-    activeProject?.hazards,
-    activeProject?.itemDefinition,
-    // IEC-6: supporting claims cover matrix rows.
-    activeProject?.cybersecurityConcept,
-  ]);
-
-  const securityDrifts = useSecurityDrift(
-    controlInstances,
-    activeProject?.dfd ?? null,
-  );
+  const labelVocabulary: "default" | "iso-21434" = isoMode ? "iso-21434" : "default";
 
   // ── Threat reference extraction ───────────────────────────────────────────
 
@@ -1142,7 +208,15 @@ export const WorkspaceLayout: React.FC = () => {
 
   // ── Guard ─────────────────────────────────────────────────────────────────
 
-  if (!activeProject || !generalTabData) return null;
+  if (!activeProject?.info) return null;
+
+  const generalTabData: GeneralTabData = {
+    info: activeProject.info,
+    settings: activeProject.settings,
+    phaseStatus: activeProject.phaseStatus,
+    sourceBindings: activeProject.sourceBindings,
+    itemDefinition: activeProject.itemDefinition,
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -1152,9 +226,9 @@ export const WorkspaceLayout: React.FC = () => {
         project={activeProject}
         activePhase={activePhase}
         onPhaseChange={handlePhaseChange}
-        threatDrift={threatDriftCounts}
-        indicators={memoizedPhaseIndicators ?? undefined}
-        auditHints={auditHintLines}
+        threatDrift={phase.threatDriftCounts}
+        indicators={phase.indicators ?? undefined}
+        auditHints={phase.auditHintLines}
         complianceAvailable={complianceStandards.length > 0}
       />
 
@@ -1164,22 +238,17 @@ export const WorkspaceLayout: React.FC = () => {
             key={activeProject.id}
             data={generalTabData}
             phases={PHASES}
-            progressPhaseIds={getProgressPhaseIds(
-              activeProject.info?.safetyRelevant ?? false,
-              regulationPresetFromTags(
-                activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-              ) === "iso-21434",
-            )}
+            progressPhaseIds={getProgressPhaseIds(activeProject.info?.safetyRelevant ?? false, isoMode)}
             getStatusIcon={getPhaseStatusIcon}
             getStatusColor={getPhaseStatusColor}
-            phaseIndicators={memoizedPhaseIndicators ?? undefined}
+            phaseIndicators={phase.indicators ?? undefined}
             onOpenPhase={handlePhaseChange}
-            onUpdate={handleGeneralTabUpdate}
+            onUpdate={handlers.handleGeneralTabUpdate}
             projectId={activeProject.id}
-            modelItems={memoizedItemModelItems}
-            assumptionUsage={memoizedAssumptionUsage}
-            methodology={memoizedMethodologySummary}
-            verification={memoizedVerificationStatus}
+            modelItems={overview.itemModelItems}
+            assumptionUsage={overview.assumptionUsage}
+            methodology={overview.methodologySummary}
+            verification={overview.verificationStatus}
             onOpenAuditTab={() => handlePhaseChange(PhaseId.Audit)}
             onOpenRiskTab={() => handlePhaseChange(PhaseId.Risk)}
           />
@@ -1194,12 +263,12 @@ export const WorkspaceLayout: React.FC = () => {
                 name: activeProject.info?.name || "",
                 hazards: activeProject.hazards ?? null,
                 phaseStatus: activeProject.phaseStatus,
-                assetDataRef: memoizedAssetDataRef,
+                assetDataRef: assetData.assetDataRef,
                 lastModified: activeProject.info?.lastModified || "",
                 labelVocabulary,
               }}
-              onUpdate={handleHazardsUpdate}
-              openRequest={hazardOpenRequest}
+              onUpdate={handlers.handleHazardsUpdate}
+              openRequest={navigation.hazardOpenRequest}
             />
           )}
 
@@ -1208,7 +277,7 @@ export const WorkspaceLayout: React.FC = () => {
             on project switch — ensuring draw.io loads the correct project's
             DFD and doesn't show stale data from a previous project.
             The outer div's display:none hides the tab without unmounting. */}
-        {dfdTabProject && (
+        {dfdData.dfdTabProject && (
           <div
             style={{
               display: activePhase === PhaseId.DFD ? "flex" : "none",
@@ -1217,34 +286,22 @@ export const WorkspaceLayout: React.FC = () => {
             }}
           >
             <DFDTab
-              key={dfdTabProject.id}
-              project={dfdTabProject}
+              key={dfdData.dfdTabProject.id}
+              project={dfdData.dfdTabProject}
               complianceComponentId={activeProject.compliance?.componentId}
-              onUpdate={handleDFDUpdate}
-              assetUsage={assetUsageLookup}
-              threatCountOf={threatCountLookup}
-              graphFocusRequest={graphFocusRequest}
-              elementFocusRequest={elementFocusRequest}
-              hazards={memoizedGraphHazards}
-              assetRegistry={memoizedGraphRegistry}
+              onUpdate={handlers.handleDFDUpdate}
+              assetUsage={handlers.assetUsageLookup}
+              threatCountOf={handlers.threatCountLookup}
+              graphFocusRequest={navigation.graphFocusRequest}
+              elementFocusRequest={navigation.elementFocusRequest}
+              hazards={assetData.graphHazards}
+              assetRegistry={assetData.graphRegistry}
               labelVocabulary={labelVocabulary}
               assumptions={activeProject.itemDefinition?.assumptions}
-              onCreateAssumption={handleCreateAssumption}
-              assumptionsNeutral={
-                regulationPresetFromTags(activeProject.info?.tags ?? EMPTY_PROJECT_TAGS) !== "iso-21434"
-              }
-              onShowInTable={(assetId) => {
-                setTableHighlightRequest({ assetId });
-                handlePhaseChange(PhaseId.Assets);
-              }}
-              onOpenHazard={
-                activeProject.info?.safetyRelevant
-                  ? (hazardId) => {
-                      handlePhaseChange(PhaseId.Hazard);
-                      setHazardOpenRequest({ hazardId });
-                    }
-                  : undefined
-              }
+              onCreateAssumption={handlers.handleCreateAssumption}
+              assumptionsNeutral={!isoMode}
+              onShowInTable={navigation.showInTable}
+              onOpenHazard={activeProject.info?.safetyRelevant ? navigation.openHazard : undefined}
               controlInstances={controlInstances}
               securityDrifts={securityDrifts}
             />
@@ -1259,48 +316,29 @@ export const WorkspaceLayout: React.FC = () => {
               name: activeProject.info?.name || "",
               assets: activeProject.assets ?? null,
               phaseStatus: activeProject.phaseStatus,
-              dfdAssets: memoizedDFDAssets,
-              dfdElements: memoizedDFDElements,
-              dfdConnections: memoizedDFDConnections,
+              dfdAssets: dfdData.dfdAssets,
+              dfdElements: dfdData.dfdElements,
+              dfdConnections: dfdData.dfdConnections,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
-              dfdTableGroups: memoizedTableGroups,
+              dfdTableGroups: dfdData.tableGroups,
               lastModified: activeProject.info?.lastModified || "",
-              damageScenarioMode:
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ) === "iso-21434",
-              mandatoryImpactCriteriaIds: getMandatoryAssetCriteriaIds(
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ),
-              ),
-              requiredImpactScale: getRequiredImpactScale(
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ),
-              ),
-              impactLabelVocabulary:
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ) === "iso-21434"
-                  ? "iso-21434"
-                  : "default",
+              damageScenarioMode: isoMode,
+              mandatoryImpactCriteriaIds: getMandatoryAssetCriteriaIds(presetId),
+              requiredImpactScale: getRequiredImpactScale(presetId),
+              impactLabelVocabulary: labelVocabulary,
             }}
-            onUpdate={makeAssetsUpdateHandler(activeProject.id)}
-            onDeleteAsset={makeAssetDeleteHandler(activeProject.id)}
-            tableHighlightRequest={tableHighlightRequest}
-            onShowInGraph={(assetId) => {
-              setGraphFocusRequest({ assetId });
-              handlePhaseChange(PhaseId.DFD);
-            }}
-            assetUsage={assetUsageLookup}
-            hazardLinks={memoizedHazardRef}
-            threatLinks={memoizedThreatGoalLinks}
+            onUpdate={handlers.makeAssetsUpdateHandler(activeProject.id)}
+            onDeleteAsset={handlers.makeAssetDeleteHandler(activeProject.id)}
+            tableHighlightRequest={navigation.tableHighlightRequest}
+            onShowInGraph={navigation.showInGraph}
+            assetUsage={handlers.assetUsageLookup}
+            hazardLinks={assetData.hazardRef}
+            threatLinks={assetData.threatGoalLinks}
           />
         )}
 
-        {activePhase === PhaseId.Threats && memoizedDFDContext && (
+        {activePhase === PhaseId.Threats && dfdData.dfdContext && (
           <ThreatsTab
             // One instance per project (FX-8): its local threat tables never
             // carry over into the next project.
@@ -1312,8 +350,8 @@ export const WorkspaceLayout: React.FC = () => {
               phaseStatus: activeProject.phaseStatus,
               dfdXml: activeProject.dfd?.xml,
               dfdPageIds: activeProject.dfd?.pages?.map((p) => p.pageId),
-              dfdParentLevelFlows: memoizedParentLevelFlows,
-              dfdTableGroups: memoizedTableGroups,
+              dfdParentLevelFlows: dfdData.parentLevelFlows,
+              dfdTableGroups: dfdData.tableGroups,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               dfdElements: (activeProject.dfd?.elements || []) as any[],
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1322,17 +360,17 @@ export const WorkspaceLayout: React.FC = () => {
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               assetIds: activeProject.assets?.assets?.map((a) => a.id),
               lastModified: activeProject.info?.lastModified || "",
-              dfdGraph: memoizedDFDGraphRef,
-              assetDataRef: memoizedAssetDataRef,
-              dfd: memoizedDFDReference,
-              riskAttachments: memoizedRiskAttachments,
+              dfdGraph: dfdData.dfdGraphRef,
+              assetDataRef: assetData.assetDataRef,
+              dfd: dfdData.dfdReference,
+              riskAttachments: assetData.riskAttachments,
               info: {
                 tags: activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
               },
             }}
-            dfdContext={memoizedDFDContext}
-            onUpdate={handleThreatsUpdate}
-            projectMitigationRefs={projectMitigationRefs}
+            dfdContext={dfdData.dfdContext}
+            onUpdate={handlers.handleThreatsUpdate}
+            projectMitigationRefs={handlers.projectMitigationRefs}
           />
         )}
 
@@ -1356,9 +394,7 @@ export const WorkspaceLayout: React.FC = () => {
                 activeProject.attackTrees,
                 // ISO 21434: a relevant path reaches the Risk tab without a
                 // mitigation (risk is assessed before treatment is decided).
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ) !== "iso-21434",
+                !isoMode,
                 // Controls are proposed only when their context fits the
                 // project (mitigation catalog design D4).
                 activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
@@ -1372,25 +408,14 @@ export const WorkspaceLayout: React.FC = () => {
                 activeProject.attackTrees,
                 activeProject.risks?.configuration?.scale,
               ),
-              recommendedImpactAggregation: getRegulationPreset(
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ),
-              ).impactAggregation,
-              disabledStrideMethods: getDisabledThreatGenerators(
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ),
-              ),
-              isoMode:
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ) === "iso-21434",
-              assetDataRef: memoizedAssetDataRef,
-              dfd: memoizedDFDReference,
+              recommendedImpactAggregation: getRegulationPreset(presetId).impactAggregation,
+              disabledStrideMethods: getDisabledThreatGenerators(presetId),
+              isoMode,
+              assetDataRef: assetData.assetDataRef,
+              dfd: dfdData.dfdReference,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
-              dfdTableGroups: memoizedTableGroups,
+              dfdTableGroups: dfdData.tableGroups,
               integration: localIntegration
                 ? {
                     connection: {
@@ -1407,8 +432,8 @@ export const WorkspaceLayout: React.FC = () => {
               lastModified: activeProject.info?.lastModified || "",
             }}
             ticketPort={ticketPort}
-            onUpdate={handleRisksUpdate}
-            onConceptChange={handleConceptChange}
+            onUpdate={handlers.handleRisksUpdate}
+            onConceptChange={handlers.handleConceptChange}
           />
         )}
 
@@ -1427,10 +452,7 @@ export const WorkspaceLayout: React.FC = () => {
               name: activeProject.info?.name || "",
               phaseStatus: activeProject.phaseStatus,
               isHighImpact: activeProject.info?.isHighImpact || false,
-              isoMode:
-                regulationPresetFromTags(
-                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
-                ) === "iso-21434",
+              isoMode,
               attackTrees: activeProject.attackTrees,
               assets: extractAssetReferences(activeProject),
               threats: extractThreatReferencesForAttackTree(activeProject),
@@ -1441,7 +463,7 @@ export const WorkspaceLayout: React.FC = () => {
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               lastModified: activeProject.info?.lastModified || "",
             }}
-            onUpdate={handleAttackTreeUpdate}
+            onUpdate={handlers.handleAttackTreeUpdate}
           />
         </div>
 
@@ -1451,7 +473,7 @@ export const WorkspaceLayout: React.FC = () => {
               activeProject,
               i18n.language === "de" ? "de" : "en",
             )}
-            onUpdate={handleDocUpdate}
+            onUpdate={handlers.handleDocUpdate}
           />
         )}
 
@@ -1473,12 +495,12 @@ export const WorkspaceLayout: React.FC = () => {
               attackTrees: activeProject.attackTrees,
               itemDefinition: activeProject.itemDefinition,
               cybersecurityConcept: activeProject.cybersecurityConcept,
-              verification: memoizedVerificationInput,
+              verification: overview.verificationInput,
               lastModified: activeProject.info?.lastModified || "",
             }}
-            onUpdate={auditHandlers.onUpdate}
-            onVerificationsChange={auditHandlers.onVerificationsChange}
-            onDirtyChange={auditHandlers.onDirtyChange}
+            onUpdate={handlers.auditHandlers.onUpdate}
+            onVerificationsChange={handlers.auditHandlers.onVerificationsChange}
+            onDirtyChange={handlers.auditHandlers.onDirtyChange}
           />
         )}
 
@@ -1493,13 +515,10 @@ export const WorkspaceLayout: React.FC = () => {
               nameOf={complianceView.nameOf}
               typeOf={complianceView.typeOf}
               today={new Date().toISOString().slice(0, 10)}
-              onChange={handleComplianceChange}
+              onChange={handlers.handleComplianceChange}
               concept={activeProject.cybersecurityConcept}
-              onConceptChange={handleConceptChange}
-              onShowElement={(elementId) => {
-                setElementFocusRequest({ elementId });
-                handlePhaseChange(PhaseId.DFD);
-              }}
+              onConceptChange={handlers.handleConceptChange}
+              onShowElement={navigation.showElement}
               mitigationSuggestions={(ids, openElementIds) =>
                 suggestMitigations(
                   getAllMitigations(),
@@ -1523,7 +542,7 @@ export const WorkspaceLayout: React.FC = () => {
         {activePhase === PhaseId.Integration && (
           <IntegrationTab
             data={{ integration: localIntegration }}
-            onUpdate={handleIntegrationUpdate}
+            onUpdate={handlers.handleIntegrationUpdate}
           />
         )}
       </div>
