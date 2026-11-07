@@ -63,7 +63,7 @@ function machine(component: Project, instances: string[]): Project {
     components = applied.components;
     ctx = { ...ctx, xml: applied.outcome.xml, pages: applied.outcome.pages, elements: applied.outcome.elements, connections: applied.outcome.connections, assets: applied.outcome.assets };
   });
-  return { components, risks: { configuration: { ...headlamp.risks!.configuration }, risks: [], lastModified: "" }, dfd: { elements: [], connections: [] } } as unknown as Project;
+  return { components, attackTrees: null, risks: { configuration: { ...headlamp.risks!.configuration }, risks: [], lastModified: "" }, dfd: { elements: [], connections: [] } } as unknown as Project;
 }
 
 /** Every ratable asset-path of every instance rated by the machine with the component's own value. */
@@ -224,6 +224,22 @@ describe("only the machine's rating counts (review 2026-11-07)", () => {
     const ratedPath = derived.pathAnalysis!.paths.find((p) => p.pathKey === p0.pathKey)!;
     expect(derived.pathAnalysis!.aggregatedFeasibility).toBe(ratedPath.feasibilityLevel);
     expect(derived.pathAnalysis!.cheapestPath?.pathKey).toBe(p0.pathKey);
+  });
+
+  it("ties at the most feasible level go to the lowest attack potential the machine computed", () => {
+    // flat bands: every rated path lands on the same level
+    const config = headlamp.attackTrees!.configuration;
+    const flat = { ...config, feasibilityConfiguration: { ...(config.feasibilityConfiguration ?? DEFAULT_FEASIBILITY_CONFIGURATION), bands: [{ level: "very-low", minPotential: 0 }] } };
+    const r = { ...rated(m), attackTrees: { trees: [], configuration: flat, lastModified: "" } } as unknown as Project;
+    let checked = 0;
+    for (const tree of componentAttackTrees(r)[0].trees) {
+      const paths = (tree.pathAnalysis?.paths ?? []).filter((p) => p.feasibilityLevel);
+      if (paths.length < 2 || new Set(paths.map((p) => p.attackPotential)).size < 2) continue;
+      const lowest = Math.min(...paths.map((p) => p.attackPotential!));
+      expect(tree.pathAnalysis!.cheapestPath!.attackPotential, tree.name).toBe(lowest);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 
   it("quick-mode paths (no factor breakdown) stay unrated even with a rating; CMP_PATH_NOT_RATABLE", () => {

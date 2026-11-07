@@ -215,7 +215,7 @@ export function useComponentImport({
     [activeProjectRef, updateProject],
   );
   // Feasibility with the machine's methodology (its attack-tree configuration).
-  const attackTrees = activeProject?.attackTrees;
+  const attackTrees = activeProject?.attackTrees ?? null;
   const attackPathGroups = useMemo(
     () => (components ? componentAttackPathGroups({ components, attackTrees }) : []),
     [components, attackTrees],

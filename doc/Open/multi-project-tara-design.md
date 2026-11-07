@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–20; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–21; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -713,6 +713,12 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 21 done (2026-11-07, review of 18–20):* the machine's attack trees are a required input of
+the component attack-tree read model (`attackTrees: … | null`) — a caller that forgot them rated
+with the default bands silently; ties at the most feasible level go to the lowest attack potential
+the machine computed (not the component's riskScore). Noted as open: a path's attacker benefit is
+the component's; it acts on the likelihood only in the IEC 62443 model (a context quantity like
+motivation) — to be decided if component trees are to feed 62443 machines.
 *Patch 19 done (2026-11-07, manual test):* shells on the parent page (§6.2, I4).
 `shellBoundaryIds` (features/dfd, pure) takes the membership from the component's dfd graph; the
 shells are nested around the multiprocess (outer first, behind the machine's cells), their records

@@ -22,7 +22,10 @@
 //   - quick-mode paths (no factor breakdown) cannot be rated per path: they
 //     stay unrated, CMP_PATH_NOT_RATABLE asks the component for audit mode
 //   - the tree's aggregates (most feasible path, ISO 15.8 NOTE 2) follow
-//     the machine's path ratings
+//     the machine's path ratings; ties go to the lowest attack potential
+//   - open (noted): the attacker benefit of a path is the component's; it
+//     only acts on the likelihood in the IEC 62443 model (context, like
+//     motivation) — to be decided if component trees feed 62443 machines
 //   - a renamed node changes the pathKey: the overlay entry is orphaned —
 //     listed by the update preview (phase 5)
 
@@ -54,7 +57,11 @@ export interface ComponentAttackTrees {
   trees: AttackTree[];
 }
 
-type MachineTrees = Pick<Project, "components"> & Partial<Pick<Project, "attackTrees">>;
+/**
+ * The machine's attack trees are required (null = none): a caller that
+ * forgot them would silently rate with the default bands (review 2026-11-07).
+ */
+type MachineTrees = Pick<Project, "components"> & { attackTrees: Project["attackTrees"] | null };
 
 /** The machine's project-wide attack-tree configuration (its methodology). */
 function machineConfiguration(project: MachineTrees): AttackTreeData["configuration"] {
@@ -104,7 +111,9 @@ function instanceTrees(instance: Instance, imported: Import, config: Feasibility
       const cheapestPath = aggregatedFeasibility
         ? paths
             .filter((p) => p.feasibilityLevel === aggregatedFeasibility)
-            .sort((a, b) => b.riskScore - a.riskScore || a.pathKey.localeCompare(b.pathKey))[0]
+            // tie-break in the machine's view: the lowest attack potential
+            // (the machine computed it), then pathKey — not the component's riskScore
+            .sort((a, b) => (a.attackPotential ?? 0) - (b.attackPotential ?? 0) || a.pathKey.localeCompare(b.pathKey))[0]
         : undefined;
       const byKey = new Map(paths.map((p) => [p.pathKey, p]));
       pathAnalysis = {
@@ -225,7 +234,7 @@ export function componentAttackPathGroups(project: MachineTrees): ComponentAttac
 
 /** Per instance: paths still without the machine's rating, and paths it cannot rate. */
 export function componentPathRatingGaps(
-  project: MachineTrees,
+  project: Pick<Project, "components">,
 ): { instance: Instance; imported: Import; unrated: number; notRatable: number }[] {
   const components = project.components;
   if (!components) return [];
