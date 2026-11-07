@@ -401,6 +401,15 @@ export interface Threat {
    */
   relevanceOverridden?: boolean;
 
+  /**
+   * Threat of an imported component whose relevance this machine overrode
+   * on a boundary flow (multi-project TARA, I3). `relevance` holds the
+   * machine's decision; the component's decision and its note
+   * (`evalNote`) stay as the component made them, the machine's rationale
+   * is kept here — both are shown (review 2026-11-07).
+   */
+  importedOverride?: { componentRelevance: ThreatRelevance; rationale: string; date: string };
+
   /** True when the analyst has manually edited threatDescription or attackDescription */
   isTextCustomized: boolean;
 

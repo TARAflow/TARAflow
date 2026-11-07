@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–23; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–24; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -713,6 +713,12 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 24 done (2026-11-07, review of 21–22):* an override no longer hides the component's note:
+the machine's rationale moved from `evalNote` into its own field (`Threat.importedOverride`:
+component relevance, rationale, date); the read-only dialog shows "Component: <relevance> — <note>"
+and, if overridden, "This machine: <relevance> — <rationale>" (I3: the component's decision stays
+visible). The read-only dialog drops the ISO hint on asset-derived relevance (the relevance comes
+from the component) and hides its controls uniformly by conditional rendering.
 *Patch 23 done (2026-11-07, manual test):* EE → EE flows out of scope on every DFD. A machine with
 threats lost three per-element threats on an EE → EE flow (Wifi Gateway → Update Server) when the
 import made its DFD leveled: the effective model excludes such flows (`DFD_EE_TO_EE_FLOW`), the

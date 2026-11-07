@@ -137,7 +137,16 @@ function instanceTables(
       const boundary = onBoundary(original);
       const o = boundary ? overrides.get(original.id) : undefined;
       let threat = remapThreat(original, instance, mapId);
-      if (o) threat = { ...threat, relevance: o.relevance, relevanceOverridden: true, evalNote: o.rationale };
+      // The machine's decision; the component's note (evalNote) stays
+      // visible beside the machine's rationale (I3, review 2026-11-07).
+      if (o) {
+        threat = {
+          ...threat,
+          relevance: o.relevance,
+          relevanceOverridden: true,
+          importedOverride: { componentRelevance: original.relevance, rationale: o.rationale, date: o.date },
+        };
+      }
       rows.push({
         threat,
         threatKey: original.id,

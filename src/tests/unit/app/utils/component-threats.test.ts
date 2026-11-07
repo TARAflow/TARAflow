@@ -186,6 +186,14 @@ describe("relevance override on boundary flows (I3)", () => {
     expect(row.componentRelevance).toBe(boundaryRow.componentRelevance);
     expect(row.override).toMatchObject({ relevance: target, rationale: "Runs over the plant network" });
     expect(row.stale).toBeUndefined();
+    // the component's note stays, the machine's rationale has its own field (review 2026-11-07)
+    expect(row.threat.evalNote).toBe(boundaryRow.threat.evalNote);
+    expect(row.threat.importedOverride).toEqual({
+      componentRelevance: boundaryRow.componentRelevance,
+      rationale: "Runs over the plant network",
+      date: "2026-11-07",
+    });
+    expect(boundaryRow.threat.importedOverride).toBeUndefined();
   });
 
   it("an override stored for an internal threat has no effect (internals stay read-only)", () => {

@@ -939,6 +939,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     sx={{ height: 18, fontSize: 10 }}
                   />
                 )}
+                {!readOnly && (
                 <Tooltip
                   title={
                     editingThreat
@@ -950,13 +951,13 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                 >
                   <IconButton
                     size="small"
-                    sx={readOnly ? { display: "none" } : undefined}
                     onClick={() => setEditingThreat((v) => !v)}
                     color={editingThreat ? "primary" : "default"}
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
+                )}
               </Stack>
               {editingThreat ? (
                 <TextField
@@ -1007,6 +1008,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     defaultValue: "Attack Scenario",
                   })}
                 </Typography>
+                {!readOnly && (
                 <Tooltip
                   title={
                     editingAttack
@@ -1018,13 +1020,13 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                 >
                   <IconButton
                     size="small"
-                    sx={readOnly ? { display: "none" } : undefined}
                     onClick={() => setEditingAttack((v) => !v)}
                     color={editingAttack ? "primary" : "default"}
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
+                )}
               </Stack>
               {editingAttack ? (
                 <TextField
@@ -1213,6 +1215,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             })}
                           </Button>
                         )}
+                        {!readOnly && (
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1221,12 +1224,12 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <IconButton
                             size="small"
                             onClick={() => deleteMitigation(index)}
-                            style={readOnly ? { display: "none" } : undefined}
                             sx={{ mt: 0.25 }}
                           >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        )}
                       </Stack>
                     ) : (
                       <>
@@ -1377,6 +1380,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           text={v.notes}
                           onLink={(id) => linkVerification(index, id)}
                         />}
+                        {!readOnly && (
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1385,12 +1389,12 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <IconButton
                             size="small"
                             onClick={() => deleteVerification(index)}
-                            style={readOnly ? { display: "none" } : undefined}
                             sx={{ mt: 0.25 }}
                           >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        )}
                       </Stack>
                     ) : (
                       <>
@@ -1493,7 +1497,37 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               </Stack>
             </Box>
 
-            {/* EVAL NOTE */}
+            {/* EVAL NOTE — read-only (imported threat): the component's
+                decision with its note and, if overridden, the machine's
+                decision with its rationale (I3); no ISO hint — the
+                relevance comes from the component, not from the assets. */}
+            {readOnly ? (
+              <Box
+                sx={{ border: 1, borderColor: "divider", borderRadius: 1, p: 1.5 }}
+                data-testid="threat-dialog-decisions"
+              >
+                <Typography variant="body2" data-testid="threat-dialog-decision-component">
+                  <strong>
+                    {t("tabs.threats.dialog.componentDecision", { defaultValue: "Component" })}:
+                  </strong>{" "}
+                  {t(`tabs.threats.eval.${currentThreat.importedOverride?.componentRelevance ?? local.relevance}`, {
+                    defaultValue: currentThreat.importedOverride?.componentRelevance ?? local.relevance,
+                  })}
+                  {" — "}
+                  {local.evalNote.trim() || "—"}
+                </Typography>
+                {currentThreat.importedOverride && (
+                  <Typography variant="body2" sx={{ mt: 0.5 }} data-testid="threat-dialog-decision-machine">
+                    <strong>
+                      {t("tabs.threats.dialog.machineDecision", { defaultValue: "This machine" })}:
+                    </strong>{" "}
+                    {t(`tabs.threats.eval.${local.relevance}`, { defaultValue: local.relevance })}
+                    {" — "}
+                    {currentThreat.importedOverride.rationale}
+                  </Typography>
+                )}
+              </Box>
+            ) : (
             <TextField
               size="small"
               fullWidth
@@ -1522,6 +1556,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               minRows={3}
               maxRows={6}
             />
+            )}
 
             {/* THREAT ACTOR — collapsed by default */}
             {configuration.showThreatActor && (

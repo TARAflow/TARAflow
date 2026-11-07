@@ -3,6 +3,8 @@
 // Multi-project TARA (design §7.1), manual test 2026-11-07: a threat of an
 // imported component opens in the threat dialog read-only — everything is
 // shown, nothing can be changed, navigation works, nothing is saved.
+// Review 2026-11-07: the component's decision with its note stays visible
+// beside the machine's override; no ISO hint on asset-derived relevance.
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -32,11 +34,12 @@ const threat = (id: string, displayId: string, over: Partial<Threat> = {}): Thre
   ...over,
 });
 
-function renderReadOnly(onSave = vi.fn(), onClose = vi.fn()) {
+function renderReadOnly(onSave = vi.fn(), onClose = vi.fn(), threats = [threat("a", "SD1:P3-T-1"), threat("b", "SD1:P3-T-2")], isoMode = false) {
   render(
     <ThreatEvalDialog
       open
-      threats={[threat("a", "SD1:P3-T-1"), threat("b", "SD1:P3-T-2")]}
+      isoMode={isoMode}
+      threats={threats}
       initialIndex={0}
       configuration={{ showThreatActor: true } as never}
       onSave={onSave}
@@ -86,5 +89,32 @@ describe("ThreatEvalDialog — read-only", () => {
     expect(screen.queryByTestId("threat-dialog-read-only")).toBeNull();
     expect(screen.getByText("Confirm")).toBeTruthy();
     expect(screen.getByText("Add custom verification")).toBeTruthy();
+  });
+
+  it("shows the component's decision with its note; with an override also the machine's with its rationale", () => {
+    renderReadOnly(vi.fn(), vi.fn(), [
+      threat("a", "SD1:DF7-T-1", {
+        relevance: "relevant",
+        evalNote: "Inside the case only",
+        importedOverride: { componentRelevance: "not_relevant", rationale: "Runs over the plant network", date: "d" },
+      }),
+    ]);
+    const component = screen.getByTestId("threat-dialog-decision-component").textContent!;
+    expect(component).toContain("not_relevant");
+    expect(component).toContain("Inside the case only");
+    const machine = screen.getByTestId("threat-dialog-decision-machine").textContent!;
+    expect(machine).toContain("relevant");
+    expect(machine).toContain("Runs over the plant network");
+  });
+
+  it("without an override only the component's decision", () => {
+    renderReadOnly(vi.fn(), vi.fn(), [threat("a", "SD1:P3-T-1", { relevance: "not_relevant", evalNote: "No access" })]);
+    expect(screen.getByTestId("threat-dialog-decision-component").textContent).toContain("not_relevant — No access");
+    expect(screen.queryByTestId("threat-dialog-decision-machine")).toBeNull();
+  });
+
+  it("ISO mode: no hint about asset-derived relevance in read-only mode", () => {
+    renderReadOnly(vi.fn(), vi.fn(), undefined, true);
+    expect(screen.queryByText(/derived from the asset relationship/)).toBeNull();
   });
 });

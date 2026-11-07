@@ -265,6 +265,8 @@
         "mitigationPlaceholder": "Massnahme beschreiben...",
         "verificationPlaceholder": "Verifizierung beschreiben...",
         "notePlaceholder": "Optionale Notiz für das Audit-Trail...",
+        "componentDecision": "Komponente",
+        "machineDecision": "Diese Maschine",
         "readOnly": "Schreibgeschützt",
         "importedReadOnly": "Importiert aus {{source}} — schreibgeschützt. Text, STRIDE und Relevanz entscheidet die Komponenten-TARA; die Relevanz eines Threats auf einem Grenz-Flow kann in der Liste überstimmt werden.",
         "noteLabel": "Notiz",
