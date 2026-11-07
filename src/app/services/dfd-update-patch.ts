@@ -185,16 +185,35 @@ export function buildDfdUpdate(
 
 
   // 4) A deleted multiprocess of a component instance removes the instance
-  //    (multi-project TARA §6.7).
+  //    (multi-project TARA §6.7) and its assets (E5): the asset sync never
+  //    removes store records, so they are purged like a deleted asset.
   const pruned = pruneDeletedInstances(current, dfd.elements ?? []);
+  let purgedDfd = dfd as Project["dfd"];
+  let purgedAssets = assets;
+  for (const removed of pruned.removed) {
+    for (const assetId of removed.assetIds) {
+      if (!purgedAssets?.assets.some((a) => a.id === assetId)) continue;
+      try {
+        const purged = purgeAssetFromProject(
+          { ...current, dfd: purgedDfd, assets: purgedAssets, hazards, risks },
+          assetId,
+        );
+        ({ assets: purgedAssets, hazards, risks } = purged);
+        purgedDfd = purged.dfd;
+      } catch (err) {
+        console.error("[DFD] component asset not purged:", err);
+      }
+    }
+  }
 
+  const purgedAny = pruned.removed.some((r) => r.assetIds.length > 0);
   const patch = {
     id: current.id,
-    dfd,
-    assets, // persist the reconciled asset store too
+    dfd: purgedAny ? { ...(purgedDfd as typeof dfd), graph } : dfd,
+    assets: purgedAny ? purgedAssets : assets, // persist the reconciled asset store too
     phaseStatus: updates.phaseStatus,
     threats,
-    ...(updates.deletedAssetIds?.length ? { hazards, risks } : {}),
+    ...(updates.deletedAssetIds?.length || purgedAny ? { hazards, risks } : {}),
     ...(pruned.components ? { components: pruned.components } : {}),
   };
   return { patch, rejectedA2AOps, removedComponentInstances: pruned.removed };

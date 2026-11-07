@@ -18,7 +18,7 @@ import {
   unresolvableFlows,
 } from "app/services/component-import/import-flow";
 import { flow, mxfile, node, page } from "../../../../fixtures/leveled-dfd-xml";
-import type { ComponentInsertContext } from "features/dfd";
+import { instanceAssetId, type ComponentInsertContext } from "features/dfd";
 
 const smokeProject = () => parseAndRepair(loadProjectFixture("SmokeDetector.tara.json")) as Project;
 const result = () => {
@@ -45,6 +45,7 @@ const context = (): ComponentInsertContext => ({
   ),
   pages: [],
   pageId: "top",
+    assets: [],
   elements: [
     { id: "m_plc", displayId: "EE-1", name: "Fire Panel Controller", type: "ExternalEntity", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} },
     { id: "m_p1", displayId: "P-1", name: "Alarm Logic", type: "Process", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} },
@@ -130,5 +131,22 @@ describe("applyComponentImport", () => {
     expect(second.components.imports[0].contentHash).toBe(r.contentHash);
     expect(second.components.instances.map((i) => i.prefix)).toEqual(["SD1", "SD2"]);
     expect(second.instance.importId).toBe("imp");
+  });
+
+  it("the component's assets become instance assets (E5): ids per instance, prefix, origin, no impact, linked to the instance", () => {
+    const r = result();
+    const a = applyComponentImport({ context: context(), machine: {}, result: r, choice: { prefix: "SD1", name: "SD", eeMapping: { "EE-1": "m_plc" } }, ids: { importId: "imp", instanceId: "inst-1" }, importedAt: "t" });
+    expect(a.assets).toHaveLength(r.snapshot.assets.length);
+    const first = r.snapshot.assets.find((x) => (x.linkedDFDElements ?? []).length > 0)!;
+    const mine = a.assets.find((x) => x.id === instanceAssetId("inst-1", first.id))!;
+    expect(mine.importedFrom).toBe("SD1 · " + r.snapshot.component.name);
+    expect(mine.impactRatings).toEqual([]);
+    if (first.displayId) expect(mine.displayId).toBe(`SD1:${first.displayId}`);
+    const machineIds = new Set([...a.outcome.elements, ...a.outcome.connections].map((e) => e.id));
+    for (const l of mine.linkedDFDElements) expect(machineIds.has(l.elementId), l.elementId).toBe(true);
+    // the DFD mirror carries the mirrored ones too, with the same ids
+    for (const m of r.snapshot.dfd!.assets ?? []) {
+      expect(a.outcome.assets.some((x) => x.id === instanceAssetId("inst-1", m.id)), m.id).toBe(true);
+    }
   });
 });

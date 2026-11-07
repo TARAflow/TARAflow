@@ -22,6 +22,7 @@ import {
   type ComponentPickResult,
 } from "features/components";
 import type { Project } from "../../models/project-types";
+import { createDefaultAssetData } from "features/assets/services/asset-factory";
 import {
   componentImportAvailable,
   pickComponentFile,
@@ -118,7 +119,14 @@ export function useComponentImport({
           ids: { importId: crypto.randomUUID(), instanceId: crypto.randomUUID() },
           importedAt: new Date().toISOString(),
         });
-        void updateProject({ id: project.id, components: applied.components });
+        // The instance's assets join the store with the import (E5).
+        const store = project.assets ?? createDefaultAssetData();
+        const newIds = new Set(applied.assets.map((a) => a.id));
+        void updateProject({
+          id: project.id,
+          components: applied.components,
+          assets: { ...store, assets: [...store.assets.filter((a) => !newIds.has(a.id)), ...applied.assets] },
+        });
         finish(applied.outcome);
       } catch (err) {
         toast.error(

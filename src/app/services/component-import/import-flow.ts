@@ -7,8 +7,10 @@
 // DFD (features/dfd) stay independent; this layer joins them.
 
 import type { ComponentImport, ComponentInstance, ProjectComponents } from "shared";
+import type { Asset } from "features/assets";
 import {
   insertComponentInstance,
+  instanceAssetId,
   parseDfd,
   type ComponentInsertContext,
   type ComponentInsertOutcome,
@@ -113,6 +115,13 @@ export interface AppliedComponentImport {
   outcome: ComponentInsertOutcome;
   components: ProjectComponents<ComponentSnapshot>;
   instance: ComponentInstance;
+  /**
+   * The component's assets as store records of the instance (E5): name,
+   * group, security goals from the component (without impact — the
+   * snapshot dropped it), linked to the instance elements. Added to the
+   * asset store with the import; the DFD sync keeps them linked.
+   */
+  assets: Asset[];
 }
 
 /**
@@ -146,7 +155,7 @@ export function applyComponentImport(input: {
   const instanceCount = (machine.components?.instances ?? []).length;
   const inserted = insertComponentInstance({
     machine: context,
-    component: { xml: dfd.xml, pages: dfd.pages, elements: dfd.elements, connections: dfd.connections },
+    component: { xml: dfd.xml, pages: dfd.pages, elements: dfd.elements, connections: dfd.connections, assets: dfd.assets },
     instanceId: ids.instanceId,
     prefix: choice.prefix,
     parentPageId: context.pageId,
@@ -165,13 +174,29 @@ export function applyComponentImport(input: {
     assumptions: [],
   };
 
+  const eeIds = new Set((dfd.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+  const origin = `${choice.prefix} · ${imported.name}`;
+  const keptIds = new Set([...inserted.elements, ...inserted.connections].map((x) => x.id));
+  const assets: Asset[] = imported.snapshot.assets.map((a) => ({
+    ...(a as unknown as Asset),
+    id: instanceAssetId(ids.instanceId, a.id),
+    ...(a.displayId ? { displayId: `${choice.prefix}:${a.displayId}` } : {}),
+    impactRatings: [],
+    linkedDFDElements: (a.linkedDFDElements ?? [])
+      .filter((l) => !eeIds.has(l.elementId) && keptIds.has(inserted.idMap[l.elementId] ?? ""))
+      .map((l) => ({ ...l, elementId: inserted.idMap[l.elementId] ?? l.elementId, displayId: `${choice.prefix}:${l.displayId}` })),
+    importedFrom: origin,
+  }));
+
   return {
     outcome: {
       xml: inserted.xml,
       pages: inserted.pages,
       elements: [...context.elements, ...inserted.elements],
       connections: [...context.connections, ...inserted.connections],
+      assets: [...context.assets, ...inserted.assets],
     },
+    assets,
     components: {
       imports: existing ? machine.components!.imports : [...(machine.components?.imports ?? []), imported],
       instances: [...(machine.components?.instances ?? []), instance],

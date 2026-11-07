@@ -22,6 +22,7 @@ function imported(source: Record<string, unknown> = { commitSha: "abc", schemaVe
     xml: mxfile(page("top", "Fire Panel", node("m_plc", "externalentity", "Fire Panel Controller", "EE-1", 10) + node("m_p1", "process", "Alarm Logic", "P-1", 300) + flow("m_df1", "report alarm", "DF-1", "m_plc", "m_p1"))),
     pages: [],
     pageId: "top",
+    assets: [],
     elements: [
       { id: "m_plc", displayId: "EE-1", name: "Fire Panel Controller", type: "ExternalEntity", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} },
       { id: "m_p1", displayId: "P-1", name: "Alarm Logic", type: "Process", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} },

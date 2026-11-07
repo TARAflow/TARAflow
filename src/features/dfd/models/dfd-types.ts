@@ -426,6 +426,8 @@ export interface ComponentInsertContext {
   pageId: string;
   elements: DFDElement[];
   connections: DFDConnection[];
+  /** The DFD asset mirror (patch 13). */
+  assets: DFDAsset[];
 }
 
 /** The DFD after the import — complete arrays, loaded into draw.io and saved as they are. */
@@ -434,6 +436,7 @@ export interface ComponentInsertOutcome {
   pages: DFDPage[];
   elements: DFDElement[];
   connections: DFDConnection[];
+  assets: DFDAsset[];
 }
 
 /** What the details panel shows about an imported multiprocess (multi-project TARA). */

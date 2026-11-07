@@ -606,6 +606,16 @@ and the per-interaction missing-flow / missing-interface checks. Passed to the T
 phase-badge drift. Threats generated for instance elements before this patch now show as drift
 ("obsolete") and can be removed there.
 
+*Patch 13 done (2026-11-07):* assets per instance (E5). `insertComponentInstance` takes the
+component's DFD asset mirror over as instance assets (`instanceAssetId`, prefixed display ids) and
+remaps the elements' and flows' asset relations to them; links to the component's EEs and to
+dropped EE → EE flows are left out. The import also adds the component's asset records to the
+store — name, group, security goals from the snapshot (impact already dropped there), linked to
+the instance elements, `importedFrom: "<prefix> · <component>"` — so the asset sync finds them and
+the machine rates their impact and damage scenarios. Deleting the instance purges them (the sync
+never removes store records). Not yet: the Assets tab does not lock name / group / goals of an
+imported asset (only the `importedFrom` marker is stored) — with the ownership marking (phase 4).
+
 Further constraints (review 2026-11-07):
 - The threats are derived, but the machine's own ratings on them are stored data: the WoO overlay
   per instance and pathKey (patch 16) and the overrides of prefilled factors with their rationale

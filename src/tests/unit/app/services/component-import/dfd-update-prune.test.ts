@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import type { Project } from "app/models/project-types";
 import { buildDfdUpdate } from "app/services/dfd-update-patch";
+import { instanceAssetId } from "features/dfd";
 
 const element = (id: string, type: string) => ({ id, displayId: id, name: id, type, position: { x: 0, y: 0 }, size: { width: 10, height: 10 }, properties: {} });
 
@@ -30,7 +31,7 @@ describe("buildDfdUpdate — deleted component multiprocess", () => {
       phaseStatus: {},
       lastModified: "x",
     } as never);
-    expect(out.removedComponentInstances).toEqual([{ prefix: "CAM1", component: "Camera" }]);
+    expect(out.removedComponentInstances).toEqual([{ prefix: "CAM1", component: "Camera", assetIds: [] }]);
     expect(out.patch.components).toEqual({ imports: [], instances: [] });
   });
 
@@ -38,5 +39,23 @@ describe("buildDfdUpdate — deleted component multiprocess", () => {
     const out = buildDfdUpdate(current, { dfd: current.dfd, phaseStatus: {}, lastModified: "x" } as never);
     expect(out.removedComponentInstances).toEqual([]);
     expect("components" in out.patch).toBe(false);
+  });
+
+  it("purges the instance's assets from the store and the DFD mirror (E5)", () => {
+    const assetId = instanceAssetId("i1", "a1");
+    const withAsset = {
+      ...current,
+      assets: { configuration: { impactScale: "4-level", impactCriteria: [] }, assets: [{ id: assetId, name: "Firmware", assetGroup: "data", impactRatings: [], securityGoals: [], linkedDFDElements: [], source: "dfd", syncedWithDFD: true, created: "", lastModified: "" }], relations: [], lastModified: "" },
+      dfd: { ...current.dfd!, assets: [{ id: assetId, displayId: "CAM1:DA-1", name: "Firmware", assetGroup: "data" }] },
+      components: { ...current.components!, imports: [{ ...current.components!.imports[0], snapshot: { assets: [{ id: "a1" }] } }] },
+    } as unknown as Project;
+    const out = buildDfdUpdate(withAsset, {
+      dfd: { elements: [element("p1", "Process")], connections: [], assets: withAsset.dfd!.assets },
+      phaseStatus: {},
+      lastModified: "x",
+    } as never);
+    expect(out.removedComponentInstances[0].assetIds).toEqual([assetId]);
+    expect(out.patch.assets!.assets.some((a) => a.id === assetId)).toBe(false);
+    expect((out.patch.dfd!.assets ?? []).some((a) => a.id === assetId)).toBe(false);
   });
 });

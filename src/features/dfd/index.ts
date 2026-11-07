@@ -235,6 +235,7 @@ export {
   insertComponentInstance,
   componentInstanceTfId,
   instanceMultiprocessTfId,
+  instanceAssetId,
   prefixDisplayLabel,
   InsertComponentError,
   type InsertComponentInput,

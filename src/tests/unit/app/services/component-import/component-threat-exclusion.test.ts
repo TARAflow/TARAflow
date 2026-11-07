@@ -48,7 +48,8 @@ const machineElements = [
 ] as never[];
 
 const applied = applyComponentImport({
-  context: { xml: machineXml, pages: [], pageId: "top", elements: machineElements, connections: [{ id: "m_df1", displayId: "DF-1", name: "report alarm", from: "m_plc", to: "m_p1", properties: {} }] as never },
+  context: { xml: machineXml, pages: [], pageId: "top",
+    assets: [], elements: machineElements, connections: [{ id: "m_df1", displayId: "DF-1", name: "report alarm", from: "m_plc", to: "m_p1", properties: {} }] as never },
   machine: {},
   result: { snapshot, contentHash: snapshotContentHash(snapshot), methodology: projectMethodologyFingerprint(component), source: { commitSha: "a", schemaVersion: 14 } },
   choice: { prefix: "SD1", name: "Smoke Detector", eeMapping: { "EE-1": "m_plc" } },

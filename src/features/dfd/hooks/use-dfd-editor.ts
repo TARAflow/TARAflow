@@ -468,6 +468,7 @@ export function useDFDEditor(
         pageId: currentPageIdRef.current ?? "",
         elements: base?.elements ?? [],
         connections: base?.connections ?? [],
+        assets: base?.assets ?? [],
       });
       if (!outcome) return false;
       persistencePrimeBase({
@@ -476,6 +477,7 @@ export function useDFDEditor(
         pages: outcome.pages,
         elements: outcome.elements,
         connections: outcome.connections,
+        assets: outcome.assets,
         lastModified: new Date().toISOString(),
       });
       if (!bridgeRef.current) return false;

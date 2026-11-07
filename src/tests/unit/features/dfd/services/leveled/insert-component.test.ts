@@ -16,6 +16,7 @@ import {
   insertComponentInstance,
   prefixDisplayLabel,
   InsertComponentError,
+  instanceAssetId,
 } from "features/dfd/services/leveled/insert-component";
 import { flow, mxfile, node, page } from "../../../../../fixtures/leveled-dfd-xml";
 import { analyseLeveled } from "features/dfd/services/leveled/leveled-analysis";
@@ -26,6 +27,7 @@ const component = {
   xml: smoke.dfd!.xml!,
   elements: smoke.dfd!.elements,
   connections: smoke.dfd!.connections,
+  assets: smoke.dfd!.assets,
 };
 const EES = smoke.dfd!.elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id);
 const EE_TO_EE = smoke.dfd!.connections.filter((c) => EES.includes(c.from) && EES.includes(c.to)).map((c) => c.id);
@@ -76,7 +78,7 @@ function save(result: ReturnType<typeof insert>, base = { elements: machineEleme
       pages: result.pages,
       elements: [...base.elements, ...result.elements],
       connections: [...base.connections, ...result.connections],
-      assets: [],
+      assets: result.assets,
     },
   } as unknown as DFDProjectData;
   return dfdService.saveDFDFromXml(project, result.xml);
@@ -116,12 +118,23 @@ describe("insertComponentInstance — structure", () => {
     for (const id of BOUNDARY) expect(r.connections.find((c) => c.id === r.idMap[id])?.displayId).toBe("DF-xx");
   });
 
-  it("carries the component's properties, drops asset relations (phase 2)", () => {
+  it("carries the component's properties", () => {
     const r = insert();
     const withProps = smoke.dfd!.elements.find((e) => e.type === "Process" && Object.keys(e.properties ?? {}).length > 0)!;
     const copy = r.elements.find((e) => e.id === r.idMap[withProps.id])!;
     expect(copy.properties).toEqual(withProps.properties);
-    expect(r.elements.every((e) => (e.assetRelations ?? []).length === 0)).toBe(true);
+  });
+
+  it("assets per instance (E5): the mirror with instance ids, relations pointing to them", () => {
+    const r = insert();
+    expect(r.assets).toHaveLength(smoke.dfd!.assets.length);
+    const assetIds = new Set(r.assets.map((a) => a.id));
+    for (const a of smoke.dfd!.assets) expect(assetIds.has(instanceAssetId("inst-1", a.id))).toBe(true);
+    const related = r.elements.flatMap((e) => e.assetRelations ?? []);
+    expect(related.length).toBeGreaterThan(0);
+    for (const rel of related) expect(assetIds.has(rel.assetId), rel.assetId).toBe(true);
+    const machineIds = new Set([...r.elements.map((e) => e.id), ...r.connections.map((c) => c.id), "m_plc", "m_p1"]);
+    for (const a of r.assets) for (const l of a.linkedElements ?? []) expect(machineIds.has(l.elementId), l.elementId).toBe(true);
   });
 });
 

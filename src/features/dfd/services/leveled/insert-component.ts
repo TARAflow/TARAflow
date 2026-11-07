@@ -25,8 +25,10 @@
 // keep the component's with the instance prefix ("CAM1:P-3", E9); the
 // multiprocess and the boundary flows are machine elements and get the
 // placeholders of the shape library (MP-xx, DF-xx) for the machine's
-// numbering. Asset relations (elements and flows) are not taken over here —
-// the component's assets come with the threats (phase 2, E5).
+// numbering. Assets (patch 13, E5): the component's asset mirror becomes
+// instance assets (ids per instance, prefixed display ids) and the
+// elements' / flows' asset relations point to them; relations to the
+// component's EEs are dropped (an EE became a machine element).
 //
 // Known limit (design §17 I2): a component flow between an EE and a
 // boundary element (e.g. a chip boundary) cannot be stitched — boundaries
@@ -35,6 +37,7 @@
 
 import { fnv1aHex12 } from "shared/utils/fnv1a";
 import type { DFDCellLink, DFDConnection, DFDElement, DFDPage } from "../../models/dfd-types";
+import type { DFDAsset } from "../../models/dfd-asset-types";
 import { collectCellIdentities, identityOf, type CellIdentity } from "../parsers/identity-reader";
 import { pageLink, ROOT_PAGE_NAME } from "./child-pages";
 
@@ -43,6 +46,8 @@ export interface ComponentDfdInput {
   pages?: readonly DFDPage[];
   elements: readonly DFDElement[];
   connections: readonly DFDConnection[];
+  /** The DFD asset mirror (patch 13: assets per instance, E5). */
+  assets?: readonly DFDAsset[];
 }
 
 export interface InsertComponentInput {
@@ -65,9 +70,11 @@ export interface InsertComponentInput {
 export interface InsertComponentResult {
   xml: string;
   pages: DFDPage[];
-  /** New records only — to be added to the machine's elements / connections. */
+  /** New records only — to be added to the machine's elements / connections / asset mirror. */
   elements: DFDElement[];
   connections: DFDConnection[];
+  /** The component's assets as instance assets (ids per instance, prefixed display ids). */
+  assets: DFDAsset[];
   multiprocessTfId: string;
   /** Page id of the child page of the multiprocess. */
   childPageId: string;
@@ -84,6 +91,11 @@ export class InsertComponentError extends Error {}
  */
 export function componentInstanceTfId(instanceId: string, componentTfId: string): string {
   return `cmp${fnv1aHex12(`${instanceId}|${componentTfId}`)}`;
+}
+
+/** The machine id of a component asset in one instance (patch 13, E5). */
+export function instanceAssetId(instanceId: string, componentAssetId: string): string {
+  return componentInstanceTfId(instanceId, `asset|${componentAssetId}`);
 }
 
 /** The tfId of an instance's multiprocess. */
@@ -406,6 +418,11 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
 
   // ---- records with the component's properties
   const prefixed = (displayId: string) => (displayId ? `${prefix}:${displayId}` : displayId);
+  const assetIds = new Set((component.assets ?? []).map((a) => a.id));
+  const mapAsset = (assetId: string) => instanceAssetId(instanceId, assetId);
+  /** Asset relations of a record, pointing to the instance assets. */
+  const remapRelations = <T extends { assetId: string }>(relations: readonly T[] | undefined): T[] =>
+    (relations ?? []).filter((r) => assetIds.has(r.assetId)).map((r) => ({ ...r, assetId: mapAsset(r.assetId) }));
   // Boundaries carry their display id in their label ("… [SHE]"), not in an
   // idlabel — it stays as the component named it.
   const LABEL_IDS = new Set(["TrustBoundary", "PhysicalBoundary", "ChipBoundary"]);
@@ -415,7 +432,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       ...e,
       id: mapTf(e.id),
       displayId: LABEL_IDS.has(e.type) ? e.displayId : prefixed(e.displayId),
-      assetRelations: [],
+      assetRelations: remapRelations(e.assetRelations),
     });
   }
   const newConnections: DFDConnection[] = [];
@@ -433,15 +450,30 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       displayId: boundary ? "DF-xx" : prefixed(c.displayId),
       from: boundary && !fromEe ? multiprocessTfId : mapTf(c.from),
       to: boundary && !toEe ? multiprocessTfId : mapTf(c.to),
-      assetRelations: [],
+      assetRelations: remapRelations(c.assetRelations),
     });
   }
+
+  // ---- the component's assets as instance assets
+  // Links only to what exists in the machine (no EEs, no dropped EE → EE flows).
+  const kept = new Set([...newElements, ...newConnections].map((x) => x.id));
+  const newAssets: DFDAsset[] = (component.assets ?? []).map((a) => ({
+    ...a,
+    id: mapAsset(a.id),
+    displayId: prefixed(a.displayId),
+    linkedElements: (a.linkedElements ?? [])
+      .filter((l) => !eeIds.has(l.elementId) && kept.has(mapTf(l.elementId)))
+      .map((l) => ({ ...l, elementId: mapTf(l.elementId), displayId: prefixed(l.displayId) })),
+    // The asset-to-asset view is projected from the store (a2a mirror).
+    assetRelations: undefined,
+  }));
 
   return {
     xml: new XMLSerializer().serializeToString(machineDoc),
     pages: [...pages, ...newPages],
     elements: newElements,
     connections: newConnections,
+    assets: newAssets,
     multiprocessTfId,
     childPageId,
     idMap: { ...idMap },

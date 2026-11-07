@@ -7,11 +7,14 @@
 // audit diff names it). An instance whose multiprocess was never saved
 // (refused import save) is kept: CMP_INSTANCE_ORPHANED. Pure.
 
+import { instanceAssetId } from "features/dfd";
 import type { Project } from "../../models/project-types";
 
 export interface RemovedComponentInstance {
   prefix: string;
   component: string;
+  /** The instance's assets (E5) — purged with the instance. */
+  assetIds: string[];
 }
 
 export interface InstancePruneResult {
@@ -33,9 +36,16 @@ export function pruneDeletedInstances(
   const goneIds = new Set(gone.map((i) => i.id));
   const instances = components.instances.filter((i) => !goneIds.has(i.id));
   const usedImports = new Set(instances.map((i) => i.importId));
-  const names = new Map(components.imports.map((i) => [i.id, i.name]));
+  const importsById = new Map(components.imports.map((i) => [i.id, i]));
   return {
     components: { imports: components.imports.filter((i) => usedImports.has(i.id)), instances },
-    removed: gone.map((i) => ({ prefix: i.prefix, component: names.get(i.importId) ?? i.prefix })),
+    removed: gone.map((i) => {
+      const imported = importsById.get(i.importId);
+      return {
+        prefix: i.prefix,
+        component: imported?.name ?? i.prefix,
+        assetIds: (imported?.snapshot.assets ?? []).map((a) => instanceAssetId(i.id, a.id)),
+      };
+    }),
   };
 }
