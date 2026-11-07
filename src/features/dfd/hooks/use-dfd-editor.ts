@@ -14,6 +14,7 @@ import type {
   DFDStats,
   DFDExportData,
   DFDData,
+  ComponentImportRunner,
 } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ValidationResult } from "../services/dfd-validator";
@@ -120,6 +121,8 @@ export interface UseDFDEditorReturn {
   openPage: (pageId: string) => Promise<void>;
   /** The draw.io page last reported by the selection events; null before. */
   getCurrentPageId: () => string | null;
+  /** Multi-project TARA: run the app's component import on the editor's diagram; true = applied. */
+  insertComponent: (runner: ComponentImportRunner) => Promise<boolean>;
   /** One SVG thumbnail per page (leveled DFD 5i, D18). */
   exportPageSvgs: (pageIds: string[]) => Promise<PageSvgExport>;
   /**
@@ -443,6 +446,42 @@ export function useDFDEditor(
     (pageId: string) => bridgeSelectCell("", pageId),
     [bridgeSelectCell],
   );
+
+  // Multi-project TARA (design v3 §5): the app runs the import (dialog,
+  // checks, insertComponentInstance) on the diagram as it is in the editor;
+  // the result becomes the base of the save, is loaded into draw.io and
+  // saved — the renumber pattern (programmatic XML edit, loadXml, save).
+  const persistenceGetBase = persistence.getBase;
+  const persistencePrimeBase = persistence.primeBase;
+  const persistenceScheduleDrawioSave = persistence.scheduleDrawioSave;
+  const insertComponent = useCallback(
+    async (runner: ComponentImportRunner): Promise<boolean> => {
+      const base = persistenceGetBase();
+      const xml = bridgeRef.current?.getCurrentXML() ?? base?.xml ?? "";
+      if (!xml) return false;
+      const outcome = await runner({
+        xml,
+        pages: base?.pages ?? [],
+        pageId: currentPageIdRef.current ?? "",
+        elements: base?.elements ?? [],
+        connections: base?.connections ?? [],
+      });
+      if (!outcome) return false;
+      persistencePrimeBase({
+        ...(base ?? { elements: [], connections: [], assets: [] }),
+        xml: outcome.xml,
+        pages: outcome.pages,
+        elements: outcome.elements,
+        connections: outcome.connections,
+        lastModified: new Date().toISOString(),
+      });
+      if (!bridgeRef.current) return false;
+      await bridgeRef.current.loadXML(outcome.xml);
+      persistenceScheduleDrawioSave(outcome.xml);
+      return true;
+    },
+    [persistenceGetBase, persistencePrimeBase, persistenceScheduleDrawioSave],
+  );
   const selectCell = useCallback(
     async (tfId: string): Promise<void> => {
       const target = cellIdentityRef.current.cellOf(tfId, currentPageIdRef.current);
@@ -647,6 +686,7 @@ export function useDFDEditor(
     selectCellAt,
     openPage,
     getCurrentPageId,
+    insertComponent,
     exportPageSvgs: bridge.exportPageSvgs,
     updatePageThumbnails,
     getCurrentXML: async () => bridge.getCurrentXML(),

@@ -150,6 +150,7 @@
         "exportImage": "Export as Image",
         "refresh": "Refresh Validation",
         "insertContext": "Insert as context…",
+        "importComponent": "Import component TARA…",
         "autoNumberAll": "Renumber all pages",
         "autoNumberPage": "Renumber \"{{page}}\" and its child pages",
         "autoNumberPageBlocked": "\"{{mp}}\" has no number yet — renumber all pages first",

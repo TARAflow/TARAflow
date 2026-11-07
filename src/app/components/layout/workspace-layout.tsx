@@ -88,6 +88,7 @@ import { useOverviewData } from "app/hooks/workspace/use-overview-data";
 import { usePhaseIndicators } from "app/hooks/workspace/use-phase-indicators";
 import { useClosedLoopData } from "app/hooks/workspace/use-closed-loop-data";
 import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
+import { useComponentImport } from "app/hooks/workspace/use-component-import";
 
 // ==================== COMPONENT ====================
 
@@ -180,6 +181,9 @@ export const WorkspaceLayout: React.FC = () => {
     activeProject,
     customMitigations,
   );
+
+  // Multi-project TARA: "Import component TARA…" in the DFD tab (design v3 §5).
+  const componentImport = useComponentImport({ projectsRef, activeProjectRef, updateProject, toast });
 
   const { complianceStandards, matrixRequirements, complianceView } = useComplianceView(
     activeProject,
@@ -292,6 +296,7 @@ export const WorkspaceLayout: React.FC = () => {
               onUpdate={handlers.handleDFDUpdate}
               assetUsage={handlers.assetUsageLookup}
               threatCountOf={handlers.threatCountLookup}
+              onImportComponent={componentImport.runner}
               graphFocusRequest={navigation.graphFocusRequest}
               elementFocusRequest={navigation.elementFocusRequest}
               hazards={assetData.graphHazards}
@@ -538,6 +543,8 @@ export const WorkspaceLayout: React.FC = () => {
             </div>
           )
         )}
+
+        {componentImport.dialog}
 
         {activePhase === PhaseId.Integration && (
           <IntegrationTab

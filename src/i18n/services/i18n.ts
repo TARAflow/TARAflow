@@ -11,6 +11,7 @@
 //   doc                      → tabs.doc.*
 //   audit                    → audit.*
 //   compliance               → compliance.* (IEC 62443-4-2 matrix tab)
+//   components               → components.* (component TARA import, multi-project TARA)
 //   overview                 → itemDefinition.*, sourceBinding.*, overviewViews.*,
 //                              verificationStatus.* (Overview tab; split from common, I18N-1)
 //
@@ -43,6 +44,7 @@ import enAttacktree from "../locales/en/attacktree.json";
 import enDoc from "../locales/en/doc.json";
 import enAudit from "../locales/en/audit.json";
 import enCompliance from "../locales/en/compliance.json";
+import enComponents from "../locales/en/components.json";
 import {
   ELEMENT_THREAT_TEXTS as enElementThreatsAttacks,
   INTERACTION_THREAT_TEXTS as enInteractionThreatsAttacks,
@@ -78,6 +80,7 @@ import deAttacktree from "../locales/de/attacktree.json";
 import deDoc from "../locales/de/doc.json";
 import deAudit from "../locales/de/audit.json";
 import deCompliance from "../locales/de/compliance.json";
+import deComponents from "../locales/de/components.json";
 import {
   ELEMENT_THREAT_TEXTS as deElementThreatsAttacks,
   INTERACTION_THREAT_TEXTS as deInteractionThreatsAttacks,
@@ -111,6 +114,7 @@ const NAMESPACES = [
   "doc",
   "audit",
   "compliance",
+  "components",
   "element-threats-attacks",
   "interaction-threats-attacks",
   "mitigations",
@@ -135,6 +139,7 @@ const resources = {
     doc: enDoc,
     audit: enAudit,
     compliance: enCompliance,
+    components: enComponents,
     "element-threats-attacks": enElementThreatsAttacks,
     "interaction-threats-attacks": enInteractionThreatsAttacks,
     mitigations: {
@@ -172,6 +177,7 @@ const resources = {
     doc: deDoc,
     audit: deAudit,
     compliance: deCompliance,
+    components: deComponents,
     "element-threats-attacks": deElementThreatsAttacks,
     "interaction-threats-attacks": deInteractionThreatsAttacks,
     mitigations: {

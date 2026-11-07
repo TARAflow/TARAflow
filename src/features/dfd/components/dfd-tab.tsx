@@ -19,6 +19,7 @@ import type {
   DFDViewMode,
   AssetRelation,
   DFDElementType,
+  ComponentImportRunner,
 } from "../models/dfd-types";
 
 import type { DFDAsset } from "../models/dfd-asset-types";
@@ -144,6 +145,11 @@ export interface DFDTabProps {
    * the question when a linked definition is lost (app layer).
    */
   threatCountOf?: (tfId: string) => number;
+  /**
+   * Multi-project TARA (design v3 §5): the app's import flow; present =
+   * the toolbar offers "Import component TARA…" (with the draw.io plugin).
+   */
+  onImportComponent?: ComponentImportRunner;
 }
 
 // ==================== COMPONENT ====================
@@ -157,6 +163,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   securityDrifts,
   assetUsage,
   threatCountOf,
+  onImportComponent,
   graphFocusRequest,
   elementFocusRequest,
   hazards,
@@ -486,6 +493,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       savePages: editor.savePages,
       scheduleSave: () => {},
       scheduleDrawioSave: () => {},
+      getBase: () => undefined,
+      primeBase: () => {},
       queueA2AOps: editor.queueA2AOps,
       commitA2AOps: () => {},
       flush: editor.flushDebouncedSave,
@@ -862,6 +871,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onImport={exportImport.promptImport}
         onSave={handleSave}
         onInsertContext={leveled.parse && editor.pluginReady ? insertContext.open : undefined}
+        onImportComponent={
+          onImportComponent && editor.pluginReady
+            ? () => void editor.insertComponent(onImportComponent)
+            : undefined
+        }
         onAutoNumberPage={leveled.parse ? leveled.page.autoNumberPage : undefined}
         getCurrentPageName={leveled.page.currentPageName}
         getPageNumberingBlocker={leveled.page.pageNumberingBlocker}
