@@ -949,6 +949,14 @@ export interface ThreatProjectData {
    * drop a threat that carries a risk assessment. Optional: absent = unknown.
    */
   riskAttachments?: Record<string, ThreatRiskAttachment>;
+  /**
+   * Elements and flows whose threats come from elsewhere — the parts of an
+   * imported component (multi-project TARA design v3 §7.1). No generator
+   * runs on them; on a flow between such an element and another one only
+   * the perspectives whose victim is the other element are generated
+   * (interactionContext.victimRole). Built at the app layer. Absent: none.
+   */
+  excludedElementIds?: ReadonlySet<string>;
   lastModified: string;
 }
 

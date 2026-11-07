@@ -25,6 +25,7 @@ import {
   componentFindings,
   importedMultiprocessIds,
 } from "../../services/component-import/component-findings";
+import { componentExcludedIds } from "../../services/component-import/component-scope";
 
 export function useDfdDerivedData(activeProject: Project | undefined) {
   // ── DFD tab project ───────────────────────────────────────────────────────
@@ -180,11 +181,17 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
     () => (components ? importedMultiprocessIds({ components }) : undefined),
     [components],
   );
+  // Parts of imported components: no generated threats (patch 12, §7.1).
+  const componentExcluded = useMemo(
+    () => (components ? componentExcludedIds({ components }) : undefined),
+    [components],
+  );
 
   return {
     dfdTabProject,
     componentDfdFindings,
     componentMultiprocessIds,
+    componentExcluded,
     dfdAssets,
     dfdElements,
     dfdConnections,

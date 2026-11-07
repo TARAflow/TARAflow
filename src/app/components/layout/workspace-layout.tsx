@@ -173,6 +173,7 @@ export const WorkspaceLayout: React.FC = () => {
     dfdContext: dfdData.dfdContext,
     dfdGraphRef: dfdData.dfdGraphRef,
     dfdReference: dfdData.dfdReference,
+    excludedElementIds: dfdData.componentExcluded,
     assetDataRef: assetData.assetDataRef,
     verificationStatus: overview.verificationStatus,
     t,
@@ -380,6 +381,7 @@ export const WorkspaceLayout: React.FC = () => {
               assetDataRef: assetData.assetDataRef,
               dfd: dfdData.dfdReference,
               riskAttachments: assetData.riskAttachments,
+              excludedElementIds: dfdData.componentExcluded,
               info: {
                 tags: activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
               },

@@ -648,6 +648,8 @@ export class ElementThreatGenerator {
     project: ThreatProjectData,
     strategy: IGeneratorStrategy,
   ): Threat[] {
+    // Parts of an imported component get the component's threats (§7.1).
+    if (project.excludedElementIds?.has(element.id)) return [];
     const baseCategories = STRIDE_PER_ELEMENT_TYPE[element.type] || [];
 
     // Unified pipeline — returns categories + which modules were active
@@ -721,6 +723,7 @@ export class ElementThreatGenerator {
     element: DFDElementReference,
     project: ThreatProjectData,
   ): StrideCategory[] {
+    if (project.excludedElementIds?.has(element.id)) return [];
     const baseCategories = STRIDE_PER_ELEMENT_TYPE[element.type] || [];
     try {
       const { categories } = createStrategy().getStrideCategories(

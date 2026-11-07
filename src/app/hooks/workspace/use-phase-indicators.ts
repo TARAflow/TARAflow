@@ -25,6 +25,8 @@ export interface PhaseIndicatorsInput {
   dfdContext: DFDGraphAnalysisContext | null;
   dfdGraphRef: unknown;
   dfdReference: DFDReference | null;
+  /** Parts of imported components — no generated threats (patch 12). */
+  excludedElementIds?: ReadonlySet<string>;
   assetDataRef: AssetDataReference | undefined;
   verificationStatus: ReturnType<typeof verificationStatus> | undefined;
   t: TFunction;
@@ -37,6 +39,7 @@ export function usePhaseIndicators({
   dfdContext,
   dfdGraphRef,
   dfdReference,
+  excludedElementIds,
   assetDataRef,
   verificationStatus: verification,
   t,
@@ -63,6 +66,7 @@ export function usePhaseIndicators({
       assetDataRef,
       dfd: dfdReference,
       info: { tags: tags ?? EMPTY_PROJECT_TAGS },
+      ...(excludedElementIds ? { excludedElementIds } : {}),
       lastModified: "",
     } as unknown as ThreatProjectData;
     let drift = NO_DRIFT;
@@ -75,7 +79,7 @@ export function usePhaseIndicators({
     // The generator reads threats, the DFD, the tags and the references;
     // id, name and phaseStatus only label the call.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threats, dfdElements, dfdConnections, tags, dfdContext, dfdGraphRef, assetDataRef, dfdReference]);
+  }, [threats, dfdElements, dfdConnections, tags, dfdContext, dfdGraphRef, assetDataRef, dfdReference, excludedElementIds]);
 
   // ── DFD validated now, not the validation stored in the file ─────────────
   const dfdSavedValidation = useMemo(

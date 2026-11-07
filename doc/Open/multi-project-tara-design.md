@@ -596,6 +596,16 @@ TARA".
   read-only tree view follows later. `CMP_NO_ATTACK_PATHS` (warning) when an ISO machine imports a
   component without attack trees (e.g. EN 50742) — otherwise it would get no risks, silently.
 
+*Patch 12 done (2026-11-07):* `ThreatProjectData.excludedElementIds` (app layer:
+`componentExcludedIds` — the instance tfIds of the component's elements except its EEs and of its
+flows except EE → EE). Read in `generateThreatsForElement` (every per-element path incl. data flows
+and boundaries), `getEffectiveStrideCategories` (sync "missing"), the per-element missing-flow
+check, the per-interaction flow loop (a perspective is skipped when its victim is excluded —
+sender → source, receiver → target; a flow with both ends excluded is skipped), the interface loop
+and the per-interaction missing-flow / missing-interface checks. Passed to the Threats tab and the
+phase-badge drift. Threats generated for instance elements before this patch now show as drift
+("obsolete") and can be removed there.
+
 Further constraints (review 2026-11-07):
 - The threats are derived, but the machine's own ratings on them are stored data: the WoO overlay
   per instance and pathKey (patch 16) and the overrides of prefilled factors with their rationale

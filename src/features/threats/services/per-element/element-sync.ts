@@ -238,6 +238,8 @@ export class ElementThreatSync {
         connection.excludeFromThreatGen ||
         (connection as any)?.properties?.excludeFromThreatGen;
       if (isExcluded) continue;
+      // Flows of an imported component carry the component's threats (§7.1).
+      if (project.excludedElementIds?.has(connection.id)) continue;
 
       if (!threatenedConnections.has(connection.id)) {
         missingConnections.push(connection);

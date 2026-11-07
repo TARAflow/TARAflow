@@ -142,6 +142,14 @@ export class InteractionThreatGenerator {
         (connection as any)?.properties?.excludeFromThreatGen;
       if (isExcluded) continue;
 
+      // Imported component (§7.1): a perspective whose victim is a part of
+      // the component gets the component's threat, not a generated one.
+      // victimRole: sender perspective → source, receiver → target.
+      const excluded = project.excludedElementIds;
+      const sourceExcluded = !!excluded?.has(df.fromElementId);
+      const targetExcluded = !!excluded?.has(df.toElementId);
+      if (sourceExcluded && targetExcluded) continue;
+
       const senderTB = df.fromEffectiveTrustBoundary ?? null;
       const receiverTB = df.toEffectiveTrustBoundary ?? null;
       if (
@@ -185,7 +193,7 @@ export class InteractionThreatGenerator {
       // "Can the CB trust the sender?" — is the Debugger really who it claims?
       if (!senderTB && !receiverTB && df.terminatesAtChipBoundary) {
         const targetEl = graph.elementsById.get(df.toElementId);
-        if (targetEl?.type === "ChipBoundary") {
+        if (targetEl?.type === "ChipBoundary" && !targetExcluded) {
           const cbId = targetEl.id;
           const cbName = targetEl.name;
           const cbDisplayId = targetEl.displayId ?? cbId;
@@ -225,7 +233,7 @@ export class InteractionThreatGenerator {
       const connectionProps =
         ((connection as any)?.properties as Record<string, unknown>) ?? {};
       const senderTableKey = senderTB ?? receiverTB;
-      if (senderTableKey) {
+      if (senderTableKey && !sourceExcluded) {
         const sourcePropsForElim = sourceProps ?? {};
         for (const stride of applicableStride) {
           if (shouldEliminateThreat("DataFlow", sourcePropsForElim, stride))
@@ -258,7 +266,7 @@ export class InteractionThreatGenerator {
       // Table key: receiverTB if set, else senderTB (EE target has no TB).
       const skipReceiver = internalFlow && !zeroTrust;
       const receiverTableKey = receiverTB ?? senderTB;
-      if (!skipReceiver && receiverTableKey) {
+      if (!skipReceiver && receiverTableKey && !targetExcluded) {
         const targetPropsForElim = targetProps ?? {};
         for (const stride of applicableStride) {
           if (shouldEliminateThreat("DataFlow", targetPropsForElim, stride))
@@ -290,6 +298,7 @@ export class InteractionThreatGenerator {
     for (const element of graph.elementsById.values()) {
       if (element.type !== "Interface" && element.type !== "PhysicalInterface")
         continue;
+      if (project.excludedElementIds?.has(element.id)) continue;
 
       const effectiveTB = graph.effectiveElementTrustBoundary.get(element.id);
       const tbId = effectiveTB ?? null;
