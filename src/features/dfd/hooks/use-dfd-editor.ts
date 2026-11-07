@@ -452,11 +452,10 @@ export function useDFDEditor(
 
   // Multi-project TARA (design v3 §5): the app runs the import (dialog,
   // checks, insertComponentInstance) on the diagram as it is in the editor;
-  // the result becomes the base of the save, is loaded into draw.io and
-  // saved — the renumber pattern (programmatic XML edit, loadXml, save).
+  // the result is saved at once with its records as the base (commitXml),
+  // then loaded into draw.io.
   const persistenceGetBase = persistence.getBase;
-  const persistencePrimeBase = persistence.primeBase;
-  const persistenceScheduleDrawioSave = persistence.scheduleDrawioSave;
+  const persistenceCommitXml = persistence.commitXml;
   const insertComponent = useCallback(
     async (runner: ComponentImportRunner): Promise<boolean> => {
       const base = persistenceGetBase();
@@ -471,21 +470,25 @@ export function useDFDEditor(
         assets: base?.assets ?? [],
       });
       if (!outcome) return false;
-      persistencePrimeBase({
-        ...(base ?? { elements: [], connections: [], assets: [] }),
-        xml: outcome.xml,
-        pages: outcome.pages,
-        elements: outcome.elements,
-        connections: outcome.connections,
-        assets: outcome.assets,
-        lastModified: new Date().toISOString(),
-      });
-      if (!bridgeRef.current) return false;
+      // Saved and handed on BEFORE draw.io shows it: from here on every
+      // save, validation and page step sees the new page tree with its links.
+      const committed = persistenceCommitXml(
+        {
+          ...(base ?? { elements: [], connections: [], assets: [] }),
+          xml: outcome.xml,
+          pages: outcome.pages,
+          elements: outcome.elements,
+          connections: outcome.connections,
+          assets: outcome.assets,
+          lastModified: new Date().toISOString(),
+        },
+        outcome.xml,
+      );
+      if (!committed || !bridgeRef.current) return false;
       await bridgeRef.current.loadXML(outcome.xml);
-      persistenceScheduleDrawioSave(outcome.xml);
       return true;
     },
-    [persistenceGetBase, persistencePrimeBase, persistenceScheduleDrawioSave],
+    [persistenceGetBase, persistenceCommitXml],
   );
   const selectCell = useCallback(
     async (tfId: string): Promise<void> => {

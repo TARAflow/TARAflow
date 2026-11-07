@@ -91,12 +91,15 @@ export interface UseDFDPersistenceReturn {
    */
   getBase: () => DFDData | undefined;
   /**
-   * Multi-project TARA (component import): flush pending edits, then make
-   * `dfd` the base of the next save — the records of a programmatic XML edit
-   * (new pages, records with properties) must be known when its XML is
-   * saved, or their properties are lost. Give it a fresh lastModified.
+   * Multi-project TARA (component import): flush pending edits, then save
+   * `xml` at once with `dfd` as its base and hand the result on. The records
+   * of a programmatic XML edit (new pages, identity links, records with
+   * properties) must be known before anything else saves or validates —
+   * a save that still saw the old page tree refused the new pages
+   * (ID_ADOPTION_PENDING) and the adoption then re-linked the copies by
+   * display id, losing the boundary flows' identity. Null when refused.
    */
-  primeBase: (dfd: DFDData) => void;
+  commitXml: (dfd: DFDData, xml: string) => DFDUpdateResult | null;
   /** Queue A2A operations for the next emitted update (e.g. before save()). */
   queueA2AOps: (ops: A2AOp[]) => void;
   /**
@@ -214,7 +217,13 @@ export function useDFDPersistence(
       try {
         // Sync from legacy storage (draw.io writes there)
         // Use projectRef.current to include any pending property updates
-        const currentProject = projectRef.current;
+        // The freshest known dfd as the base (same chain as savePages and
+        // the drawio autosave): right after a programmatic XML edit the prop
+        // can still be the state before it.
+        const base =
+          pendingSaveRef.current?.dfd ??
+          freshestOf(lastCommittedDfdRef.current, projectRef.current.dfd);
+        const currentProject = { ...projectRef.current, dfd: base ?? null };
         const adapter = createDFDStorageAdapter(currentProject.id);
         adapter.syncFromLegacy();
 
@@ -521,12 +530,30 @@ export function useDFDPersistence(
     [],
   );
 
-  const primeBase = useCallback(
-    (dfd: DFDData) => {
+  const commitXml = useCallback(
+    (dfd: DFDData, xml: string): DFDUpdateResult | null => {
       flush();
-      lastCommittedDfdRef.current = dfd;
+      try {
+        const result = dfdService.saveDFDFromXml({ ...projectRef.current, dfd }, xml);
+        if (!result.success) {
+          console.error("[useDFDPersistence] commitXml refused:", result.error);
+          return null;
+        }
+        const updateResult: DFDUpdateResult = {
+          dfd: result.dfd,
+          phaseStatus: result.phaseStatus,
+          lastModified: result.lastModified,
+        };
+        lastCommittedDfdRef.current = updateResult.dfd;
+        emit(updateResult);
+        markClean();
+        return updateResult;
+      } catch (error) {
+        console.error("[useDFDPersistence] commitXml error:", error);
+        return null;
+      }
     },
-    [flush],
+    [flush, emit, markClean],
   );
 
   // ==================== CLEANUP ====================
@@ -547,7 +574,7 @@ export function useDFDPersistence(
     scheduleSave,
     scheduleDrawioSave,
     getBase,
-    primeBase,
+    commitXml,
     queueA2AOps,
     commitA2AOps,
     flush,

@@ -539,7 +539,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       scheduleSave: () => {},
       scheduleDrawioSave: () => {},
       getBase: () => undefined,
-      primeBase: () => {},
+      commitXml: () => null,
       queueA2AOps: editor.queueA2AOps,
       commitA2AOps: () => {},
       flush: editor.flushDebouncedSave,
