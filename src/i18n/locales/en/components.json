@@ -53,6 +53,13 @@
       "title": "Imported component ({{prefix}}) — read-only",
       "open": "Open component TARA",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
+    },
+    "threats": {
+      "title": "Threats from imported components ({{count}}) — read-only",
+      "where": "Element / flow",
+      "threat": "Threat",
+      "relevance": "Relevance (component)",
+      "templateText": "(catalog text)"
     }
   }
 }

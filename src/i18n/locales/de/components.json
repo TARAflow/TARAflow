@@ -53,6 +53,13 @@
       "title": "Importierte Komponente ({{prefix}}) — schreibgeschützt",
       "open": "Komponenten-TARA öffnen",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
+    },
+    "threats": {
+      "title": "Bedrohungen aus importierten Komponenten ({{count}}) — schreibgeschützt",
+      "where": "Element / Flow",
+      "threat": "Bedrohung",
+      "relevance": "Relevanz (Komponente)",
+      "templateText": "(Katalogtext)"
     }
   }
 }

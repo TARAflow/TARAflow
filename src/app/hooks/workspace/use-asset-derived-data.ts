@@ -18,6 +18,7 @@ import type { Project } from "../../models/project-types";
 import { buildAssetHazardLinks } from "../../utils/build-asset-hazard-links";
 import { buildAssetDataReference } from "../../utils/build-asset-data-reference";
 import { buildThreatGoalLinks } from "../../utils/build-threat-goal-links";
+import { withComponentThreats } from "../../utils/component-threats";
 
 export function useAssetDerivedData(activeProject: Project | undefined) {
   const hazards = activeProject?.hazards;
@@ -66,7 +67,13 @@ export function useAssetDerivedData(activeProject: Project | undefined) {
 
   // Threats → linked assets, for the threat ↔ goal cross-checks of the asset
   // tab. Same generators and link rule as the risk register.
-  const threats = activeProject?.threats;
+  // Stored threats plus those of imported components (patch 14).
+  const components = activeProject?.components;
+  const storedThreats = activeProject?.threats;
+  const threats = useMemo(
+    () => (components ? withComponentThreats(storedThreats, { components }) : storedThreats),
+    [storedThreats, components],
+  );
   const assets = assetStore?.assets;
   const dfd = activeProject?.dfd;
   const attackTrees = activeProject?.attackTrees;

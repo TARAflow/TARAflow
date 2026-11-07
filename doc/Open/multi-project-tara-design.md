@@ -586,9 +586,11 @@ TARA".
   (phase 4), compliance matrix (phase 4, E6), report incl. provenance (phase 6, E10), CLI reporter
   (phase 6 — it can use the read model, the snapshot is embedded). Risk ids stay stable
   (`R-<instance threat id>`).
-- *Patch 15* prefill of the intrinsic factors per fingerprint (§7.2, `source: "derived"` — the
+- *Patch 15* relevance override on boundary-flow threats (I3): stored per instance, rationale
+  mandatory, component decision shown beside it, diff-detected (test: the commit gate opens).
+- *Patch 16* prefill of the intrinsic factors per fingerprint (§7.2, `source: "derived"` — the
   override chip exists), `CMP_METHOD_MISMATCH` (info), `CMP_FACTOR_UNRATED` (warning).
-- *Patch 16* ISO/SAE 21434: in an ISO machine only attack-path threats make risks, so the
+- *Patch 17* ISO/SAE 21434: in an ISO machine only attack-path threats make risks, so the
   component's attack trees are derived per instance too — tree ids hashed per instance before
   deriving (`buildThreatId(tree.id, pathKey, stride)` would collide for two instances). The window of
   opportunity is a path rating there and context-dependent (§7.2): the machine rates it in an overlay
@@ -616,17 +618,31 @@ the machine rates their impact and damage scenarios. Deleting the instance purge
 never removes store records). Not yet: the Assets tab does not lock name / group / goals of an
 imported asset (only the `importedFrom` marker is stored) — with the ownership marking (phase 4).
 
+*Patch 14 done (2026-11-07):* `app/utils/component-threats.ts` — the read model:
+`componentThreatData` (one table per method and instance, `[<prefix>]`), `componentThreatGroups`
+(Threats tab), `componentThreatReferences` (risk register), `withComponentThreats` (stored + imported
+for whole-data consumers). Per instance: ids `componentInstanceTfId(instance, "threat|" + id)`,
+element / flow / boundary / asset references and display ids remapped; threats on the component's
+EEs and on dropped EE → EE flows, and per-interaction threats whose victim is the EE side, are not
+taken over; text, STRIDE and relevance as the component decided. Connected: risk sync (the Risk
+tab's per-element / per-interaction references include them — risks `R-<instance threat id>`),
+threat ↔ goal links, the read-only section "Threats from imported components" in the Threats tab
+(above the method's tables, per instance). Still to connect (as planned): findings and matrix
+(phase 4), report and CLI (phase 6). ISO machines: only attack-path threats make risks — patch 17.
+
 Further constraints (review 2026-11-07):
 - The threats are derived, but the machine's own ratings on them are stored data: the WoO overlay
-  per instance and pathKey (patch 16) and the overrides of prefilled factors with their rationale
-  (patch 15) get fields in `project.components` (schema 14) and must be detected by the diff-service
-  — otherwise the commit gate stays silent (same failure class as compareLinkedElements). Patches
-  15 and 16 each get a test that a change opens the commit gate.
+  per instance and pathKey (patch 17), the overrides of prefilled factors with their rationale
+  (patch 16) and the relevance overrides on boundary flows (patch 15) get fields in
+  `project.components` (schema 14) and must be detected by the diff-service — otherwise the commit
+  gate stays silent (same failure class as compareLinkedElements). Patches 15, 16 and 17 each get a
+  test that a change opens the commit gate.
 - `pathKey` is a hash of the node-name chain root → leaf: a renamed node in the component's tree
   orphans every overlay entry below it after an update, silently. The update preview (§9.2) lists
   orphaned overlay entries like the risks that go, and the manual obsolete ↔ new pairing applies to
   paths too — for ISO components the most common "obsolete + new" case.
-- Relevance of threats on boundary flows — open (see I3).
+- Relevance of threats on boundary flows — decided I3: the machine may override, boundary flows only,
+  with rationale, re-checked on update, reported back (own patch after 14).
 
 Original scope: Bridge into the threat sync per instance, generators suppressed on
 imported elements, attack trees read-only, assets per instance, prefill / unrated per fingerprint,
@@ -715,5 +731,5 @@ All decided with the user on 2026-11-04 (D5) and 2026-11-07 (all others).
 |---|---|---|---|
 | I1 | Phase 0 (2026-11-07) | **Migration must be deterministic.** Old component files get fresh ids on every migration: migrate 4→5 and 5→6 (and 6→7 on an id collision, the legacy asset-link lift) use `crypto.randomUUID` — e.g. the schema-2 cnc-ref fixture gets new threat UUIDs each time. Migrated on import (§4.1) and again on every drift check or update, the same component state would give different threat ids → every imported threat "obsolete + new", ratings and risks lost. | **Decided (user 2026-11-07):** the import migrates the file twice and compares the snapshot hashes; if they differ, it refuses with "open and save the component TARA in TARAflow ≥ 0.19 and commit it first". Generic, no list of affected schema versions to maintain. Applies to every read of a component state (import, drift check, update). |
 | I2 | Patch 07 (2026-11-07) | **Flows from an EE to a boundary element.** A component flow that ends on a boundary (e.g. the SmokeDetector's debugger flows into a chip boundary, DF-8 / DF-18) cannot be stitched in the machine: boundaries are never inside a decomposed multiprocess (leveled design §5.3.1), so the inner end is ambiguous → `BAL_AMBIGUOUS_ENDPOINT` (error) on the boundary flow. Valid on a single page, so the component team sees nothing. | **Decided (user 2026-11-07): (a).** The import preview lists these flows as "will not resolve — draw the flow to the element inside the boundary in the component TARA"; the import still runs. (b) — the leveled model treating a boundary defined on a child page as inside — only if it turns out to be common. Rationale: e.g. a debugger is quickly re-attached to the right element and carries its own threats. |
-| I3 | Review 2026-11-07 | **Relevance of threats on boundary flows.** Per-element flow threats on a boundary flow belong to the component (the flow's properties come from it), but whether tampering or information disclosure on it is relevant depends on where the flow runs in the machine (inside the cabinet or over the plant network). The component judged it with its own EE, without the machine context. Likelihood is covered (§7.2: WoO and exposure are the machine's); a component `not_relevant` is read-only (Q2) and can be wrong in the machine. | Proposal (review): only for threats on boundary flows the machine may override the relevance, with a mandatory rationale; the component's decision stays visible beside it (stored in `project.components`, diff-detected). Alternative: the component states such conditions as assumptions (AoU) — depends on the platform team thinking of it. To decide before patch 14. |
+| I3 | Review 2026-11-07 | **Relevance of threats on boundary flows.** Per-element flow threats on a boundary flow belong to the component (the flow's properties come from it), but whether tampering or information disclosure on it is relevant depends on where the flow runs in the machine (inside the cabinet or over the plant network). The component judged it with its own EE, without the machine context; a component `not_relevant` would make a risk vanish in the machine silently. | **Decided (user 2026-11-07): the machine may override.** (1) Only threats on **boundary flows** — threats on component-internal elements stay read-only (otherwise the machine re-analyses the internals and the model tips over). (2) **Both directions**, each with a mandatory rationale (raising to relevant is the common case; lowering is legitimate too, e.g. the flow runs entirely inside a locked cabinet). (3) The component's decision stays visible beside the override. (4) Stored per instance in `project.components`, detected by the diff-service (commit gate). (5) **Re-check on update:** if the component later changes its relevance decision for an overridden threat, the override does not simply carry on — the update preview marks it "to review" like a changed threat. (6) **Feedback channel:** the report gets per component a short section "Deviations from the component's assessment" that can be handed back to the platform team — the source for assumptions (AoU) in its next revision. Rejected alternative (AoU only): the platform team cannot foresee every installation context under n:m reuse, and a forgotten assumption is the worst case. |
 

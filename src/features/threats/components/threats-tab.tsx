@@ -2,6 +2,7 @@
 // Main orchestrator for threat management
 // FIXED: Split view, toolbar connections, export/import, dialog management
 
+import { ImportedThreatsSection } from "./shared/imported-threats-section";
 import { withThreatPhaseStatus } from "../services/threat-phase-status";
 import React, {
   useEffect,
@@ -754,6 +755,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             pt: 2,
           }}
         >
+          <ImportedThreatsSection groups={project.importedThreatGroups} />
           {activeMethod === "per-element" ? (
             <ElementThreatsView
               tables={elementHook.tables}

@@ -1,0 +1,153 @@
+// src/tests/unit/app/utils/component-threats.test.ts
+//
+// Multi-project TARA, patch 14 (design §7.1): the imported threats as one
+// read model, derived per instance from the snapshot — remapped ids and
+// references, the component's decisions kept, no threats on the
+// component's EEs, no perspective whose victim is the EE side; and the
+// risks they get through the normal risk sync.
+
+import { describe, expect, it } from "vitest";
+import type { Project } from "app/models/project-types";
+import { parseAndRepair } from "app/services/migration-service";
+import { loadProjectFixture } from "../../../fixtures/load-fixture";
+import { buildComponentSnapshot, projectMethodologyFingerprint, snapshotContentHash } from "app/services/component-import/snapshot-builder";
+import { applyComponentImport } from "app/services/component-import/import-flow";
+import { componentExcludedIds } from "app/services/component-import/component-scope";
+import {
+  componentThreatData,
+  componentThreatGroups,
+  componentThreatReferences,
+  withComponentThreats,
+} from "app/utils/component-threats";
+import { componentInstanceTfId, instanceAssetId, type ComponentInsertContext } from "features/dfd";
+import { syncRisksFromThreats } from "features/risks/services/risk-sync-service";
+import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
+import { flow, mxfile, node, page } from "../../../fixtures/leveled-dfd-xml";
+
+const componentProject = (() => {
+  const p = parseAndRepair(loadProjectFixture("SmokeDetector.tara.json")) as Project;
+  // Make a few threats relevant so that risks are created.
+  for (const tb of p.threats!.perElementTables) for (const t of tb.threats.slice(0, 2)) t.relevance = "relevant";
+  return p;
+})();
+const snapshot = buildComponentSnapshot(componentProject);
+const EES = new Set(snapshot.dfd!.elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+
+const context = (): ComponentInsertContext => ({
+  xml: mxfile(page("top", "Fire Panel", node("m_plc", "externalentity", "Fire Panel Controller", "EE-1", 10) + node("m_p1", "process", "Alarm Logic", "P-1", 300) + flow("m_df1", "report alarm", "DF-1", "m_plc", "m_p1"))),
+  pages: [],
+  pageId: "top",
+  assets: [],
+  elements: [
+    { id: "m_plc", displayId: "EE-1", name: "Fire Panel Controller", type: "ExternalEntity", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} },
+    { id: "m_p1", displayId: "P-1", name: "Alarm Logic", type: "Process", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} },
+  ] as never,
+  connections: [{ id: "m_df1", displayId: "DF-1", name: "report alarm", from: "m_plc", to: "m_p1", properties: {} }] as never,
+});
+
+function machine(instances: { id: string; prefix: string }[]) {
+  let components: Project["components"] | undefined;
+  let ctx = context();
+  for (const i of instances) {
+    const applied = applyComponentImport({
+      context: ctx,
+      machine: { components },
+      result: { snapshot, contentHash: snapshotContentHash(snapshot), methodology: projectMethodologyFingerprint(componentProject), source: { commitSha: "a", schemaVersion: 14 } },
+      choice: { prefix: i.prefix, name: "Smoke Detector", eeMapping: { "EE-1": "m_plc" } },
+      ids: { importId: "imp", instanceId: i.id },
+      importedAt: "t",
+    });
+    components = applied.components;
+    ctx = { ...ctx, xml: applied.outcome.xml, pages: applied.outcome.pages, elements: applied.outcome.elements, connections: applied.outcome.connections, assets: applied.outcome.assets };
+  }
+  return { components, dfd: { elements: ctx.elements, connections: ctx.connections }, assets: null, threats: null } as unknown as Project;
+}
+
+const allSnapshotThreats = [...snapshot.threats!.perElementTables, ...snapshot.threats!.perInteractionTables].flatMap((t) => t.threats);
+
+describe("componentThreatData", () => {
+  const m = machine([{ id: "inst-1", prefix: "SD1" }]);
+  const data = componentThreatData(m)!;
+  const threats = [...data.perElementTables, ...data.perInteractionTables].flatMap((t) => t.threats);
+
+  it("one table per method and instance, named after the instance", () => {
+    expect(data.perElementTables).toHaveLength(1);
+    expect(data.perElementTables[0].displayIdentifier).toBe("[SD1]");
+    expect(data.perElementTables[0].trustBoundaryName).toBe("SD1 · Smoke Detector");
+  });
+
+  it("remaps ids, references and display ids to the instance", () => {
+    const original = snapshot.threats!.perElementTables.flatMap((t) => t.threats).find((t) => t.linkedElement && !EES.has(t.linkedElement.elementId) && (t.linkedAssetIds ?? []).length > 0)!;
+    const mine = threats.find((t) => t.id === componentInstanceTfId("inst-1", `threat|${original.id}`))!;
+    expect(mine.displayId).toBe(`SD1:${original.displayId}`);
+    expect(mine.linkedElement!.elementId).toBe(componentInstanceTfId("inst-1", original.linkedElement!.elementId));
+    expect(mine.linkedAssetIds).toEqual(original.linkedAssetIds.map((a) => instanceAssetId("inst-1", a)));
+    expect(mine.relevance).toBe(original.relevance);
+    expect(mine.strideCategory).toBe(original.strideCategory);
+  });
+
+  it("no threat on a component EE", () => {
+    expect(threats.filter((t) => t.linkedElement?.elementType === "ExternalEntity")).toEqual([]);
+    expect(allSnapshotThreats.some((t) => t.linkedElement?.elementType === "ExternalEntity")).toBe(true);
+  });
+
+  it("no per-interaction threat whose victim is the EE side", () => {
+    const machineEeIds = new Set(m.components!.instances[0].eeMapping.map((e) => e.machineTfId));
+    for (const t of data.perInteractionTables.flatMap((tb) => tb.threats)) {
+      if (!t.dataFlow) continue;
+      const victim = t.interactionContext?.victimRole === "source" ? t.dataFlow.sourceId : t.dataFlow.targetId;
+      expect(machineEeIds.has(victim)).toBe(false);
+    }
+  });
+
+  it("the imported threats are exactly on the excluded parts (patch 12 ↔ 14)", () => {
+    const excluded = componentExcludedIds(m);
+    for (const t of data.perElementTables.flatMap((tb) => tb.threats)) {
+      expect(excluded.has(t.linkedElement!.elementId), t.displayId).toBe(true);
+    }
+  });
+
+  it("two instances: distinct, stable ids", () => {
+    const two = machine([{ id: "inst-1", prefix: "SD1" }, { id: "inst-2", prefix: "SD2" }]);
+    const d = componentThreatData(two)!;
+    const ids = [...d.perElementTables, ...d.perInteractionTables].flatMap((t) => t.threats.map((x) => x.id));
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(componentThreatData(machine([{ id: "inst-1", prefix: "SD1" }]))).toEqual(data);
+  });
+
+  it("no components, no data", () => {
+    expect(componentThreatData({})).toBeNull();
+  });
+});
+
+describe("groups, references, merge", () => {
+  const m = machine([{ id: "inst-1", prefix: "SD1" }]);
+
+  it("one group per instance for the Threats tab", () => {
+    const groups = componentThreatGroups(m);
+    expect(groups.map((g) => g.label)).toEqual(["SD1 · Smoke Detector"]);
+    expect(groups[0].threats.length).toBeGreaterThan(0);
+  });
+
+  it("references for the risk register, per method", () => {
+    const refs = componentThreatReferences(m, "per-element");
+    expect(refs.length).toBe(componentThreatData(m)!.perElementTables[0].threats.length);
+    expect(refs.every((r) => r.sourceStrideMethod === "per-element")).toBe(true);
+    expect(refs[0].trustBoundaryId).toBe("[SD1]");
+  });
+
+  it("withComponentThreats adds the imported tables to the stored ones", () => {
+    const merged = withComponentThreats({ perElementTables: [{ trustBoundaryId: null, trustBoundaryName: "own", displayIdentifier: "[TB]", threats: [] }], perInteractionTables: [], lastModified: "" } as never, m)!;
+    expect(merged.perElementTables.map((t) => t.displayIdentifier)).toEqual(["[TB]", "[SD1]"]);
+    expect(withComponentThreats(null, {})).toBeNull();
+  });
+
+  it("the risk sync creates risks for the relevant imported threats with stable ids", () => {
+    const refs = [...componentThreatReferences(m, "per-element"), ...componentThreatReferences(m, "per-interaction")];
+    const relevant = refs.filter((r) => r.relevance === "relevant");
+    expect(relevant.length).toBeGreaterThan(0);
+    const result = syncRisksFromThreats({ configuration: DEFAULT_CONFIGURATION, risks: [], lastModified: "" } as never, refs);
+    const riskIds = new Set(result.riskData.risks.map((r) => r.id));
+    for (const r of relevant) expect(riskIds.has(`R-${r.id}`), r.displayId).toBe(true);
+  });
+});

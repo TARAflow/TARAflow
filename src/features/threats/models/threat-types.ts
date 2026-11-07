@@ -957,6 +957,15 @@ export interface ThreatProjectData {
    * (interactionContext.victimRole). Built at the app layer. Absent: none.
    */
   excludedElementIds?: ReadonlySet<string>;
+  /**
+   * Threats of imported components per instance, read-only (patch 14) —
+   * derived at the app layer, never part of `threats`.
+   */
+  importedThreatGroups?: readonly {
+    key: string;
+    label: string;
+    threats: Threat[];
+  }[];
   lastModified: string;
 }
 
