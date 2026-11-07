@@ -44,7 +44,10 @@ export interface SnapshotRisk {
   intrinsicFactors: { factorId: string; value: number }[];
 }
 
-/** Assets without impact ratings and physical impact — impact stays behind (§7.3). */
+/**
+ * Assets without impact ratings and physical impact — impact stays behind
+ * (§7.3); their security goals without per-goal impact and consequence.
+ */
 export type SnapshotAsset = Omit<
   AssetData["assets"][number],
   | "impactRatings"

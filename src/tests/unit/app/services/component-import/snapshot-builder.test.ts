@@ -126,6 +126,31 @@ describe("buildComponentSnapshot — what stays behind", () => {
     }
   });
 
+  it("security goals cross without their per-goal impact and consequence; the mirror without protection need", () => {
+    const p = cnc();
+    const asset = p.assets!.assets[0] as unknown as Record<string, unknown>;
+    asset.securityGoals = [
+      { type: "confidentiality", level: "high", formalDescription: "keep secret", impactRatings: [{ criterionId: "safety", value: 4 }], consequence: "Jane gets hurt" },
+    ];
+    p.dfd = { ...p.dfd!, assets: (p.dfd!.assets ?? []).map((a, i) => (i === 0 ? { ...a, protectionNeed: "critical" as const } : a)) };
+    const s = buildComponentSnapshot(p);
+    const goal = (s.assets[0] as unknown as { securityGoals: Record<string, unknown>[] }).securityGoals[0];
+    expect(goal).toEqual({ type: "confidentiality", level: "high", formalDescription: "keep secret" });
+    expect(JSON.stringify(s)).not.toContain("Jane gets hurt");
+    expect((s.dfd?.assets ?? []).some((a) => "protectionNeed" in a)).toBe(false);
+  });
+
+  it("a damage-scenario edit (per-goal impact, consequence) does not change the hash", () => {
+    const withGoal = (impact: number, text: string) => {
+      const p = cnc();
+      (p.assets!.assets[0] as unknown as Record<string, unknown>).securityGoals = [
+        { type: "integrity", level: "medium", formalDescription: "f", impactRatings: [{ criterionId: "safety", value: impact }], consequence: text },
+      ];
+      return snapshotContentHash(buildComponentSnapshot(p));
+    };
+    expect(withGoal(1, "a")).toBe(withGoal(4, "b"));
+  });
+
   it("assumptions without their owner; goals and claims kept", () => {
     const p = cnc();
     p.itemDefinition = {

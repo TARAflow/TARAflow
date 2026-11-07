@@ -102,6 +102,15 @@ function snapshotAssets(project: Project): SnapshotAsset[] {
       const { protectionNeed: _drop, ...rest } = properties;
       copy.properties = rest;
     }
+    // Per security goal (= damage scenario, asset × property): its impact and
+    // its consequence text are the component's damage view — the machine
+    // rates the damage scenarios itself (§7.3, §7.5). The goal and its level
+    // (CIANAAA) cross.
+    if (Array.isArray(copy.securityGoals)) {
+      copy.securityGoals = (copy.securityGoals as Record<string, unknown>[]).map(
+        ({ impactRatings: _impact, consequence: _consequence, ...goal }) => goal,
+      );
+    }
     return copy as SnapshotAsset;
   });
 }
@@ -122,7 +131,8 @@ export function buildComponentSnapshot(project: Project): ComponentSnapshot {
           xml: dfd.xml,
           elements: dfd.elements,
           connections: dfd.connections,
-          assets: dfd.assets,
+          // The asset mirror without the protection need (a context rating).
+          assets: (dfd.assets ?? []).map(({ protectionNeed: _need, ...asset }) => asset),
           ...(dfd.pages ? { pages: dfd.pages } : {}),
         }
       : null,
