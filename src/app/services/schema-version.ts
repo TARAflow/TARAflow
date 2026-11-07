@@ -84,5 +84,9 @@
  *       release would misread it. Analysis preservation is reported per file
  *       (K-9): the reshape keeps every value; only dropped legacy statements
  *       count as a change.
+ *  14 = 0.19.0-beta, version fence, no data change (multi-project TARA
+ *       design v3 §10): project.components — imported component TARAs
+ *       (snapshot, source, content hash, methodology fingerprint) and their
+ *       instances in the DFD — an older release would drop them on save.
  */
-export const CURRENT_SCHEMA_VERSION = 13;
+export const CURRENT_SCHEMA_VERSION = 14;

@@ -9,6 +9,8 @@ import { AttackTreeData } from "features/attacktree";
 import { DocData } from "features/documentation";
 import { IntegrationData } from "features/integration";
 import type { AuditData } from "features/audit/models/audit-types";
+import type { ProjectComponents } from "shared";
+import type { ComponentSnapshot } from "./component-snapshot-types";
 
 // ==================== PROJECT TYPES ====================
 
@@ -121,6 +123,11 @@ export interface Project {
    * is derived. Optional; absent = nothing entered yet. Schema 12.
    */
   compliance?: ComplianceData;
+  /**
+   * Imported component TARAs and their instances in the DFD (multi-project
+   * TARA design v3 §10). Optional; absent = no component imported. Schema 14.
+   */
+  components?: ProjectComponents<ComponentSnapshot>;
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
   filePath?: string; // Runtime-only (Electron). Stripped by prepareForDisk() before write — never persisted.

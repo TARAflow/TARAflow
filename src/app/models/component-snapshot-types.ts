@@ -69,4 +69,10 @@ export interface ComponentSnapshot {
   assetRelations: AssetData["relations"];
   concept: Pick<CybersecurityConcept, "goals" | "claims">;
   assumptions: SnapshotAssumption[];
+  /**
+   * Components the component itself imported (design §6.5, E8): they come
+   * along as they are — their pages are already in `dfd` — and are needed
+   * for provenance and the cycle check.
+   */
+  components?: Project["components"];
 }

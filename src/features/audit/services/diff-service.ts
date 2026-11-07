@@ -176,6 +176,27 @@ export class DiffService {
       changes.push({ phase: "verification", phaseLabel: "Verification", changeCount: verificationChanges.length, changes: verificationChanges });
     }
 
+    // Imported components (schema 14, multi-project TARA design §8.2): the
+    // import record without its snapshot (the content hash stands for it)
+    // and the instances in the DFD.
+    const componentChanges = [
+      ...this.compareById(
+        (currentProject.components?.imports ?? []).map(({ snapshot: _s, ...rest }) => rest),
+        (previousProject?.components?.imports ?? []).map(({ snapshot: _s, ...rest }) => rest),
+        (x) => `${x.name} @ ${x.source.tag ?? x.source.commitSha.slice(0, 8)}`,
+        () => "Component import",
+      ),
+      ...this.compareById(
+        currentProject.components?.instances ?? [],
+        previousProject?.components?.instances ?? [],
+        (x) => x.prefix,
+        () => "Component instance",
+      ),
+    ];
+    if (componentChanges.length > 0) {
+      changes.push({ phase: "components", phaseLabel: "Components", changeCount: componentChanges.length, changes: componentChanges });
+    }
+
     return changes;
   }
 

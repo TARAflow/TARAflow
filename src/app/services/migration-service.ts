@@ -30,6 +30,7 @@ import {
   migrate_10_to_11,
   migrate_11_to_12,
   migrate_12_to_13,
+  migrate_13_to_14,
 } from "./versions";
 import { normalizeThreatTables } from "../../features/threats/services/threat-table-normalize";
 
@@ -156,6 +157,7 @@ export function repairProject(raw: any): Project | null {
     ...(raw.itemDefinition ? { itemDefinition: raw.itemDefinition } : {}),
     ...(raw.cybersecurityConcept ? { cybersecurityConcept: raw.cybersecurityConcept } : {}),
     ...(raw.compliance ? { compliance: raw.compliance } : {}),
+    ...(raw.components ? { components: raw.components } : {}),
     isOpen: raw.isOpen ?? false,
     hasUnsavedChanges: false,
     filePath: raw.filePath,
@@ -288,6 +290,13 @@ export function applyMigrations(raw: any): {
     const step = migrate_12_to_13(data);
     data = step.data;
     if (step.analysisChanged) changedBy.push(13);
+    migrated = true;
+  }
+
+  if ((data.schemaVersion ?? 0) < 14) {
+    const step = migrate_13_to_14(data);
+    data = step.data;
+    if (step.analysisChanged) changedBy.push(14);
     migrated = true;
   }
 

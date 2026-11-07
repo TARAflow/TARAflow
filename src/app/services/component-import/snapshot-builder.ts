@@ -143,6 +143,7 @@ export function buildComponentSnapshot(project: Project): ComponentSnapshot {
       claims: project.cybersecurityConcept?.claims ?? [],
     },
     assumptions: (project.itemDefinition?.assumptions ?? []).map(({ owner: _owner, ...rest }) => rest),
+    ...(project.components ? { components: project.components } : {}),
   };
   return clean(snapshot);
 }
