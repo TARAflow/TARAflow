@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 in progress (patches 05–06: schema 14, source loader)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 in progress (patches 05–07: schema 14, source loader, DFD generation)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -508,6 +508,16 @@ the one git path `git:rawInDir`) with the checks valid project, git working copy
 schema not too new, migration deterministic (I1), and the source record (commit, branch, remote,
 tag — never the local path); `isComponentCycle` over nested components (the snapshot keeps the
 component's own `components` block, §6.5).
+*Patch 07 (2026-11-07):* `insertComponentInstance` (features/dfd, pure, XML in / out): the
+multiprocess with its page link, the component's pages as child pages (ids per instance, FNV-1a of
+instance id + component id), EEs as context copies of the mapped machine elements or of new EEs on
+the parent page, boundary flows defined on the parent page with their occurrence on the child page,
+EE → EE flows dropped, records with the component's properties. Display ids with the instance
+prefix; the multiprocess and the boundary flows get the machine placeholders (MP-xx, DF-xx).
+Asset relations of elements and flows are not taken over yet (assets per instance come with
+phase 2, E5). Checked through the real save path (parse, links, effective model, findings): one
+record per logical element, boundary flows resolve to the inner element, no balancing or page-tree
+error — except I2.
 *Patch 06 (2026-11-07):* unpinned import (no repository, untracked, uncommitted) with its reason;
 `path` in the repository and `sameRepo` in the source record; drift reads the committed state.
 Then: import action, source checks (clean, committed, schema, cycle),
@@ -601,4 +611,5 @@ All decided with the user on 2026-11-04 (D5) and 2026-11-07 (all others).
 | # | Found | Point | Proposal |
 |---|---|---|---|
 | I1 | Phase 0 (2026-11-07) | **Migration must be deterministic.** Old component files get fresh ids on every migration: migrate 4→5 and 5→6 (and 6→7 on an id collision, the legacy asset-link lift) use `crypto.randomUUID` — e.g. the schema-2 cnc-ref fixture gets new threat UUIDs each time. Migrated on import (§4.1) and again on every drift check or update, the same component state would give different threat ids → every imported threat "obsolete + new", ratings and risks lost. | **Decided (user 2026-11-07):** the import migrates the file twice and compares the snapshot hashes; if they differ, it refuses with "open and save the component TARA in TARAflow ≥ 0.19 and commit it first". Generic, no list of affected schema versions to maintain. Applies to every read of a component state (import, drift check, update). |
+| I2 | Patch 07 (2026-11-07) | **Flows from an EE to a boundary element.** A component flow that ends on a boundary (e.g. the SmokeDetector's debugger flows into a chip boundary, DF-8 / DF-18) cannot be stitched in the machine: boundaries are never inside a decomposed multiprocess (leveled design §5.3.1), so the inner end is ambiguous → `BAL_AMBIGUOUS_ENDPOINT` (error) on the boundary flow. Valid on a single page, so the component team sees nothing. | Decide before the import UI ships: (a) the import shows these flows in the preview as "will not resolve — draw the flow to the element inside the boundary in the component TARA"; or (b) the leveled model treats a boundary element defined on a child page as inside the decomposed multiprocess (core change, own patch with the leveled regression tests). Proposal: (a) now, (b) only if it turns out to be common. |
 
