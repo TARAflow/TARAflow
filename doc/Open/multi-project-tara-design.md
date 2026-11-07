@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–22; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–23; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -713,6 +713,13 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 23 done (2026-11-07, manual test):* EE → EE flows out of scope on every DFD. A machine with
+threats lost three per-element threats on an EE → EE flow (Wifi Gateway → Update Server) when the
+import made its DFD leveled: the effective model excludes such flows (`DFD_EE_TO_EE_FLOW`), the
+single-page per-element generator did not; deleting the instance brought them back. Now the
+per-element generator leaves EE → EE flows out on single-page DFDs too (`isEeToEeFlow`), as the
+leveled model, per-interaction mode and the component import do, and the sync never reports them
+missing. Existing single-page projects: a regeneration lists such threats as obsolete (release note).
 *Patch 22 done (2026-11-07, manual test):* imported threats in the Threats tab. A click on an
 imported threat opened nothing — it now opens the threat dialog read-only (`readOnly`: a note on the
 source, no edit / add / delete controls, the fields disabled, the footer only navigates and closes,

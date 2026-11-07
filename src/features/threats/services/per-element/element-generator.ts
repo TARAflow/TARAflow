@@ -71,6 +71,21 @@ import {
  * (element-sync.ts), so a newly synced element receives the same
  * linkedAssetIds a full regeneration would produce — no divergence.
  */
+/**
+ * A flow between two external entities is out of the analysis scope — on a
+ * single-page DFD as on a leveled one, where the effective model excludes it
+ * (DFD_EE_TO_EE_FLOW), and as in per-interaction mode. Before, a single-page
+ * DFD got per-element threats on it that vanished as soon as the DFD became
+ * leveled, e.g. by a component import (manual test 2026-11-07).
+ */
+export function isEeToEeFlow(
+  connection: { from?: string; to?: string },
+  graph: Pick<DFDGraphReference, "elementsById">,
+): boolean {
+  const type = (id: string | undefined) => (id ? graph.elementsById.get(id)?.type : undefined);
+  return type(connection.from) === "ExternalEntity" && type(connection.to) === "ExternalEntity";
+}
+
 export function buildElementToAssetsIndex(
   assetDataRef: ThreatProjectData["assetDataRef"],
 ): Map<string, string[]> {
@@ -497,6 +512,7 @@ export class ElementThreatGenerator {
         connection?.excludeFromThreatGen ||
         (connection as any)?.properties?.excludeFromThreatGen;
       if (isExcluded) continue;
+      if (isEeToEeFlow(connection, graph)) continue;
 
       // Properties MUST travel with the element: the strategy's property
       // modifiers (e.g. EL0 → no S/I) and the template matching read them.
