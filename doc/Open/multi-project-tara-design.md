@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 in progress (patch 05: schema 14, source loader)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 in progress (patches 05–06: schema 14, source loader)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -84,11 +84,24 @@ sees that a newer analysis exists, and decides when to move.
 
 ### 4.1 Source requirements (D6, D8)
 
-- The source is a component `.tara.json` inside a **git working copy**. The file must be
-  **committed and clean**; a dirty file blocks the import (no draft imports).
+- The source is a component `.tara.json`, normally inside a **git working copy**, **committed and
+  clean** — then the import is **pinned** to that commit.
+- **Unpinned import (user 2026-11-07, revises D6/E7):** a file outside a repository, untracked or
+  with uncommitted changes is imported anyway, *unpinned*: no commit, branch or tag, the reason is
+  recorded (`unpinned: "no_repo" | "untracked" | "dirty"`), only the content hash identifies the
+  state. The import asks for an explicit confirmation, the machine shows a permanent warning
+  `CMP_SOURCE_UNPINNED` on the import, the report names it. Useful for trying the mechanism and for
+  teams without git; an audited machine should pin its components.
 - Stored with the import: `repoUrl` (the remote URL of the component repo — never a local path),
-  the **branch** the commit was taken from, optional **tag pattern** (§9.1), the **commit sha**, the
-  component's project id and name, its schema version.
+  the **path of the file inside its repository** (`path`, e.g. `components/camera.tara.json` —
+  needed to read the file at the branch tip), `sameRepo` when the component lies in the machine's
+  own repository, the **branch** the commit was taken from, optional **tag pattern** (§9.1), the
+  **commit sha**, the component's project id and name, its schema version.
+- **Same repository as the machine** (likely the common case, one repository per product line):
+  works like any other repository; `sameRepo` lets "Open component TARA" and the drift check find
+  the file without a stored local path, and the AVE check "commit exists" runs offline. A repository
+  without a remote has no `repoUrl`; the drift check then needs `sameRepo` or the local checkout
+  path.
 - The local path of the component checkout lives in `localStorage` only (same hybrid as repo
   discovery and `LocalCheckoutHint`); nothing path-like enters the machine's `.tara.json`.
 - **Schema:** a component TARA with an older schema is migrated on import (the normal migration
@@ -350,8 +363,12 @@ analysis is not valid in this machine until resolved. The component's own assump
 ### 9.1 Detecting a newer state
 
 - The import stores repo URL, branch, optional tag pattern, commit and snapshot hash.
-- The check reads the component TARA at the **branch tip in the local checkout**; `git fetch` only
-  on request, no automatic network access.
+- The check reads the component TARA **as committed at the branch tip** (`git show <branch>:<path>`),
+  never the working copy — an uncommitted edit of the component team in the same checkout is not a
+  newer state. `git fetch` only on request, no automatic network access.
+- **Unpinned imports** have no branch to look at: the check compares the content hash of the file
+  at the local path (remembered in `localStorage`) and offers it as a newer state when it differs;
+  still never automatic.
 - **Content decides, not the commit:** a newer state exists only if the analysis-relevant content
   differs (the same semantic comparison as the commit gate, diff-service). A commit that changes
   only layout or unrelated files is not a newer state.
@@ -394,10 +411,13 @@ interface ComponentImport {
   name: string;
   source: {
     repoUrl?: string;           // remote URL, never a local path
+    path?: string;              // path of the file inside its repository
+    sameRepo?: boolean;         // the machine's own repository
     branch?: string;
     tagPattern?: string;
     tag?: string;               // tag of the imported commit, if any
-    commitSha: string;
+    commitSha?: string;         // absent when unpinned
+    unpinned?: "no_repo" | "untracked" | "dirty";
     schemaVersion: number;      // of the component file before migration
   };
   importedAt: string;
@@ -488,6 +508,8 @@ the one git path `git:rawInDir`) with the checks valid project, git working copy
 schema not too new, migration deterministic (I1), and the source record (commit, branch, remote,
 tag — never the local path); `isComponentCycle` over nested components (the snapshot keeps the
 component's own `components` block, §6.5).
+*Patch 06 (2026-11-07):* unpinned import (no repository, untracked, uncommitted) with its reason;
+`path` in the repository and `sameRepo` in the source record; drift reads the committed state.
 Then: import action, source checks (clean, committed, schema, cycle),
 already-imported handling (§6.4), prefix, EE mapping dialog, multiprocess + read-only child pages +
 boundary flows, numbering with prefix, `CMP_FLOW_NOT_IN_COMPONENT`, delete instance, "Open component
@@ -553,7 +575,7 @@ All decided with the user on 2026-11-04 (D5) and 2026-11-07 (all others).
 | D3 | Bound vs. decomposed | **Obsolete** — an imported multiprocess is decomposed by construction (§6.1) |
 | D4 | STRIDE on the imported multiprocess | No generator on imported elements and boundary flows; threats are taken over (§7.1) |
 | D5 | Methodology | Intrinsic factors as raw values, fingerprint, prefill on match, re-rate on mismatch, no conversion (§7.2) |
-| D6 | Source state | Committed and clean only; no draft imports; Electron only (§4.1) |
+| D6 | Source state | Committed and clean = pinned; otherwise unpinned with warning (revised 2026-11-07); Electron only (§4.1) |
 | D7 | AoU violation | `not_fulfilled` is an error (§7.6) |
 | D8 | Repo URL | Taken from the component repo's remote at import, stored in the import record (§4.1) |
 | Q1 | Child page editable | Read-only, re-rendered from the snapshot (§6.2) |
@@ -567,7 +589,7 @@ All decided with the user on 2026-11-04 (D5) and 2026-11-07 (all others).
 | E4 | AoU | Checklist per instance, `not_fulfilled` = error (§7.6) |
 | E5 | Assets | Read-only per instance, machine adds impact, may link hazards (§7.5) |
 | E6 | Findings on imported elements | Shown, marked as owned by the component; matrix evaluates them (§8.1) |
-| E7 | Source state / browser | Committed and clean; browser mode not supported at present (§4.1) |
+| E7 | Source state / browser | Pinned when committed and clean, else unpinned with a clear warning (user 2026-11-07); path in the repository and same-repository flag recorded; browser mode not supported at present (§4.1) |
 | E8 | Nested components | Come along as they are, updated only with the outer component (§6.5) |
 | E9 | Display ids | Component ids with instance prefix, untouched by the machine's renumber (§6.6) |
 | E10 | Report | Normal tables with provenance + one section per component (§8.3) |
