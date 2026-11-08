@@ -128,8 +128,8 @@ export function assumptionGaps(instance: Instance, imported: Import, risks: Risk
   };
 }
 
-/** This machine's measures as evidence options: its project mitigations and every measure its risks chose. */
-export function machineMeasureOptions(project: Pick<Project, "risks" | "threats">): { id: string; label: string }[] {
+/** A project's measures (its project mitigations and every measure its risks chose) — the evidence options of a machine, the measures a component's assumptions can name (phase 3c). */
+export function projectMeasureOptions(project: Pick<Project, "risks" | "threats">): { id: string; label: string }[] {
   const out = new Map<string, string>();
   for (const m of project.threats?.configuration?.customMitigations ?? []) out.set(m.id, `${m.id} ${m.text}`);
   for (const r of project.risks?.risks ?? []) {

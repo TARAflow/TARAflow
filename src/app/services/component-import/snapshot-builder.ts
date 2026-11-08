@@ -25,6 +25,7 @@ import {
   likelihoodMethodOf,
 } from "features/risks";
 import type { Project } from "../../models/project-types";
+import { projectMeasureOptions } from "./assumption-status";
 import type {
   ComponentSnapshot,
   SnapshotAsset,
@@ -116,6 +117,19 @@ function snapshotAssets(project: Project): SnapshotAsset[] {
 }
 
 /** The snapshot of a component project (design §4.2). */
+/**
+ * Assumptions without their owner; the measures relying on them only as far
+ * as the project still has them (phase 3c — an id that no longer resolves
+ * would name a dependency an importing machine cannot find).
+ */
+function snapshotAssumptions(project: Project): ComponentSnapshot["assumptions"] {
+  const known = new Set(projectMeasureOptions(project).map((m) => m.id));
+  return (project.itemDefinition?.assumptions ?? []).map(({ owner: _owner, mitigationIds, ...rest }) => {
+    const ids = (mitigationIds ?? []).filter((id) => known.has(id));
+    return ids.length > 0 ? { ...rest, mitigationIds: ids } : rest;
+  });
+}
+
 export function buildComponentSnapshot(project: Project): ComponentSnapshot {
   const dfd = project.dfd;
   const threats = project.threats;
@@ -152,7 +166,7 @@ export function buildComponentSnapshot(project: Project): ComponentSnapshot {
       goals: project.cybersecurityConcept?.goals ?? [],
       claims: project.cybersecurityConcept?.claims ?? [],
     },
-    assumptions: (project.itemDefinition?.assumptions ?? []).map(({ owner: _owner, ...rest }) => rest),
+    assumptions: snapshotAssumptions(project),
     ...(project.components ? { components: project.components } : {}),
   };
   return clean(snapshot);

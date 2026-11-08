@@ -12,7 +12,12 @@ import { MitigationCoverageBadge } from "shared";
 import { mitigationSelectionKey } from "../../models/risk-mitigation-types";
 
 export function RiskMitigationsTab({ m }: { m: RiskDialogModel }) {
-  const { t, currentRisk, local, setLocal, vocabulary, resolvedVerifications, displayedMitigations, setScopeOverride, toggleVerification, mitigationCatalog, toggleMitigation, mitigationCoverage, isPerInteraction, isAccepted, passiveTreatment, extraSection } = m;
+  const { t, currentRisk, local, setLocal, vocabulary, resolvedVerifications, displayedMitigations, setScopeOverride, toggleVerification, mitigationCatalog, toggleMitigation, mitigationCoverage, isPerInteraction, isAccepted, passiveTreatment, extraSection, assumptions } = m;
+  // The reverse of Assumption.mitigationIds (phase 3c): the assumptions a
+  // measure relies on, shown at the measure — the dependency is maintained
+  // at the assumption, but thought of when a measure is chosen.
+  const reliesOn = (id: string | undefined) =>
+    id ? (assumptions ?? []).filter((a) => a.mitigationIds?.includes(id)).map((a) => a.displayId) : [];
   return (
     <Stack spacing={2.5}>
       {extraSection?.(currentRisk)}
@@ -231,6 +236,18 @@ export function RiskMitigationsTab({ m }: { m: RiskDialogModel }) {
                             m.id ? mitigationCoverage.get(m.id) : undefined
                           }
                         />
+                        {reliesOn(m.id).length > 0 && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            data-testid={`mitigation-relies-on-${m.id}`}
+                          >
+                            {t("tabs.risks.dialog.reliesOn", {
+                              defaultValue: "relies on {{list}}",
+                              list: reliesOn(m.id).join(", "),
+                            })}
+                          </Typography>
+                        )}
                       </Box>
                     }
                     sx={{ m: 0, width: "100%" }}

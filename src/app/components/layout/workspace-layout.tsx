@@ -81,6 +81,7 @@ import { withComponentPrefill, withComponentThreats } from "app/utils/component-
 import { componentAttackPathThreatReferences, componentAttackTreeData } from "app/utils/component-attack-trees";
 import { instanceAssetUnits } from "app/services/component-import/instance-quantity";
 import { componentTreatments, machineDecided } from "app/utils/component-treatments";
+import { projectMeasureOptions } from "app/services/component-import/assumption-status";
 import { ComponentAttackPathsSection, ComponentTreatmentSection } from "features/components";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
@@ -171,6 +172,13 @@ export const WorkspaceLayout: React.FC = () => {
   // Identical units per instance asset (I5) — the asset dialog's hint.
   const instanceComponents = activeProject?.components;
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
+  // The project's measures (phase 3c) — what an assumption can name as relying on it.
+  const measureRisks = activeProject?.risks;
+  const measureThreats = activeProject?.threats;
+  const projectMeasures = useMemo(
+    () => projectMeasureOptions({ risks: measureRisks ?? null, threats: measureThreats ?? null }),
+    [measureRisks, measureThreats],
+  );
   // The component's treatment per imported risk (phase 3a) — the risk dialog's section.
   const componentTreatmentMap = useMemo(() => componentTreatments({ components: instanceComponents }), [instanceComponents]);
   const assetData = useAssetDerivedData(activeProject);
@@ -274,6 +282,7 @@ export const WorkspaceLayout: React.FC = () => {
             projectId={activeProject.id}
             modelItems={overview.itemModelItems}
             assumptionUsage={overview.assumptionUsage}
+            measureOptions={projectMeasures}
             methodology={overview.methodologySummary}
             verification={overview.verificationStatus}
             onOpenAuditTab={() => handlePhaseChange(PhaseId.Audit)}

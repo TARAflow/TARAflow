@@ -88,6 +88,8 @@
       "owner": "Owner",
       "reviewBy": "Review by",
       "usedBy": "used by {{list}}",
+      "measuresRelying": "Measures relying on it: {{list}}",
+      "measuresLabel": "Measures relying on this assumption",
       "add": "Add assumption",
       "remove": "Remove assumption"
     },
@@ -96,6 +98,7 @@
       "sectionMissing": "{{section}} is not described.",
       "assumptionInvalidInUse": "{{assumption}} is invalid but still relied on by {{boundaries}} — review them.",
       "assumptionReviewDue": "{{assumption}} is still open after its review date.",
+      "assumptionMeasureUnknown": "{{assumption}} names measures this project no longer has: {{measures}} — remove them; they are not passed on to importing machines.",
       "linkRemoved": "{{section}}: {{count}} link(s) to removed model items."
     },
     "neutral": {

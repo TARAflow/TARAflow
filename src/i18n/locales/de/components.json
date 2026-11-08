@@ -111,6 +111,7 @@
       "handoverDecided": "Die Komponente hat dieses Risiko übergeben; diese Maschine hat ihre eigene Behandlung festgelegt.",
       "pending": "Noch nicht umgesetzte Massnahmen hängen an einem Release der Komponente.",
       "noMeasures": "Die Komponente hat keine Massnahmen gewählt.",
+      "reliesOn": "beruht auf {{list}}",
       "status": {
         "open": "offen",
         "in_progress": "in Arbeit",

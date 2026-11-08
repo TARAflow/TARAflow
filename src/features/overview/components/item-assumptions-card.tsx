@@ -22,6 +22,8 @@ interface ItemAssumptionsCardProps {
   neutral?: boolean;
   /** assumption id → labels of the boundaries that link it */
   usage: Readonly<Record<string, readonly string[]>>;
+  /** The project's measures (catalog / project mitigations) an assumption can name as relying on it. */
+  measures?: readonly { id: string; label: string }[];
   onSave: (assumptions: Assumption[]) => void;
 }
 
@@ -39,6 +41,7 @@ export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({
   assumptions,
   issued = 0,
   usage,
+  measures = [],
   onSave,
   neutral = false,
 }) => {
@@ -49,7 +52,7 @@ export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({
   const statusLabel = (s: AssumptionStatus) => t(`itemDefinition.assumptions.status.${s}`, { defaultValue: s });
 
   const start = () => {
-    setDraft(assumptions.map((a) => ({ ...a, source: a.source ? { ...a.source } : undefined })));
+    setDraft(assumptions.map((a) => ({ ...a, source: a.source ? { ...a.source } : undefined, ...(a.mitigationIds ? { mitigationIds: [...a.mitigationIds] } : {}) })));
     setEditing(true);
   };
   const save = () => {
@@ -66,6 +69,7 @@ export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({
           }
           if (a.owner?.trim()) out.owner = a.owner.trim();
           if (a.reviewBy) out.reviewBy = a.reviewBy;
+          if (a.mitigationIds?.length) out.mitigationIds = [...a.mitigationIds];
           return out;
         }),
     );
@@ -103,6 +107,14 @@ export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({
                     {sourceText(a.source) && (
                       <span className="block text-xs text-gray-500">
                         {t("itemDefinition.source.label", { defaultValue: "Source" })}: {sourceText(a.source)}
+                      </span>
+                    )}
+                    {(a.mitigationIds?.length ?? 0) > 0 && (
+                      <span className="block text-xs text-gray-500" data-testid={`assumption-measures-${a.displayId}`}>
+                        {t("itemDefinition.assumptions.measuresRelying", {
+                          defaultValue: "Measures relying on it: {{list}}",
+                          list: a.mitigationIds!.join(", "),
+                        })}
                       </span>
                     )}
                   </td>
@@ -188,6 +200,25 @@ export const ItemAssumptionsCard: React.FC<ItemAssumptionsCardProps> = ({
                   className={INPUT}
                 />
               </div>
+              {measures.length > 0 && (
+                <label className="block text-xs text-gray-600">
+                  {t("itemDefinition.assumptions.measuresLabel", { defaultValue: "Measures relying on this assumption" })}
+                  <select
+                    multiple
+                    value={a.mitigationIds ?? []}
+                    onChange={(e) => patch(a.id, { mitigationIds: Array.from(e.target.selectedOptions).map((o) => o.value) })}
+                    aria-label={t("itemDefinition.assumptions.measuresLabel", { defaultValue: "Measures relying on this assumption" })}
+                    className={`${INPUT} mt-1 h-24`}
+                    data-testid={`assumption-measures-edit-${a.displayId}`}
+                  >
+                    {measures.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
             </div>
           ))}
           <button

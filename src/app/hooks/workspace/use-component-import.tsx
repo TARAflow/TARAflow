@@ -26,7 +26,7 @@ import {
 import type { Project } from "../../models/project-types";
 import { instanceLabel, quantityOf, withInstanceQuantity } from "../../services/component-import/instance-quantity";
 import { copyInstanceRatings, copySourcesOf } from "../../services/component-import/copy-ratings";
-import { instanceAssumptions, machineMeasureOptions, withAssumptionStatus } from "../../services/component-import/assumption-status";
+import { instanceAssumptions, projectMeasureOptions, withAssumptionStatus } from "../../services/component-import/assumption-status";
 import { buildAssetDataReference } from "../../utils/build-asset-data-reference";
 import { buildAssetHazardLinks } from "../../utils/build-asset-hazard-links";
 import { recalculateRiskValues } from "features/risks";
@@ -206,7 +206,7 @@ export function useComponentImport({
           <ComponentAssumptionsChecklist
             prefix={instance.prefix}
             assumptions={instanceAssumptions(instance, imported)}
-            measures={activeProjectRef.current ? machineMeasureOptions(activeProjectRef.current) : []}
+            measures={activeProjectRef.current ? projectMeasureOptions(activeProjectRef.current) : []}
             onChange={(assumptionId, decision) => {
               const current = activeProjectRef.current;
               if (!current?.components) return;

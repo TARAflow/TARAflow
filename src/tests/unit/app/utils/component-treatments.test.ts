@@ -38,6 +38,11 @@ const component = (() => {
     ],
   } as never;
   p.threats = { ...p.threats!, configuration: { ...p.threats!.configuration, customMitigations: [{ id: "M-C-001", text: "Signed sensor frames", isCustom: true, strideCategory: "T", context: "process", affectsProperties: [] }] } } as never;
+  p.itemDefinition = {
+    sections: {},
+    functions: [],
+    assumptions: [{ id: "a1", displayId: "ASM-01", text: "Frames are checked by the controller", status: "confirmed", mitigationIds: ["M-C-001", "M-X-404"] }],
+  } as never;
   p.cybersecurityConcept = {
     goals: [],
     claims: [{ id: "c1", displayId: "CLM-01", statement: "The integrator isolates the sensor bus", kind: "share", riskIds: [share.id], assumptionIds: [], responsibleParty: "Integrator" }],
@@ -82,6 +87,13 @@ describe("component treatments (phase 3a)", () => {
     expect(tr).toMatchObject({ instanceLabel: "SD1 · Smoke Detector", treatment: "reduce", handedOver: false });
     expect(tr.measures.map((x) => [x.id, x.state])).toEqual([["M-S-001", "implemented"], ["M-C-001", "pending"]]);
     expect(tr.measures.find((x) => x.id === "M-C-001")!.text).toBe("Signed sensor frames");
+  });
+
+  it("phase 3c: the snapshot passes on only measures the component still has; a measure shows the assumptions it relies on", () => {
+    expect(snapshot.assumptions[0].mitigationIds).toEqual(["M-C-001"]);
+    const tr = map.get(tid(component.reduceThreat))!;
+    expect(tr.measures.find((x) => x.id === "M-C-001")!.reliesOn).toEqual(["ASM-01"]);
+    expect(tr.measures.find((x) => x.id === "M-S-001")!.reliesOn).toBeUndefined();
   });
 
   it("share: handed over, with the component's claim as the reason", () => {

@@ -16,7 +16,7 @@ export interface ComponentTreatmentView {
   instanceLabel: string;
   treatment: string;
   justification?: string;
-  measures: { id?: string; text: string; status: string; state: "implemented" | "pending" | "rejected" }[];
+  measures: { id?: string; text: string; status: string; state: "implemented" | "pending" | "rejected"; reliesOn?: string[] }[];
   claims: { displayId: string; kind: string; statement: string; responsibleParty?: string }[];
   handedOver: boolean;
   /** Handed over: has the machine set its own treatment yet? */
@@ -79,6 +79,11 @@ export const ComponentTreatmentSection: React.FC<{ view: ComponentTreatmentView 
                 {m.id ? <code style={{ marginRight: 6 }}>{m.id}</code> : null}
                 {m.text}
               </Typography>
+              {(m.reliesOn?.length ?? 0) > 0 && (
+                <Typography variant="caption" color="text.secondary" data-testid={`component-treatment-relies-${m.id ?? i}`}>
+                  {t("components.treatment.reliesOn", { list: m.reliesOn!.join(", "), defaultValue: "relies on {{list}}" })}
+                </Typography>
+              )}
             </Stack>
           ))}
           {view.measures.some((m) => m.state === "pending") && (

@@ -16,7 +16,7 @@ import { copyInstanceRatings } from "app/services/component-import/copy-ratings"
 import {
   assumptionGaps,
   instanceAssumptions,
-  machineMeasureOptions,
+  projectMeasureOptions,
   withAssumptionStatus,
 } from "app/services/component-import/assumption-status";
 import { DiffService } from "features/audit/services/diff-service";
@@ -120,9 +120,9 @@ describe("assumptions of use per instance (phase 3b)", () => {
   });
 
   it("evidence options: the machine's project mitigations and the measures its risks chose", () => {
-    const ids = machineMeasureOptions(machine()).map((o) => o.id);
+    const ids = projectMeasureOptions(machine()).map((o) => o.id);
     expect(ids).toEqual(["M-C-001", "M-T-001"]);
-    expect(machineMeasureOptions(machine())[0].label).toBe("M-C-001 Locked cabinet");
+    expect(projectMeasureOptions(machine())[0].label).toBe("M-C-001 Locked cabinet");
   });
 
   it("the audit diff sees an assumption status (commit gate)", () => {

@@ -29,6 +29,8 @@ export interface ComponentMeasure {
   text: string;
   status: string;
   state: ComponentMeasureState;
+  /** Display ids of the component's assumptions it relies on (phase 3c). */
+  reliesOn?: string[];
 }
 
 export interface ComponentTreatment {
@@ -68,12 +70,21 @@ export function componentTreatments(project: Pick<Project, "components">): Map<s
     const snapshot = imported.snapshot;
     const own = new Map((snapshot.threats?.customMitigations ?? []).map((m) => [m.id, m.text]));
     const label = instanceLabel(instance, imported.name);
+    const reliesOn = (id: string | undefined) =>
+      id ? (snapshot.assumptions ?? []).filter((a) => a.mitigationIds?.includes(id)).map((a) => a.displayId) : [];
     for (const risk of snapshot.risks) {
       const measures = risk.selectedMitigations
         .filter((m) => m.status !== undefined)
         .map((m): ComponentMeasure => {
           const text = (m.id && own.get(m.id)) || (m.id ? resolveMitigationDrafts([{ id: m.id }])[0]?.text : "") || m.notes || m.id || "";
-          return { ...(m.id ? { id: m.id } : {}), text, status: m.status, state: measureState(m.status) };
+          const relies = reliesOn(m.id);
+          return {
+            ...(m.id ? { id: m.id } : {}),
+            text,
+            status: m.status,
+            state: measureState(m.status),
+            ...(relies.length > 0 ? { reliesOn: relies } : {}),
+          };
         });
       const claims = (snapshot.concept?.claims ?? [])
         .filter((c) => c.riskIds.includes(risk.id))

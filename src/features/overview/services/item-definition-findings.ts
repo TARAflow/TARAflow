@@ -18,6 +18,7 @@ export type ItemFindingCode =
   | "ITEM_SECTION_MISSING"
   | "ITEM_ASSUMPTION_INVALID_IN_USE"
   | "ITEM_ASSUMPTION_REVIEW_DUE"
+  | "ITEM_ASSUMPTION_MEASURE_UNKNOWN"
   | "ITEM_LINK_REMOVED";
 
 export interface ItemFinding {
@@ -32,6 +33,8 @@ export interface ItemFinding {
   boundaries?: readonly string[];
   /** Number of links to removed items. */
   count?: number;
+  /** Measure ids an assumption names that the project no longer has. */
+  measures?: readonly string[];
 }
 
 /** Mandatory sections per preset, with the requirement they answer. */
@@ -51,6 +54,8 @@ export interface ItemFindingsInput {
   assumptionUsage?: Readonly<Record<string, readonly string[]>>;
   /** Ids of the model items that exist; absent = links are not checked. */
   modelItemIds?: ReadonlySet<string>;
+  /** Ids of the project's measures; absent = an assumption's measures are not checked (phase 3c). */
+  measureIds?: ReadonlySet<string>;
   /** ISO date (YYYY-MM-DD) of today, for review dates. */
   today: string;
 }
@@ -87,6 +92,14 @@ export function itemDefinitionFindings(input: ItemFindingsInput): ItemFinding[] 
     }
     if (a.status === "open" && a.reviewBy && a.reviewBy < input.today) {
       findings.push({ code: "ITEM_ASSUMPTION_REVIEW_DUE", severity: "info", assumption: a.displayId });
+    }
+    // Measures it names that the project no longer has (deleted, or chosen
+    // in no risk any more) — not exported to importing machines (phase 3c).
+    if (input.measureIds) {
+      const unknown = (a.mitigationIds ?? []).filter((id) => !input.measureIds!.has(id));
+      if (unknown.length > 0) {
+        findings.push({ code: "ITEM_ASSUMPTION_MEASURE_UNKNOWN", severity: "warning", assumption: a.displayId, measures: unknown });
+      }
     }
   }
 

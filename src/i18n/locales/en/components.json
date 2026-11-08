@@ -111,6 +111,7 @@
       "handoverDecided": "The component handed this risk over; this machine has set its own treatment.",
       "pending": "Measures not implemented yet depend on a component release.",
       "noMeasures": "The component chose no measures.",
+      "reliesOn": "relies on {{list}}",
       "status": {
         "open": "open",
         "in_progress": "in progress",

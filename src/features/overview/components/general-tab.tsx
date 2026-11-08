@@ -92,6 +92,8 @@ interface GeneralTabProps {
 
   /** assumption id → trust boundaries that link it (A-3), built by the app layer. */
   assumptionUsage?: Readonly<Record<string, readonly string[]>>;
+  /** The project's measures (catalog / project mitigations) assumptions can name (phase 3c), built by the app layer. */
+  measureOptions?: readonly { id: string; label: string }[];
 
   /** The methodology record, reduced for display (A-4), built by the app layer. */
   methodology?: MethodologySummary;
@@ -130,6 +132,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   projectId,
   modelItems = [],
   assumptionUsage,
+  measureOptions,
   methodology,
   onOpenRiskTab,
   verification,
@@ -230,9 +233,10 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
         presetId: regulationPresetFromTags(data.info.tags),
         assumptionUsage,
         modelItemIds: modelItems.length > 0 ? modelItemIds : undefined,
+        ...(measureOptions ? { measureIds: new Set(measureOptions.map((m) => m.id)) } : {}),
         today: new Date().toISOString().slice(0, 10),
       }),
-    [data.info.description, data.info.tags, data.itemDefinition, assumptionUsage, modelItems, modelItemIds],
+    [data.info.description, data.info.tags, data.itemDefinition, assumptionUsage, modelItems, modelItemIds, measureOptions],
   );
   const badges: Record<OverviewView, number> = {
     // The description is counted in Definition, where it is edited.
@@ -298,6 +302,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
           itemDefinition={data.itemDefinition}
           modelItems={modelItems}
           assumptionUsage={assumptionUsage}
+          measures={measureOptions}
           findings={itemFindings}
           neutral={regulationPresetFromTags(data.info.tags ?? EMPTY_PROJECT_TAGS) !== "iso-21434"}
           onChange={({ description, itemDefinition }) =>

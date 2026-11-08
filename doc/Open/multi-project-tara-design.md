@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), next 3c (measure → AoU dependency) (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), next 3d (effectiveness and residual risk) (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -738,6 +738,16 @@ dialog above the risk's own mitigations through a generic slot (`RiskDialogProps
 `RisksTab.riskExtraSection`; the UI in features/components). The machine adds its own measures as for
 any risk. Release notes (PLAN): the safety card for people / physical / infrastructure assets (patch
 37); report (phase 6): both relevance decisions written out.
+*Patch 40 done (2026-11-08, phase 3c):* the dependency of a measure on assumptions, maintained in the
+component. `Assumption.mitigationIds` (shared): the measures whose effectiveness relies on the
+assumption — catalog ids and project mitigations (M-C-nnn); free-text measures have no id. Edited in
+the Item Definition's assumptions card (a multi-select of the project's measures — its project
+mitigations and the measures its risks chose, `projectMeasureOptions`; also outside ISO in the neutral
+wording) and shown read-only there ("Measures relying on it: …"). Ids the project no longer has give
+`ITEM_ASSUMPTION_MEASURE_UNKNOWN` (warning) and are not exported in the snapshot. The reverse direction
+is shown at the measure: "relies on ASM-03" in the risk dialog's mitigations (from the project's own
+assumptions — the component's and the machine's own risks alike) and in the component's treatment
+section of an imported risk (from the snapshot's assumptions).
 *Patch 39 done (2026-11-08, phase 3b):* the assumptions of use per instance (§7.6, I7 (2)/(6)). The
 multiprocess's details panel shows the component's assumptions as a checklist of the instance
 (`instanceAssumptions`, `withAssumptionStatus`; UI `ComponentAssumptionsChecklist` in

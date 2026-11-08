@@ -277,6 +277,7 @@
         "factorOverriddenTooltipComponent": "Wert der Komponente: {{value}}. Klick ↺ zum Zurücksetzen.",
         "factorOverrideRationale": "Warum dies von der Bewertung der Komponente abweicht (Pflicht)",
         "rationaleExpand": "Begründung bearbeiten",
+        "reliesOn": "beruht auf {{list}}",
         "rationaleCollapse": "Einklappen",
         "apLabel": "Attack Potential (AP)",
         "apNotDetermined": "Not yet determined",

@@ -277,6 +277,7 @@
         "factorOverriddenTooltipComponent": "Component's value: {{value}}. Click ↺ to reset.",
         "factorOverrideRationale": "Why this differs from the component's rating (required)",
         "rationaleExpand": "Edit rationale",
+        "reliesOn": "relies on {{list}}",
         "rationaleCollapse": "Collapse",
         "apLabel": "Attack Potential (AP)",
         "apNotDetermined": "Not yet determined",

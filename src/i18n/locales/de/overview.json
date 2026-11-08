@@ -88,6 +88,8 @@
       "owner": "Verantwortlich",
       "reviewBy": "Prüfen bis",
       "usedBy": "verwendet von {{list}}",
+      "measuresRelying": "Massnahmen, die darauf beruhen: {{list}}",
+      "measuresLabel": "Massnahmen, die auf dieser Annahme beruhen",
       "add": "Annahme hinzufügen",
       "remove": "Annahme entfernen"
     },
@@ -96,6 +98,7 @@
       "sectionMissing": "{{section}} ist nicht beschrieben.",
       "assumptionInvalidInUse": "{{assumption}} ist ungültig, aber {{boundaries}} stützt sich noch darauf — überprüfen.",
       "assumptionReviewDue": "{{assumption}} ist nach dem Prüfdatum noch offen.",
+      "assumptionMeasureUnknown": "{{assumption}} nennt Massnahmen, die dieses Projekt nicht mehr hat: {{measures}} — entfernen; sie werden an importierende Maschinen nicht weitergegeben.",
       "linkRemoved": "{{section}}: {{count}} Verweis(e) auf entfernte Modell-Elemente."
     },
     "neutral": {

@@ -51,6 +51,13 @@ export const ItemFindingsPanel: React.FC<{ findings: readonly ItemFinding[]; neu
           defaultValue: "{{assumption}} is still open after its review date.",
           assumption: f.assumption,
         });
+      case "ITEM_ASSUMPTION_MEASURE_UNKNOWN":
+        return t("itemDefinition.findings.assumptionMeasureUnknown", {
+          defaultValue:
+            "{{assumption}} names measures this project no longer has: {{measures}} — remove them; they are not passed on to importing machines.",
+          assumption: f.assumption,
+          measures: (f.measures ?? []).join(", "),
+        });
       case "ITEM_LINK_REMOVED":
         return t("itemDefinition.findings.linkRemoved", {
           defaultValue: "{{section}}: {{count}} link(s) to removed model items.",
