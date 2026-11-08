@@ -58,6 +58,8 @@
       "CMP_FACTOR_UNRATED": "Komponente {{prefix}} ({{component}}): {{count}} importierte(s) Risiko/Risiken mit noch unbewerteten Likelihood-Faktoren.",
       "CMP_FACTOR_OVERRIDE_RATIONALE": "Komponente {{prefix}} ({{component}}): {{count}} Risiko/Risiken überschreiben einen von der Komponente übernommenen Faktorwert ohne Begründung.",
       "CMP_NO_ATTACK_PATHS": "Komponente {{component}} hat keine Angriffspfade — in einem ISO/SAE-21434-Projekt erzeugen nur Angriffspfade Risiken, sie trägt also keine bei. Ihre Attack Trees in der Komponenten-TARA modellieren.",
+      "CMP_MEASURE_PENDING": "Komponente {{prefix}} ({{component}}): {{count}} importierte(s) Risiko/Risiken stützen sich auf noch nicht umgesetzte Massnahmen der Komponente — sie hängen an einem Release der Komponente.",
+      "CMP_HANDOVER_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} von der Komponente übergebene(s) oder akzeptierte(s) Risiko/Risiken kommen unbehandelt an — die Behandlung dieser Maschine festlegen (eigene Massnahme oder akzeptieren / übertragen mit Begründung).",
       "CMP_PATH_WINDOW_UNRATED": "Komponente {{prefix}} ({{component}}): {{count}} Angriffspfad(e) ohne Window of Opportunity dieser Maschine — unbewertet, sie erzeugen kein Risiko. Im Tab Attack Tree bewerten.",
       "CMP_PATH_NOT_RATABLE": "Komponente {{prefix}} ({{component}}): {{count}} Angriffspfad(e) im Schnellmodus bewertet — ohne Faktor-Aufschlüsselung kann diese Maschine ihr Window of Opportunity nicht bewerten, sie erzeugen also kein Risiko. Die Pfade in der Komponenten-TARA im Audit-Modus bewerten und aktualisieren."
     },
@@ -78,6 +80,28 @@
       "overwrite": "Mit den Werten der Quelle überschreiben",
       "confirm": "Übernehmen",
       "done": "Übernommen: {{factors}} Faktorbewertung(en), {{overrides}} überstimmte Relevanz(en), {{windows}} Window(s) of Opportunity, {{impact}} Asset-Impact-Bewertung(en)."
+    },
+    "treatment": {
+      "title": "Behandlung in der Komponente ({{component}}): {{treatment}}",
+      "kinds": {
+        "reduce": "reduzieren",
+        "eliminate": "eliminieren",
+        "accept": "akzeptieren",
+        "transfer": "übertragen",
+        "share": "teilen"
+      },
+      "handoverOpen": "Die Komponente hat dieses Risiko übergeben oder akzeptiert — es kommt unbehandelt an. Die Behandlung dieser Maschine festlegen: eigene Massnahme oder akzeptieren / übertragen mit Begründung.",
+      "handoverDecided": "Die Komponente hat dieses Risiko übergeben; diese Maschine hat ihre eigene Behandlung festgelegt.",
+      "pending": "Noch nicht umgesetzte Massnahmen hängen an einem Release der Komponente.",
+      "noMeasures": "Die Komponente hat keine Massnahmen gewählt.",
+      "status": {
+        "open": "offen",
+        "in_progress": "in Arbeit",
+        "in_review": "in Prüfung",
+        "implemented": "umgesetzt",
+        "verified": "verifiziert",
+        "rejected": "abgelehnt"
+      }
     },
     "threats": {
       "title": "Bedrohungen aus importierten Komponenten ({{count}}) — schreibgeschützt",

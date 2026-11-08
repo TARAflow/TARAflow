@@ -80,7 +80,8 @@ import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/
 import { withComponentPrefill, withComponentThreats } from "app/utils/component-threats";
 import { componentAttackPathThreatReferences, componentAttackTreeData } from "app/utils/component-attack-trees";
 import { instanceAssetUnits } from "app/services/component-import/instance-quantity";
-import { ComponentAttackPathsSection } from "features/components";
+import { componentTreatments, machineDecided } from "app/utils/component-treatments";
+import { ComponentAttackPathsSection, ComponentTreatmentSection } from "features/components";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
 import { useWorkspaceNavigation } from "app/hooks/workspace/use-workspace-navigation";
@@ -170,6 +171,8 @@ export const WorkspaceLayout: React.FC = () => {
   // Identical units per instance asset (I5) — the asset dialog's hint.
   const instanceComponents = activeProject?.components;
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
+  // The component's treatment per imported risk (phase 3a) — the risk dialog's section.
+  const componentTreatmentMap = useMemo(() => componentTreatments({ components: instanceComponents }), [instanceComponents]);
   const assetData = useAssetDerivedData(activeProject);
   const overview = useOverviewData(activeProject);
 
@@ -475,6 +478,11 @@ export const WorkspaceLayout: React.FC = () => {
             ticketPort={ticketPort}
             onUpdate={handlers.handleRisksUpdate}
             onConceptChange={handlers.handleConceptChange}
+            riskExtraSection={(risk) => {
+              // The component's treatment of an imported risk (phase 3a, §7.4).
+              const tr = componentTreatmentMap.get(risk.threatId);
+              return tr ? <ComponentTreatmentSection view={{ ...tr, decided: machineDecided(risk) }} /> : null;
+            }}
           />
         )}
 

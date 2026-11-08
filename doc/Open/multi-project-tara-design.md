@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), next 3b (AoU checklist) (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,28 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Phase 3 plan (2026-11-08, reviewed):* 3a measures and handovers of the component (§7.4), 3b AoU
+checklist per instance (§7.6), 3c measure → AoU dependency on the component side, 3d effectiveness
+and residual risk (I7). Decided for 3c: the dependency lives on the assumption
+(`Assumption.mitigationIds`, the measures relying on it) — catalog ids (M-S-…) and the component's
+project mitigations (M-C-nnn, stable ids since the catalog rework) alike; legacy free-text measures
+have no id and must be converted to a project mitigation first; ids that no longer resolve get a
+finding in the component and are not exported in the snapshot; the reverse direction is shown
+read-only at the measure in the risk dialog ("relies on ASM-03"), in the component and the machine.
+For 3d: effectiveness needs the AoUs derived as met AND the measure's status implemented / verified (a
+pending measure counts like "unclear"); a component assumption marked "invalid" by the component makes
+its measures not effective in every instance; with the same measure on two risks, the status of this
+risk decides (until the measure-ownership rework).
+*Patch 38 done (2026-11-08, phase 3a):* the component's treatment of each imported risk
+(`componentTreatments`, app read model): reduce → its measures read-only with their status
+(implemented / verified count; others pending → `CMP_MEASURE_PENDING`, "depends on a component
+release"); share / transfer / accept → the risk arrives untreated, the component's claims shown as the
+reason, `CMP_HANDOVER_OPEN` until the machine sets its own treatment (an own measure, or a treatment
+other than reduce with a justification — a justification alone does not decide). Shown in the risk
+dialog above the risk's own mitigations through a generic slot (`RiskDialogProps.extraSection`,
+`RisksTab.riskExtraSection`; the UI in features/components). The machine adds its own measures as for
+any risk. Release notes (PLAN): the safety card for people / physical / infrastructure assets (patch
+37); report (phase 6): both relevance decisions written out.
 *Patch 37 done (2026-11-08, manual test steps 6–9):* three details. (1) Asset dialog: people,
 physical and infrastructure assets always show the safety card (harm to them is what safety is
 about), with where the value comes from — safety annotations in the DFD or hazard items in

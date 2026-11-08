@@ -96,6 +96,8 @@ export interface RiskTabProps {
   onDirtyChange?: (isDirty: boolean) => void;
   /** The issue tracker's adapter (adapters design §4.3); absent = none connected. */
   ticketPort?: TicketPort | null;
+  /** Rendered in the risk dialog above the risk's mitigations (e.g. an imported component's treatment). */
+  riskExtraSection?: (risk: Risk) => React.ReactNode;
 }
 
 /**
@@ -116,6 +118,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   onDirtyChange,
   onConceptChange,
   ticketPort,
+  riskExtraSection,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
@@ -1181,6 +1184,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           allRisks={riskData.risks}
           assumptions={project.assumptions}
           isoMode={project.isoMode}
+          extraSection={riskExtraSection}
         />
       )}
 

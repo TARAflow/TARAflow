@@ -27,6 +27,13 @@
 //                    (warning)     breakdown) — the machine cannot rate them,
 //                                  they make no risk until the component
 //                                  rates them in audit mode
+//   CMP_MEASURE_PENDING (warning)  phase 3a, §7.4: imported risks whose
+//                                  component measures are not implemented /
+//                                  verified yet — they depend on a release
+//   CMP_HANDOVER_OPEN (warning)    phase 3a, §7.4: risks the component handed
+//                                  over (share / transfer) or accepted arrive
+//                                  untreated; open until the machine sets its
+//                                  own treatment
 //   CMP_COMPONENT_PAGE_CHANGED     the component's pages differ from the
 //                    (warning)     imported state — elements missing or
 //                                  added there (the pages are locked in the
@@ -47,6 +54,7 @@ import { compareFingerprints } from "shared";
 import { factorClassOf, getFactorDefinition } from "features/risks";
 import { projectMethodologyFingerprint } from "./snapshot-builder";
 import { componentPathRatingGaps } from "../../utils/component-attack-trees";
+import { componentTreatments, machineDecided } from "../../utils/component-treatments";
 
 export interface ComponentFindings {
   errors: ValidationFinding[];
@@ -111,9 +119,29 @@ export function componentFindings(
     !!riskConfig && factorClassOf(getFactorDefinition(factorId, riskConfig.customFactors)) === "intrinsic";
   const risksByThreat = new Map((project.risks?.risks ?? []).map((r) => [r.threatId, r]));
 
+  const treatments = componentTreatments({ components });
   for (const instance of components.instances) {
     const imported = importsById.get(instance.importId);
     const name = imported?.name ?? instance.prefix;
+
+    // Measures and handovers of the component (§7.4, phase 3a) — over the
+    // imported risks the machine's register holds.
+    {
+      let pending = 0;
+      let handover = 0;
+      for (const risk of project.risks?.risks ?? []) {
+        const tr = treatments.get(risk.threatId);
+        if (!tr || tr.instanceId !== instance.id) continue;
+        if (tr.handedOver) {
+          if (!machineDecided(risk)) handover++;
+        } else if (tr.measures.some((m) => m.state === "pending")) {
+          pending++;
+        }
+      }
+      const params = { prefix: instance.prefix, component: name };
+      if (pending > 0) out.warnings.push({ key: KEY("CMP_MEASURE_PENDING"), params: { ...params, count: pending } });
+      if (handover > 0) out.warnings.push({ key: KEY("CMP_HANDOVER_OPEN"), params: { ...params, count: handover } });
+    }
 
     // Imported risks: unrated factors (only with a mismatch) and overrides without rationale.
     if (imported) {

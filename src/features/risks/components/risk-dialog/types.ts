@@ -1,6 +1,7 @@
 // ==================== RISK DIALOG — PROPS ====================
 // Split out of risk-dialog.tsx (MT-2): the props, shared by the dialog and its state hooks.
 
+import type React from "react";
 import type { Assumption, CybersecurityConcept } from "shared";
 import { RiskConfiguration } from "../../models/risk-config-types";
 import { Risk } from "../../models/risk-assessment-types";
@@ -32,4 +33,10 @@ export interface RiskDialogProps {
   /** Item Definition assumptions a retain claim relies on. */
   assumptions?: readonly Assumption[];
   isoMode?: boolean;
+  /**
+   * Rendered above the risk's own mitigations — e.g. the treatment of an
+   * imported component's risk (multi-project TARA, the app layer fills it;
+   * this feature knows no components). Null / undefined: nothing.
+   */
+  extraSection?: (risk: Risk) => React.ReactNode;
 }

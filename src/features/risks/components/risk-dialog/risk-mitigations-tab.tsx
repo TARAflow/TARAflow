@@ -12,9 +12,10 @@ import { MitigationCoverageBadge } from "shared";
 import { mitigationSelectionKey } from "../../models/risk-mitigation-types";
 
 export function RiskMitigationsTab({ m }: { m: RiskDialogModel }) {
-  const { t, currentRisk, local, setLocal, vocabulary, resolvedVerifications, displayedMitigations, setScopeOverride, toggleVerification, mitigationCatalog, toggleMitigation, mitigationCoverage, isPerInteraction, isAccepted, passiveTreatment } = m;
+  const { t, currentRisk, local, setLocal, vocabulary, resolvedVerifications, displayedMitigations, setScopeOverride, toggleVerification, mitigationCatalog, toggleMitigation, mitigationCoverage, isPerInteraction, isAccepted, passiveTreatment, extraSection } = m;
   return (
     <Stack spacing={2.5}>
+      {extraSection?.(currentRisk)}
       {/* Accept / Transfer banner — mitigations not applicable */}
       {isAccepted && (
         <Box

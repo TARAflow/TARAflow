@@ -10,6 +10,7 @@ export {
   type ComponentAttackPathView,
   type PathWindow,
 } from "./components/component-attack-paths-section";
+export { ComponentTreatmentSection, type ComponentTreatmentView } from "./components/component-treatment-section";
 export type {
   ComponentImportCandidate,
   MachineElementOption,

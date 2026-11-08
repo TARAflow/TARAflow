@@ -58,6 +58,8 @@
       "CMP_FACTOR_UNRATED": "Component {{prefix}} ({{component}}): {{count}} imported risk(s) with likelihood factors still unrated.",
       "CMP_FACTOR_OVERRIDE_RATIONALE": "Component {{prefix}} ({{component}}): {{count}} risk(s) override a factor value taken over from the component without a rationale.",
       "CMP_NO_ATTACK_PATHS": "Component {{component}} has no attack paths — in an ISO/SAE 21434 project only attack paths make risks, so it adds none. Model its attack trees in the component TARA.",
+      "CMP_MEASURE_PENDING": "Component {{prefix}} ({{component}}): {{count}} imported risk(s) rely on component measures not implemented yet — they depend on a component release.",
+      "CMP_HANDOVER_OPEN": "Component {{prefix}} ({{component}}): {{count}} risk(s) the component handed over or accepted arrive untreated — set this machine's treatment (an own measure, or accept / transfer with a justification).",
       "CMP_PATH_WINDOW_UNRATED": "Component {{prefix}} ({{component}}): {{count}} attack path(s) without this machine's window of opportunity — unrated, they make no risk. Rate them in the Attack Tree tab.",
       "CMP_PATH_NOT_RATABLE": "Component {{prefix}} ({{component}}): {{count}} attack path(s) rated in quick mode — without the factor breakdown this machine cannot rate their window of opportunity, so they make no risk. Rate the paths in audit mode in the component TARA and update."
     },
@@ -78,6 +80,28 @@
       "overwrite": "Overwrite with the source's values",
       "confirm": "Copy",
       "done": "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{windows}} window(s) of opportunity, {{impact}} asset impact rating(s)."
+    },
+    "treatment": {
+      "title": "Treatment in the component ({{component}}): {{treatment}}",
+      "kinds": {
+        "reduce": "reduce",
+        "eliminate": "eliminate",
+        "accept": "accept",
+        "transfer": "transfer",
+        "share": "share"
+      },
+      "handoverOpen": "The component handed this risk over or accepted it — it arrives untreated. Set this machine's treatment: an own measure, or accept / transfer with a justification.",
+      "handoverDecided": "The component handed this risk over; this machine has set its own treatment.",
+      "pending": "Measures not implemented yet depend on a component release.",
+      "noMeasures": "The component chose no measures.",
+      "status": {
+        "open": "open",
+        "in_progress": "in progress",
+        "in_review": "in review",
+        "implemented": "implemented",
+        "verified": "verified",
+        "rejected": "rejected"
+      }
     },
     "threats": {
       "title": "Threats from imported components ({{count}}) — read-only",
