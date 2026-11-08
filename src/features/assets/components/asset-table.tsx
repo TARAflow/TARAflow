@@ -589,19 +589,30 @@ export const AssetTable = React.memo<AssetTableProps>(
 
     // ── Columns ───────────────────────────────────────────────────────────
 
+    // Length of the longest display id — sizes the ID column (a number, so
+    // the columns are not rebuilt on every asset edit).
+    const longestId = useMemo(
+      () => Math.max(0, ...assets.map((a) => (a.displayId ?? a.id).length)),
+      [assets],
+    );
+
     const columns = useMemo<GridColDef<Asset>[]>(() => {
       const scale = impactScaleFor(configuration.impactScale, impactLabelVocabulary);
 
       // ── ID — colored chip using category color ─────────────────────────
+      // Wide enough for the longest display id (an imported component's
+      // assets carry the instance prefix, "SDC1:DA-001" — cut in half at
+      // 95 px, manual test 2026-11-08); the full id in a tooltip as well.
       const idColumn: GridColDef<Asset> = {
         field: "id",
         headerName: t("tabs.assets.columns.id"),
-        width: 95,
+        width: Math.max(95, Math.min(180, 36 + 7.5 * longestId)),
         sortable: true,
         renderCell: (params: GridRenderCellParams<Asset>) => {
           const category = getCategoryFromAsset(params.row);
           const cfg = category ? ASSET_GROUP_CONFIG[category] : undefined;
           return (
+            <Tooltip title={params.row.displayId ?? String(params.value)}>
             <Chip
               label={params.row.displayId ?? params.value}
               size="small"
@@ -615,6 +626,7 @@ export const AssetTable = React.memo<AssetTableProps>(
                 "& .MuiChip-label": { px: 0.75 },
               }}
             />
+            </Tooltip>
           );
         },
       };
@@ -1776,6 +1788,7 @@ export const AssetTable = React.memo<AssetTableProps>(
         actionsColumn,
       ];
     }, [
+      longestId,
       configuration,
       impactLabelVocabulary,
       t,

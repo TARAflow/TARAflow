@@ -3,13 +3,16 @@
 // Manual test 2026-11-08: the assets of an imported component came without
 // impact ratings (the machine rates their impact, multi-project TARA E5)
 // and the asset dialog showed no criterion to rate. The dialog now shows a
-// row for every configured criterion; missing ones are unrated.
+// row for every configured criterion; missing ones are unrated. Safety
+// without a value and not settable (no derived safety impact, no manual
+// override) is hidden — it only confused.
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AssetDialog, withAllCriteria } from "features/assets/components/asset-dialog";
 import { DEFAULT_ASSET_CONFIGURATION, type Asset } from "features/assets/models/asset-types";
 import { IMPACT_CRITERION_KEY_PREFIX } from "features/assets/models/asset-impact-types";
+import { SAFETY_SEVERITIES } from "shared/models/safety-types";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -41,5 +44,26 @@ describe("AssetDialog with an asset without ratings (imported component)", () =>
     expect(criteria.length).toBeGreaterThan(0);
     // a rating card per criterion (its name is the i18n key under this mock)
     for (const c of criteria) expect(screen.queryAllByText(`${IMPACT_CRITERION_KEY_PREFIX}.${c.id}.name`).length, c.id).toBeGreaterThan(0);
+  });
+
+  it("hides safety while it has no value and cannot be set; shows it with the manual override or a derived value", () => {
+    // safety is a criterion of projects with safety data (not in the default)
+    const config = { ...DEFAULT_ASSET_CONFIGURATION, impactCriteria: [...criteria, { id: "safety", weight: 0.1 }] } as typeof DEFAULT_ASSET_CONFIGURATION;
+    const key = `${IMPACT_CRITERION_KEY_PREFIX}.safety.name`;
+    const base = {
+      id: "cmp1", displayId: "SDC1:DA-001", name: "smoke meas data", assetGroup: "data", properties: {},
+      impactRatings: [], linkedDFDElements: [],
+      securityGoals: ["C", "I", "A", "N", "AuthZ", "AuthN", "Acc"].map((type) => ({ type, level: "none", formalDescription: "" })),
+    } as unknown as Asset;
+    const { unmount } = render(<AssetDialog open asset={base} configuration={config} onSave={() => {}} onClose={() => {}} />);
+    expect(screen.queryAllByText(key)).toHaveLength(0);
+    unmount();
+    const manual = render(
+      <AssetDialog open asset={{ ...base, physicalImpactSource: "manual" } as Asset} configuration={config} onSave={() => {}} onClose={() => {}} />,
+    );
+    expect(screen.queryAllByText(key).length).toBeGreaterThan(0);
+    manual.unmount();
+    render(<AssetDialog open asset={{ ...base, physicalImpact: SAFETY_SEVERITIES[1] } as unknown as Asset} configuration={config} onSave={() => {}} onClose={() => {}} />);
+    expect(screen.queryAllByText(key).length).toBeGreaterThan(0);
   });
 });

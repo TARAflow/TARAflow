@@ -1050,6 +1050,19 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
               </Typography>
               <Grid container spacing={2}>
                 {editedAsset.impactRatings.map((rating) => {
+                  // Safety without a value and not settable (no derived
+                  // safety impact, no manual override) only confused —
+                  // hidden until there is something to show or set
+                  // (manual test 2026-11-08); the override checkbox above
+                  // brings it back.
+                  if (
+                    rating.criterionId === SAFETY_CRITERION_ID &&
+                    !isPhysicalManual &&
+                    !editedAsset.physicalImpact &&
+                    rating.value !== "na"
+                  ) {
+                    return null;
+                  }
                   const criterion = PREDEFINED_IMPACT_CRITERIA.find(
                     (c) => c.id === rating.criterionId,
                   );

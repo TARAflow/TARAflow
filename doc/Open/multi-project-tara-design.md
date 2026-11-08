@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–28; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–29; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,11 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 29 done (2026-11-08, manual test):* two asset-tab details. The safety criterion card showed
+without a value and could not be set (no derived safety impact, no manual override) — it is hidden
+until there is something to show or set (the override checkbox brings it back). The ID column cut
+prefixed display ids ("SDC1:DA-001") in half — it grows with the longest id, the chip shows the full
+id as tooltip.
 *Patch 28 done (2026-11-08, manual test):* the instance assets can be rated. They came with empty
 impact ratings (the component's impact is dropped, E5) and the asset dialog listed only the rows
 the asset carries — no criterion to rate, only the manual safety override. The import now gives
