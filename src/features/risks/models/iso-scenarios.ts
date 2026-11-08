@@ -40,8 +40,15 @@ const max = (values: (number | undefined)[]) => {
   return defined.length ? Math.max(...defined) : undefined;
 };
 
-/** Group ISO risks into threat scenarios, in first-seen order. */
-export function groupIsoScenarios(risks: readonly Risk[]): IsoScenario[] {
+/**
+ * Group ISO risks into threat scenarios, in first-seen order. `residualOf`
+ * gives a risk's residual value — the Risk tab passes the credited one
+ * (I7 (4)); the report data already carries it, so the default reads the risk.
+ */
+export function groupIsoScenarios(
+  risks: readonly Risk[],
+  residualOf: (risk: Risk) => number | undefined = (r) => r.isoRisk?.residual?.value,
+): IsoScenario[] {
   const byKey = new Map<string, Risk[]>();
   for (const risk of risks) {
     const key = risk.attackTreeAssessment?.treeId ?? risk.id;
@@ -55,7 +62,7 @@ export function groupIsoScenarios(risks: readonly Risk[]): IsoScenario[] {
       label: list[0].threatDescription,
       risks: list,
       value: max(list.map((r) => r.isoRisk?.value)),
-      residual: max(list.map((r) => r.isoRisk?.residual?.value)),
+      residual: max(list.map(residualOf)),
       treatments: TREATMENT_ORDER.filter((t) => treatments.has(t)),
     };
   });

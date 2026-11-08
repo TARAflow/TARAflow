@@ -474,6 +474,22 @@
         "rejectionRequired": "Für Audit erforderlich",
         "verifications": "Verifikationen (zur Testreferenz)"
       },
+      "residual": {
+        "notCreditedTitle": "Restrisiko nicht angerechnet — es gelten die Werte vor der Behandlung",
+        "blocker": "Nicht angerechnet: {{measure}} der Komponente in {{context}} {{state}} ({{causes}})",
+        "keptHint": "Die Bewertung nach der Behandlung unten bleibt erhalten und zählt wieder, sobald die Ursache behoben ist.",
+        "acceptanceToReview": "Akzeptanz zur Prüfung: Sie beruhte auf einem Restrisiko, das derzeit nicht angerechnet wird.",
+        "state": {
+          "not_effective": "nicht wirksam",
+          "unclear": "ungeklärt"
+        },
+        "cause": {
+          "pending": "noch nicht umgesetzt",
+          "aou_open": "{{ref}} offen",
+          "aou_not_fulfilled": "{{ref}} nicht erfüllt",
+          "aou_invalid_in_component": "{{ref}} in der Komponente ungültig"
+        }
+      },
       "iso": {
         "explain": "Impact {{impact}} × Angriffsmöglichkeit {{feasibility}} → Risiko {{value}} · {{word}} (ISO/SAE 21434 Annex H.8)",
         "valueOption": "{{value}} – {{word}}",

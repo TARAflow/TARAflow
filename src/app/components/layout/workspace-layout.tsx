@@ -80,7 +80,7 @@ import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/
 import { withComponentPrefill, withComponentThreats } from "app/utils/component-threats";
 import { componentAttackPathThreatReferences, componentAttackTreeData } from "app/utils/component-attack-trees";
 import { instanceAssetUnits } from "app/services/component-import/instance-quantity";
-import { componentTreatments, machineDecided } from "app/utils/component-treatments";
+import { componentTreatments, machineDecided, uncreditedResiduals } from "app/utils/component-treatments";
 import { projectMeasureOptions } from "app/services/component-import/assumption-status";
 import { ComponentAttackPathsSection, ComponentTreatmentSection } from "features/components";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
@@ -181,6 +181,11 @@ export const WorkspaceLayout: React.FC = () => {
   );
   // The component's treatment per imported risk (phase 3a) — the risk dialog's section.
   const componentTreatmentMap = useMemo(() => componentTreatments({ components: instanceComponents }), [instanceComponents]);
+  // Residual risks not credited (phase 3d-2a, I7 (4)) — the Risk tab shows the values before treatment.
+  const uncreditedMap = useMemo(
+    () => uncreditedResiduals({ components: instanceComponents, risks: measureRisks ?? null }, componentTreatmentMap),
+    [instanceComponents, measureRisks, componentTreatmentMap],
+  );
   const assetData = useAssetDerivedData(activeProject);
   const overview = useOverviewData(activeProject);
 
@@ -487,6 +492,7 @@ export const WorkspaceLayout: React.FC = () => {
             ticketPort={ticketPort}
             onUpdate={handlers.handleRisksUpdate}
             onConceptChange={handlers.handleConceptChange}
+            uncreditedResiduals={uncreditedMap}
             riskExtraSection={(risk) => {
               // The component's treatment of an imported risk (phase 3a, §7.4).
               const tr = componentTreatmentMap.get(risk.threatId);

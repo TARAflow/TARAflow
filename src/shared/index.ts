@@ -553,6 +553,19 @@ export {
   MATRIX_TAGS,
 } from "./services/tag-validator";
 
+// Multi-project TARA (I7 (4)): the residual risk a reader may count.
+export {
+  creditedResidual,
+  withCreditedResidual,
+  acceptanceToReview,
+  blockerLines,
+  type CreditedResidual,
+  type ResidualBlocker,
+  type ResidualCause,
+  type ResidualInput,
+  type UncreditedResiduals,
+} from "./services/credited-residual";
+
 export { SafetyAnalysisToggle } from "./components/safety-analysis-toggle";
 export { ProjectTagsEditor } from "./components/project-tags-editor";
 // Asset deletion impact (shared by the DFD and Asset tabs' confirm dialog).

@@ -16,6 +16,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { Edit as EditIcon, WarningAmber as WarningIcon } from "@mui/icons-material";
+import { useCreditedOf, UncreditedMark } from "../credited-residual-context";
 import { useConceptFindingsByRisk } from "../concept-findings-context";
 import { conceptFindingText } from "../concept-finding-text";
 import {
@@ -295,15 +296,17 @@ export const useRiskColumns = ({
   const { t } = useTranslation();
   // ISO 21434 plan Phase 4 (P4-2): goal / claim warnings next to the treatment.
   const conceptFindings = useConceptFindingsByRisk();
+  // The residual risk that counts (multi-project TARA I7 (4)).
+  const creditedOf = useCreditedOf();
 
   return useMemo(() => {
     // ── Factor breakdown tooltip helper ────────────────────────────────────
     const factorTooltip = (risk: Risk, mitigated = false) => {
       const ratings = mitigated
-        ? risk.mitigatedFactorRatings
+        ? creditedOf(risk).mitigatedFactorRatings
         : risk.factorRatings;
       const value = mitigated
-        ? risk.calculatedRiskAfterMitigation
+        ? creditedOf(risk).riskAfter
         : risk.calculatedRiskBeforeMitigation;
       if (!ratings?.length)
         return {
@@ -410,8 +413,9 @@ export const useRiskColumns = ({
     const isoExplain = (risk: Risk, residual: boolean) => {
       const r = risk.isoRisk;
       if (!r) return undefined;
-      const f = residual ? r.residual?.feasibility : r.feasibility;
-      const v = residual ? r.residual?.value : r.value;
+      const residualValue = residual ? creditedOf(risk).isoResidual : undefined;
+      const f = residual ? residualValue?.feasibility : r.feasibility;
+      const v = residual ? residualValue?.value : r.value;
       if (!f || !v) return undefined;
       const word = t(isoRiskValueI18nKey(v), { defaultValue: isoRiskValueFallback(v) });
       return t("tabs.risks.iso.explain", {
@@ -610,13 +614,19 @@ export const useRiskColumns = ({
       header: t("tabs.risks.columns.riskValueAfter", { defaultValue: "Residual (1–5)" }),
       width: 100,
       align: "center",
-      renderCell: (risk) => (
-        <IsoValueCell
-          value={risk.isoRisk?.residual?.value}
-          explanation={isoExplain(risk, true)}
-          testId="iso-risk-residual"
-        />
-      ),
+      renderCell: (risk) => {
+        const credited = creditedOf(risk);
+        return (
+          <Box sx={{ display: "inline-flex", alignItems: "center" }}>
+            <IsoValueCell
+              value={credited.isoResidual?.value}
+              explanation={isoExplain(risk, true)}
+              testId="iso-risk-residual"
+            />
+            <UncreditedMark credited={credited} />
+          </Box>
+        );
+      },
     });
     else cols.push({
       id: "riskAfter",
@@ -626,7 +636,8 @@ export const useRiskColumns = ({
       width: 80,
       align: "center",
       renderCell: (risk) => {
-        if (!risk.calculatedRiskAfterMitigation)
+        const credited = creditedOf(risk);
+        if (!credited.riskAfter)
           return (
             <Typography
               variant="body2"
@@ -638,13 +649,16 @@ export const useRiskColumns = ({
           );
         const d = factorTooltip(risk, true);
         return (
-          <RiskChipCell
-            value={risk.calculatedRiskAfterMitigation}
-            color={getRiskColor(risk.calculatedRiskAfterMitigation, configuration)}
-            tooltipLines={d.lines}
-            tooltipLabel={d.label}
-            tooltipColor={d.color}
-          />
+          <Box sx={{ display: "inline-flex", alignItems: "center" }}>
+            <RiskChipCell
+              value={credited.riskAfter}
+              color={getRiskColor(credited.riskAfter, configuration)}
+              tooltipLines={d.lines}
+              tooltipLabel={d.label}
+              tooltipColor={d.color}
+            />
+            <UncreditedMark credited={credited} />
+          </Box>
         );
       },
     });
@@ -1023,5 +1037,6 @@ export const useRiskColumns = ({
     showJustification,
     reviewThreatIds,
     conceptFindings,
+    creditedOf,
   ]);
 };

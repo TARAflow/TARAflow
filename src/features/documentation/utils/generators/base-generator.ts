@@ -3,6 +3,7 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
+import { uncreditedNote } from "../residual-note";
 import { itemDefinitionIntro, itemDefinitionReportSections } from "../item-definition-report";
 import type { ReportSection } from "../report-section";
 import {
@@ -1295,9 +1296,13 @@ export abstract class BaseDocumentGenerator {
     const riskBeforeLabel = isoReport
       ? isoRiskLabel(risk, this.ctx.t, false)
       : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.ctx.lang);
-    const riskAfterLabel = isoReport
-      ? isoRiskLabel(risk, this.ctx.t, true)
-      : riskScoreText(risk.calculatedRiskAfterMitigation, config, this.ctx.lang);
+    // The report data carries the credited residual (I7 (4)); the note says why one is not credited.
+    const notCredited = uncreditedNote(risk.id, project.computed, this.ctx.t);
+    const riskAfterLabel = `${
+      isoReport
+        ? isoRiskLabel(risk, this.ctx.t, true)
+        : riskScoreText(risk.calculatedRiskAfterMitigation, config, this.ctx.lang)
+    }${notCredited ? ` — ${this.escapeTableText(notCredited)}` : ""}`;
     const moscowLabel =
       project.computed.moscowLabels.get(risk.moscowPriority) ??
       risk.moscowPriority;

@@ -19,6 +19,7 @@ import type { ThreatData } from "features/threats";
 import type { RiskData } from "features/risks";
 import type { AttackTreeData } from "features/attacktree";
 import type { ItemDefinition } from "shared/models/item-definition-types";
+import type { UncreditedResiduals } from "shared/services/credited-residual";
 import type { CybersecurityConcept, VerificationEntry } from "shared/models/cybersecurity-concept-types";
 
 // ==================== DOCUMENT FORMAT ====================
@@ -288,6 +289,13 @@ export interface DocComputedValues {
    * a standard. Absent → no matrix chapter.
    */
   compliance?: DocCompliance[];
+  /**
+   * Risks whose residual risk is not credited (multi-project TARA I7 (4)):
+   * risk id → the measures that do not hold. The report data's risks already
+   * carry the credited values (app/services/doc-residual.ts); this is for the
+   * "not credited" note. Absent → every residual counts.
+   */
+  uncreditedResiduals?: UncreditedResiduals;
 }
 
 /** SL-C values of one FR (D-2, D-4, D-14). */

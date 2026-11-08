@@ -19,6 +19,7 @@ import type { Project } from "../../src/app/models/project-types";
 import { buildMethodologyRecord } from "../../src/app/services/methodology-record";
 import { docVerificationOf } from "../../src/app/services/verification-state";
 import { buildDocCompliance } from "../../src/app/services/compliance-report";
+import { docResidualView } from "../../src/app/services/doc-residual";
 import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../src/shared";
 import type {
   DocProjectData,
@@ -58,6 +59,8 @@ export function toDocProjectData(
   project: Project,
   language: DocLanguage,
 ): DocProjectData {
+  // The credited residual (I7 (4)) — the same derivation as the app's transform.
+  const residual = docResidualView(project);
   return {
     id: project.id,
     name: project.info.name,
@@ -68,7 +71,7 @@ export function toDocProjectData(
     dfd: project.dfd as DocProjectData["dfd"],
     assets: project.assets as DocProjectData["assets"],
     threats: project.threats as DocProjectData["threats"],
-    risks: project.risks as DocProjectData["risks"],
+    risks: residual.risks as DocProjectData["risks"],
 
     // Plural → singular! (see plan gotcha)
     attackTree: project.attackTrees as DocProjectData["attackTree"],
@@ -88,6 +91,8 @@ export function toDocProjectData(
       compliance: buildDocCompliance(project, language),
       // Item definition as "system definition" outside ISO/SAE 21434, as in the app.
       neutralItemDefinition: regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) !== "iso-21434",
+      // Residual risks not credited (I7 (4)), as in the app.
+      ...(residual.uncredited.size > 0 ? { uncreditedResiduals: residual.uncredited } : {}),
     },
 
     documentation: project.documentation as DocProjectData["documentation"],

@@ -474,6 +474,22 @@
         "rejectionRequired": "Required for audit trail",
         "verifications": "Verifications (for testing reference)"
       },
+      "residual": {
+        "notCreditedTitle": "Residual risk not credited — the values before treatment count",
+        "blocker": "Not credited: {{measure}} of the component in {{context}} {{state}} ({{causes}})",
+        "keptHint": "The ratings after treatment below are kept and count again once the cause is resolved.",
+        "acceptanceToReview": "Acceptance to review: it was based on a residual risk that does not count at the moment.",
+        "state": {
+          "not_effective": "not effective",
+          "unclear": "unclear"
+        },
+        "cause": {
+          "pending": "not implemented yet",
+          "aou_open": "{{ref}} open",
+          "aou_not_fulfilled": "{{ref}} not fulfilled",
+          "aou_invalid_in_component": "{{ref}} invalid in the component"
+        }
+      },
       "iso": {
         "explain": "Impact {{impact}} × feasibility {{feasibility}} → risk {{value}} · {{word}} (ISO/SAE 21434 Annex H.8)",
         "valueOption": "{{value}} – {{word}}",

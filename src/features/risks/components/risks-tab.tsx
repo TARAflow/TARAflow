@@ -8,6 +8,8 @@
 
 import { GoalsClaimsDialog } from "./goals-claims-dialog";
 import { ConceptFindingsProvider } from "./concept-findings-context";
+import { UncreditedResidualsProvider } from "./credited-residual-context";
+import type { UncreditedResiduals } from "shared";
 import { conceptFindings, conceptWarningsByRisk } from "../services/concept-findings";
 import type { CybersecurityConcept } from "shared";
 import { collectConfiguredImpactCriteria } from "../services/risk-sync-service";
@@ -98,6 +100,13 @@ export interface RiskTabProps {
   ticketPort?: TicketPort | null;
   /** Rendered in the risk dialog above the risk's mitigations (e.g. an imported component's treatment). */
   riskExtraSection?: (risk: Risk) => React.ReactNode;
+  /**
+   * Risks whose residual risk is not credited (multi-project TARA I7 (4)):
+   * risk id → the measures that do not hold, derived by the app layer. The
+   * matrices, tables, sidebar and After tab then show the values before
+   * treatment; the stored after-values stay.
+   */
+  uncreditedResiduals?: UncreditedResiduals | null;
 }
 
 /**
@@ -119,6 +128,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   onConceptChange,
   ticketPort,
   riskExtraSection,
+  uncreditedResiduals,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
@@ -849,6 +859,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
 
   return (
     <ConceptFindingsProvider value={conceptMarkers}>
+    <UncreditedResidualsProvider value={uncreditedResiduals}>
     <Box
       sx={{
         display: "flex",
@@ -1298,6 +1309,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
         />
       )}
     </Box>
+    </UncreditedResidualsProvider>
     </ConceptFindingsProvider>
   );
 };

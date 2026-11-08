@@ -62,6 +62,7 @@
       "CMP_HANDOVER_OPEN": "Component {{prefix}} ({{component}}): {{count}} risk(s) the component handed over or accepted arrive untreated — set this machine's treatment (an own measure, or accept / transfer with a justification).",
       "CMP_MEASURE_NOT_EFFECTIVE": "Component {{prefix}} ({{component}}): measure(s) not effective in this instance — {{list}}: an assumption they rely on is not fulfilled here or invalid in the component.",
       "CMP_MEASURE_UNCLEAR": "Component {{prefix}} ({{component}}): effectiveness of measure(s) unclear in this instance — {{list}}: an assumption they rely on is still open here.",
+      "CMP_ACCEPTANCE_TO_REVIEW": "Component {{prefix}} ({{component}}): acceptance to review — {{list}}: the residual risk is not credited, a component measure is not effective or unclear in this instance.",
       "CMP_AOU_OPEN": "Component {{prefix}} ({{component}}): {{count}} assumption(s) of use still open in this instance — check them in the multiprocess's details.",
       "CMP_AOU_VIOLATED": "Component {{prefix}} ({{component}}): assumption(s) {{list}} not fulfilled — the component's analysis is not valid in this machine until resolved.",
       "CMP_AOU_MET_BY_PENDING": "Component {{prefix}} ({{component}}): {{assumption}} is marked fulfilled by measure(s) {{measures}} of this machine that are not implemented yet.",

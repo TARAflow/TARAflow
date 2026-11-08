@@ -17,6 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import type { FeasibilityBandLevel } from "shared";
+import { useCreditedOf, type RiskCredited } from "./credited-residual-context";
 import type { Risk } from "../models/risk-assessment-types";
 import {
   ISO_FEASIBILITY_LEVELS,
@@ -44,29 +45,33 @@ interface IsoRiskMatrixProps {
 
 const MAX_CHIPS = 4;
 
-/** Cell of a risk in the chosen view; undefined = not rated in that view. */
+/**
+ * Cell of a risk in the chosen view; undefined = not rated in that view. The
+ * residual is the credited one (I7 (4)): before-values when not credited.
+ */
 export function isoCellOf(
   risk: Risk,
   view: ViewMode,
+  credited: Pick<RiskCredited, "isoResidual">,
 ): { impact: IsoImpactLevel; feasibility: FeasibilityBandLevel; value: number } | undefined {
   const r = risk.isoRisk;
   if (!r) return undefined;
   if (view === "before") return { impact: r.impact, feasibility: r.feasibility, value: r.value };
-  return r.residual
-    ? { impact: r.impact, feasibility: r.residual.feasibility, value: r.residual.value }
-    : undefined;
+  const residual = credited.isoResidual;
+  return residual ? { impact: r.impact, feasibility: residual.feasibility, value: residual.value } : undefined;
 }
 
 export const IsoRiskMatrix = React.memo<IsoRiskMatrixProps>(
   ({ risks, onRiskClick, headerControls }) => {
     const { t } = useTranslation();
     const [view, setView] = useState<ViewMode>("before");
+    const creditedOf = useCreditedOf();
 
     const { byCell, unrated } = useMemo(() => {
       const map = new Map<string, Risk[]>();
       const none: Risk[] = [];
       for (const risk of risks) {
-        const cell = isoCellOf(risk, view);
+        const cell = isoCellOf(risk, view, creditedOf(risk));
         if (!cell) {
           none.push(risk);
           continue;
@@ -78,7 +83,7 @@ export const IsoRiskMatrix = React.memo<IsoRiskMatrixProps>(
         list.sort((a, b) => a.threatDisplayId.localeCompare(b.threatDisplayId, undefined, { numeric: true }));
       }
       return { byCell: map, unrated: none };
-    }, [risks, view]);
+    }, [risks, view, creditedOf]);
 
     const impactLabel = (l: IsoImpactLevel) =>
       t(isoImpactI18nKey(l), { defaultValue: ISO_IMPACT_FALLBACK[l] });

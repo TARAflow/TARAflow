@@ -41,6 +41,11 @@
 //   CMP_MEASURE_UNCLEAR (warning)  … unclear here because an assumption it
 //                                  relies on is still open (a measure only
 //                                  pending is CMP_MEASURE_PENDING)
+//   CMP_ACCEPTANCE_TO_REVIEW       phase 3d-2a, I7 (4): an accepted imported
+//                    (warning)     risk whose residual risk is not credited
+//                                  (a component measure not effective /
+//                                  unclear here) — the acceptance rested on
+//                                  it; derived, never stored
 //   CMP_AOU_OPEN (warning)         phase 3b, §7.6: assumptions of use still
 //                                  open in an instance
 //   CMP_AOU_VIOLATED (error)       an assumption not fulfilled — the
@@ -67,7 +72,8 @@ import { compareFingerprints } from "shared";
 import { factorClassOf, getFactorDefinition } from "features/risks";
 import { projectMethodologyFingerprint } from "./snapshot-builder";
 import { componentPathRatingGaps } from "../../utils/component-attack-trees";
-import { componentTreatments, machineDecided } from "../../utils/component-treatments";
+import { componentTreatments, machineDecided, uncreditedResiduals } from "../../utils/component-treatments";
+import { acceptanceToReview } from "shared";
 import { assumptionGaps } from "./assumption-status";
 
 export interface ComponentFindings {
@@ -134,6 +140,7 @@ export function componentFindings(
   const risksByThreat = new Map((project.risks?.risks ?? []).map((r) => [r.threatId, r]));
 
   const treatments = componentTreatments({ components });
+  const uncredited = uncreditedResiduals({ components, risks: project.risks ?? null }, treatments);
   for (const instance of components.instances) {
     const imported = importsById.get(instance.importId);
     const name = imported?.name ?? instance.prefix;
@@ -143,6 +150,7 @@ export function componentFindings(
     {
       let pending = 0;
       let handover = 0;
+      const toReview: string[] = [];
       const notEffective = new Map<string, Set<string>>();
       const unclear = new Map<string, Set<string>>();
       const note = (into: Map<string, Set<string>>, measure: string, assumptions: (string | undefined)[]) => {
@@ -153,6 +161,7 @@ export function componentFindings(
       for (const risk of project.risks?.risks ?? []) {
         const tr = treatments.get(risk.threatId);
         if (!tr || tr.instanceId !== instance.id) continue;
+        if (acceptanceToReview(risk, uncredited)) toReview.push(risk.threatDisplayId);
         if (tr.handedOver) {
           if (!machineDecided(risk)) handover++;
           continue;
@@ -173,6 +182,7 @@ export function componentFindings(
       if (handover > 0) out.warnings.push({ key: KEY("CMP_HANDOVER_OPEN"), params: { ...params, count: handover } });
       if (notEffective.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_NOT_EFFECTIVE"), params: { ...params, list: listOf(notEffective) } });
       if (unclear.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_UNCLEAR"), params: { ...params, list: listOf(unclear) } });
+      if (toReview.length > 0) out.warnings.push({ key: KEY("CMP_ACCEPTANCE_TO_REVIEW"), params: { ...params, list: toReview.join(", ") } });
     }
 
     // Assumptions of use per instance (§7.6, phase 3b).

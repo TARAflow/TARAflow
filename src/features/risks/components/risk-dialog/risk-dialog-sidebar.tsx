@@ -8,9 +8,12 @@ import { STRIDE_COLORS } from "./local-risk-state";
 import { Box, Typography, Chip, Stack, Tooltip, List, ListItemButton, ListItemText } from "@mui/material";
 import { isoRiskValueColor, isoRiskValueFallback, isoRiskValueI18nKey } from "../../models/iso-risk-display";
 import { getRiskColor, getRiskLabel } from "../../services/risk-calculation-service";
+import { useCreditedOf, UncreditedMark } from "../credited-residual-context";
 
 export function RiskDialogSidebar({ m }: { m: RiskDialogModel }) {
   const { t, configuration, sortedRisks, currentIndex, isISO, beforeValues, afterValues, assessedCount, trustBoundaryName, navigateTo, liveIso } = m;
+  // The residual risk that counts (multi-project TARA I7 (4)) — before-values when not credited.
+  const creditedOf = useCreditedOf();
   return (
     <Box
       sx={{
@@ -56,11 +59,19 @@ export function RiskDialogSidebar({ m }: { m: RiskDialogModel }) {
             const beforeScore = isActive
               ? beforeValues.risk
               : risk.calculatedRiskBeforeMitigation;
-            const afterScore = isActive
-              ? afterValues.risk
-              : risk.calculatedRiskAfterMitigation;
             // ISO/SAE 21434: value 1–5 with its word instead of I × L (3a-2, 136).
             const iso = isISO ? (isActive ? liveIso : risk.isoRisk) : undefined;
+            const credited = creditedOf(
+              isActive
+                ? {
+                    ...risk,
+                    calculatedRiskBeforeMitigation: beforeValues.risk,
+                    calculatedRiskAfterMitigation: afterValues.risk,
+                    isoRisk: liveIso,
+                  }
+                : risk,
+            );
+            const afterScore = credited.riskAfter;
             const isoWord = (v: number) =>
               t(isoRiskValueI18nKey(v), { defaultValue: isoRiskValueFallback(v) });
             const before = isISO
@@ -76,7 +87,7 @@ export function RiskDialogSidebar({ m }: { m: RiskDialogModel }) {
                   color: getRiskColor(beforeScore, configuration),
                   tip: beforeScore > 0 ? getRiskLabel(beforeScore, configuration) : "",
                 };
-            const residualValue = isISO ? iso?.residual?.value : undefined;
+            const residualValue = isISO ? credited.isoResidual?.value : undefined;
             const after = isISO
               ? {
                   show: !!residualValue,
@@ -145,23 +156,26 @@ export function RiskDialogSidebar({ m }: { m: RiskDialogModel }) {
                     />
                   </Tooltip>
                   {after.show ? (
-                    <Tooltip
-                      title={`${t("tabs.risks.dialog.residualRisk", { defaultValue: "Residual Risk" })}: ${after.tip}`}
-                      placement="right"
-                    >
-                      <Chip
-                        label={after.label}
-                        size="small"
-                        sx={{
-                          height: 16,
-                          fontSize: 10,
-                          bgcolor: after.color,
-                          color: "white",
-                          opacity: 0.85,
-                          minWidth: 32,
-                        }}
-                      />
-                    </Tooltip>
+                    <Box sx={{ display: "inline-flex", alignItems: "center" }}>
+                      <Tooltip
+                        title={`${t("tabs.risks.dialog.residualRisk", { defaultValue: "Residual Risk" })}: ${after.tip}`}
+                        placement="right"
+                      >
+                        <Chip
+                          label={after.label}
+                          size="small"
+                          sx={{
+                            height: 16,
+                            fontSize: 10,
+                            bgcolor: after.color,
+                            color: "white",
+                            opacity: 0.85,
+                            minWidth: 32,
+                          }}
+                        />
+                      </Tooltip>
+                      <UncreditedMark credited={credited} />
+                    </Box>
                   ) : uncertain ? (
                     <Chip
                       label="?"

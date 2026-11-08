@@ -6,6 +6,7 @@
 // pdfMake Documentation: http://pdfmake.org/
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
+import { uncreditedNote } from "../residual-note";
 import { isoScenarioSummary, isoScenarioTitle } from "../iso-scenario-text";
 import { controlLabels, mitigationLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
@@ -1432,9 +1433,11 @@ export class PdfMakeConverter {
       const riskBeforeLabel = iso
         ? isoRiskLabel(risk, this.t, false)
         : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.lang);
-      const riskAfterLabel = iso
-        ? isoRiskLabel(risk, this.t, true)
-        : riskScoreText(risk.calculatedRiskAfterMitigation, config, this.lang);
+      // The report data carries the credited residual (I7 (4)); the note says why one is not credited.
+      const notCredited = uncreditedNote(risk.id, this.project.computed, this.t);
+      const riskAfterLabel = `${
+        iso ? isoRiskLabel(risk, this.t, true) : riskScoreText(risk.calculatedRiskAfterMitigation, config, this.lang)
+      }${notCredited ? `\n${notCredited}` : ""}`;
       const moscowLabel =
         this.project.computed.moscowLabels.get(risk.moscowPriority) ??
         risk.moscowPriority;

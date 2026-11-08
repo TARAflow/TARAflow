@@ -24,12 +24,24 @@
 // A rejected measure is no choice and counts neither way. Shown at the
 // measure; phase 3d-2 makes the residual risk depend on it.
 //
-// Keyed by the instance's threat id (the machine risk's threatId). The
-// component's project mitigations (M-C-nnn) are named from the snapshot —
-// the machine has M-C ids of its own.
+// Keyed by the instance's threat id (the machine risk's threatId). A risk of
+// the component on an attack-path threat (ISO/SAE 21434) is keyed by the
+// instance's path threat too — buildThreatId(instance tree id, pathKey,
+// stride), the id the machine's path risk carries (component-attack-trees),
+// so the rule applies per attack path (I7). The component's project
+// mitigations (M-C-nnn) are named from the snapshot — the machine has M-C ids
+// of its own.
+//
+// uncreditedResiduals (phase 3d-2a, I7 (4)): the machine risks whose
+// residual risk does not count — a chosen measure of the component is not
+// effective or unclear in this instance. The one derivation for the app
+// (risk tab, report) and the CLI reporter; the risks / documentation
+// features apply it through creditedResidual (shared).
 
 import { resolveMitigationDrafts } from "features/threats";
 import { componentInstanceTfId } from "features/dfd";
+import { buildThreatId } from "features/attacktree";
+import type { ResidualBlocker } from "shared";
 import type { Project } from "../models/project-types";
 import { instanceLabel } from "../services/component-import/instance-quantity";
 
@@ -121,7 +133,7 @@ export function componentTreatments(project: Pick<Project, "components">): Map<s
           statement: c.statement,
           ...(c.responsibleParty ? { responsibleParty: c.responsibleParty } : {}),
         }));
-      out.set(componentInstanceTfId(instance.id, `threat|${risk.threatId}`), {
+      const treatment: ComponentTreatment = {
         instanceId: instance.id,
         instanceLabel: label,
         componentRiskId: risk.id,
@@ -130,8 +142,59 @@ export function componentTreatments(project: Pick<Project, "components">): Map<s
         measures,
         claims,
         handedOver: HANDOVER.has(risk.treatment),
-      });
+      };
+      out.set(componentInstanceTfId(instance.id, `threat|${risk.threatId}`), treatment);
+      const pathKey = pathThreatKey(risk.threatId, snapshot.attackTrees?.trees ?? [], instance.id);
+      if (pathKey) out.set(pathKey, treatment);
     }
+  }
+  return out;
+}
+
+type SnapshotTree = NonNullable<NonNullable<Components["imports"][number]["snapshot"]["attackTrees"]>["trees"]>[number];
+
+/** The instance's id of a component attack-path threat ("AT-<tree>-<pathKey>-<stride>"), else undefined. */
+function pathThreatKey(threatId: string, trees: readonly SnapshotTree[], instanceId: string): string | undefined {
+  if (!threatId.startsWith("AT-")) return undefined;
+  for (const tree of trees) {
+    for (const path of tree.pathAnalysis?.paths ?? []) {
+      const stem = `${buildThreatId(tree.id, path.pathKey, "S").slice(0, -1)}`;
+      if (!threatId.startsWith(stem)) continue;
+      const stride = threatId.slice(stem.length);
+      if (!/^[STRIDE]$/.test(stride)) continue;
+      return buildThreatId(componentInstanceTfId(instanceId, `tree|${tree.id}`), path.pathKey, stride as "S");
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Machine risk id → the component measures that keep its residual risk from
+ * counting (not effective / unclear in this instance, I7 (4)). Pure; the app
+ * report, the CLI reporter and the risk tab call it alike.
+ */
+export function uncreditedResiduals(
+  project: Pick<Project, "components" | "risks">,
+  treatments: ReadonlyMap<string, ComponentTreatment> = componentTreatments(project),
+): Map<string, ResidualBlocker[]> {
+  const out = new Map<string, ResidualBlocker[]>();
+  if (treatments.size === 0) return out;
+  for (const risk of project.risks?.risks ?? []) {
+    const tr = treatments.get(risk.threatId);
+    if (!tr) continue;
+    const blockers = tr.measures.flatMap((m): ResidualBlocker[] =>
+      m.effectiveness === "not_effective" || m.effectiveness === "unclear"
+        ? [
+            {
+              measure: m.id ?? m.text,
+              context: tr.instanceLabel,
+              state: m.effectiveness,
+              causes: (m.reasons ?? []).map((r) => ({ kind: r.kind, ...(r.assumption ? { ref: r.assumption } : {}) })),
+            },
+          ]
+        : [],
+    );
+    if (blockers.length > 0) out.set(risk.id, blockers);
   }
   return out;
 }

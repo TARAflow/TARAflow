@@ -8,76 +8,13 @@
 
 import { describe, expect, it } from "vitest";
 import type { Project } from "app/models/project-types";
-import { parseAndRepair } from "app/services/migration-service";
-import { loadProjectFixture } from "../../../fixtures/load-fixture";
-import { buildComponentSnapshot, projectMethodologyFingerprint, snapshotContentHash } from "app/services/component-import/snapshot-builder";
-import { applyComponentImport } from "app/services/component-import/import-flow";
 import { componentFindings } from "app/services/component-import/component-findings";
-import { componentThreatReferences } from "app/utils/component-threats";
-import { componentTreatments, effectivenessOf, machineDecided, measureState } from "app/utils/component-treatments";
-import { withAssumptionStatus } from "app/services/component-import/assumption-status";
-import { extractThreatReferences } from "app/utils/extract-threat-references";
+import { componentTreatments, effectivenessOf, machineDecided, measureState, uncreditedResiduals } from "app/utils/component-treatments";
+import { docResidualView } from "app/services/doc-residual";
+import { buildThreatId } from "features/attacktree";
 import { componentInstanceTfId } from "features/dfd";
-import { syncRisksFromThreats } from "features/risks/services/risk-sync-service";
-import { DEFAULT_CONFIGURATION } from "features/risks/models/risk-config-types";
-import { flow, mxfile, node, page } from "../../../fixtures/leveled-dfd-xml";
-
-// The component: two relevant threats, one reduced with two measures, one shared with a claim.
-const component = (() => {
-  const p = parseAndRepair(loadProjectFixture("SmokeDetector.tara.json")) as Project;
-  const picked = p.threats!.perElementTables.flatMap((t) => t.threats).filter((t) => t.linkedElement?.elementType === "Process").slice(0, 2);
-  for (const t of picked) t.relevance = "relevant";
-  const refs = extractThreatReferences(p.threats, "per-element", p.assets?.assets, p.dfd?.elements as never).filter((r) => picked.some((t) => t.id === r.id));
-  const risks = syncRisksFromThreats({ configuration: DEFAULT_CONFIGURATION, risks: [], lastModified: "" } as never, refs).riskData.risks;
-  const [reduce, share] = [risks.find((r) => r.threatId === picked[0].id)!, risks.find((r) => r.threatId === picked[1].id)!];
-  p.risks = {
-    ...(p.risks ?? { configuration: DEFAULT_CONFIGURATION, lastModified: "" }),
-    configuration: DEFAULT_CONFIGURATION,
-    risks: [
-      { ...reduce, treatment: "reduce", selectedMitigations: [{ id: "M-S-001", status: "implemented" }, { id: "M-C-001", status: "in_progress" }] },
-      { ...share, treatment: "share", treatmentJustification: "The integrator controls the bus", selectedMitigations: [] },
-    ],
-  } as never;
-  p.threats = { ...p.threats!, configuration: { ...p.threats!.configuration, customMitigations: [{ id: "M-C-001", text: "Signed sensor frames", isCustom: true, strideCategory: "T", context: "process", affectsProperties: [] }] } } as never;
-  p.itemDefinition = {
-    sections: {},
-    functions: [],
-    assumptions: [{ id: "a1", displayId: "ASM-01", text: "Frames are checked by the controller", status: "confirmed", mitigationIds: ["M-C-001", "M-X-404"] }],
-  } as never;
-  p.cybersecurityConcept = {
-    goals: [],
-    claims: [{ id: "c1", displayId: "CLM-01", statement: "The integrator isolates the sensor bus", kind: "share", riskIds: [share.id], assumptionIds: [], responsibleParty: "Integrator" }],
-  } as never;
-  return { project: p, reduceThreat: picked[0].id, shareThreat: picked[1].id };
-})();
-const snapshot = buildComponentSnapshot(component.project);
-
-function machine(): Project {
-  const ctx = {
-    xml: mxfile(page("top", "Panel", node("m_plc", "externalentity", "PLC", "EE-1", 10) + node("m_p1", "process", "Logic", "P-1", 300) + flow("m_df1", "x", "DF-1", "m_plc", "m_p1"))),
-    pages: [],
-    pageId: "top",
-    assets: [],
-    elements: [
-      { id: "m_plc", displayId: "EE-1", name: "PLC", type: "ExternalEntity", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} },
-      { id: "m_p1", displayId: "P-1", name: "Logic", type: "Process", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} },
-    ],
-    connections: [{ id: "m_df1", displayId: "DF-1", name: "x", from: "m_plc", to: "m_p1", properties: {} }],
-  } as never;
-  const a = applyComponentImport({
-    context: ctx,
-    machine: {},
-    result: { snapshot, contentHash: snapshotContentHash(snapshot), methodology: projectMethodologyFingerprint(component.project), source: { commitSha: "a", schemaVersion: 14 } },
-    choice: { prefix: "SD1", name: "SD", eeMapping: { "EE-1": "m_plc" } },
-    ids: { importId: "imp", instanceId: "i1" },
-    importedAt: "t",
-  });
-  const base = { components: a.components, dfd: { elements: a.outcome.elements, connections: a.outcome.connections }, assets: null } as unknown as Project;
-  const refs = componentThreatReferences({ ...base, risks: null } as never, "per-element");
-  const risks = syncRisksFromThreats({ configuration: DEFAULT_CONFIGURATION, risks: [], lastModified: "" } as never, refs).riskData;
-  return { ...base, risks } as Project;
-}
-const tid = (threat: string) => componentInstanceTfId("i1", `threat|${threat}`);
+import { withAssumptionStatus } from "app/services/component-import/assumption-status";
+import { component, machine, snapshot, tid } from "../../../fixtures/component-treatment-machine";
 
 describe("component treatments (phase 3a)", () => {
   const m = machine();
@@ -165,5 +102,79 @@ describe("effectiveness per instance (phase 3d-1, I7)", () => {
     expect(notEffective.params).toMatchObject({ prefix: "SD1", list: "M-C-001 (ASM-01)" });
     // M-S-001 (implemented, relies on nothing) stays effective
     expect(componentTreatments(m).get(tid(component.reduceThreat))!.measures.find((x) => x.id === "M-S-001")!.effectiveness).toBe("effective");
+  });
+});
+
+describe("credited residual (phase 3d-2a, I7 (4))", () => {
+  const rated = (m: Project, treatment = "reduce"): Project => ({
+    ...m,
+    risks: {
+      ...m.risks!,
+      risks: m.risks!.risks.map((r) => ({ ...r, treatment, calculatedRiskBeforeMitigation: 9, calculatedRiskAfterMitigation: 2 })),
+    },
+  }) as Project;
+  const reduceRisk = (m: Project) => m.risks!.risks.find((r) => r.threatId === tid(component.reduceThreat))!;
+
+  it("a measure unclear / not effective here keeps the residual from counting; the blockers name measure, instance and causes", () => {
+    let m = rated(machine());
+    const unc = uncreditedResiduals(m);
+    // M-C-001 is in progress and ASM-01 open → unclear; the share risk has no measure
+    expect([...unc.keys()]).toEqual([reduceRisk(m).id]);
+    expect(unc.get(reduceRisk(m).id)).toEqual([
+      { measure: "M-C-001", context: "SD1 · Smoke Detector", state: "unclear", causes: [{ kind: "pending" }, { kind: "aou_open", ref: "ASM-01" }] },
+    ]);
+    m = { ...m, components: withAssumptionStatus(m.components!, "i1", "a1", { status: "not_fulfilled" }) } as Project;
+    expect(uncreditedResiduals(m).get(reduceRisk(m).id)![0].state).toBe("not_effective");
+  });
+
+  it("every measure effective → the residual counts", () => {
+    const m = rated(machine());
+    const imp = m.components!.imports[0];
+    const risks = imp.snapshot.risks.map((r) => ({ ...r, selectedMitigations: r.selectedMitigations.map((x) => ({ ...x, status: "implemented" })) }));
+    const done = {
+      ...m,
+      components: withAssumptionStatus({ ...m.components!, imports: [{ ...imp, snapshot: { ...imp.snapshot, risks } }] } as never, "i1", "a1", { status: "fulfilled" }),
+    } as Project;
+    expect(uncreditedResiduals(done).size).toBe(0);
+  });
+
+  it("report data: the credited values replace the stored ones only there — the project keeps its after-values", () => {
+    const m = rated(machine());
+    const view = docResidualView(m);
+    const r = view.risks!.risks.find((x) => x.id === reduceRisk(m).id)!;
+    expect(r.calculatedRiskAfterMitigation).toBe(9);
+    expect(r.mitigatedFactorRatings).toEqual(reduceRisk(m).factorRatings);
+    expect(reduceRisk(m).calculatedRiskAfterMitigation).toBe(2);
+    // a risk that counts stays the same object
+    const other = m.risks!.risks.find((x) => x.id !== reduceRisk(m).id)!;
+    expect(view.risks!.risks.find((x) => x.id === other.id)).toBe(other);
+  });
+
+  it("an accepted risk whose residual does not count → CMP_ACCEPTANCE_TO_REVIEW (derived)", () => {
+    const keys = (p: Project) => componentFindings(p).warnings.map((w) => w.key.split(".").pop());
+    expect(keys(rated(machine()))).not.toContain("CMP_ACCEPTANCE_TO_REVIEW");
+    const accepted = rated(machine(), "accept");
+    const w = componentFindings(accepted).warnings.find((x) => x.key.endsWith("CMP_ACCEPTANCE_TO_REVIEW"))!;
+    expect(w.params).toMatchObject({ prefix: "SD1", list: reduceRisk(accepted).threatDisplayId });
+  });
+
+  it("ISO: a component risk on an attack-path threat applies to the instance's path risk (per attack path)", () => {
+    const components = {
+      imports: [
+        {
+          id: "imp",
+          name: "C",
+          snapshot: {
+            risks: [{ id: "R-1", threatId: "AT-t1-pk1-T", treatment: "reduce", selectedMitigations: [{ id: "M-S-001", status: "in_progress" }] }],
+            attackTrees: { trees: [{ id: "t1", pathAnalysis: { paths: [{ pathKey: "pk0" }, { pathKey: "pk1" }] } }] },
+          },
+        },
+      ],
+      instances: [{ id: "i1", importId: "imp", prefix: "C1" }],
+    } as never;
+    const pathThreat = buildThreatId(componentInstanceTfId("i1", "tree|t1"), "pk1", "T");
+    expect(componentTreatments({ components }).get(pathThreat)?.componentRiskId).toBe("R-1");
+    const risks = { risks: [{ id: "R-m", threatId: pathThreat }] } as never;
+    expect(uncreditedResiduals({ components, risks }).get("R-m")?.[0]).toMatchObject({ measure: "M-S-001", state: "unclear" });
   });
 });

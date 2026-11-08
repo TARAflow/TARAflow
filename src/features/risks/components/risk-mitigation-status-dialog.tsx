@@ -62,6 +62,7 @@ import type {
 } from "../models/risk-integration-types";
 import type { TicketPort } from "shared/models/ticket-types";
 import { buildTicketDescription, buildTicketSummary } from "../services/ticket-text";
+import { useUncreditedResiduals } from "./credited-residual-context";
 import { applyTicketState, hasRejectionReason } from "../services/ticket-sync";
 
 import { MitigationDraftRef } from "shared";
@@ -144,8 +145,10 @@ const JiraTicketPanel: React.FC<JiraTicketPanelProps> = ({
   const [summary, setSummary] = useState(() =>
     buildTicketSummary(risk, mitigationText),
   );
+  // The residual may not count (I7 (4)) — the ticket says so next to the target value.
+  const uncredited = useUncreditedResiduals();
   const [description, setDescription] = useState(() =>
-    buildTicketDescription(risk, mitigation, mitigationText),
+    buildTicketDescription(risk, mitigation, mitigationText, uncredited?.get(risk.id) ?? []),
   );
   const [priority, setPriority] = useState("Medium");
   const [creating, setCreating] = useState(false);

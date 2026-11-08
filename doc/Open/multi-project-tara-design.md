@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), next 3d-2 (override and residual risk) (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), next 3d-2b (machine override) (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -748,6 +748,24 @@ values (editing the after-values, the audit diff, serialisation); a source guard
 single-writer guard of prepare-for-disk) allows direct reads of `calculatedRiskAfterMitigation` only
 from an allow list. "Acceptance to review" is derived, not stored (user 2026-11-08): it disappears by
 itself once the residual risk counts again.
+*Patch 42 done (2026-11-08, phase 3d-2a):* the residual risk is credited only while the component's
+measures hold (I7 (4)). `creditedResidual(risk, uncredited)` lives in `shared/services` (not in the
+risks feature as sketched: the report reads it too, and features do not import each other); the app
+layer derives the set once (`uncreditedResiduals` in the treatments read model: risk id → measure,
+instance, state, causes — every chosen component measure not effective or unclear in the instance).
+Under ISO/SAE 21434 a component risk on an attack-path threat is mapped to the instance's path threat
+(`AT-<instance tree>-<pathKey>-<stride>`), so the rule applies per attack path. Not credited = the
+values before treatment count (riskAfter, factor ratings, ISO residual); the stored after-values stay.
+Readers: the Risk tab provides the set by context (`useCreditedOf`) to the I × L and H.8 matrices,
+the register columns (with a marker and its reasons), the ISO scenario roll-up and the dialog sidebar;
+the After tab shows a banner ("Not credited: M-C-012 of the component in SD2 not effective (ASM-03 not
+fulfilled)") above the ratings, which stay editable. The report applies it once at transform time —
+`docResidualView`, called by the app's `doc-transform` and the CLI's `toDocProjectData` alike (a test
+compares both outputs) — and adds "Not credited: …" next to the residual. The ticket text keeps the
+stored target value and adds "Residual risk currently not credited: …". "Acceptance to review" is
+derived: banner line and `CMP_ACCEPTANCE_TO_REVIEW`. The source guard
+(`credited-residual-guard.test.ts`) allows stored reads only from an allow list with reasons; the
+findings files may check completeness only — a value check goes through `creditedResidual`.
 *Patch 41 done (2026-11-08, phase 3d-1):* effectiveness of the component's measures per instance,
 derived in the treatments read model (`effectivenessOf`): effective (implemented / verified and every
 assumption it relies on fulfilled or not applicable here — none relied on counts as effective), not

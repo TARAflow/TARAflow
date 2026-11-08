@@ -16,6 +16,7 @@ import { explainImpact } from "../../services/risk-calculation-service";
 import { ASSET_GROUP_CONFIG, MitigationCoverageBadge } from "shared";
 import { formatAssetLabel, isIrreversibleOrWorse } from "shared";
 import { RiskScorePanel } from "../shared/risk-score-panel";
+import { UncreditedBanner } from "../credited-residual-context";
 
 export function RiskAfterTab({ m }: { m: RiskDialogModel }) {
   const { t, configuration, currentRisk, local, setLocal, isISO, linkedAssets, afterValues, resolvedMitigations, resolvedVerifications, effectiveCauseDescription, impactFactors, likelihoodFactors, handleCopyToMitigated, mitigationCoverage, isAccepted, liveIso, hasTreeIsoFactors } = m;
@@ -27,6 +28,9 @@ export function RiskAfterTab({ m }: { m: RiskDialogModel }) {
   const isoImpactNote = (mitigated: boolean) => isoImpactNoteOf(m, mitigated);
   return (
     <Stack spacing={2.5}>
+      {/* Residual not credited (multi-project TARA I7 (4)) — why, above the ratings it concerns. */}
+      <UncreditedBanner risk={currentRisk} />
+
       {/* Threat description read-only */}
       <Box>
         <Typography variant="subtitle2" gutterBottom>

@@ -12,6 +12,7 @@
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IsoRiskMatrix } from "./iso-risk-matrix";
+import { useCreditedOf } from "./credited-residual-context";
 import { isIsoRiskMode } from "../models/iso-risk-display";
 import { isIrreversibleOrWorse, type SafetyImpact } from "shared";
 import i18n from "i18next";
@@ -129,6 +130,8 @@ const GenericRiskMatrix = React.memo<RiskMatrixProps>(
 
     // Toggle between Before/After view (default: After if available)
     const [viewMode, setViewMode] = useState<ViewMode>("after");
+    // The residual risk that counts (I7 (4)) — never the stored after-values.
+    const creditedOf = useCreditedOf();
 
     const scale = RISK_SCALES[configuration.scale];
     const matrixSize = scale.levels.length;
@@ -158,10 +161,11 @@ const GenericRiskMatrix = React.memo<RiskMatrixProps>(
       const map = new Map<string, Risk[]>();
 
       for (const risk of risks) {
+        // After treatment: the credited ratings (I7 (4)) — before-values when not credited.
         const ratings =
           viewMode === "before"
             ? risk.factorRatings
-            : risk.mitigatedFactorRatings;
+            : [...creditedOf(risk).mitigatedFactorRatings];
 
         const { impact, likelihood } = calculateRiskValues(
           ratings,
@@ -188,7 +192,7 @@ const GenericRiskMatrix = React.memo<RiskMatrixProps>(
       }
 
       return map;
-    }, [risks, matrixSize, viewMode, configuration]);
+    }, [risks, matrixSize, viewMode, configuration, creditedOf]);
 
     // ==================== HELPER: Sort risks by priority ====================
     const unratedRisks = useMemo(() => {
@@ -198,15 +202,15 @@ const GenericRiskMatrix = React.memo<RiskMatrixProps>(
         }
         return (
           r.calculatedRiskBeforeMitigation === 0 &&
-          r.calculatedRiskAfterMitigation === 0
+          creditedOf(r).riskAfter === 0
         );
       });
-    }, [risks, viewMode]);
+    }, [risks, viewMode, creditedOf]);
 
     // Count risks with After mitigation rated
     const risksWithAfterRated = useMemo(() => {
-      return risks.filter((r) => r.calculatedRiskAfterMitigation > 0).length;
-    }, [risks]);
+      return risks.filter((r) => creditedOf(r).riskAfter > 0).length;
+    }, [risks, creditedOf]);
 
     // ==================== HANDLERS ====================
 
@@ -248,9 +252,8 @@ const GenericRiskMatrix = React.memo<RiskMatrixProps>(
           if (viewMode === "before") {
             return risk.calculatedRiskBeforeMitigation;
           }
-          return risk.calculatedRiskAfterMitigation > 0
-            ? risk.calculatedRiskAfterMitigation
-            : risk.calculatedRiskBeforeMitigation;
+          const after = creditedOf(risk).riskAfter;
+          return after > 0 ? after : risk.calculatedRiskBeforeMitigation;
         };
 
         const valueA = getDisplayValue(a);
@@ -273,7 +276,7 @@ const GenericRiskMatrix = React.memo<RiskMatrixProps>(
     const getRiskChipTooltip = (risk: Risk) => {
       const before = risk.calculatedRiskBeforeMitigation;
       const beforeColor = getRiskColor(before, configuration);
-      const after = risk.calculatedRiskAfterMitigation;
+      const after = creditedOf(risk).riskAfter;
       const afterColor = getRiskColor(after, configuration);
       const beforeLabel =
         before > 0

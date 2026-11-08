@@ -13,6 +13,7 @@ import type {
 import type { StrideCategory } from "../../shared";
 import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../shared";
 import { buildMethodologyRecord } from "./methodology-record";
+import { docResidualView } from "./doc-residual";
 
 // ==================== LABEL CALCULATION HELPERS ====================
 
@@ -114,6 +115,7 @@ function getStatusLabel(status: string, language: DocLanguage): string {
 function computeDocValues(
   project: Project,
   language: DocLanguage,
+  uncredited?: DocComputedValues["uncreditedResiduals"],
 ): DocComputedValues {
   const impactScale = project.assets?.configuration?.impactScale ?? "4-level";
   // ISO/SAE 21434 names on the 4-level impact scale (display only).
@@ -177,6 +179,8 @@ function computeDocValues(
     verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
     // IEC 62443-4-2 requirement matrix (iec-62443-4-2-cra-coverage.md §5).
     compliance: buildDocCompliance(project, language),
+    // Residual risks not credited (I7 (4)) — for the report's note.
+    ...(uncredited && uncredited.size > 0 ? { uncreditedResiduals: uncredited } : {}),
   };
 }
 
@@ -194,6 +198,8 @@ export function transformProjectToDocData(
   project: Project,
   language: DocLanguage,
 ): DocProjectData {
+  // The credited residual (I7 (4)), applied once for every report reader.
+  const residual = docResidualView(project);
   return {
     // Basic metadata
     id: project.id,
@@ -206,14 +212,14 @@ export function transformProjectToDocData(
     dfd: project.dfd ?? null,
     assets: project.assets ?? null,
     threats: project.threats ?? null,
-    risks: project.risks ?? null,
+    risks: residual.risks,
     attackTree: project.attackTrees ?? null,
     ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
     ...(project.cybersecurityConcept ? { cybersecurityConcept: project.cybersecurityConcept } : {}),
     ...(project.compliance?.componentId ? { complianceComponentId: project.compliance.componentId } : {}),
 
     // Computed values (performance optimization)
-    computed: computeDocValues(project, language),
+    computed: computeDocValues(project, language, residual.uncredited),
 
     // Documentation state
     documentation: project.documentation ?? null,
