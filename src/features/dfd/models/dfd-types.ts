@@ -377,6 +377,14 @@ export interface DFDCellLink {
    * when it is not part of the multiprocess's flow context.
    */
   manual?: boolean;
+  /**
+   * Component import (multi-project TARA, I4): a copy that belongs to its
+   * definition — a component's shell boundary around the imported
+   * multiprocess on the parent page. Higher than its definition by design
+   * (no BAL_HOME_NOT_HIGHEST); removed automatically once its definition is
+   * gone (the component's page deleted), never left behind dangling.
+   */
+  attached?: boolean;
 }
 
 // ==================== DFD EXPORT/IMPORT ====================

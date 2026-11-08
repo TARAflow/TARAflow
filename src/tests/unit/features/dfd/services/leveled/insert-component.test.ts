@@ -21,6 +21,8 @@ import {
 } from "features/dfd/services/leveled/insert-component";
 import { flow, mxfile, node, page } from "../../../../../fixtures/leveled-dfd-xml";
 import { analyseLeveled } from "features/dfd/services/leveled/leveled-analysis";
+import { danglingAttachedCopies } from "features/dfd/services/leveled/child-pages-steps";
+import { parseDfd } from "features/dfd";
 import { loadProjectFixture } from "../../../../../fixtures/load-fixture";
 
 const smoke = loadProjectFixture("SmokeDetector.tara.json");
@@ -284,7 +286,8 @@ describe("insertComponentInstance — refusals and helpers", () => {
 // Manual test 2026-11-07: the machine's top page showed the multiprocess
 // alone — the case and the trust zone of the component were only on its
 // child page. Shells (boundaries every part of the component is inside)
-// are now defined around the multiprocess on the parent page.
+// now appear around the multiprocess on the parent page — as attached
+// copies of their definitions on the component's page (user 2026-11-08).
 describe("insertComponentInstance — shells around the multiprocess", () => {
   const box = (id: string, type: string, label: string, x: number, y: number, w: number, h: number) =>
     `<object label="${label}" type="${type}" id="${id}"><mxCell style="rounded=0;dashed=1;" vertex="1" parent="1"><mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell></object>`;
@@ -337,28 +340,52 @@ describe("insertComponentInstance — shells around the multiprocess", () => {
     expect(shellBoundaryIds(component)).toEqual([]);
   });
 
-  it("defines the shells on the parent page around the multiprocess, nested; the child page keeps linked copies", () => {
+  it("attached copies of the shells around the multiprocess on the parent page, nested; the definitions stay on the component's page", () => {
     const r = insertCase();
     const top = pageXml(r.xml, "top");
+    const parentLinks = r.pages.find((p) => p.pageId === "top")!.links ?? [];
+    const shellCell = (componentId: string) => parentLinks.find((l) => l.tfId === r.idMap[componentId])!;
+    // user 2026-11-08: only references on top, attached to their definition
+    expect(shellCell("c_case")).toMatchObject({ role: "ref", attached: true });
+    expect(shellCell("c_zone")).toMatchObject({ role: "ref", attached: true });
     const mp = geometryOf(top, r.multiprocessTfId);
-    const outer = geometryOf(top, r.idMap.c_case);
-    const inner = geometryOf(top, r.idMap.c_zone);
+    const outer = geometryOf(top, shellCell("c_case").cellId);
+    const inner = geometryOf(top, shellCell("c_zone").cellId);
     const encloses = (a: typeof mp, b: typeof mp) => a.x < b.x && a.y < b.y && a.x + a.w > b.x + b.w && a.y + a.h > b.y + b.h;
     expect(encloses(inner, mp)).toBe(true);
     expect(encloses(outer, inner)).toBe(true);
     // behind the machine's cells: right after the layer cell, outer first
-    expect(top.indexOf(`id="${r.idMap.c_case}"`)).toBeLessThan(top.indexOf(`id="${r.idMap.c_zone}"`));
-    expect(top.indexOf(`id="${r.idMap.c_zone}"`)).toBeLessThan(top.indexOf('id="m_plc"'));
-    // the chip stays on the child page only, as a definition
+    expect(top.indexOf(`id="${shellCell("c_case").cellId}"`)).toBeLessThan(top.indexOf(`id="${shellCell("c_zone").cellId}"`));
+    expect(top.indexOf(`id="${shellCell("c_zone").cellId}"`)).toBeLessThan(top.indexOf('id="m_plc"'));
+    // definitions (cell id = tfId) only on the component's page; the chip has no copy on top
+    expect(top).not.toContain(`id="${r.idMap.c_case}"`);
     expect(top).not.toContain(`id="${r.idMap.c_chip}"`);
+    const childXml = pageXml(r.xml, r.childPageId);
+    for (const id of ["c_case", "c_zone", "c_chip"]) expect(childXml).toContain(`id="${r.idMap[id]}"`);
     const child = r.pages.find((p) => p.pageId === r.childPageId)!;
-    const shellLinks = (child.links ?? []).filter((l) => [r.idMap.c_case, r.idMap.c_zone].includes(l.tfId));
-    expect(shellLinks.map((l) => l.role)).toEqual(["ref", "ref"]);
-    for (const l of shellLinks) expect(pageXml(r.xml, r.childPageId)).toContain(`id="${l.cellId}"`);
-    expect(pageXml(r.xml, r.childPageId)).toContain(`id="${r.idMap.c_chip}"`);
-    // the shell record follows its definition
+    expect((child.links ?? []).some((l) => [r.idMap.c_case, r.idMap.c_zone].includes(l.tfId))).toBe(false);
+    // the record keeps the component's geometry
     const rec = r.elements.find((e) => e.id === r.idMap.c_case)!;
-    expect([rec.position.x, rec.position.y, rec.size.width, rec.size.height]).toEqual([outer.x, outer.y, outer.w, outer.h]);
+    const original = caseComponent.elements.find((e) => e.id === "c_case")!;
+    expect(rec.position).toEqual(original.position);
+  });
+
+  it("the shells go with the component's page: once it is deleted they are dangling attached copies to remove", () => {
+    const r = insertCase();
+    const parentLinks = r.pages.find((p) => p.pageId === "top")!.links ?? [];
+    const shellCells = parentLinks.filter((l) => l.attached).map((l) => l.cellId).sort();
+    expect(shellCells).toHaveLength(2);
+    // with the page: nothing to remove
+    expect(danglingAttachedCopies(parseDfd(r.xml, r.pages), r.pages, new Set())).toEqual([]);
+    // the page deleted in draw.io (and from the page tree)
+    const withoutPage = r.xml.replace(pageXml(r.xml, r.childPageId), "");
+    const pages = r.pages.filter((p) => p.pageId !== r.childPageId);
+    const dangling = danglingAttachedCopies(parseDfd(withoutPage, pages), pages, new Set());
+    expect(dangling.map((d) => d.pageId)).toEqual(["top"]);
+    expect([...dangling[0].cellIds].sort()).toEqual(shellCells);
+    // already requested: not again
+    const requested = new Set(shellCells.map((c) => `top\u0000-${c}`));
+    expect(danglingAttachedCopies(parseDfd(withoutPage, pages), pages, requested)).toEqual([]);
   });
 
   it("through the save: no balancing / page errors, same effective boundaries as in the component", () => {
@@ -367,6 +394,8 @@ describe("insertComponentInstance — shells around the multiprocess", () => {
     expect(saved.success).toBe(true);
     expect(saved.validation.errors.filter((f) => /leveled\.(BAL_|PAGE_)/.test(f.key))).toEqual([]);
     expect(saved.validation.warnings.filter((f) => /leveled\.(BAL_|PAGE_)/.test(f.key))).toEqual([]);
+    // attached copies above their definition: no BAL_HOME_NOT_HIGHEST (info)
+    expect((saved.validation.infos ?? []).filter((f) => /leveled\.(BAL_|PAGE_)/.test(f.key))).toEqual([]);
     const model = analyseLeveled({ xml: r.xml, pages: r.pages, elements: saved.dfd.elements, connections: saved.dfd.connections }).model;
     const boundariesOf = (componentId: string) => {
       const b = model.elements.find((e) => e.tfId === r.idMap[componentId])!.boundaries!;

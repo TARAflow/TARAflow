@@ -68,6 +68,30 @@ export function autoContextOf(
   return { copies, removals };
 }
 
+/**
+ * Attached copies (a component's shells on the parent page, I4) whose
+ * definition is gone — the component's page was deleted: they go with it
+ * instead of staying behind dangling (user 2026-11-08). Cells already
+ * requested for removal in this session are left out.
+ */
+export function danglingAttachedCopies(
+  parse: Pick<ParseResult, "occurrences">,
+  pages: readonly DFDPage[] | undefined,
+  requested: ReadonlySet<string>,
+): ContextRemoval[] {
+  const defined = new Set(parse.occurrences.filter((o) => o.role === "definition").map((o) => o.tfId));
+  const present = new Set(parse.occurrences.map((o) => `${o.pageId}\u0000${o.cellId}`));
+  const out: ContextRemoval[] = [];
+  for (const page of pages ?? []) {
+    const cellIds = (page.links ?? [])
+      .filter((l) => l.attached && !defined.has(l.tfId))
+      .map((l) => l.cellId)
+      .filter((c) => present.has(`${page.pageId}\u0000${c}`) && !requested.has(`${page.pageId}\u0000-${c}`));
+    if (cellIds.length > 0) out.push({ pageId: page.pageId, cellIds });
+  }
+  return out;
+}
+
 /** Remember the clones draw.io made: they become "ref" copies once saved. */
 export function rememberCopies(
   pending: Map<string, DFDCellLink[]>,

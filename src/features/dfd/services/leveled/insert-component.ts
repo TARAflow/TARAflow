@@ -17,12 +17,12 @@
 //     pages balance by construction
 //   - the component's outer boundaries ("shells": those every part of the
 //     component is inside — trust boundaries without the interfaces, which
-//     sit on their border) are DEFINED around the multiprocess on the parent
-//     page, with their occurrence on the child page: the machine's top page
-//     shows the case and the trust zone the component brings, as a leveled
-//     DFD drawn by hand would (definition on the highest page,
-//     BAL_HOME_NOT_HIGHEST). Inner boundaries (e.g. a chip that not every
-//     interface is on) stay on the child page.
+//     sit on their border) appear around the multiprocess on the parent page
+//     as ATTACHED copies (link role "ref", attached): the machine's top page
+//     shows the case and the trust zone the component brings, but they stay
+//     the component's — defined on its (locked) page, removed with it
+//     (user 2026-11-08). Inner boundaries (e.g. a chip that not every
+//     interface is on) stay on the child page only.
 //   - flows between two EEs are dropped (out of scope, DFD_EE_TO_EE_FLOW)
 //   - records with the component's properties for every new tfId, so the
 //     save keeps them (properties travel with the record id)
@@ -371,10 +371,8 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
         }
       }
       if (cPage === componentRootPage && identity.role === "definition" && shellIds.has(tf)) {
-        // the definition moves around the multiprocess on the parent page
+        // its attached copy goes around the multiprocess on the parent page
         shellCells.set(tf, cell.cloneNode(true) as Element);
-        newCellId.set(id, ns(`ref|${cPage.pageId}|${id}`));
-        continue;
       }
       newCellId.set(id, identity.role === "definition" ? mapTf(tf) : ns(`ref|${cPage.pageId}|${id}`));
     }
@@ -435,7 +433,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
         if (label) label.setAttribute("label", "DF-xx");
         continue;
       }
-      if (identity.role === "ref" || (cPage === componentRootPage && shellCells.has(tf))) {
+      if (identity.role === "ref") {
         links.push({ cellId: nid, tfId: mapTf(tf), role: "ref" });
       }
       if (cell.getAttribute("link")?.startsWith("data:page/id,")) {
@@ -471,8 +469,9 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
   }
   for (const xml of parentAdditions) parentRoot.appendChild(el(machineDoc, xml));
 
-  // ---- the shells around the multiprocess: outer first, behind everything
-  const shellGeometry = new Map<string, { x: number; y: number; width: number; height: number }>();
+  // ---- the shells around the multiprocess: attached copies, outer first,
+  // behind everything; their definitions stay on the component's page
+  const shellLinks: DFDCellLink[] = [];
   const area = (tf: string) => {
     const e = elementById.get(tf);
     return (e?.size?.width ?? 0) * (e?.size?.height ?? 0);
@@ -490,9 +489,10 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       width: 160 + 2 * side,
       height: 60 + top + side,
     };
-    shellGeometry.set(tf, geometry);
     const cell = machineDoc.importNode(shellCells.get(tf)!, true) as Element;
-    cell.setAttribute("id", mapTf(tf));
+    const cellId = ns(`shell|${tf}`);
+    cell.setAttribute("id", cellId);
+    shellLinks.push({ cellId, tfId: mapTf(tf), role: "ref", attached: true });
     cell.removeAttribute("link");
     const mx = mxCellOf(cell);
     mx.setAttribute("parent", "1");
@@ -518,14 +518,11 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
   const LABEL_IDS = BOUNDARY_TYPES;
   for (const e of component.elements) {
     if (eeIds.has(e.id)) continue;
-    const shell = shellGeometry.get(e.id);
     newElements.push({
       ...e,
       id: mapTf(e.id),
       displayId: LABEL_IDS.has(e.type) ? e.displayId : prefixed(e.displayId),
       assetRelations: remapRelations(e.assetRelations),
-      // a shell's record follows its definition on the parent page
-      ...(shell ? { position: { x: shell.x, y: shell.y }, size: { width: shell.width, height: shell.height } } : {}),
     });
   }
   const newConnections: DFDConnection[] = [];
@@ -563,7 +560,12 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
 
   return {
     xml: new XMLSerializer().serializeToString(machineDoc),
-    pages: [...pages, ...newPages],
+    pages: [
+      ...pages.map((p) =>
+        p.pageId === parentPageId && shellLinks.length > 0 ? { ...p, links: [...(p.links ?? []), ...shellLinks] } : p,
+      ),
+      ...newPages,
+    ],
     elements: newElements,
     connections: newConnections,
     assets: newAssets,

@@ -532,6 +532,34 @@ describe("useChildPages", () => {
       ]);
     });
 
+    it("removes a component's shells (attached copies) once their page is gone", async () => {
+      // Component import (I4, user 2026-11-08): the shells on Top are
+      // attached copies; the component's page was deleted.
+      const pages: DFDPage[] = [
+        { pageId: "p1", name: "Top", order: 0, links: [{ cellId: "shell1", tfId: "cmp_case", role: "ref", attached: true }] },
+      ];
+      const shell = `<object label="Case [CASE]" type="physicalboundary" id="shell1"><mxCell vertex="1" parent="1" style="rounded=0;"><mxGeometry x="0" y="0" width="400" height="300" as="geometry"/></mxCell></object>`;
+      const xml = mxfile(page("p1", "Top", shell + EE));
+      const opts = o();
+      renderHook(() => useChildPages(project(xml, pages), opts));
+      await waitFor(() => expect(opts.syncPages).toHaveBeenCalledTimes(1));
+      expect(opts.syncPages.mock.calls[0][0].removeCells).toEqual([{ pageId: "p1", cellIds: ["shell1"] }]);
+    });
+
+    it("keeps the shells while their definition exists", async () => {
+      const pages: DFDPage[] = [
+        { pageId: "p1", name: "Top", order: 0, links: [{ cellId: "shell1", tfId: "cmp_case", role: "ref", attached: true }] },
+      ];
+      const box = (id: string) =>
+        `<object label="Case [CASE]" type="physicalboundary" id="${id}"><mxCell vertex="1" parent="1" style="rounded=0;"><mxGeometry x="0" y="0" width="400" height="300" as="geometry"/></mxCell></object>`;
+      // the definition (cell id = tfId) is on the same page here — enough for the rule
+      const xml = mxfile(page("p1", "Top", box("shell1") + box("cmp_case") + EE));
+      const opts = o();
+      renderHook(() => useChildPages(project(xml, pages), opts));
+      await new Promise((r) => setTimeout(r, 30));
+      for (const call of opts.syncPages.mock.calls) expect(call[0].removeCells).toBeUndefined();
+    });
+
     it("leaves a child page with parts of its own to Sync context", async () => {
       const pages: DFDPage[] = [
         { pageId: "p1", name: "Top", order: 0 },

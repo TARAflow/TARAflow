@@ -40,6 +40,7 @@ import {
   autoContextOf,
   callSync,
   deletedChildPages,
+  danglingAttachedCopies,
   rememberCopies,
   type ContextRemoval,
 } from "./child-pages-steps";
@@ -261,6 +262,14 @@ export class ChildPagesOrchestrator {
     }
 
     if (!state.enabled) return this.skip("draw.io plugin not ready (Electron only)");
+
+    // A component's shells go with its page (I4).
+    const dangling = danglingAttachedCopies(this.parseOf(xml, pages), pages, this.requested);
+    if (dangling.length > 0) {
+      this.lastSkip = null;
+      console.info("[childPages] removing attached copies of a deleted page:", dangling);
+      return this.copyContext([], dangling, deps);
+    }
     if (needsPageReview(xml, pages)) {
       return this.skip("page tree needs a review (extra root or missing page) or a new page is on its way");
     }

@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–25; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–26; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -178,12 +178,15 @@ obsolete: an imported multiprocess is both, by construction.
   read-only; the machine may route them on the parent page (layout only).
 - **Shells on the parent page (I4).** The component's outer boundaries — those every part of the
   component is inside (by the analysis' membership; a trust boundary without the interfaces, which
-  sit on its border, D14) — are **defined around the multiprocess on the parent page** and appear on
-  the child page as linked copies: the machine's top page shows the case and the trust zone the
-  component brings, as a hand-drawn leveled DFD would (definition on the highest page,
-  `BAL_HOME_NOT_HIGHEST`). Inner boundaries (e.g. a chip that not every interface is on) stay on the
-  child page. The shells on the parent page are machine layout (position, size); the analysis is
-  unchanged (inheritance is additive, the children are inside them on the child page anyway).
+  sit on its border, D14) — appear around the multiprocess on the parent page as **attached copies**
+  (link role `ref`, `attached`) of their definitions on the component's (locked) page: the machine's
+  top page shows the case and the trust zone the component brings, but they stay the component's
+  (user 2026-11-08). An attached copy may sit above its definition (no `BAL_HOME_NOT_HIGHEST`) and
+  goes with it: once the component's page is deleted, the child-page step removes it instead of
+  leaving a dangling boundary in the machine. Inner boundaries (e.g. a chip that not every interface
+  is on) stay on the child page only. Position and size on the parent page are machine layout; the
+  analysis is unchanged (inheritance is additive, the children are inside them on the child page
+  anyway).
 
 ### 6.3 No additional flows (Q3)
 
@@ -713,6 +716,13 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 26 done (2026-11-08, manual test + review):* shells as attached copies (§6.2, I4). The
+shells were definitions on the parent page and stayed behind when the instance was deleted — an
+orphaned trust / physical boundary that changes the membership of machine elements drawn into it.
+Now they are `ref` copies with `attached: true` (DFDCellLink); their definitions stay on the
+component's page; `BAL_HOME_NOT_HIGHEST` skips attached copies; `danglingAttachedCopies`
+(child-pages step) finds those whose definition is gone and the orchestrator removes them through
+draw.io once the component's page is deleted.
 *Patch 25 done (2026-11-08, review of 23–24):* single-page DFDs explain the EE → EE scope too:
 `DFD_EE_TO_EE_FLOW` (info) on every flow between two external entities, as the effective model
 gives a leveled DFD — no threats in either method, existing ones listed as obsolete at the next
@@ -751,9 +761,7 @@ motivation) — to be decided if component trees are to feed 62443 machines.
 *Patch 19 done (2026-11-07, manual test):* shells on the parent page (§6.2, I4).
 `shellBoundaryIds` (features/dfd, pure) takes the membership from the component's dfd graph; the
 shells are nested around the multiprocess (outer first, behind the machine's cells), their records
-follow the parent-page geometry, the child-page cells become `ref` copies. Deleting the
-multiprocess leaves the shells on the parent page — delete them with it (noted for the delete /
-update work).
+follow the parent-page geometry, the child-page cells become `ref` copies. Superseded by patch 26 (attached copies, removed with the component's page).
 
 Further constraints (review 2026-11-07):
 - The threats are derived, but the machine's own ratings on them are stored data: the WoO overlay
