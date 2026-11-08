@@ -17,6 +17,13 @@
 //                           "overwrite": the source's values replace the
 //                           target's (what the source has not rated stays)
 //
+// Only the machine's DECISIONS are copied (review 2026-11-08): factor
+// ratings with source "manual" (incl. the overrides of prefilled factors with
+// their rationale) or without a source (rated by hand where nothing is
+// derived). Derived values ("derived" — Asset Tab, DFD, e.g. the EN 50742
+// exposure level from the anchor's boundary crossing; "attack-tree") belong
+// to the target's own context: the sync derives them for the target.
+//
 // Only instances of the same import: threat keys, path keys and factors
 // match only within one state of the component. Risk treatment (measures)
 // stays out — it is a decision per risk (phase 3).
@@ -63,6 +70,8 @@ export function copySourcesOf(components: Components, targetId: string): Compone
 }
 
 const unrated = (r: Rating | undefined) => !r || r.value === null || r.value === undefined || r.value === 0;
+/** A machine decision — not a value derived from the instance's own context. */
+const decided = (r: Rating) => r.source === undefined || r.source === "manual";
 
 export function copyInstanceRatings(
   project: Pick<Project, "components" | "risks" | "assets">,
@@ -127,7 +136,7 @@ export function copyInstanceRatings(
       let changed = 0;
       const ratings = to.factorRatings.map((f) => {
         const t = theirs.get(f.factorId);
-        if (!t || unrated(t) || !copies(f.factorId)) return f;
+        if (!t || unrated(t) || !decided(t) || !copies(f.factorId)) return f;
         if (fill && !unrated(f)) return f;
         if (JSON.stringify(t) === JSON.stringify(f)) return f;
         changed++;

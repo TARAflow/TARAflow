@@ -99,6 +99,21 @@ describe("copy ratings between instances (I5)", () => {
     expect(riskOf(after, "s")).toEqual(riskOf(m, "s"));
   });
 
+  it("only decisions: derived values stay to the target's own context (review 2026-11-08)", () => {
+    let m = machine();
+    // e.g. the EN 50742 exposure level — derived from the anchor's boundary crossing per instance
+    m = setRating(m, "s", "motive", 4, { source: "derived", derivedValue: 4 });
+    m = setRating(m, "s", "opportunity", 2, { source: "attack-tree" });
+    m = setRating(m, "s", "ease_of_exploit", 3, { source: "manual" });
+    const r = copyInstanceRatings(m, "s", "t", ALL);
+    const after = apply(m, r);
+    expect(valueOf(after, "t", "motive").value).toBe(valueOf(m, "t", "motive").value);
+    expect(valueOf(after, "t", "opportunity").value).toBe(valueOf(m, "t", "opportunity").value);
+    expect(valueOf(after, "t", "ease_of_exploit").value).toBe(3);
+    // the toast counts only what was really copied
+    expect(r.counts.factors).toBe(1);
+  });
+
   it("fill keeps what the target rated; overwrite replaces it", () => {
     let m = machine();
     m = setRating(m, "s", "motive", 3);

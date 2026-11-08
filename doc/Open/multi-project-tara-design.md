@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–34; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–35; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,15 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 35 done (2026-11-08, review of 32–34):* copying ratings takes only the machine's decisions:
+factor ratings with source "manual" (incl. the overrides of prefilled factors with their rationale)
+or without a source. Derived values ("derived" from the Asset Tab or the DFD — e.g. the EN 50742
+exposure level from the anchor's boundary crossing — and "attack-tree") belong to the target's own
+context: copying them made the recalculation use the source's position until the next sync re-derived
+or reset them, and the toast counted them as copied. The sync derives them for the target.
+Phase 2 closed (review). Open question for phase 3 (asked by the review): can a component capability
+chosen as a measure hold per instance differently — implemented by the component, but tied to an AoU
+that instance 2 does not meet? Then measure status and AoU status belong together in the data model.
 *Patch 34 done (2026-11-08, I6):* window of opportunity per step of an AND combination. The
 steps of one combination often sit in different contexts (one over the network, one with physical
 access) — the window is exactly the factor that varies per step. `ComponentPathOverlay.leafId`
