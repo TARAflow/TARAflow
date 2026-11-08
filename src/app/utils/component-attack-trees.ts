@@ -19,8 +19,12 @@
 //     CMP_PATH_WINDOW_UNRATED says so; the component's value is only offered
 //     as a suggestion (review 2026-11-07: before, the component's value
 //     counted silently).
-//   - quick-mode paths (no factor breakdown) cannot be rated per path: they
-//     stay unrated, CMP_PATH_NOT_RATABLE asks the component for audit mode
+//   - an AND combination (FX-6) carries no factor breakdown of its own, its
+//     potential is the sum over its steps' leaves: the machine's window is
+//     applied to every leaf and the sum recomputed (AND → SUM, as the
+//     calculator composes it) — before, such paths stayed unrated
+//   - quick-mode paths (no factor breakdown on a leaf) cannot be rated per
+//     path: they stay unrated, CMP_PATH_NOT_RATABLE asks for audit mode
 //   - the tree's aggregates (most feasible path, ISO 15.8 NOTE 2) follow
 //     the machine's path ratings; ties go to the lowest attack potential
 //   - open (noted): the attacker benefit of a path is the component's; it
@@ -31,6 +35,7 @@
 
 import type { ProjectTags, ThreatReference } from "shared";
 import { createDefaultAttackTreeData, type AttackTree, type AttackTreeData } from "features/attacktree";
+import { parseAttackTree } from "features/attacktree/services/attacktree-parser";
 import {
   aggregateFeasibility,
   bandAttackPotential,
@@ -39,6 +44,7 @@ import {
 } from "features/attacktree/services/attacktree-feasibility";
 import { DEFAULT_FEASIBILITY_CONFIGURATION } from "features/attacktree/models/attacktree-feasibility-types";
 import type {
+  AttackPotentialFactors,
   FeasibilityConfiguration,
   FeasibilityLevel,
   WindowOfOpportunity,
@@ -74,21 +80,62 @@ function machineFeasibility(project: MachineTrees): FeasibilityConfiguration {
 
 type Path = NonNullable<AttackTree["pathAnalysis"]>["paths"][number];
 
+type Tree = NonNullable<NonNullable<Import["snapshot"]["attackTrees"]>["trees"]>[number];
+
+/** The leaves of a tree by node id (parsed from its DSL; node ids are deterministic). */
+function leavesOf(tree: Tree): Map<string, AttackPotentialFactors | undefined> {
+  const out = new Map<string, AttackPotentialFactors | undefined>();
+  const ast = parseAttackTree(tree.dsl ?? "", tree.configuration?.evaluationMethod ?? "simple").ast;
+  const walk = (node: NonNullable<typeof ast>) => {
+    if (node.children.length === 0) out.set(node.id, node.evaluation?.attackPotential);
+    node.children.forEach(walk);
+  };
+  if (ast) walk(ast);
+  return out;
+}
+
+/**
+ * The factor breakdowns a path is rated from: its own (one leaf), or those of
+ * every leaf of an AND combination; null when a leaf has none (quick mode).
+ */
+function pathLeafFactors(
+  path: Path,
+  leaves: () => Map<string, AttackPotentialFactors | undefined>,
+): AttackPotentialFactors[] | null {
+  if (path.attackPotentialFactors) return [path.attackPotentialFactors];
+  if (!path.combination) return null;
+  const map = leaves();
+  const factors = path.nodeIds.filter((id) => map.has(id)).map((id) => map.get(id));
+  return factors.length > 0 && factors.every((f): f is AttackPotentialFactors => !!f) ? factors : null;
+}
+
 /** A path as the machine rates it: with its window of opportunity, or unrated. */
-function machinePath(path: Path, window: WindowOfOpportunity | undefined, config: FeasibilityConfiguration): Path {
-  if (!window || !path.attackPotentialFactors) {
+function machinePath(
+  path: Path,
+  window: WindowOfOpportunity | undefined,
+  leafFactors: AttackPotentialFactors[] | null,
+  config: FeasibilityConfiguration,
+): Path {
+  if (!window || !leafFactors) {
     return { ...path, attackPotential: undefined, feasibilityLevel: undefined, likelihoodLevel: undefined };
   }
-  const factors = { ...path.attackPotentialFactors, windowOfOpportunity: window };
-  const attackPotential = computeAttackPotential(factors, config);
+  const rated = leafFactors.map((f) => ({ ...f, windowOfOpportunity: window }));
+  // one leaf: its potential; an AND combination: the sum over its leaves
+  const attackPotential = rated.reduce((sum, f) => sum + computeAttackPotential(f, config), 0);
   const level = bandAttackPotential(attackPotential, config);
   return {
     ...path,
-    attackPotentialFactors: factors,
+    ...(path.attackPotentialFactors ? { attackPotentialFactors: rated[0] } : {}),
     attackPotential,
     feasibilityLevel: level,
     likelihoodLevel: computeLikelihood(level, path.benefit, config),
   };
+}
+
+/** Lazily parsed leaves per tree — only AND combinations need them. */
+function lazyLeaves(tree: Tree): () => Map<string, AttackPotentialFactors | undefined> {
+  let cache: Map<string, AttackPotentialFactors | undefined> | undefined;
+  return () => (cache ??= leavesOf(tree));
 }
 
 /** The component's trees of one instance: ids remapped, rated by the machine. */
@@ -102,8 +149,9 @@ function instanceTrees(instance: Instance, imported: Import, config: Feasibility
     const analysis = tree.pathAnalysis;
     let pathAnalysis = analysis;
     if (analysis) {
+      const leaves = lazyLeaves(tree);
       const paths = analysis.paths.map((p) =>
-        machinePath(p, overlays.get(`${tree.id}|${p.pathKey}`)?.windowOfOpportunity, config),
+        machinePath(p, overlays.get(`${tree.id}|${p.pathKey}`)?.windowOfOpportunity, pathLeafFactors(p, leaves), config),
       );
       const levels = (pick: (p: Path) => FeasibilityLevel | undefined) =>
         paths.map(pick).filter((l): l is FeasibilityLevel => !!l);
@@ -213,18 +261,22 @@ export function componentAttackPathGroups(project: MachineTrees): ComponentAttac
     const paths: ComponentAttackPathRow[] = [];
     for (const tree of source) {
       const mine = derived.get(tree.id);
+      const leaves = lazyLeaves(tree);
       for (const path of tree.pathAnalysis?.paths ?? []) {
         const overlay = overlays.get(`${tree.id}|${path.pathKey}`);
         const now = mine?.pathAnalysis?.paths.find((p) => p.pathKey === path.pathKey);
+        const factors = pathLeafFactors(path, leaves);
+        const windows = new Set((factors ?? []).map((f) => f.windowOfOpportunity));
         paths.push({
           treeKey: tree.id,
           treeName: tree.name,
           pathKey: path.pathKey,
           path: path.path,
-          ...(path.attackPotentialFactors ? { componentWindow: path.attackPotentialFactors.windowOfOpportunity } : {}),
+          // the component's window (an AND combination: when all its steps agree)
+          ...(windows.size === 1 ? { componentWindow: [...windows][0] } : {}),
           ...(overlay ? { machineWindow: overlay.windowOfOpportunity } : {}),
           ...(now?.feasibilityLevel ? { feasibility: now.feasibilityLevel } : {}),
-          ratable: !!path.attackPotentialFactors,
+          ratable: !!factors,
         });
       }
     }
@@ -247,8 +299,9 @@ export function componentPathRatingGaps(
     let notRatable = 0;
     for (const tree of imported.snapshot.attackTrees?.trees ?? []) {
       if (tree.anchor?.type !== "asset") continue; // only asset-anchored trees make risks
+      const leaves = lazyLeaves(tree);
       for (const path of tree.pathAnalysis?.paths ?? []) {
-        if (!path.attackPotentialFactors) notRatable++;
+        if (!pathLeafFactors(path, leaves)) notRatable++;
         else if (!overlays.has(`${tree.id}|${path.pathKey}`)) unrated++;
       }
     }

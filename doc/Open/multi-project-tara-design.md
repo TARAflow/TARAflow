@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–26; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–27; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,15 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 27 done (2026-11-08, review):* AND combinations of component attack paths. The open note
+("the overlay changes the leaf's factors; the gate's combined quantity is not recomputed") turned
+out worse on a test: an AND combination (FX-6) carries no factor breakdown of its own, so it was
+counted as quick mode and stayed unrated forever — the component contributed no risk for it. Its
+potential is the sum over its leaves (the calculator's AND → SUM); the leaves' factors come from the
+tree's DSL (deterministic node ids). The machine's window is applied to every leaf and the sum
+banded with the machine's configuration; the rating section offers the component's window only when
+all steps agree. Single-leaf paths are never under an AND (an AND yields combinations only), so no
+other path was affected.
 *Patch 26 done (2026-11-08, manual test + review):* shells as attached copies (§6.2, I4). The
 shells were definitions on the parent page and stayed behind when the instance was deleted — an
 orphaned trust / physical boundary that changes the membership of machine elements drawn into it.

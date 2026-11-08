@@ -28,6 +28,10 @@ import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree
 import { instanceAssetId, type ComponentInsertContext } from "features/dfd";
 import { DiffService } from "features/audit/services/diff-service";
 import { DEFAULT_FEASIBILITY_CONFIGURATION } from "features/attacktree/models/attacktree-feasibility-types";
+import { parseAttackTree } from "features/attacktree/services/attacktree-parser";
+import { generateThreatsFromAttackTree } from "features/attacktree";
+import { analyzeAttackPaths } from "features/attacktree/services/attacktree-calculator";
+import { bandAttackPotential, computeAttackPotential } from "features/attacktree/services/attacktree-feasibility";
 import { flow, mxfile, node, page } from "../../../fixtures/leveled-dfd-xml";
 
 const smoke = parseAndRepair(loadProjectFixture("SmokeDetector.tara.json")) as Project;
@@ -261,5 +265,56 @@ describe("only the machine's rating counts (review 2026-11-07)", () => {
     expect(componentAttackPathThreatReferences(withRating, false)).toEqual([]);
     expect(componentPathRatingGaps(q)[0]).toMatchObject({ unrated: 0, notRatable: assetPaths.length });
     expect(keys(iso(q))).toContain("components.findings.CMP_PATH_NOT_RATABLE");
+  });
+});
+
+// Review 2026-11-08: an AND combination (FX-6) has no factor breakdown of its
+// own — it stayed unrated forever. Its potential is the sum over its leaves:
+// the machine's window is applied to every leaf and the sum recomputed.
+describe("AND combinations are rated with the machine's window", () => {
+  const original = headlamp.attackTrees!.trees[0];
+  const dsl = original.dsl.replace("Remote Attack;OR", "Remote Attack;AND");
+  const method = original.configuration.evaluationMethod;
+  const ast = parseAttackTree(dsl, method).ast!;
+  const andTree = { ...original, dsl, pathAnalysis: analyzeAttackPaths(ast, method, DEFAULT_FEASIBILITY_CONFIGURATION) };
+  const component = { ...headlamp, attackTrees: { ...headlamp.attackTrees!, trees: [andTree] } } as Project;
+  const m = machine(component, ["inst-1"]);
+  const combo = andTree.pathAnalysis!.paths.find((p) => p.combination)!;
+  const derived = () => componentAttackTrees(m)[0].trees[0].pathAnalysis!.paths.find((p) => p.pathKey === combo.pathKey)!;
+
+  it("setup: the tree has an AND combination without a factor breakdown", () => {
+    expect(combo).toBeDefined();
+    expect(combo.attackPotentialFactors).toBeUndefined();
+    expect(combo.feasibilityLevel).toBeDefined();
+  });
+
+  it("without the machine's window it is unrated — counted as to rate, not as quick mode", () => {
+    expect(derived().feasibilityLevel).toBeUndefined();
+    expect(componentPathRatingGaps(m)[0]).toMatchObject({ notRatable: 0 });
+    expect(componentPathRatingGaps(m)[0].unrated).toBeGreaterThan(0);
+    const row = componentAttackPathGroups(m)[0].paths.find((p) => p.pathKey === combo.pathKey)!;
+    expect(row.ratable).toBe(true);
+    // its steps disagree (difficult / moderate): no single component value to offer
+    expect(row.componentWindow).toBeUndefined();
+  });
+
+  it("with the machine's window: the sum over the leaves with that window, banded with the machine's configuration", () => {
+    const rated = { ...m, components: withPathOverlay(m.components!, "inst-1", andTree.id, combo.pathKey, "unlimited", "d") } as Project;
+    const path = componentAttackTrees(rated)[0].trees[0].pathAnalysis!.paths.find((p) => p.pathKey === combo.pathKey)!;
+    const leaves = ast.children.find((c) => c.name === "Remote Attack")!.children;
+    const expected = leaves.reduce(
+      (sum, l) => sum + computeAttackPotential({ ...l.evaluation!.attackPotential!, windowOfOpportunity: "unlimited" }, DEFAULT_FEASIBILITY_CONFIGURATION),
+      0,
+    );
+    expect(path.attackPotential).toBe(expected);
+    expect(path.feasibilityLevel).toBe(bandAttackPotential(expected, DEFAULT_FEASIBILITY_CONFIGURATION));
+    // more feasible than the component's own rating (its steps had difficult / moderate)
+    expect(path.attackPotential!).toBeLessThan(combo.attackPotential!);
+    // and the generator emits it now (relevance is decided on the path, not here)
+    const tree = componentAttackTrees(rated)[0].trees[0];
+    const emitted = generateThreatsFromAttackTree(tree, undefined, 1).threats.map((t) => t.id);
+    expect(emitted.some((id) => id.includes(combo.pathKey))).toBe(true);
+    const unratedTree = componentAttackTrees(m)[0].trees[0];
+    expect(generateThreatsFromAttackTree(unratedTree, undefined, 1).threats.map((t) => t.id).some((id) => id.includes(combo.pathKey))).toBe(false);
   });
 });
