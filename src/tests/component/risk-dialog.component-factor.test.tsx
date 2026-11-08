@@ -1,7 +1,8 @@
 // src/tests/component/risk-dialog.component-factor.test.tsx
 // Multi-project TARA, patch 16 (design §7.2): a factor value taken over
 // from an imported component shows its origin; overriding it asks for a
-// rationale, which is saved with the rating.
+// rationale, which is saved with the rating. Manual test 2026-11-08: a
+// written rationale is collapsed to one line (whole text in a tooltip).
 import React from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -54,6 +55,19 @@ describe("RiskDialog — factor taken over from a component", () => {
       source: "manual",
       overrideRationale: "Attack needs physical access in this machine",
     });
+  });
+
+  it("a written rationale shows collapsed as one line; expand to edit, collapse again", async () => {
+    const long = "Attack needs physical access in this machine; the cabinet is locked and alarmed";
+    open(risk(rating("skill_level", 1, { source: "manual", derivedValue: 3, derivedFrom: "component", overrideRationale: long })));
+    expect(screen.queryByTestId("factor-override-rationale-skill_level")).toBeNull();
+    expect(screen.getByTestId("factor-override-rationale-line-skill_level").textContent).toContain(long);
+    fireEvent.mouseOver(screen.getByTestId("factor-override-rationale-line-skill_level"));
+    expect((await screen.findAllByText(long)).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByTestId("factor-override-rationale-expand-skill_level"));
+    expect((screen.getByTestId("factor-override-rationale-skill_level") as HTMLTextAreaElement).value).toBe(long);
+    fireEvent.click(screen.getByTestId("factor-override-rationale-collapse-skill_level"));
+    expect(screen.queryByTestId("factor-override-rationale-skill_level")).toBeNull();
   });
 
   it("an Asset-derived override asks for nothing", () => {

@@ -87,7 +87,7 @@
       "perInstance": "Relevance per instance",
       "instances": "— instances: {{list}}",
       "templateText": "(catalog text)",
-      "overridden": "machine: {{relevance}}",
+      "overriddenTooltip": "Overridden by this machine ({{date}}): {{rationale}} — the component rated it {{component}}.",
       "toReview": "to review — the component changed its decision",
       "editOverride": "Change",
       "override": "Override",

@@ -343,6 +343,7 @@
         "basicInfo": "Basic Information",
         "impactRatings": "Impact Ratings",
         "unitsHint": "×{{count}}: this asset stands for {{count}} identical units. The same weakness hits all of them at once — does the impact cover all units failing together?",
+        "safetySourceHint": "Derived from safety annotations in the DFD or from hazard items (safety-relevant projects). Without either: set it with the manual safety impact override above.",
         "averageImpact": "Ø {{value}}",
         "overall": "Overall",
         "overallImpactTooltip": "Overall: {{label}}",

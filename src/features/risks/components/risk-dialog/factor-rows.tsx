@@ -7,7 +7,7 @@ import React from "react";
 import type { RiskDialogModel } from "./use-risk-dialog-model";
 import { ISO_AP_POINTS_BY_FACTOR } from "./local-risk-state";
 import { Box, Typography, Chip, Stack, Tooltip, IconButton, Paper, Select, MenuItem, TextField } from "@mui/material";
-import { Refresh as ResetIcon } from "@mui/icons-material";
+import { Refresh as ResetIcon, ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from "@mui/icons-material";
 import { ATTACK_TREE_LIKELIHOOD_FACTOR_ID } from "../../models/risk-factor-types";
 import { ISO21434_FACTOR_LEVELS } from "../../models/iso21434-core";
 import { factorLevelOptions, isoFactorLevelColor } from "../../utils/factor-level-options";
@@ -231,18 +231,15 @@ export function renderFactorRowOf(m: RiskDialogModel, factor: FactorRowFactor, m
         })}
       </Select>
       {isOverridden && isComponentDerived && (
-        <TextField
-          size="small"
-          fullWidth
-          multiline
-          sx={{ mt: 1 }}
+        <CollapsibleRationale
+          factorId={factor.factorId}
           label={t("tabs.risks.dialog.factorOverrideRationale", {
             defaultValue: "Why this differs from the component's rating (required)",
           })}
+          expandLabel={t("tabs.risks.dialog.rationaleExpand", { defaultValue: "Edit rationale" })}
+          collapseLabel={t("tabs.risks.dialog.rationaleCollapse", { defaultValue: "Collapse" })}
           value={rating?.overrideRationale ?? ""}
-          error={!(rating?.overrideRationale ?? "").trim()}
-          onChange={(e) => setFactorRationale(factor.factorId, e.target.value, mitigated)}
-          inputProps={{ "data-testid": `factor-override-rationale-${factor.factorId}` }}
+          onChange={(v) => setFactorRationale(factor.factorId, v, mitigated)}
         />
       )}
       {directionHint && (
@@ -256,6 +253,78 @@ export function renderFactorRowOf(m: RiskDialogModel, factor: FactorRowFactor, m
         </Typography>
       )}
     </Paper>
+  );
+}
+
+/**
+ * The rationale of an overridden component factor (manual test 2026-11-08:
+ * the open field took too much room). Collapsed it shows exactly one line,
+ * the whole text in a tooltip; expanded it is the multi-line field. Empty
+ * (it is required) it opens expanded.
+ */
+function CollapsibleRationale({
+  factorId,
+  label,
+  expandLabel,
+  collapseLabel,
+  value,
+  onChange,
+}: {
+  factorId: string;
+  label: string;
+  expandLabel: string;
+  collapseLabel: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const empty = !value.trim();
+  const [open, setOpen] = React.useState(empty);
+  if (open || empty) {
+    return (
+      <Stack direction="row" spacing={0.5} alignItems="flex-start" sx={{ mt: 1 }}>
+        <TextField
+          size="small"
+          fullWidth
+          multiline
+          autoFocus={!empty}
+          label={label}
+          value={value}
+          error={empty}
+          onChange={(e) => onChange(e.target.value)}
+          inputProps={{ "data-testid": `factor-override-rationale-${factorId}` }}
+        />
+        {!empty && (
+          <Tooltip title={collapseLabel}>
+            <IconButton size="small" onClick={() => setOpen(false)} data-testid={`factor-override-rationale-collapse-${factorId}`}>
+              <ExpandLessIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Stack>
+    );
+  }
+  return (
+    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1, minWidth: 0 }}>
+      <Tooltip title={<span style={{ whiteSpace: "pre-wrap" }}>{value}</span>}>
+        <Typography
+          variant="body2"
+          noWrap
+          sx={{ flex: 1, minWidth: 0, cursor: "pointer" }}
+          onClick={() => setOpen(true)}
+          data-testid={`factor-override-rationale-line-${factorId}`}
+        >
+          <Typography component="span" variant="caption" color="text.secondary">
+            {label}:{" "}
+          </Typography>
+          {value}
+        </Typography>
+      </Tooltip>
+      <Tooltip title={expandLabel}>
+        <IconButton size="small" onClick={() => setOpen(true)} data-testid={`factor-override-rationale-expand-${factorId}`}>
+          <ExpandMoreIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Stack>
   );
 }
 

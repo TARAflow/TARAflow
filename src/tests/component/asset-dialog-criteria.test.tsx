@@ -67,6 +67,19 @@ describe("AssetDialog with an asset without ratings (imported component)", () =>
     expect(screen.queryAllByText(key).length).toBeGreaterThan(0);
   });
 
+  it("people, physical and infrastructure assets always show safety, with where it comes from (manual test 2026-11-08)", () => {
+    const config = { ...DEFAULT_ASSET_CONFIGURATION, impactCriteria: [...criteria, { id: "safety", weight: 0.1 }] } as typeof DEFAULT_ASSET_CONFIGURATION;
+    const key = `${IMPACT_CRITERION_KEY_PREFIX}.safety.name`;
+    const person = {
+      id: "hu1", displayId: "HU-001", name: "Building occupants", assetGroup: "human", properties: {},
+      impactRatings: [], linkedDFDElements: [],
+      securityGoals: ["C", "I", "A", "N", "AuthZ", "AuthN", "Acc"].map((type) => ({ type, level: "none", formalDescription: "" })),
+    } as unknown as Asset;
+    render(<AssetDialog open asset={person} configuration={config} onSave={() => {}} onClose={() => {}} />);
+    expect(screen.queryAllByText(key).length).toBeGreaterThan(0);
+    expect(screen.getByTestId("asset-safety-source-hint").textContent).toContain("hazard items");
+  });
+
   it("×n (I5): above one unit a hint asks whether the impact covers all units failing together", () => {
     const asset = {
       id: "cmp1", displayId: "SDC1:DA-001", name: "smoke meas data", assetGroup: "data", properties: {},

@@ -50,7 +50,7 @@ describe("ImportedThreatsSection", () => {
     expect(section.textContent).toContain("Threats from imported components (3) — read-only");
     fireEvent.click(screen.getByText(/Threats from imported components/));
     expect(screen.getByTestId("imported-threats-i1").textContent).toContain("SD1:P3-T-1");
-    expect(screen.getByTestId("imported-threats-i1").textContent).toContain("not_relevant");
+    expect(screen.getByTestId("imported-threats-i1").textContent).toContain("not relevant");
     expect(screen.getByTestId("imported-threats-i2").textContent).toContain("SD2 · Smoke Detector");
     expect(section.querySelector("button[aria-label='delete']")).toBeNull();
   });
@@ -79,7 +79,7 @@ describe("ImportedThreatsSection", () => {
     expect(onOverride).toHaveBeenCalledWith("inst", "kb", { relevance: "relevant", rationale: "Runs over the plant network", componentRelevance: "not_relevant" });
   });
 
-  it("an override shows beside the component's decision, can be removed, and is marked to review when stale", () => {
+  it("an override shows beside the component's decision, can be removed, and is marked to review when stale", async () => {
     const onOverride = vi.fn();
     const boundary = threat("b1", "SD1:DF7-T-1", "relevant");
     render(
@@ -91,7 +91,11 @@ describe("ImportedThreatsSection", () => {
       />,
     );
     fireEvent.click(screen.getByText(/Threats from imported components/));
-    expect(screen.getByTestId("imported-threat-override-kb").textContent).toContain("machine: relevant");
+    // one chip: the machine's decision, the component's in the tooltip (manual test 2026-11-08)
+    expect(screen.getByTestId("imported-threat-override-kb").textContent).toBe("relevant");
+    expect(screen.getByTestId("imported-threat-kb").textContent).not.toContain("machine:");
+    fireEvent.mouseOver(screen.getByTestId("imported-threat-override-kb"));
+    expect(await screen.findByText(/Overridden by this machine \(d\): network — the component rated it not relevant/)).toBeTruthy();
     expect(screen.getByTestId("imported-threat-kb").textContent).toContain("to review");
     fireEvent.click(screen.getByTestId("imported-threat-edit-kb"));
     fireEvent.click(screen.getByTestId("imported-threat-override-remove"));
@@ -163,7 +167,7 @@ describe("ImportedThreatsSection", () => {
       expect(row.textContent).toContain("DF7-T-1");
       expect(row.textContent).not.toContain("SD1:DF7-T-1");
       expect(screen.getByTestId("imported-component-threat-k1-i1").textContent).toContain("relevant");
-      expect(screen.getByTestId("imported-component-threat-k1-i2").textContent).toContain("machine: not_relevant");
+      expect(screen.getByTestId("imported-component-threat-override-k1-i2").textContent).toBe("not relevant");
       // per-instance tables are not shown for such a component
       expect(screen.queryByTestId("imported-threats-i1")).toBeNull();
     });

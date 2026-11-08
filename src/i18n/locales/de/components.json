@@ -87,7 +87,7 @@
       "perInstance": "Relevanz pro Instanz",
       "instances": "— Instanzen: {{list}}",
       "templateText": "(Katalogtext)",
-      "overridden": "Maschine: {{relevance}}",
+      "overriddenTooltip": "Von dieser Maschine überstimmt ({{date}}): {{rationale}} — die Komponente hat sie als {{component}} bewertet.",
       "toReview": "zur Prüfung — die Komponente hat ihre Entscheidung geändert",
       "editOverride": "Ändern",
       "override": "Überstimmen",

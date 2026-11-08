@@ -343,6 +343,7 @@
         "basicInfo": "Grundinformationen",
         "impactRatings": "Impact-Bewertungen",
         "unitsHint": "×{{count}}: Dieses Asset steht für {{count}} gleiche Einheiten. Dieselbe Schwachstelle trifft alle gleichzeitig — deckt der Impact den gleichzeitigen Ausfall aller Einheiten ab?",
+        "safetySourceHint": "Abgeleitet aus Safety-Annotationen im DFD oder aus Hazard-Items (Safety-relevante Projekte). Ohne beides: oben über „Manual safety impact override“ setzen.",
         "overall": "Gesamt",
         "overallImpactTooltip": "Gesamt: {{label}}",
         "securityGoals": "Schutzziele (CIANAAA)",

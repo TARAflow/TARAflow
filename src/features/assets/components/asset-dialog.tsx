@@ -116,6 +116,9 @@ export function withAllCriteria(
   return [...configured, ...own.filter((r) => !ids.has(r.criterionId))];
 }
 
+/** Asset groups whose harm is what safety is about — the safety card always shows. */
+const SAFETY_CENTRAL_GROUPS: ReadonlySet<string> = new Set(["human", "physical", "infrastructure"]);
+
 interface AssetDialogProps {
   open: boolean;
   asset: Asset;
@@ -1070,12 +1073,16 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   // safety impact, no manual override) only confused —
                   // hidden until there is something to show or set
                   // (manual test 2026-11-08); the override checkbox above
-                  // brings it back.
+                  // brings it back. People, physical and infrastructure
+                  // assets always show it: harm to them is what safety is
+                  // about — with where the value comes from.
+                  const safetyCentral = SAFETY_CENTRAL_GROUPS.has(editedAsset.assetGroup);
                   if (
                     rating.criterionId === SAFETY_CRITERION_ID &&
                     !isPhysicalManual &&
                     !editedAsset.physicalImpact &&
-                    rating.value !== "na"
+                    rating.value !== "na" &&
+                    !safetyCentral
                   ) {
                     return null;
                   }
@@ -1111,6 +1118,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                           </Tooltip>
                         </Stack>
                         {rating.criterionId === SAFETY_CRITERION_ID ? (
+                          <>
                           <SafetySeveritySelect
                             manual={isPhysicalManual}
                             value={
@@ -1121,6 +1129,21 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                             derived={editedAsset.physicalImpact}
                             onChange={handleSafetySeverityChange}
                           />
+                          {!isPhysicalManual && !editedAsset.physicalImpact && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                              sx={{ mt: 0.5 }}
+                              data-testid="asset-safety-source-hint"
+                            >
+                              {t("tabs.assets.dialog.safetySourceHint", {
+                                defaultValue:
+                                  "Derived from safety annotations in the DFD or from hazard items (safety-relevant projects). Without either: set it with the manual safety impact override above.",
+                              })}
+                            </Typography>
+                          )}
+                          </>
                         ) : (
                         <Select
                           value={

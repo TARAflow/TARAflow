@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–35; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,16 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 37 done (2026-11-08, manual test steps 6–9):* three details. (1) Asset dialog: people,
+physical and infrastructure assets always show the safety card (harm to them is what safety is
+about), with where the value comes from — safety annotations in the DFD or hazard items in
+safety-relevant projects, else the manual override; other assets keep hiding it while it cannot be
+set (patch 29). (2) Threats tab: an overridden imported threat showed "machine: not_relevant" beside a
+struck-through "relevant" — now one chip with the relevance that counts (translated): the
+component's outlined, the machine's override filled with an edit mark and a tooltip naming the
+date, the rationale and the component's decision. (3) Risk dialog: the rationale of an overridden
+component factor is collapsed to exactly one line when written (whole text in a tooltip), expanded
+to edit; empty (it is required) it opens expanded.
 *Patch 35 done (2026-11-08, review of 32–34):* copying ratings takes only the machine's decisions:
 factor ratings with source "manual" (incl. the overrides of prefilled factors with their rationale)
 or without a source. Derived values ("derived" from the Asset Tab or the DFD — e.g. the EN 50742

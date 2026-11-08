@@ -39,6 +39,7 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import type {
   ImportedRelevanceDecision,
   ImportedThreatRow,
@@ -152,22 +153,7 @@ export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = ({ 
                 </TableCell>
                 <TableCell>
                   <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" useFlexGap>
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      label={row.componentRelevance}
-                      sx={row.override ? { textDecoration: "line-through", opacity: 0.6 } : undefined}
-                    />
-                    {row.override && (
-                      <Tooltip title={row.override.rationale}>
-                        <Chip
-                          size="small"
-                          color="primary"
-                          label={t("components.threats.overridden", { ...NS, relevance: row.override.relevance, defaultValue: "machine: {{relevance}}" })}
-                          data-testid={`imported-threat-override-${row.threatKey}`}
-                        />
-                      </Tooltip>
-                    )}
+                    <RelevanceChip row={row} testId={`imported-threat-override-${row.threatKey}`} />
                     {row.stale && (
                       <Chip
                         size="small"
@@ -234,6 +220,34 @@ export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = ({ 
         )}
       </AccordionDetails>
     </Accordion>
+  );
+};
+
+/**
+ * The relevance that counts, one chip (manual test 2026-11-08 — "machine:
+ * not_relevant" beside a struck-through "relevant" confused): the
+ * component's decision as an outlined chip; overridden by the machine, the
+ * machine's decision filled with an edit mark, the tooltip telling the
+ * component's decision and the rationale.
+ */
+const RelevanceChip: React.FC<{ row: ImportedThreatRow; testId?: string }> = ({ row, testId }) => {
+  const { t } = useTranslation();
+  const label = (r: ThreatRelevance) => t(`tabs.threats.eval.${r}`, { defaultValue: r.replace("_", " ") });
+  if (!row.override) {
+    return <Chip size="small" variant="outlined" label={label(row.componentRelevance)} />;
+  }
+  return (
+    <Tooltip
+      title={t("components.threats.overriddenTooltip", {
+        ...NS,
+        component: label(row.componentRelevance),
+        rationale: row.override.rationale,
+        date: row.override.date,
+        defaultValue: "Overridden by this machine ({{date}}): {{rationale}} — the component rated it {{component}}.",
+      })}
+    >
+      <Chip size="small" color="primary" icon={<EditNoteIcon />} label={label(row.override.relevance)} data-testid={testId} />
+    </Tooltip>
   );
 };
 
@@ -367,21 +381,7 @@ const ComponentThreatsTable: React.FC<{
                             ↔ {row.counterpart}
                           </Typography>
                         )}
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          label={row.componentRelevance}
-                          sx={row.override ? { textDecoration: "line-through", opacity: 0.6 } : undefined}
-                        />
-                        {row.override && (
-                          <Tooltip title={row.override.rationale}>
-                            <Chip
-                              size="small"
-                              color="primary"
-                              label={t("components.threats.overridden", { ...NS, relevance: row.override.relevance, defaultValue: "machine: {{relevance}}" })}
-                            />
-                          </Tooltip>
-                        )}
+                        <RelevanceChip row={row} testId={`imported-component-threat-override-${key}-${group.key}`} />
                         {row.stale && (
                           <Chip
                             size="small"

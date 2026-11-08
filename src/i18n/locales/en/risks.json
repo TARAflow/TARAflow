@@ -276,6 +276,8 @@
         "factorDerivedComponentTooltip": "Taken over from the imported component's rating (intrinsic factor)",
         "factorOverriddenTooltipComponent": "Component's value: {{value}}. Click ↺ to reset.",
         "factorOverrideRationale": "Why this differs from the component's rating (required)",
+        "rationaleExpand": "Edit rationale",
+        "rationaleCollapse": "Collapse",
         "apLabel": "Attack Potential (AP)",
         "apNotDetermined": "Not yet determined",
         "srslTablesToggle": "Show norm reference tables",
