@@ -129,6 +129,14 @@ describe("groups, references, merge", () => {
     expect(groups[0].threats.length).toBeGreaterThan(0);
   });
 
+  it("instances of one component name their component — shown together in the Threats tab (I5)", () => {
+    const two = machine([{ id: "inst-1", prefix: "SD1" }, { id: "inst-2", prefix: "SD2" }]);
+    const groups = componentThreatGroups(two);
+    expect(groups.map((g) => g.prefix)).toEqual(["SD1", "SD2"]);
+    expect(new Set(groups.map((g) => g.componentKey)).size).toBe(1);
+    expect(groups[0].componentLabel).toBe("Smoke Detector");
+  });
+
   it("each row names its method — the Threats tab shows the active one (manual test 2026-11-07)", () => {
     const rows = componentThreatGroups(m)[0].rows;
     const data = componentThreatData(m)!;

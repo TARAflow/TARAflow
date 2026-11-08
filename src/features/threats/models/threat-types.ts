@@ -976,6 +976,11 @@ export interface ThreatProjectData {
     threats: Threat[];
     /** Per threat: the component's decision, boundary flow, override (I3). */
     rows?: readonly ImportedThreatRow[];
+    /** The component of the instance — its instances are shown together (I5). */
+    componentKey?: string;
+    componentLabel?: string;
+    /** Instance prefix, e.g. "SD1". */
+    prefix?: string;
   }[];
   lastModified: string;
 }

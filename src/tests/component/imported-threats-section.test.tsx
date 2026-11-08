@@ -2,7 +2,8 @@
 // Multi-project TARA, patch 14: the Threats tab shows the threats of
 // imported components read-only, grouped per instance.
 // Manual test 2026-11-07: only the active method's threats; a row opens the
-// threat read-only.
+// threat read-only. I5 (patch 31): a component with several instances shows
+// each threat once with a line per instance.
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -138,5 +139,61 @@ describe("ImportedThreatsSection", () => {
     fireEvent.click(screen.getByTestId("imported-threat-edit-kb"));
     expect(onOpen).not.toHaveBeenCalled();
     expect(screen.getByTestId("imported-threat-override-dialog")).toBeTruthy();
+  });
+
+  describe("several instances of one component (I5)", () => {
+    const copy = (prefix: string, id: string, relevance: string) => threat(`${prefix}-${id}`, `${prefix}:${id}`, relevance);
+    const rowsFor = (prefix: string, overrideFirst = false) => [
+      { threat: copy(prefix, "DF7-T-1", "relevant"), threatKey: "k1", componentRelevance: "relevant", boundary: true, method: "per-element",
+        ...(overrideFirst ? { override: { relevance: "not_relevant", rationale: "inside the cabinet", date: "d" } } : {}) },
+      { threat: copy(prefix, "P3-T-1", "not_relevant"), threatKey: "k2", componentRelevance: "not_relevant", boundary: false, method: "per-element" },
+    ];
+    const groups = [
+      { key: "i1", label: "SD1 · Smoke Detector", prefix: "SD1", componentKey: "imp", componentLabel: "Smoke Detector", threats: [], rows: rowsFor("SD1") },
+      { key: "i2", label: "SD2 · Smoke Detector ×2", prefix: "SD2", componentKey: "imp", componentLabel: "Smoke Detector", threats: [], rows: rowsFor("SD2", true) },
+    ] as never;
+
+    it("each threat once, without the prefix, a line per instance with its decision", () => {
+      render(<ImportedThreatsSection groups={groups} method="per-element" onOverrideRelevance={vi.fn()} />);
+      expect(screen.getByTestId("imported-threats-section").textContent).toContain("(2)");
+      fireEvent.click(screen.getByText(/Threats from imported components/));
+      const table = screen.getByTestId("imported-component-imp");
+      expect(table.textContent).toContain("instances: SD1 · Smoke Detector, SD2 · Smoke Detector ×2");
+      const row = screen.getByTestId("imported-component-threat-k1");
+      expect(row.textContent).toContain("DF7-T-1");
+      expect(row.textContent).not.toContain("SD1:DF7-T-1");
+      expect(screen.getByTestId("imported-component-threat-k1-i1").textContent).toContain("relevant");
+      expect(screen.getByTestId("imported-component-threat-k1-i2").textContent).toContain("machine: not_relevant");
+      // per-instance tables are not shown for such a component
+      expect(screen.queryByTestId("imported-threats-i1")).toBeNull();
+    });
+
+    it("the override acts on its instance; boundary threats only", () => {
+      const onOverride = vi.fn();
+      render(<ImportedThreatsSection groups={groups} method="per-element" onOverrideRelevance={onOverride} />);
+      fireEvent.click(screen.getByText(/Threats from imported components/));
+      expect(screen.queryByTestId("imported-component-threat-edit-k2-i1")).toBeNull();
+      fireEvent.click(screen.getByTestId("imported-component-threat-edit-k1-i2"));
+      fireEvent.click(screen.getByTestId("imported-threat-override-remove"));
+      expect(onOverride).toHaveBeenCalledWith("i2", "k1", null);
+    });
+
+    it("a click opens the threat read-only, browsing the component's threats once", () => {
+      const onOpen = vi.fn();
+      render(<ImportedThreatsSection groups={groups} method="per-element" onOpenThreat={onOpen} />);
+      fireEvent.click(screen.getByText(/Threats from imported components/));
+      fireEvent.click(screen.getByTestId("imported-component-threat-k2"));
+      const [group, threats, index] = onOpen.mock.calls[0];
+      expect(group).toEqual({ key: "i1", label: "SD1 · Smoke Detector" });
+      expect(threats.map((t: { id: string }) => t.id)).toHaveLength(2);
+      expect(threats[index].id).toBe("SD1-P3-T-1");
+    });
+
+    it("a component with one instance keeps the instance table", () => {
+      render(<ImportedThreatsSection groups={[(groups as never[])[0]]} method="per-element" />);
+      fireEvent.click(screen.getByText(/Threats from imported components/));
+      expect(screen.getByTestId("imported-threats-i1")).toBeTruthy();
+      expect(screen.queryByTestId("imported-component-imp")).toBeNull();
+    });
   });
 });

@@ -51,6 +51,12 @@ export interface ComponentThreatRow {
 export interface ComponentThreatGroup {
   /** Instance id. */
   key: string;
+  /** Import id — the instances of one component are shown together (I5). */
+  componentKey: string;
+  /** Component name. */
+  componentLabel: string;
+  /** Instance prefix. */
+  prefix: string;
   /** "SD1 · Smoke Detector" */
   label: string;
   threats: Threat[];
@@ -198,7 +204,17 @@ export function componentThreatGroups(project: Pick<Project, "components">): Com
     const t = instanceTables(instance, imported);
     const threats = t.rows.map((r) => r.threat);
     return threats.length > 0
-      ? [{ key: instance.id, label: instanceLabel(instance, imported.name), threats, rows: t.rows }]
+      ? [
+          {
+            key: instance.id,
+            componentKey: imported.id,
+            componentLabel: imported.name,
+            prefix: instance.prefix,
+            label: instanceLabel(instance, imported.name),
+            threats,
+            rows: t.rows,
+          },
+        ]
       : [];
   });
 }

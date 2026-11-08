@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–30; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–31; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,13 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 31 done (2026-11-08, I5):* the Threats tab groups the imported threats per component. A
+component with several instances shows each threat once — id and element without the instance
+prefix — with a line per instance: its relevance (the component's, struck through when overridden),
+the machine's override with its rationale, "to review", and the override button on boundary-flow
+threats acting on that instance. A click opens the threat read-only (the first instance's copy,
+browsing the component's threats once). A component with one instance keeps the instance table. The
+read model names the component of every instance group (componentKey, componentLabel, prefix).
 *Patch 30 done (2026-11-08, manual test, I5):* quantity and the "imported already" question. An
 instance can stand for identical units in the same installation context (`ComponentInstance.quantity`,
 absent = 1): one child page, one set of threats and risks, the quantity in the instance labels
