@@ -136,6 +136,12 @@ export interface ComponentPathOverlay {
   /** Id of the tree in the component (snapshot). */
   treeKey: string;
   pathKey: string;
+  /**
+   * AND combinations (I6): the leaf (step) this window belongs to — the
+   * steps of one combination often sit in different contexts (one over the
+   * network, one with physical access). Absent: the whole path.
+   */
+  leafId?: string;
   windowOfOpportunity: "unlimited" | "easy" | "moderate" | "difficult";
   date: string;
 }

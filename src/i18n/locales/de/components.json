@@ -102,6 +102,7 @@
       "intro": "Das Window of Opportunity hängt davon ab, wo die Komponente in dieser Maschine sitzt — pro Pfad bewerten. Ein unbewerteter Pfad hat keine Machbarkeit und erzeugt kein Risiko; der Wert der Komponente ist nur ein Vorschlag.",
       "tree": "Baum",
       "path": "Pfad",
+      "step": "Schritt: {{step}}",
       "component": "Komponente",
       "machine": "Diese Maschine",
       "feasibility": "Machbarkeit",

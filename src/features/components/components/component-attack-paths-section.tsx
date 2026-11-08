@@ -36,6 +36,9 @@ export interface ComponentAttackPathView {
   treeName: string;
   pathKey: string;
   path: string[];
+  /** AND combination: the step this row rates (one row per step, own window). */
+  leafId?: string;
+  stepName?: string;
   componentWindow?: PathWindow;
   machineWindow?: PathWindow;
   feasibility?: string;
@@ -44,7 +47,7 @@ export interface ComponentAttackPathView {
 
 export interface ComponentAttackPathsSectionProps {
   groups: readonly { key: string; label: string; paths: readonly ComponentAttackPathView[] }[];
-  onSetWindow: (instanceKey: string, treeKey: string, pathKey: string, window: PathWindow | null) => void;
+  onSetWindow: (instanceKey: string, treeKey: string, pathKey: string, window: PathWindow | null, leafId?: string) => void;
 }
 
 export const ComponentAttackPathsSection: React.FC<ComponentAttackPathsSectionProps> = ({ groups, onSetWindow }) => {
@@ -87,9 +90,19 @@ export const ComponentAttackPathsSection: React.FC<ComponentAttackPathsSectionPr
               </TableHead>
               <TableBody>
                 {g.paths.map((p) => (
-                  <TableRow key={`${p.treeKey}|${p.pathKey}`} data-testid={`component-path-${p.pathKey}`}>
+                  <TableRow
+                    key={`${p.treeKey}|${p.pathKey}|${p.leafId ?? ""}`}
+                    data-testid={`component-path-${p.pathKey}${p.leafId ? `-${p.leafId}` : ""}`}
+                  >
                     <TableCell sx={{ fontSize: "0.8rem" }}>{p.treeName}</TableCell>
-                    <TableCell sx={{ fontSize: "0.8rem" }}>{p.path.slice(1).join(" → ")}</TableCell>
+                    <TableCell sx={{ fontSize: "0.8rem" }}>
+                      {p.path.slice(1).join(" → ")}
+                      {p.stepName && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {t("components.paths.step", { step: p.stepName, defaultValue: "step: {{step}}" })}
+                        </Typography>
+                      )}
+                    </TableCell>
                     <TableCell sx={{ fontSize: "0.8rem" }}>{p.componentWindow ?? "–"}</TableCell>
                     <TableCell>
                       {p.ratable ? (
@@ -98,8 +111,8 @@ export const ComponentAttackPathsSection: React.FC<ComponentAttackPathsSectionPr
                           size="small"
                           value={p.machineWindow ?? ""}
                           displayEmpty
-                          onChange={(e) => onSetWindow(g.key, p.treeKey, p.pathKey, (e.target.value as PathWindow) || null)}
-                          inputProps={{ "data-testid": `component-path-window-${p.pathKey}` }}
+                          onChange={(e) => onSetWindow(g.key, p.treeKey, p.pathKey, (e.target.value as PathWindow) || null, p.leafId)}
+                          inputProps={{ "data-testid": `component-path-window-${p.pathKey}${p.leafId ? `-${p.leafId}` : ""}` }}
                           sx={{ minWidth: 140 }}
                         >
                           <MenuItem value="">
@@ -116,8 +129,8 @@ export const ComponentAttackPathsSection: React.FC<ComponentAttackPathsSectionPr
                             size="small"
                             variant="text"
                             title={t("components.paths.adoptTitle", { defaultValue: "Take the component's value as this machine's rating" })}
-                            onClick={() => onSetWindow(g.key, p.treeKey, p.pathKey, p.componentWindow!)}
-                            data-testid={`component-path-adopt-${p.pathKey}`}
+                            onClick={() => onSetWindow(g.key, p.treeKey, p.pathKey, p.componentWindow!, p.leafId)}
+                            data-testid={`component-path-adopt-${p.pathKey}${p.leafId ? `-${p.leafId}` : ""}`}
                           >
                             {t("components.paths.adopt", { value: p.componentWindow, defaultValue: "Take {{value}}" })}
                           </Button>

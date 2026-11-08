@@ -45,11 +45,11 @@ describe("ComponentAttackPathsSection", () => {
     const select = screen.getByTestId("component-path-window-p1").parentElement!.querySelector('[role="combobox"]')!;
     await act(async () => { fireEvent.mouseDown(select); });
     await act(async () => { fireEvent.click(within(screen.getByRole("listbox")).getByText("unlimited")); });
-    expect(onSet).toHaveBeenCalledWith("inst", "t1", "p1", "unlimited");
+    expect(onSet).toHaveBeenCalledWith("inst", "t1", "p1", "unlimited", undefined);
     const second = screen.getByTestId("component-path-window-p2").parentElement!.querySelector('[role="combobox"]')!;
     await act(async () => { fireEvent.mouseDown(second); });
     await act(async () => { fireEvent.click(within(screen.getByRole("listbox")).getByText(/not rated/)); });
-    expect(onSet).toHaveBeenLastCalledWith("inst", "t1", "p2", null);
+    expect(onSet).toHaveBeenLastCalledWith("inst", "t1", "p2", null, undefined);
   });
 
   it("an unrated path offers the component's value; taking it over is explicit", () => {
@@ -59,10 +59,30 @@ describe("ComponentAttackPathsSection", () => {
     expect(screen.getByTestId("component-path-p1").textContent).toContain("not rated — no risk");
     expect(onSet).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId("component-path-adopt-p1"));
-    expect(onSet).toHaveBeenCalledWith("inst", "t1", "p1", "difficult");
+    expect(onSet).toHaveBeenCalledWith("inst", "t1", "p1", "difficult", undefined);
     // rated by the machine: no offer; quick mode: nothing to take over
     expect(screen.queryByTestId("component-path-adopt-p2")).toBeNull();
     expect(screen.queryByTestId("component-path-adopt-p3")).toBeNull();
+  });
+
+  it("AND combination (I6): a row per step with its name; rating a step passes its leaf", async () => {
+    const onSet = vi.fn();
+    const steps = [
+      {
+        key: "inst",
+        label: "HL1 · Headlamp",
+        paths: [
+          { treeKey: "t3", treeName: "AND tree", pathKey: "c1", path: ["root", "Remote", "A + B"], leafId: "la", stepName: "A", componentWindow: "difficult" as const, ratable: true },
+          { treeKey: "t3", treeName: "AND tree", pathKey: "c1", path: ["root", "Remote", "A + B"], leafId: "lb", stepName: "B", componentWindow: "moderate" as const, ratable: true },
+        ],
+      },
+    ];
+    render(<ComponentAttackPathsSection groups={steps} onSetWindow={onSet} />);
+    fireEvent.click(screen.getByText(/Attack paths from imported components/));
+    expect(screen.getByTestId("component-path-c1-la").textContent).toContain("step: A");
+    expect(screen.getByTestId("component-path-c1-lb").textContent).toContain("step: B");
+    fireEvent.click(screen.getByTestId("component-path-adopt-c1-lb"));
+    expect(onSet).toHaveBeenCalledWith("inst", "t3", "c1", "moderate", "lb");
   });
 
   it("nothing without paths", () => {

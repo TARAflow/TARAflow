@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–33; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–34; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,14 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 34 done (2026-11-08, I6):* window of opportunity per step of an AND combination. The
+steps of one combination often sit in different contexts (one over the network, one with physical
+access) — the window is exactly the factor that varies per step. `ComponentPathOverlay.leafId`
+gives a step its own window; a path-wide entry (earlier overlays) still applies to every step
+without its own. The combination is rated once every step has a window: the sum over the steps'
+potentials with their windows, banded with the machine's configuration; until then it is unrated
+(`CMP_PATH_WINDOW_UNRATED`). The rating list shows one row per step (its name, the component's
+window of that step as the suggestion); copying ratings carries the step windows along.
 *Patch 33 done (2026-11-08, I5):* copy ratings between instances. The multiprocess's details panel
 offers "Copy ratings from another instance…" when another instance of the same import exists
 (threat keys, path keys and factors match only within one state). Options: decisions (likelihood
@@ -923,4 +931,5 @@ All decided with the user on 2026-11-04 (D5) and 2026-11-07 (all others).
 | I3 | Review 2026-11-07 | **Relevance of threats on boundary flows.** Per-element flow threats on a boundary flow belong to the component (the flow's properties come from it), but whether tampering or information disclosure on it is relevant depends on where the flow runs in the machine (inside the cabinet or over the plant network). The component judged it with its own EE, without the machine context; a component `not_relevant` would make a risk vanish in the machine silently. | **Decided (user 2026-11-07): the machine may override.** (1) Only threats on **boundary flows** — threats on component-internal elements stay read-only (otherwise the machine re-analyses the internals and the model tips over). (2) **Both directions**, each with a mandatory rationale (raising to relevant is the common case; lowering is legitimate too, e.g. the flow runs entirely inside a locked cabinet). (3) The component's decision stays visible beside the override. (4) Stored per instance in `project.components`, detected by the diff-service (commit gate). (5) **Re-check on update:** if the component later changes its relevance decision for an overridden threat, the override does not simply carry on — the update preview marks it "to review" like a changed threat. (6) **Feedback channel:** the report gets per component a short section "Deviations from the component's assessment" that can be handed back to the platform team — the source for assumptions (AoU) in its next revision. Rejected alternative (AoU only): the platform team cannot foresee every installation context under n:m reuse, and a forgotten assumption is the worst case. |
 | I4 | Manual test 2026-11-07 | **Top page shows the multiprocess alone.** The component's case and trust zone were only on the child page; the machine's top page lost the visual context a hand-drawn leveled DFD has (the analysis was right: the child page's boundaries are inherited additively). | **Decided (user 2026-11-07): shells on the parent page too.** Boundaries every part of the component is inside are defined around the multiprocess on the parent page, copies on the child page (§6.2, patch 19). Inner boundaries stay on the child page. |
 | I5 | Manual test 2026-11-08 | **Several instances of one component.** Every instance brings its own child page and its own imported threats and risks; identical units in the same context only multiply the same analysis (noise in register and report, ratings repeated n times), units in different contexts really differ (impact on other machine assets, context factors, overrides, window of opportunity). | **Decided (user 2026-11-08, reviewed by the second instance): both, chosen at insertion.** Same context → one instance with a quantity "×n" (patch 30); different context → separate instances as before, with the import asking first in a dialog of its own (patch 30), the Threats tab grouping the imported threats per component with a row per instance (patch 31) and an explicit one-off "copy ratings to other instances" (patch 32, no live coupling, no inheritance level). Report per component with only the deviations between instances: phase 6. |
+| I6 | Review 2026-11-08 | **One window for all steps of an AND combination.** Patch 27 applied the machine's window of opportunity to every leaf of a combination; the steps often differ exactly in that factor. | **Decided (user 2026-11-08): per step.** An overlay per step (pathKey + leaf id), the path-wide entry as the fallback for steps without one; the combination is rated when every step has a window (patch 34). |
 

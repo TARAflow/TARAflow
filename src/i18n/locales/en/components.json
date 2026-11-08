@@ -102,6 +102,7 @@
       "intro": "The window of opportunity depends on where the component sits in this machine — rate it per path. An unrated path has no feasibility and makes no risk; the component's value is a suggestion only.",
       "tree": "Tree",
       "path": "Path",
+      "step": "step: {{step}}",
       "component": "Component",
       "machine": "This machine",
       "feasibility": "Feasibility",

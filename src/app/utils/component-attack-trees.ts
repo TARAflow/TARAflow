@@ -53,6 +53,7 @@ import { componentInstanceTfId, instanceAssetId } from "features/dfd";
 import type { Project } from "../models/project-types";
 import { buildAttackPathThreatReferences } from "./build-attack-path-threat-references";
 import { instanceLabel } from "../services/component-import/instance-quantity";
+import { overlayKey } from "../services/component-import/path-overlays";
 
 type Components = NonNullable<Project["components"]>;
 type Instance = Components["instances"][number];
@@ -83,44 +84,60 @@ type Path = NonNullable<AttackTree["pathAnalysis"]>["paths"][number];
 
 type Tree = NonNullable<NonNullable<Import["snapshot"]["attackTrees"]>["trees"]>[number];
 
+type Leaf = { name: string; factors: AttackPotentialFactors | undefined };
+
 /** The leaves of a tree by node id (parsed from its DSL; node ids are deterministic). */
-function leavesOf(tree: Tree): Map<string, AttackPotentialFactors | undefined> {
-  const out = new Map<string, AttackPotentialFactors | undefined>();
+function leavesOf(tree: Tree): Map<string, Leaf> {
+  const out = new Map<string, Leaf>();
   const ast = parseAttackTree(tree.dsl ?? "", tree.configuration?.evaluationMethod ?? "simple").ast;
   const walk = (node: NonNullable<typeof ast>) => {
-    if (node.children.length === 0) out.set(node.id, node.evaluation?.attackPotential);
+    if (node.children.length === 0) out.set(node.id, { name: node.name, factors: node.evaluation?.attackPotential });
     node.children.forEach(walk);
   };
   if (ast) walk(ast);
   return out;
 }
 
+/** One step a path is rated from: the path itself (leafId absent) or a leaf of an AND combination. */
+type Step = { leafId?: string; name?: string; factors: AttackPotentialFactors };
+
 /**
- * The factor breakdowns a path is rated from: its own (one leaf), or those of
+ * The steps a path is rated from: its own factor breakdown (one leaf), or
  * every leaf of an AND combination; null when a leaf has none (quick mode).
  */
-function pathLeafFactors(
-  path: Path,
-  leaves: () => Map<string, AttackPotentialFactors | undefined>,
-): AttackPotentialFactors[] | null {
-  if (path.attackPotentialFactors) return [path.attackPotentialFactors];
+function pathSteps(path: Path, leaves: () => Map<string, Leaf>): Step[] | null {
+  if (path.attackPotentialFactors) return [{ factors: path.attackPotentialFactors }];
   if (!path.combination) return null;
   const map = leaves();
-  const factors = path.nodeIds.filter((id) => map.has(id)).map((id) => map.get(id));
-  return factors.length > 0 && factors.every((f): f is AttackPotentialFactors => !!f) ? factors : null;
+  const leafIds = path.nodeIds.filter((id) => map.has(id));
+  if (leafIds.length === 0 || leafIds.some((id) => !map.get(id)!.factors)) return null;
+  return leafIds.map((id) => ({ leafId: id, name: map.get(id)!.name, factors: map.get(id)!.factors! }));
 }
 
-/** A path as the machine rates it: with its window of opportunity, or unrated. */
+/**
+ * The machine's window per step: the step's own overlay (AND combination,
+ * review 2026-11-08 — steps often sit in different contexts), else the
+ * path's; undefined while one step has none.
+ */
+function stepWindows(
+  steps: Step[],
+  windowOf: (leafId?: string) => WindowOfOpportunity | undefined,
+): WindowOfOpportunity[] | undefined {
+  const windows = steps.map((x) => (x.leafId ? (windowOf(x.leafId) ?? windowOf(undefined)) : windowOf(undefined)));
+  return windows.every((w): w is WindowOfOpportunity => !!w) ? windows : undefined;
+}
+
+/** A path as the machine rates it: with its windows of opportunity, or unrated. */
 function machinePath(
   path: Path,
-  window: WindowOfOpportunity | undefined,
-  leafFactors: AttackPotentialFactors[] | null,
+  steps: Step[] | null,
+  windows: WindowOfOpportunity[] | undefined,
   config: FeasibilityConfiguration,
 ): Path {
-  if (!window || !leafFactors) {
+  if (!steps || !windows) {
     return { ...path, attackPotential: undefined, feasibilityLevel: undefined, likelihoodLevel: undefined };
   }
-  const rated = leafFactors.map((f) => ({ ...f, windowOfOpportunity: window }));
+  const rated = steps.map((x, i) => ({ ...x.factors, windowOfOpportunity: windows[i] }));
   // one leaf: its potential; an AND combination: the sum over its leaves
   const attackPotential = rated.reduce((sum, f) => sum + computeAttackPotential(f, config), 0);
   const level = bandAttackPotential(attackPotential, config);
@@ -134,16 +151,21 @@ function machinePath(
 }
 
 /** Lazily parsed leaves per tree — only AND combinations need them. */
-function lazyLeaves(tree: Tree): () => Map<string, AttackPotentialFactors | undefined> {
-  let cache: Map<string, AttackPotentialFactors | undefined> | undefined;
+function lazyLeaves(tree: Tree): () => Map<string, Leaf> {
+  let cache: Map<string, Leaf> | undefined;
   return () => (cache ??= leavesOf(tree));
+}
+
+/** The machine's window of a path or one of its steps. */
+function overlayLookup(instance: Instance, treeKey: string, pathKey: string) {
+  const byKey = new Map((instance.pathOverlays ?? []).map((o) => [overlayKey(o), o.windowOfOpportunity]));
+  return (leafId?: string) => byKey.get(overlayKey({ treeKey, pathKey, leafId }));
 }
 
 /** The component's trees of one instance: ids remapped, rated by the machine. */
 function instanceTrees(instance: Instance, imported: Import, config: FeasibilityConfiguration): AttackTree[] {
   const trees = imported.snapshot.attackTrees?.trees ?? [];
   if (trees.length === 0) return [];
-  const overlays = new Map((instance.pathOverlays ?? []).map((o) => [`${o.treeKey}|${o.pathKey}`, o]));
   const threatId = (id: string) => componentInstanceTfId(instance.id, `threat|${id}`);
   return trees.map((tree): AttackTree => {
     const anchor = tree.anchor;
@@ -152,7 +174,10 @@ function instanceTrees(instance: Instance, imported: Import, config: Feasibility
     if (analysis) {
       const leaves = lazyLeaves(tree);
       const paths = analysis.paths.map((p) =>
-        machinePath(p, overlays.get(`${tree.id}|${p.pathKey}`)?.windowOfOpportunity, pathLeafFactors(p, leaves), config),
+        {
+          const steps = pathSteps(p, leaves);
+          return machinePath(p, steps, steps ? stepWindows(steps, overlayLookup(instance, tree.id, p.pathKey)) : undefined, config);
+        },
       );
       const levels = (pick: (p: Path) => FeasibilityLevel | undefined) =>
         paths.map(pick).filter((l): l is FeasibilityLevel => !!l);
@@ -237,7 +262,10 @@ export interface ComponentAttackPathRow {
   pathKey: string;
   /** Node names root → leaf. */
   path: string[];
-  /** The component's window of opportunity on this path. */
+  /** AND combination: the step (leaf) this row rates — one row per step. */
+  leafId?: string;
+  stepName?: string;
+  /** The component's window of opportunity on this path (step). */
   componentWindow?: WindowOfOpportunity;
   /** The machine's rating (overlay), if any. */
   machineWindow?: WindowOfOpportunity;
@@ -253,10 +281,12 @@ export interface ComponentAttackPathGroup {
   paths: ComponentAttackPathRow[];
 }
 
-/** The paths per instance, for the rating section (Attack Tree tab). */
+/**
+ * The paths per instance, for the rating section (Attack Tree tab); an AND
+ * combination gets one row per step, each with its own window (I6).
+ */
 export function componentAttackPathGroups(project: MachineTrees): ComponentAttackPathGroup[] {
   return componentAttackTrees(project).map(({ instance, imported, trees }) => {
-    const overlays = new Map((instance.pathOverlays ?? []).map((o) => [`${o.treeKey}|${o.pathKey}`, o]));
     const source = imported.snapshot.attackTrees?.trees ?? [];
     const derived = new Map(source.map((t, i) => [t.id, trees[i]]));
     const paths: ComponentAttackPathRow[] = [];
@@ -264,21 +294,38 @@ export function componentAttackPathGroups(project: MachineTrees): ComponentAttac
       const mine = derived.get(tree.id);
       const leaves = lazyLeaves(tree);
       for (const path of tree.pathAnalysis?.paths ?? []) {
-        const overlay = overlays.get(`${tree.id}|${path.pathKey}`);
+        const windowOf = overlayLookup(instance, tree.id, path.pathKey);
         const now = mine?.pathAnalysis?.paths.find((p) => p.pathKey === path.pathKey);
-        const factors = pathLeafFactors(path, leaves);
-        const windows = new Set((factors ?? []).map((f) => f.windowOfOpportunity));
-        paths.push({
+        const steps = pathSteps(path, leaves);
+        const base = {
           treeKey: tree.id,
           treeName: tree.name,
           pathKey: path.pathKey,
           path: path.path,
-          // the component's window (an AND combination: when all its steps agree)
-          ...(windows.size === 1 ? { componentWindow: [...windows][0] } : {}),
-          ...(overlay ? { machineWindow: overlay.windowOfOpportunity } : {}),
           ...(now?.feasibilityLevel ? { feasibility: now.feasibilityLevel } : {}),
-          ratable: !!factors,
-        });
+        };
+        if (!steps) {
+          // quick mode: nothing to rate here
+          const legs = path.combination ? leaves() : undefined;
+          if (legs) {
+            for (const id of path.nodeIds.filter((x) => legs.has(x))) {
+              paths.push({ ...base, leafId: id, stepName: legs.get(id)!.name, ratable: false });
+            }
+          } else {
+            paths.push({ ...base, ratable: false });
+          }
+          continue;
+        }
+        for (const step of steps) {
+          const machine = step.leafId ? (windowOf(step.leafId) ?? windowOf(undefined)) : windowOf(undefined);
+          paths.push({
+            ...base,
+            ...(step.leafId ? { leafId: step.leafId, stepName: step.name } : {}),
+            componentWindow: step.factors.windowOfOpportunity,
+            ...(machine ? { machineWindow: machine } : {}),
+            ratable: true,
+          });
+        }
       }
     }
     return { key: instance.id, label: instanceLabel(instance, imported.name), paths };
@@ -295,15 +342,15 @@ export function componentPathRatingGaps(
   return components.instances.flatMap((instance) => {
     const imported = importsById.get(instance.importId);
     if (!imported) return [];
-    const overlays = new Set((instance.pathOverlays ?? []).map((o) => `${o.treeKey}|${o.pathKey}`));
     let unrated = 0;
     let notRatable = 0;
     for (const tree of imported.snapshot.attackTrees?.trees ?? []) {
       if (tree.anchor?.type !== "asset") continue; // only asset-anchored trees make risks
       const leaves = lazyLeaves(tree);
       for (const path of tree.pathAnalysis?.paths ?? []) {
-        if (!pathLeafFactors(path, leaves)) notRatable++;
-        else if (!overlays.has(`${tree.id}|${path.pathKey}`)) unrated++;
+        const steps = pathSteps(path, leaves);
+        if (!steps) notRatable++;
+        else if (!stepWindows(steps, overlayLookup(instance, tree.id, path.pathKey))) unrated++;
       }
     }
     return unrated + notRatable > 0 ? [{ instance, imported, unrated, notRatable }] : [];

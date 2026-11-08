@@ -270,10 +270,10 @@ export function useComponentImport({
 
   // ISO: the machine's window of opportunity per component attack path (patch 17).
   const setPathWindow = useCallback(
-    (instanceId: string, treeKey: string, pathKey: string, window: "unlimited" | "easy" | "moderate" | "difficult" | null) => {
+    (instanceId: string, treeKey: string, pathKey: string, window: "unlimited" | "easy" | "moderate" | "difficult" | null, leafId?: string) => {
       const current = activeProjectRef.current;
       if (!current?.components) return;
-      const next = withPathOverlay(current.components, instanceId, treeKey, pathKey, window, new Date().toISOString().slice(0, 10));
+      const next = withPathOverlay(current.components, instanceId, treeKey, pathKey, window, new Date().toISOString().slice(0, 10), leafId);
       void updateProject({ id: current.id, components: next });
     },
     [activeProjectRef, updateProject],

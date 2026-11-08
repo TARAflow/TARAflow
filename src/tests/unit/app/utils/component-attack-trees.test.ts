@@ -145,6 +145,11 @@ describe("window of opportunity per instance and path", () => {
     expect(c1.instances[0].pathOverlays).toEqual([{ treeKey: "t", pathKey: "k", windowOfOpportunity: "easy", date: "d" }]);
     const c2 = withPathOverlay(c1, "inst-1", "t", "k", null, "d");
     expect("pathOverlays" in c2.instances[0]).toBe(false);
+    // per step of an AND combination: its own entry beside the path's
+    const c3 = withPathOverlay(withPathOverlay(c1, "inst-1", "t", "k", "difficult", "d", "leaf-1"), "inst-1", "t", "k", "moderate", "d", "leaf-2");
+    expect(c3.instances[0].pathOverlays).toHaveLength(3);
+    const c4 = withPathOverlay(c3, "inst-1", "t", "k", null, "d", "leaf-1");
+    expect(c4.instances[0].pathOverlays!.map((o) => o.leafId ?? "")).toEqual(["", "leaf-2"]);
   });
 
   it("the commit gate opens: the audit diff sees a path rating", () => {
@@ -292,10 +297,41 @@ describe("AND combinations are rated with the machine's window", () => {
     expect(derived().feasibilityLevel).toBeUndefined();
     expect(componentPathRatingGaps(m)[0]).toMatchObject({ notRatable: 0 });
     expect(componentPathRatingGaps(m)[0].unrated).toBeGreaterThan(0);
-    const row = componentAttackPathGroups(m)[0].paths.find((p) => p.pathKey === combo.pathKey)!;
-    expect(row.ratable).toBe(true);
-    // its steps disagree (difficult / moderate): no single component value to offer
-    expect(row.componentWindow).toBeUndefined();
+    // one row per step (I6), each with the component's own window as suggestion
+    const rows = componentAttackPathGroups(m)[0].paths.filter((p) => p.pathKey === combo.pathKey);
+    expect(rows).toHaveLength(2);
+    expect(rows.every((r) => r.ratable && r.leafId && r.stepName)).toBe(true);
+    expect(rows.map((r) => r.componentWindow).sort()).toEqual(["difficult", "moderate"]);
+  });
+
+  it("per step (I6): each step its own window; the path is rated once every step has one", () => {
+    const rows = componentAttackPathGroups(m)[0].paths.filter((p) => p.pathKey === combo.pathKey);
+    const [a, b] = rows;
+    const one = { ...m, components: withPathOverlay(m.components!, "inst-1", andTree.id, combo.pathKey, "unlimited", "d", a.leafId) } as Project;
+    expect(componentAttackTrees(one)[0].trees[0].pathAnalysis!.paths.find((p) => p.pathKey === combo.pathKey)!.feasibilityLevel).toBeUndefined();
+    expect(componentPathRatingGaps(one)[0].unrated).toBeGreaterThan(0);
+    const both = { ...one, components: withPathOverlay(one.components!, "inst-1", andTree.id, combo.pathKey, "difficult", "d", b.leafId) } as Project;
+    const path = componentAttackTrees(both)[0].trees[0].pathAnalysis!.paths.find((p) => p.pathKey === combo.pathKey)!;
+    const leaves = ast.children.find((c) => c.name === "Remote Attack")!.children;
+    const windowFor = (name: string) => (rows.find((r) => r.stepName === name)!.leafId === a.leafId ? "unlimited" : "difficult");
+    const expected = leaves.reduce(
+      (sum, l) => sum + computeAttackPotential({ ...l.evaluation!.attackPotential!, windowOfOpportunity: windowFor(l.name) }, DEFAULT_FEASIBILITY_CONFIGURATION),
+      0,
+    );
+    expect(path.attackPotential).toBe(expected);
+    // the rows show the machine's window per step
+    const shown = componentAttackPathGroups(both)[0].paths.filter((p) => p.pathKey === combo.pathKey);
+    expect(shown.find((r) => r.leafId === a.leafId)!.machineWindow).toBe("unlimited");
+    expect(shown.find((r) => r.leafId === b.leafId)!.machineWindow).toBe("difficult");
+  });
+
+  it("a path-wide window still applies to every step without its own (earlier overlays)", () => {
+    const rows = componentAttackPathGroups(m)[0].paths.filter((p) => p.pathKey === combo.pathKey);
+    const wide = { ...m, components: withPathOverlay(m.components!, "inst-1", andTree.id, combo.pathKey, "easy", "d") } as Project;
+    const mixed = { ...wide, components: withPathOverlay(wide.components!, "inst-1", andTree.id, combo.pathKey, "unlimited", "d", rows[0].leafId) } as Project;
+    const shown = componentAttackPathGroups(mixed)[0].paths.filter((p) => p.pathKey === combo.pathKey);
+    expect(shown.map((r) => r.machineWindow)).toEqual(["unlimited", "easy"]);
+    expect(componentAttackTrees(mixed)[0].trees[0].pathAnalysis!.paths.find((p) => p.pathKey === combo.pathKey)!.feasibilityLevel).toBeDefined();
   });
 
   it("with the machine's window: the sum over the leaves with that window, banded with the machine's configuration", () => {

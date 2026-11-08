@@ -26,6 +26,7 @@ import { assetService } from "features/assets";
 import { componentInstanceTfId, instanceAssetId } from "features/dfd";
 import { getFactorDefinition } from "features/risks";
 import type { Project } from "../../models/project-types";
+import { overlayKey } from "./path-overlays";
 
 type Components = NonNullable<Project["components"]>;
 type Risks = NonNullable<Project["risks"]>;
@@ -96,7 +97,7 @@ export function copyInstanceRatings(
       return [...out.values()];
     };
     const overrides = mergeBy(target.relevanceOverrides, source.relevanceOverrides, (o) => o.threatKey, (n) => (counts.relevanceOverrides = n));
-    const overlays = mergeBy(target.pathOverlays, source.pathOverlays, (o) => `${o.treeKey}|${o.pathKey}`, (n) => (counts.pathOverlays = n));
+    const overlays = mergeBy(target.pathOverlays, source.pathOverlays, overlayKey, (n) => (counts.pathOverlays = n));
     const { relevanceOverrides: _r, pathOverlays: _p, ...rest } = target;
     nextTarget = {
       ...rest,
