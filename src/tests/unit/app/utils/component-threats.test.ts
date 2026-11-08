@@ -129,6 +129,22 @@ describe("groups, references, merge", () => {
     expect(groups[0].threats.length).toBeGreaterThan(0);
   });
 
+  it("boundary flows: the EE end carries the machine element's name and is the row's counterpart (review 2026-11-08)", () => {
+    const rows = componentThreatGroups(m)[0].rows.filter((r) => r.boundary && r.threat.dataFlow);
+    const onMapped = rows.filter((r) => r.threat.dataFlow!.sourceId === "m_plc" || r.threat.dataFlow!.targetId === "m_plc");
+    expect(onMapped.length).toBeGreaterThan(0);
+    for (const r of onMapped) {
+      const end = r.threat.dataFlow!.sourceId === "m_plc" ? r.threat.dataFlow!.sourceName : r.threat.dataFlow!.targetName;
+      expect(end).toBe("Fire Panel Controller");
+      expect(r.counterpart).toBe("Fire Panel Controller");
+    }
+    // without the machine's elements the component's names stay (no counterpart)
+    const bare = componentThreatGroups({ components: m.components })[0].rows.filter((r) => r.boundary && r.threat.dataFlow);
+    expect(bare.every((r) => r.counterpart === undefined)).toBe(true);
+    // internal threats have none
+    expect(componentThreatGroups(m)[0].rows.filter((r) => !r.boundary).every((r) => r.counterpart === undefined)).toBe(true);
+  });
+
   it("instances of one component name their component — shown together in the Threats tab (I5)", () => {
     const two = machine([{ id: "inst-1", prefix: "SD1" }, { id: "inst-2", prefix: "SD2" }]);
     const groups = componentThreatGroups(two);

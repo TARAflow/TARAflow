@@ -73,6 +73,8 @@
       "where": "Element / Flow",
       "threat": "Bedrohung",
       "relevance": "Relevanz (Komponente)",
+      "perInstance": "Relevanz pro Instanz",
+      "instances": "— Instanzen: {{list}}",
       "templateText": "(Katalogtext)",
       "overridden": "Maschine: {{relevance}}",
       "toReview": "zur Prüfung — die Komponente hat ihre Entscheidung geändert",

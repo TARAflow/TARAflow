@@ -73,6 +73,8 @@
       "where": "Element / flow",
       "threat": "Threat",
       "relevance": "Relevance (component)",
+      "perInstance": "Relevance per instance",
+      "instances": "— instances: {{list}}",
       "templateText": "(catalog text)",
       "overridden": "machine: {{relevance}}",
       "toReview": "to review — the component changed its decision",

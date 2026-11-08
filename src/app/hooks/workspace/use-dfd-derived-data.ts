@@ -190,8 +190,8 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
   );
   // The imported threats per instance, read-only (patch 14).
   const componentThreatGroupList = useMemo(
-    () => (components ? componentThreatGroups({ components }) : undefined),
-    [components],
+    () => (components ? componentThreatGroups({ components, dfd: dfd ?? null }) : undefined),
+    [components, dfd],
   );
 
   return {

@@ -998,6 +998,8 @@ export interface ImportedThreatRow {
   stale?: boolean;
   /** The analysis method the threat belongs to (absent: shown in both). */
   method?: StrideMethod;
+  /** Boundary-flow threat: the machine element at the flow's outer end in this instance. */
+  counterpart?: string;
 }
 
 /** The machine's relevance decision on an imported boundary-flow threat (null = remove). */

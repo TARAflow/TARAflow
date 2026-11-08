@@ -26,7 +26,7 @@
 // All project writes go through context.updateProject() — a single,
 // stable, ref-based write channel. No stale-closure risk.
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   PHASES,
@@ -79,6 +79,7 @@ import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-thr
 import { extractThreatReferences as extractThreatReferencesOf } from "app/utils/extract-threat-references";
 import { withComponentPrefill, withComponentThreats } from "app/utils/component-threats";
 import { componentAttackPathThreatReferences, componentAttackTreeData } from "app/utils/component-attack-trees";
+import { instanceAssetUnits } from "app/services/component-import/instance-quantity";
 import { ComponentAttackPathsSection } from "features/components";
 import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree-likelihood-references";
 
@@ -166,6 +167,9 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   const dfdData = useDfdDerivedData(activeProject);
+  // Identical units per instance asset (I5) — the asset dialog's hint.
+  const instanceComponents = activeProject?.components;
+  const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
   const assetData = useAssetDerivedData(activeProject);
   const overview = useOverviewData(activeProject);
 
@@ -359,6 +363,7 @@ export const WorkspaceLayout: React.FC = () => {
             assetUsage={handlers.assetUsageLookup}
             hazardLinks={assetData.hazardRef}
             threatLinks={assetData.threatGoalLinks}
+            unitsOf={(id) => assetUnits.get(id) ?? 1}
           />
         )}
 

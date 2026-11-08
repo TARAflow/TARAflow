@@ -138,6 +138,12 @@ interface AssetDialogProps {
   threatLinks?: ThreatGoalLink[];
   /** Asset-to-asset links of this asset (read-only display). */
   assetLinks?: readonly AssetLink[];
+  /**
+   * Identical units the asset stands for (I5); above 1 a hint asks whether
+   * the impact covers all of them failing together — the same weakness hits
+   * every unit at once (review 2026-11-08).
+   */
+  units?: number;
 }
 
 interface TabPanelProps {
@@ -188,6 +194,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   focusGoal,
   threatLinks,
   assetLinks,
+  units,
 }) => {
   const { t } = useTranslation();
 
@@ -1048,6 +1055,15 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   defaultValue: "Impact Ratings",
                 })}
               </Typography>
+              {(units ?? 1) > 1 && (
+                <Alert severity="info" sx={{ mb: 1.5 }} data-testid="asset-units-hint">
+                  {t("tabs.assets.dialog.unitsHint", {
+                    count: units,
+                    defaultValue:
+                      "×{{count}}: this asset stands for {{count}} identical units. The same weakness hits all of them at once — does the impact cover all units failing together?",
+                  })}
+                </Alert>
+              )}
               <Grid container spacing={2}>
                 {editedAsset.impactRatings.map((rating) => {
                   // Safety without a value and not settable (no derived

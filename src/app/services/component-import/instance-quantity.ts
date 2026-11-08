@@ -5,6 +5,7 @@
 // multiprocess and in the report. Units in other contexts are instances of
 // their own. Pure.
 
+import { instanceAssetId } from "features/dfd";
 import type { Project } from "../../models/project-types";
 
 type Components = NonNullable<Project["components"]>;
@@ -32,4 +33,17 @@ export function withInstanceQuantity(components: Components, instanceId: string,
       return n > 1 ? { ...rest, quantity: n } : rest;
     }),
   };
+}
+
+/** Instance asset id → units, for instances with a quantity above 1 (the asset dialog's hint). */
+export function instanceAssetUnits(components: Components | null | undefined): Map<string, number> {
+  const out = new Map<string, number>();
+  if (!components) return out;
+  const importsById = new Map(components.imports.map((i) => [i.id, i]));
+  for (const instance of components.instances) {
+    const n = quantityOf(instance);
+    if (n <= 1) continue;
+    for (const a of importsById.get(instance.importId)?.snapshot.assets ?? []) out.set(instanceAssetId(instance.id, a.id), n);
+  }
+  return out;
 }

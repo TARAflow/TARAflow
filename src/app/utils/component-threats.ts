@@ -44,6 +44,11 @@ export interface ComponentThreatRow {
   override?: { relevance: Threat["relevance"]; rationale: string; date: string };
   /** The component changed its decision since the override — to review (I3). */
   stale?: boolean;
+  /**
+   * Boundary-flow threats: the machine element at the flow's outer end in
+   * this instance (the EE's counterpart) — instances differ exactly there.
+   */
+  counterpart?: string;
   /** The analysis method the threat belongs to — the Threats tab shows the active one. */
   method: StrideMethod;
 }
@@ -75,7 +80,14 @@ function threatDataOf(perElementTables: ThreatTable[], perInteractionTables: Thr
 }
 type Instance = Components["instances"][number];
 
-function remapThreat(threat: Threat, instance: Instance, mapId: (id: string) => string): Threat {
+/** Machine element names by tfId — a component EE's name becomes its counterpart's. */
+type NameOf = (machineTfId: string) => string | undefined;
+
+function remapThreat(threat: Threat, instance: Instance, mapId: (id: string) => string, nameOf: NameOf, ees: ReadonlySet<string>): Threat {
+  // Names of the flow's ends: a component EE stands for a machine element
+  // in this instance (review 2026-11-08 — the EE's name was shown for every
+  // instance, though one camera hangs on the PLC, the other on the HMI).
+  const endName = (componentId: string, name: string) => (ees.has(componentId) ? (nameOf(mapId(componentId)) ?? name) : name);
   const prefixed = (id: string | undefined) => (id ? `${instance.prefix}:${id}` : id);
   return {
     ...threat,
@@ -95,6 +107,8 @@ function remapThreat(threat: Threat, instance: Instance, mapId: (id: string) => 
           connectionId: mapId(threat.dataFlow.connectionId),
           sourceId: mapId(threat.dataFlow.sourceId),
           targetId: mapId(threat.dataFlow.targetId),
+          sourceName: endName(threat.dataFlow.sourceId, threat.dataFlow.sourceName),
+          targetName: endName(threat.dataFlow.targetId, threat.dataFlow.targetName),
         }
       : threat.dataFlow,
     linkedAssetIds: (threat.linkedAssetIds ?? []).map((a) => instanceAssetId(instance.id, a)),
@@ -105,6 +119,7 @@ function remapThreat(threat: Threat, instance: Instance, mapId: (id: string) => 
 function instanceTables(
   instance: Instance,
   imported: Components["imports"][number],
+  nameOf: NameOf,
 ): { perElement: ThreatTable[]; perInteraction: ThreatTable[]; rows: ComponentThreatRow[] } {
   const snapshot = imported.snapshot;
   const threats = snapshot.threats;
@@ -143,7 +158,9 @@ function instanceTables(
     const list = all.flatMap((tb) => tb.threats.filter(keep)).map((original) => {
       const boundary = onBoundary(original);
       const o = boundary ? overrides.get(original.id) : undefined;
-      let threat = remapThreat(original, instance, mapId);
+      let threat = remapThreat(original, instance, mapId, nameOf, ees);
+      const outer = boundary && original.dataFlow ? [original.dataFlow.sourceId, original.dataFlow.targetId].find((id) => ees.has(id)) : undefined;
+      const counterpart = outer ? (nameOf(mapId(outer)) ?? undefined) : undefined;
       // The machine's decision; the component's note (evalNote) stays
       // visible beside the machine's rationale (I3, review 2026-11-07).
       if (o) {
@@ -162,6 +179,7 @@ function instanceTables(
         method,
         ...(o ? { override: { relevance: o.relevance, rationale: o.rationale, date: o.date } } : {}),
         ...(o && o.componentRelevance !== original.relevance ? { stale: true } : {}),
+        ...(counterpart ? { counterpart } : {}),
       });
       return threat;
     });
@@ -177,16 +195,25 @@ function instanceTables(
 }
 
 /** The imported threats as threat data: one table per instance and method. */
-export function componentThreatData(project: Pick<Project, "components">): ThreatData | null {
+type WithMachine = Pick<Project, "components"> & Partial<Pick<Project, "dfd">>;
+
+/** Names of the machine's elements (for the counterparts of component EEs). */
+function machineNames(project: WithMachine): NameOf {
+  const names = new Map(((project.dfd as { elements?: { id: string; name?: string }[] } | null | undefined)?.elements ?? []).map((e) => [e.id, e.name]));
+  return (id) => names.get(id) || undefined;
+}
+
+export function componentThreatData(project: WithMachine): ThreatData | null {
   const components = project.components;
   if (!components || components.instances.length === 0) return null;
   const importsById = new Map(components.imports.map((i) => [i.id, i]));
+  const nameOf = machineNames(project);
   const perElementTables: ThreatTable[] = [];
   const perInteractionTables: ThreatTable[] = [];
   for (const instance of components.instances) {
     const imported = importsById.get(instance.importId);
     if (!imported) continue;
-    const t = instanceTables(instance, imported);
+    const t = instanceTables(instance, imported, nameOf);
     perElementTables.push(...t.perElement);
     perInteractionTables.push(...t.perInteraction);
   }
@@ -194,14 +221,15 @@ export function componentThreatData(project: Pick<Project, "components">): Threa
 }
 
 /** The imported threats per instance — the read-only section of the Threats tab. */
-export function componentThreatGroups(project: Pick<Project, "components">): ComponentThreatGroup[] {
+export function componentThreatGroups(project: WithMachine): ComponentThreatGroup[] {
   const components = project.components;
   if (!components) return [];
   const importsById = new Map(components.imports.map((i) => [i.id, i]));
+  const nameOf = machineNames(project);
   return components.instances.flatMap((instance) => {
     const imported = importsById.get(instance.importId);
     if (!imported) return [];
-    const t = instanceTables(instance, imported);
+    const t = instanceTables(instance, imported, nameOf);
     const threats = t.rows.map((r) => r.threat);
     return threats.length > 0
       ? [
@@ -239,7 +267,7 @@ export function componentThreatReferences(
  */
 export function withComponentThreats(
   threats: ThreatData | null | undefined,
-  project: Pick<Project, "components">,
+  project: WithMachine,
 ): ThreatData | null | undefined {
   const imported = componentThreatData(project);
   if (!imported) return threats;

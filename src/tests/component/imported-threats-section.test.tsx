@@ -189,6 +189,23 @@ describe("ImportedThreatsSection", () => {
       expect(threats[index].id).toBe("SD1-P3-T-1");
     });
 
+    it("a click on an instance's line opens that instance's copy; the counterpart is shown per instance", () => {
+      const withCounterpart = (groups as never as { rows: Record<string, unknown>[] }[]).map((g, i) => ({
+        ...g,
+        rows: g.rows.map((r) => (r.boundary ? { ...r, counterpart: i === 0 ? "PLC" : "HMI" } : r)),
+      }));
+      const onOpen = vi.fn();
+      render(<ImportedThreatsSection groups={withCounterpart as never} method="per-element" onOpenThreat={onOpen} />);
+      fireEvent.click(screen.getByText(/Threats from imported components/));
+      expect(screen.getByTestId("imported-component-threat-k1-i1-counterpart").textContent).toContain("PLC");
+      expect(screen.getByTestId("imported-component-threat-k1-i2-counterpart").textContent).toContain("HMI");
+      fireEvent.click(screen.getByTestId("imported-component-threat-k1-i2"));
+      const [group, threats, index] = onOpen.mock.calls[0];
+      expect(group).toEqual({ key: "i2", label: "SD2 · Smoke Detector ×2" });
+      expect(threats[index].id).toBe("SD2-DF7-T-1");
+      expect(threats.every((t: { id: string }) => t.id.startsWith("SD2-"))).toBe(true);
+    });
+
     it("a component with one instance keeps the instance table", () => {
       render(<ImportedThreatsSection groups={[(groups as never[])[0]]} method="per-element" />);
       fireEvent.click(screen.getByText(/Threats from imported components/));

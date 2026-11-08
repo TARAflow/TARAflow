@@ -11,7 +11,7 @@ import { parseAndRepair } from "app/services/migration-service";
 import { loadProjectFixture } from "../../../../fixtures/load-fixture";
 import { buildComponentSnapshot, projectMethodologyFingerprint, snapshotContentHash } from "app/services/component-import/snapshot-builder";
 import { applyComponentImport, candidateFrom } from "app/services/component-import/import-flow";
-import { instanceLabel, quantityOf, withInstanceQuantity } from "app/services/component-import/instance-quantity";
+import { instanceAssetUnits, instanceLabel, quantityOf, withInstanceQuantity } from "app/services/component-import/instance-quantity";
 import { componentThreatGroups } from "app/utils/component-threats";
 import { DiffService } from "features/audit/services/diff-service";
 import { flow, mxfile, node, page } from "../../../../fixtures/leveled-dfd-xml";
@@ -83,5 +83,15 @@ describe("instance quantity (I5)", () => {
     const strip = (p: Project) => ({ ...p, dfd: null, assets: null, threats: null, risks: null, attackTrees: null }) as never;
     const section = new DiffService().detectChanges(strip(changed), strip(base)).find((x) => x.phase === "components");
     expect(section?.changes[0].details?.map((d) => d.field)).toContain("quantity");
+  });
+
+  it("instance assets know their units (the asset dialog's hint)", () => {
+    const one = importOnce().components;
+    expect(instanceAssetUnits(one).size).toBe(0);
+    const four = withInstanceQuantity(one, "inst-1", 4);
+    const units = instanceAssetUnits(four);
+    expect(units.size).toBe(snapshot.assets.length);
+    expect([...units.values()].every((n) => n === 4)).toBe(true);
+    expect(instanceAssetUnits(null).size).toBe(0);
   });
 });

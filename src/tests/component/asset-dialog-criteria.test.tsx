@@ -66,4 +66,17 @@ describe("AssetDialog with an asset without ratings (imported component)", () =>
     render(<AssetDialog open asset={{ ...base, physicalImpact: SAFETY_SEVERITIES[1] } as unknown as Asset} configuration={config} onSave={() => {}} onClose={() => {}} />);
     expect(screen.queryAllByText(key).length).toBeGreaterThan(0);
   });
+
+  it("×n (I5): above one unit a hint asks whether the impact covers all units failing together", () => {
+    const asset = {
+      id: "cmp1", displayId: "SDC1:DA-001", name: "smoke meas data", assetGroup: "data", properties: {},
+      impactRatings: [], linkedDFDElements: [],
+      securityGoals: ["C", "I", "A", "N", "AuthZ", "AuthN", "Acc"].map((type) => ({ type, level: "none", formalDescription: "" })),
+    } as unknown as Asset;
+    const one = render(<AssetDialog open asset={asset} configuration={DEFAULT_ASSET_CONFIGURATION} onSave={() => {}} onClose={() => {}} units={1} />);
+    expect(screen.queryByTestId("asset-units-hint")).toBeNull();
+    one.unmount();
+    render(<AssetDialog open asset={asset} configuration={DEFAULT_ASSET_CONFIGURATION} onSave={() => {}} onClose={() => {}} units={4} />);
+    expect(screen.getByTestId("asset-units-hint").textContent).toContain("×4");
+  });
 });

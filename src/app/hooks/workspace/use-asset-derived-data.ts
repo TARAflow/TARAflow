@@ -70,12 +70,12 @@ export function useAssetDerivedData(activeProject: Project | undefined) {
   // Stored threats plus those of imported components (patch 14).
   const components = activeProject?.components;
   const storedThreats = activeProject?.threats;
+  const dfd = activeProject?.dfd;
   const threats = useMemo(
-    () => (components ? withComponentThreats(storedThreats, { components }) : storedThreats),
-    [storedThreats, components],
+    () => (components ? withComponentThreats(storedThreats, { components, dfd: dfd ?? null }) : storedThreats),
+    [storedThreats, components, dfd],
   );
   const assets = assetStore?.assets;
-  const dfd = activeProject?.dfd;
   const attackTrees = activeProject?.attackTrees;
   const tags = activeProject?.info?.tags;
   const threatGoalLinks = useMemo(

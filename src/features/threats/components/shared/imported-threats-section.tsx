@@ -244,9 +244,11 @@ const unprefixed = (id: string | undefined, prefix: string | undefined) =>
 /**
  * A component used by several instances (I5): each threat once, with a line
  * per instance — its relevance (the component's, struck through when the
- * machine overrode it), the override, "to review". A click on the threat
- * opens it read-only (the first instance's copy, browsing the component's
- * threats); the override acts on its instance.
+ * machine overrode it), the override, "to review", and on a boundary flow
+ * the machine element at its outer end. A click on an instance's line opens
+ * that instance's copy read-only (its decision, its counterpart); a click
+ * elsewhere on the row the first instance's. The override acts on its
+ * instance.
  */
 const ComponentThreatsTable: React.FC<{
   componentKey: string;
@@ -277,6 +279,14 @@ const ComponentThreatsTable: React.FC<{
       keys.map((k) => first(k).row.threat),
       index,
     );
+  };
+  /** One instance's copies, browsing the threats it has. */
+  const openInstance = (group: ImportedThreatGroup, key: string) => {
+    const own = keys
+      .map((k) => perKey.get(k)!.find((x) => x.group.key === group.key)?.row.threat)
+      .filter((x): x is Threat => !!x);
+    const target = perKey.get(key)!.find((x) => x.group.key === group.key)!.row.threat;
+    onOpenThreat?.({ key: group.key, label: group.label }, own, own.indexOf(target));
   };
   return (
     <Box sx={{ mb: 2 }} data-testid={`imported-component-${componentKey}`}>
@@ -340,10 +350,23 @@ const ComponentThreatsTable: React.FC<{
                         flexWrap="wrap"
                         useFlexGap
                         data-testid={`imported-component-threat-${key}-${group.key}`}
+                        onClick={
+                          onOpenThreat
+                            ? (e) => {
+                                e.stopPropagation();
+                                openInstance(group, key);
+                              }
+                            : undefined
+                        }
                       >
                         <Typography variant="caption" sx={{ minWidth: 48, fontFamily: "monospace" }}>
                           {group.prefix ?? group.label}
                         </Typography>
+                        {row.counterpart && (
+                          <Typography variant="caption" color="text.secondary" data-testid={`imported-component-threat-${key}-${group.key}-counterpart`}>
+                            ↔ {row.counterpart}
+                          </Typography>
+                        )}
                         <Chip
                           size="small"
                           variant="outlined"

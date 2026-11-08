@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–31; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–32; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,16 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 32 done (2026-11-08, review of 26–31):* follow-ups before copying ratings. (1) The two texts
+of the grouped view are in en/de (they only had default values). (2) A click on an instance's line
+opens that instance's copy read-only (its decision, its names), browsing its threats; a click
+elsewhere on the row stays with the first instance. (3) Boundary-flow threats named the component's
+EE at the outer end for every instance — `remapThreat` maps sourceName / targetName of an EE end to
+its machine counterpart, and the instance's line shows the counterpart ("↔ PLC"); the read model
+takes the machine's elements for the names. (4) Quantity: the asset dialog of an instance asset with
+more than one unit asks whether the impact covers all units failing together (the same weakness hits
+every unit at once); the quantity at the risk in the report is noted for phase 6. Release note
+(PLAN): the safety card is hidden while it cannot be set — for every asset (patch 29).
 *Patch 31 done (2026-11-08, I5):* the Threats tab groups the imported threats per component. A
 component with several instances shows each threat once — id and element without the instance
 prefix — with a line per instance: its relevance (the component's, struck through when overridden),

@@ -101,6 +101,12 @@ export interface AssetTabProps {
    * the app layer. Given → threat ↔ goal cross-checks in the findings panel.
    */
   threatLinks?: ThreatGoalLink[];
+  /**
+   * How many identical units an asset stands for (an imported component's
+   * instance with a quantity, I5); absent / 1 = one. The dialog asks whether
+   * its impact covers all units failing together.
+   */
+  unitsOf?: (assetId: string) => number;
 }
 
 // ==================== VIEW MEMORY ====================
@@ -138,6 +144,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   tableHighlightRequest,
   assetUsage,
   threatLinks,
+  unitsOf,
 }) => {
   const { t } = useTranslation();
 
@@ -1027,6 +1034,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           focusGoal={dialogFocus?.goal}
           threatLinks={threatLinks}
           assetLinks={assetLinksById.get(selectedAsset.id)}
+          units={unitsOf?.(selectedAsset.id)}
         />
       )}
       {/* Configuration Dialog */}
