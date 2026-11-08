@@ -34,6 +34,13 @@
 //                                  over (share / transfer) or accepted arrive
 //                                  untreated; open until the machine sets its
 //                                  own treatment
+//   CMP_MEASURE_NOT_EFFECTIVE      phase 3d-1, I7: a component measure an
+//                    (warning)     imported risk relies on is not effective
+//                                  here (an assumption not fulfilled, or
+//                                  invalid in the component)
+//   CMP_MEASURE_UNCLEAR (warning)  … unclear here because an assumption it
+//                                  relies on is still open (a measure only
+//                                  pending is CMP_MEASURE_PENDING)
 //   CMP_AOU_OPEN (warning)         phase 3b, §7.6: assumptions of use still
 //                                  open in an instance
 //   CMP_AOU_VIOLATED (error)       an assumption not fulfilled — the
@@ -136,18 +143,36 @@ export function componentFindings(
     {
       let pending = 0;
       let handover = 0;
+      const notEffective = new Map<string, Set<string>>();
+      const unclear = new Map<string, Set<string>>();
+      const note = (into: Map<string, Set<string>>, measure: string, assumptions: (string | undefined)[]) => {
+        const set = into.get(measure) ?? new Set<string>();
+        for (const a of assumptions) if (a) set.add(a);
+        into.set(measure, set);
+      };
       for (const risk of project.risks?.risks ?? []) {
         const tr = treatments.get(risk.threatId);
         if (!tr || tr.instanceId !== instance.id) continue;
         if (tr.handedOver) {
           if (!machineDecided(risk)) handover++;
-        } else if (tr.measures.some((m) => m.state === "pending")) {
-          pending++;
+          continue;
+        }
+        if (tr.measures.some((m) => m.state === "pending")) pending++;
+        for (const m of tr.measures) {
+          const label = m.id ?? m.text;
+          if (m.effectiveness === "not_effective") {
+            note(notEffective, label, (m.reasons ?? []).filter((r) => r.kind === "aou_not_fulfilled" || r.kind === "aou_invalid_in_component").map((r) => r.assumption));
+          } else if (m.effectiveness === "unclear" && (m.reasons ?? []).some((r) => r.kind === "aou_open")) {
+            note(unclear, label, (m.reasons ?? []).filter((r) => r.kind === "aou_open").map((r) => r.assumption));
+          }
         }
       }
       const params = { prefix: instance.prefix, component: name };
+      const listOf = (m: Map<string, Set<string>>) => [...m.entries()].map(([k, v]) => `${k} (${[...v].join(", ")})`).join("; ");
       if (pending > 0) out.warnings.push({ key: KEY("CMP_MEASURE_PENDING"), params: { ...params, count: pending } });
       if (handover > 0) out.warnings.push({ key: KEY("CMP_HANDOVER_OPEN"), params: { ...params, count: handover } });
+      if (notEffective.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_NOT_EFFECTIVE"), params: { ...params, list: listOf(notEffective) } });
+      if (unclear.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_UNCLEAR"), params: { ...params, list: listOf(unclear) } });
     }
 
     // Assumptions of use per instance (§7.6, phase 3b).

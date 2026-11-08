@@ -5,6 +5,9 @@
 // on a component release), or, for a risk it handed over (share / transfer)
 // or accepted, the claims that say why it arrives untreated here. The
 // machine's own treatment and measures stay below as for any risk.
+// Phase 3d-1 (I7): per measure its effectiveness in this instance —
+// effective, not effective (a real problem) or unclear (a gap in the
+// evidence), told apart, with the reasons.
 
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +19,15 @@ export interface ComponentTreatmentView {
   instanceLabel: string;
   treatment: string;
   justification?: string;
-  measures: { id?: string; text: string; status: string; state: "implemented" | "pending" | "rejected"; reliesOn?: string[] }[];
+  measures: {
+    id?: string;
+    text: string;
+    status: string;
+    state: "implemented" | "pending" | "rejected";
+    reliesOn?: string[];
+    effectiveness?: "effective" | "not_effective" | "unclear";
+    reasons?: { kind: "pending" | "aou_open" | "aou_not_fulfilled" | "aou_invalid_in_component"; assumption?: string }[];
+  }[];
   claims: { displayId: string; kind: string; statement: string; responsibleParty?: string }[];
   handedOver: boolean;
   /** Handed over: has the machine set its own treatment yet? */
@@ -24,6 +35,8 @@ export interface ComponentTreatmentView {
 }
 
 const STATE_COLOR = { implemented: "success", pending: "warning", rejected: "default" } as const;
+const EFFECT_COLOR = { effective: "success", not_effective: "error", unclear: "warning" } as const;
+const EFFECT_DEFAULT = { effective: "effective here", not_effective: "not effective here", unclear: "unclear here" } as const;
 
 export const ComponentTreatmentSection: React.FC<{ view: ComponentTreatmentView }> = ({ view }) => {
   const { t } = useTranslation(NS);
@@ -79,6 +92,34 @@ export const ComponentTreatmentSection: React.FC<{ view: ComponentTreatmentView 
                 {m.id ? <code style={{ marginRight: 6 }}>{m.id}</code> : null}
                 {m.text}
               </Typography>
+              {m.effectiveness && (
+                <Chip
+                  size="small"
+                  variant={m.effectiveness === "not_effective" ? "filled" : "outlined"}
+                  color={EFFECT_COLOR[m.effectiveness]}
+                  data-testid={`component-treatment-effect-${m.id ?? i}`}
+                  label={
+                    t(`components.treatment.effect.${m.effectiveness}`, { defaultValue: EFFECT_DEFAULT[m.effectiveness] }) +
+                    ((m.reasons?.length ?? 0) > 0
+                      ? `: ${m.reasons!
+                          .map((r) =>
+                            t(`components.treatment.reason.${r.kind}`, {
+                              assumption: r.assumption ?? "",
+                              defaultValue:
+                                r.kind === "pending"
+                                  ? "not implemented yet"
+                                  : r.kind === "aou_open"
+                                    ? "{{assumption}} open"
+                                    : r.kind === "aou_not_fulfilled"
+                                      ? "{{assumption}} not fulfilled"
+                                      : "{{assumption}} invalid in the component",
+                            }),
+                          )
+                          .join(", ")}`
+                      : "")
+                  }
+                />
+              )}
               {(m.reliesOn?.length ?? 0) > 0 && (
                 <Typography variant="caption" color="text.secondary" data-testid={`component-treatment-relies-${m.id ?? i}`}>
                   {t("components.treatment.reliesOn", { list: m.reliesOn!.join(", "), defaultValue: "relies on {{list}}" })}

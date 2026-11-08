@@ -28,8 +28,11 @@ describe("ComponentTreatmentSection", () => {
           instanceLabel: "SD1 · Smoke Detector",
           treatment: "reduce",
           measures: [
-            { id: "M-S-001", text: "Authenticate the bus", status: "implemented", state: "implemented" },
-            { id: "M-C-001", text: "Signed sensor frames", status: "in_progress", state: "pending", reliesOn: ["ASM-01"] },
+            { id: "M-S-001", text: "Authenticate the bus", status: "implemented", state: "implemented", effectiveness: "effective" },
+            {
+              id: "M-C-001", text: "Signed sensor frames", status: "in_progress", state: "pending", reliesOn: ["ASM-01"],
+              effectiveness: "not_effective", reasons: [{ kind: "pending" }, { kind: "aou_not_fulfilled", assumption: "ASM-01" }],
+            },
           ],
           claims: [],
           handedOver: false,
@@ -40,6 +43,9 @@ describe("ComponentTreatmentSection", () => {
     expect(screen.getByTestId("component-treatment-measure-M-C-001").textContent).toContain("Signed sensor frames");
     expect(screen.getByTestId("component-treatment-pending")).toBeTruthy();
     expect(screen.getByTestId("component-treatment-relies-M-C-001").textContent).toBe("relies on ASM-01");
+    // phase 3d-1: effectiveness here, with the reasons
+    expect(screen.getByTestId("component-treatment-effect-M-S-001").textContent).toBe("effective here");
+    expect(screen.getByTestId("component-treatment-effect-M-C-001").textContent).toBe("not effective here: not implemented yet, ASM-01 not fulfilled");
   });
 
   it("handed over: open until the machine decides, with the component's claims", () => {

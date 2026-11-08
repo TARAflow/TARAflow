@@ -60,6 +60,8 @@
       "CMP_NO_ATTACK_PATHS": "Component {{component}} has no attack paths — in an ISO/SAE 21434 project only attack paths make risks, so it adds none. Model its attack trees in the component TARA.",
       "CMP_MEASURE_PENDING": "Component {{prefix}} ({{component}}): {{count}} imported risk(s) rely on component measures not implemented yet — they depend on a component release.",
       "CMP_HANDOVER_OPEN": "Component {{prefix}} ({{component}}): {{count}} risk(s) the component handed over or accepted arrive untreated — set this machine's treatment (an own measure, or accept / transfer with a justification).",
+      "CMP_MEASURE_NOT_EFFECTIVE": "Component {{prefix}} ({{component}}): measure(s) not effective in this instance — {{list}}: an assumption they rely on is not fulfilled here or invalid in the component.",
+      "CMP_MEASURE_UNCLEAR": "Component {{prefix}} ({{component}}): effectiveness of measure(s) unclear in this instance — {{list}}: an assumption they rely on is still open here.",
       "CMP_AOU_OPEN": "Component {{prefix}} ({{component}}): {{count}} assumption(s) of use still open in this instance — check them in the multiprocess's details.",
       "CMP_AOU_VIOLATED": "Component {{prefix}} ({{component}}): assumption(s) {{list}} not fulfilled — the component's analysis is not valid in this machine until resolved.",
       "CMP_AOU_MET_BY_PENDING": "Component {{prefix}} ({{component}}): {{assumption}} is marked fulfilled by measure(s) {{measures}} of this machine that are not implemented yet.",
@@ -112,6 +114,17 @@
       "pending": "Measures not implemented yet depend on a component release.",
       "noMeasures": "The component chose no measures.",
       "reliesOn": "relies on {{list}}",
+      "effect": {
+        "effective": "effective here",
+        "not_effective": "not effective here",
+        "unclear": "unclear here"
+      },
+      "reason": {
+        "pending": "not implemented yet",
+        "aou_open": "{{assumption}} open",
+        "aou_not_fulfilled": "{{assumption}} not fulfilled",
+        "aou_invalid_in_component": "{{assumption}} invalid in the component"
+      },
       "status": {
         "open": "open",
         "in_progress": "in progress",

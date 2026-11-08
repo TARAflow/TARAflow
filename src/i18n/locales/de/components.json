@@ -60,6 +60,8 @@
       "CMP_NO_ATTACK_PATHS": "Komponente {{component}} hat keine Angriffspfade — in einem ISO/SAE-21434-Projekt erzeugen nur Angriffspfade Risiken, sie trägt also keine bei. Ihre Attack Trees in der Komponenten-TARA modellieren.",
       "CMP_MEASURE_PENDING": "Komponente {{prefix}} ({{component}}): {{count}} importierte(s) Risiko/Risiken stützen sich auf noch nicht umgesetzte Massnahmen der Komponente — sie hängen an einem Release der Komponente.",
       "CMP_HANDOVER_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} von der Komponente übergebene(s) oder akzeptierte(s) Risiko/Risiken kommen unbehandelt an — die Behandlung dieser Maschine festlegen (eigene Massnahme oder akzeptieren / übertragen mit Begründung).",
+      "CMP_MEASURE_NOT_EFFECTIVE": "Komponente {{prefix}} ({{component}}): Massnahme(n) in dieser Instanz nicht wirksam — {{list}}: eine Annahme, auf der sie beruhen, ist hier nicht erfüllt oder in der Komponente ungültig.",
+      "CMP_MEASURE_UNCLEAR": "Komponente {{prefix}} ({{component}}): Wirksamkeit von Massnahme(n) in dieser Instanz ungeklärt — {{list}}: eine Annahme, auf der sie beruhen, ist hier noch offen.",
       "CMP_AOU_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} Annahme(n) zur Verwendung in dieser Instanz noch offen — in den Details des Multiprozesses prüfen.",
       "CMP_AOU_VIOLATED": "Komponente {{prefix}} ({{component}}): Annahme(n) {{list}} nicht erfüllt — die Analyse der Komponente gilt in dieser Maschine nicht, bis das gelöst ist.",
       "CMP_AOU_MET_BY_PENDING": "Komponente {{prefix}} ({{component}}): {{assumption}} gilt als erfüllt durch Massnahme(n) {{measures}} dieser Maschine, die noch nicht umgesetzt sind.",
@@ -112,6 +114,17 @@
       "pending": "Noch nicht umgesetzte Massnahmen hängen an einem Release der Komponente.",
       "noMeasures": "Die Komponente hat keine Massnahmen gewählt.",
       "reliesOn": "beruht auf {{list}}",
+      "effect": {
+        "effective": "hier wirksam",
+        "not_effective": "hier nicht wirksam",
+        "unclear": "hier ungeklärt"
+      },
+      "reason": {
+        "pending": "noch nicht umgesetzt",
+        "aou_open": "{{assumption}} offen",
+        "aou_not_fulfilled": "{{assumption}} nicht erfüllt",
+        "aou_invalid_in_component": "{{assumption}} in der Komponente ungültig"
+      },
       "status": {
         "open": "offen",
         "in_progress": "in Arbeit",

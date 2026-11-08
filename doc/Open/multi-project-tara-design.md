@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), next 3d (effectiveness and residual risk) (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), next 3d-2 (override and residual risk) (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -738,6 +738,25 @@ dialog above the risk's own mitigations through a generic slot (`RiskDialogProps
 `RisksTab.riskExtraSection`; the UI in features/components). The machine adds its own measures as for
 any risk. Release notes (PLAN): the safety card for people / physical / infrastructure assets (patch
 37); report (phase 6): both relevance decisions written out.
+*3d cut (2026-11-08, reviewed):* 3d-1 derives and shows the effectiveness (no analyst decision yet);
+3d-2 brings the machine's override "not effective here" together with its effect on the residual
+risk (an override that changes nothing would be worse than none). 3d-2 reads the residual risk
+through one function of the risks feature (e.g. `creditedResidual(risk, uncredited)`, the app layer
+passing a generic "do not credit" set with reasons — the pattern of `excludedElementIds`); every
+reader that evaluates or shows a residual risk goes through it, except those meaning the stored
+values (editing the after-values, the audit diff, serialisation); a source guard test (like the
+single-writer guard of prepare-for-disk) allows direct reads of `calculatedRiskAfterMitigation` only
+from an allow list. "Acceptance to review" is derived, not stored (user 2026-11-08): it disappears by
+itself once the residual risk counts again.
+*Patch 41 done (2026-11-08, phase 3d-1):* effectiveness of the component's measures per instance,
+derived in the treatments read model (`effectivenessOf`): effective (implemented / verified and every
+assumption it relies on fulfilled or not applicable here — none relied on counts as effective), not
+effective (an assumption not fulfilled here, or invalid in the component), unclear (not implemented
+yet, or an assumption still open here); rejected measures count neither way. Shown at each component
+measure of an imported risk with its reasons ("not effective here: ASM-03 not fulfilled"), "unclear"
+told apart from "not effective". Findings `CMP_MEASURE_NOT_EFFECTIVE` and `CMP_MEASURE_UNCLEAR` (open
+assumptions; pending alone stays `CMP_MEASURE_PENDING`) name measure and assumption. No stored data —
+nothing for the diff or copying.
 *Patch 40 done (2026-11-08, phase 3c):* the dependency of a measure on assumptions, maintained in the
 component. `Assumption.mitigationIds` (shared): the measures whose effectiveness relies on the
 assumption — catalog ids and project mitigations (M-C-nnn); free-text measures have no id. Edited in

@@ -14,7 +14,8 @@ import { buildComponentSnapshot, projectMethodologyFingerprint, snapshotContentH
 import { applyComponentImport } from "app/services/component-import/import-flow";
 import { componentFindings } from "app/services/component-import/component-findings";
 import { componentThreatReferences } from "app/utils/component-threats";
-import { componentTreatments, machineDecided, measureState } from "app/utils/component-treatments";
+import { componentTreatments, effectivenessOf, machineDecided, measureState } from "app/utils/component-treatments";
+import { withAssumptionStatus } from "app/services/component-import/assumption-status";
 import { extractThreatReferences } from "app/utils/extract-threat-references";
 import { componentInstanceTfId } from "features/dfd";
 import { syncRisksFromThreats } from "features/risks/services/risk-sync-service";
@@ -129,5 +130,40 @@ describe("component treatments (phase 3a)", () => {
       },
     } as Project;
     expect(keys(decided)).not.toContain("CMP_HANDOVER_OPEN");
+  });
+});
+
+describe("effectiveness per instance (phase 3d-1, I7)", () => {
+  const relies = [{ id: "a1", displayId: "ASM-01", status: "confirmed" }];
+  it("implemented and every assumption fulfilled / not applicable → effective; none relied on → effective", () => {
+    expect(effectivenessOf("implemented", relies, new Map([["a1", "fulfilled"]])).effectiveness).toBe("effective");
+    expect(effectivenessOf("implemented", relies, new Map([["a1", "not_applicable"]])).effectiveness).toBe("effective");
+    expect(effectivenessOf("implemented", [], new Map()).effectiveness).toBe("effective");
+  });
+
+  it("not fulfilled here, or invalid in the component → not effective; open or pending → unclear", () => {
+    expect(effectivenessOf("implemented", relies, new Map([["a1", "not_fulfilled"]]))).toEqual({
+      effectiveness: "not_effective",
+      reasons: [{ kind: "aou_not_fulfilled", assumption: "ASM-01" }],
+    });
+    expect(effectivenessOf("implemented", [{ ...relies[0], status: "invalid" }], new Map([["a1", "fulfilled"]])).effectiveness).toBe("not_effective");
+    expect(effectivenessOf("implemented", relies, new Map())).toEqual({ effectiveness: "unclear", reasons: [{ kind: "aou_open", assumption: "ASM-01" }] });
+    expect(effectivenessOf("pending", [], new Map())).toEqual({ effectiveness: "unclear", reasons: [{ kind: "pending" }] });
+    // not effective outweighs pending / open
+    expect(effectivenessOf("pending", relies, new Map([["a1", "not_fulfilled"]])).effectiveness).toBe("not_effective");
+  });
+
+  it("in the read model: M-C-001 relies on ASM-01 — per instance status decides; findings name measure and assumption", () => {
+    let m = machine();
+    const measure = () => componentTreatments(m).get(tid(component.reduceThreat))!.measures.find((x) => x.id === "M-C-001")!;
+    // pending (in_progress) and ASM-01 open
+    expect(measure().effectiveness).toBe("unclear");
+    m = { ...m, components: withAssumptionStatus(m.components!, "i1", "a1", { status: "not_fulfilled" }) } as Project;
+    expect(measure()).toMatchObject({ effectiveness: "not_effective", reasons: [{ kind: "pending" }, { kind: "aou_not_fulfilled", assumption: "ASM-01" }] });
+    const warnings = componentFindings(m).warnings;
+    const notEffective = warnings.find((w) => w.key.endsWith("CMP_MEASURE_NOT_EFFECTIVE"))!;
+    expect(notEffective.params).toMatchObject({ prefix: "SD1", list: "M-C-001 (ASM-01)" });
+    // M-S-001 (implemented, relies on nothing) stays effective
+    expect(componentTreatments(m).get(tid(component.reduceThreat))!.measures.find((x) => x.id === "M-S-001")!.effectiveness).toBe("effective");
   });
 });
