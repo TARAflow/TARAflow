@@ -13,8 +13,16 @@ export interface ComponentImportCandidate {
   externalEntities: { id: string; label: string }[];
   /** Flows from an EE to a boundary element — will not resolve (design §17 I2). */
   unresolvableFlows: string[];
-  /** The component is imported already (one state per component, E12). */
-  existing?: { sameState: boolean; label: string };
+  /**
+   * The component is imported already (one state per component, E12): the
+   * dialog asks first — a further instance (other installation context) or
+   * a higher quantity of an existing one (same context, I5).
+   */
+  existing?: {
+    sameState: boolean;
+    label: string;
+    instances: { id: string; label: string; quantity: number }[];
+  };
   defaultPrefix: string;
   /** Prefixes of the instances already in the machine (must stay unique). */
   usedPrefixes: string[];
@@ -48,4 +56,6 @@ export interface ComponentImportDialogChoice {
   name: string;
   /** Component EE id → machine element id; undefined = take over as a new element. */
   eeMapping: Record<string, string | undefined>;
+  /** Identical units in the same installation context (I5); 1 = one unit. */
+  quantity: number;
 }

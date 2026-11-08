@@ -22,6 +22,7 @@ import {
   type ComponentPickResult,
 } from "features/components";
 import type { Project } from "../../models/project-types";
+import { quantityOf, withInstanceQuantity } from "../../services/component-import/instance-quantity";
 import { createDefaultAssetData } from "features/assets/services/asset-factory";
 import {
   componentImportAvailable,
@@ -144,6 +145,21 @@ export function useComponentImport({
     [finish, pending, projectsRef, t, toast, updateProject],
   );
 
+  // Imported already, same installation context: one more unit of an
+  // existing instance (I5) — no DFD change, the dialog closes.
+  const onIncreaseQuantity = useCallback(
+    (instanceId: string) => {
+      const project = projectsRef.current.find((p) => p.id === pending?.projectId);
+      const instance = project?.components?.instances.find((i) => i.id === instanceId);
+      if (!project?.components || !instance) return;
+      void updateProject({
+        id: project.id,
+        components: withInstanceQuantity(project.components, instanceId, quantityOf(instance) + 1),
+      });
+    },
+    [pending?.projectId, projectsRef, updateProject],
+  );
+
   const machineElements = useMemo(
     () => (pending ? machineElementOptions(pending.context) : []),
     [pending],
@@ -155,6 +171,7 @@ export function useComponentImport({
       machineElements={machineElements}
       onPickFile={onPickFile}
       onConfirm={onConfirm}
+      onIncreaseQuantity={onIncreaseQuantity}
       onClose={() => finish(null)}
     />
   );
@@ -171,6 +188,12 @@ export function useComponentImport({
         name: imported.name,
         prefix: instance.prefix,
         source: componentSourceLabel(imported.source),
+        quantity: quantityOf(instance),
+        onSetQuantity: (n: number) => {
+          const current = activeProjectRef.current;
+          if (!current?.components) return;
+          void updateProject({ id: current.id, components: withInstanceQuantity(current.components, instance.id, n) });
+        },
         ...(openProjectFile && componentImportAvailable()
           ? {
               onOpen: () => {
@@ -189,7 +212,7 @@ export function useComponentImport({
           : {}),
       };
     },
-    [components, machineFilePath, openProjectFile, t, toast],
+    [components, machineFilePath, openProjectFile, t, toast, activeProjectRef, updateProject],
   );
 
   // Relevance override on an imported boundary-flow threat (I3) — written

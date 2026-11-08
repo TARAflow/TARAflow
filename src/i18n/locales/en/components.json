@@ -21,8 +21,15 @@
         "consequence": "The import is not pinned to a commit: only its content identifies the state, the machine keeps a warning until it is replaced by a committed state.",
         "confirm": "Import the unpinned state anyway"
       },
-      "existingSame": "This component is imported already in this state — a further instance is added.",
       "existingOther": "This component is imported in another state ({{label}}). The new instance uses that state; moving all instances to a newer state comes with the update.",
+      "quantity": "Quantity",
+      "quantityHint": "Identical units in the same place",
+      "existingTitle": "{{name}} is imported already",
+      "existingIntro": "This project uses it already: {{instances}}.",
+      "existingSameContext": "Identical units in the same installation context (same place, same connections): raise the quantity of the existing instance — one analysis for all of them.",
+      "existingOtherContext": "Another place or other connections: add a further instance — its own child page and its own ratings.",
+      "existingIncrease": "Raise quantity ({{prefix}}: {{from}} → {{to}})",
+      "existingAnother": "Add a further instance",
       "unresolvable": "These flows end on a boundary and will not resolve in the machine — draw them to the element inside the boundary in the component TARA:",
       "name": "Multiprocess name",
       "prefix": "Prefix",
@@ -58,6 +65,7 @@
     "details": {
       "title": "Imported component ({{prefix}}) — read-only",
       "open": "Open component TARA",
+      "quantity": "Quantity (identical units, same place)",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
     },
     "threats": {

@@ -8,7 +8,7 @@
 //   • Nothing selected  → only "Assets" tab shown (Element tab hidden)
 
 import React, { useEffect, useState } from "react";
-import { Box, IconButton, Tab, Tabs, Tooltip, Typography } from "@mui/material";
+import { Box, IconButton, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
@@ -389,6 +389,25 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo }> = ({ info 
       <Typography variant="caption" color="text.secondary" display="block">
         {info.source}
       </Typography>
+      {/* Identical units in the same installation context (I5) */}
+      {info.onSetQuantity ? (
+        <TextField
+          size="small"
+          type="number"
+          label={t("components.details.quantity", { ns: "components", defaultValue: "Quantity (identical units, same place)" })}
+          value={info.quantity ?? 1}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (Number.isInteger(n) && n >= 1) info.onSetQuantity!(n);
+          }}
+          sx={{ mt: 1, width: 240 }}
+          inputProps={{ min: 1, step: 1, "data-testid": "component-quantity" }}
+        />
+      ) : (info.quantity ?? 1) > 1 ? (
+        <Typography variant="body2" sx={{ mt: 0.5 }} data-testid="component-quantity-label">
+          ×{info.quantity}
+        </Typography>
+      ) : null}
       {info.onOpen && (
         <Button size="small" sx={{ mt: 0.5, px: 0 }} onClick={info.onOpen} data-testid="component-open">
           {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}

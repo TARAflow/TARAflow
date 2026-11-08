@@ -3,7 +3,9 @@
 // Multi-project TARA, phase 1 (design §5): the import dialog — choose a file,
 // see its source, confirm an unpinned state, name and prefix, map the EEs,
 // the hints for an existing import and for flows that will not resolve, and
-// the refusals.
+// the refusals. Manual test 2026-11-08 (I5): an existing import asks first in
+// a dialog of its own — a further instance or a higher quantity; the
+// quantity of a new instance.
 
 import React from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -36,9 +38,19 @@ const candidate = (patch: Partial<ComponentImportCandidate> = {}): ComponentImpo
 function open(result: ComponentPickResult, machineElements = [{ id: "m_plc", label: "EE-1 Fire Panel Controller" }]) {
   const onConfirm = vi.fn();
   const onClose = vi.fn();
+  const onIncreaseQuantity = vi.fn();
   const onPickFile = vi.fn(async () => result);
-  render(<ComponentImportDialog open machineElements={machineElements} onPickFile={onPickFile} onConfirm={onConfirm} onClose={onClose} />);
-  return { onConfirm, onClose, onPickFile };
+  render(
+    <ComponentImportDialog
+      open
+      machineElements={machineElements}
+      onPickFile={onPickFile}
+      onConfirm={onConfirm}
+      onIncreaseQuantity={onIncreaseQuantity}
+      onClose={onClose}
+    />,
+  );
+  return { onConfirm, onClose, onPickFile, onIncreaseQuantity };
 }
 const pick = () => act(async () => { fireEvent.click(screen.getByTestId("component-import-pick")); });
 const confirmButton = () => screen.getByTestId("component-import-confirm") as HTMLButtonElement;
@@ -61,7 +73,7 @@ describe("ComponentImportDialog", () => {
     expect(screen.queryByTestId("component-import-unpinned")).toBeNull();
     expect(confirmButton().disabled).toBe(false);
     fireEvent.click(confirmButton());
-    expect(onConfirm).toHaveBeenCalledWith({ prefix: "SD1", name: "Smoke Detector", eeMapping: { ee1: undefined, ee2: undefined } });
+    expect(onConfirm).toHaveBeenCalledWith({ prefix: "SD1", name: "Smoke Detector", eeMapping: { ee1: undefined, ee2: undefined }, quantity: 1 });
   });
 
   it("an EE mapped to a machine element", async () => {
@@ -105,12 +117,80 @@ describe("ComponentImportDialog", () => {
     expect(confirmButton().disabled).toBe(true);
   });
 
-  it("hints: imported already (same / other state), flows that will not resolve", async () => {
-    open({ ok: true, candidate: candidate({ existing: { sameState: false, label: "sd/v0" }, unresolvableFlows: ["DF-8 pull debug commands"] }) });
+  it("flows that will not resolve are listed; the import still runs", async () => {
+    open({ ok: true, candidate: candidate({ unresolvableFlows: ["DF-8 pull debug commands"] }) });
     await pick();
-    expect(screen.getByTestId("component-import-existing").textContent).toContain("another state (sd/v0)");
     expect(screen.getByTestId("component-import-unresolvable").textContent).toContain("DF-8 pull debug commands");
     expect(confirmButton().disabled).toBe(false);
+  });
+
+  const existing = (sameState: boolean) => ({
+    sameState,
+    label: "sd/v0",
+    instances: [
+      { id: "i1", label: "SD1 · Smoke Detector", quantity: 1 },
+      { id: "i2", label: "SD2 · Smoke Detector ×3", quantity: 3 },
+    ],
+  });
+
+  it("imported already: a dialog of its own asks first; the form waits", async () => {
+    open({ ok: true, candidate: candidate({ existing: existing(true) }) });
+    await pick();
+    const ask = screen.getByTestId("component-import-existing");
+    expect(ask.textContent).toContain("Smoke Detector is imported already");
+    expect(ask.textContent).toContain("SD1 · Smoke Detector, SD2 · Smoke Detector ×3");
+    expect(ask.textContent).toContain("same installation context");
+    expect(screen.queryByTestId("component-import-existing-other")).toBeNull();
+    expect(screen.queryByTestId("component-import-prefix")).toBeNull();
+    expect(confirmButton().disabled).toBe(true);
+  });
+
+  it("another state is explained in the question", async () => {
+    open({ ok: true, candidate: candidate({ existing: existing(false) }) });
+    await pick();
+    expect(screen.getByTestId("component-import-existing-other").textContent).toContain("another state (sd/v0)");
+  });
+
+  it("a further instance: the form follows", async () => {
+    const { onConfirm } = open({ ok: true, candidate: candidate({ existing: existing(true) }) });
+    await pick();
+    fireEvent.click(screen.getByTestId("component-import-existing-another"));
+    expect(screen.queryByTestId("component-import-existing")).toBeNull();
+    fireEvent.click(confirmButton());
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("raise the quantity of an existing instance: no import, the dialog closes", async () => {
+    const { onConfirm, onClose, onIncreaseQuantity } = open({ ok: true, candidate: candidate({ existing: existing(true) }) });
+    await pick();
+    expect(screen.getByTestId("component-import-existing-increase").textContent).toContain("SD1: 1 → 2");
+    const select = screen.getByTestId("component-import-existing-instance").parentElement!.querySelector('[role="combobox"]')!;
+    await act(async () => { fireEvent.mouseDown(select); });
+    await act(async () => { fireEvent.click(within(screen.getByRole("listbox")).getByText("SD2 · Smoke Detector ×3")); });
+    expect(screen.getByTestId("component-import-existing-increase").textContent).toContain("SD2: 3 → 4");
+    fireEvent.click(screen.getByTestId("component-import-existing-increase"));
+    expect(onIncreaseQuantity).toHaveBeenCalledWith("i2");
+    expect(onClose).toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("cancel in the question closes the import", async () => {
+    const { onClose } = open({ ok: true, candidate: candidate({ existing: existing(true) }) });
+    await pick();
+    fireEvent.click(screen.getByTestId("component-import-existing-cancel"));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("the quantity of a new instance: identical units, at least 1", async () => {
+    const { onConfirm } = open({ ok: true, candidate: candidate() });
+    await pick();
+    const quantity = screen.getByTestId("component-import-quantity");
+    fireEvent.change(quantity, { target: { value: "0" } });
+    expect(confirmButton().disabled).toBe(true);
+    fireEvent.change(quantity, { target: { value: "4" } });
+    expect(confirmButton().disabled).toBe(false);
+    fireEvent.click(confirmButton());
+    expect(onConfirm.mock.calls[0][0].quantity).toBe(4);
   });
 
   it("a refused file shows the reason and offers no import", async () => {

@@ -79,8 +79,10 @@ describe("candidateFrom", () => {
     const r = result();
     const first = applyComponentImport({ context: context(), machine: {}, result: r, choice: { prefix: "SD1", name: "SD", eeMapping: {} }, ids: { importId: "imp", instanceId: "i1" }, importedAt: "2026-11-07" });
     const machine = { components: first.components };
-    expect(candidateFrom(r, machine).existing).toEqual({ sameState: true, label: "abc123de" });
-    expect(candidateFrom({ ...r, contentHash: "other" }, machine).existing).toEqual({ sameState: false, label: "abc123de" });
+    // with the existing instances, for the "imported already" question (I5)
+    const instances = [{ id: "i1", label: "SD1 · Smoke Detector", quantity: 1 }];
+    expect(candidateFrom(r, machine).existing).toEqual({ sameState: true, label: "abc123de", instances });
+    expect(candidateFrom({ ...r, contentHash: "other" }, machine).existing).toEqual({ sameState: false, label: "abc123de", instances });
     expect(candidateFrom(r, machine).usedPrefixes).toEqual(["SD1"]);
     expect(candidateFrom(r, machine).defaultPrefix).not.toBe("SD1");
   });

@@ -455,6 +455,10 @@ export interface ComponentMultiprocessInfo {
   source: string;
   /** Instance prefix, e.g. "SD1". */
   prefix: string;
+  /** Identical units this instance stands for (same context, I5); 1 = one. */
+  quantity?: number;
+  /** Sets the quantity (≥ 1); absent = read-only. */
+  onSetQuantity?: (quantity: number) => void;
   /** Opens the component TARA as a further project; absent = not available. */
   onOpen?: () => void;
 }

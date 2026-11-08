@@ -20,7 +20,7 @@ afterEach(cleanup);
 
 const mp = { id: "mp1", displayId: "MP-3", name: "Smoke Detector", type: "Multiprocess", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} } as never;
 
-function show(componentInfo?: { name: string; source: string; prefix: string; onOpen?: () => void }) {
+function show(componentInfo?: { name: string; source: string; prefix: string; onOpen?: () => void; quantity?: number; onSetQuantity?: (n: number) => void }) {
   render(<DFDDetailsPanel open onToggle={() => {}} onClose={() => {}} element={mp} onChange={() => {}} elements={[mp]} componentInfo={componentInfo} />);
 }
 
@@ -38,6 +38,23 @@ describe("DFDDetailsPanel — imported component", () => {
   it("no open button when the app cannot open it", () => {
     show({ name: "Smoke Detector", source: "unpinned (no_repo)", prefix: "SD1" });
     expect(screen.queryByTestId("component-open")).toBeNull();
+  });
+
+  it("quantity of identical units (I5): editable, at least 1", () => {
+    const onSetQuantity = vi.fn();
+    show({ name: "Smoke Detector", source: "unpinned", prefix: "SD1", quantity: 2, onSetQuantity });
+    const input = screen.getByTestId("component-quantity") as HTMLInputElement;
+    expect(input.value).toBe("2");
+    fireEvent.change(input, { target: { value: "4" } });
+    expect(onSetQuantity).toHaveBeenCalledWith(4);
+    onSetQuantity.mockClear();
+    fireEvent.change(input, { target: { value: "0" } });
+    expect(onSetQuantity).not.toHaveBeenCalled();
+  });
+
+  it("read-only quantity shows ×n above 1", () => {
+    show({ name: "Smoke Detector", source: "unpinned", prefix: "SD1", quantity: 3 });
+    expect(screen.getByTestId("component-quantity-label").textContent).toBe("×3");
   });
 
   it("an ordinary multiprocess shows no component section", () => {

@@ -21,8 +21,15 @@
         "consequence": "Der Import ist an keinen Commit gebunden: nur sein Inhalt kennzeichnet den Stand, die Maschine behält eine Warnung, bis er durch einen committeten Stand ersetzt ist.",
         "confirm": "Den ungebundenen Stand trotzdem importieren"
       },
-      "existingSame": "Diese Komponente ist in diesem Stand bereits importiert — eine weitere Instanz wird angelegt.",
       "existingOther": "Diese Komponente ist in einem anderen Stand importiert ({{label}}). Die neue Instanz verwendet diesen Stand; alle Instanzen auf einen neueren Stand zu bringen, kommt mit dem Update.",
+      "quantity": "Anzahl",
+      "quantityHint": "Gleiche Einheiten am gleichen Ort",
+      "existingTitle": "{{name}} ist bereits importiert",
+      "existingIntro": "Dieses Projekt verwendet sie bereits: {{instances}}.",
+      "existingSameContext": "Gleiche Einheiten im gleichen Einbaukontext (gleicher Ort, gleiche Anbindung): die Anzahl der bestehenden Instanz erhöhen — eine Analyse für alle.",
+      "existingOtherContext": "Anderer Ort oder andere Anbindung: eine weitere Instanz anlegen — mit eigener Unterseite und eigenen Bewertungen.",
+      "existingIncrease": "Anzahl erhöhen ({{prefix}}: {{from}} → {{to}})",
+      "existingAnother": "Weitere Instanz anlegen",
       "unresolvable": "Diese Flows enden auf einer Boundary und werden in der Maschine nicht aufgelöst — zeichnen Sie sie in der Komponenten-TARA zum Element innerhalb der Boundary:",
       "name": "Name des Multiprozesses",
       "prefix": "Präfix",
@@ -58,6 +65,7 @@
     "details": {
       "title": "Importierte Komponente ({{prefix}}) — schreibgeschützt",
       "open": "Komponenten-TARA öffnen",
+      "quantity": "Anzahl (gleiche Einheiten, gleicher Ort)",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
     },
     "threats": {

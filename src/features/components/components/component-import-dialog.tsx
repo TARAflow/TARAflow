@@ -8,7 +8,10 @@
 //      the page shown, or take it over as a new element (default, E1)
 //   5. flows that will not resolve (EE → boundary, §17 I2) are listed; the
 //      import still runs
-// Already imported (E12): the instance uses the imported state.
+// Already imported (E12): the instance uses the imported state. A separate
+// dialog asks first (manual test 2026-11-08: the hint was easy to miss) —
+// identical units in the same context raise the quantity of an existing
+// instance, another context gets a further instance (I5).
 
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,6 +56,8 @@ export interface ComponentImportDialogProps {
   /** Asks for and checks a component file; null = cancelled. */
   onPickFile: () => Promise<ComponentPickResult>;
   onConfirm: (choice: ComponentImportDialogChoice) => void;
+  /** Same installation context: one more unit of an existing instance (I5). */
+  onIncreaseQuantity?: (instanceId: string) => void;
   onClose: () => void;
 }
 
@@ -61,6 +66,7 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
   machineElements,
   onPickFile,
   onConfirm,
+  onIncreaseQuantity,
   onClose,
 }) => {
   const { t } = useTranslation(NS);
@@ -71,6 +77,10 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
   const [prefix, setPrefix] = useState("");
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [unpinnedConfirmed, setUnpinnedConfirmed] = useState(false);
+  const [quantity, setQuantity] = useState("1");
+  /** Imported already: the analyst chose a further instance. */
+  const [anotherInstance, setAnotherInstance] = useState(false);
+  const [raiseId, setRaiseId] = useState("");
 
   // A new opening starts empty.
   useEffect(() => {
@@ -82,6 +92,9 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
     setPrefix("");
     setMapping({});
     setUnpinnedConfirmed(false);
+    setQuantity("1");
+    setAnotherInstance(false);
+    setRaiseId("");
   }, [open]);
 
   const pick = async () => {
@@ -101,6 +114,9 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
       setPrefix(c.defaultPrefix);
       setMapping(Object.fromEntries(c.externalEntities.map((ee) => [ee.id, NEW_ELEMENT])));
       setUnpinnedConfirmed(false);
+      setQuantity("1");
+      setAnotherInstance(false);
+      setRaiseId(c.existing?.instances[0]?.id ?? "");
     } finally {
       setBusy(false);
     }
@@ -114,13 +130,19 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
         ? t("components.import.prefixTaken", { defaultValue: "Already used by another instance" })
         : null;
   const unpinned = !!candidate?.source.unpinned;
-  const canImport = !!candidate && !busy && !prefixError && name.trim() !== "" && (!unpinned || unpinnedConfirmed);
+  const quantityValue = Number(quantity);
+  const quantityError = !Number.isInteger(quantityValue) || quantityValue < 1;
+  /** Imported already and not decided yet: the question comes first. */
+  const asking = !!candidate?.existing && !anotherInstance;
+  const canImport =
+    !!candidate && !asking && !busy && !prefixError && !quantityError && name.trim() !== "" && (!unpinned || unpinnedConfirmed);
 
   const confirm = () => {
     if (!candidate || !canImport) return;
     onConfirm({
       prefix,
       name: name.trim(),
+      quantity: quantityValue,
       eeMapping: Object.fromEntries(
         candidate.externalEntities.map((ee) => [ee.id, mapping[ee.id] === NEW_ELEMENT ? undefined : mapping[ee.id]]),
       ),
@@ -152,7 +174,7 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
             </Alert>
           )}
 
-          {candidate && (
+          {candidate && !asking && (
             <>
               <SourceSummary candidate={candidate} />
 
@@ -177,20 +199,6 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
                     }
                     label={t("components.import.unpinned.confirm", { defaultValue: "Import the unpinned state anyway" })}
                   />
-                </Alert>
-              )}
-
-              {candidate.existing && (
-                <Alert severity="info" data-testid="component-import-existing">
-                  {candidate.existing.sameState
-                    ? t("components.import.existingSame", {
-                        defaultValue: "This component is imported already in this state — a further instance is added.",
-                      })
-                    : t("components.import.existingOther", {
-                        label: candidate.existing.label,
-                        defaultValue:
-                          "This component is imported in another state ({{label}}). The new instance uses that state; moving all instances to a newer state comes with the update.",
-                      })}
                 </Alert>
               )}
 
@@ -220,6 +228,17 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
                   size="small"
                   sx={{ flex: 2 }}
                   inputProps={{ "data-testid": "component-import-name" }}
+                />
+                <TextField
+                  label={t("components.import.quantity", { defaultValue: "Quantity" })}
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  size="small"
+                  type="number"
+                  error={quantityError}
+                  helperText={t("components.import.quantityHint", { defaultValue: "Identical units in the same place" })}
+                  sx={{ width: 150 }}
+                  inputProps={{ min: 1, step: 1, "data-testid": "component-import-quantity" }}
                 />
                 <TextField
                   label={t("components.import.prefix", { defaultValue: "Prefix" })}
@@ -288,6 +307,112 @@ export const ComponentImportDialog: React.FC<ComponentImportDialogProps> = ({
         <Button onClick={onClose}>{t("components.import.cancel", { defaultValue: "Cancel" })}</Button>
         <Button variant="contained" onClick={confirm} disabled={!canImport} data-testid="component-import-confirm">
           {t("components.import.confirm", { defaultValue: "Import" })}
+        </Button>
+      </DialogActions>
+      {candidate?.existing && asking && (
+        <AlreadyImportedDialog
+          name={candidate.name}
+          existing={candidate.existing}
+          raiseId={raiseId}
+          onRaiseIdChange={setRaiseId}
+          onCancel={onClose}
+          onAnother={() => setAnotherInstance(true)}
+          {...(onIncreaseQuantity
+            ? {
+                onIncrease: () => {
+                  if (!raiseId) return;
+                  onIncreaseQuantity(raiseId);
+                  onClose();
+                },
+              }
+            : {})}
+        />
+      )}
+    </Dialog>
+  );
+};
+
+/**
+ * Imported already (E12, I5): a further instance for another installation
+ * context, or one more unit of an existing instance in the same context.
+ */
+const AlreadyImportedDialog: React.FC<{
+  name: string;
+  existing: NonNullable<ComponentImportCandidate["existing"]>;
+  raiseId: string;
+  onRaiseIdChange: (id: string) => void;
+  onCancel: () => void;
+  onAnother: () => void;
+  onIncrease?: () => void;
+}> = ({ name, existing, raiseId, onRaiseIdChange, onCancel, onAnother, onIncrease }) => {
+  const { t } = useTranslation(NS);
+  const target = existing.instances.find((i) => i.id === raiseId) ?? existing.instances[0];
+  return (
+    <Dialog open onClose={onCancel} maxWidth="sm" fullWidth data-testid="component-import-existing">
+      <DialogTitle>
+        {t("components.import.existingTitle", { name, defaultValue: "{{name}} is imported already" })}
+      </DialogTitle>
+      <DialogContent>
+        <Stack spacing={1.5} sx={{ pt: 0.5 }}>
+          <Typography variant="body2">
+            {t("components.import.existingIntro", {
+              instances: existing.instances.map((i) => i.label).join(", ") || "—",
+              defaultValue: "This project uses it already: {{instances}}.",
+            })}
+          </Typography>
+          {!existing.sameState && (
+            <Alert severity="info" data-testid="component-import-existing-other">
+              {t("components.import.existingOther", {
+                label: existing.label,
+                defaultValue:
+                  "This component is imported in another state ({{label}}). The new instance uses that state; moving all instances to a newer state comes with the update.",
+              })}
+            </Alert>
+          )}
+          <Typography variant="body2">
+            {t("components.import.existingSameContext", {
+              defaultValue:
+                "Identical units in the same installation context (same place, same connections): raise the quantity of the existing instance — one analysis for all of them.",
+            })}
+          </Typography>
+          <Typography variant="body2">
+            {t("components.import.existingOtherContext", {
+              defaultValue:
+                "Another place or other connections: add a further instance — its own child page and its own ratings.",
+            })}
+          </Typography>
+          {onIncrease && existing.instances.length > 1 && (
+            <Select
+              size="small"
+              value={raiseId}
+              onChange={(e) => onRaiseIdChange(String(e.target.value))}
+              inputProps={{ "data-testid": "component-import-existing-instance" }}
+            >
+              {existing.instances.map((i) => (
+                <MenuItem key={i.id} value={i.id}>
+                  {i.label}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel} data-testid="component-import-existing-cancel">
+          {t("components.import.cancel", { defaultValue: "Cancel" })}
+        </Button>
+        {onIncrease && target && (
+          <Button onClick={onIncrease} data-testid="component-import-existing-increase">
+            {t("components.import.existingIncrease", {
+              prefix: target.label.split(" · ")[0],
+              from: target.quantity,
+              to: target.quantity + 1,
+              defaultValue: "Raise quantity ({{prefix}}: {{from}} → {{to}})",
+            })}
+          </Button>
+        )}
+        <Button variant="contained" onClick={onAnother} data-testid="component-import-existing-another">
+          {t("components.import.existingAnother", { defaultValue: "Add a further instance" })}
         </Button>
       </DialogActions>
     </Dialog>

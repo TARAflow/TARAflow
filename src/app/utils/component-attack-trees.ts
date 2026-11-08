@@ -52,6 +52,7 @@ import type {
 import { componentInstanceTfId, instanceAssetId } from "features/dfd";
 import type { Project } from "../models/project-types";
 import { buildAttackPathThreatReferences } from "./build-attack-path-threat-references";
+import { instanceLabel } from "../services/component-import/instance-quantity";
 
 type Components = NonNullable<Project["components"]>;
 type Instance = Components["instances"][number];
@@ -280,7 +281,7 @@ export function componentAttackPathGroups(project: MachineTrees): ComponentAttac
         });
       }
     }
-    return { key: instance.id, label: `${instance.prefix} · ${imported.name}`, paths };
+    return { key: instance.id, label: instanceLabel(instance, imported.name), paths };
   });
 }
 

@@ -153,4 +153,10 @@ export interface ComponentInstance {
   relevanceOverrides?: ComponentRelevanceOverride[];
   /** Window of opportunity per component attack path (ISO, patch 17). Absent: none. */
   pathOverlays?: ComponentPathOverlay[];
+  /**
+   * How many identical units this instance stands for — same installation
+   * context, one analysis (I5, user 2026-11-08). Absent: 1. Units in other
+   * contexts are instances of their own.
+   */
+  quantity?: number;
 }

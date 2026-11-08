@@ -29,6 +29,7 @@ import { compareFingerprints, type ThreatReference } from "shared";
 import { projectMethodologyFingerprint } from "../services/component-import/snapshot-builder";
 import type { Project } from "../models/project-types";
 import { extractThreatReferences } from "./extract-threat-references";
+import { instanceLabel } from "../services/component-import/instance-quantity";
 
 /** One imported threat as the Threats tab shows it. */
 export interface ComponentThreatRow {
@@ -197,7 +198,7 @@ export function componentThreatGroups(project: Pick<Project, "components">): Com
     const t = instanceTables(instance, imported);
     const threats = t.rows.map((r) => r.threat);
     return threats.length > 0
-      ? [{ key: instance.id, label: `${instance.prefix} · ${imported.name}`, threats, rows: t.rows }]
+      ? [{ key: instance.id, label: instanceLabel(instance, imported.name), threats, rows: t.rows }]
       : [];
   });
 }

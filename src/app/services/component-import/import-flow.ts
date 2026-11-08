@@ -19,6 +19,7 @@ import type { ComponentImportCandidate, MachineElementOption } from "features/co
 import type { Project } from "../../models/project-types";
 import type { ComponentSnapshot } from "../../models/component-snapshot-types";
 import type { ComponentSourceOk } from "./component-source";
+import { instanceLabel, quantityOf } from "./instance-quantity";
 
 const BOUNDARY_TYPES = new Set(["TrustBoundary", "PhysicalBoundary", "ChipBoundary"]);
 /** Element types an EE can stand for in the machine (no boundaries, no interfaces). */
@@ -83,6 +84,9 @@ export function candidateFrom(
     ...(existing
       ? {
           existing: {
+            instances: (machine.components?.instances ?? [])
+              .filter((i) => i.importId === existing.id)
+              .map((i) => ({ id: i.id, label: instanceLabel(i, existing.name), quantity: quantityOf(i) })),
             sameState: existing.contentHash === result.contentHash,
             label: existing.source.tag ?? existing.source.commitSha?.slice(0, 8) ?? "unpinned",
           },
@@ -109,6 +113,8 @@ export interface ComponentImportChoice {
   name: string;
   /** Component EE id → machine tfId; undefined = new element. */
   eeMapping: Record<string, string | undefined>;
+  /** Identical units in the same installation context (I5); absent / 1 = one. */
+  quantity?: number;
 }
 
 export interface AppliedComponentImport {
@@ -173,6 +179,8 @@ export function applyComponentImport(input: {
       .filter((id) => (dfd.elements ?? []).some((e) => e.id === id && e.type === "ExternalEntity"))
       .map((componentEeId) => ({ componentEeId, machineTfId: inserted.idMap[componentEeId] })),
     assumptions: [],
+    // identical units in the same context (I5)
+    ...(quantityOf({ quantity: choice.quantity }) > 1 ? { quantity: quantityOf({ quantity: choice.quantity }) } : {}),
   };
 
   const eeIds = new Set((dfd.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
