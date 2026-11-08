@@ -34,6 +34,12 @@
 //                                  over (share / transfer) or accepted arrive
 //                                  untreated; open until the machine sets its
 //                                  own treatment
+//   CMP_AOU_OPEN (warning)         phase 3b, §7.6: assumptions of use still
+//                                  open in an instance
+//   CMP_AOU_VIOLATED (error)       an assumption not fulfilled — the
+//                                  component's analysis is not valid here
+//   CMP_AOU_MET_BY_PENDING         "fulfilled" backed by a machine measure
+//                    (warning)     not implemented yet (I7 (2))
 //   CMP_COMPONENT_PAGE_CHANGED     the component's pages differ from the
 //                    (warning)     imported state — elements missing or
 //                                  added there (the pages are locked in the
@@ -55,6 +61,7 @@ import { factorClassOf, getFactorDefinition } from "features/risks";
 import { projectMethodologyFingerprint } from "./snapshot-builder";
 import { componentPathRatingGaps } from "../../utils/component-attack-trees";
 import { componentTreatments, machineDecided } from "../../utils/component-treatments";
+import { assumptionGaps } from "./assumption-status";
 
 export interface ComponentFindings {
   errors: ValidationFinding[];
@@ -141,6 +148,24 @@ export function componentFindings(
       const params = { prefix: instance.prefix, component: name };
       if (pending > 0) out.warnings.push({ key: KEY("CMP_MEASURE_PENDING"), params: { ...params, count: pending } });
       if (handover > 0) out.warnings.push({ key: KEY("CMP_HANDOVER_OPEN"), params: { ...params, count: handover } });
+    }
+
+    // Assumptions of use per instance (§7.6, phase 3b).
+    if (imported) {
+      const gaps = assumptionGaps(instance, imported, project.risks?.risks);
+      const params = { prefix: instance.prefix, component: name };
+      if (gaps.violated.length > 0) {
+        out.errors.push({ key: KEY("CMP_AOU_VIOLATED"), params: { ...params, list: gaps.violated.map((a) => a.displayId).join(", ") } });
+      }
+      if (gaps.open.length > 0) {
+        out.warnings.push({ key: KEY("CMP_AOU_OPEN"), params: { ...params, count: gaps.open.length } });
+      }
+      for (const g of gaps.metByPending) {
+        out.warnings.push({
+          key: KEY("CMP_AOU_MET_BY_PENDING"),
+          params: { ...params, assumption: g.assumption.displayId, measures: g.mitigationIds.join(", ") },
+        });
+      }
     }
 
     // Imported risks: unrated factors (only with a mismatch) and overrides without rationale.

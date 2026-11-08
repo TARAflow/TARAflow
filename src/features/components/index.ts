@@ -11,6 +11,12 @@ export {
   type PathWindow,
 } from "./components/component-attack-paths-section";
 export { ComponentTreatmentSection, type ComponentTreatmentView } from "./components/component-treatment-section";
+export {
+  ComponentAssumptionsChecklist,
+  type ComponentAssumptionsChecklistProps,
+  type AssumptionCheckView,
+  type AssumptionCheckDecision,
+} from "./components/component-assumptions-checklist";
 export type {
   ComponentImportCandidate,
   MachineElementOption,

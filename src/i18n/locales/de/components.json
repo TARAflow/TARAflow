@@ -60,6 +60,9 @@
       "CMP_NO_ATTACK_PATHS": "Komponente {{component}} hat keine Angriffspfade — in einem ISO/SAE-21434-Projekt erzeugen nur Angriffspfade Risiken, sie trägt also keine bei. Ihre Attack Trees in der Komponenten-TARA modellieren.",
       "CMP_MEASURE_PENDING": "Komponente {{prefix}} ({{component}}): {{count}} importierte(s) Risiko/Risiken stützen sich auf noch nicht umgesetzte Massnahmen der Komponente — sie hängen an einem Release der Komponente.",
       "CMP_HANDOVER_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} von der Komponente übergebene(s) oder akzeptierte(s) Risiko/Risiken kommen unbehandelt an — die Behandlung dieser Maschine festlegen (eigene Massnahme oder akzeptieren / übertragen mit Begründung).",
+      "CMP_AOU_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} Annahme(n) zur Verwendung in dieser Instanz noch offen — in den Details des Multiprozesses prüfen.",
+      "CMP_AOU_VIOLATED": "Komponente {{prefix}} ({{component}}): Annahme(n) {{list}} nicht erfüllt — die Analyse der Komponente gilt in dieser Maschine nicht, bis das gelöst ist.",
+      "CMP_AOU_MET_BY_PENDING": "Komponente {{prefix}} ({{component}}): {{assumption}} gilt als erfüllt durch Massnahme(n) {{measures}} dieser Maschine, die noch nicht umgesetzt sind.",
       "CMP_PATH_WINDOW_UNRATED": "Komponente {{prefix}} ({{component}}): {{count}} Angriffspfad(e) ohne Window of Opportunity dieser Maschine — unbewertet, sie erzeugen kein Risiko. Im Tab Attack Tree bewerten.",
       "CMP_PATH_NOT_RATABLE": "Komponente {{prefix}} ({{component}}): {{count}} Angriffspfad(e) im Schnellmodus bewertet — ohne Faktor-Aufschlüsselung kann diese Maschine ihr Window of Opportunity nicht bewerten, sie erzeugen also kein Risiko. Die Pfade in der Komponenten-TARA im Audit-Modus bewerten und aktualisieren."
     },
@@ -74,12 +77,26 @@
     "copy": {
       "title": "Bewertung nach {{prefix}} übernehmen",
       "intro": "Übernimmt die Bewertung einer anderen Instanz desselben Komponentenstands einmalig. Danach sind beide Instanzen unabhängig — spätere Änderungen werden nicht übertragen. Die Risikobehandlung bleibt pro Risiko.",
-      "decisions": "Likelihood-Faktoren (Kontext, Überschreibungen vorbelegter Faktoren), überstimmte Relevanzen, Window of Opportunity",
+      "decisions": "Likelihood-Faktoren (Kontext, Überschreibungen vorbelegter Faktoren), überstimmte Relevanzen, Window of Opportunity, Annahmen-Status",
       "assetImpact": "Impact der Instanz-Assets",
       "fill": "Nur füllen, was hier noch nicht bewertet ist",
       "overwrite": "Mit den Werten der Quelle überschreiben",
       "confirm": "Übernehmen",
-      "done": "Übernommen: {{factors}} Faktorbewertung(en), {{overrides}} überstimmte Relevanz(en), {{windows}} Window(s) of Opportunity, {{impact}} Asset-Impact-Bewertung(en)."
+      "done": "Übernommen: {{factors}} Faktorbewertung(en), {{overrides}} überstimmte Relevanz(en), {{windows}} Window(s) of Opportunity, {{assumptions}} Annahmen-Status, {{impact}} Asset-Impact-Bewertung(en)."
+    },
+    "assumptions": {
+      "title": "Annahmen zur Verwendung ({{count}}) — offen: {{open}}",
+      "componentStatus": "Komponente: {{status}}",
+      "rationale": "Warum sie hier nicht zutrifft (Pflicht)",
+      "save": "Speichern",
+      "measures": "Nachweis: Massnahmen dieser Maschine",
+      "note": "Nachweis-Notiz",
+      "status": {
+        "open": "offen",
+        "fulfilled": "erfüllt",
+        "not_fulfilled": "nicht erfüllt",
+        "not_applicable": "nicht anwendbar"
+      }
     },
     "treatment": {
       "title": "Behandlung in der Komponente ({{component}}): {{treatment}}",

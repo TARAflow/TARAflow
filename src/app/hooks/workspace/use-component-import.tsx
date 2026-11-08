@@ -19,12 +19,14 @@ import type {
 import { createIpcGitRunner } from "features/audit/services/audit-git-adapters";
 import {
   ComponentImportDialog,
+  ComponentAssumptionsChecklist,
   type ComponentImportDialogChoice,
   type ComponentPickResult,
 } from "features/components";
 import type { Project } from "../../models/project-types";
 import { instanceLabel, quantityOf, withInstanceQuantity } from "../../services/component-import/instance-quantity";
 import { copyInstanceRatings, copySourcesOf } from "../../services/component-import/copy-ratings";
+import { instanceAssumptions, machineMeasureOptions, withAssumptionStatus } from "../../services/component-import/assumption-status";
 import { buildAssetDataReference } from "../../utils/build-asset-data-reference";
 import { buildAssetHazardLinks } from "../../utils/build-asset-hazard-links";
 import { recalculateRiskValues } from "features/risks";
@@ -199,6 +201,19 @@ export function useComponentImport({
           if (!current?.components) return;
           void updateProject({ id: current.id, components: withInstanceQuantity(current.components, instance.id, n) });
         },
+        // The assumptions of use of this instance (phase 3b, §7.6).
+        renderExtra: () => (
+          <ComponentAssumptionsChecklist
+            prefix={instance.prefix}
+            assumptions={instanceAssumptions(instance, imported)}
+            measures={activeProjectRef.current ? machineMeasureOptions(activeProjectRef.current) : []}
+            onChange={(assumptionId, decision) => {
+              const current = activeProjectRef.current;
+              if (!current?.components) return;
+              void updateProject({ id: current.id, components: withAssumptionStatus(current.components, instance.id, assumptionId, decision) });
+            }}
+          />
+        ),
         // Copy the ratings of another instance of the same import, once (I5).
         copySources: copySourcesOf(components!, instance.id).map((i) => ({ id: i.id, label: instanceLabel(i, imported.name) })),
         onCopyRatings: (sourceId: string, options: ComponentCopyOptions) => {
@@ -229,9 +244,10 @@ export function useComponentImport({
             t("components.copy.done", {
               factors: c.factors,
               overrides: c.relevanceOverrides,
+              assumptions: c.assumptions,
               windows: c.pathOverlays,
               impact: c.assetRatings,
-              defaultValue: "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{windows}} window(s) of opportunity, {{impact}} asset impact rating(s).",
+              defaultValue: "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{windows}} window(s) of opportunity, {{assumptions}} assumption status(es), {{impact}} asset impact rating(s).",
             }),
           );
         },

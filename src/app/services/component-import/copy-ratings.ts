@@ -10,7 +10,9 @@
 //                           (context factors and the overrides of prefilled
 //                           intrinsic factors with their rationale), the
 //                           relevance overrides on boundary flows, the
-//                           window of opportunity per attack path
+//                           window of opportunity per attack path, the
+//                           status of the assumptions of use (phase 3b,
+//                           I7 (6)) with evidence and rationale
 //   asset impact (off)      impact ratings of the instance assets and the
 //                           impact factors of the imported risks
 //   mode                    "fill": only what the target has not rated;
@@ -47,6 +49,7 @@ export interface CopyRatingsOptions {
 }
 
 export interface CopyRatingsCounts {
+  assumptions: number;
   factors: number;
   relevanceOverrides: number;
   pathOverlays: number;
@@ -87,7 +90,7 @@ export function copyInstanceRatings(
   if (!source || !target) throw new Error("Unknown instance.");
   if (source.importId !== target.importId) throw new Error("Ratings are copied between instances of the same import only.");
   const imported = components.imports.find((i) => i.id === source.importId);
-  const counts: CopyRatingsCounts = { factors: 0, relevanceOverrides: 0, pathOverlays: 0, assetRatings: 0 };
+  const counts: CopyRatingsCounts = { assumptions: 0, factors: 0, relevanceOverrides: 0, pathOverlays: 0, assetRatings: 0 };
   const fill = options.mode === "fill";
 
   // ── decisions: overrides and windows of opportunity ────────────────────
@@ -107,9 +110,19 @@ export function copyInstanceRatings(
     };
     const overrides = mergeBy(target.relevanceOverrides, source.relevanceOverrides, (o) => o.threatKey, (n) => (counts.relevanceOverrides = n));
     const overlays = mergeBy(target.pathOverlays, source.pathOverlays, overlayKey, (n) => (counts.pathOverlays = n));
+    // "open" entries are no decision (fill: an open target entry is filled)
+    const decidedAoU = (list: typeof target.assumptions) => (list ?? []).filter((a) => a.status !== "open");
+    const assumptions = mergeBy(
+      decidedAoU(target.assumptions),
+      decidedAoU(source.assumptions).map((a) => ({ ...a, instanceId: target.id })),
+      (a) => a.assumptionId,
+      (n) => (counts.assumptions = n),
+    );
+    const openTarget = (target.assumptions ?? []).filter((a) => a.status === "open" && !assumptions.some((x) => x.assumptionId === a.assumptionId));
     const { relevanceOverrides: _r, pathOverlays: _p, ...rest } = target;
     nextTarget = {
       ...rest,
+      assumptions: [...openTarget, ...assumptions],
       ...(overrides.length > 0 ? { relevanceOverrides: overrides } : {}),
       ...(overlays.length > 0 ? { pathOverlays: overlays } : {}),
     };

@@ -433,6 +433,7 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo }> = ({ info 
           {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
         </Button>
       )}
+      {info.renderExtra?.()}
       {info.onCopyRatings && (info.copySources?.length ?? 0) > 0 && (
         <Box>
           <Button size="small" sx={{ mt: 0.5, px: 0 }} onClick={() => setCopying(true)} data-testid="component-copy-ratings">
@@ -495,7 +496,7 @@ const CopyRatingsDialog: React.FC<{
             control={<Checkbox checked={decisions} onChange={(e) => setDecisions(e.target.checked)} inputProps={{ "data-testid": "component-copy-decisions" } as never} />}
             label={t("components.copy.decisions", {
               ...ns,
-              defaultValue: "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity",
+              defaultValue: "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity, assumption status",
             })}
           />
           <FormControlLabel

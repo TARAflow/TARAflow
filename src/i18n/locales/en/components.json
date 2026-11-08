@@ -60,6 +60,9 @@
       "CMP_NO_ATTACK_PATHS": "Component {{component}} has no attack paths — in an ISO/SAE 21434 project only attack paths make risks, so it adds none. Model its attack trees in the component TARA.",
       "CMP_MEASURE_PENDING": "Component {{prefix}} ({{component}}): {{count}} imported risk(s) rely on component measures not implemented yet — they depend on a component release.",
       "CMP_HANDOVER_OPEN": "Component {{prefix}} ({{component}}): {{count}} risk(s) the component handed over or accepted arrive untreated — set this machine's treatment (an own measure, or accept / transfer with a justification).",
+      "CMP_AOU_OPEN": "Component {{prefix}} ({{component}}): {{count}} assumption(s) of use still open in this instance — check them in the multiprocess's details.",
+      "CMP_AOU_VIOLATED": "Component {{prefix}} ({{component}}): assumption(s) {{list}} not fulfilled — the component's analysis is not valid in this machine until resolved.",
+      "CMP_AOU_MET_BY_PENDING": "Component {{prefix}} ({{component}}): {{assumption}} is marked fulfilled by measure(s) {{measures}} of this machine that are not implemented yet.",
       "CMP_PATH_WINDOW_UNRATED": "Component {{prefix}} ({{component}}): {{count}} attack path(s) without this machine's window of opportunity — unrated, they make no risk. Rate them in the Attack Tree tab.",
       "CMP_PATH_NOT_RATABLE": "Component {{prefix}} ({{component}}): {{count}} attack path(s) rated in quick mode — without the factor breakdown this machine cannot rate their window of opportunity, so they make no risk. Rate the paths in audit mode in the component TARA and update."
     },
@@ -74,12 +77,26 @@
     "copy": {
       "title": "Copy ratings to {{prefix}}",
       "intro": "Takes the ratings of another instance of the same component state over once. Afterwards both instances are independent — later changes are not carried over. Risk treatment stays per risk.",
-      "decisions": "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity",
+      "decisions": "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity, assumption status",
       "assetImpact": "Impact of the instance assets",
       "fill": "Only fill what is not rated here yet",
       "overwrite": "Overwrite with the source's values",
       "confirm": "Copy",
-      "done": "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{windows}} window(s) of opportunity, {{impact}} asset impact rating(s)."
+      "done": "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{windows}} window(s) of opportunity, {{assumptions}} assumption status(es), {{impact}} asset impact rating(s)."
+    },
+    "assumptions": {
+      "title": "Assumptions of use ({{count}}) — open: {{open}}",
+      "componentStatus": "component: {{status}}",
+      "rationale": "Why it does not apply here (required)",
+      "save": "Save",
+      "measures": "Evidence: this machine's measures",
+      "note": "Evidence note",
+      "status": {
+        "open": "open",
+        "fulfilled": "fulfilled",
+        "not_fulfilled": "not fulfilled",
+        "not_applicable": "not applicable"
+      }
     },
     "treatment": {
       "title": "Treatment in the component ({{component}}): {{treatment}}",

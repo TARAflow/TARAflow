@@ -29,6 +29,7 @@ function show(componentInfo?: {
   onSetQuantity?: (n: number) => void;
   copySources?: { id: string; label: string }[];
   onCopyRatings?: (sourceId: string, options: { decisions: boolean; assetImpact: boolean; mode: "fill" | "overwrite" }) => void;
+  renderExtra?: () => React.ReactNode;
 }) {
   render(<DFDDetailsPanel open onToggle={() => {}} onClose={() => {}} element={mp} onChange={() => {}} elements={[mp]} componentInfo={componentInfo} />);
 }
@@ -92,6 +93,11 @@ describe("DFDDetailsPanel — imported component", () => {
   it("no copy action without another instance of the same import", () => {
     show({ name: "Smoke Detector", source: "unpinned", prefix: "SD1", copySources: [], onCopyRatings: vi.fn() });
     expect(screen.queryByTestId("component-copy-ratings")).toBeNull();
+  });
+
+  it("further component content from the app (e.g. the AoU checklist) shows in the section", () => {
+    show({ name: "Smoke Detector", source: "unpinned", prefix: "SD1", renderExtra: () => <div data-testid="extra">AoU</div> });
+    expect(screen.getByTestId("component-section").contains(screen.getByTestId("extra"))).toBe(true);
   });
 
   it("an ordinary multiprocess shows no component section", () => {

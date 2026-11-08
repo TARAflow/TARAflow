@@ -463,6 +463,8 @@ export interface ComponentMultiprocessInfo {
   copySources?: { id: string; label: string }[];
   /** Copies the ratings of a source instance once (no live coupling). */
   onCopyRatings?: (sourceId: string, options: ComponentCopyOptions) => void;
+  /** Further component content for the details panel (e.g. the AoU checklist, filled by the app). */
+  renderExtra?: () => import("react").ReactNode;
   /** Opens the component TARA as a further project; absent = not available. */
   onOpen?: () => void;
 }

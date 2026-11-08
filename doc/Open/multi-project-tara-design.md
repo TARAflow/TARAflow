@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), next 3b (AoU checklist) (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), next 3c (measure → AoU dependency) (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -738,6 +738,17 @@ dialog above the risk's own mitigations through a generic slot (`RiskDialogProps
 `RisksTab.riskExtraSection`; the UI in features/components). The machine adds its own measures as for
 any risk. Release notes (PLAN): the safety card for people / physical / infrastructure assets (patch
 37); report (phase 6): both relevance decisions written out.
+*Patch 39 done (2026-11-08, phase 3b):* the assumptions of use per instance (§7.6, I7 (2)/(6)). The
+multiprocess's details panel shows the component's assumptions as a checklist of the instance
+(`instanceAssumptions`, `withAssumptionStatus`; UI `ComponentAssumptionsChecklist` in
+features/components through the details panel's `renderExtra` slot): status open / fulfilled / not
+fulfilled / not applicable, the component's own status beside it, evidence (this machine's measures —
+its project mitigations and the measures its risks chose — and a note), "not applicable" only with a
+rationale (asked first, then saved). Findings: `CMP_AOU_OPEN` (warning), `CMP_AOU_VIOLATED` (error —
+the component's analysis is not valid here until resolved), `CMP_AOU_MET_BY_PENDING` (fulfilled backed
+by a machine measure not implemented on any of its risks — no status coupling). The audit diff sees the
+status with the instance; copying ratings takes it as a decision (open entries are none). Evidence by
+machine elements stays in the data model, its picker comes later.
 *Patch 37 done (2026-11-08, manual test steps 6–9):* three details. (1) Asset dialog: people,
 physical and infrastructure assets always show the safety card (harm to them is what safety is
 about), with where the value comes from — safety annotations in the DFD or hazard items in
