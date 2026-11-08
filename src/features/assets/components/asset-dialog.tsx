@@ -97,6 +97,25 @@ import { AssetLinkChips } from "./asset-link-chips";
 
 // ==================== TYPES ====================
 
+/**
+ * A rating row for every configured impact criterion (missing ones unrated,
+ * as on a new asset), the asset's own values kept. An asset that came
+ * without ratings — e.g. the assets of an imported component, whose impact
+ * the machine rates (multi-project TARA E5) — showed no criterion to rate
+ * (manual test 2026-11-08). Ratings of criteria no longer configured stay.
+ */
+export function withAllCriteria(
+  ratings: readonly Asset["impactRatings"][number][] | undefined,
+  configuration: Pick<AssetConfiguration, "impactCriteria">,
+): Asset["impactRatings"] {
+  const own = ratings ?? [];
+  const configured = configuration.impactCriteria.map(
+    (c) => own.find((r) => r.criterionId === c.id) ?? { criterionId: c.id, value: null },
+  );
+  const ids = new Set(configuration.impactCriteria.map((c) => c.id));
+  return [...configured, ...own.filter((r) => !ids.has(r.criterionId))];
+}
+
 interface AssetDialogProps {
   open: boolean;
   asset: Asset;
@@ -182,6 +201,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   const [editedAsset, setEditedAsset] = useState<Asset>(() => {
     const base = {
       ...asset,
+      impactRatings: withAllCriteria(asset.impactRatings, configuration),
       securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
     };
     // Apply graph suggestions immediately so pre-suggested goals open as checked
@@ -201,6 +221,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   useEffect(() => {
     const base = {
       ...asset,
+      impactRatings: withAllCriteria(asset.impactRatings, configuration),
       securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
     };
     setEditedAsset({

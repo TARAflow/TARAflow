@@ -7,7 +7,7 @@
 // DFD (features/dfd) stay independent; this layer joins them.
 
 import type { ComponentImport, ComponentInstance, ProjectComponents } from "shared";
-import type { Asset } from "features/assets";
+import { createDefaultAssetData, type Asset } from "features/assets";
 import {
   insertComponentInstance,
   instanceAssetId,
@@ -131,7 +131,8 @@ export interface AppliedComponentImport {
  */
 export function applyComponentImport(input: {
   context: ComponentInsertContext;
-  machine: Pick<Project, "components">;
+  /** The machine's asset configuration rates the instance assets' impact (E5). */
+  machine: Pick<Project, "components"> & Partial<Pick<Project, "assets">>;
   result: Pick<ComponentSourceOk, "snapshot" | "source" | "contentHash" | "methodology">;
   choice: ComponentImportChoice;
   ids: { importId: string; instanceId: string };
@@ -181,7 +182,13 @@ export function applyComponentImport(input: {
     ...(a as unknown as Asset),
     id: instanceAssetId(ids.instanceId, a.id),
     ...(a.displayId ? { displayId: `${choice.prefix}:${a.displayId}` } : {}),
-    impactRatings: [],
+    // The machine rates the impact (E5): one unrated row per criterion of its
+    // configuration, as on a new asset — empty ratings showed no criterion
+    // to rate (manual test 2026-11-08).
+    impactRatings: (machine.assets?.configuration ?? createDefaultAssetData().configuration).impactCriteria.map((c) => ({
+      criterionId: c.id,
+      value: null,
+    })),
     linkedDFDElements: (a.linkedDFDElements ?? [])
       .filter((l) => !eeIds.has(l.elementId) && keptIds.has(inserted.idMap[l.elementId] ?? ""))
       .map((l) => ({ ...l, elementId: inserted.idMap[l.elementId] ?? l.elementId, displayId: `${choice.prefix}:${l.displayId}` })),

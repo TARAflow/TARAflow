@@ -140,7 +140,20 @@ describe("applyComponentImport", () => {
     const first = r.snapshot.assets.find((x) => (x.linkedDFDElements ?? []).length > 0)!;
     const mine = a.assets.find((x) => x.id === instanceAssetId("inst-1", first.id))!;
     expect(mine.importedFrom).toBe("SD1 · " + r.snapshot.component.name);
-    expect(mine.impactRatings).toEqual([]);
+    // no impact from the component; one unrated row per criterion of the
+    // machine's configuration so the machine can rate it (manual test 2026-11-08)
+    expect(mine.impactRatings.length).toBeGreaterThan(0);
+    expect(mine.impactRatings.every((x) => x.value === null)).toBe(true);
+    const criteria = [{ id: "c1", name: "One" }, { id: "c2", name: "Two" }];
+    const withConfig = applyComponentImport({
+      context: context(),
+      machine: { assets: { configuration: { impactCriteria: criteria }, assets: [] } as never },
+      result: r,
+      choice: { prefix: "SD1", name: "SD", eeMapping: { "EE-1": "m_plc" } },
+      ids: { importId: "imp", instanceId: "inst-1" },
+      importedAt: "t",
+    });
+    expect(withConfig.assets[0].impactRatings).toEqual([{ criterionId: "c1", value: null }, { criterionId: "c2", value: null }]);
     if (first.displayId) expect(mine.displayId).toBe(`SD1:${first.displayId}`);
     const machineIds = new Set([...a.outcome.elements, ...a.outcome.connections].map((e) => e.id));
     for (const l of mine.linkedDFDElements) expect(machineIds.has(l.elementId), l.elementId).toBe(true);
