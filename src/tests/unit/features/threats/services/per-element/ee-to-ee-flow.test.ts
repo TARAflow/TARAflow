@@ -6,7 +6,9 @@
 // (DFD_EE_TO_EE_FLOW) and the sync removed its threats silently. Now the
 // per-element generator leaves EE → EE flows out on every DFD — as the
 // leveled model and per-interaction mode do — and the sync never reports
-// them missing.
+// them missing. The DFD explains it on a single page too: the info
+// DFD_EE_TO_EE_FLOW that a leveled DFD gets from its effective model
+// (review 2026-11-07).
 
 import { describe, expect, it } from "vitest";
 import dfdService from "features/dfd/services/dfd-service";
@@ -57,5 +59,21 @@ describe("per element: EE → EE flows are out of scope on a single-page DFD too
     const status = elementThreatSync.checkSyncStatus({ ...project, threats: { configuration: config, perElementTables: tables, perInteractionTables: [], lastModified: "" } } as never, tables);
     expect(status.missingInThreats.dataFlows.map((c) => c.id)).not.toContain("ee_ee");
     expect(status.inSync).toBe(true);
+  });
+
+  it("the single-page DFD explains it: DFD_EE_TO_EE_FLOW (info) on the EE → EE flow only", () => {
+    const infos = (saved.validation.infos ?? []).filter((f) => f.key === "dfdValidation.leveled.DFD_EE_TO_EE_FLOW");
+    expect(infos.map((f) => f.elementId)).toEqual(["ee_ee"]);
+    expect(infos[0].params).toEqual({ flow: "DF-1 push firmware" });
+  });
+
+  it("a leveled DFD keeps the effective model's finding — once, not twice", () => {
+    const leveledXml = xml.replace("</mxfile>", page("child", "Detail", node("c1", "process", "Inner", "P-9", 10)) + "</mxfile>");
+    const leveled = dfdService.saveDFDFromXml(
+      { id: "p", name: "Plant", phaseStatus: {}, dfd: { xml: leveledXml, elements: [], connections: [], assets: [], pages: [{ pageId: "top", name: "Plant", order: 0 }, { pageId: "child", name: "Detail", order: 1 }] } } as unknown as DFDProjectData,
+      leveledXml,
+    );
+    const all = [...leveled.validation.errors, ...leveled.validation.warnings, ...(leveled.validation.infos ?? [])];
+    expect(all.filter((f) => f.key === "dfdValidation.leveled.DFD_EE_TO_EE_FLOW" && f.elementId === "ee_ee")).toHaveLength(1);
   });
 });

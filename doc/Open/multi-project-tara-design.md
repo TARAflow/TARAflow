@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–24; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–25; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -713,6 +713,11 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 25 done (2026-11-08, review of 23–24):* single-page DFDs explain the EE → EE scope too:
+`DFD_EE_TO_EE_FLOW` (info) on every flow between two external entities, as the effective model
+gives a leveled DFD — no threats in either method, existing ones listed as obsolete at the next
+regeneration, "if one of the two belongs to the system, model it as a process or multiprocess".
+Decided (user 2026-11-08): release note plus this finding, no extra dialog on open.
 *Patch 24 done (2026-11-07, review of 21–22):* an override no longer hides the component's note:
 the machine's rationale moved from `evalNote` into its own field (`Threat.importedOverride`:
 component relevance, rationale, date); the read-only dialog shows "Component: <relevance> — <note>"

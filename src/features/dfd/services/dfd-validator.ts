@@ -87,6 +87,22 @@ export interface ValidateOptions {
  * - asset-relation-validator: Validate asset-element relationships (NEW)
  * - completeness-validator: Validate scenarios and completeness
  */
+/** DFD_EE_TO_EE_FLOW (info) for every flow between two external entities. */
+export function eeToEeFlowInfos(
+  elements: readonly DFDElement[],
+  connections: readonly DFDConnection[],
+): ValidationFinding[] {
+  const ees = new Set(elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+  return connections
+    .filter((c) => ees.has(c.from) && ees.has(c.to))
+    .map((c) => ({
+      key: "dfdValidation.leveled.DFD_EE_TO_EE_FLOW",
+      elementId: c.id,
+      displayId: c.displayId,
+      params: { flow: c.displayId && c.name && c.name !== c.displayId ? `${c.displayId} ${c.name}` : c.displayId || c.name || c.id },
+    }));
+}
+
 export class DFDValidator {
   /**
    * Validate DFD data
@@ -153,6 +169,12 @@ export class DFDValidator {
       errors.push(...options.leveledFindings.errors);
       warnings.push(...options.leveledFindings.warnings);
       infos.push(...options.leveledFindings.infos);
+    } else {
+      // Single page: the same info the effective model gives a leveled DFD
+      // — an EE → EE flow is out of the analysis scope (no threats in
+      // either method). Without it the threats on such a flow vanished at
+      // the next regeneration without a reason given (review 2026-11-07).
+      infos.push(...eeToEeFlowInfos(elements, connections));
     }
 
     // 5. Validate Scenario & Completeness

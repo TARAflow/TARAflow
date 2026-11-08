@@ -3220,7 +3220,7 @@
       "BAL_UNRESOLVED_ENDPOINT": "Flow {{flow}} is not drawn on the child page of {{element}}; analysed with {{element}} as endpoint.",
       "BAL_DUPLICATE_OCCURRENCE": "Flow {{flow}} is drawn {{count}} times on page \"{{page}}\".",
       "BAL_DANGLING_REF": "{{element}} only exists as context copies — its definition is missing.",
-      "DFD_EE_TO_EE_FLOW": "Flow {{flow}} connects two external entities and is out of the analysis scope.",
+      "DFD_EE_TO_EE_FLOW": "Flow {{flow}} connects two external entities and is out of the analysis scope — no threats are generated for it; existing ones are listed as obsolete at the next regeneration. If one of the two belongs to the system, model it as a process or multiprocess.",
       "BAL_INTERFACE_UNATTRIBUTED": "Flow {{flow}}: interface {{interface}} on page \"{{page}}\" cannot be attributed to a side of the decomposition border.",
       "BAL_HOME_NOT_HIGHEST": "{{element}} is defined on \"{{page}}\" but also appears on the higher page \"{{highest}}\"; consider moving its definition up.",
       "BAL_ASSET_NOT_REALISED": "{{element}} still holds \"{{asset}}\" ({{relation}}) from before its decomposition, but none of its parts holds it. Assign it to the part that holds the asset (often a data store is missing).",

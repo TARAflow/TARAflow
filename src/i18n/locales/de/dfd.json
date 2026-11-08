@@ -3207,7 +3207,7 @@
       "BAL_UNRESOLVED_ENDPOINT": "Fluss {{flow}} ist auf der Unterseite von {{element}} nicht gezeichnet; analysiert mit {{element}} als Endpunkt.",
       "BAL_DUPLICATE_OCCURRENCE": "Fluss {{flow}} ist auf Seite \"{{page}}\" {{count}}-mal gezeichnet.",
       "BAL_DANGLING_REF": "{{element}} existiert nur als Kontextkopie — die Definition fehlt.",
-      "DFD_EE_TO_EE_FLOW": "Fluss {{flow}} verbindet zwei externe Entitäten und liegt außerhalb der Analyse.",
+      "DFD_EE_TO_EE_FLOW": "Fluss {{flow}} verbindet zwei externe Entitäten und liegt außerhalb der Analyse — für ihn werden keine Threats erzeugt; bestehende erscheinen beim nächsten Regenerieren als obsolet. Gehört eine der beiden Seiten zum System, sie als Prozess oder Multiprozess modellieren.",
       "BAL_INTERFACE_UNATTRIBUTED": "Fluss {{flow}}: Interface {{interface}} auf Seite \"{{page}}\" lässt sich keiner Seite der Zerlegungsgrenze zuordnen.",
       "BAL_HOME_NOT_HIGHEST": "{{element}} ist auf \"{{page}}\" definiert, erscheint aber auch auf der höheren Seite \"{{highest}}\"; die Definition sollte nach oben wandern.",
       "BAL_ASSET_NOT_REALISED": "{{element}} hält „{{asset}}“ ({{relation}}) noch aus der Zeit vor der Zerlegung, aber keiner seiner Teile hält es. Ordnen Sie es dem Teil zu, der das Asset hält (oft fehlt ein Datenspeicher).",
