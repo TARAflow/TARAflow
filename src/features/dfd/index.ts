@@ -25,6 +25,7 @@ export type {
   ComponentInsertOutcome,
   ComponentImportRunner,
   ComponentMultiprocessInfo,
+  ComponentCopyOptions,
   DFDViewMode,
 
   // Export

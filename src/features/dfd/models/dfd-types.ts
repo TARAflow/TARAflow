@@ -459,8 +459,22 @@ export interface ComponentMultiprocessInfo {
   quantity?: number;
   /** Sets the quantity (≥ 1); absent = read-only. */
   onSetQuantity?: (quantity: number) => void;
+  /** Instances of the same import whose ratings can be copied here (I5). */
+  copySources?: { id: string; label: string }[];
+  /** Copies the ratings of a source instance once (no live coupling). */
+  onCopyRatings?: (sourceId: string, options: ComponentCopyOptions) => void;
   /** Opens the component TARA as a further project; absent = not available. */
   onOpen?: () => void;
+}
+
+/** What "copy ratings from another instance" takes over (I5). */
+export interface ComponentCopyOptions {
+  /** Likelihood factors (context, prefill overrides), relevance overrides, windows of opportunity. */
+  decisions: boolean;
+  /** Impact of the instance assets (and the risks' impact factors). */
+  assetImpact: boolean;
+  /** "fill": only what is not rated here yet; "overwrite": the source's values replace these. */
+  mode: "fill" | "overwrite";
 }
 
 /** The app's import flow (dialog etc.); null = cancelled. */

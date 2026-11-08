@@ -531,6 +531,34 @@ function resolveLinkedAssets(
     .filter((a): a is AssetReference => a !== undefined);
 }
 
+/**
+ * A risk with its "before" values recalculated from its factor ratings —
+ * the same gate as the sync (linked assets from the risk). For callers that
+ * change ratings outside the risk dialog (e.g. copying the ratings of one
+ * component instance to another, multi-project TARA I5).
+ */
+export function recalculateRiskValues(
+  risk: Risk,
+  configuration: RiskConfiguration,
+  assetDataRef?: AssetDataReference,
+): Risk {
+  const before = calculateGatedRiskValues(
+    risk.factorRatings,
+    configuration,
+    resolveLinkedAssets(risk.linkedAssetIds, assetDataRef),
+  );
+  return {
+    ...risk,
+    calculatedImpact: before.impact,
+    calculatedLikelihood: before.likelihood,
+    calculatedRiskBeforeMitigation: before.risk,
+    calculatedSrsl: before.srsl,
+    calculatedApScore: before.apScore,
+    calculatedApBand: before.apBand,
+    lastModified: new Date().toISOString(),
+  };
+}
+
 // ==================== FACTOR RATINGS RECONCILIATION ====================
 
 /**

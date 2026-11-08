@@ -144,6 +144,8 @@ export {
 export { riskService } from "./services/risk-service";
 export { riskFindings, riskFindingLines, type RiskFinding } from "./services/risk-findings";
 export { calculateRiskValues } from "./services/risk-calculation-service";
+// Multi-project TARA (I5): recalculate after ratings were copied between instances.
+export { recalculateRiskValues } from "./services/risk-sync-service";
 // Multi-project TARA: factor scales for the methodology fingerprint (design §7.2).
 export {
   factorScaleDefinition,

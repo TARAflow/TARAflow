@@ -66,7 +66,18 @@
       "title": "Importierte Komponente ({{prefix}}) — schreibgeschützt",
       "open": "Komponenten-TARA öffnen",
       "quantity": "Anzahl (gleiche Einheiten, gleicher Ort)",
+      "copyRatings": "Bewertung von anderer Instanz übernehmen…",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
+    },
+    "copy": {
+      "title": "Bewertung nach {{prefix}} übernehmen",
+      "intro": "Übernimmt die Bewertung einer anderen Instanz desselben Komponentenstands einmalig. Danach sind beide Instanzen unabhängig — spätere Änderungen werden nicht übertragen. Die Risikobehandlung bleibt pro Risiko.",
+      "decisions": "Likelihood-Faktoren (Kontext, Überschreibungen vorbelegter Faktoren), überstimmte Relevanzen, Window of Opportunity",
+      "assetImpact": "Impact der Instanz-Assets",
+      "fill": "Nur füllen, was hier noch nicht bewertet ist",
+      "overwrite": "Mit den Werten der Quelle überschreiben",
+      "confirm": "Übernehmen",
+      "done": "Übernommen: {{factors}} Faktorbewertung(en), {{overrides}} überstimmte Relevanz(en), {{windows}} Window(s) of Opportunity, {{impact}} Asset-Impact-Bewertung(en)."
     },
     "threats": {
       "title": "Bedrohungen aus importierten Komponenten ({{count}}) — schreibgeschützt",

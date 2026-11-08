@@ -14,6 +14,7 @@ import type {
   ComponentInsertContext,
   ComponentInsertOutcome,
   ComponentMultiprocessInfo,
+  ComponentCopyOptions,
 } from "features/dfd";
 import { createIpcGitRunner } from "features/audit/services/audit-git-adapters";
 import {
@@ -22,7 +23,11 @@ import {
   type ComponentPickResult,
 } from "features/components";
 import type { Project } from "../../models/project-types";
-import { quantityOf, withInstanceQuantity } from "../../services/component-import/instance-quantity";
+import { instanceLabel, quantityOf, withInstanceQuantity } from "../../services/component-import/instance-quantity";
+import { copyInstanceRatings, copySourcesOf } from "../../services/component-import/copy-ratings";
+import { buildAssetDataReference } from "../../utils/build-asset-data-reference";
+import { buildAssetHazardLinks } from "../../utils/build-asset-hazard-links";
+import { recalculateRiskValues } from "features/risks";
 import { createDefaultAssetData } from "features/assets/services/asset-factory";
 import {
   componentImportAvailable,
@@ -193,6 +198,42 @@ export function useComponentImport({
           const current = activeProjectRef.current;
           if (!current?.components) return;
           void updateProject({ id: current.id, components: withInstanceQuantity(current.components, instance.id, n) });
+        },
+        // Copy the ratings of another instance of the same import, once (I5).
+        copySources: copySourcesOf(components!, instance.id).map((i) => ({ id: i.id, label: instanceLabel(i, imported.name) })),
+        onCopyRatings: (sourceId: string, options: ComponentCopyOptions) => {
+          const current = activeProjectRef.current;
+          if (!current?.components) return;
+          const config = current.risks?.configuration;
+          const store = current.assets;
+          const assetRef =
+            store && store.assets.length > 0
+              ? buildAssetDataReference(
+                  store.assets,
+                  buildAssetHazardLinks(current.hazards ?? null),
+                  store.configuration?.impactScale ?? "4-level",
+                  store.configuration?.impactCriteria,
+                )
+              : undefined;
+          const result = copyInstanceRatings(current, sourceId, instance.id, options, (risk) =>
+            config ? recalculateRiskValues(risk, config, assetRef) : risk,
+          );
+          void updateProject({
+            id: current.id,
+            components: result.components,
+            ...(result.risks && current.risks ? { risks: { ...current.risks, risks: result.risks } } : {}),
+            ...(result.assets ? { assets: result.assets } : {}),
+          });
+          const c = result.counts;
+          toast.success(
+            t("components.copy.done", {
+              factors: c.factors,
+              overrides: c.relevanceOverrides,
+              windows: c.pathOverlays,
+              impact: c.assetRatings,
+              defaultValue: "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{windows}} window(s) of opportunity, {{impact}} asset impact rating(s).",
+            }),
+          );
         },
         ...(openProjectFile && componentImportAvailable()
           ? {

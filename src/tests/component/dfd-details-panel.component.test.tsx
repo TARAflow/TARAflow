@@ -20,7 +20,16 @@ afterEach(cleanup);
 
 const mp = { id: "mp1", displayId: "MP-3", name: "Smoke Detector", type: "Multiprocess", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} } as never;
 
-function show(componentInfo?: { name: string; source: string; prefix: string; onOpen?: () => void; quantity?: number; onSetQuantity?: (n: number) => void }) {
+function show(componentInfo?: {
+  name: string;
+  source: string;
+  prefix: string;
+  onOpen?: () => void;
+  quantity?: number;
+  onSetQuantity?: (n: number) => void;
+  copySources?: { id: string; label: string }[];
+  onCopyRatings?: (sourceId: string, options: { decisions: boolean; assetImpact: boolean; mode: "fill" | "overwrite" }) => void;
+}) {
   render(<DFDDetailsPanel open onToggle={() => {}} onClose={() => {}} element={mp} onChange={() => {}} elements={[mp]} componentInfo={componentInfo} />);
 }
 
@@ -55,6 +64,34 @@ describe("DFDDetailsPanel — imported component", () => {
   it("read-only quantity shows ×n above 1", () => {
     show({ name: "Smoke Detector", source: "unpinned", prefix: "SD1", quantity: 3 });
     expect(screen.getByTestId("component-quantity-label").textContent).toBe("×3");
+  });
+
+  it("copy ratings from another instance (I5): options, fill by default, once", async () => {
+    const onCopyRatings = vi.fn();
+    show({ name: "Smoke Detector", source: "unpinned", prefix: "SD2", copySources: [{ id: "i1", label: "SD1 · Smoke Detector" }], onCopyRatings });
+    fireEvent.click(screen.getByTestId("component-copy-ratings"));
+    expect(screen.getByTestId("component-copy-dialog").textContent).toContain("Copy ratings to SD2");
+    // defaults: decisions on, asset impact off, fill
+    fireEvent.click(screen.getByTestId("component-copy-confirm"));
+    expect(onCopyRatings).toHaveBeenCalledWith("i1", { decisions: true, assetImpact: false, mode: "fill" });
+    expect(screen.queryByTestId("component-copy-dialog")).toBeNull();
+  });
+
+  it("copy: impact and overwrite chosen; nothing chosen blocks", () => {
+    const onCopyRatings = vi.fn();
+    show({ name: "Smoke Detector", source: "unpinned", prefix: "SD2", copySources: [{ id: "i1", label: "SD1 · Smoke Detector" }], onCopyRatings });
+    fireEvent.click(screen.getByTestId("component-copy-ratings"));
+    fireEvent.click(screen.getByTestId("component-copy-decisions"));
+    expect((screen.getByTestId("component-copy-confirm") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByTestId("component-copy-impact"));
+    fireEvent.click(screen.getByTestId("component-copy-overwrite"));
+    fireEvent.click(screen.getByTestId("component-copy-confirm"));
+    expect(onCopyRatings).toHaveBeenCalledWith("i1", { decisions: false, assetImpact: true, mode: "overwrite" });
+  });
+
+  it("no copy action without another instance of the same import", () => {
+    show({ name: "Smoke Detector", source: "unpinned", prefix: "SD1", copySources: [], onCopyRatings: vi.fn() });
+    expect(screen.queryByTestId("component-copy-ratings")).toBeNull();
   });
 
   it("an ordinary multiprocess shows no component section", () => {

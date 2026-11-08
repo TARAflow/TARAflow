@@ -66,7 +66,18 @@
       "title": "Imported component ({{prefix}}) — read-only",
       "open": "Open component TARA",
       "quantity": "Quantity (identical units, same place)",
+      "copyRatings": "Copy ratings from another instance…",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
+    },
+    "copy": {
+      "title": "Copy ratings to {{prefix}}",
+      "intro": "Takes the ratings of another instance of the same component state over once. Afterwards both instances are independent — later changes are not carried over. Risk treatment stays per risk.",
+      "decisions": "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity",
+      "assetImpact": "Impact of the instance assets",
+      "fill": "Only fill what is not rated here yet",
+      "overwrite": "Overwrite with the source's values",
+      "confirm": "Copy",
+      "done": "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{windows}} window(s) of opportunity, {{impact}} asset impact rating(s)."
     },
     "threats": {
       "title": "Threats from imported components ({{count}}) — read-only",

@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–32; next: phase 3 (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–33; next: phase 3 (measures and assumptions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -716,6 +716,16 @@ the read models are built complete (no casts). Test added for the sync and the g
 same stitched ends of boundary flows (no false "missing" in the drift badge) — they do; no code
 change. Noted for E10 (phase 6): the factor prefill marks `derivedFrom: "component"` without the
 instance or commit; the report's provenance wants the commit.
+*Patch 33 done (2026-11-08, I5):* copy ratings between instances. The multiprocess's details panel
+offers "Copy ratings from another instance…" when another instance of the same import exists
+(threat keys, path keys and factors match only within one state). Options: decisions (likelihood
+factors of the imported risks — context factors and the overrides of prefilled intrinsic factors
+with their rationale —, relevance overrides, windows of opportunity; default on) and asset impact
+(the instance assets' ratings and the risks' impact factors; default off); mode "fill" (default —
+only what the target has not rated) or "overwrite". Copied once; afterwards the instances are
+independent (no live coupling, no inheritance level). Risk treatment stays out (phase 3). The copied
+risks are recalculated (`recalculateRiskValues`, risks feature), the assets through the asset
+service; a toast counts what was copied.
 *Patch 32 done (2026-11-08, review of 26–31):* follow-ups before copying ratings. (1) The two texts
 of the grouped view are in en/de (they only had default values). (2) A click on an instance's line
 opens that instance's copy read-only (its decision, its names), browsing its threats; a click

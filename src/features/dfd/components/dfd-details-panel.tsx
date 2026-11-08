@@ -8,14 +8,33 @@
 //   • Nothing selected  → only "Assets" tab shown (Element tab hidden)
 
 import React, { useEffect, useState } from "react";
-import { Box, IconButton, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
+import {
+  Box,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  IconButton,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Select,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useTranslation } from "react-i18next";
 import { AssetGroup } from "shared";
-import type { ComponentMultiprocessInfo, DFDConnection, DFDElement } from "../models/dfd-types";
+import type { ComponentCopyOptions, ComponentMultiprocessInfo, DFDConnection, DFDElement } from "../models/dfd-types";
 import { Button } from "@mui/material";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
@@ -378,6 +397,7 @@ export default DFDDetailsPanel;
 /** An imported component: name, prefix, source, "Open component TARA". */
 const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo }> = ({ info }) => {
   const { t } = useTranslation();
+  const [copying, setCopying] = useState(false);
   return (
     <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }} data-testid="component-section">
       <Typography variant="caption" color="text.secondary" display="block">
@@ -413,6 +433,100 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo }> = ({ info 
           {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
         </Button>
       )}
+      {info.onCopyRatings && (info.copySources?.length ?? 0) > 0 && (
+        <Box>
+          <Button size="small" sx={{ mt: 0.5, px: 0 }} onClick={() => setCopying(true)} data-testid="component-copy-ratings">
+            {t("components.details.copyRatings", { ns: "components", defaultValue: "Copy ratings from another instance…" })}
+          </Button>
+        </Box>
+      )}
+      {copying && info.onCopyRatings && (
+        <CopyRatingsDialog
+          prefix={info.prefix}
+          sources={info.copySources ?? []}
+          onClose={() => setCopying(false)}
+          onCopy={(sourceId, options) => {
+            info.onCopyRatings!(sourceId, options);
+            setCopying(false);
+          }}
+        />
+      )}
     </Box>
+  );
+};
+
+/**
+ * Copy the ratings of another instance of the same import once (I5): what
+ * to take over, fill or overwrite. No live coupling — afterwards the
+ * instances are independent again.
+ */
+const CopyRatingsDialog: React.FC<{
+  prefix: string;
+  sources: { id: string; label: string }[];
+  onClose: () => void;
+  onCopy: (sourceId: string, options: ComponentCopyOptions) => void;
+}> = ({ prefix, sources, onClose, onCopy }) => {
+  const { t } = useTranslation();
+  const ns = { ns: "components" } as const;
+  const [sourceId, setSourceId] = useState(sources[0]?.id ?? "");
+  const [decisions, setDecisions] = useState(true);
+  const [assetImpact, setAssetImpact] = useState(false);
+  const [mode, setMode] = useState<ComponentCopyOptions["mode"]>("fill");
+  return (
+    <Dialog open onClose={onClose} maxWidth="sm" fullWidth data-testid="component-copy-dialog">
+      <DialogTitle>{t("components.copy.title", { ...ns, prefix, defaultValue: "Copy ratings to {{prefix}}" })}</DialogTitle>
+      <DialogContent>
+        <Stack spacing={1.5} sx={{ pt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            {t("components.copy.intro", {
+              ...ns,
+              defaultValue:
+                "Takes the ratings of another instance of the same component state over once. Afterwards both instances are independent — later changes are not carried over. Risk treatment stays per risk.",
+            })}
+          </Typography>
+          <Select size="small" value={sourceId} onChange={(e) => setSourceId(String(e.target.value))} inputProps={{ "data-testid": "component-copy-source" }}>
+            {sources.map((s) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.label}
+              </MenuItem>
+            ))}
+          </Select>
+          <FormControlLabel
+            control={<Checkbox checked={decisions} onChange={(e) => setDecisions(e.target.checked)} inputProps={{ "data-testid": "component-copy-decisions" } as never} />}
+            label={t("components.copy.decisions", {
+              ...ns,
+              defaultValue: "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity",
+            })}
+          />
+          <FormControlLabel
+            control={<Checkbox checked={assetImpact} onChange={(e) => setAssetImpact(e.target.checked)} inputProps={{ "data-testid": "component-copy-impact" } as never} />}
+            label={t("components.copy.assetImpact", { ...ns, defaultValue: "Impact of the instance assets" })}
+          />
+          <RadioGroup value={mode} onChange={(e) => setMode(e.target.value as ComponentCopyOptions["mode"])}>
+            <FormControlLabel
+              value="fill"
+              control={<Radio size="small" inputProps={{ "data-testid": "component-copy-fill" } as never} />}
+              label={t("components.copy.fill", { ...ns, defaultValue: "Only fill what is not rated here yet" })}
+            />
+            <FormControlLabel
+              value="overwrite"
+              control={<Radio size="small" inputProps={{ "data-testid": "component-copy-overwrite" } as never} />}
+              label={t("components.copy.overwrite", { ...ns, defaultValue: "Overwrite with the source's values" })}
+            />
+          </RadioGroup>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t("components.import.cancel", { ...ns, defaultValue: "Cancel" })}</Button>
+        <Button
+          variant="contained"
+          disabled={!sourceId || (!decisions && !assetImpact)}
+          onClick={() => onCopy(sourceId, { decisions, assetImpact, mode })}
+          data-testid="component-copy-confirm"
+        >
+          {t("components.copy.confirm", { ...ns, defaultValue: "Copy" })}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
