@@ -25,7 +25,7 @@ import {
   componentFindings,
   importedMultiprocessIds,
 } from "../../services/component-import/component-findings";
-import { componentExcludedIds } from "../../services/component-import/component-scope";
+import { componentExcludedIds, componentOwnership } from "../../services/component-import/component-scope";
 import { componentThreatGroups } from "../../utils/component-threats";
 
 export function useDfdDerivedData(activeProject: Project | undefined) {
@@ -188,6 +188,11 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
     () => (components ? componentExcludedIds({ components }) : undefined),
     [components],
   );
+  // Who owns a cell that came with a component — for the findings' owner chip (phase 4a).
+  const componentCellOwners = useMemo(
+    () => (components ? componentOwnership({ components }) : undefined),
+    [components],
+  );
   // The imported threats per instance, read-only (patch 14).
   const componentThreatGroupList = useMemo(
     () => (components ? componentThreatGroups({ components, dfd: dfd ?? null }) : undefined),
@@ -198,6 +203,7 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
     dfdTabProject,
     componentDfdFindings,
     componentMultiprocessIds,
+    componentCellOwners,
     componentExcluded,
     componentThreatGroups: componentThreatGroupList,
     dfdAssets,

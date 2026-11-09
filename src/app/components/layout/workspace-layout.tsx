@@ -26,7 +26,7 @@
 // All project writes go through context.updateProject() — a single,
 // stable, ref-based write channel. No stale-closure risk.
 
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   PHASES,
@@ -95,6 +95,7 @@ import { usePhaseIndicators } from "app/hooks/workspace/use-phase-indicators";
 import { useClosedLoopData } from "app/hooks/workspace/use-closed-loop-data";
 import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 import { useComponentImport } from "app/hooks/workspace/use-component-import";
+import { findingOwner } from "app/services/component-import/component-scope";
 
 // ==================== COMPONENT ====================
 
@@ -184,6 +185,23 @@ export const WorkspaceLayout: React.FC = () => {
   const componentTreatmentMap = useMemo(
     () => componentTreatments({ components: instanceComponents, risks: measureRisks ?? null }),
     [instanceComponents, measureRisks],
+  );
+  // Owner chip of a finding on an imported component's cell (phase 4a, §8.1).
+  const cellOwners = dfdData.componentCellOwners;
+  const findingOwnerOf = useCallback(
+    (cellId: string, key?: string) => {
+      const owner = findingOwner(cellOwners, cellId, key);
+      return owner
+        ? {
+            label: t("components.owner.label", { prefix: owner.prefix, defaultValue: "Component {{prefix}}" }),
+            tooltip: t("components.owner.tooltip", {
+              component: owner.label,
+              defaultValue: "Belongs to {{component}} — read-only here, fixed in the component's TARA.",
+            }),
+          }
+        : undefined;
+    },
+    [cellOwners, t],
   );
   // Residual risks not credited (phase 3d-2a, I7 (4)) — the Risk tab shows the values before treatment.
   const uncreditedMap = useMemo(
@@ -341,6 +359,7 @@ export const WorkspaceLayout: React.FC = () => {
               importedMultiprocessIds={dfdData.componentMultiprocessIds}
               externalFindings={dfdData.componentDfdFindings}
               componentInfoOf={componentImport.componentInfoOf}
+              findingOwnerOf={findingOwnerOf}
               graphFocusRequest={navigation.graphFocusRequest}
               elementFocusRequest={navigation.elementFocusRequest}
               hazards={assetData.graphHazards}

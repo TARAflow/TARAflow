@@ -80,6 +80,10 @@
       "copyRatings": "Bewertung von anderer Instanz übernehmen…",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
     },
+    "owner": {
+      "label": "Komponente {{prefix}}",
+      "tooltip": "Gehört zu {{component}} — hier schreibgeschützt, in der TARA der Komponente beheben."
+    },
     "copy": {
       "title": "Bewertung nach {{prefix}} übernehmen",
       "intro": "Übernimmt die Bewertung einer anderen Instanz desselben Komponentenstands einmalig. Danach sind beide Instanzen unabhängig — spätere Änderungen werden nicht übertragen. Die Risikobehandlung bleibt pro Risiko.",

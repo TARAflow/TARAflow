@@ -1008,7 +1008,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         </Box>
 
         {/* Findings — below the table, like the DFD tab */}
-        <AssetNotificationPanel findings={findings} onOpen={handleOpenFinding} />
+        <AssetNotificationPanel findings={findings} onOpen={handleOpenFinding} assets={assetData.assets} />
       </Box>
       {/* Asset delete confirm — project-wide, blocked by attack-tree anchors */}
       {confirmDeleteAsset && (

@@ -80,6 +80,10 @@
       "copyRatings": "Copy ratings from another instance…",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
     },
+    "owner": {
+      "label": "Component {{prefix}}",
+      "tooltip": "Belongs to {{component}} — read-only here, fixed in the component's TARA."
+    },
     "copy": {
       "title": "Copy ratings to {{prefix}}",
       "intro": "Takes the ratings of another instance of the same component state over once. Afterwards both instances are independent — later changes are not carried over. Risk treatment stays per risk.",

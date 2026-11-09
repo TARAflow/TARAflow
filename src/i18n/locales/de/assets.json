@@ -576,6 +576,8 @@
         "hideInfos": "Infos ausblenden",
         "open": "Asset dort öffnen, wo das behoben wird",
         "onlyInfos": "Keine Fehler oder Warnungen — Infos sind ausgeblendet.",
+        "ownerLabel": "Komponente {{prefix}}",
+        "ownerTooltip": "Gehört zu {{component}} — hier schreibgeschützt, in der TARA der Komponente beheben.",
         "summary": "{{errors}} Fehler · {{warnings}} Warnungen · {{infos}} Infos — Details unterhalb der Tabelle"
       }
     }

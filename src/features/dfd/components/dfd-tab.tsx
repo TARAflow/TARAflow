@@ -26,6 +26,7 @@ import type {
 } from "../models/dfd-types";
 import { lockedPageIdsOf } from "../services/leveled/locked-pages";
 import { withExternalFindings } from "../utils/with-external-findings";
+import type { FindingOwnerOf } from "../utils/finding-ownership";
 
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ControlInstance } from "shared/models/control-instance";
@@ -163,6 +164,8 @@ export interface DFDTabProps {
   importedMultiprocessIds?: readonly string[];
   /** Multi-project TARA: details of an imported multiprocess (by tfId). */
   componentInfoOf?: (tfId: string) => ComponentMultiprocessInfo | undefined;
+  /** Owner of a finding on an imported component's cell (multi-project TARA phase 4a). */
+  findingOwnerOf?: FindingOwnerOf;
   /** Findings of other layers (e.g. imported components), shown with the DFD's own. */
   externalFindings?: {
     errors: ValidationFinding[];
@@ -186,6 +189,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   importedMultiprocessIds,
   externalFindings,
   componentInfoOf,
+  findingOwnerOf,
   graphFocusRequest,
   elementFocusRequest,
   hazards,
@@ -1098,6 +1102,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         connections={project.dfd?.connections ?? []}
         onApply={handleApplyControlSuggestion}
         onSelectCell={handleNotificationNavigation}
+        ownerOf={findingOwnerOf}
       />
 
       {/* Preview Dialog */}

@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; next phase 4 (ownership, matrix, read-only asset lock)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), next 4a-2 (asset lock)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -986,6 +986,31 @@ risk: §17 I7 (decided 2026-11-08) — settled in the data model before the UI.
 
 **Phase 4 — Findings and compliance.** Ownership marking of findings on imported elements, matrix
 evaluation over imported elements, component claims as matrix evidence, hazards on imported assets.
+*Cut and decisions (user with the second instance, 2026-11-09):* 4a ownership (4a-1 findings,
+4a-2 asset lock), 4b matrix and hazards, 4c component claims citable.
+- Boundary flows: the connection is the machine's, its properties come read-only from the
+  component — a finding there belongs to whoever can fix it: structure (endpoints, connection,
+  leveled identity) the machine, property values / label / protocol the component.
+- Imported assets: name, description and DFD links are the component's. Security goals:
+  the machine may ADD goal types (with a mandatory rationale) but not remove the component's
+  (a type the component has active stays active); the level of a suggested goal still follows
+  the impact, which is the machine's. The addition is derivable against the snapshot and goes
+  into the report section "Deviations from the component" (phase 6).
+- Matrix evidence from component measures: only measures EFFECTIVE in the instance (the I7 rule —
+  credited is only what is implemented, from the component or the machine); "unclear" stays
+  distinguishable from "planned" (planned: it is coming; unclear: an AoU lacks evidence — another
+  action).
+- Component claims cited by the machine: the citation is stored per instance; whether it counts as
+  evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
+  implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 47 done (2026-11-09, phase 4a-1):* findings carry their owner. `componentOwnership`
+(machine tfId → instance prefix / label, boundary flows marked) and `findingOwner` (a structural
+finding on a boundary flow — `isStructuralFinding` in features/dfd: connection-validator keys and the
+leveled findings — stays the machine's). DFD notification panel: a chip "Component SD1" (tooltip:
+fixed in the component's TARA) on validation rows, and on property suggestions / drift rows of a
+component cell, which offer no Apply there (read-only). Asset notification panel (shared
+FindingsPanel `owner`): on an imported asset only name and DFD-link findings are the component's;
+impact, safety and goal findings stay the machine's.
 
 **Phase 5 — Change detection and update.** Drift check (content, tag pattern), update preview over
 all instances incl. new EE mappings, pairing, rollback.

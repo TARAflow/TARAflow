@@ -244,6 +244,8 @@ export {
   type ComponentDfdInput,
 } from "./services/leveled/insert-component";
 export { lockedPageIdsOf } from "./services/leveled/locked-pages";
+// Multi-project TARA phase 4a: owner of a finding on an imported component's cell.
+export { isStructuralFinding, type FindingOwner, type FindingOwnerOf } from "./utils/finding-ownership";
 export {
   analyseLeveled,
   parseDfd,
