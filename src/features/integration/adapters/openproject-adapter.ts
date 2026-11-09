@@ -20,6 +20,7 @@ import {
   type CreateTicketInput,
   type CreateTicketResult,
   type TicketCategory,
+  type TicketQuery,
   type TicketState,
   type TicketSummary,
 } from "shared/models/ticket-types";
@@ -82,9 +83,16 @@ export class OpenProjectAdapter implements TicketAdapter {
     };
   }
 
-  async fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]> {
+  async fetchTickets(projectKey: string, issueType: string, query: TicketQuery = {}): Promise<TicketSummary[]> {
     const typeId = issueType && issueType !== "__all__" ? (await this.projectTypes(projectKey)).get(issueType) : undefined;
-    const list = [{ status: { operator: "o", values: [] } }, ...(typeId ? [{ type: { operator: "=", values: [typeId] } }] : [])];
+    const scope = query.scope ?? "active";
+    const text = query.text?.trim().replace(/^#/, "") ?? "";
+    // status "o" = open, "c" = closed; subjectOrId "**" = contains (the id too).
+    const list = [
+      ...(scope === "all" ? [] : [{ status: { operator: scope === "active" ? "o" : "c", values: [] } }]),
+      ...(typeId ? [{ type: { operator: "=", values: [typeId] } }] : []),
+      ...(text ? [{ subjectOrId: { operator: "**", values: [text] } }] : []),
+    ];
     const res = await trackerRequest<Json>(
       this.ref,
       "GET",

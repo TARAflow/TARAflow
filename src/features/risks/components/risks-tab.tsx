@@ -66,6 +66,7 @@ import { isIsoRiskMode } from "../models/iso-risk-display";
 import { RiskTableView } from "./risk-table-view";
 import { RiskDialog } from "./risk-dialog";
 import { RiskMitigationStatusDialog } from "./risk-mitigation-status-dialog";
+import { collectTicketLinks } from "../services/ticket-links";
 import { applyTicketStatesToRisks, linkedTicketKeys } from "../services/ticket-sync";
 import type { TicketPort } from "shared/models/ticket-types";
 
@@ -400,6 +401,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   // The validation of the current state, for the toolbar chip (user
   // 2026-10-30 — the stored one was never shown, and may be stale), in the
   // UI language (FX-4).
+  // Every ticket link of the project — the link dialog marks and suggests from it (IT-13).
+  const ticketLinks = useMemo(() => collectTicketLinks(riskData.risks), [riskData.risks]);
   // With a tracker, a mitigation done by hand needs a ticket or evidence (user 2026-11-10).
   const trackerConnected = !!project.integration?.connection?.projectName;
   const currentValidation = useMemo(
@@ -1211,6 +1214,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           integrationConnection={project.integration?.connection ?? null}
           ticketPort={ticketsConnected ? ticketPort : null}
           issueTypes={ticketIssueTypes}
+          ticketLinks={ticketLinks}
           onSave={handleSaveImplementation}
           onClose={handleCloseImplementationDialog}
         />

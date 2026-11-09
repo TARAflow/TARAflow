@@ -23,6 +23,7 @@ import {
   type CreateTicketInput,
   type CreateTicketResult,
   type TicketCategory,
+  type TicketQuery,
   type TicketState,
   type TicketSummary,
 } from "shared/models/ticket-types";
@@ -126,9 +127,23 @@ export class JiraAdapter implements TicketAdapter {
     };
   }
 
-  async fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]> {
+  async fetchTickets(projectKey: string, issueType: string, query: TicketQuery = {}): Promise<TicketSummary[]> {
     const typeClause = issueType && issueType !== "__all__" ? ` AND issuetype = ${jqlString(issueType)}` : "";
-    const jql = `project = ${jqlString(projectKey)}${typeClause} AND statusCategory != Done ORDER BY updated DESC`;
+    const scope = query.scope ?? "active";
+    const scopeClause = scope === "active" ? " AND statusCategory != Done" : scope === "done" ? " AND statusCategory = Done" : "";
+    const base = `project = ${jqlString(projectKey)}${typeClause}${scopeClause}`;
+    const text = query.text?.trim() ?? "";
+    if (!text) return this.listJql(`${base} ORDER BY updated DESC`);
+    // A word searches the text. A key ("SCRUM-12") finds that ticket too — in
+    // a request of its own: an unknown key makes the whole JQL fail (400).
+    const byText = await this.listJql(`${base} AND text ~ ${jqlString(text)} ORDER BY updated DESC`);
+    if (!/^[A-Z][A-Z0-9_]*-\d+$/i.test(text)) return byText;
+    const byKey = await this.listJql(`${base} AND issuekey = ${jqlString(text.toUpperCase())}`);
+    return [...byKey, ...byText.filter((x) => !byKey.some((k) => k.key === x.key))];
+  }
+
+  /** One JQL search as ticket summaries; a failing request is an empty list. */
+  private async listJql(jql: string): Promise<TicketSummary[]> {
     // customfield_10020 = sprint on Jira Cloud; on Server / DC the field id varies — left out.
     const fields = `summary,status,resolution,issuetype,assignee,priority${this.flavor === "cloud" ? ",customfield_10020" : ""}`;
     const res = await trackerRequest<Json>(

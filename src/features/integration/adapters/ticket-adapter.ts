@@ -8,6 +8,7 @@ import type {
   CreateTicketInput,
   CreateTicketResult,
   TicketPort,
+  TicketQuery,
   TicketState,
   TicketSummary,
 } from "shared/models/ticket-types";
@@ -28,7 +29,7 @@ export interface ConnectionTestOutcome {
 export interface TicketAdapter extends TicketPort {
   readonly ref: TrackerRef;
   testConnection(): Promise<ConnectionTestOutcome>;
-  fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]>;
+  fetchTickets(projectKey: string, issueType: string, query?: TicketQuery): Promise<TicketSummary[]>;
   createTicket(input: CreateTicketInput): Promise<CreateTicketResult>;
   /** One batch request for all keys; keys the tracker does not know are absent. */
   fetchTicketStates(keys: readonly string[]): Promise<Map<string, TicketState>>;

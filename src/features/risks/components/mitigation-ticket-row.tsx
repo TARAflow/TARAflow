@@ -4,7 +4,8 @@
 // compact row "No ticket — Link… / Create…"; linking and creating open their
 // own dialog, so the status dialog stays short with several mitigations and
 // the tracker is asked for tickets only when the analyst wants to link
-// (user 2026-11-10). Split out of risk-mitigation-status-dialog.tsx.
+// (user 2026-11-10). Split out of risk-mitigation-status-dialog.tsx. The
+// link dialog (search, status filter, suggestions): ticket-link-dialog.tsx.
 
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,7 +19,6 @@ import {
   Typography,
   Stack,
   Chip,
-  Divider,
   FormControl,
   Select,
   MenuItem,
@@ -41,11 +41,12 @@ import {
 
 import type { Risk } from "../models/risk-assessment-types";
 import type { SelectedMitigation } from "../models/risk-mitigation-types";
-import type { TicketSummary } from "../models/risk-integration-types";
 import type { TicketPort } from "shared/models/ticket-types";
 import { buildTicketDescription, buildTicketSummary } from "../services/ticket-text";
 import { useUncreditedResiduals } from "./credited-residual-context";
 import { applyTicketState } from "../services/ticket-sync";
+import type { TicketLink } from "../services/ticket-links";
+import { TicketLinkDialog, type PickedTicket } from "./ticket-link-dialog";
 
 
 
@@ -55,7 +56,9 @@ export interface MitigationTicketRowProps {
   risk: Risk;
   port: TicketPort;
   projectKey: string;
-  issueTypes: Array<{ id: string; name: string }>;
+  issueTypes: Array<{ id: string; name: string; iconUrl?: string }>;
+  /** Every ticket link of the project — the link dialog marks and suggests from it. */
+  links?: readonly TicketLink[];
   onLink: (m: Partial<SelectedMitigation>) => void;
 }
 
@@ -67,6 +70,7 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
   port,
   projectKey,
   issueTypes: issueTypesProp,
+  links = [],
   onLink,
 }) => {
   const { t } = useTranslation();
@@ -74,19 +78,10 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
   // Which ticket dialog is open: linking an existing one or creating one.
   const [mode, setMode] = useState<"link" | "create" | null>(null);
 
-  // Merge prop issue types with a dynamic "All" option
-  const [availableIssueTypes, setAvailableIssueTypes] = useState<
-    Array<{ id: string; name: string }>
-  >(() => [
-    { id: "__all__", name: "All types" },
-    ...issueTypesProp.filter((it) => !it.name.toLowerCase().includes("subtask")),
-  ]);
-
-  // Link existing ticket state
-  const [selectedIssueType, setSelectedIssueType] = useState("__all__");
-  const [tickets, setTickets] = useState<TicketSummary[]>([]);
-  const [loadingTickets, setLoadingTickets] = useState(false);
-  const [ticketsError, setTicketsError] = useState<string | null>(null);
+  // Issue types a ticket can be created with (no sub-tasks).
+  const availableIssueTypes = issueTypesProp.filter((it) => !it.name.toLowerCase().includes("subtask"));
+  // The ticket picked in the link dialog — its summary, type, assignee for the card.
+  const [picked, setPicked] = useState<PickedTicket | null>(null);
 
   // Create new ticket state — default to first real type
   const [createIssueType, setCreateIssueType] = useState(
@@ -133,25 +128,6 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mitigation.ticketId, port]);
 
-  // Load tickets when the link dialog opens or the issue type changes
-  useEffect(() => {
-    if (mode !== "link") return;
-    const load = async () => {
-      setLoadingTickets(true);
-      setTicketsError(null);
-      try {
-        const result = await port.fetchTickets(projectKey, selectedIssueType);
-        setTickets(result);
-        if (!result.length) setTicketsError("No open tickets found for this type.");
-      } catch {
-        setTicketsError("Failed to load tickets.");
-      } finally {
-        setLoadingTickets(false);
-      }
-    };
-    load();
-  }, [mode, selectedIssueType, port, projectKey]);
-
   const handleSyncStatus = async () => {
     if (!mitigation.ticketId) return;
     setSyncing(true);
@@ -184,7 +160,7 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
         });
         setMode(null);
       } else {
-        setCreateError(result.error ?? "Failed to create ticket.");
+        setCreateError(result.error ?? t("tabs.risks.ticketLink.createFailed", { defaultValue: "The ticket could not be created." }));
       }
     } finally {
       setCreating(false);
@@ -193,8 +169,8 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
 
   // Already linked — show Jira-style card
   if (mitigation.ticketId) {
-    // Find the ticket details from the loaded tickets list (if available)
-    const linkedTicket = tickets.find((t) => t.key === mitigation.ticketId);
+    // Details only of the ticket just picked; a stored link has key and status.
+    const linkedTicket = picked?.key === mitigation.ticketId ? picked : undefined;
 
     const statusColor =
       mitigation.ticketStatus === "CLOSED"    ? { bg: "#dcfce7", fg: "#16a34a" } :
@@ -250,7 +226,7 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
                   {new Date(mitigation.ticketSyncedAt).toLocaleTimeString()}
                 </Typography>
               )}
-              <Tooltip title="Sync status from Jira">
+              <Tooltip title={t("tabs.risks.ticketLink.sync", { defaultValue: "Take over the ticket's status" })}>
                 <IconButton size="small" onClick={handleSyncStatus} disabled={syncing} sx={{ p: 0.25 }}>
                   {syncing
                     ? <CircularProgress size={12} />
@@ -258,7 +234,7 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
                 </IconButton>
               </Tooltip>
               {mitigation.ticketUrl && (
-                <Tooltip title="Open in Jira">
+                <Tooltip title={t("tabs.risks.ticketLink.open", { defaultValue: "Open in the tracker" })}>
                   <IconButton
                     size="small"
                     sx={{ p: 0.25 }}
@@ -268,7 +244,7 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
                   </IconButton>
                 </Tooltip>
               )}
-              <Tooltip title="Unlink ticket">
+              <Tooltip title={t("tabs.risks.ticketLink.unlink", { defaultValue: "Unlink the ticket" })}>
                 <IconButton
                   size="small"
                   color="error"
@@ -304,7 +280,7 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
                 label={
                   mitigation.ticketStatus
                     ? mitigation.ticketStatus.replace("_", " ")
-                    : "Unknown"
+                    : t("tabs.risks.ticketLink.unknown", { defaultValue: "Unknown" })
                 }
                 size="small"
                 sx={{
@@ -345,12 +321,12 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
                 <Typography sx={{ fontSize: 12 }}>👤</Typography>
               )}
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
-                {linkedTicket?.assignee ?? "Unassigned"}
+                {linkedTicket?.assignee ?? t("tabs.risks.ticketLink.unassigned", { defaultValue: "Unassigned" })}
               </Typography>
               <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>·</Typography>
               <Typography sx={{ fontSize: 12 }}>🏃</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
-                {linkedTicket?.sprint ?? "Backlog"}
+                {linkedTicket?.sprint ?? t("tabs.risks.ticketLink.backlog", { defaultValue: "Backlog" })}
               </Typography>
             </Box>
           </Box>
@@ -374,196 +350,42 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
       </Button>
 
       {/* Linking and creating in their own dialog: the status dialog stays short. */}
-      <Dialog open={mode !== null} onClose={() => setMode(null)} maxWidth="sm" fullWidth data-testid="ticket-dialog">
+      <TicketLinkDialog
+        open={mode === "link"}
+        label={label}
+        mitigationId={mitigation.id}
+        riskId={risk.id}
+        port={port}
+        projectKey={projectKey}
+        issueTypes={issueTypesProp}
+        links={links}
+        onLink={async (ticket) => {
+          setPicked(ticket);
+          // Link the ticket and adopt its state.
+          await adoptTicket({ ...mitigation, ticketId: ticket.key, ticketUrl: ticket.url, ticketStatus: undefined });
+          setMode(null);
+        }}
+        onCreateInstead={() => setMode("create")}
+        onClose={() => setMode(null)}
+      />
+      <Dialog open={mode === "create"} onClose={() => setMode(null)} maxWidth="sm" fullWidth data-testid="ticket-dialog">
         <DialogTitle sx={{ pb: 1 }}>
-          {mode === "create"
-            ? t("tabs.risks.mitigationStatusDialog.createTicketTitle", { defaultValue: "New ticket for {{mitigation}}", mitigation: label })
-            : t("tabs.risks.mitigationStatusDialog.linkTicketTitle", { defaultValue: "Link a ticket to {{mitigation}}", mitigation: label })}
+          {t("tabs.risks.mitigationStatusDialog.createTicketTitle", { defaultValue: "New ticket for {{mitigation}}", mitigation: label })}
         </DialogTitle>
         <DialogContent dividers>
-          {/* Link existing ticket */}
-          {mode === "link" && (
-            <Box>
-              <FormControl size="small" sx={{ mb: 1, minWidth: 160 }}>
-                <InputLabel sx={{ fontSize: 12 }}>Issue Type</InputLabel>
-                <Select
-                  value={selectedIssueType}
-                  onChange={(e) => setSelectedIssueType(e.target.value)}
-                  label="Issue Type"
-                  sx={{ fontSize: 12 }}
-                >
-                  {availableIssueTypes.map((it) => (
-                    <MenuItem
-                      key={it.id}
-                      value={it.id === "__all__" ? "__all__" : it.name}
-                      sx={{ fontSize: 12 }}
-                    >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                        {(it as any).iconUrl ? (
-                          <Box
-                            component="img"
-                            src={(it as any).iconUrl}
-                            alt={it.name}
-                            sx={{ width: 14, height: 14 }}
-                          />
-                        ) : null}
-                        {it.name}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {loadingTickets ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                  <CircularProgress size={20} />
-                </Box>
-              ) : ticketsError ? (
-                <Typography variant="caption" color="text.secondary">{ticketsError}</Typography>
-              ) : (
-                <Paper
-                  variant="outlined"
-                  sx={{ maxHeight: 320, overflow: "auto", borderRadius: 1 }}
-                >
-                  <Stack spacing={0} divider={<Divider />}>
-                    {tickets.map((ticket) => (
-                      <Box
-                        key={ticket.key}
-                        onClick={async () => {
-                          // Link the ticket and adopt its state.
-                          await adoptTicket({
-                            ...mitigation,
-                            ticketId: ticket.key,
-                            ticketUrl: ticket.url,
-                            ticketStatus: undefined,
-                          });
-                          setMode(null);
-                        }}
-                        sx={{
-                          px: 1.5,
-                          py: 1,
-                          cursor: "pointer",
-                          "&:hover": { bgcolor: "action.hover" },
-                          transition: "background-color 0.1s",
-                        }}
-                      >
-                        {/* Row 1: Issue type icon + key + status chip + priority icon */}
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.25 }}>
-                          {ticket.issueTypeIconUrl ? (
-                            <Box
-                              component="img"
-                              src={ticket.issueTypeIconUrl}
-                              alt={ticket.issueType}
-                              sx={{ width: 14, height: 14, flexShrink: 0 }}
-                            />
-                          ) : (
-                            <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
-                              {ticket.issueType.slice(0, 1)}
-                            </Typography>
-                          )}
-                          <Typography
-                            variant="caption"
-                            color="primary"
-                            fontWeight={700}
-                            sx={{ fontSize: 11, flexShrink: 0 }}
-                          >
-                            {ticket.key}
-                          </Typography>
-                          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 0.5 }}>
-                            {ticket.priorityIconUrl && (
-                              <Tooltip title={ticket.priority ?? ""} placement="top">
-                                <Box
-                                  component="img"
-                                  src={ticket.priorityIconUrl}
-                                  alt={ticket.priority}
-                                  sx={{ width: 12, height: 12 }}
-                                />
-                              </Tooltip>
-                            )}
-                            <Chip
-                              label={ticket.status}
-                              size="small"
-                              sx={{
-                                height: 16,
-                                fontSize: 10,
-                                bgcolor: ticket.ticketStatus === "IN_PROGRESS"
-                                  ? "#dbeafe"
-                                  : ticket.ticketStatus === "REVIEW"
-                                  ? "#ede9fe"
-                                  : "#f3f4f6",
-                                color: ticket.ticketStatus === "IN_PROGRESS"
-                                  ? "#1d4ed8"
-                                  : ticket.ticketStatus === "REVIEW"
-                                  ? "#7c3aed"
-                                  : "#374151",
-                              }}
-                            />
-                          </Box>
-                        </Box>
-
-                        {/* Row 2: Summary */}
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontSize: 12,
-                            lineHeight: 1.3,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            mb: 0.25,
-                          }}
-                        >
-                          {ticket.summary}
-                        </Typography>
-
-                        {/* Row 3: Assignee + Sprint */}
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                            {ticket.assigneeAvatarUrl ? (
-                              <Box
-                                component="img"
-                                src={ticket.assigneeAvatarUrl}
-                                alt={ticket.assignee}
-                                sx={{ width: 14, height: 14, borderRadius: "50%" }}
-                              />
-                            ) : (
-                              <Typography variant="caption" sx={{ fontSize: 10 }}>👤</Typography>
-                            )}
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>
-                              {ticket.assignee ?? "Unassigned"}
-                            </Typography>
-                          </Box>
-                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>·</Typography>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
-                            <Typography variant="caption" sx={{ fontSize: 10 }}>🏃</Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10 }}>
-                              {ticket.sprint ?? "Backlog"}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Stack>
-                </Paper>
-              )}
-            </Box>
-          )}
-
-
           {/* Create new ticket */}
           {mode === "create" && (
             <Stack spacing={1}>
               <Box sx={{ display: "flex", gap: 1 }}>
                 <FormControl size="small" sx={{ minWidth: 140 }}>
-                  <InputLabel sx={{ fontSize: 12 }}>Issue Type</InputLabel>
+                  <InputLabel sx={{ fontSize: 12 }}>{t("tabs.risks.ticketLink.type", { defaultValue: "Type" })}</InputLabel>
                   <Select
                     value={createIssueType}
                     onChange={(e) => setCreateIssueType(e.target.value)}
-                    label="Issue Type"
+                    label={t("tabs.risks.ticketLink.type", { defaultValue: "Type" })}
                     sx={{ fontSize: 12 }}
                   >
                     {availableIssueTypes
-                      .filter((it) => it.id !== "__all__")
                       .map((it) => (
                         <MenuItem key={it.id} value={it.name} sx={{ fontSize: 12 }}>
                           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
@@ -583,11 +405,11 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
                 </FormControl>
 
                 <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel sx={{ fontSize: 12 }}>Priority</InputLabel>
+                  <InputLabel sx={{ fontSize: 12 }}>{t("tabs.risks.ticketLink.priority", { defaultValue: "Priority" })}</InputLabel>
                   <Select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
-                    label="Priority"
+                    label={t("tabs.risks.ticketLink.priority", { defaultValue: "Priority" })}
                     sx={{ fontSize: 12 }}
                   >
                     {["Highest", "High", "Medium", "Low", "Lowest"].map((p) => (
@@ -599,7 +421,7 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
 
               <TextField
                 size="small"
-                label="Summary (title)"
+                label={t("tabs.risks.ticketLink.summary", { defaultValue: "Title" })}
                 fullWidth
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
@@ -608,14 +430,14 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
 
               <TextField
                 size="small"
-                label="Description"
+                label={t("tabs.risks.ticketLink.description", { defaultValue: "Description" })}
                 fullWidth
                 multiline
                 rows={6}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 inputProps={{ style: { fontSize: 11 } }}
-                helperText="EARS-style template pre-filled. Edit as needed."
+                helperText={t("tabs.risks.ticketLink.descriptionHint", { defaultValue: "Pre-filled from the risk (EARS style); edit as needed." })}
               />
 
               {createError && (
@@ -630,7 +452,7 @@ export const MitigationTicketRow: React.FC<MitigationTicketRowProps> = ({
                 disabled={creating || !summary.trim()}
                 sx={{ alignSelf: "flex-start" }}
               >
-                Create in Jira
+                {t("tabs.risks.ticketLink.create", { defaultValue: "Create ticket" })}
               </Button>
             </Stack>
           )}

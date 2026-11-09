@@ -56,6 +56,7 @@ import type { TicketPort } from "shared/models/ticket-types";
 import { hasRejectionReason } from "../services/ticket-sync";
 import { needsStatusEvidence } from "../services/mitigation-evidence";
 import { MitigationTicketRow } from "./mitigation-ticket-row";
+import type { TicketLink } from "../services/ticket-links";
 
 import { MitigationDraftRef } from "shared";
 
@@ -85,6 +86,8 @@ export interface RiskMitigationStatusDialogProps {
   ticketPort?: TicketPort | null;
   /** Issue types of the connected project (stored when it was chosen). */
   issueTypes?: Array<{ id: string; name: string; iconUrl?: string }>;
+  /** Every ticket link of the project (link dialog: marked tickets, suggestions). */
+  ticketLinks?: readonly TicketLink[];
   onSave: (riskId: string, updates: Partial<Risk>) => void;
   onClose: () => void;
 }
@@ -93,7 +96,7 @@ export interface RiskMitigationStatusDialogProps {
 
 export const RiskMitigationStatusDialog: React.FC<
   RiskMitigationStatusDialogProps
-> = ({ open, risk, integrationConnection, ticketPort, issueTypes: projectIssueTypes, onSave, onClose }) => {
+> = ({ open, risk, integrationConnection, ticketPort, issueTypes: projectIssueTypes, ticketLinks, onSave, onClose }) => {
   const { t } = useTranslation();
 
   // Local copy of mitigations for editing
@@ -536,6 +539,7 @@ export const RiskMitigationStatusDialog: React.FC<
                                 ? issueTypes
                                 : [{ id: "task", name: "Task" }]
                             }
+                            links={ticketLinks}
                             onLink={(updates) =>
                               updateMitigation(mitigationSelectionKey(m), updates)
                             }

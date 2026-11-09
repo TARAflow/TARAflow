@@ -92,6 +92,7 @@ describe("mitigation status dialog on the ticket port", () => {
     expect(p.fetchTickets).not.toHaveBeenCalled();
     fireEvent.click(screen.getAllByTestId("ticket-link-open")[0]);
     fireEvent.click(await screen.findByText("SCRUM-5"));
+    fireEvent.click(screen.getByTestId("ticket-link-confirm"));
     await waitFor(() => expect(p.calls.length).toBe(1));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     const [first, second] = onSave.mock.calls[0][1].selectedMitigations;
