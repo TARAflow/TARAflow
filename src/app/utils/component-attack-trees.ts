@@ -87,7 +87,7 @@ type Tree = NonNullable<NonNullable<Import["snapshot"]["attackTrees"]>["trees"]>
 type Leaf = { name: string; factors: AttackPotentialFactors | undefined };
 
 /** The leaves of a tree by node id (parsed from its DSL; node ids are deterministic). */
-function leavesOf(tree: Tree): Map<string, Leaf> {
+export function leavesOf(tree: Tree): Map<string, Leaf> {
   const out = new Map<string, Leaf>();
   const ast = parseAttackTree(tree.dsl ?? "", tree.configuration?.evaluationMethod ?? "simple").ast;
   const walk = (node: NonNullable<typeof ast>) => {

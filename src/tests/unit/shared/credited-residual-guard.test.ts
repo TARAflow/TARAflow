@@ -65,6 +65,10 @@ const ALLOW: Record<string, string> = {
   "app/utils/commit-calc-stamps.ts": "calculation stamps over the stored values",
   "app/services/versions/fix-tree-likelihood-scale.ts": "file migration",
 
+  // ── Update inventory (phase 5b): whether the machine rated — never the value ──
+  "app/services/component-import/update-inventory.ts":
+    "detects that the machine rated an imported risk (a stored decision to carry over an update); never used as the residual",
+
   // ── Audit diff (what changed in the file) ────────────────────────────────
   "features/audit/services/diff-service.ts": "diffs the stored values",
 

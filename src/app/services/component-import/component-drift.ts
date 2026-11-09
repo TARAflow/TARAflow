@@ -159,6 +159,12 @@ export async function checkComponentDrift(
   if (source.commitSha) {
     const present = await git(["cat-file", "-e", `${source.commitSha}^{commit}`], root);
     // After a fetch the clone is not behind any more: the commit is gone.
+    // Note (review of patch 56): a clone that had the imported commit BEFORE
+    // the history was rewritten keeps it — a fetch does not delete it, it is
+    // only unreachable from any ref. Then this check does not fire; the
+    // ancestry below reports "diverged" instead of "imported state gone".
+    // Both lead to the same action (check with the component team), so the
+    // two messages for one cause are expected.
     if (present.code !== 0) return { kind: "unreachable", reason: options.fetch ? "imported_state_gone" : "clone_behind" };
   }
 

@@ -44,6 +44,9 @@ type Risks = NonNullable<Project["risks"]>;
 type Risk = Risks["risks"][number];
 type Rating = Risk["factorRatings"][number];
 
+/** Decision kinds the "decisions" option copies — their open reviews go along (phase 5b). */
+const COPIED_REVIEW_KINDS = new Set(["relevanceOverride", "measureOverride", "citedClaim", "pathOverlay", "aouStatus", "riskRating"]);
+
 export interface CopyRatingsOptions {
   decisions: boolean;
   assetImpact: boolean;
@@ -134,6 +137,15 @@ export function copyInstanceRatings(
       ...(citedClaims.length > 0 ? { citedClaims } : {}),
       ...(overlays.length > 0 ? { pathOverlays: overlays } : {}),
     };
+    // A copied decision takes its open review along (phase 5b): otherwise it
+    // would count as confirmed in the target although nobody reviewed it.
+    // Keys are the component's (same import), so they match across instances.
+    const carried = Object.entries(source.reviewBasis ?? {}).filter(([k]) => COPIED_REVIEW_KINDS.has(k.split("|")[0]));
+    if (carried.length > 0) {
+      const reviewBasis = { ...(target.reviewBasis ?? {}) };
+      for (const [k, basis] of carried) if (!fill || reviewBasis[k] === undefined) reviewBasis[k] = basis;
+      nextTarget = { ...nextTarget, reviewBasis };
+    }
   }
 
   // ── risks: factor ratings per imported threat ──────────────────────────

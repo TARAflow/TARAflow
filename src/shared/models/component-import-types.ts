@@ -194,6 +194,14 @@ export interface ComponentInstance {
   measureOverrides?: ComponentMeasureOverride[];
   /** Supporting claims of the component cited in the machine's matrix (phase 4c). Absent: none. */
   citedClaims?: ComponentCitedClaim[];
+  /**
+   * Open reviews after an update (phase 5b, review 2026-11-09): decision key
+   * ("<kind>|<key>") → the hash of its basis in the OLDEST state it was not
+   * yet reviewed against. Only decisions whose basis changed in an update;
+   * "to review" is derived (entry present and different from the current
+   * basis), an entry is removed when the analyst confirms. Absent: none.
+   */
+  reviewBasis?: Record<string, string>;
   /** Window of opportunity per component attack path (ISO, patch 17). Absent: none. */
   pathOverlays?: ComponentPathOverlay[];
   /**

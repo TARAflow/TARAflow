@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patch 54; per import, rollback via git revert decided), next 5b (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patch 57), next 5c (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,26 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 57 done (2026-11-09, phase 5b):* the inventory and the delta, pure, no UI
+(`update-inventory.ts`). `DECISION_KINDS` is a Record over every kind of stored machine decision —
+EE mapping, WoO overlay (path / step), relevance override, AoU status, measure override, cited
+claim, rating and treatment of an imported risk (incl. attack-path risks), instance asset rating,
+the machine's A2A relations to instance assets, hazard links, goals / claims naming imported
+risks, the machine's own threats on boundary flows, quantity — each with `decided` (the keys, in the
+component's terms), `basis` (hash of the snapshot part the decision rests on; undefined = no
+counterpart) and `orphaned` (drop / unlink). `decisionDelta` gives per decision take over / review /
+orphaned (an orphaned treatment names its tracker tickets); `snapshotDelta` what changed in the
+component (elements, new EEs needing a mapping, flows, threats, paths, measures, assumptions,
+supporting claims, assets, relations). Reviews (review 2026-11-09): only the OPEN ones are stored,
+`ComponentInstance.reviewBasis` ("<kind>|<key>" → the basis hash of the oldest state not reviewed);
+derived "to review" while it differs from the current basis (`openReviews`), settles by itself when
+a later state restores the basis, removed when the analyst confirms (`withReviewConfirmed`);
+`nextReviewBasis` keeps the oldest basis over several updates and drops orphaned decisions. Nothing is
+stored for unchanged decisions, new decisions between updates need nothing, and projects of the
+0.19 branch need no special case. The audit diff detects reviewBasis with the instance (test);
+copying ratings takes a copied decision's open review along. Comment from the review of 56: a clone
+that had the imported commit before the history was rewritten keeps it, so the check reports
+"diverged" instead of "imported state gone" — same action, both messages expected.
 *Patch 56 done (2026-11-09, review of patch 55):* history rewritten. "Clone behind — fetch first"
 went in circles when the component's repository rewrote its history (a force push after a rebase,
 sensitive data removed — it happened to TARAflow itself): the imported commit is missing after the
