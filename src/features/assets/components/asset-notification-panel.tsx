@@ -12,8 +12,8 @@
 // finding only the component can fix carries the component's chip — name,
 // DFD links, and on a goal the COMPONENT has active (locked, 4a-2) its
 // requirement text and "goal without threat" (the threats there are the
-// component's). Impact, safety, rationale and the goals the machine added
-// stay the machine's (review 2026-11-09).
+// component's). Impact, safety and rationale stay the machine's; what only a
+// new component revision can close carries the component's chip too (4a-4).
 
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,19 +25,71 @@ import type { Asset } from "../models/asset-types";
 const COMPONENT_OWNED = new Set(["tabs.assets.validation.noName", "tabs.assets.validation.notLinkedToDFD"]);
 /** … on a goal the component has active: its requirement text, and the threats violating it, are the component's. */
 const COMPONENT_GOAL_OWNED = new Set(["tabs.assets.validation.noSecurityGoalDescription", "tabs.assets.validation.goalWithoutThreat"]);
+const GOAL_WITHOUT_THREAT = "tabs.assets.validation.goalWithoutThreat";
+const NOT_LINKED = "tabs.assets.validation.notLinkedToDFD";
+/** Phase 4a-4 (user 2026-11-09, "signal, not analysis"): what only a new revision of the component can close. */
+export const GOAL_ADDED_NO_COMPONENT_THREAT = "tabs.assets.validation.goalAddedNoComponentThreat";
+export const LINKED_ONLY_TO_COMPONENT = "tabs.assets.validation.linkedOnlyToComponent";
 
-/** The component owning a finding, from the asset's importedFrom ("SD1 · Smoke Detector"); undefined = the machine's. */
+export interface AssetFindingContext {
+  assets: readonly Pick<Asset, "id" | "importedFrom">[];
+  /** An imported asset's component goal types (phase 4a-2). */
+  componentGoalsOf?: (assetId: string) => readonly string[] | undefined;
+  /** Asset-to-asset relations (phase 4a-4: a machine asset tied only to a component's assets). */
+  relations?: readonly { sourceAssetId: string; targetAssetId: string }[];
+}
+
+/**
+ * How a finding is shown: its owner (the component, from the asset's
+ * importedFrom "SD1 · Smoke Detector"; undefined = the machine's) and the
+ * message key. Threats on a component's elements come only from the
+ * component (the machine's generators are off there), so two findings can
+ * only be closed by a new component revision (phase 4a-4, user 2026-11-09:
+ * signal, not analysis — the machine does not analyse the component's
+ * internals):
+ *   - a goal the machine ADDED to an imported asset that no threat violates
+ *     → "goal added — the component has no threats for it, request a new
+ *     revision", the component's chip
+ * A machine asset with no DFD link that is related only to a component's
+ * assets gets its own text naming both ways out (link it to an element of
+ * the machine, or — if the data is processed only inside the component —
+ * request a revision) but stays the MACHINE's finding: the machine can fix
+ * it itself, and the component's chip is kept for what only the component
+ * can fix (review 2026-11-09).
+ */
+export function assetFindingView(
+  f: Pick<AssetFinding, "key" | "assetId" | "goal">,
+  ctx: AssetFindingContext,
+): { owner?: string; key: string; component?: string } {
+  if (!f.assetId) return { key: f.key };
+  const asset = ctx.assets.find((a) => a.id === f.assetId);
+  if (asset?.importedFrom) {
+    if (COMPONENT_OWNED.has(f.key)) return { owner: asset.importedFrom, key: f.key };
+    if (COMPONENT_GOAL_OWNED.has(f.key) && f.goal) {
+      const fromComponent = !!ctx.componentGoalsOf?.(f.assetId)?.includes(f.goal);
+      if (fromComponent) return { owner: asset.importedFrom, key: f.key };
+      if (f.key === GOAL_WITHOUT_THREAT) return { owner: asset.importedFrom, key: GOAL_ADDED_NO_COMPONENT_THREAT };
+    }
+    return { key: f.key };
+  }
+  if (f.key === NOT_LINKED && asset) {
+    const related = (ctx.relations ?? [])
+      .flatMap((r) => (r.sourceAssetId === asset.id ? [r.targetAssetId] : r.targetAssetId === asset.id ? [r.sourceAssetId] : []))
+      .map((id) => ctx.assets.find((a) => a.id === id));
+    const components = [...new Set(related.map((a) => a?.importedFrom))];
+    if (related.length > 0 && components.length === 1 && components[0]) return { key: LINKED_ONLY_TO_COMPONENT, component: components[0] };
+  }
+  return { key: f.key };
+}
+
+/** The component owning a finding; undefined = the machine's (see assetFindingView). */
 export function assetFindingOwner(
   f: Pick<AssetFinding, "key" | "assetId" | "goal">,
   assets: readonly Pick<Asset, "id" | "importedFrom">[],
   componentGoalsOf?: (assetId: string) => readonly string[] | undefined,
+  relations?: AssetFindingContext["relations"],
 ): string | undefined {
-  if (!f.assetId) return undefined;
-  const ownedHere =
-    COMPONENT_OWNED.has(f.key) ||
-    (COMPONENT_GOAL_OWNED.has(f.key) && !!f.goal && !!componentGoalsOf?.(f.assetId)?.includes(f.goal));
-  if (!ownedHere) return undefined;
-  return assets.find((a) => a.id === f.assetId)?.importedFrom;
+  return assetFindingView(f, { assets, componentGoalsOf, relations }).owner;
 }
 
 export interface AssetNotificationPanelProps {
@@ -48,6 +100,8 @@ export interface AssetNotificationPanelProps {
   assets?: readonly Pick<Asset, "id" | "importedFrom">[];
   /** An imported asset's component goal types (phase 4a-2). */
   componentGoalsOf?: (assetId: string) => readonly string[] | undefined;
+  /** Asset-to-asset relations (phase 4a-4). */
+  relations?: AssetFindingContext["relations"];
 }
 
 export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
@@ -55,6 +109,7 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
   onOpen,
   assets = [],
   componentGoalsOf,
+  relations,
 }) => {
   const { t } = useTranslation();
 
@@ -70,7 +125,7 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
   const items = useMemo<PanelFinding[]>(
     () =>
       sorted.map((f, i) => {
-        const owner = assetFindingOwner(f, assets, componentGoalsOf);
+        const { owner, key, component } = assetFindingView(f, { assets, componentGoalsOf, relations });
         return {
           id: String(i),
           severity: f.severity,
@@ -89,7 +144,8 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
                 },
               }
             : {}),
-          text: t(f.key, {
+          text: t(key, {
+            component: owner ?? component ?? "",
             id: f.assetLabel ?? "",
             type: f.goal ?? "",
             criterion: f.criterionId
@@ -99,7 +155,7 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
           }),
         };
       }),
-    [sorted, t, assets, componentGoalsOf],
+    [sorted, t, assets, componentGoalsOf, relations],
   );
 
   return (

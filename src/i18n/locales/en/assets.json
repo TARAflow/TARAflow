@@ -254,6 +254,8 @@
         "goalEnvelopeSlack": "Asset {{id}}: no active security goal reaches the asset value for {{criterion}} — intended as a higher worst case?",
         "threatWithoutGoal": "Asset {{id}}: {{count}} threat(s) of category {{stride}} ({{threats}}) violate no active security goal — add {{goals}} or check whether the threats belong to this asset",
         "threatWithoutGoalNotApplicable": "Asset {{id}}: {{count}} threat(s) of category {{stride}} ({{threats}}) violate no active security goal — {{goals}} cannot be set on {{group}} assets: link a function or system asset carrying {{goals}} to the DFD element, or check whether the threats belong to this asset",
+        "goalAddedNoComponentThreat": "Asset {{id}}: goal {{type}} added here — the component {{component}} has no threats for it (its threats come only from the component). Request a new revision of the component.",
+        "linkedOnlyToComponent": "Asset {{id}}: tied only to assets of {{component}}, not to a DFD element, so no threat reaches it. Link it to an element of this machine — or, if the data is processed only inside the component, request a new revision of the component.",
         "goalWithoutThreat": "Asset {{id}}: no threat violates {{type}} — is the goal needed, or is a threat missing?"
       },
       "columns": {

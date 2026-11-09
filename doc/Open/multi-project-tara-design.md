@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), next 4c (component claims)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), next 4c (component claims)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,25 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 51 done (2026-11-09, phase 4a-4, review of 48/49):* what a goal the machine adds to a
+component asset effects. Threats on a component's elements come only from the component (the
+machine's generators are off there), so an added goal type (e.g. availability the component did not
+mark) makes no threat and no risk — the machine's impact hangs on nothing, and "goal without threat"
+stood as a machine finding the machine cannot fix. Decided by the user 2026-11-09 — **signal, not
+analysis** (consistent with the relevance and measure overrides; no manual machine threats on
+component elements, which would break the single source of their threats and add a reconciliation
+to the update path): such a finding becomes `goalAddedNoComponentThreat` with the component's chip
+("goal added — the component has no threats for it, request a new revision"). A machine asset tied
+only by A2A relations to a component's assets and to no DFD element gets its own text,
+`linkedOnlyToComponent`, naming both ways out (link it to an element of the machine, or — if the
+data is processed only inside the component — request a revision), but stays the MACHINE's finding:
+the machine can fix it itself, and the component's chip is kept for what only the component can fix
+(review 2026-11-09). The gap of an added goal stays open until the component's new revision, but
+visible; the added goal goes into "Deviations from the component" (phase 6, derivable against the
+snapshot). Phase 6, noted (review 2026-11-09): the report collects per component the signals for the
+platform team — goals added without component threats ("request a new revision"), overridden
+relevances, measures marked "not effective here" — as one list, not scattered findings.
+Only finding owner and text change (`assetFindingView` in the asset panel); nothing new is stored.
 *Patch 50 done (2026-11-09, phase 4b):* matrix and hazards. The matrix already evaluated the
 imported elements (they are in the machine's DFD; test). Evidence from measures: imported threats now
 give their risks' measures element targets (`withComponentThreats` in the evidence build — before, the

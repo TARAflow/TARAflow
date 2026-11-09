@@ -10,7 +10,7 @@ import { ValidationMessages } from "features/dfd/services/validators/validator-u
 import { instanceAssetId } from "features/dfd";
 import { isStructuralFinding } from "features/dfd";
 import { componentInstanceTfId } from "features/dfd";
-import { assetFindingOwner } from "features/assets/components/asset-notification-panel";
+import { assetFindingOwner, assetFindingView } from "features/assets/components/asset-notification-panel";
 import { machine, snapshot } from "../../../../fixtures/component-treatment-machine";
 
 describe("finding ownership (phase 4a)", () => {
@@ -78,5 +78,25 @@ describe("finding ownership (phase 4a)", () => {
     expect(assetFindingOwner({ key: desc, assetId: "a1", goal: "A" }, assets, goalsOf)).toBeUndefined();
     expect(assetFindingOwner({ key: "tabs.assets.validation.goalWithoutThreat", assetId: "a1", goal: "C" }, assets, goalsOf)).toBe("SD1 · Smoke Detector");
     expect(assetFindingOwner({ key: "tabs.assets.validation.goalRationaleMissing", assetId: "a1", goal: "C" }, assets, goalsOf)).toBeUndefined();
+  });
+
+  it("signal, not analysis (4a-4): only what a new component revision alone can close carries the component's chip", () => {
+    const assets = [{ id: "a1", importedFrom: "SD1 · Smoke Detector" }, { id: "m1" }, { id: "m2" }];
+    const ctx = { assets, componentGoalsOf: (id: string) => (id === "a1" ? ["C"] : undefined) };
+    // a goal the machine added (A) that no threat violates: the component has no threats for it
+    expect(assetFindingView({ key: "tabs.assets.validation.goalWithoutThreat", assetId: "a1", goal: "A" }, ctx)).toEqual({
+      owner: "SD1 · Smoke Detector",
+      key: "tabs.assets.validation.goalAddedNoComponentThreat",
+    });
+    // a machine asset tied only to the component's assets, not to a DFD element: its own text
+    // naming both ways out, but the MACHINE's finding — it can link the asset itself
+    const notLinked = { key: "tabs.assets.validation.notLinkedToDFD", assetId: "m1" };
+    expect(assetFindingView(notLinked, { ...ctx, relations: [{ sourceAssetId: "m1", targetAssetId: "a1" }] })).toEqual({
+      key: "tabs.assets.validation.linkedOnlyToComponent",
+      component: "SD1 · Smoke Detector",
+    });
+    // related to a machine asset as well, or to nothing: the machine's own finding
+    expect(assetFindingView(notLinked, { ...ctx, relations: [{ sourceAssetId: "m1", targetAssetId: "a1" }, { sourceAssetId: "m2", targetAssetId: "m1" }] }).owner).toBeUndefined();
+    expect(assetFindingView(notLinked, ctx)).toEqual({ key: "tabs.assets.validation.notLinkedToDFD" });
   });
 });

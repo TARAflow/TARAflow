@@ -254,6 +254,8 @@
         "goalEnvelopeSlack": "Asset {{id}}: kein aktives Schutzziel erreicht den Asset-Wert für {{criterion}} — bewusst höherer Worst Case?",
         "threatWithoutGoal": "Asset {{id}}: {{count}} Bedrohung(en) der Kategorie {{stride}} ({{threats}}) verletzen kein aktives Schutzziel — {{goals}} ergänzen oder prüfen, ob die Bedrohungen zu diesem Asset gehören",
         "threatWithoutGoalNotApplicable": "Asset {{id}}: {{count}} Bedrohung(en) der Kategorie {{stride}} ({{threats}}) verletzen kein aktives Schutzziel — {{goals}} ist für Assets der Gruppe {{group}} nicht vorgesehen: ein Funktions- oder System-Asset mit {{goals}} am DFD-Element verknüpfen oder prüfen, ob die Bedrohungen zu diesem Asset gehören",
+        "goalAddedNoComponentThreat": "Asset {{id}}: Ziel {{type}} hier ergänzt — die Komponente {{component}} hat dafür keine Threats (ihre Threats kommen nur aus der Komponente). Neue Revision der Komponente anfordern.",
+        "linkedOnlyToComponent": "Asset {{id}}: hängt nur an Assets von {{component}}, an keinem DFD-Element, daher erreicht es kein Threat. Mit einem Element dieser Maschine verknüpfen — oder, falls die Daten nur in der Komponente verarbeitet werden, eine neue Revision der Komponente anfordern.",
         "goalWithoutThreat": "Asset {{id}}: keine Bedrohung verletzt {{type}} — ist das Ziel nötig, oder fehlt eine Bedrohung?"
       },
       "columns": {
