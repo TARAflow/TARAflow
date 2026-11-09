@@ -21,8 +21,10 @@ import { createIpcGitRunner } from "features/audit/services/audit-git-adapters";
 import {
   ComponentImportDialog,
   ComponentAssumptionsChecklist,
+  ComponentUpdateDialog,
   type ComponentImportDialogChoice,
   type ComponentPickResult,
+  type ComponentUpdateChoice,
 } from "features/components";
 import type { Project } from "../../models/project-types";
 import { instanceLabel, quantityOf, withInstanceQuantity } from "../../services/component-import/instance-quantity";
@@ -36,7 +38,12 @@ import {
   componentImportAvailable,
   pickComponentFile,
   readComponentSourceFromDisk,
+  readNewerComponentStateOnDisk,
 } from "../../services/component-import/component-source-electron";
+import { applyComponentUpdate } from "../../services/component-import/component-update";
+import { reviewItemLabel, updateInputOf, updateOutcomeOf, updatePreview } from "../../services/component-import/update-preview";
+import { openReviews, withReviewConfirmed } from "../../services/component-import/update-inventory";
+import type { ComponentSnapshot } from "../../models/component-snapshot-types";
 import { isComponentCycle, type ComponentSourceOk } from "../../services/component-import/component-source";
 import {
   applyComponentImport,
@@ -57,6 +64,15 @@ import {
 } from "../../services/component-import/component-paths";
 
 type Toast = ReturnType<typeof useToast>;
+
+interface PendingUpdate {
+  projectId: string;
+  importId: string;
+  next: ComponentSourceOk;
+  /** The project with the DFD as the editor holds it right now (the runner's context). */
+  base: Project;
+  resolve: (outcome: ComponentInsertOutcome | null) => void;
+}
 
 interface PendingImport {
   projectId: string;
@@ -231,6 +247,125 @@ export function useComponentImport({
     />
   );
 
+  // ── Update to a newer component state (phase 5c-2) ────────────────────
+  // Runs through the DFD tab's runner path like the import: the DFD outcome
+  // is committed and loaded into draw.io there; the other stores are written
+  // here. The project before the update is kept for "discard update" until
+  // the project is saved (then the update is in the file; its rollback is
+  // git revert, decided 2026-11-09).
+  const [pendingUpdate, setPendingUpdate] = useState<PendingUpdate | null>(null);
+  const [applied, setApplied] = useState<{ projectId: string; before: Project } | null>(null);
+  const sawUnsaved = useRef(false);
+  const withContext = (project: Project, context: ComponentInsertContext): Project =>
+    ({
+      ...project,
+      dfd: { ...(project.dfd ?? {}), xml: context.xml, pages: context.pages, elements: context.elements, connections: context.connections, assets: context.assets },
+    }) as Project;
+  const outcomeOfDfd = (p: Project): ComponentInsertOutcome =>
+    ({
+      xml: p.dfd?.xml ?? "",
+      pages: p.dfd?.pages ?? [],
+      elements: p.dfd?.elements ?? [],
+      connections: p.dfd?.connections ?? [],
+      assets: p.dfd?.assets ?? [],
+    }) as ComponentInsertOutcome;
+  const storesOf = (p: Project) => ({
+    components: p.components,
+    assets: p.assets,
+    risks: p.risks,
+    threats: p.threats,
+    hazards: p.hazards,
+    cybersecurityConcept: p.cybersecurityConcept,
+  });
+
+  const updateRunnerFor = useCallback(
+    (importId: string): ComponentImportRunner =>
+      (context) =>
+        new Promise((resolve) => {
+          void (async () => {
+            const project = activeProjectRef.current;
+            const imported = project?.components?.imports.find((i) => i.id === importId);
+            const status = drift?.drift.get(importId);
+            if (!project || !imported || status?.kind !== "newer_available") return resolve(null);
+            const next = await readNewerComponentStateOnDisk(imported, project.filePath, status);
+            if (!next.ok) {
+              toast.error(t("components.update.readFailed", { reason: next.error, defaultValue: "The newer state could not be read ({{reason}})." }));
+              return resolve(null);
+            }
+            setPendingUpdate({ projectId: project.id, importId, next, base: withContext(project, context), resolve });
+          })();
+        }),
+    [activeProjectRef, drift, t, toast],
+  );
+  const finishUpdate = useCallback((outcome: ComponentInsertOutcome | null) => {
+    setPendingUpdate((p) => {
+      p?.resolve(outcome);
+      return null;
+    });
+  }, []);
+  const outcomeOf = useCallback(
+    (choice: ComponentUpdateChoice) => {
+      if (!pendingUpdate) return { review: 0, dropped: [], tickets: [] };
+      try {
+        return updateOutcomeOf(applyComponentUpdate(updateInputOf(pendingUpdate.base, pendingUpdate.importId, pendingUpdate.next, choice, "preview")));
+      } catch {
+        return { review: 0, dropped: [], tickets: [] };
+      }
+    },
+    [pendingUpdate],
+  );
+  const onApplyUpdate = useCallback(
+    (choice: ComponentUpdateChoice) => {
+      const p = pendingUpdate;
+      if (!p) return;
+      try {
+        const result = applyComponentUpdate(updateInputOf(p.base, p.importId, p.next, choice, new Date().toISOString()));
+        sawUnsaved.current = false;
+        setApplied({ projectId: p.projectId, before: p.base });
+        void updateProject({ id: p.projectId, ...storesOf(result.project) });
+        // the drift check re-runs by itself: the import's content hash changed
+        finishUpdate(outcomeOfDfd(result.project));
+      } catch (err) {
+        toast.error(t("components.update.failed", { defaultValue: "The update could not be applied: {{detail}}", detail: err instanceof Error ? err.message : String(err) }));
+        finishUpdate(null);
+      }
+    },
+    [pendingUpdate, updateProject, finishUpdate, toast, t],
+  );
+  const discardRunner: ComponentImportRunner = useCallback(
+    () =>
+      new Promise((resolve) => {
+        const before = applied?.before;
+        if (!before) return resolve(null);
+        // the whole project as before — not each change undone one by one (review 2026-11-10)
+        void updateProject({ id: before.id, ...storesOf(before) });
+        setApplied(null);
+        resolve(outcomeOfDfd(before));
+      }),
+    [applied, updateProject],
+  );
+  // Saved: the update is in the file — no app-side discard any more (git revert from here).
+  const unsaved = activeProject?.hasUnsavedChanges;
+  React.useEffect(() => {
+    if (!applied || activeProject?.id !== applied.projectId) return;
+    if (unsaved) sawUnsaved.current = true;
+    else if (unsaved === false && sawUnsaved.current) setApplied(null);
+  }, [applied, activeProject?.id, unsaved]);
+
+  const preview = useMemo(
+    () => (pendingUpdate ? updatePreview(pendingUpdate.base, pendingUpdate.importId, pendingUpdate.next) : null),
+    [pendingUpdate],
+  );
+  const updateDialog = pendingUpdate && preview ? (
+    <ComponentUpdateDialog
+      open
+      preview={preview}
+      outcomeOf={outcomeOf}
+      onApply={onApplyUpdate}
+      onClose={() => finishUpdate(null)}
+    />
+  ) : null;
+
   // Details of an imported multiprocess, with "Open component TARA".
   const components = activeProject?.components;
   const machineFilePath = activeProject?.filePath;
@@ -243,6 +378,28 @@ export function useComponentImport({
         name: imported.name,
         prefix: instance.prefix,
         source: componentSourceLabel(imported.source),
+        // update (5c-2): offered for a newer state; discard while the update is not saved
+        ...(drift?.drift.get(imported.id)?.kind === "newer_available" && componentImportAvailable() ? { updateRunner: updateRunnerFor(imported.id) } : {}),
+        ...(applied && applied.projectId === activeProjectRef.current?.id ? { discardRunner } : {}),
+        // decisions to review after an update (derived from reviewBasis)
+        reviews: openReviews(instance, imported.snapshot as ComponentSnapshot).map((r) => ({
+          key: `${r.kind}|${r.key}`,
+          text: t(`components.reviews.kind.${r.kind}`, {
+            item: reviewItemLabel(imported.snapshot as ComponentSnapshot, r.kind, r.key),
+            defaultValue: `${r.kind}: {{item}}`,
+          }),
+          onConfirm: () => {
+            const current = activeProjectRef.current;
+            if (!current?.components) return;
+            void updateProject({
+              id: current.id,
+              components: {
+                ...current.components,
+                instances: current.components.instances.map((i) => (i.id === instance.id ? withReviewConfirmed(i, r.kind, r.key) : i)),
+              },
+            });
+          },
+        })),
         ...(drift && componentImportAvailable()
           ? {
               ...(drift.drift.get(imported.id) ? { drift: driftView(drift.drift.get(imported.id)!, t) } : {}),
@@ -326,7 +483,7 @@ export function useComponentImport({
           : {}),
       };
     },
-    [components, machineFilePath, openProjectFile, t, toast, activeProjectRef, updateProject, drift],
+    [components, machineFilePath, openProjectFile, t, toast, activeProjectRef, updateProject, drift, updateRunnerFor, applied, discardRunner],
   );
 
   // Relevance override on an imported boundary-flow threat (I3) — written
@@ -390,7 +547,12 @@ export function useComponentImport({
     attackPathGroups,
     /** For the DFD tab; undefined outside Electron (design §2: no browser mode). */
     runner: componentImportAvailable() ? runner : undefined,
-    dialog,
+    dialog: (
+      <>
+        {dialog}
+        {updateDialog}
+      </>
+    ),
     componentInfoOf,
   };
 }

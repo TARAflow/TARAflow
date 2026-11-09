@@ -1061,6 +1061,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onClose={() => setDetailsPanelOpen(false)}
             element={selectedElement}
             componentInfo={selectedElement ? componentInfoOf?.(selectedElement.id) : undefined}
+            onRunComponent={editor.pluginReady ? (runner) => void editor.insertComponent(runner) : undefined}
             connection={selectedConnection}
             onChange={(updates) => {
               if (selectedElement) {

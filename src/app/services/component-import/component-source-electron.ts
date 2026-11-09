@@ -9,7 +9,7 @@ import {
   type ComponentSourceResult,
 } from "./component-source";
 import type { ComponentImport } from "shared";
-import { checkComponentDrift, type ComponentDriftOptions, type ComponentDriftStatus } from "./component-drift";
+import { checkComponentDrift, readNewerComponentState, type ComponentDriftOptions, type ComponentDriftStatus } from "./component-drift";
 import { resolveComponentPath } from "./component-paths";
 
 /** True when the main-process APIs the import needs are present. */
@@ -48,4 +48,17 @@ export async function checkComponentDriftOnDisk(
   const io = createIpcFileIO();
   const localPath = await resolveComponentPath(imported.componentId, imported.source, machineFilePath, git);
   return checkComponentDrift(imported, localPath, (p) => io.read(p), git, options);
+}
+
+/** The newer state the drift check found, read for the update (phase 5c) with the Electron adapters. */
+export async function readNewerComponentStateOnDisk(
+  imported: ComponentImport,
+  machineFilePath: string | undefined,
+  status: Extract<ComponentDriftStatus, { kind: "newer_available" }>,
+): Promise<ComponentSourceResult> {
+  const git = createIpcGitRunner();
+  const io = createIpcFileIO();
+  const localPath = await resolveComponentPath(imported.componentId, imported.source, machineFilePath, git);
+  if (!localPath) return { ok: false, error: "not_found", detail: "path unknown" };
+  return readNewerComponentState(imported, localPath, status, (p) => io.read(p), git);
 }

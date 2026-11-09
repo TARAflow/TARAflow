@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c-1 done (patches 59–61), next 5c-2 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–62), next 5d / phase 6 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,23 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 62 done (2026-11-10, phase 5c-2):* the update in the app. The component section offers
+"Update…" for a newer state; the update runs through the DFD tab's runner path like the import (the
+DFD outcome committed and loaded into draw.io there — one way into the editor), the other stores are
+written by the app. The dialog (features/components, presentational) over every instance of the
+import: what changed in the component; every new EE needs a decision — mapped to a machine element on
+the instance's page or taken over as a new EE — before Apply (no silent default, review 2026-11-10);
+pairings offered UNCHECKED, one new item per obsolete one; what applying does — "afterwards N
+decisions to review", the decisions dropped by kind, the tickets losing their risk — computed by a dry
+run of the very `applyComponentUpdate` "Apply" runs (`updatePreview`, `updateInputOf`,
+`updateOutcomeOf`), so the numbers shown are the numbers applied; the tag pattern is set here. Texts
+through i18n from the structured delta — never the English lines of `lastUpdate` (comment on the
+field: only the last update, the history is git's). "Discard update" while not saved: the WHOLE
+project as before (all stores and the DFD through the same runner path, not each change undone), and
+the drift status returns to "newer available" by itself (the import's content hash is back); once
+saved, the rollback is git revert. Right after applying the drift check runs again (the hash changed)
+and reports up to date. The open reviews (`openReviews`) are listed in the component section with the
+item in the component's words and "Confirm" (`withReviewConfirmed`).
 *Patch 61 done (2026-11-10, phase 5c, groundwork for the dialog):* the newer state found by the drift
 check is read for the update at exactly that commit (`readNewerComponentState`, `git show`, never the
 working copy; an unpinned import from its path), with the source record moved to it — after applying,

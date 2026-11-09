@@ -92,7 +92,11 @@ export interface ComponentImport<TSnapshot = unknown> {
    * The last update of this import (phase 5c): when, from which state, and
    * what it dropped or put to review — the lines go into the commit message
    * through the audit diff, and the report (phase 6) can show them. Absent:
-   * never updated.
+   * never updated. Only the LAST update — the history is git's, and the
+   * field does not grow with every update. The lines are English sentences
+   * for the commit message: the UI never shows them — the dialog and the
+   * review list build their texts from the structured delta through i18n
+   * (review 2026-11-10).
    */
   lastUpdate?: { at: string; from: { commitSha?: string; tag?: string; contentHash: string }; lines: string[] };
 }

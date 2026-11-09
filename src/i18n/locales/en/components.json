@@ -84,6 +84,86 @@
       "copyRatings": "Copy ratings from another instance…",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
     },
+    "update": {
+      "open": "Update…",
+      "discard": "Discard update",
+      "title": "Update {{component}}",
+      "changes": "What changed in the component",
+      "noStructuralChange": "No element, threat or path was added or removed — only content changed.",
+      "newEes": "New external entities — decide each before applying",
+      "eeChoose": "Choose…",
+      "eeTakeOver": "Take over as a new external entity",
+      "pairings": "Possible pairings — tick only what is the same item renamed",
+      "pairingsHint": "A paired item keeps this machine's decisions; they go to review. Unpaired, they are dropped.",
+      "outcome": "What the update does to this machine's decisions",
+      "reviewCount": "Afterwards {{count}} decision(s) to review",
+      "dropped": "{{count}} × {{what}} dropped",
+      "tickets": "Tickets losing their risk: {{list}} — close or re-link them in the tracker.",
+      "tagPattern": "Tag pattern (optional), e.g. camera-tara/v*",
+      "tagPatternHint": "From then on only tagged states (releases) are offered as newer.",
+      "cancel": "Cancel",
+      "apply": "Apply update",
+      "readFailed": "The newer state could not be read ({{reason}}).",
+      "failed": "The update could not be applied: {{detail}}",
+      "kind": {
+        "elements": "Elements",
+        "flows": "Flows",
+        "threats": "Threats",
+        "paths": "Attack paths",
+        "measures": "Measures",
+        "assumptions": "Assumptions of use",
+        "claims": "Supporting claims",
+        "assets": "Assets",
+        "relations": "Asset relations"
+      },
+      "pairKind": {
+        "threat": "Threat",
+        "path": "Attack path",
+        "flow": "Boundary flow"
+      },
+      "reason": {
+        "same_stride_and_target": "same STRIDE and target",
+        "same_text": "same text",
+        "same_tree": "same attack tree",
+        "same_ends_and_protocol": "same ends and protocol"
+      },
+      "decision": {
+        "eeMapping": "EE mapping",
+        "pathOverlay": "window of opportunity",
+        "relevanceOverride": "relevance override",
+        "aouStatus": "assumption status",
+        "measureOverride": "“not effective here” mark",
+        "citedClaim": "cited claim",
+        "riskRating": "risk rating",
+        "riskTreatment": "risk treatment",
+        "assetRating": "asset impact rating",
+        "a2aRelation": "asset relation",
+        "hazardLink": "hazard link",
+        "conceptRiskRef": "goal / claim reference",
+        "boundaryThreat": "threats on a boundary flow",
+        "quantity": "quantity"
+      }
+    },
+    "reviews": {
+      "title": "{{count}} decision(s) to review after the update",
+      "confirm": "Confirm",
+      "kind": {
+        "eeMapping": "EE mapping of {{item}}",
+        "pathOverlay": "Window of opportunity: {{item}}",
+        "relevanceOverride": "Relevance override: {{item}}",
+        "aouStatus": "Assumption {{item}}",
+        "measureOverride": "“Not effective here”: {{item}}",
+        "citedClaim": "Cited claim {{item}}",
+        "riskRating": "Risk rating: {{item}}",
+        "riskTreatment": "Risk treatment: {{item}}",
+        "assetRating": "Impact of {{item}}",
+        "a2aRelation": "Relations of {{item}}",
+        "hazardLink": "Hazard links of {{item}}",
+        "conceptRiskRef": "Goal / claim on {{item}}",
+        "boundaryThreat": "Threats on the boundary flow {{item}}",
+        "quantity": "Quantity"
+      }
+    },
     "drift": {
       "check": "Check",
       "fetch": "Fetch and check",

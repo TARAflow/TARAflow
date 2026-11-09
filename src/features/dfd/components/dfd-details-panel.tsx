@@ -34,7 +34,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useTranslation } from "react-i18next";
 import { AssetGroup } from "shared";
-import type { ComponentCopyOptions, ComponentMultiprocessInfo, DFDConnection, DFDElement } from "../models/dfd-types";
+import type { ComponentCopyOptions, ComponentImportRunner, ComponentMultiprocessInfo, DFDConnection, DFDElement } from "../models/dfd-types";
 import { Button } from "@mui/material";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
@@ -110,6 +110,8 @@ interface DFDDetailsPanelProps {
   assetRollup?: AssetRollupContextValue;
   /** Multi-project TARA: the selected multiprocess is an imported component. */
   componentInfo?: ComponentMultiprocessInfo;
+  /** Runs a component runner (update / discard) through the DFD tab: commit, then load into draw.io. */
+  onRunComponent?: (runner: ComponentImportRunner) => void;
 }
 
 // ==================== COMPONENT ====================
@@ -142,6 +144,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   identity,
   assetRollup,
   componentInfo,
+  onRunComponent,
 }) => {
   const { t } = useTranslation();
 
@@ -346,7 +349,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
               <Box sx={{ flexGrow: 1, overflow: "auto" }}>
                 {identity && <IdentitySection {...identity} />}
                 {componentInfo && element?.type === "Multiprocess" && (
-                  <ComponentSection info={componentInfo} />
+                  <ComponentSection info={componentInfo} onRun={onRunComponent} />
                 )}
                 {childPage && element?.type === "Multiprocess" && (
                   <ChildPageSection info={childPage} />
@@ -395,7 +398,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
 export default DFDDetailsPanel;
 
 /** An imported component: name, prefix, source, "Open component TARA". */
-const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo }> = ({ info }) => {
+const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (runner: ComponentImportRunner) => void }> = ({ info, onRun }) => {
   const { t } = useTranslation();
   const [copying, setCopying] = useState(false);
   return (
@@ -431,6 +434,39 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo }> = ({ info 
               </Button>
             </>
           )}
+        </Box>
+      )}
+      {/* Update to the newer state (5c-2), and "discard" while not saved */}
+      {onRun && (info.updateRunner || info.discardRunner) && (
+        <Box sx={{ display: "flex", gap: 1, mt: 0.5, flexWrap: "wrap" }}>
+          {info.updateRunner && (
+            <Button size="small" variant="outlined" onClick={() => onRun(info.updateRunner!)} data-testid="component-update">
+              {t("components.update.open", { ns: "components", defaultValue: "Update…" })}
+            </Button>
+          )}
+          {info.discardRunner && (
+            <Button size="small" color="warning" variant="outlined" onClick={() => onRun(info.discardRunner!)} data-testid="component-update-discard">
+              {t("components.update.discard", { ns: "components", defaultValue: "Discard update" })}
+            </Button>
+          )}
+        </Box>
+      )}
+      {/* Decisions to review after an update (5b/5c) */}
+      {(info.reviews?.length ?? 0) > 0 && (
+        <Box sx={{ mt: 1 }} data-testid="component-reviews">
+          <Typography variant="caption" color="warning.main" display="block">
+            {t("components.reviews.title", { ns: "components", count: info.reviews!.length, defaultValue: "{{count}} decision(s) to review after the update" })}
+          </Typography>
+          {info.reviews!.map((r) => (
+            <Box key={r.key} sx={{ display: "flex", alignItems: "center", gap: 1 }} data-testid={`component-review-${r.key}`}>
+              <Typography variant="caption" sx={{ flex: 1 }}>
+                {r.text}
+              </Typography>
+              <Button size="small" sx={{ minWidth: 0 }} onClick={r.onConfirm} data-testid={`component-review-confirm-${r.key}`}>
+                {t("components.reviews.confirm", { ns: "components", defaultValue: "Confirm" })}
+              </Button>
+            </Box>
+          ))}
         </Box>
       )}
       {/* Identical units in the same installation context (I5) */}

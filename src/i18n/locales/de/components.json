@@ -84,6 +84,86 @@
       "copyRatings": "Bewertung von anderer Instanz übernehmen…",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
     },
+    "update": {
+      "open": "Update…",
+      "discard": "Update verwerfen",
+      "title": "{{component}} aktualisieren",
+      "changes": "Was sich in der Komponente geändert hat",
+      "noStructuralChange": "Kein Element, Threat oder Pfad kam hinzu oder fiel weg — nur Inhalte haben sich geändert.",
+      "newEes": "Neue externe Entitäten — vor dem Anwenden jede entscheiden",
+      "eeChoose": "Wählen…",
+      "eeTakeOver": "Als neue externe Entität übernehmen",
+      "pairings": "Mögliche Paarungen — nur ankreuzen, was dasselbe umbenannte Element ist",
+      "pairingsHint": "Ein gepaartes Element behält die Entscheide dieser Maschine; sie stehen danach zur Prüfung. Ungepaart fallen sie weg.",
+      "outcome": "Was das Update mit den Entscheiden dieser Maschine macht",
+      "reviewCount": "Danach stehen {{count}} Entscheid(e) zur Prüfung",
+      "dropped": "{{count}} × {{what}} fällt weg",
+      "tickets": "Tickets, die ihr Risiko verlieren: {{list}} — im Tracker schliessen oder neu verknüpfen.",
+      "tagPattern": "Tag-Muster (optional), z.B. camera-tara/v*",
+      "tagPatternHint": "Danach gelten nur getaggte Stände (Releases) als neuer.",
+      "cancel": "Abbrechen",
+      "apply": "Update anwenden",
+      "readFailed": "Der neuere Stand liess sich nicht lesen ({{reason}}).",
+      "failed": "Das Update liess sich nicht anwenden: {{detail}}",
+      "kind": {
+        "elements": "Elemente",
+        "flows": "Flüsse",
+        "threats": "Threats",
+        "paths": "Angriffspfade",
+        "measures": "Massnahmen",
+        "assumptions": "Einsatzannahmen",
+        "claims": "Supporting Claims",
+        "assets": "Assets",
+        "relations": "Asset-Relationen"
+      },
+      "pairKind": {
+        "threat": "Threat",
+        "path": "Angriffspfad",
+        "flow": "Grenzfluss"
+      },
+      "reason": {
+        "same_stride_and_target": "gleiches STRIDE und Ziel",
+        "same_text": "gleicher Text",
+        "same_tree": "gleicher Angriffsbaum",
+        "same_ends_and_protocol": "gleiche Endpunkte und Protokoll"
+      },
+      "decision": {
+        "eeMapping": "EE-Zuordnung",
+        "pathOverlay": "Window of Opportunity",
+        "relevanceOverride": "überstimmte Relevanz",
+        "aouStatus": "Annahmen-Status",
+        "measureOverride": "Markierung „hier nicht wirksam“",
+        "citedClaim": "zitierter Claim",
+        "riskRating": "Risikobewertung",
+        "riskTreatment": "Risikobehandlung",
+        "assetRating": "Impact-Bewertung eines Assets",
+        "a2aRelation": "Asset-Relation",
+        "hazardLink": "Hazard-Verknüpfung",
+        "conceptRiskRef": "Verweis eines Goals / Claims",
+        "boundaryThreat": "Threats auf einem Grenzfluss",
+        "quantity": "Stückzahl"
+      }
+    },
+    "reviews": {
+      "title": "{{count}} Entscheid(e) nach dem Update zur Prüfung",
+      "confirm": "Bestätigen",
+      "kind": {
+        "eeMapping": "EE-Zuordnung von {{item}}",
+        "pathOverlay": "Window of Opportunity: {{item}}",
+        "relevanceOverride": "Überstimmte Relevanz: {{item}}",
+        "aouStatus": "Annahme {{item}}",
+        "measureOverride": "„Hier nicht wirksam“: {{item}}",
+        "citedClaim": "Zitierter Claim {{item}}",
+        "riskRating": "Risikobewertung: {{item}}",
+        "riskTreatment": "Risikobehandlung: {{item}}",
+        "assetRating": "Impact von {{item}}",
+        "a2aRelation": "Relationen von {{item}}",
+        "hazardLink": "Hazard-Verknüpfungen von {{item}}",
+        "conceptRiskRef": "Goal / Claim zu {{item}}",
+        "boundaryThreat": "Threats auf dem Grenzfluss {{item}}",
+        "quantity": "Stückzahl"
+      }
+    },
     "drift": {
       "check": "Prüfen",
       "fetch": "Fetch und prüfen",

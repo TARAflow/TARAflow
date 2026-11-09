@@ -476,6 +476,16 @@ export interface ComponentMultiprocessInfo {
   driftChecking?: boolean;
   /** Check again; fetch = `git fetch` first (network, on request only). */
   onCheckDrift?: (fetch: boolean) => void;
+  /**
+   * Update to the newer state (phase 5c-2): a runner like the import's — the
+   * DFD tab commits its outcome and loads it into draw.io, so the update
+   * reaches the editor the same single way. Absent = no newer state.
+   */
+  updateRunner?: ComponentImportRunner;
+  /** "Discard update" while not saved: the project as before, through the same runner path. */
+  discardRunner?: ComponentImportRunner;
+  /** Decisions to review after an update (derived), each with its confirm action. */
+  reviews?: { key: string; text: string; onConfirm: () => void }[];
 }
 
 /** What "copy ratings from another instance" takes over (I5). */

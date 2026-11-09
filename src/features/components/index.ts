@@ -4,6 +4,16 @@
 // applying an import is done in the app layer (app/services/component-import).
 
 export { ComponentImportDialog, type ComponentImportDialogProps } from "./components/component-import-dialog";
+// Multi-project TARA phase 5c-2: the update dialog over every instance of an import.
+export {
+  ComponentUpdateDialog,
+  TAKE_OVER,
+  type ComponentUpdateDialogProps,
+  type ComponentUpdatePreview,
+  type ComponentUpdateChoice,
+  type ComponentUpdateOutcome,
+  type UpdateChangeKind,
+} from "./components/component-update-dialog";
 export {
   ComponentAttackPathsSection,
   type ComponentAttackPathsSectionProps,
