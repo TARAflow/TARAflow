@@ -180,11 +180,15 @@ export class DiffService {
     // import record without its snapshot (the content hash stands for it)
     // and the instances in the DFD.
     const componentChanges = [
-      ...this.compareById(
-        (currentProject.components?.imports ?? []).map(({ snapshot: _s, ...rest }) => rest),
-        (previousProject?.components?.imports ?? []).map(({ snapshot: _s, ...rest }) => rest),
-        (x) => `${x.name} @ ${x.source.tag ?? x.source.commitSha?.slice(0, 8) ?? "unpinned"}`,
-        () => "Component import",
+      ...this.withUpdateLines(
+        this.compareById(
+          (currentProject.components?.imports ?? []).map(({ snapshot: _s, lastUpdate: _u, ...rest }) => rest),
+          (previousProject?.components?.imports ?? []).map(({ snapshot: _s, lastUpdate: _u, ...rest }) => rest),
+          (x) => `${x.name} @ ${x.source.tag ?? x.source.commitSha?.slice(0, 8) ?? "unpinned"}`,
+          () => "Component import",
+        ),
+        currentProject.components?.imports ?? [],
+        previousProject?.components?.imports ?? [],
       ),
       ...this.compareById(
         currentProject.components?.instances ?? [],
@@ -989,6 +993,35 @@ export class DiffService {
   }
 
   /** Added / deleted / modified by id; a modification lists the changed fields. */
+  /**
+   * A component update (multi-project TARA phase 5c) writes what it dropped or
+   * put to review into the import's lastUpdate — one detail line each, so the
+   * commit message names them (design §9.2: "the orphaned decisions in the
+   * commit message").
+   */
+  private withUpdateLines(
+    changes: ChangeItem[],
+    current: readonly { id: string; name: string; lastUpdate?: { at: string; lines: string[] } }[],
+    previous: readonly { id: string; lastUpdate?: { at: string } }[],
+  ): ChangeItem[] {
+    const before = new Map(previous.map((x) => [x.id, x.lastUpdate?.at]));
+    const out = [...changes];
+    for (const imp of current) {
+      if (!imp.lastUpdate || before.get(imp.id) === imp.lastUpdate.at) continue;
+      const details: ChangeDetail[] = (imp.lastUpdate.lines.length > 0 ? imp.lastUpdate.lines : ["nothing dropped"]).map((line) => ({
+        field: "lastUpdate",
+        fieldLabel: "Update",
+        oldValue: undefined,
+        newValue: line,
+        valueType: valueTypeOf(line),
+      }));
+      const i = out.findIndex((c) => c.id === imp.id);
+      if (i >= 0) out[i] = { ...out[i], details: [...(out[i].details ?? []), ...details] };
+      else out.push({ type: "modified", id: imp.id, name: imp.name, description: "Component import updated", details });
+    }
+    return out;
+  }
+
   private compareById<T extends { id: string }>(
     current: readonly T[],
     previous: readonly T[],

@@ -418,24 +418,6 @@ export function applyComponentUpdate(input: ComponentUpdateInput): ComponentUpda
     }
   }
 
-  // ── the import and the instances ───────────────────────────────────────
-  const nextComponents: Components = {
-    imports: components.imports.map((i) =>
-      i.id === importId
-        ? {
-            ...i,
-            snapshot: newSnap,
-            contentHash: result.contentHash,
-            source: result.source,
-            ...(result.methodology ? { methodology: result.methodology } : {}),
-            importedAt: updatedAt,
-          }
-        : i,
-    ),
-    instances: components.instances.map((i) => nextInstances.get(i.id) ?? i),
-  };
-  project = { ...project, components: nextComponents };
-
   // ── commit message lines: what the update dropped ──────────────────────
   // Hazard links and the machine's A2A relations of a removed asset are named
   // one by one (review of patch 59): purgeAssetFromProject removes them, the
@@ -474,5 +456,96 @@ export function applyComponentUpdate(input: ComponentUpdateInput): ComponentUpda
     }
     for (const p of s.paired) commitLines.push(`${s.label}: ${p.kind} ${p.from} → ${p.to} (to review)`);
   }
+  // ── the import and the instances ───────────────────────────────────────
+  const nextComponents: Components = {
+    imports: components.imports.map((i) =>
+      i.id === importId
+        ? {
+            ...i,
+            snapshot: newSnap,
+            contentHash: result.contentHash,
+            source: result.source,
+            ...(result.methodology ? { methodology: result.methodology } : {}),
+            importedAt: updatedAt,
+            lastUpdate: {
+              at: updatedAt,
+              from: {
+                ...(imported.source.commitSha ? { commitSha: imported.source.commitSha } : {}),
+                ...(imported.source.tag ? { tag: imported.source.tag } : {}),
+                contentHash: imported.contentHash,
+              },
+              lines: commitLines,
+            },
+          }
+        : i,
+    ),
+    instances: components.instances.map((i) => nextInstances.get(i.id) ?? i),
+  };
+  project = { ...project, components: nextComponents };
+
   return { project, delta, instances: summaries, commitLines };
+}
+
+// ==================== PAIRING CANDIDATES ====================
+
+export interface PairingCandidate {
+  kind: "threat" | "path" | "flow";
+  /** Obsolete key (component terms). */
+  from: string;
+  to: string;
+  /** Why it is offered — for the dialog's hint. */
+  reason: "same_stride_and_target" | "same_text" | "same_tree" | "same_ends_and_protocol";
+}
+
+/**
+ * Pairs the dialog OFFERS — never applied by itself, not even when the match
+ * looks unique (review 2026-11-10: the same STRIDE category on the same
+ * element is not proof of the same threat; a pairing always goes to review,
+ * so confirming costs one click and guards against a silent wrong match).
+ */
+export function pairingCandidates(oldSnapshot: ComponentSnapshot, newSnapshot: ComponentSnapshot): PairingCandidate[] {
+  const out: PairingCandidate[] = [];
+  const threats = (s: ComponentSnapshot) => [
+    ...(s.threats?.perElementTables ?? []).flatMap((t) => t.threats),
+    ...(s.threats?.perInteractionTables ?? []).flatMap((t) => t.threats),
+  ];
+  const target = (t: ReturnType<typeof threats>[number]) =>
+    (t.linkedElement as { elementId?: string } | null)?.elementId ?? (t.dataFlow as { connectionId?: string } | null)?.connectionId ?? "";
+  const oldT = threats(oldSnapshot);
+  const newT = threats(newSnapshot);
+  const oldIds = new Set(oldT.map((t) => t.id));
+  const newIds = new Set(newT.map((t) => t.id));
+  const gone = oldT.filter((t) => !newIds.has(t.id));
+  const added = newT.filter((t) => !oldIds.has(t.id));
+  for (const g of gone) {
+    for (const a of added) {
+      if (a.strideCategory !== g.strideCategory) continue;
+      if (target(a) && target(a) === target(g)) out.push({ kind: "threat", from: g.id, to: a.id, reason: "same_stride_and_target" });
+      else if (a.threatDescription && a.threatDescription === g.threatDescription) out.push({ kind: "threat", from: g.id, to: a.id, reason: "same_text" });
+    }
+  }
+  const paths = (s: ComponentSnapshot) => (s.attackTrees?.trees ?? []).flatMap((t) => (t.pathAnalysis?.paths ?? []).map((p) => ({ tree: t.id, key: `${t.id}|${p.pathKey}` })));
+  const oldP = paths(oldSnapshot);
+  const newP = paths(newSnapshot);
+  const newPk = new Set(newP.map((p) => p.key));
+  const oldPk = new Set(oldP.map((p) => p.key));
+  for (const g of oldP.filter((p) => !newPk.has(p.key))) {
+    for (const a of newP.filter((p) => !oldPk.has(p.key) && p.tree === g.tree)) out.push({ kind: "path", from: g.key, to: a.key, reason: "same_tree" });
+  }
+  const ees = (s: ComponentSnapshot) => new Set((s.dfd?.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+  const boundary = (s: ComponentSnapshot) => {
+    const e = ees(s);
+    return (s.dfd?.connections ?? []).filter((c) => e.has(c.from) !== e.has(c.to));
+  };
+  const protocol = (c: { properties?: unknown }) => (c.properties as { protocol?: string } | undefined)?.protocol ?? "";
+  const oldF = boundary(oldSnapshot);
+  const newF = boundary(newSnapshot);
+  const newFid = new Set(newF.map((c) => c.id));
+  const oldFid = new Set(oldF.map((c) => c.id));
+  for (const g of oldF.filter((c) => !newFid.has(c.id))) {
+    for (const a of newF.filter((c) => !oldFid.has(c.id))) {
+      if (a.from === g.from && a.to === g.to && protocol(a) === protocol(g)) out.push({ kind: "flow", from: g.id, to: a.id, reason: "same_ends_and_protocol" });
+    }
+  }
+  return out;
 }

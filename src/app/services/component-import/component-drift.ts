@@ -37,9 +37,12 @@
 import type { ComponentImport } from "shared";
 import {
   componentSnapshotOfText,
+  readComponentSource,
   type ComponentFileReader,
   type ComponentGitRunner,
+  type ComponentSourceResult,
 } from "./component-source";
+import { projectMethodologyFingerprint } from "./snapshot-builder";
 
 export type ComponentDriftReason =
   /** Where the component lies on this machine is not known (open it once via File → Open, or import again). */
@@ -239,4 +242,40 @@ export function componentDriftFindings(
     }
     return [{ key: KEY("CMP_SOURCE_UNREACHABLE"), ...at, params: { component: imported.name, reason: status.reason } }];
   });
+}
+
+// ==================== READING THE NEWER STATE ====================
+
+/**
+ * The newer state the drift check found, read like an import (phase 5c):
+ * a pinned import at exactly that commit (`git show`, never the working
+ * copy) with its source record moved to it; an unpinned one from its local
+ * path (read in full — if the file is committed by now, the import is
+ * pinned from then on).
+ */
+export async function readNewerComponentState(
+  imported: ComponentImport,
+  localPath: string,
+  status: Extract<ComponentDriftStatus, { kind: "newer_available" }>,
+  readFile: ComponentFileReader,
+  git: ComponentGitRunner,
+): Promise<ComponentSourceResult> {
+  if (imported.source.unpinned || !status.commitSha || !imported.source.path) {
+    return readComponentSource(localPath, readFile, git);
+  }
+  const top = await git(["rev-parse", "--show-toplevel"], dirOf(localPath));
+  if (top.code !== 0) return { ok: false, error: "not_found", detail: "no repository" };
+  const shown = await git(["show", `${status.commitSha}:${imported.source.path}`], top.stdout.trim());
+  if (shown.code !== 0) return { ok: false, error: "not_found", detail: `${status.commitSha}:${imported.source.path}` };
+  const read = componentSnapshotOfText(shown.stdout);
+  if (!read.ok) return read;
+  const { tag: _oldTag, ...source } = imported.source;
+  return {
+    ok: true,
+    project: read.project,
+    snapshot: read.snapshot,
+    contentHash: read.contentHash,
+    methodology: projectMethodologyFingerprint(read.project),
+    source: { ...source, commitSha: status.commitSha, schemaVersion: read.schemaVersion, ...(status.tag ? { tag: status.tag } : {}) },
+  };
 }

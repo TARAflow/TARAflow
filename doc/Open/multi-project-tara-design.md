@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c-1 done (patches 59, 60), next 5c-2 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c-1 done (patches 59–61), next 5c-2 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,20 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 61 done (2026-11-10, phase 5c, groundwork for the dialog):* the newer state found by the drift
+check is read for the update at exactly that commit (`readNewerComponentState`, `git show`, never the
+working copy; an unpinned import from its path), with the source record moved to it — after applying,
+the drift check says up to date (tested against a real repository, the same test the dialog relies
+on). Pairing candidates (`pairingCandidates`): threats with the same STRIDE and target (or the same
+text), paths in the same tree, boundary flows with the same ends and protocol — OFFERED only, never
+applied by themselves (review 2026-11-10: the same STRIDE on the same element is no proof; a pairing
+always goes to review, so confirming costs one click and guards against a silent wrong match). The
+update is recorded on the import (`ComponentImport.lastUpdate`: when, from which state, the lines);
+the audit diff writes the lines as details of the import change, so the commit message names what
+the update dropped or put to review. Review of 60: a machine threat moved to a paired boundary flow
+survives the regular threat sync — the real per-interaction generator and reconciliation keep it with
+its id as unchanged (nothing obsolete, nothing new on the flow); without the pairing it would be gone
+and a new one generated (test).
 *Patch 60 done (2026-11-10, review of patch 59):* boundary flows can be paired too
 (`ComponentUpdatePairing.flows`, old → new flow): a component that renamed or re-created a boundary
 flow dropped the machine's own threats on it (victimRole) with their risks, ratings, measures and

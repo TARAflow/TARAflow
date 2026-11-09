@@ -7,7 +7,8 @@
 import { describe, expect, it } from "vitest";
 import type { Project } from "app/models/project-types";
 import type { ComponentSnapshot } from "app/models/component-snapshot-types";
-import { applyComponentUpdate } from "app/services/component-import/component-update";
+import { applyComponentUpdate, pairingCandidates } from "app/services/component-import/component-update";
+import { DiffService } from "features/audit/services/diff-service";
 import { snapshotContentHash } from "app/services/component-import/snapshot-builder";
 import { withRelevanceOverride } from "app/services/component-import/relevance-overrides";
 import { openReviews, reviewKey, DECISION_KINDS } from "app/services/component-import/update-inventory";
@@ -178,5 +179,39 @@ describe("applyComponentUpdate (phase 5c)", () => {
     expect(r.commitLines).toContain("SD1 · Smoke Detector: relation A-01 → SD1:A-04 (depends_on) removed");
     expect(r.project.assets!.assets.some((a) => a.id === assetTf)).toBe(false);
     expect((r.project.hazards?.relations ?? []).some((x) => (x as { to: string }).to === assetTf)).toBe(false);
+  });
+
+  it("the import records the update; the audit diff puts its lines into the commit message", () => {
+    const p = decided();
+    const next = edit(snap(p), (s) => {
+      for (const t of s.threats!.perElementTables) t.threats = t.threats.filter((x) => x.id !== component.reduceThreat);
+      s.risks = s.risks.filter((x) => x.threatId !== component.reduceThreat);
+    });
+    const r = update(p, next);
+    const imp = r.project.components!.imports[0];
+    expect(imp.lastUpdate).toMatchObject({ at: "2026-11-10", from: { contentHash: p.components!.imports[0].contentHash }, lines: r.commitLines });
+    const strip = (x: Project) => ({ ...x, dfd: null, assets: null, threats: null, risks: null, attackTrees: null, cybersecurityConcept: null }) as never;
+    const section = new DiffService().detectChanges(strip(r.project), strip(p)).find((c) => c.phase === "components")!;
+    const importChange = section.changes.find((c) => c.id === imp.id)!;
+    const lines = importChange.details!.filter((d) => d.field === "lastUpdate").map((d) => d.newValue);
+    expect(lines).toEqual(r.commitLines);
+    expect(lines.join("\n")).toContain("ticket ABC-123 loses its risk");
+  });
+});
+
+describe("pairing candidates (offered, never applied by themselves)", () => {
+  it("a renamed threat with the same STRIDE and target; a renamed boundary flow with the same ends and protocol", () => {
+    const p = decided();
+    const s0 = snap(p);
+    const ees = new Set(s0.dfd!.elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+    const flow = s0.dfd!.connections.find((c) => ees.has(c.from) !== ees.has(c.to))!;
+    const s1 = edit(s0, (s) => {
+      for (const t of s.threats!.perElementTables) for (const x of t.threats) if (x.id === component.reduceThreat) x.id = "t-new";
+      for (const c of s.dfd!.connections) if (c.id === flow.id) c.id = "f-new";
+    });
+    const c = pairingCandidates(s0, s1);
+    expect(c).toContainEqual({ kind: "threat", from: component.reduceThreat, to: "t-new", reason: "same_stride_and_target" });
+    expect(c).toContainEqual({ kind: "flow", from: flow.id, to: "f-new", reason: "same_ends_and_protocol" });
+    expect(pairingCandidates(s0, structuredClone(s0))).toEqual([]);
   });
 });

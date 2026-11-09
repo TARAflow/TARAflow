@@ -14,7 +14,7 @@ import type { Project } from "app/models/project-types";
 import { parseAndRepair } from "app/services/migration-service";
 import { loadProjectFixture } from "../../../../fixtures/load-fixture";
 import { readComponentSource, type ComponentGitRunner } from "app/services/component-import/component-source";
-import { checkComponentDrift, componentDriftFindings } from "app/services/component-import/component-drift";
+import { checkComponentDrift, componentDriftFindings, readNewerComponentState } from "app/services/component-import/component-drift";
 
 const git: ComponentGitRunner = async (args, cwd) => {
   try {
@@ -272,3 +272,44 @@ describe("drift check — ancestry: an older state is never offered as newer (re
     }
   });
 });
+
+describe("the newer state read for the update, and up to date right after it (phase 5c)", () => {
+  it("found by the drift check, read at exactly that commit; after the update the check says up to date", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "taraflow-drift-upd-"));
+    try {
+      mkdirSync(join(repo, "components"));
+      const path = join(repo, "components", "camera.tara.json");
+      sh(repo, "init", "-q", "-b", "main");
+      sh(repo, "config", "user.email", "t@example.com");
+      sh(repo, "config", "user.name", "Test");
+      sh(repo, "config", "commit.gpgsign", "false");
+      writeFileSync(path, JSON.stringify(base()));
+      sh(repo, "add", "-A");
+      sh(repo, "commit", "-q", "-m", "v1");
+      const r1 = await readComponentSource(path, read, git);
+      if (!r1.ok) throw new Error(r1.error);
+      const imported = { id: "imp", componentId: r1.snapshot.component.projectId, name: "Camera", source: r1.source, importedAt: "t", contentHash: r1.contentHash, snapshot: r1.snapshot } as ComponentImport;
+      const v2 = base();
+      v2.info.name = "Camera v2";
+      writeFileSync(path, JSON.stringify(v2));
+      sh(repo, "add", "-A");
+      sh(repo, "commit", "-q", "-m", "v2");
+      // an uncommitted edit afterwards must not be what the update reads
+      const v3 = base();
+      v3.info.name = "Camera v3 (uncommitted)";
+      writeFileSync(path, JSON.stringify(v3));
+      const status = await checkComponentDrift(imported, path, read, git);
+      expect(status.kind).toBe("newer_available");
+      const newer = await readNewerComponentState(imported, path, status as Extract<typeof status, { kind: "newer_available" }>, read, git);
+      expect(newer.ok && newer.snapshot.component.name).toBe("Camera v2");
+      if (!newer.ok) return;
+      expect(newer.source.commitSha).toBe((status as { commitSha: string }).commitSha);
+      // the import as the update leaves it: new snapshot, hash, source
+      const updated = { ...imported, snapshot: newer.snapshot, contentHash: newer.contentHash, source: newer.source };
+      expect(await checkComponentDrift(updated, path, read, git)).toEqual({ kind: "up_to_date" });
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+});
+

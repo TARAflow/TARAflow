@@ -88,6 +88,13 @@ export interface ComponentImport<TSnapshot = unknown> {
   snapshot: TSnapshot;
   /** 12-hex FNV-1a over canonicalStringify(snapshot). */
   contentHash: string;
+  /**
+   * The last update of this import (phase 5c): when, from which state, and
+   * what it dropped or put to review — the lines go into the commit message
+   * through the audit diff, and the report (phase 6) can show them. Absent:
+   * never updated.
+   */
+  lastUpdate?: { at: string; from: { commitSha?: string; tag?: string; contentHash: string }; lines: string[] };
 }
 
 /** Status of one component assumption in one instance (design §7.6). */
