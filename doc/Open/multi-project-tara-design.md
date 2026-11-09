@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patch 45) — phase 3 complete; next phase 4 (ownership, matrix, read-only asset lock)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; next phase 4 (ownership, matrix, read-only asset lock)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -748,6 +748,12 @@ values (editing the after-values, the audit diff, serialisation); a source guard
 single-writer guard of prepare-for-disk) allows direct reads of `calculatedRiskAfterMitigation` only
 from an allow list. "Acceptance to review" is derived, not stored (user 2026-11-08): it disappears by
 itself once the residual risk counts again.
+*Patch 46 done (2026-11-09, review of patch 45):* "implemented" for evidence means implemented /
+verified on EVERY machine risk choosing the measure (rejected choices aside) — the status is still
+kept per risk, so one firewall may be implemented on risk A and open on risk B; the stricter reading
+holds until the measure ownership design keeps one status per measure. Evidence no machine risk
+chooses never gets a status or a ticket: `CMP_AOU_EVIDENCE_NOT_CHOSEN` ("choose the measure on the
+risk it treats") instead of `CMP_AOU_MET_BY_PENDING`; the assumption stays unclear meanwhile.
 *Patch 45 done (2026-11-09, review of patch 42 with the user):* credited is only what is
 implemented, in both directions. An assumption of use marked "fulfilled" with machine measures as
 its evidence counts for the effectiveness only once those measures are implemented / verified on a

@@ -15,6 +15,7 @@ import { componentFindings } from "app/services/component-import/component-findi
 import { copyInstanceRatings } from "app/services/component-import/copy-ratings";
 import {
   assumptionGaps,
+  implementedMachineMeasures,
   instanceAssumptions,
   projectMeasureOptions,
   withAssumptionStatus,
@@ -117,6 +118,28 @@ describe("assumptions of use per instance (phase 3b)", () => {
     // backed by an implemented measure: no such finding
     m = set(m, "s", "a1", { status: "fulfilled", evidence: { mitigationIds: ["M-T-001"] } });
     expect(assumptionGaps(inst(m, "s"), imp(m), m.risks!.risks).metByPending).toEqual([]);
+  });
+
+  it("implemented = on every risk choosing the measure; rejected choices aside (review 2026-11-09)", () => {
+    const risks = (a: string, b: string) =>
+      [
+        { selectedMitigations: [{ id: "M-T-001", status: a }] },
+        { selectedMitigations: [{ id: "M-T-001", status: b }, { id: "M-T-002", status: "rejected" }] },
+      ] as never;
+    expect(implementedMachineMeasures(risks("implemented", "open")).has("M-T-001")).toBe(false);
+    expect(implementedMachineMeasures(risks("implemented", "verified")).has("M-T-001")).toBe(true);
+    expect(implementedMachineMeasures(risks("implemented", "rejected")).has("M-T-001")).toBe(true);
+    expect(implementedMachineMeasures(risks("implemented", "verified")).has("M-T-002")).toBe(false);
+  });
+
+  it("evidence no machine risk chooses: CMP_AOU_EVIDENCE_NOT_CHOSEN, not CMP_AOU_MET_BY_PENDING (no ticket to wait for)", () => {
+    let m = machine();
+    m = set(m, "s", "a1", { status: "fulfilled", evidence: { mitigationIds: ["M-X-404"] } });
+    const gaps = assumptionGaps(inst(m, "s"), imp(m), m.risks!.risks);
+    expect(gaps.evidenceNotChosen.map((x) => x.mitigationIds)).toEqual([["M-X-404"]]);
+    expect(gaps.metByPending).toEqual([]);
+    expect(keys(m).warnings).toContain("CMP_AOU_EVIDENCE_NOT_CHOSEN");
+    expect(keys(m).warnings).not.toContain("CMP_AOU_MET_BY_PENDING");
   });
 
   it("evidence options: the machine's project mitigations and the measures its risks chose", () => {

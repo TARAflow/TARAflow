@@ -61,6 +61,8 @@
 //                                  component's analysis is not valid here
 //   CMP_AOU_MET_BY_PENDING         "fulfilled" backed by a machine measure
 //                    (warning)     not implemented yet (I7 (2))
+//   CMP_AOU_EVIDENCE_NOT_CHOSEN    … backed by a measure no machine risk
+//                    (warning)     chooses (no status, no ticket)
 //   CMP_COMPONENT_PAGE_CHANGED     the component's pages differ from the
 //                    (warning)     imported state — elements missing or
 //                                  added there (the pages are locked in the
@@ -212,6 +214,12 @@ export function componentFindings(
       }
       if (gaps.open.length > 0) {
         out.warnings.push({ key: KEY("CMP_AOU_OPEN"), params: { ...params, count: gaps.open.length } });
+      }
+      for (const g of gaps.evidenceNotChosen) {
+        out.warnings.push({
+          key: KEY("CMP_AOU_EVIDENCE_NOT_CHOSEN"),
+          params: { ...params, assumption: g.assumption.displayId, measures: g.mitigationIds.join(", ") },
+        });
       }
       for (const g of gaps.metByPending) {
         out.warnings.push({

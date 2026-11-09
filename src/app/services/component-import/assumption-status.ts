@@ -13,7 +13,11 @@
 //                                the status stays "fulfilled", but the
 //                                component measures relying on it count as
 //                                unclear until the evidence is implemented
-//                                (component-treatments, 2026-11-09)
+//                                (component-treatments, 2026-11-09).
+//                                Implemented = on every risk choosing it
+//   CMP_AOU_EVIDENCE_NOT_CHOSEN  "fulfilled" backed by a measure no machine
+//                    (warning)   risk chooses — no status, no ticket: choose
+//                                it on a risk (review 2026-11-09)
 
 import type { ComponentAssumptionStatus } from "shared";
 import { resolveMitigationDrafts } from "features/threats";
@@ -100,35 +104,61 @@ function cleanEvidence(e: ComponentAssumptionStatus["evidence"]): ComponentAssum
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-/** Machine measures (by id) implemented or verified on at least one of its risks. */
+/**
+ * Machine measures (by id) implemented or verified on EVERY risk that
+ * chooses them (rejected choices aside). The status is kept per risk today,
+ * so one firewall can be implemented on risk A and open on risk B — until
+ * the measure ownership design keeps one status per measure, the stricter
+ * reading counts (review 2026-11-09).
+ */
 export function implementedMachineMeasures(risks: Risks | undefined): Set<string> {
-  const out = new Set<string>();
+  const done = new Set<string>();
+  const notDone = new Set<string>();
   for (const r of risks ?? []) {
     for (const m of r.selectedMitigations ?? []) {
-      if (m.id && (m.status === "implemented" || m.status === "verified")) out.add(m.id);
+      if (!m.id || m.status === "rejected") continue;
+      (m.status === "implemented" || m.status === "verified" ? done : notDone).add(m.id);
     }
   }
+  for (const id of notDone) done.delete(id);
+  return done;
+}
+
+/** Machine measures (by id) chosen on at least one risk (rejected choices aside). */
+export function chosenMachineMeasures(risks: Risks | undefined): Set<string> {
+  const out = new Set<string>();
+  for (const r of risks ?? []) for (const m of r.selectedMitigations ?? []) if (m.id && m.status !== "rejected") out.add(m.id);
   return out;
 }
 
 export interface AssumptionGaps {
   open: InstanceAssumption[];
   violated: InstanceAssumption[];
-  /** Fulfilled, backed by machine measures not implemented yet — with those ids. */
+  /** Fulfilled, backed by machine measures not implemented yet — with those ids (chosen on a risk). */
   metByPending: { assumption: InstanceAssumption; mitigationIds: string[] }[];
+  /**
+   * Fulfilled, backed by measures no machine risk chooses — they never get a
+   * status (no ticket), so the assumption stays unclear for good until the
+   * measure is chosen on a risk (review 2026-11-09).
+   */
+  evidenceNotChosen: { assumption: InstanceAssumption; mitigationIds: string[] }[];
 }
 
 /** Per instance: open, violated and "fulfilled by a pending measure" assumptions. */
 export function assumptionGaps(instance: Instance, imported: Import, risks: Risks | undefined): AssumptionGaps {
   const done = implementedMachineMeasures(risks);
+  const chosen = chosenMachineMeasures(risks);
   const list = instanceAssumptions(instance, imported);
+  const fulfilled = list.filter((a) => a.status === "fulfilled");
+  const evidence = (pick: (id: string) => boolean) =>
+    fulfilled
+      .map((a) => ({ assumption: a, mitigationIds: (a.evidence?.mitigationIds ?? []).filter(pick) }))
+      .filter((x) => x.mitigationIds.length > 0);
   return {
     open: list.filter((a) => a.status === "open"),
     violated: list.filter((a) => a.status === "not_fulfilled"),
-    metByPending: list
-      .filter((a) => a.status === "fulfilled")
-      .map((a) => ({ assumption: a, mitigationIds: (a.evidence?.mitigationIds ?? []).filter((id) => !done.has(id)) }))
-      .filter((x) => x.mitigationIds.length > 0),
+    metByPending: evidence((id) => chosen.has(id) && !done.has(id)),
+    evidenceNotChosen: evidence((id) => !chosen.has(id)),
   };
 }
 
