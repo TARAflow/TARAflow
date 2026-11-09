@@ -1003,6 +1003,13 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 53 done (2026-11-09, review of patch 52):* claims cover a row TOGETHER. Patch 52 checked
+each cited claim alone against all open elements of the row, so two instances citing their claim
+(or a component claim beside one of the machine) each covered only part and none counted. Now the
+effective claims are united: a project claim (no element scope) covers the whole row; the open
+elements minus everything the effective cited claims cover — nothing left → claimed; something
+left → the row stays open, its notes name only the elements still open, and the claims that helped
+are listed as partial. Unclear / not-effective citations are listed as before.
 *Patch 52 done (2026-11-09, phase 4c, with the review of patch 50):* component claims citable.
 Only the component's SUPPORTING claims (the ones that cover requirement-matrix rows). The machine
 cites one for a row's requirements in the row's claim dialog ("Claims of imported components",

@@ -392,16 +392,40 @@ describe("two values per FR (D-14, D-20)", () => {
     expect(result.withSupport.SI).toBe(4);
   });
 
+  it("claims cover a row together (review of 52): two instances, or an instance and a claim of the machine", () => {
+    const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI", minSl: 2 });
+    const els = [el("p", "Process", { inputValidation: "none" }), el("q", "Process", { inputValidation: "none" })];
+    const sd1 = { displayId: "SD1 CLM-03", rowLabels: ["CR 3.5"], concernsElementIds: ["p"], state: "effective" as const };
+    const sd2 = { displayId: "SD2 CLM-03", rowLabels: ["CR 3.5"], concernsElementIds: ["q"], state: "effective" as const };
+    const both = row(run(ed, els, [], { claims: [sd1, sd2] }), "CR 3.5");
+    expect(both.status).toBe("claimed");
+    expect(both.claimIds).toEqual(["SD1 CLM-03", "SD2 CLM-03"]);
+    expect(both.uncountedClaims).toBeUndefined();
+    // a claim of the machine (no element scope) covers the whole row, the component's claim with it
+    const own = row(run(ed, els, [], { claims: [sd1, { displayId: "CLM-01", rowLabels: ["CR 3.5"] }] }), "CR 3.5");
+    expect(own.status).toBe("claimed");
+    expect(own.claimIds).toEqual(["CLM-01", "SD1 CLM-03"]);
+    // SD2 unclear: SD1 alone leaves q open — listed with why, q still named
+    const mixed = row(run(ed, els, [], { claims: [sd1, { ...sd2, state: "unclear" as const }] }), "CR 3.5");
+    expect(mixed.status).not.toBe("claimed");
+    expect(mixed.uncountedClaims).toEqual([
+      { id: "SD2 CLM-03", reason: "unclear" },
+      { id: "SD1 CLM-03", reason: "partial" },
+    ]);
+    expect([...mixed.failing, ...mixed.unknown]).toEqual(["q"]);
+  });
+
   it("a cited component claim (phase 4c) counts only when effective and covering every open element", () => {
     const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI", minSl: 2 });
     const els = [el("p", "Process", { inputValidation: "none" }), el("q", "Process", { inputValidation: "none" })];
     const cited = (over: Record<string, unknown>) => ({ displayId: "SD1 CLM-03", rowLabels: ["CR 3.5"], ...over });
     // covers both open elements, effective → claimed
     expect(row(run(ed, els, [], { claims: [cited({ concernsElementIds: ["p", "q"], state: "effective" })] }), "CR 3.5").status).toBe("claimed");
-    // covers only one of them → not claimed, listed as partial
+    // covers only one of them → not claimed, listed as partial; the notes name only what is still open
     const partial = row(run(ed, els, [], { claims: [cited({ concernsElementIds: ["p"], state: "effective" })] }), "CR 3.5");
     expect(partial.status).not.toBe("claimed");
     expect(partial.uncountedClaims).toEqual([{ id: "SD1 CLM-03", reason: "partial" }]);
+    expect([...partial.failing, ...partial.unknown]).toEqual(["q"]);
     // unclear / not effective in the instance → not counted, listed with why
     for (const state of ["unclear", "not_effective"] as const) {
       const r = row(run(ed, els, [], { claims: [cited({ concernsElementIds: ["p", "q"], state })] }), "CR 3.5");

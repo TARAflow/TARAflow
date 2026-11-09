@@ -591,27 +591,41 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
   let status: RowStatus = combined.status;
   let source: RowSource | undefined = combined.source;
 
-  // Step 8 — claim (D-5). A claim cited from an imported component (phase 4c)
-  // counts only when effective in its instance and covering every element
-  // still open on the row; otherwise it is listed, not counted.
+  // Step 8 — claim (D-5). Claims cover the row TOGETHER (review of patch 52):
+  // a project claim (no element scope) covers the whole row; a claim cited
+  // from an imported component (phase 4c) covers its instance's elements,
+  // and only when effective there (unclear / not effective: listed, not
+  // counted). The open elements minus everything the effective claims cover:
+  // nothing left → claimed; something left → the row stays open, its notes
+  // name only the elements still open (the rest is claimed), and the claims
+  // that helped are listed as partial. Two instances citing their claim
+  // cover a row together, as do a component claim and one of the machine.
+  const stillOpen = status !== "met" && status !== "n/a";
   const open = [...combined.failing, ...combined.unknown];
   const uncountedClaims: NonNullable<RowResult["uncountedClaims"]> = [];
-  const claimIds = (input.claims ?? [])
-    .filter((c) => c.rowLabels.includes(row.label))
-    .filter((c) => {
-      const stillOpen = status !== "met" && status !== "n/a";
-      if (c.state === "unclear" || c.state === "not_effective") {
-        if (stillOpen) uncountedClaims.push({ id: c.displayId, reason: c.state });
-        return false;
-      }
-      if (c.concernsElementIds && !(open.length > 0 && open.every((id) => c.concernsElementIds!.includes(id)))) {
-        if (stillOpen) uncountedClaims.push({ id: c.displayId, reason: "partial" });
-        return false;
-      }
-      return true;
-    })
-    .map((c) => c.displayId);
-  if (claimIds.length > 0 && status !== "met" && status !== "n/a") {
+  const onRow = (input.claims ?? []).filter((c) => c.rowLabels.includes(row.label));
+  const effective = onRow.filter((c) => {
+    if (c.state === "unclear" || c.state === "not_effective") {
+      if (stillOpen) uncountedClaims.push({ id: c.displayId, reason: c.state });
+      return false;
+    }
+    return true;
+  });
+  const wholeRow = effective.filter((c) => !c.concernsElementIds);
+  const scoped = effective.filter((c) => c.concernsElementIds && open.some((id) => c.concernsElementIds!.includes(id)));
+  const covered = new Set(scoped.flatMap((c) => c.concernsElementIds!.filter((id) => open.includes(id))));
+  const remaining = open.filter((id) => !covered.has(id));
+  let failing = combined.failing;
+  let unknown = combined.unknown;
+  let claimIds: string[] = [];
+  if (wholeRow.length > 0 || (open.length > 0 && remaining.length === 0)) {
+    claimIds = [...wholeRow, ...scoped].map((c) => c.displayId);
+  } else if (stillOpen && scoped.length > 0) {
+    for (const c of scoped) uncountedClaims.push({ id: c.displayId, reason: "partial" });
+    failing = failing.filter((id) => !covered.has(id));
+    unknown = unknown.filter((id) => !covered.has(id));
+  }
+  if (claimIds.length > 0 && stillOpen) {
     status = "claimed";
     source = "claim";
   }
@@ -621,9 +635,9 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     status,
     source,
     modelStatus: status,
-    failing: combined.failing,
-    unknown: combined.unknown,
-    ...unsetOf(combined),
+    failing,
+    unknown,
+    ...unsetOf({ ...combined, unknown }),
     supportingElements: combined.supporting,
     mitigationIds: combined.mitigationIds,
     ...(combined.risks ? { risks: combined.risks } : {}),
