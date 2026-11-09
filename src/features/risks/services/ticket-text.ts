@@ -14,6 +14,7 @@ import { blockerLines, type ResidualBlocker } from "shared";
 const CAUSE_EN: Record<string, string> = {
   pending: "not implemented yet",
   aou_open: "open",
+  aou_evidence_pending: "fulfilled by a measure not implemented yet",
   aou_not_fulfilled: "not fulfilled",
   aou_invalid_in_component: "invalid in the component",
   overridden_here: "marked not effective here:",

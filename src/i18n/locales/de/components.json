@@ -61,13 +61,13 @@
       "CMP_MEASURE_PENDING": "Komponente {{prefix}} ({{component}}): {{count}} importierte(s) Risiko/Risiken stützen sich auf noch nicht umgesetzte Massnahmen der Komponente — sie hängen an einem Release der Komponente.",
       "CMP_HANDOVER_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} von der Komponente übergebene(s) oder akzeptierte(s) Risiko/Risiken kommen unbehandelt an — die Behandlung dieser Maschine festlegen (eigene Massnahme oder akzeptieren / übertragen mit Begründung).",
       "CMP_MEASURE_NOT_EFFECTIVE": "Komponente {{prefix}} ({{component}}): Massnahme(n) in dieser Instanz nicht wirksam — {{list}}: eine Annahme, auf der sie beruhen, ist hier nicht erfüllt oder in der Komponente ungültig.",
-      "CMP_MEASURE_UNCLEAR": "Komponente {{prefix}} ({{component}}): Wirksamkeit von Massnahme(n) in dieser Instanz ungeklärt — {{list}}: eine Annahme, auf der sie beruhen, ist hier noch offen.",
+      "CMP_MEASURE_UNCLEAR": "Komponente {{prefix}} ({{component}}): Wirksamkeit von Massnahme(n) in dieser Instanz ungeklärt — {{list}}: eine Annahme, auf der sie beruhen, ist hier noch offen oder durch eine noch nicht umgesetzte Massnahme dieser Maschine erfüllt.",
       "CMP_MEASURE_OVERRIDDEN": "Komponente {{prefix}} ({{component}}): Massnahme(n) von dieser Maschine als hier nicht wirksam markiert — {{list}}: das Restrisiko der Risiken, die darauf beruhen, wird nicht angerechnet; dem Komponenten-Team melden, welche Einsatzannahme fehlt.",
       "CMP_MEASURE_OVERRIDE_UNKNOWN": "Komponente {{prefix}} ({{component}}): als hier nicht wirksam markierte Massnahme(n), die die Komponente nicht mehr wählt — {{list}}: die Markierung wirkt auf nichts; zurücknehmen oder das Komponenten-Update prüfen.",
       "CMP_ACCEPTANCE_TO_REVIEW": "Komponente {{prefix}} ({{component}}): Akzeptanz zur Prüfung — {{list}}: das Restrisiko wird nicht angerechnet, eine Massnahme der Komponente ist in dieser Instanz nicht wirksam oder ungeklärt.",
       "CMP_AOU_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} Annahme(n) zur Verwendung in dieser Instanz noch offen — in den Details des Multiprozesses prüfen.",
       "CMP_AOU_VIOLATED": "Komponente {{prefix}} ({{component}}): Annahme(n) {{list}} nicht erfüllt — die Analyse der Komponente gilt in dieser Maschine nicht, bis das gelöst ist.",
-      "CMP_AOU_MET_BY_PENDING": "Komponente {{prefix}} ({{component}}): {{assumption}} gilt als erfüllt durch Massnahme(n) {{measures}} dieser Maschine, die noch nicht umgesetzt sind.",
+      "CMP_AOU_MET_BY_PENDING": "Komponente {{prefix}} ({{component}}): {{assumption}} gilt als erfüllt durch Massnahme(n) {{measures}} dieser Maschine, die noch nicht umgesetzt sind — die Massnahmen der Komponente, die darauf beruhen, gelten bis dahin als ungeklärt.",
       "CMP_PATH_WINDOW_UNRATED": "Komponente {{prefix}} ({{component}}): {{count}} Angriffspfad(e) ohne Window of Opportunity dieser Maschine — unbewertet, sie erzeugen kein Risiko. Im Tab Attack Tree bewerten.",
       "CMP_PATH_NOT_RATABLE": "Komponente {{prefix}} ({{component}}): {{count}} Angriffspfad(e) im Schnellmodus bewertet — ohne Faktor-Aufschlüsselung kann diese Maschine ihr Window of Opportunity nicht bewerten, sie erzeugen also kein Risiko. Die Pfade in der Komponenten-TARA im Audit-Modus bewerten und aktualisieren."
     },
@@ -125,6 +125,7 @@
       "reason": {
         "pending": "noch nicht umgesetzt",
         "aou_open": "{{assumption}} offen",
+        "aou_evidence_pending": "{{assumption}} erfüllt durch {{measures}}, noch nicht umgesetzt",
         "aou_not_fulfilled": "{{assumption}} nicht erfüllt",
         "aou_invalid_in_component": "{{assumption}} in der Komponente ungültig",
         "overridden_here": "hier als nicht wirksam markiert"

@@ -180,7 +180,11 @@ export const WorkspaceLayout: React.FC = () => {
     [measureRisks, measureThreats],
   );
   // The component's treatment per imported risk (phase 3a) — the risk dialog's section.
-  const componentTreatmentMap = useMemo(() => componentTreatments({ components: instanceComponents }), [instanceComponents]);
+  // The machine's risks tell which evidence measures are implemented (2026-11-09).
+  const componentTreatmentMap = useMemo(
+    () => componentTreatments({ components: instanceComponents, risks: measureRisks ?? null }),
+    [instanceComponents, measureRisks],
+  );
   // Residual risks not credited (phase 3d-2a, I7 (4)) — the Risk tab shows the values before treatment.
   const uncreditedMap = useMemo(
     () => uncreditedResiduals({ components: instanceComponents, risks: measureRisks ?? null }, componentTreatmentMap),

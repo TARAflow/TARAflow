@@ -14,6 +14,15 @@
 // Adding a file to ALLOW needs a reason that fits one of its categories: it
 // means the STORED value (editing, recalculating, diffing, serialising,
 // checking completeness), or it reads data that is credited already.
+//
+// The REPORT is credited once, where its data is built: docResidualView
+// (app/services/doc-residual.ts) — called by the app's transform
+// (doc-transform.ts), which the CLI reporter (toDocProjectData) calls as
+// well. The generators therefore read the stored fields of data that is
+// credited already, and this guard protects the report only at that entry.
+// Whoever builds another way to report data (a new export, a second
+// transform) must go through docResidualView — CREDITED_READERS checks the
+// known entries.
 import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -88,6 +97,7 @@ const CREDITED_READERS: Record<string, RegExp> = {
   "features/risks/components/risk-dialog/risk-dialog-sidebar.tsx": /useCreditedOf\(/,
   "features/risks/components/risk-dialog/risk-after-tab.tsx": /<UncreditedBanner\b/,
   "app/services/doc-transform.ts": /docResidualView\(/,
+  "../taraflow-reporter/cli/to-doc-project-data.ts": /transformProjectToDocData\(/,
   "app/services/doc-residual.ts": /withCreditedResidual\(/,
 };
 

@@ -61,13 +61,13 @@
       "CMP_MEASURE_PENDING": "Component {{prefix}} ({{component}}): {{count}} imported risk(s) rely on component measures not implemented yet — they depend on a component release.",
       "CMP_HANDOVER_OPEN": "Component {{prefix}} ({{component}}): {{count}} risk(s) the component handed over or accepted arrive untreated — set this machine's treatment (an own measure, or accept / transfer with a justification).",
       "CMP_MEASURE_NOT_EFFECTIVE": "Component {{prefix}} ({{component}}): measure(s) not effective in this instance — {{list}}: an assumption they rely on is not fulfilled here or invalid in the component.",
-      "CMP_MEASURE_UNCLEAR": "Component {{prefix}} ({{component}}): effectiveness of measure(s) unclear in this instance — {{list}}: an assumption they rely on is still open here.",
+      "CMP_MEASURE_UNCLEAR": "Component {{prefix}} ({{component}}): effectiveness of measure(s) unclear in this instance — {{list}}: an assumption they rely on is still open here, or fulfilled by a measure of this machine not implemented yet.",
       "CMP_MEASURE_OVERRIDDEN": "Component {{prefix}} ({{component}}): measure(s) marked not effective here by this machine — {{list}}: the residual risk of the risks relying on them is not credited; tell the component team which assumption of use is missing.",
       "CMP_MEASURE_OVERRIDE_UNKNOWN": "Component {{prefix}} ({{component}}): measure(s) marked not effective here that the component no longer chooses — {{list}}: the mark acts on nothing; withdraw it or check the component update.",
       "CMP_ACCEPTANCE_TO_REVIEW": "Component {{prefix}} ({{component}}): acceptance to review — {{list}}: the residual risk is not credited, a component measure is not effective or unclear in this instance.",
       "CMP_AOU_OPEN": "Component {{prefix}} ({{component}}): {{count}} assumption(s) of use still open in this instance — check them in the multiprocess's details.",
       "CMP_AOU_VIOLATED": "Component {{prefix}} ({{component}}): assumption(s) {{list}} not fulfilled — the component's analysis is not valid in this machine until resolved.",
-      "CMP_AOU_MET_BY_PENDING": "Component {{prefix}} ({{component}}): {{assumption}} is marked fulfilled by measure(s) {{measures}} of this machine that are not implemented yet.",
+      "CMP_AOU_MET_BY_PENDING": "Component {{prefix}} ({{component}}): {{assumption}} is marked fulfilled by measure(s) {{measures}} of this machine that are not implemented yet — the component measures relying on it count as unclear until then.",
       "CMP_PATH_WINDOW_UNRATED": "Component {{prefix}} ({{component}}): {{count}} attack path(s) without this machine's window of opportunity — unrated, they make no risk. Rate them in the Attack Tree tab.",
       "CMP_PATH_NOT_RATABLE": "Component {{prefix}} ({{component}}): {{count}} attack path(s) rated in quick mode — without the factor breakdown this machine cannot rate their window of opportunity, so they make no risk. Rate the paths in audit mode in the component TARA and update."
     },
@@ -125,6 +125,7 @@
       "reason": {
         "pending": "not implemented yet",
         "aou_open": "{{assumption}} open",
+        "aou_evidence_pending": "{{assumption}} fulfilled by {{measures}}, not implemented yet",
         "aou_not_fulfilled": "{{assumption}} not fulfilled",
         "aou_invalid_in_component": "{{assumption}} invalid in the component",
         "overridden_here": "marked not effective here"

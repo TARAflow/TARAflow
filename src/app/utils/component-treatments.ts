@@ -21,6 +21,12 @@
 //                  component itself marked it invalid
 //   unclear        not implemented yet (a later component release), or an
 //                  assumption it relies on is still open here
+// An assumption marked fulfilled counts only once the machine measures given
+// as its evidence are implemented / verified (user + review 2026-11-09:
+// credited is only what is implemented, from the component or the machine);
+// until then the measure is unclear with "aou_evidence_pending" — derived,
+// no stored coupling: closing the evidence measure's ticket (closed loop)
+// makes the measure effective and the residual risk count.
 // A rejected measure is no choice and counts neither way. Shown at the
 // measure; phase 3d-2a makes the residual risk depend on it.
 //
@@ -50,15 +56,18 @@ import { buildThreatId } from "features/attacktree";
 import type { ResidualBlocker } from "shared";
 import type { Project } from "../models/project-types";
 import { instanceLabel } from "../services/component-import/instance-quantity";
+import { implementedMachineMeasures } from "../services/component-import/assumption-status";
 
 export type ComponentMeasureState = "implemented" | "pending" | "rejected";
 export type MeasureEffectiveness = "effective" | "not_effective" | "unclear";
 
 /** Why a measure is not (or not yet) effective in an instance. */
 export interface EffectivenessReason {
-  kind: "pending" | "aou_open" | "aou_not_fulfilled" | "aou_invalid_in_component" | "overridden_here";
+  kind: "pending" | "aou_open" | "aou_evidence_pending" | "aou_not_fulfilled" | "aou_invalid_in_component" | "overridden_here";
   /** The assumption's display id (aou_*). */
   assumption?: string;
+  /** The machine measures not implemented yet (aou_evidence_pending). */
+  measures?: string[];
   /** The machine's rationale (overridden_here). */
   rationale?: string;
 }
@@ -104,11 +113,19 @@ export function measureState(status: string): ComponentMeasureState {
   return DONE.has(status) ? "implemented" : status === "rejected" ? "rejected" : "pending";
 }
 
-/** The component's treatment of every imported risk, by the instance's threat id. */
-export function componentTreatments(project: Pick<Project, "components">): Map<string, ComponentTreatment> {
+/**
+ * The component's treatment of every imported risk, by the instance's threat
+ * id. The machine's risks tell which of its measures are implemented (the
+ * evidence of fulfilled assumptions); without them every evidence counts as
+ * not implemented.
+ */
+export function componentTreatments(
+  project: Pick<Project, "components"> & { risks?: Project["risks"] | null },
+): Map<string, ComponentTreatment> {
   const out = new Map<string, ComponentTreatment>();
   const components: Components | null | undefined = project.components;
   if (!components) return out;
+  const done = implementedMachineMeasures(project.risks?.risks);
   const importsById = new Map(components.imports.map((i) => [i.id, i]));
   for (const instance of components.instances) {
     const imported = importsById.get(instance.importId);
@@ -118,6 +135,13 @@ export function componentTreatments(project: Pick<Project, "components">): Map<s
     const label = instanceLabel(instance, imported.name);
     const relying = (id: string | undefined) => (id ? (snapshot.assumptions ?? []).filter((a) => a.mitigationIds?.includes(id)) : []);
     const aouStatus = new Map((instance.assumptions ?? []).map((a) => [a.assumptionId, a.status]));
+    // fulfilled, but backed by machine measures not implemented yet → those ids
+    const evidencePending = new Map(
+      (instance.assumptions ?? [])
+        .filter((a) => a.status === "fulfilled")
+        .map((a) => [a.assumptionId, (a.evidence?.mitigationIds ?? []).filter((id) => !done.has(id))] as const)
+        .filter(([, ids]) => ids.length > 0),
+    );
     const overrides = new Map((instance.measureOverrides ?? []).map((o) => [o.measureId, o]));
     for (const risk of snapshot.risks) {
       const measures = risk.selectedMitigations
@@ -127,7 +151,7 @@ export function componentTreatments(project: Pick<Project, "components">): Map<s
           const relies = relying(m.id);
           const state = measureState(m.status);
           const override = m.id ? overrides.get(m.id) : undefined;
-          const verdict = state === "rejected" ? undefined : effectivenessOf(state, relies, aouStatus, override);
+          const verdict = state === "rejected" ? undefined : effectivenessOf(state, relies, aouStatus, override, evidencePending);
           return {
             ...(m.id ? { id: m.id } : {}),
             text,
@@ -203,7 +227,7 @@ export function uncreditedResiduals(
               context: tr.instanceLabel,
               state: m.effectiveness,
               causes: (m.reasons ?? []).map((r) => {
-                const ref = r.assumption ?? r.rationale;
+                const ref = r.kind === "aou_evidence_pending" ? `${r.assumption} (${(r.measures ?? []).join(", ")})` : (r.assumption ?? r.rationale);
                 return { kind: r.kind, ...(ref ? { ref } : {}) };
               }),
             },
@@ -221,6 +245,7 @@ export function effectivenessOf(
   relies: readonly { id: string; displayId: string; status: string }[],
   aouStatus: ReadonlyMap<string, string>,
   override?: { rationale: string },
+  evidencePending: ReadonlyMap<string, readonly string[]> = new Map(),
 ): { effectiveness: MeasureEffectiveness; reasons: EffectivenessReason[] } {
   const reasons: EffectivenessReason[] = [];
   if (override) reasons.push({ kind: "overridden_here", rationale: override.rationale });
@@ -229,6 +254,9 @@ export function effectivenessOf(
     const here = aouStatus.get(a.id) ?? "open";
     if (here === "not_fulfilled") reasons.push({ kind: "aou_not_fulfilled", assumption: a.displayId });
     else if (here === "open") reasons.push({ kind: "aou_open", assumption: a.displayId });
+    else if (here === "fulfilled" && evidencePending.has(a.id)) {
+      reasons.push({ kind: "aou_evidence_pending", assumption: a.displayId, measures: [...evidencePending.get(a.id)!] });
+    }
   }
   if (state === "pending") reasons.unshift({ kind: "pending" });
   const effectiveness: MeasureEffectiveness = reasons.some(

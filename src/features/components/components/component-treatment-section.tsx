@@ -11,6 +11,8 @@
 // Phase 3d-2b (I7 (5)): the machine may mark a measure "not effective here"
 // with a mandatory rationale — downgrade only; withdrawn the same way. It
 // acts like "not effective": the residual risk is not credited.
+// An assumption fulfilled by machine measures not implemented yet makes the
+// measure unclear (2026-11-09) — shown with those measures.
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -30,9 +32,11 @@ export interface ComponentTreatmentView {
     reliesOn?: string[];
     effectiveness?: "effective" | "not_effective" | "unclear";
     reasons?: {
-      kind: "pending" | "aou_open" | "aou_not_fulfilled" | "aou_invalid_in_component" | "overridden_here";
+      kind: "pending" | "aou_open" | "aou_evidence_pending" | "aou_not_fulfilled" | "aou_invalid_in_component" | "overridden_here";
       assumption?: string;
       rationale?: string;
+      /** aou_evidence_pending: the machine measures not implemented yet. */
+      measures?: string[];
     }[];
     /** Marked "not effective here" by this machine. */
     override?: { rationale: string; date: string };
@@ -46,6 +50,7 @@ export interface ComponentTreatmentView {
 const REASON_DEFAULT = {
   pending: "not implemented yet",
   aou_open: "{{assumption}} open",
+  aou_evidence_pending: "{{assumption}} fulfilled by {{measures}}, not implemented yet",
   aou_not_fulfilled: "{{assumption}} not fulfilled",
   aou_invalid_in_component: "{{assumption}} invalid in the component",
   overridden_here: "marked not effective here",
@@ -198,6 +203,7 @@ export const ComponentTreatmentSection: React.FC<{
                             .map((r) =>
                               t(`components.treatment.reason.${r.kind}`, {
                                 assumption: r.assumption ?? "",
+                                measures: (r.measures ?? []).join(", "),
                                 defaultValue: REASON_DEFAULT[r.kind],
                               }),
                             )

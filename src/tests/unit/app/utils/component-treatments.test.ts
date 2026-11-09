@@ -178,3 +178,50 @@ describe("credited residual (phase 3d-2a, I7 (4))", () => {
     expect(uncreditedResiduals({ components, risks }).get("R-m")?.[0]).toMatchObject({ measure: "M-S-001", state: "unclear" });
   });
 });
+
+describe("an assumption counts only once its evidence is implemented (2026-11-09)", () => {
+  // M-C-001 implemented in the component, relying on ASM-01; the machine marks
+  // ASM-01 fulfilled with its own measure M-T-001 as the evidence.
+  const prepared = (machineStatus?: string): Project => {
+    const m = machine();
+    const imp = m.components!.imports[0];
+    const risks = imp.snapshot.risks.map((r) => ({ ...r, selectedMitigations: r.selectedMitigations.map((x) => ({ ...x, status: "implemented" })) }));
+    const components = withAssumptionStatus(
+      { ...m.components!, imports: [{ ...imp, snapshot: { ...imp.snapshot, risks } }] } as never,
+      "i1",
+      "a1",
+      { status: "fulfilled", evidence: { mitigationIds: ["M-T-001"] } },
+    );
+    const machineRisks = m.risks!.risks.map((r, i) =>
+      i === 0 && machineStatus ? { ...r, selectedMitigations: [{ id: "M-T-001", status: machineStatus }] } : r,
+    );
+    return { ...m, components, risks: { ...m.risks!, risks: machineRisks } } as Project;
+  };
+  const measure = (p: Project) => componentTreatments(p).get(tid(component.reduceThreat))!.measures.find((x) => x.id === "M-C-001")!;
+
+  it("evidence not implemented (ticket open) → unclear; the residual is not credited", () => {
+    for (const p of [prepared(), prepared("in_progress")]) {
+      expect(measure(p)).toMatchObject({
+        effectiveness: "unclear",
+        reasons: [{ kind: "aou_evidence_pending", assumption: "ASM-01", measures: ["M-T-001"] }],
+      });
+      const reduceRisk = p.risks!.risks.find((r) => r.threatId === tid(component.reduceThreat))!;
+      expect(uncreditedResiduals(p).get(reduceRisk.id)?.[0].causes).toEqual([{ kind: "aou_evidence_pending", ref: "ASM-01 (M-T-001)" }]);
+      const unclear = componentFindings(p).warnings.find((w) => w.key.endsWith("CMP_MEASURE_UNCLEAR"))!;
+      expect(unclear.params).toMatchObject({ list: "M-C-001 (ASM-01)" });
+    }
+  });
+
+  it("evidence implemented or verified (ticket closed, closed loop) → effective; the residual counts", () => {
+    for (const status of ["implemented", "verified"]) {
+      const p = prepared(status);
+      expect(measure(p).effectiveness).toBe("effective");
+      expect(uncreditedResiduals(p).size).toBe(0);
+    }
+  });
+
+  it("without the machine's risks every evidence counts as not implemented", () => {
+    const p = prepared("implemented");
+    expect(componentTreatments({ components: p.components }).get(tid(component.reduceThreat))!.measures.find((x) => x.id === "M-C-001")!.effectiveness).toBe("unclear");
+  });
+});

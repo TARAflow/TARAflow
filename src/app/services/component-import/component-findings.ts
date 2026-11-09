@@ -39,8 +39,10 @@
 //                                  here (an assumption not fulfilled, or
 //                                  invalid in the component)
 //   CMP_MEASURE_UNCLEAR (warning)  … unclear here because an assumption it
-//                                  relies on is still open (a measure only
-//                                  pending is CMP_MEASURE_PENDING)
+//                                  relies on is still open, or fulfilled by
+//                                  a machine measure not implemented yet (a
+//                                  measure only pending is
+//                                  CMP_MEASURE_PENDING)
 //   CMP_MEASURE_OVERRIDDEN         phase 3d-2b, I7 (5): component measures
 //                    (warning)     this machine marked "not effective here"
 //                                  — residual not credited; the signal to
@@ -147,7 +149,7 @@ export function componentFindings(
     !!riskConfig && factorClassOf(getFactorDefinition(factorId, riskConfig.customFactors)) === "intrinsic";
   const risksByThreat = new Map((project.risks?.risks ?? []).map((r) => [r.threatId, r]));
 
-  const treatments = componentTreatments({ components });
+  const treatments = componentTreatments({ components, risks: project.risks ?? null });
   const uncredited = uncreditedResiduals({ components, risks: project.risks ?? null }, treatments);
   for (const instance of components.instances) {
     const imported = importsById.get(instance.importId);
@@ -182,8 +184,8 @@ export function componentFindings(
           const aouCause = (m.reasons ?? []).some((r) => r.kind === "aou_not_fulfilled" || r.kind === "aou_invalid_in_component");
           if (m.effectiveness === "not_effective" && aouCause) {
             note(notEffective, label, (m.reasons ?? []).filter((r) => r.kind === "aou_not_fulfilled" || r.kind === "aou_invalid_in_component").map((r) => r.assumption));
-          } else if (m.effectiveness === "unclear" && (m.reasons ?? []).some((r) => r.kind === "aou_open")) {
-            note(unclear, label, (m.reasons ?? []).filter((r) => r.kind === "aou_open").map((r) => r.assumption));
+          } else if (m.effectiveness === "unclear" && (m.reasons ?? []).some((r) => r.kind === "aou_open" || r.kind === "aou_evidence_pending")) {
+            note(unclear, label, (m.reasons ?? []).filter((r) => r.kind === "aou_open" || r.kind === "aou_evidence_pending").map((r) => r.assumption));
           }
         }
       }

@@ -9,7 +9,11 @@
 //   CMP_AOU_VIOLATED (error)     not fulfilled — the component's analysis is
 //                                not valid in this machine until resolved
 //   CMP_AOU_MET_BY_PENDING       "fulfilled" backed by a machine measure that
-//                    (warning)   is not implemented yet (no status coupling)
+//                    (warning)   is not implemented yet. No stored coupling:
+//                                the status stays "fulfilled", but the
+//                                component measures relying on it count as
+//                                unclear until the evidence is implemented
+//                                (component-treatments, 2026-11-09)
 
 import type { ComponentAssumptionStatus } from "shared";
 import { resolveMitigationDrafts } from "features/threats";
