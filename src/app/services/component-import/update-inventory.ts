@@ -23,7 +23,7 @@
 // removes the entry. Nothing is stored for unchanged decisions (review
 // 2026-11-09). Pure.
 
-import type { ComponentInstance } from "shared";
+import { isContributesTo, type ComponentInstance } from "shared";
 import { canonicalStringify } from "shared/utils/tcs-canonical";
 import { fnv1aHex12 } from "shared/utils/fnv1a";
 import { buildThreatId } from "features/attacktree";
@@ -77,14 +77,35 @@ const treeOf = (s: ComponentSnapshot, id: string) => (s.attackTrees?.trees ?? []
 const assetOf = (s: ComponentSnapshot, id: string) => s.assets.find((a) => a.id === id);
 const eeIds = (s: ComponentSnapshot) => new Set((s.dfd?.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
 
-/** The threat content a rating rests on (not the component's own relevance — that is the override's basis). */
-const threatBasis = (t: ReturnType<typeof threatOf>) =>
-  t && {
-    stride: (t as { strideCategory?: string }).strideCategory,
-    text: (t as { description?: string }).description,
-    element: (t as { linkedElement?: { elementId?: string } }).linkedElement?.elementId,
-    flow: (t as { dataFlow?: { connectionId?: string } }).dataFlow?.connectionId,
-  };
+/**
+ * The threat content a rating rests on (not the component's own relevance —
+ * that is the override's basis). Typed, no casts (review of patch 57: a cast
+ * hid the field name, `description` instead of `threatDescription`, so a
+ * changed threat text never put its rating to review). An empty text means
+ * "use the i18n template", so the template id belongs to it.
+ */
+const threatBasis = (t: NonNullable<ReturnType<typeof threatOf>>) => ({
+  stride: t.strideCategory,
+  text: t.threatDescription,
+  attack: t.attackDescription,
+  template: t.templateId,
+  element: (t.linkedElement as { elementId?: string } | null)?.elementId,
+  flow: (t.dataFlow as { connectionId?: string } | null)?.connectionId,
+});
+
+/**
+ * What the machine's treatment rests on: the component's treatment and,
+ * per measure, only id and status — not its notes or ticket fields (the
+ * component's tracker state must not put the machine's treatment to review).
+ * The status belongs: a component measure delivered now may be a reason to
+ * rethink the machine's own compensation (review of patch 57).
+ */
+const treatmentBasis = (risk: ComponentSnapshot["risks"][number] | undefined) =>
+  hash({
+    treatment: risk?.treatment,
+    justification: risk?.treatmentJustification,
+    measures: (risk?.selectedMitigations ?? []).map((m) => ({ id: m.id, status: m.status })),
+  });
 
 /**
  * Machine threat id → the component's key: "threat|<id>" for a threat of
@@ -112,17 +133,13 @@ function riskKeyBasis(s: ComponentSnapshot, key: string, part: "rating" | "treat
     const threat = threatOf(s, a);
     if (!threat) return undefined;
     const risk = riskOfThreat(s, a);
-    return part === "rating"
-      ? hash({ threat: threatBasis(threat), intrinsic: risk?.intrinsicFactors ?? [] })
-      : hash({ treatment: risk?.treatment, measures: risk?.selectedMitigations ?? [], justification: risk?.treatmentJustification });
+    return part === "rating" ? hash({ threat: threatBasis(threat), intrinsic: risk?.intrinsicFactors ?? [] }) : treatmentBasis(risk);
   }
   if (kind === "path") {
     const path = treeOf(s, a)?.pathAnalysis?.paths.find((p) => p.pathKey === b);
     if (!path) return undefined;
     const risk = s.risks.find((r) => r.threatId === buildThreatId(a, b, c as "S"));
-    return part === "rating"
-      ? hash({ factors: path.attackPotentialFactors ?? null, nodes: path.nodeIds })
-      : hash({ treatment: risk?.treatment, measures: risk?.selectedMitigations ?? [], justification: risk?.treatmentJustification });
+    return part === "rating" ? hash({ factors: path.attackPotentialFactors ?? null, nodes: path.nodeIds }) : treatmentBasis(risk);
   }
   return undefined;
 }
@@ -176,7 +193,7 @@ export const DECISION_KINDS: Record<DecisionKind, DecisionRule> = {
     decided: (_m, i) => (i.relevanceOverrides ?? []).map((o) => o.threatKey),
     basis: (s, id) => {
       const t = threatOf(s, id);
-      return t ? hash({ ...threatBasis(t), relevance: (t as { relevance?: string }).relevance }) : undefined;
+      return t ? hash({ ...threatBasis(t), relevance: t.relevance }) : undefined;
     },
     orphaned: "drop",
   },
@@ -232,8 +249,8 @@ export const DECISION_KINDS: Record<DecisionKind, DecisionRule> = {
     basis: (s, id) => {
       const a = assetOf(s, id);
       if (!a) return undefined;
-      const goals = ((a as { securityGoals?: { type: string; level?: string }[] }).securityGoals ?? [])
-        .filter((g) => g.level && g.level !== "none")
+      const goals = (a.securityGoals ?? [])
+        .filter((g) => g.level !== "none")
         .map((g) => g.type)
         .sort();
       return hash({ group: a.assetGroup, goals });
@@ -258,11 +275,12 @@ export const DECISION_KINDS: Record<DecisionKind, DecisionRule> = {
     orphaned: "drop",
   },
   hazardLink: {
+    // hazard ↔ asset links live in hazards.relations (contributes_to: asset → hazard;
+    // endangers: hazard → asset) — review of patch 57: a cast had read a field
+    // that only the import format has (affectedAssets), so nothing was found
     decided: (m, i, s) => {
       const ids = new Map(s.assets.map((a) => [instanceAssetId(i.id, a.id), a.id]));
-      const linked = ((m.hazards as { hazards?: { affectedAssets?: string[] }[] } | null | undefined)?.hazards ?? []).flatMap(
-        (h) => h.affectedAssets ?? [],
-      );
+      const linked = (m.hazards?.relations ?? []).map((r) => (isContributesTo(r) ? r.from : r.to));
       return [...new Set(linked.map((id) => ids.get(id)).filter((x): x is string => !!x))];
     },
     basis: (s, id) => (assetOf(s, id) ? EXISTS : undefined),
@@ -273,7 +291,7 @@ export const DECISION_KINDS: Record<DecisionKind, DecisionRule> = {
     decided: (m, i, s) => {
       const byRiskId = new Map(machineRisks(m, i, s).map(({ risk, key }) => [risk.id, key]));
       const concept = m.cybersecurityConcept;
-      const named = [...(concept?.goals ?? []), ...(concept?.claims ?? [])].flatMap((x) => (x as { riskIds?: string[] }).riskIds ?? []);
+      const named = [...(concept?.goals ?? []), ...(concept?.claims ?? [])].flatMap((x) => x.riskIds);
       return [...new Set(named.map((id) => byRiskId.get(id)).filter((x): x is string => !!x))];
     },
     basis: (s, key) => (riskKeyBasis(s, key, "rating") !== undefined ? EXISTS : undefined),

@@ -19,6 +19,8 @@ import {
 } from "app/services/component-import/update-inventory";
 import { withAssumptionStatus } from "app/services/component-import/assumption-status";
 import { withMeasureOverride } from "app/services/component-import/measure-overrides";
+import { withRelevanceOverride } from "app/services/component-import/relevance-overrides";
+import { instanceAssetId } from "features/dfd";
 import { copyInstanceRatings } from "app/services/component-import/copy-ratings";
 import { DiffService } from "features/audit/services/diff-service";
 import { component, machine, tid } from "../../../../fixtures/component-treatment-machine";
@@ -72,6 +74,48 @@ describe("update inventory (phase 5b)", () => {
     const delta = decisionDelta(p, instanceOf(p), snapshotOf(p), next);
     expect(outcome(delta, "aouStatus", "a1")).toBe("review");
     expect(outcome(delta, "eeMapping", "EE-1")).toBe("take_over");
+  });
+
+  it("a changed threat text puts its rating and its relevance override to review (review of 57: typed, no cast)", () => {
+    let p = decided();
+    p = { ...p, components: withRelevanceOverride(p.components!, "i1", component.reduceThreat, { relevance: "not_relevant", rationale: "cabinet", componentRelevance: "relevant" }, "d") } as Project;
+    const edit = (field: "threatDescription" | "attackDescription" | "templateId") =>
+      change(snapshotOf(p), (s) => {
+        for (const t of s.threats!.perElementTables) for (const x of t.threats) if (x.id === component.reduceThreat) (x as unknown as Record<string, unknown>)[field] = "changed";
+      });
+    for (const field of ["threatDescription", "attackDescription", "templateId"] as const) {
+      const delta = decisionDelta(p, instanceOf(p), snapshotOf(p), edit(field));
+      expect(outcome(delta, "riskRating", threatKey)).toBe("review");
+      expect(outcome(delta, "relevanceOverride", component.reduceThreat)).toBe("review");
+    }
+  });
+
+  it("the machine's treatment rests on the component's treatment and measure ids / status — not on its notes or ticket fields", () => {
+    const p = decided();
+    const tickets = change(snapshotOf(p), (s) => {
+      for (const r of s.risks) r.selectedMitigations = r.selectedMitigations.map((m) => ({ ...m, notes: "jira sync", ticketId: "CAM-9", ticketStatus: "done" }) as never);
+    });
+    expect(outcome(decisionDelta(p, instanceOf(p), snapshotOf(p), tickets), "riskTreatment", threatKey)).toBe("take_over");
+    const delivered = change(snapshotOf(p), (s) => {
+      for (const r of s.risks) r.selectedMitigations = r.selectedMitigations.map((m) => ({ ...m, status: "verified" }));
+    });
+    expect(outcome(decisionDelta(p, instanceOf(p), snapshotOf(p), delivered), "riskTreatment", threatKey)).toBe("review");
+  });
+
+  it("hazard links to an instance asset (hazards.relations, review of 57): decided, unlinked when the asset goes", () => {
+    const p = decided();
+    const s0 = snapshotOf(p);
+    const asset = s0.assets[0];
+    const withHazard = {
+      ...p,
+      hazards: { hazards: [], relations: [{ type: "endangers", from: "H-1", to: instanceAssetId("i1", asset.id) }] },
+    } as unknown as Project;
+    expect(DECISION_KINDS.hazardLink.decided(withHazard, instanceOf(p), s0)).toEqual([asset.id]);
+    const gone = change(s0, (s) => {
+      s.assets = s.assets.filter((a) => a.id !== asset.id);
+    });
+    expect(decisionDelta(withHazard, instanceOf(p), s0, gone).find((d) => d.kind === "hazardLink")).toMatchObject({ key: asset.id, outcome: "orphaned" });
+    expect(DECISION_KINDS.hazardLink.orphaned).toBe("unlink");
   });
 
   it("counterpart gone → orphaned; an orphaned treatment names its tracker tickets", () => {

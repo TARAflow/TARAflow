@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patch 57), next 5c (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), next 5c (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,17 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 58 done (2026-11-09, review of patch 57):* casts hid field names again. The threat basis read
+`description` (the field is `threatDescription`), so a changed threat text never put its rating or
+relevance override to review; and the hazard links read `affectedAssets`, a field only the import
+format has — hazard ↔ asset links live in `hazards.relations` (contributes_to: asset → hazard;
+endangers: hazard → asset), so none was ever found. The casts are gone where the snapshot and the
+machine data are typed (the compiler checks the names now); the threat basis is threat text, attack
+text, template id (an empty text means the i18n template), STRIDE, element / flow. The treatment
+basis is the component's treatment, justification and per measure only id and status — not its notes
+or tracker fields (its ticket state must not put the machine's treatment to review; a measure
+delivered now may, so the status stays). For 5c (review): the open reviews need a visible place after
+the update — a list in the component section with "Confirm".
 *Patch 57 done (2026-11-09, phase 5b):* the inventory and the delta, pure, no UI
 (`update-inventory.ts`). `DECISION_KINDS` is a Record over every kind of stored machine decision —
 EE mapping, WoO overlay (path / step), relevance override, AoU status, measure override, cited
