@@ -129,7 +129,10 @@ export function usePhaseIndicators({
                   )
                 : null,
             riskValidation: activeProject.risks?.risks?.length
-              ? riskFindingLines(riskFindings(activeProject.risks), t)
+              ? riskFindingLines(
+                  riskFindings(activeProject.risks, { trackerConnected: !!activeProject.integration?.connection?.projectName }),
+                  t,
+                )
               : null,
             threatDrift: threatDriftCounts,
             verification: verification

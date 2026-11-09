@@ -452,7 +452,9 @@
         "residualMissing_one": "{{count}} zu reduzierendes Risiko hat keine Restrisiko-Bewertung ({{list}})",
         "residualMissing_other": "{{count}} zu reduzierende Risiken haben keine Restrisiko-Bewertung ({{list}})",
         "uncertainThreats_one": "{{count}} Risiko beruht auf einer unsicheren Bedrohung — Relevanz im Tab „Bedrohungen“ bestätigen",
-        "uncertainThreats_other": "{{count}} Risiken beruhen auf unsicheren Bedrohungen — Relevanz im Tab „Bedrohungen“ bestätigen"
+        "uncertainThreats_other": "{{count}} Risiken beruhen auf unsicheren Bedrohungen — Relevanz im Tab „Bedrohungen“ bestätigen",
+        "doneWithoutEvidence_one": "{{count}} Risiko hat eine Massnahme, die ohne Ticket oder Nachweis als erledigt gilt ({{list}})",
+        "doneWithoutEvidence_other": "{{count}} Risiken haben eine Massnahme, die ohne Ticket oder Nachweis als erledigt gilt ({{list}})"
       },
       "validation": {
         "required": "Pflichtfeld"
@@ -461,6 +463,13 @@
       "lastTicketSync": "zuletzt {{time}}",
       "mitigationStatusDialog": {
         "followsTicket": "folgt {{ticket}}, wenn es sich ändert",
+        "setByHand": "von Hand gesetzt",
+        "evidenceRequired": "Ohne verknüpftes Ticket braucht dieser Status einen Nachweis oder eine Referenz",
+        "noTicket": "Kein Ticket",
+        "linkTicket": "Verknüpfen…",
+        "createTicket": "Anlegen…",
+        "linkTicketTitle": "Ticket mit {{mitigation}} verknüpfen",
+        "createTicketTitle": "Neues Ticket für {{mitigation}}",
         "title": "Implementierungsstatus",
         "status": "Status",
         "evidence": "Nachweis",

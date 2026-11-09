@@ -400,7 +400,12 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   // The validation of the current state, for the toolbar chip (user
   // 2026-10-30 — the stored one was never shown, and may be stale), in the
   // UI language (FX-4).
-  const currentValidation = useMemo(() => riskFindingLines(riskFindings(riskData), t), [riskData, t]);
+  // With a tracker, a mitigation done by hand needs a ticket or evidence (user 2026-11-10).
+  const trackerConnected = !!project.integration?.connection?.projectName;
+  const currentValidation = useMemo(
+    () => riskFindingLines(riskFindings(riskData, { trackerConnected }), t),
+    [riskData, trackerConnected, t],
+  );
   // The method buttons show risks, not threats (user 2026-10-30).
   const risksOfMethod = (method: "per-element" | "per-interaction") =>
     riskData.risks.filter((r) => r.sourceStrideMethod === method).length;

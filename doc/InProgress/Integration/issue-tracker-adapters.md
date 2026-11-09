@@ -1,6 +1,6 @@
 # Issue-tracker integration — adapters, secure channel, ticket sync
 
-**Status:** v4 · 2026-11-03 · IT-1 … IT-11 done (§5) — Jira Cloud, Jira Server / DC, Azure DevOps, GitHub, GitLab, OpenProject; Polarion 0.19 · branch `feature/iso21434-item-definition`,
+**Status:** v5 · 2026-11-10 · IT-1 … IT-12 done, IT-13 next (§5) — Jira Cloud, Jira Server / DC, Azure DevOps, GitHub, GitLab, OpenProject; Polarion 0.19 · branch `feature/iso21434-item-definition`,
 release 0.16.0-beta (Jira); further trackers 0.17
 **Replaces:** `doc/Open/Integration/HANDOVER_Integration_Adapter_v1.md` (removed — it
 predates the OAuth services, the 0.15.2 token fix and the security findings below, and
@@ -173,6 +173,9 @@ new form; the per-tracker tabs and forms (`jira-config.tsx`, `ado-config.tsx`) g
 | IT-10 | **GitLab Issues** (0.18, preview): `GitLabAdapter` (API v4, gitlab.com or self-managed) — projects by full path (`group/sub/project`), the type is a label ("Issue" = none), key `group/project#iid`; opened / closed — GitLab has no close reason, so a won't-fix / duplicate / invalid label marks closed without fix; review / progress labels (scoped ones too); states per project in one request with `iids[]` | 37 | done (preview) |
 
 | IT-11 | **OpenProject** (0.18, preview, API v3): `OpenProjectAdapter` — projects by identifier with their work package types, key = work package id; statuses carry `isClosed` (read once): closed = done, or closed without fix under a rejecting name; open statuses by name (review / in progress / to do); ticket states in one filtered query with the status filter `*` (the default returns open ones only); markdown descriptions, type by name | 38 | done (preview) |
+
+| IT-12 | **Status by hand, with evidence** (0.19, user 2026-11-10): the status stays manual; with a tracker connected, a done status (`in_review`, `implemented`, `verified`) without a linked ticket needs an evidence note or a reference — the status dialog does not save without it, offline nothing changes (`risks/services/mitigation-evidence.ts`). Evidence and reference are offered whenever no ticket is linked (before: only offline, so with a tracker a status could be set without anything); "set by hand" next to the status, "follows SCRUM-1 when it changes" with a ticket. Risk finding `doneWithoutEvidence` (warning, with a tracker only; the stored validation does not depend on it). Per mitigation one ticket row (`mitigation-ticket-row.tsx`): linked → the ticket card; not linked → "No ticket — Link… / Create…", linking and creating in their own dialog — the status dialog stays short, the tracker is asked for tickets only when linking | 65 | done |
+| IT-13 | **Link dialog** (0.19): search, status filter (default open), "suggested" = tickets already linked to the same mitigation, linked tickets marked (not hidden), choose then "Link", empty state with "create", texts through i18n; `fetchTickets` gains status category and text in all adapters | 66 | next |
 
 Every tracker except Polarion is in 0.18 (preview until a real run). Polarion (REST v1) moves
 to 0.19 (user 2026-11-03).

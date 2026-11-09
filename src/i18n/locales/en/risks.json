@@ -452,7 +452,9 @@
         "residualMissing_one": "{{count}} risk to reduce has no residual risk rating ({{list}})",
         "residualMissing_other": "{{count}} risks to reduce have no residual risk rating ({{list}})",
         "uncertainThreats_one": "{{count}} risk is based on an uncertain threat — confirm relevance in Threat Eval",
-        "uncertainThreats_other": "{{count}} risks are based on uncertain threats — confirm relevance in Threat Eval"
+        "uncertainThreats_other": "{{count}} risks are based on uncertain threats — confirm relevance in Threat Eval",
+        "doneWithoutEvidence_one": "{{count}} risk has a mitigation done without ticket or evidence ({{list}})",
+        "doneWithoutEvidence_other": "{{count}} risks have a mitigation done without ticket or evidence ({{list}})"
       },
       "validation": {
         "required": "Required"
@@ -461,6 +463,13 @@
       "lastTicketSync": "last {{time}}",
       "mitigationStatusDialog": {
         "followsTicket": "follows {{ticket}} when it changes",
+        "setByHand": "set by hand",
+        "evidenceRequired": "Without a linked ticket this status needs evidence or a reference",
+        "noTicket": "No ticket",
+        "linkTicket": "Link…",
+        "createTicket": "Create…",
+        "linkTicketTitle": "Link a ticket to {{mitigation}}",
+        "createTicketTitle": "New ticket for {{mitigation}}",
         "title": "Implementation Status",
         "status": "Status",
         "evidence": "Evidence",

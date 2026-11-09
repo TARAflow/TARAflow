@@ -8,6 +8,7 @@
 
 import type { RiskData } from "../models/risk-assessment-types";
 import { isTreatmentToReview, treatmentVocabulary } from "../models/risk-treatment-vocabulary";
+import { needsStatusEvidence } from "./mitigation-evidence";
 
 export type RiskFindingCode =
   | "unrated"
@@ -16,7 +17,8 @@ export type RiskFindingCode =
   | "transferToReview"
   | "reduceUnmitigated"
   | "residualMissing"
-  | "uncertainThreats";
+  | "uncertainThreats"
+  | "doneWithoutEvidence";
 
 export interface RiskFinding {
   code: RiskFindingCode;
@@ -40,6 +42,7 @@ export const RISK_FINDING_TEXT: Record<RiskFindingCode, string> = {
   reduceUnmitigated: "{{count}} risk(s) to reduce have no mitigation ({{list}})",
   residualMissing: "{{count}} risk(s) to reduce have no residual risk rating ({{list}})",
   uncertainThreats: "{{count}} risk(s) based on uncertain threats — confirm relevance in Threat Eval",
+  doneWithoutEvidence: "{{count}} risk(s) with a mitigation done without ticket or evidence ({{list}})",
 };
 
 const LIST_MAX = 5;
@@ -50,8 +53,12 @@ function idList(ids: readonly string[] | undefined): string {
   return ids.slice(0, LIST_MAX).join(", ") + (ids.length > LIST_MAX ? ", …" : "");
 }
 
-/** The findings of the current risk data, errors and warnings in the order the tab shows them. */
-export function riskFindings(riskData: RiskData): RiskFinding[] {
+/**
+ * The findings of the current risk data, errors and warnings in the order the
+ * tab shows them. `trackerConnected`: the project has an issue tracker — a
+ * mitigation done by hand then needs a ticket or evidence (user 2026-11-10).
+ */
+export function riskFindings(riskData: RiskData, options: { trackerConnected?: boolean } = {}): RiskFinding[] {
   const risks = riskData.risks;
   const out: RiskFinding[] = [];
   const add = (code: RiskFindingCode, severity: RiskFinding["severity"], hits: typeof risks, named = false) => {
@@ -115,6 +122,14 @@ export function riskFindings(riskData: RiskData): RiskFinding[] {
   }
 
   add("uncertainThreats", "warning", risks.filter((r) => r.threatRelevance === "uncertain"));
+  if (options.trackerConnected) {
+    add(
+      "doneWithoutEvidence",
+      "warning",
+      risks.filter((r) => r.selectedMitigations.some((m) => needsStatusEvidence(m, true))),
+      true,
+    );
+  }
   return out;
 }
 
