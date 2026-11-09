@@ -586,3 +586,124 @@ export function prefixDisplayLabel(text: string, prefix: string): string {
   // A free display id (e.g. a boundary's "SDC"): before the first text.
   return text.replace(/(^|>)(\s*)([^<\s][^<]*)/, `$1$2${prefix}:$3`);
 }
+
+// ==================== REPLACE (update, phase 5c) ====================
+
+export interface ReplaceComponentResult extends InsertComponentResult {
+  parentPageId: string;
+  /** The machine's records without the instance — `elements` / `connections` / `assets` above are the instance's new ones. */
+  remaining: { elements: DFDElement[]; connections: DFDConnection[]; assets: DFDAsset[] };
+}
+
+export interface ReplaceComponentInput {
+  machine: ComponentDfdInput;
+  /** The component state the instance was inserted from. */
+  oldComponent: ComponentDfdInput;
+  /** The component state it is updated to. */
+  component: ComponentDfdInput;
+  instanceId: string;
+  prefix: string;
+  /** Component EE id → machine tfId — the instance's mapping, completed for EEs new in this state. */
+  eeMapping: Readonly<Record<string, string | undefined>>;
+}
+
+/**
+ * Multi-project TARA phase 5c (design §9.2): an instance moves to a new
+ * state of its component. Everything the insert laid down for the instance
+ * is removed — its child pages, on the parent page the multiprocess, the
+ * boundary flow definitions and the attached shell copies, with their id
+ * labels; the records — and the instance is inserted again with the SAME
+ * instance id: the ids are deterministic (componentInstanceTfId), so every
+ * element, flow and asset the new state still has keeps its machine id, and
+ * the machine's decisions on them stay valid. The multiprocess keeps its
+ * place and name; it and the boundary flows keep their display ids (they
+ * would otherwise be renumbered). EEs the import took over as new machine
+ * elements are the machine's — they stay and are mapped again.
+ */
+export function replaceComponentInstance(input: ReplaceComponentInput): ReplaceComponentResult {
+  const { machine, oldComponent, instanceId } = input;
+  const ns = (key: string) => componentInstanceTfId(instanceId, key);
+  const multiprocessTfId = ns("multiprocess");
+
+  const doc = asMxfile(parseXml(machine.xml), "page-1");
+  const all = diagrams(doc);
+  const parentDiagram = all.find((d) => cellsOf(rootOf(d)).some((c) => c.getAttribute("id") === multiprocessTfId));
+  if (!parentDiagram) throw new InsertComponentError(`multiprocess of instance ${instanceId} not found`);
+  const parentPageId = parentDiagram.getAttribute("id") ?? "";
+  const parentRoot = rootOf(parentDiagram);
+
+  // what stays the machine's: place, name and display ids
+  const mpCell = cellsOf(parentRoot).find((c) => c.getAttribute("id") === multiprocessTfId)!;
+  const geometry = mxCellOf(mpCell).getElementsByTagName("mxGeometry")[0];
+  const multiprocess = {
+    name: mpCell.getAttribute("label") ?? "",
+    x: Number(geometry?.getAttribute("x") ?? 0),
+    y: Number(geometry?.getAttribute("y") ?? 0),
+  };
+  const keptLabels = new Map<string, string>();
+  const oldEes = new Set(oldComponent.elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+  const boundaryFlowTfs = oldComponent.connections.filter((c) => oldEes.has(c.from) !== oldEes.has(c.to)).map((c) => ns(c.id));
+  for (const tf of [multiprocessTfId, ...boundaryFlowTfs]) {
+    const label = idlabelOf(parentRoot, tf)?.getAttribute("label");
+    if (label) keptLabels.set(tf, label);
+  }
+
+  // remove on the parent page: multiprocess, boundary flow definitions, shell copies, their id labels
+  const removeIds = new Set([multiprocessTfId, ...boundaryFlowTfs, ...shellBoundaryIds(oldComponent).map((tf) => ns(`shell|${tf}`))]);
+  for (const cell of cellsOf(parentRoot)) {
+    const id = cell.getAttribute("id") ?? "";
+    const parent = mxCellOf(cell).getAttribute("parent") ?? "";
+    if (removeIds.has(id) || (typeOf(cell) === "idlabel" && removeIds.has(parent))) parentRoot.removeChild(cell);
+  }
+  // remove the instance's child pages
+  const oldPageIds = new Set(
+    (oldComponent.pages && oldComponent.pages.length > 0
+      ? oldComponent.pages.map((p) => p.pageId)
+      : diagrams(asMxfile(parseXml(oldComponent.xml), "component-top")).slice(0, 1).map((d) => d.getAttribute("id") ?? "component-top")
+    ).map((pid) => ns(`page|${pid}`)),
+  );
+  for (const d of all) if (oldPageIds.has(d.getAttribute("id") ?? "")) d.parentNode?.removeChild(d);
+
+  const pages = (machine.pages ?? [])
+    .filter((p) => !oldPageIds.has(p.pageId))
+    .map((p) => (p.pageId === parentPageId && p.links ? { ...p, links: p.links.filter((l) => !removeIds.has(l.cellId)) } : p));
+  const ownRecord = new Set([multiprocessTfId, ...oldComponent.elements.filter((e) => !oldEes.has(e.id)).map((e) => ns(e.id))]);
+  const ownFlow = new Set(oldComponent.connections.map((c) => ns(c.id)));
+  const ownAsset = new Set((oldComponent.assets ?? []).map((a) => instanceAssetId(instanceId, a.id)));
+  const stripped: ComponentDfdInput = {
+    xml: new XMLSerializer().serializeToString(doc),
+    pages,
+    elements: machine.elements.filter((e) => !ownRecord.has(e.id)),
+    connections: machine.connections.filter((c) => !ownFlow.has(c.id)),
+    assets: (machine.assets ?? []).filter((a) => !ownAsset.has(a.id)),
+  };
+
+  const inserted = insertComponentInstance({
+    machine: stripped,
+    component: input.component,
+    instanceId,
+    prefix: input.prefix,
+    parentPageId,
+    multiprocess,
+    eeMapping: input.eeMapping,
+  });
+
+  const remaining = { elements: [...stripped.elements], connections: [...stripped.connections], assets: [...(stripped.assets ?? [])] };
+  // the kept display ids back on their labels and records
+  if (keptLabels.size === 0) return { ...inserted, parentPageId, remaining };
+  const out = parseXml(inserted.xml);
+  const parentOut = diagrams(out).find((d) => (d.getAttribute("id") ?? "") === parentPageId);
+  if (parentOut) {
+    const root = rootOf(parentOut);
+    for (const [tf, text] of keptLabels) idlabelOf(root, tf)?.setAttribute("label", text);
+  }
+  const displayOf = (id: string, current: string) => keptLabels.get(id)?.replace(/<[^>]*>/g, "").trim() || current;
+  return {
+    ...inserted,
+    xml: new XMLSerializer().serializeToString(out),
+    elements: inserted.elements.map((e) => (keptLabels.has(e.id) ? { ...e, displayId: displayOf(e.id, e.displayId) } : e)),
+    connections: inserted.connections.map((c) => (keptLabels.has(c.id) ? { ...c, displayId: displayOf(c.id, c.displayId) } : c)),
+    parentPageId,
+    remaining,
+  };
+}

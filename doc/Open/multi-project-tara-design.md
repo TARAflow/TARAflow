@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), next 5c (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c-1 done (patch 59), next 5c-2 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,28 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 59 done (2026-11-10, phase 5c-1):* applying an update, pure (`applyComponentUpdate`), per
+import, as one change. DFD: `replaceComponentInstance` (features/dfd) removes what the insert laid down
+for an instance — its child pages, on the parent page the multiprocess, the boundary-flow definitions
+and the attached shell copies with their id labels, the records — and inserts it again with the SAME
+instance id: the ids are deterministic, so whatever the new state still has keeps its machine id and
+the machine's decisions on it stay valid; the multiprocess keeps place and name, it and the boundary
+flows keep their display ids; EEs the import took over are the machine's and are mapped again.
+Decisions per the inventory: orphaned ones dropped (relevance / measure overrides, overlays, AoU
+status, cited claims, EE mappings; risks of removed threats with the concept's references; the
+machine's own threats on removed boundary flows with their risks; removed assets purged like a
+deleted asset), basis changed → reviewBasis. Pairing (review 2026-11-09): an obsolete threat / path
+paired with a new one moves its decisions — relevance override, overlay, the risk (threat id and risk
+id, the concept's references follow) — and puts them to review under the NEW key with the OLD basis,
+marked `paired:` so the review stays open even when the two bases are equal (a rename) until the
+analyst confirms. Instance assets: the component's parts (name, group, description, links, its goals'
+requirement text) from the new state, the machine's impact, goal levels and added goals kept; new
+assets as on import (`instanceAssetRecords`, now shared with the import); the component's relations
+replaced. New EEs: mapped as chosen in the dialog or taken over as new machine EEs — recorded in the
+mapping either way. The import records the new snapshot, hash, source, methodology and the update
+time. Result: the project after, the snapshot delta, per instance the decisions and pairings, and
+the lines for the commit message (dropped decisions, "ticket ABC-123 loses its risk", pairings to
+review).
 *Patch 58 done (2026-11-09, review of patch 57):* casts hid field names again. The threat basis read
 `description` (the field is `threatDescription`), so a changed threat text never put its rating or
 relevance override to review; and the hazard links read `affectedAssets`, a field only the import

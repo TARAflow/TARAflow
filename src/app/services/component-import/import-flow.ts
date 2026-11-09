@@ -191,25 +191,7 @@ export function applyComponentImport(input: {
     ...(quantityOf({ quantity: choice.quantity }) > 1 ? { quantity: quantityOf({ quantity: choice.quantity }) } : {}),
   };
 
-  const eeIds = new Set((dfd.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
-  const origin = `${choice.prefix} · ${imported.name}`;
-  const keptIds = new Set([...inserted.elements, ...inserted.connections].map((x) => x.id));
-  const assets: Asset[] = imported.snapshot.assets.map((a) => ({
-    ...(a as unknown as Asset),
-    id: instanceAssetId(ids.instanceId, a.id),
-    ...(a.displayId ? { displayId: `${choice.prefix}:${a.displayId}` } : {}),
-    // The machine rates the impact (E5): one unrated row per criterion of its
-    // configuration, as on a new asset — empty ratings showed no criterion
-    // to rate (manual test 2026-11-08).
-    impactRatings: (machine.assets?.configuration ?? createDefaultAssetData().configuration).impactCriteria.map((c) => ({
-      criterionId: c.id,
-      value: null,
-    })),
-    linkedDFDElements: (a.linkedDFDElements ?? [])
-      .filter((l) => !eeIds.has(l.elementId) && keptIds.has(inserted.idMap[l.elementId] ?? ""))
-      .map((l) => ({ ...l, elementId: inserted.idMap[l.elementId] ?? l.elementId, displayId: `${choice.prefix}:${l.displayId}` })),
-    importedFrom: origin,
-  }));
+  const assets = instanceAssetRecords(imported.snapshot, ids.instanceId, choice.prefix, `${choice.prefix} · ${imported.name}`, inserted, machine.assets?.configuration);
 
   return {
     outcome: {
@@ -232,4 +214,34 @@ export function applyComponentImport(input: {
     },
     instance,
   };
+}
+
+/**
+ * The component's assets as store records of one instance (E5): name,
+ * group, security goals from the component (its impact is not in the
+ * snapshot), one unrated row per impact criterion of the MACHINE's
+ * configuration (manual test 2026-11-08), linked to the instance elements.
+ * Shared by the import and the update (phase 5c).
+ */
+export function instanceAssetRecords(
+  snapshot: ComponentSnapshot,
+  instanceId: string,
+  prefix: string,
+  origin: string,
+  inserted: { elements: readonly { id: string }[]; connections: readonly { id: string }[]; idMap: Record<string, string> },
+  configuration?: NonNullable<Project["assets"]>["configuration"],
+): Asset[] {
+  const eeIds = new Set((snapshot.dfd?.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+  const keptIds = new Set([...inserted.elements, ...inserted.connections].map((x) => x.id));
+  const criteria = (configuration ?? createDefaultAssetData().configuration).impactCriteria;
+  return snapshot.assets.map((a) => ({
+    ...(a as unknown as Asset),
+    id: instanceAssetId(instanceId, a.id),
+    ...(a.displayId ? { displayId: `${prefix}:${a.displayId}` } : {}),
+    impactRatings: criteria.map((c) => ({ criterionId: c.id, value: null })),
+    linkedDFDElements: (a.linkedDFDElements ?? [])
+      .filter((l) => !eeIds.has(l.elementId) && keptIds.has(inserted.idMap[l.elementId] ?? ""))
+      .map((l) => ({ ...l, elementId: inserted.idMap[l.elementId] ?? l.elementId, displayId: `${prefix}:${l.displayId}` })),
+    importedFrom: origin,
+  }));
 }

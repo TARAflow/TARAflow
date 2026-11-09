@@ -234,6 +234,8 @@ export { multiprocessGroupsOf, multiprocessGroupsFrom } from "./services/leveled
 // Multi-project TARA: one instance of an imported component into the DFD (design v3 §5, §6).
 export {
   insertComponentInstance,
+  replaceComponentInstance,
+  type ReplaceComponentResult,
   componentInstanceTfId,
   instanceMultiprocessTfId,
   instanceAssetId,

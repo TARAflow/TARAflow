@@ -14,6 +14,7 @@ import dfdService from "features/dfd/services/dfd-service";
 import type { DFDConnection, DFDElement, DFDPage, DFDProjectData } from "features/dfd/models/dfd-types";
 import {
   insertComponentInstance,
+  replaceComponentInstance,
   prefixDisplayLabel,
   InsertComponentError,
   instanceAssetId,
@@ -407,5 +408,60 @@ describe("insertComponentInstance — shells around the multiprocess", () => {
     // the boundary flow still resolves to the inner element
     const f = model.flows.find((x) => x.tfId === r.idMap.c_df1)!;
     expect([f.from, f.to]).toEqual(["m_plc", r.idMap.c_p1]);
+  });
+});
+
+// ==================== REPLACE (phase 5c) ====================
+
+describe("replaceComponentInstance — an instance moves to a new component state (phase 5c)", () => {
+  const first = insert();
+  const machineAfter = {
+    xml: first.xml,
+    pages: first.pages,
+    elements: [...machineElements, ...first.elements],
+    connections: [...machineConnections, ...first.connections],
+    assets: first.assets,
+  };
+  // after the import every EE is mapped: EE-1 to the controller, the others to the EEs the import created
+  const mapping = Object.fromEntries(EES.map((id) => [id, first.idMap[id]]));
+  const replace = (next = component, machine = machineAfter) =>
+    replaceComponentInstance({ machine, oldComponent: component, component: next, instanceId: "inst-1", prefix: "SD1", eeMapping: mapping });
+  const ids = (xs: readonly { id: string }[]) => xs.map((x) => x.id).sort();
+
+  it("the same state again: the same ids, pages and records — the machine's references stay valid", () => {
+    const r = replace();
+    expect(ids([...r.remaining.elements, ...r.elements])).toEqual(ids(machineAfter.elements));
+    expect(ids([...r.remaining.connections, ...r.connections])).toEqual(ids(machineAfter.connections));
+    expect(ids([...r.remaining.assets, ...r.assets])).toEqual(ids(machineAfter.assets));
+    expect(r.pages.map((p) => p.pageId).sort()).toEqual(first.pages.map((p) => p.pageId).sort());
+    expect(r.multiprocessTfId).toBe(first.multiprocessTfId);
+    // the EEs the import created are the machine's: they stay and are mapped again, not duplicated
+    expect(r.elements.filter((e) => e.type === "ExternalEntity")).toEqual([]);
+    expect(new DOMParser().parseFromString(r.xml, "text/xml").getElementsByTagName("diagram").length).toBe(
+      new DOMParser().parseFromString(first.xml, "text/xml").getElementsByTagName("diagram").length,
+    );
+  });
+
+  it("keeps the multiprocess's place, name and display ids (no renumbering)", () => {
+    const numbered = { ...machineAfter, xml: machineAfter.xml.replace(/label="MP-xx"/, 'label="MP-7"') };
+    const r = replace(component, numbered);
+    expect(r.xml).toContain('label="MP-7"');
+    expect(r.elements.find((e) => e.id === first.multiprocessTfId)!.displayId).toBe("MP-7");
+    expect(r.xml).toMatch(new RegExp(`id="${first.multiprocessTfId}"[^>]*>\\s*<mxCell[^>]*>\\s*<mxGeometry x="600" y="200"`));
+  });
+
+  it("a changed state: what the component removed goes, the rest keeps its ids", () => {
+    const process = component.elements.find((e) => e.type === "Process" && !component.connections.some((c) => c.from === e.id || c.to === e.id));
+    const victim = process ?? component.elements.find((e) => e.type === "DataStore")!;
+    const next = {
+      ...component,
+      elements: component.elements.filter((e) => e.id !== victim.id),
+      connections: component.connections.filter((c) => c.from !== victim.id && c.to !== victim.id),
+    };
+    const r = replace(next);
+    const all = ids([...r.remaining.elements, ...r.elements]);
+    expect(all).not.toContain(first.idMap[victim.id]);
+    const survivor = component.elements.find((e) => e.id !== victim.id && e.type === "Process")!;
+    expect(all).toContain(first.idMap[survivor.id]);
   });
 });

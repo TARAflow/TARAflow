@@ -68,7 +68,7 @@ export function machine(): Project {
     ids: { importId: "imp", instanceId: "i1" },
     importedAt: "t",
   });
-  const base = { components: a.components, dfd: { elements: a.outcome.elements, connections: a.outcome.connections }, assets: null } as unknown as Project;
+  const base = { components: a.components, dfd: { xml: a.outcome.xml, pages: a.outcome.pages, elements: a.outcome.elements, connections: a.outcome.connections }, assets: null } as unknown as Project;
   const refs = componentThreatReferences({ ...base, risks: null } as never, "per-element");
   const risks = syncRisksFromThreats({ configuration: DEFAULT_CONFIGURATION, risks: [], lastModified: "" } as never, refs).riskData;
   return { ...base, risks } as Project;
