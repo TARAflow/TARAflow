@@ -6,6 +6,11 @@
       "loading": "DFD-Editor wird geladen...",
       "proceed": "Weiter",
       "assetGraph": {
+        "locked": {
+          "label": "Komponente {{prefix}}",
+          "tooltip": "Gehört zu {{owner}}: hier schreibgeschützt, wird in der TARA der Komponente geändert. Impact und weitere Schutzziele bewertet man im Assets-Tab.",
+          "notice": "Gehört zu {{owner}} — ihre Assets, Relationen und Elemente werden in der TARA der Komponente geändert. Eine neue Relation braucht an einem Ende ein Asset dieses Projekts."
+        },
         "view": {
           "layers": "Ebenen",
           "focus": "Fokus"

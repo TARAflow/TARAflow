@@ -8,7 +8,7 @@
 
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Button, Divider, IconButton, Link, Paper, Stack, Typography } from "@mui/material";
+import { Box, Button, Chip, Divider, IconButton, Link, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import { Close as CloseIcon, ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 import { AssetDescriptionForm } from "../components/forms/asset-description-form";
@@ -72,6 +72,12 @@ export interface AssetGraphInspectorProps {
   readonly onEditElementLink?: (elementId: string, assetId: string) => void;
   /** Edit mode: remove one DFD element → asset relation (FR-E7, FR-E8). */
   readonly onRemoveElementLink?: (elementId: string, assetId: string, relationType: string) => void;
+  /**
+   * The inspected asset or link belongs to an imported component (phase
+   * 4a-3, its owner label): a chip says so; the caller leaves out the edit
+   * callbacks.
+   */
+  readonly lockedBy?: string;
 }
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -110,6 +116,7 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
   onLinkElement,
   onEditElementLink,
   onRemoveElementLink,
+  lockedBy,
 }) => {
   const { t } = useTranslation();
   const [propertiesOpen, setPropertiesOpen] = useState(false);
@@ -464,6 +471,22 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
       <IconButton size="small" onClick={onClose} sx={{ position: "absolute", top: 4, right: 4 }}>
         <CloseIcon fontSize="small" />
       </IconButton>
+      {lockedBy && (
+        <Tooltip
+          title={t("tabs.dfd.assetGraph.locked.tooltip", {
+            owner: lockedBy,
+            defaultValue: "Belongs to {{owner}}: read-only here, changed in the component's TARA. Impact and further security goals are rated in the Assets tab.",
+          })}
+        >
+          <Chip
+            size="small"
+            variant="outlined"
+            data-testid="asset-graph-locked"
+            label={t("tabs.dfd.assetGraph.locked.label", { prefix: lockedBy.split(" · ")[0], defaultValue: "Component {{prefix}}" })}
+            sx={{ mb: 0.75, height: 20, fontSize: "0.72rem", borderStyle: "dashed" }}
+          />
+        </Tooltip>
+      )}
       {body}
     </Paper>
   );

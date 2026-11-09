@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), next 4a-3 (asset relations)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), next 4b (matrix, hazards)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,20 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 49 done (2026-11-09, phase 4a-3):* asset relations. The import takes the component's
+asset-to-asset relations over (`AppliedComponentImport.relations`: ids
+`componentInstanceTfId(instance, "rel|" + id)`, ends remapped to the instance assets, stored sorted
+in `assets.relations`; deleting the instance purges them with its assets). Where the machine edits
+relations — decided by the user 2026-11-09: the asset graph's edit mode (DFD tab, third view), the
+one place where component and machine assets stand side by side and a link is drawn between two
+nodes in either direction, through the existing single A2A write path (`commitA2AOps`); no second
+editor, the DFD asset form unchanged. Generic `lockedBy` (id → owner label; app:
+`componentLockedIds` — the component's elements, flows and instance assets): a link between two
+component assets is the component's (chip, no update / delete, Delete key ignored); a component's
+asset cannot be deleted (also guarded in the DFD tab's delete handler) and its properties form is
+not offered (impact and added goals are rated in the Assets tab, 4a-2); a new link needs at least one
+machine asset (refused with a notice otherwise); element → asset relations of a component element
+are locked and the element picker does not offer component elements.
 *Patch 48 done (2026-11-09, phase 4a-2, with the review of patch 47):* imported assets read-only
 where they are the component's. Asset dialog: name and description disabled, a banner says what is
 read-only and what the machine rates. Security goals: `componentAssetGoals` (instance asset id → the

@@ -18,7 +18,7 @@ import {
   unresolvableFlows,
 } from "app/services/component-import/import-flow";
 import { flow, mxfile, node, page } from "../../../../fixtures/leveled-dfd-xml";
-import { instanceAssetId, type ComponentInsertContext } from "features/dfd";
+import { componentInstanceTfId, instanceAssetId, type ComponentInsertContext } from "features/dfd";
 
 const smokeProject = () => parseAndRepair(loadProjectFixture("SmokeDetector.tara.json")) as Project;
 const result = () => {
@@ -101,6 +101,34 @@ describe("machineElementOptions", () => {
 });
 
 describe("applyComponentImport", () => {
+  it("takes the component's asset-to-asset relations over, ids per instance (phase 4a-3)", () => {
+    const r = result();
+    const [a1, a2] = r.snapshot.assets;
+    const withRelation = {
+      ...r,
+      snapshot: { ...r.snapshot, assetRelations: [{ id: "rel-1", sourceAssetId: a1.id, targetAssetId: a2.id, relationType: "required_by" }] },
+    } as typeof r;
+    const applied = (instanceId: string) =>
+      applyComponentImport({
+        context: context(),
+        machine: {},
+        result: withRelation,
+        choice: { prefix: "SD1", name: "SD", eeMapping: {} },
+        ids: { importId: "imp", instanceId },
+        importedAt: "t",
+      }).relations;
+    expect(applied("i1")).toEqual([
+      {
+        id: componentInstanceTfId("i1", "rel|rel-1"),
+        sourceAssetId: instanceAssetId("i1", a1.id),
+        targetAssetId: instanceAssetId("i1", a2.id),
+        relationType: "required_by",
+      },
+    ]);
+    // a second instance does not collide
+    expect(applied("i2")[0].id).not.toBe(applied("i1")[0].id);
+  });
+
   it("inserts the instance and records the import and the instance", () => {
     const ctx = context();
     const a = applyComponentImport({

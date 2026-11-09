@@ -6,9 +6,10 @@
 // extend project.components). The dialog (features/components) and the
 // DFD (features/dfd) stay independent; this layer joins them.
 
-import type { ComponentImport, ComponentInstance, ProjectComponents } from "shared";
+import type { A2ARelation, ComponentImport, ComponentInstance, ProjectComponents } from "shared";
 import { createDefaultAssetData, type Asset } from "features/assets";
 import {
+  componentInstanceTfId,
   insertComponentInstance,
   instanceAssetId,
   parseDfd,
@@ -128,6 +129,13 @@ export interface AppliedComponentImport {
    * asset store with the import; the DFD sync keeps them linked.
    */
   assets: Asset[];
+  /**
+   * The component's asset-to-asset relations between the instance's assets
+   * (phase 4a-3) — read-only in the machine; ids per instance, so two
+   * instances of one component do not collide. Purged with the instance's
+   * assets.
+   */
+  relations: A2ARelation[];
 }
 
 /**
@@ -212,6 +220,12 @@ export function applyComponentImport(input: {
       assets: [...context.assets, ...inserted.assets],
     },
     assets,
+    relations: (imported.snapshot.assetRelations ?? []).map((r) => ({
+      ...r,
+      id: componentInstanceTfId(ids.instanceId, `rel|${r.id}`),
+      sourceAssetId: instanceAssetId(ids.instanceId, r.sourceAssetId),
+      targetAssetId: instanceAssetId(ids.instanceId, r.targetAssetId),
+    })),
     components: {
       imports: existing ? machine.components!.imports : [...(machine.components?.imports ?? []), imported],
       instances: [...(machine.components?.instances ?? []), instance],

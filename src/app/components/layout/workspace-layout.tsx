@@ -95,7 +95,7 @@ import { usePhaseIndicators } from "app/hooks/workspace/use-phase-indicators";
 import { useClosedLoopData } from "app/hooks/workspace/use-closed-loop-data";
 import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 import { useComponentImport } from "app/hooks/workspace/use-component-import";
-import { componentAssetGoals, findingOwner } from "app/services/component-import/component-scope";
+import { componentAssetGoals, componentLockedIds, findingOwner } from "app/services/component-import/component-scope";
 
 // ==================== COMPONENT ====================
 
@@ -175,6 +175,9 @@ export const WorkspaceLayout: React.FC = () => {
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
   // The goal types an imported asset's component has active (phase 4a-2): not removable here.
   const componentGoals = useMemo(() => componentAssetGoals({ components: instanceComponents }), [instanceComponents]);
+  // What a component owns — locked in the asset graph's edit mode (phase 4a-3).
+  const componentLocked = useMemo(() => componentLockedIds({ components: instanceComponents }), [instanceComponents]);
+  const lockedBy = useCallback((id: string) => componentLocked.get(id), [componentLocked]);
   // The project's measures (phase 3c) — what an assumption can name as relying on it.
   const measureRisks = activeProject?.risks;
   const measureThreats = activeProject?.threats;
@@ -362,6 +365,7 @@ export const WorkspaceLayout: React.FC = () => {
               externalFindings={dfdData.componentDfdFindings}
               componentInfoOf={componentImport.componentInfoOf}
               findingOwnerOf={findingOwnerOf}
+              lockedBy={lockedBy}
               graphFocusRequest={navigation.graphFocusRequest}
               elementFocusRequest={navigation.elementFocusRequest}
               hazards={assetData.graphHazards}

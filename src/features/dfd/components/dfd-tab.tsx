@@ -166,6 +166,8 @@ export interface DFDTabProps {
   componentInfoOf?: (tfId: string) => ComponentMultiprocessInfo | undefined;
   /** Owner of a finding on an imported component's cell (multi-project TARA phase 4a). */
   findingOwnerOf?: FindingOwnerOf;
+  /** Assets / elements an imported component owns (id → owner label) — locked in the asset graph (phase 4a-3). */
+  lockedBy?: (id: string) => string | undefined;
   /** Findings of other layers (e.g. imported components), shown with the DFD's own. */
   externalFindings?: {
     errors: ValidationFinding[];
@@ -190,6 +192,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   externalFindings,
   componentInfoOf,
   findingOwnerOf,
+  lockedBy,
   graphFocusRequest,
   elementFocusRequest,
   hazards,
@@ -487,6 +490,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // Delete asset and all its relations atomically
   const handleDeleteAsset = useCallback(
     (assetId: string) => {
+      // An imported component's asset goes only with its instance (phase 4a-3).
+      if (lockedBy?.(assetId)) return;
       // Build on scheduleSave's `base` (a pending edit may be fresher than
       // project.dfd) and report the deletion upward: the app layer removes
       // the asset from every other store (asset store, hazards, risks).
@@ -500,7 +505,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         };
       });
     },
-    [deleteAsset, scheduleSave, project.phaseStatus],
+    [deleteAsset, scheduleSave, project.phaseStatus, lockedBy],
   );
 
   // ==================== EXPORT/IMPORT HOOK ====================
@@ -1043,6 +1048,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               rightInset={0}
               darkMode={darkMode}
               pageScope={leveled.pageScope}
+              lockedBy={lockedBy}
             />
           </Box>
 

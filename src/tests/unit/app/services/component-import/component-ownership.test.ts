@@ -4,7 +4,7 @@
 // its properties are the component's).
 
 import { describe, expect, it } from "vitest";
-import { componentAssetGoals, componentOwnership, findingOwner } from "app/services/component-import/component-scope";
+import { componentAssetGoals, componentLockedIds, componentOwnership, findingOwner } from "app/services/component-import/component-scope";
 import { FINDING_CLASS } from "features/dfd/utils/finding-ownership";
 import { ValidationMessages } from "features/dfd/services/validators/validator-utils";
 import { instanceAssetId } from "features/dfd";
@@ -49,6 +49,13 @@ describe("finding ownership (phase 4a)", () => {
     expect(FINDING_CLASS.DUPLICATE_IDLABEL).toBe("property");
     expect(isStructuralFinding(ValidationMessages.EXTERNAL_ENTITY_INSIDE_TB)).toBe(true);
     expect(isStructuralFinding("tabs.dfd.validation.df.something.new")).toBe(false);
+  });
+
+  it("locked in the asset graph: the component's elements, flows and instance assets (phase 4a-3)", () => {
+    const locked = componentLockedIds(m);
+    expect(locked.get(cell(process.id))).toBe("SD1 · Smoke Detector");
+    expect(locked.get(instanceAssetId("i1", snapshot.assets[0].id))).toBe("SD1 · Smoke Detector");
+    expect(locked.has("m_p1")).toBe(false);
   });
 
   it("the goal types the component has active, per instance asset", () => {

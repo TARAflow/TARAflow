@@ -6,6 +6,11 @@
       "loading": "Loading DFD Editor...",
       "proceed": "Continue",
       "assetGraph": {
+        "locked": {
+          "label": "Component {{prefix}}",
+          "tooltip": "Belongs to {{owner}}: read-only here, changed in the component's TARA. Impact and further security goals are rated in the Assets tab.",
+          "notice": "Belongs to {{owner}} — its assets, links and elements are changed in the component's TARA. A new link needs an asset of this project at one end."
+        },
         "view": {
           "layers": "Layers",
           "focus": "Focus"

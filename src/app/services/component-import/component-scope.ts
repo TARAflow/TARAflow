@@ -103,3 +103,23 @@ export function componentAssetGoals(project: Pick<Project, "components">): Map<s
   }
   return out;
 }
+
+/**
+ * Everything an imported component owns in the machine, id → owner label
+ * (phase 4a-3): its elements and flows, and its instance assets. The asset
+ * graph locks them in edit mode.
+ */
+export function componentLockedIds(project: Pick<Project, "components">): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const [id, owner] of componentOwnership(project)) out.set(id, owner.label);
+  const components = project.components;
+  if (!components) return out;
+  const importsById = new Map(components.imports.map((i) => [i.id, i]));
+  for (const instance of components.instances) {
+    const imported = importsById.get(instance.importId);
+    if (!imported) continue;
+    const label = instanceLabel(instance, imported.name);
+    for (const a of imported.snapshot.assets) out.set(instanceAssetId(instance.id, a.id), label);
+  }
+  return out;
+}

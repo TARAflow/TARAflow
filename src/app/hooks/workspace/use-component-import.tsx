@@ -9,6 +9,7 @@
 import React, { useCallback, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { useToast } from "shared";
+import { sortA2ARelations } from "shared";
 import type {
   ComponentImportRunner,
   ComponentInsertContext,
@@ -131,13 +132,20 @@ export function useComponentImport({
           ids: { importId: crypto.randomUUID(), instanceId: crypto.randomUUID() },
           importedAt: new Date().toISOString(),
         });
-        // The instance's assets join the store with the import (E5).
+        // The instance's assets join the store with the import (E5), and the
+        // component's relations between them (phase 4a-3, read-only here).
         const store = project.assets ?? createDefaultAssetData();
         const newIds = new Set(applied.assets.map((a) => a.id));
+        const newRelationIds = new Set(applied.relations.map((r) => r.id));
+        const relations = sortA2ARelations([...(store.relations ?? []).filter((r) => !newRelationIds.has(r.id)), ...applied.relations]);
         void updateProject({
           id: project.id,
           components: applied.components,
-          assets: { ...store, assets: [...store.assets.filter((a) => !newIds.has(a.id)), ...applied.assets] },
+          assets: {
+            ...store,
+            assets: [...store.assets.filter((a) => !newIds.has(a.id)), ...applied.assets],
+            ...(relations.length > 0 ? { relations } : {}),
+          },
         });
         finish(applied.outcome);
       } catch (err) {
