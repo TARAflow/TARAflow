@@ -86,6 +86,9 @@
     },
     "update": {
       "open": "Update…",
+      "discardTitle": "Discard the update?",
+      "discardText": "Discarding restores the state before the update. Everything changed since then (confirmed reviews, ratings, DFD) is lost as well.",
+      "discardOk": "Discard",
       "discard": "Discard update",
       "title": "Update {{component}}",
       "changes": "What changed in the component",

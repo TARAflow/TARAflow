@@ -401,6 +401,7 @@ export default DFDDetailsPanel;
 const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (runner: ComponentImportRunner) => void }> = ({ info, onRun }) => {
   const { t } = useTranslation();
   const [copying, setCopying] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   return (
     <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }} data-testid="component-section">
       <Typography variant="caption" color="text.secondary" display="block">
@@ -445,11 +446,43 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (run
             </Button>
           )}
           {info.discardRunner && (
-            <Button size="small" color="warning" variant="outlined" onClick={() => onRun(info.discardRunner!)} data-testid="component-update-discard">
+            <Button size="small" color="warning" variant="outlined" onClick={() => setConfirmDiscard(true)} data-testid="component-update-discard">
               {t("components.update.discard", { ns: "components", defaultValue: "Discard update" })}
             </Button>
           )}
         </Box>
+      )}
+      {/* Discard asks first: it restores the whole state before the update — work since then goes too (review 2026-11-10) */}
+      {confirmDiscard && onRun && info.discardRunner && (
+        <Dialog open onClose={() => setConfirmDiscard(false)} data-testid="component-update-discard-confirm">
+          <DialogTitle>{t("components.update.discardTitle", { ns: "components", defaultValue: "Discard the update?" })}</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2">
+              {t("components.update.discardText", {
+                ns: "components",
+                defaultValue:
+                  "Discarding restores the state before the update. Everything changed since then (confirmed reviews, ratings, DFD) is lost as well.",
+              })}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            {/* Cancel is the default: focused, the safe choice */}
+            <Button autoFocus onClick={() => setConfirmDiscard(false)} data-testid="component-update-discard-cancel">
+              {t("components.update.cancel", { ns: "components", defaultValue: "Cancel" })}
+            </Button>
+            <Button
+              color="warning"
+              variant="contained"
+              onClick={() => {
+                setConfirmDiscard(false);
+                onRun(info.discardRunner!);
+              }}
+              data-testid="component-update-discard-ok"
+            >
+              {t("components.update.discardOk", { ns: "components", defaultValue: "Discard" })}
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
       {/* Decisions to review after an update (5b/5c) */}
       {(info.reviews?.length ?? 0) > 0 && (

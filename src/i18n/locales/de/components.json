@@ -86,6 +86,9 @@
     },
     "update": {
       "open": "Update…",
+      "discardTitle": "Update verwerfen?",
+      "discardText": "Verwerfen stellt den Stand vor dem Update her. Auch alles, was seither geändert wurde (bestätigte Prüfungen, Bewertungen, DFD), geht verloren.",
+      "discardOk": "Verwerfen",
       "discard": "Update verwerfen",
       "title": "{{component}} aktualisieren",
       "changes": "Was sich in der Komponente geändert hat",

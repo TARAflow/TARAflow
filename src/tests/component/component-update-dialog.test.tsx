@@ -75,7 +75,18 @@ describe("component section: update, discard, reviews", () => {
     );
     fireEvent.click(screen.getByTestId("component-update"));
     expect(onRun).toHaveBeenLastCalledWith(updateRunner);
+    // discard asks first — work since the update would go too
+    onRun.mockClear();
     fireEvent.click(screen.getByTestId("component-update-discard"));
+    expect(onRun).not.toHaveBeenCalled();
+    expect(screen.getByTestId("component-update-discard-confirm").textContent).toContain("(confirmed reviews, ratings, DFD)");
+    // Cancel is the default (focused); the action button says what it does
+    expect(document.activeElement).toBe(screen.getByTestId("component-update-discard-cancel"));
+    expect(screen.getByTestId("component-update-discard-ok").textContent).toBe("Discard");
+    fireEvent.click(screen.getByTestId("component-update-discard-cancel"));
+    expect(onRun).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId("component-update-discard"));
+    fireEvent.click(screen.getByTestId("component-update-discard-ok"));
     expect(onRun).toHaveBeenLastCalledWith(discardRunner);
     const reviews = screen.getByTestId("component-reviews");
     expect(reviews.textContent).toContain("1 decision(s) to review after the update");
