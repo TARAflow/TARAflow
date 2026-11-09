@@ -1003,6 +1003,11 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 64 done (2026-11-10, found on the example project):* deleting an instance removes the risks of
+its imported threats too (incl. attack-path threats) and the goals' / claims' references to them.
+Before, the instance's assets and pages went, but its risks stayed — stored records the risk sync
+never removes (the example machine carried 52 orphaned `SDC1:` risks after step 11 of the manual
+test). `RemovedComponentInstance.threatIds` from the import's snapshot (`instanceThreatKeys`).
 *Patch 63 done (2026-11-10, review of patch 62):* "Discard update" asks first — it restores the whole
 state before the update, so everything changed since then (confirmed reviews, ratings, DFD) goes too.
 Always asked, not only when something changed since: a reliable detection is not trivial (the DFD

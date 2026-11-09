@@ -206,6 +206,27 @@ export function buildDfdUpdate(
     }
   }
 
+  // …and the risks of its imported threats, with the goals' / claims'
+  // references to them: stored records the risk sync never removes.
+  const goneThreats = new Set(pruned.removed.flatMap((r) => r.threatIds));
+  let concept = current.cybersecurityConcept;
+  let risksPurged = false;
+  if (goneThreats.size > 0 && risks) {
+    const goneRisks = new Set(risks.risks.filter((r) => goneThreats.has(r.threatId)).map((r) => r.id));
+    if (goneRisks.size > 0) {
+      risks = { ...risks, risks: risks.risks.filter((r) => !goneRisks.has(r.id)) };
+      risksPurged = true;
+      if (concept) {
+        const keep = (ids: string[]) => ids.filter((id) => !goneRisks.has(id));
+        concept = {
+          ...concept,
+          goals: concept.goals.map((g) => ({ ...g, riskIds: keep(g.riskIds) })),
+          claims: concept.claims.map((c) => ({ ...c, riskIds: keep(c.riskIds) })),
+        };
+      }
+    }
+  }
+
   const purgedAny = pruned.removed.some((r) => r.assetIds.length > 0);
   const patch = {
     id: current.id,
@@ -213,7 +234,8 @@ export function buildDfdUpdate(
     assets: purgedAny ? purgedAssets : assets, // persist the reconciled asset store too
     phaseStatus: updates.phaseStatus,
     threats,
-    ...(updates.deletedAssetIds?.length || purgedAny ? { hazards, risks } : {}),
+    ...(updates.deletedAssetIds?.length || purgedAny || risksPurged ? { hazards, risks } : {}),
+    ...(risksPurged && concept !== current.cybersecurityConcept ? { cybersecurityConcept: concept } : {}),
     ...(pruned.components ? { components: pruned.components } : {}),
   };
   return { patch, rejectedA2AOps, removedComponentInstances: pruned.removed };

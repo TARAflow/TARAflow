@@ -28,7 +28,7 @@ describe("pruneDeletedInstances", () => {
 
   it("one of two instances deleted: the instance goes, the import stays", () => {
     const r = pruneDeletedInstances(project(["mp1", "mp2", "mp3"]), [{ id: "mp1" }, { id: "mp3" }]);
-    expect(r.removed).toEqual([{ prefix: "CAM2", component: "Camera", assetIds: [] }]);
+    expect(r.removed).toEqual([{ prefix: "CAM2", component: "Camera", assetIds: [], threatIds: [] }]);
     expect(r.components!.instances.map((i) => i.id)).toEqual(["cam1", "sd1"]);
     expect(r.components!.imports.map((i) => i.id)).toEqual(["cam", "sd"]);
   });
@@ -36,7 +36,7 @@ describe("pruneDeletedInstances", () => {
   it("the last instance deleted: the import goes too", () => {
     const r = pruneDeletedInstances(project(["mp1", "mp2", "mp3"]), [{ id: "mp1" }, { id: "mp2" }]);
     expect(r.components!.imports.map((i) => i.id)).toEqual(["cam"]);
-    expect(r.removed).toEqual([{ prefix: "SD1", component: "Smoke", assetIds: [] }]);
+    expect(r.removed).toEqual([{ prefix: "SD1", component: "Smoke", assetIds: [], threatIds: [] }]);
   });
 
   it("an instance whose multiprocess was never saved is kept", () => {

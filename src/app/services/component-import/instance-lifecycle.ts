@@ -8,6 +8,8 @@
 // (refused import save) is kept: CMP_INSTANCE_ORPHANED. Pure.
 
 import { instanceAssetId } from "features/dfd";
+import type { ComponentSnapshot } from "../../models/component-snapshot-types";
+import { instanceThreatKeys } from "./update-inventory";
 import type { Project } from "../../models/project-types";
 
 export interface RemovedComponentInstance {
@@ -15,6 +17,13 @@ export interface RemovedComponentInstance {
   component: string;
   /** The instance's assets (E5) — purged with the instance. */
   assetIds: string[];
+  /**
+   * The machine ids of the instance's imported threats (incl. attack-path
+   * threats): their risks go with the instance — they are stored, the sync
+   * never removes them (found on the example project 2026-11-10: 52 orphaned
+   * risks after deleting an instance).
+   */
+  threatIds: string[];
 }
 
 export interface InstancePruneResult {
@@ -45,6 +54,7 @@ export function pruneDeletedInstances(
         prefix: i.prefix,
         component: imported?.name ?? i.prefix,
         assetIds: (imported?.snapshot.assets ?? []).map((a) => instanceAssetId(i.id, a.id)),
+        threatIds: imported ? [...instanceThreatKeys(i.id, imported.snapshot as ComponentSnapshot).keys()] : [],
       };
     }),
   };
