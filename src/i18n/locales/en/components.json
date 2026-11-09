@@ -50,6 +50,9 @@
       "applyFailed": "The component could not be imported: {{message}}"
     },
     "findings": {
+      "CMP_NEWER_STATE_AVAILABLE": "Component {{component}}: a newer state is available ({{where}}). Nothing changes until it is taken over explicitly (update).",
+      "CMP_SNAPSHOT_BUILDER_CHANGED": "Component {{component}}: this TARAflow reads the imported state differently from the version that imported it — the component itself did not change. An update refreshes the stored state.",
+      "CMP_SOURCE_UNREACHABLE": "Component {{component}}: whether a newer state exists cannot be checked here ({{reason}}).",
       "CMP_SOURCE_UNPINNED": "Component {{component}} is imported unpinned ({{reason}}) — only its content identifies the state. Import a committed state for an audited TARA.",
       "CMP_INSTANCE_ORPHANED": "Component instance {{prefix}} ({{component}}) has no multiprocess in the DFD — delete the instance or import the component again.",
       "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} is attached to the imported component {{prefix}} ({{component}}) but is none of its interfaces — the component TARA does not cover it. Add the interface in the component TARA and update, or attach the flow elsewhere.",
@@ -79,6 +82,20 @@
       "quantity": "Quantity (identical units, same place)",
       "copyRatings": "Copy ratings from another instance…",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
+    },
+    "drift": {
+      "check": "Check",
+      "fetch": "Fetch and check",
+      "builderChanged": "this TARAflow reads it differently — an update refreshes the stored state",
+      "upToDate": "Up to date",
+      "newer": "Newer state available ({{where}}) — the update follows as an explicit step",
+      "unreachable": {
+        "path_unknown": "Not checked — where the component TARA lies on this computer is not known (open it once via File → Open)",
+        "no_repo": "Not checked — its folder is no git working copy",
+        "ref_missing": "Not checked — branch or tag not found (fetch, or check the source)",
+        "file_missing": "Not checked — the file is not at its path",
+        "unreadable": "Not checked — that state cannot be read as a component TARA"
+      }
     },
     "owner": {
       "label": "Component {{prefix}}",

@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52) — phase 4 complete; next phase 5 (change detection and update)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patch 54; per import, rollback via git revert decided), next 5b (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,30 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 54 done (2026-11-09, phase 5a):* drift, read-only. `checkComponentDrift` (pure, git and
+file reader injected): a pinned import reads the component TARA AS COMMITTED at its branch tip
+(`git show <commit>:<path>`; with a tag pattern the newest matching tag), never the working copy; an
+unpinned one the file at its local path (`resolveComponentPath`: same repository, else remembered in
+localStorage). Content decides: the state is reduced exactly as on import
+(`componentSnapshotOfText`, steps 1–3 of `readComponentSource`, now shared) and compared by snapshot
+content hash — a layout-only commit is not a newer state. `git fetch` only on request ("Fetch and
+check" → the remote branch). Status per import (`up_to_date` / `newer_available` with tag or commit /
+`unreachable` with its reason: path unknown, no repository, branch or tag missing, file missing,
+unreadable) lives in the app, never in the file (`useComponentDrift`: checked locally when a project
+with imports opens and on request); info findings `CMP_NEWER_STATE_AVAILABLE` and
+`CMP_SOURCE_UNREACHABLE` on the instance's multiprocess; the component section shows the status with
+"Check" / "Fetch and check". Nothing in the project changes. The tag pattern has no UI yet (set with
+the update dialog, 5c). Review: a newer TARAflow may reduce a component differently (a new snapshot
+field, a fix like patch 11) — every stored hash would differ without any component change (I1 covers
+determinism within one app, not across releases). For a pinned import the check also rebuilds the
+IMPORTED commit with the running app and compares the two rebuilt states; when the imported commit's
+rebuilt hash differs from the stored one: `builderChanged` and info `CMP_SNAPSHOT_BUILDER_CHANGED`
+("this TARAflow reads it differently — an update refreshes the stored state"), not a newer state
+(unpinned imports have no commit to rebuild — there the stored hash is all there is). Tag pattern:
+"newest" is by VERSION (`git tag --sort=-v:refname`): v1.10 after v1.9, and a tag set later on an
+older commit (a hotfix tag) is ordered by its version, not its date. Tested against real git repositories (temp dir: branch tip, layout-only
+commit, uncommitted edit, tag pattern, missing branch / file, no repository, unpinned, a clone behind
+its remote with and without fetch).
 *Patch 53 done (2026-11-09, review of patch 52):* claims cover a row TOGETHER. Patch 52 checked
 each cited claim alone against all open elements of the row, so two instances citing their claim
 (or a component claim beside one of the machine) each covered only part and none counted. Now the
@@ -1099,6 +1123,30 @@ impact, safety and goal findings stay the machine's.
 
 **Phase 5 — Change detection and update.** Drift check (content, tag pattern), update preview over
 all instances incl. new EE mappings, pairing, rollback.
+*Cut (user with the second instance, 2026-11-09):* everything DERIVED needs no migration on update
+(threats, effectiveness, crediting of the residual risk, matrix evidence recompute from the new
+snapshot); only the machine's STORED decisions per instance do. 5a drift, read-only (status per
+import: up to date / newer available / unreachable, info finding; first, because it is the only
+part with I/O — local path, foreign repo, tag pattern, unreachable source — to be tried early on
+real repositories). 5b delta, pure, no UI: old vs new snapshot, and for every stored machine
+decision the outcome — take over / to review / orphaned — from an INVENTORY that is a Record over all
+kinds of decision, each with its key and its rule (like FINDING_CLASS: a new kind of decision does
+not compile without an update rule). Inventory: EE mappings; WoO overlays per path and step;
+relevance overrides; factor ratings and overrides of imported risks; AoU status with evidence;
+measure overrides; cited claims; added security goals; the machine's A2A relations to component
+assets; impact of the instance assets; the instance quantity; the machine's treatment, measures,
+justification and acceptance on imported risks (with their tracker tickets — an orphaned risk with an
+open ticket needs its own line in the preview, "ticket ABC-123 loses its risk"); hazard links to
+instance assets; goals / claims of the machine naming imported risks (`R-<instance threat>`); the
+machine's own threats and risks on boundary flows (generated by the machine, victimRole, but their
+ids hang on the component's flow ids — a renamed or new flow orphans them). 5c preview and apply:
+one dialog over all instances (new EE mappings, pairing obsolete ↔ new for threats and paths, risks
+and decisions that go), applied as one change = one commit with the orphaned decisions in the commit
+message, repair of changed component pages. 5d rollback.
+*Decided 2026-11-09 (left to me by the user; recommended by both instances):* granularity — update
+per IMPORT (all instances at once; mixed states do not exist: a second import always uses the state
+already imported, `existingImportOf`); rollback — no second snapshot archive in the file: the update
+is one commit, `git revert` is the rollback, the app offers "discard update" while not saved.
 
 **Phase 6 — Audit and report.** AVE `component-import`, diff-service detail lines, report section
 per component, provenance in the tables.

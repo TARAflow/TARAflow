@@ -85,16 +85,18 @@ export interface ReadComponentSourceOptions {
   machineFilePath?: string;
 }
 
-/** Reads, checks and reduces a component TARA (design §4.1, §17 I1). */
-export async function readComponentSource(
-  filePath: string,
-  readFile: ComponentFileReader,
-  git: ComponentGitRunner,
-  options: ReadComponentSourceOptions = {},
-): Promise<ComponentSourceResult> {
+/** The checked, migrated snapshot of a component file's text (steps 1–3). */
+export type ComponentTextResult =
+  | { ok: true; project: Project; snapshot: ComponentSnapshot; contentHash: string; schemaVersion: number }
+  | ComponentSourceFailure;
+
+/**
+ * Steps 1–3 on a file's text: JSON of a TARAflow project, not too new,
+ * migrated twice to the same snapshot. Shared by the import and the drift
+ * check (phase 5a), so both read a state the same way.
+ */
+export function componentSnapshotOfText(text: string): ComponentTextResult {
   // 1. JSON of a TARAflow project
-  const text = await readFile(filePath);
-  if (text === null) return fail("not_found");
   let raw: unknown;
   try {
     raw = JSON.parse(text);
@@ -121,14 +123,27 @@ export async function readComponentSource(
   if (snapshotContentHash(buildComponentSnapshot(second)) !== contentHash) {
     return fail("not_deterministic");
   }
+  return { ok: true, project: first, snapshot, contentHash, schemaVersion };
+}
 
+/** Reads, checks and reduces a component TARA (design §4.1, §17 I1). */
+export async function readComponentSource(
+  filePath: string,
+  readFile: ComponentFileReader,
+  git: ComponentGitRunner,
+  options: ReadComponentSourceOptions = {},
+): Promise<ComponentSourceResult> {
+  const text = await readFile(filePath);
+  if (text === null) return fail("not_found");
+  const read = componentSnapshotOfText(text);
+  if (!read.ok) return read;
   return {
     ok: true,
-    project: first,
-    snapshot,
-    contentHash,
-    methodology: projectMethodologyFingerprint(first),
-    source: await sourceOf(filePath, schemaVersion, git, options),
+    project: read.project,
+    snapshot: read.snapshot,
+    contentHash: read.contentHash,
+    methodology: projectMethodologyFingerprint(read.project),
+    source: await sourceOf(filePath, read.schemaVersion, git, options),
   };
 }
 

@@ -30,6 +30,9 @@ function show(componentInfo?: {
   copySources?: { id: string; label: string }[];
   onCopyRatings?: (sourceId: string, options: { decisions: boolean; assetImpact: boolean; mode: "fill" | "overwrite" }) => void;
   renderExtra?: () => React.ReactNode;
+  drift?: { kind: "up_to_date" | "newer_available" | "unreachable"; text: string };
+  driftChecking?: boolean;
+  onCheckDrift?: (fetch: boolean) => void;
 }) {
   render(<DFDDetailsPanel open onToggle={() => {}} onClose={() => {}} element={mp} onChange={() => {}} elements={[mp]} componentInfo={componentInfo} />);
 }
@@ -43,6 +46,19 @@ describe("DFDDetailsPanel — imported component", () => {
     expect(section.textContent).toContain("tag sd/v1 · commit 01234567");
     fireEvent.click(screen.getByTestId("component-open"));
     expect(onOpen).toHaveBeenCalled();
+  });
+
+  it("phase 5a: the drift status, check and fetch-and-check (fetch only on request)", () => {
+    const onCheckDrift = vi.fn();
+    show({ name: "Smoke Detector", source: "commit 01234567", prefix: "SD1", drift: { kind: "newer_available", text: "Newer state available (sd/v2)" }, onCheckDrift });
+    expect(screen.getByTestId("component-drift-newer_available").textContent).toBe("Newer state available (sd/v2)");
+    fireEvent.click(screen.getByTestId("component-drift-check"));
+    expect(onCheckDrift).toHaveBeenLastCalledWith(false);
+    fireEvent.click(screen.getByTestId("component-drift-fetch"));
+    expect(onCheckDrift).toHaveBeenLastCalledWith(true);
+    cleanup();
+    show({ name: "Smoke Detector", source: "commit 01234567", prefix: "SD1", onCheckDrift, driftChecking: true });
+    expect((screen.getByTestId("component-drift-check") as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("no open button when the app cannot open it", () => {

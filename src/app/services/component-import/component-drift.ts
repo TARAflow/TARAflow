@@ -1,0 +1,189 @@
+// ==================== COMPONENT DRIFT ====================
+// Multi-project TARA phase 5a (design §9.1): is a newer state of an
+// imported component available? Read-only — nothing in the project changes;
+// an update is always an explicit action (phase 5c). Pure apart from the
+// injected git runner and file reader (Electron adapters in
+// component-source-electron.ts).
+//
+//   pinned import    the component TARA AS COMMITTED at the tip of its
+//                    branch (git show <branch>:<path>), never the working
+//                    copy — an uncommitted edit of the component team is
+//                    not a newer state. With a tag pattern the newest
+//                    matching tag instead (releases, not every commit).
+//                    `git fetch` only on request (then the remote branch).
+//   unpinned import  the file at its local path (remembered in
+//                    localStorage) — there is no branch to look at
+//
+// Content decides, not the commit: the state read is reduced to its
+// snapshot exactly as on import (componentSnapshotOfText) and compared by
+// the snapshot's content hash. A commit that changes only layout or other
+// files is not a newer state.
+//
+// A newer TARAflow may reduce a component differently (a new snapshot field,
+// a fix like patch 11) — then every stored hash differs although no
+// component changed (review 2026-11-09; I1 covers determinism within one
+// app, not across releases). For a pinned import the check therefore
+// rebuilds the IMPORTED commit with the running app too and compares the
+// two rebuilt states; when the imported commit's rebuilt hash differs from
+// the stored one, the app reads the component differently now
+// (`builderChanged`) — not a newer state of the component. An unpinned
+// import has no imported commit to rebuild: there the stored hash is all
+// there is.
+//
+// Tag pattern: "newest" is by VERSION (git tag --sort=-v:refname), so
+// v1.10 comes after v1.9 and a tag set later on an older commit (a hotfix
+// tag) is ordered by its version, not its date.
+
+import type { ComponentImport } from "shared";
+import {
+  componentSnapshotOfText,
+  type ComponentFileReader,
+  type ComponentGitRunner,
+} from "./component-source";
+
+export type ComponentDriftReason =
+  /** Where the component lies on this machine is not known (open it once via File → Open, or import again). */
+  | "path_unknown"
+  /** The local path is no git working copy (pinned import). */
+  | "no_repo"
+  /** Branch / tag not found (or the import has no branch — a detached commit). */
+  | "ref_missing"
+  /** The file is not at its path (in that state / on disk). */
+  | "file_missing"
+  /** The state cannot be read as a component TARA (invalid, schema too new, not deterministic). */
+  | "unreadable";
+
+export type ComponentDriftStatus =
+  | { kind: "up_to_date"; builderChanged?: boolean }
+  | { kind: "newer_available"; contentHash: string; commitSha?: string; tag?: string; builderChanged?: boolean }
+  | { kind: "unreachable"; reason: ComponentDriftReason; detail?: string };
+
+export interface ComponentDriftOptions {
+  /** `git fetch` first and look at the remote branch — only on request (design §9.1). */
+  fetch?: boolean;
+}
+
+function dirOf(path: string): string {
+  const i = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  return i > 0 ? path.slice(0, i) : ".";
+}
+
+/**
+ * Compares a state's text by content with the imported state: `baseline` is
+ * the imported commit rebuilt by the running app (pinned), else the stored
+ * hash.
+ */
+function compare(
+  text: string,
+  baseline: string,
+  at: { commitSha?: string; tag?: string } = {},
+  builderChanged = false,
+): ComponentDriftStatus {
+  const read = componentSnapshotOfText(text);
+  if (!read.ok) return { kind: "unreachable", reason: "unreadable", ...(read.detail ? { detail: read.detail } : { detail: read.error }) };
+  const changed = builderChanged ? { builderChanged: true } : {};
+  return read.contentHash === baseline
+    ? { kind: "up_to_date", ...changed }
+    : { kind: "newer_available", contentHash: read.contentHash, ...at, ...changed };
+}
+
+/** The drift of one import; `localPath` = where its component TARA lies here (resolveComponentPath). */
+export async function checkComponentDrift(
+  imported: ComponentImport,
+  localPath: string | undefined,
+  readFile: ComponentFileReader,
+  git: ComponentGitRunner,
+  options: ComponentDriftOptions = {},
+): Promise<ComponentDriftStatus> {
+  if (!localPath) return { kind: "unreachable", reason: "path_unknown" };
+  const source = imported.source;
+
+  if (source.unpinned) {
+    const text = await readFile(localPath);
+    return text === null ? { kind: "unreachable", reason: "file_missing" } : compare(text, imported.contentHash);
+  }
+
+  const top = await git(["rev-parse", "--show-toplevel"], dirOf(localPath));
+  if (top.code !== 0 || !top.stdout.trim()) return { kind: "unreachable", reason: "no_repo" };
+  const root = top.stdout.trim();
+  if (!source.path) return { kind: "unreachable", reason: "file_missing" };
+  if (options.fetch) {
+    const fetched = await git(["fetch", "--quiet", "--tags"], root);
+    if (fetched.code !== 0) return { kind: "unreachable", reason: "ref_missing", detail: fetched.stderr.trim() || "git fetch failed" };
+  }
+
+  // Which state: the newest tag of the pattern, else the branch tip.
+  let ref: string | undefined;
+  let tag: string | undefined;
+  if (source.tagPattern) {
+    const tags = await git(["tag", "--list", source.tagPattern, "--sort=-v:refname"], root);
+    tag = tags.code === 0 ? tags.stdout.split("\n").map((t) => t.trim()).find(Boolean) : undefined;
+    ref = tag;
+  } else if (source.branch) {
+    ref = source.branch;
+    if (options.fetch) {
+      const remote = await git(["rev-parse", "--verify", "--quiet", `origin/${source.branch}`], root);
+      if (remote.code === 0) ref = `origin/${source.branch}`;
+    }
+  }
+  if (!ref) return { kind: "unreachable", reason: "ref_missing" };
+  const sha = await git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], root);
+  if (sha.code !== 0) return { kind: "unreachable", reason: "ref_missing", detail: ref };
+  const commitSha = sha.stdout.trim();
+
+  // The imported commit rebuilt by the running app: the baseline. Unavailable
+  // (e.g. a shallow clone without it) → the stored hash.
+  let baseline = imported.contentHash;
+  let builderChanged = false;
+  if (source.commitSha) {
+    const then = await git(["show", `${source.commitSha}:${source.path}`], root);
+    const rebuilt = then.code === 0 ? componentSnapshotOfText(then.stdout) : undefined;
+    if (rebuilt?.ok) {
+      baseline = rebuilt.contentHash;
+      builderChanged = rebuilt.contentHash !== imported.contentHash;
+    }
+  }
+  if (commitSha === source.commitSha) return { kind: "up_to_date", ...(builderChanged ? { builderChanged: true } : {}) };
+  const shown = await git(["show", `${commitSha}:${source.path}`], root);
+  if (shown.code !== 0) return { kind: "unreachable", reason: "file_missing", detail: `${ref}:${source.path}` };
+  return compare(shown.stdout, baseline, { commitSha, ...(tag ? { tag } : {}) }, builderChanged);
+}
+
+// ==================== FINDINGS ====================
+
+type Finding = { key: string; elementId?: string; displayId?: string; params?: Record<string, string | number> };
+const KEY = (code: string) => `components.findings.${code}`;
+
+/**
+ * Info findings of the drift check (phase 5a): CMP_NEWER_STATE_AVAILABLE
+ * (where: tag / commit), CMP_SOURCE_UNREACHABLE (why),
+ * CMP_SNAPSHOT_BUILDER_CHANGED (this TARAflow reads the imported state
+ * differently — an update refreshes the stored state). Attached to the first
+ * instance's multiprocess. Never a warning: an older state is not wrong, and
+ * an unreachable source is the normal case on a machine without the
+ * component's checkout.
+ */
+export function componentDriftFindings(
+  project: { components?: { imports: readonly ComponentImport[]; instances: readonly { importId: string; multiprocessTfId: string }[] } | null; dfd?: { elements?: readonly { id: string; displayId?: string }[] } | null },
+  drift: ReadonlyMap<string, ComponentDriftStatus>,
+): Finding[] {
+  const components = project.components;
+  if (!components || drift.size === 0) return [];
+  const elements = new Map((project.dfd?.elements ?? []).map((e) => [e.id, e]));
+  return components.imports.flatMap((imported): Finding[] => {
+    const status = drift.get(imported.id);
+    if (!status) return [];
+    const mp = components.instances.find((i) => i.importId === imported.id)?.multiprocessTfId;
+    const at = mp && elements.has(mp) ? { elementId: mp, ...(elements.get(mp)!.displayId ? { displayId: elements.get(mp)!.displayId } : {}) } : {};
+    // The app reads the imported state differently now — not a newer state of the component.
+    const builder = status.kind !== "unreachable" && status.builderChanged
+      ? [{ key: KEY("CMP_SNAPSHOT_BUILDER_CHANGED"), ...at, params: { component: imported.name } }]
+      : [];
+    if (status.kind === "up_to_date") return builder;
+    if (status.kind === "newer_available") {
+      const where = status.tag ?? (status.commitSha ? status.commitSha.slice(0, 8) : "");
+      return [...builder, { key: KEY("CMP_NEWER_STATE_AVAILABLE"), ...at, params: { component: imported.name, where } }];
+    }
+    return [{ key: KEY("CMP_SOURCE_UNREACHABLE"), ...at, params: { component: imported.name, reason: status.reason } }];
+  });
+}

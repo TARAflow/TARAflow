@@ -8,6 +8,9 @@ import {
   readComponentSource,
   type ComponentSourceResult,
 } from "./component-source";
+import type { ComponentImport } from "shared";
+import { checkComponentDrift, type ComponentDriftOptions, type ComponentDriftStatus } from "./component-drift";
+import { resolveComponentPath } from "./component-paths";
 
 /** True when the main-process APIs the import needs are present. */
 export function componentImportAvailable(): boolean {
@@ -33,4 +36,16 @@ export function readComponentSourceFromDisk(
 ): Promise<ComponentSourceResult> {
   const io = createIpcFileIO();
   return readComponentSource(filePath, (p) => io.read(p), createIpcGitRunner(), { machineFilePath });
+}
+
+/** The drift check (phase 5a) with the Electron file reader and git runner. */
+export async function checkComponentDriftOnDisk(
+  imported: ComponentImport,
+  machineFilePath: string | undefined,
+  options: ComponentDriftOptions = {},
+): Promise<ComponentDriftStatus> {
+  const git = createIpcGitRunner();
+  const io = createIpcFileIO();
+  const localPath = await resolveComponentPath(imported.componentId, imported.source, machineFilePath, git);
+  return checkComponentDrift(imported, localPath, (p) => io.read(p), git, options);
 }

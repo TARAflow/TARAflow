@@ -46,6 +46,8 @@ import {
 import { withRelevanceOverride, type RelevanceDecision } from "../../services/component-import/relevance-overrides";
 import { withMeasureOverride } from "../../services/component-import/measure-overrides";
 import { withCitedClaim } from "../../services/component-import/cited-claims";
+import type { ComponentDrift } from "./use-component-drift";
+import type { ComponentDriftStatus } from "../../services/component-import/component-drift";
 import { withPathOverlay } from "../../services/component-import/path-overlays";
 import { componentAttackPathGroups } from "../../utils/component-attack-trees";
 import {
@@ -62,6 +64,28 @@ interface PendingImport {
   resolve: (outcome: ComponentInsertOutcome | null) => void;
 }
 
+/** The drift status in words (phase 5a). */
+function driftView(status: ComponentDriftStatus, t: (key: string, options?: Record<string, unknown>) => string) {
+  // This TARAflow reads the imported state differently (review 2026-11-09) — said, not hidden.
+  const builder = status.kind !== "unreachable" && status.builderChanged
+    ? ` · ${t("components.drift.builderChanged", { defaultValue: "this TARAflow reads it differently — an update refreshes the stored state" })}`
+    : "";
+  if (status.kind === "up_to_date") {
+    return { kind: status.kind, text: t("components.drift.upToDate", { defaultValue: "Up to date" }) + builder };
+  }
+  if (status.kind === "newer_available") {
+    const where = status.tag ?? (status.commitSha ? status.commitSha.slice(0, 8) : "");
+    return {
+      kind: status.kind,
+      text: t("components.drift.newer", { where, defaultValue: "Newer state available ({{where}}) — the update follows as an explicit step" }) + builder,
+    };
+  }
+  return {
+    kind: status.kind,
+    text: t(`components.drift.unreachable.${status.reason}`, { defaultValue: `Source not reachable (${status.reason})` }),
+  };
+}
+
 export interface UseComponentImportInput {
   /** The active project — for the details of its imported multiprocesses. */
   activeProject?: Project;
@@ -71,6 +95,8 @@ export interface UseComponentImportInput {
   activeProjectRef: MutableRefObject<Project | undefined>;
   updateProject: (patch: Partial<Project> & { id: string }) => Promise<void>;
   toast: Toast;
+  /** The drift status per import (phase 5a), for the details of an imported multiprocess. */
+  drift?: ComponentDrift;
 }
 
 export function useComponentImport({
@@ -80,6 +106,7 @@ export function useComponentImport({
   activeProjectRef,
   updateProject,
   toast,
+  drift,
 }: UseComponentImportInput) {
   const { t } = useTranslation("components");
   const [pending, setPending] = useState<PendingImport | null>(null);
@@ -205,6 +232,13 @@ export function useComponentImport({
         name: imported.name,
         prefix: instance.prefix,
         source: componentSourceLabel(imported.source),
+        ...(drift && componentImportAvailable()
+          ? {
+              ...(drift.drift.get(imported.id) ? { drift: driftView(drift.drift.get(imported.id)!, t) } : {}),
+              driftChecking: drift.checking,
+              onCheckDrift: drift.recheck,
+            }
+          : {}),
         quantity: quantityOf(instance),
         onSetQuantity: (n: number) => {
           const current = activeProjectRef.current;
@@ -281,7 +315,7 @@ export function useComponentImport({
           : {}),
       };
     },
-    [components, machineFilePath, openProjectFile, t, toast, activeProjectRef, updateProject],
+    [components, machineFilePath, openProjectFile, t, toast, activeProjectRef, updateProject, drift],
   );
 
   // Relevance override on an imported boundary-flow threat (I3) — written

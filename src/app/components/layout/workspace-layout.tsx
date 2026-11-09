@@ -95,6 +95,8 @@ import { usePhaseIndicators } from "app/hooks/workspace/use-phase-indicators";
 import { useClosedLoopData } from "app/hooks/workspace/use-closed-loop-data";
 import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 import { useComponentImport } from "app/hooks/workspace/use-component-import";
+import { useComponentDrift } from "app/hooks/workspace/use-component-drift";
+import { componentDriftFindings } from "app/services/component-import/component-drift";
 import { componentAssetGoals, componentLockedIds, findingOwner } from "app/services/component-import/component-scope";
 import { instanceClaims } from "app/services/component-import/cited-claims";
 import type { ComponentClaimChoice } from "features/compliance";
@@ -261,6 +263,8 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   // Multi-project TARA: "Import component TARA…" in the DFD tab (design v3 §5).
+  // Is a newer state of an imported component available (phase 5a, read-only)?
+  const componentDrift = useComponentDrift(activeProject);
   const componentImport = useComponentImport({
     activeProject,
     openProjectFile,
@@ -268,7 +272,14 @@ export const WorkspaceLayout: React.FC = () => {
     activeProjectRef,
     updateProject,
     toast,
+    drift: componentDrift,
   });
+  const dfdExternalFindings = useMemo(() => {
+    const drift = componentDriftFindings(activeProject ?? {}, componentDrift.drift);
+    const base = dfdData.componentDfdFindings;
+    if (drift.length === 0) return base;
+    return { errors: base?.errors ?? [], warnings: base?.warnings ?? [], infos: [...(base?.infos ?? []), ...drift] };
+  }, [activeProject, componentDrift.drift, dfdData.componentDfdFindings]);
 
   const { complianceStandards, matrixRequirements, complianceView } = useComplianceView(
     activeProject,
@@ -388,7 +399,7 @@ export const WorkspaceLayout: React.FC = () => {
               threatCountOf={handlers.threatCountLookup}
               onImportComponent={componentImport.runner}
               importedMultiprocessIds={dfdData.componentMultiprocessIds}
-              externalFindings={dfdData.componentDfdFindings}
+              externalFindings={dfdExternalFindings}
               componentInfoOf={componentImport.componentInfoOf}
               findingOwnerOf={findingOwnerOf}
               lockedBy={lockedBy}

@@ -50,6 +50,9 @@
       "applyFailed": "Die Komponente konnte nicht importiert werden: {{message}}"
     },
     "findings": {
+      "CMP_NEWER_STATE_AVAILABLE": "Komponente {{component}}: ein neuerer Stand ist verfügbar ({{where}}). Nichts ändert sich, bis er explizit übernommen wird (Update).",
+      "CMP_SNAPSHOT_BUILDER_CHANGED": "Komponente {{component}}: dieses TARAflow liest den importierten Stand anders als die Version, die ihn importiert hat — die Komponente selbst hat sich nicht geändert. Ein Update frischt den gespeicherten Stand auf.",
+      "CMP_SOURCE_UNREACHABLE": "Komponente {{component}}: ob es einen neueren Stand gibt, lässt sich hier nicht prüfen ({{reason}}).",
       "CMP_SOURCE_UNPINNED": "Komponente {{component}} ist ungebunden importiert ({{reason}}) — nur ihr Inhalt kennzeichnet den Stand. Für eine auditierte TARA einen committeten Stand importieren.",
       "CMP_INSTANCE_ORPHANED": "Komponenten-Instanz {{prefix}} ({{component}}) hat keinen Multiprozess im DFD — Instanz löschen oder die Komponente erneut importieren.",
       "CMP_FLOW_NOT_IN_COMPONENT": "{{flow}} hängt an der importierten Komponente {{prefix}} ({{component}}), ist aber keine ihrer Schnittstellen — die Komponenten-TARA deckt ihn nicht ab. Schnittstelle in der Komponenten-TARA ergänzen und aktualisieren oder den Flow anders anschliessen.",
@@ -79,6 +82,20 @@
       "quantity": "Anzahl (gleiche Einheiten, gleicher Ort)",
       "copyRatings": "Bewertung von anderer Instanz übernehmen…",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
+    },
+    "drift": {
+      "check": "Prüfen",
+      "fetch": "Fetch und prüfen",
+      "builderChanged": "dieses TARAflow liest ihn anders — ein Update frischt den gespeicherten Stand auf",
+      "upToDate": "Aktuell",
+      "newer": "Neuerer Stand verfügbar ({{where}}) — das Update folgt als expliziter Schritt",
+      "unreachable": {
+        "path_unknown": "Nicht geprüft — wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt (einmal über Datei → Öffnen öffnen)",
+        "no_repo": "Nicht geprüft — ihr Ordner ist keine git-Arbeitskopie",
+        "ref_missing": "Nicht geprüft — Branch oder Tag nicht gefunden (fetch, oder Quelle prüfen)",
+        "file_missing": "Nicht geprüft — die Datei liegt nicht an ihrem Pfad",
+        "unreadable": "Nicht geprüft — dieser Stand lässt sich nicht als Komponenten-TARA lesen"
+      }
     },
     "owner": {
       "label": "Komponente {{prefix}}",

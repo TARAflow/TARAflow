@@ -409,6 +409,30 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo }> = ({ info 
       <Typography variant="caption" color="text.secondary" display="block">
         {info.source}
       </Typography>
+      {/* Newer state of the component? (phase 5a, read-only — an update is an explicit action) */}
+      {(info.drift || info.onCheckDrift) && (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mt: 0.5 }} data-testid="component-drift">
+          {info.drift && (
+            <Typography
+              variant="caption"
+              color={info.drift.kind === "newer_available" ? "info.main" : "text.secondary"}
+              data-testid={`component-drift-${info.drift.kind}`}
+            >
+              {info.drift.text}
+            </Typography>
+          )}
+          {info.onCheckDrift && (
+            <>
+              <Button size="small" sx={{ px: 0.5, minWidth: 0 }} disabled={info.driftChecking} onClick={() => info.onCheckDrift!(false)} data-testid="component-drift-check">
+                {t("components.drift.check", { ns: "components", defaultValue: "Check" })}
+              </Button>
+              <Button size="small" sx={{ px: 0.5, minWidth: 0 }} disabled={info.driftChecking} onClick={() => info.onCheckDrift!(true)} data-testid="component-drift-fetch">
+                {t("components.drift.fetch", { ns: "components", defaultValue: "Fetch and check" })}
+              </Button>
+            </>
+          )}
+        </Box>
+      )}
       {/* Identical units in the same installation context (I5) */}
       {info.onSetQuantity ? (
         <TextField
