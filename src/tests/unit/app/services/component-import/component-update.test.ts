@@ -11,7 +11,7 @@ import { applyComponentUpdate } from "app/services/component-import/component-up
 import { snapshotContentHash } from "app/services/component-import/snapshot-builder";
 import { withRelevanceOverride } from "app/services/component-import/relevance-overrides";
 import { openReviews, reviewKey, DECISION_KINDS } from "app/services/component-import/update-inventory";
-import { componentInstanceTfId } from "features/dfd";
+import { componentInstanceTfId, instanceAssetId } from "features/dfd";
 import { generateRiskId } from "features/risks";
 import { component, machine, tid } from "../../../../fixtures/component-treatment-machine";
 
@@ -128,5 +128,55 @@ describe("applyComponentUpdate (phase 5c)", () => {
       updatedAt: "t",
     });
     expect(mapped.project.components!.instances[0].eeMapping).toContainEqual({ componentEeId: "EE-NEW", machineTfId: "m_plc" });
+  });
+
+  it("a boundary flow renamed (review of 59): without pairing the machine's threat on it goes; paired it moves with its risk, to review", () => {
+    const base = decided();
+    const ees = new Set(snap(base).dfd!.elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+    const flow = snap(base).dfd!.connections.find((c) => ees.has(c.from) !== ees.has(c.to))!;
+    const flowTf = componentInstanceTfId("i1", flow.id);
+    const p = {
+      ...base,
+      threats: { perElementTables: [], perInteractionTables: [{ threats: [{ id: "mt1", strideCategory: "T", threatDescription: "x", dataFlow: { connectionId: flowTf } }] }] },
+      risks: { ...base.risks!, risks: [...base.risks!.risks, { ...base.risks!.risks[0], id: "R-mt1", threatId: "mt1", selectedMitigations: [{ id: "M-T-9", status: "planned", ticketId: "ABC-7" }] }] },
+    } as unknown as Project;
+    const next = edit(snap(p), (s) => {
+      for (const c of s.dfd!.connections) if (c.id === flow.id) c.id = "flow-new";
+    });
+    const dropped = update(p, next);
+    expect(dropped.project.risks!.risks.some((r) => r.threatId === "mt1")).toBe(false);
+    expect(dropped.commitLines.some((l) => l.includes("boundaryThreat") && l.includes("dropped"))).toBe(true);
+    const moved = update(p, next, { flows: { [flow.id]: "flow-new" } });
+    const threat = moved.project.threats!.perInteractionTables[0].threats.find((t) => t.id === "mt1") as unknown as { dataFlow: { connectionId: string } };
+    expect(threat.dataFlow.connectionId).toBe(componentInstanceTfId("i1", "flow-new"));
+    expect(moved.project.risks!.risks.find((r) => r.threatId === "mt1")!.selectedMitigations).toEqual([{ id: "M-T-9", status: "planned", ticketId: "ABC-7" }]);
+    expect(moved.project.components!.instances[0].reviewBasis?.[reviewKey("boundaryThreat", "flow-new")]).toMatch(/^paired:/);
+  });
+
+  it("a removed asset: the machine's hazard links and A2A relations to it are named in the commit lines (review of 59)", () => {
+    const base = decided();
+    const asset = snap(base).assets[0];
+    const assetTf = instanceAssetId("i1", asset.id);
+    const p = {
+      ...base,
+      assets: {
+        assets: [
+          { id: assetTf, displayId: "SD1:A-04", name: asset.name, assetGroup: asset.assetGroup, securityGoals: [], impactRatings: [], linkedDFDElements: [], properties: {}, importedFrom: "SD1 · Smoke Detector" },
+          { id: "m-a", displayId: "A-01", name: "Quality log", assetGroup: "data", securityGoals: [], impactRatings: [], linkedDFDElements: [], properties: {} },
+        ],
+        relations: [{ id: "rel-m", sourceAssetId: "m-a", targetAssetId: assetTf, relationType: "depends_on" }],
+        configuration: { impactCriteria: [] },
+      },
+      hazards: { hazards: [{ id: "H-3", label: "Fire not detected" }], relations: [{ type: "endangers", from: "H-3", to: assetTf }] },
+    } as unknown as Project;
+    const next = edit(snap(p), (s) => {
+      s.assets = s.assets.filter((a) => a.id !== asset.id);
+      if (s.dfd?.assets) s.dfd.assets = s.dfd.assets.filter((a) => a.id !== asset.id);
+    });
+    const r = update(p, next);
+    expect(r.commitLines).toContain("SD1 · Smoke Detector: hazard Fire not detected loses its link to SD1:A-04");
+    expect(r.commitLines).toContain("SD1 · Smoke Detector: relation A-01 → SD1:A-04 (depends_on) removed");
+    expect(r.project.assets!.assets.some((a) => a.id === assetTf)).toBe(false);
+    expect((r.project.hazards?.relations ?? []).some((x) => (x as { to: string }).to === assetTf)).toBe(false);
   });
 });

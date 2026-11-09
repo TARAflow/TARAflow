@@ -53,6 +53,12 @@ export interface ComponentUpdatePairing {
   threats?: Readonly<Record<string, string>>;
   /** Obsolete "tree|pathKey" → new "tree|pathKey". */
   paths?: Readonly<Record<string, string>>;
+  /**
+   * Obsolete boundary flow id → new one (review of patch 59): the machine's
+   * own threats on it (victimRole) move with their risks, ratings, measures
+   * and tickets instead of being dropped.
+   */
+  flows?: Readonly<Record<string, string>>;
 }
 
 export interface ComponentUpdateInput {
@@ -99,6 +105,7 @@ function pairedKey(kind: DecisionKind, key: string, pairing: ComponentUpdatePair
   const threats = pairing.threats ?? {};
   const paths = pairing.paths ?? {};
   if (kind === "relevanceOverride") return threats[key];
+  if (kind === "boundaryThreat") return pairing.flows?.[key];
   if (kind === "riskRating" || kind === "riskTreatment" || kind === "conceptRiskRef") {
     const [k, a, b, c] = key.split("|");
     if (k === "threat" && threats[a]) return `threat|${threats[a]}`;
@@ -346,9 +353,42 @@ export function applyComponentUpdate(input: ComponentUpdateInput): ComponentUpda
     }
   }
 
-  // ── the machine's own threats on removed boundary flows ────────────────
+  // ── the machine's own threats on boundary flows: paired ones move ──────
+  // (their ids stay — only the flow they name changes —, so their risks,
+  // ratings, measures and tickets stay with them), on removed ones they go
+  const flowMoves = new Map<string, string>();
+  for (const s of summaries) {
+    for (const pr of s.paired.filter((x) => x.kind === "boundaryThreat")) {
+      flowMoves.set(componentInstanceTfId(s.instanceId, pr.from), componentInstanceTfId(s.instanceId, pr.to));
+    }
+  }
+  if (flowMoves.size > 0 && project.threats) {
+    const move = <T extends { threats: unknown[] }>(tables: T[]) =>
+      tables.map((t) => ({
+        ...t,
+        threats: t.threats.map((th) => {
+          const x = th as { dataFlow?: { connectionId?: string } | null; linkedElement?: { elementId?: string } | null };
+          const flow = flowMoves.get(x.dataFlow?.connectionId ?? "");
+          const element = flowMoves.get(x.linkedElement?.elementId ?? "");
+          if (!flow && !element) return th;
+          return {
+            ...(th as object),
+            ...(flow ? { dataFlow: { ...x.dataFlow, connectionId: flow } } : {}),
+            ...(element ? { linkedElement: { ...x.linkedElement, elementId: element } } : {}),
+          } as typeof th;
+        }),
+      }));
+    project = {
+      ...project,
+      threats: {
+        ...project.threats,
+        perElementTables: move(project.threats.perElementTables ?? []),
+        perInteractionTables: move(project.threats.perInteractionTables ?? []),
+      },
+    };
+  }
   const goneFlows = new Set(
-    instances.flatMap((i) => delta.flows.removed.map((f) => componentInstanceTfId(i.id, f))),
+    instances.flatMap((i) => delta.flows.removed.map((f) => componentInstanceTfId(i.id, f))).filter((id) => !flowMoves.has(id)),
   );
   if (goneFlows.size > 0 && project.threats) {
     const onGone = (t: unknown) => {
@@ -397,9 +437,39 @@ export function applyComponentUpdate(input: ComponentUpdateInput): ComponentUpda
   project = { ...project, components: nextComponents };
 
   // ── commit message lines: what the update dropped ──────────────────────
+  // Hazard links and the machine's A2A relations of a removed asset are named
+  // one by one (review of patch 59): purgeAssetFromProject removes them, the
+  // inventory knows them as the machine's decisions — they must not vanish
+  // silently.
+  const before = input.project;
+  const assetLabel = (id: string) => {
+    const a = before.assets?.assets.find((x) => x.id === id);
+    return a?.displayId ?? a?.name ?? id;
+  };
+  const hazardLabel = (id: string) => {
+    const h = before.hazards?.hazards.find((x) => x.id === id);
+    return h ? `${h.label}` : id;
+  };
   const commitLines: string[] = [];
   for (const s of summaries) {
     for (const d of s.decisions.filter((x) => x.outcome === "orphaned")) {
+      if (d.kind === "hazardLink") {
+        const assetId = instanceAssetId(s.instanceId, d.key);
+        for (const r of before.hazards?.relations ?? []) {
+          const [hazard, asset] = r.type === "contributes_to" ? [r.to, r.from] : [r.from, r.to];
+          if (asset === assetId) commitLines.push(`${s.label}: hazard ${hazardLabel(hazard)} loses its link to ${assetLabel(assetId)}`);
+        }
+        continue;
+      }
+      if (d.kind === "a2aRelation") {
+        const assetId = instanceAssetId(s.instanceId, d.key);
+        const own = new Set((oldSnap.assetRelations ?? []).map((r) => componentInstanceTfId(s.instanceId, `rel|${r.id}`)));
+        for (const r of before.assets?.relations ?? []) {
+          if (own.has(r.id) || (r.sourceAssetId !== assetId && r.targetAssetId !== assetId)) continue;
+          commitLines.push(`${s.label}: relation ${assetLabel(r.sourceAssetId)} → ${assetLabel(r.targetAssetId)} (${r.relationType}) removed`);
+        }
+        continue;
+      }
       commitLines.push(`${s.label}: ${d.kind} ${d.key} dropped${d.ticketIds?.length ? ` (ticket ${d.ticketIds.join(", ")} loses its risk)` : ""}`);
     }
     for (const p of s.paired) commitLines.push(`${s.label}: ${p.kind} ${p.from} → ${p.to} (to review)`);
