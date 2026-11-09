@@ -496,7 +496,13 @@ export const WorkspaceLayout: React.FC = () => {
             riskExtraSection={(risk) => {
               // The component's treatment of an imported risk (phase 3a, §7.4).
               const tr = componentTreatmentMap.get(risk.threatId);
-              return tr ? <ComponentTreatmentSection view={{ ...tr, decided: machineDecided(risk) }} /> : null;
+              return tr ? (
+                <ComponentTreatmentSection
+                  view={{ ...tr, decided: machineDecided(risk) }}
+                  // "Not effective here" (phase 3d-2b) — per instance, for every risk relying on the measure.
+                  onOverride={(measureId, rationale) => componentImport.overrideMeasure(tr.instanceId, measureId, rationale)}
+                />
+              ) : null;
             }}
           />
         )}

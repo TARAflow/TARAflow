@@ -487,7 +487,8 @@
           "pending": "noch nicht umgesetzt",
           "aou_open": "{{ref}} offen",
           "aou_not_fulfilled": "{{ref}} nicht erfüllt",
-          "aou_invalid_in_component": "{{ref}} in der Komponente ungültig"
+          "aou_invalid_in_component": "{{ref}} in der Komponente ungültig",
+          "overridden_here": "hier als nicht wirksam markiert: {{ref}}"
         }
       },
       "iso": {

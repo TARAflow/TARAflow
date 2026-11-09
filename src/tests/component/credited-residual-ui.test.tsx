@@ -105,5 +105,10 @@ describe("ticket text", () => {
     expect(text).toContain("Before: 9.0 | After: 2.0");
     expect(text).toContain("_Residual risk currently not credited: M-C-012 (SD2 · Smoke Detector): ASM-03 not fulfilled_");
     expect(buildTicketDescription(risk(), { id: "M-1", status: "planned" } as never, "Sign frames")).not.toContain("not credited");
+    // 3d-2b: the machine's mark carries its rationale
+    const marked = buildTicketDescription(risk(), { id: "M-1", status: "planned" } as never, "Sign frames", [
+      { ...blocker, causes: [{ kind: "overridden_here", ref: "stripped by the gateway" }] },
+    ]);
+    expect(marked).toContain("M-C-012 (SD2 · Smoke Detector): marked not effective here: stripped by the gateway");
   });
 });

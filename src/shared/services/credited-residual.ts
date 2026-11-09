@@ -20,7 +20,7 @@
 /** Why a measure does not hold: a kind ("pending", "aou_open", "aou_not_fulfilled", "aou_invalid_in_component", …) and what it refers to. */
 export interface ResidualCause {
   kind: string;
-  /** e.g. the assumption's display id "ASM-03". */
+  /** e.g. the assumption's display id "ASM-03"; the machine's rationale for "overridden_here". */
   ref?: string;
 }
 

@@ -22,7 +22,13 @@
 //   unclear        not implemented yet (a later component release), or an
 //                  assumption it relies on is still open here
 // A rejected measure is no choice and counts neither way. Shown at the
-// measure; phase 3d-2 makes the residual risk depend on it.
+// measure; phase 3d-2a makes the residual risk depend on it.
+//
+// Machine override (phase 3d-2b, I7 (5)): the machine may mark a measure
+// "not effective here" in an instance (ComponentInstance.measureOverrides,
+// rationale mandatory) — downgrade only; it makes the measure not effective
+// with the reason "overridden_here", exactly like an assumption not
+// fulfilled, so the residual risk is not credited.
 //
 // Keyed by the instance's threat id (the machine risk's threatId). A risk of
 // the component on an attack-path threat (ISO/SAE 21434) is keyed by the
@@ -50,9 +56,11 @@ export type MeasureEffectiveness = "effective" | "not_effective" | "unclear";
 
 /** Why a measure is not (or not yet) effective in an instance. */
 export interface EffectivenessReason {
-  kind: "pending" | "aou_open" | "aou_not_fulfilled" | "aou_invalid_in_component";
+  kind: "pending" | "aou_open" | "aou_not_fulfilled" | "aou_invalid_in_component" | "overridden_here";
   /** The assumption's display id (aou_*). */
   assumption?: string;
+  /** The machine's rationale (overridden_here). */
+  rationale?: string;
 }
 
 export interface ComponentMeasure {
@@ -67,6 +75,8 @@ export interface ComponentMeasure {
   effectiveness?: MeasureEffectiveness;
   /** Why not effective / unclear. */
   reasons?: EffectivenessReason[];
+  /** Marked "not effective here" by the machine (3d-2b). */
+  override?: { rationale: string; date: string };
 }
 
 export interface ComponentTreatment {
@@ -108,6 +118,7 @@ export function componentTreatments(project: Pick<Project, "components">): Map<s
     const label = instanceLabel(instance, imported.name);
     const relying = (id: string | undefined) => (id ? (snapshot.assumptions ?? []).filter((a) => a.mitigationIds?.includes(id)) : []);
     const aouStatus = new Map((instance.assumptions ?? []).map((a) => [a.assumptionId, a.status]));
+    const overrides = new Map((instance.measureOverrides ?? []).map((o) => [o.measureId, o]));
     for (const risk of snapshot.risks) {
       const measures = risk.selectedMitigations
         .filter((m) => m.status !== undefined)
@@ -115,7 +126,8 @@ export function componentTreatments(project: Pick<Project, "components">): Map<s
           const text = (m.id && own.get(m.id)) || (m.id ? resolveMitigationDrafts([{ id: m.id }])[0]?.text : "") || m.notes || m.id || "";
           const relies = relying(m.id);
           const state = measureState(m.status);
-          const verdict = state === "rejected" ? undefined : effectivenessOf(state, relies, aouStatus);
+          const override = m.id ? overrides.get(m.id) : undefined;
+          const verdict = state === "rejected" ? undefined : effectivenessOf(state, relies, aouStatus, override);
           return {
             ...(m.id ? { id: m.id } : {}),
             text,
@@ -123,6 +135,7 @@ export function componentTreatments(project: Pick<Project, "components">): Map<s
             state,
             ...(relies.length > 0 ? { reliesOn: relies.map((a) => a.displayId) } : {}),
             ...(verdict ? { effectiveness: verdict.effectiveness, ...(verdict.reasons.length > 0 ? { reasons: verdict.reasons } : {}) } : {}),
+            ...(override && state !== "rejected" ? { override: { rationale: override.rationale, date: override.date } } : {}),
           };
         });
       const claims = (snapshot.concept?.claims ?? [])
@@ -189,7 +202,10 @@ export function uncreditedResiduals(
               measure: m.id ?? m.text,
               context: tr.instanceLabel,
               state: m.effectiveness,
-              causes: (m.reasons ?? []).map((r) => ({ kind: r.kind, ...(r.assumption ? { ref: r.assumption } : {}) })),
+              causes: (m.reasons ?? []).map((r) => {
+                const ref = r.assumption ?? r.rationale;
+                return { kind: r.kind, ...(ref ? { ref } : {}) };
+              }),
             },
           ]
         : [],
@@ -204,8 +220,10 @@ export function effectivenessOf(
   state: Exclude<ComponentMeasureState, "rejected">,
   relies: readonly { id: string; displayId: string; status: string }[],
   aouStatus: ReadonlyMap<string, string>,
+  override?: { rationale: string },
 ): { effectiveness: MeasureEffectiveness; reasons: EffectivenessReason[] } {
   const reasons: EffectivenessReason[] = [];
+  if (override) reasons.push({ kind: "overridden_here", rationale: override.rationale });
   for (const a of relies) {
     if (a.status === "invalid") reasons.push({ kind: "aou_invalid_in_component", assumption: a.displayId });
     const here = aouStatus.get(a.id) ?? "open";
@@ -213,7 +231,9 @@ export function effectivenessOf(
     else if (here === "open") reasons.push({ kind: "aou_open", assumption: a.displayId });
   }
   if (state === "pending") reasons.unshift({ kind: "pending" });
-  const effectiveness: MeasureEffectiveness = reasons.some((r) => r.kind === "aou_not_fulfilled" || r.kind === "aou_invalid_in_component")
+  const effectiveness: MeasureEffectiveness = reasons.some(
+    (r) => r.kind === "aou_not_fulfilled" || r.kind === "aou_invalid_in_component" || r.kind === "overridden_here",
+  )
     ? "not_effective"
     : reasons.length > 0
       ? "unclear"

@@ -65,6 +65,49 @@ describe("ComponentTreatmentSection", () => {
   });
 });
 
+describe("ComponentTreatmentSection — not effective here (phase 3d-2b)", () => {
+  const view = (override?: { rationale: string; date: string }) => ({
+    instanceLabel: "SD1 · Smoke Detector",
+    treatment: "reduce",
+    measures: [
+      {
+        id: "M-S-001", text: "Authenticate the bus", status: "implemented", state: "implemented" as const,
+        ...(override
+          ? { effectiveness: "not_effective" as const, reasons: [{ kind: "overridden_here" as const, rationale: override.rationale }], override }
+          : { effectiveness: "effective" as const }),
+      },
+      { id: "M-X-002", text: "Dropped", status: "rejected", state: "rejected" as const },
+    ],
+    claims: [],
+    handedOver: false,
+  });
+
+  it("marks with a mandatory rationale", () => {
+    const onOverride = vi.fn();
+    render(<ComponentTreatmentSection view={view()} onOverride={onOverride} />);
+    // a rejected measure is no choice — nothing to mark
+    expect(screen.queryByTestId("component-treatment-override-start-M-X-002")).toBeNull();
+    fireEvent.click(screen.getByTestId("component-treatment-override-start-M-S-001"));
+    const save = screen.getByTestId("component-treatment-override-save-M-S-001") as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.change(screen.getByTestId("component-treatment-override-rationale-M-S-001"), { target: { value: "  stripped by the gateway " } });
+    fireEvent.click(save);
+    expect(onOverride).toHaveBeenCalledWith("M-S-001", "stripped by the gateway");
+  });
+
+  it("a marked measure shows the rationale and can be withdrawn; read-only without the callback", () => {
+    const onOverride = vi.fn();
+    render(<ComponentTreatmentSection view={view({ rationale: "stripped", date: "2026-11-09" })} onOverride={onOverride} />);
+    expect(screen.getByTestId("component-treatment-effect-M-S-001").textContent).toBe("not effective here: marked not effective here");
+    expect(screen.getByTestId("component-treatment-override-M-S-001").textContent).toContain("Marked not effective here (2026-11-09): stripped");
+    fireEvent.click(screen.getByTestId("component-treatment-override-withdraw-M-S-001"));
+    expect(onOverride).toHaveBeenCalledWith("M-S-001", null);
+    cleanup();
+    render(<ComponentTreatmentSection view={view()} />);
+    expect(screen.queryByTestId("component-treatment-override-start-M-S-001")).toBeNull();
+  });
+});
+
 describe("RiskDialog — extra section slot", () => {
   it("renders the app's section above the risk's mitigations", () => {
     const risk = {

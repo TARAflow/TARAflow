@@ -41,6 +41,13 @@
 //   CMP_MEASURE_UNCLEAR (warning)  … unclear here because an assumption it
 //                                  relies on is still open (a measure only
 //                                  pending is CMP_MEASURE_PENDING)
+//   CMP_MEASURE_OVERRIDDEN         phase 3d-2b, I7 (5): component measures
+//                    (warning)     this machine marked "not effective here"
+//                                  — residual not credited; the signal to
+//                                  the component team (an AoU is missing)
+//   CMP_MEASURE_OVERRIDE_UNKNOWN   an override naming a measure the
+//                    (warning)     component no longer chooses (e.g. after
+//                                  an update) — it acts on nothing
 //   CMP_ACCEPTANCE_TO_REVIEW       phase 3d-2a, I7 (4): an accepted imported
 //                    (warning)     risk whose residual risk is not credited
 //                                  (a component measure not effective /
@@ -75,6 +82,7 @@ import { componentPathRatingGaps } from "../../utils/component-attack-trees";
 import { componentTreatments, machineDecided, uncreditedResiduals } from "../../utils/component-treatments";
 import { acceptanceToReview } from "shared";
 import { assumptionGaps } from "./assumption-status";
+import { unknownMeasureOverrides } from "./measure-overrides";
 
 export interface ComponentFindings {
   errors: ValidationFinding[];
@@ -151,6 +159,7 @@ export function componentFindings(
       let pending = 0;
       let handover = 0;
       const toReview: string[] = [];
+      const overridden = new Set<string>();
       const notEffective = new Map<string, Set<string>>();
       const unclear = new Map<string, Set<string>>();
       const note = (into: Map<string, Set<string>>, measure: string, assumptions: (string | undefined)[]) => {
@@ -169,7 +178,9 @@ export function componentFindings(
         if (tr.measures.some((m) => m.state === "pending")) pending++;
         for (const m of tr.measures) {
           const label = m.id ?? m.text;
-          if (m.effectiveness === "not_effective") {
+          if (m.override) overridden.add(label);
+          const aouCause = (m.reasons ?? []).some((r) => r.kind === "aou_not_fulfilled" || r.kind === "aou_invalid_in_component");
+          if (m.effectiveness === "not_effective" && aouCause) {
             note(notEffective, label, (m.reasons ?? []).filter((r) => r.kind === "aou_not_fulfilled" || r.kind === "aou_invalid_in_component").map((r) => r.assumption));
           } else if (m.effectiveness === "unclear" && (m.reasons ?? []).some((r) => r.kind === "aou_open")) {
             note(unclear, label, (m.reasons ?? []).filter((r) => r.kind === "aou_open").map((r) => r.assumption));
@@ -182,6 +193,11 @@ export function componentFindings(
       if (handover > 0) out.warnings.push({ key: KEY("CMP_HANDOVER_OPEN"), params: { ...params, count: handover } });
       if (notEffective.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_NOT_EFFECTIVE"), params: { ...params, list: listOf(notEffective) } });
       if (unclear.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_UNCLEAR"), params: { ...params, list: listOf(unclear) } });
+      if (overridden.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_OVERRIDDEN"), params: { ...params, list: [...overridden].join(", ") } });
+      if (imported) {
+        const unknown = unknownMeasureOverrides(instance, imported);
+        if (unknown.length > 0) out.warnings.push({ key: KEY("CMP_MEASURE_OVERRIDE_UNKNOWN"), params: { ...params, list: unknown.join(", ") } });
+      }
       if (toReview.length > 0) out.warnings.push({ key: KEY("CMP_ACCEPTANCE_TO_REVIEW"), params: { ...params, list: toReview.join(", ") } });
     }
 

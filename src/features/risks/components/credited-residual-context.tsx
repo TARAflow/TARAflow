@@ -50,6 +50,7 @@ const CAUSE_FALLBACK: Record<string, string> = {
   aou_open: "{{ref}} open",
   aou_not_fulfilled: "{{ref}} not fulfilled",
   aou_invalid_in_component: "{{ref}} invalid in the component",
+  overridden_here: "marked not effective here: {{ref}}",
 };
 
 /** "M-C-012 (SD2 · Smoke Detector): ASM-03 open" per blocker, in the UI language. */

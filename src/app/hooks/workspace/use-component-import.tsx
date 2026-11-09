@@ -43,6 +43,7 @@ import {
   machineElementOptions,
 } from "../../services/component-import/import-flow";
 import { withRelevanceOverride, type RelevanceDecision } from "../../services/component-import/relevance-overrides";
+import { withMeasureOverride } from "../../services/component-import/measure-overrides";
 import { withPathOverlay } from "../../services/component-import/path-overlays";
 import { componentAttackPathGroups } from "../../utils/component-attack-trees";
 import {
@@ -244,10 +245,11 @@ export function useComponentImport({
             t("components.copy.done", {
               factors: c.factors,
               overrides: c.relevanceOverrides,
+              measures: c.measureOverrides,
               assumptions: c.assumptions,
               windows: c.pathOverlays,
               impact: c.assetRatings,
-              defaultValue: "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{windows}} window(s) of opportunity, {{assumptions}} assumption status(es), {{impact}} asset impact rating(s).",
+              defaultValue: "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{measures}} measure(s) marked not effective here, {{windows}} window(s) of opportunity, {{assumptions}} assumption status(es), {{impact}} asset impact rating(s).",
             }),
           );
         },
@@ -284,6 +286,18 @@ export function useComponentImport({
     [activeProjectRef, updateProject],
   );
 
+  // "Not effective here" on a component measure (phase 3d-2b, I7 (5)) —
+  // written into the instance; the audit diff detects it with the instance.
+  const overrideMeasure = useCallback(
+    (instanceId: string, measureId: string, rationale: string | null) => {
+      const current = activeProjectRef.current;
+      if (!current?.components) return;
+      const components = withMeasureOverride(current.components, instanceId, measureId, rationale, new Date().toISOString().slice(0, 10));
+      void updateProject({ id: current.id, components });
+    },
+    [activeProjectRef, updateProject],
+  );
+
   // ISO: the machine's window of opportunity per component attack path (patch 17).
   const setPathWindow = useCallback(
     (instanceId: string, treeKey: string, pathKey: string, window: "unlimited" | "easy" | "moderate" | "difficult" | null, leafId?: string) => {
@@ -303,6 +317,7 @@ export function useComponentImport({
 
   return {
     overrideRelevance,
+    overrideMeasure,
     setPathWindow,
     attackPathGroups,
     /** For the DFD tab; undefined outside Electron (design §2: no browser mode). */

@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), next 3d-2b (machine override) (measures and assumptions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43) — phase 3 complete; next phase 4 (ownership, matrix, read-only asset lock)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -748,6 +748,21 @@ values (editing the after-values, the audit diff, serialisation); a source guard
 single-writer guard of prepare-for-disk) allows direct reads of `calculatedRiskAfterMitigation` only
 from an allow list. "Acceptance to review" is derived, not stored (user 2026-11-08): it disappears by
 itself once the residual risk counts again.
+*Patch 43 done (2026-11-09, phase 3d-2b):* the machine override (I7 (5)).
+`ComponentInstance.measureOverrides` ({measureId, rationale, date}; optional, no schema bump — absent
+means none): the machine marks a component measure "not effective here" per instance — downgrade only,
+rationale mandatory, withdrawn the same way (`withMeasureOverride`). Keyed by the measure id, so it
+acts on every risk of the instance relying on that measure; free-text measures (no id) and rejected
+ones cannot be marked. The treatments read model makes a marked measure not effective with the reason
+`overridden_here` (the rationale) — so 3d-2a does the rest: the residual risk is not credited, the
+banner, the report note and the ticket text name the rationale. Edited in the component's treatment
+section of the risk dialog ("Not effective here…", rationale field, "Withdraw"). Findings
+`CMP_MEASURE_OVERRIDDEN` (warning: the signal to the component team that an AoU is missing; an
+overridden measure no longer also counts under `CMP_MEASURE_NOT_EFFECTIVE`) and
+`CMP_MEASURE_OVERRIDE_UNKNOWN` (a mark on a measure the component no longer chooses — acts on
+nothing; the update path, phase 5, will list it). The audit diff detects it with the instance (test
+with the commit gate); copying ratings takes it with the decisions (I7 (6)). The report section
+"Deviations from the component's assessment" follows in phase 6.
 *Patch 42 done (2026-11-08, phase 3d-2a):* the residual risk is credited only while the component's
 measures hold (I7 (4)). `creditedResidual(risk, uncredited)` lives in `shared/services` (not in the
 risks feature as sketched: the report reads it too, and features do not import each other); the app

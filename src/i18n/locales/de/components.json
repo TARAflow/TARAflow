@@ -62,6 +62,8 @@
       "CMP_HANDOVER_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} von der Komponente übergebene(s) oder akzeptierte(s) Risiko/Risiken kommen unbehandelt an — die Behandlung dieser Maschine festlegen (eigene Massnahme oder akzeptieren / übertragen mit Begründung).",
       "CMP_MEASURE_NOT_EFFECTIVE": "Komponente {{prefix}} ({{component}}): Massnahme(n) in dieser Instanz nicht wirksam — {{list}}: eine Annahme, auf der sie beruhen, ist hier nicht erfüllt oder in der Komponente ungültig.",
       "CMP_MEASURE_UNCLEAR": "Komponente {{prefix}} ({{component}}): Wirksamkeit von Massnahme(n) in dieser Instanz ungeklärt — {{list}}: eine Annahme, auf der sie beruhen, ist hier noch offen.",
+      "CMP_MEASURE_OVERRIDDEN": "Komponente {{prefix}} ({{component}}): Massnahme(n) von dieser Maschine als hier nicht wirksam markiert — {{list}}: das Restrisiko der Risiken, die darauf beruhen, wird nicht angerechnet; dem Komponenten-Team melden, welche Einsatzannahme fehlt.",
+      "CMP_MEASURE_OVERRIDE_UNKNOWN": "Komponente {{prefix}} ({{component}}): als hier nicht wirksam markierte Massnahme(n), die die Komponente nicht mehr wählt — {{list}}: die Markierung wirkt auf nichts; zurücknehmen oder das Komponenten-Update prüfen.",
       "CMP_ACCEPTANCE_TO_REVIEW": "Komponente {{prefix}} ({{component}}): Akzeptanz zur Prüfung — {{list}}: das Restrisiko wird nicht angerechnet, eine Massnahme der Komponente ist in dieser Instanz nicht wirksam oder ungeklärt.",
       "CMP_AOU_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} Annahme(n) zur Verwendung in dieser Instanz noch offen — in den Details des Multiprozesses prüfen.",
       "CMP_AOU_VIOLATED": "Komponente {{prefix}} ({{component}}): Annahme(n) {{list}} nicht erfüllt — die Analyse der Komponente gilt in dieser Maschine nicht, bis das gelöst ist.",
@@ -80,12 +82,12 @@
     "copy": {
       "title": "Bewertung nach {{prefix}} übernehmen",
       "intro": "Übernimmt die Bewertung einer anderen Instanz desselben Komponentenstands einmalig. Danach sind beide Instanzen unabhängig — spätere Änderungen werden nicht übertragen. Die Risikobehandlung bleibt pro Risiko.",
-      "decisions": "Likelihood-Faktoren (Kontext, Überschreibungen vorbelegter Faktoren), überstimmte Relevanzen, Window of Opportunity, Annahmen-Status",
+      "decisions": "Likelihood-Faktoren (Kontext, Überschreibungen vorbelegter Faktoren), überstimmte Relevanzen, Window of Opportunity, Annahmen-Status, hier als nicht wirksam markierte Massnahmen",
       "assetImpact": "Impact der Instanz-Assets",
       "fill": "Nur füllen, was hier noch nicht bewertet ist",
       "overwrite": "Mit den Werten der Quelle überschreiben",
       "confirm": "Übernehmen",
-      "done": "Übernommen: {{factors}} Faktorbewertung(en), {{overrides}} überstimmte Relevanz(en), {{windows}} Window(s) of Opportunity, {{assumptions}} Annahmen-Status, {{impact}} Asset-Impact-Bewertung(en)."
+      "done": "Übernommen: {{factors}} Faktorbewertung(en), {{overrides}} überstimmte Relevanz(en), {{measures}} hier als nicht wirksam markierte Massnahme(n), {{windows}} Window(s) of Opportunity, {{assumptions}} Annahmen-Status, {{impact}} Asset-Impact-Bewertung(en)."
     },
     "assumptions": {
       "title": "Annahmen zur Verwendung ({{count}}) — offen: {{open}}",
@@ -124,7 +126,16 @@
         "pending": "noch nicht umgesetzt",
         "aou_open": "{{assumption}} offen",
         "aou_not_fulfilled": "{{assumption}} nicht erfüllt",
-        "aou_invalid_in_component": "{{assumption}} in der Komponente ungültig"
+        "aou_invalid_in_component": "{{assumption}} in der Komponente ungültig",
+        "overridden_here": "hier als nicht wirksam markiert"
+      },
+      "override": {
+        "start": "Hier nicht wirksam…",
+        "rationale": "Warum greift sie in dieser Maschine nicht? (Pflicht)",
+        "save": "Markieren",
+        "cancel": "Abbrechen",
+        "marked": "Hier als nicht wirksam markiert ({{date}}): {{rationale}}",
+        "withdraw": "Zurücknehmen"
       },
       "status": {
         "open": "offen",

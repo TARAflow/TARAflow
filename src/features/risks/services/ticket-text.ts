@@ -16,6 +16,7 @@ const CAUSE_EN: Record<string, string> = {
   aou_open: "open",
   aou_not_fulfilled: "not fulfilled",
   aou_invalid_in_component: "invalid in the component",
+  overridden_here: "marked not effective here:",
 };
 
 // ==================== DESCRIPTION BUILDER ====================
@@ -59,7 +60,9 @@ export const buildTicketDescription = (
   const after = risk.calculatedRiskAfterMitigation?.toFixed(1) ?? "–";
   lines.push(`*Risk Score:* Before: ${before} | After: ${after}`);
   if (uncredited.length > 0) {
-    const causes = blockerLines(uncredited, (c) => [c.ref, CAUSE_EN[c.kind] ?? c.kind].filter(Boolean).join(" "));
+    const causes = blockerLines(uncredited, (c) =>
+      (c.kind === "overridden_here" ? [CAUSE_EN[c.kind], c.ref] : [c.ref, CAUSE_EN[c.kind] ?? c.kind]).filter(Boolean).join(" "),
+    );
     lines.push(`_Residual risk currently not credited: ${causes.join("; ")}_`);
   }
 

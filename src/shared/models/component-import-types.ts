@@ -127,6 +127,22 @@ export interface ComponentRelevanceOverride {
 }
 
 /**
+ * The machine marks a measure of the component "not effective here" in one
+ * instance (multi-project TARA I7 (5), phase 3d-2b): downgrade only, with a
+ * mandatory rationale. It acts exactly like "not effective" — the residual
+ * risk of every risk relying on it is not credited — and is the signal to
+ * the component team that an assumption of use is missing. Keyed by the
+ * measure id in the component (catalog id or its M-C-nnn); free-text
+ * measures have no id and cannot be marked.
+ */
+export interface ComponentMeasureOverride {
+  measureId: string;
+  rationale: string;
+  /** ISO date of the decision. */
+  date: string;
+}
+
+/**
  * The machine's window of opportunity on one path of a component's attack
  * tree (design §7.2, patch 17): context-dependent, so rated by the machine
  * per instance and pathKey. A renamed node changes the pathKey — the entry
@@ -157,6 +173,8 @@ export interface ComponentInstance {
   assumptions: ComponentAssumptionStatus[];
   /** Relevance overrides on boundary-flow threats (I3). Absent: none. */
   relevanceOverrides?: ComponentRelevanceOverride[];
+  /** Component measures marked "not effective here" (I7 (5)). Absent: none. */
+  measureOverrides?: ComponentMeasureOverride[];
   /** Window of opportunity per component attack path (ISO, patch 17). Absent: none. */
   pathOverlays?: ComponentPathOverlay[];
   /**
