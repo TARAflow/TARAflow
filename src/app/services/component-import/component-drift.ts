@@ -59,6 +59,13 @@ export type ComponentDriftReason =
    * offered as newer).
    */
   | "clone_behind"
+  /**
+   * The imported commit is missing even after `git fetch`: it no longer
+   * exists in the component's repository (history rewritten — a force push
+   * after a rebase, sensitive data removed). Fetching again does not help;
+   * check with the component team (review of patch 55).
+   */
+  | "imported_state_gone"
   /** `git fetch` failed — the remote is not reachable (offline is the normal case). */
   | "fetch_failed";
 
@@ -151,7 +158,8 @@ export async function checkComponentDrift(
   // imported on another computer): fetch first, compare nothing.
   if (source.commitSha) {
     const present = await git(["cat-file", "-e", `${source.commitSha}^{commit}`], root);
-    if (present.code !== 0) return { kind: "unreachable", reason: "clone_behind" };
+    // After a fetch the clone is not behind any more: the commit is gone.
+    if (present.code !== 0) return { kind: "unreachable", reason: options.fetch ? "imported_state_gone" : "clone_behind" };
   }
 
   // The imported commit rebuilt by the running app: the baseline. Unavailable

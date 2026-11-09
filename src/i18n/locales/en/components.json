@@ -97,6 +97,7 @@
         "ref_missing": "Not checked — branch or tag not found (fetch, or check the source)",
         "file_missing": "Not checked — the file is not at its path",
         "clone_behind": "Not checked — this clone is older than the imported state (imported elsewhere): fetch first",
+        "imported_state_gone": "Not checked — the imported state no longer exists in the component's repository (history rewritten?): check with the component team",
         "fetch_failed": "Not checked — the remote is not reachable (offline?)",
         "unreadable": "Not checked — that state cannot be read as a component TARA"
       }

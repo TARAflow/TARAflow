@@ -97,6 +97,7 @@
         "ref_missing": "Nicht geprüft — Branch oder Tag nicht gefunden (fetch, oder Quelle prüfen)",
         "file_missing": "Nicht geprüft — die Datei liegt nicht an ihrem Pfad",
         "clone_behind": "Nicht geprüft — dieser Klon ist älter als der importierte Stand (anderswo importiert): zuerst fetchen",
+        "imported_state_gone": "Nicht geprüft — der importierte Stand existiert im Repo der Komponente nicht mehr (Historie umgeschrieben?): mit dem Komponenten-Team klären",
         "fetch_failed": "Nicht geprüft — das Remote ist nicht erreichbar (offline?)",
         "unreadable": "Nicht geprüft — dieser Stand lässt sich nicht als Komponenten-TARA lesen"
       }

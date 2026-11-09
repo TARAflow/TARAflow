@@ -1003,6 +1003,11 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 56 done (2026-11-09, review of patch 55):* history rewritten. "Clone behind — fetch first"
+went in circles when the component's repository rewrote its history (a force push after a rebase,
+sensitive data removed — it happened to TARAflow itself): the imported commit is missing after the
+fetch too. Missing after `fetch: true` → `imported_state_gone` ("the imported state no longer exists
+in the component's repository (history rewritten?) — check with the component team").
 *Patch 55 done (2026-11-09, review of patch 54):* only a state AFTER the imported one is newer —
 the check compared content only, so an older state was offered as "newer" (and 5c would have
 downgraded): a clone on a second computer still before the imported commit (the commit not even

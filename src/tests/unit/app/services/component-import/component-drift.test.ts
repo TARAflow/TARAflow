@@ -227,6 +227,41 @@ describe("drift check — ancestry: an older state is never offered as newer (re
     )[0].key).toBe("components.findings.CMP_SOURCE_DIVERGED");
   });
 
+  it("history rewritten (force push): the imported commit is gone even after fetching — not 'fetch first' again", async () => {
+    const origin = mkdtempSync(join(tmpdir(), "taraflow-origin-"));
+    const machine = mkdtempSync(join(tmpdir(), "taraflow-clone-rw-"));
+    try {
+      execFileSync("git", ["clone", "-q", "--bare", repo, origin], { stdio: "ignore" });
+      execFileSync("git", ["clone", "-q", origin, machine], { stdio: "ignore" });
+      const imported = await importAt(); // imported on another computer, from a commit the origin has
+      // the component team rewrites history: the origin's main is replaced, the imported commit is gone
+      const rewritten = mkdtempSync(join(tmpdir(), "taraflow-rw-"));
+      try {
+        sh(rewritten, "init", "-q", "-b", "main");
+        sh(rewritten, "config", "user.email", "t@example.com");
+        sh(rewritten, "config", "user.name", "Test");
+        sh(rewritten, "config", "commit.gpgsign", "false");
+        mkdirSync(join(rewritten, "components"));
+        writeFileSync(join(rewritten, "components", "camera.tara.json"), JSON.stringify(base()));
+        sh(rewritten, "add", "-A");
+        sh(rewritten, "commit", "-q", "-m", "rewritten");
+        sh(rewritten, "push", "-q", "--force", origin, "main");
+      } finally {
+        rmSync(rewritten, { recursive: true, force: true });
+      }
+      // the machine's clone: a fresh clone of the rewritten origin — the imported commit was never
+      // there (--no-local: transfer like over the network, only reachable objects)
+      rmSync(machine, { recursive: true, force: true });
+      execFileSync("git", ["clone", "-q", "--no-local", origin, machine], { stdio: "ignore" });
+      const onMachine = join(machine, "components", "camera.tara.json");
+      expect(await checkComponentDrift(imported, onMachine, read, git)).toEqual({ kind: "unreachable", reason: "clone_behind" });
+      expect(await checkComponentDrift(imported, onMachine, read, git, { fetch: true })).toEqual({ kind: "unreachable", reason: "imported_state_gone" });
+    } finally {
+      rmSync(origin, { recursive: true, force: true });
+      rmSync(machine, { recursive: true, force: true });
+    }
+  });
+
   it("a failed fetch is 'remote not reachable', not 'branch missing'", async () => {
     const imported = await importAt();
     sh(repo, "remote", "add", "origin", join(tmpdir(), "taraflow-no-such-remote"));
