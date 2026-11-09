@@ -12,6 +12,7 @@ import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
 import { toDocProjectData } from "../../cli/to-doc-project-data";
+import { transformProjectToDocData } from "../../../src/app/services/doc-transform";
 import type { Project } from "../../../src/app/models/project-types";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -43,18 +44,19 @@ describe("toDocProjectData", () => {
     expect(doc.attackTree).toEqual(project.attackTrees);
   });
 
-  it("creates empty computed value maps, never undefined (base-generator.ts reads them unconditionally)", () => {
+  it("computes the same label caches as the app (the app's transform — before 2026-11-09 they were empty)", () => {
     const project = loadFixtureProject();
     const doc = toDocProjectData(project, "de");
+    const app = transformProjectToDocData(project, "de");
 
-    expect(doc.computed).toBeDefined();
     expect(doc.computed.language).toBe("de");
-    expect(doc.computed.activeStrideMethods).toEqual([]);
-    expect(doc.computed.impactLabels).toBeInstanceOf(Map);
-    expect(doc.computed.impactLabels.size).toBe(0);
-    expect(doc.computed.strideNames).toBeInstanceOf(Map);
-    expect(doc.computed.moscowLabels).toBeInstanceOf(Map);
-    expect(doc.computed.statusLabels).toBeInstanceOf(Map);
+    expect(doc.computed.moscowLabels.get("should")).toBe("Sollte");
+    expect(doc.computed.strideNames.get("T")).toBe("Manipulation");
+    expect(doc.computed.impactLabels.size).toBe(project.assets?.assets?.length ?? 0);
+    expect(doc.computed.activeStrideMethods.length).toBeGreaterThan(0);
+    const { verification: _v, ...cli } = doc.computed;
+    const { verification: _w, ...own } = app.computed;
+    expect(cli).toEqual(own);
   });
 
   it("passes dfd/assets/threats/risks/documentation through unchanged", () => {

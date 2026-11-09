@@ -51,14 +51,11 @@ describe("credited residual: app report = CLI report", () => {
       createCliGenerator(doc, config, stubT)
         .generate()
         .content.split("\n")
-        .filter((l) => l.includes(blocked.threatDisplayId) && l.includes("|"))
-        // id, threat, risk before, measures, risk after — the MoSCoW label is
-        // not compared (the CLI fills no label cache, an older difference)
-        .map((l) => l.split(" | ").slice(0, 5));
+        .filter((l) => l.includes(blocked.threatDisplayId) && l.includes("|"));
     const appRows = rows(app);
     expect(appRows.length).toBeGreaterThan(0);
     expect(rows(cli)).toEqual(appRows);
-    expect(appRows.flat().join("\n")).toContain("Not credited: M-C-001 (SD1 · Smoke Detector): not implemented yet, ASM-01 open");
+    expect(appRows.join("\n")).toContain("Not credited: M-C-001 (SD1 · Smoke Detector): not implemented yet, ASM-01 open");
     const pdf = JSON.stringify(new PdfMakeConverter(cli, { ...DEFAULT_DOC_CONFIGURATION, format: "pdf" }, stubT).createDocumentDefinition({}));
     expect(pdf).toContain("Not credited: M-C-001 (SD1 · Smoke Detector)");
   });
