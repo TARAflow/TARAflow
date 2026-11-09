@@ -48,6 +48,7 @@
     "metModelOpen": "Erfüllt — Quelle: {{source}}. Das Modell allein belegt es noch nicht — siehe die Elemente unten; sobald ihre Angaben die Anforderung erfüllen, tut es auch das Modell.",
     "supporting": "Supporting Measure",
     "mitigations": "Massnahmen",
+    "unclearMitigations": "ungeklärt (Einsatzannahme ohne Nachweis)",
     "risks": "Risiken",
     "checklist": "zu bestätigen",
     "contradiction": "Massnahme als erledigt markiert, aber das Modell zeigt die Anforderung als nicht erfüllt.",

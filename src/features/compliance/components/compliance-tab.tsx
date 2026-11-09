@@ -791,6 +791,9 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       : `${t("unknown", "information missing on")} ${shortList(unknownNames(row))}`),
                   row.supportingElements.length > 0 && `${t("supporting", "supporting measure")}: ${shortList(row.supportingElements.map(nameOf))}`,
                   row.mitigationIds.length > 0 && `${t("mitigations", "mitigations")}: ${shortList([...new Set(row.mitigationIds)])}`,
+                  // phase 4b: unclear is not planned — an assumption of use lacks evidence (another action)
+                  (row.unclearMitigationIds?.length ?? 0) > 0 &&
+                    `${t("unclearMitigations", "unclear (assumption of use without evidence)")}: ${shortList(row.unclearMitigationIds!)}`,
                   row.risks && row.risks.length > 0 && `${t("risks", "risks")}: ${shortList(row.risks)}`,
                   !levels && row.source !== "statement" && !row.failing.length && !row.unknown.length && !row.risks?.length && row.status !== "met" && row.status !== "n/a" && row.reasoning,
                   checklist.length > 0 && `${t("checklist", "to confirm")}: ${checklist.join("; ")}`,

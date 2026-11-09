@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), next 4b (matrix, hazards)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), next 4c (component claims)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,18 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 50 done (2026-11-09, phase 4b):* matrix and hazards. The matrix already evaluated the
+imported elements (they are in the machine's DFD; test). Evidence from measures: imported threats now
+give their risks' measures element targets (`withComponentThreats` in the evidence build — before, the
+machine's own measures on imported risks concerned no element), and the component's chosen measures
+count as evidence only when effective in the instance (`withComponentMeasures`, derived for the
+evidence only): effective → done; merely not implemented yet → planned; unclear because an
+assumption lacks evidence → `MitigationEvidence.unclear`: counted in neither run, shown on the row as
+"unclear (assumption of use without evidence)" (Compliance tab and report notes) — told apart from
+planned; not effective → left out. Handed-over risks bring no component measures; a measure the
+machine chose itself keeps the machine's status. Hazards: the instance assets are in the asset
+reference and offered in the hazard picker by their group, with their prefixed display id (test; no
+change needed).
 *Patch 49 done (2026-11-09, phase 4a-3):* asset relations. The import takes the component's
 asset-to-asset relations over (`AppliedComponentImport.relations`: ids
 `componentInstanceTfId(instance, "rel|" + id)`, ends remapped to the instance assets, stored sorted

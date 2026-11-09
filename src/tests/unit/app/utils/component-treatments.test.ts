@@ -9,7 +9,8 @@
 import { describe, expect, it } from "vitest";
 import type { Project } from "app/models/project-types";
 import { componentFindings } from "app/services/component-import/component-findings";
-import { componentTreatments, effectivenessOf, machineDecided, measureState, uncreditedResiduals } from "app/utils/component-treatments";
+import { componentTreatments, effectivenessOf, machineDecided, measureState, uncreditedResiduals, withComponentMeasures } from "app/utils/component-treatments";
+import { prepareProjectCompliance } from "app/services/compliance-report";
 import { docResidualView } from "app/services/doc-residual";
 import { buildThreatId } from "features/attacktree";
 import { componentInstanceTfId } from "features/dfd";
@@ -223,5 +224,41 @@ describe("an assumption counts only once its evidence is implemented (2026-11-09
   it("without the machine's risks every evidence counts as not implemented", () => {
     const p = prepared("implemented");
     expect(componentTreatments({ components: p.components }).get(tid(component.reduceThreat))!.measures.find((x) => x.id === "M-C-001")!.effectiveness).toBe("unclear");
+  });
+});
+
+describe("component measures as matrix evidence (phase 4b)", () => {
+  const reduce = (p: Project) => withComponentMeasures(p).risks!.risks.find((r) => r.threatId === tid(component.reduceThreat))!;
+
+  it("effective → implemented; pending with an open assumption → planned but unclear; handed-over risks bring none", () => {
+    const m = machine();
+    const { unclear } = withComponentMeasures(m);
+    const risk = reduce(m);
+    expect(risk.selectedMitigations).toEqual(
+      expect.arrayContaining([
+        { id: "M-S-001", status: "implemented" },
+        { id: "M-C-001", status: "in_progress" },
+      ]),
+    );
+    expect([...unclear]).toEqual([`${risk.id}|M-C-001`]);
+    const share = withComponentMeasures(m).risks!.risks.find((r) => r.threatId === tid(component.shareThreat))!;
+    expect(share.selectedMitigations ?? []).toEqual([]);
+    // the project's risks are not touched
+    expect(m.risks!.risks.find((r) => r.id === risk.id)!.selectedMitigations ?? []).toEqual([]);
+  });
+
+  it("assumption fulfilled (no evidence) → merely pending, planned, not unclear; not fulfilled → left out", () => {
+    let m = { ...machine(), components: withAssumptionStatus(machine().components!, "i1", "a1", { status: "fulfilled" }) } as Project;
+    expect(withComponentMeasures(m).unclear.size).toBe(0);
+    expect(reduce(m).selectedMitigations).toContainEqual({ id: "M-C-001", status: "in_progress" });
+    m = { ...m, components: withAssumptionStatus(m.components!, "i1", "a1", { status: "not_fulfilled" }) } as Project;
+    expect(reduce(m).selectedMitigations!.some((x) => x.id === "M-C-001")).toBe(false);
+  });
+
+  it("the matrix scope covers the imported elements (evaluated with the machine's settings)", () => {
+    const m = machine();
+    const process = snapshot.dfd!.elements!.find((e) => e.type === "Process")!;
+    const ctx = prepareProjectCompliance(m);
+    expect(ctx?.scope.has(componentInstanceTfId("i1", process.id))).toBe(true);
   });
 });

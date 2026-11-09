@@ -81,6 +81,13 @@ export interface MitigationEvidence {
   done: boolean;
   /** Elements the threats of its risks concern — must meet the component scope (D-16). */
   concernsElementIds: readonly string[];
+  /**
+   * Its effectiveness is unclear (multi-project TARA phase 4b: an imported
+   * component's measure whose assumption of use lacks evidence here). Counts
+   * in neither run — not as planned either: "planned" is coming, "unclear"
+   * needs another action (evidence for the assumption). Shown on the row.
+   */
+  unclear?: boolean;
 }
 
 export type { DeviceCategoryChoice };
@@ -141,6 +148,8 @@ export interface RowResult {
   /** Environment elements that meet the row as a supporting measure (D-20). */
   supportingElements: string[];
   mitigationIds: string[];
+  /** Mitigations naming the row whose effectiveness is unclear — not counted (phase 4b). */
+  unclearMitigationIds?: string[];
   claimIds: string[];
   /** Unmodelled criteria of type B rules. */
   checklist: string[];

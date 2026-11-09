@@ -370,6 +370,7 @@
         "unknownElements": "Angaben fehlen an",
         "supporting": "Supporting Measure",
         "mitigations": "Massnahmen",
+        "unclearMitigations": "ungeklärt (Einsatzannahme ohne Nachweis)",
         "claims": "Claims",
         "confirm": "zu bestätigen",
         "contradiction": "Massnahme als erledigt markiert, aber das Modell zeigt die Anforderung als nicht erfüllt",

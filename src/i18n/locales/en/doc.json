@@ -375,6 +375,7 @@
         "unknownElements": "information missing on",
         "supporting": "supporting measure",
         "mitigations": "mitigations",
+        "unclearMitigations": "unclear (assumption of use without evidence)",
         "claims": "claims",
         "status": {
           "met": "met",

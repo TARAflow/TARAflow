@@ -278,3 +278,37 @@ export function machineDecided(risk: Pick<Risk, "treatment" | "treatmentJustific
   if ((risk.selectedMitigations ?? []).length > 0) return true;
   return risk.treatment !== "reduce" && !!(risk.treatmentJustification ?? "").trim();
 }
+
+/**
+ * The machine's risks with the component's chosen measures added — ONLY for
+ * deriving matrix evidence (phase 4b, user 2026-11-09: only measures
+ * EFFECTIVE in the instance count, the I7 rule). Per measure: effective →
+ * "implemented" (counts in both runs); merely not implemented yet (a later
+ * component release) → "in_progress" (planned); unclear because an
+ * assumption lacks evidence → listed in `unclear` (`riskId|measureId`),
+ * shown on the row but counted in neither run; not effective or rejected →
+ * left out. Handed-over risks bring no component measures; a measure the
+ * machine chose itself on the risk keeps the machine's status.
+ */
+export function withComponentMeasures(
+  project: Pick<Project, "components" | "risks">,
+  treatments: ReadonlyMap<string, ComponentTreatment> = componentTreatments(project),
+): { risks: Project["risks"] | null; unclear: Set<string> } {
+  const unclear = new Set<string>();
+  const risks = project.risks ?? null;
+  if (!risks || treatments.size === 0) return { risks, unclear };
+  const out = risks.risks.map((risk) => {
+    const tr = treatments.get(risk.threatId);
+    if (!tr || tr.handedOver) return risk;
+    const own = new Set((risk.selectedMitigations ?? []).map((m) => m.id).filter(Boolean));
+    const added = tr.measures.flatMap((m) => {
+      if (!m.id || own.has(m.id) || !m.effectiveness || m.effectiveness === "not_effective") return [];
+      if (m.effectiveness === "effective") return [{ id: m.id, status: "implemented" }];
+      const onlyPending = (m.reasons ?? []).every((r) => r.kind === "pending");
+      if (!onlyPending) unclear.add(`${risk.id}|${m.id}`);
+      return [{ id: m.id, status: "in_progress" }];
+    });
+    return added.length > 0 ? { ...risk, selectedMitigations: [...(risk.selectedMitigations ?? []), ...added] } : risk;
+  }) as NonNullable<Project["risks"]>["risks"];
+  return { risks: { ...risks, risks: out }, unclear };
+}

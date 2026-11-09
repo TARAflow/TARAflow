@@ -37,6 +37,8 @@ export function buildComplianceMitigationEvidence(
   resolveAnchorTargets?: (threatId: string) => ControlTarget[],
   /** Element / flow id → type ("DataFlow" for flows); without it derived requirements are not used. */
   typeOf?: (id: string) => string | undefined,
+  /** Phase 4b: a chosen measure whose effectiveness is unclear on this risk (an imported component's). */
+  isUnclear?: (riskId: string, mitigationId: string) => boolean,
 ): MitigationEvidence[] {
   if (!riskData) return [];
   const requirementsOf = new Map<string, MitigationRequirement[]>();
@@ -68,14 +70,15 @@ export function buildComplianceMitigationEvidence(
       const reqs = requirementsOf.get(selected.id);
       if (!reqs) continue;
       const done = DONE_MITIGATION_STATUSES.includes(selected.status);
+      const unclear = isUnclear?.(risk.id, selected.id) ? { unclear: true } : {};
       // Referenced ids: every concerned element; derived ones: per element type.
       const referenced = reqs.filter((r) => !r.elementTypes).map((r) => r.requirementId);
-      if (referenced.length > 0) evidence.push({ mitigationId: selected.id, requirementIds: referenced, done, concernsElementIds });
+      if (referenced.length > 0) evidence.push({ mitigationId: selected.id, requirementIds: referenced, done, concernsElementIds, ...unclear });
       const byType = new Map<string, RequirementId[]>();
       for (const r of reqs) for (const type of r.elementTypes ?? []) byType.set(type, [...(byType.get(type) ?? []), r.requirementId]);
       for (const [type, requirementIds] of byType) {
         const ofType = concernsElementIds.filter((id) => typeOf?.(id) === type);
-        if (ofType.length > 0) evidence.push({ mitigationId: selected.id, requirementIds, done, concernsElementIds: ofType });
+        if (ofType.length > 0) evidence.push({ mitigationId: selected.id, requirementIds, done, concernsElementIds: ofType, ...unclear });
       }
     }
   }

@@ -18,6 +18,9 @@ import {
   unresolvableFlows,
 } from "app/services/component-import/import-flow";
 import { flow, mxfile, node, page } from "../../../../fixtures/leveled-dfd-xml";
+import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
+import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
+import { eligibleAssets } from "features/hazards/services/eligible-assets-service";
 import { componentInstanceTfId, instanceAssetId, type ComponentInsertContext } from "features/dfd";
 
 const smokeProject = () => parseAndRepair(loadProjectFixture("SmokeDetector.tara.json")) as Project;
@@ -101,6 +104,24 @@ describe("machineElementOptions", () => {
 });
 
 describe("applyComponentImport", () => {
+  it("hazards: the instance's assets are offered in the hazard picker by their group, with the prefix (phase 4b)", () => {
+    const applied = applyComponentImport({
+      context: context(),
+      machine: {},
+      result: result(),
+      choice: { prefix: "SD1", name: "SD", eeMapping: {} },
+      ids: { importId: "imp", instanceId: "i1" },
+      importedAt: "t",
+    });
+    const ref = buildAssetDataReference(applied.assets, buildAssetHazardLinks(null), "4-level");
+    const offered = [...eligibleAssets(ref.assets, "contributor"), ...eligibleAssets(ref.assets, "target")];
+    expect(offered.length).toBeGreaterThan(0);
+    for (const a of offered) expect(a.displayId).toMatch(/^SD1:/);
+    // every imported function / data asset can contribute, as a machine asset of its group would
+    const contributors = new Set(eligibleAssets(ref.assets, "contributor").map((a) => a.id));
+    for (const a of applied.assets.filter((x) => x.assetGroup === "function")) expect(contributors.has(a.id)).toBe(true);
+  });
+
   it("takes the component's asset-to-asset relations over, ids per instance (phase 4a-3)", () => {
     const r = result();
     const [a1, a2] = r.snapshot.assets;

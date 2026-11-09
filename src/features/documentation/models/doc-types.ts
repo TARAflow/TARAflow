@@ -328,6 +328,8 @@ export interface DocComplianceRow {
   unknown: string[];
   supporting: string[];
   mitigations: string[];
+  /** Mitigations whose effectiveness is unclear (an imported component's, phase 4b) — not counted. */
+  unclearMitigations?: string[];
   claims: string[];
   reasoning?: string;
   /** "Title — summary in our own words" (D-27), document language; never normative text. */

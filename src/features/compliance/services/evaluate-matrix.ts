@@ -425,6 +425,7 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       // A flow counts when it touches the scope, as for the evidence (a threat
       // on a flow concerns the flow itself).
       m.concernsElementIds.some(inScope) &&
+      !m.unclear &&
       (input.run === "planned" || m.done),
   );
   // D-29: a rule every element must meet is covered element by element — a
@@ -530,6 +531,24 @@ function unsetOf(combined: IdOutcome): Pick<RowResult, "unsetFields"> {
   return Object.keys(out).length > 0 ? { unsetFields: out } : {};
 }
 
+/** Phase 4b: mitigations naming the row, in scope, whose effectiveness is unclear — shown, not counted. */
+function unclearOf(row: AnyEditionRow, graph: Graph, input: ComplianceInput): Pick<RowResult, "unclearMitigationIds"> {
+  const inScope = (id: string) => {
+    if (input.scope.has(id)) return true;
+    const ends = graph.endpoints.get(id);
+    return !!ends && (input.scope.has(ends[0]) || input.scope.has(ends[1]));
+  };
+  const ids = (input.mitigations ?? [])
+    .filter(
+      (m) =>
+        m.unclear &&
+        (m.requirementIds as readonly string[]).some((id) => (row.requirementIds as readonly string[]).includes(id)) &&
+        m.concernsElementIds.some(inScope),
+    )
+    .map((m) => m.mitigationId);
+  return ids.length > 0 ? { unclearMitigationIds: [...new Set(ids)] } : {};
+}
+
 function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): RowResult {
   const statement = input.statements?.[row.label];
   const base = {
@@ -594,6 +613,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     checklist: status === "met" ? (combined.openChecklist ?? []) : [],
     reasoning: combined.reasoning,
     contradiction: combined.contradiction,
+    ...unclearOf(row, graph, input),
   };
 
   // Step 3 — the statement wins; the model result stays visible (D-17).

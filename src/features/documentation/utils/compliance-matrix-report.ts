@@ -119,6 +119,8 @@ function rowNotes(row: DocComplianceRow, t: TranslateFn): string {
   list("unknownElements", "information missing on", row.unknown);
   list("supporting", "supporting measure", row.supporting);
   list("mitigations", "mitigations", row.mitigations);
+  // phase 4b: an imported component's measure whose assumption lacks evidence here — not counted
+  list("unclearMitigations", "unclear (assumption of use without evidence)", row.unclearMitigations ?? []);
   list("claims", "claims", row.claims);
   list("risks", "risks", row.risks ?? []);
   if (row.reasoning) parts.push(row.reasoning);

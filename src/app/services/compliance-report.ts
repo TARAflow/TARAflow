@@ -23,6 +23,8 @@
 import { i18n } from "i18n";
 import type { Project } from "../models/project-types";
 import { buildAnalysisView, buildDfdGraph, analyseLeveled, isLeveled } from "features/dfd";
+import { withComponentMeasures } from "../utils/component-treatments";
+import { withComponentThreats } from "../utils/component-threats";
 import { getAllMitigations } from "features/threats";
 import {
   buildPropertyView,
@@ -197,12 +199,17 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
 
   const catalog = getAllMitigations();
   const anchors = attackPathControlTargets(project.attackTrees, project.assets?.assets, project.dfd);
+  // Multi-project TARA (phase 4b): imported threats give their risks' measures
+  // element targets, and the component's measures count only when effective
+  // in the instance (unclear ones are shown, not counted).
+  const componentMeasures = withComponentMeasures(project);
   const mitigations: MitigationEvidence[] = buildComplianceMitigationEvidence(
-    project.threats,
-    project.risks,
+    withComponentThreats(project.threats, project) ?? null,
+    componentMeasures.risks,
     catalog,
     anchors,
     complianceTypeOf(project),
+    (riskId, mitigationId) => componentMeasures.unclear.has(`${riskId}|${mitigationId}`),
   );
   const should = deriveControlInstances(project.threats, project.risks, project.dfd, catalog, anchors);
 
@@ -381,6 +388,7 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
         unknown: r.unknown.map(name),
         supporting: r.supportingElements.map(name),
         mitigations: [...new Set(r.mitigationIds)],
+        ...(r.unclearMitigationIds?.length ? { unclearMitigations: [...r.unclearMitigationIds] } : {}),
         claims: r.claimIds,
         reasoning: r.reasoning,
         summary: descriptions.map((d) => `${d.title} — ${d.summary}`).join(" / "),

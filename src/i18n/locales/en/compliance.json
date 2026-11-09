@@ -48,6 +48,7 @@
     "metModelOpen": "Met by the {{source}}. The model alone does not show it yet — see the elements below; once their properties meet the requirement, the model does too.",
     "supporting": "supporting measure",
     "mitigations": "mitigations",
+    "unclearMitigations": "unclear (assumption of use without evidence)",
     "risks": "risks",
     "checklist": "to confirm",
     "contradiction": "Mitigation marked done, but the model shows the requirement not met.",

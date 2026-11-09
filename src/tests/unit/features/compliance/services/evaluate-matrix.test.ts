@@ -443,6 +443,26 @@ describe("mitigations (D-16, D-21)", () => {
     expect(planned.source).toBe("mitigation");
   });
 
+  it("an unclear mitigation (an imported component's, phase 4b) counts in neither run but is listed on the row", () => {
+    const unclear: NonNullable<ComplianceInput["mitigations"]>[number] = {
+      mitigationId: "M-1",
+      requirementIds: ["cr-1.8"],
+      done: false,
+      concernsElementIds: ["mp"],
+      unclear: true,
+    };
+    for (const r of ["achieved", "planned"] as const) {
+      const res = row(run(cRow, pkElements, [], { run: r, mitigations: [unclear] }), "CR 1.8");
+      expect(res.status).toBe("needs-statement");
+      expect(res.mitigationIds).toEqual([]);
+      expect(res.unclearMitigationIds).toEqual(["M-1"]);
+    }
+    // planned (not unclear) counts in the planned run
+    const planned = row(run(cRow, pkElements, [], { run: "planned", mitigations: [{ ...unclear, unclear: false }] }), "CR 1.8");
+    expect(planned.status).toBe("met");
+    expect(planned.unclearMitigationIds).toBeUndefined();
+  });
+
   it("achieved run counts only done mitigations", () => {
     const r = row(
       run(cRow, pkElements, [], { mitigations: [{ mitigationId: "M-1", requirementIds: ["cr-1.8"], done: false, concernsElementIds: ["mp"] }] }),
