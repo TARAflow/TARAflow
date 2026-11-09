@@ -96,6 +96,8 @@ import { useClosedLoopData } from "app/hooks/workspace/use-closed-loop-data";
 import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 import { useComponentImport } from "app/hooks/workspace/use-component-import";
 import { componentAssetGoals, componentLockedIds, findingOwner } from "app/services/component-import/component-scope";
+import { instanceClaims } from "app/services/component-import/cited-claims";
+import type { ComponentClaimChoice } from "features/compliance";
 
 // ==================== COMPONENT ====================
 
@@ -175,6 +177,30 @@ export const WorkspaceLayout: React.FC = () => {
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
   // The goal types an imported asset's component has active (phase 4a-2): not removable here.
   const componentGoals = useMemo(() => componentAssetGoals({ components: instanceComponents }), [instanceComponents]);
+  // Supporting claims of the components, citable in the matrix (phase 4c): for
+  // a row, those the component links to its requirements or the machine cites.
+  const claimRisks = activeProject?.risks;
+  const allInstanceClaims = useMemo(
+    () => instanceClaims({ components: instanceComponents, risks: claimRisks ?? null }),
+    [instanceComponents, claimRisks],
+  );
+  const componentClaimsFor = useCallback(
+    (requirements: readonly string[]): ComponentClaimChoice[] => {
+      const covers = (list: readonly string[]) => requirements.length > 0 && requirements.every((r) => list.includes(r));
+      return allInstanceClaims
+        .filter((c) => covers(c.componentRequirements) || covers(c.citedRequirements))
+        .map((c) => ({
+          key: `${c.instanceId}|${c.claimId}`,
+          displayId: c.displayId,
+          statement: c.statement,
+          ...(c.responsibleParty ? { responsibleParty: c.responsibleParty } : {}),
+          source: c.instanceLabel,
+          state: c.state,
+          cited: covers(c.citedRequirements),
+        }));
+    },
+    [allInstanceClaims],
+  );
   // What a component owns — locked in the asset graph's edit mode (phase 4a-3).
   const componentLocked = useMemo(() => componentLockedIds({ components: instanceComponents }), [instanceComponents]);
   const lockedBy = useCallback((id: string) => componentLocked.get(id), [componentLocked]);
@@ -626,6 +652,8 @@ export const WorkspaceLayout: React.FC = () => {
               onChange={handlers.handleComplianceChange}
               concept={activeProject.cybersecurityConcept}
               onConceptChange={handlers.handleConceptChange}
+              componentClaims={componentClaimsFor}
+              onCiteComponentClaim={componentImport.citeClaim}
               onShowElement={navigation.showElement}
               mitigationSuggestions={(ids, openElementIds) =>
                 suggestMitigations(

@@ -391,6 +391,25 @@ describe("two values per FR (D-14, D-20)", () => {
     expect(result.component.SI).toBe(1);
     expect(result.withSupport.SI).toBe(4);
   });
+
+  it("a cited component claim (phase 4c) counts only when effective and covering every open element", () => {
+    const ed = edition({ label: "CR 3.5", requirementIds: ["cr-3.5"], group: "SI", minSl: 2 });
+    const els = [el("p", "Process", { inputValidation: "none" }), el("q", "Process", { inputValidation: "none" })];
+    const cited = (over: Record<string, unknown>) => ({ displayId: "SD1 CLM-03", rowLabels: ["CR 3.5"], ...over });
+    // covers both open elements, effective → claimed
+    expect(row(run(ed, els, [], { claims: [cited({ concernsElementIds: ["p", "q"], state: "effective" })] }), "CR 3.5").status).toBe("claimed");
+    // covers only one of them → not claimed, listed as partial
+    const partial = row(run(ed, els, [], { claims: [cited({ concernsElementIds: ["p"], state: "effective" })] }), "CR 3.5");
+    expect(partial.status).not.toBe("claimed");
+    expect(partial.uncountedClaims).toEqual([{ id: "SD1 CLM-03", reason: "partial" }]);
+    // unclear / not effective in the instance → not counted, listed with why
+    for (const state of ["unclear", "not_effective"] as const) {
+      const r = row(run(ed, els, [], { claims: [cited({ concernsElementIds: ["p", "q"], state })] }), "CR 3.5");
+      expect(r.status).not.toBe("claimed");
+      expect(r.claimIds).toEqual([]);
+      expect(r.uncountedClaims).toEqual([{ id: "SD1 CLM-03", reason: state }]);
+    }
+  });
 });
 
 // ==================== D-16 / D-21 MITIGATIONS ====================

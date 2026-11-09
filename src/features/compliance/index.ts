@@ -113,3 +113,5 @@ export {
 // ==================== UI ====================
 export { ComplianceTab, type ComplianceTabProps } from "./components/compliance-tab";
 export { ComplianceFrame, type ComplianceFrameProps } from "./components/compliance-frame";
+// Multi-project TARA phase 4c: a claim of an imported component, citable in a row.
+export type { ComponentClaimChoice } from "./components/matrix-claims";

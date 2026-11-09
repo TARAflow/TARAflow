@@ -18,6 +18,21 @@
 // effect's type (typeOf), so an effect on a data flow never covers a process.
 
 import type { RiskData } from "features/risks";
+
+/**
+ * What the evidence build reads of the risks — narrow on purpose: the
+ * component's measures are added for the evidence only (phase 4b,
+ * withComponentMeasures) as bare { id, status } and must never pass for
+ * stored risks (review 2026-11-09).
+ */
+export interface EvidenceRisks {
+  risks?: readonly {
+    id: string;
+    threatId: string;
+    treatment: string;
+    selectedMitigations?: readonly { id?: string; status: string }[];
+  }[];
+}
 import type { MitigationEntry, ThreatData } from "features/threats";
 import type { MitigationEvidence, MitigationRequirement, RequirementId } from "features/compliance";
 import { mitigationRequirements } from "features/compliance";
@@ -32,7 +47,7 @@ function elementIdsOf(target: ControlTarget): string[] {
 
 export function buildComplianceMitigationEvidence(
   threatData: ThreatData | null,
-  riskData: RiskData | null,
+  riskData: RiskData | EvidenceRisks | null,
   catalog: readonly MitigationEntry[],
   resolveAnchorTargets?: (threatId: string) => ControlTarget[],
   /** Element / flow id → type ("DataFlow" for flows); without it derived requirements are not used. */

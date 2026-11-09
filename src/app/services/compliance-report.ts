@@ -24,6 +24,7 @@ import { i18n } from "i18n";
 import type { Project } from "../models/project-types";
 import { buildAnalysisView, buildDfdGraph, analyseLeveled, isLeveled } from "features/dfd";
 import { withComponentMeasures } from "../utils/component-treatments";
+import { instanceClaims } from "./component-import/cited-claims";
 import { withComponentThreats } from "../utils/component-threats";
 import { getAllMitigations } from "features/threats";
 import {
@@ -211,6 +212,11 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
     complianceTypeOf(project),
     (riskId, mitigationId) => componentMeasures.unclear.has(`${riskId}|${mitigationId}`),
   );
+  // The planned overlay stays on the machine's own threats and risks — on
+  // purpose, unlike the evidence above (review 2026-11-09): it models the
+  // SHOULD values the machine applies to its model ("Apply"); a component's
+  // cells are read-only here and change only with a new component revision,
+  // so imported threats and the component's measures have no SHOULD to apply.
   const should = deriveControlInstances(project.threats, project.risks, project.dfd, catalog, anchors);
 
   const planned = plannedView(view, should);
@@ -235,15 +241,25 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
   };
   // IEC-6 (D-5): supporting claims cover the rows whose requirements they all name.
   const supporting = (project.cybersecurityConcept?.claims ?? []).filter((c) => c.kind === "supporting");
+  // Phase 4c: supporting claims of imported components the machine cites —
+  // counted only when effective in the instance, only for its elements.
+  const cited = instanceClaims(project).filter((c) => c.citedRequirements.length > 0);
+  const rowsNamed = (edition: AnyEdition, requirements: readonly string[] | undefined) =>
+    edition.rows
+      .filter((r) => r.requirementIds.length > 0 && r.requirementIds.every((id) => requirements?.includes(qualifyRequirementId(edition.family, id))))
+      .map((r) => r.label);
   const matrixClaims = (edition: AnyEdition): MatrixClaim[] =>
-    supporting
-      .map((c) => ({
-        displayId: c.displayId,
-        rowLabels: edition.rows
-          .filter((r) => r.requirementIds.length > 0 && r.requirementIds.every((id) => c.requirements?.includes(qualifyRequirementId(edition.family, id))))
-          .map((r) => r.label),
-      }))
-      .filter((c) => c.rowLabels.length > 0);
+    [
+      ...supporting.map((c): MatrixClaim => ({ displayId: c.displayId, rowLabels: rowsNamed(edition, c.requirements) })),
+      ...cited.map(
+        (c): MatrixClaim => ({
+          displayId: c.displayId,
+          rowLabels: rowsNamed(edition, c.citedRequirements),
+          concernsElementIds: c.concernsElementIds,
+          state: c.state,
+        }),
+      ),
+    ].filter((c) => c.rowLabels.length > 0);
   let en50742: ReturnType<typeof buildEn50742View> | undefined;
   const en50742View = () => (en50742 ??= buildEn50742View(project, paths));
 
@@ -389,6 +405,7 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
         supporting: r.supportingElements.map(name),
         mitigations: [...new Set(r.mitigationIds)],
         ...(r.unclearMitigationIds?.length ? { unclearMitigations: [...r.unclearMitigationIds] } : {}),
+        ...(r.uncountedClaims?.length ? { uncountedClaims: r.uncountedClaims.map((c) => ({ ...c })) } : {}),
         claims: r.claimIds,
         reasoning: r.reasoning,
         summary: descriptions.map((d) => `${d.title} — ${d.summary}`).join(" / "),

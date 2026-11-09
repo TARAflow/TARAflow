@@ -371,6 +371,7 @@
         "supporting": "Supporting Measure",
         "mitigations": "Massnahmen",
         "unclearMitigations": "ungeklärt (Einsatzannahme ohne Nachweis)",
+        "uncountedClaims": { "unclear": "Claims ungeklärt (Einsatzannahme ohne Nachweis)", "not_effective": "Claims hier nicht wirksam (Einsatzannahme nicht erfüllt)", "partial": "Claims, die nur einen Teil der Elemente der Zeile abdecken" },
         "claims": "Claims",
         "confirm": "zu bestätigen",
         "contradiction": "Massnahme als erledigt markiert, aber das Modell zeigt die Anforderung als nicht erfüllt",

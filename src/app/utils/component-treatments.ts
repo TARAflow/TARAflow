@@ -54,6 +54,7 @@ import { resolveMitigationDrafts } from "features/threats";
 import { componentInstanceTfId } from "features/dfd";
 import { buildThreatId } from "features/attacktree";
 import type { ResidualBlocker } from "shared";
+import type { EvidenceRisks } from "./build-compliance-mitigation-evidence";
 import type { Project } from "../models/project-types";
 import { instanceLabel } from "../services/component-import/instance-quantity";
 import { implementedMachineMeasures } from "../services/component-import/assumption-status";
@@ -134,14 +135,7 @@ export function componentTreatments(
     const own = new Map((snapshot.threats?.customMitigations ?? []).map((m) => [m.id, m.text]));
     const label = instanceLabel(instance, imported.name);
     const relying = (id: string | undefined) => (id ? (snapshot.assumptions ?? []).filter((a) => a.mitigationIds?.includes(id)) : []);
-    const aouStatus = new Map((instance.assumptions ?? []).map((a) => [a.assumptionId, a.status]));
-    // fulfilled, but backed by machine measures not implemented yet → those ids
-    const evidencePending = new Map(
-      (instance.assumptions ?? [])
-        .filter((a) => a.status === "fulfilled")
-        .map((a) => [a.assumptionId, (a.evidence?.mitigationIds ?? []).filter((id) => !done.has(id))] as const)
-        .filter(([, ids]) => ids.length > 0),
-    );
+    const { aouStatus, evidencePending } = aouContextOf(instance, done);
     const overrides = new Map((instance.measureOverrides ?? []).map((o) => [o.measureId, o]));
     for (const risk of snapshot.risks) {
       const measures = risk.selectedMitigations
@@ -239,6 +233,25 @@ export function uncreditedResiduals(
   return out;
 }
 
+/**
+ * The assumption status of an instance as the effectiveness reads it: the
+ * status per assumption id, and the fulfilled ones still backed by machine
+ * measures not implemented (`done` = implementedMachineMeasures).
+ */
+export function aouContextOf(
+  instance: Components["instances"][number],
+  done: ReadonlySet<string>,
+): { aouStatus: Map<string, string>; evidencePending: Map<string, readonly string[]> } {
+  const aouStatus = new Map((instance.assumptions ?? []).map((a) => [a.assumptionId, a.status]));
+  const evidencePending = new Map(
+    (instance.assumptions ?? [])
+      .filter((a) => a.status === "fulfilled")
+      .map((a) => [a.assumptionId, (a.evidence?.mitigationIds ?? []).filter((id) => !done.has(id))] as const)
+      .filter(([, ids]) => ids.length > 0),
+  );
+  return { aouStatus, evidencePending };
+}
+
 /** A measure's effectiveness in one instance, with the reasons (I7 (3)). */
 export function effectivenessOf(
   state: Exclude<ComponentMeasureState, "rejected">,
@@ -293,7 +306,7 @@ export function machineDecided(risk: Pick<Risk, "treatment" | "treatmentJustific
 export function withComponentMeasures(
   project: Pick<Project, "components" | "risks">,
   treatments: ReadonlyMap<string, ComponentTreatment> = componentTreatments(project),
-): { risks: Project["risks"] | null; unclear: Set<string> } {
+): { risks: EvidenceRisks | null; unclear: Set<string> } {
   const unclear = new Set<string>();
   const risks = project.risks ?? null;
   if (!risks || treatments.size === 0) return { risks, unclear };
@@ -309,6 +322,6 @@ export function withComponentMeasures(
       return [{ id: m.id, status: "in_progress" }];
     });
     return added.length > 0 ? { ...risk, selectedMitigations: [...(risk.selectedMitigations ?? []), ...added] } : risk;
-  }) as NonNullable<Project["risks"]>["risks"];
-  return { risks: { ...risks, risks: out }, unclear };
+  });
+  return { risks: { risks: out }, unclear };
 }

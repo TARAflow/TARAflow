@@ -587,6 +587,7 @@ export type {
   ComponentInstance,
   ComponentRelevanceOverride,
   ComponentMeasureOverride,
+  ComponentCitedClaim,
   ComponentPathOverlay,
   ProjectComponents,
 } from "./models/component-import-types";

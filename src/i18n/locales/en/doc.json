@@ -376,6 +376,7 @@
         "supporting": "supporting measure",
         "mitigations": "mitigations",
         "unclearMitigations": "unclear (assumption of use without evidence)",
+        "uncountedClaims": { "unclear": "claims unclear (assumption of use without evidence)", "not_effective": "claims not effective here (assumption of use not fulfilled)", "partial": "claims covering only part of the row's elements" },
         "claims": "claims",
         "status": {
           "met": "met",

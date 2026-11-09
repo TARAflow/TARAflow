@@ -87,12 +87,12 @@
     "copy": {
       "title": "Copy ratings to {{prefix}}",
       "intro": "Takes the ratings of another instance of the same component state over once. Afterwards both instances are independent — later changes are not carried over. Risk treatment stays per risk.",
-      "decisions": "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity, assumption status, measures marked not effective here",
+      "decisions": "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity, assumption status, measures marked not effective here, cited claims",
       "assetImpact": "Impact of the instance assets",
       "fill": "Only fill what is not rated here yet",
       "overwrite": "Overwrite with the source's values",
       "confirm": "Copy",
-      "done": "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{measures}} measure(s) marked not effective here, {{windows}} window(s) of opportunity, {{assumptions}} assumption status(es), {{impact}} asset impact rating(s)."
+      "done": "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{measures}} measure(s) marked not effective here, {{claims}} cited claim(s), {{windows}} window(s) of opportunity, {{assumptions}} assumption status(es), {{impact}} asset impact rating(s)."
     },
     "assumptions": {
       "title": "Assumptions of use ({{count}}) — open: {{open}}",

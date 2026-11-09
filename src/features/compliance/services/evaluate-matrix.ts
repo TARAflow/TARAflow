@@ -591,8 +591,26 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
   let status: RowStatus = combined.status;
   let source: RowSource | undefined = combined.source;
 
-  // Step 8 — claim (D-5).
-  const claimIds = (input.claims ?? []).filter((c) => c.rowLabels.includes(row.label)).map((c) => c.displayId);
+  // Step 8 — claim (D-5). A claim cited from an imported component (phase 4c)
+  // counts only when effective in its instance and covering every element
+  // still open on the row; otherwise it is listed, not counted.
+  const open = [...combined.failing, ...combined.unknown];
+  const uncountedClaims: NonNullable<RowResult["uncountedClaims"]> = [];
+  const claimIds = (input.claims ?? [])
+    .filter((c) => c.rowLabels.includes(row.label))
+    .filter((c) => {
+      const stillOpen = status !== "met" && status !== "n/a";
+      if (c.state === "unclear" || c.state === "not_effective") {
+        if (stillOpen) uncountedClaims.push({ id: c.displayId, reason: c.state });
+        return false;
+      }
+      if (c.concernsElementIds && !(open.length > 0 && open.every((id) => c.concernsElementIds!.includes(id)))) {
+        if (stillOpen) uncountedClaims.push({ id: c.displayId, reason: "partial" });
+        return false;
+      }
+      return true;
+    })
+    .map((c) => c.displayId);
   if (claimIds.length > 0 && status !== "met" && status !== "n/a") {
     status = "claimed";
     source = "claim";
@@ -610,6 +628,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     mitigationIds: combined.mitigationIds,
     ...(combined.risks ? { risks: combined.risks } : {}),
     claimIds,
+    ...(uncountedClaims.length > 0 ? { uncountedClaims } : {}),
     checklist: status === "met" ? (combined.openChecklist ?? []) : [],
     reasoning: combined.reasoning,
     contradiction: combined.contradiction,

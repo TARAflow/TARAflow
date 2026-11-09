@@ -228,7 +228,7 @@ describe("an assumption counts only once its evidence is implemented (2026-11-09
 });
 
 describe("component measures as matrix evidence (phase 4b)", () => {
-  const reduce = (p: Project) => withComponentMeasures(p).risks!.risks.find((r) => r.threatId === tid(component.reduceThreat))!;
+  const reduce = (p: Project) => withComponentMeasures(p).risks!.risks!.find((r) => r.threatId === tid(component.reduceThreat))!;
 
   it("effective → implemented; pending with an open assumption → planned but unclear; handed-over risks bring none", () => {
     const m = machine();
@@ -241,7 +241,7 @@ describe("component measures as matrix evidence (phase 4b)", () => {
       ]),
     );
     expect([...unclear]).toEqual([`${risk.id}|M-C-001`]);
-    const share = withComponentMeasures(m).risks!.risks.find((r) => r.threatId === tid(component.shareThreat))!;
+    const share = withComponentMeasures(m).risks!.risks!.find((r) => r.threatId === tid(component.shareThreat))!;
     expect(share.selectedMitigations ?? []).toEqual([]);
     // the project's risks are not touched
     expect(m.risks!.risks.find((r) => r.id === risk.id)!.selectedMitigations ?? []).toEqual([]);

@@ -45,6 +45,7 @@ import {
 } from "../../services/component-import/import-flow";
 import { withRelevanceOverride, type RelevanceDecision } from "../../services/component-import/relevance-overrides";
 import { withMeasureOverride } from "../../services/component-import/measure-overrides";
+import { withCitedClaim } from "../../services/component-import/cited-claims";
 import { withPathOverlay } from "../../services/component-import/path-overlays";
 import { componentAttackPathGroups } from "../../utils/component-attack-trees";
 import {
@@ -254,10 +255,11 @@ export function useComponentImport({
               factors: c.factors,
               overrides: c.relevanceOverrides,
               measures: c.measureOverrides,
+              claims: c.citedClaims,
               assumptions: c.assumptions,
               windows: c.pathOverlays,
               impact: c.assetRatings,
-              defaultValue: "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{measures}} measure(s) marked not effective here, {{windows}} window(s) of opportunity, {{assumptions}} assumption status(es), {{impact}} asset impact rating(s).",
+              defaultValue: "Copied: {{factors}} factor rating(s), {{overrides}} relevance override(s), {{measures}} measure(s) marked not effective here, {{claims}} cited claim(s), {{windows}} window(s) of opportunity, {{assumptions}} assumption status(es), {{impact}} asset impact rating(s).",
             }),
           );
         },
@@ -306,6 +308,18 @@ export function useComponentImport({
     [activeProjectRef, updateProject],
   );
 
+  // Cite / withdraw a supporting claim of a component for matrix rows (phase 4c).
+  const citeClaim = useCallback(
+    (key: string, requirements: readonly string[], cite: boolean) => {
+      const current = activeProjectRef.current;
+      if (!current?.components) return;
+      const [instanceId, claimId] = key.split("|");
+      const components = withCitedClaim(current.components, instanceId, claimId, requirements, cite, new Date().toISOString().slice(0, 10));
+      void updateProject({ id: current.id, components });
+    },
+    [activeProjectRef, updateProject],
+  );
+
   // ISO: the machine's window of opportunity per component attack path (patch 17).
   const setPathWindow = useCallback(
     (instanceId: string, treeKey: string, pathKey: string, window: "unlimited" | "easy" | "moderate" | "difficult" | null, leafId?: string) => {
@@ -326,6 +340,7 @@ export function useComponentImport({
   return {
     overrideRelevance,
     overrideMeasure,
+    citeClaim,
     setPathWindow,
     attackPathGroups,
     /** For the DFD tab; undefined outside Electron (design §2: no browser mode). */

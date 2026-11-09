@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), next 4c (component claims)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52) — phase 4 complete; next phase 5 (change detection and update)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,23 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 52 done (2026-11-09, phase 4c, with the review of patch 50):* component claims citable.
+Only the component's SUPPORTING claims (the ones that cover requirement-matrix rows). The machine
+cites one for a row's requirements in the row's claim dialog ("Claims of imported components",
+offered where the component links the claim to those requirements); stored per instance
+(`ComponentInstance.citedClaims`: claimId, qualified requirement ids, date; `withCitedClaim`). Whether
+a citation counts is derived (`instanceClaims`), by the measures' rule (I7): the claim's
+`assumptionIds` in the instance — all fulfilled with implemented evidence or not applicable →
+counts; open or evidence not implemented → unclear; not fulfilled / invalid in the component → not
+effective. And it covers only the instance's elements: `MatrixClaim.concernsElementIds` — a row is
+claimed only when every element still open there is the instance's (the matrix evaluates per
+element, so no separate partial coverage). Uncounted citations are listed on the row with why
+(`RowResult.uncountedClaims`: unclear, not effective, partial) in the Compliance tab and the report.
+Display id `SD1 CLM-03` (no clash with the machine's CLM-nn). Diff-detected with the instance
+(test), copied with the decisions. Review of 50: the planned overlay stays on the machine's own
+threats and risks on purpose (it models the SHOULD values the machine applies to its model; a
+component's cells change only with a new revision) — commented; the evidence risks are a narrow
+type (`EvidenceRisks`) instead of a cast to the stored risk type.
 *Patch 51 done (2026-11-09, phase 4a-4, review of 48/49):* what a goal the machine adds to a
 component asset effects. Threats on a component's elements come only from the component (the
 machine's generators are off there), so an added goal type (e.g. availability the component did not

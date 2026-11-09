@@ -74,7 +74,7 @@ import {
 import { buildTodoList } from "../services/todo-list";
 import { editionStatements, statementKeyOf } from "../services/edition-statements";
 import { qualifyRequirementId } from "../models/compliance-types";
-import { RowClaims } from "./matrix-claims";
+import { RowClaims, type ComponentClaimChoice } from "./matrix-claims";
 
 const NS = "compliance";
 
@@ -161,6 +161,11 @@ const SOURCE_DEFAULT: Record<string, string> = {
   "device-category": "device category",
 };
 const STATEMENT_DEFAULT: Record<StatementStatus, string> = { met: "met", "not-met": "not met", "n/a": "not applicable" };
+const UNCOUNTED_CLAIM_DEFAULT = {
+  unclear: "claims unclear (assumption of use without evidence)",
+  not_effective: "claims not effective here (assumption of use not fulfilled)",
+  partial: "claims covering only part of the row's elements",
+} as const;
 
 /**
  * A row met by a statement, mitigation, supporting measure or claim while the
@@ -194,6 +199,13 @@ export interface ComplianceTabProps {
   concept?: CybersecurityConcept;
   /** Stores claim changes; absent = the info dialog shows no claims. */
   onConceptChange?: (concept: CybersecurityConcept) => void;
+  /**
+   * Claims of imported components for a row's qualified requirement ids
+   * (phase 4c): the ones the component links to them or the machine cites.
+   */
+  componentClaims?: (requirements: readonly string[]) => readonly ComponentClaimChoice[];
+  /** Cite / withdraw a component claim for a row's requirements. */
+  onCiteComponentClaim?: (key: string, requirements: readonly string[], cite: boolean) => void;
   /** Catalog mitigations for a row; filtered to the types of the elements still open (D-29). */
   mitigationSuggestions?: (
     requirementIds: readonly AnyRequirementId[],
@@ -276,6 +288,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   typeOf,
   concept,
   onConceptChange,
+  componentClaims,
+  onCiteComponentClaim,
 }) => {
   const t = useComplianceT();
   const { i18n } = useTranslation(NS);
@@ -791,6 +805,14 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       : `${t("unknown", "information missing on")} ${shortList(unknownNames(row))}`),
                   row.supportingElements.length > 0 && `${t("supporting", "supporting measure")}: ${shortList(row.supportingElements.map(nameOf))}`,
                   row.mitigationIds.length > 0 && `${t("mitigations", "mitigations")}: ${shortList([...new Set(row.mitigationIds)])}`,
+                  // phase 4c: cited component claims that do not count, with why
+                  ...(["unclear", "not_effective", "partial"] as const).map((reason) => {
+                    const ids = (row.uncountedClaims ?? []).filter((c) => c.reason === reason).map((c) => c.id);
+                    return (
+                      ids.length > 0 &&
+                      `${t(`uncountedClaims.${reason}`, UNCOUNTED_CLAIM_DEFAULT[reason])}: ${shortList(ids)}`
+                    );
+                  }),
                   // phase 4b: unclear is not planned — an assumption of use lacks evidence (another action)
                   (row.unclearMitigationIds?.length ?? 0) > 0 &&
                     `${t("unclearMitigations", "unclear (assumption of use without evidence)")}: ${shortList(row.unclearMitigationIds!)}`,
@@ -843,36 +865,43 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
         </Paper>
       </Stack>
 
-      {info && (
-        <RequirementInfoDialog
-          row={info}
-          descriptions={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang))}
-          cra={cra ? [...(rowDef.get(info.label)?.cra ?? [])] : undefined}
-          levels={levels}
-          claims={
-            onConceptChange ? (
-              <RowClaims
-                concept={concept ?? emptyCybersecurityConcept()}
-                requirements={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(family, id))}
-                onConceptChange={onConceptChange}
-                t={t}
-              />
-            ) : undefined
-          }
-          statement={statements[info.label]}
-          suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? [], [...info.failing, ...info.unknown]) ?? []}
-          nameOf={nameOf}
-          unknownNames={unknownNames(info)}
-          t={t}
-          onClose={() => setInfo(null)}
-          onStatement={() => {
-            // The info dialog goes first, then the statement dialog opens — never two at once.
-            const row = info;
-            setInfo(null);
-            setEditing(row);
-          }}
-        />
-      )}
+      {info && (() => {
+        const infoRequirements = (rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(family, id));
+        return (
+          <RequirementInfoDialog
+            row={info}
+            descriptions={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang))}
+            cra={cra ? [...(rowDef.get(info.label)?.cra ?? [])] : undefined}
+            levels={levels}
+            claims={
+              onConceptChange ? (
+                <RowClaims
+                  concept={concept ?? emptyCybersecurityConcept()}
+                  requirements={infoRequirements}
+                  onConceptChange={onConceptChange}
+                  t={t}
+                  componentClaims={componentClaims?.(infoRequirements)}
+                  onCiteComponentClaim={
+                    onCiteComponentClaim ? (key, cite) => onCiteComponentClaim(key, infoRequirements, cite) : undefined
+                  }
+                />
+              ) : undefined
+            }
+            statement={statements[info.label]}
+            suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? [], [...info.failing, ...info.unknown]) ?? []}
+            nameOf={nameOf}
+            unknownNames={unknownNames(info)}
+            t={t}
+            onClose={() => setInfo(null)}
+            onStatement={() => {
+              // The info dialog goes first, then the statement dialog opens — never two at once.
+              const row = info;
+              setInfo(null);
+              setEditing(row);
+            }}
+          />
+        );
+      })()}
 
       {editing && (
         <StatementDialog

@@ -127,6 +127,23 @@ export interface ComponentRelevanceOverride {
 }
 
 /**
+ * The machine cites a supporting claim of the component as evidence for
+ * requirement-matrix rows (multi-project TARA phase 4c, design §8.1): the
+ * qualified requirement ids it is cited for. Whether the citation counts is
+ * derived — only when the assumptions behind the claim are fulfilled in the
+ * instance with implemented evidence (the I7 rule) — and only for the
+ * instance's elements.
+ */
+export interface ComponentCitedClaim {
+  /** Id of the claim in the component (snapshot). */
+  claimId: string;
+  /** Qualified requirement ids, e.g. "iec-62443-4-2:cr-1.1". */
+  requirements: string[];
+  /** ISO date of the citation. */
+  date: string;
+}
+
+/**
  * The machine marks a measure of the component "not effective here" in one
  * instance (multi-project TARA I7 (5), phase 3d-2b): downgrade only, with a
  * mandatory rationale. It acts exactly like "not effective" — the residual
@@ -175,6 +192,8 @@ export interface ComponentInstance {
   relevanceOverrides?: ComponentRelevanceOverride[];
   /** Component measures marked "not effective here" (I7 (5)). Absent: none. */
   measureOverrides?: ComponentMeasureOverride[];
+  /** Supporting claims of the component cited in the machine's matrix (phase 4c). Absent: none. */
+  citedClaims?: ComponentCitedClaim[];
   /** Window of opportunity per component attack path (ISO, patch 17). Absent: none. */
   pathOverlays?: ComponentPathOverlay[];
   /**

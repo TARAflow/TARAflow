@@ -71,6 +71,15 @@ export interface MatrixClaim {
   /** "CLM-03" */
   displayId: string;
   rowLabels: readonly string[];
+  /**
+   * A claim cited from an imported component (multi-project TARA phase 4c):
+   * it covers only these elements — a row is claimed only when every
+   * element still open there is one of them. Absent: the whole row (the
+   * project's own claims).
+   */
+  concernsElementIds?: readonly string[];
+  /** Its effectiveness in the instance (the I7 rule); absent = counts. */
+  state?: "effective" | "unclear" | "not_effective";
 }
 
 /** A mitigation that names IEC 62443 requirements (D-6). */
@@ -151,6 +160,13 @@ export interface RowResult {
   /** Mitigations naming the row whose effectiveness is unclear — not counted (phase 4b). */
   unclearMitigationIds?: string[];
   claimIds: string[];
+  /**
+   * Cited component claims on the row that do not count (phase 4c): unclear
+   * (an assumption open / without implemented evidence) or not effective
+   * (an assumption not fulfilled), or covering only part of the row's open
+   * elements.
+   */
+  uncountedClaims?: { id: string; reason: "unclear" | "not_effective" | "partial" }[];
   /** Unmodelled criteria of type B rules. */
   checklist: string[];
   /** Why the row is n/a, derived or from the edition. */

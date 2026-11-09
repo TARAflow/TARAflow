@@ -330,6 +330,8 @@ export interface DocComplianceRow {
   mitigations: string[];
   /** Mitigations whose effectiveness is unclear (an imported component's, phase 4b) — not counted. */
   unclearMitigations?: string[];
+  /** Cited component claims that do not count (phase 4c): unclear, not effective, or covering part of the row. */
+  uncountedClaims?: { id: string; reason: "unclear" | "not_effective" | "partial" }[];
   claims: string[];
   reasoning?: string;
   /** "Title — summary in our own words" (D-27), document language; never normative text. */

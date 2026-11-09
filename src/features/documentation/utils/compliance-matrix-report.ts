@@ -122,6 +122,14 @@ function rowNotes(row: DocComplianceRow, t: TranslateFn): string {
   // phase 4b: an imported component's measure whose assumption lacks evidence here — not counted
   list("unclearMitigations", "unclear (assumption of use without evidence)", row.unclearMitigations ?? []);
   list("claims", "claims", row.claims);
+  // phase 4c: cited component claims that do not count, with why
+  for (const [reason, def] of [
+    ["unclear", "claims unclear (assumption of use without evidence)"],
+    ["not_effective", "claims not effective here (assumption of use not fulfilled)"],
+    ["partial", "claims covering only part of the row's elements"],
+  ] as const) {
+    list(`uncountedClaims.${reason}`, def, (row.uncountedClaims ?? []).filter((c) => c.reason === reason).map((c) => c.id));
+  }
   list("risks", "risks", row.risks ?? []);
   if (row.reasoning) parts.push(row.reasoning);
   if (row.checklist.length > 0) parts.push(`${t(`${K}.confirm`, "to confirm")}: ${row.checklist.join("; ")}`);

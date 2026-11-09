@@ -87,12 +87,12 @@
     "copy": {
       "title": "Bewertung nach {{prefix}} übernehmen",
       "intro": "Übernimmt die Bewertung einer anderen Instanz desselben Komponentenstands einmalig. Danach sind beide Instanzen unabhängig — spätere Änderungen werden nicht übertragen. Die Risikobehandlung bleibt pro Risiko.",
-      "decisions": "Likelihood-Faktoren (Kontext, Überschreibungen vorbelegter Faktoren), überstimmte Relevanzen, Window of Opportunity, Annahmen-Status, hier als nicht wirksam markierte Massnahmen",
+      "decisions": "Likelihood-Faktoren (Kontext, Überschreibungen vorbelegter Faktoren), überstimmte Relevanzen, Window of Opportunity, Annahmen-Status, hier als nicht wirksam markierte Massnahmen, zitierte Claims",
       "assetImpact": "Impact der Instanz-Assets",
       "fill": "Nur füllen, was hier noch nicht bewertet ist",
       "overwrite": "Mit den Werten der Quelle überschreiben",
       "confirm": "Übernehmen",
-      "done": "Übernommen: {{factors}} Faktorbewertung(en), {{overrides}} überstimmte Relevanz(en), {{measures}} hier als nicht wirksam markierte Massnahme(n), {{windows}} Window(s) of Opportunity, {{assumptions}} Annahmen-Status, {{impact}} Asset-Impact-Bewertung(en)."
+      "done": "Übernommen: {{factors}} Faktorbewertung(en), {{overrides}} überstimmte Relevanz(en), {{measures}} hier als nicht wirksam markierte Massnahme(n), {{claims}} zitierte(r) Claim(s), {{windows}} Window(s) of Opportunity, {{assumptions}} Annahmen-Status, {{impact}} Asset-Impact-Bewertung(en)."
     },
     "assumptions": {
       "title": "Annahmen zur Verwendung ({{count}}) — offen: {{open}}",

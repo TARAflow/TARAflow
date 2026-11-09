@@ -13,7 +13,8 @@
 //                           window of opportunity per attack path, the
 //                           status of the assumptions of use (phase 3b,
 //                           I7 (6)) with evidence and rationale, the
-//                           measures marked "not effective here" (3d-2b)
+//                           measures marked "not effective here" (3d-2b),
+//                           the cited component claims (4c)
 //   asset impact (off)      impact ratings of the instance assets and the
 //                           impact factors of the imported risks
 //   mode                    "fill": only what the target has not rated;
@@ -54,6 +55,7 @@ export interface CopyRatingsCounts {
   factors: number;
   relevanceOverrides: number;
   measureOverrides: number;
+  citedClaims: number;
   pathOverlays: number;
   assetRatings: number;
 }
@@ -92,7 +94,7 @@ export function copyInstanceRatings(
   if (!source || !target) throw new Error("Unknown instance.");
   if (source.importId !== target.importId) throw new Error("Ratings are copied between instances of the same import only.");
   const imported = components.imports.find((i) => i.id === source.importId);
-  const counts: CopyRatingsCounts = { assumptions: 0, factors: 0, relevanceOverrides: 0, measureOverrides: 0, pathOverlays: 0, assetRatings: 0 };
+  const counts: CopyRatingsCounts = { assumptions: 0, factors: 0, relevanceOverrides: 0, measureOverrides: 0, citedClaims: 0, pathOverlays: 0, assetRatings: 0 };
   const fill = options.mode === "fill";
 
   // ── decisions: overrides and windows of opportunity ────────────────────
@@ -112,6 +114,7 @@ export function copyInstanceRatings(
     };
     const overrides = mergeBy(target.relevanceOverrides, source.relevanceOverrides, (o) => o.threatKey, (n) => (counts.relevanceOverrides = n));
     const measureOverrides = mergeBy(target.measureOverrides, source.measureOverrides, (o) => o.measureId, (n) => (counts.measureOverrides = n));
+    const citedClaims = mergeBy(target.citedClaims, source.citedClaims, (c) => c.claimId, (n) => (counts.citedClaims = n));
     const overlays = mergeBy(target.pathOverlays, source.pathOverlays, overlayKey, (n) => (counts.pathOverlays = n));
     // "open" entries are no decision (fill: an open target entry is filled)
     const decidedAoU = (list: typeof target.assumptions) => (list ?? []).filter((a) => a.status !== "open");
@@ -122,12 +125,13 @@ export function copyInstanceRatings(
       (n) => (counts.assumptions = n),
     );
     const openTarget = (target.assumptions ?? []).filter((a) => a.status === "open" && !assumptions.some((x) => x.assumptionId === a.assumptionId));
-    const { relevanceOverrides: _r, measureOverrides: _m, pathOverlays: _p, ...rest } = target;
+    const { relevanceOverrides: _r, measureOverrides: _m, citedClaims: _c, pathOverlays: _p, ...rest } = target;
     nextTarget = {
       ...rest,
       assumptions: [...openTarget, ...assumptions],
       ...(overrides.length > 0 ? { relevanceOverrides: overrides } : {}),
       ...(measureOverrides.length > 0 ? { measureOverrides } : {}),
+      ...(citedClaims.length > 0 ? { citedClaims } : {}),
       ...(overlays.length > 0 ? { pathOverlays: overlays } : {}),
     };
   }
