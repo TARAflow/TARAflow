@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), next 4a-2 (asset lock)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), next 4a-3 (asset relations)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1003,6 +1003,22 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 48 done (2026-11-09, phase 4a-2, with the review of patch 47):* imported assets read-only
+where they are the component's. Asset dialog: name and description disabled, a banner says what is
+read-only and what the machine rates. Security goals: `componentAssetGoals` (instance asset id → the
+goal types the component has active in the snapshot) — on those cards no "Not relevant" / "Remove
+goal", the formal requirement read-only (no template), a chip "from SD1"; level, impact, consequence
+and rationale stay the machine's (the suggested level follows the machine's impact). Other goal types
+the machine may add — a manual goal, so its rationale is required as for any manual decision. Delete
+in the asset table disabled for imported assets ("removed with its component instance"). Findings:
+on a component goal "no requirement text" and "goal without threat" belong to the component; an
+added goal's findings and rationale / impact / safety findings stay the machine's. Review of 47: the
+classification of DFD findings is now complete by type — `FINDING_CLASS: Record<keyof typeof
+ValidationMessages, "structure" | "property">` (a new message does not compile until classified).
+Found while building it (→ 4a-3): the component's asset-to-asset relations are in the snapshot
+(`assetRelations`) but the import does not take them over; and A2A relations are edited only in
+the DFD asset form, outgoing from the asset — for a component asset that form is on a locked page, so
+a relation "component asset → machine asset" has no place to be entered yet.
 *Patch 47 done (2026-11-09, phase 4a-1):* findings carry their owner. `componentOwnership`
 (machine tfId → instance prefix / label, boundary flows marked) and `findingOwner` (a structural
 finding on a boundary flow — `isStructuralFinding` in features/dfd: connection-validator keys and the

@@ -107,6 +107,11 @@ export interface AssetTabProps {
    * its impact covers all units failing together.
    */
   unitsOf?: (assetId: string) => number;
+  /**
+   * An imported asset's component goal types (phase 4a-2): not removable,
+   * requirement text read-only; findings on them belong to the component.
+   */
+  componentGoalsOf?: (assetId: string) => readonly string[] | undefined;
 }
 
 // ==================== VIEW MEMORY ====================
@@ -145,6 +150,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   assetUsage,
   threatLinks,
   unitsOf,
+  componentGoalsOf,
 }) => {
   const { t } = useTranslation();
 
@@ -1008,7 +1014,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         </Box>
 
         {/* Findings — below the table, like the DFD tab */}
-        <AssetNotificationPanel findings={findings} onOpen={handleOpenFinding} assets={assetData.assets} />
+        <AssetNotificationPanel findings={findings} onOpen={handleOpenFinding} assets={assetData.assets} componentGoalsOf={componentGoalsOf} />
       </Box>
       {/* Asset delete confirm — project-wide, blocked by attack-tree anchors */}
       {confirmDeleteAsset && (
@@ -1035,6 +1041,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           threatLinks={threatLinks}
           assetLinks={assetLinksById.get(selectedAsset.id)}
           units={unitsOf?.(selectedAsset.id)}
+          componentGoals={componentGoalsOf?.(selectedAsset.id)}
         />
       )}
       {/* Configuration Dialog */}

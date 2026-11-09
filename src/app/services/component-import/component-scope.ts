@@ -6,7 +6,7 @@
 // on a boundary flow the machine-side perspective is still generated
 // (victimRole rule in the per-interaction generator). Pure.
 
-import { componentInstanceTfId, isStructuralFinding } from "features/dfd";
+import { componentInstanceTfId, instanceAssetId, isStructuralFinding } from "features/dfd";
 import type { Project } from "../../models/project-types";
 import { instanceLabel } from "./instance-quantity";
 
@@ -78,4 +78,28 @@ export function findingOwner(owners: ReadonlyMap<string, CellOwner> | undefined,
   if (!owner) return undefined;
   if (owner.boundary && findingKey && isStructuralFinding(findingKey)) return undefined;
   return owner;
+}
+
+/**
+ * Instance asset id → the security goal types the component has active
+ * (level other than "none") — phase 4a-2, user 2026-11-09: the machine may
+ * ADD goals to an imported asset but not remove these; their formal
+ * requirement text is the component's.
+ */
+export function componentAssetGoals(project: Pick<Project, "components">): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  const components = project.components;
+  if (!components) return out;
+  const importsById = new Map(components.imports.map((i) => [i.id, i]));
+  for (const instance of components.instances) {
+    const imported = importsById.get(instance.importId);
+    if (!imported) continue;
+    for (const a of imported.snapshot.assets) {
+      const goals = ((a as { securityGoals?: { type: string; level?: string }[] }).securityGoals ?? [])
+        .filter((g) => g.level && g.level !== "none")
+        .map((g) => g.type);
+      out.set(instanceAssetId(instance.id, a.id), goals);
+    }
+  }
+  return out;
 }

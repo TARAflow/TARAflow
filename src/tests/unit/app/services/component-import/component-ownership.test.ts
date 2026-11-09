@@ -4,7 +4,10 @@
 // its properties are the component's).
 
 import { describe, expect, it } from "vitest";
-import { componentOwnership, findingOwner } from "app/services/component-import/component-scope";
+import { componentAssetGoals, componentOwnership, findingOwner } from "app/services/component-import/component-scope";
+import { FINDING_CLASS } from "features/dfd/utils/finding-ownership";
+import { ValidationMessages } from "features/dfd/services/validators/validator-utils";
+import { instanceAssetId } from "features/dfd";
 import { isStructuralFinding } from "features/dfd";
 import { componentInstanceTfId } from "features/dfd";
 import { assetFindingOwner } from "features/assets/components/asset-notification-panel";
@@ -39,6 +42,21 @@ describe("finding ownership (phase 4a)", () => {
     expect(findingOwner(owners, "m_p1", "dfdValidation.unconnectedElement")).toBeUndefined();
   });
 
+  it("every validation message is classified (complete by type); keys outside it are property, leveled ones structure", () => {
+    expect(Object.keys(FINDING_CLASS).sort()).toEqual(Object.keys(ValidationMessages).sort());
+    expect(FINDING_CLASS.UNCONNECTED_DATAFLOW).toBe("structure");
+    expect(FINDING_CLASS.DF_TLS_NO_TERMINATOR).toBe("property");
+    expect(FINDING_CLASS.DUPLICATE_IDLABEL).toBe("property");
+    expect(isStructuralFinding(ValidationMessages.EXTERNAL_ENTITY_INSIDE_TB)).toBe(true);
+    expect(isStructuralFinding("tabs.dfd.validation.df.something.new")).toBe(false);
+  });
+
+  it("the goal types the component has active, per instance asset", () => {
+    const goals = componentAssetGoals(m);
+    const a = snapshot.assets[0] as { id: string; securityGoals?: { type: string; level: string }[] };
+    expect(goals.get(instanceAssetId("i1", a.id))).toEqual((a.securityGoals ?? []).filter((g) => g.level !== "none").map((g) => g.type));
+  });
+
   it("imported asset: name and DFD links are the component's, impact / goals / safety the machine's", () => {
     const assets = [{ id: "a1", importedFrom: "SD1 · Smoke Detector" }, { id: "a2" }];
     expect(assetFindingOwner({ key: "tabs.assets.validation.noName", assetId: "a1" }, assets)).toBe("SD1 · Smoke Detector");
@@ -46,5 +64,12 @@ describe("finding ownership (phase 4a)", () => {
     expect(assetFindingOwner({ key: "tabs.assets.validation.unratedImpact", assetId: "a1" }, assets)).toBeUndefined();
     expect(assetFindingOwner({ key: "tabs.assets.validation.noSecurityGoal", assetId: "a1" }, assets)).toBeUndefined();
     expect(assetFindingOwner({ key: "tabs.assets.validation.noName", assetId: "a2" }, assets)).toBeUndefined();
+    // goal findings: the component's goals (locked) are the component's, an added goal the machine's
+    const goalsOf = (id: string) => (id === "a1" ? ["C"] : undefined);
+    const desc = "tabs.assets.validation.noSecurityGoalDescription";
+    expect(assetFindingOwner({ key: desc, assetId: "a1", goal: "C" }, assets, goalsOf)).toBe("SD1 · Smoke Detector");
+    expect(assetFindingOwner({ key: desc, assetId: "a1", goal: "A" }, assets, goalsOf)).toBeUndefined();
+    expect(assetFindingOwner({ key: "tabs.assets.validation.goalWithoutThreat", assetId: "a1", goal: "C" }, assets, goalsOf)).toBe("SD1 · Smoke Detector");
+    expect(assetFindingOwner({ key: "tabs.assets.validation.goalRationaleMissing", assetId: "a1", goal: "C" }, assets, goalsOf)).toBeUndefined();
   });
 });

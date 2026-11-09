@@ -1,6 +1,7 @@
 {
   "tabs": {
     "assets": {
+      "deleteWithInstance": "Wird mit seiner Komponenten-Instanz entfernt (Instanz im DFD löschen)",
       "title": "Assets-Verwaltung",
       "description": "Definieren und verwalten Sie hier Ihre System-Assets.",
       "assets": "Assets",
@@ -335,6 +336,7 @@
         "supply_chain": "Lieferkette"
       },
       "dialog": {
+        "importedFrom": "Aus {{component}}: Name, Beschreibung, DFD-Verknüpfungen und die Schutzziele der Komponente sind hier schreibgeschützt. Impact, Schadensszenarien und weitere Ziele bewertet diese Maschine.",
         "protectionStrength": "Schutzstärke:",
         "levelRationale": "Begründung (Abweichung)",
         "levelRationalePlaceholder": "Warum weicht diese Schutzstärke vom Systemvorschlag ab?",
@@ -476,6 +478,8 @@
         "importResult": "Import: {{added}} hinzugefügt · {{replaced}} ersetzt · {{kept}} behalten"
       },
       "goalCards": {
+        "fromComponent": "aus {{prefix}}",
+        "fromComponentTooltip": "Ziel von {{component}}: Es kann hier nicht entfernt werden, sein Anforderungstext gehört der Komponente.",
         "heading": "Schutzziele",
         "help": "Schutzziele werden aus den DFD-Beziehungen des Assets vorgeschlagen; ihre Stufe folgt den Impact-Kriterien der jeweiligen Verletzung. Einen Vorschlag anpassen oder ausschliessen nur mit Begründung.",
         "subheading": "Das Schadenspotenzial (Tab 1) ist die Obergrenze. Jede Karte zeigt, warum das Ziel gilt und was seine Stufe bestimmt.",

@@ -147,6 +147,13 @@ interface AssetDialogProps {
    * every unit at once (review 2026-11-08).
    */
   units?: number;
+  /**
+   * The security goal types the asset's component has active — only for an
+   * imported asset (phase 4a-2): those cannot be removed and keep the
+   * component's requirement text; the machine may add others (rationale
+   * required, as for any manual goal).
+   */
+  componentGoals?: readonly string[];
 }
 
 interface TabPanelProps {
@@ -198,6 +205,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   threatLinks,
   assetLinks,
   units,
+  componentGoals,
 }) => {
   const { t } = useTranslation();
 
@@ -629,6 +637,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       onDescription={(text) => handleSecurityGoalDescription(goal.type, text)}
       onConsequence={(text) => handleSecurityGoalConsequence(goal.type, text)}
       onUseTemplate={() => handleUseTemplate(goal.type)}
+      lockedBy={editedAsset.importedFrom && componentGoals?.includes(goal.type) ? editedAsset.importedFrom : undefined}
     />
   );
 
@@ -695,6 +704,16 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
           overflow: "hidden",
         }}
       >
+        {/* Imported from a component (phase 4a-2): what is read-only here */}
+        {editedAsset.importedFrom && (
+          <Alert severity="info" sx={{ borderRadius: 0 }} data-testid="asset-imported-from">
+            {t("tabs.assets.dialog.importedFrom", {
+              component: editedAsset.importedFrom,
+              defaultValue:
+                "From {{component}}: name, description, DFD links and the component's security goals are read-only here. Impact, damage scenarios and further goals are rated by this machine.",
+            })}
+          </Alert>
+        )}
         {/* Tabs */}
         <Tabs
           value={tabValue}
@@ -801,7 +820,9 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                     fullWidth
                     size="small"
                     required
-                    autoFocus
+                    autoFocus={!editedAsset.importedFrom}
+                    disabled={!!editedAsset.importedFrom}
+                    inputProps={{ "data-testid": "asset-name" }}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -819,6 +840,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                         },
                       })
                     }
+                    disabled={!!editedAsset.importedFrom}
+                    inputProps={{ "data-testid": "asset-description" }}
                     fullWidth
                     multiline
                     rows={2}

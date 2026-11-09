@@ -9,8 +9,11 @@
 // FindingsPanel (FX-1); this file maps the asset findings onto it.
 //
 // Multi-project TARA phase 4a: on an asset imported from a component, a
-// finding only the component can fix (name, DFD links) carries the
-// component's chip; impact, safety and goal findings stay the machine's.
+// finding only the component can fix carries the component's chip — name,
+// DFD links, and on a goal the COMPONENT has active (locked, 4a-2) its
+// requirement text and "goal without threat" (the threats there are the
+// component's). Impact, safety, rationale and the goals the machine added
+// stay the machine's (review 2026-11-09).
 
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,10 +23,20 @@ import type { Asset } from "../models/asset-types";
 
 /** Findings on an imported asset that only its component can fix (its name and DFD links are the component's). */
 const COMPONENT_OWNED = new Set(["tabs.assets.validation.noName", "tabs.assets.validation.notLinkedToDFD"]);
+/** … on a goal the component has active: its requirement text, and the threats violating it, are the component's. */
+const COMPONENT_GOAL_OWNED = new Set(["tabs.assets.validation.noSecurityGoalDescription", "tabs.assets.validation.goalWithoutThreat"]);
 
 /** The component owning a finding, from the asset's importedFrom ("SD1 · Smoke Detector"); undefined = the machine's. */
-export function assetFindingOwner(f: Pick<AssetFinding, "key" | "assetId">, assets: readonly Pick<Asset, "id" | "importedFrom">[]): string | undefined {
-  if (!f.assetId || !COMPONENT_OWNED.has(f.key)) return undefined;
+export function assetFindingOwner(
+  f: Pick<AssetFinding, "key" | "assetId" | "goal">,
+  assets: readonly Pick<Asset, "id" | "importedFrom">[],
+  componentGoalsOf?: (assetId: string) => readonly string[] | undefined,
+): string | undefined {
+  if (!f.assetId) return undefined;
+  const ownedHere =
+    COMPONENT_OWNED.has(f.key) ||
+    (COMPONENT_GOAL_OWNED.has(f.key) && !!f.goal && !!componentGoalsOf?.(f.assetId)?.includes(f.goal));
+  if (!ownedHere) return undefined;
   return assets.find((a) => a.id === f.assetId)?.importedFrom;
 }
 
@@ -33,12 +46,15 @@ export interface AssetNotificationPanelProps {
   onOpen: (finding: AssetFinding) => void;
   /** The assets — an imported one's findings may belong to its component (phase 4a). */
   assets?: readonly Pick<Asset, "id" | "importedFrom">[];
+  /** An imported asset's component goal types (phase 4a-2). */
+  componentGoalsOf?: (assetId: string) => readonly string[] | undefined;
 }
 
 export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
   findings,
   onOpen,
   assets = [],
+  componentGoalsOf,
 }) => {
   const { t } = useTranslation();
 
@@ -54,7 +70,7 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
   const items = useMemo<PanelFinding[]>(
     () =>
       sorted.map((f, i) => {
-        const owner = assetFindingOwner(f, assets);
+        const owner = assetFindingOwner(f, assets, componentGoalsOf);
         return {
           id: String(i),
           severity: f.severity,
@@ -83,7 +99,7 @@ export const AssetNotificationPanel: React.FC<AssetNotificationPanelProps> = ({
           }),
         };
       }),
-    [sorted, t, assets],
+    [sorted, t, assets, componentGoalsOf],
   );
 
   return (

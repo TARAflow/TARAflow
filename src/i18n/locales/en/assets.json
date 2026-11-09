@@ -1,6 +1,7 @@
 {
   "tabs": {
     "assets": {
+      "deleteWithInstance": "Removed with its component instance (delete the instance in the DFD)",
       "title": "Assets Management",
       "description": "Define and manage your system assets here.",
       "assets": "Assets",
@@ -335,6 +336,7 @@
         "supply_chain": "Supply Chain"
       },
       "dialog": {
+        "importedFrom": "From {{component}}: name, description, DFD links and the component's security goals are read-only here. Impact, damage scenarios and further goals are rated by this machine.",
         "protectionStrength": "Protection Strength:",
         "levelRationale": "Override Rationale",
         "levelRationalePlaceholder": "Why does this protection level differ from the system suggestion?",
@@ -476,6 +478,8 @@
         "importResult": "Import: {{added}} added · {{replaced}} replaced · {{kept}} kept"
       },
       "goalCards": {
+        "fromComponent": "from {{prefix}}",
+        "fromComponentTooltip": "Goal of {{component}}: it cannot be removed here, its requirement text is the component's.",
         "heading": "Security goals",
         "help": "Goals are suggested from the asset's DFD relations; their level follows the impact criteria of the goal's violation. Adjust or exclude a suggestion only with a rationale.",
         "subheading": "The damage potential (tab 1) is the upper bound. Each card shows why the goal applies and what drives its level.",

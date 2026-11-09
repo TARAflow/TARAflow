@@ -95,7 +95,7 @@ import { usePhaseIndicators } from "app/hooks/workspace/use-phase-indicators";
 import { useClosedLoopData } from "app/hooks/workspace/use-closed-loop-data";
 import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 import { useComponentImport } from "app/hooks/workspace/use-component-import";
-import { findingOwner } from "app/services/component-import/component-scope";
+import { componentAssetGoals, findingOwner } from "app/services/component-import/component-scope";
 
 // ==================== COMPONENT ====================
 
@@ -173,6 +173,8 @@ export const WorkspaceLayout: React.FC = () => {
   // Identical units per instance asset (I5) — the asset dialog's hint.
   const instanceComponents = activeProject?.components;
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
+  // The goal types an imported asset's component has active (phase 4a-2): not removable here.
+  const componentGoals = useMemo(() => componentAssetGoals({ components: instanceComponents }), [instanceComponents]);
   // The project's measures (phase 3c) — what an assumption can name as relying on it.
   const measureRisks = activeProject?.risks;
   const measureThreats = activeProject?.threats;
@@ -404,6 +406,7 @@ export const WorkspaceLayout: React.FC = () => {
             hazardLinks={assetData.hazardRef}
             threatLinks={assetData.threatGoalLinks}
             unitsOf={(id) => assetUnits.get(id) ?? 1}
+            componentGoalsOf={(id) => componentGoals.get(id)}
           />
         )}
 

@@ -124,6 +124,13 @@ export interface SecurityGoalCardProps {
   onDescription: (text: string) => void;
   onConsequence: (text: string) => void;
   onUseTemplate: () => void;
+  /**
+   * A goal an imported component has active ("SD1 · Smoke Detector"; phase
+   * 4a-2): the machine may not remove it and its formal requirement is the
+   * component's — no exclude / remove, the text read-only. Level, impact,
+   * consequence and rationale stay the machine's.
+   */
+  lockedBy?: string;
 }
 
 /** Which rationale question applies — derived, not stored (design §4.1). */
@@ -170,6 +177,7 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
   onDescription,
   onConsequence,
   onUseTemplate,
+  lockedBy,
 }) => {
   const { t } = useTranslation();
   const needsAttention =
@@ -289,6 +297,22 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                     "#d97706",
                     "filled",
                   )}
+            {lockedBy && (
+              <Tooltip
+                title={t(`${K}.fromComponentTooltip`, {
+                  component: lockedBy,
+                  defaultValue: "Goal of {{component}}: it cannot be removed here, its requirement text is the component's.",
+                })}
+              >
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  data-testid="goal-from-component"
+                  label={t(`${K}.fromComponent`, { prefix: lockedBy.split(" · ")[0], defaultValue: "from {{prefix}}" })}
+                  sx={{ height: 20, fontSize: "0.72rem", borderStyle: "dashed" }}
+                />
+              </Tooltip>
+            )}
             {badges.map((b) => (
               <React.Fragment key={b.id}>
                 {chip(t(b.key, { defaultValue: b.defaultValue }), b.color)}
@@ -639,11 +663,13 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
               {/* Formal requirement */}
               <FieldRow
                 trailing={
-                  <Tooltip title={t("tabs.assets.dialog.useTemplate", { defaultValue: "Use template" })}>
-                    <IconButton onClick={onUseTemplate} size="small">
-                      <LightbulbIcon />
-                    </IconButton>
-                  </Tooltip>
+                  lockedBy ? undefined : (
+                    <Tooltip title={t("tabs.assets.dialog.useTemplate", { defaultValue: "Use template" })}>
+                      <IconButton onClick={onUseTemplate} size="small">
+                        <LightbulbIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )
                 }
               >
                 <TextField
@@ -652,6 +678,8 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                   })}
                   value={goal.formalDescription ?? ""}
                   onChange={(e) => onDescription(e.target.value)}
+                  disabled={!!lockedBy}
+                  inputProps={{ "data-testid": "goal-formal-description" }}
                   fullWidth
                   multiline
                   rows={2}
@@ -717,7 +745,8 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
 
           {/* Actions */}
           <Stack direction="row" spacing={1} justifyContent="flex-end">
-            {manual && !state.stale && (
+            {/* a component's goal: no removal — "Remove goal" would drop it to none */}
+            {manual && !state.stale && !(lockedBy && !excluded && !state.suggestion.suggested) && (
               <Button size="small" onClick={onReset}>
                 {excluded
                   ? t(`${K}.actions.reactivate`, { defaultValue: "Reactivate (suggestion)" })
@@ -726,7 +755,7 @@ export const SecurityGoalCard: React.FC<SecurityGoalCardProps> = ({
                     : t(`${K}.actions.remove`, { defaultValue: "Remove goal" })}
               </Button>
             )}
-            {!excluded && state.suggestion.suggested && (
+            {!excluded && state.suggestion.suggested && !lockedBy && (
               <Button size="small" color="warning" onClick={onExclude}>
                 {t(`${K}.actions.exclude`, { defaultValue: "Not relevant for this asset" })}
               </Button>

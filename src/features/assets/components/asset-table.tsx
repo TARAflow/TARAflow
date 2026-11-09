@@ -1583,7 +1583,16 @@ export const AssetTable = React.memo<AssetTableProps>(
                 <GridActionsCellItem
                   key="delete"
                   icon={<DeleteIcon />}
-                  label={t("common.delete", { defaultValue: "Delete" })}
+                  label={
+                    params.row.importedFrom
+                      ? t("tabs.assets.deleteWithInstance", {
+                          defaultValue: "Removed with its component instance (delete the instance in the DFD)",
+                        })
+                      : t("common.delete", { defaultValue: "Delete" })
+                  }
+                  // an imported asset goes with its component instance (phase 4a-2)
+                  disabled={!!params.row.importedFrom}
+                  data-testid="asset-delete"
                   onClick={(e) => {
                     // The grid opens the edit dialog on row click — don't
                     // stack it under the delete confirmation.
