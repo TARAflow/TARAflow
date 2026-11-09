@@ -471,7 +471,7 @@ export interface ComponentMultiprocessInfo {
    * Is a newer state of the component available (phase 5a, read-only)? The
    * status in words; absent = not checked (e.g. outside Electron).
    */
-  drift?: { kind: "up_to_date" | "newer_available" | "unreachable"; text: string };
+  drift?: { kind: "up_to_date" | "newer_available" | "diverged" | "unreachable"; text: string };
   /** A check is running. */
   driftChecking?: boolean;
   /** Check again; fetch = `git fetch` first (network, on request only). */

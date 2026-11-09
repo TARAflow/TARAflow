@@ -51,11 +51,26 @@ export type ComponentDriftReason =
   /** The file is not at its path (in that state / on disk). */
   | "file_missing"
   /** The state cannot be read as a component TARA (invalid, schema too new, not deterministic). */
-  | "unreadable";
+  | "unreadable"
+  /**
+   * The imported commit is not in this clone — it is behind the state the
+   * machine imported (e.g. imported on another computer): fetch first.
+   * Nothing is compared (review of patch 54: an older state must never be
+   * offered as newer).
+   */
+  | "clone_behind"
+  /** `git fetch` failed — the remote is not reachable (offline is the normal case). */
+  | "fetch_failed";
 
 export type ComponentDriftStatus =
   | { kind: "up_to_date"; builderChanged?: boolean }
   | { kind: "newer_available"; contentHash: string; commitSha?: string; tag?: string; builderChanged?: boolean }
+  /**
+   * The state found and the imported one lie on separate branches (e.g. after
+   * a rebase in the component's repository) — neither newer nor older; a
+   * hint, never offered as an update without a look.
+   */
+  | { kind: "diverged"; contentHash: string; commitSha: string; tag?: string; builderChanged?: boolean }
   | { kind: "unreachable"; reason: ComponentDriftReason; detail?: string };
 
 export interface ComponentDriftOptions {
@@ -109,7 +124,7 @@ export async function checkComponentDrift(
   if (!source.path) return { kind: "unreachable", reason: "file_missing" };
   if (options.fetch) {
     const fetched = await git(["fetch", "--quiet", "--tags"], root);
-    if (fetched.code !== 0) return { kind: "unreachable", reason: "ref_missing", detail: fetched.stderr.trim() || "git fetch failed" };
+    if (fetched.code !== 0) return { kind: "unreachable", reason: "fetch_failed", detail: fetched.stderr.trim() || "git fetch failed" };
   }
 
   // Which state: the newest tag of the pattern, else the branch tip.
@@ -131,6 +146,14 @@ export async function checkComponentDrift(
   if (sha.code !== 0) return { kind: "unreachable", reason: "ref_missing", detail: ref };
   const commitSha = sha.stdout.trim();
 
+  // Ancestry (review of patch 54): only a state AFTER the imported one is
+  // newer. The imported commit not in this clone → the clone is behind (e.g.
+  // imported on another computer): fetch first, compare nothing.
+  if (source.commitSha) {
+    const present = await git(["cat-file", "-e", `${source.commitSha}^{commit}`], root);
+    if (present.code !== 0) return { kind: "unreachable", reason: "clone_behind" };
+  }
+
   // The imported commit rebuilt by the running app: the baseline. Unavailable
   // (e.g. a shallow clone without it) → the stored hash.
   let baseline = imported.contentHash;
@@ -143,10 +166,24 @@ export async function checkComponentDrift(
       builderChanged = rebuilt.contentHash !== imported.contentHash;
     }
   }
-  if (commitSha === source.commitSha) return { kind: "up_to_date", ...(builderChanged ? { builderChanged: true } : {}) };
+  const builder = builderChanged ? { builderChanged: true } : {};
+  if (commitSha === source.commitSha) return { kind: "up_to_date", ...builder };
+  let diverged = false;
+  if (source.commitSha) {
+    // An ancestor of the imported commit (a clone not fetched, a tag on an
+    // older commit): older, not newer.
+    const older = await git(["merge-base", "--is-ancestor", commitSha, source.commitSha], root);
+    if (older.code === 0) return { kind: "up_to_date", ...builder };
+    const newer = await git(["merge-base", "--is-ancestor", source.commitSha, commitSha], root);
+    diverged = newer.code !== 0;
+  }
   const shown = await git(["show", `${commitSha}:${source.path}`], root);
   if (shown.code !== 0) return { kind: "unreachable", reason: "file_missing", detail: `${ref}:${source.path}` };
-  return compare(shown.stdout, baseline, { commitSha, ...(tag ? { tag } : {}) }, builderChanged);
+  const result = compare(shown.stdout, baseline, { commitSha, ...(tag ? { tag } : {}) }, builderChanged);
+  // Separate branches with other content: a hint, not an update offer.
+  return diverged && result.kind === "newer_available"
+    ? { kind: "diverged", contentHash: result.contentHash, commitSha, ...(tag ? { tag } : {}), ...builder }
+    : result;
 }
 
 // ==================== FINDINGS ====================
@@ -156,7 +193,8 @@ const KEY = (code: string) => `components.findings.${code}`;
 
 /**
  * Info findings of the drift check (phase 5a): CMP_NEWER_STATE_AVAILABLE
- * (where: tag / commit), CMP_SOURCE_UNREACHABLE (why),
+ * (where: tag / commit), CMP_SOURCE_DIVERGED (separate branches),
+ * CMP_SOURCE_UNREACHABLE (why),
  * CMP_SNAPSHOT_BUILDER_CHANGED (this TARAflow reads the imported state
  * differently — an update refreshes the stored state). Attached to the first
  * instance's multiprocess. Never a warning: an older state is not wrong, and
@@ -180,9 +218,10 @@ export function componentDriftFindings(
       ? [{ key: KEY("CMP_SNAPSHOT_BUILDER_CHANGED"), ...at, params: { component: imported.name } }]
       : [];
     if (status.kind === "up_to_date") return builder;
-    if (status.kind === "newer_available") {
+    if (status.kind === "newer_available" || status.kind === "diverged") {
       const where = status.tag ?? (status.commitSha ? status.commitSha.slice(0, 8) : "");
-      return [...builder, { key: KEY("CMP_NEWER_STATE_AVAILABLE"), ...at, params: { component: imported.name, where } }];
+      const code = status.kind === "diverged" ? "CMP_SOURCE_DIVERGED" : "CMP_NEWER_STATE_AVAILABLE";
+      return [...builder, { key: KEY(code), ...at, params: { component: imported.name, where } }];
     }
     return [{ key: KEY("CMP_SOURCE_UNREACHABLE"), ...at, params: { component: imported.name, reason: status.reason } }];
   });

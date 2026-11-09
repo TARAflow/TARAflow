@@ -162,3 +162,78 @@ describe("drift check against a real repository (phase 5a)", () => {
     });
   });
 });
+
+describe("drift check — ancestry: an older state is never offered as newer (review of patch 54)", () => {
+  let repo: string;
+  let path: string;
+  const commitHere = (name: string) => {
+    const p = base();
+    p.info.name = name;
+    writeFileSync(path, JSON.stringify(p));
+    sh(repo, "add", "-A");
+    sh(repo, "commit", "-q", "-m", name);
+    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo, encoding: "utf-8" }).trim();
+  };
+  const importAt = async (): Promise<ComponentImport> => {
+    const r = await readComponentSource(path, read, git);
+    if (!r.ok) throw new Error(r.error);
+    return { id: "imp", componentId: r.snapshot.component.projectId, name: "Camera", source: r.source, importedAt: "t", contentHash: r.contentHash, snapshot: r.snapshot } as ComponentImport;
+  };
+  beforeAll(() => {
+    repo = mkdtempSync(join(tmpdir(), "taraflow-drift-anc-"));
+    mkdirSync(join(repo, "components"));
+    path = join(repo, "components", "camera.tara.json");
+    sh(repo, "init", "-q", "-b", "main");
+    sh(repo, "config", "user.email", "t@example.com");
+    sh(repo, "config", "user.name", "Test");
+    sh(repo, "config", "commit.gpgsign", "false");
+  });
+  afterAll(() => rmSync(repo, { recursive: true, force: true }));
+
+  it("a second computer whose clone is behind the import: 'clone behind, fetch first' — not 'newer: C1'; after the fetch up to date", async () => {
+    commitHere("C1");
+    const machineB = mkdtempSync(join(tmpdir(), "taraflow-clone-b-"));
+    try {
+      execFileSync("git", ["clone", "-q", repo, machineB], { stdio: "ignore" }); // B stays on C1
+      commitHere("C2");
+      const imported = await importAt(); // computer A imports C2
+      const onB = join(machineB, "components", "camera.tara.json");
+      expect(await checkComponentDrift(imported, onB, read, git)).toEqual({ kind: "unreachable", reason: "clone_behind" });
+      expect(await checkComponentDrift(imported, onB, read, git, { fetch: true })).toEqual({ kind: "up_to_date" });
+    } finally {
+      rmSync(machineB, { recursive: true, force: true });
+    }
+  });
+
+  it("a tag pattern set later, its newest tag on an ancestor of the imported commit: not newer", async () => {
+    const c3 = commitHere("C3");
+    commitHere("C4");
+    const imported = await importAt(); // imported from the branch tip C4
+    sh(repo, "tag", "cam/v1.2", c3);
+    const tagged = { ...imported, source: { ...imported.source, tagPattern: "cam/v*" } };
+    expect(await checkComponentDrift(tagged, path, read, git)).toEqual({ kind: "up_to_date" });
+  });
+
+  it("separate branches (e.g. after a rebase): a hint, not 'newer'", async () => {
+    const imported = await importAt(); // C4 on main
+    sh(repo, "checkout", "-q", "-b", "rewritten", "HEAD~1");
+    const side = commitHere("C4'");
+    sh(repo, "checkout", "-q", "main");
+    const onSide = { ...imported, source: { ...imported.source, branch: "rewritten" } };
+    expect(await checkComponentDrift(onSide, path, read, git)).toMatchObject({ kind: "diverged", commitSha: side });
+    expect(componentDriftFindings(
+      { components: { imports: [imported], instances: [] }, dfd: null },
+      new Map([["imp", { kind: "diverged", contentHash: "x", commitSha: side } as const]]),
+    )[0].key).toBe("components.findings.CMP_SOURCE_DIVERGED");
+  });
+
+  it("a failed fetch is 'remote not reachable', not 'branch missing'", async () => {
+    const imported = await importAt();
+    sh(repo, "remote", "add", "origin", join(tmpdir(), "taraflow-no-such-remote"));
+    try {
+      expect(await checkComponentDrift(imported, path, read, git, { fetch: true })).toMatchObject({ kind: "unreachable", reason: "fetch_failed" });
+    } finally {
+      sh(repo, "remote", "remove", "origin");
+    }
+  });
+});

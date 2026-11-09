@@ -80,6 +80,17 @@ function driftView(status: ComponentDriftStatus, t: (key: string, options?: Reco
       text: t("components.drift.newer", { where, defaultValue: "Newer state available ({{where}}) — the update follows as an explicit step" }) + builder,
     };
   }
+  if (status.kind === "diverged") {
+    const where = status.tag ?? status.commitSha.slice(0, 8);
+    return {
+      kind: status.kind,
+      text:
+        t("components.drift.diverged", {
+          where,
+          defaultValue: "Another state on a separate branch ({{where}}) — neither newer nor older; check with the component team",
+        }) + builder,
+    };
+  }
   return {
     kind: status.kind,
     text: t(`components.drift.unreachable.${status.reason}`, { defaultValue: `Source not reachable (${status.reason})` }),

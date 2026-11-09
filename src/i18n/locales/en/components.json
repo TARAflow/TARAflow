@@ -52,6 +52,7 @@
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Component {{component}}: a newer state is available ({{where}}). Nothing changes until it is taken over explicitly (update).",
       "CMP_SNAPSHOT_BUILDER_CHANGED": "Component {{component}}: this TARAflow reads the imported state differently from the version that imported it — the component itself did not change. An update refreshes the stored state.",
+      "CMP_SOURCE_DIVERGED": "Component {{component}}: a state on a separate branch ({{where}}) — neither newer nor older than the imported one (e.g. after a rebase). Check with the component team before taking it over.",
       "CMP_SOURCE_UNREACHABLE": "Component {{component}}: whether a newer state exists cannot be checked here ({{reason}}).",
       "CMP_SOURCE_UNPINNED": "Component {{component}} is imported unpinned ({{reason}}) — only its content identifies the state. Import a committed state for an audited TARA.",
       "CMP_INSTANCE_ORPHANED": "Component instance {{prefix}} ({{component}}) has no multiprocess in the DFD — delete the instance or import the component again.",
@@ -87,6 +88,7 @@
       "check": "Check",
       "fetch": "Fetch and check",
       "builderChanged": "this TARAflow reads it differently — an update refreshes the stored state",
+      "diverged": "Another state on a separate branch ({{where}}) — neither newer nor older; check with the component team",
       "upToDate": "Up to date",
       "newer": "Newer state available ({{where}}) — the update follows as an explicit step",
       "unreachable": {
@@ -94,6 +96,8 @@
         "no_repo": "Not checked — its folder is no git working copy",
         "ref_missing": "Not checked — branch or tag not found (fetch, or check the source)",
         "file_missing": "Not checked — the file is not at its path",
+        "clone_behind": "Not checked — this clone is older than the imported state (imported elsewhere): fetch first",
+        "fetch_failed": "Not checked — the remote is not reachable (offline?)",
         "unreadable": "Not checked — that state cannot be read as a component TARA"
       }
     },

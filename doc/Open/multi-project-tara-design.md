@@ -1003,6 +1003,17 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 55 done (2026-11-09, review of patch 54):* only a state AFTER the imported one is newer —
+the check compared content only, so an older state was offered as "newer" (and 5c would have
+downgraded): a clone on a second computer still before the imported commit (the commit not even
+present → no rebuild → compared with the stored hash), or a tag pattern set later whose newest tag
+points to an ancestor. Ancestry first: the imported commit not in the clone → `unreachable` /
+`clone_behind` ("this clone is older than the imported state — fetch first"), nothing compared; the
+state found an ancestor of the imported commit (`git merge-base --is-ancestor`) → up to date; the two
+on separate branches (e.g. after a rebase in the component's repository) with other content → a
+status of its own, `diverged`, info `CMP_SOURCE_DIVERGED` ("neither newer nor older — check with the
+component team"), never offered as an update without a look. A failed `git fetch` is `fetch_failed`
+("remote not reachable" — offline is the normal case), no longer "branch missing".
 *Patch 54 done (2026-11-09, phase 5a):* drift, read-only. `checkComponentDrift` (pure, git and
 file reader injected): a pinned import reads the component TARA AS COMMITTED at its branch tip
 (`git show <commit>:<path>`; with a tag pattern the newest matching tag), never the working copy; an
