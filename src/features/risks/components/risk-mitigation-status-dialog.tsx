@@ -2,7 +2,9 @@
 // Execution-layer dialog: tracks implementation status of selected mitigations.
 //
 // The status is set by hand; a linked ticket moves it when the ticket
-// changes (adapters design §3.2). With a tracker connected, a done status
+// changes (adapters design §3.2). With a ticket, progress (open … implemented)
+// comes from the ticket only — it is changed in the tracker; left to choose
+// are "verified" once the ticket is done and "rejected" (IT-14). With a tracker connected, a done status
 // without a ticket needs evidence or a reference (user 2026-11-10) — the
 // dialog does not save without it. Evidence and reference are offered
 // whenever no ticket is linked, connected or not.
@@ -53,7 +55,7 @@ import {
 } from "../models/risk-mitigation-types";
 import type { RiskIntegrationConnection } from "../models/risk-integration-types";
 import type { TicketPort } from "shared/models/ticket-types";
-import { hasRejectionReason } from "../services/ticket-sync";
+import { differsFromTicket, hasRejectionReason, selectableWithTicket, statusFromTicket } from "../services/ticket-sync";
 import { needsStatusEvidence } from "../services/mitigation-evidence";
 import { MitigationTicketRow } from "./mitigation-ticket-row";
 import type { TicketLink } from "../services/ticket-links";
@@ -334,7 +336,13 @@ export const RiskMitigationStatusDialog: React.FC<
                               }}
                             >
                               {MITIGATION_STATUS_OPTIONS.map((s) => (
-                                <MenuItem key={s.value} value={s.value}>
+                                <MenuItem
+                                  key={s.value}
+                                  value={s.value}
+                                  // With a ticket, progress comes from the ticket (IT-14).
+                                  disabled={!!m.ticketId && !selectableWithTicket(m).has(s.value)}
+                                  data-testid={`status-option-${s.value}`}
+                                >
                                   <Chip
                                     label={s.label}
                                     size="small"
@@ -361,10 +369,26 @@ export const RiskMitigationStatusDialog: React.FC<
                           {m.ticketId && (
                             <Typography variant="caption" color="text.secondary" data-testid="status-follows-ticket">
                               {t("tabs.risks.mitigationStatusDialog.followsTicket", {
-                                defaultValue: "follows {{ticket}} when it changes",
+                                defaultValue: "progress comes from {{ticket}} — change it in the tracker; verified once it is done",
                                 ticket: m.ticketId,
                               })}
                             </Typography>
+                          )}
+                          {m.ticketId && differsFromTicket(m) && (
+                            <Button
+                              size="small"
+                              onClick={() =>
+                                updateMitigation(mitigationSelectionKey(m), {
+                                  status: statusFromTicket(m.ticketStatus)!,
+                                })
+                              }
+                              data-testid="status-follow-ticket"
+                            >
+                              {t("tabs.risks.mitigationStatusDialog.followTicketAgain", {
+                                defaultValue: "Follow {{ticket}} again",
+                                ticket: m.ticketId,
+                              })}
+                            </Button>
                           )}
                           {!m.ticketId && isJiraConnected && (
                             <Typography variant="caption" color="text.secondary" data-testid="status-set-by-hand">

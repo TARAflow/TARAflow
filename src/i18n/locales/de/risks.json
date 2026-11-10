@@ -493,7 +493,8 @@
         "create": "Ticket anlegen"
       },
       "mitigationStatusDialog": {
-        "followsTicket": "folgt {{ticket}}, wenn es sich ändert",
+        "followsTicket": "Fortschritt kommt aus {{ticket}} — im Tracker ändern; „verified“, sobald es erledigt ist",
+        "followTicketAgain": "Wieder {{ticket}} folgen",
         "setByHand": "von Hand gesetzt",
         "evidenceRequired": "Ohne verknüpftes Ticket braucht dieser Status einen Nachweis oder eine Referenz",
         "noTicket": "Kein Ticket",

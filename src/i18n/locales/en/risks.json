@@ -493,7 +493,8 @@
         "create": "Create ticket"
       },
       "mitigationStatusDialog": {
-        "followsTicket": "follows {{ticket}} when it changes",
+        "followsTicket": "progress comes from {{ticket}} — change it in the tracker; verified once it is done",
+        "followTicketAgain": "Follow {{ticket}} again",
         "setByHand": "set by hand",
         "evidenceRequired": "Without a linked ticket this status needs evidence or a reference",
         "noTicket": "No ticket",

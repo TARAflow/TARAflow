@@ -133,4 +133,45 @@ describe("mitigation status dialog on the ticket port", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onSave).toHaveBeenCalled();
   });
+
+  it("with a ticket the progress options come from the ticket; verified once done; follow it again", async () => {
+    const onSave = vi.fn();
+    render(
+      <RiskMitigationStatusDialog
+        open
+        risk={risk([{ id: "M-S-001", status: "verified", ticketId: "SCRUM-1", ticketStatus: "CLOSED" }])}
+        integrationConnection={connection}
+        ticketPort={port({ "SCRUM-1": "done" })}
+        issueTypes={[{ id: "1", name: "Task" }]}
+        onSave={onSave}
+        onClose={() => {}}
+      />,
+    );
+    fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
+    const disabled = (v: string) => screen.getByTestId(`status-option-${v}`).getAttribute("aria-disabled") === "true";
+    expect(["open", "in_progress", "in_review"].map(disabled)).toEqual([true, true, true]);
+    expect(["implemented", "verified", "rejected"].map(disabled)).toEqual([false, false, false]);
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+    fireEvent.click(screen.getByTestId("status-follow-ticket"));
+    expect(screen.queryByTestId("status-follow-ticket")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave.mock.calls[0][1].selectedMitigations[0]).toMatchObject({ status: "implemented", ticketId: "SCRUM-1" });
+  });
+
+  it("verified is not offered while the ticket is still open", () => {
+    render(
+      <RiskMitigationStatusDialog
+        open
+        risk={risk([{ id: "M-S-001", status: "in_progress", ticketId: "SCRUM-1", ticketStatus: "IN_PROGRESS" }])}
+        integrationConnection={connection}
+        ticketPort={port({})}
+        issueTypes={[{ id: "1", name: "Task" }]}
+        onSave={vi.fn()}
+        onClose={() => {}}
+      />,
+    );
+    fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
+    expect(screen.getByTestId("status-option-verified").getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByTestId("status-option-rejected").getAttribute("aria-disabled")).toBeNull();
+  });
 });
