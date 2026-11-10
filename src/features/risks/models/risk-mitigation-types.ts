@@ -115,8 +115,10 @@ export type ImplementationProgress =
  * Ruleset (priority order):
  *   1. No mitigations                          → not_started
  *   2. All rejected                            → rejected
- *   3. All implemented or verified             → implemented
- *   4. Min. 1 verified, rest implemented/ok   → verified
+ *   3. All verified                            → verified
+ *   4. All implemented or verified             → implemented (the lowest
+ *      state counts: one implemented-only mitigation keeps the risk at
+ *      implemented — user 2026-11-10; before, one verified was enough)
  *   5. Min. 1 in_review                        → in_review
  *   6. Min. 1 in_progress                      → in_progress
  *   7. Min. 1 open (non-rejected)              → open (= not yet started)
@@ -138,8 +140,8 @@ export function deriveImplementationProgress(
     (m) => m.status === "implemented" || m.status === "verified",
   );
   if (allDone) {
-    // Rule 4: at least one verified → verified
-    return active.some((m) => m.status === "verified")
+    // Rules 3 / 4: verified only when every active mitigation is
+    return active.every((m) => m.status === "verified")
       ? "verified"
       : "implemented";
   }
