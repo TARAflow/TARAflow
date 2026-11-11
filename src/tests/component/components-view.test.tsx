@@ -93,4 +93,19 @@ describe("Overview tab Components", () => {
     fireEvent.click(screen.getByTestId("overview-view-components"));
     expect(screen.getByTestId("components-view-scroll")).toBeTruthy();
   });
+
+  it("Sources counts a stored URL with credentials (review 2026-11-11)", () => {
+    render(
+      <GeneralTab
+        data={{ ...data, sourceBindings: [{ id: "b1", repoUrl: "https://me:tok@git.example.com/r.git", refType: "branch", refLabel: "main", driftEvents: [] }] } as GeneralTabData}
+        phases={PHASES}
+        progressPhaseIds={[0]}
+        getStatusIcon={() => ""}
+        getStatusColor={() => ""}
+        onUpdate={vi.fn()}
+        projectId="P-src"
+      />,
+    );
+    expect(screen.getByTestId("overview-view-sources-badge").textContent).toBe("1");
+  });
 });

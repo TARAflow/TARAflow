@@ -154,6 +154,7 @@
     "repoUrl": "Repository-URL",
     "localPathWarning": "Das sieht nach einem lokalen Pfad aus — es wird nur die Remote-URL gespeichert.",
     "credentialsInUrl": "Die URL enthält Zugangsdaten — bitte entfernen: Die Projektdatei wird geteilt (und in jede TARA kopiert, die sie importiert). Ein privates Repository nutzt gespeicherte Zugangsdaten.",
+    "credentialsStored": "Diese URL enthält Zugangsdaten. URL bereinigen (Bearbeiten) und das Token beim Repository-Anbieter zurückziehen — es bleibt in der Historie jedes Repositorys, in das diese Datei committet wurde.",
     "refLabel": "Ref-Bezeichnung",
     "refLabelPlaceholder": "main, v2.3.1…",
     "refType": {

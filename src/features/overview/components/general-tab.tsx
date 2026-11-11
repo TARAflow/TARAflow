@@ -28,6 +28,7 @@ import {
 } from "../models/overview-types";
 import { VerificationStatusLine } from "./verification-status-line";
 import { ComponentsView } from "./components-view";
+import { hasUrlCredentials } from "shared/utils/url-credentials";
 
 // ==================== GENERAL TAB ====================
 // Overview/Info phase component — sub-tabs instead of a growing stack
@@ -262,7 +263,8 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
     // A newer or diverged state of a component, not yet taken over.
     components: components.filter((c) => c.drift?.kind === "newer_available" || c.drift?.kind === "diverged").length,
     methodology: methodology && !methodology.impactScaleConforms ? 1 : 0,
-    sources: 0,
+    // A stored source reference with credentials in its URL (review 2026-11-11).
+    sources: (data.sourceBindings ?? []).filter((b) => hasUrlCredentials(b.repoUrl)).length,
   };
 
   return (

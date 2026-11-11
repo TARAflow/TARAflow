@@ -397,4 +397,18 @@ describe("SourceBindingsSection", () => {
     fireEvent.click(screen.getByTestId("source-binding-save"));
     expect(onUpdate).toHaveBeenCalled();
   });
+
+  it("a URL with credentials stored before: clean it and revoke the token (review 2026-11-11)", () => {
+    render(
+      <SourceBindingsSection
+        bindings={[{ ...binding, repoUrl: "https://me:ghp_token@github.com/org/repo.git" }, binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={vi.fn()}
+      />,
+    );
+    const hints = screen.getAllByTestId("source-binding-credentials-stored");
+    expect(hints).toHaveLength(1);
+    expect(hints[0].textContent).toContain("revoke the token");
+  });
 });

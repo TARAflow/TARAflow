@@ -290,9 +290,22 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                   )}
                 </>
               ) : (
-                <p className="text-sm text-gray-900 break-all">
-                  {row.repoUrl || "-"}
-                </p>
+                <>
+                  <p className="text-sm text-gray-900 break-all">
+                    {row.repoUrl || "-"}
+                  </p>
+                  {/* Stored before the editor refused it (review 2026-11-11): cleaning
+                      is not enough — the token stays in the git history. */}
+                  {hasUrlCredentials(row.repoUrl) && (
+                    <p className="flex items-start gap-1 text-xs text-red-600 mt-1" data-testid="source-binding-credentials-stored">
+                      <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                      {t("sourceBinding.credentialsStored", {
+                        defaultValue:
+                          "This URL contains credentials. Clean the URL (Edit) and revoke the token at the repository provider — it stays in the history of every repository this file was committed to.",
+                      })}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 

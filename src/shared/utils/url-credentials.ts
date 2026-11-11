@@ -10,6 +10,11 @@
 //   ssh://user:pw@host/…        the password goes, the user stays (ssh needs
 //                               it; "git" is no secret)
 //   git@host:path (scp form)    unchanged — a user name, no secret
+//
+// Not covered: a token as a query parameter (…?private_token=…) — rare for
+// git remotes, which put credentials in the user part. The Overview flags
+// a stored URL with credentials: cleaning it is not enough, the token
+// stays in the git history and has to be revoked.
 
 const WITH_SCHEME = /^([a-z][a-z0-9+.-]*):\/\/([^/?#@]*)@(.*)$/i;
 
