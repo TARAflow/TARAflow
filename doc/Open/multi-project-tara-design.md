@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patch 74), 6a-2 next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patches 74, 75), 6a-2 next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1004,6 +1004,22 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 75 done (2026-11-11, 6a-1b, review of 74):* (1) **ISO: the component's attack trees in the
+report.** In an ISO/SAE 21434 machine the component's risks come from its paths; the attack-tree
+chapter showed only the machine's own trees. Now per component and tree the structure once (without
+the component's leaf ratings), the paths per instance ("SD1:AT-1.2", the attack-path threats'
+numbering) with the window of opportunity per step and its origin ("rated by this TARA", else "not
+rated yet — component: …"), attack potential and feasibility with this TARA's configuration, the
+relevance (`docImportedAttackTrees`, `importedAttackTreeSections`). (2) **The counterpart always:**
+a boundary threat names the machine element at the flow's outer end in its element column ("↔ Alarm
+Processing Controller") also with one instance; per instance below only when instances differ. Per
+element too: the counterpart is now computed for a threat whose element is the boundary flow (from
+the component's connection) — the Threats tab shows it as well. (3) **The PDF** (its own converter,
+`pdfmake-converter.ts`) had none of 6a-1: the imported threat groups, the provenance at the risk
+(on its own line, `\n`, no literal `<br>`) and the imported trees are there now; the texts come from
+one helper for every format (`imported-report.ts`). The PDF has no internal links at all (no link
+annotations — also not for the machine's own threats); a click on a risk id does not jump there —
+noted, not part of this patch.
 *Patch 74 done (2026-11-11, phase 6a-1):* the report's threat chapters show the imported threats —
 per component and method a group "Smoke Detector Case @ a1b2c3d4 — imported (SD1, SD2)", each threat
 once (its id in the component), below it only the instances that differ: a relevance override of this

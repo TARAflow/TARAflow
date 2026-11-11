@@ -148,6 +148,9 @@ function instanceTables(
   const boundaryFlows = new Set(
     (snapshot.dfd?.connections ?? []).filter((c) => ees.has(c.from) !== ees.has(c.to)).map((c) => c.id),
   );
+  const boundaryConnections = new Map(
+    (snapshot.dfd?.connections ?? []).filter((c) => boundaryFlows.has(c.id)).map((c) => [c.id, c]),
+  );
   const onBoundary = (t: Threat) =>
     (!!t.dataFlow && boundaryFlows.has(t.dataFlow.connectionId)) ||
     (!!t.linkedElement && boundaryFlows.has(t.linkedElement.elementId));
@@ -159,7 +162,17 @@ function instanceTables(
       const boundary = onBoundary(original);
       const o = boundary ? overrides.get(original.id) : undefined;
       let threat = remapThreat(original, instance, mapId, nameOf, ees);
-      const outer = boundary && original.dataFlow ? [original.dataFlow.sourceId, original.dataFlow.targetId].find((id) => ees.has(id)) : undefined;
+      // The EE end of the boundary flow — per interaction from the threat's
+      // flow, per element (the flow is the threat's element) from the
+      // component's connection (6a-1b: the report names it for every
+      // boundary threat, review 2026-11-11).
+      const flow = original.dataFlow
+        ? [original.dataFlow.sourceId, original.dataFlow.targetId]
+        : (() => {
+            const c = boundaryConnections.get(original.linkedElement?.elementId ?? "");
+            return c ? [c.from, c.to] : [];
+          })();
+      const outer = boundary ? flow.find((id) => ees.has(id)) : undefined;
       const counterpart = outer ? (nameOf(mapId(outer)) ?? undefined) : undefined;
       // The machine's decision; the component's note (evalNote) stays
       // visible beside the machine's rationale (I3, review 2026-11-07).

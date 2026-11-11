@@ -20,7 +20,8 @@ import { attackPathDisplayId } from "../../attacktree/services/attacktree-threat
 import { resolveFeasibilityConfiguration } from "../../attacktree/models/attacktree-types";
 import type { AttackTree, AttackTreeNode } from "../../attacktree/models/attacktree-types";
 import type { FeasibilityConfiguration } from "../../attacktree/models/attacktree-feasibility-types";
-import type { DocProjectData } from "../models/doc-types";
+import type { DocImportedAttackTree, DocProjectData } from "../models/doc-types";
+import { componentAtLabel } from "./imported-report";
 
 type TranslateFn = (key: string, defaultValue?: string) => string;
 
@@ -89,6 +90,8 @@ function outlineOf(
   root: AttackTreeNode,
   config: FeasibilityConfiguration,
   t: TranslateFn,
+  /** Without the leaf ratings — an imported tree's leaves carry the component's values (6a-1b). */
+  withRatings = true,
 ): AttackTreeOutlineItem[] {
   const out: AttackTreeOutlineItem[] = [];
   const walk = (node: AttackTreeNode, depth: number) => {
@@ -99,7 +102,7 @@ function outlineOf(
       ...(node.attackVector ? [t(`${K}.vector.${node.attackVector}`, node.attackVector)] : []),
     ];
     if (tags.length > 0) text += ` (${tags.join(" · ")})`;
-    if (node.type === "LEAF") {
+    if (node.type === "LEAF" && withRatings) {
       const rating = leafRating(node, config, t);
       if (rating) text += ` — ${rating}`;
     }
@@ -199,6 +202,79 @@ export function attackTreeReportSections(
           feasibilityLabel(p.feasibilityLevel, t),
           relevanceOf(p.pathKey),
         ]),
+    };
+  });
+}
+
+
+/**
+ * The trees of imported components (multi-project TARA 6a-1b): per
+ * component and tree the structure once (without the component's leaf
+ * ratings), the paths per instance rated with THIS TARA's feasibility
+ * configuration, and the window of opportunity per step with its origin —
+ * this TARA's rating, else "not rated yet" with the component's value as a
+ * suggestion.
+ */
+export function importedAttackTreeSections(
+  trees: readonly DocImportedAttackTree[] | undefined,
+  /** This TARA's attack-tree configuration — the paths are rated with it, never the component's. */
+  machineConfiguration: Parameters<typeof resolveFeasibilityConfiguration>[0],
+  t: TranslateFn,
+): AttackTreeReportSection[] {
+  const config = resolveFeasibilityConfiguration(machineConfiguration);
+  const woo = (w: string) => t(`tabs.attacktree.feasibility.value.${w}`, w);
+  const relevance = (r: string) => t(`${K}.relevance.${r}`, RELEVANCE_FALLBACK[r] ?? r);
+  return (trees ?? []).map((g) => {
+    const facts: [string, string][] = [];
+    if (g.tree.description?.trim()) facts.push([t(`${K}.description`, "Description"), g.tree.description.trim()]);
+    const anchor = anchorText(g.tree, [], t);
+    if (anchor) facts.push([t(`${K}.anchor`, "Anchor"), anchor]);
+    facts.push([t(`${K}.instances`, "Instances"), g.instances.map((i) => i.prefix).join(", ")]);
+    facts.push([
+      t(`${K}.importedRating`, "Rating"),
+      t(
+        `${K}.importedRatingText`,
+        "Paths rated with this TARA's feasibility configuration; the window of opportunity of each step is this TARA's decision, per instance.",
+      ),
+    ]);
+    const root = structureOf(g.tree);
+    const steps = (path: DocImportedAttackTree["instances"][number]["paths"][number]) =>
+      path.steps
+        .map((s) => {
+          const value = s.window
+            ? `${woo(s.window)} (${t(`${K}.ratedHere`, "rated by this TARA")})`
+            : !s.ratable
+              ? t(`${K}.notRatable`, "not ratable (no factor breakdown)")
+              : `${t(`${K}.notRated`, "not rated yet")}${s.componentWindow ? ` — ${t(`${K}.componentSuggests`, "component: {{value}}").replace("{{value}}", woo(s.componentWindow))}` : ""}`;
+          return s.name ? `${s.name}: ${value}` : value;
+        })
+        .join("; ") || "–";
+    return {
+      title: `${componentAtLabel(g.componentName, g.at, t)} · AT-${g.treeNumber} ${g.tree.customTitle || g.tree.name}`,
+      facts,
+      outlineTitle: t(`${K}.structure`, "Structure"),
+      outline: root ? outlineOf(root, config, t, false) : [],
+      pathsTitle: t(`${K}.paths`, "Attack paths"),
+      headers: [
+        t(`${K}.colPath`, "Path"),
+        t(`${K}.colChain`, "Attack path"),
+        t(`${K}.colWindow`, "Window of opportunity per step"),
+        t(`${K}.colPotential`, "Attack potential"),
+        t(`${K}.colFeasibility`, "Attack feasibility"),
+        t(`${K}.colRelevance`, "Relevance"),
+      ],
+      rows: g.instances.flatMap((i) =>
+        i.paths.map((p) => [
+          p.id,
+          p.chain.join(" → "),
+          steps(p),
+          p.potential != null ? String(p.potential) : "–",
+          feasibilityLabel(p.feasibility, t),
+          p.relevance.length === 0
+            ? relevance("unrated")
+            : p.relevance.map((r) => (p.relevance.length > 1 && r.strideCategory ? `${relevance(r.relevance)} (${r.strideCategory})` : relevance(r.relevance))).join(", "),
+        ]),
+      ),
     };
   });
 }

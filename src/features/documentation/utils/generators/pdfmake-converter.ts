@@ -22,8 +22,15 @@ import { complianceMatrixIntro, complianceMatrixSections } from "../compliance-m
 import {
   attackTreeReportSections,
   attackTreesIntro,
+  importedAttackTreeSections,
   type AttackTreeOutlineItem,
 } from "../attack-tree-report";
+import {
+  importedRiskNote,
+  importedThreatDifferenceLines,
+  importedThreatGroupSummary,
+  importedThreatGroupTitle,
+} from "../imported-report";
 import { groupIsoScenarios } from "../../../risks/models/iso-scenarios";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
@@ -322,6 +329,11 @@ export class PdfMakeConverter {
     return tables.flatMap((t) => t.threats);
   }
 
+  /** The imported components' threats of one method (6a-1), per component, each once. */
+  private importedThreatGroups(method: "per-element" | "per-interaction") {
+    return (this.project.computed.importedThreats ?? []).filter((g) => g.method === method && g.threats.length > 0);
+  }
+
   private getRisks() {
     const allRisks = this.project.risks?.risks ?? [];
     return allRisks.filter((r) => r.moscowPriority !== "wont");
@@ -437,11 +449,13 @@ export class PdfMakeConverter {
       // One chapter per method, each only with its own threats / risks; none
       // for a method the preset switches off (ISO/SAE 21434: per-interaction).
       case "threats-per-element":
-        return this.getThreatsPerElement().length > 0 && !this.methodDisabled("per-element")
+        return (this.getThreatsPerElement().length > 0 || this.importedThreatGroups("per-element").length > 0) &&
+          !this.methodDisabled("per-element")
           ? this.createThreats("per-element")
           : [];
       case "threats-per-interaction":
-        return this.getThreatsPerInteraction().length > 0 && !this.methodDisabled("per-interaction")
+        return (this.getThreatsPerInteraction().length > 0 || this.importedThreatGroups("per-interaction").length > 0) &&
+          !this.methodDisabled("per-interaction")
           ? this.createThreats("per-interaction")
           : [];
       case "threats-attack-path":
@@ -1136,17 +1150,45 @@ export class PdfMakeConverter {
     const groups = reportGroupsOf(this.project.dfd, this.lang, threats, (threat) =>
       dfdItemRefOfThreat(threat),
     );
-    content.push(this.statsTable(threatStatsTable(threats, this.lang, (type) => this.typeLabel(type))));
-    if (groups) {
-      for (const group of groups) {
-        content.push(
-          { text: group.title, style: "h2" },
-          { text: threatGroupSummary(group.items, this.lang), margin: [0, 0, 0, 6] },
-          threatTable(group.items),
-        );
+    if (threats.length > 0) {
+      content.push(this.statsTable(threatStatsTable(threats, this.lang, (type) => this.typeLabel(type))));
+      if (groups) {
+        for (const group of groups) {
+          content.push(
+            { text: group.title, style: "h2" },
+            { text: threatGroupSummary(group.items, this.lang), margin: [0, 0, 0, 6] },
+            threatTable(group.items),
+          );
+        }
+      } else {
+        content.push(threatTable(threats));
       }
-    } else {
-      content.push(threatTable(threats));
+    }
+
+    // Imported components (6a-1): per component each threat once, the instances below where they differ.
+    for (const group of this.importedThreatGroups(method)) {
+      const body: TableCell[][] = [threatHeader];
+      for (const threat of group.threats) {
+        body.push([
+          { text: threat.displayId },
+          { text: threat.elementOrFlow },
+          { text: this.project.computed.strideNames.get(threat.strideCategory) ?? threat.strideCategory },
+          { text: [threat.threatDescription, ...importedThreatDifferenceLines(threat, this.t)].join("\n") },
+          {
+            text:
+              resolveMitigationDrafts(threat.proposedMitigations ?? [])
+                .map((m) => (m.isCustom ? `[custom] ${m.notes ?? ""}` : m.text))
+                .filter(Boolean)
+                .map((x) => `• ${x}`)
+                .join("\n") || "-",
+          },
+        ]);
+      }
+      content.push(
+        { text: importedThreatGroupTitle(group, this.t), style: "h2" },
+        { text: importedThreatGroupSummary(group, this.t), margin: [0, 0, 0, 6] },
+        { table: { headerRows: 1, widths: [50, "*", 60, "*", "*"], body }, layout: "lightHorizontalLines", margin: [0, 0, 0, 20] },
+      );
     }
 
     content.push({ text: "", pageBreak: "after" });
@@ -1310,7 +1352,11 @@ export class PdfMakeConverter {
 
   /** Plan F5: one section per attack tree, same content as the template generators. */
   private createAttackTrees(): Content[] {
-    const sections = attackTreeReportSections(this.project, this.t);
+    // The machine's own trees, then those of imported components (6a-1b).
+    const sections = [
+      ...attackTreeReportSections(this.project, this.t),
+      ...importedAttackTreeSections(this.project.computed.importedAttackTrees, this.project.attackTree?.configuration, this.t),
+    ];
     if (sections.length === 0) return [];
     // Nested pdfmake list from the depth-annotated outline.
     const nest = (items: AttackTreeOutlineItem[], depth: number): Content[] => {
@@ -1345,7 +1391,8 @@ export class PdfMakeConverter {
           {
             table: {
               headerRows: 1,
-              widths: ["auto", "*", "auto", "auto", "auto"],
+              // an imported tree has a sixth column: the window per step (6a-1b)
+              widths: section.headers.length > 5 ? ["auto", "*", "*", "auto", "auto", "auto"] : ["auto", "*", "auto", "auto", "auto"],
               body: [
                 section.headers.map((h): TableCell => ({ text: h, style: "tableHeader" })),
                 ...section.rows.map((r) => r.map((c): TableCell => ({ text: c }))),
@@ -1430,9 +1477,11 @@ export class PdfMakeConverter {
       // otherwise "5.3 – Medium" by the scale's thresholds (risk-score-text.ts).
       const config = this.project.risks?.configuration;
       const iso = isIsoReport(config);
-      const riskBeforeLabel = iso
-        ? isoRiskLabel(risk, this.t, false)
-        : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.lang);
+      // An imported risk: where its rating comes from (6a-1, E10), on its own line.
+      const provenance = importedRiskNote(risk.id, this.project.computed, this.t);
+      const riskBeforeLabel = `${
+        iso ? isoRiskLabel(risk, this.t, false) : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.lang)
+      }${provenance ? `\n${provenance}` : ""}`;
       // The report data carries the credited residual (I7 (4)); the note says why one is not credited.
       const notCredited = uncreditedNote(risk.id, this.project.computed, this.t);
       const riskAfterLabel = `${

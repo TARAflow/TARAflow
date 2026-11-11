@@ -354,3 +354,50 @@ describe("AND combinations are rated with the machine's window", () => {
     expect(generateThreatsFromAttackTree(unratedTree, undefined, 1).threats.map((t) => t.id).some((id) => id.includes(combo.pathKey))).toBe(false);
   });
 });
+
+describe("the report's imported attack trees (6a-1b, review 2026-11-11)", () => {
+  // HL1 rated by the machine, HL2 not yet
+  const m = machine(headlamp, ["inst-1", "inst-2"]);
+  const half = (() => {
+    const all = rated(m);
+    const instances = all.components!.instances.map((i) => (i.id === "inst-2" ? { ...i, pathOverlays: [] } : i));
+    return { ...all, components: { ...all.components!, instances } } as Project;
+  })();
+
+  it("per component and tree the structure once, the paths per instance with this TARA's window per step", async () => {
+    const { docImportedAttackTrees } = await import("app/services/doc-imported");
+    const trees = docImportedAttackTrees(half);
+    expect(trees).toHaveLength(headlamp.attackTrees!.trees.length);
+    const first = trees[0];
+    expect(first).toMatchObject({ componentName: headlamp.info.name, at: { commit: "a" }, treeNumber: 1 });
+    expect(first.instances.map((i) => i.prefix)).toEqual(["HL1", "HL2"]);
+    const [hl1, hl2] = first.instances;
+    expect(hl1.paths.length).toBeGreaterThan(0);
+    expect(hl1.paths[0].id).toMatch(/^HL1:AT-1\./);
+    // HL1: rated by this TARA — window on every ratable step, a feasibility
+    const ratable = hl1.paths.filter((p) => p.steps.every((s) => s.ratable));
+    expect(ratable.length).toBeGreaterThan(0);
+    for (const p of ratable) {
+      expect(p.steps.every((s) => !!s.window)).toBe(true);
+      expect(p.feasibility).toBeDefined();
+    }
+    // HL2: not rated — no window of this TARA, the component's value as a suggestion, no feasibility
+    const open = hl2.paths.filter((p) => p.steps.every((s) => s.ratable));
+    expect(open.every((p) => p.steps.every((s) => !s.window && !!s.componentWindow) && p.feasibility === undefined)).toBe(true);
+  });
+
+  it("the chapter: structure without the component's leaf ratings, the window per step with its origin", async () => {
+    const { docImportedAttackTrees } = await import("app/services/doc-imported");
+    const { importedAttackTreeSections } = await import("features/documentation/utils/attack-tree-report");
+    const t = ((k: string, d?: string) => d ?? k) as never;
+    const sections = importedAttackTreeSections(docImportedAttackTrees(half), undefined, t);
+    const s = sections[0];
+    expect(s.title.startsWith(`${headlamp.info.name} @ a · AT-1 `)).toBe(true);
+    expect(s.outline.some((o) => o.text.includes("AP "))).toBe(false);
+    expect(s.headers).toContain("Window of opportunity per step");
+    const text = s.rows.map((r) => r.join(" | ")).join("\n");
+    expect(text).toContain("(rated by this TARA)");
+    expect(text).toMatch(/not rated yet — component: /);
+    expect(s.rows.some((r) => r[0].startsWith("HL2:"))).toBe(true);
+  });
+});

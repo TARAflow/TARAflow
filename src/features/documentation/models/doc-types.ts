@@ -308,6 +308,36 @@ export interface DocComputedValues {
    * this TARA overrode, the quantity. Absent → no imports.
    */
   importedRiskNotes?: Map<string, DocImportedRiskNote>;
+  /**
+   * The attack trees of imported components (6a-1b, ISO/SAE 21434: their
+   * paths make the risks): per component and tree the structure once, the
+   * paths per instance rated with this TARA's configuration and its window
+   * of opportunity per step. Absent → no imported trees.
+   */
+  importedAttackTrees?: DocImportedAttackTree[];
+}
+
+/** One rated path of an imported tree in one instance. */
+export interface DocImportedAttackPath {
+  /** "SD1:AT-1.2" — the attack-path threats' numbering with the prefix. */
+  id: string;
+  chain: string[];
+  potential?: number;
+  /** With this TARA's feasibility configuration; absent while a step is unrated. */
+  feasibility?: string;
+  relevance: { relevance: string; strideCategory?: string }[];
+  /** The window of opportunity per step: this TARA's rating, else the component's value as a suggestion. */
+  steps: { name?: string; window?: string; componentWindow?: string; ratable: boolean }[];
+}
+
+export interface DocImportedAttackTree {
+  componentName: string;
+  at: DocComponentAt;
+  /** The tree's number in the component (AT-<n>). */
+  treeNumber: number;
+  /** The component's tree — its structure is shown once. */
+  tree: AttackTreeData["trees"][number];
+  instances: { prefix: string; paths: DocImportedAttackPath[] }[];
 }
 
 /** Where an imported component's state comes from, for "Name @ a1b2c3d4". */

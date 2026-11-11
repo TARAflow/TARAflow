@@ -10,6 +10,8 @@ import type { Project } from "app/models/project-types";
 import { docImportedRiskNotes, docImportedThreats } from "app/services/doc-imported";
 import { MarkdownGenerator } from "features/documentation/utils/generators/markdown-generator";
 import { AsciidocGenerator } from "features/documentation/utils/generators/asciidoc-generator";
+import { PdfMakeConverter } from "features/documentation/utils/generators/pdfmake-converter";
+import { DEFAULT_CHAPTER_CONFIG, createDefaultDocData } from "features/documentation/models/doc-types";
 import type { DocImportedThreatGroup } from "features/documentation/models/doc-types";
 import { component, machine, tid } from "../../../fixtures/component-treatment-machine";
 
@@ -119,3 +121,31 @@ describe("the threat chapter and the risk rows (Markdown, AsciiDoc)", () => {
     expect(row).toContain("SD1 · Smoke Detector @ a; from the component: skill_level");
   });
 });
+
+describe("the PDF has the same (review 2026-11-11: it had none of it)", () => {
+  /** All strings of the document definition, depth first. */
+  const strings = (node: Any, out: string[] = []): string[] => {
+    if (typeof node === "string") out.push(node);
+    else if (Array.isArray(node)) node.forEach((n) => strings(n, out));
+    else if (node && typeof node === "object") Object.values(node).forEach((v) => strings(v, out));
+    return out;
+  };
+  it("the imported threats per component, the differing instance, the provenance on its own line", () => {
+    const p = twoInstances();
+    const risk = p.risks!.risks[0];
+    risk.factorRatings = [{ factorId: "skill_level", value: 3, weight: 1, source: "derived", derivedFrom: "component" }] as never;
+    risk.moscowPriority = "should";
+    const groups = docImportedThreats(p) as DocImportedThreatGroup[];
+    const g = groups.find((x) => x.method === "per-element")!;
+    g.threats[0] = { ...g.threats[0], relevance: "relevant", differences: [{ prefix: "SD2", override: { relevance: "not_relevant", rationale: "Sealed" } }] };
+    const doc = { ...docProject(p, { importedThreats: groups }), info: { name: "Panel", tags: { domain: [], platform: [], regulation: [], custom: [] } }, assets: { assets: [] } };
+    const config = { ...createDefaultDocData().configuration, language: "en", chapters: DEFAULT_CHAPTER_CONFIG.filter((c) => c.id === "threats-per-element" || c.id === "risks-per-element") };
+    const all = strings(new PdfMakeConverter(doc as never, config as never, t).createDocumentDefinition().content);
+    expect(all).toContain("Smoke Detector @ a — imported (SD1, SD2)");
+    expect(all.some((x) => x.includes("\nSD2: relevance overridden by this TARA — relevant → not relevant: Sealed"))).toBe(true);
+    // a line break, not a literal <br>
+    expect(all.some((x) => /\nSD1 · Smoke Detector @ a; from the component: skill_level$/.test(x))).toBe(true);
+    expect(all.some((x) => x.includes("<br>"))).toBe(false);
+  });
+});
+

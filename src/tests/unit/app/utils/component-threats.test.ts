@@ -329,3 +329,21 @@ describe("factor prefill per fingerprint (patch 16)", () => {
     expect(section.changes[0].details!.map((d) => d.field)).toEqual(["factorRatings"]);
   });
 });
+
+describe("the report's imported threats: the counterpart of a boundary flow (6a-1b, review 2026-11-11)", () => {
+  it("also with one instance: the flow names the machine element it hangs on", async () => {
+    const { docImportedThreats } = await import("app/services/doc-imported");
+    const m = machine([{ id: "inst-1", prefix: "SD1" }]);
+    const boundary = docImportedThreats(m)
+      .flatMap((g) => g.threats)
+      .filter((x) => x.elementOrFlow.includes("↔"));
+    expect(boundary.length).toBeGreaterThan(0);
+    // the EE mapped to the machine's PLC names it; the EEs taken over keep their own name
+    expect(boundary.some((x) => x.elementOrFlow.endsWith("↔ Fire Panel Controller"))).toBe(true);
+    expect(boundary.every((x) => x.differences.length === 0)).toBe(true);
+    // per element too: the threat's element is the boundary flow
+    const perElement = docImportedThreats(m).find((g) => g.method === "per-element")!.threats;
+    expect(perElement.some((x) => x.elementOrFlow.endsWith("↔ Fire Panel Controller"))).toBe(true);
+  });
+});
+

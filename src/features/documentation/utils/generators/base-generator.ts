@@ -19,6 +19,7 @@ import { controlLabels, mitigationLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
 import {
   attackTreeReportSections,
+  importedAttackTreeSections,
   attackTreesIntro,
   type AttackTreeReportSection,
 } from "../attack-tree-report";
@@ -52,12 +53,17 @@ import {
   type VisibilityFlowInput,
 } from "../../../../shared/models/property-visibility";
 import { impactAggregationSentence } from "../impact-aggregation-text";
+import {
+  importedRiskNote,
+  importedThreatDifferenceLines,
+  importedThreatGroupSummary,
+  importedThreatGroupTitle,
+} from "../imported-report";
 import type {
   DocConfiguration,
   DocProjectData,
   DocLanguage,
   DocChapterId,
-  DocComponentAt,
   DocImportedThreat,
   DocImportedThreatGroup,
 } from "../../models/doc-types";
@@ -1259,39 +1265,12 @@ export abstract class BaseDocumentGenerator {
     return "";
   }
 
-  /** "Smoke Detector Case @ a1b2c3d4" — tag, else the short commit, else "not pinned". */
-  protected componentAtLabel(name: string, at: DocComponentAt): string {
-    const where = at.tag ?? (at.commit ? at.commit.slice(0, 8) : this.ctx.t("tabs.doc.imported.unpinned", "not pinned"));
-    return `${name} @ ${where}`;
-  }
-
   /** One component's threats of one method: a heading, each threat once, the instances below where they differ. */
   protected importedThreatGroup(group: DocImportedThreatGroup): string {
     const { project } = this.ctx;
     const t = this.ctx.t;
-    const relevanceLabel = (r: string) => t(`tabs.doc.imported.relevance.${r}`, r.replace(/_/g, " "));
     const row = (threat: DocImportedThreat) => {
-      const lines = [this.escapeTableText(threat.threatDescription)];
-      for (const d of threat.differences) {
-        if (d.override) {
-          lines.push(
-            this.escapeTableText(
-              t("tabs.doc.imported.override", "{{prefix}}: relevance overridden by this TARA — {{from}} → {{to}}: {{rationale}}")
-                .replace("{{prefix}}", d.prefix)
-                .replace("{{from}}", relevanceLabel(threat.relevance))
-                .replace("{{to}}", relevanceLabel(d.override.relevance))
-                .replace("{{rationale}}", d.override.rationale),
-            ),
-          );
-        }
-        if (d.counterpart) {
-          lines.push(
-            this.escapeTableText(
-              t("tabs.doc.imported.counterpart", "{{prefix}}: counterpart {{name}}").replace("{{prefix}}", d.prefix).replace("{{name}}", d.counterpart),
-            ),
-          );
-        }
-      }
+      const lines = [threat.threatDescription, ...importedThreatDifferenceLines(threat, t)].map((x) => this.escapeTableText(x));
       const values = {
         anchor: threat.instanceIds[0] ?? threat.displayId,
         tsId: threat.displayId,
@@ -1315,40 +1294,10 @@ export abstract class BaseDocumentGenerator {
       };
       return replacePlaceholders(this.getAttackPathThreatRowTemplate(), values);
     };
-    const title = t("tabs.doc.imported.group", "{{component}} — imported ({{instances}})")
-      .replace("{{component}}", this.componentAtLabel(group.componentName, group.at))
-      .replace("{{instances}}", group.instances.join(", "));
-    const summary = t("tabs.doc.imported.groupSummary", "{{count}} threat(s) of the component, each shown once for all its instances")
-      .replace("{{count}}", String(group.threats.length));
+    const title = importedThreatGroupTitle(group, t);
+    const summary = importedThreatGroupSummary(group, t);
     const table = replacePlaceholders(this.getThreatsTableTemplate(), { threatRows: group.threats.map(row).join("") });
     return this.formatReportGroup(title, table, summary);
-  }
-
-  /** The provenance of an imported risk's rating (E10), or undefined for the machine's own risks. */
-  protected importedRiskNote(riskId: string): string | undefined {
-    const note = this.ctx.project.computed.importedRiskNotes?.get(riskId);
-    if (!note) return undefined;
-    const t = this.ctx.t;
-    const factor = (id: string) => t(`risks.factors.${id}.name`, id);
-    const parts = [
-      t("tabs.doc.imported.riskFrom", "{{prefix}} · {{component}}")
-        .replace("{{prefix}}", note.prefix)
-        .replace("{{component}}", this.componentAtLabel(note.componentName, note.at)),
-    ];
-    if (note.prefilled.length > 0) {
-      parts.push(t("tabs.doc.imported.prefilled", "from the component: {{factors}}").replace("{{factors}}", note.prefilled.map(factor).join(", ")));
-    }
-    for (const o of note.overridden) {
-      parts.push(
-        t("tabs.doc.imported.overridden", "rated by this TARA: {{factor}}{{rationale}}")
-          .replace("{{factor}}", factor(o.factorId))
-          .replace("{{rationale}}", o.rationale ? ` — ${o.rationale}` : ""),
-      );
-    }
-    if (note.quantity > 1) {
-      parts.push(t("tabs.doc.imported.quantity", "×{{n}} identical units").replace("{{n}}", String(note.quantity)));
-    }
-    return parts.join("; ");
   }
 
   // ==================== THREATS (ATTACK PATH) ====================
@@ -1408,7 +1357,7 @@ export abstract class BaseDocumentGenerator {
     const config = project.risks?.configuration;
     const isoReport = config?.likelihoodMethod === "iso-21434";
     // An imported risk: where its rating comes from (6a-1, E10).
-    const provenance = this.importedRiskNote(risk.id);
+    const provenance = importedRiskNote(risk.id, project.computed, this.ctx.t);
     const riskBeforeLabel = `${
       isoReport
         ? isoRiskLabel(risk, this.ctx.t, false)
@@ -1594,7 +1543,11 @@ export abstract class BaseDocumentGenerator {
    */
   protected generateAttackTrees(title: string): ChapterContent {
     const chapterId: DocChapterId = "attack-trees";
-    const sections = attackTreeReportSections(this.ctx.project, this.ctx.t);
+    // The machine's own trees, then those of imported components (6a-1b).
+    const sections = [
+      ...attackTreeReportSections(this.ctx.project, this.ctx.t),
+      ...importedAttackTreeSections(this.ctx.project.computed?.importedAttackTrees, this.ctx.project.attackTree?.configuration, this.ctx.t),
+    ];
     if (sections.length === 0) {
       return { id: chapterId, title, content: "", hasContent: false };
     }
