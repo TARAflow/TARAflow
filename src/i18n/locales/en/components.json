@@ -93,6 +93,7 @@
       "title": "Update {{component}}",
       "changes": "What changed in the component",
       "noStructuralChange": "No element, threat or path was added or removed — only content changed.",
+      "aboutChanged": "The component's overview changed (description, responsible, sources, Item Definition texts).",
       "newEes": "New external entities — decide each before applying",
       "eeChoose": "Choose…",
       "eeTakeOver": "Take over as a new external entity",

@@ -14,6 +14,7 @@ import { componentSourceLabel } from "./component-paths";
 import { instanceLabel } from "./instance-quantity";
 import { pairingCandidates, type ComponentUpdateInput, type ComponentUpdatePairing, type ComponentUpdateResult } from "./component-update";
 import { snapshotDelta } from "./update-inventory";
+import { canonicalStringify } from "shared/utils/tcs-canonical";
 
 type NewState = Pick<ComponentSourceOk, "snapshot" | "contentHash" | "source" | "methodology">;
 
@@ -53,6 +54,7 @@ export function updatePreview(project: Project, importId: string, next: NewState
     from: componentSourceLabel(imported.source),
     to: componentSourceLabel(next.source),
     changes,
+    ...(canonicalStringify(oldSnap.about ?? {}) !== canonicalStringify(next.snapshot.about ?? {}) ? { aboutChanged: true } : {}),
     newEes: delta.newEes.map((eeId) => ({
       eeId,
       name: (next.snapshot.dfd?.elements ?? []).find((e) => e.id === eeId)?.name ?? eeId,

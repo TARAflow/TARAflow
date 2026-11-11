@@ -51,6 +51,13 @@ describe("ComponentUpdateDialog", () => {
     expect(screen.queryByTestId("component-update-tickets")).toBeNull();
     fireEvent.click(apply);
     expect(onApply).toHaveBeenCalledWith({ pairs: ["threat|t1|t2"], ees: { i1: { "EE-NEW": TAKE_OVER } } });
+    expect(screen.queryByTestId("component-update-about-changed")).toBeNull();
+  });
+
+  it("names a changed overview of the component (user 2026-11-11)", () => {
+    const outcomeOf = () => ({ review: 0, dropped: [], tickets: [] });
+    render(<ComponentUpdateDialog open preview={{ ...preview, aboutChanged: true }} outcomeOf={outcomeOf} onApply={() => {}} onClose={() => {}} />);
+    expect(screen.getByTestId("component-update-about-changed").textContent).toContain("overview changed");
   });
 });
 

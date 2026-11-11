@@ -10,10 +10,12 @@
 //
 // What crosses (design §4.2): the DFD, threats with their relevance, attack
 // trees, the raw values of the intrinsic likelihood factors, treatment and
-// measures, goals and claims, assets, assumptions. What stays behind: impact
-// values and ratings, risk levels, aggregated feasibility, context-dependent
-// factors, hazards, Item Definition sections, tickets, audit, people, and
-// timestamps (they change with every save and carry no analysis content).
+// measures, goals and claims, assets, assumptions, and the overview (`about`:
+// description, responsible, tags, Item Definition texts and functions, source
+// bindings — user 2026-11-11). What stays behind: impact values and ratings,
+// risk levels, aggregated feasibility, context-dependent factors, hazards,
+// tickets, audit, the team, and timestamps (they change with every save and
+// carry no analysis content).
 
 import { canonicalStringify } from "shared/utils/tcs-canonical";
 import { fnv1aHex12 } from "shared/utils/fnv1a";
@@ -130,6 +132,35 @@ function snapshotAssumptions(project: Project): ComponentSnapshot["assumptions"]
   });
 }
 
+/** The component's overview (design §4.2): only what is set. */
+function snapshotAbout(project: Project): ComponentSnapshot["about"] {
+  const info = project.info;
+  const tags = info?.tags;
+  const hasTags = !!tags && Object.values(tags).some((v) => Array.isArray(v) && v.length > 0);
+  const sections = Object.fromEntries(
+    Object.entries(project.itemDefinition?.sections ?? {})
+      .map(([id, section]) => [id, { ...(section?.text?.trim() ? { text: section.text } : {}), ...(section?.source ? { source: section.source } : {}) }] as const)
+      .filter(([, section]) => Object.keys(section).length > 0),
+  );
+  const functions = (project.itemDefinition?.functions ?? []).map(({ functionAssetId: _asset, ...f }) => f);
+  const bindings = (project.sourceBindings ?? []).map((b) => ({
+    id: b.id,
+    repoUrl: b.repoUrl,
+    refType: b.refType,
+    refLabel: b.refLabel,
+    ...(b.resolvedCommitSha ? { resolvedCommitSha: b.resolvedCommitSha } : {}),
+  }));
+  return {
+    ...(info?.description?.trim() ? { description: info.description } : {}),
+    ...(info?.responsible?.trim() ? { responsible: info.responsible } : {}),
+    ...(hasTags ? { tags } : {}),
+    ...(info?.safetyRelevant ? { safetyRelevant: true } : {}),
+    ...(Object.keys(sections).length ? { sections } : {}),
+    ...(functions.length ? { functions } : {}),
+    ...(bindings.length ? { sourceBindings: bindings } : {}),
+  };
+}
+
 export function buildComponentSnapshot(project: Project): ComponentSnapshot {
   const dfd = project.dfd;
   const threats = project.threats;
@@ -140,6 +171,7 @@ export function buildComponentSnapshot(project: Project): ComponentSnapshot {
       name: project.info?.name ?? "",
       ...(project.info?.version ? { version: project.info.version } : {}),
     },
+    about: snapshotAbout(project),
     dfd: dfd
       ? {
           xml: dfd.xml,

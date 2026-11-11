@@ -5,7 +5,7 @@
 // here in the app layer because it is made of several features' data; the
 // feature-agnostic import record is in shared/models/component-import-types.
 
-import type { Assumption, CybersecurityConcept } from "shared";
+import type { Assumption, CybersecurityConcept, ItemFunction, ItemSectionId, ProjectTags, SourceBinding, SourceRef } from "shared";
 import type { Project } from "./project-types";
 
 type NonNull<T> = Exclude<T, null | undefined>;
@@ -61,9 +61,32 @@ export type SnapshotAsset = Omit<
 /** Assumptions on the environment without the person who owns them. */
 export type SnapshotAssumption = Omit<Assumption, "owner">;
 
+/**
+ * The component's overview at the commit (design §4.2, user 2026-11-11): what
+ * the machine shows per component in its Overview and the report — the
+ * description, who answers for it, its scope, the Item Definition texts and
+ * functions, and the code repositories it was analysed against. Pinned like
+ * everything else: a changed description is a newer state.
+ */
+export interface SnapshotAbout {
+  description?: string;
+  /** The component's responsible — the contact for revision requests (phase 6). Not the team. */
+  responsible?: string;
+  tags?: ProjectTags;
+  safetyRelevant?: boolean;
+  /** Item Definition texts with their document reference; no links into the component's model. */
+  sections?: Partial<Record<ItemSectionId, { text?: string; source?: SourceRef }>>;
+  /** Functions without the link to a component asset. */
+  functions?: Omit<ItemFunction, "functionAssetId">[];
+  /** Project source bindings: repository, ref and the pinned commit — no drift log, no credentials. */
+  sourceBindings?: Pick<SourceBinding, "id" | "repoUrl" | "refType" | "refLabel" | "resolvedCommitSha">[];
+}
+
 export interface ComponentSnapshot {
   snapshotFormat: 1;
   component: { projectId: string; name: string; version?: string };
+  /** Absent in snapshots taken before 2026-11-11 (unreleased 0.19 state). */
+  about?: SnapshotAbout;
   dfd: SnapshotDfd | null;
   threats: SnapshotThreats | null;
   attackTrees: Project["attackTrees"];

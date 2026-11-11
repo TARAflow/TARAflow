@@ -93,6 +93,7 @@
       "title": "{{component}} aktualisieren",
       "changes": "Was sich in der Komponente geändert hat",
       "noStructuralChange": "Kein Element, Threat oder Pfad kam hinzu oder fiel weg — nur Inhalte haben sich geändert.",
+      "aboutChanged": "Die Übersicht der Komponente hat sich geändert (Beschreibung, Verantwortlich, Quellen, Texte der Item Definition).",
       "newEes": "Neue externe Entitäten — vor dem Anwenden jede entscheiden",
       "eeChoose": "Wählen…",
       "eeTakeOver": "Als neue externe Entität übernehmen",

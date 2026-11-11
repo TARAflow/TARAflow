@@ -42,6 +42,13 @@ describe("update preview (phase 5c-2)", () => {
     expect(preview.to).toContain("c2c2c2c2");
   });
 
+  it("a changed overview (description …) is named; an unchanged one is not", () => {
+    expect(preview.aboutChanged).toBeUndefined();
+    const described = structuredClone(snap(p));
+    described.about = { ...(described.about ?? {}), description: "Rev. B" };
+    expect(updatePreview(p, "imp", nextState(described)).aboutChanged).toBe(true);
+  });
+
   it("the numbers follow the choice: unpaired the rating and ticket go; paired they go to review", () => {
     const dry = (pairs: string[]) =>
       updateOutcomeOf(applyComponentUpdate(updateInputOf(p, "imp", next, { pairs, ees: { i1: { "EE-NEW": TAKE_OVER } } }, "preview")));

@@ -119,7 +119,7 @@ describe("buildComponentSnapshot — what stays behind", () => {
     for (const k of ["graph", "stats", "validation", "thumbnail", "lastModified"]) expect(k in dfd, k).toBe(false);
   });
 
-  it("no hazards, Item Definition sections, audit, integration, documentation", () => {
+  it("no hazards, Item Definition record (its texts cross in `about`), audit, integration, documentation", () => {
     const s = buildComponentSnapshot(cnc()) as unknown as Record<string, unknown>;
     for (const k of ["hazards", "itemDefinition", "audit", "integration", "documentation", "settings", "phaseStatus"]) {
       expect(k in s, k).toBe(false);
@@ -163,6 +163,58 @@ describe("buildComponentSnapshot — what stays behind", () => {
     expect(s.assumptions).toEqual([{ id: "a1", displayId: "ASM-01", text: "Cabinet is locked", status: "open" }]);
     expect(s.concept).toEqual({ goals: [{ id: "g1" }], claims: [{ id: "c1" }] });
     expect(JSON.stringify(s)).not.toContain("Jane Doe");
+  });
+});
+
+describe("buildComponentSnapshot — the overview (about, user 2026-11-11)", () => {
+  const withOverview = () => {
+    const p = cnc();
+    p.info = { ...p.info, description: "Smoke detector case", responsible: "Platform team", team: ["Jane Doe"], safetyRelevant: true, tags: { custom: [], domain: ["Industrial"], platform: ["IoT"], regulation: ["CRA"] } };
+    p.itemDefinition = {
+      sections: {
+        environment: { text: "Ceiling of an office", source: { document: "Spec", section: "§2" }, modelRefs: ["P-1"] },
+        boundary: { modelRefs: ["CASE"] },
+      },
+      functions: [{ id: "f1", name: "Detect smoke", lifecyclePhases: ["operation"], functionAssetId: "asset-1" }],
+      assumptions: [],
+    };
+    p.sourceBindings = [
+      { id: "b1", repoUrl: "https://git.example.com/fw.git", refType: "tag", refLabel: "v1.2", resolvedCommitSha: "abc123", resolvedAt: "2026-11-01", driftEvents: [{ id: "e1" } as never], credentialRef: { id: "x" } as never },
+    ];
+    return p;
+  };
+
+  it("description, responsible, tags, safety, Item Definition texts and functions, source bindings", () => {
+    const about = buildComponentSnapshot(withOverview()).about!;
+    expect(about).toEqual({
+      description: "Smoke detector case",
+      responsible: "Platform team",
+      tags: { custom: [], domain: ["Industrial"], platform: ["IoT"], regulation: ["CRA"] },
+      safetyRelevant: true,
+      sections: { environment: { text: "Ceiling of an office", source: { document: "Spec", section: "§2" } } },
+      functions: [{ id: "f1", name: "Detect smoke", lifecyclePhases: ["operation"] }],
+      sourceBindings: [{ id: "b1", repoUrl: "https://git.example.com/fw.git", refType: "tag", refLabel: "v1.2", resolvedCommitSha: "abc123" }],
+    });
+  });
+
+  it("the team, model links, drift log and credentials stay behind", () => {
+    const text = JSON.stringify(buildComponentSnapshot(withOverview()).about);
+    for (const k of ["Jane Doe", "modelRefs", "functionAssetId", "driftEvents", "credentialRef", "resolvedAt"]) expect(text, k).not.toContain(k);
+  });
+
+  it("nothing set → an empty overview", () => {
+    const p = cnc();
+    p.info = { ...p.info, description: " ", responsible: "", tags: { custom: [], domain: [], platform: [], regulation: [] }, safetyRelevant: false };
+    p.itemDefinition = undefined;
+    p.sourceBindings = undefined;
+    expect(buildComponentSnapshot(p).about).toEqual({});
+  });
+
+  it("pinned like everything else: a changed description changes the hash", () => {
+    const before = snapshotContentHash(buildComponentSnapshot(withOverview()));
+    const q = withOverview();
+    q.info = { ...q.info, description: "Smoke detector case, rev. B" };
+    expect(snapshotContentHash(buildComponentSnapshot(q))).not.toBe(before);
   });
 });
 

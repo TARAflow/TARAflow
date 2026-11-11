@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch), next phase 6 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"); next phase 6 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -128,8 +128,9 @@ is not a new exchange format — it is the component's own data model, reduced:
 | Mitigations, cybersecurity goals, claims | yes, read-only, with status | §7.4 |
 | Assets incl. CIANAAA | yes, read-only | per instance (§7.5) |
 | Assumptions of the Item Definition | yes | AoU checklist (§7.6) |
+| Overview (`about`): description, responsible, tags, safety relevance, Item Definition texts and functions, source bindings (repo, ref, pinned commit) | yes, read-only | user 2026-11-11: the machine's Overview shows it per component (tab "Components"), the report (§8.3) uses it; pinned and hashed — a changed description is a newer state |
 | Methodology fingerprint | derived | §7.2 |
-| Hazards, Item Definition sections, tickets, audit trail, people | **no** | |
+| Hazards, tickets, audit trail, the team; the Item Definition texts' links into the component model, the functions' asset links, the source bindings' drift log and credentials | **no** | |
 
 Texts stay in the language of the component project; they are not translated.
 
@@ -1003,6 +1004,14 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 69 done (2026-11-11, user):* the component's overview crosses — `snapshot.about`:
+description, responsible (the contact for revision requests; not the team), tags, safety relevance,
+the Item Definition texts with their document reference (without `modelRefs`), the functions
+(without the asset link), the project source bindings (repo, ref type and label, pinned commit; no
+drift log, no credentials). In the hash: a changed description is a newer state, and the update
+dialog names it ("The component's overview changed …"). Imports taken before carry no `about` (0.19
+unreleased, no migration); their next check shows a newer state once. Next (patch 70): the
+Overview's tab "Components".
 *Patch 64 done (2026-11-10, found on the example project):* deleting an instance removes the risks of
 its imported threats too (incl. attack-path threats) and the goals' / claims' references to them.
 Before, the instance's assets and pages went, but its risks stayed — stored records the risk sync

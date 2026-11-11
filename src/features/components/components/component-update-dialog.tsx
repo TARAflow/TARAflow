@@ -47,6 +47,8 @@ export interface ComponentUpdatePreview {
   from: string;
   to: string;
   changes: { kind: UpdateChangeKind; added: number; removed: number }[];
+  /** The component's overview (description, responsible, sources, Item Definition texts) changed. */
+  aboutChanged?: boolean;
   /** EEs new in this state, per instance with the machine elements they can be mapped to. */
   newEes: { eeId: string; name: string; instances: { instanceId: string; label: string; options: readonly MachineElementOption[] }[] }[];
   /** Offered pairings (obsolete → new); key identifies one. */
@@ -132,6 +134,11 @@ export const ComponentUpdateDialog: React.FC<ComponentUpdateDialogProps> = ({ op
                 </li>
               ))}
           </Stack>
+        )}
+        {preview.aboutChanged && (
+          <Typography variant="body2" sx={{ mt: 0.5 }} data-testid="component-update-about-changed">
+            {t("components.update.aboutChanged", { defaultValue: "The component's overview changed (description, responsible, sources, Item Definition texts)." })}
+          </Typography>
         )}
 
         {/* New EEs: a decision each */}
