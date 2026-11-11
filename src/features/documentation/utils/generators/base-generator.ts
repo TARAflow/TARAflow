@@ -57,6 +57,9 @@ import type {
   DocProjectData,
   DocLanguage,
   DocChapterId,
+  DocComponentAt,
+  DocImportedThreat,
+  DocImportedThreatGroup,
 } from "../../models/doc-types";
 import {
   getChapterTitle,
@@ -1152,13 +1155,17 @@ export abstract class BaseDocumentGenerator {
     const threats = isStrideMethodDisabled(project.info?.tags, method)
       ? []
       : tables.flatMap((table) => table.threats);
+    // The threats of imported components (6a-1), per component, each once.
+    const imported = isStrideMethodDisabled(project.info?.tags, method)
+      ? []
+      : (project.computed.importedThreats ?? []).filter((g) => g.method === method && g.threats.length > 0);
 
     const chapterId: DocChapterId =
       method === "per-element"
         ? "threats-per-element"
         : "threats-per-interaction";
 
-    if (threats.length === 0) {
+    if (threats.length === 0 && imported.length === 0) {
       return {
         id: chapterId,
         title,
@@ -1220,14 +1227,17 @@ export abstract class BaseDocumentGenerator {
     );
     const typeLabel = (type: string) => getDFDElementTypeText(type as DFDElementType, this.ctx.t);
     let content = this.getThreatsHeaderTemplate(method);
-    content += this.formatStatsTable(threatStatsTable(threats, this.ctx.lang, typeLabel));
-    content += groups
-      ? groups
-          .map((g) =>
-            this.formatReportGroup(g.title, threatTable(g.items), threatGroupSummary(g.items, this.ctx.lang)),
-          )
-          .join("")
-      : threatTable(threats);
+    if (threats.length > 0) {
+      content += this.formatStatsTable(threatStatsTable(threats, this.ctx.lang, typeLabel));
+      content += groups
+        ? groups
+            .map((g) =>
+              this.formatReportGroup(g.title, threatTable(g.items), threatGroupSummary(g.items, this.ctx.lang)),
+            )
+            .join("")
+        : threatTable(threats);
+    }
+    content += imported.map((g) => this.importedThreatGroup(g)).join("");
 
     return {
       id: chapterId,
@@ -1235,6 +1245,110 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  // ==================== IMPORTED THREATS (6a-1) ====================
+
+  /**
+   * Anchors for further link targets in a table cell — the instance threats
+   * of an imported threat that is shown once ("SD2:P2-T-1" next to the row
+   * of "SD1:P2-T-1"), so every risk row's link resolves. Per format; none
+   * where the format links by UID (StrictDoc).
+   */
+  threatAnchorMarks(_ids: readonly string[]): string {
+    return "";
+  }
+
+  /** "Smoke Detector Case @ a1b2c3d4" — tag, else the short commit, else "not pinned". */
+  protected componentAtLabel(name: string, at: DocComponentAt): string {
+    const where = at.tag ?? (at.commit ? at.commit.slice(0, 8) : this.ctx.t("tabs.doc.imported.unpinned", "not pinned"));
+    return `${name} @ ${where}`;
+  }
+
+  /** One component's threats of one method: a heading, each threat once, the instances below where they differ. */
+  protected importedThreatGroup(group: DocImportedThreatGroup): string {
+    const { project } = this.ctx;
+    const t = this.ctx.t;
+    const relevanceLabel = (r: string) => t(`tabs.doc.imported.relevance.${r}`, r.replace(/_/g, " "));
+    const row = (threat: DocImportedThreat) => {
+      const lines = [this.escapeTableText(threat.threatDescription)];
+      for (const d of threat.differences) {
+        if (d.override) {
+          lines.push(
+            this.escapeTableText(
+              t("tabs.doc.imported.override", "{{prefix}}: relevance overridden by this TARA — {{from}} → {{to}}: {{rationale}}")
+                .replace("{{prefix}}", d.prefix)
+                .replace("{{from}}", relevanceLabel(threat.relevance))
+                .replace("{{to}}", relevanceLabel(d.override.relevance))
+                .replace("{{rationale}}", d.override.rationale),
+            ),
+          );
+        }
+        if (d.counterpart) {
+          lines.push(
+            this.escapeTableText(
+              t("tabs.doc.imported.counterpart", "{{prefix}}: counterpart {{name}}").replace("{{prefix}}", d.prefix).replace("{{name}}", d.counterpart),
+            ),
+          );
+        }
+      }
+      const values = {
+        anchor: threat.instanceIds[0] ?? threat.displayId,
+        tsId: threat.displayId,
+        strideCategory: threat.strideCategory,
+        strideName: project.computed.strideNames.get(threat.strideCategory) ?? threat.strideCategory,
+        // the other instances' threats as link targets of their risk rows
+        elementOrFlow: this.threatAnchorMarks(threat.instanceIds.slice(1)) + this.escapeTableText(threat.elementOrFlow),
+        trustBoundary: this.escapeTableText(threat.trustBoundary || "-"),
+        threatDescription: lines.join("<br>"),
+        attackDescription: this.escapeTableText(threat.attackDescription),
+        mitigation: resolveMitigationDrafts(threat.proposedMitigations ?? [])
+          .map((m) => (m.isCustom ? `[custom] ${m.notes ?? ""}` : m.text))
+          .filter(Boolean)
+          .map((x) => `• ${this.escapeTableText(x)}`)
+          .join("<br>"),
+        verification: resolveVerificationDrafts(threat.proposedVerifications ?? [])
+          .map((v) => (v.isCustom ? `[custom] ${v.notes ?? ""}` : v.text))
+          .filter(Boolean)
+          .map((x) => `• ${this.escapeTableText(x)}`)
+          .join("<br>"),
+      };
+      return replacePlaceholders(this.getAttackPathThreatRowTemplate(), values);
+    };
+    const title = t("tabs.doc.imported.group", "{{component}} — imported ({{instances}})")
+      .replace("{{component}}", this.componentAtLabel(group.componentName, group.at))
+      .replace("{{instances}}", group.instances.join(", "));
+    const summary = t("tabs.doc.imported.groupSummary", "{{count}} threat(s) of the component, each shown once for all its instances")
+      .replace("{{count}}", String(group.threats.length));
+    const table = replacePlaceholders(this.getThreatsTableTemplate(), { threatRows: group.threats.map(row).join("") });
+    return this.formatReportGroup(title, table, summary);
+  }
+
+  /** The provenance of an imported risk's rating (E10), or undefined for the machine's own risks. */
+  protected importedRiskNote(riskId: string): string | undefined {
+    const note = this.ctx.project.computed.importedRiskNotes?.get(riskId);
+    if (!note) return undefined;
+    const t = this.ctx.t;
+    const factor = (id: string) => t(`risks.factors.${id}.name`, id);
+    const parts = [
+      t("tabs.doc.imported.riskFrom", "{{prefix}} · {{component}}")
+        .replace("{{prefix}}", note.prefix)
+        .replace("{{component}}", this.componentAtLabel(note.componentName, note.at)),
+    ];
+    if (note.prefilled.length > 0) {
+      parts.push(t("tabs.doc.imported.prefilled", "from the component: {{factors}}").replace("{{factors}}", note.prefilled.map(factor).join(", ")));
+    }
+    for (const o of note.overridden) {
+      parts.push(
+        t("tabs.doc.imported.overridden", "rated by this TARA: {{factor}}{{rationale}}")
+          .replace("{{factor}}", factor(o.factorId))
+          .replace("{{rationale}}", o.rationale ? ` — ${o.rationale}` : ""),
+      );
+    }
+    if (note.quantity > 1) {
+      parts.push(t("tabs.doc.imported.quantity", "×{{n}} identical units").replace("{{n}}", String(note.quantity)));
+    }
+    return parts.join("; ");
   }
 
   // ==================== THREATS (ATTACK PATH) ====================
@@ -1293,9 +1407,13 @@ export abstract class BaseDocumentGenerator {
     // "5.3 – Medium" by the scale's thresholds (risk-score-text.ts).
     const config = project.risks?.configuration;
     const isoReport = config?.likelihoodMethod === "iso-21434";
-    const riskBeforeLabel = isoReport
-      ? isoRiskLabel(risk, this.ctx.t, false)
-      : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.ctx.lang);
+    // An imported risk: where its rating comes from (6a-1, E10).
+    const provenance = this.importedRiskNote(risk.id);
+    const riskBeforeLabel = `${
+      isoReport
+        ? isoRiskLabel(risk, this.ctx.t, false)
+        : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.ctx.lang)
+    }${provenance ? `<br>${this.escapeTableText(provenance)}` : ""}`;
     // The report data carries the credited residual (I7 (4)); the note says why one is not credited.
     const notCredited = uncreditedNote(risk.id, project.computed, this.ctx.t);
     const riskAfterLabel = `${

@@ -14,6 +14,7 @@ import type { StrideCategory } from "../../shared";
 import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../shared";
 import { buildMethodologyRecord } from "./methodology-record";
 import { docResidualView } from "./doc-residual";
+import { docImportedRiskNotes, docImportedThreats } from "./doc-imported";
 
 // ==================== LABEL CALCULATION HELPERS ====================
 
@@ -152,13 +153,20 @@ function computeDocValues(
     statusLabels.set(status, getStatusLabel(status, language));
   });
 
-  // Determine active STRIDE methods based on actual content
+  // The threats of imported components (6a-1), per component and method.
+  const importedThreats = docImportedThreats(project);
+  const importedRiskNotes = docImportedRiskNotes(project);
+  const imports = (method: "per-element" | "per-interaction") =>
+    importedThreats.some((g) => g.method === method && g.threats.length > 0);
+
+  // Determine active STRIDE methods based on actual content (own and imported threats)
   const activeStrideMethods: Array<"per-element" | "per-interaction"> = [];
-  if (project.threats?.perElementTables?.some((t) => t.threats.length > 0)) {
+  if (project.threats?.perElementTables?.some((t) => t.threats.length > 0) || imports("per-element")) {
     activeStrideMethods.push("per-element");
   }
   if (
-    project.threats?.perInteractionTables?.some((t) => t.threats.length > 0)
+    project.threats?.perInteractionTables?.some((t) => t.threats.length > 0) ||
+    imports("per-interaction")
   ) {
     activeStrideMethods.push("per-interaction");
   }
@@ -181,6 +189,9 @@ function computeDocValues(
     compliance: buildDocCompliance(project, language),
     // Residual risks not credited (I7 (4)) — for the report's note.
     ...(uncredited && uncredited.size > 0 ? { uncreditedResiduals: uncredited } : {}),
+    // Imported components (6a-1): their threats, the provenance of their risks' ratings.
+    ...(importedThreats.length > 0 ? { importedThreats } : {}),
+    ...(importedRiskNotes.size > 0 ? { importedRiskNotes } : {}),
   };
 }
 

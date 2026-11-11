@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; next phase 6 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patch 74), 6a-2 next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1004,6 +1004,17 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 74 done (2026-11-11, phase 6a-1):* the report's threat chapters show the imported threats —
+per component and method a group "Smoke Detector Case @ a1b2c3d4 — imported (SD1, SD2)", each threat
+once (its id in the component), below it only the instances that differ: a relevance override of this
+TARA ("SD2: relevance overridden by this TARA — relevant → not relevant: …"), another counterpart on
+a boundary flow. Every instance threat id stays a link target of its risk row (further anchors in
+the row: Markdown / HTML `<a id>`, AsciiDoc `[[…]]`; StrictDoc links by UID). The risk rows of
+imported risks name their provenance below the risk before treatment: instance and component @
+commit, the factors prefilled from the component, the factors this TARA rated anew (with the
+rationale), the quantity ×n. Built in the app layer (`doc-imported.ts`, from the Threats tab's
+read model) and handed to the generators through `computed`; the CLI report through the same
+transform. The STRIDE method chapters appear also when only imported threats exist.
 *Patch 73 done (2026-11-11, review of 72):* a source reference **stored** with credentials (source
 bindings exist since before 0.19 — a token may sit in customer projects; the editor only refuses new
 ones): the Overview's Sources view says so at the reference — clean the URL **and revoke the token**
@@ -1312,7 +1323,39 @@ already imported, `existingImportOf`); rollback — no second snapshot archive i
 is one commit, `git revert` is the rollback, the app offers "discard update" while not saved.
 
 **Phase 6 — Audit and report.** AVE `component-import`, diff-service detail lines, report section
-per component, provenance in the tables.
+per component, provenance in the tables. Cut 2026-11-11 (user, review 2026-11-11):
+
+- **6a-1 — report tables.** Found: the report showed the imported risks but none of their threats
+  (`transformProjectToDocData` passed only the machine's own threats). The threat chapters get the
+  imported threats **per component** (heading "Smoke Detector Case @ a1b2c3d4"), **each threat
+  once**, below it only where an instance differs ("SD2: relevance overridden by this TARA — …",
+  a different counterpart on a boundary flow) — the same picture as the Threats tab (patch 31). The
+  instance ids stay link targets of the risk rows. The risk tables stay per instance and show the
+  provenance of the prefill: which factors came from the component (instance and commit), which
+  this TARA overrode (with its rationale), and the quantity ×n.
+- **6a-2 — chapter "Imported components"**, one section per component: its overview (`about`),
+  origin (repository, commit, tag, imported on, last update), methodology match, instances with
+  their EE mapping, assumptions per instance, measures "not effective here" / "unclear" — and a short
+  statement of the rule by which a residual risk is not credited (a TARAflow rule the reader does not
+  know).
+- **6a-3 — "Deviations from the component"**, per component the list for the platform team: added
+  goals with the "request a revision" signals (patch 51), overridden relevances, measures "not
+  effective here", assumptions not fulfilled, cited claims; the responsible from `about` as the
+  contact. In the report, and "Copy as text" on the Overview's accordion — in the app's language from
+  the structured data through i18n (never the English `lastUpdate` lines), Markdown.
+- **6b — audit.** AVE check `component-import`: the snapshot canonical and its hash matching the
+  import record (`CMP_SNAPSHOT_HASH_MISMATCH`, error); the **locked** component pages regenerate
+  from the snapshot — only those, not the parent page, where the machine draws the boundary flows.
+  diff-service detail lines for instance changes (assumption status, EE mapping, quantity,
+  overrides) instead of "Component instance modified".
+- **6c — findings visible.** The phase badge counts the component findings; a source reference
+  with credentials becomes a finding of the validation panel (review of patch 73).
+- **6d — update usability** (review 2026-11-11 points 1, 2, 5): "Check", "Fetch and check",
+  "Update…" on the Overview's accordion too (same dialog, same runner path); a fast path for
+  trivial updates (no new EE, no pairing, nothing dropped or to review → "No decision of this
+  machine affected", Apply at once — still the dialog); a test for deleting the last / one of two
+  instances.
+- Then: end-to-end test, example and test protocol, release notes.
 
 ## 14. Testing
 

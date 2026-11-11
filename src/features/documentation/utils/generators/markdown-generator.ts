@@ -42,6 +42,11 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
 
   // ==================== TEXT HANDLING ====================
 
+  /** Further link targets in a table cell (imported threats shown once, 6a-1). */
+  threatAnchorMarks(ids: readonly string[]): string {
+    return ids.map((id) => `<a id="threat-${id}"></a>`).join("");
+  }
+
   escapeTableText(text: string): string {
     return escapeMarkdown(text);
   }

@@ -296,6 +296,67 @@ export interface DocComputedValues {
    * "not credited" note. Absent → every residual counts.
    */
   uncreditedResiduals?: UncreditedResiduals;
+  /**
+   * The threats of the imported components (multi-project TARA phase 6a-1),
+   * per component and method, each threat once — built by the app layer from
+   * the snapshots. Absent → no imports.
+   */
+  importedThreats?: DocImportedThreatGroup[];
+  /**
+   * Risks of imported components (risk id → note): the instance, the
+   * component's commit, the factors prefilled from the component and those
+   * this TARA overrode, the quantity. Absent → no imports.
+   */
+  importedRiskNotes?: Map<string, DocImportedRiskNote>;
+}
+
+/** Where an imported component's state comes from, for "Name @ a1b2c3d4". */
+export interface DocComponentAt {
+  tag?: string;
+  /** Full commit sha; the report shows 8 characters. */
+  commit?: string;
+  unpinned?: boolean;
+}
+
+/** One imported threat — once per component, the instances below where they differ. */
+export interface DocImportedThreat {
+  /** The threat's id in the component, e.g. "P2-T-1". */
+  displayId: string;
+  /** The instance threats ("SD1:P2-T-1", …) — link targets of the risk rows. */
+  instanceIds: string[];
+  strideCategory: ThreatData["perElementTables"][number]["threats"][number]["strideCategory"];
+  elementOrFlow: string;
+  trustBoundary?: string;
+  threatDescription: string;
+  attackDescription: string;
+  proposedMitigations: ThreatData["perElementTables"][number]["threats"][number]["proposedMitigations"];
+  proposedVerifications: ThreatData["perElementTables"][number]["threats"][number]["proposedVerifications"];
+  /** The component's relevance decision. */
+  relevance: string;
+  /** Only the instances that differ: a relevance override of this TARA, another counterpart on a boundary flow. */
+  differences: { prefix: string; override?: { relevance: string; rationale: string }; counterpart?: string }[];
+}
+
+export interface DocImportedThreatGroup {
+  componentName: string;
+  at: DocComponentAt;
+  method: "per-element" | "per-interaction";
+  /** Instance prefixes, e.g. ["SD1", "SD2"]. */
+  instances: string[];
+  threats: DocImportedThreat[];
+}
+
+/** The provenance of an imported risk's rating (E10). */
+export interface DocImportedRiskNote {
+  componentName: string;
+  prefix: string;
+  at: DocComponentAt;
+  /** Identical units this instance stands for; 1 = one. */
+  quantity: number;
+  /** Factor ids whose value is the component's (prefilled, not changed). */
+  prefilled: string[];
+  /** Factor ids prefilled from the component but rated anew by this TARA, with the rationale. */
+  overridden: { factorId: string; rationale?: string }[];
 }
 
 /** SL-C values of one FR (D-2, D-4, D-14). */

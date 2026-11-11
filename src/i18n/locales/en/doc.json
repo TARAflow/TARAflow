@@ -178,6 +178,23 @@
         "confidential": "CONFIDENTIAL",
         "restricted": "RESTRICTED"
       },
+      "imported": {
+        "unpinned": "not pinned",
+        "relevance": {
+          "relevant": "relevant",
+          "not_relevant": "not relevant",
+          "uncertain": "uncertain",
+          "unrated": "unrated"
+        },
+        "override": "{{prefix}}: relevance overridden by this TARA — {{from}} → {{to}}: {{rationale}}",
+        "counterpart": "{{prefix}}: counterpart {{name}}",
+        "group": "{{component}} — imported ({{instances}})",
+        "groupSummary": "{{count}} threat(s) of the component, each shown once for all its instances",
+        "riskFrom": "{{prefix}} · {{component}}",
+        "prefilled": "from the component: {{factors}}",
+        "overridden": "rated by this TARA: {{factor}}{{rationale}}",
+        "quantity": "×{{n}} identical units"
+      },
       "residual": {
         "notCredited": "Not credited",
         "cause": {

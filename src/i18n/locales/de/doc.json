@@ -178,6 +178,23 @@
         "confidential": "VERTRAULICH",
         "restricted": "EINGESCHRÄNKT"
       },
+      "imported": {
+        "unpinned": "nicht festgelegt",
+        "relevance": {
+          "relevant": "relevant",
+          "not_relevant": "nicht relevant",
+          "uncertain": "unsicher",
+          "unrated": "nicht bewertet"
+        },
+        "override": "{{prefix}}: Relevanz von dieser TARA übersteuert — {{from}} → {{to}}: {{rationale}}",
+        "counterpart": "{{prefix}}: Gegenstelle {{name}}",
+        "group": "{{component}} — importiert ({{instances}})",
+        "groupSummary": "{{count}} Bedrohung(en) der Komponente, jede einmal für alle ihre Instanzen",
+        "riskFrom": "{{prefix}} · {{component}}",
+        "prefilled": "aus der Komponente: {{factors}}",
+        "overridden": "von dieser TARA bewertet: {{factor}}{{rationale}}",
+        "quantity": "×{{n}} identische Einheiten"
+      },
       "residual": {
         "notCredited": "Nicht angerechnet",
         "cause": {

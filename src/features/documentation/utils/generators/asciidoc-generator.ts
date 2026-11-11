@@ -38,6 +38,11 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
 
   // ==================== TEXT HANDLING ====================
 
+  /** Further link targets in a table cell (imported threats shown once, 6a-1). */
+  threatAnchorMarks(ids: readonly string[]): string {
+    return ids.map((id) => `[[threat-${id}]]`).join("");
+  }
+
   escapeTableText(text: string): string {
     return escapeAsciidoc(text);
   }
