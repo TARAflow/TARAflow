@@ -153,6 +153,7 @@
     "addReference": "Referenz hinzufügen",
     "repoUrl": "Repository-URL",
     "localPathWarning": "Das sieht nach einem lokalen Pfad aus — es wird nur die Remote-URL gespeichert.",
+    "credentialsInUrl": "Die URL enthält Zugangsdaten — bitte entfernen: Die Projektdatei wird geteilt (und in jede TARA kopiert, die sie importiert). Ein privates Repository nutzt gespeicherte Zugangsdaten.",
     "refLabel": "Ref-Bezeichnung",
     "refLabelPlaceholder": "main, v2.3.1…",
     "refType": {

@@ -19,6 +19,7 @@
 
 import { canonicalStringify } from "shared/utils/tcs-canonical";
 import { fnv1aHex12 } from "shared/utils/fnv1a";
+import { withoutUrlCredentials } from "shared/utils/url-credentials";
 import { buildMethodologyFingerprint, type MethodologyFingerprint } from "shared";
 import {
   factorClassOf,
@@ -145,7 +146,8 @@ function snapshotAbout(project: Project): ComponentSnapshot["about"] {
   const functions = (project.itemDefinition?.functions ?? []).map(({ functionAssetId: _asset, ...f }) => f);
   const bindings = (project.sourceBindings ?? []).map((b) => ({
     id: b.id,
-    repoUrl: b.repoUrl,
+    // Never credentials into another project (review 2026-11-11).
+    repoUrl: withoutUrlCredentials(b.repoUrl),
     refType: b.refType,
     refLabel: b.refLabel,
     ...(b.resolvedCommitSha ? { resolvedCommitSha: b.resolvedCommitSha } : {}),

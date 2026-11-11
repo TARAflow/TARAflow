@@ -374,4 +374,27 @@ describe("SourceBindingsSection", () => {
     await screen.findByText("Network access was not allowed.");
     expect(onUpdate).not.toHaveBeenCalled();
   });
+
+  it("a URL with credentials is not saved (review 2026-11-11)", () => {
+    const onUpdate = vi.fn();
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+    fireEvent.click(screen.getByText("Edit"));
+    fireEvent.change(screen.getByDisplayValue(binding.repoUrl), { target: { value: "https://me:ghp_token@github.com/org/repo.git" } });
+    expect(screen.getByTestId("source-binding-credentials")).toBeInTheDocument();
+    const save = screen.getByTestId("source-binding-save") as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.click(save);
+    expect(onUpdate).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByDisplayValue("https://me:ghp_token@github.com/org/repo.git"), { target: { value: "https://github.com/org/repo.git" } });
+    expect(screen.queryByTestId("source-binding-credentials")).toBeNull();
+    fireEvent.click(screen.getByTestId("source-binding-save"));
+    expect(onUpdate).toHaveBeenCalled();
+  });
 });

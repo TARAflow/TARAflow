@@ -20,6 +20,7 @@
 // function.
 
 import type { ComponentSource, MethodologyFingerprint } from "shared";
+import { withoutUrlCredentials } from "shared/utils/url-credentials";
 import type { Project } from "../../models/project-types";
 import type { ComponentSnapshot } from "../../models/component-snapshot-types";
 import { parseAndRepairWithMetadata, isRecognisableProject } from "../migration-service";
@@ -168,7 +169,8 @@ async function sourceOf(
     sameRepo = machineTop.code === 0 && machineTop.stdout.trim() === root;
   }
   const where: Partial<ComponentSource> = {
-    ...(remote.code === 0 && remote.stdout.trim() ? { repoUrl: remote.stdout.trim() } : {}),
+    // The remote URL without credentials (a clone over https://token@… carries one).
+    ...(remote.code === 0 && remote.stdout.trim() ? { repoUrl: withoutUrlCredentials(remote.stdout.trim()) } : {}),
     ...(prefix.code === 0 ? { path: `${prefix.stdout.trim()}${file}` } : {}),
     ...(sameRepo ? { sameRepo: true } : {}),
   };

@@ -11,6 +11,7 @@ import type { ComponentSnapshot } from "../../models/component-snapshot-types";
 import { instanceAssumptions } from "./assumption-status";
 import { quantityOf } from "./instance-quantity";
 import { projectMethodologyFingerprint } from "./snapshot-builder";
+import { withoutUrlCredentials } from "shared/utils/url-credentials";
 
 const sourceText = (s: { document: string; section?: string; version?: string } | undefined) =>
   s ? [s.document, s.section, s.version].filter(Boolean).join(" · ") : undefined;
@@ -39,13 +40,14 @@ export function componentOverviewItems(project: Pick<Project, "components" | "ri
       })),
       functions: (about?.functions ?? []).map((f) => ({ name: f.name, ...(f.description ? { description: f.description } : {}), lifecyclePhases: [...f.lifecyclePhases] })),
       sourceBindings: (about?.sourceBindings ?? []).map((b) => ({
-        repoUrl: b.repoUrl,
+        // a snapshot taken before patch 72 may still carry credentials: never shown
+        repoUrl: withoutUrlCredentials(b.repoUrl),
         refType: b.refType,
         refLabel: b.refLabel,
         ...(b.resolvedCommitSha ? { commit: b.resolvedCommitSha } : {}),
       })),
       origin: {
-        ...(source.repoUrl ? { repoUrl: source.repoUrl } : {}),
+        ...(source.repoUrl ? { repoUrl: withoutUrlCredentials(source.repoUrl) } : {}),
         ...(source.sameRepo ? { sameRepo: true } : {}),
         ...(source.path ? { path: source.path } : {}),
         ...(source.branch ? { branch: source.branch } : {}),

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { SourceBinding, DriftStatus } from "shared";
+import { hasUrlCredentials } from "shared/utils/url-credentials";
 import { useSourceBindings } from "../hooks/use-source-bindings";
 import {
   SOURCE_REF_TYPE_OPTIONS,
@@ -88,7 +89,11 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
 
   const handleEdit = () => startEdit(bindings);
   const handleCancel = () => cancelEdit(bindings);
+  // A URL with credentials is not stored (review 2026-11-11): the project file
+  // travels — with the component import into every machine that imports it.
+  const withCredentials = draft.some((b) => hasUrlCredentials(b.repoUrl));
   const handleSave = () => {
+    if (withCredentials) return;
     onUpdate(draft);
     setIsEditing(false);
   };
@@ -220,7 +225,9 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              disabled={withCredentials}
+              data-testid="source-binding-save"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
               {t("common.save")}
@@ -263,6 +270,15 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                     placeholder="https://github.com/org/repo.git"
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                  {hasUrlCredentials(row.repoUrl) && (
+                    <p className="flex items-center gap-1 text-xs text-red-600 mt-1" data-testid="source-binding-credentials">
+                      <AlertTriangle className="w-3 h-3" />
+                      {t("sourceBinding.credentialsInUrl", {
+                        defaultValue:
+                          "The URL contains credentials — remove them: the project file is shared (and copied into every TARA importing it). A private repository uses stored credentials.",
+                      })}
+                    </p>
+                  )}
                   {looksLikeLocalPath(row.repoUrl) && (
                     <p className="flex items-center gap-1 text-xs text-amber-600 mt-1">
                       <AlertTriangle className="w-3 h-3" />

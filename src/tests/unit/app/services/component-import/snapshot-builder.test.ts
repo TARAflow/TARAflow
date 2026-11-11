@@ -202,6 +202,14 @@ describe("buildComponentSnapshot — the overview (about, user 2026-11-11)", () 
     for (const k of ["Jane Doe", "modelRefs", "functionAssetId", "driftEvents", "credentialRef", "resolvedAt"]) expect(text, k).not.toContain(k);
   });
 
+  it("a URL with credentials crosses without them (review 2026-11-11)", () => {
+    const p = withOverview();
+    p.sourceBindings = [{ id: "b1", repoUrl: "https://user:ghp_secret@git.example.com/fw.git", refType: "branch", refLabel: "main", driftEvents: [] }];
+    const s = buildComponentSnapshot(p);
+    expect(s.about!.sourceBindings![0].repoUrl).toBe("https://git.example.com/fw.git");
+    expect(JSON.stringify(s)).not.toContain("ghp_secret");
+  });
+
   it("nothing set → an empty overview", () => {
     const p = cnc();
     p.info = { ...p.info, description: " ", responsible: "", tags: { custom: [], domain: [], platform: [], regulation: [] }, safetyRelevant: false };

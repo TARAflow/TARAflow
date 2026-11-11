@@ -70,6 +70,13 @@ describe("readComponentSource — accepted", () => {
     expect(git.calls.every((c) => c[0] === DIR)).toBe(true);
   });
 
+  it("the remote URL without credentials (a clone over https://token@…; review 2026-11-11)", async () => {
+    const r = await readComponentSource(PATH, reader(currentFile()), fakeGit({ "remote get-url origin": { stdout: "https://ci:glpat-secret@git.example.com/camera.git\n" } }));
+    if (!r.ok) throw new Error(r.error);
+    expect(r.source.repoUrl).toBe("https://git.example.com/camera.git");
+    expect(JSON.stringify(r)).not.toContain("glpat-secret");
+  });
+
   it("detached HEAD, no remote, no tag: only the commit is recorded", async () => {
     const git = fakeGit({
       "rev-parse --abbrev-ref HEAD": { stdout: "HEAD\n" },
