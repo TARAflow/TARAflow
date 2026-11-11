@@ -482,6 +482,11 @@ export interface ComponentMultiprocessInfo {
    * reaches the editor the same single way. Absent = no newer state.
    */
   updateRunner?: ComponentImportRunner;
+  /**
+   * The update reads the imported commit again: only this TARAflow reads it
+   * differently (builder changed) — the button says "Refresh stored state…".
+   */
+  updateIsRefresh?: boolean;
   /** "Discard update" while not saved: the project as before, through the same runner path. */
   discardRunner?: ComponentImportRunner;
   /** Decisions to review after an update (derived), each with its confirm action. */

@@ -23,7 +23,7 @@
   "overviewComponents": {
     "intro": "Die Komponenten, die diese TARA importiert, so wie ihre Plattform-Teams sie zum importierten Commit beschreiben. Nur lesbar — die Texte ändern sich mit einem Update der Komponente.",
     "version": "v{{version}}",
-    "aboutMissing": "Importiert, bevor die Übersicht der Komponente mitkam — das nächste Update bringt Beschreibung, Verantwortlich und Quellen.",
+    "aboutMissing": "Importiert, bevor die Übersicht der Komponente mitkam — „Gespeicherten Stand auffrischen…“ im Komponenten-Abschnitt (DFD) bringt Beschreibung, Verantwortlich und Quellen.",
     "description": "Beschreibung",
     "responsible": "Verantwortlich",
     "tags": "Tags",

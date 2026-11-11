@@ -23,7 +23,7 @@
   "overviewComponents": {
     "intro": "The components this TARA imports, as their platform teams describe them at the imported commit. Read-only — the texts change with an update of the component.",
     "version": "v{{version}}",
-    "aboutMissing": "Imported before the component's overview was taken along — the next update brings description, responsible and sources.",
+    "aboutMissing": "Imported before the component's overview was taken along — \"Refresh stored state…\" in the component section (DFD) brings description, responsible and sources.",
     "description": "Description",
     "responsible": "Responsible",
     "tags": "Tags",

@@ -213,7 +213,7 @@ const KEY = (code: string) => `components.findings.${code}`;
  * (where: tag / commit), CMP_SOURCE_DIVERGED (separate branches),
  * CMP_SOURCE_UNREACHABLE (why),
  * CMP_SNAPSHOT_BUILDER_CHANGED (this TARAflow reads the imported state
- * differently — an update refreshes the stored state). Attached to the first
+ * differently — "Refresh stored state…" takes it over, updateTargetOf). Attached to the first
  * instance's multiprocess. Never a warning: an older state is not wrong, and
  * an unreachable source is the normal case on a machine without the
  * component's checkout.
@@ -242,6 +242,37 @@ export function componentDriftFindings(
     }
     return [{ key: KEY("CMP_SOURCE_UNREACHABLE"), ...at, params: { component: imported.name, reason: status.reason } }];
   });
+}
+
+// ==================== WHAT AN UPDATE READS ====================
+
+/**
+ * The state an update reads (phase 5c; review 2026-11-11): the newer state
+ * the check found — or, when only this TARAflow reads the imported commit
+ * differently (`builderChanged`, e.g. a snapshot field added since), that
+ * same commit again: "refresh the stored state" is the normal update onto
+ * the imported commit — preview, review and commit lines as for any update,
+ * no second path. Without it a stored snapshot could never take in what a
+ * newer builder adds (patch 69: `about`). Undefined: nothing to update.
+ */
+export function updateTargetOf(
+  imported: Pick<ComponentImport, "source" | "contentHash">,
+  status: ComponentDriftStatus | undefined,
+): { status: Extract<ComponentDriftStatus, { kind: "newer_available" }>; refresh: boolean } | undefined {
+  if (status?.kind === "newer_available") return { status, refresh: false };
+  if (status?.kind === "up_to_date" && status.builderChanged && imported.source.commitSha && !imported.source.unpinned) {
+    return {
+      status: {
+        kind: "newer_available",
+        contentHash: imported.contentHash,
+        commitSha: imported.source.commitSha,
+        ...(imported.source.tag ? { tag: imported.source.tag } : {}),
+        builderChanged: true,
+      },
+      refresh: true,
+    };
+  }
+  return undefined;
 }
 
 // ==================== READING THE NEWER STATE ====================

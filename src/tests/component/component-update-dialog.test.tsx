@@ -100,4 +100,24 @@ describe("component section: update, discard, reviews", () => {
     fireEvent.click(within(reviews).getByTestId("component-review-confirm-aouStatus|a1"));
     expect(onConfirm).toHaveBeenCalled();
   });
+
+  it("builder changed: the same runner says 'Refresh stored state…' (review 2026-11-11)", () => {
+    const updateRunner = vi.fn();
+    const onRun = vi.fn();
+    render(
+      <DFDDetailsPanel
+        open
+        onToggle={() => {}}
+        onClose={() => {}}
+        element={mp}
+        onChange={() => {}}
+        elements={[mp]}
+        componentInfo={{ name: "Smoke Detector", source: "commit 01234567", prefix: "SD1", updateRunner, updateIsRefresh: true }}
+        onRunComponent={onRun}
+      />,
+    );
+    expect(screen.getByTestId("component-update").textContent).toBe("Refresh stored state…");
+    fireEvent.click(screen.getByTestId("component-update"));
+    expect(onRun).toHaveBeenLastCalledWith(updateRunner);
+  });
 });

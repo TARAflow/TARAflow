@@ -442,7 +442,9 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (run
         <Box sx={{ display: "flex", gap: 1, mt: 0.5, flexWrap: "wrap" }}>
           {info.updateRunner && (
             <Button size="small" variant="outlined" onClick={() => onRun(info.updateRunner!)} data-testid="component-update">
-              {t("components.update.open", { ns: "components", defaultValue: "Update…" })}
+              {info.updateIsRefresh
+                ? t("components.update.refresh", { ns: "components", defaultValue: "Refresh stored state…" })
+                : t("components.update.open", { ns: "components", defaultValue: "Update…" })}
             </Button>
           )}
           {info.discardRunner && (

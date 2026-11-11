@@ -14,7 +14,7 @@ import type { Project } from "app/models/project-types";
 import { parseAndRepair } from "app/services/migration-service";
 import { loadProjectFixture } from "../../../../fixtures/load-fixture";
 import { readComponentSource, type ComponentGitRunner } from "app/services/component-import/component-source";
-import { checkComponentDrift, componentDriftFindings, readNewerComponentState } from "app/services/component-import/component-drift";
+import { checkComponentDrift, componentDriftFindings, readNewerComponentState, updateTargetOf } from "app/services/component-import/component-drift";
 
 const git: ComponentGitRunner = async (args, cwd) => {
   try {
@@ -137,6 +137,29 @@ describe("drift check against a real repository (phase 5a)", () => {
     // unpinned: no imported commit to rebuild — the stored hash is all there is
     const unpinned = { ...old, source: { schemaVersion: 14, unpinned: "dirty" as const } };
     expect((await checkComponentDrift(unpinned, file, read, git)).kind).toBe("newer_available");
+  });
+
+  it("builder changed: the update target is the imported commit again — read there, the stored state refreshed (review 2026-11-11)", async () => {
+    const old = { ...imported, contentHash: "0000older000", snapshot: { ...(imported.snapshot as object), about: undefined } as never };
+    const atImport = { ...old, source: { ...old.source, branch: undefined, tagPattern: "camera-tara/v1" } };
+    const status = await checkComponentDrift(atImport, file, read, git);
+    const target = updateTargetOf(atImport, status)!;
+    expect(target.refresh).toBe(true);
+    expect(target.status).toMatchObject({ kind: "newer_available", commitSha: imported.source.commitSha, tag: "camera-tara/v1" });
+    const refreshed = await readNewerComponentState(atImport, file, target.status, read, git);
+    if (!refreshed.ok) throw new Error(refreshed.error);
+    // the same commit, read by this builder: the hash the check rebuilt, the new fields with it
+    expect(refreshed.source).toMatchObject({ commitSha: imported.source.commitSha, tag: "camera-tara/v1" });
+    expect(refreshed.contentHash).toBe(imported.contentHash);
+    expect(refreshed.snapshot.about).toBeDefined();
+    // after the refresh: up to date without the builder note — nothing to update
+    const after = { ...atImport, contentHash: refreshed.contentHash, snapshot: refreshed.snapshot };
+    expect(await checkComponentDrift(after, file, read, git)).toEqual({ kind: "up_to_date" });
+    expect(updateTargetOf(after, { kind: "up_to_date" })).toBeUndefined();
+    // a newer state is the target as before; unpinned or unreachable: none
+    expect(updateTargetOf(old, { kind: "newer_available", contentHash: "x", commitSha: "c" })?.refresh).toBe(false);
+    expect(updateTargetOf({ ...old, source: { schemaVersion: 14, unpinned: "dirty" } }, { kind: "up_to_date", builderChanged: true })).toBeUndefined();
+    expect(updateTargetOf(old, { kind: "unreachable", reason: "file_missing" } as never)).toBeUndefined();
   });
 
   it("tag pattern: the newest by VERSION — v1.10 after v1.9, also when v1.9 was tagged later on a newer commit", async () => {

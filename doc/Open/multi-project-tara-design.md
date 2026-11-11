@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components") done; next phase 6 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state) done; next phase 6 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1004,6 +1004,15 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 71 done (2026-11-11, review of 69):* **refresh the stored state.** Correction of patch 69's
+note: a pinned import taken before does not show a newer state — the check rebuilds the imported
+commit with the running builder (patch 54) and says up to date with `builderChanged`, and no update
+was offered: the stored snapshot (without `about`) could never take in what the newer builder reads.
+Now `updateTargetOf`: a newer state as before, or — builder changed, pinned — the imported commit
+again; the component section offers "Refresh stored state…", the normal update onto that commit
+(preview, reviews, commit lines as for any update; the delta mostly empty or only `about`). The same
+for every future builder change. Unpinned imports compare the stored hash and see a newer state
+anyway. Texts of the builder-changed hint and the Overview's "overview missing" point to the button.
 *Patch 70 done (2026-11-11, user):* the machine's Overview has a tab **"Components"** — only while
 something is imported. One accordion per import (a machine can carry several; the first open), in a
 list that scrolls on its own. Per component, read-only and in its language: description,

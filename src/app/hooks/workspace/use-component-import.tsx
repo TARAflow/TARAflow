@@ -54,7 +54,7 @@ import { withRelevanceOverride, type RelevanceDecision } from "../../services/co
 import { withMeasureOverride } from "../../services/component-import/measure-overrides";
 import { withCitedClaim } from "../../services/component-import/cited-claims";
 import type { ComponentDrift } from "./use-component-drift";
-import type { ComponentDriftStatus } from "../../services/component-import/component-drift";
+import { updateTargetOf, type ComponentDriftStatus } from "../../services/component-import/component-drift";
 import { withPathOverlay } from "../../services/component-import/path-overlays";
 import { componentAttackPathGroups } from "../../utils/component-attack-trees";
 import {
@@ -85,7 +85,7 @@ interface PendingImport {
 export function driftView(status: ComponentDriftStatus, t: (key: string, options?: Record<string, unknown>) => string) {
   // This TARAflow reads the imported state differently (review 2026-11-09) — said, not hidden.
   const builder = status.kind !== "unreachable" && status.builderChanged
-    ? ` · ${t("components.drift.builderChanged", { defaultValue: "this TARAflow reads it differently — an update refreshes the stored state" })}`
+    ? ` · ${t("components.drift.builderChanged", { defaultValue: "this TARAflow reads it differently — refresh the stored state" })}`
     : "";
   if (status.kind === "up_to_date") {
     return { kind: status.kind, text: t("components.drift.upToDate", { defaultValue: "Up to date" }) + builder };
@@ -286,9 +286,10 @@ export function useComponentImport({
           void (async () => {
             const project = activeProjectRef.current;
             const imported = project?.components?.imports.find((i) => i.id === importId);
-            const status = drift?.drift.get(importId);
-            if (!project || !imported || status?.kind !== "newer_available") return resolve(null);
-            const next = await readNewerComponentStateOnDisk(imported, project.filePath, status);
+            // a newer state, or the imported commit again when only the builder changed (refresh)
+            const target = imported ? updateTargetOf(imported, drift?.drift.get(importId)) : undefined;
+            if (!project || !imported || !target) return resolve(null);
+            const next = await readNewerComponentStateOnDisk(imported, project.filePath, target.status);
             if (!next.ok) {
               toast.error(t("components.update.readFailed", { reason: next.error, defaultValue: "The newer state could not be read ({{reason}})." }));
               return resolve(null);
@@ -380,7 +381,11 @@ export function useComponentImport({
         prefix: instance.prefix,
         source: componentSourceLabel(imported.source),
         // update (5c-2): offered for a newer state; discard while the update is not saved
-        ...(drift?.drift.get(imported.id)?.kind === "newer_available" && componentImportAvailable() ? { updateRunner: updateRunnerFor(imported.id) } : {}),
+        ...(() => {
+          // update to a newer state, or refresh the stored state of the same commit (builder changed)
+          const target = updateTargetOf(imported, drift?.drift.get(imported.id));
+          return target && componentImportAvailable() ? { updateRunner: updateRunnerFor(imported.id), ...(target.refresh ? { updateIsRefresh: true } : {}) } : {};
+        })(),
         ...(applied && applied.projectId === activeProjectRef.current?.id ? { discardRunner } : {}),
         // decisions to review after an update (derived from reviewBasis)
         reviews: openReviews(instance, imported.snapshot as ComponentSnapshot).map((r) => ({

@@ -51,7 +51,7 @@
     },
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Komponente {{component}}: ein neuerer Stand ist verfügbar ({{where}}). Nichts ändert sich, bis er explizit übernommen wird (Update).",
-      "CMP_SNAPSHOT_BUILDER_CHANGED": "Komponente {{component}}: dieses TARAflow liest den importierten Stand anders als die Version, die ihn importiert hat — die Komponente selbst hat sich nicht geändert. Ein Update frischt den gespeicherten Stand auf.",
+      "CMP_SNAPSHOT_BUILDER_CHANGED": "Komponente {{component}}: dieses TARAflow liest den importierten Stand anders als die Version, die ihn importiert hat — die Komponente selbst hat sich nicht geändert. „Gespeicherten Stand auffrischen…“ im Komponenten-Abschnitt übernimmt ihn neu.",
       "CMP_SOURCE_DIVERGED": "Komponente {{component}}: ein Stand auf getrenntem Ast ({{where}}) — weder neuer noch älter als der importierte (z.B. nach einem Rebase). Vor einer Übernahme mit dem Komponenten-Team klären.",
       "CMP_SOURCE_UNREACHABLE": "Komponente {{component}}: ob es einen neueren Stand gibt, lässt sich hier nicht prüfen ({{reason}}).",
       "CMP_SOURCE_UNPINNED": "Komponente {{component}} ist ungebunden importiert ({{reason}}) — nur ihr Inhalt kennzeichnet den Stand. Für eine auditierte TARA einen committeten Stand importieren.",
@@ -86,6 +86,7 @@
     },
     "update": {
       "open": "Update…",
+      "refresh": "Gespeicherten Stand auffrischen…",
       "discardTitle": "Update verwerfen?",
       "discardText": "Verwerfen stellt den Stand vor dem Update her. Auch alles, was seither geändert wurde (bestätigte Prüfungen, Bewertungen, DFD), geht verloren.",
       "discardOk": "Verwerfen",
@@ -171,7 +172,7 @@
     "drift": {
       "check": "Prüfen",
       "fetch": "Fetch und prüfen",
-      "builderChanged": "dieses TARAflow liest ihn anders — ein Update frischt den gespeicherten Stand auf",
+      "builderChanged": "dieses TARAflow liest ihn anders — gespeicherten Stand auffrischen",
       "diverged": "Anderer Stand auf getrenntem Ast ({{where}}) — weder neuer noch älter; mit dem Komponenten-Team klären",
       "upToDate": "Aktuell",
       "newer": "Neuerer Stand verfügbar ({{where}}) — das Update folgt als expliziter Schritt",

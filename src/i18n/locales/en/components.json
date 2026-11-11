@@ -51,7 +51,7 @@
     },
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Component {{component}}: a newer state is available ({{where}}). Nothing changes until it is taken over explicitly (update).",
-      "CMP_SNAPSHOT_BUILDER_CHANGED": "Component {{component}}: this TARAflow reads the imported state differently from the version that imported it — the component itself did not change. An update refreshes the stored state.",
+      "CMP_SNAPSHOT_BUILDER_CHANGED": "Component {{component}}: this TARAflow reads the imported state differently from the version that imported it — the component itself did not change. \"Refresh stored state…\" in the component section takes the new reading over.",
       "CMP_SOURCE_DIVERGED": "Component {{component}}: a state on a separate branch ({{where}}) — neither newer nor older than the imported one (e.g. after a rebase). Check with the component team before taking it over.",
       "CMP_SOURCE_UNREACHABLE": "Component {{component}}: whether a newer state exists cannot be checked here ({{reason}}).",
       "CMP_SOURCE_UNPINNED": "Component {{component}} is imported unpinned ({{reason}}) — only its content identifies the state. Import a committed state for an audited TARA.",
@@ -86,6 +86,7 @@
     },
     "update": {
       "open": "Update…",
+      "refresh": "Refresh stored state…",
       "discardTitle": "Discard the update?",
       "discardText": "Discarding restores the state before the update. Everything changed since then (confirmed reviews, ratings, DFD) is lost as well.",
       "discardOk": "Discard",
@@ -171,7 +172,7 @@
     "drift": {
       "check": "Check",
       "fetch": "Fetch and check",
-      "builderChanged": "this TARAflow reads it differently — an update refreshes the stored state",
+      "builderChanged": "this TARAflow reads it differently — refresh the stored state",
       "diverged": "Another state on a separate branch ({{where}}) — neither newer nor older; check with the component team",
       "upToDate": "Up to date",
       "newer": "Newer state available ({{where}}) — the update follows as an explicit step",
