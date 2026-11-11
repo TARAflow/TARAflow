@@ -24,8 +24,10 @@ import {
   ItemModelItem,
   MethodologySummary,
   VerificationStatusView,
+  ComponentOverviewItem,
 } from "../models/overview-types";
 import { VerificationStatusLine } from "./verification-status-line";
+import { ComponentsView } from "./components-view";
 
 // ==================== GENERAL TAB ====================
 // Overview/Info phase component — sub-tabs instead of a growing stack
@@ -33,6 +35,8 @@ import { VerificationStatusLine } from "./verification-status-line";
 //
 //   Project      project info (without the description) + phase progress
 //   Definition   item definition — purpose and functions (the description), …
+//   Components   the imported components, one accordion each (only with
+//                imports; user 2026-11-11)
 //   Methodology  the methodology record read-only (A-4) + project settings
 //   Sources      project source reference (source bindings)
 //
@@ -40,9 +44,9 @@ import { VerificationStatusLine } from "./verification-status-line";
 // the number of its open warnings (A-4): Project the missing project fields,
 // Definition the item definition findings.
 
-export type OverviewView = "project" | "definition" | "methodology" | "sources";
+export type OverviewView = "project" | "definition" | "components" | "methodology" | "sources";
 
-const OVERVIEW_VIEWS: readonly OverviewView[] = ["project", "definition", "methodology", "sources"];
+const OVERVIEW_VIEWS: readonly OverviewView[] = ["project", "definition", "components", "methodology", "sources"];
 
 const viewKey = (projectId: string) => `taraflow.overview.view.${projectId}`;
 
@@ -106,6 +110,12 @@ interface GeneralTabProps {
 
   /** Switch to the Audit tab, where the verification is recorded. */
   onOpenAuditTab?: () => void;
+
+  /** The imported components (tab "Components"), built by the app layer; none = no tab. */
+  components?: readonly ComponentOverviewItem[];
+
+  /** Select an instance's multiprocess in the DFD. */
+  onShowComponentInDfd?: (multiprocessTfId: string) => void;
 }
 
 /**
@@ -137,9 +147,14 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   onOpenRiskTab,
   verification,
   onOpenAuditTab,
+  components = [],
+  onShowComponentInDfd,
 }) => {
   const { t } = useTranslation();
-  const [view, setView] = useState<OverviewView>(() => loadView(projectId));
+  const [chosenView, setView] = useState<OverviewView>(() => loadView(projectId));
+  // "Components" only while something is imported.
+  const views = OVERVIEW_VIEWS.filter((v) => v !== "components" || components.length > 0);
+  const view: OverviewView = views.includes(chosenView) ? chosenView : "project";
   useEffect(() => setView(loadView(projectId)), [projectId]);
   const chooseView = (v: OverviewView) => {
     setView(v);
@@ -244,6 +259,8 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
       missingGeneralFields(data.info).filter((f) => f !== "description").length +
       (verification && verification.kind !== "verified" ? 1 : 0),
     definition: itemFindings.filter((f) => f.severity === "warning").length,
+    // A newer or diverged state of a component, not yet taken over.
+    components: components.filter((c) => c.drift?.kind === "newer_available" || c.drift?.kind === "diverged").length,
     methodology: methodology && !methodology.impactScaleConforms ? 1 : 0,
     sources: 0,
   };
@@ -255,7 +272,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
         aria-label={t("overviewViews.label", { defaultValue: "Overview views" })}
         className="flex gap-1 border-b border-gray-200 mb-6"
       >
-        {OVERVIEW_VIEWS.map((v) => (
+        {views.map((v) => (
           <button
             key={v}
             role="tab"
@@ -314,6 +331,8 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
           }
         />
       )}
+
+      {view === "components" && <ComponentsView items={components} onShowInDfd={onShowComponentInDfd} />}
 
       {view === "methodology" && (
         <>

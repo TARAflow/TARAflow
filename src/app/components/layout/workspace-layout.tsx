@@ -94,7 +94,8 @@ import { useOverviewData } from "app/hooks/workspace/use-overview-data";
 import { usePhaseIndicators } from "app/hooks/workspace/use-phase-indicators";
 import { useClosedLoopData } from "app/hooks/workspace/use-closed-loop-data";
 import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
-import { useComponentImport } from "app/hooks/workspace/use-component-import";
+import { driftView, useComponentImport } from "app/hooks/workspace/use-component-import";
+import { componentOverviewItems } from "app/services/component-import/component-overview";
 import { useComponentDrift } from "app/hooks/workspace/use-component-drift";
 import { componentDriftFindings } from "app/services/component-import/component-drift";
 import { componentAssetGoals, componentLockedIds, findingOwner } from "app/services/component-import/component-scope";
@@ -281,6 +282,16 @@ export const WorkspaceLayout: React.FC = () => {
     return { errors: base?.errors ?? [], warnings: base?.warnings ?? [], infos: [...(base?.infos ?? []), ...drift] };
   }, [activeProject, componentDrift.drift, dfdData.componentDfdFindings]);
 
+  // Overview, tab "Components" (user 2026-11-11): the imports with their drift status.
+  const componentOverview = useMemo(
+    () =>
+      componentOverviewItems({ components: activeProject?.components, risks: activeProject?.risks ?? null }).map((item) => {
+        const status = componentDrift.drift.get(item.importId);
+        return status ? { ...item, drift: driftView(status, t) } : item;
+      }),
+    [activeProject?.components, activeProject?.risks, componentDrift.drift, t],
+  );
+
   const { complianceStandards, matrixRequirements, complianceView } = useComplianceView(
     activeProject,
     activePhase,
@@ -356,6 +367,8 @@ export const WorkspaceLayout: React.FC = () => {
             verification={overview.verificationStatus}
             onOpenAuditTab={() => handlePhaseChange(PhaseId.Audit)}
             onOpenRiskTab={() => handlePhaseChange(PhaseId.Risk)}
+            components={componentOverview}
+            onShowComponentInDfd={navigation.showElement}
           />
         )}
 

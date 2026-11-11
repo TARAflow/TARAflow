@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"); next phase 6 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components") done; next phase 6 (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1004,6 +1004,16 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 70 done (2026-11-11, user):* the machine's Overview has a tab **"Components"** — only while
+something is imported. One accordion per import (a machine can carry several; the first open), in a
+list that scrolls on its own. Per component, read-only and in its language: description,
+responsible, tags, safety relevance; where the component TARA comes from (repository or "this
+repository", file, branch / tag, commit, imported on, last update); the methodology match (same
+fingerprint as the machine or not); the component's own source references; its Item Definition texts
+and functions; the instances with their assumptions of use ("1 of 2 decided, 0 not fulfilled") and
+"Show in DFD" (selects the multiprocess). The drift status as a chip; a newer or diverged state counts
+on the tab. App layer: `componentOverviewItems` builds a flat view model (`ComponentOverviewItem` in
+the Overview's types) — the Overview does not import the component feature.
 *Patch 69 done (2026-11-11, user):* the component's overview crosses — `snapshot.about`:
 description, responsible (the contact for revision requests; not the team), tags, safety relevance,
 the Item Definition texts with their document reference (without `modelRefs`), the functions

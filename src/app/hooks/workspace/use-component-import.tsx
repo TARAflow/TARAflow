@@ -81,7 +81,8 @@ interface PendingImport {
 }
 
 /** The drift status in words (phase 5a). */
-function driftView(status: ComponentDriftStatus, t: (key: string, options?: Record<string, unknown>) => string) {
+/** The drift status in words — the details panel and the Overview's "Components". */
+export function driftView(status: ComponentDriftStatus, t: (key: string, options?: Record<string, unknown>) => string) {
   // This TARAflow reads the imported state differently (review 2026-11-09) — said, not hidden.
   const builder = status.kind !== "unreachable" && status.builderChanged
     ? ` · ${t("components.drift.builderChanged", { defaultValue: "this TARAflow reads it differently — an update refreshes the stored state" })}`

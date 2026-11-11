@@ -28,7 +28,8 @@ describe("overview namespace (I18N-1)", () => {
   it.each(["en", "de"])("%s: the moved blocks are in overview.json only", (lang) => {
     const common = read(lang, "common");
     const overview = read(lang, "overview");
-    expect(Object.keys(overview)).toEqual(MOVED);
+    // overviewComponents (tab "Components", 2026-11-11) was never in common.json.
+    expect(Object.keys(overview)).toEqual(["verificationStatus", "overviewViews", "overviewComponents", "itemDefinition", "sourceBinding"]);
     for (const block of MOVED) expect(common[block]).toBeUndefined();
     const shared = Object.keys(overview).filter((k) => k in common);
     expect(shared).toEqual([]);

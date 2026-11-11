@@ -157,6 +157,56 @@ export interface VerificationStatusView {
 // ==================== GENERAL TAB ====================
 // Main data structure for the General/Overview tab
 
+/**
+ * One imported component as the Overview shows it (tab "Components", user
+ * 2026-11-11): the component's overview at the imported commit, where it
+ * comes from, its instances in this machine. Built by the app layer from
+ * project.components — the Overview does not import the component feature.
+ */
+export interface ComponentOverviewItem {
+  importId: string;
+  name: string;
+  version?: string;
+  /** In the component's language — read-only, never translated. */
+  description?: string;
+  responsible?: string;
+  tags?: ProjectTags;
+  safetyRelevant?: boolean;
+  /** Item Definition texts by section id (boundary, architecture, environment, constraints, functions). */
+  sections: { id: string; text?: string; source?: string }[];
+  functions: { name: string; description?: string; lifecyclePhases: string[] }[];
+  /** The component's own source references (code repositories, pinned commits). */
+  sourceBindings: { repoUrl: string; refType: string; refLabel: string; commit?: string }[];
+  /** Where the component TARA comes from. */
+  origin: {
+    repoUrl?: string;
+    sameRepo?: boolean;
+    path?: string;
+    branch?: string;
+    tag?: string;
+    commit?: string;
+    unpinned?: boolean;
+    importedAt: string;
+    lastUpdateAt?: string;
+  };
+  /** Is a newer state available? Absent = not checked. */
+  drift?: { kind: "up_to_date" | "newer_available" | "diverged" | "unreachable"; text: string };
+  /** Same likelihood method and intrinsic factor scales as this machine; absent = unknown. */
+  methodologyMatches?: boolean;
+  /** The import was taken before the overview crossed (no `about`). */
+  aboutMissing?: boolean;
+  instances: {
+    id: string;
+    prefix: string;
+    multiprocessTfId: string;
+    quantity: number;
+    assumptionsTotal: number;
+    /** Decided assumptions (fulfilled, not fulfilled, not applicable). */
+    assumptionsDecided: number;
+    assumptionsNotFulfilled: number;
+  }[];
+}
+
 export interface GeneralTabData {
   // Project info
   info: ProjectInfoData;
