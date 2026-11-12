@@ -68,10 +68,11 @@ import {
   describeLanguageOf,
   describeRequirement,
   localizedChecklist,
-  words,
   type RequirementDescription,
 } from "../services/describe-requirement";
 import { buildTodoList, type TodoProperty } from "../services/todo-list";
+import { elementTypeName, fieldLabel, unknownWithFields, type DfdLabels } from "../services/field-labels";
+import { reasonText, VOID_REASONS, type RowReason } from "../services/row-reasons";
 import { editionStatements, statementKeyOf } from "../services/edition-statements";
 import { qualifyRequirementId } from "../models/compliance-types";
 import { RowClaims, type ComponentClaimChoice } from "./matrix-claims";
@@ -213,82 +214,41 @@ export interface ComplianceTabProps {
   ) => readonly { id: string; text: string }[];
 }
 
-/** Element type → its block under tabs.dfd.element_description (dfd namespace). */
-const DESCRIPTION_KEY: Readonly<Record<string, string>> = {
-  ExternalEntity: "external_entity",
-  DataFlow: "dataflow",
-  DataStore: "datastore",
-};
-
 /**
  * FX-21: "MP-1 Controller (Password lifetime limit)" — the unknown element
- * with the fields it lacks, under the DFD form's label where one exists.
+ * with the fields it lacks, under the DFD form's label where one exists; the
+ * to-do's properties alike (0.19 i18n follow-up).
  */
 function useFieldLabels(typeOf?: (id: string) => string | undefined) {
   const { t, i18n } = useTranslation("dfd");
-  /** A model path under the DFD form's label — of the element's type, or of the first of the given types. */
-  const labelOf = (path: string, types: readonly string[]): string => {
-    const keys = [
-      `tabs.dfd.modelFields.${path.split(".").pop()}.label`,
-      ...types.flatMap((type) => {
-        const block = `tabs.dfd.element_description.${DESCRIPTION_KEY[type] ?? type.toLowerCase()}.fields`;
-        // implementedControls.linkAuthentication → the form's field linkAuthentication
-        return [`${block}.${path}.label`, `${block}.${path.split(".").pop()}.label`];
-      }),
-      // a shared form section (exposureLevel → exposure_level)
-      `tabs.dfd.element_description.${path.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)}.label`,
-    ];
-    const key = keys.find((k) => i18n?.exists?.(k, { ns: "dfd" }));
-    return key ? String(t(key)) : words(path);
-  };
-  const typeName = (type: string) => String(t(`dfdValidation.elementTypes.${type}`, { defaultValue: type }));
-  const label = (path: string, id: string): string => {
-    const type = typeOf?.(id);
-    return labelOf(path, type ? [type] : []);
-  };
+  const labels: DfdLabels = { t: (key) => String(t(key)), exists: (key) => !!i18n?.exists?.(key, { ns: "dfd" }) };
+  const typeName = (type: string) => elementTypeName(type, labels);
   return {
-    /** "MP-1 Controller (Password lifetime limit)" — FX-21. */
     unknownNames:
       (nameOf: (id: string) => string) =>
       (row: RowResult): string[] =>
-        row.unknown.map((id) => {
-          const fields = row.unsetFields?.[id] ?? [];
-          return fields.length > 0 ? `${nameOf(id)} (${fields.map((f) => label(f, id)).join(", ")})` : nameOf(id);
-        }),
-    /** The to-do's properties in the UI language; a neighbour's with its element types (0.19 i18n follow-up). */
+        row.unknown.map((id) => unknownWithFields(nameOf(id), row.unsetFields?.[id] ?? [], typeOf?.(id), labels)),
+    /** The to-do's properties in the UI language; a neighbour's with its element types. */
     todoProperties: (properties: readonly TodoProperty[], types: readonly string[]): string =>
       properties
-        .map((p) => (p.on ? `${labelOf(p.path, p.on)} (${p.on.map(typeName).join(" / ")})` : labelOf(p.path, types)))
+        .map((p) => (p.on ? `${fieldLabel(p.path, p.on, labels)} (${p.on.map(typeName).join(" / ")})` : fieldLabel(p.path, types, labels)))
         .join(", "),
     typeName,
   };
 }
 
-/** FX-22: the edition's reason for a void row (EditionRow.void) → its text key. */
-export const VOID_REASONS: Readonly<Record<string, { key: string; text: string }>> = {
-  "void in prAA": {
-    key: "voidInPraa",
-    text: "The CRA edition (EN IEC 62443-4-2/prAA) declares this requirement void — it does not apply to the component.",
-  },
-  "no component requirement": {
-    key: "noComponentRequirement",
-    text: "The standard sets no component requirement under this number — the topic is left to the system (IEC 62443-3-3).",
-  },
-  "no component requirement (SR 2.3 is system level)": {
-    key: "noComponentRequirementSr23",
-    text: "The standard sets no component requirement under this number — SR 2.3 is a system requirement (IEC 62443-3-3).",
-  },
-  "no component requirement (emergency power, system level)": {
-    key: "noComponentRequirementPower",
-    text: "The standard sets no component requirement under this number — emergency power is a matter of the system (IEC 62443-3-3).",
-  },
-};
+/** FX-22: the edition's void reasons — moved to the reasons of every row (row-reasons.ts). */
+export { VOID_REASONS };
 
-/** The reason of a void row in the UI language; an unknown reason as written in the edition. */
-const voidReasonText = (t: ReturnType<typeof useComplianceT>, reasoning: string | undefined): string => {
-  const known = reasoning ? VOID_REASONS[reasoning] : undefined;
-  return known ? t(`voidReason.${known.key}`, known.text) : (reasoning ?? "");
-};
+/** Why a row has its status, in the UI language: the reason's code, else the text as is (a statement's reasoning). */
+const rowReasonText = (
+  t: ReturnType<typeof useComplianceT>,
+  row: { reason?: RowReason; reasoning?: string },
+  typeName: (type: string) => string = (x) => x,
+): string => (row.reason
+  ? // raw texts: reasonText fills the {{placeholders}} itself
+    reasonText(row.reason, (key, d) => t(key, d, { skipInterpolation: true }), typeName)
+  : (row.reasoning ?? ""));
 
 /** First items of a list, the rest counted. */
 const shortList = (items: readonly string[], max = 4) =>
@@ -386,7 +346,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     );
     // FX-22: a void row has no description — the tooltip and the dialog give the edition's reason.
     if (descriptions.length === 0) {
-      const reason = voidReasonText(t, rowByLabel.get(label)?.reasoning);
+      const row = rowByLabel.get(label);
+      const reason = row ? rowReasonText(t, row) : "";
       return reason ? (
         <Tooltip arrow placement="right" title={<Box sx={{ maxWidth: 360 }}>{reason}</Box>}>
           {link}
@@ -761,7 +722,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       <li key={item.label}>
                         <Typography variant="body2" component="span">
                           {requirementLink(item.label)}
-                          {item.reasoning ? `: ${item.reasoning}` : ""}
+                          {item.reasoning || item.reason ? `: ${rowReasonText(t, item, fieldLabels.typeName)}` : ""}
                         </Typography>
                       </li>
                     ))}
@@ -841,7 +802,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   (row.unclearMitigationIds?.length ?? 0) > 0 &&
                     `${t("unclearMitigations", "unclear (assumption of use without evidence)")}: ${shortList(row.unclearMitigationIds!)}`,
                   row.risks && row.risks.length > 0 && `${t("risks", "risks")}: ${shortList(row.risks)}`,
-                  !levels && row.source !== "statement" && !row.failing.length && !row.unknown.length && !row.risks?.length && row.status !== "met" && row.status !== "n/a" && row.reasoning,
+                  !levels && row.source !== "statement" && !row.failing.length && !row.unknown.length && !row.risks?.length && row.status !== "met" && row.status !== "n/a" && rowReasonText(t, row, fieldLabels.typeName),
                   checklist.length > 0 && `${t("checklist", "to confirm")}: ${checklist.join("; ")}`,
                   row.source === "statement" && row.reasoning,
                 ].filter(Boolean);
@@ -1037,7 +998,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
           section(
             t("whyNotApplicable", "Why not applicable"),
             <Typography variant="body2" data-testid="compliance-void-reason">
-              {voidReasonText(t, row.reasoning)}
+              {rowReasonText(t, row)}
             </Typography>,
           )}
         {descriptions.length > 0 &&

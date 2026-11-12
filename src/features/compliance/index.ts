@@ -91,6 +91,8 @@ export { buildPropertyView, type PropertyViewSource } from "./services/property-
 export { proposeDeviceCategories, type DeviceCategoryProposal } from "./services/device-category";
 export { editionStatements, statementKeyOf } from "./services/edition-statements";
 export { buildTodoList, type ComponentTodo, type ElementTodo, type TodoItem, type TodoList, type TodoProperty, type TodoTarget } from "./services/todo-list";
+export { reasonText, REASON_TEXTS, VOID_REASONS, type RowReason, type RowReasonCode } from "./services/row-reasons";
+export { elementTypeName, fieldLabel, unknownWithFields, type DfdLabels } from "./services/field-labels";
 export {
   mitigationRequirements,
   requirementsMetBy,

@@ -123,6 +123,25 @@ describe("buildDocCompliance", () => {
     expect(first).toBeGreaterThanOrEqual(0); // the German catalog text, not the English one
   });
 
+  it("why a row has its status and the fields an element lacks, in the document language (0.19 i18n follow-up)", () => {
+    const rows = (language: string) => buildDocCompliance(smokeDetector(["EN IEC 62443 (CRA)"]), language)![0].rows;
+    const en = rows("en");
+    const de = rows("de");
+    const reasons = (rs: typeof en) => rs.map((r) => r.reasoning).filter((x): x is string => !!x);
+    // a void row: the edition's reason in German, not the edition's English words
+    const voidRow = en.findIndex((r) => r.reasoning?.includes("declares this requirement void"));
+    expect(voidRow).toBeGreaterThanOrEqual(0);
+    expect(de[voidRow].reasoning).toContain("erklärt diese Anforderung");
+    // the evaluator's reasons: the same rows have one, none of them English in German
+    expect(reasons(de)).toHaveLength(reasons(en).length);
+    expect(reasons(de).some((r) => /no applicable|in the component needs it|not rated yet/.test(r))).toBe(false);
+    expect(reasons(en).some((r) => /no applicable|in the component needs it/.test(r))).toBe(true);
+    // an element with unset fields names them under the form's label
+    const withFields = en.flatMap((r) => r.unknown).filter((u) => u.includes("("));
+    expect(withFields.length).toBeGreaterThan(0);
+    expect(de.flatMap((r) => r.unknown).filter((u) => u.includes("("))).not.toEqual(withFields);
+  });
+
   it("both tags → one part per edition, the CRA edition first (K-1, CM-9)", () => {
     const parts = buildDocCompliance(smokeDetector(["IEC 62443", "EN IEC 62443 (CRA)"]))!;
     expect(parts.map((p) => [p.standardLabel, p.cra])).toEqual([

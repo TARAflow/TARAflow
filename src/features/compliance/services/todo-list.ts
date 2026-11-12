@@ -10,6 +10,7 @@
 
 import { BLACK_BOX_FIELDS } from "shared";
 import { RULES_BY_ID } from "../data/requirement-registry";
+import type { RowReason } from "./row-reasons";
 import type { AnyEdition, FoundationalRequirement, SecurityLevel } from "../models/compliance-types";
 import type { ComplianceResult, RowResult } from "../models/evaluation-types";
 
@@ -67,7 +68,7 @@ export interface TodoList {
   /** EN 50742 A: open rows on risk evidence, with the risks to treat or rate. */
   risks: { label: string; group: string; risks: string[] }[];
   /** EN 50742 A: open rows on project data (hazards, WoO, system definition), with what is missing. */
-  project: { label: string; group: string; reasoning?: string }[];
+  project: { label: string; group: string; reasoning?: string; reason?: RowReason }[];
 }
 
 /** SL-T per FR, or "all" for a standard without levels. */
@@ -153,7 +154,7 @@ export function buildTodoList(
     // EN 50742 A: risk and project evidence — the risk tab or the project data, not the DFD.
     if (rules.some((rule) => rule?.external) && row.failing.length === 0 && row.unknown.length === 0) {
       if (row.risks?.length) risks.push({ label: row.label, group: row.group, risks: row.risks });
-      else project.push({ label: row.label, group: row.group, reasoning: row.reasoning });
+      else project.push({ label: row.label, group: row.group, reasoning: row.reasoning, ...(row.reason ? { reason: row.reason } : {}) });
       continue;
     }
     if (rules.length > 0 && rules.every((rule) => rule?.quantifier === "any")) {

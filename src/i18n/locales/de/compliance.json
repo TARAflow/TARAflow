@@ -157,6 +157,40 @@
       "noComponentRequirementSr23": "Die Norm stellt unter dieser Nummer keine Anforderung an die Komponente — SR 2.3 ist eine Systemanforderung (IEC 62443-3-3).",
       "noComponentRequirementPower": "Die Norm stellt unter dieser Nummer keine Anforderung an die Komponente — die Notstromversorgung ist Sache des Systems (IEC 62443-3-3)."
     },
+    "reason": {
+      "externalWithoutView": "wird aus den Risiken und den Projektdaten bewertet",
+      "srslNotReached": "kein Risiko erreicht SRSL {{srsl}}",
+      "srslUnrated": "gilt ab SRSL {{srsl}} — Risiken noch nicht bewertet",
+      "notNeeded": "kein {{types}} der Komponente benötigt sie",
+      "preconditionUnset": "die Vorbedingung hängt von nicht gesetzten Eigenschaften ab",
+      "standIn": "kein {{types}} modelliert — ein Multiprozess ohne Unterseite kann einen enthalten",
+      "noApplicable": "kein anwendbarer {{types}} in der Komponente",
+      "deviceCategory": "die Komponente ist kein {{categories}}",
+      "mandatedMissing": "vorgeschriebene Massnahme fehlt oder ist nicht umgesetzt",
+      "risksUnratedRate": "Risiken ohne SRSL — EL, Angreiferfähigkeit und Schweregrad bewerten",
+      "noMandateClause": "kein Risiko schreibt den Abschnitt bei seinem SRSL vor",
+      "noMandateMeasure": "kein Risiko schreibt eine Schutzmassnahme vor",
+      "nameInInformation": "diese Risiken in der Benutzerinformation nennen",
+      "risksUnrated": "Risiken ohne SRSL",
+      "noRemaining": "keine verbleibende Anforderung",
+      "noHazardData": "keine Gefährdungsdaten importiert",
+      "hazardsUnlinked": "Gefährdungen ohne beitragenden Eingang: {{list}}",
+      "noSafetyFunction": "kein Sicherheitsfunktions-Asset (Asset mit physischer Auswirkung)",
+      "safetyFunctionsWithoutRisks": "Sicherheitsfunktionen ohne Risiken: {{list}}",
+      "notSetYet": "noch nicht gesetzt: {{items}}",
+      "exposedWithoutSrsl": "auf einem Pfad zu einer Sicherheitsfunktion, exponiert, kein Risiko mit SRSL",
+      "srslOrElUnrated": "SRSL oder EL noch nicht bewertet",
+      "safetyFunctionsUnlinked": "Sicherheitsfunktionen ohne DFD-Elemente: {{list}}",
+      "noExposedInterface": "keine Schnittstelle über EL0 auf einem Pfad zu einer Sicherheitsfunktion",
+      "noElRatedInterface": "noch keine Schnittstelle mit EL-Bewertung: {{list}}",
+      "srslZeroExposed": "SRSL 0 an einer Schnittstelle über EL0",
+      "noSrsl": "kein SRSL ermittelt"
+    },
+    "reasonItem": {
+      "windowOfOpportunity": "Gelegenheitsfenster",
+      "systemBoundary": "Systemgrenze",
+      "operationalEnvironment": "Einsatzumgebung"
+    },
     "deleteClaim": "Diesen ungenutzten Claim endgültig löschen",
     "unusedClaim": "ungenutzt"
   }

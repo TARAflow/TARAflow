@@ -26,7 +26,7 @@ const LABELS = vi.hoisted(() => ({}) as Record<string, string>);
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (k: string, o?: Record<string, unknown>) =>
-      (LABELS[k] ?? (o?.defaultValue as string | undefined) ?? k).replace(/\{\{(\w+)\}\}/g, (_, n) => String(o?.[n] ?? "")),
+      (LABELS[k] ?? (o?.defaultValue as string | undefined) ?? k).replace(/\{\{(\w+)\}\}/g, (m, n) => (o?.skipInterpolation ? m : String(o?.[n] ?? ""))),
     i18n: { language: "en", exists: (k: string) => k in LABELS },
   }),
 }));

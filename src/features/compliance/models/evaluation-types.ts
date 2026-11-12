@@ -3,6 +3,7 @@
 // §9.4). Plain data — the app layer builds the input from the project
 // (component scope, property view per run, statements, claims, mitigations).
 
+import type { RowReason } from "../services/row-reasons";
 import type { ComplianceRowStatus, ComplianceStatement, DeviceCategoryChoice } from "shared";
 import type {
   AnyEdition,
@@ -171,6 +172,8 @@ export interface RowResult {
   checklist: string[];
   /** Why the row is n/a, derived or from the edition. */
   reasoning?: string;
+  /** Why: the reason as a code with values — texts in the reader's language (0.19 i18n follow-up); absent on statement rows. */
+  reason?: RowReason;
   /** A done mitigation meets the row while the model shows it not met (D-21). */
   contradiction?: boolean;
   /** The statement's snapshot differs from the current model result (D-17). */

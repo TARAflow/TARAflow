@@ -40,6 +40,11 @@ import {
   qualifyRequirementId,
   selectEdition,
   suggestMitigations,
+  elementTypeName,
+  reasonText,
+  unknownWithFields,
+  type DfdLabels,
+  type RowResult,
   type AnyEdition,
   type MatrixClaim,
   type En50742View,
@@ -332,6 +337,14 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
   const typeOf = complianceTypeOf(project);
   // FX-23: with their text in the document language — project mitigations carry their own.
   const mitigationT = i18n.getFixedT(language, "mitigations");
+  // 0.19 i18n follow-up: why a row has its status and the fields an element lacks, in the document language.
+  const complianceT = i18n.getFixedT(language, "compliance");
+  const dfdT = i18n.getFixedT(language, "dfd");
+  const dfdLabels: DfdLabels = { t: (key) => String(dfdT(key)), exists: (key) => i18n.exists(key, { ns: "dfd", lng: language }) };
+  const reasonOf = (r: RowResult): string | undefined =>
+    r.reason
+      ? reasonText(r.reason, (key, defaultValue) => String(complianceT(`compliance.${key}`, { defaultValue, skipInterpolation: true })), (type) => elementTypeName(type, dfdLabels))
+      : r.reasoning;
   const suggestionsOf = (label: string, openElementIds: readonly string[]): DocMitigationSuggestion[] =>
     suggestMitigations(
       getAllMitigations(),
@@ -401,13 +414,13 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
         status: r.status,
         source: r.source,
         failing: r.failing.map(name),
-        unknown: r.unknown.map(name),
+        unknown: r.unknown.map((id) => unknownWithFields(name(id), r.unsetFields?.[id] ?? [], typeOf(id), dfdLabels)),
         supporting: r.supportingElements.map(name),
         mitigations: [...new Set(r.mitigationIds)],
         ...(r.unclearMitigationIds?.length ? { unclearMitigations: [...r.unclearMitigationIds] } : {}),
         ...(r.uncountedClaims?.length ? { uncountedClaims: r.uncountedClaims.map((c) => ({ ...c })) } : {}),
         claims: r.claimIds,
-        reasoning: r.reasoning,
+        reasoning: reasonOf(r),
         summary: descriptions.map((d) => `${d.title} — ${d.summary}`).join(" / "),
         checklist: localizedChecklist(descriptions, r.checklist),
         contradiction: r.contradiction,

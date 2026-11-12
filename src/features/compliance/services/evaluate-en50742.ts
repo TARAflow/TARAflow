@@ -14,6 +14,7 @@
 import type { ExternalEvidence, ProjectCheckId } from "../models/compliance-types";
 import type { En50742Risk, En50742View, SrslLevel, SrslSummary } from "../models/en50742-view";
 import type { EvaluationRun } from "../models/evaluation-types";
+import { because, type RowReason } from "./row-reasons";
 
 export interface ExternalOutcome {
   status: "met" | "gap" | "unknown" | "needs-statement" | "n/a";
@@ -24,6 +25,7 @@ export interface ExternalOutcome {
   /** Risks (labels) that fail the row or are not rated yet. */
   risks?: string[];
   reasoning?: string;
+  reason?: RowReason;
 }
 
 const met = (): ExternalOutcome => ({ status: "met" });
@@ -46,24 +48,24 @@ function judgeRisks(
   view: En50742View,
   mandates: (risk: En50742Risk) => boolean,
   satisfied: (risk: En50742Risk) => boolean,
-  none: string,
+  none: "noMandateClause" | "noMandateMeasure",
 ): ExternalOutcome {
   const risks = inPlay(view).filter((r) => r.srsl !== undefined);
   const unrated = risks.filter((r) => r.srsl === null);
   const applicable = risks.filter((r) => r.srsl !== null && mandates(r));
   const failing = applicable.filter((r) => !satisfied(r));
-  if (failing.length > 0) return { status: "gap", risks: labels([...failing, ...unrated]), reasoning: "mandated control missing or not done" };
-  if (unrated.length > 0) return { status: "unknown", risks: labels(unrated), reasoning: "risks without SRSL — rate EL, attacker capability and severity" };
-  if (applicable.length === 0) return { status: "n/a", reasoning: none };
+  if (failing.length > 0) return { status: "gap", risks: labels([...failing, ...unrated]), ...because("mandatedMissing") };
+  if (unrated.length > 0) return { status: "unknown", risks: labels(unrated), ...because("risksUnratedRate") };
+  if (applicable.length === 0) return { status: "n/a", ...because(none) };
   return met();
 }
 
 function riskOutcome(check: "mandated" | "all-mandated" | "remaining", clause: string | undefined, view: En50742View, run: EvaluationRun): ExternalOutcome {
   if (check === "mandated") {
-    return judgeRisks(view, (r) => r.mandated.includes(clause!), (r) => hasControl(r, clause!, run), "no risk mandates the clause at its SRSL");
+    return judgeRisks(view, (r) => r.mandated.includes(clause!), (r) => hasControl(r, clause!, run), "noMandateClause");
   }
   if (check === "all-mandated") {
-    return judgeRisks(view, (r) => r.mandated.length > 0, (r) => allMandatedInPlace(r, run), "no risk mandates a protection measure");
+    return judgeRisks(view, (r) => r.mandated.length > 0, (r) => allMandatedInPlace(r, run), "noMandateMeasure");
   }
   // Information for use: a remaining requirement is passed on — the model
   // cannot show the text, so a statement names them.
@@ -71,32 +73,32 @@ function riskOutcome(check: "mandated" | "all-mandated" | "remaining", clause: s
   const unrated = risks.filter((r) => r.srsl === null);
   const remaining = risks.filter((r) => r.accepted || (typeof r.srsl === "number" && !allMandatedInPlace(r, run)));
   if (remaining.length > 0) {
-    return { status: "needs-statement", risks: labels(remaining), reasoning: "name these risks in the information for use" };
+    return { status: "needs-statement", risks: labels(remaining), ...because("nameInInformation") };
   }
-  if (unrated.length > 0) return { status: "unknown", risks: labels(unrated), reasoning: "risks without SRSL" };
-  return { status: "n/a", reasoning: "no remaining requirement" };
+  if (unrated.length > 0) return { status: "unknown", risks: labels(unrated), ...because("risksUnrated") };
+  return { status: "n/a", ...because("noRemaining") };
 }
 
 function projectOutcome(check: ProjectCheckId, view: En50742View): ExternalOutcome {
   const risks = inPlay(view);
   switch (check) {
     case "hazards-linked": {
-      if (view.hazards.total === 0) return { status: "unknown", reasoning: "no hazard data imported" };
+      if (view.hazards.total === 0) return { status: "unknown", ...because("noHazardData") };
       if (view.hazards.unlinked.length > 0) {
-        return { status: "gap", reasoning: `hazards without a contributing input: ${view.hazards.unlinked.join(", ")}` };
+        return { status: "gap", ...because("hazardsUnlinked", { values: { list: view.hazards.unlinked.join(", ") } }) };
       }
-      if (view.safetyFunctions.length === 0) return { status: "unknown", reasoning: "no safety-function asset (asset with a physical impact)" };
+      if (view.safetyFunctions.length === 0) return { status: "unknown", ...because("noSafetyFunction") };
       const withoutRisks = view.safetyFunctions.filter((sf) => !view.risks.some((r) => r.safetyFunctionIds.includes(sf.id)));
-      if (withoutRisks.length > 0) return { status: "gap", reasoning: `safety functions without risks: ${withoutRisks.map((s) => s.name).join(", ")}` };
+      if (withoutRisks.length > 0) return { status: "gap", ...because("safetyFunctionsWithoutRisks", { values: { list: withoutRisks.map((s) => s.name).join(", ") } }) };
       return met();
     }
     case "system-definition": {
       const missing = [
-        !view.windowOfOpportunity && "window of opportunity",
-        !view.systemDefinition.boundary && "system boundary",
-        !view.systemDefinition.environment && "operational environment",
-      ].filter((m): m is string => !!m);
-      return missing.length > 0 ? { status: "unknown", reasoning: `not set yet: ${missing.join(", ")}` } : met();
+        !view.windowOfOpportunity && ("windowOfOpportunity" as const),
+        !view.systemDefinition.boundary && ("systemBoundary" as const),
+        !view.systemDefinition.environment && ("operationalEnvironment" as const),
+      ].filter((m): m is NonNullable<RowReason["items"]>[number] => m !== false);
+      return missing.length > 0 ? { status: "unknown", ...because("notSetYet", { items: missing }) } : met();
     }
     case "interfaces-assessed": {
       const assessed = (id: string) => view.risks.some((r) => r.anchorId === id && (r.excluded || typeof r.srsl === "number"));
@@ -104,35 +106,35 @@ function projectOutcome(check: ProjectCheckId, view: En50742View): ExternalOutco
       const failing = view.interfaces.exposed.filter((id) => !assessed(id) && !pending(id));
       const open = view.interfaces.exposed.filter((id) => !assessed(id) && pending(id));
       if (failing.length > 0) {
-        return { status: "gap", failing, unknown: [...open, ...view.interfaces.unrated], reasoning: "on a path to a safety function, exposed, no risk with SRSL" };
+        return { status: "gap", failing, unknown: [...open, ...view.interfaces.unrated], ...because("exposedWithoutSrsl") };
       }
       if (open.length > 0 || view.interfaces.unrated.length > 0) {
-        return { status: "unknown", unknown: [...open, ...view.interfaces.unrated], reasoning: "SRSL or EL not rated yet" };
+        return { status: "unknown", unknown: [...open, ...view.interfaces.unrated], ...because("srslOrElUnrated") };
       }
       const unlinked = view.safetyFunctions.filter((sf) => !sf.linked);
-      if (unlinked.length > 0) return { status: "unknown", reasoning: `safety functions without DFD elements: ${unlinked.map((s) => s.name).join(", ")}` };
-      if (view.safetyFunctions.length === 0) return { status: "unknown", reasoning: "no safety-function asset (asset with a physical impact)" };
-      if (view.interfaces.exposed.length === 0) return { status: "n/a", reasoning: "no interface above EL0 on a path to a safety function" };
+      if (unlinked.length > 0) return { status: "unknown", ...because("safetyFunctionsUnlinked", { values: { list: unlinked.map((s) => s.name).join(", ") } }) };
+      if (view.safetyFunctions.length === 0) return { status: "unknown", ...because("noSafetyFunction") };
+      if (view.interfaces.exposed.length === 0) return { status: "n/a", ...because("noExposedInterface") };
       return met();
     }
     case "srsl-complete": {
-      if (view.safetyFunctions.length === 0) return { status: "unknown", reasoning: "no safety-function asset (asset with a physical impact)" };
+      if (view.safetyFunctions.length === 0) return { status: "unknown", ...because("noSafetyFunction") };
       const riskOf = (sfId: string) => risks.filter((r) => r.safetyFunctionIds.includes(sfId));
       const withoutRisks = view.safetyFunctions.filter((sf) => riskOf(sf.id).length === 0);
-      if (withoutRisks.length > 0) return { status: "gap", reasoning: `safety functions without risks: ${withoutRisks.map((s) => s.name).join(", ")}` };
+      if (withoutRisks.length > 0) return { status: "gap", ...because("safetyFunctionsWithoutRisks", { values: { list: withoutRisks.map((s) => s.name).join(", ") } }) };
       const unrated = risks.filter((r) => r.safetyFunctionIds.length > 0 && r.srsl === null);
-      if (unrated.length > 0) return { status: "unknown", risks: labels(unrated), reasoning: "risks without SRSL" };
+      if (unrated.length > 0) return { status: "unknown", risks: labels(unrated), ...because("risksUnrated") };
       const noSrsl = view.safetyFunctions.filter((sf) => !riskOf(sf.id).some((r) => typeof r.srsl === "number"));
-      if (noSrsl.length > 0) return { status: "unknown", reasoning: `no EL-rated interface yet: ${noSrsl.map((s) => s.name).join(", ")}` };
+      if (noSrsl.length > 0) return { status: "unknown", ...because("noElRatedInterface", { values: { list: noSrsl.map((s) => s.name).join(", ") } }) };
       return met();
     }
     case "srsl-consistent": {
       const zero = risks.filter((r) => r.srsl === 0);
       const contradicting = zero.filter((r) => r.exposed === true);
-      if (contradicting.length > 0) return { status: "gap", risks: labels(contradicting), reasoning: "SRSL 0 on an interface above EL0" };
+      if (contradicting.length > 0) return { status: "gap", risks: labels(contradicting), ...because("srslZeroExposed") };
       const open = [...zero.filter((r) => r.exposed === undefined), ...risks.filter((r) => r.srsl === null)];
-      if (open.length > 0) return { status: "unknown", risks: labels(open), reasoning: "SRSL or EL not rated yet" };
-      if (!risks.some((r) => typeof r.srsl === "number")) return { status: "n/a", reasoning: "no SRSL determined" };
+      if (open.length > 0) return { status: "unknown", risks: labels(open), ...because("srslOrElUnrated") };
+      if (!risks.some((r) => typeof r.srsl === "number")) return { status: "n/a", ...because("noSrsl") };
       return met();
     }
   }

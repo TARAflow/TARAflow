@@ -37,6 +37,7 @@ import type {
 } from "../models/evaluation-types";
 import { RULES_BY_ID } from "../data/requirement-registry";
 import { externalOutcome, srslReached, srslSummary } from "./evaluate-en50742";
+import { because, type RowReason } from "./row-reasons";
 
 // ==================== THREE-VALUED LOGIC ====================
 
@@ -203,6 +204,7 @@ interface IdOutcome {
   risks?: string[];
   contradiction?: boolean;
   reasoning?: string;
+  reason?: RowReason;
   /** Type B: the checklist items the model does not answer (CM-5b). */
   openChecklist?: string[];
   /** Element id → the fields it lacks for this requirement (FX-21). */
@@ -218,8 +220,8 @@ const outcome = (status: IdStatus, extra: Partial<IdOutcome> = {}): IdOutcome =>
   ...extra,
 });
 
-function describeTargets(targets: readonly EvidenceTarget[]): string {
-  return [...new Set(targets.flatMap((t) => t.elementTypes))].join(" / ");
+function targetTypes(targets: readonly EvidenceTarget[]): string[] {
+  return [...new Set(targets.flatMap((t) => t.elementTypes as readonly string[]))];
 }
 
 /** Types a multiprocess without child page contains but the model does not show (D-30). */
@@ -312,7 +314,7 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
   // EN 50742 A: risk and project evidence and the SRSL come from the
   // En50742View (CM-12); without it a statement meets the row.
   if (rule.external) {
-    if (!input.en50742) return outcome("needs-statement", { reasoning: "evaluated from the risks and the project data" });
+    if (!input.en50742) return outcome("needs-statement", because("externalWithoutView"));
     const e = externalOutcome(rule.external, input.en50742, input.run);
     return outcome(e.status, {
       ...(e.status === "met" ? { source: "model" as const } : {}),
@@ -320,13 +322,14 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       unknown: e.unknown ?? [],
       risks: e.risks ?? [],
       reasoning: e.reasoning,
+      ...(e.reason ? { reason: e.reason } : {}),
       openChecklist: [...(rule.checklist ?? [])],
     });
   }
   if (rule.minSrsl) {
     const reached = input.en50742 ? srslReached(rule.minSrsl, input.en50742) : "unknown";
-    if (reached === "no") return outcome("n/a", { reasoning: `no risk reaches SRSL ${rule.minSrsl}` });
-    if (reached === "unknown") return outcome("unknown", { reasoning: `applies from SRSL ${rule.minSrsl} — risks not rated yet` });
+    if (reached === "no") return outcome("n/a", because("srslNotReached", { values: { srsl: String(rule.minSrsl) } }));
+    if (reached === "unknown") return outcome("unknown", because("srslUnrated", { values: { srsl: String(rule.minSrsl) } }));
   }
   const inScope = (id: string) => {
     if (input.scope.has(id)) return true;
@@ -339,8 +342,8 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
     const tri = or(
       rule.appliesWhen.flatMap((t) => candidates(graph, t, inScope, true).map((e) => applicable(graph, e, t))),
     );
-    if (tri === "no") return outcome("n/a", { reasoning: `no ${describeTargets(rule.appliesWhen)} in the component needs it` });
-    if (tri === "unknown") return outcome("unknown", { reasoning: "the precondition depends on unset properties" });
+    if (tri === "no") return outcome("n/a", because("notNeeded", { types: targetTypes(rule.appliesWhen) }));
+    if (tri === "unknown") return outcome("unknown", because("preconditionUnset"));
   }
 
   // Step 4b — applicable elements in scope.
@@ -370,10 +373,10 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       return outcome("unknown", {
         unknown: standIns,
         unset,
-        reasoning: `no ${describeTargets(rule.targets)} modelled — a multiprocess without child page may contain one`,
+        ...because("standIn", { types: targetTypes(rule.targets) }),
       });
     }
-    return outcome("n/a", { reasoning: `no applicable ${describeTargets(rule.targets)} in the component` });
+    return outcome("n/a", because("noApplicable", { types: targetTypes(rule.targets) }));
   }
 
   // Step 5 — satisfaction in scope (types A / B); type C needs a statement.
@@ -510,6 +513,7 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
   const risks = [...new Set(outcomes.flatMap((o) => o.risks ?? []))];
   const unset: Record<string, string[]> = {};
   for (const o of outcomes) for (const [id, fields] of Object.entries(o.unset ?? {})) addUnset(unset, id, fields);
+  const why = outcomes.find((o) => o.reasoning);
   return {
     status,
     source: status === "met" ? source : undefined,
@@ -519,7 +523,9 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
     mitigationIds: merged("mitigationIds"),
     ...(risks.length > 0 ? { risks } : {}),
     contradiction: outcomes.some((o) => o.contradiction) || undefined,
-    reasoning: outcomes.map((o) => o.reasoning).find(Boolean),
+    // the first reason, with its code (0.19 i18n follow-up)
+    reasoning: why?.reasoning,
+    ...(why?.reason ? { reason: why.reason } : {}),
     openChecklist: outcomes.flatMap((o) => o.openChecklist ?? []),
     unset,
   };
@@ -565,7 +571,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
   };
 
   // Step 1 — void row.
-  if (row.void) return { ...base, status: "n/a", modelStatus: "n/a", source: "edition", reasoning: row.void };
+  if (row.void) return { ...base, status: "n/a", modelStatus: "n/a", source: "edition", reasoning: row.void, reason: { code: "void", values: { edition: row.void } } };
 
   // Step 2 — device rows (2019) by the component's device category (K-C1).
   if (row.deviceCategories) {
@@ -579,7 +585,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
         status: "n/a",
         modelStatus: "n/a",
         source: "device-category",
-        reasoning: `the component is not ${row.deviceCategories.join(" / ")}`,
+        ...because("deviceCategory", { values: { categories: row.deviceCategories.join(" / ") } }),
         statementSuperseded: statement ? true : undefined,
       };
     }
@@ -645,6 +651,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     ...(uncountedClaims.length > 0 ? { uncountedClaims } : {}),
     checklist: status === "met" ? (combined.openChecklist ?? []) : [],
     reasoning: combined.reasoning,
+    ...(combined.reason ? { reason: combined.reason } : {}),
     contradiction: combined.contradiction,
     ...unclearOf(row, graph, input),
   };
@@ -655,7 +662,9 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
       ...result,
       status: statement.status === "met" ? "met" : statement.status === "n/a" ? "n/a" : "gap",
       source: "statement",
+      // the user's own reasoning — no code
       reasoning: statement.reasoning,
+      reason: undefined,
       statementSupportingMeasure: statement.supportingMeasure,
       statementModelChanged:
         statement.modelStatusAtStatement !== undefined && statement.modelStatusAtStatement !== result.modelStatus
