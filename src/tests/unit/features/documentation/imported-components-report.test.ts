@@ -182,6 +182,42 @@ describe("the chapter \"Imported components\" (6a-2)", () => {
     expect(sd1.measures.some((m) => m.label.startsWith("M-S-001"))).toBe(false);
   });
 
+  it("the evidence of an assumption with the state of each measure (review 2026-11-12)", () => {
+    const p = prepared();
+    p.components!.instances[0].assumptions = [
+      { instanceId: "i1", assumptionId: "a1", status: "fulfilled", evidence: { mitigationIds: ["M-X-1", "M-X-2", "M-X-3"], elementIds: ["m_p1"], note: "Checked on site" } },
+    ];
+    p.risks!.risks[0] = { ...p.risks!.risks[0], selectedMitigations: [{ id: "M-X-1", status: "implemented" }, { id: "M-X-2", status: "in_progress" }] } as never;
+    const [c] = docImportedComponents(p);
+    const e = c.instances[0].assumptions[0].evidence!;
+    expect(e.measures.map((m) => [m.label.split(" ")[0], m.state])).toEqual([
+      ["M-X-1", "implemented"],
+      ["M-X-2", "pending"],
+      ["M-X-3", "not_chosen"],
+    ]);
+    expect(e.elements).toEqual(["P-1 Logic"]);
+    expect(e.note).toBe("Checked on site");
+    const [section] = importedComponentsReportSections([c], t);
+    const row = section.children![0].table!.rows[0];
+    expect(row[3]).toMatch(/^M-X-1.* \(implemented\); M-X-2.* \(not implemented yet\); M-X-3 \(chosen by no risk\); P-1 Logic; Checked on site$/);
+  });
+
+  it("one measure on several risks: the reasons united, the worse effectiveness (review 2026-11-12)", () => {
+    const p = prepared();
+    const imported = p.components!.imports[0];
+    const snapshot = structuredClone(imported.snapshot);
+    // M-C-001 implemented on the first risk, still in progress on the second
+    snapshot.risks[0].selectedMitigations = snapshot.risks[0].selectedMitigations.map((m: Any) => (m.id === "M-C-001" ? { ...m, status: "implemented" } : m));
+    snapshot.risks[1].selectedMitigations = [{ id: "M-C-001", status: "in_progress" }];
+    p.components!.imports[0] = { ...imported, snapshot };
+    const [c] = docImportedComponents(p);
+    const m = c.instances[0].measures.find((x) => x.label.startsWith("M-C-001"))!;
+    expect(m.effectiveness).toBe("unclear");
+    expect(m.reasons.map((r) => r.kind).sort()).toEqual(["aou_open", "pending"]);
+    // SD2: not fulfilled there — not effective, whatever the first risk said
+    expect(c.instances[1].measures.find((x) => x.label.startsWith("M-C-001"))!.effectiveness).toBe("not_effective");
+  });
+
   it("the chapter in Markdown: the credit rule, a section per component, a sub-section per instance", () => {
     const p = prepared();
     const gen = new MarkdownGenerator(docProject(p, { importedComponents: docImportedComponents(p) }), { language: "en" } as never, t);

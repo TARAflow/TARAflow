@@ -344,7 +344,22 @@ export interface DocImportedComponent {
     quantity: number;
     /** Component EE → the machine element it is mapped to. */
     eeMapping: { componentEe: string; machineElement: string }[];
-    assumptions: { displayId: string; text: string; status: string; rationale?: string }[];
+    assumptions: {
+      displayId: string;
+      text: string;
+      status: string;
+      rationale?: string;
+      /**
+       * What this TARA names as the evidence of a fulfilled assumption: its
+       * measures with their state, its elements, a note (review 2026-11-12 —
+       * whether a component measure counts depends on it).
+       */
+      evidence?: {
+        measures: { label: string; state: "implemented" | "pending" | "not_chosen" }[];
+        elements: string[];
+        note?: string;
+      };
+    }[];
     /** The component's measures that do not count fully in this instance. */
     measures: { label: string; effectiveness: "not_effective" | "unclear"; reasons: { kind: string; ref?: string }[] }[];
   }[];

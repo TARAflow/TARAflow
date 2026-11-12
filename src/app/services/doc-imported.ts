@@ -26,7 +26,12 @@ import { attackPathDisplayId } from "features/attacktree/services/attacktree-thr
 import { componentAttackPathGroups, componentAttackTrees } from "../utils/component-attack-trees";
 import { componentTreatments } from "../utils/component-treatments";
 import { componentOverviewItems } from "./component-import/component-overview";
-import { instanceAssumptions } from "./component-import/assumption-status";
+import {
+  chosenMachineMeasures,
+  implementedMachineMeasures,
+  instanceAssumptions,
+  projectMeasureOptions,
+} from "./component-import/assumption-status";
 import { flattenProjectTags } from "shared";
 import type { Project } from "../models/project-types";
 import type { ComponentSource } from "shared";
@@ -142,7 +147,7 @@ export function docImportedAttackTrees(project: Pick<Project, "components" | "at
   const ratings = componentAttackPathGroups(machine);
   return components.imports.flatMap((imported) => {
     const instances = derived.filter((d) => d.imported.id === imported.id);
-    const source = (imported.snapshot as { attackTrees?: { trees?: DocImportedAttackTree["tree"][] } | null }).attackTrees?.trees ?? [];
+    const source = imported.snapshot.attackTrees?.trees ?? [];
     if (instances.length === 0 || source.length === 0) return [];
     return source.map((tree, index): DocImportedAttackTree => ({
       componentName: imported.name,
@@ -186,16 +191,20 @@ export function docImportedAttackTrees(project: Pick<Project, "components" | "at
  * with this TARA's decision, and the component's measures that do not count
  * fully here (not effective / unclear, with the reasons — I7).
  */
-export function docImportedComponents(project: Pick<Project, "components" | "risks" | "dfd">): DocImportedComponent[] {
+export function docImportedComponents(project: Pick<Project, "components" | "risks" | "dfd" | "threats">): DocImportedComponent[] {
   const components = project.components;
   if (!components) return [];
-  const machineNames = new Map(((project.dfd?.elements ?? []) as { id: string; displayId?: string; name?: string }[]).map((e) => [e.id, `${e.displayId ? `${e.displayId} ` : ""}${e.name ?? e.id}`]));
+  const machineNames = new Map((project.dfd?.elements ?? []).map((e) => [e.id, `${e.displayId ? `${e.displayId} ` : ""}${e.name ?? e.id}`]));
   const treatments = [...componentTreatments({ components, risks: project.risks ?? null }).values()];
   const overview = componentOverviewItems({ components, risks: project.risks ?? null });
+  // The machine's measures as evidence: label and state (implemented / not yet / chosen by no risk).
+  const measureLabels = new Map(projectMeasureOptions({ risks: project.risks ?? null, threats: project.threats ?? null }).map((m) => [m.id, m.label]));
+  const done = implementedMachineMeasures(project.risks?.risks);
+  const chosen = chosenMachineMeasures(project.risks?.risks);
   return components.imports.flatMap((imported): DocImportedComponent[] => {
     const item = overview.find((o) => o.importId === imported.id);
     if (!item) return [];
-    const snapshotEes = new Map(((imported.snapshot as { dfd?: { elements?: { id: string; name?: string }[] } | null }).dfd?.elements ?? []).map((e) => [e.id, e.name ?? e.id]));
+    const snapshotEes = new Map((imported.snapshot.dfd?.elements ?? []).map((e) => [e.id, e.name ?? e.id]));
     const instances = components.instances.filter((i) => i.importId === imported.id);
     return [
       {
@@ -217,17 +226,27 @@ export function docImportedComponents(project: Pick<Project, "components" | "ris
         ...(item.methodologyMatches !== undefined ? { methodologyMatches: item.methodologyMatches } : {}),
         sourceBindings: item.sourceBindings,
         instances: instances.map((instance) => {
-          // the component's measures that do not count fully here, once each
+          // The component's measures that do not count fully here, once each.
+          // A measure's status is kept per risk, so one measure can be unclear
+          // on one risk and not effective on another: the reasons are united,
+          // the worse effectiveness wins (review 2026-11-12).
           const measures = new Map<string, DocImportedComponent["instances"][number]["measures"][number]>();
           for (const tr of treatments.filter((x) => x.instanceId === instance.id)) {
             for (const m of tr.measures) {
               if (!m.effectiveness || m.effectiveness === "effective") continue;
               const label = m.id ? `${m.id} — ${m.text}` : m.text;
-              if (measures.has(label)) continue;
+              const reasons = (m.reasons ?? []).map((r) => ({ kind: r.kind, ...(r.assumption ?? r.rationale ? { ref: r.assumption ?? r.rationale } : {}) }));
+              const before = measures.get(label);
+              if (!before) {
+                measures.set(label, { label, effectiveness: m.effectiveness, reasons });
+                continue;
+              }
+              const key = (r: { kind: string; ref?: string }) => `${r.kind}|${r.ref ?? ""}`;
+              const seen = new Set(before.reasons.map(key));
               measures.set(label, {
                 label,
-                effectiveness: m.effectiveness,
-                reasons: (m.reasons ?? []).map((r) => ({ kind: r.kind, ...(r.assumption ?? r.rationale ? { ref: r.assumption ?? r.rationale } : {}) })),
+                effectiveness: before.effectiveness === "not_effective" || m.effectiveness === "not_effective" ? "not_effective" : "unclear",
+                reasons: [...before.reasons, ...reasons.filter((r) => !seen.has(key(r)) && seen.add(key(r)))],
               });
             }
           }
@@ -243,6 +262,18 @@ export function docImportedComponents(project: Pick<Project, "components" | "ris
               text: a.text,
               status: a.status,
               ...(a.rationale ? { rationale: a.rationale } : {}),
+              ...(a.evidence && ((a.evidence.mitigationIds?.length ?? 0) > 0 || (a.evidence.elementIds?.length ?? 0) > 0 || a.evidence.note)
+                ? {
+                    evidence: {
+                      measures: (a.evidence.mitigationIds ?? []).map((id) => ({
+                        label: measureLabels.get(id) ?? id,
+                        state: done.has(id) ? ("implemented" as const) : chosen.has(id) ? ("pending" as const) : ("not_chosen" as const),
+                      })),
+                      elements: (a.evidence.elementIds ?? []).map((id) => machineNames.get(id) ?? id),
+                      ...(a.evidence.note ? { note: a.evidence.note } : {}),
+                    },
+                  }
+                : {}),
             })),
             measures: [...measures.values()],
           };

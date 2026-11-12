@@ -210,7 +210,7 @@
         "lastUpdate": "Letztes Update",
         "methodology": "Methodik",
         "methodologySame": "gleiche Likelihood-Methode und Faktorskalen wie diese TARA — die Faktorwerte der Komponente werden übernommen",
-        "methodologyDiffers": "weicht von dieser TARA ab — die Faktorwerte der Komponente werden nicht übernommen",
+        "methodologyDiffers": "weicht von dieser TARA ab — die Faktorwerte der Komponente werden nicht übernommen; diese TARA bewertet sie neu",
         "source": "Quelle",
         "quantityLabel": "Menge",
         "eeMapping": "Externe Entität",
@@ -219,6 +219,8 @@
         "colAssumption": "Annahme zur Verwendung",
         "colText": "Text",
         "colStatus": "Status in dieser TARA",
+        "colEvidence": "Nachweis",
+        "evidenceState": { "implemented": "umgesetzt", "pending": "noch nicht umgesetzt", "not_chosen": "von keinem Risiko gewählt" },
         "aou": {"open": "offen", "fulfilled": "erfüllt", "not_fulfilled": "nicht erfüllt", "not_applicable": "nicht anwendbar"}
       },
       "residual": {

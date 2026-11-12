@@ -210,7 +210,7 @@
         "lastUpdate": "Last update",
         "methodology": "Methodology",
         "methodologySame": "same likelihood method and factor scales as this TARA — the component's factor values are taken over",
-        "methodologyDiffers": "differs from this TARA — the component's factor values are not taken over",
+        "methodologyDiffers": "differs from this TARA — the component's factor values are not taken over; this TARA rates them anew",
         "source": "Source",
         "quantityLabel": "Quantity",
         "eeMapping": "External entity",
@@ -219,6 +219,8 @@
         "colAssumption": "Assumption of use",
         "colText": "Text",
         "colStatus": "Status in this TARA",
+        "colEvidence": "Evidence",
+        "evidenceState": { "implemented": "implemented", "pending": "not implemented yet", "not_chosen": "chosen by no risk" },
         "aou": {"open": "open", "fulfilled": "fulfilled", "not_fulfilled": "not fulfilled", "not_applicable": "not applicable"}
       },
       "residual": {

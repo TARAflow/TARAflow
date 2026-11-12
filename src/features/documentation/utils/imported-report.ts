@@ -135,12 +135,23 @@ export function importedComponentsReportSections(components: readonly DocImporte
         ? undefined
         : c.methodologyMatches
           ? T("methodologySame", "same likelihood method and factor scales as this TARA — the component's factor values are taken over")
-          : T("methodologyDiffers", "differs from this TARA — the component's factor values are not taken over"),
+          : T("methodologyDiffers", "differs from this TARA — the component's factor values are not taken over; this TARA rates them anew"),
     );
     for (const b of c.sourceBindings) {
       add(T("source", "Source"), `${b.repoUrl} (${b.refType} ${b.refLabel}${b.commit ? ` · ${b.commit.slice(0, 8)}` : ""})`);
     }
     const status = (s: string) => T(`aou.${s}`, s.replace(/_/g, " "));
+    const evidenceState = (s: string) =>
+      T(`evidenceState.${s}`, s === "implemented" ? "implemented" : s === "pending" ? "not implemented yet" : "chosen by no risk");
+    // The evidence of an assumption: whether a component measure counts depends on it (review 2026-11-12).
+    const evidence = (e: DocImportedComponent["instances"][number]["assumptions"][number]["evidence"]) =>
+      e
+        ? [
+            ...e.measures.map((m) => `${m.label} (${evidenceState(m.state)})`),
+            ...e.elements,
+            ...(e.note ? [e.note] : []),
+          ].join("; ")
+        : "–";
     const children: ReportSection[] = c.instances.map((i) => {
       const iFacts: [string, string][] = [];
       if (i.quantity > 1) iFacts.push([T("quantityLabel", "Quantity"), fill(T("quantity", "×{{n}} identical units"), { n: String(i.quantity) })]);
@@ -158,8 +169,8 @@ export function importedComponentsReportSections(components: readonly DocImporte
         ...(i.assumptions.length > 0
           ? {
               table: {
-                headers: [T("colAssumption", "Assumption of use"), T("colText", "Text"), T("colStatus", "Status in this TARA")],
-                rows: i.assumptions.map((a) => [a.displayId, a.text, `${status(a.status)}${a.rationale ? ` — ${a.rationale}` : ""}`]),
+                headers: [T("colAssumption", "Assumption of use"), T("colText", "Text"), T("colStatus", "Status in this TARA"), T("colEvidence", "Evidence")],
+                rows: i.assumptions.map((a) => [a.displayId, a.text, `${status(a.status)}${a.rationale ? ` — ${a.rationale}` : ""}`, evidence(a.evidence)]),
               },
             }
           : {}),
