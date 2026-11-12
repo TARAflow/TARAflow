@@ -58,10 +58,13 @@ in 0.18.x.
   components* (overview, origin, instances, measures not effective or
   unclear with the reason, assumptions with their evidence, deviations),
   in every format including the PDF.
-- **Audit verification (AVE):** a new check finds an embedded component
-  snapshot that no longer matches its recorded hash; the commit diff names
-  instance changes (assumption status, external-entity mapping, quantity,
-  overrides) instead of *instance modified*.
+- **Audit Verification Engine v2:** new check *component-import* — the
+  snapshot of every imported component in a committed project file must
+  still match its recorded hash (`CMP_SNAPSHOT_HASH_MISMATCH`, error).
+  Results now carry `aveVersion: 2`; all other checks are unchanged, and
+  projects without imported components verify as before. The commit diff
+  names instance changes (assumption status, external-entity mapping,
+  quantity, overrides) instead of *instance modified*.
 - **Issue trackers:** with a tracker, a mitigation set to done by hand
   needs evidence or a reference; a ticket row per mitigation with a link
   dialog (search, status filter, suggestions) and *create*; with a linked
@@ -96,6 +99,9 @@ in 0.18.x.
 - A component TARA must be committed to be imported pinned; an uncommitted
   file is imported *unpinned* and pinned with its next update. The drift
   check needs a local clone of the component's repository.
+- **CI with `taraflow-verify`:** the JSON result carries `aveVersion: 2`
+  — a pipeline that checks the version or compares results with a stored
+  one sees the new number.
 - The component's source references are shown read-only in the machine;
   the machine does not resolve or check them itself.
 - Not in 0.19 (planned for 0.20): the compliance modules EN 303 645,
