@@ -21,11 +21,13 @@ import {
 import { VOID_REASONS } from "features/compliance/components/compliance-tab";
 import { familyCompliance, type ComplianceData, type FamilyComplianceData } from "shared";
 
+// Translations a test sets (the DFD form's labels); everything else falls back to its default.
+const LABELS = vi.hoisted(() => ({}) as Record<string, string>);
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (k: string, o?: Record<string, unknown>) =>
-      ((o?.defaultValue as string | undefined) ?? k).replace(/\{\{(\w+)\}\}/g, (_, n) => String(o?.[n] ?? "")),
-    i18n: { language: "en", exists: () => false },
+      (LABELS[k] ?? (o?.defaultValue as string | undefined) ?? k).replace(/\{\{(\w+)\}\}/g, (_, n) => String(o?.[n] ?? "")),
+    i18n: { language: "en", exists: (k: string) => k in LABELS },
   }),
 }));
 
@@ -325,6 +327,16 @@ describe("Compliance tab", () => {
     expect(within(entry).getByText(/not met, check: input validation/)).toBeTruthy();
     fireEvent.click(within(entry).getByText("CR 3.5"));
     expect(within(screen.getByTestId("compliance-info-dialog")).getByText("CR 3.5 – Input validation")).toBeTruthy();
+  });
+
+  it("the to-do names the property under the DFD form's label, in the UI language (0.19 i18n follow-up)", () => {
+    LABELS["tabs.dfd.element_description.process.fields.inputValidation.label"] = "Eingabevalidierung";
+    try {
+      renderTab(edition(CRA_ROWS), fam({ target: { SI: 1 } }), { typeOf: (id) => (id === "p1" ? "Process" : undefined) });
+      expect(within(screen.getByTestId("compliance-todo-p1")).getByText(/not met, check: Eingabevalidierung/)).toBeTruthy();
+    } finally {
+      delete LABELS["tabs.dfd.element_description.process.fields.inputValidation.label"];
+    }
   });
 
   it("a requirement in the to-do list has the same tooltip as in the table", async () => {

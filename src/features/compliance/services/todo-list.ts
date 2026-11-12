@@ -12,7 +12,16 @@ import { BLACK_BOX_FIELDS } from "shared";
 import { RULES_BY_ID } from "../data/requirement-registry";
 import type { AnyEdition, FoundationalRequirement, SecurityLevel } from "../models/compliance-types";
 import type { ComplianceResult, RowResult } from "../models/evaluation-types";
-import { words } from "./describe-requirement";
+
+/**
+ * A property the to-do names: its model path — the UI shows it under the DFD
+ * form's label in the UI language (0.19 i18n follow-up; before, English words
+ * built from the path). `on`: the neighbour's element types whose property it is.
+ */
+export interface TodoProperty {
+  path: string;
+  on?: string[];
+}
 
 export interface TodoItem {
   label: string;
@@ -23,8 +32,13 @@ export interface TodoItem {
    * processes / stores the model does not show (D-30).
    */
   kind: "not-met" | "missing" | "inside";
-  /** Properties the rule reads on this element type, as words ("integrity protection"). */
-  properties: string[];
+  /**
+   * "missing": the fields this element leaves unset (RowResult.unsetFields);
+   * without them (a neighbour's unknown) the properties the rule reads.
+   * "not-met": the properties that satisfy the rule on this element type;
+   * "inside": the black-box fields that answer the row.
+   */
+  properties: TodoProperty[];
   /** The planned run closes it for this element (chosen open mitigations). */
   plannedClosed: boolean;
 }
@@ -38,7 +52,7 @@ export interface ComponentTodo {
   label: string;
   group: string;
   /** Properties one element of these types must show. */
-  properties: string[];
+  properties: TodoProperty[];
   elementTypes: string[];
   plannedClosed: boolean;
 }
@@ -66,26 +80,37 @@ function withinTarget(row: RowResult, target: TodoTarget): boolean {
   return level !== undefined && (row.minSl ?? 1) <= level;
 }
 
-function propertiesFor(edition: AnyEdition, row: RowResult, type: string | undefined, kind: TodoItem["kind"]): string[] {
+/** Unique by path and neighbour types, in first-seen order. */
+function uniqueProperties(items: TodoProperty[]): TodoProperty[] {
+  const seen = new Set<string>();
+  return items.filter((p) => {
+    const key = `${p.path}|${p.on?.join("/") ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function propertiesFor(edition: AnyEdition, row: RowResult, type: string | undefined, kind: TodoItem["kind"]): TodoProperty[] {
   const ids = edition.rows.find((r) => r.label === row.label)?.requirementIds ?? [];
-  const out = new Set<string>();
+  const out: TodoProperty[] = [];
   for (const id of ids) {
     for (const target of RULES_BY_ID.get(id)?.targets ?? []) {
       if (type && !(target.elementTypes as readonly string[]).includes(type)) continue;
-      for (const check of target.satisfiedIf ?? []) out.add(words(check.property));
+      for (const check of target.satisfiedIf ?? []) out.push({ path: check.property });
       if (kind === "missing") {
-        for (const check of target.appliesIf ?? []) out.add(words(check.property));
+        for (const check of target.appliesIf ?? []) out.push({ path: check.property });
         for (const n of [target.endpointIf, target.connectedIf]) {
-          for (const check of n?.checks ?? []) out.add(`${words(check.property)} (${n!.elementTypes.join(" / ")})`);
+          for (const check of n?.checks ?? []) out.push({ path: check.property, on: [...n!.elementTypes] });
         }
       }
     }
   }
-  return [...out];
+  return uniqueProperties(out);
 }
 
 /** D-30c: the black-box "inside" fields that answer the row's Process / DataStore checks. */
-function insideFieldsFor(edition: AnyEdition, row: RowResult): string[] {
+function insideFieldsFor(edition: AnyEdition, row: RowResult): TodoProperty[] {
   const ids = edition.rows.find((r) => r.label === row.label)?.requirementIds ?? [];
   const out = new Set<string>();
   for (const id of ids) {
@@ -94,12 +119,12 @@ function insideFieldsFor(edition: AnyEdition, row: RowResult): string[] {
         if (!(target.elementTypes as readonly string[]).includes(type)) continue;
         const map: Readonly<Record<string, string>> = BLACK_BOX_FIELDS[type];
         for (const check of [...(target.appliesIf ?? []), ...(target.satisfiedIf ?? []), ...(target.satisfiedIfAll ?? [])]) {
-          if (map[check.property]) out.add(words(map[check.property]));
+          if (map[check.property]) out.add(map[check.property]);
         }
       }
     }
   }
-  return [...out];
+  return [...out].map((path) => ({ path }));
 }
 
 export function buildTodoList(
@@ -147,7 +172,13 @@ export function buildTodoList(
         label: row.label,
         group: row.group,
         kind,
-        properties: kind === "inside" ? insideFieldsFor(edition, row) : propertiesFor(edition, row, typeOf?.(id), kind),
+        properties:
+          kind === "inside"
+            ? insideFieldsFor(edition, row)
+            : kind === "missing" && row.unsetFields?.[id]?.length
+              ? // only what this element leaves unset (0.19 i18n follow-up)
+                row.unsetFields[id].map((path) => ({ path }))
+              : propertiesFor(edition, row, typeOf?.(id), kind),
         plannedClosed: p?.status === "met" || !stillOpen.has(id),
       };
       byElement.set(id, [...(byElement.get(id) ?? []), item]);

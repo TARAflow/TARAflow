@@ -90,7 +90,7 @@ export {
 export { buildPropertyView, type PropertyViewSource } from "./services/property-view";
 export { proposeDeviceCategories, type DeviceCategoryProposal } from "./services/device-category";
 export { editionStatements, statementKeyOf } from "./services/edition-statements";
-export { buildTodoList, type ComponentTodo, type ElementTodo, type TodoItem, type TodoList, type TodoTarget } from "./services/todo-list";
+export { buildTodoList, type ComponentTodo, type ElementTodo, type TodoItem, type TodoList, type TodoProperty, type TodoTarget } from "./services/todo-list";
 export {
   mitigationRequirements,
   requirementsMetBy,

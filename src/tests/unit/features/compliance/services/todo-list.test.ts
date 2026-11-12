@@ -15,7 +15,8 @@ describe("buildTodoList", () => {
   it("lists the elements that fail a row up to the SL-T, with the properties the rule reads on their type", () => {
     const fieldbus = itemsOf("df-10").find((i) => i.label === "CR 1.2")!;
     expect(fieldbus.kind).toBe("not-met");
-    expect(fieldbus.properties).toEqual(["endpoint authentication"]);
+    // model paths — the UI names them under the DFD form's labels (0.19 i18n follow-up)
+    expect(fieldbus.properties).toEqual([{ path: "endpointAuthentication" }]);
     expect(fieldbus.plannedClosed).toBe(false);
   });
 
@@ -28,6 +29,20 @@ describe("buildTodoList", () => {
     const labels = todo.elements.flatMap((e) => e.items.map((i) => i.label));
     expect(labels).not.toContain("CR 1.1 RE(2)"); // SL-C 3
     expect(todo.statements.map((s) => s.label)).toEqual(["CR 7.8"]);
+  });
+
+  it("a property not set: only the fields this element leaves unset, not every property the rule reads", () => {
+    const edition: Edition = {
+      ...EDITION_PRAA_2026,
+      rows: [{ label: "CR 1.5 RE(1)", group: "IAC", minSl: 1, requirementIds: ["cr-1.5-re1"], supportingMeasuresAllowed: false }],
+    };
+    // the rule reads authenticationRequired (set) and authenticatorStorage (unset)
+    const input = { edition, view: { elements: [{ id: "p1", type: "Process", properties: { authenticationRequired: "password" } }], flows: [] }, scope: new Set(["p1"]) };
+    const achievedRun = evaluateMatrix({ ...input, run: "achieved" });
+    const unset = achievedRun.rows[0].unsetFields?.["p1"];
+    expect(unset).toEqual(["authenticatorStorage"]);
+    const list = buildTodoList(edition, achievedRun, evaluateMatrix({ ...input, run: "planned" }), { IAC: 1 }, () => "Process");
+    expect(list.elements[0].items[0]).toMatchObject({ kind: "missing", properties: [{ path: "authenticatorStorage" }] });
   });
 
   it("the element with most items first", () => {
@@ -52,7 +67,7 @@ describe("buildTodoList", () => {
     const list = buildTodoList(edition, evaluateMatrix({ ...input, run: "achieved" }), evaluateMatrix({ ...input, run: "planned" }), { SI: 1 });
     expect(list.elements).toEqual([]);
     expect(list.component).toEqual([
-      { label: "CR 3.10", group: "SI", properties: ["update mechanism"], elementTypes: ["Process", "Multiprocess"], plannedClosed: false },
+      { label: "CR 3.10", group: "SI", properties: [{ path: "updateMechanism" }], elementTypes: ["Process", "Multiprocess"], plannedClosed: false },
     ]);
   });
 
@@ -73,6 +88,6 @@ describe("buildTodoList", () => {
       { SI: 1 },
       () => "Multiprocess",
     );
-    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", group: "SI", kind: "inside", properties: ["inner input validation"], plannedClosed: false }] }]);
+    expect(list.elements).toEqual([{ elementId: "ecu", items: [{ label: "CR 3.5", group: "SI", kind: "inside", properties: [{ path: "innerInputValidation" }], plannedClosed: false }] }]);
   });
 });

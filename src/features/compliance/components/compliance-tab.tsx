@@ -71,7 +71,7 @@ import {
   words,
   type RequirementDescription,
 } from "../services/describe-requirement";
-import { buildTodoList } from "../services/todo-list";
+import { buildTodoList, type TodoProperty } from "../services/todo-list";
 import { editionStatements, statementKeyOf } from "../services/edition-statements";
 import { qualifyRequirementId } from "../models/compliance-types";
 import { RowClaims, type ComponentClaimChoice } from "./matrix-claims";
@@ -224,22 +224,44 @@ const DESCRIPTION_KEY: Readonly<Record<string, string>> = {
  * FX-21: "MP-1 Controller (Password lifetime limit)" — the unknown element
  * with the fields it lacks, under the DFD form's label where one exists.
  */
-function useUnknownNames(nameOf: (id: string) => string, typeOf?: (id: string) => string | undefined) {
+function useFieldLabels(typeOf?: (id: string) => string | undefined) {
   const { t, i18n } = useTranslation("dfd");
-  const label = (path: string, id: string): string => {
-    const type = typeOf?.(id);
+  /** A model path under the DFD form's label — of the element's type, or of the first of the given types. */
+  const labelOf = (path: string, types: readonly string[]): string => {
     const keys = [
       `tabs.dfd.modelFields.${path.split(".").pop()}.label`,
-      ...(type ? [`tabs.dfd.element_description.${DESCRIPTION_KEY[type] ?? type.toLowerCase()}.fields.${path}.label`] : []),
+      ...types.flatMap((type) => {
+        const block = `tabs.dfd.element_description.${DESCRIPTION_KEY[type] ?? type.toLowerCase()}.fields`;
+        // implementedControls.linkAuthentication → the form's field linkAuthentication
+        return [`${block}.${path}.label`, `${block}.${path.split(".").pop()}.label`];
+      }),
+      // a shared form section (exposureLevel → exposure_level)
+      `tabs.dfd.element_description.${path.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)}.label`,
     ];
     const key = keys.find((k) => i18n?.exists?.(k, { ns: "dfd" }));
     return key ? String(t(key)) : words(path);
   };
-  return (row: RowResult): string[] =>
-    row.unknown.map((id) => {
-      const fields = row.unsetFields?.[id] ?? [];
-      return fields.length > 0 ? `${nameOf(id)} (${fields.map((f) => label(f, id)).join(", ")})` : nameOf(id);
-    });
+  const typeName = (type: string) => String(t(`dfdValidation.elementTypes.${type}`, { defaultValue: type }));
+  const label = (path: string, id: string): string => {
+    const type = typeOf?.(id);
+    return labelOf(path, type ? [type] : []);
+  };
+  return {
+    /** "MP-1 Controller (Password lifetime limit)" — FX-21. */
+    unknownNames:
+      (nameOf: (id: string) => string) =>
+      (row: RowResult): string[] =>
+        row.unknown.map((id) => {
+          const fields = row.unsetFields?.[id] ?? [];
+          return fields.length > 0 ? `${nameOf(id)} (${fields.map((f) => label(f, id)).join(", ")})` : nameOf(id);
+        }),
+    /** The to-do's properties in the UI language; a neighbour's with its element types (0.19 i18n follow-up). */
+    todoProperties: (properties: readonly TodoProperty[], types: readonly string[]): string =>
+      properties
+        .map((p) => (p.on ? `${labelOf(p.path, p.on)} (${p.on.map(typeName).join(" / ")})` : labelOf(p.path, types)))
+        .join(", "),
+    typeName,
+  };
 }
 
 /** FX-22: the edition's reason for a void row (EditionRow.void) → its text key. */
@@ -293,7 +315,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
 }) => {
   const t = useComplianceT();
   const { i18n } = useTranslation(NS);
-  const unknownNames = useUnknownNames(nameOf, typeOf);
+  const fieldLabels = useFieldLabels(typeOf);
+  const unknownNames = fieldLabels.unknownNames(nameOf);
   const lang = describeLanguageOf(i18n?.language);
   const [filter, setFilter] = useState<RowFilter>("open");
   const [editing, setEditing] = useState<RowResult | null>(null);
@@ -687,7 +710,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                             : item.kind === "inside"
                               ? t("todoInside", "set its inside fields (black box), model its processes and stores on a child page, or make a statement")
                               : t("todoMissing", "set")}
-                          {item.properties.length > 0 && `: ${item.properties.join(", ")}`}
+                          {item.properties.length > 0 &&
+                            `: ${fieldLabels.todoProperties(item.properties, item.kind === "inside" ? ["Multiprocess"] : [typeOf?.(element.elementId)].filter((x): x is string => !!x))}`}
                         </Typography>
                         {item.plannedClosed && (
                           <Chip size="small" color="info" variant="outlined" sx={{ ml: 1 }} label={t("todoPlanned", "closed by planned mitigations")} />
@@ -705,7 +729,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       <li key={item.label}>
                         <Typography variant="body2" component="span">
                           {requirementLink(item.label)}
-                          {` — ${t("todoOnOne", "on one {{types}}", { types: item.elementTypes.join(" / ") })}: ${item.properties.join(", ")}`}
+                          {` — ${t("todoOnOne", "on one {{types}}", { types: item.elementTypes.map(fieldLabels.typeName).join(" / ") })}: ${fieldLabels.todoProperties(item.properties, item.elementTypes)}`}
                         </Typography>
                         {item.plannedClosed && (
                           <Chip size="small" color="info" variant="outlined" sx={{ ml: 1 }} label={t("todoPlanned", "closed by planned mitigations")} />
