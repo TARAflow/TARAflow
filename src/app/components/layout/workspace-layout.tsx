@@ -253,6 +253,7 @@ export const WorkspaceLayout: React.FC = () => {
     dfdGraphRef: dfdData.dfdGraphRef,
     dfdReference: dfdData.dfdReference,
     excludedElementIds: dfdData.componentExcluded,
+    componentFindings: dfdData.componentDfdFindings,
     assetDataRef: assetData.assetDataRef,
     verificationStatus: overview.verificationStatus,
     t,

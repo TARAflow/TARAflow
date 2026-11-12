@@ -109,4 +109,31 @@ describe("phase indicators", () => {
     expect(counts[PhaseId.Risk]).toEqual({ errors: 0, warnings: 1 });
     expect(details[PhaseId.Risk]).toEqual(["1 risk(s) to reduce have no mitigation (SHE-T-1)"]);
   });
+
+  it("the imported components' findings count on the DFD phase and keep it from complete (6c)", () => {
+    const base = { phaseStatus: stored, info, dfdValidation: { errors: [], warnings: [] }, dfdStatus: "complete" as const, t };
+    const warn = phaseIndicators({ ...base, componentFindings: { errors: [], warnings: [finding("components.findings.CMP_AOU_OPEN")] } });
+    expect(warn.counts[PhaseId.DFD]).toEqual({ errors: 0, warnings: 1 });
+    expect(warn.status[PhaseId.DFD]).toBe("in-progress");
+    expect(warn.details[PhaseId.DFD]).toEqual(["components.findings.CMP_AOU_OPEN"]);
+    const err = phaseIndicators({ ...base, componentFindings: { errors: [finding("components.findings.CMP_AOU_VIOLATED")], warnings: [] } });
+    expect(err.status[PhaseId.DFD]).toBe("incomplete");
+    expect(phaseIndicators(base).status[PhaseId.DFD]).toBe("complete");
+  });
+
+  it("a source reference with credentials is a warning on General, the URL shown without them (6c)", () => {
+    const { counts, details } = phaseIndicators({
+      phaseStatus: stored,
+      info,
+      dfdValidation: null,
+      sourceBindings: [{ repoUrl: "https://me:ghp_token@github.com/org/fw.git" }, { repoUrl: "https://github.com/org/ok.git" }],
+      t,
+    });
+    expect(counts[PhaseId.General]).toEqual({ errors: 0, warnings: 1 });
+    expect(details[PhaseId.General]).toEqual([
+      "Source reference https://github.com/org/fw.git carries credentials in its URL — clean it (Overview → Sources) and revoke the token at the provider",
+    ]);
+    expect(JSON.stringify(details)).not.toContain("ghp_token");
+  });
 });
+

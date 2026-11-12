@@ -89,6 +89,7 @@
     },
     "details": {
       "missing": "Fehlt: {{fields}}",
+      "credentialsInUrl": "Quell-Referenz {{url}} enthält Zugangsdaten in der URL — bereinigen (Übersicht → Quellen) und das Token beim Anbieter zurückziehen",
       "more": "… {{count}} weitere",
       "field": {
         "name": "Name",

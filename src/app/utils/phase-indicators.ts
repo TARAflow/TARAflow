@@ -21,6 +21,7 @@ import { missingGeneralFields, type GeneralField } from "features/overview";
 import type { ProjectInfoData } from "features/overview";
 import { translateFinding, type ValidationFinding } from "features/dfd";
 import { PhaseId } from "../models/phase-types";
+import { hasUrlCredentials, withoutUrlCredentials } from "shared/utils/url-credentials";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -38,6 +39,14 @@ export interface PhaseIndicatorInput {
   dfdValidation: { errors: readonly ValidationFinding[]; warnings: readonly ValidationFinding[] } | null;
   /** The DFD phase status that validation stands for (dfdService.phaseStatusOf). */
   dfdStatus?: PhaseStatus;
+  /**
+   * Findings of imported components (multi-project TARA, 6c): shown in the
+   * DFD tab's panel, so counted on the DFD phase too — errors make it
+   * incomplete, warnings keep it from complete.
+   */
+  componentFindings?: { errors: readonly ValidationFinding[]; warnings: readonly ValidationFinding[] } | null;
+  /** The project's source references (Overview → Sources): one with credentials in its URL is a warning (6c). */
+  sourceBindings?: readonly { repoUrl: string }[];
   /** The Hazard tab's validation (safety-relevant projects with hazards), translated (hazardFindingLines, FX-1). */
   hazardValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   /** The Risk tab's validation of the current state, translated (riskFindingLines, FX-4). */
@@ -97,9 +106,20 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
   const verificationOpen = !!input.verification && input.verification.kind !== "verified";
   const verificationFailed = input.verification?.kind === "failed";
   if (verificationOpen) general.push(input.verification!.text);
+  // A source reference with credentials in its URL (review of patch 73): the
+  // token stays in the git history — clean the URL and revoke it.
+  const withCredentials = (input.sourceBindings ?? []).filter((b) => hasUrlCredentials(b.repoUrl));
+  for (const b of withCredentials) {
+    general.push(
+      t("phases.details.credentialsInUrl", {
+        url: withoutUrlCredentials(b.repoUrl),
+        defaultValue: "Source reference {{url}} carries credentials in its URL — clean it (Overview → Sources) and revoke the token at the provider",
+      }),
+    );
+  }
   counts[PhaseId.General] = {
     errors: verificationFailed ? 1 : 0,
-    warnings: missing.length + (verificationOpen && !verificationFailed ? 1 : 0),
+    warnings: missing.length + (verificationOpen && !verificationFailed ? 1 : 0) + withCredentials.length,
   };
   if (general.length > 0) details[PhaseId.General] = general;
 
@@ -123,18 +143,21 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
     if (lines.length > 0) details[PhaseId.Hazard] = capped(lines, t);
   }
 
-  // DFD: the current validation, errors first.
+  // DFD: the current validation and the imported components' findings (6c), errors first.
   let status = input.phaseStatus;
-  if (input.dfdValidation) {
-    counts[PhaseId.DFD] = {
-      errors: input.dfdValidation.errors.length,
-      warnings: input.dfdValidation.warnings.length,
-    };
-    const lines = [...input.dfdValidation.errors, ...input.dfdValidation.warnings].map((f) =>
-      translateFinding(t, f),
-    );
+  const cmpErrors = input.componentFindings?.errors ?? [];
+  const cmpWarnings = input.componentFindings?.warnings ?? [];
+  if (input.dfdValidation || cmpErrors.length + cmpWarnings.length > 0) {
+    const errors = [...(input.dfdValidation?.errors ?? []), ...cmpErrors];
+    const warnings = [...(input.dfdValidation?.warnings ?? []), ...cmpWarnings];
+    counts[PhaseId.DFD] = { errors: errors.length, warnings: warnings.length };
+    const lines = [...errors, ...warnings].map((f) => translateFinding(t, f));
     if (lines.length > 0) details[PhaseId.DFD] = capped(lines, t);
-    if (input.dfdStatus) status = { ...status, [PhaseId.DFD]: input.dfdStatus };
+    let dfdStatus = input.dfdValidation ? input.dfdStatus : undefined;
+    // the component findings keep the DFD from complete / make it incomplete
+    if (dfdStatus && cmpErrors.length > 0) dfdStatus = "incomplete";
+    else if (dfdStatus === "complete" && cmpWarnings.length > 0) dfdStatus = "in-progress";
+    if (dfdStatus) status = { ...status, [PhaseId.DFD]: dfdStatus };
   }
 
   // Threats: generation drift (not a validation finding).

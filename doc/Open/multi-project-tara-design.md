@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patches 74–77), 6a-2 done (patches 78, 79), 6a-3 done (patches 80, 81), 6b done (patch 82), 6c next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patches 74–77), 6a-2 done (patches 78, 79), 6a-3 done (patches 80, 81), 6b done (patches 82, 83), 6c done (patch 84), 6d next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1004,6 +1004,13 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 84 done (2026-11-12, phase 6c):* **findings visible.** The imported components' findings
+(shown in the DFD tab's panel) count on the DFD phase too — badge, Overview progress, tooltip lines;
+their errors make the DFD phase "incomplete", their warnings keep it from "complete" (before, a
+machine with an assumption of use not fulfilled showed a green DFD phase). A source reference with
+credentials in its URL is a warning on the General phase, its line naming the URL without them
+("… clean it and revoke the token at the provider") — visible without opening the Overview's Sources
+(review of patch 73).
 *Patch 83 done (2026-11-12, review of 82):* the error class is guarded: embedded snapshots are
 deep-frozen in development builds and tests — after loading (`parseAndRepair`), after an import and
 after an update (`freezeComponentSnapshots`). A write into a snapshot throws at once, with the stack of

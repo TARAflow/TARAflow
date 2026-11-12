@@ -9,7 +9,7 @@ import type { TFunction } from "i18next";
 import { EMPTY_PROJECT_TAGS, type AssetDataReference, type DFDReference } from "shared";
 import { verificationStatusText } from "features/overview";
 import { hazardValidator, hazardFindingLines } from "features/hazards";
-import { dfdService, type DFDGraphAnalysisContext } from "features/dfd";
+import { dfdService, type DFDGraphAnalysisContext, type ValidationFinding } from "features/dfd";
 import { projectGenerationDrift, NO_DRIFT, type ThreatProjectData } from "features/threats";
 import { riskFindingLines, riskFindings } from "features/risks";
 import { useAuditHints } from "features/audit";
@@ -27,6 +27,8 @@ export interface PhaseIndicatorsInput {
   dfdReference: DFDReference | null;
   /** Parts of imported components — no generated threats (patch 12). */
   excludedElementIds?: ReadonlySet<string>;
+  /** Findings of imported components — counted on the DFD phase (6c). */
+  componentFindings?: { errors: readonly ValidationFinding[]; warnings: readonly ValidationFinding[] } | null;
   assetDataRef: AssetDataReference | undefined;
   verificationStatus: ReturnType<typeof verificationStatus> | undefined;
   t: TFunction;
@@ -40,6 +42,7 @@ export function usePhaseIndicators({
   dfdGraphRef,
   dfdReference,
   excludedElementIds,
+  componentFindings,
   assetDataRef,
   verificationStatus: verification,
   t,
@@ -120,6 +123,8 @@ export function usePhaseIndicators({
             info: activeProject.info,
             dfdValidation: dfdSavedValidation,
             dfdStatus: dfdSavedValidation ? dfdService.phaseStatusOf(dfdSavedValidation) : undefined,
+            componentFindings: componentFindings ?? null,
+            sourceBindings: activeProject.sourceBindings ?? [],
             // The Hazard tab's validation, only where the phase is shown.
             hazardValidation:
               activeProject.info?.safetyRelevant && activeProject.hazards?.hazards.length
@@ -141,7 +146,7 @@ export function usePhaseIndicators({
             t,
           })
         : null,
-    [activeProject, dfdSavedValidation, threatDriftCounts, assetDataRef, verification, t],
+    [activeProject, dfdSavedValidation, threatDriftCounts, assetDataRef, verification, componentFindings, t],
   );
 
   return { threatDriftCounts, auditHintLines, indicators };
