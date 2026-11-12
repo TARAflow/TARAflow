@@ -160,6 +160,8 @@ export const useDocumentGeneration = ({
     };
 
     const threats = getThreatsCount();
+    const imported = (method: "per-element" | "per-interaction") =>
+      (project.computed.importedThreats ?? []).some((g) => g.method === method && g.threats.length > 0);
     const risks = getRisksCount();
 
     const map: Record<DocChapterId, boolean> = {
@@ -179,10 +181,12 @@ export const useDocumentGeneration = ({
       ),
       // A method the preset switches off has no chapter, even with stored
       // threats (ISO/SAE 21434: per-interaction) — same rule as the report.
+      // own threats or those of imported components (6a-1)
       "threats-per-element":
-        threats.perElement > 0 && !isStrideMethodDisabled(project.info?.tags, "per-element"),
+        (threats.perElement > 0 || imported("per-element")) && !isStrideMethodDisabled(project.info?.tags, "per-element"),
       "threats-per-interaction":
-        threats.perInteraction > 0 && !isStrideMethodDisabled(project.info?.tags, "per-interaction"),
+        (threats.perInteraction > 0 || imported("per-interaction")) &&
+        !isStrideMethodDisabled(project.info?.tags, "per-interaction"),
       "threats-attack-path": (project.risks?.risks ?? []).some(
         (r: any) =>
           r.sourceStrideMethod === "attack-path" && r.moscowPriority !== "wont",
@@ -212,7 +216,10 @@ export const useDocumentGeneration = ({
       // Methodology chapter (ISO/SAE 21434 conformance plan 0d) — only for
       // iso-21434 projects, from the record the app layer derived.
       methodology: project.computed.methodology?.presetId === "iso-21434",
-      "attack-trees": (project.attackTree?.trees?.length ?? 0) > 0,
+      "attack-trees":
+        (project.attackTree?.trees?.length ?? 0) > 0 || (project.computed.importedAttackTrees?.length ?? 0) > 0,
+      // The imported components (6a-2).
+      "imported-components": (project.computed.importedComponents?.length ?? 0) > 0,
       // Item definition (WP-09-01, plan A-5) — once it holds something.
       "item-definition": hasItemDefinitionContent(project.itemDefinition),
       // Goals, claims, verification (plan Phase 4) — once there is one.

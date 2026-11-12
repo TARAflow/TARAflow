@@ -35,6 +35,7 @@ export type DocChapterId =
   | "methodology"
   | "system-overview"
   | "item-definition"
+  | "imported-components"
   | "dfd"
   | "dfd-descriptions"
   | "assets"
@@ -127,6 +128,7 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     de: "Anforderungsmatrix",
   },
   "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
+  "imported-components": { en: "Imported Components", de: "Importierte Komponenten" },
   appendix: { en: "Appendix", de: "Anhang" },
 };
 
@@ -137,6 +139,8 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "system-overview", enabled: true, autoHideIfEmpty: false },
   // Item definition (WP-09-01, ISO 21434 plan A-5): what is analysed.
   { id: "item-definition", enabled: true, autoHideIfEmpty: true },
+  // The imported components (multi-project TARA 6a-2): what this TARA builds on.
+  { id: "imported-components", enabled: true, autoHideIfEmpty: true },
   { id: "dfd", enabled: true, autoHideIfEmpty: true },
   { id: "dfd-descriptions", enabled: true, autoHideIfEmpty: true },
   { id: "assets", enabled: true, autoHideIfEmpty: true },
@@ -315,6 +319,35 @@ export interface DocComputedValues {
    * of opportunity per step. Absent → no imported trees.
    */
   importedAttackTrees?: DocImportedAttackTree[];
+  /**
+   * The chapter "Imported components" (6a-2): per component its overview,
+   * origin, methodology match and instances (EE mapping, assumptions, the
+   * measures that do not count here). Absent → no imports.
+   */
+  importedComponents?: DocImportedComponent[];
+}
+
+/** One imported component as the chapter "Imported components" shows it (6a-2). */
+export interface DocImportedComponent {
+  componentName: string;
+  version?: string;
+  description?: string;
+  responsible?: string;
+  tags: string[];
+  safetyRelevant?: boolean;
+  at: DocComponentAt;
+  origin: { repoUrl?: string; sameRepo?: boolean; path?: string; branch?: string; importedAt: string; lastUpdateAt?: string };
+  methodologyMatches?: boolean;
+  sourceBindings: { repoUrl: string; refType: string; refLabel: string; commit?: string }[];
+  instances: {
+    prefix: string;
+    quantity: number;
+    /** Component EE → the machine element it is mapped to. */
+    eeMapping: { componentEe: string; machineElement: string }[];
+    assumptions: { displayId: string; text: string; status: string; rationale?: string }[];
+    /** The component's measures that do not count fully in this instance. */
+    measures: { label: string; effectiveness: "not_effective" | "unclear"; reasons: { kind: string; ref?: string }[] }[];
+  }[];
 }
 
 /** One rated path of an imported tree in one instance. */

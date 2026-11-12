@@ -7,7 +7,8 @@
 
 import { describe, expect, it } from "vitest";
 import type { Project } from "app/models/project-types";
-import { docImportedRiskNotes, docImportedThreats } from "app/services/doc-imported";
+import { docImportedComponents, docImportedRiskNotes, docImportedThreats } from "app/services/doc-imported";
+import { importedComponentsReportSections } from "features/documentation/utils/imported-report";
 import { MarkdownGenerator } from "features/documentation/utils/generators/markdown-generator";
 import { AsciidocGenerator } from "features/documentation/utils/generators/asciidoc-generator";
 import { PdfMakeConverter } from "features/documentation/utils/generators/pdfmake-converter";
@@ -146,6 +147,71 @@ describe("the PDF has the same (review 2026-11-11: it had none of it)", () => {
     // a line break, not a literal <br>
     expect(all.some((x) => /\nSD1 · Smoke Detector @ a; from the component: skill_level$/.test(x))).toBe(true);
     expect(all.some((x) => x.includes("<br>"))).toBe(false);
+  });
+});
+
+describe("the chapter \"Imported components\" (6a-2)", () => {
+  const prepared = () => {
+    const p = twoInstances();
+    // SD2: the assumption not fulfilled, with a rationale
+    p.components!.instances[1].assumptions = [{ instanceId: "i2", assumptionId: "a1", status: "not_fulfilled", rationale: "The controller does not check frames" }];
+    p.components!.imports[0] = { ...p.components!.imports[0], source: { ...p.components!.imports[0].source, repoUrl: "https://git.example.com/sd.git", path: "sd.tara.json", tag: "sd/v1" } };
+    return p;
+  };
+
+  it("per component: origin, methodology, instances with EE mapping, assumptions, measures that do not count", () => {
+    const [c] = docImportedComponents(prepared());
+    expect(c).toMatchObject({
+      componentName: "Smoke Detector",
+      at: { tag: "sd/v1", commit: "a" },
+      origin: { repoUrl: "https://git.example.com/sd.git", path: "sd.tara.json", importedAt: "t" },
+      methodologyMatches: true,
+    });
+    const [sd1, sd2] = c.instances;
+    expect(sd1).toMatchObject({ prefix: "SD1", quantity: 1 });
+    // the EE mapped to the machine's PLC; the EEs taken over as new elements of this TARA
+    expect(sd1.eeMapping).toContainEqual(expect.objectContaining({ machineElement: "EE-1 PLC" }));
+    expect(sd1.assumptions).toEqual([{ displayId: "ASM-01", text: "Frames are checked by the controller", status: "open" }]);
+    expect(sd2.assumptions[0]).toMatchObject({ status: "not_fulfilled", rationale: "The controller does not check frames" });
+    // M-C-001 relies on ASM-01: unclear in SD1 (open, not implemented yet), not effective in SD2
+    const m1 = sd1.measures.find((m) => m.label.startsWith("M-C-001"))!;
+    expect(m1.effectiveness).toBe("unclear");
+    expect(m1.reasons.map((r) => r.kind)).toEqual(expect.arrayContaining(["pending", "aou_open"]));
+    expect(sd2.measures.find((m) => m.label.startsWith("M-C-001"))!.effectiveness).toBe("not_effective");
+    // M-S-001 is implemented and relies on nothing: it counts, not listed
+    expect(sd1.measures.some((m) => m.label.startsWith("M-S-001"))).toBe(false);
+  });
+
+  it("the chapter in Markdown: the credit rule, a section per component, a sub-section per instance", () => {
+    const p = prepared();
+    const gen = new MarkdownGenerator(docProject(p, { importedComponents: docImportedComponents(p) }), { language: "en" } as never, t);
+    const c = (gen as Any).generateImportedComponents("Imported Components");
+    expect(c.hasContent).toBe(true);
+    expect(c.content).toContain("the residual is not credited");
+    expect(c.content).toContain("Smoke Detector @ sd/v1");
+    expect(c.content).toContain("https://git.example.com/sd.git");
+    expect(c.content).toContain("SD2 ×3");
+    expect(c.content).toContain("not fulfilled — The controller does not check frames");
+    expect(c.content).toMatch(/Not effective here.*M-C-001/);
+    expect(c.content).toContain("ASM-01 not fulfilled");
+  });
+
+  it("no imports: no chapter", () => {
+    const gen = new MarkdownGenerator(docProject(twoInstances(), { importedComponents: undefined }), { language: "en" } as never, t);
+    expect((gen as Any).generateImportedComponents("Imported Components").hasContent).toBe(false);
+    expect(importedComponentsReportSections(undefined, t)).toEqual([]);
+  });
+
+  it("the PDF has the chapter too", () => {
+    const p = prepared();
+    const doc = { ...docProject(p, { importedComponents: docImportedComponents(p) }), info: { name: "Panel", tags: { domain: [], platform: [], regulation: [], custom: [] } }, assets: { assets: [] } };
+    const config = { ...createDefaultDocData().configuration, language: "en", chapters: DEFAULT_CHAPTER_CONFIG.filter((c) => c.id === "imported-components") };
+    const all: string[] = [];
+    const walk = (n: Any) => (typeof n === "string" ? all.push(n) : Array.isArray(n) ? n.forEach(walk) : n && typeof n === "object" ? Object.values(n).forEach(walk) : undefined);
+    walk(new PdfMakeConverter(doc as never, config as never, t).createDocumentDefinition().content);
+    expect(all).toContain("Imported Components");
+    expect(all.some((x) => x.includes("the residual is not credited"))).toBe(true);
+    expect(all.some((x) => x.includes("Smoke Detector @ sd/v1"))).toBe(true);
   });
 });
 

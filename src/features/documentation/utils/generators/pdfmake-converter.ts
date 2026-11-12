@@ -26,6 +26,8 @@ import {
   type AttackTreeOutlineItem,
 } from "../attack-tree-report";
 import {
+  importedComponentsIntro,
+  importedComponentsReportSections,
   importedRiskNote,
   importedThreatDifferenceLines,
   importedThreatGroupSummary,
@@ -476,6 +478,12 @@ export class PdfMakeConverter {
         return this.createSRSLAssessment();
       case "attack-trees":
         return this.createAttackTrees();
+      case "imported-components":
+        return this.sectionedChapter(
+          "imported-components",
+          importedComponentsIntro(this.t).join("\n\n"),
+          importedComponentsReportSections(this.project.computed.importedComponents, this.t),
+        );
       case "goals-claims":
         return this.createGoalsClaims();
       case "compliance-matrix":

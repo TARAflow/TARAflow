@@ -17,12 +17,17 @@
 import type {
   DocComponentAt,
   DocImportedAttackTree,
+  DocImportedComponent,
   DocImportedRiskNote,
   DocImportedThreat,
   DocImportedThreatGroup,
 } from "../../features/documentation/models/doc-types";
 import { attackPathDisplayId } from "features/attacktree/services/attacktree-threat-generator";
 import { componentAttackPathGroups, componentAttackTrees } from "../utils/component-attack-trees";
+import { componentTreatments } from "../utils/component-treatments";
+import { componentOverviewItems } from "./component-import/component-overview";
+import { instanceAssumptions } from "./component-import/assumption-status";
+import { flattenProjectTags } from "shared";
 import type { Project } from "../models/project-types";
 import type { ComponentSource } from "shared";
 import { componentFactorPrefills, componentThreatGroups } from "../utils/component-threats";
@@ -172,5 +177,77 @@ export function docImportedAttackTrees(project: Pick<Project, "components" | "at
         };
       }),
     }));
+  });
+}
+
+/**
+ * The chapter "Imported components" (6a-2): per component what the Overview's
+ * tab shows (patch 70) plus, per instance, the EE mapping, every assumption
+ * with this TARA's decision, and the component's measures that do not count
+ * fully here (not effective / unclear, with the reasons — I7).
+ */
+export function docImportedComponents(project: Pick<Project, "components" | "risks" | "dfd">): DocImportedComponent[] {
+  const components = project.components;
+  if (!components) return [];
+  const machineNames = new Map(((project.dfd?.elements ?? []) as { id: string; displayId?: string; name?: string }[]).map((e) => [e.id, `${e.displayId ? `${e.displayId} ` : ""}${e.name ?? e.id}`]));
+  const treatments = [...componentTreatments({ components, risks: project.risks ?? null }).values()];
+  const overview = componentOverviewItems({ components, risks: project.risks ?? null });
+  return components.imports.flatMap((imported): DocImportedComponent[] => {
+    const item = overview.find((o) => o.importId === imported.id);
+    if (!item) return [];
+    const snapshotEes = new Map(((imported.snapshot as { dfd?: { elements?: { id: string; name?: string }[] } | null }).dfd?.elements ?? []).map((e) => [e.id, e.name ?? e.id]));
+    const instances = components.instances.filter((i) => i.importId === imported.id);
+    return [
+      {
+        componentName: item.name,
+        ...(item.version ? { version: item.version } : {}),
+        ...(item.description ? { description: item.description } : {}),
+        ...(item.responsible ? { responsible: item.responsible } : {}),
+        tags: item.tags ? flattenProjectTags(item.tags) : [],
+        ...(item.safetyRelevant ? { safetyRelevant: true } : {}),
+        at: atOf(imported.source),
+        origin: {
+          ...(item.origin.repoUrl ? { repoUrl: item.origin.repoUrl } : {}),
+          ...(item.origin.sameRepo ? { sameRepo: true } : {}),
+          ...(item.origin.path ? { path: item.origin.path } : {}),
+          ...(item.origin.branch ? { branch: item.origin.branch } : {}),
+          importedAt: item.origin.importedAt,
+          ...(item.origin.lastUpdateAt ? { lastUpdateAt: item.origin.lastUpdateAt } : {}),
+        },
+        ...(item.methodologyMatches !== undefined ? { methodologyMatches: item.methodologyMatches } : {}),
+        sourceBindings: item.sourceBindings,
+        instances: instances.map((instance) => {
+          // the component's measures that do not count fully here, once each
+          const measures = new Map<string, DocImportedComponent["instances"][number]["measures"][number]>();
+          for (const tr of treatments.filter((x) => x.instanceId === instance.id)) {
+            for (const m of tr.measures) {
+              if (!m.effectiveness || m.effectiveness === "effective") continue;
+              const label = m.id ? `${m.id} — ${m.text}` : m.text;
+              if (measures.has(label)) continue;
+              measures.set(label, {
+                label,
+                effectiveness: m.effectiveness,
+                reasons: (m.reasons ?? []).map((r) => ({ kind: r.kind, ...(r.assumption ?? r.rationale ? { ref: r.assumption ?? r.rationale } : {}) })),
+              });
+            }
+          }
+          return {
+            prefix: instance.prefix,
+            quantity: quantityOf(instance),
+            eeMapping: instance.eeMapping.map((m) => ({
+              componentEe: snapshotEes.get(m.componentEeId) ?? m.componentEeId,
+              machineElement: machineNames.get(m.machineTfId) ?? m.machineTfId,
+            })),
+            assumptions: instanceAssumptions(instance, imported).map((a) => ({
+              displayId: a.displayId,
+              text: a.text,
+              status: a.status,
+              ...(a.rationale ? { rationale: a.rationale } : {}),
+            })),
+            measures: [...measures.values()],
+          };
+        }),
+      },
+    ];
   });
 }

@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patches 74–76), 6a-2 next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patches 74–77), 6a-2 done (patch 78), 6a-3 next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1004,6 +1004,20 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 78 done (2026-11-12, phase 6a-2):* report chapter **"Imported components"** (after the item
+definition; only with imports). The introduction says what the import means and states the credit
+rule (I7): a component's measure counts only while the component implemented it and every assumption
+it relies on is fulfilled in the instance with this TARA's evidence implemented — otherwise "unclear"
+or "not effective", and a risk relying on it is reported with its value before treatment. One
+section per component: description, version, responsible, tags, safety relevance, repository / file /
+branch / tag / commit, imported on, last update, methodology match, source references. One
+sub-section per instance: quantity, the EE mapping (component EE → machine element), the measures
+"not effective here" / "unclear here" with their reasons (the same cause texts as the "not credited"
+note), and the assumptions of use with this TARA's status and rationale. Built in the app layer
+(`docImportedComponents`, on the Overview's view model and `componentTreatments`), one helper for all
+formats (`importedComponentsReportSections`), the PDF included. The Documentation tab's chapter list
+offers the threat chapters and the attack-tree chapter also when only imported content exists (the
+same gap as in 74, in the tab).
 *Patch 77 done (2026-11-12, review of 76):* a cell's steps break the line in every format like the
 other multi-line cells of the report — `<br>` in Markdown and HTML, a hard break in AsciiDoc, `\n` in
 the PDF; StrictDoc's list-table cells hold one line ("; "). The AsciiDoc path table had fixed five

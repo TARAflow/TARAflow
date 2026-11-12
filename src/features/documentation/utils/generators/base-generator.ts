@@ -54,6 +54,8 @@ import {
 } from "../../../../shared/models/property-visibility";
 import { impactAggregationSentence } from "../impact-aggregation-text";
 import {
+  importedComponentsIntro,
+  importedComponentsReportSections,
   importedRiskNote,
   importedThreatDifferenceLines,
   importedThreatGroupSummary,
@@ -439,6 +441,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateItemDefinition(title);
       case "goals-claims":
         return this.generateGoalsClaims(title);
+      case "imported-components":
+        return this.generateImportedComponents(title);
       case "compliance-matrix":
         return this.generateComplianceMatrix(title);
       case "dfd":
@@ -1586,6 +1590,20 @@ export abstract class BaseDocumentGenerator {
     }
     const body = sections.map((s) => this.formatReportSection(s)).join("");
     const content = this.formatSectionedChapter(chapterId, title, goalsClaimsIntro(this.ctx.t), body);
+    return { id: chapterId, title, content, hasContent: content !== "" };
+  }
+
+  // ==================== IMPORTED COMPONENTS (6a-2) ====================
+
+  /** One section per imported component, one sub-section per instance; the credit rule in the intro. */
+  protected generateImportedComponents(title: string): ChapterContent {
+    const chapterId: DocChapterId = "imported-components";
+    const sections = importedComponentsReportSections(this.ctx.project.computed?.importedComponents, this.ctx.t);
+    if (sections.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+    const body = sections.map((s) => this.formatReportSection(s)).join("");
+    const content = this.formatSectionedChapter(chapterId, title, importedComponentsIntro(this.ctx.t).join("\n\n"), body);
     return { id: chapterId, title, content, hasContent: content !== "" };
   }
 

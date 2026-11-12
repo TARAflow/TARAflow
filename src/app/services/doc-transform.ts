@@ -14,7 +14,7 @@ import type { StrideCategory } from "../../shared";
 import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../shared";
 import { buildMethodologyRecord } from "./methodology-record";
 import { docResidualView } from "./doc-residual";
-import { docImportedAttackTrees, docImportedRiskNotes, docImportedThreats } from "./doc-imported";
+import { docImportedAttackTrees, docImportedComponents, docImportedRiskNotes, docImportedThreats } from "./doc-imported";
 
 // ==================== LABEL CALCULATION HELPERS ====================
 
@@ -157,6 +157,7 @@ function computeDocValues(
   const importedThreats = docImportedThreats(project);
   const importedRiskNotes = docImportedRiskNotes(project);
   const importedAttackTrees = docImportedAttackTrees(project);
+  const importedComponents = docImportedComponents(project);
   const imports = (method: "per-element" | "per-interaction") =>
     importedThreats.some((g) => g.method === method && g.threats.length > 0);
 
@@ -194,6 +195,7 @@ function computeDocValues(
     ...(importedThreats.length > 0 ? { importedThreats } : {}),
     ...(importedRiskNotes.size > 0 ? { importedRiskNotes } : {}),
     ...(importedAttackTrees.length > 0 ? { importedAttackTrees } : {}),
+    ...(importedComponents.length > 0 ? { importedComponents } : {}),
   };
 }
 

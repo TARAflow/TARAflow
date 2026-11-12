@@ -4,9 +4,12 @@
 // — so the PDF cannot lag behind (review 2026-11-11: it did). In the
 // document language through the translate function.
 
+import type { ReportSection } from "./report-section";
+import { residualCauseText } from "./residual-note";
 import type {
   DocComponentAt,
   DocComputedValues,
+  DocImportedComponent,
   DocImportedThreat,
   DocImportedThreatGroup,
 } from "../models/doc-types";
@@ -85,3 +88,89 @@ export function importedRiskNote(
   if (note.quantity > 1) parts.push(fill(t("tabs.doc.imported.quantity", "×{{n}} identical units"), { n: String(note.quantity) }));
   return parts.join("; ");
 }
+
+// ==================== CHAPTER "IMPORTED COMPONENTS" (6a-2) ====================
+
+/**
+ * The chapter's introduction, with the TARAflow rule by which a component's
+ * measure — and with it a residual risk — does not count (I7): a reader of
+ * the report does not know it otherwise (review 2026-11-11).
+ */
+export function importedComponentsIntro(t: TranslateFn): string[] {
+  return [
+    t(
+      "tabs.doc.imported.chapterIntro",
+      "This TARA imports the analyses of the components below instead of analysing them again: their DFD, threats, attack trees, measures, assets and assumptions of use, pinned to a commit of the component's repository. This TARA rates what depends on its context — impact, context factors, the window of opportunity of attack paths, and the assumptions of use per instance.",
+    ),
+    t(
+      "tabs.doc.imported.creditRule",
+      "A measure of a component counts in this TARA only while the component has implemented it and every assumption of use it relies on is fulfilled in the instance, with this TARA's evidence for it implemented. Otherwise the measure is \"unclear\" (not implemented yet, an assumption still open, evidence not implemented yet) or \"not effective\" (an assumption not fulfilled or invalid in the component, or marked not effective here). A risk whose residual relies on such a measure is reported with its value before treatment: the residual is not credited.",
+    ),
+  ];
+}
+
+const date = (iso: string) => (iso && !Number.isNaN(Date.parse(iso)) ? iso.slice(0, 10) : iso);
+
+/** One section per component; one sub-section per instance. */
+export function importedComponentsReportSections(components: readonly DocImportedComponent[] | undefined, t: TranslateFn): ReportSection[] {
+  const T = (key: string, d: string) => t(`tabs.doc.imported.${key}`, d);
+  return (components ?? []).map((c) => {
+    const facts: [string, string][] = [];
+    const add = (label: string, value: string | undefined) => {
+      if (value) facts.push([label, value]);
+    };
+    add(T("version", "Version"), c.version);
+    add(T("responsible", "Responsible"), c.responsible);
+    add(T("tags", "Tags"), c.tags.join(", "));
+    add(T("safety", "Safety-relevant"), c.safetyRelevant ? T("yes", "yes") : undefined);
+    add(T("repository", "Repository"), c.origin.repoUrl ?? (c.origin.sameRepo ? T("sameRepo", "the repository of this TARA") : undefined));
+    add(T("file", "File"), c.origin.path);
+    add(T("ref", "Branch / tag"), [c.origin.branch, c.at.tag].filter(Boolean).join(" · ") || undefined);
+    add(T("commit", "Commit"), c.at.unpinned ? T("unpinned", "not pinned") : c.at.commit);
+    add(T("importedAt", "Imported on"), date(c.origin.importedAt));
+    add(T("lastUpdate", "Last update"), c.origin.lastUpdateAt ? date(c.origin.lastUpdateAt) : undefined);
+    add(
+      T("methodology", "Methodology"),
+      c.methodologyMatches === undefined
+        ? undefined
+        : c.methodologyMatches
+          ? T("methodologySame", "same likelihood method and factor scales as this TARA — the component's factor values are taken over")
+          : T("methodologyDiffers", "differs from this TARA — the component's factor values are not taken over"),
+    );
+    for (const b of c.sourceBindings) {
+      add(T("source", "Source"), `${b.repoUrl} (${b.refType} ${b.refLabel}${b.commit ? ` · ${b.commit.slice(0, 8)}` : ""})`);
+    }
+    const status = (s: string) => T(`aou.${s}`, s.replace(/_/g, " "));
+    const children: ReportSection[] = c.instances.map((i) => {
+      const iFacts: [string, string][] = [];
+      if (i.quantity > 1) iFacts.push([T("quantityLabel", "Quantity"), fill(T("quantity", "×{{n}} identical units"), { n: String(i.quantity) })]);
+      for (const m of i.eeMapping) iFacts.push([T("eeMapping", "External entity"), `${m.componentEe} → ${m.machineElement}`]);
+      for (const m of i.measures) {
+        iFacts.push([
+          m.effectiveness === "not_effective" ? T("notEffective", "Not effective here") : T("unclear", "Unclear here"),
+          `${m.label}${m.reasons.length > 0 ? ` — ${m.reasons.map((r) => residualCauseText(r, t)).join("; ")}` : ""}`,
+        ]);
+      }
+      return {
+        title: i.quantity > 1 ? `${i.prefix} ×${i.quantity}` : i.prefix,
+        paragraphs: [],
+        facts: iFacts,
+        ...(i.assumptions.length > 0
+          ? {
+              table: {
+                headers: [T("colAssumption", "Assumption of use"), T("colText", "Text"), T("colStatus", "Status in this TARA")],
+                rows: i.assumptions.map((a) => [a.displayId, a.text, `${status(a.status)}${a.rationale ? ` — ${a.rationale}` : ""}`]),
+              },
+            }
+          : {}),
+      };
+    });
+    return {
+      title: componentAtLabel(c.componentName, c.at, t),
+      paragraphs: c.description ? [c.description] : [],
+      facts,
+      children,
+    };
+  });
+}
+
