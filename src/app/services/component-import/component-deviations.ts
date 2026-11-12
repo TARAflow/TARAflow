@@ -11,7 +11,7 @@ import { instanceAssetId } from "features/dfd";
 import { threatGoalFindings } from "features/assets/services/asset-threat-crosscheck";
 import type { Project } from "../../models/project-types";
 import { buildThreatGoalLinks } from "../../utils/build-threat-goal-links";
-import { componentThreatGroups, withComponentThreats } from "../../utils/component-threats";
+import { componentFactorPrefills, componentThreatGroups, withComponentThreats } from "../../utils/component-threats";
 import { componentTreatments } from "../../utils/component-treatments";
 import { chosenMachineMeasures, implementedMachineMeasures, instanceAssumptions, projectMeasureOptions } from "./assumption-status";
 
@@ -63,6 +63,8 @@ export function componentDeviations(project: Machine): Map<string, ComponentDevi
       .map((f) => `${f.assetId}|${f.goal}`),
   );
   const importsById = new Map(components.imports.map((i) => [i.id, i]));
+  // The component's intrinsic factor values a risk was prefilled with (§7.2).
+  const prefills = componentFactorPrefills({ components, risks: project.risks ?? null });
 
   for (const instance of components.instances) {
     const imported = importsById.get(instance.importId);
@@ -121,7 +123,25 @@ export function componentDeviations(project: Machine): Map<string, ComponentDevi
       });
     }
 
-    // supporting claims cited
+    // intrinsic factors of the component this TARA rated anew (review 2026-11-12)
+    for (const risk of (project.risks?.risks ?? []).filter((r) => r.threatDisplayId?.startsWith(`${prefix}:`))) {
+      const offered = new Map((prefills.get(risk.threatId) ?? []).map((f) => [f.factorId, f.value]));
+      for (const f of risk.factorRatings ?? []) {
+        const from = offered.get(f.factorId);
+        if (from === undefined || f.source !== "manual" || f.value === from) continue;
+        list.push({
+          kind: "factor_overridden",
+          prefix,
+          risk: `${risk.threatDisplayId} ${risk.threatDescription ?? ""}`.trim(),
+          factor: f.factorId,
+          from,
+          to: f.value,
+          ...(f.overrideRationale ? { rationale: f.overrideRationale } : {}),
+        });
+      }
+    }
+
+    // supporting claims cited — not a deviation, listed apart
     for (const c of instance.citedClaims ?? []) {
       const claim = (snapshot.concept?.claims ?? []).find((x) => x.id === c.claimId);
       list.push({ kind: "claim_cited", prefix, claim: claim ? `${claim.displayId} ${claim.statement}` : c.claimId, requirements: [...c.requirements] });

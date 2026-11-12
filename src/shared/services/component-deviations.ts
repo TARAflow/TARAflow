@@ -9,7 +9,12 @@
 //   - component measures marked "not effective here" (I7 (5))
 //   - assumptions of use not fulfilled in an instance, with this TARA's
 //     evidence
-//   - supporting claims of the component this TARA cites (4c)
+//   - intrinsic factors of the component this TARA rated anew (with the
+//     rationale — the component likely delivers the same rating elsewhere)
+//
+// Not a deviation, listed apart (review 2026-11-12): the supporting claims of
+// the component this TARA cites (4c) — this TARA relies on them, a change of
+// the claim affects it.
 //
 // Structured data, built by the app layer; the texts in a language through
 // `t` from that data — the report (document language) and "Copy as text" in
@@ -21,6 +26,7 @@ export type ComponentDeviation =
   | { kind: "relevance_overridden"; prefix: string; threat: string; from: string; to: string; rationale: string }
   | { kind: "measure_not_effective"; prefix: string; measure: string; rationale: string }
   | { kind: "assumption_not_fulfilled"; prefix: string; assumption: string; rationale?: string; evidence?: AssumptionEvidence }
+  | { kind: "factor_overridden"; prefix: string; risk: string; factor: string; from: number; to: number; rationale?: string }
   | { kind: "claim_cited"; prefix: string; claim: string; requirements: string[] };
 
 export type ComponentDeviationKind = ComponentDeviation["kind"];
@@ -45,8 +51,11 @@ export const DEVIATION_KINDS: readonly ComponentDeviationKind[] = [
   "measure_not_effective",
   "assumption_not_fulfilled",
   "relevance_overridden",
-  "claim_cited",
+  "factor_overridden",
 ];
+
+/** Not deviations: what this TARA relies on — a change in the component affects it. */
+export const RELIANCE_KINDS: readonly ComponentDeviationKind[] = ["claim_cited"];
 
 type TranslateFn = (key: string, defaultValue?: string) => string;
 const K = "tabs.doc.imported.deviation";
@@ -57,7 +66,8 @@ const HEADING: Record<ComponentDeviationKind, string> = {
   measure_not_effective: "Measures not effective here",
   assumption_not_fulfilled: "Assumptions of use not fulfilled",
   relevance_overridden: "Threat relevances overridden",
-  claim_cited: "Claims cited",
+  factor_overridden: "Factors rated anew by this TARA",
+  claim_cited: "Claims this TARA cites",
 };
 
 /** The heading of one group. */
@@ -92,6 +102,14 @@ export function deviationText(d: ComponentDeviation, t: TranslateFn): string {
         rationale: d.rationale ? ` — ${d.rationale}` : "",
         evidence: d.evidence ? ` (${fill(t(`${K}.evidence`, "evidence: {{evidence}}"), { evidence: evidenceText(d.evidence, t) })})` : "",
       });
+    case "factor_overridden":
+      return fill(t(`${K}.factor`, "{{risk}}: {{factor}} {{from}} → {{to}}{{rationale}}"), {
+        risk: d.risk,
+        factor: t(`risks.factors.${d.factor}.name`, d.factor),
+        from: String(d.from),
+        to: String(d.to),
+        rationale: d.rationale ? ` — ${d.rationale}` : "",
+      });
     case "claim_cited":
       return fill(t(`${K}.claim`, "{{claim}} — cited for {{requirements}}"), { claim: d.claim, requirements: d.requirements.join(", ") });
   }
@@ -99,7 +117,16 @@ export function deviationText(d: ComponentDeviation, t: TranslateFn): string {
 
 /** The deviations grouped in DEVIATION_KINDS order, each line with its instance prefix. */
 export function deviationGroups(items: readonly ComponentDeviation[], t: TranslateFn): { kind: ComponentDeviationKind; heading: string; lines: string[] }[] {
-  return DEVIATION_KINDS.flatMap((kind) => {
+  return groupsOf(DEVIATION_KINDS, items, t);
+}
+
+/** What this TARA relies on (cited claims), grouped like the deviations. */
+export function relianceGroups(items: readonly ComponentDeviation[], t: TranslateFn): { kind: ComponentDeviationKind; heading: string; lines: string[] }[] {
+  return groupsOf(RELIANCE_KINDS, items, t);
+}
+
+function groupsOf(kinds: readonly ComponentDeviationKind[], items: readonly ComponentDeviation[], t: TranslateFn) {
+  return kinds.flatMap((kind) => {
     const lines = items.filter((d) => d.kind === kind).map((d) => `${d.prefix}: ${deviationText(d, t)}`);
     return lines.length > 0 ? [{ kind, heading: deviationHeading(kind, t), lines }] : [];
   });
@@ -117,7 +144,13 @@ export function deviationsMarkdown(
   const out = [`## ${fill(t(`${K}.title`, "Deviations from {{component}}"), { component: `${component.name} @ ${component.at}` })}`, ""];
   if (component.responsible) out.push(fill(t(`${K}.contact`, "For: {{responsible}}"), { responsible: component.responsible }), "");
   const groups = deviationGroups(items, t);
-  if (groups.length === 0) out.push(t(`${K}.none`, "No deviations — this TARA uses the component as it is."));
+  if (groups.length === 0) out.push(t(`${K}.none`, "No deviations — this TARA uses the component as it is."), "");
   for (const g of groups) out.push(`### ${g.heading}`, "", ...g.lines.map((l) => `- ${l}`), "");
+  // Apart: not a deviation — what this TARA relies on (review 2026-11-12).
+  const reliance = relianceGroups(items, t);
+  if (reliance.length > 0) {
+    out.push(`## ${t(`${K}.relianceTitle`, "This TARA relies on — a change affects it")}`, "");
+    for (const g of reliance) out.push(`### ${g.heading}`, "", ...g.lines.map((l) => `- ${l}`), "");
+  }
   return out.join("\n").trimEnd() + "\n";
 }

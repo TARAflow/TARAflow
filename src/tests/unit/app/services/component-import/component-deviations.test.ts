@@ -7,7 +7,7 @@ import { componentDeviations } from "app/services/component-import/component-dev
 import { deviationsMarkdown, deviationGroups, deviationText } from "shared/services/component-deviations";
 import { instanceAssetId } from "features/dfd";
 import { componentThreatGroups } from "app/utils/component-threats";
-import { machine } from "../../../../fixtures/component-treatment-machine";
+import { component, machine, tid } from "../../../../fixtures/component-treatment-machine";
 
 const t = (k: string, d?: string) => d ?? k;
 
@@ -71,17 +71,57 @@ describe("componentDeviations (6a-3)", () => {
       "Measures not effective here",
       "Assumptions of use not fulfilled",
       "Threat relevances overridden",
-      "Claims cited",
     ]);
+    // a cited claim is no deviation: listed apart, what this TARA relies on (review 2026-11-12)
+    expect(md).toContain("## This TARA relies on — a change affects it\n\n### Claims this TARA cites\n\n- SD1: CLM-01 The integrator isolates the sensor bus — cited for iec-62443-4-2:cr-1.1");
     expect(md).toContain("- SD1: M-C-001 — Signed sensor frames — Frames are not checked here");
     expect(md).toContain("- SD1: ASM-01 Frames are checked by the controller — The PLC does not check frames (evidence: Checked with the PLC vendor)");
     expect(deviationsMarkdown({ name: "X", at: "a" }, [], t)).toContain("No deviations");
+  });
+
+  it("an intrinsic factor of the component rated anew by this TARA (review 2026-11-12)", () => {
+    const m = machine();
+    const risk = m.risks!.risks.find((r) => r.threatId === tid(component.reduceThreat))!;
+    const imported = m.components!.imports[0];
+    // the component rated skill_level 2 on this risk; the machine says 4, with its reason
+    const snapshot = structuredClone(imported.snapshot);
+    const componentRisk = snapshot.risks.find((r) => r.threatId === component.reduceThreat)!;
+    componentRisk.intrinsicFactors = [{ factorId: "skill_level", value: 2 }];
+    risk.factorRatings = [{ factorId: "skill_level", value: 4, weight: 1, source: "manual", overrideRationale: "Only experts reach the bus" }] as never;
+    const p = { ...m, components: { ...m.components!, imports: [{ ...imported, snapshot }] }, threats: null, assets: null, attackTrees: null } as Project;
+    const f = componentDeviations(p).get("imp")!.find((d) => d.kind === "factor_overridden")!;
+    expect(f).toMatchObject({ prefix: "SD1", factor: "skill_level", from: 2, to: 4, rationale: "Only experts reach the bus" });
+    expect(deviationText(f, t)).toBe(`${(f as { risk: string }).risk}: skill_level 2 → 4 — Only experts reach the bus`);
   });
 
   it("an added goal without a component threat asks for a new revision (patch 51)", () => {
     expect(deviationText({ kind: "goal_added", prefix: "SD1", asset: "SD1:DA-001 smoke", goal: "A", level: "high", revision: true }, t)).toBe(
       "A (high) added to SD1:DA-001 smoke — the component has no threat for it: request a new revision",
     );
+  });
+
+  it("the revision signal comes from the asset check: an added goal with a component threat without it, one without a threat with it (review 2026-11-12)", () => {
+    const m = machine();
+    const imported = m.components!.imports[0];
+    // P-2 of the component carries threats T, I, D, E in the instance — none of category R
+    const p2 = componentThreatGroups(m)[0].rows.find((r) => r.threat.displayId === "SD1:P2-T-1")!.threat.linkedElement!.elementId;
+    const plain = imported.snapshot.assets.find((a) => a.displayId === "DA-005")!; // no goal, no link in the component
+    const asset = {
+      ...plain,
+      id: instanceAssetId("i1", plain.id),
+      displayId: "SD1:DA-005",
+      linkedDFDElements: [{ elementId: p2, elementName: "P-2", elementType: "Process", displayId: "SD1:P-2", relationType: "creates" }],
+      securityGoals: [
+        { type: "I", level: "high", rationale: "Tampering on P-2" }, // integrity ← T: the component has a threat
+        { type: "N", level: "medium", rationale: "Who sent it" }, // non-repudiation ← R: none
+      ],
+    };
+    const p = { ...m, assets: { assets: [asset], configuration: {} } as never, threats: null, attackTrees: null } as Project;
+    const goals = componentDeviations(p).get("imp")!.filter((d) => d.kind === "goal_added") as Extract<ReturnType<typeof componentDeviations> extends Map<string, (infer D)[]> ? D : never, { kind: "goal_added" }>[];
+    expect(goals.map((g) => [g.goal, g.revision])).toEqual([
+      ["I", false],
+      ["N", true],
+    ]);
   });
 });
 

@@ -6,7 +6,7 @@
 
 import type { ReportSection } from "./report-section";
 import { residualCauseText } from "./residual-note";
-import { deviationGroups, evidenceText } from "../../../shared/services/component-deviations";
+import { deviationGroups, evidenceText, relianceGroups } from "../../../shared/services/component-deviations";
 import type {
   DocComponentAt,
   DocComputedValues,
@@ -189,6 +189,19 @@ export function importedComponentsReportSections(components: readonly DocImporte
           }
         : {}),
     });
+    // Not a deviation: what this TARA relies on — a change of it affects this TARA (review 2026-11-12).
+    const reliance = relianceGroups(c.deviations, t);
+    if (reliance.length > 0) {
+      children.push({
+        title: T("deviation.relianceTitle", "This TARA relies on — a change affects it"),
+        paragraphs: [],
+        facts: [],
+        table: {
+          headers: [T("deviation.colKind", "Deviation"), T("deviation.colItem", "Instance and item")],
+          rows: reliance.flatMap((g) => g.lines.map((line) => [g.heading, line])),
+        },
+      });
+    }
     return {
       title: componentAtLabel(c.componentName, c.at, t),
       paragraphs: c.description ? [c.description] : [],
