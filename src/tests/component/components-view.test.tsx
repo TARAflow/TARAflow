@@ -76,6 +76,30 @@ describe("ComponentsView", () => {
   });
 });
 
+describe("ComponentsView: check and update (6d)", () => {
+  it("Check, Fetch and check, Update… — the same actions as in the DFD's component section", () => {
+    const onCheck = vi.fn();
+    const onUpdate = vi.fn();
+    render(<ComponentsView items={[item("a", "Smoke Detector", { update: { refresh: false } })]} onCheck={onCheck} onUpdate={onUpdate} />);
+    fireEvent.click(screen.getByTestId("component-overview-check"));
+    fireEvent.click(screen.getByTestId("component-overview-fetch"));
+    expect(onCheck.mock.calls).toEqual([[false], [true]]);
+    expect(screen.getByTestId("component-overview-update").textContent).toBe("Update…");
+    fireEvent.click(screen.getByTestId("component-overview-update"));
+    expect(onUpdate).toHaveBeenCalledWith("a");
+  });
+
+  it("the refresh of the stored state is named so; nothing to update → no button; checking disables the check", () => {
+    render(<ComponentsView items={[item("a", "Smoke Detector", { update: { refresh: true } })]} onCheck={() => {}} checking onUpdate={() => {}} />);
+    expect(screen.getByTestId("component-overview-update").textContent).toBe("Refresh stored state…");
+    expect((screen.getByTestId("component-overview-check") as HTMLButtonElement).disabled).toBe(true);
+    cleanup();
+    render(<ComponentsView items={[item("a", "Smoke Detector")]} onUpdate={() => {}} />);
+    expect(screen.queryByTestId("component-overview-update")).toBeNull();
+    expect(screen.queryByTestId("component-overview-actions")).toBeNull();
+  });
+});
+
 describe("Overview tab Components", () => {
   const data = {
     info: { name: "Panel", description: "x", version: "1", responsible: "JM", created: "", lastModified: "", tags: EMPTY_PROJECT_TAGS, team: [], isHighImpact: false },
@@ -95,6 +119,18 @@ describe("Overview tab Components", () => {
     expect(screen.getByTestId("overview-view-components-badge").textContent).toBe("1");
     fireEvent.click(screen.getByTestId("overview-view-components"));
     expect(screen.getByTestId("components-view-scroll")).toBeTruthy();
+  });
+
+  it("the last instance deleted: no items, the tab goes and the Overview falls back to Project (6d)", () => {
+    const props = { data, phases: PHASES, progressPhaseIds: [0], getStatusIcon: () => "", getStatusColor: () => "", onUpdate: vi.fn(), projectId: "P-del" };
+    const { rerender } = render(<GeneralTab {...props} components={[item("a", "Smoke Detector")]} />);
+    fireEvent.click(screen.getByTestId("overview-view-components"));
+    expect(screen.getByTestId("overview-view-components").getAttribute("aria-selected")).toBe("true");
+    rerender(<GeneralTab {...props} components={[]} />);
+    expect(screen.queryByTestId("overview-view-components")).toBeNull();
+    expect(screen.getByTestId("overview-view-project").getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByTestId("components-view-scroll")).toBeNull();
+    localStorage.removeItem("taraflow.overview.view.P-del");
   });
 
   it("Sources counts a stored URL with credentials (review 2026-11-11)", () => {

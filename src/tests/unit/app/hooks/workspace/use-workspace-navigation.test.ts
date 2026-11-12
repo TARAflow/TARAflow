@@ -115,11 +115,23 @@ describe("useWorkspaceNavigation", () => {
     expect(s.result.current.elementFocusRequest).toEqual({ elementId: "e1" });
   });
 
+  it("run in DFD (6d): the DFD tab opens with the runner; every start is a request of its own", () => {
+    const s = setup(project());
+    const runner = vi.fn();
+    act(() => s.result.current.runInDfd(runner));
+    expect(s.setActivePhase).toHaveBeenLastCalledWith(PhaseId.DFD);
+    const first = s.result.current.componentRunRequest;
+    expect(first?.runner).toBe(runner);
+    act(() => s.result.current.runInDfd(runner));
+    expect(s.result.current.componentRunRequest).not.toBe(first);
+  });
+
   it("keeps the callbacks stable across renders", () => {
     const s = setup(project());
     const first = s.result.current;
     s.rerender({ phase: PhaseId.Risk, proj: project() });
     expect(s.result.current.handlePhaseChange).toBe(first.handlePhaseChange);
     expect(s.result.current.showInTable).toBe(first.showInTable);
+    expect(s.result.current.runInDfd).toBe(first.runInDfd);
   });
 });

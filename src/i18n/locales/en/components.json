@@ -87,6 +87,7 @@
     "update": {
       "open": "Update…",
       "refresh": "Refresh stored state…",
+      "trivial": "No decision of this machine is affected — the update can be applied right away.",
       "discardTitle": "Discard the update?",
       "discardText": "Discarding restores the state before the update. Everything changed since then (confirmed reviews, ratings, DFD) is lost as well.",
       "discardOk": "Discard",

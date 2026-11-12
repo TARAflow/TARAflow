@@ -104,6 +104,12 @@ export interface DFDTabProps {
    * object per request. Opens the drawing and selects the element.
    */
   elementFocusRequest?: ElementFocusRequest | null;
+  /**
+   * Run a component runner (update / refresh) started outside the DFD tab —
+   * e.g. from the Overview's component accordion (6d): a new object per
+   * request; the same single path into the editor as from the details panel.
+   */
+  componentRunRequest?: { readonly runner: ComponentImportRunner } | null;
   /** Component under evaluation of the Compliance tab — the element forms ask the component's settings on it (CM-6). */
   complianceComponentId?: string;
   /**
@@ -195,6 +201,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   lockedBy,
   graphFocusRequest,
   elementFocusRequest,
+  componentRunRequest,
   hazards,
   assetRegistry,
   labelVocabulary,
@@ -872,6 +879,20 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   );
 
   useElementFocusRequest(elementFocusRequest, viewMode, setViewMode, editor.pluginReady, editor.selectCell);
+
+  // A component runner from another tab (6d): the drawing, then the editor's
+  // runner path once — like the details panel's "Update…".
+  const handledRun = useRef<typeof componentRunRequest>(null);
+  useEffect(() => {
+    if (!componentRunRequest || handledRun.current === componentRunRequest) return;
+    if (viewMode !== "draw") {
+      setViewMode("draw");
+      return;
+    }
+    if (!editor.pluginReady) return;
+    handledRun.current = componentRunRequest;
+    void editor.insertComponent(componentRunRequest.runner);
+  }, [componentRunRequest, viewMode, setViewMode, editor]);
 
   useEffect(() => {
     if (!graphFocusRequest) return;

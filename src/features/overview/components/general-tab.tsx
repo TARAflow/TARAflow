@@ -117,6 +117,11 @@ interface GeneralTabProps {
 
   /** Select an instance's multiprocess in the DFD. */
   onShowComponentInDfd?: (multiprocessTfId: string) => void;
+  /** Check the component imports for a newer state (fetch first or not); absent = not available. */
+  onCheckComponents?: (fetch: boolean) => void;
+  componentsChecking?: boolean;
+  /** Start the update of a component import (DFD tab, update dialog). */
+  onUpdateComponent?: (importId: string) => void;
 }
 
 /**
@@ -150,6 +155,9 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   onOpenAuditTab,
   components = [],
   onShowComponentInDfd,
+  onCheckComponents,
+  componentsChecking,
+  onUpdateComponent,
 }) => {
   const { t } = useTranslation();
   const [chosenView, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -334,7 +342,15 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
         />
       )}
 
-      {view === "components" && <ComponentsView items={components} onShowInDfd={onShowComponentInDfd} />}
+      {view === "components" && (
+        <ComponentsView
+          items={components}
+          onShowInDfd={onShowComponentInDfd}
+          {...(onCheckComponents ? { onCheck: onCheckComponents } : {})}
+          {...(componentsChecking !== undefined ? { checking: componentsChecking } : {})}
+          {...(onUpdateComponent ? { onUpdate: onUpdateComponent } : {})}
+        />
+      )}
 
       {view === "methodology" && (
         <>

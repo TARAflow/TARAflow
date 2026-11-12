@@ -7,6 +7,7 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ComponentUpdateDialog, TAKE_OVER, type ComponentUpdatePreview } from "features/components";
+import { isTrivialUpdate } from "features/components/components/component-update-dialog";
 import { DFDDetailsPanel } from "features/dfd/components/dfd-details-panel";
 
 vi.mock("react-i18next", async (o) => ({
@@ -52,6 +53,34 @@ describe("ComponentUpdateDialog", () => {
     fireEvent.click(apply);
     expect(onApply).toHaveBeenCalledWith({ pairs: ["threat|t1|t2"], ees: { i1: { "EE-NEW": TAKE_OVER } } });
     expect(screen.queryByTestId("component-update-about-changed")).toBeNull();
+  });
+
+  it("a trivial update says no decision is affected; Apply at once — the dialog stays (6d)", () => {
+    const onApply = vi.fn();
+    const outcomeOf = () => ({ review: 0, dropped: [], tickets: [] });
+    render(<ComponentUpdateDialog open preview={{ ...preview, newEes: [], candidates: [] }} outcomeOf={outcomeOf} onApply={onApply} onClose={() => {}} />);
+    expect(screen.getByTestId("component-update-trivial").textContent).toContain("No decision of this machine is affected");
+    const apply = screen.getByTestId("component-update-apply") as HTMLButtonElement;
+    expect(apply.disabled).toBe(false);
+    expect(document.activeElement).toBe(apply);
+    expect(onApply).not.toHaveBeenCalled();
+    fireEvent.click(apply);
+    expect(onApply).toHaveBeenCalledWith({ pairs: [], ees: {} });
+  });
+
+  it("not trivial: a new EE, a pairing candidate, a review, a dropped decision or a ticket (6d)", () => {
+    const none = { review: 0, dropped: [], tickets: [] };
+    const bare = { newEes: [], candidates: [] };
+    expect(isTrivialUpdate(bare, none)).toBe(true);
+    expect(isTrivialUpdate({ ...bare, newEes: preview.newEes }, none)).toBe(false);
+    expect(isTrivialUpdate({ ...bare, candidates: preview.candidates }, none)).toBe(false);
+    expect(isTrivialUpdate(bare, { ...none, review: 1 })).toBe(false);
+    expect(isTrivialUpdate(bare, { ...none, dropped: [{ kind: "riskRating", count: 1 }] })).toBe(false);
+    expect(isTrivialUpdate(bare, { ...none, tickets: ["ABC-1"] })).toBe(false);
+    // the dialog as before: no hint, Apply waits for the EE
+    render(<ComponentUpdateDialog open preview={preview} outcomeOf={() => none} onApply={() => {}} onClose={() => {}} />);
+    expect(screen.queryByTestId("component-update-trivial")).toBeNull();
+    expect((screen.getByTestId("component-update-apply") as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("names a changed overview of the component (user 2026-11-11)", () => {

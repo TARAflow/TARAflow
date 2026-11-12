@@ -19,6 +19,14 @@ export interface ComponentsViewProps {
   items: readonly ComponentOverviewItem[];
   /** Select the instance's multiprocess in the DFD. */
   onShowInDfd?: (multiprocessTfId: string) => void;
+  /**
+   * Check the imports for a newer state (fetch first or not) — the same check
+   * as in the DFD's component section (6d); absent = not available here.
+   */
+  onCheck?: (fetch: boolean) => void;
+  checking?: boolean;
+  /** Start the update of an import: the DFD tab opens with the update dialog (one path). */
+  onUpdate?: (importId: string) => void;
 }
 
 const DRIFT_COLOR: Record<NonNullable<ComponentOverviewItem["drift"]>["kind"], "success" | "warning" | "error" | "default"> = {
@@ -48,7 +56,7 @@ const Heading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </Typography>
 );
 
-export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd }) => {
+export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd, onCheck, checking, onUpdate }) => {
   const { t } = useTranslation();
   // The texts of the deviation list through the app's i18n (the report's keys, any namespace).
   // Raw texts: the shared formatter fills the {{placeholders}} itself.
@@ -161,6 +169,28 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
                 </Field>
                 <Field label={t("overviewComponents.importedAt", { defaultValue: "Imported on" })}>{day(o.importedAt)}</Field>
                 <Field label={t("overviewComponents.lastUpdate", { defaultValue: "Last update" })}>{o.lastUpdateAt ? day(o.lastUpdateAt) : undefined}</Field>
+                {/* Check and update right here (6d) — the update runs in the DFD tab, the editor's path */}
+                {(onCheck || (onUpdate && item.update)) && (
+                  <Box sx={{ display: "flex", gap: 1, py: 0.5, flexWrap: "wrap" }} data-testid="component-overview-actions">
+                    {onCheck && (
+                      <>
+                        <Button size="small" disabled={checking} onClick={() => onCheck(false)} data-testid="component-overview-check">
+                          {t("components.drift.check", { ns: "components", defaultValue: "Check" })}
+                        </Button>
+                        <Button size="small" disabled={checking} onClick={() => onCheck(true)} data-testid="component-overview-fetch">
+                          {t("components.drift.fetch", { ns: "components", defaultValue: "Fetch and check" })}
+                        </Button>
+                      </>
+                    )}
+                    {onUpdate && item.update && (
+                      <Button size="small" variant="outlined" onClick={() => onUpdate(item.importId)} data-testid="component-overview-update">
+                        {item.update.refresh
+                          ? t("components.update.refresh", { ns: "components", defaultValue: "Refresh stored state…" })
+                          : t("components.update.open", { ns: "components", defaultValue: "Update…" })}
+                      </Button>
+                    )}
+                  </Box>
+                )}
                 <Field label={t("overviewComponents.methodology", { defaultValue: "Methodology" })}>
                   {item.methodologyMatches === undefined
                     ? undefined

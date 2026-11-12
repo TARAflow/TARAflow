@@ -190,6 +190,8 @@ export interface ComponentOverviewItem {
     importedAt: string;
     lastUpdateAt?: string;
   };
+  /** An update (or a refresh of the stored state) can be started; absent = nothing to update. */
+  update?: { refresh: boolean };
   /** Is a newer state available? Absent = not checked. */
   drift?: { kind: "up_to_date" | "newer_available" | "diverged" | "unreachable"; text: string };
   /** Same likelihood method and intrinsic factor scales as this machine; absent = unknown. */

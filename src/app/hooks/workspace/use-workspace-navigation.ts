@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState, type MutableRefObject } from "react";
 import type { useToast } from "shared";
 import { PhaseId } from "../../models/phase-types";
 import type { Project } from "../../models/project-types";
+import type { ComponentImportRunner } from "features/dfd";
 
 type Toast = ReturnType<typeof useToast>;
 
@@ -37,6 +38,9 @@ export function useWorkspaceNavigation({
   const [elementFocusRequest, setElementFocusRequest] = useState<{
     elementId: string;
   } | null>(null);
+  // A component runner (update / refresh) started outside the DFD tab, e.g.
+  // from the Overview's component accordion (6d): DFD tab, the editor path.
+  const [componentRunRequest, setComponentRunRequest] = useState<{ runner: ComponentImportRunner } | null>(null);
   // "Show in table" from the asset graph (FR-V13, way back).
   const [tableHighlightRequest, setTableHighlightRequest] = useState<{
     assetId: string;
@@ -117,11 +121,20 @@ export function useWorkspaceNavigation({
     },
     [handlePhaseChange],
   );
+  const runInDfd = useCallback(
+    (runner: ComponentImportRunner) => {
+      setComponentRunRequest({ runner });
+      handlePhaseChange(PhaseId.DFD);
+    },
+    [handlePhaseChange],
+  );
 
   return {
     handlePhaseChange,
     graphFocusRequest,
     elementFocusRequest,
+    componentRunRequest,
+    runInDfd,
     tableHighlightRequest,
     hazardOpenRequest,
     showInTable,

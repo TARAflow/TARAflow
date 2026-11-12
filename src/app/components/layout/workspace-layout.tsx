@@ -97,7 +97,8 @@ import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 import { driftView, useComponentImport } from "app/hooks/workspace/use-component-import";
 import { componentOverviewItems } from "app/services/component-import/component-overview";
 import { useComponentDrift } from "app/hooks/workspace/use-component-drift";
-import { componentDriftFindings } from "app/services/component-import/component-drift";
+import { componentDriftFindings, updateTargetOf } from "app/services/component-import/component-drift";
+import { componentImportAvailable } from "app/services/component-import/component-source-electron";
 import { componentAssetGoals, componentLockedIds, findingOwner } from "app/services/component-import/component-scope";
 import { instanceClaims } from "app/services/component-import/cited-claims";
 import type { ComponentClaimChoice } from "features/compliance";
@@ -295,7 +296,14 @@ export const WorkspaceLayout: React.FC = () => {
         attackTrees: activeProject?.attackTrees ?? null,
       }).map((item) => {
         const status = componentDrift.drift.get(item.importId);
-        return status ? { ...item, drift: driftView(status, t) } : item;
+        // the same condition as the DFD's "Update…" (updateActionOf on click)
+        const imported = activeProject?.components?.imports.find((i) => i.id === item.importId);
+        const target = imported && componentImportAvailable() ? updateTargetOf(imported, status) : undefined;
+        return {
+          ...item,
+          ...(status ? { drift: driftView(status, t) } : {}),
+          ...(target ? { update: { refresh: target.refresh } } : {}),
+        };
       }),
     [
       activeProject?.components,
@@ -386,6 +394,13 @@ export const WorkspaceLayout: React.FC = () => {
             onOpenRiskTab={() => handlePhaseChange(PhaseId.Risk)}
             components={componentOverview}
             onShowComponentInDfd={navigation.showElement}
+            {...(componentImportAvailable()
+              ? { onCheckComponents: componentDrift.recheck, componentsChecking: componentDrift.checking }
+              : {})}
+            onUpdateComponent={(importId) => {
+              const action = componentImport.updateActionOf(importId);
+              if (action) navigation.runInDfd(action.runner);
+            }}
           />
         )}
 
@@ -435,6 +450,7 @@ export const WorkspaceLayout: React.FC = () => {
               lockedBy={lockedBy}
               graphFocusRequest={navigation.graphFocusRequest}
               elementFocusRequest={navigation.elementFocusRequest}
+              componentRunRequest={navigation.componentRunRequest}
               hazards={assetData.graphHazards}
               assetRegistry={assetData.graphRegistry}
               labelVocabulary={labelVocabulary}

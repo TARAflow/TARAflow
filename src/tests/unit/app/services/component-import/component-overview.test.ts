@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { Project } from "app/models/project-types";
 import type { ComponentSnapshot } from "app/models/component-snapshot-types";
 import { componentOverviewItems } from "app/services/component-import/component-overview";
+import { pruneDeletedInstances } from "app/services/component-import/instance-lifecycle";
 import { machine } from "../../../../fixtures/component-treatment-machine";
 
 const withAbout = (about: ComponentSnapshot["about"] | undefined): Project => {
@@ -45,6 +46,23 @@ describe("componentOverviewItems", () => {
 
   it("an import taken before the overview crossed says so", () => {
     expect(componentOverviewItems(withAbout(undefined))[0].aboutMissing).toBe(true);
+  });
+
+  it("deleting instances (6d): one of two keeps the entry with one instance, the last removes it", () => {
+    const p = withAbout({});
+    const first = p.components!.instances[0];
+    const second = { ...first, id: "i-second", prefix: "SD2", multiprocessTfId: "mp-second" };
+    const two: Project = { ...p, components: { ...p.components!, instances: [first, second] }, dfd: { ...p.dfd!, elements: [{ id: first.multiprocessTfId }, { id: second.multiprocessTfId }] as never } };
+    expect(componentOverviewItems(two)[0].instances.map((i) => i.prefix)).toEqual([first.prefix, "SD2"]);
+    // one of two deleted
+    const one = pruneDeletedInstances(two, [{ id: first.multiprocessTfId }]);
+    const afterOne: Project = { ...two, components: one.components, dfd: { ...two.dfd!, elements: [{ id: first.multiprocessTfId }] as never } };
+    const items = componentOverviewItems(afterOne);
+    expect(items).toHaveLength(1);
+    expect(items[0].instances.map((i) => i.prefix)).toEqual([first.prefix]);
+    // the last deleted
+    const none = pruneDeletedInstances(afterOne, []);
+    expect(componentOverviewItems({ ...afterOne, components: none.components, dfd: { ...afterOne.dfd!, elements: [] } })).toEqual([]);
   });
 
   it("assumption decisions per instance; no imports → no items", () => {

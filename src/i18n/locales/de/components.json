@@ -87,6 +87,7 @@
     "update": {
       "open": "Update…",
       "refresh": "Gespeicherten Stand auffrischen…",
+      "trivial": "Keine Entscheidung dieser Maschine ist betroffen — das Update lässt sich direkt übernehmen.",
       "discardTitle": "Update verwerfen?",
       "discardText": "Verwerfen stellt den Stand vor dem Update her. Auch alles, was seither geändert wurde (bestätigte Prüfungen, Bewertungen, DFD), geht verloren.",
       "discardOk": "Verwerfen",

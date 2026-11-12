@@ -560,5 +560,15 @@ export function useComponentImport({
       </>
     ),
     componentInfoOf,
+    /**
+     * The update of an import for a start outside the DFD tab (Overview, 6d):
+     * its runner and whether it refreshes the stored state; undefined when
+     * there is nothing to update (or outside Electron).
+     */
+    updateActionOf: (importId: string): { runner: ComponentImportRunner; refresh: boolean } | undefined => {
+      const imported = activeProject?.components?.imports.find((i) => i.id === importId);
+      const target = imported ? updateTargetOf(imported, drift?.drift.get(importId)) : undefined;
+      return target && componentImportAvailable() ? { runner: updateRunnerFor(importId), refresh: target.refresh } : undefined;
+    },
   };
 }

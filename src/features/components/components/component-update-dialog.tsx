@@ -82,6 +82,22 @@ export interface ComponentUpdateDialogProps {
   onClose: () => void;
 }
 
+/**
+ * A trivial update (6d, review point 2): no new external entity to decide,
+ * no pairing candidate, and the dry run of the default choice leaves nothing
+ * to review, drops nothing and orphans no ticket — no decision of this
+ * machine is affected. The dialog says so and stays; nothing is skipped.
+ */
+export function isTrivialUpdate(preview: Pick<ComponentUpdatePreview, "newEes" | "candidates">, outcome: ComponentUpdateOutcome): boolean {
+  return (
+    preview.newEes.length === 0 &&
+    preview.candidates.length === 0 &&
+    outcome.review === 0 &&
+    outcome.dropped.length === 0 &&
+    outcome.tickets.length === 0
+  );
+}
+
 export const ComponentUpdateDialog: React.FC<ComponentUpdateDialogProps> = ({ open, preview, outcomeOf, onApply, onClose }) => {
   const { t } = useTranslation(NS);
   const [pairs, setPairs] = useState<string[]>([]);
@@ -97,6 +113,7 @@ export const ComponentUpdateDialog: React.FC<ComponentUpdateDialogProps> = ({ op
   const choice: ComponentUpdateChoice = { pairs, ees, ...(tagPattern.trim() ? { tagPattern: tagPattern.trim() } : {}) };
   const outcome = useMemo(() => outcomeOf(choice), [outcomeOf, pairs, ees]); // eslint-disable-line react-hooks/exhaustive-deps
   const missingEe = preview.newEes.some((ee) => ee.instances.some((i) => !ees[i.instanceId]?.[ee.eeId]));
+  const trivial = isTrivialUpdate(preview, outcome);
 
   const toggle = (key: string, from: string, kind: string) =>
     setPairs((current) =>
@@ -115,6 +132,11 @@ export const ComponentUpdateDialog: React.FC<ComponentUpdateDialogProps> = ({ op
         <Typography variant="body2" color="text.secondary">
           {preview.from} → {preview.to}
         </Typography>
+        {trivial && (
+          <Alert severity="success" sx={{ mt: 1 }} data-testid="component-update-trivial">
+            {t("components.update.trivial", { defaultValue: "No decision of this machine is affected — the update can be applied right away." })}
+          </Alert>
+        )}
 
         {/* What changed in the component */}
         <Typography variant="subtitle2" sx={{ mt: 2 }}>
@@ -240,7 +262,7 @@ export const ComponentUpdateDialog: React.FC<ComponentUpdateDialogProps> = ({ op
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t("components.update.cancel", { defaultValue: "Cancel" })}</Button>
-        <Button variant="contained" disabled={missingEe} onClick={() => onApply(choice)} data-testid="component-update-apply">
+        <Button variant="contained" disabled={missingEe} autoFocus={trivial} onClick={() => onApply(choice)} data-testid="component-update-apply">
           {t("components.update.apply", { defaultValue: "Apply update" })}
         </Button>
       </DialogActions>
