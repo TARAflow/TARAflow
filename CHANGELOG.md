@@ -106,11 +106,11 @@ in 0.18.x.
 - **Trackers:** in a project with a tracker, setting a mitigation to done
   by hand now asks for evidence or a reference; mitigations done without
   either are reported as a finding.
-- **Flows between two external entities** are out of scope for per-element
-  threats on single-page DFDs too: a regeneration removes the threats on
-  such flows, and their risks lose their threat together with their
-  ratings. Before regenerating, check whether such flows carry risks; if a
-  flow matters for security, model one side as a process.
+- **Per-element threats on EE → EE flows** (out of scope on single-page
+  DFDs too): a regeneration removes them; the next risk sync then removes
+  their risks, including ratings and mitigations. Before regenerating,
+  check whether such flows carry risks — if a flow is security-relevant,
+  model one side as a process.
 - **Credentials in source URLs:** a source reference stored with a token
   in its URL is flagged. Removing it from the project is not enough — the
   token stays in the git history of every repository the file was
