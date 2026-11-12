@@ -21,6 +21,7 @@ import type { Project } from "../../models/project-types";
 import type { ComponentSnapshot } from "../../models/component-snapshot-types";
 import type { ComponentSourceOk } from "./component-source";
 import { instanceLabel, quantityOf } from "./instance-quantity";
+import { freezeComponentSnapshots } from "./snapshot-freeze";
 
 const BOUNDARY_TYPES = new Set(["TrustBoundary", "PhysicalBoundary", "ChipBoundary"]);
 /** Element types an EE can stand for in the machine (no boundaries, no interfaces). */
@@ -193,6 +194,8 @@ export function applyComponentImport(input: {
 
   const assets = instanceAssetRecords(imported.snapshot, ids.instanceId, choice.prefix, `${choice.prefix} · ${imported.name}`, inserted, machine.assets?.configuration);
 
+  // The snapshot is hashed: frozen from here on in development and tests (6b).
+  freezeComponentSnapshots({ components: { imports: [imported], instances: [] } });
   return {
     outcome: {
       xml: inserted.xml,

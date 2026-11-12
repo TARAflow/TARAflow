@@ -4,7 +4,8 @@
 // every committed *.tara.json the embedded snapshot must still hash to the
 // recorded value — FNV-1a over its canonical (TCS) form, the hash the app
 // computed on import / update (snapshotContentHash). A mismatch means the
-// snapshot was edited by hand: the machine would rest on a component state
+// snapshot was changed after the import — by hand or by a tool (TARAflow
+// itself did, before patch 82): the machine would rest on a component state
 // that no commit of the component holds.
 //
 // Only the hash: the component pages in the DFD cannot be checked here — they

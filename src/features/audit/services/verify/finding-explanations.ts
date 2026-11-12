@@ -121,8 +121,8 @@ const EXPLANATIONS: Record<FindingId, FindingExplanation> = {
 
   // ── Imported components ────────────────────────────────────────────────
   CMP_SNAPSHOT_HASH_MISMATCH: {
-    title: "An imported component's snapshot was changed",
-    hint: "The component data embedded in the project file no longer matches its recorded hash — it was edited outside TARAflow. Restore the file from git, or update the component import in the DFD tab.",
+    title: "An imported component's snapshot was changed after the import",
+    hint: "The component data embedded in the project file no longer matches its recorded hash — changed after the import, by hand or by a tool. Refresh the stored state in the component section of the DFD tab, or import the component again.",
   },
 
   // ── Hooks + protection attestation ─────────────────────────────────────

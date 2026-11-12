@@ -58,4 +58,19 @@ describe("the embedded snapshot keeps its hash (6b)", () => {
     stable(loaded);
     stable(parseAndRepair(JSON.parse(serializeTCS(loaded))) as Project);
   });
+
+  it("frozen in tests and development: a write throws at the writing place (review 2026-11-12)", () => {
+    const m = machine();
+    const snap = m.components!.imports[0].snapshot as unknown as { risks: unknown[]; dfd: { connections: { properties: Record<string, unknown> }[] } };
+    expect(Object.isFrozen(snap)).toBe(true);
+    expect(() => {
+      snap.dfd.connections[0].properties.exposureLevel = "EL3";
+    }).toThrow(TypeError);
+    expect(() => snap.risks.push({})).toThrow(TypeError);
+    // after loading too
+    const p = { ...m, id: "m", info: { name: "M", tags: { domain: [], platform: [], regulation: [], custom: [] } }, phaseStatus: {}, settings: {}, schemaVersion: 14 } as never;
+    const loaded = parseAndRepair(JSON.parse(serializeTCS(p))) as Project;
+    expect(Object.isFrozen(loaded.components!.imports[0].snapshot)).toBe(true);
+  });
 });
+

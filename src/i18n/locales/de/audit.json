@@ -273,8 +273,8 @@
           "hint": "Eine .tara.json ist beschädigt oder abgeschnitten. Aus der git-History wiederherstellen."
         },
         "CMP_SNAPSHOT_HASH_MISMATCH": {
-          "title": "Der Snapshot einer importierten Komponente wurde verändert",
-          "hint": "Die in der Projektdatei eingebetteten Daten der Komponente passen nicht mehr zu ihrem gespeicherten Hash — sie wurden ausserhalb von TARAflow bearbeitet. Datei aus git wiederherstellen oder den Import der Komponente im DFD-Tab aktualisieren."
+          "title": "Der Snapshot einer importierten Komponente wurde nach dem Import verändert",
+          "hint": "Die in der Projektdatei eingebetteten Daten der Komponente passen nicht mehr zu ihrem gespeicherten Hash — nach dem Import verändert, von Hand oder durch ein Werkzeug. Im Komponenten-Abschnitt des DFD-Tabs den gespeicherten Stand auffrischen oder die Komponente neu importieren."
         },
         "TCS_UNKNOWN_VERSION": {
           "title": "Eine Projektdatei nutzt ein neueres Format",

@@ -47,6 +47,7 @@ import {
   type SnapshotDelta,
 } from "./update-inventory";
 import { overlayKey } from "./path-overlays";
+import { freezeComponentSnapshots } from "./snapshot-freeze";
 
 export interface ComponentUpdatePairing {
   /** Obsolete threat id → new threat id (component terms). */
@@ -483,6 +484,8 @@ export function applyComponentUpdate(input: ComponentUpdateInput): ComponentUpda
   };
   project = { ...project, components: nextComponents };
 
+  // The new snapshot is hashed: frozen from here on in development and tests (6b).
+  freezeComponentSnapshots(project);
   return { project, delta, instances: summaries, commitLines };
 }
 

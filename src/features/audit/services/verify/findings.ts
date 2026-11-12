@@ -163,7 +163,7 @@ export const DEFAULT_MESSAGE: Record<FindingId, string> = {
   TCS_UNKNOWN_VERSION:
     "A .tara.json records a TCS version this engine does not know.",
   CMP_SNAPSHOT_HASH_MISMATCH:
-    "An imported component's embedded snapshot does not match its recorded content hash.",
+    "An imported component's embedded snapshot was changed after the import (by hand or by a tool): it does not match its recorded content hash.",
   HOOKS_VERSION_MISMATCH: "Installed git hooks do not match the expected version.",
   HOOKS_MISSING: "Expected git hooks are not installed.",
   PROTECTION_ATTESTATION:

@@ -33,6 +33,7 @@ import {
   migrate_13_to_14,
 } from "./versions";
 import { normalizeThreatTables } from "../../features/threats/services/threat-table-normalize";
+import { freezeComponentSnapshots } from "./component-import/snapshot-freeze";
 
 
 // ==================== DEFAULTS ====================
@@ -435,5 +436,7 @@ export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
     );
   }
 
+  // Imported component snapshots are hashed: frozen in development and tests (6b).
+  freezeComponentSnapshots(project);
   return { project, migrated: wasMigrated, fromVersion };
 }

@@ -1004,6 +1004,14 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 83 done (2026-11-12, review of 82):* the error class is guarded: embedded snapshots are
+deep-frozen in development builds and tests — after loading (`parseAndRepair`), after an import and
+after an update (`freezeComponentSnapshots`). A write into a snapshot throws at once, with the stack of
+the writing place, instead of the AVE finding it after the commit; production builds leave it off.
+The finding no longer assumes hand edits: "changed after the import, by hand or by a tool" with the
+way out (refresh the stored state, or import again). Noted for 0.20: a DFD graph builder without side
+effects (derived values returned apart, not written into the properties) — the root cause, outside
+this feature.
 *Patch 82 done (2026-11-12, phase 6b):* **AVE check `component-import`** (AVE v2): in every committed
 `*.tara.json` each embedded snapshot must hash to its recorded `contentHash` (FNV-1a over the TCS
 canonical form, as on import) — else `CMP_SNAPSHOT_HASH_MISMATCH` (error) at the commit that changed
