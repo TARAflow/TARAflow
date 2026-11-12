@@ -6,6 +6,9 @@ import { describe, it, expect } from "vitest";
 import { checkRepoState } from "features/audit/services/verify/checks/repo-state";
 import { checkHistoryShape } from "features/audit/services/verify/checks/history-shape";
 import { checkTcsRepro } from "features/audit/services/verify/checks/tcs-repro";
+import { checkComponentImport } from "features/audit/services/verify/checks/component-import";
+import { fnv1aHex12 } from "shared/utils/fnv1a";
+import { canonicalStringify } from "shared/utils/tcs-canonical";
 import { checkAnchorTag } from "features/audit/services/verify/checks/anchor-tag";
 import { checkMessageSchema } from "features/audit/services/verify/checks/message-schema";
 import { checkFourEyes } from "features/audit/services/verify/checks/four-eyes";
@@ -274,3 +277,30 @@ describe("checkProtectionAttestation", () => {
     expect(f[0].context).toEqual({ branches: ["main", "audit"] });
   });
 });
+
+// ── component-import (AVE v2, multi-project TARA 6b) ─────────────────────────
+describe("checkComponentImport", () => {
+  const snapshot = { snapshotFormat: 1, component: { projectId: "cam", name: "Camera" }, risks: [] };
+  const machine = (snap: unknown, hash: string) =>
+    JSON.stringify({ components: { imports: [{ id: "imp1", name: "Camera", contentHash: hash, snapshot: snap }], instances: [] } });
+  const good = fnv1aHex12(canonicalStringify(snapshot));
+  async function run() {
+    const reader = new FakeGitReader({
+      commits: [
+        { hash: "A", tree: { "machine.tara.json": machine(snapshot, good) } },
+        // the snapshot edited by hand, the hash left as it was
+        { hash: "B", parents: ["A"], tree: { "machine.tara.json": machine({ ...snapshot, risks: [{ id: "r1" }] }, good) } },
+        { hash: "C", parents: ["B"], tree: { "machine.tara.json": machine(snapshot, good), "broken.tara.json": "{not json" } },
+      ],
+      refs: { main: "C", "audit-root": "A" },
+    });
+    return checkComponentImport(ctx({ reader, history: await reader.history("A", "C"), canonicalize: canonicalStringify }));
+  }
+  it("a snapshot that no longer hashes to its recorded value is an error at the commit that changed it", async () => {
+    const f = await run();
+    expect(f.map((x) => ({ id: x.id, commit: x.commit, severity: x.severity, context: x.context }))).toEqual([
+      { id: "CMP_SNAPSHOT_HASH_MISMATCH", commit: "B", severity: "error", context: { path: "machine.tara.json", component: "Camera" } },
+    ]);
+  });
+});
+

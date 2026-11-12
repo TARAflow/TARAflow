@@ -160,6 +160,10 @@ describe("drift check against a real repository (phase 5a)", () => {
     expect(updateTargetOf(old, { kind: "newer_available", contentHash: "x", commitSha: "c" })?.refresh).toBe(false);
     expect(updateTargetOf({ ...old, source: { schemaVersion: 14, unpinned: "dirty" } }, { kind: "up_to_date", builderChanged: true })).toBeUndefined();
     expect(updateTargetOf(old, { kind: "unreachable", reason: "file_missing" } as never)).toBeUndefined();
+    // a stored snapshot that no longer hashes to its record (changed in place, or by hand): refresh too (6b)
+    const damaged = { ...imported, snapshot: { ...(imported.snapshot as object), risks: [] } };
+    expect(updateTargetOf(damaged, { kind: "up_to_date" })?.refresh).toBe(true);
+    expect(updateTargetOf(imported, { kind: "up_to_date" })).toBeUndefined();
   });
 
   it("tag pattern: the newest by VERSION — v1.10 after v1.9, also when v1.9 was tagged later on a newer commit", async () => {

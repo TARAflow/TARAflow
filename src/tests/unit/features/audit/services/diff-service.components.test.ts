@@ -33,7 +33,7 @@ describe("audit diff — components", () => {
     expect(section.phase).toBe("components");
     expect(section.changes.map((c) => [c.type, c.name])).toEqual([
       ["added", "Camera system @ abcdef12"],
-      ["added", "CAM1"],
+      ["added", "CAM1 · Camera system"],
     ]);
   });
 
@@ -55,6 +55,49 @@ describe("audit diff — components", () => {
   it("an assumption status of an instance is a modification", () => {
     const inst = (status: string): Any => ({ id: "i1", importId: "imp1", multiprocessTfId: "mp1", prefix: "CAM1", eeMapping: [], assumptions: [{ instanceId: "i1", assumptionId: "a1", status }] });
     const [section] = svc.detectChanges(base({ imports: [], instances: [inst("fulfilled")] }), base({ imports: [], instances: [inst("open")] }));
-    expect(section.changes[0]).toMatchObject({ type: "modified", name: "CAM1" });
+    expect(section.changes[0]).toMatchObject({ type: "modified", name: "CAM1 · imp1" });
+  });
+
+  it("instance changes as lines in the component's words, not \"[object Object]\" (6b)", () => {
+    const snapshotImp = {
+      ...imp("abcdef1234", "111"),
+      snapshot: {
+        snapshotFormat: 1,
+        assumptions: [{ id: "a1", displayId: "ASM-01", text: "Locked", status: "confirmed" }],
+        concept: { goals: [], claims: [{ id: "c1", displayId: "CLM-01" }] },
+        dfd: { elements: [{ id: "ee1", name: "Controller" }] },
+        threats: { perElementTables: [{ threats: [{ id: "t1", displayId: "DF7-T-1" }] }], perInteractionTables: [] },
+      },
+    };
+    const dfd = { elements: [{ id: "m1", displayId: "P-1", name: "Alarm" }, { id: "m2", displayId: "P-2", name: "Comm" }] };
+    const inst = (over: Any): Any => ({ id: "i1", importId: "imp1", multiprocessTfId: "mp1", prefix: "CAM1", eeMapping: [{ componentEeId: "ee1", machineTfId: "m1" }], assumptions: [], ...over });
+    const prev = { ...base({ imports: [snapshotImp], instances: [inst({})] }), dfd };
+    const cur = {
+      ...base({
+        imports: [snapshotImp],
+        instances: [
+          inst({
+            quantity: 3,
+            eeMapping: [{ componentEeId: "ee1", machineTfId: "m2" }],
+            assumptions: [{ instanceId: "i1", assumptionId: "a1", status: "fulfilled", evidence: { mitigationIds: ["M-C-004"], elementIds: ["m2"] } }],
+            relevanceOverrides: [{ threatKey: "t1", relevance: "not_relevant", rationale: "Sealed", componentRelevance: "relevant", date: "d" }],
+            measureOverrides: [{ measureId: "M-I-002", rationale: "No TLS here", date: "d" }],
+            citedClaims: [{ claimId: "c1", requirements: ["iec-62443-4-2:cr-1.1"], date: "d" }],
+          }),
+        ],
+      }),
+      dfd,
+    };
+    const section = svc.detectChanges(cur, prev).find((p) => p.phase === "components")!;
+    const lines = section.changes[0].details!.map((d) => `${d.fieldLabel}: ${d.oldValue ?? "—"} → ${d.newValue ?? "—"}`);
+    expect(lines).toEqual([
+      "Quantity: 1 → 3",
+      "EE Controller: P-1 Alarm → P-2 Comm",
+      "ASM-01: — → fulfilled [evidence: M-C-004, P-2 Comm]",
+      "Relevance DF7-T-1: — → not_relevant (Sealed)",
+      "Not effective here M-I-002: — → No TLS here",
+      "Cited CLM-01: — → iec-62443-4-2:cr-1.1",
+    ]);
+    expect(JSON.stringify(section)).not.toContain("[object Object]");
   });
 });

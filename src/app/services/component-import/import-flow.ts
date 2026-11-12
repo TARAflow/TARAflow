@@ -202,7 +202,7 @@ export function applyComponentImport(input: {
       assets: [...context.assets, ...inserted.assets],
     },
     assets,
-    relations: (imported.snapshot.assetRelations ?? []).map((r) => ({
+    relations: structuredClone(imported.snapshot.assetRelations ?? []).map((r) => ({
       ...r,
       id: componentInstanceTfId(ids.instanceId, `rel|${r.id}`),
       sourceAssetId: instanceAssetId(ids.instanceId, r.sourceAssetId),
@@ -234,7 +234,8 @@ export function instanceAssetRecords(
   const eeIds = new Set((snapshot.dfd?.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
   const keptIds = new Set([...inserted.elements, ...inserted.connections].map((x) => x.id));
   const criteria = (configuration ?? createDefaultAssetData().configuration).impactCriteria;
-  return snapshot.assets.map((a) => ({
+  // A copy of each asset: the machine's records must not share objects with the hashed snapshot (6b).
+  return structuredClone(snapshot.assets).map((a) => ({
     ...(a as unknown as Asset),
     id: instanceAssetId(instanceId, a.id),
     ...(a.displayId ? { displayId: `${prefix}:${a.displayId}` } : {}),

@@ -72,7 +72,7 @@ describe("verifyAudit", () => {
     const res = await verifyAudit({ reader, policy: policy(), canonicalize: canon });
     expect(res.result).toBe("pass");
     expect(res.findings.map((f) => f.id)).toEqual(["PRE_ANCHOR_COMMITS"]);
-    expect(res.aveVersion).toBe(1);
+    expect(res.aveVersion).toBe(2);
   });
 
   it("fails when the target ref does not resolve (config error)", async () => {

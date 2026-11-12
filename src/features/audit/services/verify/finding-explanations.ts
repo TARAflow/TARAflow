@@ -119,6 +119,12 @@ const EXPLANATIONS: Record<FindingId, FindingExplanation> = {
     hint: "This file records a TCS version this build doesn't know — update the app.",
   },
 
+  // ── Imported components ────────────────────────────────────────────────
+  CMP_SNAPSHOT_HASH_MISMATCH: {
+    title: "An imported component's snapshot was changed",
+    hint: "The component data embedded in the project file no longer matches its recorded hash — it was edited outside TARAflow. Restore the file from git, or update the component import in the DFD tab.",
+  },
+
   // ── Hooks + protection attestation ─────────────────────────────────────
   HOOKS_VERSION_MISMATCH: {
     title: "The installed git hooks are outdated",

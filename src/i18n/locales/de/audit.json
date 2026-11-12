@@ -272,6 +272,10 @@
           "title": "Eine Projektdatei konnte nicht gelesen werden",
           "hint": "Eine .tara.json ist beschädigt oder abgeschnitten. Aus der git-History wiederherstellen."
         },
+        "CMP_SNAPSHOT_HASH_MISMATCH": {
+          "title": "Der Snapshot einer importierten Komponente wurde verändert",
+          "hint": "Die in der Projektdatei eingebetteten Daten der Komponente passen nicht mehr zu ihrem gespeicherten Hash — sie wurden ausserhalb von TARAflow bearbeitet. Datei aus git wiederherstellen oder den Import der Komponente im DFD-Tab aktualisieren."
+        },
         "TCS_UNKNOWN_VERSION": {
           "title": "Eine Projektdatei nutzt ein neueres Format",
           "hint": "Diese Datei nennt eine TCS-Version, die dieser Build nicht kennt — App aktualisieren."

@@ -272,6 +272,10 @@
           "title": "A project file couldn't be read",
           "hint": "A .tara.json is corrupt or truncated. Restore it from git history."
         },
+        "CMP_SNAPSHOT_HASH_MISMATCH": {
+          "title": "An imported component's snapshot was changed",
+          "hint": "The component data embedded in the project file no longer matches its recorded hash — it was edited outside TARAflow. Restore the file from git, or update the component import in the DFD tab."
+        },
         "TCS_UNKNOWN_VERSION": {
           "title": "A project file uses a newer format",
           "hint": "This file records a TCS version this build doesn't know — update the app."

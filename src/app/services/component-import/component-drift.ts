@@ -35,6 +35,8 @@
 // tag) is ordered by its version, not its date.
 
 import type { ComponentImport } from "shared";
+import { fnv1aHex12 } from "shared/utils/fnv1a";
+import { canonicalStringify } from "shared/utils/tcs-canonical";
 import {
   componentSnapshotOfText,
   readComponentSource,
@@ -256,11 +258,16 @@ export function componentDriftFindings(
  * newer builder adds (patch 69: `about`). Undefined: nothing to update.
  */
 export function updateTargetOf(
-  imported: Pick<ComponentImport, "source" | "contentHash">,
+  imported: Pick<ComponentImport, "source" | "contentHash"> & { snapshot?: unknown },
   status: ComponentDriftStatus | undefined,
 ): { status: Extract<ComponentDriftStatus, { kind: "newer_available" }>; refresh: boolean } | undefined {
   if (status?.kind === "newer_available") return { status, refresh: false };
-  if (status?.kind === "up_to_date" && status.builderChanged && imported.source.commitSha && !imported.source.unpinned) {
+  // Also when the stored snapshot no longer hashes to its record (6b: changed
+  // in place before patch 82, or edited by hand — the AVE reports it): the
+  // refresh writes the imported commit's state again.
+  const damaged =
+    imported.snapshot !== undefined && fnv1aHex12(canonicalStringify(imported.snapshot)) !== imported.contentHash;
+  if (status?.kind === "up_to_date" && (status.builderChanged || damaged) && imported.source.commitSha && !imported.source.unpinned) {
     return {
       status: {
         kind: "newer_available",

@@ -261,7 +261,7 @@ describe("relevance override on boundary flows (I3)", () => {
     );
     const section = changes.find((c) => c.phase === "components")!;
     expect(section).toBeDefined();
-    expect(section.changes[0]).toMatchObject({ type: "modified", name: "SD1" });
+    expect(section.changes[0]).toMatchObject({ type: "modified", name: "SD1 · Smoke Detector" });
     expect(section.changes[0].details!.map((d) => d.field)).toContain("relevanceOverrides");
   });
 });

@@ -23,8 +23,9 @@
 
 /** AVE ruleset version. A change to what counts as pass/fail is a new version
  *  (AVE-v1.md §Versioning); it is recorded in every result so old results stay
- *  interpretable. */
-export const AVE_VERSION = 1;
+ *  interpretable. v2 (2026-11-12): the check of imported component snapshots
+ *  (CMP_SNAPSHOT_HASH_MISMATCH). */
+export const AVE_VERSION = 2;
 
 // ── Severity ─────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,8 @@ export type FindingId =
   | "TCS_NONREPRODUCIBLE" // blob ≠ canonicalStringify(JSON.parse(blob))
   | "TCS_PARSE_ERROR" // a *.tara.json blob does not parse
   | "TCS_UNKNOWN_VERSION" // file records a TCS version this engine does not know
+  // Imported components (multi-project TARA, AVE v2)
+  | "CMP_SNAPSHOT_HASH_MISMATCH" // an embedded component snapshot ≠ its recorded content hash
   // Hooks + protection attestation
   | "HOOKS_VERSION_MISMATCH" // installed hooks ≠ expected version
   | "HOOKS_MISSING" // expected hooks not installed
@@ -108,6 +111,8 @@ export const DEFAULT_SEVERITY: Record<FindingId, Severity> = {
   TCS_NONREPRODUCIBLE: "error",
   TCS_PARSE_ERROR: "error",
   TCS_UNKNOWN_VERSION: "info",
+  // Imported components
+  CMP_SNAPSHOT_HASH_MISMATCH: "error",
   // Hooks + protection
   HOOKS_VERSION_MISMATCH: "warning",
   HOOKS_MISSING: "warning",
@@ -157,6 +162,8 @@ export const DEFAULT_MESSAGE: Record<FindingId, string> = {
   TCS_PARSE_ERROR: "A .tara.json could not be parsed.",
   TCS_UNKNOWN_VERSION:
     "A .tara.json records a TCS version this engine does not know.",
+  CMP_SNAPSHOT_HASH_MISMATCH:
+    "An imported component's embedded snapshot does not match its recorded content hash.",
   HOOKS_VERSION_MISMATCH: "Installed git hooks do not match the expected version.",
   HOOKS_MISSING: "Expected git hooks are not installed.",
   PROTECTION_ATTESTATION:

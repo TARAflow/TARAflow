@@ -190,12 +190,7 @@ export class DiffService {
         currentProject.components?.imports ?? [],
         previousProject?.components?.imports ?? [],
       ),
-      ...this.compareById(
-        currentProject.components?.instances ?? [],
-        previousProject?.components?.instances ?? [],
-        (x) => x.prefix,
-        () => "Component instance",
-      ),
+      ...this.compareInstances(currentProject, previousProject),
     ];
     if (componentChanges.length > 0) {
       changes.push({ phase: "components", phaseLabel: "Components", changeCount: componentChanges.length, changes: componentChanges });
@@ -1020,6 +1015,101 @@ export class DiffService {
       else out.push({ type: "modified", id: imp.id, name: imp.name, description: "Component import updated", details });
     }
     return out;
+  }
+
+  /**
+   * Instances of imported components with detail lines in the component's
+   * words (phase 6b): the assumption status per ASM, the EE mapping, the
+   * quantity, relevance / measure overrides, windows of opportunity, cited
+   * claims, reviews still open — before, one line "Component instance
+   * modified: n field(s) changed" with "[object Object]" values.
+   */
+  private compareInstances(cur: Project, prev: Project | null | undefined): ChangeItem[] {
+    type Instance = NonNullable<Project["components"]>["instances"][number];
+    const imports = new Map([...(prev?.components?.imports ?? []), ...(cur.components?.imports ?? [])].map((i) => [i.id, i]));
+    const names = new Map(
+      [...(prev?.dfd?.elements ?? []), ...(cur.dfd?.elements ?? [])].map((e) => [e.id, `${e.displayId ? `${e.displayId} ` : ""}${e.name ?? e.id}`]),
+    );
+    const before = new Map((prev?.components?.instances ?? []).map((i) => [i.id, i]));
+    const now = new Map((cur.components?.instances ?? []).map((i) => [i.id, i]));
+    const label = (i: Instance) => `${i.prefix} · ${imports.get(i.importId)?.name ?? i.importId}`;
+    const changes: ChangeItem[] = [];
+    const detail = (field: keyof Instance, fieldLabel: string, oldValue: unknown, newValue: unknown): ChangeDetail => ({
+      field,
+      fieldLabel,
+      oldValue,
+      newValue,
+      valueType: valueTypeOf(newValue ?? oldValue),
+    });
+    /** Keyed entries of two lists → a detail per added / removed / changed entry. */
+    const keyed = <T>(
+      out: ChangeDetail[],
+      field: keyof Instance,
+      a: readonly T[] | undefined,
+      b: readonly T[] | undefined,
+      key: (x: T) => string,
+      fieldLabel: (k: string) => string,
+      value: (x: T) => string,
+    ) => {
+      const am = new Map((a ?? []).map((x) => [key(x), value(x)]));
+      const bm = new Map((b ?? []).map((x) => [key(x), value(x)]));
+      for (const k of new Set([...am.keys(), ...bm.keys()])) {
+        if (am.get(k) !== bm.get(k)) out.push(detail(field, fieldLabel(k), am.get(k), bm.get(k)));
+      }
+    };
+    for (const [id, i] of now) {
+      const old = before.get(id);
+      if (!old) {
+        changes.push({ type: "added", id, name: label(i), description: "Component instance added" });
+        continue;
+      }
+      const snapshot = imports.get(i.importId)?.snapshot;
+      const asm = new Map((snapshot?.assumptions ?? []).map((a) => [a.id, a.displayId]));
+      const threats = new Map(
+        [...(snapshot?.threats?.perElementTables ?? []), ...(snapshot?.threats?.perInteractionTables ?? [])]
+          .flatMap((t) => t.threats)
+          .map((t) => [t.id, t.displayId]),
+      );
+      const claims = new Map((snapshot?.concept?.claims ?? []).map((c) => [c.id, c.displayId]));
+      const ees = new Map((snapshot?.dfd?.elements ?? []).map((e) => [e.id, e.name]));
+      const details: ChangeDetail[] = [];
+      if (old.prefix !== i.prefix) details.push(detail("prefix", "Prefix", old.prefix, i.prefix));
+      if ((old.quantity ?? 1) !== (i.quantity ?? 1)) details.push(detail("quantity", "Quantity", old.quantity ?? 1, i.quantity ?? 1));
+      keyed(details, "eeMapping", old.eeMapping, i.eeMapping, (m) => m.componentEeId, (k) => `EE ${ees.get(k) ?? k}`, (m) => names.get(m.machineTfId) ?? m.machineTfId);
+      keyed(
+        details,
+        "assumptions",
+        old.assumptions,
+        i.assumptions,
+        (a) => a.assumptionId,
+        (k) => asm.get(k) ?? k,
+        (a) => {
+          const evidence = [...(a.evidence?.mitigationIds ?? []), ...(a.evidence?.elementIds ?? []).map((e) => names.get(e) ?? e), ...(a.evidence?.note ? [a.evidence.note] : [])];
+          return `${a.status}${a.rationale ? ` (${a.rationale})` : ""}${evidence.length ? ` [evidence: ${evidence.join(", ")}]` : ""}`;
+        },
+      );
+      keyed(details, "relevanceOverrides", old.relevanceOverrides, i.relevanceOverrides, (o) => o.threatKey, (k) => `Relevance ${threats.get(k) ?? k}`, (o) => `${o.relevance} (${o.rationale})`);
+      keyed(details, "measureOverrides", old.measureOverrides, i.measureOverrides, (o) => o.measureId, (k) => `Not effective here ${k}`, (o) => o.rationale);
+      keyed(
+        details,
+        "pathOverlays",
+        old.pathOverlays,
+        i.pathOverlays,
+        (o) => `${o.treeKey}|${o.pathKey}|${o.leafId ?? ""}`,
+        (k) => `Window of opportunity ${k.split("|").filter(Boolean).slice(1).join(" · ")}`,
+        (o) => o.windowOfOpportunity,
+      );
+      keyed(details, "citedClaims", old.citedClaims, i.citedClaims, (c) => c.claimId, (k) => `Cited ${claims.get(k) ?? k}`, (c) => c.requirements.join(", "));
+      const reviews = (x: Instance) => Object.keys(x.reviewBasis ?? {}).length;
+      if (reviews(old) !== reviews(i)) details.push(detail("reviewBasis", "Reviews open", reviews(old), reviews(i)));
+      if (details.length > 0) {
+        changes.push({ type: "modified", id, name: label(i), description: `Component instance modified: ${details.length} change(s)`, details });
+      }
+    }
+    for (const [id, i] of before) {
+      if (!now.has(id)) changes.push({ type: "deleted", id, name: label(i), description: "Component instance deleted" });
+    }
+    return changes;
   }
 
   private compareById<T extends { id: string }>(

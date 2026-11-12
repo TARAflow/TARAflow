@@ -60,7 +60,7 @@ describe("runAuditVerify", () => {
       dir,
     );
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.aveVersion).toBe(1);
+    if (r.success) expect(r.data.aveVersion).toBe(2);
   });
 
   it("runs the engine and reports a failing trail as success:true + data.result=fail", async () => {

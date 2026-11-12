@@ -1,6 +1,6 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
-Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patches 74–77), 6a-2 done (patches 78, 79), 6a-3 done (patches 80, 81), 6b next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
+Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patches 74–77), 6a-2 done (patches 78, 79), 6a-3 done (patches 80, 81), 6b done (patch 82), 6c next (dialog, discard, review list) (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).
 
@@ -1004,6 +1004,21 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 82 done (2026-11-12, phase 6b):* **AVE check `component-import`** (AVE v2): in every committed
+`*.tara.json` each embedded snapshot must hash to its recorded `contentHash` (FNV-1a over the TCS
+canonical form, as on import) — else `CMP_SNAPSHOT_HASH_MISMATCH` (error) at the commit that changed
+it. Only the hash: the component pages are regenerated through the DOM, which the CLI, the Electron
+main process and the hooks do not have — the app reports changed pages itself
+(`CMP_COMPONENT_PAGE_CHANGED`, review 2026-11-12). **Found with the check:** the imported DFD records
+shared their property objects with the snapshot, and the graph builder writes derived exposure levels
+into element properties in place — the stored snapshot changed under its hash within the session of
+the import. `insertComponentInstance` and the instance asset records now work on copies; a regression
+test runs import, graph, read models, risk sync, save and load and checks the hash (fails without the
+copy). A file already saved that way gets "Refresh stored state…" (`updateTargetOf` also on a damaged
+snapshot). **diff-service:** an instance change is no longer "Component instance modified: n field(s)"
+with `[object Object]` values but detail lines in the component's words — "ASM-01: open → fulfilled
+[evidence: M-C-004, P-2 Comm]", "EE Controller: P-1 Alarm → P-2 Comm", quantity, relevance / measure
+overrides, windows of opportunity, cited claims, reviews open; instances named "CAM1 · Camera system".
 *Patch 81 done (2026-11-12, review of 80):* a sixth group, **factors rated anew** — an intrinsic factor
 the component prefilled and this TARA rated differently ("skill level 2 → 4 — <rationale>"): the
 component likely delivers the same rating to every other machine. **Cited claims are no deviation**:

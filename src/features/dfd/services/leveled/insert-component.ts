@@ -188,11 +188,13 @@ export function shellBoundaryIds(component: ComponentDfdInput): string[] {
   if (members.length === 0 || boundaries.length === 0) return [];
   let graph: ReturnType<typeof buildDfdGraph>;
   try {
+    // Copies: the graph builder writes derived values into the records'
+    // properties in place, and these may be a stored snapshot's (6b).
     graph = buildDfdGraph({
       xml: component.xml,
       pages: component.pages as DFDPage[] | undefined,
-      elements: component.elements as DFDElement[],
-      connections: component.connections as DFDConnection[],
+      elements: structuredClone(component.elements) as DFDElement[],
+      connections: structuredClone(component.connections) as DFDConnection[],
       assets: [],
     });
   } catch {
@@ -213,7 +215,13 @@ export function shellBoundaryIds(component: ComponentDfdInput): string[] {
 
 /** Puts one component instance into the machine DFD (design §5, §6). */
 export function insertComponentInstance(input: InsertComponentInput): InsertComponentResult {
-  const { machine, component, instanceId, prefix, multiprocess, eeMapping } = input;
+  const { machine, instanceId, prefix, multiprocess, eeMapping } = input;
+  // A copy: the component's records come from the embedded snapshot, whose
+  // content hash is recorded — the machine's records must not share objects
+  // with it. The DFD graph builder writes derived values into element
+  // properties in place (exposure level), which changed the stored snapshot
+  // under its hash (found by the AVE snapshot check, 6b).
+  const component = structuredClone(input.component);
   const ns = (key: string) => componentInstanceTfId(instanceId, key);
 
   // ---- machine document and its parent page
