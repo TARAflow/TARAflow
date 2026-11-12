@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
 import type { ComponentOverviewItem } from "../models/overview-types";
+import { deviationGroups, deviationsMarkdown } from "shared/services/component-deviations";
 
 export interface ComponentsViewProps {
   items: readonly ComponentOverviewItem[];
@@ -49,6 +50,20 @@ const Heading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd }) => {
   const { t } = useTranslation();
+  // The texts of the deviation list through the app's i18n (the report's keys, any namespace).
+  // Raw texts: the shared formatter fills the {{placeholders}} itself.
+  const tr = (key: string, defaultValue?: string) => t(key, { defaultValue: defaultValue ?? key, skipInterpolation: true });
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = async (item: ComponentOverviewItem) => {
+    const at = item.origin.tag ?? (item.origin.commit ? item.origin.commit.slice(0, 8) : tr("tabs.doc.imported.unpinned", "not pinned"));
+    const text = deviationsMarkdown({ name: item.name, at, ...(item.responsible ? { responsible: item.responsible } : {}) }, item.deviations, tr);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(item.importId);
+    } catch {
+      setCopied(null);
+    }
+  };
   // The first component open; with several the analyst opens the next.
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set(items.slice(0, 1).map((i) => i.importId)));
   const toggle = (id: string) =>
@@ -196,6 +211,43 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
                     )}
                   </Stack>
                 ))}
+
+                {/* What this TARA decided differently — the list for the platform team (6a-3) */}
+                <Heading>
+                  {t("overviewComponents.deviations", { count: item.deviations.length, defaultValue: "Deviations from the component ({{count}})" })}
+                </Heading>
+                <Box data-testid={`component-overview-deviations-${item.importId}`}>
+                  {item.deviations.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      {tr("tabs.doc.imported.deviation.none", "No deviations — this TARA uses the component as it is.")}
+                    </Typography>
+                  ) : (
+                    deviationGroups(item.deviations, tr).map((g) => (
+                      <Box key={g.kind} sx={{ mb: 1 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {g.heading}
+                        </Typography>
+                        <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                          {g.lines.map((line, idx) => (
+                            <li key={idx}>
+                              <Typography variant="body2">{line}</Typography>
+                            </li>
+                          ))}
+                        </Box>
+                      </Box>
+                    ))
+                  )}
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                    <Button size="small" variant="outlined" onClick={() => void copy(item)} data-testid={`component-overview-copy-${item.importId}`}>
+                      {t("overviewComponents.copyDeviations", { defaultValue: "Copy as text" })}
+                    </Button>
+                    {copied === item.importId && (
+                      <Typography variant="caption" color="success.main">
+                        {t("overviewComponents.copied", { defaultValue: "Copied — Markdown, for a mail, ticket or wiki" })}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
 
                 {/* Item Definition of the component */}
                 {(item.sections.length > 0 || item.functions.length > 0) && (

@@ -11,14 +11,19 @@ import type { ComponentSnapshot } from "../../models/component-snapshot-types";
 import { instanceAssumptions } from "./assumption-status";
 import { quantityOf } from "./instance-quantity";
 import { projectMethodologyFingerprint } from "./snapshot-builder";
+import { componentDeviations } from "./component-deviations";
 import { withoutUrlCredentials } from "shared/utils/url-credentials";
 
 const sourceText = (s: { document: string; section?: string; version?: string } | undefined) =>
   s ? [s.document, s.section, s.version].filter(Boolean).join(" · ") : undefined;
 
-export function componentOverviewItems(project: Pick<Project, "components" | "risks">): ComponentOverviewItem[] {
+export function componentOverviewItems(
+  project: Pick<Project, "components" | "risks"> & Partial<Pick<Project, "dfd" | "threats" | "assets" | "attackTrees">>,
+): ComponentOverviewItem[] {
   const components = project.components;
   if (!components) return [];
+  // What this TARA decided differently — the list for the platform team (6a-3).
+  const deviations = componentDeviations({ dfd: null, threats: null, assets: null, attackTrees: null, ...project });
   const own = projectMethodologyFingerprint(project)?.hash;
   return components.imports.map((imported) => {
     const snapshot = imported.snapshot as ComponentSnapshot;
@@ -59,6 +64,7 @@ export function componentOverviewItems(project: Pick<Project, "components" | "ri
       },
       ...(own && theirs ? { methodologyMatches: own === theirs } : {}),
       ...(about ? {} : { aboutMissing: true }),
+      deviations: deviations.get(imported.id) ?? [],
       instances: components.instances
         .filter((i) => i.importId === imported.id)
         .map((instance) => {

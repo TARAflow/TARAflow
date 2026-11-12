@@ -14,7 +14,9 @@ import { EMPTY_PROJECT_TAGS, PHASES } from "shared";
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (k: string, o?: Record<string, unknown>) =>
-      ((o?.defaultValue as string | undefined) ?? k).replace(/\{\{(\w+)\}\}/g, (_, n) => String(o?.[n] ?? "")),
+      o?.skipInterpolation
+        ? ((o?.defaultValue as string | undefined) ?? k)
+        : ((o?.defaultValue as string | undefined) ?? k).replace(/\{\{(\w+)\}\}/g, (_, n) => String(o?.[n] ?? "")),
     i18n: { language: "en", exists: () => false },
   }),
 }));
@@ -32,6 +34,7 @@ const item = (id: string, name: string, extra: Partial<ComponentOverviewItem> = 
   sourceBindings: [{ repoUrl: "https://git.example.com/fw.git", refType: "tag", refLabel: "v1.2", commit: "abcdef0123456789" }],
   origin: { sameRepo: true, path: "import-example/SmokeDetectorCase.tara.json", commit: "0123456789abcdef", importedAt: "2026-11-10T10:00:00.000Z" },
   methodologyMatches: true,
+  deviations: [],
   instances: [
     { id: "i1", prefix: "SD1", multiprocessTfId: "mp-1", quantity: 1, assumptionsTotal: 2, assumptionsDecided: 1, assumptionsNotFulfilled: 0 },
     { id: "i2", prefix: "SD2", multiprocessTfId: "mp-2", quantity: 3, assumptionsTotal: 2, assumptionsDecided: 2, assumptionsNotFulfilled: 1 },
@@ -108,4 +111,26 @@ describe("Overview tab Components", () => {
     );
     expect(screen.getByTestId("overview-view-sources-badge").textContent).toBe("1");
   });
+
+  it("the deviations for the platform team, copied as Markdown (6a-3)", async () => {
+    const writeText = vi.fn(async (_text: string) => {});
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(
+      <ComponentsView
+        items={[
+          item("a", "Smoke Detector", {
+            deviations: [{ kind: "measure_not_effective", prefix: "SD2", measure: "M-I-002 — TLS", rationale: "No TLS on the panel bus" }],
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByTestId("component-overview-deviations-a").textContent).toContain("SD2: M-I-002 — TLS — No TLS on the panel bus");
+    fireEvent.click(screen.getByTestId("component-overview-copy-a"));
+    await screen.findByText(/Copied/);
+    const text = writeText.mock.calls[0][0] as string;
+    expect(text).toContain("## Deviations from Smoke Detector @ 01234567");
+    expect(text).toContain("For: Platform team");
+    expect(text).toContain("### Measures not effective here");
+  });
 });
+

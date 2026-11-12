@@ -26,12 +26,8 @@ import { attackPathDisplayId } from "features/attacktree/services/attacktree-thr
 import { componentAttackPathGroups, componentAttackTrees } from "../utils/component-attack-trees";
 import { componentTreatments } from "../utils/component-treatments";
 import { componentOverviewItems } from "./component-import/component-overview";
-import {
-  chosenMachineMeasures,
-  implementedMachineMeasures,
-  instanceAssumptions,
-  projectMeasureOptions,
-} from "./component-import/assumption-status";
+import { instanceAssumptions } from "./component-import/assumption-status";
+import { assumptionEvidenceOf, componentDeviations } from "./component-import/component-deviations";
 import { flattenProjectTags } from "shared";
 import type { Project } from "../models/project-types";
 import type { ComponentSource } from "shared";
@@ -191,16 +187,15 @@ export function docImportedAttackTrees(project: Pick<Project, "components" | "at
  * with this TARA's decision, and the component's measures that do not count
  * fully here (not effective / unclear, with the reasons — I7).
  */
-export function docImportedComponents(project: Pick<Project, "components" | "risks" | "dfd" | "threats">): DocImportedComponent[] {
+export function docImportedComponents(project: Pick<Project, "components" | "risks" | "dfd" | "threats" | "assets" | "attackTrees">): DocImportedComponent[] {
   const components = project.components;
   if (!components) return [];
   const machineNames = new Map((project.dfd?.elements ?? []).map((e) => [e.id, `${e.displayId ? `${e.displayId} ` : ""}${e.name ?? e.id}`]));
   const treatments = [...componentTreatments({ components, risks: project.risks ?? null }).values()];
-  const overview = componentOverviewItems({ components, risks: project.risks ?? null });
+  const overview = componentOverviewItems(project);
   // The machine's measures as evidence: label and state (implemented / not yet / chosen by no risk).
-  const measureLabels = new Map(projectMeasureOptions({ risks: project.risks ?? null, threats: project.threats ?? null }).map((m) => [m.id, m.label]));
-  const done = implementedMachineMeasures(project.risks?.risks);
-  const chosen = chosenMachineMeasures(project.risks?.risks);
+  const evidenceOf = assumptionEvidenceOf(project);
+  const deviations = componentDeviations(project);
   return components.imports.flatMap((imported): DocImportedComponent[] => {
     const item = overview.find((o) => o.importId === imported.id);
     if (!item) return [];
@@ -225,6 +220,7 @@ export function docImportedComponents(project: Pick<Project, "components" | "ris
         },
         ...(item.methodologyMatches !== undefined ? { methodologyMatches: item.methodologyMatches } : {}),
         sourceBindings: item.sourceBindings,
+        deviations: deviations.get(imported.id) ?? [],
         instances: instances.map((instance) => {
           // The component's measures that do not count fully here, once each.
           // A measure's status is kept per risk, so one measure can be unclear
@@ -262,18 +258,7 @@ export function docImportedComponents(project: Pick<Project, "components" | "ris
               text: a.text,
               status: a.status,
               ...(a.rationale ? { rationale: a.rationale } : {}),
-              ...(a.evidence && ((a.evidence.mitigationIds?.length ?? 0) > 0 || (a.evidence.elementIds?.length ?? 0) > 0 || a.evidence.note)
-                ? {
-                    evidence: {
-                      measures: (a.evidence.mitigationIds ?? []).map((id) => ({
-                        label: measureLabels.get(id) ?? id,
-                        state: done.has(id) ? ("implemented" as const) : chosen.has(id) ? ("pending" as const) : ("not_chosen" as const),
-                      })),
-                      elements: (a.evidence.elementIds ?? []).map((id) => machineNames.get(id) ?? id),
-                      ...(a.evidence.note ? { note: a.evidence.note } : {}),
-                    },
-                  }
-                : {}),
+              ...(evidenceOf(a.evidence) ? { evidence: evidenceOf(a.evidence)! } : {}),
             })),
             measures: [...measures.values()],
           };

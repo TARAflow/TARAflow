@@ -230,6 +230,9 @@ describe("the chapter \"Imported components\" (6a-2)", () => {
     expect(c.content).toContain("not fulfilled — The controller does not check frames");
     expect(c.content).toMatch(/Not effective here.*M-C-001/);
     expect(c.content).toContain("ASM-01 not fulfilled");
+    // the list for the platform team (6a-3)
+    expect(c.content).toContain("Deviations from the component");
+    expect(c.content).toMatch(/Assumptions of use not fulfilled \| SD2: ASM-01 Frames are checked by the controller — The controller does not check frames/);
   });
 
   it("no imports: no chapter", () => {

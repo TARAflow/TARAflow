@@ -47,6 +47,9 @@
     "noAssumptions": "no assumptions of use",
     "assumptions": "assumptions of use: {{decided}} of {{total}} decided, {{notFulfilled}} not fulfilled",
     "showInDfd": "Show in DFD",
+    "deviations": "Deviations from the component ({{count}})",
+    "copyDeviations": "Copy as text",
+    "copied": "Copied — Markdown, for a mail, ticket or wiki",
     "definition": "Item Definition of the component",
     "sourceDocument": "Source: {{source}}"
   },

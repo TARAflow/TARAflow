@@ -6,6 +6,7 @@
 
 import type { ReportSection } from "./report-section";
 import { residualCauseText } from "./residual-note";
+import { deviationGroups, evidenceText } from "../../../shared/services/component-deviations";
 import type {
   DocComponentAt,
   DocComputedValues,
@@ -141,17 +142,8 @@ export function importedComponentsReportSections(components: readonly DocImporte
       add(T("source", "Source"), `${b.repoUrl} (${b.refType} ${b.refLabel}${b.commit ? ` · ${b.commit.slice(0, 8)}` : ""})`);
     }
     const status = (s: string) => T(`aou.${s}`, s.replace(/_/g, " "));
-    const evidenceState = (s: string) =>
-      T(`evidenceState.${s}`, s === "implemented" ? "implemented" : s === "pending" ? "not implemented yet" : "chosen by no risk");
     // The evidence of an assumption: whether a component measure counts depends on it (review 2026-11-12).
-    const evidence = (e: DocImportedComponent["instances"][number]["assumptions"][number]["evidence"]) =>
-      e
-        ? [
-            ...e.measures.map((m) => `${m.label} (${evidenceState(m.state)})`),
-            ...e.elements,
-            ...(e.note ? [e.note] : []),
-          ].join("; ")
-        : "–";
+    const evidence = (e: DocImportedComponent["instances"][number]["assumptions"][number]["evidence"]) => (e ? evidenceText(e, t) : "–");
     const children: ReportSection[] = c.instances.map((i) => {
       const iFacts: [string, string][] = [];
       if (i.quantity > 1) iFacts.push([T("quantityLabel", "Quantity"), fill(T("quantity", "×{{n}} identical units"), { n: String(i.quantity) })]);
@@ -175,6 +167,27 @@ export function importedComponentsReportSections(components: readonly DocImporte
             }
           : {}),
       };
+    });
+    // What this TARA decided differently — the list for the platform team (6a-3).
+    const groups = deviationGroups(c.deviations, t);
+    children.push({
+      title: T("deviation.sectionTitle", "Deviations from the component"),
+      paragraphs: [
+        groups.length === 0
+          ? T("deviation.none", "No deviations — this TARA uses the component as it is.")
+          : `${T("deviation.intro", "What this TARA decided differently from the component — to be passed to its platform team.")}${
+              c.responsible ? ` ${fill(T("deviation.contact", "For: {{responsible}}"), { responsible: c.responsible })}` : ""
+            }`,
+      ],
+      facts: [],
+      ...(groups.length > 0
+        ? {
+            table: {
+              headers: [T("deviation.colKind", "Deviation"), T("deviation.colItem", "Instance and item")],
+              rows: groups.flatMap((g) => g.lines.map((line) => [g.heading, line])),
+            },
+          }
+        : {}),
     });
     return {
       title: componentAtLabel(c.componentName, c.at, t),

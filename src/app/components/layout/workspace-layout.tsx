@@ -285,11 +285,27 @@ export const WorkspaceLayout: React.FC = () => {
   // Overview, tab "Components" (user 2026-11-11): the imports with their drift status.
   const componentOverview = useMemo(
     () =>
-      componentOverviewItems({ components: activeProject?.components, risks: activeProject?.risks ?? null }).map((item) => {
+      componentOverviewItems({
+        components: activeProject?.components,
+        risks: activeProject?.risks ?? null,
+        dfd: activeProject?.dfd ?? null,
+        threats: activeProject?.threats ?? null,
+        assets: activeProject?.assets ?? null,
+        attackTrees: activeProject?.attackTrees ?? null,
+      }).map((item) => {
         const status = componentDrift.drift.get(item.importId);
         return status ? { ...item, drift: driftView(status, t) } : item;
       }),
-    [activeProject?.components, activeProject?.risks, componentDrift.drift, t],
+    [
+      activeProject?.components,
+      activeProject?.risks,
+      activeProject?.dfd,
+      activeProject?.threats,
+      activeProject?.assets,
+      activeProject?.attackTrees,
+      componentDrift.drift,
+      t,
+    ],
   );
 
   const { complianceStandards, matrixRequirements, complianceView } = useComplianceView(

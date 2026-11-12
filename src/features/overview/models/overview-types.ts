@@ -2,6 +2,7 @@
 // Data structures for the Overview/General feature
 // These define the shape of data this feature works with
 
+import type { ComponentDeviation } from "shared/services/component-deviations";
 import type {
   VerificationEntry,
   ItemDefinition,
@@ -195,6 +196,8 @@ export interface ComponentOverviewItem {
   methodologyMatches?: boolean;
   /** The import was taken before the overview crossed (no `about`). */
   aboutMissing?: boolean;
+  /** What this TARA decided differently from the component — the list for its platform team (6a-3). */
+  deviations: ComponentDeviation[];
   instances: {
     id: string;
     prefix: string;

@@ -47,6 +47,9 @@
     "noAssumptions": "keine Annahmen zur Verwendung",
     "assumptions": "Annahmen zur Verwendung: {{decided}} von {{total}} entschieden, {{notFulfilled}} nicht erfüllt",
     "showInDfd": "Im DFD zeigen",
+    "deviations": "Abweichungen von der Komponente ({{count}})",
+    "copyDeviations": "Als Text kopieren",
+    "copied": "Kopiert — Markdown, für Mail, Ticket oder Wiki",
     "definition": "Item Definition der Komponente",
     "sourceDocument": "Quelle: {{source}}"
   },

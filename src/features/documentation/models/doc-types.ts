@@ -20,6 +20,7 @@ import type { RiskData } from "features/risks";
 import type { AttackTreeData } from "features/attacktree";
 import type { ItemDefinition } from "shared/models/item-definition-types";
 import type { UncreditedResiduals } from "shared/services/credited-residual";
+import type { AssumptionEvidence, ComponentDeviation } from "shared/services/component-deviations";
 import type { CybersecurityConcept, VerificationEntry } from "shared/models/cybersecurity-concept-types";
 
 // ==================== DOCUMENT FORMAT ====================
@@ -354,15 +355,13 @@ export interface DocImportedComponent {
        * measures with their state, its elements, a note (review 2026-11-12 —
        * whether a component measure counts depends on it).
        */
-      evidence?: {
-        measures: { label: string; state: "implemented" | "pending" | "not_chosen" }[];
-        elements: string[];
-        note?: string;
-      };
+      evidence?: AssumptionEvidence;
     }[];
     /** The component's measures that do not count fully in this instance. */
     measures: { label: string; effectiveness: "not_effective" | "unclear"; reasons: { kind: string; ref?: string }[] }[];
   }[];
+  /** What this TARA decided differently from the component — the list for its platform team (6a-3). */
+  deviations: ComponentDeviation[];
 }
 
 /** One rated path of an imported tree in one instance. */
