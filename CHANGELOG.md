@@ -65,12 +65,13 @@ in 0.18.x.
   projects without imported components verify as before. The commit diff
   names instance changes (assumption status, external-entity mapping,
   quantity, overrides) instead of *instance modified*.
-- **Issue trackers:** with a tracker, a mitigation set to done by hand
-  needs evidence or a reference; a ticket row per mitigation with a link
-  dialog (search, status filter, suggestions) and *create*; with a linked
-  ticket the progress follows the ticket.
+- **Issue trackers:** a ticket row per mitigation with a link dialog
+  (search, status filter, suggestions) and *create*; with a linked ticket
+  the progress follows the ticket.
 
 ### Changed
+- **Status by hand with a tracker:** in a project with a tracker, a
+  mitigation set to done by hand needs evidence or a reference.
 - **Phase indicators:** the findings of imported components count on the
   DFD phase; a source reference with credentials in its URL is a warning on
   General.
@@ -99,6 +100,21 @@ in 0.18.x.
 - A component TARA must be committed to be imported pinned; an uncommitted
   file is imported *unpinned* and pinned with its next update. The drift
   check needs a local clone of the component's repository.
+- **Risk status *verified*:** a risk is verified only when every active
+  mitigation is. In existing projects risks can fall back from *verified*
+  to *implemented* when opened — check the overview before an audit.
+- **Trackers:** in a project with a tracker, setting a mitigation to done
+  by hand now asks for evidence or a reference; mitigations done without
+  either are reported as a finding.
+- **Flows between two external entities** are out of scope for per-element
+  threats on single-page DFDs too: a regeneration removes the threats on
+  such flows, and their risks lose their threat together with their
+  ratings. Before regenerating, check whether such flows carry risks; if a
+  flow matters for security, model one side as a process.
+- **Credentials in source URLs:** a source reference stored with a token
+  in its URL is flagged. Removing it from the project is not enough — the
+  token stays in the git history of every repository the file was
+  committed to: revoke it at the provider.
 - **CI with `taraflow-verify`:** the JSON result carries `aveVersion: 2`
   — a pipeline that checks the version or compares results with a stored
   one sees the new number.
