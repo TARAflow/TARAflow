@@ -22,6 +22,7 @@ Tests that deliberately cross feature / layer boundaries. Distinct from `unit/`
 | File | Chain under test |
 |------|------------------|
 | `threats/asset-link-to-threat-index.integration.test.ts` | `Asset.linkedDFDElements` → `buildAssetDataReference` (app) → `buildElementToAssetsIndex` (threats). Locks the link mapping, RC-1' de-dup propagation, and reverse-index inversion against real EdGe2 data. |
+| `components/component-tara-flow.int.test.ts` | Multi-project TARA end to end with real git repositories: component committed and tagged → read pinned → imported into a machine, risks synced → saved and loaded → decisions → Overview view and deviations → drift → trivial update applied, decisions kept → non-trivial update recognised → CLI report (en / de) → AVE check (clean, then a snapshot edited in place) → last instance deleted. jsdom: the import edits the draw.io XML through the DOM. |
 
 ## Candidate for later (Option B)
 
