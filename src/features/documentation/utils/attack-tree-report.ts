@@ -234,21 +234,52 @@ export function importedAttackTreeSections(
       t(`${K}.importedRating`, "Rating"),
       t(
         `${K}.importedRatingText`,
-        "Paths rated with this TARA's feasibility configuration; the window of opportunity of each step is this TARA's decision, per instance.",
+        "Paths rated with this TARA's feasibility configuration; the window of opportunity of each step is this TARA's decision, per instance; the other factors are the component's.",
       ),
     ]);
+    // What the abbreviations of the factor column stand for.
+    facts.push([
+      t(`${K}.legend`, "Abbreviations"),
+      (
+        [
+          ["elapsedTime", "ET", "et", "elapsed time"],
+          ["specialistExpertise", "SE", "se", "specialist expertise"],
+          ["knowledgeOfItem", "KoI", "kn", "knowledge of the item"],
+          ["equipment", "Eq", "eq", "equipment"],
+          ["windowOfOpportunity", "WoO", "wo", "window of opportunity"],
+        ] as const
+      )
+        .map(([k, d, key, name]) => `${t(`${K}.factorShort.${k}`, d)} = ${t(`tabs.attacktree.feasibility.factor.${key}`, name)}`)
+        .join(", "),
+    ]);
     const root = structureOf(g.tree);
+    // Per step every factor that enters the potential, with its origin
+    // (review 2026-11-12): the component's four, this TARA's window.
+    const short = (k: string, d: string) => t(`${K}.factorShort.${k}`, d);
     const steps = (path: DocImportedAttackTree["instances"][number]["paths"][number]) =>
       path.steps
         .map((s) => {
-          const value = s.window
-            ? `${woo(s.window)} (${t(`${K}.ratedHere`, "rated by this TARA")})`
-            : !s.ratable
-              ? t(`${K}.notRatable`, "not ratable (no factor breakdown)")
-              : `${t(`${K}.notRated`, "not rated yet")}${s.componentWindow ? ` — ${t(`${K}.componentSuggests`, "component: {{value}}").replace("{{value}}", woo(s.componentWindow))}` : ""}`;
+          if (!s.ratable) {
+            const value = t(`${K}.notRatable`, "not ratable (no factor breakdown)");
+            return s.name ? `${s.name}: ${value}` : value;
+          }
+          const f = s.componentFactors;
+          const component = f
+            ? `${[
+                `${short("elapsedTime", "ET")} ${woo(f.elapsedTime)}`,
+                `${short("specialistExpertise", "SE")} ${woo(f.specialistExpertise)}`,
+                `${short("knowledgeOfItem", "KoI")} ${woo(f.knowledgeOfItem)}`,
+                `${short("equipment", "Eq")} ${woo(f.equipment)}`,
+              ].join(" · ")} (${t(`${K}.fromComponent`, "component")})`
+            : "";
+          const window = s.window
+            ? `${short("windowOfOpportunity", "WoO")} ${woo(s.window)} (${t(`${K}.ratedHere`, "rated by this TARA")})`
+            : `${short("windowOfOpportunity", "WoO")} ${t(`${K}.notRated`, "not rated yet")}${s.componentWindow ? ` — ${t(`${K}.componentSuggests`, "component: {{value}}").replace("{{value}}", woo(s.componentWindow))}` : ""}`;
+          const value = [component, window].filter(Boolean).join(" · ");
           return s.name ? `${s.name}: ${value}` : value;
         })
-        .join("; ") || "–";
+        // one step per line where the format keeps line breaks (PDF); "; " in the others
+        .join(";\n") || "–";
     return {
       title: `${componentAtLabel(g.componentName, g.at, t)} · AT-${g.treeNumber} ${g.tree.customTitle || g.tree.name}`,
       facts,
@@ -258,7 +289,7 @@ export function importedAttackTreeSections(
       headers: [
         t(`${K}.colPath`, "Path"),
         t(`${K}.colChain`, "Attack path"),
-        t(`${K}.colWindow`, "Window of opportunity per step"),
+        t(`${K}.colWindow`, "Attack potential factors per step"),
         t(`${K}.colPotential`, "Attack potential"),
         t(`${K}.colFeasibility`, "Attack feasibility"),
         t(`${K}.colRelevance`, "Relevance"),

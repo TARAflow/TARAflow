@@ -267,6 +267,12 @@ export interface ComponentAttackPathRow {
   stepName?: string;
   /** The component's window of opportunity on this path (step). */
   componentWindow?: WindowOfOpportunity;
+  /**
+   * The component's other attack-potential factors of this step — they enter
+   * the machine's potential unchanged (only the window is the machine's);
+   * the report shows them with their origin (6a-1b, review 2026-11-12).
+   */
+  componentFactors?: Omit<AttackPotentialFactors, "windowOfOpportunity">;
   /** The machine's rating (overlay), if any. */
   machineWindow?: WindowOfOpportunity;
   /** Feasibility with the machine's rating. */
@@ -322,6 +328,12 @@ export function componentAttackPathGroups(project: MachineTrees): ComponentAttac
             ...base,
             ...(step.leafId ? { leafId: step.leafId, stepName: step.name } : {}),
             componentWindow: step.factors.windowOfOpportunity,
+            componentFactors: {
+              elapsedTime: step.factors.elapsedTime,
+              specialistExpertise: step.factors.specialistExpertise,
+              knowledgeOfItem: step.factors.knowledgeOfItem,
+              equipment: step.factors.equipment,
+            },
             ...(machine ? { machineWindow: machine } : {}),
             ratable: true,
           });

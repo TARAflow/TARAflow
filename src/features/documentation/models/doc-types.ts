@@ -327,7 +327,14 @@ export interface DocImportedAttackPath {
   feasibility?: string;
   relevance: { relevance: string; strideCategory?: string }[];
   /** The window of opportunity per step: this TARA's rating, else the component's value as a suggestion. */
-  steps: { name?: string; window?: string; componentWindow?: string; ratable: boolean }[];
+  steps: {
+    name?: string;
+    window?: string;
+    componentWindow?: string;
+    /** The component's other factors of the step (elapsed time, expertise, knowledge, equipment) — unchanged in this TARA's potential. */
+    componentFactors?: { elapsedTime: string; specialistExpertise: string; knowledgeOfItem: string; equipment: string };
+    ratable: boolean;
+  }[];
 }
 
 export interface DocImportedAttackTree {

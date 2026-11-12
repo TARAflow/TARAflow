@@ -165,6 +165,7 @@ export function docImportedAttackTrees(project: Pick<Project, "components" | "at
                   ...(r.stepName ? { name: r.stepName } : {}),
                   ...(r.machineWindow ? { window: r.machineWindow } : {}),
                   ...(r.componentWindow ? { componentWindow: r.componentWindow } : {}),
+                  ...(r.componentFactors ? { componentFactors: { ...r.componentFactors } } : {}),
                   ratable: r.ratable,
                 })),
             })),

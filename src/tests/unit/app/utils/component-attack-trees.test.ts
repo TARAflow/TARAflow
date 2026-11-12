@@ -394,10 +394,44 @@ describe("the report's imported attack trees (6a-1b, review 2026-11-11)", () => 
     const s = sections[0];
     expect(s.title.startsWith(`${headlamp.info.name} @ a · AT-1 `)).toBe(true);
     expect(s.outline.some((o) => o.text.includes("AP "))).toBe(false);
-    expect(s.headers).toContain("Window of opportunity per step");
+    expect(s.headers).toContain("Attack potential factors per step");
+    // every factor that enters the potential, with its origin (review 2026-11-12)
+    expect(s.facts.find(([label]) => label === "Abbreviations")?.[1]).toContain("ET = elapsed time");
     const text = s.rows.map((r) => r.join(" | ")).join("\n");
     expect(text).toContain("(rated by this TARA)");
+    expect(text).toMatch(/ET \S+ · SE \S+ · KoI \S+ · Eq \S+ \(component\) · WoO \S+ \(rated by this TARA\)/);
     expect(text).toMatch(/not rated yet — component: /);
     expect(s.rows.some((r) => r[0].startsWith("HL2:"))).toBe(true);
+    // an AND combination: one line per step, each named with its factors
+    const f = { elapsedTime: "le-1-week", specialistExpertise: "proficient", knowledgeOfItem: "public", equipment: "standard" };
+    const [and] = importedAttackTreeSections(
+      [
+        {
+          ...docImportedAttackTrees(half)[0],
+          instances: [
+            {
+              prefix: "HL1",
+              paths: [
+                {
+                  id: "HL1:AT-1.9",
+                  chain: ["Goal", "AND"],
+                  relevance: [],
+                  steps: [
+                    { name: "Open housing", componentFactors: f, window: "easy", ratable: true },
+                    { name: "Flash firmware", componentFactors: f, componentWindow: "moderate", ratable: true },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      undefined,
+      t,
+    );
+    expect(and.rows[0][2].split(";\n")).toEqual([
+      "Open housing: ET le-1-week · SE proficient · KoI public · Eq standard (component) · WoO easy (rated by this TARA)",
+      "Flash firmware: ET le-1-week · SE proficient · KoI public · Eq standard (component) · WoO not rated yet — component: moderate",
+    ]);
   });
 });
