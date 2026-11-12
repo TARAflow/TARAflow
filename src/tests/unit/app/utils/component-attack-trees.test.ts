@@ -429,9 +429,22 @@ describe("the report's imported attack trees (6a-1b, review 2026-11-11)", () => 
       undefined,
       t,
     );
-    expect(and.rows[0][2].split(";\n")).toEqual([
+    expect(and.rows[0][2].split("\n")).toEqual([
       "Open housing: ET le-1-week · SE proficient · KoI public · Eq standard (component) · WoO easy (rated by this TARA)",
       "Flash firmware: ET le-1-week · SE proficient · KoI public · Eq standard (component) · WoO not rated yet — component: moderate",
     ]);
+    // each format breaks the cell like its other tables (review 2026-11-12)
+    const { MarkdownGenerator } = await import("features/documentation/utils/generators/markdown-generator");
+    const { HtmlGenerator } = await import("features/documentation/utils/generators/html-generator");
+    const { AsciidocGenerator } = await import("features/documentation/utils/generators/asciidoc-generator");
+    const { StrictdocGenerator } = await import("features/documentation/utils/generators/strictdoc-generator");
+    const doc = { info: { name: "M" }, computed: {} } as never;
+    const render = (G: never) => new (G as new (...a: unknown[]) => { formatAttackTreeSection: (x: unknown) => string })(doc, { language: "en" }, t).formatAttackTreeSection(and);
+    expect(render(MarkdownGenerator as never)).toContain("(rated by this TARA)<br>Flash firmware: ");
+    expect(render(HtmlGenerator as never)).toContain("(rated by this TARA)<br>Flash firmware: ");
+    const adoc = render(AsciidocGenerator as never);
+    expect(adoc).toContain("(rated by this TARA) +\nFlash firmware: ");
+    expect(adoc).toContain('[cols="1,3,4,1,1,1", options="header"]');
+    expect(render(StrictdocGenerator as never)).toContain("(rated by this TARA); Flash firmware: ");
   });
 });

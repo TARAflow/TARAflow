@@ -278,8 +278,9 @@ export function importedAttackTreeSections(
           const value = [component, window].filter(Boolean).join(" · ");
           return s.name ? `${s.name}: ${value}` : value;
         })
-        // one step per line where the format keeps line breaks (PDF); "; " in the others
-        .join(";\n") || "–";
+        // one step per line: a line break in every format (<br> in Markdown and
+        // HTML, a hard break in AsciiDoc, \n in the PDF; review 2026-11-12)
+        .join("\n") || "–";
     return {
       title: `${componentAtLabel(g.componentName, g.at, t)} · AT-${g.treeNumber} ${g.tree.customTitle || g.tree.name}`,
       facts,

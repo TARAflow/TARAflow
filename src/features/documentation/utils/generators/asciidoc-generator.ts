@@ -218,7 +218,8 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
       ...(section.rows.length
         ? [
             `.${section.pathsTitle}`,
-            `[cols="1,4,1,1,1", options="header"]`,
+            // an imported tree has a sixth column, the factors per step (6a-1b)
+            `[cols="${section.headers.length > 5 ? "1,3,4,1,1,1" : "1,4,1,1,1"}", options="header"]`,
             "|===",
             row(section.headers),
             "",

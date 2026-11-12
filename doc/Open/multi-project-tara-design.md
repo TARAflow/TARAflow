@@ -1004,6 +1004,10 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 77 done (2026-11-12, review of 76):* a cell's steps break the line in every format like the
+other multi-line cells of the report — `<br>` in Markdown and HTML, a hard break in AsciiDoc, `\n` in
+the PDF; StrictDoc's list-table cells hold one line ("; "). The AsciiDoc path table had fixed five
+columns — an imported tree's sixth (the factors per step) gets its own column widths.
 *Patch 76 done (2026-11-12, review of 75):* the attack potential of an imported path can be
 recomputed from the report. The structure stays without the component's leaf ratings; the path table
 shows per step every factor that enters the potential, with its origin: "ET … · SE … · KoI … · Eq …
@@ -1377,7 +1381,10 @@ per component, provenance in the tables. Cut 2026-11-11 (user, review 2026-11-11
   trivial updates (no new EE, no pairing, nothing dropped or to review → "No decision of this
   machine affected", Apply at once — still the dialog); a test for deleting the last / one of two
   instances.
-- Then: end-to-end test, example and test protocol, release notes.
+- Then: end-to-end test, example and test protocol, release notes. The example pair gets the ISO path
+  (review 2026-11-12): a small attack tree with a ratable AND combination of two steps (e.g. "open
+  the housing" AND "use the debug port") — the report's path table of an AND combination is then
+  covered by the full test and the PDF check, not only by constructed data.
 
 ## 14. Testing
 
