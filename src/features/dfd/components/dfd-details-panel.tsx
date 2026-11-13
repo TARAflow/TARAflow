@@ -553,10 +553,13 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (run
           ×{info.quantity}
         </Typography>
       ) : null}
+      {/* its own line, left-aligned like the other actions (not beside the quantity field) */}
       {info.onOpen && (
-        <Button size="small" sx={{ mt: 0.5, px: 0 }} onClick={info.onOpen} data-testid="component-open">
-          {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
-        </Button>
+        <Box sx={{ mt: 0.5 }}>
+          <Button size="small" sx={{ px: 0 }} onClick={info.onOpen} data-testid="component-open">
+            {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
+          </Button>
+        </Box>
       )}
       {info.renderExtra?.()}
       {info.onCopyRatings && (info.copySources?.length ?? 0) > 0 && (

@@ -270,7 +270,15 @@ export const WorkspaceLayout: React.FC = () => {
   const componentDrift = useComponentDrift(activeProject);
   const componentImport = useComponentImport({
     activeProject,
-    openProjectFile,
+    // "Open component TARA" shows the component's DFD (user 2026-11-14)
+    ...(openProjectFile
+      ? {
+          openProjectFile: async (filePath: string) => {
+            await openProjectFile(filePath);
+            navigation.handlePhaseChange(PhaseId.DFD);
+          },
+        }
+      : {}),
     projectsRef,
     activeProjectRef,
     updateProject,
