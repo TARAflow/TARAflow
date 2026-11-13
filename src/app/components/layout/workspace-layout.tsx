@@ -49,7 +49,7 @@ import { PhaseTabs } from "../navigation/phase-tab-bar";
 
 import { GeneralTab, type GeneralTabData } from "features/overview";
 import { HazardsTab } from "features/hazards";
-import { DFDTab } from "features/dfd";
+import { COMPONENT_TAB, DFDTab } from "features/dfd";
 import { AssetsTab } from "features/assets";
 import {
   StrideMethod,
@@ -393,7 +393,7 @@ export const WorkspaceLayout: React.FC = () => {
             onOpenAuditTab={() => handlePhaseChange(PhaseId.Audit)}
             onOpenRiskTab={() => handlePhaseChange(PhaseId.Risk)}
             components={componentOverview}
-            onShowComponentInDfd={navigation.showElement}
+            onShowComponentInDfd={(multiprocessTfId) => navigation.showElement(multiprocessTfId, COMPONENT_TAB)}
             {...(componentImportAvailable()
               ? { onCheckComponents: componentDrift.recheck, componentsChecking: componentDrift.checking }
               : {})}

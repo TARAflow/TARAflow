@@ -29,7 +29,7 @@ import {
 import type { Project } from "../../models/project-types";
 import { instanceLabel, quantityOf, withInstanceQuantity } from "../../services/component-import/instance-quantity";
 import { copyInstanceRatings, copySourcesOf } from "../../services/component-import/copy-ratings";
-import { instanceAssumptions, projectMeasureOptions, withAssumptionStatus } from "../../services/component-import/assumption-status";
+import { assumptionGaps, instanceAssumptions, projectMeasureOptions, withAssumptionStatus } from "../../services/component-import/assumption-status";
 import { buildAssetDataReference } from "../../utils/build-asset-data-reference";
 import { buildAssetHazardLinks } from "../../utils/build-asset-hazard-links";
 import { recalculateRiskValues } from "features/risks";
@@ -387,6 +387,8 @@ export function useComponentImport({
         name: imported.name,
         prefix: instance.prefix,
         source: componentSourceLabel(imported.source),
+        // the tab "Component" counts them and opens first while any is open
+        openAssumptions: assumptionGaps(instance, imported, activeProjectRef.current?.risks?.risks).open.length,
         // update (5c-2): offered for a newer state; discard while the update is not saved
         ...(() => {
           // update to a newer state, or refresh the stored state of the same commit (builder changed)

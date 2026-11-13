@@ -30,7 +30,7 @@ import { MALWARE_PROTECTION_OPTIONS, type MultiprocessProperties, SECURE_CHANNEL
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { SecurityControlOwnershipDisplay } from "./security-control-ownership-display";
 import { type AvailableAsset } from "./asset-relation-selector";
-import { ElementFormShell } from "./element-form-shell";
+import { ElementFormShell, type ExtraTab, type TabRequest } from "./element-form-shell";
 import { SessionControlFields, UpdateMechanismField } from "./update-session-fields";
 import { useElementVisibilityContext, useModelFieldEntries } from "./model-field-inputs";
 import { hasChannelCapableFlow } from "../../utils/secure-channel";
@@ -51,6 +51,9 @@ interface MultiprocessFormProps {
   onChange: (updates: Partial<DFDElement>) => void;
   availableAssets?: AvailableAsset[];
   onCreateAsset?: (name: string, assetGroup: AssetGroup) => AvailableAsset;
+  /** Tabs before "General" (filled by the details panel), and a tab to open. */
+  extraTabs?: readonly ExtraTab[];
+  tabRequest?: TabRequest | null;
 }
 
 interface MultiprocessGeneralTabProps {
@@ -1173,12 +1176,14 @@ const MultiprocessGeneralTab: React.FC<MultiprocessGeneralTabProps> = ({
 // ==================== EXPORT ====================
 
 export const MultiprocessDescriptionForm = React.memo<MultiprocessFormProps>(
-  ({ element, onChange, availableAssets = [], onCreateAsset }) => (
+  ({ element, onChange, availableAssets = [], onCreateAsset, extraTabs, tabRequest }) => (
     <ElementFormShell
       element={element}
       onChange={onChange}
       availableAssets={availableAssets}
       onCreateAsset={onCreateAsset}
+      {...(extraTabs ? { extraTabs } : {})}
+      {...(tabRequest ? { tabRequest } : {})}
       generalTab={
         <MultiprocessGeneralTab element={element} onChange={onChange} />
       }
@@ -1186,7 +1191,9 @@ export const MultiprocessDescriptionForm = React.memo<MultiprocessFormProps>(
   ),
   (prev, next) =>
     prev.element === next.element &&
-    prev.availableAssets === next.availableAssets,
+    prev.availableAssets === next.availableAssets &&
+    prev.extraTabs === next.extraTabs &&
+    prev.tabRequest === next.tabRequest,
 );
 
 export default MultiprocessDescriptionForm;

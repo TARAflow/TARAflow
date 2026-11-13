@@ -1004,6 +1004,17 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 98 done (2026-11-13, user + review):* **the tab "Component".** An imported component's section
+(drift with Check / Update, reviews, quantity, copy ratings, the assumptions checklist) stood above the
+element form's tabs and pushed "General" and "Relations" out of view. It is a tab now, before "General"
+in the same bar; identity and child page stay above as a header (they matter in every tab). The
+element form has a general slot for it (`extraTabs: { id, label, badge?, render }[]`) — it knows
+nothing of components; the details panel fills it. The start tab is fixed, never by state: an imported
+multiprocess opens on "Component"; a number on the tab signals what is open (assumptions of use open,
+reviews, a newer state); a tab the user picks stays picked for the session among elements with the
+same extra tabs. A component finding in the DFD panel and the Overview's "Show in DFD" open the tab on
+purpose (`tabRequest` / `ElementFocusRequest.tab`). Texts pointing to the "component section" name
+the tab.
 *Patch 97 done (2026-11-13, review):* **imported attack trees outside ISO/SAE 21434 are for
 information.** Only an ISO machine rates attack paths (window of opportunity per step); the
 CMP_PATH_* findings were already ISO-only, but the report's path table wrote "WoO not rated yet" for

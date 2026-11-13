@@ -156,6 +156,7 @@ export { type ICrossingElements } from "./interfaces/drawio-interfaces";
 // ==================== COMPONENTS ====================
 export { DFDPreviewDialog } from "./components/dfd-preview-dialog";
 export { DFDTab } from "./components/dfd-tab";
+export { COMPONENT_TAB } from "./components/dfd-details-panel";
 export { DefaultDFDGraphBuilder } from "./services/dfd-graph-builder";
 export {
   buildDfdGraph,

@@ -51,7 +51,7 @@
     },
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Component {{component}}: a newer state is available ({{where}}). Nothing changes until it is taken over explicitly (update).",
-      "CMP_SNAPSHOT_BUILDER_CHANGED": "Component {{component}}: this TARAflow reads the imported state differently from the version that imported it — the component itself did not change. \"Refresh stored state…\" in the component section takes the new reading over.",
+      "CMP_SNAPSHOT_BUILDER_CHANGED": "Component {{component}}: this TARAflow reads the imported state differently from the version that imported it — the component itself did not change. \"Refresh stored state…\" in the multiprocess's tab \"Component\" takes the new reading over.",
       "CMP_SOURCE_DIVERGED": "Component {{component}}: a state on a separate branch ({{where}}) — neither newer nor older than the imported one (e.g. after a rebase). Check with the component team before taking it over.",
       "CMP_SOURCE_UNREACHABLE": "Component {{component}}: whether a newer state exists cannot be checked here ({{reason}}).",
       "CMP_SOURCE_UNPINNED": "Component {{component}} is imported unpinned ({{reason}}) — only its content identifies the state. For an audited TARA commit the file: \"Check\" then offers \"Refresh stored state…\", which binds the import to the commit.",
@@ -69,7 +69,7 @@
       "CMP_MEASURE_OVERRIDDEN": "Component {{prefix}} ({{component}}): measure(s) marked not effective here by this machine — {{list}}: the residual risk of the risks relying on them is not credited; tell the component team which assumption of use is missing.",
       "CMP_MEASURE_OVERRIDE_UNKNOWN": "Component {{prefix}} ({{component}}): measure(s) marked not effective here that the component no longer chooses — {{list}}: the mark acts on nothing; withdraw it or check the component update.",
       "CMP_ACCEPTANCE_TO_REVIEW": "Component {{prefix}} ({{component}}): acceptance to review — {{list}}: the residual risk is not credited, a component measure is not effective or unclear in this instance.",
-      "CMP_AOU_OPEN": "Component {{prefix}} ({{component}}): {{count}} assumption(s) of use still open in this instance — check them in the multiprocess's details.",
+      "CMP_AOU_OPEN": "Component {{prefix}} ({{component}}): {{count}} assumption(s) of use still open in this instance — check them in the multiprocess's tab \"Component\".",
       "CMP_AOU_VIOLATED": "Component {{prefix}} ({{component}}): assumption(s) {{list}} not fulfilled — the component's analysis is not valid in this machine until resolved.",
       "CMP_AOU_EVIDENCE_NOT_CHOSEN": "Component {{prefix}} ({{component}}): {{assumption}} is marked fulfilled by {{measures}}, which no risk of this machine chooses — it never gets a status or a ticket, so the assumption counts as unclear: choose the measure on the risk it treats.",
       "CMP_AOU_MET_BY_PENDING": "Component {{prefix}} ({{component}}): {{assumption}} is marked fulfilled by measure(s) {{measures}} of this machine that are not implemented yet — the component measures relying on it count as unclear until then.",
@@ -78,6 +78,7 @@
     },
     "instanceRemoved": "Component instance removed with its multiprocess: {{list}}",
     "details": {
+      "tab": "Component",
       "title": "Imported component ({{prefix}}) — read-only",
       "open": "Open component TARA",
       "quantity": "Quantity (identical units, same place)",

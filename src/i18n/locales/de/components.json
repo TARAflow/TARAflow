@@ -51,7 +51,7 @@
     },
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Komponente {{component}}: ein neuerer Stand ist verfügbar ({{where}}). Nichts ändert sich, bis er explizit übernommen wird (Update).",
-      "CMP_SNAPSHOT_BUILDER_CHANGED": "Komponente {{component}}: dieses TARAflow liest den importierten Stand anders als die Version, die ihn importiert hat — die Komponente selbst hat sich nicht geändert. „Gespeicherten Stand auffrischen…“ im Komponenten-Abschnitt übernimmt ihn neu.",
+      "CMP_SNAPSHOT_BUILDER_CHANGED": "Komponente {{component}}: dieses TARAflow liest den importierten Stand anders als die Version, die ihn importiert hat — die Komponente selbst hat sich nicht geändert. „Gespeicherten Stand auffrischen…“ im Tab „Komponente“ des Multiprozesses übernimmt ihn neu.",
       "CMP_SOURCE_DIVERGED": "Komponente {{component}}: ein Stand auf getrenntem Ast ({{where}}) — weder neuer noch älter als der importierte (z.B. nach einem Rebase). Vor einer Übernahme mit dem Komponenten-Team klären.",
       "CMP_SOURCE_UNREACHABLE": "Komponente {{component}}: ob es einen neueren Stand gibt, lässt sich hier nicht prüfen ({{reason}}).",
       "CMP_SOURCE_UNPINNED": "Komponente {{component}} ist ungebunden importiert ({{reason}}) — nur ihr Inhalt kennzeichnet den Stand. Für eine auditierte TARA die Datei committen: „Prüfen“ bietet dann „Gespeicherten Stand auffrischen…“ an, das den Import an den Commit bindet.",
@@ -69,7 +69,7 @@
       "CMP_MEASURE_OVERRIDDEN": "Komponente {{prefix}} ({{component}}): Massnahme(n) von dieser Maschine als hier nicht wirksam markiert — {{list}}: das Restrisiko der Risiken, die darauf beruhen, wird nicht angerechnet; dem Komponenten-Team melden, welche Einsatzannahme fehlt.",
       "CMP_MEASURE_OVERRIDE_UNKNOWN": "Komponente {{prefix}} ({{component}}): als hier nicht wirksam markierte Massnahme(n), die die Komponente nicht mehr wählt — {{list}}: die Markierung wirkt auf nichts; zurücknehmen oder das Komponenten-Update prüfen.",
       "CMP_ACCEPTANCE_TO_REVIEW": "Komponente {{prefix}} ({{component}}): Akzeptanz zur Prüfung — {{list}}: das Restrisiko wird nicht angerechnet, eine Massnahme der Komponente ist in dieser Instanz nicht wirksam oder ungeklärt.",
-      "CMP_AOU_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} Annahme(n) zur Verwendung in dieser Instanz noch offen — in den Details des Multiprozesses prüfen.",
+      "CMP_AOU_OPEN": "Komponente {{prefix}} ({{component}}): {{count}} Annahme(n) zur Verwendung in dieser Instanz noch offen — im Tab „Komponente“ des Multiprozesses prüfen.",
       "CMP_AOU_VIOLATED": "Komponente {{prefix}} ({{component}}): Annahme(n) {{list}} nicht erfüllt — die Analyse der Komponente gilt in dieser Maschine nicht, bis das gelöst ist.",
       "CMP_AOU_EVIDENCE_NOT_CHOSEN": "Komponente {{prefix}} ({{component}}): {{assumption}} gilt als erfüllt durch {{measures}}, die kein Risiko dieser Maschine wählt — sie bekommt nie einen Status oder ein Ticket, die Annahme bleibt ungeklärt: die Massnahme beim Risiko erfassen, das sie behandelt.",
       "CMP_AOU_MET_BY_PENDING": "Komponente {{prefix}} ({{component}}): {{assumption}} gilt als erfüllt durch Massnahme(n) {{measures}} dieser Maschine, die noch nicht umgesetzt sind — die Massnahmen der Komponente, die darauf beruhen, gelten bis dahin als ungeklärt.",
@@ -78,6 +78,7 @@
     },
     "instanceRemoved": "Komponenten-Instanz mit ihrem Multiprozess entfernt: {{list}}",
     "details": {
+      "tab": "Komponente",
       "title": "Importierte Komponente ({{prefix}}) — schreibgeschützt",
       "open": "Komponenten-TARA öffnen",
       "quantity": "Anzahl (gleiche Einheiten, gleicher Ort)",

@@ -25,6 +25,7 @@ import { ChipBoundaryDescriptionForm } from "./forms/chip-boundary-form";
 import { PhysicalBoundaryDescriptionForm } from "./forms/physical-boundary-form";
 import { SensorDescriptionForm } from "./forms/sensor-description-form";
 import { ActuatorDescriptionForm } from "./forms/actuator-description-form";
+import type { ExtraTab, TabRequest } from "./forms/element-form-shell";
 
 // ==================== PROPS ====================
 
@@ -38,6 +39,9 @@ interface DFDElementFormProps {
   graphContext?: DFDGraphAnalysisContext | null;
   /** Leveled DFD: flows a data flow may refine (§6.4); absent = single page. */
   refinementCandidates?: RefinementCandidate[];
+  /** Tabs before "General" (multiprocess), and a tab to open. */
+  extraTabs?: readonly ExtraTab[];
+  tabRequest?: TabRequest | null;
 }
 
 // ==================== COMPONENT ====================
@@ -71,6 +75,8 @@ const DFDElementTypeForm: React.FC<DFDElementFormProps> = ({
   onCreateAsset,
   graphContext,
   refinementCandidates,
+  extraTabs,
+  tabRequest,
 }) => {
   // ==================== DATA FLOW (Connection) ====================
 
@@ -124,6 +130,8 @@ const DFDElementTypeForm: React.FC<DFDElementFormProps> = ({
           onChange={onChange as (updates: Partial<DFDElement>) => void}
           availableAssets={availableAssets}
           onCreateAsset={onCreateAsset}
+          {...(extraTabs ? { extraTabs } : {})}
+          {...(tabRequest ? { tabRequest } : {})}
         />
       );
 

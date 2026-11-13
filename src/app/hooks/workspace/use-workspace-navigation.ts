@@ -37,6 +37,8 @@ export function useWorkspaceNavigation({
   // the element selected.
   const [elementFocusRequest, setElementFocusRequest] = useState<{
     elementId: string;
+    /** A tab of the element form to open (e.g. the component tab). */
+    tab?: string;
   } | null>(null);
   // A component runner (update / refresh) started outside the DFD tab, e.g.
   // from the Overview's component accordion (6d): DFD tab, the editor path.
@@ -115,8 +117,8 @@ export function useWorkspaceNavigation({
     [handlePhaseChange],
   );
   const showElement = useCallback(
-    (elementId: string) => {
-      setElementFocusRequest({ elementId });
+    (elementId: string, tab?: string) => {
+      setElementFocusRequest(tab ? { elementId, tab } : { elementId });
       handlePhaseChange(PhaseId.DFD);
     },
     [handlePhaseChange],

@@ -489,6 +489,8 @@ export interface ComponentMultiprocessInfo {
   updateIsRefresh?: boolean;
   /** "Discard update" while not saved: the project as before, through the same runner path. */
   discardRunner?: ComponentImportRunner;
+  /** Assumptions of use still open in this instance — counted on the tab "Component". */
+  openAssumptions?: number;
   /** Decisions to review after an update (derived), each with its confirm action. */
   reviews?: { key: string; text: string; onConfirm: () => void }[];
 }

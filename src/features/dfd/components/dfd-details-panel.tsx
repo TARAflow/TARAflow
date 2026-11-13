@@ -39,6 +39,10 @@ import { Button } from "@mui/material";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
+import type { ExtraTab, TabRequest } from "./forms/element-form-shell";
+
+/** The id of the tab "Component" — a finding or "Show in DFD" opens it on purpose. */
+export const COMPONENT_TAB = "component";
 import type { RefinementCandidate } from "./forms/dataflow-description-form";
 import type { AssetUsageLookup } from "shared";
 import { AssetPanel } from "./dfd-asset-panel";
@@ -112,6 +116,8 @@ interface DFDDetailsPanelProps {
   componentInfo?: ComponentMultiprocessInfo;
   /** Runs a component runner (update / discard) through the DFD tab: commit, then load into draw.io. */
   onRunComponent?: (runner: ComponentImportRunner) => void;
+  /** Open a tab of the element form on purpose (e.g. "component" from a finding). */
+  tabRequest?: TabRequest | null;
 }
 
 // ==================== COMPONENT ====================
@@ -145,6 +151,7 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   assetRollup,
   componentInfo,
   onRunComponent,
+  tabRequest,
 }) => {
   const { t } = useTranslation();
 
@@ -348,9 +355,6 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
             {activeTab === "element" && hasSelection && (
               <Box sx={{ flexGrow: 1, overflow: "auto" }}>
                 {identity && <IdentitySection {...identity} />}
-                {componentInfo && element?.type === "Multiprocess" && (
-                  <ComponentSection info={componentInfo} onRun={onRunComponent} />
-                )}
                 {childPage && element?.type === "Multiprocess" && (
                   <ChildPageSection info={childPage} />
                 )}
@@ -364,6 +368,14 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                     onCreateAsset={onCreateAsset}
                     graphContext={graphContext}
                     refinementCandidates={refinementCandidates}
+                    {...(componentInfo && element?.type === "Multiprocess"
+                      ? {
+                          extraTabs: [
+                            componentTab(componentInfo, onRunComponent, t("components.details.tab", { ns: "components", defaultValue: "Component" })),
+                          ],
+                        }
+                      : {})}
+                    {...(tabRequest ? { tabRequest } : {})}
                   />
                 </AssetRollupContext.Provider>
               </Box>
@@ -397,13 +409,31 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
 
 export default DFDDetailsPanel;
 
+/**
+ * The tab "Component" of an imported multiprocess (user 2026-11-13), in the
+ * form's slot before "General". Its number: assumptions of use still open,
+ * decisions to review, a newer state — a signal, the start tab stays fixed.
+ */
+function componentTab(
+  info: ComponentMultiprocessInfo,
+  onRun: ((runner: ComponentImportRunner) => void) | undefined,
+  label: string,
+): ExtraTab {
+  return {
+    id: COMPONENT_TAB,
+    label,
+    badge: (info.openAssumptions ?? 0) + (info.reviews?.length ?? 0) + (info.drift?.kind === "newer_available" ? 1 : 0),
+    render: () => <ComponentSection info={info} onRun={onRun} />,
+  };
+}
+
 /** An imported component: name, prefix, source, "Open component TARA". */
 const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (runner: ComponentImportRunner) => void }> = ({ info, onRun }) => {
   const { t } = useTranslation();
   const [copying, setCopying] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   return (
-    <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }} data-testid="component-section">
+    <Box sx={{ px: 1, pb: 1 }} data-testid="component-section">
       <Typography variant="caption" color="text.secondary" display="block">
         {t("components.details.title", { ns: "components", defaultValue: "Imported component ({{prefix}}) — read-only", prefix: info.prefix })}
       </Typography>

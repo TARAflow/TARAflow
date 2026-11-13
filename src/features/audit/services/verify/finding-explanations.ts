@@ -122,7 +122,7 @@ const EXPLANATIONS: Record<FindingId, FindingExplanation> = {
   // ── Imported components ────────────────────────────────────────────────
   CMP_SNAPSHOT_HASH_MISMATCH: {
     title: "An imported component's snapshot was changed after the import",
-    hint: "The component data embedded in the project file no longer matches its recorded hash — changed after the import, by hand or by a tool. Refresh the stored state in the component section of the DFD tab, or import the component again.",
+    hint: "The component data embedded in the project file no longer matches its recorded hash — changed after the import, by hand or by a tool. Refresh the stored state in the multiprocess's tab \"Component\" (DFD), or import the component again.",
   },
 
   // ── Hooks + protection attestation ─────────────────────────────────────

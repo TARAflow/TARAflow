@@ -124,7 +124,7 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
                 {item.aboutMissing && (
                   <Alert severity="info" sx={{ mb: 1 }} data-testid="component-overview-about-missing">
                     {t("overviewComponents.aboutMissing", {
-                      defaultValue: "Imported before the component's overview was taken along — \"Refresh stored state…\" in the component section (DFD) brings description, responsible and sources.",
+                      defaultValue: "Imported before the component's overview was taken along — \"Refresh stored state…\" in the multiprocess's tab \"Component\" (DFD) brings description, responsible and sources.",
                     })}
                   </Alert>
                 )}

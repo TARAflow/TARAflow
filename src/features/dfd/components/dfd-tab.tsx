@@ -59,7 +59,8 @@ import {
 } from "../asset-graph";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
-import { DFDDetailsPanel } from "./dfd-details-panel";
+import { COMPONENT_TAB, DFDDetailsPanel } from "./dfd-details-panel";
+import type { TabRequest } from "./forms/element-form-shell";
 import { ModelFieldProvider } from "./forms/model-field-inputs";
 import type { VisibilityElement, VisibilityFlowInput } from "shared";
 import { DFDConfigDialog } from "./dfd-config-dialog";
@@ -221,6 +222,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // section — selectedElementId is the logical record it shows.
   const [selectedCellRef, setSelectedCellRef] = useState<CellRef | null>(null);
   const [detailsPanelOpen, setDetailsPanelOpen] = useState(false);
+  // A tab of the element form opened on purpose (a finding, "Show in DFD").
+  const [tabRequest, setTabRequest] = useState<TabRequest | null>(null);
   const [showAutoNumberConfig, setShowAutoNumberConfig] = useState(false);
   const [autoNumberingConfig, setAutoNumberingConfig] =
     useState<DFDAutoNumberingConfig>(
@@ -785,6 +788,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const handleNotificationNavigation = useCallback(
     (id: string) => {
+      // A finding of an imported component's multiprocess: its tab "Component" (review 2026-11-13).
+      if (componentInfoOf?.(id)) {
+        setTabRequest({ tab: COMPONENT_TAB });
+        setDetailsPanelOpen(true);
+      }
       const asset = dfd?.assets?.find((a) => a.id === id || a.displayId === id);
 
       if (viewMode === "describe") {
@@ -818,7 +826,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       }
       editor.selectCell(id);
     },
-    [editor, dfd, viewMode, revealInDescription, setViewMode],
+    [editor, dfd, viewMode, revealInDescription, setViewMode, componentInfoOf],
   );
   // ── Asset graph view (D2, phase 2) ──────────────────────────────────────
   const assetGraphSource = useMemo(
@@ -879,6 +887,12 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   );
 
   useElementFocusRequest(elementFocusRequest, viewMode, setViewMode, editor.pluginReady, editor.selectCell);
+  // "Show in DFD" naming a tab (the Overview's component instances): open it.
+  useEffect(() => {
+    if (!elementFocusRequest?.tab) return;
+    setTabRequest({ tab: elementFocusRequest.tab });
+    setDetailsPanelOpen(true);
+  }, [elementFocusRequest]);
 
   // A component runner from another tab (6d): the drawing, then the editor's
   // runner path once — like the details panel's "Update…".
@@ -1083,6 +1097,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             element={selectedElement}
             componentInfo={selectedElement ? componentInfoOf?.(selectedElement.id) : undefined}
             onRunComponent={editor.pluginReady ? (runner) => void editor.insertComponent(runner) : undefined}
+            tabRequest={tabRequest}
             connection={selectedConnection}
             onChange={(updates) => {
               if (selectedElement) {
