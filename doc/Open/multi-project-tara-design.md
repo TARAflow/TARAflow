@@ -1004,6 +1004,16 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 93 done (2026-11-13, review of the release notes):* **an unpinned import is bound once its
+file is committed.** Before, the drift check of an unpinned import compared only the content of the
+file on disk; committed later without a change, it stayed "up to date" and was never pinned — "try,
+then commit" never led to a pinned import. Now the check also looks whether the file is tracked,
+unchanged and its HEAD state has the imported hash; then "up to date" carries the commit
+(`committedAs`), the drift text names it, and `updateTargetOf` offers "Refresh stored state…" — the
+refresh path of patch 71, which reads the file pinned and keeps what the import chose (same
+repository, tag pattern). The finding CMP_SOURCE_UNPINNED names the way. A pinned import is not
+affected. Tests with real git: untracked → nothing offered; committed unchanged → refresh → commit set,
+`unpinned` gone, drift up to date; changed locally → a newer state, not a pinning.
 *Patch 88 done (2026-11-12):* **end-to-end test** (`component-tara-flow.int.test.ts`, integration
 suite, real git repositories): the component committed and tagged, read pinned as the import reads it,
 imported into a machine with its risks synced, saved and loaded through the CLI's loader, decided

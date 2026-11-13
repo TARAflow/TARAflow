@@ -285,3 +285,68 @@ describe("component TARA → machine → update → report → AVE (end-to-end, 
     expect(en).not.toContain("The PLC does not check frames");
   });
 });
+
+// Review 2026-11-13: "try, then commit" must lead to a pinned import. An
+// unpinned import whose file is committed later WITHOUT a content change has
+// no newer state — the check names the commit and "refresh the stored state"
+// binds the import to it.
+describe("an unpinned import committed later without a change is pinned by a refresh", () => {
+  let repo: string;
+  let file: string;
+  beforeAll(async () => {
+    repo = await mkdtemp(join(tmpdir(), "taraflow-unpinned-"));
+    await initRepo(repo);
+    await commit(repo, "README.md", "component repo\n", "init");
+    file = join(repo, "smoke.tara.json");
+    await writeFile(file, JSON.stringify(component.project, null, 2));
+  });
+  afterAll(async () => {
+    await rm(repo, { recursive: true, force: true });
+  });
+
+  it("untracked: unpinned, nothing to update; committed unchanged: refresh pins it to the commit", async () => {
+    const read = await readComponentSource(file, readText, run);
+    if (!read.ok) throw new Error(read.error);
+    expect(read.source.unpinned).toBe("untracked");
+    let project = importInto(read);
+    const unpinned = project.components!.imports[0];
+    // not committed yet: up to date, nothing offered
+    const before = await checkComponentDrift(unpinned, file, readText, run);
+    expect(before).toEqual({ kind: "up_to_date" });
+    expect(updateTargetOf(unpinned, before)).toBeUndefined();
+
+    // committed without a change
+    const sha = await commit(repo, "smoke.tara.json", JSON.stringify(component.project, null, 2), "component: commit the tried state");
+    const status = await checkComponentDrift(unpinned, file, readText, run);
+    expect(status).toEqual({ kind: "up_to_date", committedAs: { commitSha: sha } });
+    const target = updateTargetOf(unpinned, status);
+    expect(target).toMatchObject({ refresh: true, status: { commitSha: sha } });
+
+    // the refresh: the same content, now bound to the commit
+    const next = await readNewerComponentState(unpinned, file, target!.status, readText, run);
+    if (!next.ok) throw new Error(next.error);
+    expect(next.contentHash).toBe(unpinned.contentHash);
+    const choice = { pairs: [], ees: {} };
+    const outcome = updateOutcomeOf(applyComponentUpdate(updateInputOf(project, "imp", next, choice, "preview")));
+    expect(isTrivialUpdate(updatePreview(project, "imp", next), outcome)).toBe(true);
+    project = applyComponentUpdate(updateInputOf(project, "imp", next, choice, now)).project as Project;
+    const pinned = project.components!.imports[0];
+    expect(pinned.source.commitSha).toBe(sha);
+    expect(pinned.source.unpinned).toBeUndefined();
+    expect(pinned.source.path).toBe("smoke.tara.json");
+    // from now on a pinned import, up to date
+    expect(await checkComponentDrift(pinned, file, readText, run)).toEqual({ kind: "up_to_date" });
+  });
+
+  it("a local change after the commit is not offered as pinning (the content differs: a newer state)", async () => {
+    const read = await readComponentSource(file, readText, run);
+    if (!read.ok) throw new Error(read.error);
+    // an import that was taken unpinned from the committed content
+    const unpinned = { ...importInto(read).components!.imports[0], source: { ...read.source, commitSha: undefined, unpinned: "dirty" as const } };
+    await writeFile(file, JSON.stringify({ ...component.project, info: { ...component.project.info, description: "changed locally" } }, null, 2));
+    const status = await checkComponentDrift(unpinned as never, file, readText, run);
+    expect(status.kind).toBe("newer_available");
+    expect((status as { committedAs?: unknown }).committedAs).toBeUndefined();
+    await git(repo, "checkout", "--", "smoke.tara.json");
+  });
+});

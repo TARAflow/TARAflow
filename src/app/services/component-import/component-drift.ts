@@ -75,7 +75,17 @@ export type ComponentDriftReason =
   | "fetch_failed";
 
 export type ComponentDriftStatus =
-  | { kind: "up_to_date"; builderChanged?: boolean }
+  | {
+      kind: "up_to_date";
+      builderChanged?: boolean;
+      /**
+       * An unpinned import whose file is committed by now with the imported
+       * content (review 2026-11-13): "refresh the stored state" pins it to
+       * that commit (updateTargetOf). Without it "try, then commit" would
+       * never pin — the content did not change, so no update is offered.
+       */
+      committedAs?: { commitSha: string; tag?: string };
+    }
   | { kind: "newer_available"; contentHash: string; commitSha?: string; tag?: string; builderChanged?: boolean }
   /**
    * The state found and the imported one lie on separate branches (e.g. after
@@ -114,6 +124,30 @@ function compare(
     : { kind: "newer_available", contentHash: read.contentHash, ...at, ...changed };
 }
 
+/**
+ * The committed state of a file: tracked, no local change, and the snapshot
+ * of its text at HEAD; undefined otherwise (untracked, changed, no repository).
+ */
+async function committedStateOf(
+  localPath: string,
+  git: ComponentGitRunner,
+): Promise<{ commitSha: string; tag?: string; contentHash: string } | undefined> {
+  const dir = dirOf(localPath);
+  const file = `./${localPath.slice(Math.max(localPath.lastIndexOf("/"), localPath.lastIndexOf("\\")) + 1)}`;
+  const tracked = await git(["ls-files", "--error-unmatch", "--", file], dir);
+  if (tracked.code !== 0) return undefined;
+  const status = await git(["status", "--porcelain", "--", file], dir);
+  if (status.code !== 0 || status.stdout.trim() !== "") return undefined;
+  const sha = await git(["rev-parse", "HEAD"], dir);
+  const shown = await git(["show", `HEAD:${file}`], dir);
+  if (sha.code !== 0 || shown.code !== 0) return undefined;
+  const read = componentSnapshotOfText(shown.stdout);
+  if (!read.ok) return undefined;
+  const tags = await git(["tag", "--points-at", "HEAD"], dir);
+  const tag = tags.code === 0 ? tags.stdout.split("\n").map((t) => t.trim()).filter(Boolean).sort()[0] : undefined;
+  return { commitSha: sha.stdout.trim(), contentHash: read.contentHash, ...(tag ? { tag } : {}) };
+}
+
 /** The drift of one import; `localPath` = where its component TARA lies here (resolveComponentPath). */
 export async function checkComponentDrift(
   imported: ComponentImport,
@@ -127,7 +161,13 @@ export async function checkComponentDrift(
 
   if (source.unpinned) {
     const text = await readFile(localPath);
-    return text === null ? { kind: "unreachable", reason: "file_missing" } : compare(text, imported.contentHash);
+    if (text === null) return { kind: "unreachable", reason: "file_missing" };
+    const result = compare(text, imported.contentHash);
+    if (result.kind !== "up_to_date") return result;
+    const committed = await committedStateOf(localPath, git);
+    return committed && committed.contentHash === imported.contentHash
+      ? { kind: "up_to_date", committedAs: { commitSha: committed.commitSha, ...(committed.tag ? { tag: committed.tag } : {}) } }
+      : result;
   }
 
   const top = await git(["rev-parse", "--show-toplevel"], dirOf(localPath));
@@ -262,6 +302,18 @@ export function updateTargetOf(
   status: ComponentDriftStatus | undefined,
 ): { status: Extract<ComponentDriftStatus, { kind: "newer_available" }>; refresh: boolean } | undefined {
   if (status?.kind === "newer_available") return { status, refresh: false };
+  // An unpinned import committed by now with the same content: refreshing pins it.
+  if (status?.kind === "up_to_date" && imported.source.unpinned && status.committedAs) {
+    return {
+      status: {
+        kind: "newer_available",
+        contentHash: imported.contentHash,
+        commitSha: status.committedAs.commitSha,
+        ...(status.committedAs.tag ? { tag: status.committedAs.tag } : {}),
+      },
+      refresh: true,
+    };
+  }
   // Also when the stored snapshot no longer hashes to its record (6b: changed
   // in place before patch 82, or edited by hand — the AVE reports it): the
   // refresh writes the imported commit's state again.
@@ -299,7 +351,15 @@ export async function readNewerComponentState(
   git: ComponentGitRunner,
 ): Promise<ComponentSourceResult> {
   if (imported.source.unpinned || !status.commitSha || !imported.source.path) {
-    return readComponentSource(localPath, readFile, git);
+    // Read in full; committed and unchanged it is pinned from now on. What
+    // the import chose stays (same repository, tag pattern).
+    const read = await readComponentSource(localPath, readFile, git);
+    if (!read.ok) return read;
+    const kept = {
+      ...(imported.source.sameRepo ? { sameRepo: true } : {}),
+      ...(imported.source.tagPattern ? { tagPattern: imported.source.tagPattern } : {}),
+    };
+    return { ...read, source: { ...read.source, ...kept } };
   }
   const top = await git(["rev-parse", "--show-toplevel"], dirOf(localPath));
   if (top.code !== 0) return { ok: false, error: "not_found", detail: "no repository" };

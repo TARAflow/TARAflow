@@ -88,7 +88,14 @@ export function driftView(status: ComponentDriftStatus, t: (key: string, options
     ? ` · ${t("components.drift.builderChanged", { defaultValue: "this TARAflow reads it differently — refresh the stored state" })}`
     : "";
   if (status.kind === "up_to_date") {
-    return { kind: status.kind, text: t("components.drift.upToDate", { defaultValue: "Up to date" }) + builder };
+    // An unpinned import committed by now (review 2026-11-13): refreshing pins it.
+    const committed = status.committedAs
+      ? ` · ${t("components.drift.committed", {
+          where: status.committedAs.tag ?? status.committedAs.commitSha.slice(0, 8),
+          defaultValue: "committed by now ({{where}}) — refresh the stored state to pin the import to it",
+        })}`
+      : "";
+    return { kind: status.kind, text: t("components.drift.upToDate", { defaultValue: "Up to date" }) + builder + committed };
   }
   if (status.kind === "newer_available") {
     const where = status.tag ?? (status.commitSha ? status.commitSha.slice(0, 8) : "");

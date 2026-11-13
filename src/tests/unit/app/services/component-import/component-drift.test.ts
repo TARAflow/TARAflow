@@ -104,7 +104,12 @@ describe("drift check against a real repository (phase 5a)", () => {
   it("unpinned import: the file at its local path, by content", async () => {
     const unpinned = { ...imported, source: { schemaVersion: 14, unpinned: "dirty" as const } };
     expect((await checkComponentDrift(unpinned, file, read, git)).kind).toBe("newer_available"); // v2 is on disk
-    expect(await checkComponentDrift({ ...unpinned, contentHash: (await readComponentSource(file, read, git) as { contentHash: string }).contentHash }, file, read, git)).toEqual({ kind: "up_to_date" });
+    // same content — and the file is committed: the commit to bind the import to (review 2026-11-13)
+    const head = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    expect(await checkComponentDrift({ ...unpinned, contentHash: (await readComponentSource(file, read, git) as { contentHash: string }).contentHash }, file, read, git)).toMatchObject({
+      kind: "up_to_date",
+      committedAs: { commitSha: head },
+    });
     expect(await checkComponentDrift(unpinned, join(root, "missing.tara.json"), read, git)).toMatchObject({ kind: "unreachable", reason: "file_missing" });
   });
 
@@ -160,6 +165,13 @@ describe("drift check against a real repository (phase 5a)", () => {
     expect(updateTargetOf(old, { kind: "newer_available", contentHash: "x", commitSha: "c" })?.refresh).toBe(false);
     expect(updateTargetOf({ ...old, source: { schemaVersion: 14, unpinned: "dirty" } }, { kind: "up_to_date", builderChanged: true })).toBeUndefined();
     expect(updateTargetOf(old, { kind: "unreachable", reason: "file_missing" } as never)).toBeUndefined();
+    // committed by now: an unpinned import is bound to the commit by a refresh; a pinned one is not touched (review 2026-11-13)
+    const committed = { kind: "up_to_date" as const, committedAs: { commitSha: "c0ffee", tag: "camera-tara/v9" } };
+    expect(updateTargetOf({ ...after, source: { schemaVersion: 14, unpinned: "untracked" } }, committed)).toEqual({
+      refresh: true,
+      status: { kind: "newer_available", contentHash: after.contentHash, commitSha: "c0ffee", tag: "camera-tara/v9" },
+    });
+    expect(updateTargetOf(after, committed)).toBeUndefined();
     // a stored snapshot that no longer hashes to its record (changed in place, or by hand): refresh too (6b)
     const damaged = { ...imported, snapshot: { ...(imported.snapshot as object), risks: [] } };
     expect(updateTargetOf(damaged, { kind: "up_to_date" })?.refresh).toBe(true);

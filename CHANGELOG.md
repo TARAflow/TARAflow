@@ -98,8 +98,10 @@ in 0.18.x.
   project without imported components changes in nothing else, and a TARA
   verification stays valid.
 - A component TARA must be committed to be imported pinned; an uncommitted
-  file is imported *unpinned* and pinned with its next update. The drift
-  check needs a local clone of the component's repository.
+  file is imported *unpinned*. Once the file is committed, *Check* names the
+  commit and offers *Refresh stored state…*, which binds the import to it —
+  also when the content did not change. The drift check needs a local clone
+  of the component's repository.
 - **Risk status *verified*:** a risk is verified only when every active
   mitigation is. In existing projects risks can fall back from *verified*
   to *implemented* when opened — check the overview before an audit.
