@@ -131,6 +131,7 @@ function compare(
 async function committedStateOf(
   localPath: string,
   git: ComponentGitRunner,
+  tagPattern?: string,
 ): Promise<{ commitSha: string; tag?: string; contentHash: string } | undefined> {
   const dir = dirOf(localPath);
   const file = `./${localPath.slice(Math.max(localPath.lastIndexOf("/"), localPath.lastIndexOf("\\")) + 1)}`;
@@ -143,8 +144,10 @@ async function committedStateOf(
   if (sha.code !== 0 || shown.code !== 0) return undefined;
   const read = componentSnapshotOfText(shown.stdout);
   if (!read.ok) return undefined;
-  const tags = await git(["tag", "--points-at", "HEAD"], dir);
-  const tag = tags.code === 0 ? tags.stdout.split("\n").map((t) => t.trim()).filter(Boolean).sort()[0] : undefined;
+  // With a tag pattern only its tags, the highest version first — as the drift check picks them.
+  const tags = await git(tagPattern ? ["tag", "--points-at", "HEAD", "--list", tagPattern, "--sort=-v:refname"] : ["tag", "--points-at", "HEAD"], dir);
+  const names = tags.code === 0 ? tags.stdout.split("\n").map((t) => t.trim()).filter(Boolean) : [];
+  const tag = tagPattern ? names[0] : names.sort()[0];
   return { commitSha: sha.stdout.trim(), contentHash: read.contentHash, ...(tag ? { tag } : {}) };
 }
 
@@ -164,7 +167,7 @@ export async function checkComponentDrift(
     if (text === null) return { kind: "unreachable", reason: "file_missing" };
     const result = compare(text, imported.contentHash);
     if (result.kind !== "up_to_date") return result;
-    const committed = await committedStateOf(localPath, git);
+    const committed = await committedStateOf(localPath, git, source.tagPattern);
     return committed && committed.contentHash === imported.contentHash
       ? { kind: "up_to_date", committedAs: { commitSha: committed.commitSha, ...(committed.tag ? { tag: committed.tag } : {}) } }
       : result;
@@ -359,7 +362,11 @@ export async function readNewerComponentState(
       ...(imported.source.sameRepo ? { sameRepo: true } : {}),
       ...(imported.source.tagPattern ? { tagPattern: imported.source.tagPattern } : {}),
     };
-    return { ...read, source: { ...read.source, ...kept } };
+    // With a tag pattern the tag is the one the check named (the pattern's
+    // highest), not the first of the commit's tags.
+    const { tag: anyTag, ...rest } = read.source;
+    const tag = imported.source.tagPattern ? status.tag : anyTag;
+    return { ...read, source: { ...rest, ...(tag ? { tag } : {}), ...kept } };
   }
   const top = await git(["rev-parse", "--show-toplevel"], dirOf(localPath));
   if (top.code !== 0) return { ok: false, error: "not_found", detail: "no repository" };

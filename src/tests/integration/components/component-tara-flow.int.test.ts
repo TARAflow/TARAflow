@@ -338,6 +338,25 @@ describe("an unpinned import committed later without a change is pinned by a ref
     expect(await checkComponentDrift(pinned, file, readText, run)).toEqual({ kind: "up_to_date" });
   });
 
+  it("with a tag pattern the pattern's highest tag on the commit is named and stored, not the first one", async () => {
+    await git(repo, "tag", "nightly");
+    await git(repo, "tag", "v1.2");
+    await git(repo, "tag", "v1.10");
+    const read = await readComponentSource(file, readText, run);
+    if (!read.ok) throw new Error(read.error);
+    const { commitSha: _sha, tag: _tag, ...where } = read.source;
+    const unpinned = { ...importInto(read).components!.imports[0], source: { ...where, unpinned: "untracked" as const, tagPattern: "v*" } };
+    const status = await checkComponentDrift(unpinned as never, file, readText, run);
+    expect(status).toMatchObject({ kind: "up_to_date", committedAs: { tag: "v1.10" } });
+    const target = updateTargetOf(unpinned as never, status)!;
+    const next = await readNewerComponentState(unpinned as never, file, target.status, readText, run);
+    if (!next.ok) throw new Error(next.error);
+    expect(next.source).toMatchObject({ tag: "v1.10", tagPattern: "v*" });
+    // without a pattern: the first tag of the commit, as the import stores it
+    const plain = { ...unpinned, source: { ...where, unpinned: "untracked" as const } };
+    expect(await checkComponentDrift(plain as never, file, readText, run)).toMatchObject({ committedAs: { tag: "nightly" } });
+  });
+
   it("a local change after the commit is not offered as pinning (the content differs: a newer state)", async () => {
     const read = await readComponentSource(file, readText, run);
     if (!read.ok) throw new Error(read.error);
