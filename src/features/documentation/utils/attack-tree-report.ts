@@ -232,10 +232,15 @@ export function importedAttackTreeSections(
     facts.push([t(`${K}.instances`, "Instances"), g.instances.map((i) => i.prefix).join(", ")]);
     facts.push([
       t(`${K}.importedRating`, "Rating"),
-      t(
-        `${K}.importedRatingText`,
-        "Paths rated with this TARA's feasibility configuration; the window of opportunity of each step is this TARA's decision, per instance; the other factors are the component's.",
-      ),
+      g.forInformation
+        ? t(
+            `${K}.importedForInformation`,
+            "For information — this TARA does not rate attack paths (rated under ISO/SAE 21434 only); every factor shown is the component's.",
+          )
+        : t(
+            `${K}.importedRatingText`,
+            "Paths rated with this TARA's feasibility configuration; the window of opportunity of each step is this TARA's decision, per instance; the other factors are the component's.",
+          ),
     ]);
     // What the abbreviations of the factor column stand for.
     facts.push([
@@ -272,7 +277,10 @@ export function importedAttackTreeSections(
                 `${short("equipment", "Eq")} ${woo(f.equipment)}`,
               ].join(" · ")} (${t(`${K}.fromComponent`, "component")})`
             : "";
-          const window = s.window
+          // Not rated here at all (not ISO): the component's window, like the other four.
+          const window = g.forInformation
+            ? `${short("windowOfOpportunity", "WoO")} ${s.componentWindow ? `${woo(s.componentWindow)} (${t(`${K}.fromComponent`, "component")})` : "–"}`
+            : s.window
             ? `${short("windowOfOpportunity", "WoO")} ${woo(s.window)} (${t(`${K}.ratedHere`, "rated by this TARA")})`
             : `${short("windowOfOpportunity", "WoO")} ${t(`${K}.notRated`, "not rated yet")}${s.componentWindow ? ` — ${t(`${K}.componentSuggests`, "component: {{value}}").replace("{{value}}", woo(s.componentWindow))}` : ""}`;
           const value = [component, window].filter(Boolean).join(" · ");
@@ -303,7 +311,9 @@ export function importedAttackTreeSections(
           p.potential != null ? String(p.potential) : "–",
           feasibilityLabel(p.feasibility, t),
           p.relevance.length === 0
-            ? relevance("unrated")
+            ? g.forInformation
+              ? "–" // no path assessment outside ISO — not an open one
+              : relevance("unrated")
             : p.relevance.map((r) => (p.relevance.length > 1 && r.strideCategory ? `${relevance(r.relevance)} (${r.strideCategory})` : relevance(r.relevance))).join(", "),
         ]),
       ),

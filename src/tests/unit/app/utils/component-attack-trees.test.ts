@@ -386,6 +386,22 @@ describe("the report's imported attack trees (6a-1b, review 2026-11-11)", () => 
     expect(open.every((p) => p.steps.every((s) => !s.window && !!s.componentWindow) && p.feasibility === undefined)).toBe(true);
   });
 
+  it("outside ISO/SAE 21434 the trees are for information: the component's window, no open rating (review 2026-11-13)", async () => {
+    const { docImportedAttackTrees } = await import("app/services/doc-imported");
+    const { importedAttackTreeSections } = await import("features/documentation/utils/attack-tree-report");
+    const t = ((k: string, d?: string) => d ?? k) as never;
+    const trees = docImportedAttackTrees(half, { pathsRated: false });
+    expect(trees.every((g) => g.forInformation)).toBe(true);
+    const [s] = importedAttackTreeSections(trees, undefined, t);
+    expect(s.facts.find(([label]) => label === "Rating")?.[1]).toMatch(/^For information — this TARA does not rate attack paths/);
+    const text = s.rows.map((r) => r.join(" | ")).join("\n");
+    expect(text).not.toContain("not rated yet");
+    expect(text).not.toContain("unrated");
+    expect(text).toMatch(/Eq \S+ \(component\) · WoO \S+ \(component\)/);
+    // ISO (default): the open rating stays visible
+    expect(docImportedAttackTrees(half).some((g) => g.forInformation)).toBe(false);
+  });
+
   it("the chapter: structure without the component's leaf ratings, the window per step with its origin", async () => {
     const { docImportedAttackTrees } = await import("app/services/doc-imported");
     const { importedAttackTreeSections } = await import("features/documentation/utils/attack-tree-report");

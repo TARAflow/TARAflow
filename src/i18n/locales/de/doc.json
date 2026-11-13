@@ -332,6 +332,7 @@
         "instances": "Instanzen",
         "importedRating": "Bewertung",
         "importedRatingText": "Pfade mit der Feasibility-Konfiguration dieser TARA bewertet; das Gelegenheitsfenster jedes Schritts entscheidet diese TARA, pro Instanz; die übrigen Faktoren sind die der Komponente.",
+        "importedForInformation": "Zur Information — diese TARA bewertet Angriffspfade nicht (nur unter ISO/SAE 21434); alle gezeigten Faktoren sind die der Komponente.",
         "ratedHere": "von dieser TARA bewertet",
         "notRatable": "nicht bewertbar (keine Faktoraufteilung)",
         "notRated": "noch nicht bewertet",

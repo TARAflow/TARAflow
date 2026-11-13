@@ -156,7 +156,10 @@ function computeDocValues(
   // The threats of imported components (6a-1), per component and method.
   const importedThreats = docImportedThreats(project);
   const importedRiskNotes = docImportedRiskNotes(project);
-  const importedAttackTrees = docImportedAttackTrees(project);
+  // Only an ISO/SAE 21434 TARA rates attack paths; otherwise the trees are for information.
+  const importedAttackTrees = docImportedAttackTrees(project, {
+    pathsRated: regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434",
+  });
   const importedComponents = docImportedComponents(project);
   const imports = (method: "per-element" | "per-interaction") =>
     importedThreats.some((g) => g.method === method && g.threats.length > 0);

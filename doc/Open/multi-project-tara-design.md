@@ -1004,6 +1004,15 @@ evaluation over imported elements, component claims as matrix evidence, hazards 
 - Component claims cited by the machine: the citation is stored per instance; whether it counts as
   evidence is derived — only when the AoUs behind the claim are fulfilled in that instance with
   implemented evidence, otherwise shown as "unclear" like a measure.
+*Patch 97 done (2026-11-13, review):* **imported attack trees outside ISO/SAE 21434 are for
+information.** Only an ISO machine rates attack paths (window of opportunity per step); the
+CMP_PATH_* findings were already ISO-only, but the report's path table wrote "WoO not rated yet" for
+every step of an IEC 62443 / CRA machine — read by an auditor as a gap. The app layer marks the trees
+(`forInformation`); the table then shows the component's window with its origin like the other four
+factors, potential, feasibility and relevance "–", and the rating fact says the TARA does not rate
+attack paths. The example pair stays IEC 62443 / CRA (decision 2026-11-13: no ISO pair with import
+for the manual test); the ISO parts are covered by the automated tests only — listed under the test
+protocol's known limits for the first ISO customer with components.
 *Patch 93 done (2026-11-13, review of the release notes):* **an unpinned import is bound once its
 file is committed.** Before, the drift check of an unpinned import compared only the content of the
 file on disk; committed later without a change, it stayed "up to date" and was never pinned — "try,

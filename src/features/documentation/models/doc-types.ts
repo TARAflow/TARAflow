@@ -392,6 +392,12 @@ export interface DocImportedAttackTree {
   /** The component's tree — its structure is shown once. */
   tree: AttackTreeData["trees"][number];
   instances: { prefix: string; paths: DocImportedAttackPath[] }[];
+  /**
+   * This TARA does not rate attack paths (not ISO/SAE 21434): the tree is
+   * shown for information, the window of opportunity is the component's —
+   * no open rating (review 2026-11-13).
+   */
+  forInformation?: true;
 }
 
 /** Where an imported component's state comes from, for "Name @ a1b2c3d4". */

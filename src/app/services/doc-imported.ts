@@ -135,7 +135,12 @@ const pathNo = (id: string | undefined): number => {
  * in the audit): per component and tree the structure once, the paths per
  * instance with this TARA's feasibility and window per step.
  */
-export function docImportedAttackTrees(project: Pick<Project, "components" | "attackTrees">): DocImportedAttackTree[] {
+export function docImportedAttackTrees(
+  project: Pick<Project, "components" | "attackTrees">,
+  /** Does this TARA rate attack paths (ISO/SAE 21434)? Otherwise the trees are for information. */
+  options: { pathsRated?: boolean } = {},
+): DocImportedAttackTree[] {
+  const forInformation = options.pathsRated === false ? { forInformation: true as const } : {};
   const components = project.components;
   if (!components) return [];
   const machine = { components, attackTrees: project.attackTrees ?? null };
@@ -150,6 +155,7 @@ export function docImportedAttackTrees(project: Pick<Project, "components" | "at
       at: atOf(imported.source),
       treeNumber: index + 1,
       tree,
+      ...forInformation,
       instances: instances.map(({ instance, trees }) => {
         const mine = trees[index];
         const rows = (ratings.find((g) => g.key === instance.id)?.paths ?? []).filter((r) => r.treeKey === tree.id);

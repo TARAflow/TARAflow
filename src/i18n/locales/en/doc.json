@@ -332,6 +332,7 @@
         "instances": "Instances",
         "importedRating": "Rating",
         "importedRatingText": "Paths rated with this TARA's feasibility configuration; the window of opportunity of each step is this TARA's decision, per instance; the other factors are the component's.",
+        "importedForInformation": "For information — this TARA does not rate attack paths (rated under ISO/SAE 21434 only); every factor shown is the component's.",
         "ratedHere": "rated by this TARA",
         "notRatable": "not ratable (no factor breakdown)",
         "notRated": "not rated yet",
