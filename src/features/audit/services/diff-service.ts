@@ -206,13 +206,14 @@ export class DiffService {
     changes: PhaseChanges[],
     roundName: string,
     author: string,
-    opts?: { reviewer?: string; projectName?: string; projectId?: string },
+    opts?: { reviewer?: string; projectName?: string; projectId?: string; projectFile?: string },
   ): CommitMessageData {
     const totalChanges = changes.reduce((sum, p) => sum + p.changeCount, 0);
     return {
       round: roundName,
       projectName: opts?.projectName,
       projectId: opts?.projectId,
+      ...(opts?.projectFile ? { projectFile: opts.projectFile } : {}),
       batchSize: totalChanges,
       affectedPhases: changes.map((p) => p.phaseLabel),
       changes,

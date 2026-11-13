@@ -114,7 +114,7 @@ The rev. 4 gap analysis found a good *description* of change (diff + message) bu
 | Building block | Status (rev. 5) | Auditability |
 |---|---|---|
 | Semantic change detection | `DiffService` per-phase snapshots → structured message | Good — unchanged. The real strength. |
-| Commit-message format | `[TARA] <round>` + phases/batch/author trailers | **Now enforced** — the `commit-msg` hook (§7) and the engine's message-schema check (§5.D) share one predicate (`validateAuditMessage`). |
+| Commit-message format | `[TARA] <round>` + phases/batch/author trailers | **Now enforced** — the `commit-msg` hook (§7) and the engine's message-schema check (§5.D) share one predicate (`validateAuditMessage`). Since 0.19 the subject names the TARA file after the round (`[TARA] <round> — <repo-relative path>`) and the trailer `Project-File` carries it — a repository can hold several TARA files; the schema is unchanged (the round still follows `[TARA] `, no new required trailer). |
 | Round/stage names | `DEFAULT_ROUND_NAMES` + custom | Kept, but **being reworked in Phase 5** — single language-independent field; the `risk-round-N` counter is under review (§4, §11). |
 | Author identity | `AuditConfig.author.{name,email}` | **Now tied** to a signing key via the manifest; `author.email` ∈ manifest principals, blocking when signing is on (§5.B). |
 | SSH / GPG signing | SSH default, GPG via flag | **Wired.** Commit signs; verified against the committed manifest (§5.B, §5.D). |

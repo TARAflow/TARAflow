@@ -70,6 +70,11 @@ in 0.18.x.
   the progress follows the ticket.
 
 ### Changed
+- **Audit commit message:** the subject names the TARA file after the round
+  (`[TARA] Detail Review — machines/panel.tara.json`) and a trailer
+  `Project-File` carries its path — with several TARA files in one
+  repository each commit says which one it is for. The message schema and
+  the commit hook accept it as before.
 - **Status by hand with a tracker:** in a project with a tracker, a
   mitigation set to done by hand needs evidence or a reference.
 - **Phase indicators:** the findings of imported components count on the

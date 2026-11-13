@@ -388,6 +388,8 @@ const AuditTabView: React.FC<AuditTabProps> = ({
           {
             projectName: project.name ?? project.info?.name,
             projectId: project.id,
+            // which TARA file — a repository can hold several
+            ...(repoRoot && filePath ? { projectFile: repoRelativePath(repoRoot, filePath) } : {}),
           },
         );
         setCommitMessageData(messageData);
