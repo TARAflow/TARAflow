@@ -190,9 +190,9 @@ export function useProjectManager(): UseProjectManagerReturn {
       // useBidirectionalAssetSync's effect firing on mount). This redundant
       // merge can, in the rare case of two truly simultaneous updateProject
       // calls, lag one render behind for THIS immediate extra disk-write —
-      // the in-memory state set above is unaffected and always correct, and
       // the next autosave interval or manual save captures the latest state
-      // regardless.
+      // regardless. The in-memory state set above stays as it is: after the
+      // write only the saved flag changes (below), never the content.
       const latest = projectsRef.current.find((p) => p.id === patch.id);
       if (!latest) return;
 
@@ -205,8 +205,16 @@ export function useProjectManager(): UseProjectManagerReturn {
         };
         const success = await syncProjectToStorage(savedProject);
         if (success) {
+          // Only the saved flag — never the copy: a change that arrived
+          // while the write ran (e.g. the DFD tab's commit after a component
+          // import) would be replaced by the state from before it
+          // (2026-11-14). Unsaved stays set when something changed since.
           setProjects((prev) =>
-            prev.map((p) => (p.id === patch.id ? savedProject : p)),
+            prev.map((p) =>
+              p.id === patch.id && p.info?.lastModified === savedProject.info?.lastModified
+                ? { ...p, hasUnsavedChanges: false }
+                : p,
+            ),
           );
         }
       }
@@ -325,8 +333,11 @@ export function useProjectManager(): UseProjectManagerReturn {
 
       const success = await syncProjectToStorage(savedProject);
       if (success) {
+        // The saved copy only where nothing changed during the write — a
+        // change meanwhile (e.g. the DFD tab saving on the same Ctrl+S)
+        // stays, and the project stays unsaved (2026-11-14).
         setProjects((prev) =>
-          prev.map((p) => (p.id === projectId ? savedProject : p)),
+          prev.map((p) => (p.id === projectId && p === project ? savedProject : p)),
         );
         toastRef.current.success(`Project "${project.info.name}" saved`);
       }
