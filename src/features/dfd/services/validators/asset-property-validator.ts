@@ -72,10 +72,6 @@ function validateAssetGroupProperties(
       break;
 
     case "system":
-      // criticality — a rating entered as a field; no calculation reads it
-      if (!props?.criticality) {
-        warn(ValidationMessages.ASSET_MISSING_CRITICALITY);
-      }
       // exposure — documents the asset; not evaluated (the flows' exposure level is)
       if (!props?.exposure) {
         warn(ValidationMessages.ASSET_MISSING_EXPOSURE);

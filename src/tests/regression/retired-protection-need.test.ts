@@ -13,6 +13,7 @@ import { prepareForDisk } from "app/services/prepare-for-disk";
 import { verificationStateHash, verificationStatus } from "app/services/verification-state";
 import { diffService } from "features/audit/services/diff-service";
 import { VERIFICATION_HASH_VERSION } from "shared";
+import { RETIRED_ASSET_FIELDS } from "shared/models/retired-asset-fields";
 
 /** A file as 0.18 wrote it: the current schema, the protection need on three assets (built once: the fixture's migration mints new ids each time). */
 const LEGACY = ((): string => {
@@ -21,11 +22,15 @@ const LEGACY = ((): string => {
   };
   const needs = ["critical", "high", "low"];
   disk.assets.assets.slice(0, needs.length).forEach((a, i) => (a.properties = { ...(a.properties ?? {}), protectionNeed: needs[i] }));
+  // retired with it in 0.19: the criticality (form field) and a dead model
+  // field older hand-made files hold (physicalHazardPotential on a human asset)
+  disk.assets.assets[0].properties = { ...disk.assets.assets[0].properties, criticality: "essential", physicalHazardPotential: "high" };
   return JSON.stringify(disk);
 })();
 const legacyText = () => LEGACY;
-const needDetails = (changes: ReturnType<typeof diffService.detectChanges>) =>
-  changes.flatMap((p) => p.changes.flatMap((c) => (c.details ?? []).filter((d) => d.field === "protectionNeed")));
+const detailsOf = (changes: ReturnType<typeof diffService.detectChanges>, field: string) =>
+  changes.flatMap((p) => p.changes.flatMap((c) => (c.details ?? []).filter((d) => d.field === field)));
+const needDetails = (changes: ReturnType<typeof diffService.detectChanges>) => detailsOf(changes, "protectionNeed");
 
 describe("retired asset field: protection need", () => {
   it("legacy file → load → save: gone from memory and disk; the diff lists the drop once; the gate sees a change", () => {
@@ -34,6 +39,7 @@ describe("retired asset field: protection need", () => {
     expect(withValue).toBe(3);
 
     const loaded = parseAndRepair(JSON.parse(legacyText()))!;
+    for (const field of RETIRED_ASSET_FIELDS) expect(JSON.stringify(loaded.assets), field).not.toContain(`"${field}"`);
     expect(JSON.stringify(loaded.assets)).not.toContain("protectionNeed");
     expect(JSON.stringify(loaded.dfd?.assets ?? [])).not.toContain("protectionNeed");
     const disk = prepareForDisk(loaded);
@@ -46,6 +52,11 @@ describe("retired asset field: protection need", () => {
     expect(dropped).toHaveLength(withValue);
     expect(dropped.every((d) => d.newValue === undefined && typeof d.oldValue === "string")).toBe(true);
     expect(first.length).toBeGreaterThan(0); // the commit gate sees a change
+    // the other retired fields the same way, with the user-facing label
+    expect(detailsOf(first, "criticality")).toEqual([
+      { field: "criticality", fieldLabel: "Criticality (retired)", oldValue: "essential", newValue: undefined, valueType: "string" },
+    ]);
+    expect(detailsOf(first, "physicalHazardPotential").map((d) => d.oldValue)).toEqual(["high"]);
 
     // the next commit compares with the file as saved: nothing about it any more
     const committed = JSON.parse(JSON.stringify(disk)) as Project;

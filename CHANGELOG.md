@@ -96,11 +96,14 @@ in 0.18.x.
   always shown for people, physical and infrastructure assets.
 
 ### Removed
-- **Asset field *Protection need*** (low … critical): no calculation used it
-  — threats, risks, compliance and the report take the impact from the
-  security goals and the damage scenarios — and it could contradict them.
-  Its warning ("required for threat prioritisation") was wrong and is gone
-  too.
+- **Asset fields *Protection need* and *Criticality*:** ratings entered as
+  fields that no calculation used — threats, risks, compliance and the
+  report take the impact from the security goals and the damage scenarios —
+  and that could contradict them. Their warnings ("required for threat
+  prioritisation") were wrong and are gone too. Unused model fields without
+  an input (business impact, aggregated criticality, analysis depth, the
+  physical hazard potential on the asset, the old asset-tab text fields)
+  are removed with them.
 
 ### Fixed
 - **Risk status:** a risk is *verified* only when every active mitigation
@@ -150,9 +153,10 @@ in 0.18.x.
 - **Leveled DFDs where *Adopt pages* was confirmed after a project switch**
   (0.14 – 0.18): the adoption may have dropped identity links between pages —
   check the context copies and the page tree of such DFDs.
-- **Protection need:** existing values are dropped when a project is
-  opened and are gone from the file after the next save; the first commit
-  diff lists them once. A verification of the TARA stays valid.
+- **Protection need, criticality and the other removed asset fields:**
+  existing values are dropped when a project is opened and are gone from
+  the file after the next save; the first commit diff lists them once. A
+  verification of the TARA stays valid.
 - **CI with `taraflow-verify`:** the JSON result carries `aveVersion: 2`
   — a pipeline that checks the version or compares results with a stored
   one sees the new number.

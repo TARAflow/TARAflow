@@ -162,7 +162,6 @@ export interface AssetProperties {
 
   // ---- SYSTEM ----
   /** Canonical: DFD union (the asset-tab side was a loose string). */
-  criticality?: "supporting" | "essential" | "safety_critical";
   exposure?: "internal" | "dmz" | "internet";
 
   // ---- INFRASTRUCTURE ----
@@ -195,7 +194,6 @@ export interface AssetProperties {
   // override — see resolveAssetPhysicalImpact. The former properties
   // safetyRelevant, containsSafetyRelevantData, safetyImpact and
   // safetyRationale were removed in schema v9.
-  physicalHazardPotential?: "low" | "medium" | "high";
 
   // ---- CIANAAA protection goals ----
   // NOT modelled here. Protection goals are formulated per-goal in
@@ -216,15 +214,10 @@ export interface AssetProperties {
   isPersonalData?: boolean;
 
   // ---- IMPACT ----
-  businessImpact?: "low" | "medium" | "high" | "critical";
-  businessImpactCategory?: "operational" | "financial" | "privacy" | "reputational";
   physicalImpact?: SafetyImpact;
   physicalImpactSource?: ValueSource;
   physicalImpactRationale?: string;
 
-  // ---- AGGREGATED (derived, read-only) ----
-  aggregatedCriticality?: "low" | "medium" | "high" | "critical";
-  strideDepth?: "vertieft" | "fokussiert" | "hochstufig";
 
   // ---- HIGH-VALUE ASSET (asset-tab owned) ----
   isHighValueAsset?: "low" | "medium" | "high" | "critical";
@@ -240,16 +233,7 @@ export interface AssetProperties {
   spareAvailability?: "on_site" | "supplier" | "none";
   highValueRationale?: string;
 
-  // ---- Legacy asset-tab strings (carried over; retirement is a separate step) ----
-  dataClassification?: string;
-  retentionPeriod?: string;
-  systemType?: string;
-  backupInterval?: string;
-  infrastructureType?: string;
-  redundancy?: string;
-  processType?: string;
-  updateFrequency?: string;
-  dependencies?: string;
-  clearanceLevel?: string;
-  trainingRequired?: string;
+  // Retired fields (protection need, criticality, dead model fields, the
+  // legacy asset-tab strings): shared/models/retired-asset-fields.ts — older
+  // files may still carry them; they are dropped on load.
 }

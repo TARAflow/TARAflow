@@ -72,7 +72,6 @@ export const FINDING_CLASS: Record<keyof typeof ValidationMessages, "structure" 
   ASSET_MISSING_NAME: "property",
   ASSET_MISSING_DATA_TYPE: "property",
   ASSET_MISSING_LIFECYCLE: "property",
-  ASSET_MISSING_CRITICALITY: "property",
   ASSET_MISSING_EXPOSURE: "property",
   ASSET_MISSING_PHYSICAL_ACCESS: "property",
   ASSET_MISSING_SERVICE_TYPE: "property",

@@ -763,22 +763,6 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
               <Stack spacing={2}>
                 <FormControl fullWidth>
                   <InputLabel>
-                    {t("tabs.dfd.element_description.asset.criticality")}
-                  </InputLabel>
-                  <Select
-                    value={asset.properties?.criticality || ""}
-                    onChange={(e) =>
-                      handlePropertyChange("criticality", e.target.value)
-                    }
-                    label={t("tabs.dfd.element_description.asset.criticality")}
-                  >
-                    <MenuItem value="supporting">Supporting</MenuItem>
-                    <MenuItem value="essential">Essential</MenuItem>
-                    <MenuItem value="safety_critical">Safety Critical</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth>
-                  <InputLabel>
                     {t("tabs.dfd.element_description.asset.exposure")}
                   </InputLabel>
                   <Select

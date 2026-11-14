@@ -34,21 +34,28 @@ import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
 import type { A2ARelation, CybersecurityConcept, ItemDefinition } from "shared";
+import { RETIRED_ASSET_FIELDS, type RetiredAssetField } from "shared/models/retired-asset-fields";
 
 /**
- * Asset fields retired from the model, still in files written before them —
- * the previous state of a commit is read raw from git, so their drop shows
- * once in the diff. One place for them; retired in 0.19: the protection need.
+ * Asset fields retired from the model (shared/models/retired-asset-fields.ts),
+ * still in files written before them — the previous state of a commit is read
+ * raw from git, so each drop shows once in the diff.
  */
-interface LegacyAssetFields {
-  protectionNeed?: string;
-  properties?: Asset["properties"] & { protectionNeed?: string };
-}
+type LegacyAssetFields = Partial<Record<RetiredAssetField, unknown>> & {
+  properties?: Asset["properties"] & Partial<Record<RetiredAssetField, unknown>>;
+};
 
-/** The retired protection need of an asset record, if the file still had it. */
-function legacyProtectionNeed(asset: Asset): string | undefined {
+/** Labels of the retired fields a user once saw in the form; the rest by name. */
+const RETIRED_LABEL: Partial<Record<RetiredAssetField, string>> = {
+  protectionNeed: "Protection Need",
+  criticality: "Criticality",
+};
+
+/** The value of a retired field on an asset record, if the file still had it (as text). */
+function legacyAssetValue(asset: Asset, field: RetiredAssetField): string | undefined {
   const legacy: LegacyAssetFields = asset;
-  return legacy.properties?.protectionNeed ?? legacy.protectionNeed;
+  const value = legacy.properties?.[field] ?? legacy[field];
+  return value === undefined || value === null ? undefined : typeof value === "string" ? value : JSON.stringify(value);
 }
 
 /** The description of a DFD change ("Page added", "Layout changed"). */
@@ -544,18 +551,15 @@ export class DiffService {
       });
     }
 
-    // Protection need — retired in 0.19: no longer in memory, but the previous
-    // state (read raw from git) may still carry it; its drop shows once.
-    const oldNeed = legacyProtectionNeed(previous);
-    const newNeed = legacyProtectionNeed(current);
-    if (oldNeed !== newNeed) {
-      details.push({
-        field: "protectionNeed",
-        fieldLabel: "Protection Need (retired)",
-        oldValue: oldNeed,
-        newValue: newNeed,
-        valueType: "string",
-      });
+    // Retired fields (protection need, criticality, … — 0.19): no longer in
+    // memory, but the previous state (read raw from git) may still carry
+    // them; each drop shows once.
+    for (const field of RETIRED_ASSET_FIELDS) {
+      const oldValue = legacyAssetValue(previous, field);
+      const newValue = legacyAssetValue(current, field);
+      if (oldValue !== newValue) {
+        details.push({ field, fieldLabel: `${RETIRED_LABEL[field] ?? field} (retired)`, oldValue, newValue, valueType: "string" });
+      }
     }
 
     // Overall Impact
