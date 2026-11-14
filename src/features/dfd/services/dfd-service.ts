@@ -256,8 +256,12 @@ class DFDService {
         },
       );
 
-      // Assign fully initialized DFD to project
+      // Assign fully initialized DFD to project — keeping every other field
+      // (page tree, thumbnail, …): this object is the DFD tab's project, and
+      // a dfd without `pages` made its validation see every page of a
+      // leveled DFD as not adopted after a project switch (2026-11-14).
       project.dfd = {
+        ...project.dfd!,
         xml: project.dfd!.xml,
         elements: mergedElements,
         connections: mergedConnections,
