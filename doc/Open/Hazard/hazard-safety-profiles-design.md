@@ -12,7 +12,7 @@ bowtie as built), `doc/Done/Hazard/hazard-import-iso12100-extensions.md` (HI-1 �
 `doc/InProgress/RegulationCompliance/iso-21434-conformance-implementation-plan.md`,
 `doc/InProgress/RegulationCompliance/en-50742-approach-a-design.md`,
 `doc/Open/Hazard/IMPLEMENTATION-hazard-item-safety-independence.md` (edge-level
-security → safety independence, parked), `doc/Open/multi-project-tara-design.md`
+security → safety independence, parked), `doc/Done/multi-project-tara-design.md`
 (component TARAs carry security threats only, never hazards; schema 14 in 0.19).
 **Texts:** not verified against licensed texts. Every table marked *(verify)* comes from
 secondary sources and must be checked against ISO 14971:2019, ISO/TR 24971:2020,

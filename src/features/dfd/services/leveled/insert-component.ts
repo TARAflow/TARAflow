@@ -1,5 +1,5 @@
 // ==================== INSERT COMPONENT INSTANCE ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §5, §6):
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §5, §6):
 // puts one instance of an imported component into the machine DFD. Pure —
 // XML in, XML out; the caller saves the result at once with its records
 // (persistence.commitXml) and loads it into draw.io.

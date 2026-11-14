@@ -1,4 +1,4 @@
-## [0.19.0-beta] - unreleased
+## [0.19.0-beta] - 2026-11-14
 
 **Component TARAs in a machine TARA:** the analysis of a reused component
 (a sensor, a controller, a supplier's module) is imported into the TARA of
@@ -95,6 +95,8 @@ in 0.18.x.
 - **Per-element threats:** flows between two external entities are out of
   scope on single-page DFDs too; a regeneration lists existing threats on
   such flows as obsolete (info `DFD_EE_TO_EE_FLOW`).
+- **Issue trackers:** Polarion is listed as *planned* instead of *from
+  0.19* — it comes after 1.0, with Redmine and Gitee.
 - **Safety card** of an asset hidden while it is empty and cannot be set;
   always shown for people, physical and infrastructure assets.
 
@@ -165,9 +167,11 @@ in 0.18.x.
   one sees the new number.
 - The component's source references are shown read-only in the machine;
   the machine does not resolve or check them itself.
-- Not in 0.19 (planned for 0.20): the compliance modules EN 303 645,
-  EN 18031, EN 50742 Approach B and ISO/SAE 21434; model coverage stage 2;
-  measure ownership (one status per measure).
+- **What comes next:** the way to 1.0.0 is planned release by release in
+  `doc/InProgress/Release/roadmap-to-1.0.md` — 0.20 EN 50742 Approach B,
+  0.21 physical attacks and sensors / actuators, 0.22 EN 18031, 0.23
+  EN 303 645, 0.24 the ISO/SAE 21434 compliance module, then a release
+  candidate with a feature freeze.
 
 ## [0.18.0-beta] - 2026-11-06
 

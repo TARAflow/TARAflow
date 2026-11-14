@@ -1,5 +1,5 @@
 // ==================== COMPONENT IMPORT (app wiring) ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §5): the
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §5): the
 // DFD tab asks for an import (ComponentImportRunner); this hook shows the
 // dialog, reads and checks the chosen file (Electron), applies the choice to
 // the diagram and records the import in project.components. The import

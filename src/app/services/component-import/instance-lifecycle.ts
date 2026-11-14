@@ -1,5 +1,5 @@
 // ==================== COMPONENT INSTANCE LIFECYCLE ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §6.7):
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §6.7):
 // deleting the multiprocess of an instance in the DFD removes the instance
 // — and the import with its last instance. draw.io deletes at once; the app
 // sees it with the next save and tells the user what went (user

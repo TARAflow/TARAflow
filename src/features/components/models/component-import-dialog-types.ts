@@ -1,5 +1,5 @@
 // ==================== COMPONENT IMPORT DIALOG — TYPES ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §5): what
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §5): what
 // the import dialog shows and returns. Plain data — the app layer reads the
 // component file, checks it and applies the choice; this feature only asks.
 

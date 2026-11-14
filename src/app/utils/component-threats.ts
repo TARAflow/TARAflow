@@ -1,5 +1,5 @@
 // ==================== COMPONENT THREATS (read model) ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §7.1,
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §7.1,
 // patch 14): the threats of the imported components, derived per instance
 // from the embedded snapshot — never stored (D1: one source, nothing
 // drifts; like the attack-path threats). Pure; the CLI reporter can use it

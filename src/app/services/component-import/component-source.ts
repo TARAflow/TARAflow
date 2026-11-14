@@ -1,5 +1,5 @@
 // ==================== COMPONENT SOURCE ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §4.1, §17
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §4.1, §17
 // I1): reads a component TARA for the import — checked, migrated, reduced to
 // its snapshot. Pure apart from the injected git runner and file reader, so
 // it is testable without Electron (the IPC adapters are in

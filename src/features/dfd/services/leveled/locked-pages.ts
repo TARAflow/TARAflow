@@ -1,5 +1,5 @@
 // ==================== LOCKED PAGES ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §6.2, §6.6):
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §6.2, §6.6):
 // the pages of an imported component — the child page of an imported
 // multiprocess and every page below it — belong to the component. The
 // machine's renumber leaves them alone (and the editor will lock their

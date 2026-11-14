@@ -1,5 +1,13 @@
 # TARAflow — Multi-Project TARA (Component Import) — Design
 
+> **Done (moved to doc/Done, 2026-11-14):** implemented and released with 0.19.0-beta —
+> phases 0–6 complete (phase 4 patches 47–52, phase 5 patches 54–62, phase 6 audit and
+> report), end-to-end test `component-tara-flow.int.test.ts` (patch 88), example pair in
+> TARAflow_Examples (`import-example`). Open points I1–I7 (§17) all decided. Not built,
+> for 1.x: the read-only attack-tree view of an imported tree, the picker for machine
+> elements in §7.4, the reduced profile for external suppliers (§15). The status line
+> below is the history up to phase 4a-3.
+
 Status: **v3 · 2026-11-07 · decided; phase 0 done (patch 04), phase 1 done (patches 05–10), phase 2 done (patches 11–17), manual-test and review fixes 18–37; phase 3: 3a done (patch 38), 3b done (patch 39), 3c done (patch 40), 3d-1 done (patch 41), 3d-2a done (patch 42), 3d-2b done (patch 43), evidence rule (patches 45, 46) — phase 3 complete; phase 4: 4a-1 done (patch 47), 4a-2 done (patch 48), 4a-3 done (patch 49), 4b done (patch 50), 4a-4 done (patch 51), 4c done (patch 52), 53 — phase 4 complete; phase 5: 5a done (patches 54–56; per import, rollback via git revert decided), 5b done (patches 57, 58), 5c done (patches 59–63), 5d = git revert + "discard update" (no own patch); component overview: 69 (`about`), 70 (Overview tab "Components"), 71 (refresh the stored state), 72 (no credentials in URLs), 73 (stored credentials flagged) done; phase 6 cut 2026-11-11 (6a-1 … 6d): 6a-1 done (patches 74–77), 6a-2 done (patches 78, 79), 6a-3 done (patches 80, 81), 6b done (patches 82, 83), 6c done (patch 84), 6d done (patch 85), end-to-end test done (patch 88); example, test protocol, release notes next (delta and the inventory of machine decisions)** · target release **0.19**, project
 schema **≥ 14** · Author: (Juergen) · Supersedes the content scope of
 `doc/Old/multi-diagram-linking-design.md` (§12).

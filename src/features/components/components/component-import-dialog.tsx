@@ -1,5 +1,5 @@
 // ==================== COMPONENT IMPORT DIALOG ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §5):
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §5):
 //   1. choose the component .tara.json (read and checked by the app)
 //   2. see where it comes from — pinned to a commit, or UNPINNED with a
 //      clear warning that has to be confirmed (§4.1)

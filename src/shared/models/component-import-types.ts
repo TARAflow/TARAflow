@@ -1,5 +1,5 @@
 // ==================== COMPONENT IMPORT — SHARED TYPES ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3): a machine
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3): a machine
 // TARA imports the committed TARA of a reused component. These are the
 // feature-agnostic parts — methodology fingerprint, import record, instances,
 // assumption status. The snapshot's content is typed in the app layer

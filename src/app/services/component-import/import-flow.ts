@@ -1,5 +1,5 @@
 // ==================== COMPONENT IMPORT FLOW ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §5, §6.4):
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §5, §6.4):
 // the pure steps between the import dialog and the DFD — what the dialog
 // shows about a component, the machine elements an EE can be mapped to, the
 // default prefix, and applying the analyst's choice (insert the instance,

@@ -1,5 +1,5 @@
 // ==================== FEATURE: COMPONENTS ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3): the UI of
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3): the UI of
 // the component import. Imports only `shared` — reading, checking and
 // applying an import is done in the app layer (app/services/component-import).
 

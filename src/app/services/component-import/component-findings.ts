@@ -1,5 +1,5 @@
 // ==================== COMPONENT FINDINGS ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §4.1, §6.3,
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §4.1, §6.3,
 // §8.1): findings about the imported components, shown with the DFD's own
 // findings (DFD tab). Pure.
 //

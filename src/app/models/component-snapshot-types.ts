@@ -1,5 +1,5 @@
 // ==================== COMPONENT SNAPSHOT ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §4.2): the
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §4.2): the
 // analysis-relevant part of a component TARA that a machine TARA embeds. Not
 // a new exchange format — the component's own data model, reduced. Typed
 // here in the app layer because it is made of several features' data; the

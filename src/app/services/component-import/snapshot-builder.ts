@@ -1,5 +1,5 @@
 // ==================== COMPONENT SNAPSHOT BUILDER ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, phase 0):
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, phase 0):
 // builds the snapshot a machine TARA embeds from a component project, plus
 // its content hash and the component's methodology fingerprint. Pure — the
 // caller loads and migrates the component file (phase 1).

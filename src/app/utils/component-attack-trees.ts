@@ -1,5 +1,5 @@
 // ==================== COMPONENT ATTACK TREES (read model) ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §7.2,
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §7.2,
 // patch 17): in an ISO/SAE 21434 machine only attack-path threats make
 // risks, so the component's attack trees are derived per instance too —
 // never stored, like its threats (patch 14).

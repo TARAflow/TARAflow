@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.18.0-beta`
+> **Current version:** `v0.19.0-beta`
 
 TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
@@ -240,6 +240,7 @@ The verification system provides:
 * Commit-chain validation
 * Detection of unauthorized authors
 * Verification of audit metadata
+* Imported component TARAs: the stored snapshot of every component must still match its recorded hash (check `component-import`, AVE v2)
 * Machine-readable verification functionality
 * In-application verification results
 * Integration tests and verification fixtures
@@ -259,6 +260,16 @@ Once a binding is pinned, TARAflow can **detect drift**: re-checking classifies 
 > Current scope: project-level bindings. Element-level bindings (a source reference per Function/Process/System asset) and the validation/coverage reporting that builds on them are planned — see `doc/Open/`.
 
 ---
+
+## Component TARAs in a Machine TARA
+
+A reused component — a sensor, a controller, a supplier's module — is analysed once, in its own TARA, and **imported** into the TARA of every machine that contains it.
+
+* **Import** from the DFD tab: the component's committed `.tara.json` is read at a commit or tag (pinned) and inserted as a multiprocess with the component's DFD on read-only pages; its external entities are mapped to elements of the machine. Several instances get their own prefix, identical units a quantity.
+* **Taken over:** threats, attack trees, intrinsic factors, measures, assets and their relations, assumptions of use, supporting claims and the component's overview. **Decided by the machine per instance:** impact, context factors, the window of opportunity of the attack paths, the relevance of threats on the flows across the component's boundary, the assumptions of use as a checklist with evidence.
+* **Component measures count only while they hold:** a measure reduces the machine's risk only while the component implemented it and every assumption it relies on is fulfilled in the instance — otherwise it is *unclear* or *not effective*.
+* **Drift and update:** TARAflow detects a newer state of the component, shows what changed and which of the machine's decisions are affected, and can discard an update until the project is saved.
+* **Overview tab *Components*:** origin, instances, drift status and the **deviations** from the component (added goals, measures not effective, assumptions not fulfilled, overridden relevances) as one list for the component's team; the report has a chapter *Imported components*.
 
 ## ISO/SAE 21434 Support
 
@@ -633,7 +644,7 @@ Personal values — the commit author, the tracker account and its connection st
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
-The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **13**, since `v0.18.0-beta`).
+The file carries a schema version. Opening a project saved with an older schema asks before it is converted and names the change per schema step; a backup of the original file is written alongside it first. Loading the project list never converts a file. A converted project cannot be opened again by an older TARAflow version (current schema: **14**, since `v0.19.0-beta`).
 
 View state such as the positions in the asset graph is not part of the project file.
 
@@ -704,11 +715,12 @@ Recent development versions include:
 * `v0.17.1-beta` — fixes for EN 50742 projects: Hazard tab from the regulation tag, out-of-scope hazards need no contributing asset, stale exposure level on data flows; both 62443 editions as sub-tabs
 * `v0.17.2-beta` — fix: switching or closing projects no longer writes risks, hazards, audit settings or Overview data of one project into another; attack-tree changes saved on switch
 * `v0.18.0-beta` — more matrix rows from new model fields (Security sub-tabs, black-box multiprocess), EN 50742 Approach A requirement matrix, secure channels (TLS, mTLS, VPN, SSH, application level), "Information missing" with the empty field, Azure DevOps plus Jira Server / DC, GitHub, GitLab, OpenProject (preview), AND gate = one attack path, asset filter, hazard findings panel (schema 13)
+* `v0.19.0-beta` — component TARAs imported into a machine TARA (pinned to a commit, per-instance decisions, component measures credited only while their assumptions hold, drift check and update, Overview tab *Components* with the deviations, report chapter, AVE v2 check `component-import`); tracker link dialog; asset protection need and criticality removed (schema 14)
 
 The current development state is represented by:
 
 ```text
-v0.18.0-beta
+v0.19.0-beta
 ```
 
 Versions in the beta: releases without a new project schema count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
@@ -769,7 +781,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.18.0-beta**
+**TARAflow 0.19.0-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 

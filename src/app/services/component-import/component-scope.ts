@@ -1,5 +1,5 @@
 // ==================== COMPONENT SCOPE ====================
-// Multi-project TARA (doc/Open/multi-project-tara-design.md v3, §7.1,
+// Multi-project TARA (doc/Done/multi-project-tara-design.md v3, §7.1,
 // patch 12): the machine tfIds of the parts of every imported component —
 // its elements (not its EEs, which became machine elements, E1) and its
 // flows (internal and boundary flows). The threat generators skip them;

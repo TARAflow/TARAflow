@@ -7,7 +7,7 @@
 **Related:**
 - `doc/Done/Risk/risk-impact-aggregation-design.md` — how impact factor values are combined (this document is about the *likelihood* side)
 - `doc/Done/Asset/security-goal-rework-design.md` — CIANAAA goals and the deriver inputs that *are* live
-- `doc/Open/multi-project-tara-design.md` — intrinsic vs context factors, factor prefill of imported components
+- `doc/Done/multi-project-tara-design.md` — intrinsic vs context factors, factor prefill of imported components
 - `doc/InProgress/Sensor_Actuator/ELEMENT-sensor-actuator_v0_5.md` — `injectability` / `controllability` (planned feasibility gating)
 - `doc/Assetbasierte_Steuerung_Bedrohungsanalyse.md` — asset-driven analysis depth (vertieft / fokussiert / hochstufig)
 
