@@ -100,12 +100,6 @@ function snapshotAssets(project: Project): SnapshotAsset[] {
   return (project.assets?.assets ?? []).map((asset) => {
     const copy: Record<string, unknown> = { ...asset };
     for (const key of ASSET_IMPACT_KEYS) delete copy[key];
-    // The protection need is a rating in the component's context, like impact.
-    const properties = copy.properties as Record<string, unknown> | undefined;
-    if (properties && "protectionNeed" in properties) {
-      const { protectionNeed: _drop, ...rest } = properties;
-      copy.properties = rest;
-    }
     // Per security goal (= damage scenario, asset × property): its impact and
     // its consequence text are the component's damage view — the machine
     // rates the damage scenarios itself (§7.3, §7.5). The goal and its level
@@ -179,8 +173,7 @@ export function buildComponentSnapshot(project: Project): ComponentSnapshot {
           xml: dfd.xml,
           elements: dfd.elements,
           connections: dfd.connections,
-          // The asset mirror without the protection need (a context rating).
-          assets: (dfd.assets ?? []).map(({ protectionNeed: _need, ...asset }) => asset),
+          assets: dfd.assets ?? [],
           ...(dfd.pages ? { pages: dfd.pages } : {}),
         }
       : null,

@@ -695,67 +695,6 @@ export const AssetDescriptionForm: React.FC<AssetDescriptionFormProps> = ({
         );
       })()}
 
-      <Divider />
-
-      {/* Protection Need */}
-      <Box>
-        <Typography variant="body2" gutterBottom>
-          {t("tabs.dfd.element_description.asset.protectionNeed")}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ mb: 2, display: "block" }}
-        >
-          {t("tabs.dfd.element_description.asset.protectionNeedGuidance")}
-        </Typography>
-        <FormControl fullWidth required>
-          <InputLabel>
-            {t("tabs.dfd.element_description.asset.protectionNeed")}
-          </InputLabel>
-          <Select
-            value={
-              asset.properties?.protectionNeed || asset.protectionNeed || ""
-            }
-            onChange={(e) => {
-              const value = e.target.value as DFDAsset["protectionNeed"];
-              const updatedProperties = {
-                ...asset.properties,
-                protectionNeed: value,
-              };
-              // Canonical top-level (read by asset-property-validator) and the
-              // properties mirror both go via onChange; the DFD → AssetData sync
-              // now carries properties to the feature store (Phase 4b-iii), so
-              // no separate feature-store write is needed here.
-              onChange({
-                protectionNeed: value,
-                properties: updatedProperties,
-              });
-            }}
-            label={t("tabs.dfd.element_description.asset.protectionNeed")}
-          >
-            <MenuItem value="">
-              <em>Not specified</em>
-            </MenuItem>
-            <MenuItem value="low">
-              {" "}
-              {t("tabs.dfd.element_description.asset.protectionLow")}
-            </MenuItem>
-            <MenuItem value="medium">
-              {" "}
-              {t("tabs.dfd.element_description.asset.protectionMedium")}
-            </MenuItem>
-            <MenuItem value="high">
-              {" "}
-              {t("tabs.dfd.element_description.asset.protectionHigh")}
-            </MenuItem>
-            <MenuItem value="critical">
-              {t("tabs.dfd.element_description.asset.protectionCritical")}
-            </MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
       {/* Category-specific fields */}
       {category && (
         <>

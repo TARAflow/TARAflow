@@ -33,6 +33,7 @@ import {
   migrate_13_to_14,
 } from "./versions";
 import { normalizeThreatTables } from "../../features/threats/services/threat-table-normalize";
+import { dropRetiredAssetFields } from "./drop-retired-asset-fields";
 import { freezeComponentSnapshots } from "./component-import/snapshot-freeze";
 
 
@@ -388,6 +389,25 @@ export function applyLegacyMigrations(raw: any): any {
  *
  * Returns null only if the object is fundamentally unrecoverable.
  */
+/**
+ * `dropped` with the verifications of `read` that matched it re-keyed to the
+ * state without the retired fields; `dropped` itself when nothing was dropped.
+ */
+function rekeyVerifications(read: any, dropped: any): any {
+  if (dropped === read) return dropped;
+  const entries = dropped?.cybersecurityConcept?.verifications;
+  if (!entries?.length) return dropped;
+  const before = verificationStateHash(read);
+  const after = verificationStateHash(dropped);
+  return {
+    ...dropped,
+    cybersecurityConcept: {
+      ...dropped.cybersecurityConcept,
+      verifications: entries.map((e: any) => (e?.stateHash === before ? { ...e, stateHash: after } : e)),
+    },
+  };
+}
+
 export function parseAndRepair(raw: any): Project | null {
   return parseAndRepairWithMetadata(raw)?.project ?? null;
 }
@@ -396,7 +416,12 @@ export function parseAndRepair(raw: any): Project | null {
  * Full pipeline with migration metadata — used by ProjectRepository
  * to decide whether to write back and show a UI notice.
  */
-export function parseAndRepairWithMetadata(raw: any): MigrationResult | null {
+export function parseAndRepairWithMetadata(input: any): MigrationResult | null {
+  // Step 0: retired fields (0.19: the asset protection need) — never analysis
+  // content, so a verification of the file as read stays valid: it is
+  // re-keyed to the state without them (drop-retired-asset-fields.ts).
+  const raw = rekeyVerifications(input, dropRetiredAssetFields(input));
+
   // Hash of the analysis as read — before anything touches it (step 4).
   const hasVerifications = !!raw?.cybersecurityConcept?.verifications?.length;
   const readHash = hasVerifications ? verificationStateHash(raw) : "";

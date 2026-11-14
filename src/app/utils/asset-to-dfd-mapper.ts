@@ -107,7 +107,6 @@ export function dfdSourcedAssets(featureAssets: Asset[]): Asset[] {
  *   name          ← asset.name
  *   assetGroup    ← asset.assetGroup
  *   description   ← asset.properties?.description
- *   protectionNeed← asset.properties?.protectionNeed
  *   properties    ← asset.properties   (carried through)
  *   linkedElements← DERIVED from element/connection.assetRelations
  *
@@ -134,9 +133,6 @@ export function deriveDfdAssets(
 
     const description = asset.properties?.description;
     if (description !== undefined) dfdAsset.description = description;
-
-    const protectionNeed = asset.properties?.protectionNeed;
-    if (protectionNeed !== undefined) dfdAsset.protectionNeed = protectionNeed;
 
     if (asset.properties !== undefined) {
       dfdAsset.properties = asset.properties as AssetProperties;

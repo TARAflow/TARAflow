@@ -122,7 +122,7 @@ const HazardsTabView: React.FC<HazardTabProps> = ({
   // mint a Human protection-target asset; dedup happens in the bridge
   const mintHumanAsset = useCallback(
     (name: string, existingIds: string[]) =>
-      createAsset(existingIds, name, "human", "critical"),
+      createAsset(existingIds, name, "human"),
     [],
   );
 

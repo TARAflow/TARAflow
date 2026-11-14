@@ -85,7 +85,6 @@ export interface AvailableAsset {
   displayId: string;
   name: string;
   assetGroup: AssetGroup;
-  protectionNeed?: string;
 }
 
 interface AssetRelationSelectorProps {

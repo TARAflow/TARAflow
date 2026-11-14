@@ -139,7 +139,6 @@ export interface ExternalSafetyRef {
 export interface AssetProperties {
   // ---- Identity mirrors (canonical value lives on the Asset record) ----
   category?: AssetGroup;
-  protectionNeed?: "low" | "medium" | "high" | "critical";
   description?: string;
   owner?: string;
   notes?: string;

@@ -70,7 +70,6 @@ export const FINDING_CLASS: Record<keyof typeof ValidationMessages, "structure" 
   ASSET_RELATION_TYPE_INVALID: "property",
   ASSET_RELATION_INCONSISTENT: "property",
   ASSET_MISSING_NAME: "property",
-  ASSET_MISSING_PROTECTION_NEED: "property",
   ASSET_MISSING_DATA_TYPE: "property",
   ASSET_MISSING_LIFECYCLE: "property",
   ASSET_MISSING_CRITICALITY: "property",

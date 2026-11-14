@@ -86,7 +86,6 @@ export interface DFDAsset {
   name: string;
   description?: string;
   assetGroup: AssetGroup;
-  protectionNeed?: "low" | "medium" | "high" | "critical";
   linkedElements?: ElementRelation[];
   /**
    * Outgoing asset-to-asset edges, projected from the canonical list

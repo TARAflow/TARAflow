@@ -90,6 +90,13 @@ in 0.18.x.
 - **Safety card** of an asset hidden while it is empty and cannot be set;
   always shown for people, physical and infrastructure assets.
 
+### Removed
+- **Asset field *Protection need*** (low … critical): no calculation used it
+  — threats, risks, compliance and the report take the impact from the
+  security goals and the damage scenarios — and it could contradict them.
+  Its warning ("required for threat prioritisation") was wrong and is gone
+  too.
+
 ### Fixed
 - **Risk status:** a risk is *verified* only when every active mitigation
   is; one mitigation that is only implemented keeps it at *implemented*.
@@ -138,6 +145,9 @@ in 0.18.x.
 - **Leveled DFDs where *Adopt pages* was confirmed after a project switch**
   (0.14 – 0.18): the adoption may have dropped identity links between pages —
   check the context copies and the page tree of such DFDs.
+- **Protection need:** existing values are dropped when a project is
+  opened and are gone from the file after the next save; the first commit
+  diff lists them once. A verification of the TARA stays valid.
 - **CI with `taraflow-verify`:** the JSON result carries `aveVersion: 2`
   — a pipeline that checks the version or compares results with a stored
   one sees the new number.

@@ -49,8 +49,6 @@ export interface AssetDFDAsset {
    */
   readonly assetGroup?: AssetGroup;
 
-  /** Protection need — used for chip color in AssetRelationSelector */
-  readonly protectionNeed?: "low" | "medium" | "high" | "critical";
 
   /**
    * The DFD asset's category-specific properties, projected through unchanged

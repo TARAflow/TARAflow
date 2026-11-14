@@ -37,15 +37,6 @@ function validateAssetBase(
       params: { name: displayId },
     });
   }
-
-  if (!asset.protectionNeed && !asset.properties?.protectionNeed) {
-    warnings.push({
-      key: ValidationMessages.ASSET_MISSING_PROTECTION_NEED,
-      displayId,
-      elementId: asset.id,
-      params: { name: displayId },
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------

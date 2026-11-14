@@ -369,7 +369,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         displayId: a.displayId,
         name: a.name,
         assetGroup: a.assetGroup,
-        protectionNeed: a.protectionNeed,
       })),
     [dfd?.assets],
   );
@@ -392,12 +391,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       // before this callback returns and the real assetId reaches the Selector.
       let created!: DFDAsset;
       scheduleSave((base) => {
-        const { newDfd, asset } = createAsset(
-          name,
-          assetGroup,
-          undefined,
-          base,
-        );
+        const { newDfd, asset } = createAsset(name, assetGroup, base);
         created = asset;
         return {
           dfd: newDfd,
@@ -412,7 +406,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         displayId: created.displayId,
         name: created.name,
         assetGroup: created.assetGroup,
-        protectionNeed: created.protectionNeed,
       };
     },
     [createAsset, scheduleSave, project.phaseStatus],
@@ -486,7 +479,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       // Same base-threading fix as handleCreateAsset — never build the new
       // asset on a stale project.dfd while another save is pending.
       scheduleSave((base) => {
-        const { newDfd } = createAsset("", assetGroup, undefined, base);
+        const { newDfd } = createAsset("", assetGroup, base);
         return {
           dfd: newDfd,
           phaseStatus: project.phaseStatus,

@@ -5,6 +5,7 @@
 // verification records do not change it — and the status of the latest entry.
 
 import { describe, it, expect } from "vitest";
+import { dropRetiredAssetFields } from "app/services/drop-retired-asset-fields";
 import { readFileSync } from "fs";
 import { carryVerifications, verificationStateHash, verificationStatus } from "app/services/verification-state";
 import { ANALYSIS_PRESERVING_MIGRATIONS, parseAndRepairWithMetadata } from "app/services/migration-service";
@@ -130,7 +131,9 @@ describe("carrying verifications over loading (review 2026-10-30)", () => {
     expect(migrated).toBe(true);
     const now = verificationStateHash(loaded);
     expect(now).not.toBe(readHash);
-    expect(loaded.cybersecurityConcept.verifications[0]).toMatchObject({ stateHash: readHash, reconfirm: "migration" });
+    // the retired asset field (protection need, 0.19) is dropped first and
+    // the entry re-keyed to the state without it; the migration then asks
+    expect(loaded.cybersecurityConcept.verifications[0]).toMatchObject({ stateHash: verificationStateHash(dropRetiredAssetFields(JSON.parse(JSON.stringify(raw)))), reconfirm: "migration" });
     expect(verificationStatus(loaded.cybersecurityConcept.verifications, now, "2026-10-30").kind).toBe("reconfirm");
   });
 });

@@ -13,7 +13,6 @@ export interface GraphAssetInput {
   readonly displayId?: string;
   readonly name?: string;
   readonly assetGroup: AssetGroup | string;
-  readonly protectionNeed?: string;
 }
 
 /** A DFD element or data flow with its element-to-asset relations. */
@@ -86,7 +85,6 @@ export interface AssetGraphAssetNode {
   readonly displayId: string;
   readonly name: string;
   readonly group: AssetGroup | string;
-  readonly protectionNeed?: string;
   /** Hops from the focus asset (focus view only; 0 = the focus asset). */
   readonly distance?: number;
 }

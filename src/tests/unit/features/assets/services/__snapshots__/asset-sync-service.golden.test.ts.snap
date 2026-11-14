@@ -1345,7 +1345,6 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "overallImpact": 0,
         "properties": {
           "description": "",
-          "protectionNeed": "critical",
         },
         "securityGoals": [
           {
@@ -1420,7 +1419,6 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "overallImpact": 0,
         "properties": {
           "description": "",
-          "protectionNeed": "critical",
         },
         "securityGoals": [
           {
@@ -1495,7 +1493,6 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "overallImpact": 0,
         "properties": {
           "description": "",
-          "protectionNeed": "critical",
         },
         "securityGoals": [
           {
@@ -1570,7 +1567,6 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "overallImpact": 0,
         "properties": {
           "description": "",
-          "protectionNeed": "critical",
         },
         "securityGoals": [
           {
@@ -1645,7 +1641,6 @@ exports[`Phase 0 — syncFromDFD characterization > SmokeDetector: re-sync of an
         "overallImpact": 0,
         "properties": {
           "description": "",
-          "protectionNeed": "critical",
         },
         "securityGoals": [
           {

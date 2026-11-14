@@ -233,7 +233,6 @@ const assetsToAvailableAssets = (assets: DFDAsset[]): AvailableAsset[] => {
     displayId: asset.displayId || asset.id,
     name: asset.name || "Unnamed Asset",
     assetGroup: asset.assetGroup,
-    protectionNeed: asset.protectionNeed ?? asset.properties?.protectionNeed,
   }));
 };
 
@@ -1026,7 +1025,6 @@ const AssetAccordion: React.FC<AssetAccordionProps> = React.memo(
       prevProps.asset.name !== nextProps.asset.name ||
       prevProps.asset.description !== nextProps.asset.description ||
       prevProps.asset.assetGroup !== nextProps.asset.assetGroup ||
-      prevProps.asset.protectionNeed !== nextProps.asset.protectionNeed ||
       prevProps.isExpanded !== nextProps.isExpanded ||
       prevProps.onUpdate !== nextProps.onUpdate ||
       prevProps.onToggle !== nextProps.onToggle ||

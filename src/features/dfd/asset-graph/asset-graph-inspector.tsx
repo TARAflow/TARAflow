@@ -363,9 +363,6 @@ export const AssetGraphInspector: React.FC<AssetGraphInspectorProps> = ({
         <Typography variant="subtitle2">{name(assetId)}</Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
           {groupLabel(String(asset.assetGroup))}
-          {asset.protectionNeed
-            ? ` · ${t("tabs.dfd.assetGraph.inspector.protectionNeed", { defaultValue: "Protection need" })}: ${asset.protectionNeed}`
-            : ""}
         </Typography>
         {groups.length === 0 && (
           <Typography variant="caption" color="text.secondary">

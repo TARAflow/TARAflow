@@ -245,6 +245,8 @@ Die folgenden Tabellen erweitern die Asset-Übersicht aus Kapitel 3 um die struk
 
 ---
 
+> **Hinweis (0.19):** Das Asset-Feld `protectionNeed` (Schutzbedarf) ist entfallen — keine Berechnung hat es gelesen. Der Schutzbedarf ergibt sich aus den Schutzzielen (CIANAAA mit Stufe) und der Impact-Bewertung der Damage Scenarios. Die `protectionNeed`-Zeilen der folgenden Tabellen sind nur noch als Einschätzung des Referenzfalls zu lesen.
+
 ### Data Assets
 
 | Eigenschaft | Fertigungsrezepte | Kalibrierungsdaten | Produktionsdaten | Maschinenstatus | Diagnosedaten | Safety-Parameter | Auftragsdaten |

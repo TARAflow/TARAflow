@@ -691,7 +691,7 @@ Die strukturierten Elementbeschreibungen bilden eine zentrale Grundlage für:
 **Referenz:** Formalisierung von Kapitel 2.2
 
 Diese Phase überführt die in Phase 1 identifizierten Assets in eine formale Bewertung.  
-Für jedes Asset werden Schutzbedarf, Kritikalität und relevante Schutzziele systematisch festgelegt.
+Für jedes Asset werden Kritikalität und relevante Schutzziele (mit ihrer Stufe) systematisch festgelegt; der Schutzbedarf ergibt sich daraus und aus der Impact-Bewertung der Damage Scenarios (in TARAflow seit 0.19 kein eigenes Feld mehr).
 
 Diese Phase markiert den Übergang von der Systemmodellierung zur sicherheitsrelevanten Bewertung.  
 Alle nachfolgenden Analyse- und Bewertungsaktivitäten beziehen sich verbindlich auf die in Phase 2 festgelegten Schutzziele und Kritikalitäten.

@@ -42,7 +42,6 @@ export function useAssetDerivedData(activeProject: Project | undefined) {
               displayId: a.displayId,
               name: a.name,
               assetGroup: a.assetGroup,
-              ...(a.properties?.protectionNeed ? { protectionNeed: String(a.properties.protectionNeed) } : {}),
             })),
             relations: assetStore.relations ?? [],
           }

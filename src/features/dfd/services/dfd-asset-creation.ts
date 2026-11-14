@@ -47,7 +47,6 @@ export function addCreatedAssets(
       // `as AssetGroup`: the shared seed is group-agnostic. "environment" only
       // becomes a real AssetGroup with Phase-1 change 2 — see safety-independence doc.
       assetGroup: c.assetGroup as AssetGroup,
-      ...(c.protectionNeed ? { protectionNeed: c.protectionNeed } : {}),
       linkedElements: [],
     }));
 

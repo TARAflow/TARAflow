@@ -35,6 +35,22 @@ import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
 import type { A2ARelation, CybersecurityConcept, ItemDefinition } from "shared";
 
+/**
+ * Asset fields retired from the model, still in files written before them —
+ * the previous state of a commit is read raw from git, so their drop shows
+ * once in the diff. One place for them; retired in 0.19: the protection need.
+ */
+interface LegacyAssetFields {
+  protectionNeed?: string;
+  properties?: Asset["properties"] & { protectionNeed?: string };
+}
+
+/** The retired protection need of an asset record, if the file still had it. */
+function legacyProtectionNeed(asset: Asset): string | undefined {
+  const legacy: LegacyAssetFields = asset;
+  return legacy.properties?.protectionNeed ?? legacy.protectionNeed;
+}
+
 /** The description of a DFD change ("Page added", "Layout changed"). */
 function dfdChangeText(change: DfdChange): string {
   const verb = change.kind === "added" ? "added" : change.kind === "removed" ? "deleted" : "modified";
@@ -528,13 +544,16 @@ export class DiffService {
       });
     }
 
-    // Protection need (protection-relevant, distinct from the impact ratings)
-    if (current.properties?.protectionNeed !== previous.properties?.protectionNeed) {
+    // Protection need — retired in 0.19: no longer in memory, but the previous
+    // state (read raw from git) may still carry it; its drop shows once.
+    const oldNeed = legacyProtectionNeed(previous);
+    const newNeed = legacyProtectionNeed(current);
+    if (oldNeed !== newNeed) {
       details.push({
         field: "protectionNeed",
-        fieldLabel: "Protection Need",
-        oldValue: previous.properties?.protectionNeed,
-        newValue: current.properties?.protectionNeed,
+        fieldLabel: "Protection Need (retired)",
+        oldValue: oldNeed,
+        newValue: newNeed,
         valueType: "string",
       });
     }

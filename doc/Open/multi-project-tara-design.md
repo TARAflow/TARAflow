@@ -1015,6 +1015,17 @@ reviews, a newer state); a tab the user picks stays picked for the session among
 same extra tabs. A component finding in the DFD panel and the Overview's "Show in DFD" open the tab on
 purpose (`tabRequest` / `ElementFocusRequest.tab`). Texts pointing to the "component section" name
 the tab.
+*Patch 104 (2026-11-14, user + review): the asset field "protection need" is retired.* No calculation
+read it (threats, risks, compliance, report take the impact from the security goals and damage
+scenarios); its validator warning claimed it was "required for threat prioritisation". Removed from the
+form, the asset graph, the models, mappers and sync; dropped on load (`drop-retired-asset-fields.ts`,
+before every other load step) — a verification of the file as read is re-keyed to the state without it
+(never analysis). The commit diff reads the previous state raw and lists the dropped values once
+(`LegacyAssetFields`). For the component import: the snapshot builder no longer strips the field — it
+never reaches it. The old builder had left it in the DFD asset mirror (`dfd.assets[].properties`), so
+snapshots taken before hash differently now: the drift check offers "Refresh stored state" once
+(builder changed). 0.19 is unreleased — only test repositories carry such snapshots; embedded
+snapshots are not touched (the AVE check stays clean).
 *Patch 97 done (2026-11-13, review):* **imported attack trees outside ISO/SAE 21434 are for
 information.** Only an ISO machine rates attack paths (window of opportunity per step); the
 CMP_PATH_* findings were already ISO-only, but the report's path table wrote "WoO not rated yet" for
