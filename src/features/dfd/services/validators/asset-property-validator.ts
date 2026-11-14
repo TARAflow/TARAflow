@@ -61,54 +61,54 @@ function validateAssetGroupProperties(
 
   switch (asset.assetGroup) {
     case "data":
-      // dataType — required for Information Disclosure / Tampering threat selection
+      // dataType — documents the asset; no calculation reads it yet (P4, 0.19)
       if (!props?.dataType || props.dataType.length === 0) {
         warn(ValidationMessages.ASSET_MISSING_DATA_TYPE);
       }
-      // lifecycle — required for retention/deletion threat scenarios
+      // lifecycle — context for the attack feasibility rating; not evaluated yet
       if (!props?.lifecycle) {
         warn(ValidationMessages.ASSET_MISSING_LIFECYCLE);
       }
       break;
 
     case "system":
-      // criticality — required for threat prioritisation
+      // criticality — a rating entered as a field; no calculation reads it
       if (!props?.criticality) {
         warn(ValidationMessages.ASSET_MISSING_CRITICALITY);
       }
-      // exposure — required for attack surface assessment
+      // exposure — documents the asset; not evaluated (the flows' exposure level is)
       if (!props?.exposure) {
         warn(ValidationMessages.ASSET_MISSING_EXPOSURE);
       }
       break;
 
     case "infrastructure":
-      // physicalAccessControl — replaces physicalAccessPossible + isPhysicalBarrier
+      // physicalAccessControl — documents the asset; not evaluated (the physical boundary's is)
       if (!props?.physicalAccessControl) {
         warn(ValidationMessages.ASSET_MISSING_PHYSICAL_ACCESS);
       }
       break;
 
     case "service":
-      // serviceType — required for supply chain threat assessment
+      // serviceType — documents the asset; no calculation reads it yet
       if (!props?.serviceType) {
         warn(ValidationMessages.ASSET_MISSING_SERVICE_TYPE);
       }
-      // responsibility — required for CRA Art. 13 supply chain obligations
+      // responsibility — context (third party, supply chain); not evaluated yet
       if (!props?.responsibility) {
         warn(ValidationMessages.ASSET_MISSING_RESPONSIBILITY);
       }
       break;
 
     case "human":
-      // role — required for privilege escalation / insider threat scenarios
+      // role — documents the asset; not evaluated (the external entity's type is)
       if (!props?.role) {
         warn(ValidationMessages.ASSET_MISSING_ROLE);
       }
       break;
 
     case "process":
-      // automationLevel — replaces boolean automated, affects DoS/Tampering impact
+      // automationLevel — context for the attack feasibility rating; not evaluated yet
       if (!props?.automationLevel) {
         warn(ValidationMessages.ASSET_MISSING_AUTOMATION_LEVEL);
       }
