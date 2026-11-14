@@ -50,6 +50,8 @@ export function mergeProjectPatch(
     ...patch,
     info: { ...p.info, ...patch.info, lastModified: now },
     hasUnsavedChanges: true,
+    // one more revision of the in-memory project (runtime only)
+    revision: (p.revision ?? 0) + 1,
   };
   return commitPhaseStatus(
     commitCalcStamps(

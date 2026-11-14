@@ -205,4 +205,30 @@ describe("updateProject with autosave: a change during the disk write survives",
     });
     expect(current(result).hasUnsavedChanges).toBe(false);
   });
+
+  it("two updates in one tick: the second copy lacks the first change — the flag stays set after both writes", async () => {
+    const { result } = await loaded();
+    let a!: Promise<void>;
+    let b!: Promise<void>;
+    // the DFD tab's commit and the asset sync in the same tick: no render
+    // between them, so the second autosave copy is built without the first change
+    act(() => {
+      a = result.current.updateProject({ id: "proj-1", dfd: { xml: "after", pages: [{ pageId: "top" }, { pageId: "component" }] } as never });
+      b = result.current.updateProject({ id: "proj-1", assets: { assets: ["a"] } as never });
+    });
+    await waitFor(() => expect(writes.pending).toHaveLength(2));
+    await act(async () => {
+      writes.pending[0]();
+      writes.pending[1]();
+      await Promise.all([a, b]);
+    });
+    // memory has both changes …
+    expect((current(result).dfd as { xml: string }).xml).toBe("after");
+    expect(current(result).assets).toEqual({ assets: ["a"] });
+    // … but no write had both: unsaved, so the next autosave / close asks
+    expect(current(result).hasUnsavedChanges).toBe(true);
+    // the revision never reaches the disk copy's file (prepareForDisk strips it)
+    expect(typeof current(result).revision).toBe("number");
+  });
 });
+

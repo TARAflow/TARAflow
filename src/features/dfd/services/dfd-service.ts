@@ -161,7 +161,9 @@ class DFDService {
       const hasData = Boolean(project.dfd?.xml);
 
       if (!hasData) {
+        // keep any other field (review 2026-11-14: never drop one silently)
         project.dfd = {
+          ...(project.dfd ?? {}),
           xml: undefined,
           elements: [],
           connections: [],

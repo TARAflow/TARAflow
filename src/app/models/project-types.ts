@@ -131,6 +131,14 @@ export interface Project {
   hasUnsavedChanges?: boolean;
   isOpen?: boolean;
   filePath?: string; // Runtime-only (Electron). Stripped by prepareForDisk() before write — never persisted.
+  /**
+   * Runtime-only revision of the in-memory project: every merged update
+   * counts it up (mergeProjectPatch). A write clears the unsaved flag only
+   * when memory is still at the revision the written copy was built for —
+   * a copy built on a base one render behind cannot clear it. Stripped by
+   * prepareForDisk() — never persisted.
+   */
+  revision?: number;
 }
 
 // ==================== INPUT TYPES ====================

@@ -97,6 +97,19 @@ in 0.18.x.
   impact, STRIDE, status) and the active STRIDE methods were missing.
 - **Repository URLs** are stored without credentials; a stored URL with
   credentials is flagged in the Overview's sources.
+- **Multi-page DFDs after a project switch:** coming back to a project
+  with a leveled DFD, the DFD tab lost its page tree on loading and offered
+  *Adopt pages* for every page; saving was refused until another tab was
+  opened. Adopting there re-linked the pages from scratch and dropped
+  identity links (e.g. the boundaries around an imported component lost
+  their properties). The page tree now stays when the DFD is loaded.
+- **Autosave:** a change made while the project was being written (e.g. the
+  DFD tab saving right after another edit) was replaced in memory by the
+  older copy; the file was right, the app was not. A write now only marks
+  the project saved, and only when nothing changed meanwhile — otherwise
+  the next autosave writes it.
+- **Open project** starts the file dialog in the folder of the open
+  project, without one in the home directory.
 
 ### Upgrade notes
 - Projects are converted to schema 14 when opened (backup alongside); a
@@ -122,6 +135,9 @@ in 0.18.x.
   in its URL is flagged. Removing it from the project is not enough — the
   token stays in the git history of every repository the file was
   committed to: revoke it at the provider.
+- **Leveled DFDs where *Adopt pages* was confirmed after a project switch**
+  (0.14 – 0.18): the adoption may have dropped identity links between pages —
+  check the context copies and the page tree of such DFDs.
 - **CI with `taraflow-verify`:** the JSON result carries `aveVersion: 2`
   — a pipeline that checks the version or compares results with a stored
   one sees the new number.

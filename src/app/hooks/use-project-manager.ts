@@ -211,7 +211,10 @@ export function useProjectManager(): UseProjectManagerReturn {
           // (2026-11-14). Unsaved stays set when something changed since.
           setProjects((prev) =>
             prev.map((p) =>
-              p.id === patch.id && p.info?.lastModified === savedProject.info?.lastModified
+              // the written copy's revision: built on a base one render
+              // behind (two updates in one tick), it lacks a change that is
+              // in memory — then the flag stays set (review 2026-11-14)
+              p.id === patch.id && p.revision === savedProject.revision
                 ? { ...p, hasUnsavedChanges: false }
                 : p,
             ),
