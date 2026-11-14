@@ -1,6 +1,6 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.2 · 2026-11-14 · v0.2: physical / sensor-actuator threats and the field
+**Status:** v0.3 · 2026-11-14 · v0.3: EN 50742 B coverage done, R-9 (IEC 62443-3-3 on demand) · v0.2: physical / sensor-actuator threats and the field
 retirements together in 0.21, EN 18031 in 0.22 (user 2026-11-14) · v0.1: proposal — the cut
 per release is **to be confirmed by Juergen** · sources: gap analysis of all documents in `doc/Open` and `doc/InProgress`
 (2026-11-14, spot-checked in code at `ad55a71d`), the 0.19 work, the user's decisions below.
@@ -72,10 +72,11 @@ remaining standards build on the model.
   (Draft for Enquiry, DIN Media copy); it is **not** in `Standards/` any more. Needed again —
   or the final EN, if it is published (then O1 of `en-50742-rq-coverage.md`: remap the
   draft line IDs first).
-- Coverage of Approach B (Clause 8) in `en-50742-rq-coverage.md` — requirement subset of
-  Tables 3 + 4, target SL per FR, role system / component (no IEC 62443-3-3 SR set in
-  TARAflow), CR 2.8 five-year override, audit log retention (O8; input from the CRA
-  coverage P-6).
+- Coverage of Approach B (Clause 8) in `en-50742-rq-coverage.md` §6 — done 2026-11-14
+  (patch 112), decisions O13 – O16: component role (Table 4, fixed SL-T, 26 counted rows
+  + 12 recommended by analogy), system role (8.2) as a statement row (R-9), scope = the
+  elements on a path to a safety function, preset without `motive`, one retention field
+  for 8.5 and 7.3.4 (O8).
 - Module in the Compliance tab like `en-50742-a`; switch the tag on
   (`shared/utils/tag-categories.ts`, disabled with the outdated reason "no IEC 62443-4-2
   support yet"); update `regulation-presets-design.md` (stale).
@@ -194,6 +195,7 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
 | R-6 | Measure ownership (one status per measure): before the format freeze (0.24), or 2.x? | 0.24 |
 | R-7 | Safety profiles (`hazard-safety-profiles-design.md`): after 1.0? Its schema-14 plan contradicts "only optimisation" | 0.24 |
 | R-8 | Version rule and support promise (§3.6) | 1.0.0-rc |
+| R-9 | EN 50742 Approach B for a whole machine (8.2, Table 3): an IEC 62443-3-3 SR edition (needs the licensed text) — decide when the first customer chooses B for a machinery system; until then 8.2 is a statement row (`en-50742-rq-coverage.md` O13) | on demand |
 
 ## 5. After 1.0 (1.x)
 
