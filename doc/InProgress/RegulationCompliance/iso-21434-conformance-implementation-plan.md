@@ -943,7 +943,13 @@ criteria join the validators once 3b exists.
    terms **[D]**. The scale is
    part of the preset, not a project option; switching the preset re-labels and
    flags safety ratings for review.
-2. **Damage scenarios 1:n per asset × property** (Phase 2) **[D]**. **Risk granularity [N/D]:**
+2. > **Under review (roadmap to 1.0, R-10, user 2026-11-14):** the default becomes one risk
+   > per threat scenario with impact = MAX over its damage scenarios (RQ-15-15; the
+   > per-damage-scenario risk of NOTE 1 only on customer demand) — no change of risk keys,
+   > conditions in `doc/InProgress/Release/roadmap-to-1.0.md` §3.4. This decision is
+   > rewritten when 0.23 starts.
+
+   **Damage scenarios 1:n per asset × property** (Phase 2) **[D]**. **Risk granularity [N/D]:**
    one risk per *threat scenario × damage scenario*; the risk value uses the
    highest S/F/O/P rating of that damage scenario. A separate value per impact
    category is **not** built (allowed by RQ-15-15 NOTE 1, but multiplies rows

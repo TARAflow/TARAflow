@@ -233,7 +233,7 @@ Retiring follows the pattern of `5fe3b693`: dropped on load before every other s
 
 | # | Question | Proposal |
 |---|---|---|
-| D1 | Phase 0 in 0.19? | **Decided 2026-11-14:** yes — honest messages as infos (§7), the doc correction, retiring `criticality` and the dead fields of §2.2 C. Everything else in one batch in 0.20 (§8): the D2 retirements in **one** commit, so users see "Refresh stored state" once |
+| D1 | Phase 0 in 0.19? | **Decided 2026-11-14:** yes — honest messages as infos (§7), the doc correction, retiring `criticality` and the dead fields of §2.2 C. Everything else in one batch in 0.20 (§8): the D2 retirements in **one** commit, so users see "Refresh stored state" once **Release cut changed (roadmap to 1.0 v0.4, user 2026-11-14):** phase 1 (register + guard test) in 0.20; the D2 retirements in 0.21 (with the physical threats); phase 2 (display) and the rest of phase 4 in 0.24; phase 3 (suggestions) after 1.0. |
 | D2 | Duplicate attack-surface fields on the asset (`exposure`, `physicalAccessControl`, `location`, `portability`, `serviceType`, `role`) | Retire; context comes from the elements (P1) |
 | D3 | Keep on the asset as context: `lifecycle`, `automationLevel`, `changeFrequency`, `responsibility` | Yes; confirm the meaning of `changeFrequency` (process changes vs. data frequency) |
 | D4 | `dataType` | Deriver input for CIANAAA goals, or documentation — not rating context |
