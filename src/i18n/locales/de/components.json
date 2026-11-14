@@ -81,7 +81,8 @@
       "tab": "Komponente",
       "title": "Importierte Komponente ({{prefix}}) — schreibgeschützt",
       "open": "Komponenten-TARA öffnen",
-      "quantity": "Anzahl (gleiche Einheiten, gleicher Ort)",
+      "quantity": "Anzahl",
+      "quantityHint": "Gleiche Einheiten am gleichen Ort — eine Analyse für alle",
       "copyRatings": "Bewertung von anderer Instanz übernehmen…",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
     },

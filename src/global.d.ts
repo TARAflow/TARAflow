@@ -24,7 +24,8 @@ declare global {
         saveDialog: (
           defaultName: string,
         ) => Promise<{ success: boolean; data?: string; error?: string }>;
-        openDialog: () => Promise<{
+        /** defaultDir: where the dialog starts; absent = the home directory. */
+        openDialog: (defaultDir?: string) => Promise<{
           success: boolean;
           data?: string;
           error?: string;

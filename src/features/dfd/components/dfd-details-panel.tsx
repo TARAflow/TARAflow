@@ -534,31 +534,39 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (run
           ))}
         </Box>
       )}
-      {/* Identical units in the same installation context (I5) */}
-      {info.onSetQuantity ? (
-        <TextField
-          size="small"
-          type="number"
-          label={t("components.details.quantity", { ns: "components", defaultValue: "Quantity (identical units, same place)" })}
-          value={info.quantity ?? 1}
-          onChange={(e) => {
-            const n = Number(e.target.value);
-            if (Number.isInteger(n) && n >= 1) info.onSetQuantity!(n);
-          }}
-          sx={{ mt: 1, width: 240 }}
-          inputProps={{ min: 1, step: 1, "data-testid": "component-quantity" }}
-        />
-      ) : (info.quantity ?? 1) > 1 ? (
-        <Typography variant="body2" sx={{ mt: 0.5 }} data-testid="component-quantity-label">
-          ×{info.quantity}
-        </Typography>
-      ) : null}
-      {/* its own line, left-aligned like the other actions (not beside the quantity field) */}
-      {info.onOpen && (
-        <Box sx={{ mt: 0.5 }}>
-          <Button size="small" sx={{ px: 0 }} onClick={info.onOpen} data-testid="component-open">
-            {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
-          </Button>
+      {/* Identical units in the same installation context (I5), and "Open
+          component TARA" on the same line, centred to the field (user
+          2026-11-14); the field's explanation as its tooltip */}
+      {(info.onSetQuantity || (info.quantity ?? 1) > 1 || info.onOpen) && (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 1, flexWrap: "wrap" }}>
+          {info.onSetQuantity ? (
+            <Tooltip
+              title={t("components.details.quantityHint", { ns: "components", defaultValue: "Identical units in the same place — one analysis for all of them" })}
+              placement="top"
+            >
+              <TextField
+                size="small"
+                type="number"
+                label={t("components.details.quantity", { ns: "components", defaultValue: "Quantity" })}
+                value={info.quantity ?? 1}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isInteger(n) && n >= 1) info.onSetQuantity!(n);
+                }}
+                sx={{ width: 120 }}
+                inputProps={{ min: 1, step: 1, "data-testid": "component-quantity" }}
+              />
+            </Tooltip>
+          ) : (info.quantity ?? 1) > 1 ? (
+            <Typography variant="body2" data-testid="component-quantity-label">
+              ×{info.quantity}
+            </Typography>
+          ) : null}
+          {info.onOpen && (
+            <Button size="small" onClick={info.onOpen} data-testid="component-open">
+              {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
+            </Button>
+          )}
         </Box>
       )}
       {info.renderExtra?.()}

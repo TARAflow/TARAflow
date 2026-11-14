@@ -81,7 +81,8 @@
       "tab": "Component",
       "title": "Imported component ({{prefix}}) — read-only",
       "open": "Open component TARA",
-      "quantity": "Quantity (identical units, same place)",
+      "quantity": "Quantity",
+      "quantityHint": "Identical units in the same place — one analysis for all of them",
       "copyRatings": "Copy ratings from another instance…",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
     },

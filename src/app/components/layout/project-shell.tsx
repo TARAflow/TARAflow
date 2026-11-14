@@ -54,6 +54,12 @@ import { MigrateProjectDialog } from "../dialogs/migrate-project-dialog";
 
 // ==================== COMPONENT ====================
 
+
+/** The folder of a file path (either separator). */
+const folderOf = (filePath: string): string => {
+  const i = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+  return i > 0 ? filePath.slice(0, i) : filePath;
+};
 export const ProjectShell: React.FC = () => {
   const { t } = useTranslation();
   const toast = useToast();
@@ -429,6 +435,8 @@ export const ProjectShell: React.FC = () => {
             onImportFile={
               persistence.mode === "localStorage" ? handleImportFile : undefined
             }
+            // the dialog starts in the open project's folder, else at home
+            {...(activeProject?.filePath ? { defaultDir: folderOf(activeProject.filePath) } : {})}
             onClose={() => setShowOpenDialog(false)}
           />
         )}
