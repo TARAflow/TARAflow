@@ -1,6 +1,6 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.4 · 2026-11-14 · v0.4: review of the order against the design documents and
+**Status:** v0.5 · 2026-11-14 · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
 catalogue stamp, field register + guard test, `no-feature-to-feature` with a baseline);
 the ISO/SAE 21434 risk model as a release of its own (0.23), two releases before the RC;
@@ -68,9 +68,13 @@ once released); the design of each item stays in its own design document.
    - **no migration or repair step writes defaults** into the parts of a component that
      go into the snapshot; a migration that adds a new object (e.g. damage scenarios in
      0.23) adds it next to the existing data and leaves that data unchanged;
-   - a test proves it: a component TARA saved with 0.21 gives the same content hash with
-     the current version **when loaded** and **after saving it again**. It complements the
-     hash test of 0.23 (damage scenarios not in the snapshot).
+   - a test proves it: a component TARA saved with the reference release gives the same
+     content hash with the current version **when loaded** and **after saving it again**.
+     The test starts in **0.20** with a component saved with 0.19 as the reference — 0.20
+     already adds a field (retention, EN 50742 B) and a repair on load (raw i18n keys). In
+     0.21 the reference is re-based on a component saved with 0.21, because the
+     retirements change the content there on purpose. It complements the hash test of 0.23
+     (damage scenarios not in the snapshot).
 6. **Format boundary.** Structural changes of the file (new objects, changed keys or
    granularity) end with **0.23** (the ISO risk model). Additive optional fields under
    rule 5 are possible until **0.25**. Until the RC the version rule stays as it is:
@@ -114,7 +118,8 @@ alone is no reason — it is generated, not worked off in 0.20.
 ### 3.1 0.20 — guard rails and EN 50742 Approach B
 
 Order inside the release: results dump → catalogue stamp → register + guard test →
-depcruise rule → everything else.
+depcruise rule → snapshot hash test (rule 5, reference: a component saved with 0.19) →
+everything else.
 
 - **Results dump of 0.19** (rule 3.1) on the shipped example projects — the reference the
   stamp and every later release is compared with. Customer projects only locally (rule 8).
@@ -163,8 +168,10 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   have maintained — decide with D2 (R-5) whether the old values are kept as text in the
   asset's notes ("Retired in 0.21: exposure = …") before they are dropped. Upgrade notes:
   "Refresh stored state" once for component imports.
-- The snapshot hash test of rule 5 starts here (a component saved with 0.21 is the
-  reference).
+- The snapshot hash test of rule 5 is re-based here: after the retirement commit, a
+  component saved with 0.21 becomes the reference. Keeping old values as notes (R-5)
+  changes asset content in the snapshot too — therefore in the **same commit** as the
+  retirements, so it falls into the one planned refresh.
 - Release note: threats on physical edges and on "physical world" entities disappear on
   regeneration.
 
@@ -185,6 +192,11 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
 ### 3.4 0.23 — ISO/SAE 21434 risk model
 
 Plan: `iso-21434-conformance-implementation-plan.md` phases 2 and 3.
+
+**Deliberate exception to rule 2:** besides the risk model, 0.23 carries the ISO safety
+impact Se4, the hazard chapter skeleton, two methodology sentences and the manual ISO test.
+Se4 changes the values of the same ISO risks and lands on the same *decision to review*
+list — users review once instead of twice; the rest changes no values.
 
 - **Phase 2 — damage scenarios as objects** (1:n per asset × property, structured
   consequence, threat ↔ damage scenario link). The migration creates them next to the
@@ -273,8 +285,8 @@ Plan: `iso-21434-conformance-implementation-plan.md` phases 2 and 3.
 | R-4 | Flows crossing a physical boundary: build the generator source, or drop the flag? | 0.21 | open |
 | R-5 | Model field purpose D2: which fields retire; old values kept as text in the notes? | 0.21 | open |
 | R-5b | Model field purpose D3–D8 (`model-field-purpose-and-rating-context-design.md` §9) | 0.24 | open |
-| R-6 | Measure ownership (one status per measure): before the structural boundary (0.23), or 2.x? | 0.23 | open |
-| R-7 | Safety profiles (`hazard-safety-profiles-design.md`): after 1.0? Its schema plan contradicts "only optimisation" | 0.23 | open |
+| R-6 | Measure ownership (one status per measure): before 1.0, or 2.x? It changes the structure of measures — **if before 1.0, then as a release of its own before 0.23** (the later numbers move up), never inside the ISO release | before 0.23 | open |
+| R-7 | Safety profiles (`hazard-safety-profiles-design.md`): before 1.0, or after? It brings a schema plan of its own — **if before 1.0, then as a release of its own before 0.23** (the later numbers move up), never inside the ISO release; else 1.x / 2.x | before 0.23 | open |
 | R-8 | Version rule for 1.x and support promise (§3.7) | 1.0.0-rc | open |
 | R-9 | EN 50742 Approach B for a whole machine (8.2, Table 3): an IEC 62443-3-3 SR edition (needs the licensed text) — decide when the first customer chooses B for a machinery system; until then 8.2 is a statement row (`en-50742-rq-coverage.md` O13) | on demand | open |
 | R-10 | ISO risk granularity: one risk per threat scenario with impact = MAX over its damage scenarios, instead of one per threat × damage scenario (ISO plan decision 2) | 0.23 | **decided as default** (user 2026-11-14), with the three conditions of §3.4; the per-damage-scenario variant on customer demand. ISO plan decision 2 is updated when 0.23 starts |

@@ -219,21 +219,21 @@ The table deliberately suggests and never computes: the window of opportunity al
 | Phase | Content | Release |
 |---|---|---|
 | 0 | Honest messages (P4) for the asset group fields, **as infos** (§7; review 2026-11-14 — the only effect is that the DFD phase can reach "complete", which is then correct: no calculation reads these fields); correct the `isSafetyFunction` claim in `taraflow-asset-relations.md`; retire `criticality` (P5, like protection need) and the dead fields of §2.2 C with the drop pattern | 0.19 (decided, D1) |
-| 1 | Field purpose register with the *current* truth (incl. `unused – decision pending`) + guard test | 0.20 |
-| 2 | Rating context read model + display in risk dialog and path dialog (no suggestions) | 0.20 |
-| 3 | Suggestions per §6.4, starting with the window of opportunity; `DataFlow.frequency` gains `once`; report "rating basis" | 0.20 / 0.21 |
-| 4 | Cleanup per §5: retire duplicates with the 0.19 retire pattern (drop on load, `LegacyAssetFields` in the diff, one diff entry, upgrade note); documentation fields into the report; `assumedTrustedRationale` input + check | 0.21 |
+| 1 | Field purpose register with the *current* truth (incl. `unused – decision pending`) + guard test | 0.20 (guard rails, roadmap rule 3) |
+| 2 | Rating context read model + display in risk dialog and path dialog (no suggestions) | 0.24 |
+| 3 | Suggestions per §6.4, starting with the window of opportunity; report "rating basis" — `DataFlow.frequency` gains `once` separately in 0.24 (additive format change, before the RC) | suggestions after 1.0 (1.x); `once` 0.24 |
+| 4 | Cleanup per §5: retire duplicates with the 0.19 retire pattern (drop on load, `LegacyAssetFields` in the diff, one diff entry, upgrade note) — old values possibly kept as text in the notes, in the **same commit** as the retirement (R-5); documentation fields into the report; `assumedTrustedRationale` input + check | retirements 0.21 (with the physical threats); the rest 0.24 |
 | 5 | Analysis depth derived from the impact (concept doc, section on analysis depth; former `strideDepth`), shown per asset, never entered | later |
 
 Retiring follows the pattern of `5fe3b693`: dropped on load before every other step, the previous state read raw in the commit diff so the drop shows once, verification re-keyed, CHANGELOG "Removed" + upgrade note.
 
-**Retire in batches (component snapshots).** Asset properties cross into the snapshot of an imported component. Every retirement of such a field changes the content hash of the imports made before it: the drift check then offers "Refresh stored state" once per import (builder changed — the normal update path, but work per import, and the component's repository must be at hand). Before 0.19 only test repositories carry snapshots; from 0.20 on customers do. Retirements after 0.19 therefore go into **one** release together, named in its upgrade notes, so that every import is refreshed once, not once per retired field.
+**Retire in batches (component snapshots).** Asset properties cross into the snapshot of an imported component. Every retirement of such a field changes the content hash of the imports made before it: the drift check then offers "Refresh stored state" once per import (builder changed — the normal update path, but work per import, and the component's repository must be at hand). Before 0.19 only test repositories carried snapshots; since 0.19.0-beta (released 2026-11-14) customers do. Retirements after 0.19 therefore go into **one** release together (0.21, roadmap rule 4), named in its upgrade notes, so that every import is refreshed once, not once per retired field.
 
 ## 9. Decisions (open)
 
 | # | Question | Proposal |
 |---|---|---|
-| D1 | Phase 0 in 0.19? | **Decided 2026-11-14:** yes — honest messages as infos (§7), the doc correction, retiring `criticality` and the dead fields of §2.2 C. Everything else in one batch in 0.20 (§8): the D2 retirements in **one** commit, so users see "Refresh stored state" once **Release cut changed (roadmap to 1.0 v0.4, user 2026-11-14):** phase 1 (register + guard test) in 0.20; the D2 retirements in 0.21 (with the physical threats); phase 2 (display) and the rest of phase 4 in 0.24; phase 3 (suggestions) after 1.0. |
+| D1 | Phase 0 in 0.19? | **Decided 2026-11-14:** yes — honest messages as infos (§7), the doc correction, retiring `criticality` and the dead fields of §2.2 C. The D2 retirements in **one** commit, so users see "Refresh stored state" once. Release cut (roadmap to 1.0 v0.4, user 2026-11-14; §8): phase 1 (register + guard test) in 0.20; the D2 retirements in 0.21 (with the physical threats); phase 2 (display), `frequency: once` and the rest of phase 4 in 0.24; phase 3 (suggestions) after 1.0. |
 | D2 | Duplicate attack-surface fields on the asset (`exposure`, `physicalAccessControl`, `location`, `portability`, `serviceType`, `role`) | Retire; context comes from the elements (P1) |
 | D3 | Keep on the asset as context: `lifecycle`, `automationLevel`, `changeFrequency`, `responsibility` | Yes; confirm the meaning of `changeFrequency` (process changes vs. data frequency) |
 | D4 | `dataType` | Deriver input for CIANAAA goals, or documentation — not rating context |
