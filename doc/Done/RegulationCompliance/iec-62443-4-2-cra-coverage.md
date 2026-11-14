@@ -1,5 +1,22 @@
 # TARAflow — EN IEC 62443-4-2 / CRA requirement matrix
 
+> **Done (moved to doc/Done, 2026-11-14):** steps IEC-1 … IEC-10 are implemented and
+> released (0.17.0-beta, IEC-6 / IEC-8b / D-30 c in 0.18). Still the **reference** of the
+> matrix — code comments cite its decisions (D-1 … D-31), and
+> `catalog-references.test.ts` checks §10 against the mitigation catalogue. Where the
+> gaps of §6 went:
+> - P-3 (human access) — resolved by deriving it from the connected external entity's
+>   type (`HUMAN_NEIGHBOUR` in `evidence-rules.ts`); the row in §6 is historical.
+> - P-4 (time source, log sink) — field F-13 `timeSource` in model coverage stage 2;
+>   the EE type "siem" for CR 6.1 RE(1) stays an open question there.
+> - P-5 (secure by default, default credentials) — implemented in 0.18
+>   (`secureByDefault`, F-25a/b, default credentials).
+> - P-6 (audit log retention) — only for **EN 50742 Approach B**: carried into
+>   `en-50742-rq-coverage.md` §6 (O8).
+> - P-7 — not needed (0.18 CM-8b).
+> - Maintenance trigger: the CRA mapping stays the prAA draft until the harmonised EN
+>   is cited in the OJ — then remap (K1 / D-1).
+
 **Status:** v28 · 2026-11-01 · **0.17 scope released with 0.17.0-beta** — continues in 0.18 (IEC-6 claims, IEC-8b, P-4, P-7, D-30 option c, §11 model coverage of type C rows) (decisions D-1 … D-31 in §7.1, §9 aligned with them; IEC-1, IEC-2a, IEC-2b, IEC-3, IEC-4, IEC-5, IEC-7, IEC-8 done, IEC-9 done (P-1, P-2); IEC-10 done (§9.7); IEC-6, IEC-8b in 0.18;
 classic sibling `iec-62443-4-2-2019-coverage.md`; target 0.17.0-beta before 2026-11-30;
 release plan: `doc/Done/Release/release-0.17-plan.md`) · code base: `main` 8b6aefe3,

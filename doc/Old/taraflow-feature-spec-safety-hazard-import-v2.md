@@ -1,6 +1,13 @@
 # Feature Spec: Safety Hazard Import & Regulatory Profile
 
-**Status:** Draft v3  
+**Status:** **Superseded (moved to doc/Old, 2026-11-14).** The import was built in a
+different form — import profiles and the adapter registry (`safety-hazard-importer.ts`),
+CSV / TARAflow JSON / XLSX-ODS importers with column and value mapping, category
+keywords, re-import reconciliation; safety annotations live on the asset relations
+(safety model v9). Regulatory profile / analysis mode moved to tags and to
+`doc/Open/Hazard/hazard-safety-profiles-design.md`. Not built from this spec: the
+adapters **ISO 14971 Risk Register XML** and **SISTEMA CSV** (§4.7) — carried into the
+safety profiles design as Q-8. (Originally: Draft v3.)  
 **Autor:** Jürgen Messerer  
 **Datum:** 2026-05-26  
 **Bereich:** Overview Feature / Project Initialization / Doc Generator

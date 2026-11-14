@@ -4,7 +4,14 @@
 **Branch:** `feature/iso21434_support`
 **Severity:** Medium (correctness of generated reports; ISO 21434 path specifically)
 **Type:** Bug + small feature
-**Status:** Ready — verified against source at HEAD `5e5eddd`
+**Status:** **Done (moved to doc/Done, 2026-11-14)** — option (b) implemented: chapter
+`threats-attack-path` with the `threat-<id>` anchors (`base-generator.ts`
+`generateAttackPathThreats`, headers in every format), data `perAttackPathThreats`,
+tests `attack-path-threats.test.ts` and the traceability test. Not met of the acceptance
+criteria: a **general link-integrity check** over all formats (the "whole dead-link
+class") and **PDF internal references** (the PDF has no internal links at all) — both
+belong to the link-resolution pass of `doc-generator-architecture-design.md`.
+(Originally: Ready — verified against source at HEAD `5e5eddd`.)
 
 ---
 

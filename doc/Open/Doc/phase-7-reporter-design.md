@@ -1,6 +1,16 @@
 # Phase 7 — Documentation / Reporter — Design
 
-Status: NOT STARTED. Source of truth for scope: §8 and §9 of
+Status (corrected 2026-11-14): **largely implemented, open items below.** Done: per tree
+anchor, structure, leaf ratings and paths with feasibility and relevance
+(`attack-tree-report.ts`); traceability risk → tree → path (traceability matrix);
+methodology — likelihood model, gate aggregation, bands and factor values
+(`methodology-sections.ts`); non-emitted paths visible through the relevance column;
+report in the app and the CLI. **Open:** (1) the methodology section does not state the
+damage-scenario cardinality (1:1 asset × security goal) — a silent simplification is an
+audit finding; (2) it does not state the emission policy (which paths become risks);
+(3) mitigation effect per tree (cheapest path before vs. after); (4) the rendered tree
+image; (5) DocBook (`docbook-export-design.md`). Was: "NOT STARTED".
+Source of truth for scope: §8 and §9 of
 `attacktree-threat-generator-design.md` (the master design doc) — this file
 expands on those sections and adds the DocBook requirement; it does not
 replace the master doc.

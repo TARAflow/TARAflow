@@ -443,6 +443,9 @@ chapter: one paragraph from the profile. All formats and the CLI.
 - **Q-6** Aviation security preset (DO-326B / DO-356A: threat level × threat condition
   severity) — separate document?
 - **Q-7** MIL-STD-882E and IEC 61508 / 61511 — stage 2 as proposed, or out of scope?
+- **Q-8** Import adapters from the superseded hazard import spec (`doc/Old/taraflow-feature-spec-safety-hazard-import-v2.md`
+  §4.7), never built: **ISO 14971 Risk Register XML** (fits the iso-14971 profile) and
+  **SISTEMA CSV** (ISO 13849) — with the profiles, or later?
 
 ## 11. Phases (each commit works on its own)
 

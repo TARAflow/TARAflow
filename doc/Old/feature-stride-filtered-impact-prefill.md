@@ -1,6 +1,12 @@
 # Feature: STRIDE-Filtered Impact Prefill
 
-**Status:** Design — ready for implementation
+**Status:** **Superseded (moved to doc/Old, 2026-11-14).** The goal of §1 — a threat
+carries only the impact of the protection goals it violates — is implemented through the
+security-goal rework instead: `resolveThreatImpactAssets(linkedAssets, strideCategory)`
+(`shared/utils/threat-impact.ts`) takes the asset's goals matching the STRIDE category,
+used by `applyAssetCriteriaToFactorRatings` in the risk sync and the risk dialog. The cap
+by goal level proposed here was not adopted. (Originally: Design — ready for
+implementation.)
 **Effort:** High (touches risk-calculation-service, risk-sync-service, threat model, possibly risk-dialog)
 **Recommended model:** Opus for design + implementation
 
