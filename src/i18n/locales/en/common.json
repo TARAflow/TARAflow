@@ -790,6 +790,7 @@
     "connected": "Connected to {{tracker}} — project {{project}} ({{host}}, {{account}})",
     "tracker": "Tracker",
     "from": "from {{version}}",
+    "planned": "planned",
     "preview": "preview",
     "secretHelp": "Stored in the OS keychain for this address only.",
     "test": "Test connection",

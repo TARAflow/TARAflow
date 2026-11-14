@@ -788,6 +788,7 @@
     "connected": "Verbunden mit {{tracker}} — Projekt {{project}} ({{host}}, {{account}})",
     "tracker": "Tracker",
     "from": "ab {{version}}",
+    "planned": "geplant",
     "preview": "Vorschau",
     "secretHelp": "Wird nur für diese Adresse im Schlüsselbund gespeichert.",
     "test": "Verbindung testen",

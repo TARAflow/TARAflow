@@ -171,7 +171,9 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
                 {tr.label}
                 {tr.available && tr.preview && ` — ${t("integration.preview", { defaultValue: "preview" })}`}
                 {!tr.available &&
-                  ` — ${t("integration.from", { defaultValue: "from {{version}}", version: tr.availableFrom })}`}
+                  (tr.availableFrom
+                    ? ` — ${t("integration.from", { defaultValue: "from {{version}}", version: tr.availableFrom })}`
+                    : ` — ${t("integration.planned", { defaultValue: "planned" })}`)}
               </MenuItem>
             ))}
           </TextField>
