@@ -218,7 +218,7 @@ The table deliberately suggests and never computes: the window of opportunity al
 
 | Phase | Content | Release |
 |---|---|---|
-| 0 | Honest messages (P4) for the asset warnings — **text only, severity unchanged** (a warning keeps the DFD phase from "complete"; turning warnings into infos would change the phase status of existing projects, that belongs to phase 2); correct the `isSafetyFunction` claim in `taraflow-asset-relations.md`; retire `criticality` (P5, like protection need) and the dead fields of §2.2 C with the drop pattern | 0.19 (decided, D1) |
+| 0 | Honest messages (P4) for the asset group fields, **as infos** (§7; review 2026-11-14 — the only effect is that the DFD phase can reach "complete", which is then correct: no calculation reads these fields); correct the `isSafetyFunction` claim in `taraflow-asset-relations.md`; retire `criticality` (P5, like protection need) and the dead fields of §2.2 C with the drop pattern | 0.19 (decided, D1) |
 | 1 | Field purpose register with the *current* truth (incl. `unused – decision pending`) + guard test | 0.20 |
 | 2 | Rating context read model + display in risk dialog and path dialog (no suggestions) | 0.20 |
 | 3 | Suggestions per §6.4, starting with the window of opportunity; `DataFlow.frequency` gains `once`; report "rating basis" | 0.20 / 0.21 |
@@ -233,7 +233,7 @@ Retiring follows the pattern of `5fe3b693`: dropped on load before every other s
 
 | # | Question | Proposal |
 |---|---|---|
-| D1 | Phase 0 in 0.19? | **Decided 2026-11-14:** yes — messages (text only), the doc correction, retiring `criticality` and the dead fields of §2.2 C. Everything else in one batch in 0.20 (§8) |
+| D1 | Phase 0 in 0.19? | **Decided 2026-11-14:** yes — honest messages as infos (§7), the doc correction, retiring `criticality` and the dead fields of §2.2 C. Everything else in one batch in 0.20 (§8): the D2 retirements in **one** commit, so users see "Refresh stored state" once |
 | D2 | Duplicate attack-surface fields on the asset (`exposure`, `physicalAccessControl`, `location`, `portability`, `serviceType`, `role`) | Retire; context comes from the elements (P1) |
 | D3 | Keep on the asset as context: `lifecycle`, `automationLevel`, `changeFrequency`, `responsibility` | Yes; confirm the meaning of `changeFrequency` (process changes vs. data frequency) |
 | D4 | `dataType` | Deriver input for CIANAAA goals, or documentation — not rating context |
@@ -244,4 +244,4 @@ Retiring follows the pattern of `5fe3b693`: dropped on load before every other s
 
 ## 10. Implementation status
 
-Phase 0 (0.19): honest messages and the doc correction (patch 106); `criticality` and the dead fields of §2.2 C retired with the drop pattern, one list of retired asset fields shared by the load and the commit diff (patch 107). Phases 1–5 open.
+Phase 0 (0.19): honest messages and the doc correction (patch 106), the asset group findings as infos with "recorded with the asset; … not in the report yet" (patch 108); `criticality` and the dead fields of §2.2 C retired with the drop pattern, one list of retired asset fields shared by the load and the commit diff (patch 107). Phases 1–5 open.

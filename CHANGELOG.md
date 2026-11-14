@@ -70,11 +70,14 @@ in 0.18.x.
   the progress follows the ticket.
 
 ### Changed
-- **Asset warnings** say what the field does: documentation, or context for
-  rating the attack feasibility that TARAflow does not evaluate yet, or
-  which model field is evaluated instead — no longer "required for … threat
-  selection". Functions marked as safety function are not prioritised
-  automatically; the documentation said so and is corrected.
+- **Asset group fields** (data type, lifecycle, exposure, role, …) are
+  asked for as an *info*, no longer as a warning, and the message says what
+  the field does: recorded with the asset, or context for rating the attack
+  feasibility that TARAflow does not evaluate yet, or which model field is
+  evaluated instead — no longer "required for … threat selection". A DFD
+  can therefore reach *complete* without them. Functions marked as safety
+  function are not prioritised automatically; the documentation said so and
+  is corrected.
 - **Audit commit message:** the subject names the TARA file after the round
   (`[TARA] Detail Review — machines/panel.tara.json`) and a trailer
   `Project-File` carries its path — with several TARA files in one

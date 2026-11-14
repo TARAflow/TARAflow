@@ -8,14 +8,21 @@ import { ValidationMessages } from "./validator-utils";
 /**
  * Validate asset properties.
  * Called from dfd-validator.ts.
+ *
+ * A missing name is a warning. A missing group property is an INFO (model
+ * field purpose design §7, review 2026-11-14): no calculation reads these
+ * fields yet — they are recorded with the asset (documentation, or context
+ * for the attack feasibility rating to come) — so they neither warn nor keep
+ * the DFD phase from "complete".
  */
 export function validateAssetProperties(
   assets: DFDAsset[],
   warnings: ValidationFinding[],
+  infos: ValidationFinding[],
 ): void {
   for (const asset of assets) {
     validateAssetBase(asset, warnings);
-    validateAssetGroupProperties(asset, warnings);
+    validateAssetGroupProperties(asset, infos);
   }
 }
 
@@ -45,13 +52,13 @@ function validateAssetBase(
 
 function validateAssetGroupProperties(
   asset: DFDAsset,
-  warnings: ValidationFinding[],
+  infos: ValidationFinding[],
 ): void {
   const props = asset.properties;
   const displayId = asset.displayId ?? asset.name;
 
-  function warn(key: string): void {
-    warnings.push({
+  function note(key: string): void {
+    infos.push({
       key,
       displayId,
       elementId: asset.id,
@@ -61,52 +68,52 @@ function validateAssetGroupProperties(
 
   switch (asset.assetGroup) {
     case "data":
-      // dataType — documents the asset; no calculation reads it yet (P4, 0.19)
+      // dataType — recorded with the asset; no calculation reads it yet (P4, 0.19)
       if (!props?.dataType || props.dataType.length === 0) {
-        warn(ValidationMessages.ASSET_MISSING_DATA_TYPE);
+        note(ValidationMessages.ASSET_MISSING_DATA_TYPE);
       }
       // lifecycle — context for the attack feasibility rating; not evaluated yet
       if (!props?.lifecycle) {
-        warn(ValidationMessages.ASSET_MISSING_LIFECYCLE);
+        note(ValidationMessages.ASSET_MISSING_LIFECYCLE);
       }
       break;
 
     case "system":
-      // exposure — documents the asset; not evaluated (the flows' exposure level is)
+      // exposure — recorded with the asset; not evaluated (the flows' exposure level is)
       if (!props?.exposure) {
-        warn(ValidationMessages.ASSET_MISSING_EXPOSURE);
+        note(ValidationMessages.ASSET_MISSING_EXPOSURE);
       }
       break;
 
     case "infrastructure":
-      // physicalAccessControl — documents the asset; not evaluated (the physical boundary's is)
+      // physicalAccessControl — recorded with the asset; not evaluated (the physical boundary's is)
       if (!props?.physicalAccessControl) {
-        warn(ValidationMessages.ASSET_MISSING_PHYSICAL_ACCESS);
+        note(ValidationMessages.ASSET_MISSING_PHYSICAL_ACCESS);
       }
       break;
 
     case "service":
-      // serviceType — documents the asset; no calculation reads it yet
+      // serviceType — recorded with the asset; no calculation reads it yet
       if (!props?.serviceType) {
-        warn(ValidationMessages.ASSET_MISSING_SERVICE_TYPE);
+        note(ValidationMessages.ASSET_MISSING_SERVICE_TYPE);
       }
       // responsibility — context (third party, supply chain); not evaluated yet
       if (!props?.responsibility) {
-        warn(ValidationMessages.ASSET_MISSING_RESPONSIBILITY);
+        note(ValidationMessages.ASSET_MISSING_RESPONSIBILITY);
       }
       break;
 
     case "human":
-      // role — documents the asset; not evaluated (the external entity's type is)
+      // role — recorded with the asset; not evaluated (the external entity's type is)
       if (!props?.role) {
-        warn(ValidationMessages.ASSET_MISSING_ROLE);
+        note(ValidationMessages.ASSET_MISSING_ROLE);
       }
       break;
 
     case "process":
       // automationLevel — context for the attack feasibility rating; not evaluated yet
       if (!props?.automationLevel) {
-        warn(ValidationMessages.ASSET_MISSING_AUTOMATION_LEVEL);
+        note(ValidationMessages.ASSET_MISSING_AUTOMATION_LEVEL);
       }
       break;
 

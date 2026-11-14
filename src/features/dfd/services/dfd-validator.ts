@@ -149,7 +149,7 @@ export class DFDValidator {
     validateEndpointProtection(connections, elements, errors, warnings);
 
     // 3. Validate Asset Properties
-    validateAssetProperties(assets, warnings);
+    validateAssetProperties(assets, warnings, infos);
 
     // 4. Validate Asset Relations — against the canonical registry when the
     //    caller supplies it (the mirror can lag), else the mirror.
