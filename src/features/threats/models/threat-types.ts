@@ -410,6 +410,13 @@ export interface Threat {
    */
   importedOverride?: { componentRelevance: ThreatRelevance; rationale: string; date: string };
 
+  /**
+   * Threat of an imported component: the multiprocess of its instance —
+   * the table group it belongs to (boundary flows included). Set when the
+   * imported threats are derived from the snapshot; never stored.
+   */
+  componentMultiprocessId?: string;
+
   /** True when the analyst has manually edited threatDescription or attackDescription */
   isTextCustomized: boolean;
 

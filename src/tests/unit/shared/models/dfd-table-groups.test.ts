@@ -60,3 +60,31 @@ describe("groupsOfDfdItem", () => {
     expect(group(flowThreat("gone", "p10", "p3", "target"))).toEqual([]);
   });
 });
+
+// Manual test 2026-11-15: a threat of an imported component stays in the
+// group of its instance's multiprocess — its boundary flows included — so
+// the Threats and the Risks tab list it in the same place.
+describe("groupsOfDfdItem — imported component", () => {
+  const imported = { ...flowThreat("df9", "ee1", "p3"), componentMultiprocessId: "mp3" };
+  const GROUPS_MP: DfdTableGroups = { ...GROUPS, elementGroup: { ...GROUPS.elementGroup, mp3: "mp3" } };
+
+  it("dfdItemRefOfThreat carries the multiprocess as the owner", () => {
+    expect(dfdItemRefOfThreat(imported).ownerElementId).toBe("mp3");
+    expect(dfdItemRefOfThreat(flowThreat("df9", "ee1", "p3"))).not.toHaveProperty("ownerElementId");
+  });
+
+  it("the owner decides before the flow: a boundary flow stays with the component", () => {
+    expect(groupsOfDfdItem(GROUPS_MP, dfdItemRefOfThreat(flowThreat("df9", "ee1", "p3")))).toEqual([TOP_LEVEL_GROUP]);
+    expect(groupsOfDfdItem(GROUPS_MP, dfdItemRefOfThreat(imported))).toEqual(["mp3"]);
+  });
+
+  it("also before the attacked side of a per-interaction threat", () => {
+    const victimOutside = { ...flowThreat("df9", "ee1", "p3", "source"), componentMultiprocessId: "mp3" };
+    expect(groupsOfDfdItem(GROUPS_MP, dfdItemRefOfThreat(victimOutside))).toEqual(["mp3"]);
+  });
+
+  it("an owner not in the DFD falls back to the flow", () => {
+    const gone = { ...flowThreat("df9", "ee1", "p3"), componentMultiprocessId: "gone" };
+    expect(groupsOfDfdItem(GROUPS_MP, dfdItemRefOfThreat(gone))).toEqual([TOP_LEVEL_GROUP]);
+  });
+});

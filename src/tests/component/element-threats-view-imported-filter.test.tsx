@@ -83,6 +83,6 @@ describe("ElementThreatsView — the filter bar and imported threats", () => {
   it("a component group without a match is left out", () => {
     renderView();
     search("wiring");
-    expect(screen.queryByTestId("threat-group-imported-cmp")).toBeNull();
+    expect(screen.queryByTestId("imported-threat-card-imported-cmp")).toBeNull();
   });
 });

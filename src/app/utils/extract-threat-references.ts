@@ -90,6 +90,8 @@ export function extractThreatReferences(
         ...(threat.interactionContext?.victimRole
           ? { interactionContext: { victimRole: threat.interactionContext.victimRole } }
           : {}),
+        // An imported component's threat stays in its multiprocess's group.
+        ...(threat.componentMultiprocessId ? { componentMultiprocessId: threat.componentMultiprocessId } : {}),
       });
     }
   }

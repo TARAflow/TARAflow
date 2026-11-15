@@ -371,6 +371,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     method: activeMethod,
     onOpenThreat: openImportedThreat,
     headings: false,
+    perInstance: true,
   });
 
   const handleOpenEditDialog = useCallback(

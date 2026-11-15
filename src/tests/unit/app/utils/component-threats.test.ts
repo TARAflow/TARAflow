@@ -129,6 +129,17 @@ describe("groups, references, merge", () => {
     expect(groups[0].threats.length).toBeGreaterThan(0);
   });
 
+  it("threats, references and groups carry the instance's multiprocess — their table group (manual test 2026-11-15)", () => {
+    const mp = m.components!.instances[0].multiprocessTfId;
+    expect(mp).toBeTruthy();
+    const groups = componentThreatGroups(m);
+    expect(groups[0].multiprocessId).toBe(mp);
+    expect(groups[0].threats.every((t) => t.componentMultiprocessId === mp)).toBe(true);
+    const refs = componentThreatReferences(m, "per-element");
+    expect(refs.length).toBeGreaterThan(0);
+    expect(refs.every((r) => r.componentMultiprocessId === mp)).toBe(true);
+  });
+
   it("boundary flows: the EE end carries the machine element's name and is the row's counterpart (review 2026-11-08)", () => {
     const rows = componentThreatGroups(m)[0].rows.filter((r) => r.boundary && r.threat.dataFlow);
     const onMapped = rows.filter((r) => r.threat.dataFlow!.sourceId === "m_plc" || r.threat.dataFlow!.targetId === "m_plc");

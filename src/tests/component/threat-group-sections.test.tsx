@@ -143,55 +143,60 @@ describe("ThreatGroupSections", () => {
   });
 });
 
-// Manual test 2026-11-15: the imported threats were an accordion above the
-// filter bar and were overlooked — now one group per component in the same
-// list, after the multiprocess groups, with a summary row in "Top level"
-// and an info icon saying read-only.
+// Manual test 2026-11-15: the Threats and the Risks tab show the same
+// structure — an imported instance is a card in the group of its
+// multiprocess (like its risks), with an info icon saying read-only.
 describe("ThreatGroupSections — imported components", () => {
-  const IMPORTED: ImportedThreatSection[] = [
-    {
-      key: "imported-cmp1",
-      label: "SDC1 · Smoke Detector Case",
-      count: 3,
-      threats: [threat("I-1", {}, "S"), threat("I-2", {}, "T"), threat("I-3", {}, "T")],
-      render: () => <div data-testid="imported-body">imported rows</div>,
-      filtered: () => IMPORTED[0],
-    },
-  ];
+  const GROUPS_MP: DfdTableGroups = { ...GROUPS, elementGroup: { ...GROUPS.elementGroup, mp1: "mp1" } };
+  const imported = (multiprocessId: string | undefined, threats: Threat[]): ImportedThreatSection => ({
+    key: "imported-inst1",
+    label: "SDC1 · Smoke Detector Case",
+    prefix: "SDC1",
+    ...(multiprocessId ? { multiprocessId } : {}),
+    count: threats.length,
+    threats,
+    render: () => <div data-testid="imported-body">{threats.map((x) => x.id).join(",")}</div>,
+    filtered: (keep) => imported(multiprocessId, threats.filter(keep)),
+  });
+  const THREE = [threat("I-1", {}, "S"), threat("I-2", {}, "T"), threat("I-3", {}, "T")];
 
-  it("a group per component after the multiprocesses, before 'Not in the DFD'", () => {
-    render(<ThreatGroupSections groups={GROUPS} tables={TABLES} renderTable={renderTable} importedSections={IMPORTED} />);
-    const ids = [...document.querySelectorAll('[data-testid^="threat-group-"]')]
-      .map((e) => e.getAttribute("data-testid"))
-      .filter((id) => id && !id.includes("summar"));
-    expect(ids).toEqual([
-      `threat-group-${TOP_LEVEL_GROUP}`,
-      "threat-group-mp1",
-      "threat-group-mp2",
-      "threat-group-imported-cmp1",
-      "threat-group-__not_in_dfd__",
-    ]);
-    const group = screen.getByTestId("threat-group-imported-cmp1");
-    expect(group.textContent).toContain("SDC1 · Smoke Detector Case");
-    expect(within(group).getByTestId("imported-body")).toBeTruthy();
+  it("the card is in the group of its multiprocess, after its own tables; no group of its own", () => {
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={TABLES} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    const mp1 = screen.getByTestId("threat-group-mp1");
+    expect(within(mp1).getByTestId("imported-threat-card-imported-inst1").textContent).toContain("[SDC1]");
+    expect(within(mp1).getByTestId("imported-body").textContent).toBe("I-1,I-2,I-3");
+    expect(screen.queryByTestId("threat-group-imported-inst1")).toBeNull();
+    // the group counts its own and the imported threats
+    expect(mp1.textContent).toContain("5");
   });
 
-  it("the top level has a summary row for the component with its STRIDE figures", () => {
-    render(<ThreatGroupSections groups={GROUPS} tables={TABLES} renderTable={renderTable} importedSections={IMPORTED} />);
-    const row = screen.getByTestId("threat-group-summary-imported-cmp1");
-    expect(row.textContent).toContain("3 imported threat(s), read-only");
-    expect(row.textContent).toContain("S 1 · T 2 · R 0");
+  it("the top-level summary row of the multiprocess counts the imported threats too", () => {
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={TABLES} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    const row = screen.getByTestId("threat-group-summary-mp1");
+    expect(row.textContent).toContain("5 threat(s) of its parts");
+    expect(row.textContent).toContain("S 2 · T 3");
   });
 
-  it("the info icon tells that the group is read-only", async () => {
-    render(<ThreatGroupSections groups={GROUPS} tables={TABLES} renderTable={renderTable} importedSections={IMPORTED} />);
-    fireEvent.mouseOver(screen.getByTestId("imported-threats-info-imported-cmp1"));
+  it("a multiprocess with imported threats only still gets its group", () => {
+    const own = TABLES.map((tb) => ({ ...tb, threats: tb.threats.filter((x) => x.id !== "T-p2" && x.id !== "T-p2b") }));
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={own} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    expect(within(screen.getByTestId("threat-group-mp1")).getByTestId("imported-body")).toBeTruthy();
+  });
+
+  it("the info icon tells that the card is read-only", async () => {
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={TABLES} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    fireEvent.mouseOver(screen.getByTestId("imported-threats-info-imported-inst1"));
     await waitFor(() => expect(screen.getByRole("tooltip").textContent).toContain("read-only"));
   });
 
-  it("without DFD groups the component group follows the tables", () => {
-    render(<ThreatGroupSections tables={TABLES} renderTable={renderTable} importedSections={IMPORTED} />);
-    expect(screen.getByTestId("threat-group-imported-cmp1").textContent).toContain("SDC1 · Smoke Detector Case");
+  it("an instance whose multiprocess is not decomposed is in the top level", () => {
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={TABLES} renderTable={renderTable} importedSections={[imported("nowhere", THREE)]} />);
+    expect(within(screen.getByTestId(`threat-group-${TOP_LEVEL_GROUP}`)).getByTestId("imported-threat-card-imported-inst1")).toBeTruthy();
+  });
+
+  it("without DFD groups the card follows the tables", () => {
+    render(<ThreatGroupSections tables={TABLES} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    expect(screen.getByTestId("imported-threat-card-imported-inst1")).toBeTruthy();
     expect(screen.getByTestId("table--0")).toBeTruthy();
   });
 });

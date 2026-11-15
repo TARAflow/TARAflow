@@ -39,6 +39,8 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SecurityIcon from "@mui/icons-material/Security";
+import InfoIcon from "@mui/icons-material/InfoOutlined";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import type {
   ImportedRelevanceDecision,
@@ -61,6 +63,8 @@ export interface ImportedThreatGroup {
   componentLabel?: string;
   /** Instance prefix, e.g. "SD1" — the display ids carry it. */
   prefix?: string;
+  /** The instance's multiprocess — the DFD table group its threats are listed in. */
+  multiprocessId?: string;
 }
 
 const where = (t: Threat) =>
@@ -101,6 +105,10 @@ export interface ImportedThreatSection {
   /** The shown threats (one per threat key) — for the STRIDE figures of a summary row. */
   threats: Threat[];
   render: () => React.ReactNode;
+  /** Instance prefix ("SDC1") — shown as the chip of the card. Per instance only. */
+  prefix?: string;
+  /** The instance's multiprocess — the DFD table group the card is listed in. Per instance only. */
+  multiprocessId?: string;
   /**
    * The group with only the threats `keep` accepts — the filter bar of the
    * Threats tab applies to imported threats too (relevance as the machine
@@ -121,9 +129,16 @@ export function useImportedThreatSections({
   method,
   onOpenThreat,
   headings = true,
+  perInstance = false,
 }: ImportedThreatsSectionProps & {
   /** Instance heading above a table — off where the group title names it already. */
   headings?: boolean;
+  /**
+   * One section per instance instead of per component — the Threats tab
+   * lists each instance in the group of its multiprocess, as the Risks tab
+   * does with its risks (manual test 2026-11-15).
+   */
+  perInstance?: boolean;
 }): { sections: ImportedThreatSection[]; total: number; dialog: React.ReactNode } {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<{ groupKey: string; row: ImportedThreatRow } | null>(null);
@@ -145,7 +160,7 @@ export function useImportedThreatSections({
     type Shown = { group: ImportedThreatGroup; rows: ImportedThreatRow[] };
     const byKey = new Map<string, { key: string; label: string; items: Shown[] }>();
     for (const x of shown) {
-      const key = x.group.componentKey ?? x.group.key;
+      const key = perInstance ? x.group.key : (x.group.componentKey ?? x.group.key);
       const entry = byKey.get(key) ?? { key, label: x.group.componentLabel ?? x.group.label, items: [] };
       entry.items.push(x);
       byKey.set(key, entry);
@@ -246,8 +261,10 @@ export function useImportedThreatSections({
         ? c.items[0].rows.map((r) => r.threat)
         : [...new Map(c.items.flatMap((x) => x.rows.map((r) => [r.threatKey, r.threat] as const))).values()];
       return {
-        key: `imported-${c.key}`,
+        key: `imported-${all.key}`,
         label: single ? c.items[0].group.label : c.label,
+        ...(single && c.items[0].group.prefix ? { prefix: c.items[0].group.prefix } : {}),
+        ...(single && c.items[0].group.multiprocessId ? { multiprocessId: c.items[0].group.multiprocessId } : {}),
         count: threats.length,
         threats,
         render: () =>
@@ -267,9 +284,42 @@ export function useImportedThreatSections({
       };
     };
     return components.map((c) => makeSection(c));
-  }, [groups, method, onOverrideRelevance, onOpenThreat, headings, t]);
+  }, [groups, method, onOverrideRelevance, onOpenThreat, headings, perInstance, t]);
   return { sections, total: sections.reduce((n, x) => n + x.count, 0), dialog };
 }
+
+/**
+ * One instance's imported threats as a card like a trust-boundary table —
+ * chip with the prefix, the instance, an info icon (read-only) and the
+ * count — in the group of its multiprocess (manual test 2026-11-15: the
+ * Threats and the Risks tab show the same structure).
+ */
+export const ImportedThreatCard: React.FC<{ section: ImportedThreatSection; info: string }> = ({ section, info }) => (
+  <Accordion
+    defaultExpanded
+    disableGutters
+    sx={{ "&:before": { display: "none" }, boxShadow: "1", mb: 1, borderLeft: "4px solid #9ca3af" }}
+    data-testid={`imported-threat-card-${section.key}`}
+  >
+    <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ backgroundColor: "primary.50", "&:hover": { backgroundColor: "primary.100" } }}>
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1, mr: 1 }}>
+        <SecurityIcon color="primary" />
+        {section.prefix && (
+          <Chip label={`[${section.prefix}]`} size="small" color="primary" variant="outlined" sx={{ fontFamily: "monospace" }} />
+        )}
+        <Typography variant="subtitle1" fontWeight="medium">
+          {section.label}
+        </Typography>
+        <Tooltip title={info}>
+          <InfoIcon fontSize="small" color="action" data-testid={`imported-threats-info-${section.key}`} />
+        </Tooltip>
+        <Box sx={{ flexGrow: 1 }} />
+        <Chip size="small" label={section.count} sx={{ height: 18, fontSize: "0.65rem" }} />
+      </Stack>
+    </AccordionSummary>
+    <AccordionDetails sx={{ p: 1 }}>{section.render()}</AccordionDetails>
+  </Accordion>
+);
 
 /** The imported threats in one accordion of their own (standalone use and tests). */
 export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = (props) => {

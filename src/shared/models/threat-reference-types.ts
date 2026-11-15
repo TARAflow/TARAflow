@@ -82,6 +82,8 @@ export interface ThreatReference {
    * (D20, revised 2026-10-21).
    */
   interactionContext?: { victimRole?: "source" | "target" } | null;
+  /** Threat of an imported component: the multiprocess of its instance (its table group). */
+  componentMultiprocessId?: string;
   /**
    * Derived CIANAAA impact level from UnifiedStrategy.getInitialImpact().
    * Phase 3b: used to pre-fill matching Risk impact factor.

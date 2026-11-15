@@ -43,6 +43,13 @@ export interface DfdItemRef {
    * multiprocesses is the business of both teams, each for its own side.
    */
   victimElementId?: string | null;
+  /**
+   * Threat of an imported component: the multiprocess of its instance. Its
+   * group decides — everything the component brings stays in one group,
+   * its boundary flows included, in the Threats and the Risks tab alike
+   * (manual test 2026-11-15).
+   */
+  ownerElementId?: string | null;
 }
 
 /** The DFD item of a threat or threat reference (per element or per interaction). */
@@ -50,6 +57,7 @@ export function dfdItemRefOfThreat(threat: {
   linkedElement?: { elementId?: string } | null;
   dataFlow?: { connectionId?: string; sourceId?: string; targetId?: string } | null;
   interactionContext?: { victimRole?: string } | null;
+  componentMultiprocessId?: string;
 }): DfdItemRef {
   const role = threat.interactionContext?.victimRole;
   const victim =
@@ -58,11 +66,15 @@ export function dfdItemRefOfThreat(threat: {
     elementId: threat.linkedElement?.elementId,
     connectionId: threat.dataFlow?.connectionId,
     ...(victim ? { victimElementId: victim } : {}),
+    ...(threat.componentMultiprocessId ? { ownerElementId: threat.componentMultiprocessId } : {}),
   };
 }
 
 /** Groups of a DFD element or flow; empty if it is not in the DFD. */
 export function groupsOfDfdItem(groups: DfdTableGroups, ref: DfdItemRef): string[] {
+  if (ref.ownerElementId && groups.elementGroup[ref.ownerElementId]) {
+    return [groups.elementGroup[ref.ownerElementId]];
+  }
   if (ref.connectionId && groups.flowGroups[ref.connectionId]) {
     // The attacked side decides (IN at the receiver, OUT at the sender).
     const side = ref.victimElementId ? groups.elementGroup[ref.victimElementId] : undefined;

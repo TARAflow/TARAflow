@@ -64,6 +64,7 @@ import { IsoReviewBanner } from "./iso-review-banner";
 import { isoReviewItems } from "../models/iso-scenarios";
 import { isIsoRiskMode } from "../models/iso-risk-display";
 import { RiskTableView } from "./risk-table-view";
+import { RiskFilters } from "./risk-filters";
 import { RiskDialog } from "./risk-dialog";
 import { RiskMitigationStatusDialog } from "./risk-mitigation-status-dialog";
 import { collectTicketLinks } from "../services/ticket-links";
@@ -1012,6 +1013,34 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           </>
         )}
 
+        {/* Filter bar of the risk list — outside the scrolling area, as in
+            the Threats tab (manual test 2026-11-15). */}
+        {mainView !== "matrix" &&
+          hasAnyThreats &&
+          (hasThreatsForMethod || hasAttackPathRisks) &&
+          (hasEligibleThreatsForMethod || hasAttackPathRisks) &&
+          hasRisksForMethod && (
+            <Box sx={{ flexShrink: 0, px: 2, pt: 1 }} data-testid="risk-filter-bar">
+              <RiskFilters
+                searchText={filters.searchText}
+                priorityFilter={filters.priorityFilter}
+                riskLevelFilter={filters.riskLevelFilter}
+                scale={riskData.configuration.scale}
+                isoValues={riskData.configuration.likelihoodMethod === "iso-21434"}
+                onSearchTextChange={setSearchText}
+                onPriorityFilterChange={setPriorityFilter}
+                onRiskLevelFilterChange={setRiskLevelFilter}
+                onClear={clearFilters}
+                show={showFilters}
+                scopeIndex={project.dfdTableGroups?.scope}
+                scope={filters.scope}
+                onScopeChange={setScopeFilter}
+                filteredCount={filteredActiveRisks.length + filteredAttackPathRisks.length}
+                totalCount={toolbarRisks.length}
+              />
+            </Box>
+          )}
+
         {/* Main Content Area */}
         <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto", px: 2, pt: 1 }}>
           {mainView === "matrix" ? (
@@ -1148,7 +1177,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
                 threats={currentThreats}
                 configuration={riskData.configuration}
                 strideMethod={activeStrideMethod}
-                showFilters={showFilters}
+                // the filter bar is above the scrolling area
+                showFilters={false}
                 filters={filters}
                 onSearchTextChange={setSearchText}
                 onPriorityFilterChange={setPriorityFilter}

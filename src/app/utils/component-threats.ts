@@ -62,6 +62,8 @@ export interface ComponentThreatGroup {
   componentLabel: string;
   /** Instance prefix. */
   prefix: string;
+  /** The instance's multiprocess — its table group in the Threats and Risks tab. */
+  multiprocessId: string;
   /** "SD1 · Smoke Detector" */
   label: string;
   threats: Threat[];
@@ -112,6 +114,8 @@ function remapThreat(threat: Threat, instance: Instance, mapId: (id: string) => 
         }
       : threat.dataFlow,
     linkedAssetIds: (threat.linkedAssetIds ?? []).map((a) => instanceAssetId(instance.id, a)),
+    // Its table group: the instance's multiprocess, boundary flows included.
+    componentMultiprocessId: instance.multiprocessTfId,
   } as Threat;
 }
 
@@ -251,6 +255,7 @@ export function componentThreatGroups(project: WithMachine): ComponentThreatGrou
             componentKey: imported.id,
             componentLabel: imported.name,
             prefix: instance.prefix,
+            multiprocessId: instance.multiprocessTfId,
             label: instanceLabel(instance, imported.name),
             threats,
             rows: t.rows,

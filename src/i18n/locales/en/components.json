@@ -268,7 +268,6 @@
     "threats": {
       "title": "Threats from imported components ({{count}}) — read-only",
       "groupInfo": "Threats from an imported component — read-only: text, STRIDE and relevance are the component's decisions (on boundary flows the machine may override the relevance). Rate their risks in the Risk tab.",
-      "groupSummary": "{{count}} imported threat(s), read-only",
       "where": "Element / flow",
       "threat": "Threat",
       "relevance": "Relevance (component)",
