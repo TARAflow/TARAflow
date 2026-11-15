@@ -16,7 +16,8 @@
 
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Typography } from "@mui/material";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import { InfoOutlined as InfoIcon } from "@mui/icons-material";
 import {
   GroupAccordions,
   TOP_LEVEL_GROUP,
@@ -26,6 +27,7 @@ import {
   type GroupSummaryRow,
 } from "shared";
 import type { Threat, ThreatTable } from "../../models/threat-types";
+import type { ImportedThreatSection } from "./imported-threats-section";
 
 const NOT_IN_DFD = "__not_in_dfd__";
 const STRIDE = ["S", "T", "R", "I", "D", "E"] as const;
@@ -59,15 +61,49 @@ export interface ThreatGroupSectionsProps {
   tables: ThreatTable[];
   /** Renders one table; index = position in `tables`. */
   renderTable: (table: ThreatTable, index: number, groupKey: string) => React.ReactNode;
+  /**
+   * Threats of imported components, one group per component after the
+   * multiprocess groups, with a summary row in "Top level" like a
+   * multiprocess (manual test 2026-11-15). Read-only — the info icon says so.
+   */
+  importedSections?: readonly ImportedThreatSection[];
 }
 
 export const ThreatGroupSections: React.FC<ThreatGroupSectionsProps> = ({
   groups,
   tables,
   renderTable,
+  importedSections = [],
 }) => {
   const { t } = useTranslation();
-  if (!groups) return <>{tables.map((table, index) => renderTable(table, index, ""))}</>;
+  const strideFigures = (threats: readonly Threat[]) =>
+    STRIDE.map((c) => `${c} ${threats.filter((x) => x.strideCategory === c).length}`).join(" · ");
+  const importedInfo = t("components.threats.groupInfo", {
+    ns: "components",
+    defaultValue:
+      "Threats from an imported component — read-only: text, STRIDE and relevance are the component's decisions (on boundary flows the machine may override the relevance). Rate their risks in the Risk tab.",
+  });
+  const imported = importedSections.map((x) => ({
+    key: x.key,
+    label: (
+      <Stack direction="row" spacing={0.5} alignItems="center" component="span">
+        <span>{x.label}</span>
+        <Tooltip title={importedInfo}>
+          <InfoIcon fontSize="small" color="action" data-testid={`imported-threats-info-${x.key}`} />
+        </Tooltip>
+      </Stack>
+    ),
+    count: x.count,
+    render: () => <Box sx={{ px: 2, pt: 1 }}>{x.render()}</Box>,
+  }));
+  if (!groups) {
+    return (
+      <>
+        {tables.map((table, index) => renderTable(table, index, ""))}
+        {imported.length > 0 && <GroupAccordions testIdPrefix="threat-group" sections={imported} />}
+      </>
+    );
+  }
 
   const sections = [
     ...groups.groups.map((g) => ({
@@ -107,20 +143,48 @@ export const ThreatGroupSections: React.FC<ThreatGroupSectionsProps> = ({
             count: s.threats.length,
           })}
           {" — "}
-          {STRIDE.map((c) => `${c} ${s.threats.filter((x) => x.strideCategory === c).length}`).join(" · ")}
+          {strideFigures(s.threats)}
         </Typography>
       ),
     }));
+  for (const x of importedSections) {
+    rows.push({
+      key: x.key,
+      label: x.label,
+      figures: (
+        <Typography variant="body2" color="text.secondary">
+          {t("components.threats.groupSummary", {
+            ns: "components",
+            defaultValue: "{{count}} imported threat(s), read-only",
+            count: x.count,
+          })}
+          {" — "}
+          {strideFigures(x.threats)}
+        </Typography>
+      ),
+    });
+  }
+  const notInDfd = sections.filter((s) => s.key === NOT_IN_DFD);
+  const dfdSections = sections.filter((s) => s.key !== NOT_IN_DFD);
 
   return (
     <GroupAccordions
       testIdPrefix="threat-group"
-      sections={sections.map((section) => ({
-        key: section.key,
-        label: section.label,
-        count: section.threats.length,
-        render: () => section.sectionTables.map(({ table, index }) => renderTable(table, index, section.key)),
-      }))}
+      sections={[
+        ...dfdSections.map((section) => ({
+          key: section.key,
+          label: section.label,
+          count: section.threats.length,
+          render: () => section.sectionTables.map(({ table, index }) => renderTable(table, index, section.key)),
+        })),
+        ...imported,
+        ...notInDfd.map((section) => ({
+          key: section.key,
+          label: section.label,
+          count: section.threats.length,
+          render: () => section.sectionTables.map(({ table, index }) => renderTable(table, index, section.key)),
+        })),
+      ]}
       summaries={{
         inGroup: TOP_LEVEL_GROUP,
         rows,

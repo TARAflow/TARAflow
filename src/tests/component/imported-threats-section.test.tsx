@@ -7,7 +7,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ImportedThreatsSection } from "features/threats/components/shared/imported-threats-section";
+import { ImportedThreatsSection, useImportedThreatSections } from "features/threats/components/shared/imported-threats-section";
 
 vi.mock("react-i18next", async (o) => ({
   ...(await o<object>()),
@@ -218,3 +218,55 @@ describe("ImportedThreatsSection", () => {
     });
   });
 });
+
+// Manual test 2026-11-15: the filter bar applies to the imported threats —
+// a group filtered to the threats the filter keeps, per instance.
+describe("useImportedThreatSections — filtered", () => {
+  const a = threat("a", "SD1:P3-T-1", "relevant");
+  const b = threat("b", "SD1:P3-T-2", "not_relevant");
+  const groups = [
+    {
+      key: "inst",
+      label: "SD1 · Smoke Detector",
+      threats: [a, b],
+      rows: [
+        { threat: a, threatKey: "ka", componentRelevance: "relevant", boundary: false },
+        { threat: b, threatKey: "kb", componentRelevance: "not_relevant", boundary: false },
+      ],
+    },
+  ] as never;
+  const Harness: React.FC<{ keep?: (t: { relevance: string }) => boolean }> = ({ keep }) => {
+    const { sections } = useImportedThreatSections({ groups, headings: false });
+    const shown = keep ? sections.map((x) => x.filtered(keep as never)) : sections;
+    return (
+      <div>
+        {shown.map((x) => (
+          <div key={x.key} data-testid={`count-${x.key}`}>
+            {x.count}
+            {x.render()}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  it("unfiltered: every threat of the group", () => {
+    render(<Harness />);
+    expect(screen.getByTestId("count-imported-inst").textContent?.startsWith("2")).toBe(true);
+    expect(screen.queryByTestId("imported-threat-ka")).not.toBeNull();
+    expect(screen.queryByTestId("imported-threat-kb")).not.toBeNull();
+  });
+
+  it("filtered: only the kept threats, with that count", () => {
+    render(<Harness keep={(t) => t.relevance === "relevant"} />);
+    expect(screen.getByTestId("count-imported-inst").textContent?.startsWith("1")).toBe(true);
+    expect(screen.queryByTestId("imported-threat-ka")).not.toBeNull();
+    expect(screen.queryByTestId("imported-threat-kb")).toBeNull();
+  });
+
+  it("nothing kept: count 0 and nothing rendered", () => {
+    render(<Harness keep={() => false} />);
+    expect(screen.getByTestId("count-imported-inst").textContent).toBe("0");
+  });
+});
+

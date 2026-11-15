@@ -3,7 +3,7 @@
 // FIXED: Split view, toolbar connections, export/import, dialog management
 
 import type { ImportedRelevanceDecision } from "../models/threat-types";
-import { ImportedThreatsSection } from "./shared/imported-threats-section";
+import { useImportedThreatSections } from "./shared/imported-threats-section";
 import { withThreatPhaseStatus } from "../services/threat-phase-status";
 import React, {
   useEffect,
@@ -363,6 +363,15 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     [],
   );
   const noSave = useCallback(() => {}, []);
+  // Threats of imported components: groups of the threat list under the
+  // filter bar, after the multiprocess groups (manual test 2026-11-15).
+  const imported = useImportedThreatSections({
+    groups: project.importedThreatGroups,
+    onOverrideRelevance: onOverrideImportedRelevance,
+    method: activeMethod,
+    onOpenThreat: openImportedThreat,
+    headings: false,
+  });
 
   const handleOpenEditDialog = useCallback(
     (tableIndex: number, threat: Threat) => {
@@ -773,12 +782,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             pt: 2,
           }}
         >
-          <ImportedThreatsSection
-            groups={project.importedThreatGroups}
-            onOverrideRelevance={onOverrideImportedRelevance}
-            method={activeMethod}
-            onOpenThreat={openImportedThreat}
-          />
+          {imported.dialog}
           {activeMethod === "per-element" ? (
             <ElementThreatsView
               tables={elementHook.tables}
@@ -797,6 +801,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
               groups={project.dfdTableGroups}
+              importedSections={imported.sections}
             />
           ) : (
             <InteractionThreatsView
@@ -816,6 +821,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
               groups={project.dfdTableGroups}
+              importedSections={imported.sections}
             />
           )}
         </Box>

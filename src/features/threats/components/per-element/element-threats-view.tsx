@@ -3,6 +3,7 @@
 // ThreatsTab is the single source of truth for hook state.
 
 import type { DfdTableGroups } from "shared";
+import type { ImportedThreatSection } from "../shared/imported-threats-section";
 import { ThreatGroupSections } from "../shared/threat-group-sections";
 import React, { useCallback } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
@@ -36,6 +37,8 @@ export interface ElementThreatsViewProps {
   reviewedCount?: number;
   /** Leveled DFD (D20): accordion per top-level decomposed multiprocess. */
   groups?: DfdTableGroups;
+  /** Threats of imported components — groups after the multiprocess groups (read-only). */
+  importedSections?: readonly ImportedThreatSection[];
 }
 
 // ==================== COMPONENT ====================
@@ -55,6 +58,7 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
     showFilters = true,
     reviewedCount,
     groups,
+    importedSections,
   }) => {
     const { t } = useTranslation();
 
@@ -76,6 +80,14 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
         threats: filterThreats(table.threats),
       }));
     }, [tables, filterThreats, hasActiveFilters]);
+
+    // The filter bar applies to the imported threats too (manual test
+    // 2026-11-15); a component group without a match is left out.
+    const shownImported = React.useMemo(() => {
+      if (!importedSections || !hasActiveFilters) return importedSections;
+      const keep = (threat: Threat) => filterThreats([threat]).length > 0;
+      return importedSections.map((x) => x.filtered(keep)).filter((x) => x.count > 0);
+    }, [importedSections, filterThreats, hasActiveFilters]);
 
     // Unfiltered: numbering must see threats hidden by the active filters.
     const allThreats = React.useMemo(
@@ -159,7 +171,7 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
           </Box>
         )}
 
-        {totalThreats === 0 ? (
+        {totalThreats === 0 && !importedSections?.length ? (
           <Box
             sx={{
               display: "flex",
@@ -201,6 +213,7 @@ export const ElementThreatsView = React.memo<ElementThreatsViewProps>(
           <Box sx={{ flexGrow: 1, overflow: "auto" }}>
             <ThreatGroupSections
               groups={groups}
+              importedSections={shownImported}
               tables={filteredTables}
               renderTable={(table, index, groupKey) => (
                 <ElementThreatTable

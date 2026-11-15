@@ -267,6 +267,8 @@
     },
     "threats": {
       "title": "Bedrohungen aus importierten Komponenten ({{count}}) — schreibgeschützt",
+      "groupInfo": "Bedrohungen aus einer importierten Komponente — schreibgeschützt: Text, STRIDE und Relevanz sind Entscheidungen der Komponente (auf Grenzflüssen darf die Maschine die Relevanz überstimmen). Ihre Risiken im Risk-Tab bewerten.",
+      "groupSummary": "{{count}} importierte Bedrohung(en), schreibgeschützt",
       "where": "Element / Flow",
       "threat": "Bedrohung",
       "relevance": "Relevanz (Komponente)",
