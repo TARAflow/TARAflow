@@ -210,7 +210,9 @@
       "componentStatus": "component: {{status}}",
       "rationale": "Why it does not apply here (required)",
       "save": "Save",
-      "measures": "Evidence: this machine's measures",
+      "measuresMulti": "Evidence: this machine's measures (one or more)",
+      "measuresNone": "none chosen — select one or more",
+      "measuresChosen": "Chosen as evidence ({{count}}):",
       "note": "Evidence note",
       "status": {
         "open": "open",

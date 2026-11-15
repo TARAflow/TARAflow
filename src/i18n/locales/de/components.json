@@ -210,7 +210,9 @@
       "componentStatus": "Komponente: {{status}}",
       "rationale": "Warum sie hier nicht zutrifft (Pflicht)",
       "save": "Speichern",
-      "measures": "Nachweis: Massnahmen dieser Maschine",
+      "measuresMulti": "Nachweis: Massnahmen dieser Maschine (eine oder mehrere)",
+      "measuresNone": "keine gewählt — eine oder mehrere auswählen",
+      "measuresChosen": "Als Nachweis gewählt ({{count}}):",
       "note": "Nachweis-Notiz",
       "status": {
         "open": "offen",

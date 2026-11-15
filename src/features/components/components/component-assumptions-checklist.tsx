@@ -15,13 +15,19 @@ import {
   AccordionSummary,
   Box,
   Button,
+  Checkbox,
   Chip,
+  FormControl,
+  InputLabel,
+  ListItemText,
   MenuItem,
   Select,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 const NS = "components";
@@ -162,30 +168,14 @@ const AssumptionRow: React.FC<{
           </Stack>
         )}
         {(status === "fulfilled" || status === "not_applicable") && measures.length > 0 && (
-          <Select
-            size="small"
-            multiple
-            displayEmpty
-            value={a.evidence?.mitigationIds ?? []}
-            onChange={(e) => {
-              const ids = (typeof e.target.value === "string" ? e.target.value.split(",") : e.target.value) as string[];
-              onChange({ status: a.status, evidence: evidence({ mitigationIds: ids }), ...(a.rationale ? { rationale: a.rationale } : {}) });
-            }}
-            renderValue={(ids) =>
-              (ids as string[]).length === 0 ? (
-                <em style={{ color: "#9e9e9e" }}>{t("components.assumptions.measures", { defaultValue: "Evidence: this machine's measures" })}</em>
-              ) : (
-                (ids as string[]).join(", ")
-              )
+          <EvidenceMeasures
+            displayId={a.displayId}
+            measures={measures}
+            selected={a.evidence?.mitigationIds ?? []}
+            onSelect={(ids) =>
+              onChange({ status: a.status, evidence: evidence({ mitigationIds: ids }), ...(a.rationale ? { rationale: a.rationale } : {}) })
             }
-            inputProps={{ "data-testid": `component-assumption-measures-${a.displayId}` }}
-          >
-            {measures.map((m) => (
-              <MenuItem key={m.id} value={m.id}>
-                {m.label}
-              </MenuItem>
-            ))}
-          </Select>
+          />
         )}
         {status !== "open" && (
           <TextField
@@ -204,5 +194,89 @@ const AssumptionRow: React.FC<{
         )}
       </Stack>
     </Box>
+  );
+};
+
+/**
+ * Evidence from this machine's measures — one or more (UX, manual test
+ * 2026-11-15): a checkbox per measure and a clearly marked selection make the
+ * multiple choice visible; the chosen measures appear as chips, and a tooltip
+ * lists them with their full text.
+ */
+const EvidenceMeasures: React.FC<{
+  displayId: string;
+  measures: readonly { id: string; label: string }[];
+  selected: readonly string[];
+  onSelect: (ids: string[]) => void;
+}> = ({ displayId, measures, selected, onSelect }) => {
+  const { t } = useTranslation(NS);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const labelOf = (id: string) => measures.find((m) => m.id === id)?.label ?? id;
+  const labelId = `component-assumption-measures-label-${displayId}`;
+  const label = t("components.assumptions.measuresMulti", { defaultValue: "Evidence: this machine's measures (one or more)" });
+  const tooltip =
+    selected.length === 0 ? (
+      ""
+    ) : (
+      <Box data-testid={`component-assumption-measures-tooltip-${displayId}`}>
+        <Typography variant="caption" fontWeight="medium" component="div">
+          {t("components.assumptions.measuresChosen", { count: selected.length, defaultValue: "Chosen as evidence ({{count}}):" })}
+        </Typography>
+        {selected.map((id) => (
+          <Typography key={id} variant="caption" component="div">
+            {labelOf(id)}
+          </Typography>
+        ))}
+      </Box>
+    );
+  return (
+    <Tooltip title={tooltip} placement="top-start" disableHoverListener={menuOpen || selected.length === 0}>
+      <FormControl size="small" fullWidth>
+        <InputLabel id={labelId} shrink>
+          {label}
+        </InputLabel>
+        <Select
+          labelId={labelId}
+          label={label}
+          notched
+          multiple
+          displayEmpty
+          value={[...selected]}
+          open={menuOpen}
+          onOpen={() => setMenuOpen(true)}
+          onClose={() => setMenuOpen(false)}
+          onChange={(e) => onSelect((typeof e.target.value === "string" ? e.target.value.split(",") : e.target.value) as string[])}
+          renderValue={(ids) =>
+            (ids as string[]).length === 0 ? (
+              <Typography variant="body2" color="text.secondary" component="em">
+                {t("components.assumptions.measuresNone", { defaultValue: "none chosen — select one or more" })}
+              </Typography>
+            ) : (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                {(ids as string[]).map((id) => (
+                  <Chip key={id} size="small" color="primary" variant="outlined" label={id} />
+                ))}
+              </Box>
+            )
+          }
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                "& .MuiMenuItem-root.Mui-selected": { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.22) },
+                "& .MuiMenuItem-root.Mui-selected:hover": { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.3) },
+              },
+            },
+          }}
+          inputProps={{ "data-testid": `component-assumption-measures-${displayId}` }}
+        >
+          {measures.map((m) => (
+            <MenuItem key={m.id} value={m.id} dense>
+              <Checkbox size="small" checked={selected.includes(m.id)} sx={{ py: 0, pl: 0 }} />
+              <ListItemText primary={m.label} primaryTypographyProps={{ variant: "body2" }} />
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Tooltip>
   );
 };

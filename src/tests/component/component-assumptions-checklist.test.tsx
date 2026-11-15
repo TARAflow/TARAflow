@@ -3,7 +3,7 @@
 // instance — status, the component's own status beside it, evidence, and the
 // mandatory rationale for "not applicable" before it is saved.
 import React from "react";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ComponentAssumptionsChecklist } from "features/components";
 
@@ -68,5 +68,48 @@ describe("ComponentAssumptionsChecklist", () => {
     fireEvent.change(note, { target: { value: "Cabinet key with maintenance" } });
     fireEvent.blur(note);
     expect(onChange).toHaveBeenLastCalledWith("a2", { status: "fulfilled", evidence: { mitigationIds: ["M-C-001"], note: "Cabinet key with maintenance" } });
+  });
+
+  it("evidence is a multiple choice: a checkbox per measure, the chosen ones marked", async () => {
+    open();
+    const field = screen.getByTestId("component-assumption-measures-ASM-02").parentElement!;
+    expect(field.parentElement!.textContent).toContain("(one or more)");
+    await act(async () => { fireEvent.mouseDown(field.querySelector('[role="combobox"]')!); });
+    const list = screen.getByRole("listbox");
+    const item = (text: string) => within(list).getByText(text).closest("li")!;
+    const box = (text: string) => item(text).querySelector('input[type="checkbox"]') as HTMLInputElement;
+    expect(box("M-C-001 Locked cabinet").checked).toBe(true);
+    expect(box("M-T-001 Integrity check").checked).toBe(false);
+    expect(item("M-C-001 Locked cabinet").className).toContain("Mui-selected");
+  });
+
+  it("the chosen measures show as chips, with their full text in a tooltip", async () => {
+    open();
+    const field = screen.getByTestId("component-assumption-measures-ASM-02").parentElement!;
+    const combobox = field.querySelector('[role="combobox"]')!;
+    expect(within(combobox as HTMLElement).getByText("M-C-001").closest(".MuiChip-root")).not.toBeNull();
+    fireEvent.mouseOver(field.parentElement!);
+    await waitFor(() => expect(screen.getByTestId("component-assumption-measures-tooltip-ASM-02")).toBeTruthy());
+    const tip = screen.getByTestId("component-assumption-measures-tooltip-ASM-02").textContent;
+    expect(tip).toContain("Chosen as evidence (1):");
+    expect(tip).toContain("M-C-001 Locked cabinet");
+  });
+
+  it("without a chosen measure the field says so and shows no tooltip", async () => {
+    const onChange = vi.fn();
+    render(
+      <ComponentAssumptionsChecklist
+        prefix="SD1"
+        assumptions={[{ ...assumptions[1], evidence: undefined }]}
+        measures={measures}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByText(/Assumptions of use/));
+    const field = screen.getByTestId("component-assumption-measures-ASM-02").parentElement!;
+    expect(field.textContent).toContain("none chosen — select one or more");
+    fireEvent.mouseOver(field.parentElement!);
+    await new Promise((r) => setTimeout(r, 150));
+    expect(screen.queryByTestId("component-assumption-measures-tooltip-ASM-02")).toBeNull();
   });
 });
