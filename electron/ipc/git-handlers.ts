@@ -4,6 +4,7 @@
 import { ipcMain } from "electron";
 import { simpleGit } from "simple-git";
 import { GitService } from "../services/git-service-main";
+import { rawGitInDir } from "./git-raw-in-dir";
 
 let gitService: GitService;
 
@@ -104,23 +105,9 @@ export function registerGitHandlers() {
   // simpleGit(dir), but stays in the main process, so the "one git path" rule
   // (no git in the renderer) still holds. Never throws to the renderer: a
   // non-zero exit is returned as { code }.
+  // The real exit code — also for a "no" without stderr (rawGitInDir).
   ipcMain.handle("git:rawInDir", async (_, dir: string, args: string[]) => {
-    try {
-      const stdout = await simpleGit(dir, {
-        unsafe: { allowUnsafeHooksPath: true },
-      }).raw(args);
-      return { success: true, data: { stdout, stderr: "", code: 0 } };
-    } catch (err: any) {
-      // simple-git throws on non-zero exit (e.g. rev-parse outside a repo)
-      return {
-        success: true,
-        data: {
-          stdout: err?.git?.stdout ?? "",
-          stderr: String(err?.message ?? err),
-          code: typeof err?.exitCode === "number" ? err.exitCode : 128,
-        },
-      };
-    }
+    return { success: true, data: await rawGitInDir(dir, args) };
   });
 
   // Rebind the bound GitService to the discovered audit repo root. Called on
