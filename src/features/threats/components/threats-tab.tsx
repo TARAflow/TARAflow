@@ -591,6 +591,39 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     ],
   );
 
+  // Drift of the method NOT shown (manual test 2026-11-16: per interaction
+  // would have produced 5 new threats while per element was shown — nothing
+  // said so). Only while that method has threats and its DFD sync is clean,
+  // as for the shown one; a light-blue dot on its toolbar button.
+  const otherMethod: StrideMethod = activeMethod === "per-element" ? "per-interaction" : "per-element";
+  const otherHook = activeMethod === "per-element" ? interactionHook : elementHook;
+  const otherHasThreats = otherHook.tables.some((tb) => tb.threats.length > 0);
+  const otherInSync = otherHook.syncStatus?.inSync ?? true;
+  const otherDrift = useMemo(
+    () =>
+      hasDFD && otherHasThreats && otherInSync && !disabledMethods.includes(otherMethod)
+        ? detectGenerationDrift(project, dfdContext, configuration, otherMethod)
+        : NO_DRIFT,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      hasDFD,
+      otherHasThreats,
+      otherInSync,
+      project.threats,
+      project.dfdGraph,
+      project.assetDataRef,
+      project.dfd,
+      project.info?.tags,
+      dfdContext,
+      configuration,
+      otherMethod,
+    ],
+  );
+  const methodsDrifting = useMemo(
+    () => [...(hasDrift(drift) ? [activeMethod] : []), ...(hasDrift(otherDrift) ? [otherMethod] : [])],
+    [drift, otherDrift, activeMethod, otherMethod],
+  );
+
   // A new drift (different counts) re-shows a dismissed banner.
   useEffect(() => {
     if (hasDrift(drift)) setShowDriftWarning(true);
@@ -633,6 +666,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         activeMethod={activeMethod}
         disabledMethods={disabledMethods}
         methodsOutOfSync={methodsOutOfSync}
+        methodsDrifting={methodsDrifting}
         hasThreats={hasThreats}
         hasDFD={hasDFD && !dfdLayoutBlocked}
         syncStatus={activeHook.syncStatus}

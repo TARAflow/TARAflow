@@ -18,7 +18,7 @@ vi.mock("react-i18next", () => ({
 }));
 afterEach(cleanup);
 
-const toolbar = (methodsOutOfSync?: StrideMethod[]) =>
+const toolbar = (methodsOutOfSync?: StrideMethod[], methodsDrifting?: StrideMethod[]) =>
   render(
     <ThreatToolbar
       isGenerating={false}
@@ -26,6 +26,7 @@ const toolbar = (methodsOutOfSync?: StrideMethod[]) =>
       validation={null}
       activeMethod="per-element"
       {...(methodsOutOfSync ? { methodsOutOfSync } : {})}
+      {...(methodsDrifting ? { methodsDrifting } : {})}
       hasThreats
       hasDFD
       syncStatus={null}
@@ -67,3 +68,24 @@ describe("ThreatToolbar — methods out of sync", () => {
     await waitFor(() => expect(screen.getByRole("tooltip").textContent).toContain("regenerate"));
   });
 });
+
+// Manual test 2026-11-16: per interaction would have produced 5 new
+// threats (generation drift) while per element was shown — a light-blue
+// dot for drift; out of sync (orange) wins.
+describe("ThreatToolbar — methods with generation drift", () => {
+  it("a light-blue dot on the drifting method, with its tooltip", async () => {
+    toolbar([], ["per-interaction"]);
+    const d = dot("per-interaction");
+    expect(d.className).not.toContain("MuiBadge-invisible");
+    expect(d.className).toContain("MuiBadge-colorInfo");
+    expect(dot("per-element").className).toContain("MuiBadge-invisible");
+    fireEvent.mouseOver(screen.getByTestId("threat-method-out-of-sync-per-interaction"));
+    await waitFor(() => expect(screen.getByRole("tooltip").textContent).toContain("would add or remove threats"));
+  });
+
+  it("out of sync wins over drift: orange", () => {
+    toolbar(["per-interaction"], ["per-interaction"]);
+    expect(dot("per-interaction").className).toContain("MuiBadge-colorWarning");
+  });
+});
+

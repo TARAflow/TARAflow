@@ -18,6 +18,7 @@
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction ist durch das aktive Regulierungs-Preset deaktiviert",
       "methodOutOfSync": "Bedrohungen passen nicht zum DFD: diese Methode öffnen und neu generieren",
+      "methodDrifting": "Neu generieren würde Bedrohungen hinzufügen oder entfernen: diese Methode öffnen und prüfen",
       "dfdPageLayoutUnsupported": "Das DFD hat eine komprimierte Seite oder Seiten, die noch nicht in den Seitenbaum übernommen sind — Generierung und Synchronisation der Bedrohungen sind deaktiviert, bis alle Seiten unkomprimiert und übernommen sind (\"Seiten übernehmen…\" im DFD-Tab).",
       "groups": {
         "topLevel": "Oberste Ebene",

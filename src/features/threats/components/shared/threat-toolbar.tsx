@@ -56,6 +56,12 @@ export interface ThreatToolbarProps {
    * deleted flows unnoticed). Only methods that have threats.
    */
   methodsOutOfSync?: readonly StrideMethod[];
+  /**
+   * Methods whose threats match the DFD but a regeneration would add or
+   * remove threats (generation drift) — a light-blue dot; out of sync
+   * (orange) wins (manual test 2026-11-16).
+   */
+  methodsDrifting?: readonly StrideMethod[];
   hasThreats: boolean;
   hasDFD: boolean;
   syncStatus: ThreatSyncStatus | null;
@@ -88,6 +94,7 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
     activeMethod,
     disabledMethods,
     methodsOutOfSync,
+    methodsDrifting,
     hasThreats,
     hasDFD,
     syncStatus,
@@ -107,12 +114,20 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
     onImport,
   }) => {
     const { t } = useTranslation();
+    const outOfSync = (method: StrideMethod) => !!methodsOutOfSync?.includes(method);
+    const drifting = (method: StrideMethod) => !outOfSync(method) && !!methodsDrifting?.includes(method);
     const withSyncHint = (label: string, method: StrideMethod) =>
-      methodsOutOfSync?.includes(method)
+      outOfSync(method)
         ? `${label} — ${t("tabs.threats.methodOutOfSync", {
             defaultValue: "threats not in sync with the DFD: open this method and regenerate",
           })}`
-        : label;
+        : drifting(method)
+          ? `${label} — ${t("tabs.threats.methodDrifting", {
+              defaultValue: "a regeneration would add or remove threats: open this method and check",
+            })}`
+          : label;
+    // orange: out of sync; light blue: drift; none: up to date
+    const dotColor = (method: StrideMethod) => (outOfSync(method) ? "warning" : "info");
     const needsSync = syncStatus && !syncStatus.inSync;
     const reviewed = validation?.stats.reviewed ?? 0;
     const total = validation?.stats.total ?? 0;
@@ -164,8 +179,8 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
             >
               <Badge
                 variant="dot"
-                color="warning"
-                invisible={!methodsOutOfSync?.includes("per-element")}
+                color={dotColor("per-element")}
+                invisible={!outOfSync("per-element") && !drifting("per-element")}
                 data-testid="threat-method-out-of-sync-per-element"
               >
                 <PerElementIcon fontSize="small" />
@@ -194,8 +209,8 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
             >
               <Badge
                 variant="dot"
-                color="warning"
-                invisible={!methodsOutOfSync?.includes("per-interaction")}
+                color={dotColor("per-interaction")}
+                invisible={!outOfSync("per-interaction") && !drifting("per-interaction")}
                 data-testid="threat-method-out-of-sync-per-interaction"
               >
                 <PerInteractionIcon fontSize="small" />
