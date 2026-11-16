@@ -169,6 +169,13 @@ export interface RiskProjectData {
    */
   disabledStrideMethods?: StrideMethod[];
   /**
+   * Findings about risks that come from elsewhere (imported components:
+   * factor overrides without rationale, handovers, …), already in the UI
+   * language — shown in the tab's findings panel; a click opens the risks
+   * concerned (their threatIds). Derived at the app layer.
+   */
+  externalFindings?: readonly { id: string; severity: "error" | "warning" | "info"; text: string; threatIds: readonly string[] }[];
+  /**
    * Impact aggregation the active regulation preset recommends (derived at the
    * app layer from the project tags). Applied directly while there are no
    * risks; with risks it is only offered in the risk configuration, where a

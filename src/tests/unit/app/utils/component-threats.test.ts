@@ -326,10 +326,13 @@ describe("factor prefill per fingerprint (patch 16)", () => {
     } as unknown as Project;
     const f = componentFindings(project);
     expect(f.infos.map((x) => x.key)).toEqual(["components.findings.CMP_METHOD_MISMATCH"]);
-    expect(f.warnings.map((x) => x.key)).toEqual(expect.arrayContaining(["components.findings.CMP_FACTOR_UNRATED", "components.findings.CMP_FACTOR_OVERRIDE_RATIONALE"]));
+    // findings about risks: the Risks tab's panel with the risks concerned, not the DFD's (manual test 2026-11-15)
+    expect(f.risks.map((x) => x.key)).toEqual(expect.arrayContaining(["components.findings.CMP_FACTOR_UNRATED", "components.findings.CMP_FACTOR_OVERRIDE_RATIONALE"]));
+    expect(f.risks.find((x) => x.key.endsWith("CMP_FACTOR_OVERRIDE_RATIONALE"))!.threatIds).toEqual([componentInstanceTfId(inst.id, `threat|${sr.threatId}`)]);
+    expect(f.warnings.map((x) => x.key)).not.toContain("components.findings.CMP_FACTOR_OVERRIDE_RATIONALE");
     // with a rationale the override finding goes
     const withRationale = { ...project, risks: { ...project.risks!, risks: [riskOf([{ factorId: "skill_level", value: 1, weight: 1 }, { factorId: "ease_of_exploit", value: 2, weight: 1, source: "manual", derivedValue: 3, derivedFrom: "component", overrideRationale: "network" }])] } } as unknown as Project;
-    expect(componentFindings(withRationale).warnings.map((x) => x.key)).not.toContain("components.findings.CMP_FACTOR_OVERRIDE_RATIONALE");
+    expect(componentFindings(withRationale).risks.map((x) => x.key)).not.toContain("components.findings.CMP_FACTOR_OVERRIDE_RATIONALE");
   });
 
   it("the commit gate opens on an override rationale alone (risk factor ratings in the audit diff)", () => {

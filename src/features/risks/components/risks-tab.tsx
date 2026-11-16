@@ -47,7 +47,7 @@ import {
 } from "../models/risk-assessment-types";
 
 import { RiskConfiguration, RiskValidation } from "../models/risk-config-types";
-import { riskFindingLines, riskFindings } from "../services/risk-findings";
+import { riskFindingLines, riskFindingText, riskFindings } from "../services/risk-findings";
 import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
 import {
@@ -74,7 +74,8 @@ import type { TicketPort } from "shared/models/ticket-types";
 import { RiskConfigDialog } from "./risk-config-dialog";
 import { RiskMatrix } from "./risk-matrix";
 import { WontRiskTable } from "./wont-risk-table";
-import { DFDPreviewPanel } from "shared";
+import { DFDPreviewPanel, FindingsPanel, type PanelFinding } from "shared";
+import { sortRisksByThreatId } from "./shared/risk-table";
 import { ConfirmDialog } from "shared";
 import { RisksToolbar } from "./risk-toolbar";
 import { useRiskSync } from "../hooks/use-risk-sync";
@@ -406,9 +407,39 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   const ticketLinks = useMemo(() => collectTicketLinks(riskData.risks), [riskData.risks]);
   // With a tracker, a mitigation done by hand needs a ticket or evidence (user 2026-11-10).
   const trackerConnected = !!project.integration?.connection?.projectName;
-  const currentValidation = useMemo(
-    () => riskFindingLines(riskFindings(riskData, { trackerConnected }), t),
-    [riskData, trackerConnected, t],
+  const currentFindings = useMemo(() => riskFindings(riskData, { trackerConnected }), [riskData, trackerConnected]);
+  const currentValidation = useMemo(() => riskFindingLines(currentFindings, t), [currentFindings, t]);
+
+  // ── Findings panel (manual test 2026-11-15: like the DFD tab's) ──────────
+  // The tab's own findings and those about its risks from elsewhere
+  // (imported components); a click opens the risks concerned in the dialog,
+  // browsing only them, in the order of the table.
+  const { panelFindings, findingRisks } = useMemo(() => {
+    const byThreat = new Map(riskData.risks.map((r) => [r.threatId, r]));
+    const byId = new Map(riskData.risks.map((r) => [r.id, r]));
+    const findingRisks = new Map<string, Risk[]>();
+    const panelFindings: PanelFinding[] = [];
+    currentFindings.forEach((f, i) => {
+      const id = `risk-${f.code}-${i}`;
+      const risks = (f.riskIds ?? []).map((x) => byId.get(x)).filter((r): r is Risk => !!r);
+      findingRisks.set(id, risks);
+      panelFindings.push({ id, severity: f.severity, text: riskFindingText(f, t), clickable: risks.length > 0 });
+    });
+    for (const f of project.externalFindings ?? []) {
+      const risks = f.threatIds.map((x) => byThreat.get(x)).filter((r): r is Risk => !!r);
+      findingRisks.set(f.id, risks);
+      panelFindings.push({ id: f.id, severity: f.severity, text: f.text, clickable: risks.length > 0 });
+    }
+    return { panelFindings, findingRisks };
+  }, [currentFindings, project.externalFindings, riskData.risks, t]);
+  const openFinding = useCallback(
+    (id: string) => {
+      const risks = sortRisksByThreatId(findingRisks.get(id) ?? []);
+      if (risks.length === 0) return;
+      setSelectedRiskInfo({ risks, index: 0 });
+      setShowRiskDialog(true);
+    },
+    [findingRisks],
   );
   // The method buttons show risks, not threats (user 2026-10-30).
   const risksOfMethod = (method: "per-element" | "per-interaction") =>
@@ -671,7 +702,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
       // the other attack-path risks instead (mirrors the dedicated section
       // RiskTableView renders them in).
       if (risk.sourceStrideMethod === "attack-path") {
-        const pool = isWontRisk ? attackPathWontRisks : attackPathActiveRisks;
+        // in the order of the table: by threat id (manual test 2026-11-15)
+        const pool = sortRisksByThreatId(isWontRisk ? attackPathWontRisks : attackPathActiveRisks);
         const index = pool.findIndex((r) => r.id === risk.id);
         setSelectedRiskInfo({
           risks: pool.length > 0 ? pool : [risk],
@@ -688,7 +720,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
         const th = allThreats.find((t) => t.id === r.threatId);
         return th?.trustBoundaryId === tbId;
       });
-      const effectiveGroup = group.length > 0 ? group : [risk];
+      const effectiveGroup = group.length > 0 ? sortRisksByThreatId(group) : [risk];
       const index = effectiveGroup.findIndex((r) => r.id === risk.id);
       setSelectedRiskInfo({ risks: effectiveGroup, index: Math.max(0, index) });
       setShowRiskDialog(true);
@@ -1216,6 +1248,20 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           )}
         </Box>
       </Box>
+
+      {/* Findings — below the list, like the DFD, Asset and Hazard tabs */}
+      <FindingsPanel
+        findings={panelFindings}
+        onOpen={openFinding}
+        testIdPrefix="risk-notification"
+        labels={{
+          title: (count) => t("tabs.risks.notifications.title", { count, defaultValue: "{{count}} finding(s)" }),
+          open: t("tabs.risks.notifications.open", { defaultValue: "Open the risk(s) where this is fixed" }),
+          showInfos: t("tabs.risks.notifications.showInfos", { defaultValue: "Show infos" }),
+          hideInfos: t("tabs.risks.notifications.hideInfos", { defaultValue: "Hide infos" }),
+          onlyInfos: t("tabs.risks.notifications.onlyInfos", { defaultValue: "No errors or warnings — infos are hidden." }),
+        }}
+      />
 
       {/* Risk Edit Dialog */}
       {selectedRiskInfo && showRiskDialog && (

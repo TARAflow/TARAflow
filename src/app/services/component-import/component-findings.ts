@@ -92,9 +92,25 @@ export interface ComponentFindings {
   errors: ValidationFinding[];
   warnings: ValidationFinding[];
   infos: ValidationFinding[];
+  /**
+   * Findings about the machine's risks of an instance — shown in the Risks
+   * tab's findings panel, a click opens the risks concerned (manual test
+   * 2026-11-15: they were in the DFD tab, far from where they are fixed).
+   * Not part of errors / warnings / infos (the DFD's).
+   */
+  risks: ComponentRiskFinding[];
 }
 
-const EMPTY: ComponentFindings = { errors: [], warnings: [], infos: [] };
+/** A component finding about risks: key + params like a DFD finding, and the risks concerned. */
+export interface ComponentRiskFinding {
+  key: string;
+  severity: "warning";
+  params: Record<string, string | number>;
+  /** threatId of each risk concerned, in the register's order. */
+  threatIds: string[];
+}
+
+const EMPTY: ComponentFindings = { errors: [], warnings: [], infos: [], risks: [] };
 const KEY = (code: string) => `components.findings.${code}`;
 
 export function componentFindings(
@@ -102,7 +118,9 @@ export function componentFindings(
 ): ComponentFindings {
   const components = project.components;
   if (!components || (components.imports.length === 0 && components.instances.length === 0)) return EMPTY;
-  const out: ComponentFindings = { errors: [], warnings: [], infos: [] };
+  const out: ComponentFindings = { errors: [], warnings: [], infos: [], risks: [] };
+  const riskFinding = (code: string, params: Record<string, string | number>, threatIds: string[]) =>
+    out.risks.push({ key: KEY(code), severity: "warning", params, threatIds });
   const elements = new Map((project.dfd?.elements ?? []).map((e) => [e.id, e]));
   const importsById = new Map(components.imports.map((i) => [i.id, i]));
 
@@ -164,9 +182,10 @@ export function componentFindings(
     // Measures and handovers of the component (§7.4, phase 3a) — over the
     // imported risks the machine's register holds.
     {
-      let pending = 0;
-      let handover = 0;
+      const pending: string[] = [];
+      const handover: string[] = [];
       const toReview: string[] = [];
+      const toReviewIds: string[] = [];
       const overridden = new Set<string>();
       const notEffective = new Map<string, Set<string>>();
       const unclear = new Map<string, Set<string>>();
@@ -178,12 +197,15 @@ export function componentFindings(
       for (const risk of project.risks?.risks ?? []) {
         const tr = treatments.get(risk.threatId);
         if (!tr || tr.instanceId !== instance.id) continue;
-        if (acceptanceToReview(risk, uncredited)) toReview.push(risk.threatDisplayId);
+        if (acceptanceToReview(risk, uncredited)) {
+          toReview.push(risk.threatDisplayId);
+          toReviewIds.push(risk.threatId);
+        }
         if (tr.handedOver) {
-          if (!machineDecided(risk)) handover++;
+          if (!machineDecided(risk)) handover.push(risk.threatId);
           continue;
         }
-        if (tr.measures.some((m) => m.state === "pending")) pending++;
+        if (tr.measures.some((m) => m.state === "pending")) pending.push(risk.threatId);
         for (const m of tr.measures) {
           const label = m.id ?? m.text;
           if (m.override) overridden.add(label);
@@ -197,8 +219,8 @@ export function componentFindings(
       }
       const params = { prefix: instance.prefix, component: name };
       const listOf = (m: Map<string, Set<string>>) => [...m.entries()].map(([k, v]) => `${k} (${[...v].join(", ")})`).join("; ");
-      if (pending > 0) out.warnings.push({ key: KEY("CMP_MEASURE_PENDING"), params: { ...params, count: pending } });
-      if (handover > 0) out.warnings.push({ key: KEY("CMP_HANDOVER_OPEN"), params: { ...params, count: handover } });
+      if (pending.length > 0) riskFinding("CMP_MEASURE_PENDING", { ...params, count: pending.length }, pending);
+      if (handover.length > 0) riskFinding("CMP_HANDOVER_OPEN", { ...params, count: handover.length }, handover);
       if (notEffective.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_NOT_EFFECTIVE"), ...at, params: { ...params, list: listOf(notEffective) } });
       if (unclear.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_UNCLEAR"), ...at, params: { ...params, list: listOf(unclear) } });
       if (overridden.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_OVERRIDDEN"), params: { ...params, list: [...overridden].join(", ") } });
@@ -206,7 +228,7 @@ export function componentFindings(
         const unknown = unknownMeasureOverrides(instance, imported);
         if (unknown.length > 0) out.warnings.push({ key: KEY("CMP_MEASURE_OVERRIDE_UNKNOWN"), params: { ...params, list: unknown.join(", ") } });
       }
-      if (toReview.length > 0) out.warnings.push({ key: KEY("CMP_ACCEPTANCE_TO_REVIEW"), params: { ...params, list: toReview.join(", ") } });
+      if (toReview.length > 0) riskFinding("CMP_ACCEPTANCE_TO_REVIEW", { ...params, list: toReview.join(", ") }, toReviewIds);
     }
 
     // Assumptions of use per instance (§7.6, phase 3b).
@@ -237,19 +259,19 @@ export function componentFindings(
 
     // Imported risks: unrated factors (only with a mismatch) and overrides without rationale.
     if (imported) {
-      let unrated = 0;
-      let withoutRationale = 0;
+      const unrated: string[] = [];
+      const withoutRationale: string[] = [];
       for (const sr of imported.snapshot.risks) {
         const risk = risksByThreat.get(componentInstanceTfId(instance.id, `threat|${sr.threatId}`));
         if (!risk) continue;
-        if (mismatched.has(imported.id) && risk.factorRatings.some((f) => isLikelihood(f.factorId) && isIntrinsic(f.factorId) && f.value === 0)) unrated++;
-        if (risk.factorRatings.some((f) => f.derivedFrom === "component" && f.source === "manual" && f.value !== f.derivedValue && !(f.overrideRationale ?? "").trim())) withoutRationale++;
+        if (mismatched.has(imported.id) && risk.factorRatings.some((f) => isLikelihood(f.factorId) && isIntrinsic(f.factorId) && f.value === 0)) unrated.push(risk.threatId);
+        if (risk.factorRatings.some((f) => f.derivedFrom === "component" && f.source === "manual" && f.value !== f.derivedValue && !(f.overrideRationale ?? "").trim())) withoutRationale.push(risk.threatId);
       }
-      if (unrated > 0) {
-        out.warnings.push({ key: KEY("CMP_FACTOR_UNRATED"), params: { prefix: instance.prefix, component: name, count: unrated } });
+      if (unrated.length > 0) {
+        riskFinding("CMP_FACTOR_UNRATED", { prefix: instance.prefix, component: name, count: unrated.length }, unrated);
       }
-      if (withoutRationale > 0) {
-        out.warnings.push({ key: KEY("CMP_FACTOR_OVERRIDE_RATIONALE"), params: { prefix: instance.prefix, component: name, count: withoutRationale } });
+      if (withoutRationale.length > 0) {
+        riskFinding("CMP_FACTOR_OVERRIDE_RATIONALE", { prefix: instance.prefix, component: name, count: withoutRationale.length }, withoutRationale);
       }
     }
     const mp = elements.get(instance.multiprocessTfId);

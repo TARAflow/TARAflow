@@ -548,6 +548,13 @@ export const WorkspaceLayout: React.FC = () => {
           <RisksTab
             key={activeProject.id}
             project={{
+              // Component findings about risks — the Risks tab's panel (manual test 2026-11-15).
+              externalFindings: (dfdData.componentDfdFindings?.risks ?? []).map((f, index) => ({
+                id: `component-${index}`,
+                severity: f.severity,
+                text: t(f.key, f.params),
+                threatIds: f.threatIds,
+              })),
               id: activeProject.id,
               name: activeProject.info?.name || "",
               risks: activeProject.risks ?? null,

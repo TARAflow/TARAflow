@@ -48,6 +48,13 @@
       "wontMissingJustification": "Missing justification",
       "physicalInterfaces": "Physical Interfaces",
       "priority": "Priority",
+      "notifications": {
+        "title": "{{count}} finding(s)",
+        "open": "Open the risk(s) where this is fixed",
+        "showInfos": "Show infos",
+        "hideInfos": "Hide infos",
+        "onlyInfos": "No errors or warnings — infos are hidden."
+      },
       "uncertainWarning": "{{count}} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab.",
       "uncertain": "Uncertain",
       "uncertainRiskWarning": "This risk is based on an uncertain threat. Please confirm its relevance in the Threat Eval tab before finalizing the risk assessment.",

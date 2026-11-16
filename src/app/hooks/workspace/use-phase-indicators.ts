@@ -28,7 +28,12 @@ export interface PhaseIndicatorsInput {
   /** Parts of imported components — no generated threats (patch 12). */
   excludedElementIds?: ReadonlySet<string>;
   /** Findings of imported components — counted on the DFD phase (6c). */
-  componentFindings?: { errors: readonly ValidationFinding[]; warnings: readonly ValidationFinding[] } | null;
+  componentFindings?: {
+    errors: readonly ValidationFinding[];
+    warnings: readonly ValidationFinding[];
+    /** Component findings about risks — they count on the Risks phase. */
+    risks?: readonly { key: string; params: Record<string, string | number> }[];
+  } | null;
   assetDataRef: AssetDataReference | undefined;
   verificationStatus: ReturnType<typeof verificationStatus> | undefined;
   t: TFunction;
@@ -134,10 +139,16 @@ export function usePhaseIndicators({
                   )
                 : null,
             riskValidation: activeProject.risks?.risks?.length
-              ? riskFindingLines(
-                  riskFindings(activeProject.risks, { trackerConnected: !!activeProject.integration?.connection?.projectName }),
-                  t,
-                )
+              ? (() => {
+                  const lines = riskFindingLines(
+                    riskFindings(activeProject.risks, { trackerConnected: !!activeProject.integration?.connection?.projectName }),
+                    t,
+                  );
+                  // The component findings about risks count on the Risks
+                  // phase, where their panel is (manual test 2026-11-15).
+                  const fromComponents = (componentFindings?.risks ?? []).map((f) => t(f.key, f.params));
+                  return { errors: lines.errors, warnings: [...lines.warnings, ...fromComponents] };
+                })()
               : null,
             threatDrift: threatDriftCounts,
             verification: verification

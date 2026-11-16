@@ -46,11 +46,11 @@ function imported(source: Record<string, unknown> = { commitSha: "abc", schemaVe
 
 describe("componentFindings", () => {
   it("no components, no findings", () => {
-    expect(componentFindings({ dfd: null })).toEqual({ errors: [], warnings: [], infos: [] });
+    expect(componentFindings({ dfd: null })).toEqual({ errors: [], warnings: [], infos: [], risks: [] });
   });
 
   it("a freshly imported, pinned component: no findings — its boundary flows are its interfaces", () => {
-    expect(componentFindings(imported().project)).toEqual({ errors: [], warnings: [], infos: [] });
+    expect(componentFindings(imported().project)).toEqual({ errors: [], warnings: [], infos: [], risks: [] });
   });
 
   it("an unpinned import: a warning on its multiprocess", () => {

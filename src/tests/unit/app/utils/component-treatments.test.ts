@@ -56,7 +56,8 @@ describe("component treatments (phase 3a)", () => {
   });
 
   it("findings: CMP_MEASURE_PENDING and CMP_HANDOVER_OPEN per instance; the handover closes with the machine's treatment", () => {
-    const keys = (p: Project) => componentFindings(p).warnings.map((w) => w.key.split(".").pop());
+    // findings about risks go to the Risks tab (componentFindings().risks, manual test 2026-11-15)
+    const keys = (p: Project) => componentFindings(p).risks.map((w) => w.key.split(".").pop());
     expect(m.risks!.risks.some((r) => r.threatId === tid(component.reduceThreat))).toBe(true);
     expect(keys(m)).toContain("CMP_MEASURE_PENDING");
     expect(keys(m)).toContain("CMP_HANDOVER_OPEN");
@@ -154,11 +155,13 @@ describe("credited residual (phase 3d-2a, I7 (4))", () => {
   });
 
   it("an accepted risk whose residual does not count → CMP_ACCEPTANCE_TO_REVIEW (derived)", () => {
-    const keys = (p: Project) => componentFindings(p).warnings.map((w) => w.key.split(".").pop());
+    // findings about risks go to the Risks tab (componentFindings().risks, manual test 2026-11-15)
+    const keys = (p: Project) => componentFindings(p).risks.map((w) => w.key.split(".").pop());
     expect(keys(rated(machine()))).not.toContain("CMP_ACCEPTANCE_TO_REVIEW");
     const accepted = rated(machine(), "accept");
-    const w = componentFindings(accepted).warnings.find((x) => x.key.endsWith("CMP_ACCEPTANCE_TO_REVIEW"))!;
+    const w = componentFindings(accepted).risks.find((x) => x.key.endsWith("CMP_ACCEPTANCE_TO_REVIEW"))!;
     expect(w.params).toMatchObject({ prefix: "SD1", list: reduceRisk(accepted).threatDisplayId });
+    expect(w.threatIds).toEqual([reduceRisk(accepted).threatId]);
   });
 
   it("ISO: a component risk on an attack-path threat applies to the instance's path risk (per attack path)", () => {

@@ -27,6 +27,8 @@ export interface RiskFinding {
   count: number;
   /** Their display ids where the message names them (first five, then "…"). */
   ids?: readonly string[];
+  /** The risks concerned (risk ids) — the findings panel opens them (manual test 2026-11-15). */
+  riskIds?: readonly string[];
 }
 
 /**
@@ -63,7 +65,13 @@ export function riskFindings(riskData: RiskData, options: { trackerConnected?: b
   const out: RiskFinding[] = [];
   const add = (code: RiskFindingCode, severity: RiskFinding["severity"], hits: typeof risks, named = false) => {
     if (hits.length === 0) return;
-    out.push({ code, severity, count: hits.length, ...(named && { ids: hits.map((r) => r.threatDisplayId) }) });
+    out.push({
+      code,
+      severity,
+      count: hits.length,
+      ...(named && { ids: hits.map((r) => r.threatDisplayId) }),
+      riskIds: hits.map((r) => r.id),
+    });
   };
 
   add("unrated", "warning", risks.filter((r) => r.calculatedRiskBeforeMitigation === 0));
