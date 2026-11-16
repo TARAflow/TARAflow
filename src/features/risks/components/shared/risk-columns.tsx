@@ -342,7 +342,9 @@ export const useRiskColumns = ({
       {
         id: "threatId",
         header: t("tabs.risks.columns.threatId", { defaultValue: "T-ID" }),
-        width: 80,
+        // Imported threats carry the instance prefix ("SDC1:SB-DF7-D-IN-1",
+        // manual test 2026-11-15) — wide enough for the whole id.
+        width: 150,
         renderCell: (risk) => (
           <Tooltip
             title={
@@ -366,7 +368,7 @@ export const useRiskColumns = ({
                 color: "white",
                 fontWeight: "bold",
                 fontSize: "0.7rem",
-                maxWidth: 100,
+                maxWidth: 170,
                 "& .MuiChip-label": {
                   overflow: "hidden",
                   textOverflow: "ellipsis",

@@ -101,4 +101,46 @@ describe("LazyTooltip", () => {
     fireEvent.mouseOver(screen.getByText("child"));
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
+
+  // Manual test 2026-11-15: tooltips in the Risk tab stayed open — after a
+  // quick pass (the re-mounted node never saw the pointer enter) and over a
+  // dialog opened by a click on the row.
+  describe("closes without a mouseleave", () => {
+    const setup = () => {
+      const onClose = vi.fn();
+      render(
+        <div>
+          <LazyTooltip title="Full threat text" onClose={onClose}>
+            <span>T-1</span>
+          </LazyTooltip>
+          <span>elsewhere</span>
+        </div>,
+      );
+      fireEvent.mouseOver(screen.getByText("T-1"));
+      return onClose;
+    };
+
+    it("on a pointer press anywhere (a click that opens a dialog)", async () => {
+      const onClose = setup();
+      expect(await screen.findByRole("tooltip")).toBeTruthy();
+      fireEvent.pointerDown(screen.getByText("T-1"));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("on a pointer move outside the child", async () => {
+      const onClose = setup();
+      expect(await screen.findByRole("tooltip")).toBeTruthy();
+      fireEvent.mouseMove(screen.getByText("elsewhere"));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("not while the pointer moves on the child or the tooltip", async () => {
+      const onClose = setup();
+      const tip = await screen.findByRole("tooltip");
+      fireEvent.mouseMove(screen.getByText("T-1"));
+      fireEvent.mouseMove(tip);
+      expect(onClose).not.toHaveBeenCalled();
+    });
+  });
 });
+

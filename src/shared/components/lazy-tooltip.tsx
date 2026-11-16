@@ -16,6 +16,12 @@
 //     the accessible name does not depend on a hover;
 //   - arming wraps the child in the Tooltip, which re-mounts its DOM node. When
 //     arming came from keyboard focus, focus is put back on the new node.
+//
+// Closing (manual test 2026-11-15: tooltips in the Risk tab stayed open, also
+// over a dialog): the re-mounted node may never see the pointer enter, so
+// MUI's mouseleave never comes — after a quick pass, or when a click opens a
+// dialog whose backdrop covers the row. While open, a pointer press anywhere
+// and a pointer move outside the child (and outside the tooltip) close it.
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Tooltip, { type TooltipProps } from "@mui/material/Tooltip";
@@ -61,6 +67,28 @@ export const LazyTooltip: React.FC<TooltipProps> = (props) => {
   useEffect(() => {
     if (armed === "focus") nodeRef.current?.focus();
   }, [armed]);
+
+  const onCloseProp = props.onClose;
+  const controlled = props.open !== undefined;
+  useEffect(() => {
+    if (!armed || !open || controlled) return;
+    const close = (event: Event) => {
+      setOpen(false);
+      onCloseProp?.(event as unknown as React.SyntheticEvent);
+    };
+    const onMove = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (target && nodeRef.current?.contains(target)) return;
+      if (target?.closest?.('[role="tooltip"]')) return;
+      close(event);
+    };
+    document.addEventListener("pointerdown", close, true);
+    document.addEventListener("mousemove", onMove, true);
+    return () => {
+      document.removeEventListener("pointerdown", close, true);
+      document.removeEventListener("mousemove", onMove, true);
+    };
+  }, [armed, open, controlled, onCloseProp]);
 
   if (armed) {
     return (

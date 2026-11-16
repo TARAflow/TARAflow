@@ -939,6 +939,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           there is nothing to show). */}
       <RiskSyncBanner
         syncWarnings={syncWarnings}
+        onDismissNotices={() => setSyncWarnings([])}
         needsSync={needsSync}
         isSyncing={isSyncing}
         syncStatus={syncStatus}
