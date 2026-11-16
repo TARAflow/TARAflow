@@ -8,6 +8,7 @@ import {
   validateTrustBoundaryId,
 } from "./validator-utils";
 import { validateElementProperties } from "./element-property-validator";
+import { isComponentInstanceTfId } from "../leveled/component-tf-id";
 import type { DFDGraph } from "../../models/dfd-graph-types";
 import { INTERFACE_TYPE_META } from "../../models/interface-type-registry";
 
@@ -349,13 +350,20 @@ function validateInterfaceConnectorTypes(
 }
 
 /**
- * Check for duplicate ID labels
+ * Check for duplicate ID labels.
+ *
+ * Imported component instances keep the component's boundary names ("Case
+ * [CASE]") — two instances of one component bring the same ones on purpose
+ * (manual test 2026-11-15). A duplicate among imported elements only is
+ * therefore no finding; as soon as one of them is the machine's own, it is.
  */
 export function validateDuplicateIdLabels(
   elements: DFDElement[],
   warnings: ValidationFinding[],
 ): void {
   const idLabels = new Map<string, string[]>(); // id -> [element names]
+  /** Ids with at least one element of the machine itself (not imported). */
+  const machineOwned = new Set<string>();
 
   for (const element of elements) {
     if (element.displayId) {
@@ -364,6 +372,7 @@ export function validateDuplicateIdLabels(
         idLabels.set(id, []);
       }
       idLabels.get(id)!.push(element.name);
+      if (!isComponentInstanceTfId(element.id)) machineOwned.add(id);
     }
 
     // Also check for [ID] in name
@@ -376,13 +385,14 @@ export function validateDuplicateIdLabels(
       // Only add if not already added via displayId
       if (!element.displayId || element.displayId.toUpperCase() !== id) {
         idLabels.get(id)!.push(element.name);
+        if (!isComponentInstanceTfId(element.id)) machineOwned.add(id);
       }
     }
   }
 
   // Report duplicates
   idLabels.forEach((names, id) => {
-    if (names.length > 1) {
+    if (names.length > 1 && machineOwned.has(id)) {
       warnings.push({
         key: ValidationMessages.DUPLICATE_IDLABEL,
         params: { id },
