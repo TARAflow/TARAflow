@@ -65,7 +65,15 @@ export const ComponentAssumptionsChecklist: React.FC<ComponentAssumptionsCheckli
   if (assumptions.length === 0) return null;
   const open = assumptions.filter((a) => a.status === "open").length;
   return (
-    <Accordion disableGutters elevation={0} sx={{ mt: 1, border: 1, borderColor: "divider" }} data-testid="component-assumptions">
+    <Accordion
+      disableGutters
+      elevation={0}
+      // Open while something is to decide — a click on an assumption
+      // finding lands here (manual test 2026-11-15).
+      defaultExpanded={assumptions.some((a) => a.status === "open" || a.status === "not_fulfilled")}
+      sx={{ mt: 1, border: 1, borderColor: "divider" }}
+      data-testid="component-assumptions"
+    >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography variant="body2" fontWeight="medium">
           {t("components.assumptions.title", {

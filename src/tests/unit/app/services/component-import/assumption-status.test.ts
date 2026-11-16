@@ -112,6 +112,9 @@ describe("assumptions of use per instance (phase 3b)", () => {
     expect(keys(m).warnings).toContain("CMP_AOU_OPEN");
     m = set(m, "s", "a1", { status: "not_fulfilled" });
     expect(keys(m).errors).toContain("CMP_AOU_VIOLATED");
+    // clickable: the finding sits on the instance's multiprocess (manual test 2026-11-15)
+    const violated = componentFindings(m).errors.find((f) => f.key.endsWith("CMP_AOU_VIOLATED"))!;
+    expect(violated.elementId).toBe(inst(m, "s").multiprocessTfId);
     m = set(m, "s", "a1", { status: "fulfilled", evidence: { mitigationIds: ["M-C-001"] } });
     expect(assumptionGaps(inst(m, "s"), imp(m), m.risks!.risks).metByPending.map((x) => x.mitigationIds)).toEqual([["M-C-001"]]);
     expect(keys(m).warnings).toContain("CMP_AOU_MET_BY_PENDING");

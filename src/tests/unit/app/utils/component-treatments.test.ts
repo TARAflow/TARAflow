@@ -101,6 +101,8 @@ describe("effectiveness per instance (phase 3d-1, I7)", () => {
     const warnings = componentFindings(m).warnings;
     const notEffective = warnings.find((w) => w.key.endsWith("CMP_MEASURE_NOT_EFFECTIVE"))!;
     expect(notEffective.params).toMatchObject({ prefix: "SD1", list: "M-C-001 (ASM-01)" });
+    // a click on it opens the instance's multiprocess, tab "Component" (manual test 2026-11-15)
+    expect(notEffective.elementId).toBe(m.components!.instances.find((i) => i.id === "i1")!.multiprocessTfId);
     // M-S-001 (implemented, relies on nothing) stays effective
     expect(componentTreatments(m).get(tid(component.reduceThreat))!.measures.find((x) => x.id === "M-S-001")!.effectiveness).toBe("effective");
   });

@@ -156,6 +156,10 @@ export function componentFindings(
   for (const instance of components.instances) {
     const imported = importsById.get(instance.importId);
     const name = imported?.name ?? instance.prefix;
+    // The instance's multiprocess: a click on the finding opens its tab
+    // "Component" with the assumptions checklist (manual test 2026-11-15).
+    const mpElement = elements.get(instance.multiprocessTfId);
+    const at = mpElement ? { elementId: mpElement.id, displayId: mpElement.displayId } : {};
 
     // Measures and handovers of the component (§7.4, phase 3a) — over the
     // imported risks the machine's register holds.
@@ -195,8 +199,8 @@ export function componentFindings(
       const listOf = (m: Map<string, Set<string>>) => [...m.entries()].map(([k, v]) => `${k} (${[...v].join(", ")})`).join("; ");
       if (pending > 0) out.warnings.push({ key: KEY("CMP_MEASURE_PENDING"), params: { ...params, count: pending } });
       if (handover > 0) out.warnings.push({ key: KEY("CMP_HANDOVER_OPEN"), params: { ...params, count: handover } });
-      if (notEffective.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_NOT_EFFECTIVE"), params: { ...params, list: listOf(notEffective) } });
-      if (unclear.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_UNCLEAR"), params: { ...params, list: listOf(unclear) } });
+      if (notEffective.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_NOT_EFFECTIVE"), ...at, params: { ...params, list: listOf(notEffective) } });
+      if (unclear.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_UNCLEAR"), ...at, params: { ...params, list: listOf(unclear) } });
       if (overridden.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_OVERRIDDEN"), params: { ...params, list: [...overridden].join(", ") } });
       if (imported) {
         const unknown = unknownMeasureOverrides(instance, imported);
@@ -210,20 +214,22 @@ export function componentFindings(
       const gaps = assumptionGaps(instance, imported, project.risks?.risks);
       const params = { prefix: instance.prefix, component: name };
       if (gaps.violated.length > 0) {
-        out.errors.push({ key: KEY("CMP_AOU_VIOLATED"), params: { ...params, list: gaps.violated.map((a) => a.displayId).join(", ") } });
+        out.errors.push({ key: KEY("CMP_AOU_VIOLATED"), ...at, params: { ...params, list: gaps.violated.map((a) => a.displayId).join(", ") } });
       }
       if (gaps.open.length > 0) {
-        out.warnings.push({ key: KEY("CMP_AOU_OPEN"), params: { ...params, count: gaps.open.length } });
+        out.warnings.push({ key: KEY("CMP_AOU_OPEN"), ...at, params: { ...params, count: gaps.open.length } });
       }
       for (const g of gaps.evidenceNotChosen) {
         out.warnings.push({
           key: KEY("CMP_AOU_EVIDENCE_NOT_CHOSEN"),
+          ...at,
           params: { ...params, assumption: g.assumption.displayId, measures: g.mitigationIds.join(", ") },
         });
       }
       for (const g of gaps.metByPending) {
         out.warnings.push({
           key: KEY("CMP_AOU_MET_BY_PENDING"),
+          ...at,
           params: { ...params, assumption: g.assumption.displayId, measures: g.mitigationIds.join(", ") },
         });
       }

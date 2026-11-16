@@ -25,7 +25,9 @@ const measures = [{ id: "M-C-001", label: "M-C-001 Locked cabinet" }, { id: "M-T
 function open() {
   const onChange = vi.fn();
   render(<ComponentAssumptionsChecklist prefix="SD1" assumptions={assumptions} measures={measures} onChange={onChange} />);
-  fireEvent.click(screen.getByText(/Assumptions of use/));
+  // open by itself while an assumption is open; click only if closed
+  const summary = screen.getByTestId("component-assumptions").querySelector("[aria-expanded]")!;
+  if (summary.getAttribute("aria-expanded") !== "true") fireEvent.click(screen.getByText(/Assumptions of use/));
   return onChange;
 }
 const pickStatus = async (displayId: string, label: string) => {
@@ -35,6 +37,16 @@ const pickStatus = async (displayId: string, label: string) => {
 };
 
 describe("ComponentAssumptionsChecklist", () => {
+  it("is open while an assumption is open or not fulfilled, closed when all are decided (manual test 2026-11-15)", () => {
+    const { unmount } = render(<ComponentAssumptionsChecklist prefix="SD1" assumptions={assumptions} measures={measures} onChange={vi.fn()} />);
+    const summary = () => screen.getByTestId("component-assumptions").querySelector('[aria-expanded]')!;
+    expect(summary().getAttribute("aria-expanded")).toBe("true");
+    unmount();
+    const decided = assumptions.map((a) => ({ ...a, status: "fulfilled" as const }));
+    render(<ComponentAssumptionsChecklist prefix="SD1" assumptions={decided} measures={measures} onChange={vi.fn()} />);
+    expect(summary().getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("lists the assumptions with the count of open ones and the component's status", () => {
     open();
     expect(screen.getByTestId("component-assumptions").textContent).toContain("Assumptions of use (2) — open: 1");
