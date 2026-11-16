@@ -103,6 +103,13 @@
       "eeTakeOver": "Take over as a new external entity",
       "pairings": "Possible pairings — tick only what is the same item renamed",
       "pairingsHint": "A paired item keeps this machine's decisions; they go to review. Unpaired, they are dropped.",
+      "pairGroup": {
+        "threat-per-element": "Threats — STRIDE per element ({{count}})",
+        "threat-per-interaction": "Threats — STRIDE per interaction ({{count}})",
+        "threat": "Threats ({{count}})",
+        "path": "Attack paths ({{count}})",
+        "flow": "Boundary flows ({{count}})"
+      },
       "outcome": "What the update does to this machine's decisions",
       "reviewCount": "Afterwards {{count}} decision(s) to review",
       "dropped": "{{count}} × {{what}} dropped",

@@ -150,3 +150,31 @@ describe("component section: update, discard, reviews", () => {
     expect(onRun).toHaveBeenLastCalledWith(updateRunner);
   });
 });
+
+// Manual test 2026-11-16: the pairings by kind — boundary flows, threats per
+// element, threats per interaction — each threat with its id (the place).
+describe("ComponentUpdateDialog — pairings grouped", () => {
+  it("one group per kind, flows first, threats per element and per interaction apart", () => {
+    const grouped: ComponentUpdatePreview = {
+      ...preview,
+      newEes: [],
+      candidates: [
+        { key: "threat|a|b", kind: "threat", from: "a", fromLabel: "SB-DF8-D-IN-1 · D · old", toLabel: "SB-DF8-D-IN-1 · D · new", reason: "same_text", method: "per-interaction" },
+        { key: "threat|c|d", kind: "threat", from: "c", fromLabel: "DF8-D-1 · D · old", toLabel: "DF8-D-1 · D · new", reason: "same_text", method: "per-element" },
+        { key: "flow|f1|f2", kind: "flow", from: "f1", fromLabel: "DF-8 old", toLabel: "DF-8 new", reason: "same_ends_and_protocol" },
+      ],
+    };
+    render(<ComponentUpdateDialog open preview={grouped} outcomeOf={() => ({ review: 0, dropped: [], tickets: [] })} onApply={() => {}} onClose={() => {}} />);
+    const groups = within(screen.getByTestId("component-update-pairings"))
+      .getAllByTestId(/^component-update-pairings-/)
+      .map((g) => g.getAttribute("data-testid"));
+    expect(groups).toEqual([
+      "component-update-pairings-flow",
+      "component-update-pairings-threat-per-element",
+      "component-update-pairings-threat-per-interaction",
+    ]);
+    expect(screen.getByTestId("component-update-pairings-threat-per-element").textContent).toContain("STRIDE per element (1)");
+    expect(screen.getByTestId("component-update-pairings-threat-per-interaction").textContent).toContain("SB-DF8-D-IN-1");
+  });
+});
+

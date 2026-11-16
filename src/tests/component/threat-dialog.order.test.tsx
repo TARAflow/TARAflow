@@ -14,7 +14,8 @@ import {
   dialogThreatOrder,
   nextOpenIndex,
 } from "features/threats/components/shared/threat-dialog";
-import { createEmptyThreat, type Threat, type StrideCategory } from "features/threats/models/threat-types";
+import { createEmptyThreat, type Threat } from "features/threats/models/threat-types";
+import type { StrideCategory } from "shared";
 
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },

@@ -210,8 +210,56 @@ describe("pairing candidates (offered, never applied by themselves)", () => {
       for (const c of s.dfd!.connections) if (c.id === flow.id) c.id = "f-new";
     });
     const c = pairingCandidates(s0, s1);
-    expect(c).toContainEqual({ kind: "threat", from: component.reduceThreat, to: "t-new", reason: "same_stride_and_target" });
+    expect(c).toContainEqual({ kind: "threat", from: component.reduceThreat, to: "t-new", reason: "same_stride_and_target", method: "per-element" });
     expect(c).toContainEqual({ kind: "flow", from: flow.id, to: "f-new", reason: "same_ends_and_protocol" });
     expect(pairingCandidates(s0, structuredClone(s0))).toEqual([]);
   });
 });
+
+// Manual test 2026-11-16 (P-4 with DF-6, DF-10, DF-11 deleted, DF-8 redrawn):
+// "data flow disruption" threats of the deleted flows were offered as the
+// redrawn DF-8's. Same text counts only at the same place or its successor
+// (same ends and protocol); threats pair only within their method.
+describe("pairing candidates — same text only at the same place", () => {
+  const conn = (id: string, from: string, to: string, protocol = "spi") => ({ id, from, to, displayId: id, name: id, properties: { protocol } });
+  const thr = (id: string, flowId: string, text: string, stride = "D") => ({
+    id,
+    displayId: id,
+    strideCategory: stride,
+    threatDescription: text,
+    linkedElement: { elementId: flowId },
+  });
+  const snapshotOf = (connections: unknown[], perElement: unknown[], perInteraction: unknown[] = []) =>
+    ({
+      dfd: { elements: [{ id: "ee", type: "ExternalEntity" }, { id: "p3", type: "Process" }, { id: "p4", type: "Process" }], connections },
+      threats: {
+        perElementTables: [{ trustBoundaryId: null, trustBoundaryName: "", displayIdentifier: "", threats: perElement }],
+        perInteractionTables: [{ trustBoundaryId: null, trustBoundaryName: "", displayIdentifier: "", threats: perInteraction }],
+      },
+    }) as unknown as ComponentSnapshot;
+  const DISRUPTION = "Data flow disruption";
+  const before = snapshotOf(
+    [conn("df8-old", "ee", "p3"), conn("df6", "p3", "p4")],
+    [thr("df8-d-old", "df8-old", DISRUPTION), thr("df6-d", "df6", DISRUPTION)],
+  );
+  const after = snapshotOf([conn("df8-new", "ee", "p3")], [thr("df8-d-new", "df8-new", DISRUPTION)]);
+
+  it("the redrawn flow's threat is offered; the deleted flow's with the same text is not", () => {
+    const c = pairingCandidates(before, after).filter((x) => x.kind === "threat");
+    expect(c).toEqual([{ kind: "threat", from: "df8-d-old", to: "df8-d-new", reason: "same_text", method: "per-element" }]);
+  });
+
+  it("a flow redrawn with another protocol is no successor — no same-text pairing", () => {
+    const other = snapshotOf([conn("df8-new", "ee", "p3", "uart")], [thr("df8-d-new", "df8-new", DISRUPTION)]);
+    expect(pairingCandidates(before, other).filter((x) => x.kind === "threat")).toEqual([]);
+  });
+
+  it("threats pair only within their method", () => {
+    const interaction = (id: string, flowId: string) => ({ ...thr(id, flowId, DISRUPTION), linkedElement: null, dataFlow: { connectionId: flowId } });
+    const b = snapshotOf([conn("df8-old", "ee", "p3")], [], [interaction("ia-old", "df8-old")]);
+    const a = snapshotOf([conn("df8-new", "ee", "p3")], [thr("pe-new", "df8-new", DISRUPTION)], [interaction("ia-new", "df8-new")]);
+    const c = pairingCandidates(b, a).filter((x) => x.kind === "threat");
+    expect(c).toEqual([{ kind: "threat", from: "ia-old", to: "ia-new", reason: "same_text", method: "per-interaction" }]);
+  });
+});
+

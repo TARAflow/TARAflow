@@ -74,7 +74,8 @@ describe("update preview (phase 5c-2)", () => {
   });
 
   it("review items in the component's words", () => {
-    expect(reviewItemLabel(snap(p), "riskRating", `threat|${component.reduceThreat}`)).toMatch(/^[STRIDE] · /);
+    // with the threat id first — it names the place (manual test 2026-11-16)
+    expect(reviewItemLabel(snap(p), "riskRating", `threat|${component.reduceThreat}`)).toMatch(/^\S+ · [STRIDE] · /);
     expect(reviewItemLabel(snap(p), "aouStatus", "a1")).toBe("ASM-01");
   });
 });

@@ -20,7 +20,9 @@ type NewState = Pick<ComponentSourceOk, "snapshot" | "contentHash" | "source" | 
 
 const threatLabel = (s: ComponentSnapshot, id: string) => {
   const t = [...(s.threats?.perElementTables ?? []), ...(s.threats?.perInteractionTables ?? [])].flatMap((x) => x.threats).find((x) => x.id === id);
-  return t ? `${t.strideCategory} · ${t.threatDescription || t.templateId || id}` : id;
+  // with its id, which names the place ("DF8-D-1", "SB-DF8-D-IN-1") — identical
+  // texts on different flows were indistinguishable (manual test 2026-11-16)
+  return t ? `${t.displayId ? `${t.displayId} · ` : ""}${t.strideCategory} · ${t.threatDescription || t.templateId || id}` : id;
 };
 const pathLabel = (s: ComponentSnapshot, key: string) => {
   const [tree, pathKey] = key.split("|");
@@ -80,6 +82,7 @@ export function updatePreview(project: Project, importId: string, next: NewState
       fromLabel: c.kind === "threat" ? threatLabel(oldSnap, c.from) : c.kind === "path" ? pathLabel(oldSnap, c.from) : flowLabel(oldSnap, c.from),
       toLabel: c.kind === "threat" ? threatLabel(next.snapshot, c.to) : c.kind === "path" ? pathLabel(next.snapshot, c.to) : flowLabel(next.snapshot, c.to),
       reason: c.reason,
+      ...(c.method ? { method: c.method } : {}),
     })),
     ...(imported.source.tagPattern ? { tagPattern: imported.source.tagPattern } : {}),
   };

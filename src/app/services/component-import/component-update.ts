@@ -498,6 +498,38 @@ export interface PairingCandidate {
   to: string;
   /** Why it is offered — for the dialog's hint. */
   reason: "same_stride_and_target" | "same_text" | "same_tree" | "same_ends_and_protocol";
+  /** A threat's method — the dialog groups the threat pairings by it (manual test 2026-11-16). */
+  method?: "per-element" | "per-interaction";
+}
+
+/**
+ * Old DFD id → the new ids that may be its successor: flows gone and added
+ * between the same ends with the same protocol, elements gone and added
+ * with the same type and the same display id or name.
+ */
+function successorsOf(oldSnapshot: ComponentSnapshot, newSnapshot: ComponentSnapshot): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const add = (from: string, to: string) => out.set(from, (out.get(from) ?? new Set<string>()).add(to));
+  const oldC = oldSnapshot.dfd?.connections ?? [];
+  const newC = newSnapshot.dfd?.connections ?? [];
+  const oldCid = new Set(oldC.map((c) => c.id));
+  const newCid = new Set(newC.map((c) => c.id));
+  const protocol = (c: { properties?: unknown }) => (c.properties as { protocol?: string } | undefined)?.protocol ?? "";
+  for (const g of oldC.filter((c) => !newCid.has(c.id))) {
+    for (const a of newC.filter((c) => !oldCid.has(c.id))) {
+      if (a.from === g.from && a.to === g.to && protocol(a) === protocol(g)) add(g.id, a.id);
+    }
+  }
+  const oldE = oldSnapshot.dfd?.elements ?? [];
+  const newE = newSnapshot.dfd?.elements ?? [];
+  const oldEid = new Set(oldE.map((e) => e.id));
+  const newEid = new Set(newE.map((e) => e.id));
+  for (const g of oldE.filter((e) => !newEid.has(e.id))) {
+    for (const a of newE.filter((e) => !oldEid.has(e.id))) {
+      if (a.type === g.type && ((!!a.displayId && a.displayId === g.displayId) || (!!a.name && a.name === g.name))) add(g.id, a.id);
+    }
+  }
+  return out;
 }
 
 /**
@@ -509,8 +541,8 @@ export interface PairingCandidate {
 export function pairingCandidates(oldSnapshot: ComponentSnapshot, newSnapshot: ComponentSnapshot): PairingCandidate[] {
   const out: PairingCandidate[] = [];
   const threats = (s: ComponentSnapshot) => [
-    ...(s.threats?.perElementTables ?? []).flatMap((t) => t.threats),
-    ...(s.threats?.perInteractionTables ?? []).flatMap((t) => t.threats),
+    ...(s.threats?.perElementTables ?? []).flatMap((t) => t.threats.map((x) => ({ ...x, method: "per-element" as const }))),
+    ...(s.threats?.perInteractionTables ?? []).flatMap((t) => t.threats.map((x) => ({ ...x, method: "per-interaction" as const }))),
   ];
   const target = (t: ReturnType<typeof threats>[number]) =>
     (t.linkedElement as { elementId?: string } | null)?.elementId ?? (t.dataFlow as { connectionId?: string } | null)?.connectionId ?? "";
@@ -520,11 +552,25 @@ export function pairingCandidates(oldSnapshot: ComponentSnapshot, newSnapshot: C
   const newIds = new Set(newT.map((t) => t.id));
   const gone = oldT.filter((t) => !newIds.has(t.id));
   const added = newT.filter((t) => !oldIds.has(t.id));
+  // Same text counts only at the same place or its successor (manual test
+  // 2026-11-16: the "data flow disruption" threats of the deleted DF-6,
+  // DF-10, DF-11 were offered as the redrawn DF-8's). A successor: a flow
+  // drawn anew between the same ends with the same protocol, an element of
+  // the same type with the same display id or name.
+  const successors = successorsOf(oldSnapshot, newSnapshot);
   for (const g of gone) {
     for (const a of added) {
-      if (a.strideCategory !== g.strideCategory) continue;
-      if (target(a) && target(a) === target(g)) out.push({ kind: "threat", from: g.id, to: a.id, reason: "same_stride_and_target" });
-      else if (a.threatDescription && a.threatDescription === g.threatDescription) out.push({ kind: "threat", from: g.id, to: a.id, reason: "same_text" });
+      // a threat pairs only within its method
+      if (a.strideCategory !== g.strideCategory || a.method !== g.method) continue;
+      if (target(a) && target(a) === target(g)) out.push({ kind: "threat", from: g.id, to: a.id, reason: "same_stride_and_target", method: g.method });
+      else if (
+        a.threatDescription &&
+        a.threatDescription === g.threatDescription &&
+        !!target(g) &&
+        successors.get(target(g))?.has(target(a))
+      ) {
+        out.push({ kind: "threat", from: g.id, to: a.id, reason: "same_text", method: g.method });
+      }
     }
   }
   const paths = (s: ComponentSnapshot) => (s.attackTrees?.trees ?? []).flatMap((t) => (t.pathAnalysis?.paths ?? []).map((p) => ({ tree: t.id, key: `${t.id}|${p.pathKey}` })));

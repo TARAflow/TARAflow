@@ -41,6 +41,23 @@ export const TAKE_OVER = "__take_over__";
 
 export type UpdateChangeKind = "elements" | "flows" | "threats" | "paths" | "measures" | "assumptions" | "claims" | "assets" | "relations";
 
+/** The pairings by kind — threats per element and per interaction apart (manual test 2026-11-16). */
+type PairGroupId = "threat-per-element" | "threat-per-interaction" | "threat" | "path" | "flow";
+const PAIR_GROUP_TEXT: Record<PairGroupId, string> = {
+  "threat-per-element": "Threats — STRIDE per element ({{count}})",
+  "threat-per-interaction": "Threats — STRIDE per interaction ({{count}})",
+  threat: "Threats ({{count}})",
+  path: "Attack paths ({{count}})",
+  flow: "Boundary flows ({{count}})",
+};
+const PAIR_GROUP_ORDER: PairGroupId[] = ["flow", "threat-per-element", "threat-per-interaction", "threat", "path"];
+function pairingGroups<C extends { kind: "threat" | "path" | "flow"; method?: "per-element" | "per-interaction" }>(
+  candidates: readonly C[],
+): { id: PairGroupId; items: C[] }[] {
+  const groupOf = (c: C): PairGroupId => (c.kind === "threat" ? (c.method ? `threat-${c.method}` : "threat") : c.kind);
+  return PAIR_GROUP_ORDER.map((id) => ({ id, items: candidates.filter((c) => groupOf(c) === id) })).filter((g) => g.items.length > 0);
+}
+
 export interface ComponentUpdatePreview {
   component: string;
   /** "tag sd/v1 · commit 01234567" → "tag sd/v2 · commit 89abcdef" */
@@ -52,7 +69,16 @@ export interface ComponentUpdatePreview {
   /** EEs new in this state, per instance with the machine elements they can be mapped to. */
   newEes: { eeId: string; name: string; instances: { instanceId: string; label: string; options: readonly MachineElementOption[] }[] }[];
   /** Offered pairings (obsolete → new); key identifies one. */
-  candidates: { key: string; from: string; kind: "threat" | "path" | "flow"; fromLabel: string; toLabel: string; reason: string }[];
+  candidates: {
+    key: string;
+    from: string;
+    kind: "threat" | "path" | "flow";
+    fromLabel: string;
+    toLabel: string;
+    reason: string;
+    /** A threat's method — the pairings are grouped by it. */
+    method?: "per-element" | "per-interaction";
+  }[];
   tagPattern?: string;
 }
 
@@ -204,9 +230,15 @@ export const ComponentUpdateDialog: React.FC<ComponentUpdateDialogProps> = ({ op
             <Typography variant="caption" color="text.secondary" display="block">
               {t("components.update.pairingsHint", { defaultValue: "A paired item keeps this machine's decisions; they go to review. Unpaired, they are dropped." })}
             </Typography>
-            {preview.candidates.map((c) => (
+            {pairingGroups(preview.candidates).map((group) => (
+              <Box key={group.id} sx={{ mt: 1 }} data-testid={`component-update-pairings-${group.id}`}>
+                <Typography variant="caption" fontWeight="medium" color="text.secondary" display="block">
+                  {t(`components.update.pairGroup.${group.id}`, { defaultValue: PAIR_GROUP_TEXT[group.id], count: group.items.length })}
+                </Typography>
+            {group.items.map((c) => (
               <FormControlLabel
                 key={c.key}
+                sx={{ display: "flex", ml: 0 }}
                 control={<Checkbox size="small" checked={pairs.includes(c.key)} onChange={() => toggle(c.key, c.from, c.kind)} data-testid={`component-update-pair-${c.key}`} />}
                 label={
                   <Typography variant="body2">
@@ -217,6 +249,8 @@ export const ComponentUpdateDialog: React.FC<ComponentUpdateDialogProps> = ({ op
                   </Typography>
                 }
               />
+            ))}
+              </Box>
             ))}
           </Box>
         )}

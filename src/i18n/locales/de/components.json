@@ -103,6 +103,13 @@
       "eeTakeOver": "Als neue externe Entität übernehmen",
       "pairings": "Mögliche Paarungen — nur ankreuzen, was dasselbe umbenannte Element ist",
       "pairingsHint": "Ein gepaartes Element behält die Entscheide dieser Maschine; sie stehen danach zur Prüfung. Ungepaart fallen sie weg.",
+      "pairGroup": {
+        "threat-per-element": "Bedrohungen — STRIDE pro Element ({{count}})",
+        "threat-per-interaction": "Bedrohungen — STRIDE pro Interaktion ({{count}})",
+        "threat": "Bedrohungen ({{count}})",
+        "path": "Angriffspfade ({{count}})",
+        "flow": "Grenzflüsse ({{count}})"
+      },
       "outcome": "Was das Update mit den Entscheiden dieser Maschine macht",
       "reviewCount": "Danach stehen {{count}} Entscheid(e) zur Prüfung",
       "dropped": "{{count}} × {{what}} fällt weg",
