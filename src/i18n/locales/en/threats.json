@@ -17,6 +17,7 @@
       "perElement": "STRIDE per Element",
       "perInteraction": "STRIDE per Interaction",
       "perInteractionDisabled": "STRIDE per Interaction is disabled by the active regulation preset",
+      "methodOutOfSync": "threats not in sync with the DFD: open this method and regenerate",
       "dfdPageLayoutUnsupported": "The DFD has a compressed page or pages that are not adopted into the page tree yet — threat generation and synchronisation are disabled until every page is uncompressed and adopted (\"Adopt pages…\" in the DFD tab).",
       "groups": {
         "topLevel": "Top level",

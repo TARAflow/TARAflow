@@ -284,6 +284,21 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     }
   }, [activeHook.syncStatus?.inSync, activeHook.syncStatus?.lastChecked]);
 
+  // Methods whose threats no longer match the DFD — a dot on their toolbar
+  // button, the inactive one included (manual test 2026-11-16).
+  const methodsOutOfSync = useMemo(
+    () =>
+      (
+        [
+          ["per-element", elementHook],
+          ["per-interaction", interactionHook],
+        ] as const
+      )
+        .filter(([, hook]) => hook.tables.some((tb) => tb.threats.length > 0) && hook.syncStatus !== null && !hook.syncStatus.inSync)
+        .map(([method]) => method as StrideMethod),
+    [elementHook.tables, elementHook.syncStatus, interactionHook.tables, interactionHook.syncStatus],
+  );
+
   // Validation
   const validation = useThreatValidation(activeHook.tables);
 
@@ -617,6 +632,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         validation={validation}
         activeMethod={activeMethod}
         disabledMethods={disabledMethods}
+        methodsOutOfSync={methodsOutOfSync}
         hasThreats={hasThreats}
         hasDFD={hasDFD && !dfdLayoutBlocked}
         syncStatus={activeHook.syncStatus}
