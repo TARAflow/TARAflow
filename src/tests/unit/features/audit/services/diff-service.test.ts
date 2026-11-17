@@ -395,3 +395,50 @@ describe("DiffService — the editor's view is no change", () => {
   });
 });
 
+
+describe("DiffService — key order is no change (canonical comparison)", () => {
+  // DataTrack, toggling a regulation tag: the threat sync re-created the
+  // mitigation hint as {id, alreadyImplemented, …}; the file holds it with
+  // sorted keys. Same content → no Threats change in the commit message.
+  const threats = (mitigation: Record<string, unknown>) => ({
+    configuration: { activeMethod: "per-element" },
+    perElementTables: [
+      {
+        threats: [
+          {
+            id: "T-1",
+            strideCategory: "S",
+            threatDescription: "spoof",
+            attackDescription: "a",
+            proposedMitigations: [mitigation, { id: "M-S-008" }],
+            proposedVerifications: [],
+          },
+        ],
+      },
+    ],
+    perInteractionTables: [],
+  });
+  const sorted = {
+    alreadyImplemented: true,
+    id: "M-S-001",
+    implementedByProperty: "implementedControls.linkAuthentication",
+    implementedByValue: "pre_shared_key",
+  };
+  const rebuilt = {
+    id: "M-S-001",
+    alreadyImplemented: true,
+    implementedByProperty: "implementedControls.linkAuthentication",
+    implementedByValue: "pre_shared_key",
+  };
+
+  it("a mitigation draft with reordered keys produces no Threats phase", () => {
+    const changes = svc.detectChanges(project({ threats: threats(rebuilt) }), project({ threats: threats(sorted) }));
+    expect(changes.find((p) => p.phase === "threats")).toBeUndefined();
+  });
+
+  it("a real mitigation change is still detected", () => {
+    const changed = { ...rebuilt, alreadyImplemented: false };
+    const changes = svc.detectChanges(project({ threats: threats(changed) }), project({ threats: threats(sorted) }));
+    expect(changes.find((p) => p.phase === "threats")!.changeCount).toBe(1);
+  });
+});

@@ -35,6 +35,7 @@ import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
 import type { A2ARelation, CybersecurityConcept, ItemDefinition } from "shared";
 import { RETIRED_ASSET_FIELDS, type RetiredAssetField } from "shared/models/retired-asset-fields";
+import { canonicalStringify } from "shared/utils/tcs-canonical";
 
 /**
  * Asset fields retired from the model (shared/models/retired-asset-fields.ts),
@@ -56,6 +57,24 @@ function legacyAssetValue(asset: Asset, field: RetiredAssetField): string | unde
   const legacy: LegacyAssetFields = asset;
   const value = legacy.properties?.[field] ?? legacy[field];
   return value === undefined || value === null ? undefined : typeof value === "string" ? value : JSON.stringify(value);
+}
+
+/**
+ * Value equality for the change detection: the canonical form (TCS — keys
+ * sorted, arrays in order), so an object rebuilt with the same content but
+ * another key order is no change. JSON.stringify is order-sensitive: a
+ * mitigation draft re-created by the threat sync ({id, alreadyImplemented, …}
+ * instead of the file's sorted {alreadyImplemented, id, …}) showed up as a
+ * modified threat in the commit message although the file stayed identical.
+ * Values TCS rejects (NaN, functions) fall back to JSON.stringify.
+ */
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === undefined || b === undefined) return a === b;
+  try {
+    return canonicalStringify(a) === canonicalStringify(b);
+  } catch {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
 }
 
 /** The description of a DFD change ("Page added", "Layout changed"). */
@@ -527,7 +546,7 @@ export class DiffService {
             });
           }
         }
-        if (JSON.stringify(c.safety ?? null) !== JSON.stringify(p.safety ?? null)) {
+        if (!sameValue(c.safety ?? null, p.safety ?? null)) {
           details.push({
             field: "safety",
             fieldLabel: "Safety",
@@ -848,7 +867,7 @@ export class DiffService {
 
     const prevMit = JSON.stringify(previous.proposedMitigations ?? []);
     const currMit = JSON.stringify(current.proposedMitigations ?? []);
-    if (currMit !== prevMit) {
+    if (!sameValue(previous.proposedMitigations ?? [], current.proposedMitigations ?? [])) {
       details.push({
         field: "proposedMitigations",
         fieldLabel: "Mitigations",
@@ -860,7 +879,7 @@ export class DiffService {
 
     const prevVer = JSON.stringify(previous.proposedVerifications ?? []);
     const currVer = JSON.stringify(current.proposedVerifications ?? []);
-    if (currVer !== prevVer) {
+    if (!sameValue(previous.proposedVerifications ?? [], current.proposedVerifications ?? [])) {
       details.push({
         field: "proposedVerifications",
         fieldLabel: "Verifications",
@@ -1192,7 +1211,7 @@ export class DiffService {
       for (const field of new Set([...Object.keys(x), ...Object.keys(before)])) {
         const a = (before as Record<string, unknown>)[field];
         const b = (x as Record<string, unknown>)[field];
-        if (JSON.stringify(a) === JSON.stringify(b)) continue;
+        if (sameValue(a, b)) continue;
         details.push({ field, fieldLabel: field, oldValue: a, newValue: b, valueType: valueTypeOf(b ?? a) });
       }
       if (details.length > 0) {
