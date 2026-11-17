@@ -178,3 +178,40 @@ describe("ComponentUpdateDialog — pairings grouped", () => {
   });
 });
 
+// Manual test 2026-11-17: ten decisions to review filled the panel — an
+// accordion with the count in its title, open by itself only for a few.
+describe("decisions to review — an accordion", () => {
+  const mp = { id: "mp1", displayId: "MP-3", name: "Smoke Detector", type: "Multiprocess", position: { x: 0, y: 0 }, size: { width: 1, height: 1 }, properties: {} } as never;
+  const panel = (count: number) =>
+    render(
+      <DFDDetailsPanel
+        open
+        onToggle={() => {}}
+        onClose={() => {}}
+        element={mp}
+        onChange={() => {}}
+        elements={[mp]}
+        componentInfo={{
+          name: "Smoke Detector",
+          source: "commit 01234567",
+          prefix: "SD1",
+          reviews: Array.from({ length: count }, (_, i) => ({ key: `riskRating|t${i}`, text: `Risk rating: DF8-T-${i}`, onConfirm: vi.fn() })),
+        }}
+      />,
+    );
+  const expanded = () => screen.getByTestId("component-reviews").querySelector("[aria-expanded]")!.getAttribute("aria-expanded");
+
+  it("ten: closed, the title with the count; a click opens it", () => {
+    panel(10);
+    expect(screen.getByTestId("component-reviews").textContent).toContain("10 decision(s) to review after the update");
+    expect(expanded()).toBe("false");
+    fireEvent.click(screen.getByText("10 decision(s) to review after the update"));
+    expect(expanded()).toBe("true");
+  });
+
+  it("a few: open by itself", () => {
+    panel(3);
+    expect(expanded()).toBe("true");
+  });
+});
+

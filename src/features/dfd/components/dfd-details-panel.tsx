@@ -9,6 +9,9 @@
 
 import React, { useEffect, useState } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Checkbox,
   Dialog,
@@ -31,6 +34,7 @@ import {
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useTranslation } from "react-i18next";
 import { AssetGroup } from "shared";
@@ -427,6 +431,9 @@ function componentTab(
   };
 }
 
+/** Up to this many decisions to review, their accordion is open by itself. */
+const REVIEWS_OPEN_UP_TO = 3;
+
 /** An imported component: name, prefix, source, "Open component TARA". */
 const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (runner: ComponentImportRunner) => void }> = ({ info, onRun }) => {
   const { t } = useTranslation();
@@ -517,11 +524,22 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (run
         </Dialog>
       )}
       {/* Decisions to review after an update (5b/5c) */}
+      {/* An accordion (manual test 2026-11-17: ten entries filled the panel):
+          the title with the count stays visible; open by itself for a few. */}
       {(info.reviews?.length ?? 0) > 0 && (
-        <Box sx={{ mt: 1 }} data-testid="component-reviews">
-          <Typography variant="caption" color="warning.main" display="block">
-            {t("components.reviews.title", { ns: "components", count: info.reviews!.length, defaultValue: "{{count}} decision(s) to review after the update" })}
-          </Typography>
+        <Accordion
+          disableGutters
+          elevation={0}
+          defaultExpanded={info.reviews!.length <= REVIEWS_OPEN_UP_TO}
+          sx={{ mt: 1, border: 1, borderColor: "divider", "&:before": { display: "none" } }}
+          data-testid="component-reviews"
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />} sx={{ minHeight: 32, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+            <Typography variant="caption" color="warning.main" fontWeight="medium">
+              {t("components.reviews.title", { ns: "components", count: info.reviews!.length, defaultValue: "{{count}} decision(s) to review after the update" })}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0 }}>
           {info.reviews!.map((r) => (
             <Box key={r.key} sx={{ display: "flex", alignItems: "center", gap: 1 }} data-testid={`component-review-${r.key}`}>
               <Typography variant="caption" sx={{ flex: 1 }}>
@@ -532,7 +550,8 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (run
               </Button>
             </Box>
           ))}
-        </Box>
+          </AccordionDetails>
+        </Accordion>
       )}
       {/* Identical units in the same installation context (I5), and "Open
           component TARA" on the same line, centred to the field (user
