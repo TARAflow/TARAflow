@@ -280,6 +280,15 @@ describe("WorkspaceLayout — handlers stay with their project after a switch", 
     expect(w.updateProject.mock.calls[0][0].id).toBe("p-smoke");
   });
 
+  // Manual test 2026-11-17: the Audit tab got no components — its diff
+  // compared "no components" with the committed file and reported the
+  // import as removed; a first commit of an import named no component.
+  it("Audit: the tab gets the imported components for its diff", () => {
+    const components = { imports: [], instances: [] } as never;
+    mount(smoke({ components }), PhaseId.Audit);
+    expect(h.props.AuditTab.project.components).toBe(components);
+  });
+
   it("Audit: update, dirty flag and verifications", () => {
     const { w, a, before } = switched(PhaseId.Audit);
     act(() => before.AuditTab.onUpdate({ audit: a.audit, phaseStatus: a.phaseStatus }));

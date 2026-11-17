@@ -699,6 +699,7 @@ export const WorkspaceLayout: React.FC = () => {
               threats: activeProject.threats,
               risks: activeProject.risks,
               attackTrees: activeProject.attackTrees,
+              components: activeProject.components,
               itemDefinition: activeProject.itemDefinition,
               cybersecurityConcept: activeProject.cybersecurityConcept,
               verification: overview.verificationInput,

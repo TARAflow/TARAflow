@@ -294,6 +294,13 @@ export interface AuditProjectData {
   threats: any;
   risks: any;
   attackTrees: any;
+  /**
+   * Imported components (schema 14) — diffed and named in the commit message
+   * like the other blocks. Missing here, the diff compared "no components"
+   * with the committed file and reported the import as removed (manual test
+   * 2026-11-17), and a first commit of an import named no component.
+   */
+  components?: any;
   /** Item Definition and goals / claims / verifications — diffed and committed too. */
   itemDefinition?: ItemDefinition;
   cybersecurityConcept?: CybersecurityConcept;
