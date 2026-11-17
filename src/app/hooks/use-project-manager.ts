@@ -235,8 +235,12 @@ export function useProjectManager(): UseProjectManagerReturn {
       interval: activeProject?.settings?.autoSaveInterval ?? 2,
       // Stable callbacks via ref — prevent useAutoSave from re-running
       // its interval setup on every render when toast changes identity.
-      onSuccess: useCallback((projectId: string) => {
-        console.log(`[useProjectManager] Auto-saved project ${projectId}`);
+      // Written: only the saved flag, and only when the written state is
+      // still the one in memory (same revision) — as updateProject does.
+      onSuccess: useCallback((projectId: string, revision: number | undefined) => {
+        setProjects((prev) =>
+          prev.map((p) => (p.id === projectId && p.hasUnsavedChanges && p.revision === revision ? { ...p, hasUnsavedChanges: false } : p)),
+        );
       }, []),
       onError: useCallback((_projectId: string, error: string) => {
         toastRef.current.error(`Auto-save failed: ${error}`);

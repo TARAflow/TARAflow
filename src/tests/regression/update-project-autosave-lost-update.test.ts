@@ -115,6 +115,7 @@ vi.mock("app/utils/commit-iso-risk-values", () => ({
 
 import { useProjectManager } from "app/hooks/use-project-manager";
 import { projectService } from "app/services/project-service";
+import { useAutoSave } from "app/hooks/use-auto-save";
 
 const project = (): Project =>
   ({
@@ -229,6 +230,35 @@ describe("updateProject with autosave: a change during the disk write survives",
     expect(current(result).hasUnsavedChanges).toBe(true);
     // the revision never reaches the disk copy's file (prepareForDisk strips it)
     expect(typeof current(result).revision).toBe("number");
+  });
+
+  // Manual test 2026-11-17: after such a tick the flag stayed set for good —
+  // the interval autosave wrote the file but never cleared it. It hands the
+  // written revision back now; the flag goes only when that is the revision
+  // in memory.
+  it("the interval autosave clears the flag for the revision in memory, not for an older one", async () => {
+    const { result } = await loaded();
+    let a!: Promise<void>;
+    let b!: Promise<void>;
+    act(() => {
+      a = result.current.updateProject({ id: "proj-1", dfd: { xml: "after", pages: [{ pageId: "top" }] } as never });
+      b = result.current.updateProject({ id: "proj-1", assets: { assets: ["a"] } as never });
+    });
+    await waitFor(() => expect(writes.pending).toHaveLength(2));
+    await act(async () => {
+      writes.pending[0]();
+      writes.pending[1]();
+      await Promise.all([a, b]);
+    });
+    expect(current(result).hasUnsavedChanges).toBe(true);
+    const onSuccess = (useAutoSave as unknown as { mock: { calls: [unknown, { onSuccess: (id: string, rev?: number) => void }][] } }).mock.calls.at(-1)![1].onSuccess;
+    const revision = current(result).revision as number;
+    // an older written state: the flag stays
+    act(() => onSuccess("proj-1", revision - 1));
+    expect(current(result).hasUnsavedChanges).toBe(true);
+    // the state in memory written: the flag goes
+    act(() => onSuccess("proj-1", revision));
+    expect(current(result).hasUnsavedChanges).toBe(false);
   });
 });
 

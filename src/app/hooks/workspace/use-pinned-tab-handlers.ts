@@ -319,10 +319,15 @@ export function usePinnedTabHandlers({
           phaseStatus: updates.phaseStatus,
         });
       },
+      // "Not dirty" is no update: the tab's saves go through onUpdate. As a
+      // patch it marked the project changed (mergeProjectPatch sets the flag
+      // and a new revision) — on every opening of the Audit tab (manual test
+      // 2026-11-17: the yellow dots appeared on the Audit tab only).
       onDirtyChange: (isDirty: boolean) => {
+        if (!isDirty) return;
         const current = findProject(id);
         if (!current) return;
-        updateProject({ id: current.id, hasUnsavedChanges: isDirty });
+        updateProject({ id: current.id, hasUnsavedChanges: true });
       },
       onVerificationsChange: makeVerificationsChangeHandler(id),
     }),

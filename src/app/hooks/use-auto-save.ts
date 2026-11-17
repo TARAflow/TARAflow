@@ -6,7 +6,13 @@ import { Project } from "../models/project-types";
 export interface UseAutoSaveOptions {
   enabled: boolean;
   interval: number; // in seconds
-  onSuccess?: (projectId: string) => void;
+  /**
+   * The project was written; `revision` is the in-memory revision of the
+   * written state — the caller clears the unsaved flag only when nothing
+   * changed since (manual test 2026-11-17: the interval wrote the file but
+   * the flag, and the sidebar's yellow dots, stayed).
+   */
+  onSuccess?: (projectId: string, revision: number | undefined) => void;
   onError?: (projectId: string, error: string) => void;
 }
 
@@ -53,7 +59,7 @@ export const useAutoSave = (
 
         if (result.success) {
           lastSaveRef.current = currentState;
-          onSuccess?.(activeProject.id);
+          onSuccess?.(activeProject.id, activeProject.revision);
         } else {
           onError?.(activeProject.id, result.error || "Save failed");
         }
@@ -79,7 +85,7 @@ export const useAutoSave = (
 
       if (result.success) {
         lastSaveRef.current = JSON.stringify(activeProject);
-        onSuccess?.(activeProject.id);
+        onSuccess?.(activeProject.id, activeProject.revision);
         return true;
       } else {
         onError?.(activeProject.id, result.error || "Save failed");
