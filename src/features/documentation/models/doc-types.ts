@@ -308,6 +308,15 @@ export interface DocComputedValues {
    */
   importedThreats?: DocImportedThreatGroup[];
   /**
+   * The same imported threats as threat records (both methods, as the
+   * machine uses them — instance ids, the instance's multiprocess): what a
+   * risk of an imported component refers to. The risk chapters find a
+   * risk's threat here too — its group (the instance's multiprocess), its
+   * element type, its anchor (manual test 2026-11-17: they were "Not in the
+   * DFD"). Absent → no imports.
+   */
+  importedThreatRecords?: ThreatData["perElementTables"][number]["threats"];
+  /**
    * Risks of imported components (risk id → note): the instance, the
    * component's commit, the factors prefilled from the component and those
    * this TARA overrode, the quantity. Absent → no imports.

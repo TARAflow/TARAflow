@@ -45,6 +45,7 @@ import {
   threatStatsTable,
   type StatsTable,
 } from "../threat-risk-stats";
+import { reportThreatsById } from "../report-threats";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
 import {
   visibilityContexts,
@@ -1433,14 +1434,8 @@ export abstract class BaseDocumentGenerator {
       });
 
     // Leveled DFD (7d): one table per group — a risk follows its threat.
-    const threatById = new Map(
-      [
-        ...(project.threats?.perElementTables ?? []),
-        ...(project.threats?.perInteractionTables ?? []),
-      ]
-        .flatMap((table) => table.threats)
-        .map((threat) => [threat.id, threat]),
-    );
+    // own and imported threats (a risk of an imported component, manual test 2026-11-17)
+    const threatById = reportThreatsById(project);
     const groups = reportGroupsOf(project.dfd, this.ctx.lang, risks, (risk) => {
       const threat = threatById.get(risk.threatId);
       return threat ? dfdItemRefOfThreat(threat) : undefined;
@@ -1652,13 +1647,7 @@ export abstract class BaseDocumentGenerator {
 
     // Threat lookup for the mandated-control mapping (anchor type lives on the
     // threat, not the risk).
-    const threatById = new Map(
-      [
-        ...(project.threats?.perElementTables?.flatMap((t) => t.threats) ?? []),
-        ...(project.threats?.perInteractionTables?.flatMap((t) => t.threats) ??
-          []),
-      ].map((t) => [t.id, t]),
-    );
+    const threatById = reportThreatsById(project);
 
     const srslRows = (project.risks?.risks ?? [])
       .filter((r) => r.moscowPriority !== "wont")

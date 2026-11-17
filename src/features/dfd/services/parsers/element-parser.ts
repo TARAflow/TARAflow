@@ -360,8 +360,6 @@ export function parseElements(doc: Document): DFDElement[] {
     }
   });
 
-  console.debug("parseElements 1: ", elements);
-
   // Parse direct mxCell elements (backwards compatibility)
   const cells = doc.getElementsByTagName("mxCell");
   const validCells = filterValidCells(cells); // Nur relevante mxCell verarbeiten
@@ -386,7 +384,6 @@ export function parseElements(doc: Document): DFDElement[] {
   //     seenIds.add(element.id);
   //   }
   // });
-  console.debug("parseElements 2: ", elements);
   return elements;
 }
 
@@ -401,8 +398,9 @@ function filterValidCells(cells: HTMLCollectionOf<Element>): Element[] {
     const edge = cell.getAttribute("edge") || null;
 
     // Zellen ohne ID oder mit Root-IDs überspringen
+    // (the normal case for every diagram — not reported: it filled the
+    // report generator's log, manual test 2026-11-17)
     if (!id || id === "0" || id === "1") {
-      console.warn(`Skipping root mxCell. ID: ${id}`);
       return;
     }
 

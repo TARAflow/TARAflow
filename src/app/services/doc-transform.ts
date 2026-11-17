@@ -15,6 +15,7 @@ import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../shared";
 import { buildMethodologyRecord } from "./methodology-record";
 import { docResidualView } from "./doc-residual";
 import { docImportedAttackTrees, docImportedComponents, docImportedRiskNotes, docImportedThreats } from "./doc-imported";
+import { componentThreatData } from "../utils/component-threats";
 
 // ==================== LABEL CALCULATION HELPERS ====================
 
@@ -155,6 +156,11 @@ function computeDocValues(
 
   // The threats of imported components (6a-1), per component and method.
   const importedThreats = docImportedThreats(project);
+  // …and as records, for the risk chapters (a risk's threat: group, type, anchor).
+  const importedThreatData = componentThreatData(project);
+  const importedThreatRecords = importedThreatData
+    ? [...importedThreatData.perElementTables, ...importedThreatData.perInteractionTables].flatMap((t) => t.threats)
+    : [];
   const importedRiskNotes = docImportedRiskNotes(project);
   // Only an ISO/SAE 21434 TARA rates attack paths; otherwise the trees are for information.
   const importedAttackTrees = docImportedAttackTrees(project, {
@@ -196,6 +202,7 @@ function computeDocValues(
     ...(uncredited && uncredited.size > 0 ? { uncreditedResiduals: uncredited } : {}),
     // Imported components (6a-1): their threats, the provenance of their risks' ratings.
     ...(importedThreats.length > 0 ? { importedThreats } : {}),
+    ...(importedThreatRecords.length > 0 ? { importedThreatRecords } : {}),
     ...(importedRiskNotes.size > 0 ? { importedRiskNotes } : {}),
     ...(importedAttackTrees.length > 0 ? { importedAttackTrees } : {}),
     ...(importedComponents.length > 0 ? { importedComponents } : {}),

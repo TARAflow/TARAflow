@@ -38,6 +38,7 @@ import { impactAggregationSentence } from "../impact-aggregation-text";
 import { dfdPageSectionsOf, noDfdImageText } from "../dfd-page-sections";
 import { dfdParentLevelFlowsOf } from "../dfd-parent-level-flows";
 import { reportGroupsOf } from "../dfd-report-groups";
+import { reportThreatsById } from "../report-threats";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
 import {
   visibilityContexts,
@@ -1227,15 +1228,7 @@ export class PdfMakeConverter {
     );
     if (rows.length === 0) return [];
 
-    const threatById = new Map(
-      [
-        ...(this.project.threats?.perElementTables?.flatMap((t) => t.threats) ??
-          []),
-        ...(this.project.threats?.perInteractionTables?.flatMap(
-          (t) => t.threats,
-        ) ?? []),
-      ].map((t) => [t.id, t]),
-    );
+    const threatById = reportThreatsById(this.project);
 
     const content: Content[] = [];
     content.push({
@@ -1562,9 +1555,8 @@ export class PdfMakeConverter {
     });
 
     // Leveled DFD (7d): one table per group — a risk follows its threat.
-    const threatById = new Map(
-      [...this.getThreatsPerElement(), ...this.getThreatsPerInteraction()].map((t) => [t.id, t]),
-    );
+    // own and imported threats (a risk of an imported component, manual test 2026-11-17)
+    const threatById = new Map([...reportThreatsById(this.project), ...[...this.getThreatsPerElement(), ...this.getThreatsPerInteraction()].map((t) => [t.id, t] as const)]);
     const groups = reportGroupsOf(this.project.dfd, this.lang, risks, (risk) => {
       const threat = threatById.get(risk.threatId);
       return threat ? dfdItemRefOfThreat(threat) : undefined;

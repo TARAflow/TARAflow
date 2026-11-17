@@ -8,6 +8,8 @@
 import { describe, expect, it } from "vitest";
 import type { Project } from "app/models/project-types";
 import { docImportedComponents, docImportedRiskNotes, docImportedThreats } from "app/services/doc-imported";
+import { componentThreatData } from "app/utils/component-threats";
+import { reportThreatsById } from "features/documentation/utils/report-threats";
 import { importedComponentsReportSections } from "features/documentation/utils/imported-report";
 import { MarkdownGenerator } from "features/documentation/utils/generators/markdown-generator";
 import { AsciidocGenerator } from "features/documentation/utils/generators/asciidoc-generator";
@@ -251,6 +253,37 @@ describe("the chapter \"Imported components\" (6a-2)", () => {
     expect(all).toContain("Imported Components");
     expect(all.some((x) => x.includes("the residual is not credited"))).toBe(true);
     expect(all.some((x) => x.includes("Smoke Detector @ sd/v1"))).toBe(true);
+  });
+});
+
+// Manual test 2026-11-17: the risks of an imported component were "Not in
+// the DFD" with the element type "-" — the risk chapters looked up a risk's
+// threat among the stored threats only; imported threats are derived, never
+// stored. The report data carries them as records now.
+describe("a risk of an imported component finds its threat (manual test 2026-11-17)", () => {
+  const records = (p: Project) => {
+    const d = componentThreatData(p)!;
+    return [...d.perElementTables, ...d.perInteractionTables].flatMap((x) => x.threats);
+  };
+
+  it("reportThreatsById: own threats and imported ones", () => {
+    const p = machine();
+    const own = { id: "own-1", strideCategory: "T", linkedElement: { elementId: "p1", elementType: "Process" } };
+    const doc = docProject(p, { importedThreatRecords: records(p) });
+    doc.threats = { perElementTables: [{ threats: [own] }], perInteractionTables: [] };
+    const byId = reportThreatsById(doc);
+    expect(byId.get("own-1")).toBe(own);
+    const risk = p.risks!.risks.find((r) => r.threatId === tid(component.reduceThreat))!;
+    expect(byId.get(risk.threatId)?.componentMultiprocessId).toBe(p.components!.instances[0].multiprocessTfId);
+  });
+
+  it("the risk chapter's element types: the imported risks are typed, not '-'", () => {
+    const p = machine();
+    const chapter = (extra: Any) =>
+      (new MarkdownGenerator(docProject(p, extra), { language: "en" } as never, t) as Any).generateRisks("Risks", "per-element").content as string;
+    const typeRows = (md: string) => md.split("\n").filter((l) => /^\| [^|]+ \| \d+ \|/.test(l)).map((l) => l.split("|")[1].trim());
+    expect(typeRows(chapter({}))).toContain("-");
+    expect(typeRows(chapter({ importedThreatRecords: records(p) }))).not.toContain("-");
   });
 });
 
