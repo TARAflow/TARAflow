@@ -96,7 +96,8 @@ const ctx = new DFDGraphAnalysisContext(graph);
 const excluded = componentExcludedIds({ components: applied.components });
 const ees = new Set(snapshot.dfd!.elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id));
 const boundaryIds = new Set(
-  applied.outcome.connections.filter((c) => c.displayId === "DF-xx" && excluded.has(c.id)).map((c) => c.id),
+  // the boundary flows: the instance's flows with a machine number (no instance prefix)
+  applied.outcome.connections.filter((c) => /^DF-\d+$/.test(c.displayId) && excluded.has(c.id)).map((c) => c.id),
 );
 
 describe("import into a machine that already has threats", () => {

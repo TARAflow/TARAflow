@@ -97,7 +97,7 @@ describe("insertComponentInstance — structure", () => {
     ]);
     expect(r.childPageId).toBe(r.pages[1].pageId);
     expect(r.xml).toContain(`link="data:page/id,${r.childPageId}"`);
-    expect(r.elements[0]).toMatchObject({ id: r.multiprocessTfId, type: "Multiprocess", displayId: "MP-xx" });
+    expect(r.elements[0]).toMatchObject({ id: r.multiprocessTfId, type: "Multiprocess", displayId: "MP-1" });
   });
 
   it("maps the EEs: a mapped one to the machine element, the others to new EEs", () => {
@@ -115,11 +115,17 @@ describe("insertComponentInstance — structure", () => {
     expect(r.connections).toHaveLength(smoke.dfd!.connections.length - EE_TO_EE.length);
   });
 
-  it("display ids: the component's with the instance prefix; machine placeholders for the multiprocess and the boundary flows", () => {
+  it("display ids: the component's with the instance prefix; the multiprocess, new EEs and boundary flows the machine's next numbers", () => {
     const r = insert();
     const process = smoke.dfd!.elements.find((e) => e.type === "Process")!;
     expect(r.elements.find((e) => e.id === r.idMap[process.id])?.displayId).toBe(`SD1:${process.displayId}`);
-    for (const id of BOUNDARY) expect(r.connections.find((c) => c.id === r.idMap[id])?.displayId).toBe("DF-xx");
+    // manual test 2026-11-17: no placeholder to renumber by hand; the machine has EE-1 and DF-1
+    expect(r.elements.find((e) => e.id === r.multiprocessTfId)?.displayId).toBe("MP-1");
+    const flows = BOUNDARY.map((id) => r.connections.find((c) => c.id === r.idMap[id])!.displayId);
+    expect(flows).toEqual(BOUNDARY.map((_, i) => `DF-${i + 2}`));
+    const newEes = r.elements.filter((e) => e.type === "ExternalEntity").map((e) => e.displayId);
+    expect(newEes).toEqual(newEes.map((_, i) => `EE-${i + 2}`));
+    expect(r.xml).not.toMatch(/(MP|EE|DF)-xx/);
   });
 
   it("carries the component's properties", () => {
@@ -443,11 +449,33 @@ describe("replaceComponentInstance — an instance moves to a new component stat
   });
 
   it("keeps the multiprocess's place, name and display ids (no renumbering)", () => {
-    const numbered = { ...machineAfter, xml: machineAfter.xml.replace(/label="MP-xx"/, 'label="MP-7"') };
+    const numbered = { ...machineAfter, xml: machineAfter.xml.replace(/label="MP-1"/, 'label="MP-7"') };
     const r = replace(component, numbered);
     expect(r.xml).toContain('label="MP-7"');
     expect(r.elements.find((e) => e.id === first.multiprocessTfId)!.displayId).toBe("MP-7");
     expect(r.xml).toMatch(new RegExp(`id="${first.multiprocessTfId}"[^>]*>\\s*<mxCell[^>]*>\\s*<mxGeometry x="600" y="200"`));
+  });
+
+  it("the boundary flows keep the machine's numbers; a renamed one the analyst paired keeps its number too (manual test 2026-11-17)", () => {
+    const [renamed, ...others] = BOUNDARY.filter((id) => !TO_BOUNDARY.includes(id));
+    const numberOf = (r: { connections: readonly DFDConnection[] }, tf: string) => r.connections.find((c) => c.id === tf)?.displayId;
+    const before = numberOf(machineAfter, first.idMap[renamed])!;
+    const next = { ...component, connections: component.connections.map((c) => (c.id === renamed ? { ...c, id: `${renamed}-new` } : c)) };
+    const xml = component.xml.replace(new RegExp(`id="${renamed}"`, "g"), `id="${renamed}-new"`);
+    const nextState = { ...next, xml };
+    const paired = replaceComponentInstance({
+      machine: machineAfter, oldComponent: component, component: nextState, instanceId: "inst-1", prefix: "SD1", eeMapping: mapping,
+      pairedFlows: { [renamed]: `${renamed}-new` },
+    });
+    const newTf = paired.idMap[`${renamed}-new`];
+    expect(newTf).not.toBe(first.idMap[renamed]);
+    expect(numberOf(paired, newTf)).toBe(before);
+    for (const id of others) expect(numberOf(paired, first.idMap[id])).toBe(numberOf(machineAfter, first.idMap[id]));
+    expect(paired.xml).not.toMatch(/(MP|EE|DF)-xx/);
+    // unpaired, it is a new flow: the next number nobody uses, not a placeholder
+    const unpaired = replaceComponentInstance({ machine: machineAfter, oldComponent: component, component: nextState, instanceId: "inst-1", prefix: "SD1", eeMapping: mapping });
+    const used = machineAfter.connections.map((c) => Number(/^DF-(\d+)$/.exec(c.displayId)?.[1] ?? 0));
+    expect(numberOf(unpaired, newTf)).toBe(`DF-${Math.max(...used) + 1}`);
   });
 
   it("a changed state: what the component removed goes, the rest keeps its ids", () => {

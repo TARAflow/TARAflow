@@ -82,7 +82,7 @@ const boundaryFlows = new Set(
       const ee = (id: string) => snapshot.dfd!.elements.find((e) => e.id === id)?.type === "ExternalEntity";
       return ee(c.from) !== ee(c.to);
     })
-    .map((c) => applied.outcome.connections.find((x) => x.name === c.name && x.displayId === "DF-xx")?.id)
+    .map((c) => applied.outcome.connections.find((x) => x.name === c.name && x.id.startsWith("cmp") && /^DF-\d+$/.test(x.displayId))?.id)
     .filter(Boolean) as string[],
 );
 

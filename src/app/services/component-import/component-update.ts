@@ -247,6 +247,7 @@ export function applyComponentUpdate(input: ComponentUpdateInput): ComponentUpda
       instanceId: instance.id,
       prefix: instance.prefix,
       eeMapping: mapping,
+      ...(pairing.flows ? { pairedFlows: pairing.flows } : {}),
     });
     insertedByInstance.set(instance.id, r);
     // EEs new in this state and not mapped were taken over as new machine EEs: record their mapping

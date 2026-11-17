@@ -74,6 +74,12 @@ export interface InsertComponentInput {
    * take the EE over as a new external entity on the parent page (E1).
    */
   eeMapping: Readonly<Record<string, string | undefined>>;
+  /**
+   * Machine tfId → the id label text it keeps (an update: the multiprocess
+   * and the boundary flows keep the machine's numbers). Every other machine
+   * placeholder (MP-xx, EE-xx, DF-xx) gets the next free number.
+   */
+  keptLabels?: ReadonlyMap<string, string>;
 }
 
 export interface InsertComponentResult {
@@ -566,6 +572,17 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
     assetRelations: undefined,
   }));
 
+  // ---- the machine's display ids: kept ones back, placeholders numbered
+  // (also on their copies / occurrences on the instance's pages)
+  const copyLabelsOf = (tfId: string): Element[] =>
+    newPages.flatMap((p) => {
+      const diagram = diagrams(machineDoc).find((d) => d.getAttribute("id") === p.pageId);
+      if (!diagram) return [];
+      const root = rootOf(diagram);
+      return (p.links ?? []).filter((l) => l.tfId === tfId).flatMap((l) => idlabelOf(root, l.cellId) ?? []);
+    });
+  numberMachinePlaceholders(parentRoot, machine, input.keptLabels ?? new Map(), [...newElements, ...newConnections], copyLabelsOf);
+
   return {
     xml: new XMLSerializer().serializeToString(machineDoc),
     pages: [
@@ -595,6 +612,50 @@ export function prefixDisplayLabel(text: string, prefix: string): string {
   return text.replace(/(^|>)(\s*)([^<\s][^<]*)/, `$1$2${prefix}:$3`);
 }
 
+const PLACEHOLDER = /^(MP|EE|DF)-xx$/;
+const stripTags = (text: string) => text.replace(/<[^>]*>/g, "").trim();
+
+/**
+ * The machine's display ids of an inserted instance (manual test
+ * 2026-11-17: after an update the debugger flow came back as DF-xx and had
+ * to be renumbered by hand). A kept label (update) goes back on its id label
+ * and record; every other placeholder — the multiprocess, a new EE, a new
+ * boundary flow — gets the next number the machine does not use yet. Only
+ * these get a number: a renumber of the whole DFD would change the
+ * machine's other numbers too.
+ */
+function numberMachinePlaceholders(
+  parentRoot: Element,
+  machine: ComponentDfdInput,
+  keptLabels: ReadonlyMap<string, string>,
+  records: (DFDElement | DFDConnection)[],
+  copyLabelsOf: (tfId: string) => Element[],
+): void {
+  const used = new Map<string, number>();
+  const note = (displayId: string) => {
+    const m = /^([A-Z]{1,3})-(\d+)$/.exec(displayId);
+    if (m) used.set(m[1], Math.max(used.get(m[1]) ?? 0, Number(m[2])));
+  };
+  for (const r of [...machine.elements, ...machine.connections]) note(r.displayId ?? "");
+  for (const text of keptLabels.values()) note(stripTags(text));
+  for (const r of records) {
+    const kept = keptLabels.get(r.id);
+    const labels = [idlabelOf(parentRoot, r.id), ...copyLabelsOf(r.id)].filter((l): l is Element => !!l);
+    if (kept !== undefined) {
+      idlabelOf(parentRoot, r.id)?.setAttribute("label", kept);
+      r.displayId = stripTags(kept) || r.displayId;
+      for (const l of copyLabelsOf(r.id)) l.setAttribute("label", (l.getAttribute("label") ?? "").replace(/(MP|EE|DF)-xx/, r.displayId));
+      continue;
+    }
+    const m = PLACEHOLDER.exec(r.displayId ?? "");
+    if (!m) continue;
+    const next = (used.get(m[1]) ?? 0) + 1;
+    used.set(m[1], next);
+    r.displayId = `${m[1]}-${next}`;
+    for (const l of labels) l.setAttribute("label", (l.getAttribute("label") ?? "").replace(`${m[1]}-xx`, r.displayId));
+  }
+}
+
 // ==================== REPLACE (update, phase 5c) ====================
 
 export interface ReplaceComponentResult extends InsertComponentResult {
@@ -613,6 +674,12 @@ export interface ReplaceComponentInput {
   prefix: string;
   /** Component EE id → machine tfId — the instance's mapping, completed for EEs new in this state. */
   eeMapping: Readonly<Record<string, string | undefined>>;
+  /**
+   * Component flow id in the old state → its id in the new state, for the
+   * flows the analyst paired as renamed (update dialog): a paired boundary
+   * flow keeps the machine's display id.
+   */
+  pairedFlows?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -650,10 +717,17 @@ export function replaceComponentInstance(input: ReplaceComponentInput): ReplaceC
   };
   const keptLabels = new Map<string, string>();
   const oldEes = new Set(oldComponent.elements.filter((e) => e.type === "ExternalEntity").map((e) => e.id));
-  const boundaryFlowTfs = oldComponent.connections.filter((c) => oldEes.has(c.from) !== oldEes.has(c.to)).map((c) => ns(c.id));
-  for (const tf of [multiprocessTfId, ...boundaryFlowTfs]) {
+  const oldBoundaryFlows = oldComponent.connections.filter((c) => oldEes.has(c.from) !== oldEes.has(c.to));
+  const boundaryFlowTfs = oldBoundaryFlows.map((c) => ns(c.id));
+  const kept = (tf: string, keptAs: string) => {
     const label = idlabelOf(parentRoot, tf)?.getAttribute("label");
-    if (label) keptLabels.set(tf, label);
+    if (label && !/(MP|EE|DF)-xx/.test(label)) keptLabels.set(keptAs, label);
+  };
+  kept(multiprocessTfId, multiprocessTfId);
+  for (const c of oldBoundaryFlows) {
+    // a flow the update pairs with a renamed one keeps its number on it (manual test 2026-11-17)
+    const pairedTo = input.pairedFlows?.[c.id];
+    kept(ns(c.id), pairedTo ? ns(pairedTo) : ns(c.id));
   }
 
   // remove on the parent page: multiprocess, boundary flow definitions, shell copies, their id labels
@@ -694,24 +768,9 @@ export function replaceComponentInstance(input: ReplaceComponentInput): ReplaceC
     parentPageId,
     multiprocess,
     eeMapping: input.eeMapping,
+    keptLabels,
   });
 
   const remaining = { elements: [...stripped.elements], connections: [...stripped.connections], assets: [...(stripped.assets ?? [])] };
-  // the kept display ids back on their labels and records
-  if (keptLabels.size === 0) return { ...inserted, parentPageId, remaining };
-  const out = parseXml(inserted.xml);
-  const parentOut = diagrams(out).find((d) => (d.getAttribute("id") ?? "") === parentPageId);
-  if (parentOut) {
-    const root = rootOf(parentOut);
-    for (const [tf, text] of keptLabels) idlabelOf(root, tf)?.setAttribute("label", text);
-  }
-  const displayOf = (id: string, current: string) => keptLabels.get(id)?.replace(/<[^>]*>/g, "").trim() || current;
-  return {
-    ...inserted,
-    xml: new XMLSerializer().serializeToString(out),
-    elements: inserted.elements.map((e) => (keptLabels.has(e.id) ? { ...e, displayId: displayOf(e.id, e.displayId) } : e)),
-    connections: inserted.connections.map((c) => (keptLabels.has(c.id) ? { ...c, displayId: displayOf(c.id, c.displayId) } : c)),
-    parentPageId,
-    remaining,
-  };
+  return { ...inserted, parentPageId, remaining };
 }
