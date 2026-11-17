@@ -63,3 +63,43 @@ describe("local user settings", () => {
     expect(withLocalAudit("p1", audit({ name: "Old", email: "old@x" }))!.config.author.name).toBe("Ann");
   });
 });
+
+// Manual test 2026-11-17: the signing key had to be picked again on every
+// open — the file carries no key path (rightly), and the git-config
+// hydration ran for one of three load paths only. The key path / id is a
+// personal value of the project like the author.
+describe("local user settings — the user's keys", () => {
+  const withKeys = (signing: Record<string, unknown>, extra: Record<string, unknown> = {}): Audit =>
+    ({ config: { provider: "github", defaultBranch: "main", auth: { method: "ssh" }, signing, gpg: { enabled: false }, ...extra } }) as unknown as Audit;
+
+  it("a picked SSH signing key is remembered and filled in after reopening the stripped file", () => {
+    rememberLocalSettings("p1", withKeys({ enabled: true, format: "ssh", sshSigningKeyPath: "/home/u/.ssh/sign.pub" }), null);
+    const reopened = withLocalAudit("p1", withKeys({ enabled: true, format: "ssh" }))!;
+    expect(reopened.config.signing).toEqual({ enabled: true, format: "ssh", sshSigningKeyPath: "/home/u/.ssh/sign.pub" });
+  });
+
+  it("GPG key id and the SSH key for the remote too", () => {
+    rememberLocalSettings(
+      "p1",
+      withKeys({ enabled: true, format: "gpg", keyId: "ABCD1234" }, { gpg: { enabled: true, keyId: "ABCD1234" }, auth: { method: "ssh", sshKeyPath: "/home/u/.ssh/id_ed25519" } }),
+      null,
+    );
+    const reopened = withLocalAudit("p1", withKeys({ enabled: true, format: "gpg" }, { gpg: { enabled: true }, auth: { method: "ssh" } }))!;
+    expect(reopened.config.signing?.keyId).toBe("ABCD1234");
+    expect(reopened.config.gpg?.keyId).toBe("ABCD1234");
+    expect(reopened.config.auth?.sshKeyPath).toBe("/home/u/.ssh/id_ed25519");
+  });
+
+  it("a key in memory is not replaced; another project keeps its own", () => {
+    rememberLocalSettings("p1", withKeys({ enabled: true, format: "ssh", sshSigningKeyPath: "/a.pub" }), null);
+    expect(withLocalAudit("p1", withKeys({ enabled: true, format: "ssh", sshSigningKeyPath: "/b.pub" }))!.config.signing?.sshSigningKeyPath).toBe("/b.pub");
+    expect(withLocalAudit("p2", withKeys({ enabled: true, format: "ssh" }))!.config.signing).not.toHaveProperty("sshSigningKeyPath");
+  });
+
+  it("nothing to fill in: the same object (no re-render)", () => {
+    rememberLocalSettings("p1", audit({ name: "Ann", email: "ann@x" }), null);
+    const a = withLocalAudit("p1", audit())!;
+    expect(withLocalAudit("p1", a)).toBe(a);
+  });
+});
+

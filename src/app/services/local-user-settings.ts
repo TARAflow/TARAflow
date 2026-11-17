@@ -7,6 +7,13 @@
 //
 // Local only (stripped by prepare-for-disk, kept here):
 //   - audit.config.author                    per project
+//   - audit.config.signing.sshSigningKeyPath / signing.keyId,
+//     audit.config.gpg.keyId, audit.config.auth.sshKeyPath
+//                                            per project — the key this user
+//                                            signs / authenticates with (manual
+//                                            test 2026-11-17: re-picked on every
+//                                            open; the git-config hydration ran
+//                                            for one of three load paths only)
 //   - integration.lastSync                   per project
 //   - connection.credentials.email/accountId,
 //     connection.status / lastTested / lastError
@@ -31,7 +38,21 @@ type Connection = NonNullable<NonNullable<Integration>["connection"]>;
 interface ProjectLocal {
   auditAuthor?: { name: string; email: string };
   integrationLastSync?: string;
+  /** The keys of this user (paths / ids — never the key material). */
+  signingKeyPath?: string;
+  signingKeyId?: string;
+  gpgKeyId?: string;
+  authSshKeyPath?: string;
 }
+
+/** The personal key fields of an audit config, where they live in it. */
+const KEY_FIELDS = {
+  signingKeyPath: (c: AuditConfigLike) => c?.signing?.sshSigningKeyPath,
+  signingKeyId: (c: AuditConfigLike) => c?.signing?.keyId,
+  gpgKeyId: (c: AuditConfigLike) => c?.gpg?.keyId,
+  authSshKeyPath: (c: AuditConfigLike) => c?.auth?.sshKeyPath,
+} as const;
+type AuditConfigLike = NonNullable<Audit>["config"] | undefined;
 
 interface TrackerLocal {
   email?: string;
@@ -95,6 +116,10 @@ export function rememberLocalSettings(
   if (integration?.lastSync && !(onlyMissing && storedProject.integrationLastSync)) {
     nextProject.integrationLastSync = integration.lastSync;
   }
+  for (const [field, of] of Object.entries(KEY_FIELDS) as [keyof typeof KEY_FIELDS, (c: AuditConfigLike) => string | undefined][]) {
+    const value = of(audit?.config);
+    if (value && !(onlyMissing && storedProject[field])) nextProject[field] = value;
+  }
   write(projectKey(projectId), nextProject);
 
   const connection = integration?.connection;
@@ -119,10 +144,36 @@ export function rememberLocalSettings(
 /** The audit block with this user's values (the author is always an object). */
 export function withLocalAudit(projectId: string, audit: Audit): Audit {
   if (!audit) return audit;
-  const stored = read<ProjectLocal>(projectKey(projectId))?.auditAuthor;
-  const author = stored ?? (filled(audit.config?.author) ? audit.config.author : { name: "", email: "" });
-  if (audit.config?.author === author) return audit;
-  return { ...audit, config: { ...audit.config, author } };
+  const local = read<ProjectLocal>(projectKey(projectId));
+  const stored = local?.auditAuthor;
+  const wanted = stored ?? (filled(audit.config?.author) ? audit.config.author : { name: "", email: "" });
+  // the same author by value keeps its object — no new audit block, no re-render
+  const current = audit.config?.author;
+  const author = current && current.name === wanted.name && current.email === wanted.email ? current : wanted;
+  // This user's keys, whatever load path the project came by (the file
+  // carries none of them).
+  const config = audit.config;
+  const signing =
+    config?.signing && ((local?.signingKeyPath && !config.signing.sshSigningKeyPath) || (local?.signingKeyId && !config.signing.keyId))
+      ? {
+          ...config.signing,
+          ...(config.signing.sshSigningKeyPath ? {} : local?.signingKeyPath ? { sshSigningKeyPath: local.signingKeyPath } : {}),
+          ...(config.signing.keyId ? {} : local?.signingKeyId ? { keyId: local.signingKeyId } : {}),
+        }
+      : config?.signing;
+  const gpg = config?.gpg && local?.gpgKeyId && !config.gpg.keyId ? { ...config.gpg, keyId: local.gpgKeyId } : config?.gpg;
+  const auth = config?.auth && local?.authSshKeyPath && !config.auth.sshKeyPath ? { ...config.auth, sshKeyPath: local.authSshKeyPath } : config?.auth;
+  if (config?.author === author && signing === config?.signing && gpg === config?.gpg && auth === config?.auth) return audit;
+  return {
+    ...audit,
+    config: {
+      ...config,
+      author,
+      ...(signing ? { signing } : {}),
+      ...(gpg ? { gpg } : {}),
+      ...(auth ? { auth } : {}),
+    },
+  };
 }
 
 /** The integration block with this user's account and connection state. */
