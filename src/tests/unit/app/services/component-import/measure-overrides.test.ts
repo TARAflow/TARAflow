@@ -52,8 +52,18 @@ describe("measure override (phase 3d-2b)", () => {
 
   it("findings: CMP_MEASURE_OVERRIDDEN names the measure (not CMP_MEASURE_NOT_EFFECTIVE); a mark on an unknown measure acts on nothing", () => {
     const m = mark(machine(), "M-S-001", "stripped");
-    const warnings = componentFindings(m).warnings;
-    expect(warnings.find((w) => w.key.endsWith("CMP_MEASURE_OVERRIDDEN"))!.params).toMatchObject({ prefix: "SD1", list: "M-S-001" });
+    const { warnings, risks } = componentFindings(m);
+    // a Risks finding with the risks relying on the measure — set and
+    // withdrawn in their risk dialog (manual test 2026-11-17: in the DFD tab
+    // without a target, a click did nothing)
+    const overridden = risks.find((w) => w.key.endsWith("CMP_MEASURE_OVERRIDDEN"))!;
+    expect(overridden.params).toMatchObject({ prefix: "SD1", list: "M-S-001" });
+    const relying = (m.risks?.risks ?? [])
+      .filter((r) => JSON.stringify(componentTreatments({ components: m.components!, risks: m.risks ?? null }).get(r.threatId)?.measures ?? []).includes("M-S-001"))
+      .map((r) => r.threatId);
+    expect(overridden.threatIds.length).toBeGreaterThan(0);
+    expect(overridden.threatIds).toEqual(relying);
+    expect(warnings.some((w) => w.key.endsWith("CMP_MEASURE_OVERRIDDEN"))).toBe(false);
     expect(warnings.some((w) => w.key.endsWith("CMP_MEASURE_NOT_EFFECTIVE"))).toBe(false);
     const orphan = mark(machine(), "M-X-999", "gone");
     expect(unknownMeasureOverrides(orphan.components!.instances[0], orphan.components!.imports[0])).toEqual(["M-X-999"]);

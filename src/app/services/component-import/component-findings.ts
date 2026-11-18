@@ -187,6 +187,7 @@ export function componentFindings(
       const toReview: string[] = [];
       const toReviewIds: string[] = [];
       const overridden = new Set<string>();
+      const overriddenIds: string[] = [];
       const notEffective = new Map<string, Set<string>>();
       const unclear = new Map<string, Set<string>>();
       const note = (into: Map<string, Set<string>>, measure: string, assumptions: (string | undefined)[]) => {
@@ -206,6 +207,7 @@ export function componentFindings(
           continue;
         }
         if (tr.measures.some((m) => m.state === "pending")) pending.push(risk.threatId);
+        if (tr.measures.some((m) => m.override)) overriddenIds.push(risk.threatId);
         for (const m of tr.measures) {
           const label = m.id ?? m.text;
           if (m.override) overridden.add(label);
@@ -223,7 +225,9 @@ export function componentFindings(
       if (handover.length > 0) riskFinding("CMP_HANDOVER_OPEN", { ...params, count: handover.length }, handover);
       if (notEffective.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_NOT_EFFECTIVE"), ...at, params: { ...params, list: listOf(notEffective) } });
       if (unclear.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_UNCLEAR"), ...at, params: { ...params, list: listOf(unclear) } });
-      if (overridden.size > 0) out.warnings.push({ key: KEY("CMP_MEASURE_OVERRIDDEN"), params: { ...params, list: [...overridden].join(", ") } });
+      // set and withdrawn in the risk dialog — a Risks finding that opens
+      // those risks (manual test 2026-11-17: in the DFD tab, a click did nothing)
+      if (overridden.size > 0) riskFinding("CMP_MEASURE_OVERRIDDEN", { ...params, list: [...overridden].join(", ") }, overriddenIds);
       if (imported) {
         const unknown = unknownMeasureOverrides(instance, imported);
         if (unknown.length > 0) out.warnings.push({ key: KEY("CMP_MEASURE_OVERRIDE_UNKNOWN"), params: { ...params, list: unknown.join(", ") } });
