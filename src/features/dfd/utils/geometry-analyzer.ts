@@ -61,6 +61,7 @@ export class GeometryAnalyzer {
     lineEnd: { x: number; y: number },
     waypoints?: Array<{ x: number; y: number }>,
     curved?: boolean,
+    straight?: boolean,
   ): boolean {
     // Tolerance in pixels for geometric intersection.
     // Case 1 (curved QB): analytic solution, TOL=5 gives ~5px margin matching
@@ -206,6 +207,12 @@ export class GeometryAnalyzer {
     }
 
     // ── Case 3: No waypoints ──────────────────────────────────────────────
+    // A straight edge is the line itself (manual test 2026-11-17: a straight
+    // diagonal flow through an interface was checked only as L-paths and
+    // missed it).
+    if (straight) {
+      return this.lineIntersectsRect(lineStart, lineEnd, rect.position, rect.size, LINE_TOL);
+    }
     const dx = Math.abs(lineEnd.x - lineStart.x);
     const dy = Math.abs(lineEnd.y - lineStart.y);
     const ifaceSize = Math.max(rect.size.width, rect.size.height);

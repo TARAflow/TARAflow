@@ -56,6 +56,7 @@ export class DFDAnalyzer {
       end,
       connection.waypoints,
       connection.curved,
+      connection.straight,
     );
   }
 

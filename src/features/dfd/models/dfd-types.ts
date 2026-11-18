@@ -186,6 +186,13 @@ export interface DFDConnection extends DFDBaseEntity {
   entryX?: number;
   entryY?: number;
   curved?: boolean;
+  /**
+   * The flow is drawn as a straight line (draw.io style without an
+   * `edgeStyle`, or `edgeStyle=none`). Without it the geometry assumes an
+   * orthogonal route (one of the two L-paths) — also for records saved
+   * before this field existed. Re-read from the XML on every parse.
+   */
+  straight?: boolean;
   arrow?: {
     start?: string;
     end?: string;
