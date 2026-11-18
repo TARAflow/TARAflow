@@ -108,7 +108,18 @@ export interface ComponentRiskFinding {
   params: Record<string, string | number>;
   /** threatId of each risk concerned, in the register's order. */
   threatIds: string[];
+  /**
+   * The risk dialog's tab where it is fixed (manual test 2026-11-18): the
+   * factor ratings on "Risk Before", the component's treatment and the
+   * machine's own on "Mitigations".
+   */
+  tab: "before" | "mitigations";
 }
+
+const RISK_FINDING_TAB: Record<string, "before" | "mitigations"> = {
+  CMP_FACTOR_UNRATED: "before",
+  CMP_FACTOR_OVERRIDE_RATIONALE: "before",
+};
 
 const EMPTY: ComponentFindings = { errors: [], warnings: [], infos: [], risks: [] };
 const KEY = (code: string) => `components.findings.${code}`;
@@ -120,7 +131,7 @@ export function componentFindings(
   if (!components || (components.imports.length === 0 && components.instances.length === 0)) return EMPTY;
   const out: ComponentFindings = { errors: [], warnings: [], infos: [], risks: [] };
   const riskFinding = (code: string, params: Record<string, string | number>, threatIds: string[]) =>
-    out.risks.push({ key: KEY(code), severity: "warning", params, threatIds });
+    out.risks.push({ key: KEY(code), severity: "warning", params, threatIds, tab: RISK_FINDING_TAB[code] ?? "mitigations" });
   const elements = new Map((project.dfd?.elements ?? []).map((e) => [e.id, e]));
   const importsById = new Map(components.imports.map((i) => [i.id, i]));
 

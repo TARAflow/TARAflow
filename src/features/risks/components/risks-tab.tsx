@@ -47,7 +47,8 @@ import {
 } from "../models/risk-assessment-types";
 
 import { RiskConfiguration, RiskValidation } from "../models/risk-config-types";
-import { riskFindingLines, riskFindingText, riskFindings } from "../services/risk-findings";
+import { RISK_FINDING_TAB, riskFindingLines, riskFindingText, riskFindings } from "../services/risk-findings";
+import type { RiskDialogTab } from "./risk-dialog/types";
 import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
 import {
@@ -186,6 +187,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   const [selectedRiskInfo, setSelectedRiskInfo] = useState<{
     risks: Risk[];
     index: number;
+    /** Opened from a finding: the tab where it is fixed. */
+    tab?: RiskDialogTab;
   } | null>(null);
   const [showRiskDialog, setShowRiskDialog] = useState(false);
   const [selectedImplementationRisk, setSelectedImplementationRisk] =
@@ -414,32 +417,35 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   // The tab's own findings and those about its risks from elsewhere
   // (imported components); a click opens the risks concerned in the dialog,
   // browsing only them, in the order of the table.
-  const { panelFindings, findingRisks } = useMemo(() => {
+  const { panelFindings, findingRisks, findingTab } = useMemo(() => {
     const byThreat = new Map(riskData.risks.map((r) => [r.threatId, r]));
     const byId = new Map(riskData.risks.map((r) => [r.id, r]));
     const findingRisks = new Map<string, Risk[]>();
+    const findingTab = new Map<string, RiskDialogTab>();
     const panelFindings: PanelFinding[] = [];
     currentFindings.forEach((f, i) => {
       const id = `risk-${f.code}-${i}`;
       const risks = (f.riskIds ?? []).map((x) => byId.get(x)).filter((r): r is Risk => !!r);
       findingRisks.set(id, risks);
+      findingTab.set(id, RISK_FINDING_TAB[f.code]);
       panelFindings.push({ id, severity: f.severity, text: riskFindingText(f, t), clickable: risks.length > 0 });
     });
     for (const f of project.externalFindings ?? []) {
       const risks = f.threatIds.map((x) => byThreat.get(x)).filter((r): r is Risk => !!r);
       findingRisks.set(f.id, risks);
+      if (f.tab) findingTab.set(f.id, f.tab);
       panelFindings.push({ id: f.id, severity: f.severity, text: f.text, clickable: risks.length > 0 });
     }
-    return { panelFindings, findingRisks };
+    return { panelFindings, findingRisks, findingTab };
   }, [currentFindings, project.externalFindings, riskData.risks, t]);
   const openFinding = useCallback(
     (id: string) => {
       const risks = sortRisksByThreatId(findingRisks.get(id) ?? []);
       if (risks.length === 0) return;
-      setSelectedRiskInfo({ risks, index: 0 });
+      setSelectedRiskInfo({ risks, index: 0, tab: findingTab.get(id) ?? "before" });
       setShowRiskDialog(true);
     },
-    [findingRisks],
+    [findingRisks, findingTab],
   );
   // The method buttons show risks, not threats (user 2026-10-30).
   const risksOfMethod = (method: "per-element" | "per-interaction") =>
@@ -1269,6 +1275,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           open={showRiskDialog}
           risks={selectedRiskInfo.risks}
           initialIndex={selectedRiskInfo.index}
+          initialTab={selectedRiskInfo.tab}
           configuration={riskData.configuration}
           threats={allThreatsUnfiltered}
           assetDataRef={project.assetDataRef}

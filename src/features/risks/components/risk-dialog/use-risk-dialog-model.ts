@@ -20,6 +20,7 @@ export function useRiskDialogModel(props: RiskDialogProps) {
     open,
     risks,
     initialIndex,
+    initialTab,
     configuration,
     threats,
     assetDataRef,
@@ -28,7 +29,7 @@ export function useRiskDialogModel(props: RiskDialogProps) {
     onClose,
   } = props;
 
-  const state = useRiskDialogState({ open, risks, initialIndex, configuration, threats, assetDataRef, dfdData });
+  const state = useRiskDialogState({ open, risks, initialIndex, initialTab, configuration, threats, assetDataRef, dfdData });
   const { sortedRisks, isProcessing, currentIndex, setCurrentIndex, setTabValue, setLocal } = state;
   const derived = useRiskDialogDerived({
     configuration, threats, assetDataRef, sortedRisks,
@@ -36,7 +37,7 @@ export function useRiskDialogModel(props: RiskDialogProps) {
   });
   const actions = useRiskDialogActions({
     onSave, onClose, sortedRisks, currentRisk: state.currentRisk, isProcessing,
-    currentIndex, setCurrentIndex, setTabValue, local: state.local, setLocal,
+    currentIndex, setCurrentIndex, setTabValue, firstTab: state.firstTab, local: state.local, setLocal,
     beforeValues: derived.beforeValues, afterValues: derived.afterValues,
   });
   const selection = useMitigationSelection({ threats, dfdData, currentRisk: state.currentRisk, setLocal });

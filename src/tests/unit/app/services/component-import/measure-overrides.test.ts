@@ -63,6 +63,8 @@ describe("measure override (phase 3d-2b)", () => {
       .map((r) => r.threatId);
     expect(overridden.threatIds.length).toBeGreaterThan(0);
     expect(overridden.threatIds).toEqual(relying);
+    // opened where it is withdrawn: the risk dialog's Mitigations tab (manual test 2026-11-18)
+    expect(overridden.tab).toBe("mitigations");
     expect(warnings.some((w) => w.key.endsWith("CMP_MEASURE_OVERRIDDEN"))).toBe(false);
     expect(warnings.some((w) => w.key.endsWith("CMP_MEASURE_NOT_EFFECTIVE"))).toBe(false);
     const orphan = mark(machine(), "M-X-999", "gone");

@@ -11,7 +11,7 @@ import { resetFactorToDerived } from "../../services/risk-calculation-service";
 import { EN50742_EL_FACTOR } from "../../services/en50742-risk-calculation";
 
 export type UseRiskDialogActionsInput = Pick<RiskDialogProps, "onSave" | "onClose"> &
-  Pick<ReturnType<typeof useRiskDialogState>, "sortedRisks" | "currentRisk" | "isProcessing" | "currentIndex" | "setCurrentIndex" | "setTabValue" | "local" | "setLocal"> &
+  Pick<ReturnType<typeof useRiskDialogState>, "sortedRisks" | "currentRisk" | "isProcessing" | "currentIndex" | "setCurrentIndex" | "setTabValue" | "firstTab" | "local" | "setLocal"> &
   Pick<ReturnType<typeof useRiskDialogDerived>, "beforeValues" | "afterValues">;
 
 export function useRiskDialogActions({
@@ -23,6 +23,7 @@ export function useRiskDialogActions({
   currentIndex,
   setCurrentIndex,
   setTabValue,
+  firstTab,
   local,
   setLocal,
   beforeValues,
@@ -58,9 +59,10 @@ export function useRiskDialogActions({
     (index: number) => {
       saveCurrentRisk();
       setCurrentIndex(index);
-      setTabValue(0);
+      // the next risk of a finding is fixed in the same tab
+      setTabValue(firstTab);
     },
-    [saveCurrentRisk],
+    [saveCurrentRisk, firstTab],
   );
 
   const handlePrev = useCallback(() => {

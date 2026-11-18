@@ -7,12 +7,21 @@ import { RiskConfiguration } from "../../models/risk-config-types";
 import { Risk } from "../../models/risk-assessment-types";
 import type { AssetDataReference, DFDReference, ThreatReference } from "shared";
 
+/** The dialog's tabs a finding can open (Goal / Claim is opened from the concept). */
+export type RiskDialogTab = "before" | "mitigations" | "after";
+export const RISK_DIALOG_TAB_INDEX: Record<RiskDialogTab, number> = { before: 0, mitigations: 1, after: 2 };
+
 export interface RiskDialogProps {
   open: boolean;
   /** All risks in the current accordion group */
   risks: Risk[];
   /** Index of the risk to open initially */
   initialIndex: number;
+  /**
+   * The tab to open on — where a finding is fixed (manual test 2026-11-18:
+   * "marked not effective here" opened on "Risk Before"). Default: before.
+   */
+  initialTab?: RiskDialogTab;
   configuration: RiskConfiguration;
   /** Threat references for display (optional — for uncertain warning) */
   threats?: ThreatReference[];

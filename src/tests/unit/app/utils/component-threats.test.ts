@@ -329,6 +329,8 @@ describe("factor prefill per fingerprint (patch 16)", () => {
     // findings about risks: the Risks tab's panel with the risks concerned, not the DFD's (manual test 2026-11-15)
     expect(f.risks.map((x) => x.key)).toEqual(expect.arrayContaining(["components.findings.CMP_FACTOR_UNRATED", "components.findings.CMP_FACTOR_OVERRIDE_RATIONALE"]));
     expect(f.risks.find((x) => x.key.endsWith("CMP_FACTOR_OVERRIDE_RATIONALE"))!.threatIds).toEqual([componentInstanceTfId(inst.id, `threat|${sr.threatId}`)]);
+    // the factor ratings are on the risk dialog's first tab (manual test 2026-11-18)
+    expect(f.risks.filter((x) => /CMP_FACTOR_(UNRATED|OVERRIDE_RATIONALE)$/.test(x.key)).map((x) => x.tab)).toEqual(["before", "before"]);
     expect(f.warnings.map((x) => x.key)).not.toContain("components.findings.CMP_FACTOR_OVERRIDE_RATIONALE");
     // with a rationale the override finding goes
     const withRationale = { ...project, risks: { ...project.risks!, risks: [riskOf([{ factorId: "skill_level", value: 1, weight: 1 }, { factorId: "ease_of_exploit", value: 2, weight: 1, source: "manual", derivedValue: 3, derivedFrom: "component", overrideRationale: "network" }])] } } as unknown as Project;

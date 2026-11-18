@@ -60,6 +60,23 @@ function idList(ids: readonly string[] | undefined): string {
  * tab shows them. `trackerConnected`: the project has an issue tracker — a
  * mitigation done by hand then needs a ticket or evidence (user 2026-11-10).
  */
+/**
+ * The risk dialog's tab where a finding is fixed — a click on the finding
+ * opens it there (manual test 2026-11-18): the rating on "Risk Before", the
+ * treatment, its justification and the mitigations on "Mitigations", the
+ * residual rating on "Risk After".
+ */
+export const RISK_FINDING_TAB: Record<RiskFindingCode, "before" | "mitigations" | "after"> = {
+  unrated: "before",
+  uncertainThreats: "before",
+  wontNoJustification: "mitigations",
+  treatmentNoJustification: "mitigations",
+  transferToReview: "mitigations",
+  reduceUnmitigated: "mitigations",
+  doneWithoutEvidence: "mitigations",
+  residualMissing: "after",
+};
+
 export function riskFindings(riskData: RiskData, options: { trackerConnected?: boolean } = {}): RiskFinding[] {
   const risks = riskData.risks;
   const out: RiskFinding[] = [];

@@ -567,6 +567,7 @@ export const WorkspaceLayout: React.FC = () => {
                 severity: f.severity,
                 text: t(f.key, f.params),
                 threatIds: f.threatIds,
+                tab: f.tab,
               })),
               id: activeProject.id,
               name: activeProject.info?.name || "",

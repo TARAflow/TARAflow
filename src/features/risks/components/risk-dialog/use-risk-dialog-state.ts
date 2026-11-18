@@ -3,19 +3,20 @@
 // editable copy (initialised with the asset / EL pre-fill when the risk changes).
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import type { RiskDialogProps } from "./types";
+import { RISK_DIALOG_TAB_INDEX, type RiskDialogProps } from "./types";
 import { riskToLocal, type LocalRiskState } from "./local-risk-state";
 import { compareDisplayIds } from "shared";
 import type { AssetReference } from "shared";
 import { applyAssetCriteriaToFactorRatings, applyAssetImpactToFactorRatings } from "../../services/risk-calculation-service";
 import { applyExposureLevelToFactorRatings } from "../../services/en50742-risk-calculation";
 
-export type UseRiskDialogStateInput = Pick<RiskDialogProps, "open" | "risks" | "initialIndex" | "configuration" | "threats" | "assetDataRef" | "dfdData">;
+export type UseRiskDialogStateInput = Pick<RiskDialogProps, "open" | "risks" | "initialIndex" | "initialTab" | "configuration" | "threats" | "assetDataRef" | "dfdData">;
 
 export function useRiskDialogState({
   open,
   risks,
   initialIndex,
+  initialTab,
   configuration,
   threats,
   assetDataRef,
@@ -41,7 +42,8 @@ export function useRiskDialogState({
   });
   const currentRisk = sortedRisks[currentIndex] ?? null;
 
-  const [tabValue, setTabValue] = useState(0);
+  const firstTab = RISK_DIALOG_TAB_INDEX[initialTab ?? "before"];
+  const [tabValue, setTabValue] = useState(firstTab);
   const [local, setLocal] = useState<LocalRiskState | null>(null);
   const [showSrslTables, setShowSrslTables] = useState(false);
   const isProcessing = useRef(false);
@@ -122,9 +124,9 @@ export function useRiskDialogState({
       const id = risks[initialIndex]?.id;
       const idx = sortedRisks.findIndex((r) => r.id === id);
       setCurrentIndex(idx >= 0 ? idx : initialIndex);
-      setTabValue(0);
+      setTabValue(firstTab);
     }
-  }, [open, initialIndex]);
+  }, [open, initialIndex, firstTab]);
 
   return {
     sortedRisks,
@@ -134,6 +136,8 @@ export function useRiskDialogState({
     setCurrentIndex,
     tabValue,
     setTabValue,
+    /** The tab the dialog opened on — browsing the risks keeps it. */
+    firstTab,
     local,
     setLocal,
     showSrslTables,
