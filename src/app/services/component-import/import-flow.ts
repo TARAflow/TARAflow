@@ -179,6 +179,16 @@ export function applyComponentImport(input: {
     eeMapping: choice.eeMapping,
   });
 
+  // The multiprocess starts with the component's own description — the DFD
+  // is complete only when everything is described, and the machine had no
+  // reason to write one (manual test 2026-11-17: MP-1 kept the DFD "in progress").
+  const componentDescription = imported.snapshot.about?.description?.trim();
+  if (componentDescription) {
+    inserted.elements = inserted.elements.map((e) =>
+      e.id === inserted.multiprocessTfId && !e.description?.trim() ? { ...e, description: componentDescription } : e,
+    );
+  }
+
   const instance: ComponentInstance = {
     id: ids.instanceId,
     importId: imported.id,

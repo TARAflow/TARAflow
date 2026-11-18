@@ -135,5 +135,36 @@ describe("phase indicators", () => {
     ]);
     expect(JSON.stringify(details)).not.toContain("ghp_token");
   });
-});
 
+  // Manual test 2026-11-17: DFD and Threats "in progress" with a tooltip that
+  // gave no reason — MP-1 had no description, 18 threats were not rated.
+  it("an in-progress phase names why: the records without a description, the threats not rated", () => {
+    const ids = ["MP-1", "DF-2", "A-1", "B", "C", "D", "E"];
+    const { details, counts } = phaseIndicators({
+      phaseStatus: stored,
+      info,
+      dfdValidation: { errors: [], warnings: [] },
+      dfdStatus: "in-progress",
+      undescribed: ids,
+      unratedThreats: ["FP-DF4-S-IN-1", "SB-DF2-T-OUT-1"],
+      t,
+    });
+    expect(details[PhaseId.DFD]).toEqual([`Without a description (7): ${ids.slice(0, MAX_DETAILS).join(", ")} …`]);
+    expect(details[PhaseId.Threats]).toEqual(["Not rated yet (2): FP-DF4-S-IN-1, SB-DF2-T-OUT-1"]);
+    // reasons, not findings: the counts stay
+    expect(counts[PhaseId.DFD]).toEqual({ errors: 0, warnings: 0 });
+    expect(counts[PhaseId.Threats]).toEqual({ errors: 0, warnings: 0 });
+  });
+
+  it("a complete DFD lists nothing undescribed", () => {
+    const { details } = phaseIndicators({
+      phaseStatus: stored,
+      info,
+      dfdValidation: { errors: [], warnings: [] },
+      dfdStatus: "complete",
+      undescribed: ["X"],
+      t,
+    });
+    expect(details[PhaseId.DFD]).toBeUndefined();
+  });
+});

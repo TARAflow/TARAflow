@@ -772,5 +772,20 @@ export function replaceComponentInstance(input: ReplaceComponentInput): ReplaceC
   });
 
   const remaining = { elements: [...stripped.elements], connections: [...stripped.connections], assets: [...(stripped.assets ?? [])] };
-  return { ...inserted, parentPageId, remaining };
+  // The multiprocess is the machine's: its description, properties and
+  // asset relations stay (the insert lays down a fresh record).
+  const oldMp = machine.elements.find((e) => e.id === multiprocessTfId);
+  const elements = oldMp
+    ? inserted.elements.map((e) =>
+        e.id === multiprocessTfId
+          ? {
+              ...e,
+              ...(oldMp.description ? { description: oldMp.description } : {}),
+              properties: oldMp.properties ?? e.properties,
+              assetRelations: oldMp.assetRelations ?? e.assetRelations,
+            }
+          : e,
+      )
+    : inserted.elements;
+  return { ...inserted, elements, parentPageId, remaining };
 }

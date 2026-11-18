@@ -54,6 +54,14 @@ export interface PhaseIndicatorInput {
   /** Stored threats the current rules would no longer / additionally generate. */
   threatDrift?: { obsolete: number; added: number };
   /**
+   * DFD elements, flows and assets without a description (display ids):
+   * the DFD is complete only when everything is described — a tooltip
+   * without them gave no reason for "in progress" (manual test 2026-11-17).
+   */
+  undescribed?: readonly string[];
+  /** Threats not rated yet (display ids) — why the Threats phase is in progress. */
+  unratedThreats?: readonly string[];
+  /**
    * TARA verification (iso-21434 only): its kind and the Overview's status
    * text. Counted on the General phase, where the status line lives — not
    * verified / changed / reconfirm / outdated a warning, failed an error.
@@ -84,6 +92,12 @@ function capped(lines: string[], t: Translate): string[] {
     ...lines.slice(0, MAX_DETAILS),
     t("phases.details.more", { count: lines.length - MAX_DETAILS, defaultValue: "… {{count}} more" }),
   ];
+}
+
+/** "<label> (n): A, B, C, D, E …" — at most MAX_DETAILS names. */
+function namedList(t: Translate, key: string, fallback: string, ids: readonly string[]): string {
+  const list = ids.slice(0, MAX_DETAILS).join(", ") + (ids.length > MAX_DETAILS ? " …" : "");
+  return t(key, { count: ids.length, list, defaultValue: fallback });
 }
 
 export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
@@ -159,6 +173,10 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
     else if (dfdStatus === "complete" && cmpWarnings.length > 0) dfdStatus = "in-progress";
     if (dfdStatus) status = { ...status, [PhaseId.DFD]: dfdStatus };
   }
+  const undescribed = input.undescribed ?? [];
+  if (undescribed.length > 0 && status[PhaseId.DFD as keyof PhaseStatusMap] !== "complete") {
+    details[PhaseId.DFD] = [...(details[PhaseId.DFD] ?? []), namedList(t, "phases.details.undescribed", "Without a description ({{count}}): {{list}}", undescribed)];
+  }
 
   // Threats: generation drift (not a validation finding).
   const obsolete = input.threatDrift?.obsolete ?? 0;
@@ -176,6 +194,8 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
   if (added > 0) {
     drift.push(t("tabs.threats.drift.banner.added", { count: added, defaultValue: "{{count}} threats would be added" }));
   }
+  const unrated = input.unratedThreats ?? [];
+  if (unrated.length > 0) drift.push(namedList(t, "phases.details.unrated", "Not rated yet ({{count}}): {{list}}", unrated));
   if (drift.length > 0) details[PhaseId.Threats] = drift;
 
   return { status, counts, details };

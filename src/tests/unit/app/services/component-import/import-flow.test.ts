@@ -104,6 +104,19 @@ describe("machineElementOptions", () => {
 });
 
 describe("applyComponentImport", () => {
+  // Manual test 2026-11-17: the multiprocess had no description, so the DFD
+  // stayed "in progress" with nothing in the tooltip.
+  it("the multiprocess starts with the component's description", () => {
+    const r = result();
+    const described = { ...r, snapshot: { ...r.snapshot, about: { ...r.snapshot.about, description: "  Smoke detector case.  " } } } as typeof r;
+    const apply = (res: typeof r) =>
+      applyComponentImport({ context: context(), machine: {}, result: res, choice: { prefix: "SD1", name: "SD", eeMapping: {} }, ids: { importId: "imp", instanceId: "i1" }, importedAt: "t" });
+    const mpOf = (a: ReturnType<typeof apply>) => a.outcome.elements.find((e) => e.id === a.instance.multiprocessTfId)!;
+    expect(mpOf(apply(described)).description).toBe("Smoke detector case.");
+    const without = { ...r, snapshot: { ...r.snapshot, about: { ...r.snapshot.about, description: "" } } } as typeof r;
+    expect(mpOf(apply(without)).description ?? "").toBe("");
+  });
+
   it("hazards: the instance's assets are offered in the hazard picker by their group, with the prefix (phase 4b)", () => {
     const applied = applyComponentImport({
       context: context(),

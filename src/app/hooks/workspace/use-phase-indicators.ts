@@ -151,6 +151,8 @@ export function usePhaseIndicators({
                 })()
               : null,
             threatDrift: threatDriftCounts,
+            undescribed: undescribedOf(activeProject.dfd),
+            unratedThreats: unratedThreatsOf(activeProject.threats),
             verification: verification
               ? { kind: verification.kind, text: verificationStatusText(verification, t) }
               : undefined,
@@ -161,4 +163,22 @@ export function usePhaseIndicators({
   );
 
   return { threatDriftCounts, auditHintLines, indicators };
+}
+
+/** DFD records without a description, as the completeness rule counts them (dfd-completeness.ts). */
+function undescribedOf(dfd: Project["dfd"] | null | undefined): string[] {
+  if (!dfd) return [];
+  const none = (r: { description?: string }) => !r.description || r.description.trim().length === 0;
+  return [...(dfd.elements ?? []), ...(dfd.connections ?? []), ...(dfd.assets ?? [])]
+    .filter(none)
+    .map((r) => (r as { displayId?: string; name?: string; id: string }).displayId || (r as { name?: string }).name || r.id);
+}
+
+/** Threats without a rating, as the Threats phase status counts them (threat-phase-status.ts). */
+function unratedThreatsOf(threats: Project["threats"] | null | undefined): string[] {
+  if (!threats) return [];
+  return [...(threats.perElementTables ?? []), ...(threats.perInteractionTables ?? [])]
+    .flatMap((t) => t.threats ?? [])
+    .filter((t) => !t.relevance || t.relevance === "unrated")
+    .map((t) => t.displayId ?? t.id);
 }

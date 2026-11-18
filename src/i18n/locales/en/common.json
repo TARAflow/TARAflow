@@ -92,6 +92,8 @@
     "details": {
       "missing": "Missing: {{fields}}",
       "credentialsInUrl": "Source reference {{url}} carries credentials in its URL — clean it (Overview → Sources) and revoke the token at the provider",
+      "undescribed": "Without a description ({{count}}): {{list}}",
+      "unrated": "Not rated yet ({{count}}): {{list}}",
       "more": "… {{count}} more",
       "field": {
         "name": "Name",

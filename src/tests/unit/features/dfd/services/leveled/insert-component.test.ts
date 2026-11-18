@@ -478,6 +478,21 @@ describe("replaceComponentInstance — an instance moves to a new component stat
     expect(numberOf(unpaired, newTf)).toBe(`DF-${Math.max(...used) + 1}`);
   });
 
+  it("the multiprocess keeps the machine's description, properties and asset relations", () => {
+    const own = {
+      ...machineAfter,
+      elements: machineAfter.elements.map((e) =>
+        e.id === first.multiprocessTfId
+          ? { ...e, description: "Our smoke detector", properties: { securityLevel: "SL2" }, assetRelations: [{ assetId: "a-own", relation: "processes" }] }
+          : e,
+      ),
+    } as typeof machineAfter;
+    const mp = replace(component, own).elements.find((e) => e.id === first.multiprocessTfId)!;
+    expect(mp.description).toBe("Our smoke detector");
+    expect(mp.properties).toEqual({ securityLevel: "SL2" });
+    expect(mp.assetRelations).toEqual([{ assetId: "a-own", relation: "processes" }]);
+  });
+
   it("a changed state: what the component removed goes, the rest keeps its ids", () => {
     const process = component.elements.find((e) => e.type === "Process" && !component.connections.some((c) => c.from === e.id || c.to === e.id));
     const victim = process ?? component.elements.find((e) => e.type === "DataStore")!;
