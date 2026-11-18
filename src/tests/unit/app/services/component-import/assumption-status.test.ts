@@ -107,6 +107,17 @@ describe("assumptions of use per instance (phase 3b)", () => {
     expect(inst(m, "t").assumptions).toEqual([]);
   });
 
+  it("an edit keeps the entry in its place — no reordering in the file (manual test 2026-11-17)", () => {
+    let m = machine();
+    m = set(m, "s", "a1", { status: "fulfilled" });
+    m = set(m, "s", "a2", { status: "fulfilled" });
+    m = set(m, "s", "a1", { status: "not_fulfilled", evidence: { note: "no cabinet" } });
+    expect(inst(m, "s").assumptions.map((a) => [a.assumptionId, a.status])).toEqual([
+      ["a1", "not_fulfilled"],
+      ["a2", "fulfilled"],
+    ]);
+  });
+
   it("findings: open (warning), not fulfilled (error), fulfilled by a measure not implemented yet", () => {
     let m = machine();
     expect(keys(m).warnings).toContain("CMP_AOU_OPEN");

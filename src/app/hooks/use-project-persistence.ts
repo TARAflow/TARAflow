@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useFileSystemAccess } from './use-file-system-access';
 import type { Project } from '../models/project-types';
 import { serialiseProject } from "../services/prepare-for-disk";
+import { sameButTimestamps } from "../services/write-guard";
 
 /**
  * Unified Project Persistence Hook
@@ -149,9 +150,20 @@ export const useProjectPersistence = () => {
         // fields (filePath, hasUnsavedChanges). This used to strip only the
         // graph, which is how the author's absolute filePath reached disk.
         try {
+          const text = serialiseProject(project);
+          // nothing but timestamps changed: leave the file as it is (no
+          // dirty repository after opening or after an Audit commit)
+          const file = (window as any).electron.file;
+          const onDisk =
+            typeof file.readProject === "function"
+              ? await Promise.resolve(file.readProject(targetPath)).catch(() => null)
+              : null;
+          if (onDisk?.success && sameButTimestamps(onDisk.data, text)) {
+            return { success: true, data: targetPath };
+          }
           const result = await (window as any).electron.file.writeProject(
             targetPath,
-            serialiseProject(project),
+            text,
           );
           return result;
         } catch (error: any) {

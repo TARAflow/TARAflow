@@ -35,6 +35,7 @@ import { useAuditRepo } from "../hooks/useAuditRepo";
 import { findVerificationCommits } from "../services/verification-commits";
 import { useAuditProtection } from "../hooks/useAuditProtection";
 import {
+  fileDiffersFromHead,
   loadCommittedManifest,
   loadPreviousProjectFromGit,
   loadSigningState,
@@ -372,10 +373,21 @@ const AuditTabView: React.FC<AuditTabProps> = ({
       }
 
       // Detect changes against the real previous state
-      const detectedChanges = diffService.detectChanges(
+      let detectedChanges = diffService.detectChanges(
         project as Project,
         previousProject,
       );
+      // nothing listed, but the file differs from HEAD: derived values only —
+      // still committable, or the repository stays dirty for good
+      if (
+        detectedChanges.length === 0 &&
+        previousProject &&
+        repoRoot &&
+        filePath &&
+        (await fileDiffersFromHead((args) => gitService.raw(args), repoRoot, filePath))
+      ) {
+        detectedChanges = diffService.derivedOnlyChanges();
+      }
 
       setChanges(detectedChanges);
 

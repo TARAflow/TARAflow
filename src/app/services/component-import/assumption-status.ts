@@ -90,7 +90,11 @@ export function withAssumptionStatus(
         ...(evidence ? { evidence } : {}),
         ...(rationale ? { rationale } : {}),
       };
-      return { ...i, assumptions: [...others, entry] };
+      // in its place: an edit must not reorder the list in the file (diff
+      // churn, manual test 2026-11-17); a new entry goes to the end
+      const list = i.assumptions ?? [];
+      const at = list.findIndex((a) => a.assumptionId === assumptionId);
+      return { ...i, assumptions: at < 0 ? [...list, entry] : list.map((a, k) => (k === at ? entry : a)) };
     }),
   };
 }

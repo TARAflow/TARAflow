@@ -223,6 +223,30 @@ export class DiffService {
   }
 
   /**
+   * The change list when the file differs from HEAD but no phase lists a
+   * change: only derived values moved (manual test 2026-11-17 — the threat
+   * ids the risk sync copies into the risks after a renumbering). One entry,
+   * so the commit stays possible and its message says what it is.
+   */
+  derivedOnlyChanges(): PhaseChanges[] {
+    return [
+      {
+        phase: "derived",
+        phaseLabel: "Derived values",
+        changeCount: 1,
+        changes: [
+          {
+            type: "modified",
+            id: "derived",
+            name: "Derived values only",
+            description: "Only values the app derives changed (e.g. threat ids copied into the risks by the risk sync)",
+          },
+        ],
+      },
+    ];
+  }
+
+  /**
    * Generate commit message data from changes
    */
   generateCommitMessageData(
