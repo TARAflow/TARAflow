@@ -237,6 +237,28 @@ describe("SourceBindingsSection", () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
+  // Manual test 2026-11-17: every failure was "Could not reach <host>".
+  it.each([
+    ["not_found", "github.com has no such repository — or it is private and you have no access. Check the URL."],
+    ["no_access", "github.com refused access. A private repository needs stored git credentials (credential helper or SSH key)."],
+    ["offline", "Could not connect to github.com — no network, or the host name is wrong."],
+    ["timeout", "github.com did not answer in time."],
+  ] as const)("names why it failed: %s", async (failure, text) => {
+    const onUpdate = vi.fn();
+    vi.mocked(resolveSourceBinding).mockResolvedValue({ success: false, reachable: false, error: "git said so", failure });
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+    fireEvent.click(screen.getByText("Resolve"));
+    await screen.findByText(text);
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
   it("shows a distinct message when consent was denied", async () => {
     const onUpdate = vi.fn();
     vi.mocked(resolveSourceBinding).mockResolvedValue({

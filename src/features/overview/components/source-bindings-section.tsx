@@ -47,6 +47,15 @@ interface SourceBindingsSectionProps {
   onUpdate: (bindings: SourceBinding[]) => void;
 }
 
+// Why "Resolve" failed, in words (manual test 2026-11-17: before, every
+// failure was "Could not reach <host>").
+const FAILURE_TEXT = {
+  not_found: "{{host}} has no such repository — or it is private and you have no access. Check the URL.",
+  no_access: "{{host}} refused access. A private repository needs stored git credentials (credential helper or SSH key).",
+  offline: "Could not connect to {{host}} — no network, or the host name is wrong.",
+  timeout: "{{host}} did not answer in time.",
+} as const;
+
 interface PendingConsent {
   host: string;
   resolve: (allowed: boolean) => void;
@@ -131,10 +140,15 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
           ? t("sourceBinding.resolveError.consentDenied", {
               defaultValue: "Network access was not allowed.",
             })
-          : t("sourceBinding.resolveError.unreachable", {
-              host: extractRepoHost(row.repoUrl),
-              defaultValue: "Could not reach {{host}}.",
-            });
+          : result.failure && result.failure !== "unknown"
+            ? t(`sourceBinding.resolveError.${result.failure}`, {
+                host: extractRepoHost(row.repoUrl),
+                defaultValue: FAILURE_TEXT[result.failure],
+              })
+            : t("sourceBinding.resolveError.unreachable", {
+                host: extractRepoHost(row.repoUrl),
+                defaultValue: "Could not reach {{host}}.",
+              });
       setResolveErrors((errs) => ({ ...errs, [row.id]: message }));
       return;
     }

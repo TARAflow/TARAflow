@@ -205,7 +205,8 @@ declare global {
         | { success: true; data: { reachable: true; sha: string | null } }
         | {
             success: false;
-            data: { reachable: false; sha: null };
+            // what git said went wrong (electron/ipc/remote-ref.ts)
+            data: { reachable: false; sha: null; failure?: "not_found" | "no_access" | "offline" | "timeout" | "unknown" };
             error: string;
           }
       >;

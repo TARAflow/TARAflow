@@ -175,6 +175,10 @@
     "resolveError": {
       "consentDenied": "Network access was not allowed.",
       "unreachable": "Could not reach {{host}}.",
+      "not_found": "{{host}} has no such repository — or it is private and you have no access. Check the URL.",
+      "no_access": "{{host}} refused access. A private repository needs stored git credentials (credential helper or SSH key).",
+      "offline": "Could not connect to {{host}} — no network, or the host name is wrong.",
+      "timeout": "{{host}} did not answer in time.",
       "refNotFound": "Reached the repository, but \"{{ref}}\" was not found there."
     },
     "consent": {

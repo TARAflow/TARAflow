@@ -5,6 +5,7 @@ import { ipcMain } from "electron";
 import { simpleGit } from "simple-git";
 import { GitService } from "../services/git-service-main";
 import { rawGitInDir } from "./git-raw-in-dir";
+import { resolveRemoteRef } from "./remote-ref";
 
 let gitService: GitService;
 
@@ -138,25 +139,6 @@ export function registerGitHandlers() {
   // rather than retrofitted later.
   ipcMain.handle(
     "git:resolveRemoteRef",
-    async (_e, repoUrl: string, refLabel: string) => {
-      try {
-        const output = await simpleGit().listRemote([repoUrl, refLabel]);
-        const line = output
-          .split("\n")
-          .map((l) => l.trim())
-          .find((l) => l.length > 0);
-        if (!line) {
-          return { success: true, data: { reachable: true, sha: null } };
-        }
-        const sha = line.split("\t")[0];
-        return { success: true, data: { reachable: true, sha } };
-      } catch (err: any) {
-        return {
-          success: false,
-          data: { reachable: false, sha: null },
-          error: String(err?.message ?? err),
-        };
-      }
-    },
+    async (_e, repoUrl: string, refLabel: string) => resolveRemoteRef(repoUrl, refLabel),
   );
 }

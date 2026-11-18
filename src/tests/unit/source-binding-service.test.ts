@@ -142,4 +142,17 @@ describe("resolveSourceBinding", () => {
       error: "getaddrinfo ENOTFOUND github.com",
     });
   });
+
+  it("passes on why the main process could not reach it (manual test 2026-11-17)", async () => {
+    approveHost("github.com");
+    (window as any).git.resolveRemoteRef.mockResolvedValue({
+      success: false,
+      data: { reachable: false, sha: null, failure: "not_found" },
+      error: "remote: Repository not found.",
+    });
+
+    const result = await resolveSourceBinding(binding, vi.fn());
+
+    expect(result).toEqual({ success: false, reachable: false, error: "remote: Repository not found.", failure: "not_found" });
+  });
 });
