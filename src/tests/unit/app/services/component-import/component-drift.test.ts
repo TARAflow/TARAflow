@@ -352,3 +352,71 @@ describe("the newer state read for the update, and up to date right after it (ph
   });
 });
 
+
+// Manual test 2026-11-17: the import followed `import-example`, the new
+// commit of the component was on the checked-out test branch, and "Check"
+// said only "up to date". The checked-out branch's newer state is a hint
+// now; following that branch makes it the newer state the update reads.
+describe("drift check — a newer state on the checked-out branch", () => {
+  let repo: string;
+  let path: string;
+  let imp: ComponentImport;
+  const at = (...args: string[]) => execFileSync("git", args, { cwd: repo, encoding: "utf-8" }).trim();
+  beforeAll(async () => {
+    repo = mkdtempSync(join(tmpdir(), "taraflow-drift-branch-"));
+    path = join(repo, "camera.tara.json");
+    sh(repo, "init", "-q", "-b", "main");
+    sh(repo, "config", "user.email", "t@example.com");
+    sh(repo, "config", "user.name", "Test");
+    sh(repo, "config", "commit.gpgsign", "false");
+    writeFileSync(path, JSON.stringify(base()));
+    sh(repo, "add", "-A");
+    sh(repo, "commit", "-q", "-m", "v1");
+    const r = await readComponentSource(path, read, git);
+    if (!r.ok) throw new Error(r.error);
+    imp = { id: "imp", componentId: r.snapshot.component.projectId, name: "Camera", source: r.source, importedAt: "t", contentHash: r.contentHash, snapshot: r.snapshot } as ComponentImport;
+    sh(repo, "switch", "-q", "-c", "try");
+  });
+  afterAll(() => rmSync(repo, { recursive: true, force: true }));
+
+  it("a layout-only commit on the checked-out branch: no hint", async () => {
+    writeFileSync(path, JSON.stringify(base(), null, 2));
+    sh(repo, "commit", "-q", "-am", "reformat");
+    expect(await checkComponentDrift(imp, path, read, git)).toEqual({ kind: "up_to_date" });
+  });
+
+  it("a newer state there: up to date (the import follows main), with the branch as a hint and an info finding", async () => {
+    const changed = base();
+    changed.info.name = "Camera v2";
+    writeFileSync(path, JSON.stringify(changed));
+    sh(repo, "commit", "-q", "-am", "v2");
+    const head = at("rev-parse", "HEAD");
+    const status = await checkComponentDrift(imp, path, read, git);
+    expect(status).toEqual({ kind: "up_to_date", otherBranch: { branch: "try", commitSha: head } });
+    expect(updateTargetOf(imp, status)).toBeUndefined();
+    const project = { components: { imports: [imp], instances: [{ importId: "imp", multiprocessTfId: "mp1" }] }, dfd: { elements: [{ id: "mp1", displayId: "MP-1" }] } };
+    expect(componentDriftFindings(project, new Map([["imp", status]]))).toEqual([
+      {
+        key: "components.findings.CMP_NEWER_ON_OTHER_BRANCH",
+        elementId: "mp1",
+        displayId: "MP-1",
+        params: { component: "Camera", branch: "try", where: head.slice(0, 8), tracked: "main" },
+      },
+    ]);
+  });
+
+  it("following the branch: the newer state the update reads", async () => {
+    const following = { ...imp, source: { ...imp.source, branch: "try" } };
+    expect(await checkComponentDrift(following, path, read, git)).toMatchObject({ kind: "newer_available", commitSha: at("rev-parse", "HEAD") });
+  });
+
+  it("with a tag pattern the releases decide: no branch hint", async () => {
+    const tagged = { ...imp, source: { ...imp.source, tagPattern: "rel/v*" } };
+    expect(await checkComponentDrift(tagged, path, read, git)).not.toHaveProperty("otherBranch");
+  });
+
+  it("back on the import's own branch: no hint", async () => {
+    sh(repo, "switch", "-q", "main");
+    expect(await checkComponentDrift(imp, path, read, git)).toEqual({ kind: "up_to_date" });
+  });
+});

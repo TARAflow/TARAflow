@@ -85,6 +85,14 @@ export type ComponentDriftStatus =
        * never pin — the content did not change, so no update is offered.
        */
       committedAs?: { commitSha: string; tag?: string };
+      /**
+       * The component's repository has another branch checked out, with a
+       * newer state of the file than the imported one (manual test
+       * 2026-11-17: the import followed `import-example`, the new commit was
+       * on the test branch, and "Check" said only "up to date"). A hint: the
+       * import keeps following its branch until the analyst follows this one.
+       */
+      otherBranch?: { branch: string; commitSha: string };
     }
   | { kind: "newer_available"; contentHash: string; commitSha?: string; tag?: string; builderChanged?: boolean }
   /**
@@ -229,13 +237,13 @@ export async function checkComponentDrift(
     }
   }
   const builder = builderChanged ? { builderChanged: true } : {};
-  if (commitSha === source.commitSha) return { kind: "up_to_date", ...builder };
+  if (commitSha === source.commitSha) return withOtherBranch({ kind: "up_to_date", ...builder }, root, source, baseline, git);
   let diverged = false;
   if (source.commitSha) {
     // An ancestor of the imported commit (a clone not fetched, a tag on an
     // older commit): older, not newer.
     const older = await git(["merge-base", "--is-ancestor", commitSha, source.commitSha], root);
-    if (older.code === 0) return { kind: "up_to_date", ...builder };
+    if (older.code === 0) return withOtherBranch({ kind: "up_to_date", ...builder }, root, source, baseline, git);
     const newer = await git(["merge-base", "--is-ancestor", source.commitSha, commitSha], root);
     diverged = newer.code !== 0;
   }
@@ -245,7 +253,38 @@ export async function checkComponentDrift(
   // Separate branches with other content: a hint, not an update offer.
   return diverged && result.kind === "newer_available"
     ? { kind: "diverged", contentHash: result.contentHash, commitSha, ...(tag ? { tag } : {}), ...builder }
-    : result;
+    : withOtherBranch(result, root, source, baseline, git);
+}
+
+/**
+ * An up-to-date import whose repository has another branch checked out with
+ * a newer state of the file — after the imported commit, other content —
+ * gets that branch as a hint (`otherBranch`). Not with a tag pattern: there
+ * the releases decide, not a branch.
+ */
+async function withOtherBranch(
+  result: ComponentDriftStatus,
+  root: string,
+  source: ComponentImport["source"],
+  baseline: string,
+  git: ComponentGitRunner,
+): Promise<ComponentDriftStatus> {
+  if (result.kind !== "up_to_date" || source.tagPattern || !source.branch || !source.path) return result;
+  const head = await git(["rev-parse", "--abbrev-ref", "HEAD"], root);
+  const branch = head.code === 0 ? head.stdout.trim() : "";
+  if (!branch || branch === "HEAD" || branch === source.branch) return result;
+  const sha = await git(["rev-parse", "HEAD"], root);
+  if (sha.code !== 0) return result;
+  const commitSha = sha.stdout.trim();
+  if (source.commitSha) {
+    const after = await git(["merge-base", "--is-ancestor", source.commitSha, commitSha], root);
+    if (after.code !== 0) return result;
+  }
+  const shown = await git(["show", `${commitSha}:${source.path}`], root);
+  if (shown.code !== 0) return result;
+  const read = componentSnapshotOfText(shown.stdout);
+  if (!read.ok || read.contentHash === baseline) return result;
+  return { ...result, otherBranch: { branch, commitSha } };
 }
 
 // ==================== FINDINGS ====================
@@ -279,7 +318,13 @@ export function componentDriftFindings(
     const builder = status.kind !== "unreachable" && status.builderChanged
       ? [{ key: KEY("CMP_SNAPSHOT_BUILDER_CHANGED"), ...at, params: { component: imported.name } }]
       : [];
-    if (status.kind === "up_to_date") return builder;
+    if (status.kind === "up_to_date") {
+      // a newer state on the checked-out branch: said, not offered (the import follows its branch)
+      const other = status.otherBranch
+        ? [{ key: KEY("CMP_NEWER_ON_OTHER_BRANCH"), ...at, params: { component: imported.name, branch: status.otherBranch.branch, where: status.otherBranch.commitSha.slice(0, 8), tracked: imported.source.branch ?? "" } }]
+        : [];
+      return [...builder, ...other];
+    }
     if (status.kind === "newer_available" || status.kind === "diverged") {
       const where = status.tag ?? (status.commitSha ? status.commitSha.slice(0, 8) : "");
       const code = status.kind === "diverged" ? "CMP_SOURCE_DIVERGED" : "CMP_NEWER_STATE_AVAILABLE";

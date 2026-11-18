@@ -51,6 +51,7 @@
     },
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Komponente {{component}}: ein neuerer Stand ist verfügbar ({{where}}). Nichts ändert sich, bis er explizit übernommen wird (Update).",
+      "CMP_NEWER_ON_OTHER_BRANCH": "Komponente {{component}}: der ausgecheckte Branch {{branch}} hat einen neueren Stand ({{where}}); der Import folgt {{tracked}}. Übersicht → Komponenten → „Branch folgen“, um diesen Branch zu nehmen.",
       "CMP_SNAPSHOT_BUILDER_CHANGED": "Komponente {{component}}: dieses TARAflow liest den importierten Stand anders als die Version, die ihn importiert hat — die Komponente selbst hat sich nicht geändert. „Gespeicherten Stand auffrischen…“ im Tab „Komponente“ des Multiprozesses übernimmt ihn neu.",
       "CMP_SOURCE_DIVERGED": "Komponente {{component}}: ein Stand auf getrenntem Ast ({{where}}) — weder neuer noch älter als der importierte (z.B. nach einem Rebase). Vor einer Übernahme mit dem Komponenten-Team klären.",
       "CMP_SOURCE_UNREACHABLE": "Komponente {{component}}: ob es einen neueren Stand gibt, lässt sich hier nicht prüfen ({{reason}}).",
@@ -186,6 +187,8 @@
       "committed": "inzwischen committet ({{where}}) — gespeicherten Stand auffrischen, um den Import an diesen Commit zu binden",
       "diverged": "Anderer Stand auf getrenntem Ast ({{where}}) — weder neuer noch älter; mit dem Komponenten-Team klären",
       "upToDate": "Aktuell",
+      "otherBranch": "ein neuerer Stand auf dem ausgecheckten Branch {{branch}} ({{where}}) — der Import folgt seinem eigenen Branch",
+      "followBranch": "Branch {{branch}} folgen",
       "newer": "Neuerer Stand verfügbar ({{where}}) — das Update folgt als expliziter Schritt",
       "unreachable": {
         "path_unknown": "Nicht geprüft — wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt (einmal über Datei → Öffnen öffnen)",

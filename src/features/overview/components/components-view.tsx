@@ -27,6 +27,8 @@ export interface ComponentsViewProps {
   checking?: boolean;
   /** Start the update of an import: the DFD tab opens with the update dialog (one path). */
   onUpdate?: (importId: string) => void;
+  /** Let an import follow another branch of the component's repository (then it is checked again). */
+  onFollowBranch?: (importId: string, branch: string) => void;
 }
 
 const DRIFT_COLOR: Record<NonNullable<ComponentOverviewItem["drift"]>["kind"], "success" | "warning" | "error" | "default"> = {
@@ -56,7 +58,7 @@ const Heading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </Typography>
 );
 
-export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd, onCheck, checking, onUpdate }) => {
+export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd, onCheck, checking, onUpdate, onFollowBranch }) => {
   const { t } = useTranslation();
   // The texts of the deviation list through the app's i18n (the report's keys, any namespace).
   // Raw texts: the shared formatter fills the {{placeholders}} itself.
@@ -170,7 +172,7 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
                 <Field label={t("overviewComponents.importedAt", { defaultValue: "Imported on" })}>{day(o.importedAt)}</Field>
                 <Field label={t("overviewComponents.lastUpdate", { defaultValue: "Last update" })}>{o.lastUpdateAt ? day(o.lastUpdateAt) : undefined}</Field>
                 {/* Check and update right here (6d) — the update runs in the DFD tab, the editor's path */}
-                {(onCheck || (onUpdate && item.update)) && (
+                {(onCheck || (onUpdate && item.update) || (onFollowBranch && item.followBranch)) && (
                   <Box sx={{ display: "flex", gap: 1, py: 0.5, flexWrap: "wrap" }} data-testid="component-overview-actions">
                     {onCheck && (
                       <>
@@ -187,6 +189,17 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
                         {item.update.refresh
                           ? t("components.update.refresh", { ns: "components", defaultValue: "Refresh stored state…" })
                           : t("components.update.open", { ns: "components", defaultValue: "Update…" })}
+                      </Button>
+                    )}
+                    {onFollowBranch && item.followBranch && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={checking}
+                        onClick={() => onFollowBranch(item.importId, item.followBranch!)}
+                        data-testid="component-overview-follow-branch"
+                      >
+                        {t("components.drift.followBranch", { ns: "components", branch: item.followBranch, defaultValue: "Follow branch {{branch}}" })}
                       </Button>
                     )}
                   </Box>

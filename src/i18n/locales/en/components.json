@@ -51,6 +51,7 @@
     },
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Component {{component}}: a newer state is available ({{where}}). Nothing changes until it is taken over explicitly (update).",
+      "CMP_NEWER_ON_OTHER_BRANCH": "Component {{component}}: the checked-out branch {{branch}} has a newer state ({{where}}); the import follows {{tracked}}. Overview → Components → \"Follow branch\" to take that branch.",
       "CMP_SNAPSHOT_BUILDER_CHANGED": "Component {{component}}: this TARAflow reads the imported state differently from the version that imported it — the component itself did not change. \"Refresh stored state…\" in the multiprocess's tab \"Component\" takes the new reading over.",
       "CMP_SOURCE_DIVERGED": "Component {{component}}: a state on a separate branch ({{where}}) — neither newer nor older than the imported one (e.g. after a rebase). Check with the component team before taking it over.",
       "CMP_SOURCE_UNREACHABLE": "Component {{component}}: whether a newer state exists cannot be checked here ({{reason}}).",
@@ -186,6 +187,8 @@
       "committed": "committed by now ({{where}}) — refresh the stored state to pin the import to it",
       "diverged": "Another state on a separate branch ({{where}}) — neither newer nor older; check with the component team",
       "upToDate": "Up to date",
+      "otherBranch": "a newer state on the checked-out branch {{branch}} ({{where}}) — the import follows its own branch",
+      "followBranch": "Follow branch {{branch}}",
       "newer": "Newer state available ({{where}}) — the update follows as an explicit step",
       "unreachable": {
         "path_unknown": "Not checked — where the component TARA lies on this computer is not known (open it once via File → Open)",

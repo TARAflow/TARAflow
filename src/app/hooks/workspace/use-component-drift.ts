@@ -25,7 +25,8 @@ export function useComponentDrift(project: Pick<Project, "id" | "components" | "
   const imports = project?.components?.imports;
   const filePath = project?.filePath;
   // Re-check when the imported states change (an update), not on every edit.
-  const key = useMemo(() => (imports ?? []).map((i) => `${i.id}:${i.contentHash}`).join("|"), [imports]);
+  // (and when an import follows another branch)
+  const key = useMemo(() => (imports ?? []).map((i) => `${i.id}:${i.contentHash}:${i.source.branch ?? ""}`).join("|"), [imports]);
 
   const check = useCallback(
     async (fetch: boolean) => {

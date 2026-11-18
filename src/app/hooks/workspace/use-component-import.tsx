@@ -95,7 +95,14 @@ export function driftView(status: ComponentDriftStatus, t: (key: string, options
           defaultValue: "committed by now ({{where}}) — refresh the stored state to pin the import to it",
         })}`
       : "";
-    return { kind: status.kind, text: t("components.drift.upToDate", { defaultValue: "Up to date" }) + builder + committed };
+    const other = status.otherBranch
+      ? ` · ${t("components.drift.otherBranch", {
+          branch: status.otherBranch.branch,
+          where: status.otherBranch.commitSha.slice(0, 8),
+          defaultValue: "a newer state on the checked-out branch {{branch}} ({{where}}) — the import follows its own branch",
+        })}`
+      : "";
+    return { kind: status.kind, text: t("components.drift.upToDate", { defaultValue: "Up to date" }) + builder + committed + other };
   }
   if (status.kind === "newer_available") {
     const where = status.tag ?? (status.commitSha ? status.commitSha.slice(0, 8) : "");

@@ -192,6 +192,8 @@ export interface ComponentOverviewItem {
   };
   /** An update (or a refresh of the stored state) can be started; absent = nothing to update. */
   update?: { refresh: boolean };
+  /** The checked-out branch of the component's repository has a newer state — the import can follow it. */
+  followBranch?: string;
   /** Is a newer state available? Absent = not checked. */
   drift?: { kind: "up_to_date" | "newer_available" | "diverged" | "unreachable"; text: string };
   /** Same likelihood method and intrinsic factor scales as this machine; absent = unknown. */

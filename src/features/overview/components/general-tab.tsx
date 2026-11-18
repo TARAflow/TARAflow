@@ -122,6 +122,8 @@ interface GeneralTabProps {
   componentsChecking?: boolean;
   /** Start the update of a component import (DFD tab, update dialog). */
   onUpdateComponent?: (importId: string) => void;
+  /** Let a component import follow another branch of its repository. */
+  onFollowComponentBranch?: (importId: string, branch: string) => void;
 }
 
 /**
@@ -158,6 +160,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   onCheckComponents,
   componentsChecking,
   onUpdateComponent,
+  onFollowComponentBranch,
 }) => {
   const { t } = useTranslation();
   const [chosenView, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -349,6 +352,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
           {...(onCheckComponents ? { onCheck: onCheckComponents } : {})}
           {...(componentsChecking !== undefined ? { checking: componentsChecking } : {})}
           {...(onUpdateComponent ? { onUpdate: onUpdateComponent } : {})}
+          {...(onFollowComponentBranch ? { onFollowBranch: onFollowComponentBranch } : {})}
         />
       )}
 

@@ -311,6 +311,7 @@ export const WorkspaceLayout: React.FC = () => {
           ...item,
           ...(status ? { drift: driftView(status, t) } : {}),
           ...(target ? { update: { refresh: target.refresh } } : {}),
+          ...(status?.kind === "up_to_date" && status.otherBranch ? { followBranch: status.otherBranch.branch } : {}),
         };
       }),
     [
@@ -408,6 +409,18 @@ export const WorkspaceLayout: React.FC = () => {
             onUpdateComponent={(importId) => {
               const action = componentImport.updateActionOf(importId);
               if (action) navigation.runInDfd(action.runner);
+            }}
+            onFollowComponentBranch={(importId, branch) => {
+              // the import follows the checked-out branch; the drift check runs again
+              const components = activeProject.components;
+              if (!components) return;
+              void updateProject({
+                id: activeProject.id,
+                components: {
+                  ...components,
+                  imports: components.imports.map((i) => (i.id === importId ? { ...i, source: { ...i.source, branch } } : i)),
+                },
+              });
             }}
           />
         )}

@@ -98,6 +98,16 @@ describe("ComponentsView: check and update (6d)", () => {
     expect(screen.queryByTestId("component-overview-update")).toBeNull();
     expect(screen.queryByTestId("component-overview-actions")).toBeNull();
   });
+
+  // Manual test 2026-11-17: the newer state was on the checked-out test branch.
+  it("a newer state on the checked-out branch: \"Follow branch …\" lets the import follow it", () => {
+    const onFollowBranch = vi.fn();
+    render(<ComponentsView items={[item("a", "Smoke Detector", { followBranch: "try-update" })]} onFollowBranch={onFollowBranch} />);
+    const button = screen.getByTestId("component-overview-follow-branch");
+    expect(button.textContent).toBe("Follow branch try-update");
+    fireEvent.click(button);
+    expect(onFollowBranch).toHaveBeenCalledWith("a", "try-update");
+  });
 });
 
 describe("Overview tab Components", () => {
