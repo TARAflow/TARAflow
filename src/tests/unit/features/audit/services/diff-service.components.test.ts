@@ -100,4 +100,25 @@ describe("audit diff — components", () => {
     ]);
     expect(JSON.stringify(section)).not.toContain("[object Object]");
   });
+
+  it("an assumption: only what changed, not the unchanged evidence on both sides (manual test 2026-11-17)", () => {
+    const snapshotImp = {
+      ...imp("abcdef1234", "111"),
+      snapshot: { snapshotFormat: 1, assumptions: [{ id: "a1", displayId: "ASM-02", text: "Locked", status: "confirmed" }] },
+    };
+    const evidence = { mitigationIds: ["M-R-002"], note: "Because it is" };
+    const inst = (a: Any): Any => ({ id: "i1", importId: "imp1", multiprocessTfId: "mp1", prefix: "SDC1", eeMapping: [], assumptions: [{ instanceId: "i1", assumptionId: "a1", ...a }] });
+    const lines = (before: Any, after: Any) =>
+      svc
+        .detectChanges(base({ imports: [snapshotImp], instances: [inst(after)] }), base({ imports: [snapshotImp], instances: [inst(before)] }))
+        .find((p) => p.phase === "components")!
+        .changes[0].details!.map((d) => `${d.fieldLabel}: ${d.oldValue ?? "—"} → ${d.newValue ?? "—"}`);
+    expect(lines({ status: "not_fulfilled", evidence }, { status: "fulfilled", evidence })).toEqual(["ASM-02: not_fulfilled → fulfilled"]);
+    expect(lines({ status: "fulfilled", evidence }, { status: "fulfilled", evidence: { ...evidence, note: "Checked" } })).toEqual([
+      "ASM-02 evidence: M-R-002, Because it is → M-R-002, Checked",
+    ]);
+    expect(lines({ status: "not_applicable", rationale: "No bus" }, { status: "not_applicable", rationale: "No bus here" })).toEqual([
+      "ASM-02 rationale: No bus → No bus here",
+    ]);
+  });
 });

@@ -184,6 +184,13 @@
       "summary": "{{error}} errors, {{warning}} warnings, {{info}} info",
       "strictOn": "strict",
       "clean": "No findings.",
+      "group": {
+        "error": "Errors ({{count}})",
+        "warning": "Warnings ({{count}})",
+        "info": "Notes ({{count}})"
+      },
+      "showFiles": "Show {{count}} files",
+      "hideFiles": "Hide files",
       "lead": "Check that every change in the trail is signed and in order.",
       "notRun": "Not verified yet.",
       "passTitle": "Trail verified",

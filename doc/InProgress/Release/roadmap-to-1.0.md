@@ -1,6 +1,6 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.5 · 2026-11-14 · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
+**Status:** v0.6 · 2026-11-18 · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
 catalogue stamp, field register + guard test, `no-feature-to-feature` with a baseline);
 the ISO/SAE 21434 risk model as a release of its own (0.23), two releases before the RC;
@@ -140,6 +140,15 @@ everything else.
   results; after the stamp).
 - **Raw i18n keys** can end up as saved threat / risk text — repair on load
   (`persisted-threat-text-fix.md`; its schema numbers are stale: 6 → 7 there, 14 now).
+- **Acknowledged audit findings** (user 2026-11-17, manual test of 0.19): old findings
+  — unsigned commits before signing was set up, files a script wrote — show on every
+  verification. An acknowledgement takes exactly one (code, commit, path) with a
+  rationale, who and when; it lives in `.taraflow/audit-acknowledged.json`, committed
+  with a signed `audit:` commit, so acknowledging leaves a trace the verification checks.
+  Acknowledged findings stay visible (collapsed, `acknowledged: true` in the CLI) and do
+  not fail the result, except with `--strict`. New findings are never acknowledged
+  automatically. Not acknowledgeable: a broken trust chain, CMP_SNAPSHOT_HASH_MISMATCH,
+  an invalid signature — those are to fix.
 
 ### 3.2 0.21 — physical attacks, sensors and actuators, field retirements
 

@@ -1124,18 +1124,31 @@ export class DiffService {
       if (old.prefix !== i.prefix) details.push(detail("prefix", "Prefix", old.prefix, i.prefix));
       if ((old.quantity ?? 1) !== (i.quantity ?? 1)) details.push(detail("quantity", "Quantity", old.quantity ?? 1, i.quantity ?? 1));
       keyed(details, "eeMapping", old.eeMapping, i.eeMapping, (m) => m.componentEeId, (k) => `EE ${ees.get(k) ?? k}`, (m) => names.get(m.machineTfId) ?? m.machineTfId);
-      keyed(
-        details,
-        "assumptions",
-        old.assumptions,
-        i.assumptions,
-        (a) => a.assumptionId,
-        (k) => asm.get(k) ?? k,
-        (a) => {
-          const evidence = [...(a.evidence?.mitigationIds ?? []), ...(a.evidence?.elementIds ?? []).map((e) => names.get(e) ?? e), ...(a.evidence?.note ? [a.evidence.note] : [])];
-          return `${a.status}${a.rationale ? ` (${a.rationale})` : ""}${evidence.length ? ` [evidence: ${evidence.join(", ")}]` : ""}`;
-        },
-      );
+      {
+        // An assumption: only what changed — status, rationale, evidence —
+        // not the unchanged evidence on both sides (manual test 2026-11-17).
+        type Asm = NonNullable<Instance["assumptions"]>[number];
+        const evidenceOf = (a: Asm) =>
+          [...(a.evidence?.mitigationIds ?? []), ...(a.evidence?.elementIds ?? []).map((e) => names.get(e) ?? e), ...(a.evidence?.note ? [a.evidence.note] : [])].join(", ");
+        const whole = (a: Asm) => {
+          const evidence = evidenceOf(a);
+          return `${a.status}${a.rationale ? ` (${a.rationale})` : ""}${evidence ? ` [evidence: ${evidence}]` : ""}`;
+        };
+        const am = new Map((old.assumptions ?? []).map((a) => [a.assumptionId, a]));
+        const bm = new Map((i.assumptions ?? []).map((a) => [a.assumptionId, a]));
+        for (const k of new Set([...am.keys(), ...bm.keys()])) {
+          const a = am.get(k);
+          const b = bm.get(k);
+          const name = asm.get(k) ?? k;
+          if (!a || !b) {
+            details.push(detail("assumptions", name, a ? whole(a) : undefined, b ? whole(b) : undefined));
+            continue;
+          }
+          if (a.status !== b.status) details.push(detail("assumptions", name, a.status, b.status));
+          if ((a.rationale ?? "") !== (b.rationale ?? "")) details.push(detail("assumptions", `${name} rationale`, a.rationale, b.rationale));
+          if (evidenceOf(a) !== evidenceOf(b)) details.push(detail("assumptions", `${name} evidence`, evidenceOf(a) || undefined, evidenceOf(b) || undefined));
+        }
+      }
       keyed(details, "relevanceOverrides", old.relevanceOverrides, i.relevanceOverrides, (o) => o.threatKey, (k) => `Relevance ${threats.get(k) ?? k}`, (o) => `${o.relevance} (${o.rationale})`);
       keyed(details, "measureOverrides", old.measureOverrides, i.measureOverrides, (o) => o.measureId, (k) => `Not effective here ${k}`, (o) => o.rationale);
       keyed(

@@ -184,6 +184,13 @@
       "summary": "{{error}} Fehler, {{warning}} Warnungen, {{info}} Infos",
       "strictOn": "streng",
       "clean": "Keine Befunde.",
+      "group": {
+        "error": "Fehler ({{count}})",
+        "warning": "Warnungen ({{count}})",
+        "info": "Hinweise ({{count}})"
+      },
+      "showFiles": "{{count}} Dateien zeigen",
+      "hideFiles": "Dateien ausblenden",
       "lead": "Prüfen, dass jede Änderung der Trail signiert und in Ordnung ist.",
       "notRun": "Noch nicht geprüft.",
       "passTitle": "Trail verifiziert",
