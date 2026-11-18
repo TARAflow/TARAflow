@@ -35,6 +35,7 @@ import {
   validateScenario,
 } from "./validators/completeness-validator";
 import { ValidationMessages } from "./validators/validator-utils";
+import { withoutComponentStructureFindings } from "./validators/component-structure-findings";
 import type { DFDGraph } from "../models/dfd-graph-types";
 
 export interface ValidationResult {
@@ -147,6 +148,13 @@ export class DFDValidator {
     validateDataflowLabels(connections, elements, errors, warnings);
     validateDataflowProperties(connections, errors, warnings);
     validateEndpointProtection(connections, elements, errors, warnings);
+
+    // 2b. Structure findings on an imported component's own elements are
+    //     the component's to fix, not the machine's (manual test 2026-11-17)
+    {
+      const kept = withoutComponentStructureFindings(warnings, elements);
+      warnings.splice(0, warnings.length, ...kept);
+    }
 
     // 3. Validate Asset Properties
     validateAssetProperties(assets, warnings, infos);
