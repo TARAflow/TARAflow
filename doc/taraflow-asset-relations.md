@@ -1304,8 +1304,14 @@ System "Safety Controller"
 
 ### Threat derivation
 
-For Function Assets with `isSafetyFunction: true`, the following threats
-are prioritized automatically:
+> **Not implemented (corrected 2026-11-14, 0.19):** no code reads `isSafetyFunction`;
+> setting it changes nothing. Threats on safety functions are ordered through the
+> safety chain instead — a hazard target / physical impact of the linked asset
+> (`getThreatPriority`, safety model v9). The intent below is kept as design, see
+> `doc/Open/Risk/model-field-purpose-and-rating-context-design.md`.
+
+Intended for Function Assets with `isSafetyFunction: true` (not implemented):
+the following threats prioritized automatically:
 
 - **Tampering (integrity):** manipulation of the function logic or parameters
 - **Denial of service (availability):** deactivation or interruption of the function

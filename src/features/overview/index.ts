@@ -31,6 +31,7 @@ export type {
   ItemModelItem,
   MethodologySummary,
   VerificationStatusView,
+  ComponentOverviewItem,
 } from "./models/overview-types";
 
 // ==================== HOOKS ====================

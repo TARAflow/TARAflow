@@ -19,6 +19,7 @@ import {
   type CreateTicketInput,
   type CreateTicketResult,
   type TicketCategory,
+  type TicketQuery,
   type TicketState,
   type TicketSummary,
 } from "shared/models/ticket-types";
@@ -83,9 +84,14 @@ export class GitLabAdapter implements TicketAdapter {
     };
   }
 
-  async fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]> {
+  async fetchTickets(projectKey: string, issueType: string, query: TicketQuery = {}): Promise<TicketSummary[]> {
     const label = issueType && issueType !== "__all__" && issueType !== PLAIN_ISSUE ? `&labels=${encodeURIComponent(issueType)}` : "";
-    const res = await trackerRequest<Json[]>(this.ref, "GET", `${projectPath(projectKey)}/issues?state=opened&order_by=updated_at&per_page=50${label}`);
+    const scope = query.scope ?? "active";
+    const state = scope === "active" ? "&state=opened" : scope === "done" ? "&state=closed" : "";
+    // "#12" / "12" finds issue 12 (iids[]), words search title and description.
+    const text = query.text?.trim().replace(/^#/, "") ?? "";
+    const search = !text ? "" : /^\d+$/.test(text) ? `&iids[]=${text}` : `&search=${encodeURIComponent(text)}`;
+    const res = await trackerRequest<Json[]>(this.ref, "GET", `${projectPath(projectKey)}/issues?order_by=updated_at&per_page=50${state}${label}${search}`);
     if (!res.ok) return [];
     return (res.data ?? []).map((i: Json) => {
       const key = `${projectKey}#${i.iid}`;

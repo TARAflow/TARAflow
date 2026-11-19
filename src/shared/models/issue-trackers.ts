@@ -40,7 +40,12 @@ export interface IssueTrackerDescriptor {
    * confirmed it.
    */
   preview?: boolean;
-  availableFrom: string;
+  /**
+   * The release that brought it; for a tracker not available yet, the
+   * release it is promised for — none when it is planned without a release
+   * (the list shows "planned").
+   */
+  availableFrom?: string;
   hostLabel: string;
   /** Prefilled host, e.g. https://api.github.com. */
   defaultHost?: string;
@@ -72,7 +77,7 @@ export const ISSUE_TRACKERS: readonly IssueTrackerDescriptor[] = [
   { id: "azure-devops", label: "Azure DevOps", available: true, preview: true, availableFrom: "0.18", hostLabel: "Organization URL", defaultHost: "https://dev.azure.com/", secretLabel: "Personal access token", auth: "basic-empty-user", accountFromUrl: "azure-organization" },
   { id: "github", label: "GitHub Issues", available: true, preview: true, availableFrom: "0.18", hostLabel: "API URL", defaultHost: "https://api.github.com", secretLabel: "Personal access token", auth: "bearer" },
   { id: "gitlab", label: "GitLab Issues", available: true, preview: true, availableFrom: "0.18", hostLabel: "GitLab URL", defaultHost: "https://gitlab.com", secretLabel: "Personal access token", auth: "private-token" },
-  { id: "polarion", label: "Polarion", available: false, availableFrom: "0.19", hostLabel: "Polarion URL", secretLabel: "Personal access token", auth: "bearer" },
+  { id: "polarion", label: "Polarion", available: false, hostLabel: "Polarion URL", secretLabel: "Personal access token", auth: "bearer" },
   { id: "openproject", label: "OpenProject", available: true, preview: true, availableFrom: "0.18", hostLabel: "OpenProject URL", secretLabel: "API key", auth: "basic-apikey" },
 ];
 

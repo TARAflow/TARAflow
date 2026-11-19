@@ -3,6 +3,7 @@
 // Location: features/documentation/utils/generators/base-generator.ts
 
 import { isIsoReport, isoRiskLabel } from "../iso-risk-label";
+import { uncreditedNote } from "../residual-note";
 import { itemDefinitionIntro, itemDefinitionReportSections } from "../item-definition-report";
 import type { ReportSection } from "../report-section";
 import {
@@ -18,6 +19,7 @@ import { controlLabels, mitigationLabels } from "../control-text";
 import { isStrideMethodDisabled } from "../stride-method-scope";
 import {
   attackTreeReportSections,
+  importedAttackTreeSections,
   attackTreesIntro,
   type AttackTreeReportSection,
 } from "../attack-tree-report";
@@ -43,6 +45,7 @@ import {
   threatStatsTable,
   type StatsTable,
 } from "../threat-risk-stats";
+import { reportThreatsById } from "../report-threats";
 import { dfdItemRefOfThreat } from "../../../../shared/models/dfd-table-groups";
 import {
   visibilityContexts,
@@ -51,11 +54,21 @@ import {
   type VisibilityFlowInput,
 } from "../../../../shared/models/property-visibility";
 import { impactAggregationSentence } from "../impact-aggregation-text";
+import {
+  importedComponentsIntro,
+  importedComponentsReportSections,
+  importedRiskNote,
+  importedThreatDifferenceLines,
+  importedThreatGroupSummary,
+  importedThreatGroupTitle,
+} from "../imported-report";
 import type {
   DocConfiguration,
   DocProjectData,
   DocLanguage,
   DocChapterId,
+  DocImportedThreat,
+  DocImportedThreatGroup,
 } from "../../models/doc-types";
 import {
   getChapterTitle,
@@ -429,6 +442,8 @@ export abstract class BaseDocumentGenerator {
         return this.generateItemDefinition(title);
       case "goals-claims":
         return this.generateGoalsClaims(title);
+      case "imported-components":
+        return this.generateImportedComponents(title);
       case "compliance-matrix":
         return this.generateComplianceMatrix(title);
       case "dfd":
@@ -1151,13 +1166,17 @@ export abstract class BaseDocumentGenerator {
     const threats = isStrideMethodDisabled(project.info?.tags, method)
       ? []
       : tables.flatMap((table) => table.threats);
+    // The threats of imported components (6a-1), per component, each once.
+    const imported = isStrideMethodDisabled(project.info?.tags, method)
+      ? []
+      : (project.computed.importedThreats ?? []).filter((g) => g.method === method && g.threats.length > 0);
 
     const chapterId: DocChapterId =
       method === "per-element"
         ? "threats-per-element"
         : "threats-per-interaction";
 
-    if (threats.length === 0) {
+    if (threats.length === 0 && imported.length === 0) {
       return {
         id: chapterId,
         title,
@@ -1219,14 +1238,17 @@ export abstract class BaseDocumentGenerator {
     );
     const typeLabel = (type: string) => getDFDElementTypeText(type as DFDElementType, this.ctx.t);
     let content = this.getThreatsHeaderTemplate(method);
-    content += this.formatStatsTable(threatStatsTable(threats, this.ctx.lang, typeLabel));
-    content += groups
-      ? groups
-          .map((g) =>
-            this.formatReportGroup(g.title, threatTable(g.items), threatGroupSummary(g.items, this.ctx.lang)),
-          )
-          .join("")
-      : threatTable(threats);
+    if (threats.length > 0) {
+      content += this.formatStatsTable(threatStatsTable(threats, this.ctx.lang, typeLabel));
+      content += groups
+        ? groups
+            .map((g) =>
+              this.formatReportGroup(g.title, threatTable(g.items), threatGroupSummary(g.items, this.ctx.lang)),
+            )
+            .join("")
+        : threatTable(threats);
+    }
+    content += imported.map((g) => this.importedThreatGroup(g)).join("");
 
     return {
       id: chapterId,
@@ -1234,6 +1256,53 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  // ==================== IMPORTED THREATS (6a-1) ====================
+
+  /**
+   * Anchors for further link targets in a table cell — the instance threats
+   * of an imported threat that is shown once ("SD2:P2-T-1" next to the row
+   * of "SD1:P2-T-1"), so every risk row's link resolves. Per format; none
+   * where the format links by UID (StrictDoc).
+   */
+  threatAnchorMarks(_ids: readonly string[]): string {
+    return "";
+  }
+
+  /** One component's threats of one method: a heading, each threat once, the instances below where they differ. */
+  protected importedThreatGroup(group: DocImportedThreatGroup): string {
+    const { project } = this.ctx;
+    const t = this.ctx.t;
+    const row = (threat: DocImportedThreat) => {
+      const lines = [threat.threatDescription, ...importedThreatDifferenceLines(threat, t)].map((x) => this.escapeTableText(x));
+      const values = {
+        anchor: threat.instanceIds[0] ?? threat.displayId,
+        tsId: threat.displayId,
+        strideCategory: threat.strideCategory,
+        strideName: project.computed.strideNames.get(threat.strideCategory) ?? threat.strideCategory,
+        // the other instances' threats as link targets of their risk rows
+        elementOrFlow: this.threatAnchorMarks(threat.instanceIds.slice(1)) + this.escapeTableText(threat.elementOrFlow),
+        trustBoundary: this.escapeTableText(threat.trustBoundary || "-"),
+        threatDescription: lines.join("<br>"),
+        attackDescription: this.escapeTableText(threat.attackDescription),
+        mitigation: resolveMitigationDrafts(threat.proposedMitigations ?? [])
+          .map((m) => (m.isCustom ? `[custom] ${m.notes ?? ""}` : m.text))
+          .filter(Boolean)
+          .map((x) => `• ${this.escapeTableText(x)}`)
+          .join("<br>"),
+        verification: resolveVerificationDrafts(threat.proposedVerifications ?? [])
+          .map((v) => (v.isCustom ? `[custom] ${v.notes ?? ""}` : v.text))
+          .filter(Boolean)
+          .map((x) => `• ${this.escapeTableText(x)}`)
+          .join("<br>"),
+      };
+      return replacePlaceholders(this.getAttackPathThreatRowTemplate(), values);
+    };
+    const title = importedThreatGroupTitle(group, t);
+    const summary = importedThreatGroupSummary(group, t);
+    const table = replacePlaceholders(this.getThreatsTableTemplate(), { threatRows: group.threats.map(row).join("") });
+    return this.formatReportGroup(title, table, summary);
   }
 
   // ==================== THREATS (ATTACK PATH) ====================
@@ -1292,12 +1361,20 @@ export abstract class BaseDocumentGenerator {
     // "5.3 – Medium" by the scale's thresholds (risk-score-text.ts).
     const config = project.risks?.configuration;
     const isoReport = config?.likelihoodMethod === "iso-21434";
-    const riskBeforeLabel = isoReport
-      ? isoRiskLabel(risk, this.ctx.t, false)
-      : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.ctx.lang);
-    const riskAfterLabel = isoReport
-      ? isoRiskLabel(risk, this.ctx.t, true)
-      : riskScoreText(risk.calculatedRiskAfterMitigation, config, this.ctx.lang);
+    // An imported risk: where its rating comes from (6a-1, E10).
+    const provenance = importedRiskNote(risk.id, project.computed, this.ctx.t);
+    const riskBeforeLabel = `${
+      isoReport
+        ? isoRiskLabel(risk, this.ctx.t, false)
+        : riskScoreText(risk.calculatedRiskBeforeMitigation, config, this.ctx.lang)
+    }${provenance ? `<br>${this.escapeTableText(provenance)}` : ""}`;
+    // The report data carries the credited residual (I7 (4)); the note says why one is not credited.
+    const notCredited = uncreditedNote(risk.id, project.computed, this.ctx.t);
+    const riskAfterLabel = `${
+      isoReport
+        ? isoRiskLabel(risk, this.ctx.t, true)
+        : riskScoreText(risk.calculatedRiskAfterMitigation, config, this.ctx.lang)
+    }${notCredited ? ` — ${this.escapeTableText(notCredited)}` : ""}`;
     const moscowLabel =
       project.computed.moscowLabels.get(risk.moscowPriority) ??
       risk.moscowPriority;
@@ -1357,14 +1434,8 @@ export abstract class BaseDocumentGenerator {
       });
 
     // Leveled DFD (7d): one table per group — a risk follows its threat.
-    const threatById = new Map(
-      [
-        ...(project.threats?.perElementTables ?? []),
-        ...(project.threats?.perInteractionTables ?? []),
-      ]
-        .flatMap((table) => table.threats)
-        .map((threat) => [threat.id, threat]),
-    );
+    // own and imported threats (a risk of an imported component, manual test 2026-11-17)
+    const threatById = reportThreatsById(project);
     const groups = reportGroupsOf(project.dfd, this.ctx.lang, risks, (risk) => {
       const threat = threatById.get(risk.threatId);
       return threat ? dfdItemRefOfThreat(threat) : undefined;
@@ -1471,7 +1542,11 @@ export abstract class BaseDocumentGenerator {
    */
   protected generateAttackTrees(title: string): ChapterContent {
     const chapterId: DocChapterId = "attack-trees";
-    const sections = attackTreeReportSections(this.ctx.project, this.ctx.t);
+    // The machine's own trees, then those of imported components (6a-1b).
+    const sections = [
+      ...attackTreeReportSections(this.ctx.project, this.ctx.t),
+      ...importedAttackTreeSections(this.ctx.project.computed?.importedAttackTrees, this.ctx.project.attackTree?.configuration, this.ctx.t),
+    ];
     if (sections.length === 0) {
       return { id: chapterId, title, content: "", hasContent: false };
     }
@@ -1510,6 +1585,20 @@ export abstract class BaseDocumentGenerator {
     }
     const body = sections.map((s) => this.formatReportSection(s)).join("");
     const content = this.formatSectionedChapter(chapterId, title, goalsClaimsIntro(this.ctx.t), body);
+    return { id: chapterId, title, content, hasContent: content !== "" };
+  }
+
+  // ==================== IMPORTED COMPONENTS (6a-2) ====================
+
+  /** One section per imported component, one sub-section per instance; the credit rule in the intro. */
+  protected generateImportedComponents(title: string): ChapterContent {
+    const chapterId: DocChapterId = "imported-components";
+    const sections = importedComponentsReportSections(this.ctx.project.computed?.importedComponents, this.ctx.t);
+    if (sections.length === 0) {
+      return { id: chapterId, title, content: "", hasContent: false };
+    }
+    const body = sections.map((s) => this.formatReportSection(s)).join("");
+    const content = this.formatSectionedChapter(chapterId, title, importedComponentsIntro(this.ctx.t).join("\n\n"), body);
     return { id: chapterId, title, content, hasContent: content !== "" };
   }
 
@@ -1558,13 +1647,7 @@ export abstract class BaseDocumentGenerator {
 
     // Threat lookup for the mandated-control mapping (anchor type lives on the
     // threat, not the risk).
-    const threatById = new Map(
-      [
-        ...(project.threats?.perElementTables?.flatMap((t) => t.threats) ?? []),
-        ...(project.threats?.perInteractionTables?.flatMap((t) => t.threats) ??
-          []),
-      ].map((t) => [t.id, t]),
-    );
+    const threatById = reportThreatsById(project);
 
     const srslRows = (project.risks?.risks ?? [])
       .filter((r) => r.moscowPriority !== "wont")

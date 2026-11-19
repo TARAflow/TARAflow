@@ -4,8 +4,8 @@
 //
 // TARAflow's asset ownership split (SoT model — one canonical store):
 //   DFD tab        EDITS: existence, relations, structural + technical
-//                        properties (dataType, portability, …), and
-//                        protectionNeed. It no longer owns a separate store —
+//                        properties (dataType, portability, …).
+//                        It no longer owns a separate store —
 //                        those edits are STORED in the one feature store.
 //   Asset tab      EDITS: impact ratings, security goals (CIANAAA), HVA block.
 //   Shared:        name, description  (bidirectional).
@@ -13,7 +13,7 @@
 // Under the single-source-of-truth consolidation there is only ONE asset store
 // (the feature store). The structural `properties` bag is edited in the DFD tab
 // but must be STORED on the feature Asset — there is nowhere else for it to
-// live. So the mapper carries `properties` across (as well as protectionNeed).
+// live. So the mapper carries `properties` across.
 //
 // NOTE: an earlier version of this test asserted the OPPOSITE (properties are
 // "deliberately DFD-only" and must never cross), written under the former
@@ -32,12 +32,9 @@ function makeDfdAsset(overrides: Partial<DFDAsset> = {}): DFDAsset {
     name: "Sensor",
     description: "BLE pressure sensor",
     assetGroup: "physical",
-    protectionNeed: "medium",
     linkedElements: [],
     properties: {
       portability: "portable",
-      // a stale mirror that must never win / never leak
-      protectionNeed: "low",
     },
     ...overrides,
   } as DFDAsset;
@@ -52,12 +49,6 @@ describe("mapDFDAssetsToAssetFeature — field contract", () => {
     expect(ref.description).toBe("BLE pressure sensor");
     expect(ref.assetGroup).toBe("physical");
     expect(ref.linkedElements).toEqual([]);
-  });
-
-  it("carries protectionNeed one-way from the canonical top-level field", () => {
-    const [ref] = mapDFDAssetsToAssetFeature([makeDfdAsset()], [], []);
-    // canonical top-level "medium" must win over the stale properties mirror "low"
-    expect(ref.protectionNeed).toBe("medium");
   });
 
   it("carries the structural properties into the Feature world (one store)", () => {
@@ -92,7 +83,6 @@ describe("mapDFDAssetsToAssetFeature — field contract", () => {
         "linkedElements",
         "name",
         "properties",
-        "protectionNeed",
       ].sort(),
     );
   });

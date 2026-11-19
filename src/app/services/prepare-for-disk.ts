@@ -118,6 +118,7 @@ export type ProjectOnDisk = Omit<
   Project,
   | "hasUnsavedChanges"
   | "filePath"
+  | "revision"
   | "isOpen"
   | "lastOpened"
   | "currentPhase"
@@ -246,6 +247,7 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
   const {
     hasUnsavedChanges,
     filePath,
+    revision,
     isOpen,
     lastOpened,
     currentPhase,

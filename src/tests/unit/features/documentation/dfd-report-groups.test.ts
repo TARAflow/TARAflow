@@ -66,7 +66,7 @@ describe("reportGroupsOf", () => {
       dataFlow: { connectionId: "df7", sourceId: "sen_p2", targetId: "ctl_p5" },
       interactionContext: { victimRole },
     });
-    const groups = reportGroupsOf(dfd, "en", [side("in", "target"), side("out", "source")], dfdItemRefOfThreat)!;
+    const groups = reportGroupsOf<ReturnType<typeof side>>(dfd, "en", [side("in", "target"), side("out", "source")], dfdItemRefOfThreat)!;
     expect(groups.map((g) => [g.title, g.items.map((i) => i.id)])).toEqual([
       ["MP-1 Sensor Module", ["out"]],
       ["MP-2 Controller Module", ["in"]],

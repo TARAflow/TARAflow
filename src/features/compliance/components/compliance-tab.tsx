@@ -68,13 +68,14 @@ import {
   describeLanguageOf,
   describeRequirement,
   localizedChecklist,
-  words,
   type RequirementDescription,
 } from "../services/describe-requirement";
-import { buildTodoList } from "../services/todo-list";
+import { buildTodoList, type TodoProperty } from "../services/todo-list";
+import { elementTypeName, fieldLabel, unknownWithFields, type DfdLabels } from "../services/field-labels";
+import { reasonText, VOID_REASONS, type RowReason } from "../services/row-reasons";
 import { editionStatements, statementKeyOf } from "../services/edition-statements";
 import { qualifyRequirementId } from "../models/compliance-types";
-import { RowClaims } from "./matrix-claims";
+import { RowClaims, type ComponentClaimChoice } from "./matrix-claims";
 
 const NS = "compliance";
 
@@ -161,6 +162,11 @@ const SOURCE_DEFAULT: Record<string, string> = {
   "device-category": "device category",
 };
 const STATEMENT_DEFAULT: Record<StatementStatus, string> = { met: "met", "not-met": "not met", "n/a": "not applicable" };
+const UNCOUNTED_CLAIM_DEFAULT = {
+  unclear: "claims unclear (assumption of use without evidence)",
+  not_effective: "claims not effective here (assumption of use not fulfilled)",
+  partial: "claims covering only part of the row's elements",
+} as const;
 
 /**
  * A row met by a statement, mitigation, supporting measure or claim while the
@@ -194,6 +200,13 @@ export interface ComplianceTabProps {
   concept?: CybersecurityConcept;
   /** Stores claim changes; absent = the info dialog shows no claims. */
   onConceptChange?: (concept: CybersecurityConcept) => void;
+  /**
+   * Claims of imported components for a row's qualified requirement ids
+   * (phase 4c): the ones the component links to them or the machine cites.
+   */
+  componentClaims?: (requirements: readonly string[]) => readonly ComponentClaimChoice[];
+  /** Cite / withdraw a component claim for a row's requirements. */
+  onCiteComponentClaim?: (key: string, requirements: readonly string[], cite: boolean) => void;
   /** Catalog mitigations for a row; filtered to the types of the elements still open (D-29). */
   mitigationSuggestions?: (
     requirementIds: readonly AnyRequirementId[],
@@ -201,60 +214,41 @@ export interface ComplianceTabProps {
   ) => readonly { id: string; text: string }[];
 }
 
-/** Element type → its block under tabs.dfd.element_description (dfd namespace). */
-const DESCRIPTION_KEY: Readonly<Record<string, string>> = {
-  ExternalEntity: "external_entity",
-  DataFlow: "dataflow",
-  DataStore: "datastore",
-};
-
 /**
  * FX-21: "MP-1 Controller (Password lifetime limit)" — the unknown element
- * with the fields it lacks, under the DFD form's label where one exists.
+ * with the fields it lacks, under the DFD form's label where one exists; the
+ * to-do's properties alike (0.19 i18n follow-up).
  */
-function useUnknownNames(nameOf: (id: string) => string, typeOf?: (id: string) => string | undefined) {
+function useFieldLabels(typeOf?: (id: string) => string | undefined) {
   const { t, i18n } = useTranslation("dfd");
-  const label = (path: string, id: string): string => {
-    const type = typeOf?.(id);
-    const keys = [
-      `tabs.dfd.modelFields.${path.split(".").pop()}.label`,
-      ...(type ? [`tabs.dfd.element_description.${DESCRIPTION_KEY[type] ?? type.toLowerCase()}.fields.${path}.label`] : []),
-    ];
-    const key = keys.find((k) => i18n?.exists?.(k, { ns: "dfd" }));
-    return key ? String(t(key)) : words(path);
+  const labels: DfdLabels = { t: (key) => String(t(key)), exists: (key) => !!i18n?.exists?.(key, { ns: "dfd" }) };
+  const typeName = (type: string) => elementTypeName(type, labels);
+  return {
+    unknownNames:
+      (nameOf: (id: string) => string) =>
+      (row: RowResult): string[] =>
+        row.unknown.map((id) => unknownWithFields(nameOf(id), row.unsetFields?.[id] ?? [], typeOf?.(id), labels)),
+    /** The to-do's properties in the UI language; a neighbour's with its element types. */
+    todoProperties: (properties: readonly TodoProperty[], types: readonly string[]): string =>
+      properties
+        .map((p) => (p.on ? `${fieldLabel(p.path, p.on, labels)} (${p.on.map(typeName).join(" / ")})` : fieldLabel(p.path, types, labels)))
+        .join(", "),
+    typeName,
   };
-  return (row: RowResult): string[] =>
-    row.unknown.map((id) => {
-      const fields = row.unsetFields?.[id] ?? [];
-      return fields.length > 0 ? `${nameOf(id)} (${fields.map((f) => label(f, id)).join(", ")})` : nameOf(id);
-    });
 }
 
-/** FX-22: the edition's reason for a void row (EditionRow.void) → its text key. */
-export const VOID_REASONS: Readonly<Record<string, { key: string; text: string }>> = {
-  "void in prAA": {
-    key: "voidInPraa",
-    text: "The CRA edition (EN IEC 62443-4-2/prAA) declares this requirement void — it does not apply to the component.",
-  },
-  "no component requirement": {
-    key: "noComponentRequirement",
-    text: "The standard sets no component requirement under this number — the topic is left to the system (IEC 62443-3-3).",
-  },
-  "no component requirement (SR 2.3 is system level)": {
-    key: "noComponentRequirementSr23",
-    text: "The standard sets no component requirement under this number — SR 2.3 is a system requirement (IEC 62443-3-3).",
-  },
-  "no component requirement (emergency power, system level)": {
-    key: "noComponentRequirementPower",
-    text: "The standard sets no component requirement under this number — emergency power is a matter of the system (IEC 62443-3-3).",
-  },
-};
+/** FX-22: the edition's void reasons — moved to the reasons of every row (row-reasons.ts). */
+export { VOID_REASONS };
 
-/** The reason of a void row in the UI language; an unknown reason as written in the edition. */
-const voidReasonText = (t: ReturnType<typeof useComplianceT>, reasoning: string | undefined): string => {
-  const known = reasoning ? VOID_REASONS[reasoning] : undefined;
-  return known ? t(`voidReason.${known.key}`, known.text) : (reasoning ?? "");
-};
+/** Why a row has its status, in the UI language: the reason's code, else the text as is (a statement's reasoning). */
+const rowReasonText = (
+  t: ReturnType<typeof useComplianceT>,
+  row: { reason?: RowReason; reasoning?: string },
+  typeName: (type: string) => string = (x) => x,
+): string => (row.reason
+  ? // raw texts: reasonText fills the {{placeholders}} itself
+    reasonText(row.reason, (key, d) => t(key, d, { skipInterpolation: true }), typeName)
+  : (row.reasoning ?? ""));
 
 /** First items of a list, the rest counted. */
 const shortList = (items: readonly string[], max = 4) =>
@@ -276,10 +270,13 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   typeOf,
   concept,
   onConceptChange,
+  componentClaims,
+  onCiteComponentClaim,
 }) => {
   const t = useComplianceT();
   const { i18n } = useTranslation(NS);
-  const unknownNames = useUnknownNames(nameOf, typeOf);
+  const fieldLabels = useFieldLabels(typeOf);
+  const unknownNames = fieldLabels.unknownNames(nameOf);
   const lang = describeLanguageOf(i18n?.language);
   const [filter, setFilter] = useState<RowFilter>("open");
   const [editing, setEditing] = useState<RowResult | null>(null);
@@ -349,7 +346,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     );
     // FX-22: a void row has no description — the tooltip and the dialog give the edition's reason.
     if (descriptions.length === 0) {
-      const reason = voidReasonText(t, rowByLabel.get(label)?.reasoning);
+      const row = rowByLabel.get(label);
+      const reason = row ? rowReasonText(t, row) : "";
       return reason ? (
         <Tooltip arrow placement="right" title={<Box sx={{ maxWidth: 360 }}>{reason}</Box>}>
           {link}
@@ -673,7 +671,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                             : item.kind === "inside"
                               ? t("todoInside", "set its inside fields (black box), model its processes and stores on a child page, or make a statement")
                               : t("todoMissing", "set")}
-                          {item.properties.length > 0 && `: ${item.properties.join(", ")}`}
+                          {item.properties.length > 0 &&
+                            `: ${fieldLabels.todoProperties(item.properties, item.kind === "inside" ? ["Multiprocess"] : [typeOf?.(element.elementId)].filter((x): x is string => !!x))}`}
                         </Typography>
                         {item.plannedClosed && (
                           <Chip size="small" color="info" variant="outlined" sx={{ ml: 1 }} label={t("todoPlanned", "closed by planned mitigations")} />
@@ -691,7 +690,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       <li key={item.label}>
                         <Typography variant="body2" component="span">
                           {requirementLink(item.label)}
-                          {` — ${t("todoOnOne", "on one {{types}}", { types: item.elementTypes.join(" / ") })}: ${item.properties.join(", ")}`}
+                          {` — ${t("todoOnOne", "on one {{types}}", { types: item.elementTypes.map(fieldLabels.typeName).join(" / ") })}: ${fieldLabels.todoProperties(item.properties, item.elementTypes)}`}
                         </Typography>
                         {item.plannedClosed && (
                           <Chip size="small" color="info" variant="outlined" sx={{ ml: 1 }} label={t("todoPlanned", "closed by planned mitigations")} />
@@ -723,7 +722,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       <li key={item.label}>
                         <Typography variant="body2" component="span">
                           {requirementLink(item.label)}
-                          {item.reasoning ? `: ${item.reasoning}` : ""}
+                          {item.reasoning || item.reason ? `: ${rowReasonText(t, item, fieldLabels.typeName)}` : ""}
                         </Typography>
                       </li>
                     ))}
@@ -791,8 +790,22 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                       : `${t("unknown", "information missing on")} ${shortList(unknownNames(row))}`),
                   row.supportingElements.length > 0 && `${t("supporting", "supporting measure")}: ${shortList(row.supportingElements.map(nameOf))}`,
                   row.mitigationIds.length > 0 && `${t("mitigations", "mitigations")}: ${shortList([...new Set(row.mitigationIds)])}`,
+                  // phase 4c: cited component claims that do not count, with why
+                  ...(["unclear", "not_effective", "partial"] as const).map((reason) => {
+                    const ids = (row.uncountedClaims ?? []).filter((c) => c.reason === reason).map((c) => c.id);
+                    return (
+                      ids.length > 0 &&
+                      `${t(`uncountedClaims.${reason}`, UNCOUNTED_CLAIM_DEFAULT[reason])}: ${shortList(ids)}`
+                    );
+                  }),
+                  // phase 4b: unclear is not planned — an assumption of use lacks evidence (another action)
+                  (row.unclearMitigationIds?.length ?? 0) > 0 &&
+                    `${t("unclearMitigations", "unclear (assumption of use without evidence)")}: ${shortList(row.unclearMitigationIds!)}`,
                   row.risks && row.risks.length > 0 && `${t("risks", "risks")}: ${shortList(row.risks)}`,
-                  !levels && row.source !== "statement" && !row.failing.length && !row.unknown.length && !row.risks?.length && row.status !== "met" && row.status !== "n/a" && row.reasoning,
+                  // why a row is open — and why it does not apply, in every view (user
+                  // 2026-11-19: "not applicable" without a reason could not be followed in
+                  // the IEC 62443 matrix; the report had it)
+                  row.source !== "statement" && !row.failing.length && !row.unknown.length && !row.risks?.length && row.status !== "met" && rowReasonText(t, row, fieldLabels.typeName),
                   checklist.length > 0 && `${t("checklist", "to confirm")}: ${checklist.join("; ")}`,
                   row.source === "statement" && row.reasoning,
                 ].filter(Boolean);
@@ -840,36 +853,43 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
         </Paper>
       </Stack>
 
-      {info && (
-        <RequirementInfoDialog
-          row={info}
-          descriptions={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang))}
-          cra={cra ? [...(rowDef.get(info.label)?.cra ?? [])] : undefined}
-          levels={levels}
-          claims={
-            onConceptChange ? (
-              <RowClaims
-                concept={concept ?? emptyCybersecurityConcept()}
-                requirements={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(family, id))}
-                onConceptChange={onConceptChange}
-                t={t}
-              />
-            ) : undefined
-          }
-          statement={statements[info.label]}
-          suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? [], [...info.failing, ...info.unknown]) ?? []}
-          nameOf={nameOf}
-          unknownNames={unknownNames(info)}
-          t={t}
-          onClose={() => setInfo(null)}
-          onStatement={() => {
-            // The info dialog goes first, then the statement dialog opens — never two at once.
-            const row = info;
-            setInfo(null);
-            setEditing(row);
-          }}
-        />
-      )}
+      {info && (() => {
+        const infoRequirements = (rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(family, id));
+        return (
+          <RequirementInfoDialog
+            row={info}
+            descriptions={(rowDef.get(info.label)?.requirementIds ?? []).map((id) => describeRequirement(id, lang))}
+            cra={cra ? [...(rowDef.get(info.label)?.cra ?? [])] : undefined}
+            levels={levels}
+            claims={
+              onConceptChange ? (
+                <RowClaims
+                  concept={concept ?? emptyCybersecurityConcept()}
+                  requirements={infoRequirements}
+                  onConceptChange={onConceptChange}
+                  t={t}
+                  componentClaims={componentClaims?.(infoRequirements)}
+                  onCiteComponentClaim={
+                    onCiteComponentClaim ? (key, cite) => onCiteComponentClaim(key, infoRequirements, cite) : undefined
+                  }
+                />
+              ) : undefined
+            }
+            statement={statements[info.label]}
+            suggestions={mitigationSuggestions?.(rowDef.get(info.label)?.requirementIds ?? [], [...info.failing, ...info.unknown]) ?? []}
+            nameOf={nameOf}
+            unknownNames={unknownNames(info)}
+            t={t}
+            onClose={() => setInfo(null)}
+            onStatement={() => {
+              // The info dialog goes first, then the statement dialog opens — never two at once.
+              const row = info;
+              setInfo(null);
+              setEditing(row);
+            }}
+          />
+        );
+      })()}
 
       {editing && (
         <StatementDialog
@@ -981,7 +1001,7 @@ const RequirementInfoDialog: React.FC<RequirementInfoDialogProps> = ({
           section(
             t("whyNotApplicable", "Why not applicable"),
             <Typography variant="body2" data-testid="compliance-void-reason">
-              {voidReasonText(t, row.reasoning)}
+              {rowReasonText(t, row)}
             </Typography>,
           )}
         {descriptions.length > 0 &&

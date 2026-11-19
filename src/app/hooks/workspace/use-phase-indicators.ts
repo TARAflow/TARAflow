@@ -1,0 +1,185 @@
+// ==================== PHASE INDICATORS ====================
+// The phase bar's badges and the Overview's phase progress: threat
+// generation drift, the stored DFD validated now, hazard / risk findings,
+// verification status, and the audit hints. Split out of
+// workspace-layout.tsx (MT-1).
+
+import { useMemo } from "react";
+import type { TFunction } from "i18next";
+import { EMPTY_PROJECT_TAGS, type AssetDataReference, type DFDReference } from "shared";
+import { verificationStatusText } from "features/overview";
+import { hazardValidator, hazardFindingLines } from "features/hazards";
+import { dfdService, type DFDGraphAnalysisContext, type ValidationFinding } from "features/dfd";
+import { projectGenerationDrift, NO_DRIFT, type ThreatProjectData } from "features/threats";
+import { riskFindingLines, riskFindings } from "features/risks";
+import { useAuditHints } from "features/audit";
+import type { Project } from "../../models/project-types";
+import { phaseIndicators } from "../../utils/phase-indicators";
+import type { verificationStatus } from "../../services/verification-state";
+
+export interface PhaseIndicatorsInput {
+  activeProject: Project | undefined;
+  activePhase: number;
+  /** The DFD tab's project object — validated as saved. */
+  dfdTabProject: Parameters<typeof dfdService.validateSavedState>[0] | null;
+  dfdContext: DFDGraphAnalysisContext | null;
+  dfdGraphRef: unknown;
+  dfdReference: DFDReference | null;
+  /** Parts of imported components — no generated threats (patch 12). */
+  excludedElementIds?: ReadonlySet<string>;
+  /** Findings of imported components — counted on the DFD phase (6c). */
+  componentFindings?: {
+    errors: readonly ValidationFinding[];
+    warnings: readonly ValidationFinding[];
+    /** Component findings about risks — they count on the Risks phase. */
+    risks?: readonly { key: string; params: Record<string, string | number> }[];
+  } | null;
+  assetDataRef: AssetDataReference | undefined;
+  verificationStatus: ReturnType<typeof verificationStatus> | undefined;
+  t: TFunction;
+}
+
+export function usePhaseIndicators({
+  activeProject,
+  activePhase,
+  dfdTabProject,
+  dfdContext,
+  dfdGraphRef,
+  dfdReference,
+  excludedElementIds,
+  componentFindings,
+  assetDataRef,
+  verificationStatus: verification,
+  t,
+}: PhaseIndicatorsInput) {
+  // ── Threat generation drift (phase tab badge) ────────────────────────────
+  // Same check as the Threats tab banner, evaluated here so the badge appears
+  // right after e.g. a security-goal change in the Asset tab. Runs the threat
+  // generator without writing — cheap for typical DFD sizes; memoized on the
+  // inputs the generator reads.
+  const threats = activeProject?.threats;
+  const dfdElements = activeProject?.dfd?.elements;
+  const dfdConnections = activeProject?.dfd?.connections;
+  const tags = activeProject?.info?.tags;
+  const threatDriftCounts = useMemo(() => {
+    if (!activeProject?.threats || !dfdContext) return undefined;
+    const driftProject = {
+      id: activeProject.id,
+      name: activeProject.info?.name || "",
+      threats: activeProject.threats,
+      phaseStatus: activeProject.phaseStatus,
+      dfdElements: dfdElements ?? [],
+      dfdConnections: dfdConnections ?? [],
+      dfdGraph: dfdGraphRef,
+      assetDataRef,
+      dfd: dfdReference,
+      info: { tags: tags ?? EMPTY_PROJECT_TAGS },
+      ...(excludedElementIds ? { excludedElementIds } : {}),
+      lastModified: "",
+    } as unknown as ThreatProjectData;
+    let drift = NO_DRIFT;
+    try {
+      drift = projectGenerationDrift(driftProject, dfdContext);
+    } catch {
+      // A badge must never break the workspace; the tab shows details.
+    }
+    return { obsolete: drift.obsolete.length, added: drift.addedCount };
+    // The generator reads threats, the DFD, the tags and the references;
+    // id, name and phaseStatus only label the call.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threats, dfdElements, dfdConnections, tags, dfdContext, dfdGraphRef, assetDataRef, dfdReference, excludedElementIds]);
+
+  // ── DFD validated now, not the validation stored in the file ─────────────
+  const dfdSavedValidation = useMemo(
+    () => (dfdTabProject ? dfdService.validateSavedState(dfdTabProject) : null),
+    [dfdTabProject],
+  );
+
+  // ── Audit hints (user 2026-10-30): no audit repository for the project
+  //    file, verification entries not committed — chip + tooltip ──────────
+  const auditHints = useAuditHints({
+    id: activeProject?.id ?? "",
+    filePath: activeProject?.filePath,
+    verificationIds: activeProject?.cybersecurityConcept?.verifications?.map((v) => v.id) ?? [],
+    refreshKey: `${activePhase}|${activeProject?.audit?.lastModified ?? ""}`,
+  });
+  const auditHintLines = useMemo(() => {
+    const lines: string[] = [];
+    if (auditHints?.repoMissing) {
+      lines.push(t("phases.audit.repoMissing", { defaultValue: "No audit repository for this project file — set it up in the Audit tab." }));
+    }
+    if (auditHints && auditHints.uncommittedVerifications > 0) {
+      lines.push(
+        t("phases.audit.uncommitted", {
+          count: auditHints.uncommittedVerifications,
+          defaultValue: "{{count}} TARA verification(s) not committed — commit in the Audit tab.",
+        }),
+      );
+    }
+    return lines;
+  }, [auditHints, t]);
+
+  // ── One computation keyed by PhaseId (tabs + Overview phase progress) ────
+  const indicators = useMemo(
+    () =>
+      activeProject
+        ? phaseIndicators({
+            phaseStatus: activeProject.phaseStatus,
+            info: activeProject.info,
+            dfdValidation: dfdSavedValidation,
+            dfdStatus: dfdSavedValidation ? dfdService.phaseStatusOf(dfdSavedValidation) : undefined,
+            componentFindings: componentFindings ?? null,
+            sourceBindings: activeProject.sourceBindings ?? [],
+            // The Hazard tab's validation, only where the phase is shown.
+            hazardValidation:
+              activeProject.info?.safetyRelevant && activeProject.hazards?.hazards.length
+                ? hazardFindingLines(
+                    hazardValidator.validate(activeProject.hazards, assetDataRef?.assets).findings,
+                    t,
+                  )
+                : null,
+            riskValidation: activeProject.risks?.risks?.length
+              ? (() => {
+                  const lines = riskFindingLines(
+                    riskFindings(activeProject.risks, { trackerConnected: !!activeProject.integration?.connection?.projectName }),
+                    t,
+                  );
+                  // The component findings about risks count on the Risks
+                  // phase, where their panel is (manual test 2026-11-15).
+                  const fromComponents = (componentFindings?.risks ?? []).map((f) => t(f.key, f.params));
+                  return { errors: lines.errors, warnings: [...lines.warnings, ...fromComponents] };
+                })()
+              : null,
+            threatDrift: threatDriftCounts,
+            undescribed: undescribedOf(activeProject.dfd),
+            unratedThreats: unratedThreatsOf(activeProject.threats),
+            verification: verification
+              ? { kind: verification.kind, text: verificationStatusText(verification, t) }
+              : undefined,
+            t,
+          })
+        : null,
+    [activeProject, dfdSavedValidation, threatDriftCounts, assetDataRef, verification, componentFindings, t],
+  );
+
+  return { threatDriftCounts, auditHintLines, indicators };
+}
+
+/** DFD records without a description, as the completeness rule counts them (dfd-completeness.ts). */
+function undescribedOf(dfd: Project["dfd"] | null | undefined): string[] {
+  if (!dfd) return [];
+  const none = (r: { description?: string }) => !r.description || r.description.trim().length === 0;
+  return [...(dfd.elements ?? []), ...(dfd.connections ?? []), ...(dfd.assets ?? [])]
+    .filter(none)
+    .map((r) => (r as { displayId?: string; name?: string; id: string }).displayId || (r as { name?: string }).name || r.id);
+}
+
+/** Threats without a rating, as the Threats phase status counts them (threat-phase-status.ts). */
+function unratedThreatsOf(threats: Project["threats"] | null | undefined): string[] {
+  if (!threats) return [];
+  return [...(threats.perElementTables ?? []), ...(threats.perInteractionTables ?? [])]
+    .flatMap((t) => t.threats ?? [])
+    // as the phase counts: relevant / not relevant are decided, "uncertain" is not
+    .filter((t) => t.relevance !== "relevant" && t.relevance !== "not_relevant")
+    .map((t) => t.displayId ?? t.id);
+}

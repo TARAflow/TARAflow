@@ -156,6 +156,12 @@ export interface Asset {
 
   /** Source: was this created from DFD or manually? */
   source: "dfd" | "manual";
+  /**
+   * Taken over from another TARA (multi-project TARA, E5) — e.g.
+   * "SD1 · Smoke Detector". Name, group and security goals are the other
+   * TARA's; impact and damage scenarios are rated here. Absent: own asset.
+   */
+  importedFrom?: string;
 
   /** Is this asset synced with DFD? */
   syncedWithDFD: boolean;

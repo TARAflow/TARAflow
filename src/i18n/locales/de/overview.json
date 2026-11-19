@@ -13,11 +13,45 @@
     "label": "Übersicht-Ansichten",
     "project": "Projekt",
     "definition": "Definition",
+    "components": "Komponenten",
     "methodology": "Methodik",
     "sources": "Quellen",
     "methodologyTitle": "Methodik (nur lesend)",
     "methodologyHint": "Aus der Projektkonfiguration abgeleitet — derselbe Record wie im Methodik-Kapitel des Reports. Skalen, Matrix und Akzeptanzkriterien werden in der Konfiguration des Risk-Tabs eingestellt.",
     "openRiskConfiguration": "Im Risk-Tab ändern"
+  },
+  "overviewComponents": {
+    "intro": "Die Komponenten, die diese TARA importiert, so wie ihre Plattform-Teams sie zum importierten Commit beschreiben. Nur lesbar — die Texte ändern sich mit einem Update der Komponente.",
+    "version": "v{{version}}",
+    "aboutMissing": "Importiert, bevor die Übersicht der Komponente mitkam — „Gespeicherten Stand auffrischen…“ im Tab „Komponente“ des Multiprozesses (DFD) bringt Beschreibung, Verantwortlich und Quellen.",
+    "description": "Beschreibung",
+    "responsible": "Verantwortlich",
+    "tags": "Tags",
+    "safety": "Sicherheitsrelevant",
+    "yes": "ja",
+    "origin": "Komponenten-TARA",
+    "repository": "Repository",
+    "sameRepo": "dieses Repository",
+    "path": "Datei",
+    "ref": "Branch / Tag",
+    "tag": "Tag {{tag}}",
+    "commit": "Commit",
+    "unpinned": "nicht an einen Commit gebunden",
+    "importedAt": "Importiert am",
+    "lastUpdate": "Letztes Update",
+    "methodology": "Methodik",
+    "methodologySame": "gleiche Likelihood-Methode und Faktorskalen wie diese TARA",
+    "methodologyDiffers": "weicht von dieser TARA ab — die Faktorwerte der Komponente werden nicht übernommen",
+    "sources": "Quellen der Komponente",
+    "instances": "Instanzen in dieser TARA",
+    "noAssumptions": "keine Annahmen zur Verwendung",
+    "assumptions": "Annahmen zur Verwendung: {{decided}} von {{total}} entschieden, {{notFulfilled}} nicht erfüllt",
+    "showInDfd": "Im DFD zeigen",
+    "deviations": "Abweichungen von der Komponente ({{count}})",
+    "copyDeviations": "Als Text kopieren",
+    "copied": "Kopiert — Markdown, für Mail, Ticket oder Wiki",
+    "definition": "Item Definition der Komponente",
+    "sourceDocument": "Quelle: {{source}}"
   },
   "itemDefinition": {
     "intro": "Was analysiert wird: das Item (ISO/SAE 21434 9.3), seine Grenze, Funktionen, vorläufige Architektur und Betriebsumgebung. Beschreibe es hier oder verweise auf das Architekturdokument, aus dem es stammt.",
@@ -88,6 +122,8 @@
       "owner": "Verantwortlich",
       "reviewBy": "Prüfen bis",
       "usedBy": "verwendet von {{list}}",
+      "measuresRelying": "Massnahmen, die darauf beruhen: {{list}}",
+      "measuresLabel": "Massnahmen, die auf dieser Annahme beruhen",
       "add": "Annahme hinzufügen",
       "remove": "Annahme entfernen"
     },
@@ -96,6 +132,7 @@
       "sectionMissing": "{{section}} ist nicht beschrieben.",
       "assumptionInvalidInUse": "{{assumption}} ist ungültig, aber {{boundaries}} stützt sich noch darauf — überprüfen.",
       "assumptionReviewDue": "{{assumption}} ist nach dem Prüfdatum noch offen.",
+      "assumptionMeasureUnknown": "{{assumption}} nennt Massnahmen, die dieses Projekt nicht mehr hat: {{measures}} — entfernen; sie werden an importierende Maschinen nicht weitergegeben.",
       "linkRemoved": "{{section}}: {{count}} Verweis(e) auf entfernte Modell-Elemente."
     },
     "neutral": {
@@ -119,6 +156,8 @@
     "addReference": "Referenz hinzufügen",
     "repoUrl": "Repository-URL",
     "localPathWarning": "Das sieht nach einem lokalen Pfad aus — es wird nur die Remote-URL gespeichert.",
+    "credentialsInUrl": "Die URL enthält Zugangsdaten — bitte entfernen: Die Projektdatei wird geteilt (und in jede TARA kopiert, die sie importiert). Ein privates Repository nutzt gespeicherte Zugangsdaten.",
+    "credentialsStored": "Diese URL enthält Zugangsdaten. URL bereinigen (Bearbeiten) und das Token beim Repository-Anbieter zurückziehen — es bleibt in der Historie jedes Repositorys, in das diese Datei committet wurde.",
     "refLabel": "Ref-Bezeichnung",
     "refLabelPlaceholder": "main, v2.3.1…",
     "refType": {
@@ -136,6 +175,10 @@
     "resolveError": {
       "consentDenied": "Netzwerkzugriff wurde nicht erlaubt.",
       "unreachable": "{{host}} konnte nicht erreicht werden.",
+      "not_found": "{{host}} kennt dieses Repository nicht — oder es ist privat und Sie haben keinen Zugriff. URL prüfen.",
+      "no_access": "{{host}} verweigert den Zugriff. Ein privates Repository braucht hinterlegte Git-Zugangsdaten (Credential Helper oder SSH-Schlüssel).",
+      "offline": "Keine Verbindung zu {{host}} — kein Netzwerk oder falscher Hostname.",
+      "timeout": "{{host}} hat nicht rechtzeitig geantwortet.",
       "refNotFound": "Repository erreicht, aber \"{{ref}}\" wurde dort nicht gefunden."
     },
     "consent": {

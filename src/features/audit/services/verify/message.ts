@@ -36,9 +36,16 @@ export function isAuditSubject(subject: string): boolean {
   return /^audit:\s/.test(subject);
 }
 
+/**
+ * The round of a `[TARA]` subject. Since 0.19 the subject may name the TARA
+ * file after the round (`[TARA] <round> — <path>.tara.json`); the file is not
+ * part of the round — it stays in the `Project-File` trailer. Only a suffix
+ * ending in `.tara.json` is cut, so a custom round with a dash keeps its name.
+ */
 export function taraRound(subject: string): string | null {
   const m = /^\[TARA\]\s+(.+?)\s*$/.exec(subject);
-  return m ? m[1] : null;
+  if (!m) return null;
+  return m[1].replace(/\s+—\s+\S.*\.tara\.json$/i, "").trim() || m[1];
 }
 
 // ── Shared audit-message schema predicate (used by the check AND the hook) ────

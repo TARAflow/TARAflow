@@ -58,6 +58,25 @@ export async function loadPreviousProjectFromGit(
 }
 
 /**
+ * Whether the project file differs from HEAD in the working tree
+ * (`git status --porcelain -- <relpath>`): modified, or not committed yet.
+ * The Audit tab asks when its diff finds no change — the file can still
+ * differ in derived values the diff does not list (manual test 2026-11-17:
+ * the threat ids the risk sync copies into the risks), and must stay
+ * committable. False on any git error.
+ */
+export async function fileDiffersFromHead(raw: RawGit, repoRoot: string, filePath: string): Promise<boolean> {
+  const rel = repoRelativePath(repoRoot, filePath);
+  if (!rel) return false;
+  try {
+    const res = await raw(["status", "--porcelain", "--", rel]);
+    return res.success && !!res.data && res.data.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The signer manifest as committed at `ref` (default HEAD; `git show
  * <ref>:.tara/allowed_signers`) — what the verification engine checks the
  * next commit on that branch against. null when `ref` has none (no manifest

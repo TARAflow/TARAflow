@@ -17,6 +17,7 @@ import {
   isoRiskValueI18nKey,
 } from "../models/iso-risk-display";
 import { groupIsoScenarios } from "../models/iso-scenarios";
+import { useCreditedOf } from "./credited-residual-context";
 import {
   treatmentFallbackLabel,
   treatmentI18nKey,
@@ -114,7 +115,12 @@ const AttackPathRiskSection: React.FC<{
   });
 
   const iso = isIsoRiskMode(configuration);
-  const scenarios = useMemo(() => (iso ? groupIsoScenarios(risks) : []), [iso, risks]);
+  // The scenario's residual is the credited one (I7 (4)).
+  const creditedOf = useCreditedOf();
+  const scenarios = useMemo(
+    () => (iso ? groupIsoScenarios(risks, (r) => creditedOf(r).isoResidual?.value) : []),
+    [iso, risks, creditedOf],
+  );
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   if (risks.length === 0) return null;

@@ -32,21 +32,24 @@ import type { MitigationEntry } from "../../threats/models/threat-types";
 
 const ROLE_CONFIG: Record<
   MitigationPropertyRole,
-  { label: string; icon: React.ReactNode; tooltip: string }
+  // A function, not an element: no React element is created when the module
+  // is imported — the report generator imports it under Node, where the MUI
+  // icon is a module object, and React warned (manual test 2026-11-17).
+  { label: string; icon: () => React.ReactNode; tooltip: string }
 > = {
   source: {
     label: "Sender",
-    icon: <CallMadeIcon sx={{ fontSize: 14 }} />,
+    icon: () => <CallMadeIcon sx={{ fontSize: 14 }} />,
     tooltip: "Applies to the sending element (source process or external entity)",
   },
   target: {
     label: "Receiver",
-    icon: <CallReceivedIcon sx={{ fontSize: 14 }} />,
+    icon: () => <CallReceivedIcon sx={{ fontSize: 14 }} />,
     tooltip: "Applies to the receiving element (target process or external entity)",
   },
   channel: {
     label: "Channel",
-    icon: <SwapHorizIcon sx={{ fontSize: 14 }} />,
+    icon: () => <SwapHorizIcon sx={{ fontSize: 14 }} />,
     tooltip: "Applies to the data flow channel itself",
   },
 };
@@ -152,7 +155,7 @@ export const MitigationScopeSelector: React.FC<MitigationScopeSelectorProps> = (
                 }
                 label={
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    {config.icon}
+                    {config.icon()}
                     <Typography variant="caption">{config.label}</Typography>
                   </Box>
                 }

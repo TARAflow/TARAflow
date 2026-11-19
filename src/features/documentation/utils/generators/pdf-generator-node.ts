@@ -120,7 +120,16 @@ let fontsRegisteredWithPdfmake = false;
 
 function ensureFontsRegistered(): void {
   if (fontsRegisteredWithPdfmake) return;
-  pdfmake.addFonts({ Roboto: ensureFontFilesWritten() });
+  const fonts = ensureFontFilesWritten();
+  pdfmake.addFonts({ Roboto: fonts });
+  // Access policies (manual test 2026-11-17: pdfmake warned that none was
+  // set). Without them pdfmake would fetch any URL or read any local path a
+  // project file puts into an image — a report must not reach the network
+  // or the file system for its content. Images are embedded as data URLs;
+  // the only files read are our own fonts.
+  const ownFonts = new Set(Object.values(fonts).map((f) => path.resolve(f)));
+  pdfmake.setUrlAccessPolicy(() => false);
+  pdfmake.setLocalAccessPolicy((filePath: string) => ownFonts.has(path.resolve(filePath)));
   fontsRegisteredWithPdfmake = true;
 }
 

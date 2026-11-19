@@ -37,6 +37,7 @@ import type {
 } from "../models/evaluation-types";
 import { RULES_BY_ID } from "../data/requirement-registry";
 import { externalOutcome, srslReached, srslSummary } from "./evaluate-en50742";
+import { because, type RowReason } from "./row-reasons";
 
 // ==================== THREE-VALUED LOGIC ====================
 
@@ -203,6 +204,7 @@ interface IdOutcome {
   risks?: string[];
   contradiction?: boolean;
   reasoning?: string;
+  reason?: RowReason;
   /** Type B: the checklist items the model does not answer (CM-5b). */
   openChecklist?: string[];
   /** Element id → the fields it lacks for this requirement (FX-21). */
@@ -218,8 +220,8 @@ const outcome = (status: IdStatus, extra: Partial<IdOutcome> = {}): IdOutcome =>
   ...extra,
 });
 
-function describeTargets(targets: readonly EvidenceTarget[]): string {
-  return [...new Set(targets.flatMap((t) => t.elementTypes))].join(" / ");
+function targetTypes(targets: readonly EvidenceTarget[]): string[] {
+  return [...new Set(targets.flatMap((t) => t.elementTypes as readonly string[]))];
 }
 
 /** Types a multiprocess without child page contains but the model does not show (D-30). */
@@ -312,7 +314,7 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
   // EN 50742 A: risk and project evidence and the SRSL come from the
   // En50742View (CM-12); without it a statement meets the row.
   if (rule.external) {
-    if (!input.en50742) return outcome("needs-statement", { reasoning: "evaluated from the risks and the project data" });
+    if (!input.en50742) return outcome("needs-statement", because("externalWithoutView"));
     const e = externalOutcome(rule.external, input.en50742, input.run);
     return outcome(e.status, {
       ...(e.status === "met" ? { source: "model" as const } : {}),
@@ -320,13 +322,14 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       unknown: e.unknown ?? [],
       risks: e.risks ?? [],
       reasoning: e.reasoning,
+      ...(e.reason ? { reason: e.reason } : {}),
       openChecklist: [...(rule.checklist ?? [])],
     });
   }
   if (rule.minSrsl) {
     const reached = input.en50742 ? srslReached(rule.minSrsl, input.en50742) : "unknown";
-    if (reached === "no") return outcome("n/a", { reasoning: `no risk reaches SRSL ${rule.minSrsl}` });
-    if (reached === "unknown") return outcome("unknown", { reasoning: `applies from SRSL ${rule.minSrsl} — risks not rated yet` });
+    if (reached === "no") return outcome("n/a", because("srslNotReached", { values: { srsl: String(rule.minSrsl) } }));
+    if (reached === "unknown") return outcome("unknown", because("srslUnrated", { values: { srsl: String(rule.minSrsl) } }));
   }
   const inScope = (id: string) => {
     if (input.scope.has(id)) return true;
@@ -339,8 +342,8 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
     const tri = or(
       rule.appliesWhen.flatMap((t) => candidates(graph, t, inScope, true).map((e) => applicable(graph, e, t))),
     );
-    if (tri === "no") return outcome("n/a", { reasoning: `no ${describeTargets(rule.appliesWhen)} in the component needs it` });
-    if (tri === "unknown") return outcome("unknown", { reasoning: "the precondition depends on unset properties" });
+    if (tri === "no") return outcome("n/a", because("notNeeded", { types: targetTypes(rule.appliesWhen) }));
+    if (tri === "unknown") return outcome("unknown", because("preconditionUnset"));
   }
 
   // Step 4b — applicable elements in scope.
@@ -370,10 +373,10 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       return outcome("unknown", {
         unknown: standIns,
         unset,
-        reasoning: `no ${describeTargets(rule.targets)} modelled — a multiprocess without child page may contain one`,
+        ...because("standIn", { types: targetTypes(rule.targets) }),
       });
     }
-    return outcome("n/a", { reasoning: `no applicable ${describeTargets(rule.targets)} in the component` });
+    return outcome("n/a", because("noApplicable", { types: targetTypes(rule.targets) }));
   }
 
   // Step 5 — satisfaction in scope (types A / B); type C needs a statement.
@@ -425,6 +428,7 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       // A flow counts when it touches the scope, as for the evidence (a threat
       // on a flow concerns the flow itself).
       m.concernsElementIds.some(inScope) &&
+      !m.unclear &&
       (input.run === "planned" || m.done),
   );
   // D-29: a rule every element must meet is covered element by element — a
@@ -509,6 +513,7 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
   const risks = [...new Set(outcomes.flatMap((o) => o.risks ?? []))];
   const unset: Record<string, string[]> = {};
   for (const o of outcomes) for (const [id, fields] of Object.entries(o.unset ?? {})) addUnset(unset, id, fields);
+  const why = outcomes.find((o) => o.reasoning);
   return {
     status,
     source: status === "met" ? source : undefined,
@@ -518,7 +523,9 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
     mitigationIds: merged("mitigationIds"),
     ...(risks.length > 0 ? { risks } : {}),
     contradiction: outcomes.some((o) => o.contradiction) || undefined,
-    reasoning: outcomes.map((o) => o.reasoning).find(Boolean),
+    // the first reason, with its code (0.19 i18n follow-up)
+    reasoning: why?.reasoning,
+    ...(why?.reason ? { reason: why.reason } : {}),
     openChecklist: outcomes.flatMap((o) => o.openChecklist ?? []),
     unset,
   };
@@ -528,6 +535,24 @@ function combine(outcomes: readonly IdOutcome[]): IdOutcome {
 function unsetOf(combined: IdOutcome): Pick<RowResult, "unsetFields"> {
   const out = Object.fromEntries(Object.entries(combined.unset ?? {}).filter(([id]) => combined.unknown.includes(id)));
   return Object.keys(out).length > 0 ? { unsetFields: out } : {};
+}
+
+/** Phase 4b: mitigations naming the row, in scope, whose effectiveness is unclear — shown, not counted. */
+function unclearOf(row: AnyEditionRow, graph: Graph, input: ComplianceInput): Pick<RowResult, "unclearMitigationIds"> {
+  const inScope = (id: string) => {
+    if (input.scope.has(id)) return true;
+    const ends = graph.endpoints.get(id);
+    return !!ends && (input.scope.has(ends[0]) || input.scope.has(ends[1]));
+  };
+  const ids = (input.mitigations ?? [])
+    .filter(
+      (m) =>
+        m.unclear &&
+        (m.requirementIds as readonly string[]).some((id) => (row.requirementIds as readonly string[]).includes(id)) &&
+        m.concernsElementIds.some(inScope),
+    )
+    .map((m) => m.mitigationId);
+  return ids.length > 0 ? { unclearMitigationIds: [...new Set(ids)] } : {};
 }
 
 function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): RowResult {
@@ -546,7 +571,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
   };
 
   // Step 1 — void row.
-  if (row.void) return { ...base, status: "n/a", modelStatus: "n/a", source: "edition", reasoning: row.void };
+  if (row.void) return { ...base, status: "n/a", modelStatus: "n/a", source: "edition", reasoning: row.void, reason: { code: "void", values: { edition: row.void } } };
 
   // Step 2 — device rows (2019) by the component's device category (K-C1).
   if (row.deviceCategories) {
@@ -560,7 +585,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
         status: "n/a",
         modelStatus: "n/a",
         source: "device-category",
-        reasoning: `the component is not ${row.deviceCategories.join(" / ")}`,
+        ...because("deviceCategory", { values: { categories: row.deviceCategories.join(" / ") } }),
         statementSuperseded: statement ? true : undefined,
       };
     }
@@ -572,9 +597,41 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
   let status: RowStatus = combined.status;
   let source: RowSource | undefined = combined.source;
 
-  // Step 8 — claim (D-5).
-  const claimIds = (input.claims ?? []).filter((c) => c.rowLabels.includes(row.label)).map((c) => c.displayId);
-  if (claimIds.length > 0 && status !== "met" && status !== "n/a") {
+  // Step 8 — claim (D-5). Claims cover the row TOGETHER (review of patch 52):
+  // a project claim (no element scope) covers the whole row; a claim cited
+  // from an imported component (phase 4c) covers its instance's elements,
+  // and only when effective there (unclear / not effective: listed, not
+  // counted). The open elements minus everything the effective claims cover:
+  // nothing left → claimed; something left → the row stays open, its notes
+  // name only the elements still open (the rest is claimed), and the claims
+  // that helped are listed as partial. Two instances citing their claim
+  // cover a row together, as do a component claim and one of the machine.
+  const stillOpen = status !== "met" && status !== "n/a";
+  const open = [...combined.failing, ...combined.unknown];
+  const uncountedClaims: NonNullable<RowResult["uncountedClaims"]> = [];
+  const onRow = (input.claims ?? []).filter((c) => c.rowLabels.includes(row.label));
+  const effective = onRow.filter((c) => {
+    if (c.state === "unclear" || c.state === "not_effective") {
+      if (stillOpen) uncountedClaims.push({ id: c.displayId, reason: c.state });
+      return false;
+    }
+    return true;
+  });
+  const wholeRow = effective.filter((c) => !c.concernsElementIds);
+  const scoped = effective.filter((c) => c.concernsElementIds && open.some((id) => c.concernsElementIds!.includes(id)));
+  const covered = new Set(scoped.flatMap((c) => c.concernsElementIds!.filter((id) => open.includes(id))));
+  const remaining = open.filter((id) => !covered.has(id));
+  let failing = combined.failing;
+  let unknown = combined.unknown;
+  let claimIds: string[] = [];
+  if (wholeRow.length > 0 || (open.length > 0 && remaining.length === 0)) {
+    claimIds = [...wholeRow, ...scoped].map((c) => c.displayId);
+  } else if (stillOpen && scoped.length > 0) {
+    for (const c of scoped) uncountedClaims.push({ id: c.displayId, reason: "partial" });
+    failing = failing.filter((id) => !covered.has(id));
+    unknown = unknown.filter((id) => !covered.has(id));
+  }
+  if (claimIds.length > 0 && stillOpen) {
     status = "claimed";
     source = "claim";
   }
@@ -584,16 +641,19 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     status,
     source,
     modelStatus: status,
-    failing: combined.failing,
-    unknown: combined.unknown,
-    ...unsetOf(combined),
+    failing,
+    unknown,
+    ...unsetOf({ ...combined, unknown }),
     supportingElements: combined.supporting,
     mitigationIds: combined.mitigationIds,
     ...(combined.risks ? { risks: combined.risks } : {}),
     claimIds,
+    ...(uncountedClaims.length > 0 ? { uncountedClaims } : {}),
     checklist: status === "met" ? (combined.openChecklist ?? []) : [],
     reasoning: combined.reasoning,
+    ...(combined.reason ? { reason: combined.reason } : {}),
     contradiction: combined.contradiction,
+    ...unclearOf(row, graph, input),
   };
 
   // Step 3 — the statement wins; the model result stays visible (D-17).
@@ -602,7 +662,9 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
       ...result,
       status: statement.status === "met" ? "met" : statement.status === "n/a" ? "n/a" : "gap",
       source: "statement",
+      // the user's own reasoning — no code
       reasoning: statement.reasoning,
+      reason: undefined,
       statementSupportingMeasure: statement.supportingMeasure,
       statementModelChanged:
         statement.modelStatusAtStatement !== undefined && statement.modelStatusAtStatement !== result.modelStatus

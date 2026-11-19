@@ -68,6 +68,7 @@ import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
 } from "../../services/threat-catalog-service";
+import { isThreatRated } from "../../services/threat-phase-status";
 
 // ==================== TYPES ====================
 
@@ -178,9 +179,8 @@ function countImpacts(
 
 // ==================== COMPLETION HELPER ====================
 
-function isCompleted(t: Threat): boolean {
-  return t.workflowStatus === "reviewed" || t.workflowStatus === "closed";
-}
+// rated = relevance decided — the rule of the phase status (isThreatRated)
+const isCompleted = (t: Threat): boolean => isThreatRated(t);
 
 function countCompletedByLevel(
   threats: Threat[],
@@ -499,7 +499,14 @@ const ThreatRows: React.FC<{
 
                   <TableCell sx={{ ...cellSx, textAlign: "right" }}>
                     <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
-                      <IconButton size="small" onClick={() => onEdit(threat)}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          // the row opens the dialog too — once is enough
+                          e.stopPropagation();
+                          onEdit(threat);
+                        }}
+                      >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -509,7 +516,12 @@ const ThreatRows: React.FC<{
                     >
                       <IconButton
                         size="small"
-                        onClick={() => onDelete(threat.id)}
+                        onClick={(e) => {
+                          // not the row's click: it opened the threat dialog over the
+                          // delete confirmation (manual test 2026-11-19)
+                          e.stopPropagation();
+                          onDelete(threat.id);
+                        }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -604,9 +616,7 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
 
     // ── Accordion header stats ──────────────────────────────────────────────
     const total = table.threats.length;
-    const reviewed = table.threats.filter(
-      (t) => t.workflowStatus === "reviewed" || t.workflowStatus === "closed",
-    ).length;
+    const reviewed = table.threats.filter(isThreatRated).length;
     const relevant = table.threats.filter(
       (t) => t.relevance === "relevant",
     ).length;

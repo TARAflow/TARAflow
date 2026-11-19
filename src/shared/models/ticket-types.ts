@@ -41,6 +41,19 @@ export function ticketStatusOf(category: TicketCategory): TicketStatus {
   }
 }
 
+/**
+ * Which tickets a list asks the tracker for (adapters design IT-13): not
+ * done (to do, in progress, review — the default, as before), done (closed,
+ * also without fix — to link a mitigation afterwards), or all. `text`: the
+ * tracker's own text search on title / summary; a ticket key or number
+ * finds that ticket.
+ */
+export type TicketScope = "active" | "done" | "all";
+export interface TicketQuery {
+  scope?: TicketScope;
+  text?: string;
+}
+
 /** Compact ticket info when listing existing tickets. */
 export interface TicketSummary {
   key: string;
@@ -79,7 +92,7 @@ export interface CreateTicketResult {
  * design §4.3), so neither feature imports the other.
  */
 export interface TicketPort {
-  fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]>;
+  fetchTickets(projectKey: string, issueType: string, query?: TicketQuery): Promise<TicketSummary[]>;
   createTicket(input: CreateTicketInput): Promise<CreateTicketResult>;
   /** One batch request; keys the tracker does not know are absent. */
   fetchTicketStates(keys: readonly string[]): Promise<Map<string, TicketState>>;

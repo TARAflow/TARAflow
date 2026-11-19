@@ -237,6 +237,28 @@ describe("SourceBindingsSection", () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
+  // Manual test 2026-11-17: every failure was "Could not reach <host>".
+  it.each([
+    ["not_found", "github.com has no such repository — or it is private and you have no access. Check the URL."],
+    ["no_access", "github.com refused access. A private repository needs stored git credentials (credential helper or SSH key)."],
+    ["offline", "Could not connect to github.com — no network, or the host name is wrong."],
+    ["timeout", "github.com did not answer in time."],
+  ] as const)("names why it failed: %s", async (failure, text) => {
+    const onUpdate = vi.fn();
+    vi.mocked(resolveSourceBinding).mockResolvedValue({ success: false, reachable: false, error: "git said so", failure });
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+    fireEvent.click(screen.getByText("Resolve"));
+    await screen.findByText(text);
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
   it("shows a distinct message when consent was denied", async () => {
     const onUpdate = vi.fn();
     vi.mocked(resolveSourceBinding).mockResolvedValue({
@@ -373,5 +395,42 @@ describe("SourceBindingsSection", () => {
 
     await screen.findByText("Network access was not allowed.");
     expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("a URL with credentials is not saved (review 2026-11-11)", () => {
+    const onUpdate = vi.fn();
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={onUpdate}
+      />,
+    );
+    fireEvent.click(screen.getByText("Edit"));
+    fireEvent.change(screen.getByDisplayValue(binding.repoUrl), { target: { value: "https://me:ghp_token@github.com/org/repo.git" } });
+    expect(screen.getByTestId("source-binding-credentials")).toBeInTheDocument();
+    const save = screen.getByTestId("source-binding-save") as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.click(save);
+    expect(onUpdate).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByDisplayValue("https://me:ghp_token@github.com/org/repo.git"), { target: { value: "https://github.com/org/repo.git" } });
+    expect(screen.queryByTestId("source-binding-credentials")).toBeNull();
+    fireEvent.click(screen.getByTestId("source-binding-save"));
+    expect(onUpdate).toHaveBeenCalled();
+  });
+
+  it("a URL with credentials stored before: clean it and revoke the token (review 2026-11-11)", () => {
+    render(
+      <SourceBindingsSection
+        bindings={[{ ...binding, repoUrl: "https://me:ghp_token@github.com/org/repo.git" }, binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={vi.fn()}
+      />,
+    );
+    const hints = screen.getAllByTestId("source-binding-credentials-stored");
+    expect(hints).toHaveLength(1);
+    expect(hints[0].textContent).toContain("revoke the token");
   });
 });

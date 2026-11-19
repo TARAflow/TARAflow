@@ -24,7 +24,8 @@ declare global {
         saveDialog: (
           defaultName: string,
         ) => Promise<{ success: boolean; data?: string; error?: string }>;
-        openDialog: () => Promise<{
+        /** defaultDir: where the dialog starts; absent = the home directory. */
+        openDialog: (defaultDir?: string) => Promise<{
           success: boolean;
           data?: string;
           error?: string;
@@ -112,6 +113,9 @@ declare global {
       ) => Promise<{ success: boolean; error?: string }>;
       setDrawioPageTabInfo?: (
         info: Record<string, unknown>,
+      ) => Promise<{ success: boolean; error?: string }>;
+      setDrawioLockedPages?: (
+        pages: Record<string, true>,
       ) => Promise<{ success: boolean; error?: string }>;
       injectDrawioLibraries: (
         dfd1Xml: string,
@@ -201,7 +205,8 @@ declare global {
         | { success: true; data: { reachable: true; sha: string | null } }
         | {
             success: false;
-            data: { reachable: false; sha: null };
+            // what git said went wrong (electron/ipc/remote-ref.ts)
+            data: { reachable: false; sha: null; failure?: "not_found" | "no_access" | "offline" | "timeout" | "unknown" };
             error: string;
           }
       >;

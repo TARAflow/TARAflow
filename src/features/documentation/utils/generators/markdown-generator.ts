@@ -42,6 +42,11 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
 
   // ==================== TEXT HANDLING ====================
 
+  /** Further link targets in a table cell (imported threats shown once, 6a-1). */
+  threatAnchorMarks(ids: readonly string[]): string {
+    return ids.map((id) => `<a id="threat-${id}"></a>`).join("");
+  }
+
   escapeTableText(text: string): string {
     return escapeMarkdown(text);
   }
@@ -208,8 +213,9 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
   }
 
   formatAttackTreeSection(section: AttackTreeReportSection): string {
+    // A cell's lines (e.g. the steps of an AND combination) as <br>, like the other tables.
     const row = (cells: string[]) =>
-      `| ${cells.map((c) => this.escapeTableText(c)).join(" | ")} |`;
+      `| ${cells.map((c) => c.split("\n").map((line) => this.escapeTableText(line)).join("<br>")).join(" | ")} |`;
     return [
       `### ${section.title}`,
       "",

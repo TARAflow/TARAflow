@@ -15,14 +15,11 @@
 // The full DFDAsset type stays in features/dfd — only the creation primitive is
 // shared. The feature widens the seed (e.g. DFD adds linkedElements: []).
 
-export type AssetProtectionNeed = "low" | "medium" | "high" | "critical";
-
 export interface CreatedAsset<G extends string = string> {
   id: string;
   displayId: string;
   name: string;
   assetGroup: G;
-  protectionNeed?: AssetProtectionNeed;
 }
 
 /**
@@ -71,7 +68,6 @@ export function createAsset<G extends string>(
   existingDisplayIds: readonly string[],
   name: string,
   group: G,
-  protectionNeed?: AssetProtectionNeed,
 ): CreatedAsset<G> {
   // Phase 5b (UUID): the id is an opaque, stable identity (never shown, never
   // regenerated — the reference elements point at). The readable, group-
@@ -83,6 +79,5 @@ export function createAsset<G extends string>(
     displayId,
     name,
     assetGroup: group,
-    ...(protectionNeed ? { protectionNeed } : {}),
   };
 }

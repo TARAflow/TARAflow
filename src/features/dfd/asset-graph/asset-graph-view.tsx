@@ -191,6 +191,15 @@ export interface AssetGraphViewProps {
    * classic DFD.
    */
   readonly pageScope?: DfdScopeIndex;
+  /**
+   * Multi-project TARA phase 4a-3: assets and DFD elements an imported
+   * component owns (id → owner label, e.g. "SD1 · Smoke Detector"). Locked
+   * in edit mode: such an asset cannot be deleted or edited here; a link
+   * between two of them is the component's (no change, no delete), and a
+   * new link needs at least one end the machine owns; a locked element's
+   * element → asset relations stay as they are.
+   */
+  readonly lockedBy?: (id: string) => string | undefined;
 }
 
 interface ViewState {
@@ -320,6 +329,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   rightInset = 0,
   darkMode = false,
   pageScope,
+  lockedBy,
 }) => {
   // Only the hazards marked relevant in the Hazard tab (in scope) — everywhere in the graph (user 2026-11-06).
   const source = useMemo(() => onlyRelevantHazards(rawSource), [rawSource]);
@@ -788,6 +798,21 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     nodeId.startsWith(ANCHOR_PREFIX)
       ? linkable.find((x) => x.id === nodeId.slice(ANCHOR_PREFIX.length))
       : undefined;
+  /**
+   * Phase 4a-3: the owner of a link that only its component can change — a
+   * link between two of its assets, or an element relation of its element.
+   */
+  const edgeLockedBy = (edge: { kind: string; source: string; target: string }): string | undefined => {
+    if (!lockedBy) return undefined;
+    if (edge.kind === "a2a") return lockedBy(edge.source) && lockedBy(edge.target) ? lockedBy(edge.source) : undefined;
+    const el = edge.source.startsWith(ANCHOR_PREFIX) ? edge.source.slice(ANCHOR_PREFIX.length) : undefined;
+    return el ? lockedBy(el) : undefined;
+  };
+  const lockedNotice = (owner: string) =>
+    t("tabs.dfd.assetGraph.locked.notice", {
+      owner,
+      defaultValue: "Belongs to {{owner}} — its assets, links and elements are changed in the component's TARA. A new link needs an asset of this project at one end.",
+    });
   const targetClasses = useMemo(() => {
     if (!drag) return null;
     const shownAssets = graph.nodes
@@ -845,6 +870,15 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     if (assetId === d.sourceId) return;
     const cls = targetClasses?.get(assetId)?.targetClass ?? "invalid";
     const element = elementOfAnchor(d.sourceId);
+    // Phase 4a-3: what an imported component owns is changed only there.
+    if (element && lockedBy?.(element.id)) {
+      setConnectNotice(lockedNotice(lockedBy(element.id)!));
+      return;
+    }
+    if (!element && lockedBy?.(d.sourceId) && lockedBy(assetId)) {
+      setConnectNotice(lockedNotice(lockedBy(assetId)!));
+      return;
+    }
     if (element) {
       const target = source.assets.find((x) => x.id === assetId);
       if (cls === "invalid") {
@@ -1010,6 +1044,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
     }
     if ((e.key === "Delete" || e.key === "Backspace") && editing) {
       const edge = graph.edges.find((x) => x.id === (edgeId ?? (inspectorOpen ? selectedEdgeId : null)));
+      // Phase 4a-3: a component's link or asset is not deleted here.
+      if ((edge && edgeLockedBy(edge)) || (!edge && node?.kind === "asset" && lockedBy?.(node.id))) {
+        e.preventDefault();
+        return;
+      }
       if (edge) {
         e.preventDefault();
         removeEdge(edge);
@@ -1087,6 +1126,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
   const [elementDialog, setElementDialog] = useState<{ elementId: string; assetId: string } | null>(null);
   const [elementPicker, setElementPicker] = useState<{ assetId: string; anchor: HTMLElement } | null>(null);
   const canLinkElements = editing && !!elementLinking;
+  // Phase 4a-3: the inspected asset belongs to an imported component.
+  const inspectedLock = inspectedHazardId ? undefined : lockedBy?.(inspectedAssetId ?? selectedAssetId ?? "");
   const elementTypeName = (type: string) =>
     t(`tabs.dfd.elementTypes.${type}.name`, { defaultValue: type });
   const writeElementRelations = (elementId: string, relations: AssetRelation[]) => {
@@ -2181,7 +2222,10 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
           return (
             <ElementPicker
               anchorEl={elementPicker.anchor}
-              candidates={elementCandidates(linkable, elementPicker.assetId, String(asset?.assetGroup))}
+              // a component's elements keep their relations (phase 4a-3)
+              candidates={elementCandidates(linkable, elementPicker.assetId, String(asset?.assetGroup)).filter(
+                (c) => !lockedBy?.(c.id),
+              )}
               elementTypeName={elementTypeName}
               onPick={(elementId) => {
                 setElementPicker(null);
@@ -2244,19 +2288,22 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
             onOpenHazard={onOpenHazard}
             severityLabel={severityLabel}
             rightInset={rightInset}
-            onDeleteLink={editing ? deleteLink : undefined}
-            onUpdateLink={editing ? updateLink : undefined}
-            assetEditing={editing ? assetEditing : undefined}
+            lockedBy={selectedEdge ? edgeLockedBy(selectedEdge) : inspectedLock}
+            onDeleteLink={editing && !(selectedEdge && edgeLockedBy(selectedEdge)) ? deleteLink : undefined}
+            onUpdateLink={editing && !(selectedEdge && edgeLockedBy(selectedEdge)) ? updateLink : undefined}
+            assetEditing={editing && !inspectedLock ? assetEditing : undefined}
             onLinkElement={
               canLinkElements
                 ? (assetId, anchor) => setElementPicker({ assetId, anchor })
                 : undefined
             }
             onEditElementLink={
-              canLinkElements ? (elementId, assetId) => setElementDialog({ elementId, assetId }) : undefined
+              canLinkElements && !(selectedEdge && edgeLockedBy(selectedEdge))
+                ? (elementId, assetId) => setElementDialog({ elementId, assetId })
+                : undefined
             }
             onRemoveElementLink={
-              canLinkElements
+              canLinkElements && !(selectedEdge && edgeLockedBy(selectedEdge))
                 ? (elementId, assetId, relationType) => {
                     const el = linkable.find((x) => x.id === elementId);
                     if (el) writeElementRelations(elementId, withoutElementRelation(el.relations, assetId, relationType));
@@ -2265,7 +2312,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   }
                 : undefined
             }
-            onDeleteAsset={editing && onDeleteAsset ? (id) => setConfirmDeleteId(id) : undefined}
+            onDeleteAsset={editing && onDeleteAsset && !inspectedLock ? (id) => setConfirmDeleteId(id) : undefined}
             onClose={() => {
               setInspectorOpen(false);
               setSelectedEdgeId(null);

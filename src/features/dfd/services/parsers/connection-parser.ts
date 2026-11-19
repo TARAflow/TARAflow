@@ -247,6 +247,13 @@ function createConnection(
     connection.curved = curved;
   }
 
+  // A straight line unless draw.io routes it (manual test 2026-11-17: a
+  // straight diagonal flow through an interface was checked as an L-path)
+  const edgeStyle = /(?:^|;)edgeStyle=([^;]*)/.exec(style)?.[1];
+  if (!edgeStyle || edgeStyle === "none") {
+    connection.straight = true;
+  }
+
   const arrow = parseArrow(style);
   if (arrow.start || arrow.end) {
     connection.arrow = arrow;

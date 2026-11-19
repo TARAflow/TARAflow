@@ -11,7 +11,7 @@
 //     not an English sentence; dropped again when the ticket moves on).
 // Tracker-independent: adapters deliver normalised TicketStates. Pure.
 
-import { ticketStatusOf, type TicketState } from "shared/models/ticket-types";
+import { ticketStatusOf, type TicketState, type TicketStatus } from "shared/models/ticket-types";
 import type { MitigationStatus, SelectedMitigation } from "../models/risk-mitigation-types";
 
 const STATUS_OF: Record<TicketState["category"], MitigationStatus> = {
@@ -43,6 +43,43 @@ export function applyTicketState(
       ? { rejectedByTicket: { key: state.key, resolution: state.resolution ?? state.raw } }
       : {}),
   };
+}
+
+const STATUS_OF_TICKET: Partial<Record<TicketStatus, MitigationStatus>> = {
+  OPEN: "open",
+  IN_PROGRESS: "in_progress",
+  REVIEW: "in_review",
+  CLOSED: "implemented",
+  DECLINED: "rejected",
+};
+
+/** The mitigation status the ticket's last seen status stands for; none while unknown. */
+export function statusFromTicket(ticketStatus: TicketStatus | undefined): MitigationStatus | undefined {
+  return ticketStatus ? STATUS_OF_TICKET[ticketStatus] : undefined;
+}
+
+/**
+ * With a linked ticket, the statuses the analyst can choose (adapters design
+ * IT-14, user 2026-11-10): progress comes from the ticket — it is changed in
+ * the tracker, TARAflow does not move tickets. Left to choose: the ticket's
+ * own status (back to it), "verified" once the ticket is done (the TARA's
+ * step after the fix, the ticket does not know it), "rejected" always (with
+ * a reason), and the current status so the choice shows it.
+ */
+export function selectableWithTicket(m: Pick<SelectedMitigation, "status" | "ticketStatus">): ReadonlySet<MitigationStatus> {
+  const fromTicket = statusFromTicket(m.ticketStatus);
+  return new Set<MitigationStatus>([
+    m.status,
+    "rejected",
+    ...(fromTicket ? [fromTicket] : []),
+    ...(m.ticketStatus === "CLOSED" ? (["verified"] as const) : []),
+  ]);
+}
+
+/** Set beside the ticket (verified, rejected, an older manual status): offer to follow the ticket again. */
+export function differsFromTicket(m: Pick<SelectedMitigation, "status" | "ticketStatus">): boolean {
+  const fromTicket = statusFromTicket(m.ticketStatus);
+  return !!fromTicket && fromTicket !== m.status;
 }
 
 /** Whether a rejected mitigation has its reason — written by the analyst or from the ticket. */

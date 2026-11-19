@@ -182,6 +182,31 @@ export function registerDrawioHandlers() {
     },
   );
 
+  // Multi-project TARA (design v3 §6.2): the pages of imported components
+  // ({ pageId: true }) are read-only — the plugin's isCellLocked /
+  // isCellDeletable / isCellEditable / isCellConnectable wrappers read it.
+  ipcMain.handle(
+    "drawio:setLockedPages",
+    async (_, pages: Record<string, true> | null) => {
+      if (!cachedDrawioFrame)
+        return { success: false, error: "No drawio frame cached" };
+      const pagesJs = JSON.stringify(pages ?? {});
+      try {
+        await cachedDrawioFrame.executeJavaScript(`
+        (function() {
+          Draw._taraflowLockedPages = ${pagesJs};
+          var ui = Draw._taraflowUi;
+          if (ui && ui.editor && ui.editor.graph) ui.editor.graph.refresh();
+          return true;
+        })()
+      `);
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
+    },
+  );
+
   // Leveled DFD (5c): tooltip and finding badge per page tab, see the
   // createTabForPage wrapper in the plugin. The info goes into the script as
   // a JSON literal.

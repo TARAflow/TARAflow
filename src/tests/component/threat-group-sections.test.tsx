@@ -5,7 +5,7 @@
 // tables inside, flows between two groups in both, original table index
 // kept for editing.
 import React from "react";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ThreatGroupSections,
@@ -13,6 +13,7 @@ import {
 } from "features/threats/components/shared/threat-group-sections";
 import { TOP_LEVEL_GROUP, type DfdTableGroups } from "shared";
 import type { Threat, ThreatTable } from "features/threats/models/threat-types";
+import type { ImportedThreatSection } from "features/threats/components/shared/imported-threats-section";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -139,5 +140,63 @@ describe("ThreatGroupSections", () => {
     expect(screen.queryByTestId(`threat-group-${TOP_LEVEL_GROUP}`)).toBeNull();
     expect(screen.getByTestId("table--1").textContent).toBe("T-p5,T-gone");
     expect(screen.queryByTestId("threat-group-summaries")).toBeNull();
+  });
+});
+
+// Manual test 2026-11-15: the Threats and the Risks tab show the same
+// structure — an imported instance is a card in the group of its
+// multiprocess (like its risks), with an info icon saying read-only.
+describe("ThreatGroupSections — imported components", () => {
+  const GROUPS_MP: DfdTableGroups = { ...GROUPS, elementGroup: { ...GROUPS.elementGroup, mp1: "mp1" } };
+  const imported = (multiprocessId: string | undefined, threats: Threat[]): ImportedThreatSection => ({
+    key: "imported-inst1",
+    label: "SDC1 · Smoke Detector Case",
+    prefix: "SDC1",
+    ...(multiprocessId ? { multiprocessId } : {}),
+    count: threats.length,
+    threats,
+    render: () => <div data-testid="imported-body">{threats.map((x) => x.id).join(",")}</div>,
+    filtered: (keep) => imported(multiprocessId, threats.filter(keep)),
+  });
+  const THREE = [threat("I-1", {}, "S"), threat("I-2", {}, "T"), threat("I-3", {}, "T")];
+
+  it("the card is in the group of its multiprocess, after its own tables; no group of its own", () => {
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={TABLES} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    const mp1 = screen.getByTestId("threat-group-mp1");
+    expect(within(mp1).getByTestId("imported-threat-card-imported-inst1").textContent).toContain("[SDC1]");
+    expect(within(mp1).getByTestId("imported-body").textContent).toBe("I-1,I-2,I-3");
+    expect(screen.queryByTestId("threat-group-imported-inst1")).toBeNull();
+    // the group counts its own and the imported threats
+    expect(mp1.textContent).toContain("5");
+  });
+
+  it("the top-level summary row of the multiprocess counts the imported threats too", () => {
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={TABLES} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    const row = screen.getByTestId("threat-group-summary-mp1");
+    expect(row.textContent).toContain("5 threat(s) of its parts");
+    expect(row.textContent).toContain("S 2 · T 3");
+  });
+
+  it("a multiprocess with imported threats only still gets its group", () => {
+    const own = TABLES.map((tb) => ({ ...tb, threats: tb.threats.filter((x) => x.id !== "T-p2" && x.id !== "T-p2b") }));
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={own} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    expect(within(screen.getByTestId("threat-group-mp1")).getByTestId("imported-body")).toBeTruthy();
+  });
+
+  it("the info icon tells that the card is read-only", async () => {
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={TABLES} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    fireEvent.mouseOver(screen.getByTestId("imported-threats-info-imported-inst1"));
+    await waitFor(() => expect(screen.getByRole("tooltip").textContent).toContain("read-only"));
+  });
+
+  it("an instance whose multiprocess is not decomposed is in the top level", () => {
+    render(<ThreatGroupSections groups={GROUPS_MP} tables={TABLES} renderTable={renderTable} importedSections={[imported("nowhere", THREE)]} />);
+    expect(within(screen.getByTestId(`threat-group-${TOP_LEVEL_GROUP}`)).getByTestId("imported-threat-card-imported-inst1")).toBeTruthy();
+  });
+
+  it("without DFD groups the card follows the tables", () => {
+    render(<ThreatGroupSections tables={TABLES} renderTable={renderTable} importedSections={[imported("mp1", THREE)]} />);
+    expect(screen.getByTestId("imported-threat-card-imported-inst1")).toBeTruthy();
+    expect(screen.getByTestId("table--0")).toBeTruthy();
   });
 });

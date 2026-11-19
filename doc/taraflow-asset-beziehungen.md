@@ -1304,8 +1304,14 @@ System "Safety Controller"
 
 ### Threat-Ableitung
 
-Bei Function Assets mit `isSafetyFunction: true` werden automatisch
-folgende Threats priorisiert:
+> **Nicht umgesetzt (korrigiert 2026-11-14, 0.19):** kein Code liest `isSafetyFunction`;
+> das Häkchen bewirkt nichts. Threats auf Safety-Funktionen werden stattdessen über
+> die Safety-Kette sortiert — Hazard-Ziel / physischer Impact des verknüpften Assets
+> (`getThreatPriority`, Safety-Modell v9). Die Absicht unten bleibt als Entwurf, siehe
+> `doc/Open/Risk/model-field-purpose-and-rating-context-design.md`.
+
+Vorgesehen für Function Assets mit `isSafetyFunction: true` (nicht umgesetzt):
+folgende Threats automatisch priorisieren:
 
 - **Tampering (Integrity):** Manipulation der Funktionslogik oder -parameter
 - **Denial of Service (Availability):** Deaktivierung oder Unterbrechung der Funktion

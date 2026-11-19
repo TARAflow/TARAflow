@@ -70,6 +70,7 @@ import {
 } from "../../services/threat-catalog-service";
 import { CreateThreatDialog } from "../../components/shared/create-threat-dialog";
 import type { InteractionDirection } from "features/threats/models/per-interaction-types";
+import { isThreatRated } from "../../services/threat-phase-status";
 
 // ==================== TYPES ====================
 
@@ -146,9 +147,8 @@ const RELEVANCE_ROW_BG: Record<string, string> = {
   uncertain: "#fffbeb",
 };
 
-function isCompleted(t: Threat): boolean {
-  return t.workflowStatus === "reviewed" || t.workflowStatus === "closed";
-}
+// rated = relevance decided — the rule of the phase status (isThreatRated)
+const isCompleted = (t: Threat): boolean => isThreatRated(t);
 
 function countCompletedByLevel(
   threats: Threat[],
@@ -528,7 +528,14 @@ const InteractionThreatRows: React.FC<{
                   )}
                   <TableCell sx={{ ...cellSx, textAlign: "right" }}>
                     <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
-                      <IconButton size="small" onClick={() => onEdit(threat)}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          // the row opens the dialog too — once is enough
+                          e.stopPropagation();
+                          onEdit(threat);
+                        }}
+                      >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -537,7 +544,12 @@ const InteractionThreatRows: React.FC<{
                     >
                       <IconButton
                         size="small"
-                        onClick={() => onDelete(threat.id)}
+                        onClick={(e) => {
+                          // not the row's click: it opened the threat dialog over the
+                          // delete confirmation (manual test 2026-11-19)
+                          e.stopPropagation();
+                          onDelete(threat.id);
+                        }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -742,9 +754,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
 
     // ── Accordion header stats ──────────────────────────────────────────────
     const total = table.threats.length;
-    const reviewed = table.threats.filter(
-      (t) => t.workflowStatus === "reviewed" || t.workflowStatus === "closed",
-    ).length;
+    const reviewed = table.threats.filter(isThreatRated).length;
     const relevant = table.threats.filter(
       (t) => t.relevance === "relevant",
     ).length;

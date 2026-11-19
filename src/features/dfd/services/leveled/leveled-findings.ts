@@ -265,9 +265,17 @@ function homeNotHighest(
   push: Push,
 ): void {
   const { depthOf } = input.tree;
+  // Attached copies (a component's shells on the parent page) are higher
+  // than their definition by design.
+  const attached = new Set(
+    (input.persistedPages ?? []).flatMap((p) =>
+      (p.links ?? []).filter((l) => l.attached).map((l) => `${p.pageId}\u0000${l.cellId}`),
+    ),
+  );
   const highest = new Map<string, string>();
   for (const o of input.parse.occurrences) {
     if (o.kind !== "element" || !depthOf.has(o.pageId)) continue;
+    if (attached.has(`${o.pageId}\u0000${o.cellId}`)) continue;
     const best = highest.get(o.tfId);
     if (best === undefined || depthOf.get(o.pageId)! < depthOf.get(best)!) {
       highest.set(o.tfId, o.pageId);

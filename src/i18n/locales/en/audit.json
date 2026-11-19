@@ -184,6 +184,13 @@
       "summary": "{{error}} errors, {{warning}} warnings, {{info}} info",
       "strictOn": "strict",
       "clean": "No findings.",
+      "group": {
+        "error": "Errors ({{count}})",
+        "warning": "Warnings ({{count}})",
+        "info": "Notes ({{count}})"
+      },
+      "showFiles": "Show {{count}} files",
+      "hideFiles": "Hide files",
       "lead": "Check that every change in the trail is signed and in order.",
       "notRun": "Not verified yet.",
       "passTitle": "Trail verified",
@@ -271,6 +278,10 @@
         "TCS_PARSE_ERROR": {
           "title": "A project file couldn't be read",
           "hint": "A .tara.json is corrupt or truncated. Restore it from git history."
+        },
+        "CMP_SNAPSHOT_HASH_MISMATCH": {
+          "title": "An imported component's snapshot was changed after the import",
+          "hint": "The component data embedded in the project file no longer matches its recorded hash — changed after the import, by hand or by a tool. Refresh the stored state in the multiprocess's tab \"Component\" (DFD), or import the component again."
         },
         "TCS_UNKNOWN_VERSION": {
           "title": "A project file uses a newer format",

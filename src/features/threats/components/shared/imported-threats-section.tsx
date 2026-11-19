@@ -1,0 +1,602 @@
+// ==================== IMPORTED THREATS SECTION ====================
+// Multi-project TARA (design v3 §7.1, patch 14/15): the threats of imported
+// components, read-only — text, STRIDE and relevance are the component's
+// decisions; risks are rated in the Risk tab. Grouped per instance. The
+// app layer derives them (features/threats knows no components).
+//
+// Boundary flows (§17 I3): the machine may override the relevance, in both
+// directions, with a mandatory rationale; the component's decision stays
+// visible beside it. An override whose component decision changed since is
+// marked "to review".
+//
+// Manual test 2026-11-07: only the active method's threats are shown (the
+// count matches the machine's own tables), and a row opens the threat in
+// the threat dialog, read-only.
+
+import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SecurityIcon from "@mui/icons-material/Security";
+import InfoIcon from "@mui/icons-material/InfoOutlined";
+import EditNoteIcon from "@mui/icons-material/EditNote";
+import type {
+  ImportedRelevanceDecision,
+  ImportedThreatRow,
+  StrideMethod,
+  Threat,
+  ThreatRelevance,
+} from "../../models/threat-types";
+import { DescriptionCell, StrideCell, ThreatIdCell, compareThreatsByLabel } from "./threat-table-utils";
+
+const NS = { ns: "components" } as const;
+
+export interface ImportedThreatGroup {
+  key: string;
+  label: string;
+  threats: Threat[];
+  rows?: readonly ImportedThreatRow[];
+  /** The component the instance belongs to — instances of one component are shown together (I5). */
+  componentKey?: string;
+  componentLabel?: string;
+  /** Instance prefix, e.g. "SD1" — the display ids carry it. */
+  prefix?: string;
+  /** The instance's multiprocess — the DFD table group its threats are listed in. */
+  multiprocessId?: string;
+}
+
+const where = (t: Threat) =>
+  t.dataFlow
+    ? t.dataFlow.dataFlowName || `${t.dataFlow.sourceName} → ${t.dataFlow.targetName}`
+    : [t.linkedElement?.displayId, t.linkedElement?.elementName].filter(Boolean).join(" ");
+
+const RELEVANCES: ThreatRelevance[] = ["relevant", "not_relevant", "uncertain", "unrated"];
+
+export interface ImportedThreatsSectionProps {
+  groups?: readonly ImportedThreatGroup[];
+  /** Absent: no override offered (read-only everywhere). */
+  onOverrideRelevance?: (groupKey: string, threatKey: string, decision: ImportedRelevanceDecision) => void;
+  /** The active method: only its threats are shown. Absent: all. */
+  method?: StrideMethod;
+  /** Open a threat read-only: the group's shown threats in display order and the index clicked. */
+  onOpenThreat?: (group: { key: string; label: string }, threats: Threat[], index: number) => void;
+}
+
+/** The rows of a group as shown: the active method only, sorted by label. */
+function rowsOf(g: ImportedThreatGroup, method: StrideMethod | undefined): ImportedThreatRow[] {
+  const rows: ImportedThreatRow[] = g.rows
+    ? [...g.rows]
+    : g.threats.map((threat) => ({ threat, threatKey: threat.id, componentRelevance: threat.relevance, boundary: false }));
+  return rows
+    .filter((r) => !method || !r.method || r.method === method)
+    .sort((a, b) => compareThreatsByLabel(a.threat, b.threat));
+}
+
+/** One imported component as a group of the threat list (manual test 2026-11-15). */
+export interface ImportedThreatSection {
+  /** `imported-<component key>` — distinct from the DFD group keys. */
+  key: string;
+  /** The component, e.g. "SDC1 · Smoke Detector Case" (one instance) or its name (several). */
+  label: string;
+  /** Threats shown — a threat of a component with several instances once. */
+  count: number;
+  /** The shown threats (one per threat key) — for the STRIDE figures of a summary row. */
+  threats: Threat[];
+  render: () => React.ReactNode;
+  /** Instance prefix ("SDC1") — shown as the chip of the card. Per instance only. */
+  prefix?: string;
+  /** The instance's multiprocess — the DFD table group the card is listed in. Per instance only. */
+  multiprocessId?: string;
+  /**
+   * The group with only the threats `keep` accepts — the filter bar of the
+   * Threats tab applies to imported threats too (relevance as the machine
+   * uses it, i.e. with an override applied). Count 0 when none is left.
+   */
+  filtered: (keep: (threat: Threat) => boolean) => ImportedThreatSection;
+}
+
+/**
+ * The imported threats as groups of the threat list, one per component, and
+ * the override dialog — the Threats tab lists them under the filter bar like
+ * the multiprocess groups (manual test 2026-11-15: the accordion above the
+ * filter bar was overlooked). `dialog` must be rendered by the caller.
+ */
+export function useImportedThreatSections({
+  groups,
+  onOverrideRelevance,
+  method,
+  onOpenThreat,
+  headings = true,
+  perInstance = false,
+}: ImportedThreatsSectionProps & {
+  /** Instance heading above a table — off where the group title names it already. */
+  headings?: boolean;
+  /**
+   * One section per instance instead of per component — the Threats tab
+   * lists each instance in the group of its multiprocess, as the Risks tab
+   * does with its risks (manual test 2026-11-15).
+   */
+  perInstance?: boolean;
+}): { sections: ImportedThreatSection[]; total: number; dialog: React.ReactNode } {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState<{ groupKey: string; row: ImportedThreatRow } | null>(null);
+  const dialog =
+    editing && onOverrideRelevance ? (
+      <OverrideDialog
+        row={editing.row}
+        onClose={() => setEditing(null)}
+        onSave={(decision) => {
+          onOverrideRelevance(editing.groupKey, editing.row.threatKey, decision);
+          setEditing(null);
+        }}
+      />
+    ) : null;
+  const sections = useMemo((): ImportedThreatSection[] => {
+    const shown = (groups ?? []).map((g) => ({ group: g, rows: rowsOf(g, method) })).filter((x) => x.rows.length > 0);
+    // Per component, its instances below (I5, patch 31): a component used
+    // more than once shows each threat once with a line per instance.
+    type Shown = { group: ImportedThreatGroup; rows: ImportedThreatRow[] };
+    const byKey = new Map<string, { key: string; label: string; items: Shown[] }>();
+    for (const x of shown) {
+      const key = perInstance ? x.group.key : (x.group.componentKey ?? x.group.key);
+      const entry = byKey.get(key) ?? { key, label: x.group.componentLabel ?? x.group.label, items: [] };
+      entry.items.push(x);
+      byKey.set(key, entry);
+    }
+    const components = [...byKey.values()];
+    const renderInstance = (g: ImportedThreatGroup, rows: ImportedThreatRow[]) => {
+      const open = (index: number) => onOpenThreat?.({ key: g.key, label: g.label }, rows.map((r) => r.threat), index);
+      return (
+        <Box key={g.key} sx={{ mb: 2 }} data-testid={`imported-threats-${g.key}`}>
+          {headings && (
+            <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5 }}>
+              {g.label}
+            </Typography>
+          )}
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>STRIDE</TableCell>
+                <TableCell>{t("components.threats.where", { ...NS, defaultValue: "Element / flow" })}</TableCell>
+                <TableCell>{t("components.threats.threat", { ...NS, defaultValue: "Threat" })}</TableCell>
+                <TableCell>{t("components.threats.relevance", { ...NS, defaultValue: "Relevance (component)" })}</TableCell>
+                <TableCell />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, index) => (
+                <TableRow
+                  key={row.threat.id}
+                  data-testid={`imported-threat-${row.threatKey}`}
+                  hover={!!onOpenThreat}
+                  onClick={onOpenThreat ? () => open(index) : undefined}
+                  sx={onOpenThreat ? { cursor: "pointer" } : undefined}
+                >
+                  <TableCell>
+                    <ThreatIdCell id={row.threat.displayId} />
+                  </TableCell>
+                  <TableCell>
+                    <StrideCell cat={row.threat.strideCategory} />
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.8rem" }}>{where(row.threat)}</TableCell>
+                  <TableCell sx={{ maxWidth: 340 }}>
+                    <DescriptionCell
+                      value={row.threat.threatDescription || row.threat.attackDescription}
+                      fallback={t("components.threats.templateText", { ...NS, defaultValue: "(catalog text)" })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" useFlexGap>
+                      <RelevanceChip row={row} testId={`imported-threat-override-${row.threatKey}`} />
+                      {row.stale && (
+                        <Chip
+                          size="small"
+                          color="warning"
+                          label={t("components.threats.toReview", { ...NS, defaultValue: "to review — the component changed its decision" })}
+                        />
+                      )}
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    {row.boundary && onOverrideRelevance && (
+                      <Button
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditing({ groupKey: g.key, row });
+                        }}
+                        data-testid={`imported-threat-edit-${row.threatKey}`}
+                      >
+                        {row.override
+                          ? t("components.threats.editOverride", { ...NS, defaultValue: "Change" })
+                          : t("components.threats.override", { ...NS, defaultValue: "Override" })}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      );
+    };
+    type Component = (typeof components)[number];
+    const makeSection = (all: Component, keep?: (threat: Threat) => boolean): ImportedThreatSection => {
+      const c: Component = keep
+        ? {
+            ...all,
+            items: all.items
+              .map((x) => ({ ...x, rows: x.rows.filter((r) => keep(r.threat)) }))
+              .filter((x) => x.rows.length > 0),
+          }
+        : all;
+      if (c.items.length === 0) {
+        return { key: `imported-${all.key}`, label: all.label, count: 0, threats: [], render: () => null, filtered: () => makeSection(all, () => false) };
+      }
+      const single = c.items.length === 1;
+      const threats = single
+        ? c.items[0].rows.map((r) => r.threat)
+        : [...new Map(c.items.flatMap((x) => x.rows.map((r) => [r.threatKey, r.threat] as const))).values()];
+      return {
+        key: `imported-${all.key}`,
+        label: single ? c.items[0].group.label : c.label,
+        ...(single && c.items[0].group.prefix ? { prefix: c.items[0].group.prefix } : {}),
+        ...(single && c.items[0].group.multiprocessId ? { multiprocessId: c.items[0].group.multiprocessId } : {}),
+        count: threats.length,
+        threats,
+        render: () =>
+          single ? (
+            renderInstance(c.items[0].group, c.items[0].rows)
+          ) : (
+            <ComponentThreatsTable
+              key={c.key}
+              componentKey={c.key}
+              label={c.label}
+              items={c.items}
+              onOverride={onOverrideRelevance ? (groupKey, row) => setEditing({ groupKey, row }) : undefined}
+              onOpenThreat={onOpenThreat}
+            />
+          ),
+        filtered: (next) => makeSection(all, next),
+      };
+    };
+    return components.map((c) => makeSection(c));
+  }, [groups, method, onOverrideRelevance, onOpenThreat, headings, perInstance, t]);
+  return { sections, total: sections.reduce((n, x) => n + x.count, 0), dialog };
+}
+
+/**
+ * One instance's imported threats as a card like a trust-boundary table —
+ * chip with the prefix, the instance, an info icon (read-only) and the
+ * count — in the group of its multiprocess (manual test 2026-11-15: the
+ * Threats and the Risks tab show the same structure).
+ */
+export const ImportedThreatCard: React.FC<{ section: ImportedThreatSection; info: string }> = ({ section, info }) => (
+  <Accordion
+    defaultExpanded
+    disableGutters
+    sx={{ "&:before": { display: "none" }, boxShadow: "1", mb: 1, borderLeft: "4px solid #9ca3af" }}
+    data-testid={`imported-threat-card-${section.key}`}
+  >
+    <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ backgroundColor: "primary.50", "&:hover": { backgroundColor: "primary.100" } }}>
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1, mr: 1 }}>
+        <SecurityIcon color="primary" />
+        {section.prefix && (
+          <Chip label={`[${section.prefix}]`} size="small" color="primary" variant="outlined" sx={{ fontFamily: "monospace" }} />
+        )}
+        <Typography variant="subtitle1" fontWeight="medium">
+          {section.label}
+        </Typography>
+        <Tooltip title={info}>
+          <InfoIcon fontSize="small" color="action" data-testid={`imported-threats-info-${section.key}`} />
+        </Tooltip>
+        <Box sx={{ flexGrow: 1 }} />
+        <Chip size="small" label={section.count} sx={{ height: 18, fontSize: "0.65rem" }} />
+      </Stack>
+    </AccordionSummary>
+    <AccordionDetails sx={{ p: 1 }}>{section.render()}</AccordionDetails>
+  </Accordion>
+);
+
+/** The imported threats in one accordion of their own (standalone use and tests). */
+export const ImportedThreatsSection: React.FC<ImportedThreatsSectionProps> = (props) => {
+  const { t } = useTranslation();
+  const { sections, total, dialog } = useImportedThreatSections(props);
+  if (sections.length === 0) return null;
+  return (
+    <Accordion disableGutters sx={{ mb: 1.5, flexShrink: 0 }} data-testid="imported-threats-section">
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography variant="subtitle2">
+          {t("components.threats.title", { ...NS, count: total, defaultValue: "Threats from imported components ({{count}}) — read-only" })}
+        </Typography>
+      </AccordionSummary>
+      <AccordionDetails sx={{ maxHeight: 360, overflow: "auto", pt: 0 }}>
+        {sections.map((x) => (
+          <React.Fragment key={x.key}>{x.render()}</React.Fragment>
+        ))}
+        {dialog}
+      </AccordionDetails>
+    </Accordion>
+  );
+};
+
+/**
+ * The relevance that counts, one chip (manual test 2026-11-08 — "machine:
+ * not_relevant" beside a struck-through "relevant" confused): the
+ * component's decision as an outlined chip; overridden by the machine, the
+ * machine's decision filled with an edit mark, the tooltip telling the
+ * component's decision and the rationale.
+ */
+const RelevanceChip: React.FC<{ row: ImportedThreatRow; testId?: string }> = ({ row, testId }) => {
+  const { t } = useTranslation();
+  const label = (r: ThreatRelevance) => t(`tabs.threats.eval.${r}`, { defaultValue: r.replace("_", " ") });
+  if (!row.override) {
+    return <Chip size="small" variant="outlined" label={label(row.componentRelevance)} />;
+  }
+  return (
+    <Tooltip
+      title={t("components.threats.overriddenTooltip", {
+        ...NS,
+        component: label(row.componentRelevance),
+        rationale: row.override.rationale,
+        date: row.override.date,
+        defaultValue: "Overridden by this machine ({{date}}): {{rationale}} — the component rated it {{component}}.",
+      })}
+    >
+      <Chip size="small" color="primary" icon={<EditNoteIcon />} label={label(row.override.relevance)} data-testid={testId} />
+    </Tooltip>
+  );
+};
+
+/** A display id without the instance prefix ("SD1:DF7-T-1" → "DF7-T-1"). */
+const unprefixed = (id: string | undefined, prefix: string | undefined) =>
+  id && prefix && id.startsWith(`${prefix}:`) ? id.slice(prefix.length + 1) : (id ?? "");
+
+/**
+ * A component used by several instances (I5): each threat once, with a line
+ * per instance — its relevance (the component's, struck through when the
+ * machine overrode it), the override, "to review", and on a boundary flow
+ * the machine element at its outer end. A click on an instance's line opens
+ * that instance's copy read-only (its decision, its counterpart); a click
+ * elsewhere on the row the first instance's. The override acts on its
+ * instance.
+ */
+const ComponentThreatsTable: React.FC<{
+  componentKey: string;
+  label: string;
+  items: readonly { group: ImportedThreatGroup; rows: readonly ImportedThreatRow[] }[];
+  onOverride?: (groupKey: string, row: ImportedThreatRow) => void;
+  onOpenThreat?: ImportedThreatsSectionProps["onOpenThreat"];
+}> = ({ componentKey, label, items, onOverride, onOpenThreat }) => {
+  const { t } = useTranslation();
+  // threat key → its row per instance, in the order of the first appearance
+  const keys: string[] = [];
+  const perKey = new Map<string, { group: ImportedThreatGroup; row: ImportedThreatRow }[]>();
+  for (const { group, rows } of items) {
+    for (const row of rows) {
+      if (!perKey.has(row.threatKey)) {
+        perKey.set(row.threatKey, []);
+        keys.push(row.threatKey);
+      }
+      perKey.get(row.threatKey)!.push({ group, row });
+    }
+  }
+  const first = (key: string) => perKey.get(key)![0];
+  keys.sort((a, b) => compareThreatsByLabel(first(a).row.threat, first(b).row.threat));
+  const open = (index: number) => {
+    const head = first(keys[index]);
+    onOpenThreat?.(
+      { key: head.group.key, label: head.group.label },
+      keys.map((k) => first(k).row.threat),
+      index,
+    );
+  };
+  /** One instance's copies, browsing the threats it has. */
+  const openInstance = (group: ImportedThreatGroup, key: string) => {
+    const own = keys
+      .map((k) => perKey.get(k)!.find((x) => x.group.key === group.key)?.row.threat)
+      .filter((x): x is Threat => !!x);
+    const target = perKey.get(key)!.find((x) => x.group.key === group.key)!.row.threat;
+    onOpenThreat?.({ key: group.key, label: group.label }, own, own.indexOf(target));
+  };
+  return (
+    <Box sx={{ mb: 2 }} data-testid={`imported-component-${componentKey}`}>
+      <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5 }}>
+        {label}{" "}
+        <Typography component="span" variant="caption" color="text.secondary">
+          {t("components.threats.instances", {
+            ...NS,
+            list: items.map((x) => x.group.label).join(", "),
+            defaultValue: "— instances: {{list}}",
+          })}
+        </Typography>
+      </Typography>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>ID</TableCell>
+            <TableCell>STRIDE</TableCell>
+            <TableCell>{t("components.threats.where", { ...NS, defaultValue: "Element / flow" })}</TableCell>
+            <TableCell>{t("components.threats.threat", { ...NS, defaultValue: "Threat" })}</TableCell>
+            <TableCell>{t("components.threats.perInstance", { ...NS, defaultValue: "Relevance per instance" })}</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {keys.map((key, index) => {
+            const head = first(key);
+            const threat = head.row.threat;
+            const prefix = head.group.prefix;
+            const place = threat.dataFlow
+              ? threat.dataFlow.dataFlowName || `${threat.dataFlow.sourceName} → ${threat.dataFlow.targetName}`
+              : [unprefixed(threat.linkedElement?.displayId, prefix), threat.linkedElement?.elementName].filter(Boolean).join(" ");
+            return (
+              <TableRow
+                key={key}
+                data-testid={`imported-component-threat-${key}`}
+                hover={!!onOpenThreat}
+                onClick={onOpenThreat ? () => open(index) : undefined}
+                sx={onOpenThreat ? { cursor: "pointer", verticalAlign: "top" } : { verticalAlign: "top" }}
+              >
+                <TableCell>
+                  <ThreatIdCell id={unprefixed(threat.displayId, prefix)} />
+                </TableCell>
+                <TableCell>
+                  <StrideCell cat={threat.strideCategory} />
+                </TableCell>
+                <TableCell sx={{ fontSize: "0.8rem" }}>{place}</TableCell>
+                <TableCell sx={{ maxWidth: 300 }}>
+                  <DescriptionCell
+                    value={threat.threatDescription || threat.attackDescription}
+                    fallback={t("components.threats.templateText", { ...NS, defaultValue: "(catalog text)" })}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Stack spacing={0.5}>
+                    {perKey.get(key)!.map(({ group, row }) => (
+                      <Stack
+                        key={group.key}
+                        direction="row"
+                        spacing={0.5}
+                        alignItems="center"
+                        flexWrap="wrap"
+                        useFlexGap
+                        data-testid={`imported-component-threat-${key}-${group.key}`}
+                        onClick={
+                          onOpenThreat
+                            ? (e) => {
+                                e.stopPropagation();
+                                openInstance(group, key);
+                              }
+                            : undefined
+                        }
+                      >
+                        <Typography variant="caption" sx={{ minWidth: 48, fontFamily: "monospace" }}>
+                          {group.prefix ?? group.label}
+                        </Typography>
+                        {row.counterpart && (
+                          <Typography variant="caption" color="text.secondary" data-testid={`imported-component-threat-${key}-${group.key}-counterpart`}>
+                            ↔ {row.counterpart}
+                          </Typography>
+                        )}
+                        <RelevanceChip row={row} testId={`imported-component-threat-override-${key}-${group.key}`} />
+                        {row.stale && (
+                          <Chip
+                            size="small"
+                            color="warning"
+                            label={t("components.threats.toReview", { ...NS, defaultValue: "to review — the component changed its decision" })}
+                          />
+                        )}
+                        {row.boundary && onOverride && (
+                          <Button
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOverride(group.key, row);
+                            }}
+                            data-testid={`imported-component-threat-edit-${key}-${group.key}`}
+                          >
+                            {row.override
+                              ? t("components.threats.editOverride", { ...NS, defaultValue: "Change" })
+                              : t("components.threats.override", { ...NS, defaultValue: "Override" })}
+                          </Button>
+                        )}
+                      </Stack>
+                    ))}
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+};
+
+/** Relevance + mandatory rationale; "remove" returns to the component's decision. */
+const OverrideDialog: React.FC<{
+  row: ImportedThreatRow;
+  onClose: () => void;
+  onSave: (decision: ImportedRelevanceDecision) => void;
+}> = ({ row, onClose, onSave }) => {
+  const { t } = useTranslation();
+  const [relevance, setRelevance] = useState<ThreatRelevance>(
+    row.override?.relevance ?? (row.componentRelevance === "relevant" ? "not_relevant" : "relevant"),
+  );
+  const [rationale, setRationale] = useState(row.override?.rationale ?? "");
+  const valid = rationale.trim() !== "" && relevance !== row.componentRelevance;
+  return (
+    <Dialog open onClose={onClose} maxWidth="sm" fullWidth data-testid="imported-threat-override-dialog">
+      <DialogTitle>
+        {t("components.threats.overrideTitle", { ...NS, id: row.threat.displayId, defaultValue: "Relevance of {{id}} in this machine" })}
+      </DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            {t("components.threats.overrideIntro", {
+              ...NS,
+              relevance: row.componentRelevance,
+              defaultValue:
+                "The component rated this threat on its boundary flow as “{{relevance}}” — without the machine context. Where the flow runs in this machine may change that. The rationale goes into the report (deviations from the component's assessment).",
+            })}
+          </Typography>
+          <Select size="small" value={relevance} onChange={(e) => setRelevance(e.target.value as ThreatRelevance)} inputProps={{ "data-testid": "imported-threat-override-relevance" }}>
+            {RELEVANCES.filter((r) => r !== row.componentRelevance).map((r) => (
+              <MenuItem key={r} value={r}>
+                {r}
+              </MenuItem>
+            ))}
+          </Select>
+          <TextField
+            label={t("components.threats.rationale", { ...NS, defaultValue: "Rationale (required)" })}
+            value={rationale}
+            onChange={(e) => setRationale(e.target.value)}
+            multiline
+            minRows={2}
+            inputProps={{ "data-testid": "imported-threat-override-rationale" }}
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        {row.override && (
+          <Button color="warning" onClick={() => onSave(null)} data-testid="imported-threat-override-remove">
+            {t("components.threats.removeOverride", { ...NS, defaultValue: "Back to the component's decision" })}
+          </Button>
+        )}
+        <Box sx={{ flexGrow: 1 }} />
+        <Button onClick={onClose}>{t("components.import.cancel", { ...NS, defaultValue: "Cancel" })}</Button>
+        <Button
+          variant="contained"
+          disabled={!valid}
+          onClick={() => onSave({ relevance, rationale: rationale.trim(), componentRelevance: row.componentRelevance })}
+          data-testid="imported-threat-override-save"
+        >
+          {t("components.threats.saveOverride", { ...NS, defaultValue: "Save" })}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};

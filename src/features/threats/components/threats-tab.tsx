@@ -2,6 +2,8 @@
 // Main orchestrator for threat management
 // FIXED: Split view, toolbar connections, export/import, dialog management
 
+import type { ImportedRelevanceDecision } from "../models/threat-types";
+import { useImportedThreatSections } from "./shared/imported-threats-section";
 import { withThreatPhaseStatus } from "../services/threat-phase-status";
 import React, {
   useEffect,
@@ -29,6 +31,7 @@ import { ThreatSyncBanner } from "./shared/threat-sync-banner";
 import { ThreatDriftBanner } from "./shared/threat-drift-banner";
 import { unsupportedDfdLayoutError } from "../services/dfd-page-layout-guard";
 import { ThreatDriftDialog } from "./shared/threat-drift-dialog";
+import { threatFindings, type ThreatFindingKind } from "./shared/threat-findings";
 import {
   detectGenerationDrift,
   hasDrift,
@@ -38,7 +41,7 @@ import {
 } from "../services/threat-generation-drift";
 import { ElementThreatsView } from "./per-element/element-threats-view";
 import { InteractionThreatsView } from "./per-interaction/interaction-threats-view";
-import { DFDPreviewPanel } from "shared";
+import { DFDPreviewPanel, FindingsPanel, type PanelFinding } from "shared";
 import { useThreatValidation } from "../hooks/shared/use-threat-validation";
 import { useThreatsExportImport } from "../hooks/shared/use-threat-export-import";
 import { useElementThreats } from "../hooks/per-element/use-element-threats";
@@ -102,6 +105,8 @@ export interface ThreatTabProps {
    * app supplies them.
    */
   projectMitigationRefs?: Pick<ProjectMitigationRefs, "usage" | "mergeConflicts" | "merge">;
+  /** Multi-project TARA (I3): relevance override on an imported boundary-flow threat. */
+  onOverrideImportedRelevance?: (instanceKey: string, threatKey: string, decision: ImportedRelevanceDecision) => void;
 }
 
 // ==================== COMPONENT ====================
@@ -112,6 +117,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   onUpdate,
   onDirtyChange,
   projectMitigationRefs,
+  onOverrideImportedRelevance,
 }) => {
   const { t } = useTranslation();
   // ==================== STATE ====================
@@ -180,6 +186,9 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const showGenerateConfirm = generateConfirm !== null;
   const [deleteManualThreats, setDeleteManualThreats] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  // One threat to delete, after the analyst confirmed (manual test 2026-11-19:
+  // the trash icon deleted at once).
+  const [pendingDelete, setPendingDelete] = useState<{ tableIndex: number; threatId: string } | null>(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<{
     perElementTables: any[];
@@ -279,6 +288,21 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     }
   }, [activeHook.syncStatus?.inSync, activeHook.syncStatus?.lastChecked]);
 
+  // Methods whose threats no longer match the DFD — a dot on their toolbar
+  // button, the inactive one included (manual test 2026-11-16).
+  const methodsOutOfSync = useMemo(
+    () =>
+      (
+        [
+          ["per-element", elementHook],
+          ["per-interaction", interactionHook],
+        ] as const
+      )
+        .filter(([, hook]) => hook.tables.some((tb) => tb.threats.length > 0) && hook.syncStatus !== null && !hook.syncStatus.inSync)
+        .map(([method]) => method as StrideMethod),
+    [elementHook.tables, elementHook.syncStatus, interactionHook.tables, interactionHook.syncStatus],
+  );
+
   // Validation
   const validation = useThreatValidation(activeHook.tables);
 
@@ -344,6 +368,30 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     setShowDeleteAllConfirm(false);
     setDeleteManualThreats(false);
   }, [activeHook, deleteManualThreats]);
+
+  // Imported component threats open read-only (design §7.1; manual test
+  // 2026-11-07: a click on an imported threat opened nothing).
+  const [importedView, setImportedView] = useState<{
+    label: string;
+    threats: Threat[];
+    index: number;
+  } | null>(null);
+  const openImportedThreat = useCallback(
+    (group: { key: string; label: string }, threats: Threat[], index: number) =>
+      setImportedView({ label: group.label, threats, index }),
+    [],
+  );
+  const noSave = useCallback(() => {}, []);
+  // Threats of imported components: groups of the threat list under the
+  // filter bar, after the multiprocess groups (manual test 2026-11-15).
+  const imported = useImportedThreatSections({
+    groups: project.importedThreatGroups,
+    onOverrideRelevance: onOverrideImportedRelevance,
+    method: activeMethod,
+    onOpenThreat: openImportedThreat,
+    headings: false,
+    perInstance: true,
+  });
 
   const handleOpenEditDialog = useCallback(
     (tableIndex: number, threat: Threat) => {
@@ -519,6 +567,22 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   );
   const reconciliation = generateConfirm?.reconciliation ?? null;
 
+  // ── Findings panel (manual test 2026-11-18) ─────────────────────────────
+  // One row per threat not rated, uncertain or to review — a click opens
+  // exactly that threat in the dialog — and the drift as an info (its dialog).
+  const orphanedThreatIds = activeHook.syncStatus?.orphanedThreats.threatIds;
+  const tableFindings = useMemo(
+    () => threatFindings(activeHook.tables, orphanedThreatIds ?? []),
+    [activeHook.tables, orphanedThreatIds],
+  );
+  const FINDING_TEXT: Record<ThreatFindingKind, string> = {
+    unrated: "{{id}}: not rated yet — {{description}}",
+    uncertain: "{{id}}: relevance uncertain — confirm or dismiss it — {{description}}",
+    review: "{{id}}: to review after a change of the DFD or a component — {{description}}",
+    noDescription: "{{id}}: no threat description",
+    orphaned: "{{id}}: its element or flow is no longer in the DFD — keep it as a manual threat or delete it — {{description}}",
+  };
+
   // ── Generation drift ────────────────────────────────────────────────────
   // Stored threats vs. what the current rules / security goals would produce.
   // Only evaluated while the DFD sync is clean: threats for new or deleted
@@ -545,6 +609,80 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       configuration,
       activeMethod,
     ],
+  );
+
+  // Drift of the method NOT shown (manual test 2026-11-16: per interaction
+  // would have produced 5 new threats while per element was shown — nothing
+  // said so). Only while that method has threats and its DFD sync is clean,
+  // as for the shown one; a light-blue dot on its toolbar button.
+  const otherMethod: StrideMethod = activeMethod === "per-element" ? "per-interaction" : "per-element";
+  const otherHook = activeMethod === "per-element" ? interactionHook : elementHook;
+  const otherHasThreats = otherHook.tables.some((tb) => tb.threats.length > 0);
+  const otherInSync = otherHook.syncStatus?.inSync ?? true;
+  const otherDrift = useMemo(
+    () =>
+      hasDFD && otherHasThreats && otherInSync && !disabledMethods.includes(otherMethod)
+        ? detectGenerationDrift(project, dfdContext, configuration, otherMethod)
+        : NO_DRIFT,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      hasDFD,
+      otherHasThreats,
+      otherInSync,
+      project.threats,
+      project.dfdGraph,
+      project.assetDataRef,
+      project.dfd,
+      project.info?.tags,
+      dfdContext,
+      configuration,
+      otherMethod,
+    ],
+  );
+  const methodsDrifting = useMemo(
+    () => [...(hasDrift(drift) ? [activeMethod] : []), ...(hasDrift(otherDrift) ? [otherMethod] : [])],
+    [drift, otherDrift, activeMethod, otherMethod],
+  );
+
+  const panelFindings: PanelFinding[] = useMemo(() => {
+    const rows: PanelFinding[] = tableFindings.map((f) => ({
+      id: f.id,
+      severity: f.severity,
+      text: t(`tabs.threats.notifications.${f.kind}`, {
+        id: f.displayId,
+        description: f.description,
+        defaultValue: FINDING_TEXT[f.kind],
+      }),
+      clickable: true,
+    }));
+    if (hasDrift(drift)) {
+      rows.push({
+        id: "threat-drift",
+        severity: "info",
+        text: t("tabs.threats.notifications.drift", {
+          obsolete: drift.obsolete.length,
+          added: drift.addedCount,
+          defaultValue: "Generation rules changed: {{obsolete}} stored threat(s) would no longer be generated, {{added}} would be added",
+        }),
+        clickable: true,
+      });
+    }
+    return rows;
+    // FINDING_TEXT is a constant of the render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableFindings, drift, t]);
+  const openFinding = useCallback(
+    (id: string) => {
+      if (id === "threat-drift") {
+        setShowDriftDialog(true);
+        return;
+      }
+      const f = tableFindings.find((x) => x.id === id);
+      if (!f) return;
+      setSelectedThreat({ tableIndex: f.tableIndex, threatId: f.threatId });
+      setShowThreatDialog(true);
+    },
+    [tableFindings],
   );
 
   // A new drift (different counts) re-shows a dismissed banner.
@@ -588,6 +726,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         validation={validation}
         activeMethod={activeMethod}
         disabledMethods={disabledMethods}
+        methodsOutOfSync={methodsOutOfSync}
+        methodsDrifting={methodsDrifting}
         hasThreats={hasThreats}
         hasDFD={hasDFD && !dfdLayoutBlocked}
         syncStatus={activeHook.syncStatus}
@@ -754,6 +894,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             pt: 2,
           }}
         >
+          {imported.dialog}
           {activeMethod === "per-element" ? (
             <ElementThreatsView
               tables={elementHook.tables}
@@ -767,11 +908,12 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 void elementHook.generateThreats();
               }}
               onOpenEditDialog={handleOpenEditDialog}
-              onDelete={elementHook.deleteThreat}
+              onDelete={(tableIndex, threatId) => setPendingDelete({ tableIndex, threatId })}
               onAdd={elementHook.addThreat}
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
               groups={project.dfdTableGroups}
+              importedSections={imported.sections}
             />
           ) : (
             <InteractionThreatsView
@@ -786,15 +928,30 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 void interactionHook.generateThreats();
               }}
               onOpenEditDialog={handleOpenEditDialog}
-              onDelete={interactionHook.deleteThreat}
+              onDelete={(tableIndex, threatId) => setPendingDelete({ tableIndex, threatId })}
               onAdd={interactionHook.addThreat}
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
               groups={project.dfdTableGroups}
+              importedSections={imported.sections}
             />
           )}
         </Box>
       </Box>
+
+      {/* Findings — below the list, like the DFD, Asset and Risk tabs (manual test 2026-11-18) */}
+      <FindingsPanel
+        findings={panelFindings}
+        onOpen={openFinding}
+        testIdPrefix="threat-notification"
+        labels={{
+          title: (count) => t("tabs.threats.notifications.title", { count, defaultValue: "{{count}} finding(s)" }),
+          open: t("tabs.threats.notifications.open", { defaultValue: "Open the threat where this is fixed" }),
+          showInfos: t("tabs.threats.notifications.showInfos", { defaultValue: "Show infos" }),
+          hideInfos: t("tabs.threats.notifications.hideInfos", { defaultValue: "Hide infos" }),
+          onlyInfos: t("tabs.threats.notifications.onlyInfos", { defaultValue: "No errors or warnings — infos are hidden." }),
+        }}
+      />
 
       {/* Threat Dialog */}
       {showThreatDialog &&
@@ -824,6 +981,30 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
             />
           );
         })()}
+
+      {/* Imported threat — read-only */}
+      {importedView && (
+        <ThreatEvalDialog
+          open
+          threats={importedView.threats}
+          initialIndex={importedView.index}
+          configuration={configuration}
+          assetDataRef={project.assetDataRef}
+          dfdData={project.dfd ?? null}
+          onSave={noSave}
+          onClose={() => setImportedView(null)}
+          readOnly
+          readOnlyNote={t("tabs.threats.dialog.importedReadOnly", {
+            source: importedView.label,
+            defaultValue:
+              "Imported from {{source}} — read-only. The component TARA decides text, STRIDE and relevance; a boundary-flow threat's relevance can be overridden in the list.",
+          })}
+          isoMode={
+            regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) ===
+            "iso-21434"
+          }
+        />
+      )}
 
       {/* Config Dialog */}
       {showConfigDialog && (
@@ -930,6 +1111,48 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           onCancel={() => setShowImportConfirm(false)}
         />
       )}
+
+      {/* Delete one threat — confirmation */}
+      {pendingDelete &&
+        (() => {
+          const threat = activeHook.tables[pendingDelete.tableIndex]?.threats.find((x) => x.id === pendingDelete.threatId);
+          const close = () => setPendingDelete(null);
+          if (!threat) return null;
+          const withRisk = !!project.riskAttachments?.[threat.id];
+          return (
+            <ConfirmDialog
+              title={t("tabs.threats.deleteConfirmTitle", { id: threat.displayId ?? "", defaultValue: "Delete threat {{id}}?" })}
+              message={[
+                t("tabs.threats.deleteConfirmMessage", {
+                  description: threat.threatDescription ?? "",
+                  defaultValue: "\"{{description}}\" is deleted. This cannot be undone.",
+                }),
+                ...(withRisk
+                  ? [
+                      t("tabs.threats.deleteConfirmRisk", {
+                        defaultValue: "Its risk, with the ratings and mitigations chosen there, goes with the next risk sync.",
+                      }),
+                    ]
+                  : []),
+                ...(threat.source !== "manual"
+                  ? [
+                      t("tabs.threats.deleteConfirmGenerated", {
+                        defaultValue: "A generated threat comes back with the next regeneration — mark it \"not relevant\" instead to keep the decision.",
+                      }),
+                    ]
+                  : []),
+              ].join(" ")}
+              variant="danger"
+              confirmLabel={t("common.delete", { defaultValue: "Delete" })}
+              cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+              onConfirm={() => {
+                activeHook.deleteThreat(pendingDelete.tableIndex, pendingDelete.threatId);
+                close();
+              }}
+              onCancel={close}
+            />
+          );
+        })()}
 
       {/* Delete All Confirmation */}
       {showDeleteAllConfirm && (

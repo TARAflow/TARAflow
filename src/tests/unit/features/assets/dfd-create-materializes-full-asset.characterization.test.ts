@@ -45,7 +45,6 @@ describe("DFD create materializes a complete feature Asset (single-store invaria
     expect(asset.assetGroup).toBe("data");
     expect(asset.properties?.dataType).toEqual(["configuration"]);
     expect(asset.properties?.isSafetyFunction).toBe(true);
-    expect(asset.properties?.protectionNeed).toBe("high");
   });
 
   it("marks provenance as DFD-sourced and synced", () => {

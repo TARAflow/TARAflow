@@ -8,6 +8,8 @@
 
 import { GoalsClaimsDialog } from "./goals-claims-dialog";
 import { ConceptFindingsProvider } from "./concept-findings-context";
+import { UncreditedResidualsProvider } from "./credited-residual-context";
+import type { UncreditedResiduals } from "shared";
 import { conceptFindings, conceptWarningsByRisk } from "../services/concept-findings";
 import type { CybersecurityConcept } from "shared";
 import { collectConfiguredImpactCriteria } from "../services/risk-sync-service";
@@ -45,7 +47,8 @@ import {
 } from "../models/risk-assessment-types";
 
 import { RiskConfiguration, RiskValidation } from "../models/risk-config-types";
-import { riskFindingLines, riskFindings } from "../services/risk-findings";
+import { RISK_FINDING_TAB, riskFindingLines, riskFindingText, riskFindings } from "../services/risk-findings";
+import type { RiskDialogTab } from "./risk-dialog/types";
 import type { StrideMethod } from "shared";
 import { riskService } from "../services/risk-service";
 import {
@@ -62,15 +65,18 @@ import { IsoReviewBanner } from "./iso-review-banner";
 import { isoReviewItems } from "../models/iso-scenarios";
 import { isIsoRiskMode } from "../models/iso-risk-display";
 import { RiskTableView } from "./risk-table-view";
+import { RiskFilters } from "./risk-filters";
 import { RiskDialog } from "./risk-dialog";
 import { RiskMitigationStatusDialog } from "./risk-mitigation-status-dialog";
+import { collectTicketLinks } from "../services/ticket-links";
 import { applyTicketStatesToRisks, linkedTicketKeys } from "../services/ticket-sync";
 import type { TicketPort } from "shared/models/ticket-types";
 
 import { RiskConfigDialog } from "./risk-config-dialog";
 import { RiskMatrix } from "./risk-matrix";
 import { WontRiskTable } from "./wont-risk-table";
-import { DFDPreviewPanel } from "shared";
+import { DFDPreviewPanel, FindingsPanel, type PanelFinding } from "shared";
+import { sortRisksByThreatId } from "./shared/risk-table";
 import { ConfirmDialog } from "shared";
 import { RisksToolbar } from "./risk-toolbar";
 import { useRiskSync } from "../hooks/use-risk-sync";
@@ -96,6 +102,15 @@ export interface RiskTabProps {
   onDirtyChange?: (isDirty: boolean) => void;
   /** The issue tracker's adapter (adapters design §4.3); absent = none connected. */
   ticketPort?: TicketPort | null;
+  /** Rendered in the risk dialog above the risk's mitigations (e.g. an imported component's treatment). */
+  riskExtraSection?: (risk: Risk) => React.ReactNode;
+  /**
+   * Risks whose residual risk is not credited (multi-project TARA I7 (4)):
+   * risk id → the measures that do not hold, derived by the app layer. The
+   * matrices, tables, sidebar and After tab then show the values before
+   * treatment; the stored after-values stay.
+   */
+  uncreditedResiduals?: UncreditedResiduals | null;
 }
 
 /**
@@ -116,6 +131,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   onDirtyChange,
   onConceptChange,
   ticketPort,
+  riskExtraSection,
+  uncreditedResiduals,
 }) => {
   const { t, i18n } = useTranslation();
   const isGerman = i18n.language === "de";
@@ -170,6 +187,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   const [selectedRiskInfo, setSelectedRiskInfo] = useState<{
     risks: Risk[];
     index: number;
+    /** Opened from a finding: the tab where it is fixed. */
+    tab?: RiskDialogTab;
   } | null>(null);
   const [showRiskDialog, setShowRiskDialog] = useState(false);
   const [selectedImplementationRisk, setSelectedImplementationRisk] =
@@ -387,7 +406,47 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   // The validation of the current state, for the toolbar chip (user
   // 2026-10-30 — the stored one was never shown, and may be stale), in the
   // UI language (FX-4).
-  const currentValidation = useMemo(() => riskFindingLines(riskFindings(riskData), t), [riskData, t]);
+  // Every ticket link of the project — the link dialog marks and suggests from it (IT-13).
+  const ticketLinks = useMemo(() => collectTicketLinks(riskData.risks), [riskData.risks]);
+  // With a tracker, a mitigation done by hand needs a ticket or evidence (user 2026-11-10).
+  const trackerConnected = !!project.integration?.connection?.projectName;
+  const currentFindings = useMemo(() => riskFindings(riskData, { trackerConnected }), [riskData, trackerConnected]);
+  const currentValidation = useMemo(() => riskFindingLines(currentFindings, t), [currentFindings, t]);
+
+  // ── Findings panel (manual test 2026-11-15: like the DFD tab's) ──────────
+  // The tab's own findings and those about its risks from elsewhere
+  // (imported components); a click opens the risks concerned in the dialog,
+  // browsing only them, in the order of the table.
+  const { panelFindings, findingRisks, findingTab } = useMemo(() => {
+    const byThreat = new Map(riskData.risks.map((r) => [r.threatId, r]));
+    const byId = new Map(riskData.risks.map((r) => [r.id, r]));
+    const findingRisks = new Map<string, Risk[]>();
+    const findingTab = new Map<string, RiskDialogTab>();
+    const panelFindings: PanelFinding[] = [];
+    currentFindings.forEach((f, i) => {
+      const id = `risk-${f.code}-${i}`;
+      const risks = (f.riskIds ?? []).map((x) => byId.get(x)).filter((r): r is Risk => !!r);
+      findingRisks.set(id, risks);
+      findingTab.set(id, RISK_FINDING_TAB[f.code]);
+      panelFindings.push({ id, severity: f.severity, text: riskFindingText(f, t), clickable: risks.length > 0 });
+    });
+    for (const f of project.externalFindings ?? []) {
+      const risks = f.threatIds.map((x) => byThreat.get(x)).filter((r): r is Risk => !!r);
+      findingRisks.set(f.id, risks);
+      if (f.tab) findingTab.set(f.id, f.tab);
+      panelFindings.push({ id: f.id, severity: f.severity, text: f.text, clickable: risks.length > 0 });
+    }
+    return { panelFindings, findingRisks, findingTab };
+  }, [currentFindings, project.externalFindings, riskData.risks, t]);
+  const openFinding = useCallback(
+    (id: string) => {
+      const risks = sortRisksByThreatId(findingRisks.get(id) ?? []);
+      if (risks.length === 0) return;
+      setSelectedRiskInfo({ risks, index: 0, tab: findingTab.get(id) ?? "before" });
+      setShowRiskDialog(true);
+    },
+    [findingRisks, findingTab],
+  );
   // The method buttons show risks, not threats (user 2026-10-30).
   const risksOfMethod = (method: "per-element" | "per-interaction") =>
     riskData.risks.filter((r) => r.sourceStrideMethod === method).length;
@@ -649,7 +708,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
       // the other attack-path risks instead (mirrors the dedicated section
       // RiskTableView renders them in).
       if (risk.sourceStrideMethod === "attack-path") {
-        const pool = isWontRisk ? attackPathWontRisks : attackPathActiveRisks;
+        // in the order of the table: by threat id (manual test 2026-11-15)
+        const pool = sortRisksByThreatId(isWontRisk ? attackPathWontRisks : attackPathActiveRisks);
         const index = pool.findIndex((r) => r.id === risk.id);
         setSelectedRiskInfo({
           risks: pool.length > 0 ? pool : [risk],
@@ -666,7 +726,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
         const th = allThreats.find((t) => t.id === r.threatId);
         return th?.trustBoundaryId === tbId;
       });
-      const effectiveGroup = group.length > 0 ? group : [risk];
+      const effectiveGroup = group.length > 0 ? sortRisksByThreatId(group) : [risk];
       const index = effectiveGroup.findIndex((r) => r.id === risk.id);
       setSelectedRiskInfo({ risks: effectiveGroup, index: Math.max(0, index) });
       setShowRiskDialog(true);
@@ -846,6 +906,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
 
   return (
     <ConceptFindingsProvider value={conceptMarkers}>
+    <UncreditedResidualsProvider value={uncreditedResiduals}>
     <Box
       sx={{
         display: "flex",
@@ -916,6 +977,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           there is nothing to show). */}
       <RiskSyncBanner
         syncWarnings={syncWarnings}
+        onDismissNotices={() => setSyncWarnings([])}
         needsSync={needsSync}
         isSyncing={isSyncing}
         syncStatus={syncStatus}
@@ -989,6 +1051,34 @@ const RisksTabView: React.FC<RiskTabProps> = ({
             </Box>
           </>
         )}
+
+        {/* Filter bar of the risk list — outside the scrolling area, as in
+            the Threats tab (manual test 2026-11-15). */}
+        {mainView !== "matrix" &&
+          hasAnyThreats &&
+          (hasThreatsForMethod || hasAttackPathRisks) &&
+          (hasEligibleThreatsForMethod || hasAttackPathRisks) &&
+          hasRisksForMethod && (
+            <Box sx={{ flexShrink: 0, px: 2, pt: 1 }} data-testid="risk-filter-bar">
+              <RiskFilters
+                searchText={filters.searchText}
+                priorityFilter={filters.priorityFilter}
+                riskLevelFilter={filters.riskLevelFilter}
+                scale={riskData.configuration.scale}
+                isoValues={riskData.configuration.likelihoodMethod === "iso-21434"}
+                onSearchTextChange={setSearchText}
+                onPriorityFilterChange={setPriorityFilter}
+                onRiskLevelFilterChange={setRiskLevelFilter}
+                onClear={clearFilters}
+                show={showFilters}
+                scopeIndex={project.dfdTableGroups?.scope}
+                scope={filters.scope}
+                onScopeChange={setScopeFilter}
+                filteredCount={filteredActiveRisks.length + filteredAttackPathRisks.length}
+                totalCount={toolbarRisks.length}
+              />
+            </Box>
+          )}
 
         {/* Main Content Area */}
         <Box sx={{ flexGrow: 1, minHeight: 0, overflow: "auto", px: 2, pt: 1 }}>
@@ -1126,7 +1216,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
                 threats={currentThreats}
                 configuration={riskData.configuration}
                 strideMethod={activeStrideMethod}
-                showFilters={showFilters}
+                // the filter bar is above the scrolling area
+                showFilters={false}
                 filters={filters}
                 onSearchTextChange={setSearchText}
                 onPriorityFilterChange={setPriorityFilter}
@@ -1164,12 +1255,27 @@ const RisksTabView: React.FC<RiskTabProps> = ({
         </Box>
       </Box>
 
+      {/* Findings — below the list, like the DFD, Asset and Hazard tabs */}
+      <FindingsPanel
+        findings={panelFindings}
+        onOpen={openFinding}
+        testIdPrefix="risk-notification"
+        labels={{
+          title: (count) => t("tabs.risks.notifications.title", { count, defaultValue: "{{count}} finding(s)" }),
+          open: t("tabs.risks.notifications.open", { defaultValue: "Open the risk(s) where this is fixed" }),
+          showInfos: t("tabs.risks.notifications.showInfos", { defaultValue: "Show infos" }),
+          hideInfos: t("tabs.risks.notifications.hideInfos", { defaultValue: "Hide infos" }),
+          onlyInfos: t("tabs.risks.notifications.onlyInfos", { defaultValue: "No errors or warnings — infos are hidden." }),
+        }}
+      />
+
       {/* Risk Edit Dialog */}
       {selectedRiskInfo && showRiskDialog && (
         <RiskDialog
           open={showRiskDialog}
           risks={selectedRiskInfo.risks}
           initialIndex={selectedRiskInfo.index}
+          initialTab={selectedRiskInfo.tab}
           configuration={riskData.configuration}
           threats={allThreatsUnfiltered}
           assetDataRef={project.assetDataRef}
@@ -1181,6 +1287,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           allRisks={riskData.risks}
           assumptions={project.assumptions}
           isoMode={project.isoMode}
+          extraSection={riskExtraSection}
         />
       )}
 
@@ -1191,6 +1298,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
           integrationConnection={project.integration?.connection ?? null}
           ticketPort={ticketsConnected ? ticketPort : null}
           issueTypes={ticketIssueTypes}
+          ticketLinks={ticketLinks}
           onSave={handleSaveImplementation}
           onClose={handleCloseImplementationDialog}
         />
@@ -1294,6 +1402,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
         />
       )}
     </Box>
+    </UncreditedResidualsProvider>
     </ConceptFindingsProvider>
   );
 };

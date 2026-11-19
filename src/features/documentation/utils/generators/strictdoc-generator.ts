@@ -246,9 +246,10 @@ export class StrictdocGenerator extends BaseDocumentGenerator {
   }
 
   formatAttackTreeSection(section: AttackTreeReportSection): string {
+    // A list-table cell holds one line: a cell's lines joined with "; ".
     const row = (cells: string[]) =>
       cells
-        .map((c, i) => `${i === 0 ? "   * - " : "     - "}${this.escapeTableText(c)}`)
+        .map((c, i) => `${i === 0 ? "   * - " : "     - "}${this.escapeTableText(c.split("\n").join("; "))}`)
         .join("\n");
     return [
       "[SECTION]",

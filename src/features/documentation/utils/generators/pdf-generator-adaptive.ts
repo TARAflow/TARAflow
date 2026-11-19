@@ -361,6 +361,10 @@ export class PdfGeneratorAdaptive extends BaseDocumentGenerator {
 
   // ==================== TEMPLATE GETTERS (delegated to HTML) ====================
 
+  threatAnchorMarks(ids: readonly string[]): string {
+    return this.htmlGenerator.threatAnchorMarks(ids);
+  }
+
   escapeTableText(text: string): string {
     return this.htmlGenerator.escapeTableText(text);
   }

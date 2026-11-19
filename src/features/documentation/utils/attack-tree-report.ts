@@ -20,7 +20,8 @@ import { attackPathDisplayId } from "../../attacktree/services/attacktree-threat
 import { resolveFeasibilityConfiguration } from "../../attacktree/models/attacktree-types";
 import type { AttackTree, AttackTreeNode } from "../../attacktree/models/attacktree-types";
 import type { FeasibilityConfiguration } from "../../attacktree/models/attacktree-feasibility-types";
-import type { DocProjectData } from "../models/doc-types";
+import type { DocImportedAttackTree, DocProjectData } from "../models/doc-types";
+import { componentAtLabel } from "./imported-report";
 
 type TranslateFn = (key: string, defaultValue?: string) => string;
 
@@ -89,6 +90,8 @@ function outlineOf(
   root: AttackTreeNode,
   config: FeasibilityConfiguration,
   t: TranslateFn,
+  /** Without the leaf ratings — an imported tree's leaves carry the component's values (6a-1b). */
+  withRatings = true,
 ): AttackTreeOutlineItem[] {
   const out: AttackTreeOutlineItem[] = [];
   const walk = (node: AttackTreeNode, depth: number) => {
@@ -99,7 +102,7 @@ function outlineOf(
       ...(node.attackVector ? [t(`${K}.vector.${node.attackVector}`, node.attackVector)] : []),
     ];
     if (tags.length > 0) text += ` (${tags.join(" · ")})`;
-    if (node.type === "LEAF") {
+    if (node.type === "LEAF" && withRatings) {
       const rating = leafRating(node, config, t);
       if (rating) text += ` — ${rating}`;
     }
@@ -199,6 +202,121 @@ export function attackTreeReportSections(
           feasibilityLabel(p.feasibilityLevel, t),
           relevanceOf(p.pathKey),
         ]),
+    };
+  });
+}
+
+
+/**
+ * The trees of imported components (multi-project TARA 6a-1b): per
+ * component and tree the structure once (without the component's leaf
+ * ratings), the paths per instance rated with THIS TARA's feasibility
+ * configuration, and the window of opportunity per step with its origin —
+ * this TARA's rating, else "not rated yet" with the component's value as a
+ * suggestion.
+ */
+export function importedAttackTreeSections(
+  trees: readonly DocImportedAttackTree[] | undefined,
+  /** This TARA's attack-tree configuration — the paths are rated with it, never the component's. */
+  machineConfiguration: Parameters<typeof resolveFeasibilityConfiguration>[0],
+  t: TranslateFn,
+): AttackTreeReportSection[] {
+  const config = resolveFeasibilityConfiguration(machineConfiguration);
+  const woo = (w: string) => t(`tabs.attacktree.feasibility.value.${w}`, w);
+  const relevance = (r: string) => t(`${K}.relevance.${r}`, RELEVANCE_FALLBACK[r] ?? r);
+  return (trees ?? []).map((g) => {
+    const facts: [string, string][] = [];
+    if (g.tree.description?.trim()) facts.push([t(`${K}.description`, "Description"), g.tree.description.trim()]);
+    const anchor = anchorText(g.tree, [], t);
+    if (anchor) facts.push([t(`${K}.anchor`, "Anchor"), anchor]);
+    facts.push([t(`${K}.instances`, "Instances"), g.instances.map((i) => i.prefix).join(", ")]);
+    facts.push([
+      t(`${K}.importedRating`, "Rating"),
+      g.forInformation
+        ? t(
+            `${K}.importedForInformation`,
+            "For information — this TARA does not rate attack paths (rated under ISO/SAE 21434 only); every factor shown is the component's.",
+          )
+        : t(
+            `${K}.importedRatingText`,
+            "Paths rated with this TARA's feasibility configuration; the window of opportunity of each step is this TARA's decision, per instance; the other factors are the component's.",
+          ),
+    ]);
+    // What the abbreviations of the factor column stand for.
+    facts.push([
+      t(`${K}.legend`, "Abbreviations"),
+      (
+        [
+          ["elapsedTime", "ET", "et", "elapsed time"],
+          ["specialistExpertise", "SE", "se", "specialist expertise"],
+          ["knowledgeOfItem", "KoI", "kn", "knowledge of the item"],
+          ["equipment", "Eq", "eq", "equipment"],
+          ["windowOfOpportunity", "WoO", "wo", "window of opportunity"],
+        ] as const
+      )
+        .map(([k, d, key, name]) => `${t(`${K}.factorShort.${k}`, d)} = ${t(`tabs.attacktree.feasibility.factor.${key}`, name)}`)
+        .join(", "),
+    ]);
+    const root = structureOf(g.tree);
+    // Per step every factor that enters the potential, with its origin
+    // (review 2026-11-12): the component's four, this TARA's window.
+    const short = (k: string, d: string) => t(`${K}.factorShort.${k}`, d);
+    const steps = (path: DocImportedAttackTree["instances"][number]["paths"][number]) =>
+      path.steps
+        .map((s) => {
+          if (!s.ratable) {
+            const value = t(`${K}.notRatable`, "not ratable (no factor breakdown)");
+            return s.name ? `${s.name}: ${value}` : value;
+          }
+          const f = s.componentFactors;
+          const component = f
+            ? `${[
+                `${short("elapsedTime", "ET")} ${woo(f.elapsedTime)}`,
+                `${short("specialistExpertise", "SE")} ${woo(f.specialistExpertise)}`,
+                `${short("knowledgeOfItem", "KoI")} ${woo(f.knowledgeOfItem)}`,
+                `${short("equipment", "Eq")} ${woo(f.equipment)}`,
+              ].join(" · ")} (${t(`${K}.fromComponent`, "component")})`
+            : "";
+          // Not rated here at all (not ISO): the component's window, like the other four.
+          const window = g.forInformation
+            ? `${short("windowOfOpportunity", "WoO")} ${s.componentWindow ? `${woo(s.componentWindow)} (${t(`${K}.fromComponent`, "component")})` : "–"}`
+            : s.window
+            ? `${short("windowOfOpportunity", "WoO")} ${woo(s.window)} (${t(`${K}.ratedHere`, "rated by this TARA")})`
+            : `${short("windowOfOpportunity", "WoO")} ${t(`${K}.notRated`, "not rated yet")}${s.componentWindow ? ` — ${t(`${K}.componentSuggests`, "component: {{value}}").replace("{{value}}", woo(s.componentWindow))}` : ""}`;
+          const value = [component, window].filter(Boolean).join(" · ");
+          return s.name ? `${s.name}: ${value}` : value;
+        })
+        // one step per line: a line break in every format (<br> in Markdown and
+        // HTML, a hard break in AsciiDoc, \n in the PDF; review 2026-11-12)
+        .join("\n") || "–";
+    return {
+      title: `${componentAtLabel(g.componentName, g.at, t)} · AT-${g.treeNumber} ${g.tree.customTitle || g.tree.name}`,
+      facts,
+      outlineTitle: t(`${K}.structure`, "Structure"),
+      outline: root ? outlineOf(root, config, t, false) : [],
+      pathsTitle: t(`${K}.paths`, "Attack paths"),
+      headers: [
+        t(`${K}.colPath`, "Path"),
+        t(`${K}.colChain`, "Attack path"),
+        t(`${K}.colWindow`, "Attack potential factors per step"),
+        t(`${K}.colPotential`, "Attack potential"),
+        t(`${K}.colFeasibility`, "Attack feasibility"),
+        t(`${K}.colRelevance`, "Relevance"),
+      ],
+      rows: g.instances.flatMap((i) =>
+        i.paths.map((p) => [
+          p.id,
+          p.chain.join(" → "),
+          steps(p),
+          p.potential != null ? String(p.potential) : "–",
+          feasibilityLabel(p.feasibility, t),
+          p.relevance.length === 0
+            ? g.forInformation
+              ? "–" // no path assessment outside ISO — not an open one
+              : relevance("unrated")
+            : p.relevance.map((r) => (p.relevance.length > 1 && r.strideCategory ? `${relevance(r.relevance)} (${r.strideCategory})` : relevance(r.relevance))).join(", "),
+        ]),
+      ),
     };
   });
 }

@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -36,6 +37,7 @@ import {
   MenuItem,
   Stack,
   Autocomplete,
+  ListSubheader,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -91,7 +93,7 @@ import {
   isIrreversibleOrWorse,
 } from "shared";
 import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
-import { ReviewBadge, SourceBadge } from "../../components/shared/threat-table-utils";
+import { ReviewBadge, SourceBadge, compareThreatsByLabel } from "../../components/shared/threat-table-utils";
 import { releaseRetainedThreat } from "../../services/threat-generation-drift";
 
 // ==================== PROPS ====================
@@ -171,6 +173,15 @@ export interface ThreatEvalDialogProps {
   onClose: () => void;
   /** ISO 21434 mode: relevance is asset-derived; overrides need a note. */
   isoMode?: boolean;
+  /**
+   * Read-only (threats of an imported component, design §7.1): everything
+   * is shown, nothing can be changed — no edit / add / delete controls, the
+   * fields are disabled, the footer only navigates and closes; onSave is
+   * never called.
+   */
+  readOnly?: boolean;
+  /** Shown above the details in read-only mode, e.g. where the threat comes from. */
+  readOnlyNote?: string;
 }
 
 // ==================== LOCAL TYPES ====================
@@ -219,6 +230,51 @@ function isDirtyState(local: LocalThreatState, threat: Threat): boolean {
 
 // ==================== COMPONENT ====================
 
+
+// ==================== ORDER AND NAVIGATION (manual test 2026-11-16) ====================
+// The dialog lists the threats of a trust-boundary table like the table
+// groups them — per element / flow, in natural order (DF-1 … DF-8, DF-10),
+// inside by STRIDE and id — with a heading per element / flow. "Confirm"
+// (and dismiss / uncertain) goes to the next open threat of the same element
+// first, then on through the list.
+
+/** The element / flow a threat belongs to — its group in the dialog. */
+export function threatOwnerOf(threat: Threat): { key: string; label: string } {
+  if (threat.dataFlow) {
+    const id = threat.dataFlow.dataFlowId ?? "";
+    return { key: `flow|${threat.dataFlow.connectionId ?? id}`, label: [id, threat.dataFlow.dataFlowName].filter(Boolean).join(" ") };
+  }
+  const el = threat.linkedElement;
+  return {
+    key: `el|${el?.elementId ?? ""}`,
+    label: [el?.displayId, el?.elementName].filter(Boolean).join(" ") || (el?.elementId ?? ""),
+  };
+}
+
+/** The threats in the dialog's order: by element / flow, STRIDE and id. */
+export function dialogThreatOrder(threats: readonly Threat[]): Threat[] {
+  return [...threats].sort(compareThreatsByLabel);
+}
+
+const isOpen = (t: Threat) => t.relevance === "unrated" || t.relevance === "uncertain";
+
+/**
+ * The index to go to after a decision on `current`: the next open threat of
+ * the same element / flow (after it, then before it), then the next open one
+ * after the group, then from the start; -1 when none is open.
+ */
+export function nextOpenIndex(list: readonly Threat[], current: number): number {
+  const group = list[current] ? threatOwnerOf(list[current]).key : undefined;
+  const inGroup = (i: number) => group !== undefined && threatOwnerOf(list[i]).key === group;
+  const order = [
+    ...list.map((_, i) => i).filter((i) => i > current && inGroup(i)),
+    ...list.map((_, i) => i).filter((i) => i < current && inGroup(i)),
+    ...list.map((_, i) => i).filter((i) => i > current && !inGroup(i)),
+    ...list.map((_, i) => i).filter((i) => i < current && !inGroup(i)),
+  ];
+  return order.find((i) => isOpen(list[i])) ?? -1;
+}
+
 export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   open,
   threats,
@@ -229,33 +285,19 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   onSave,
   onClose,
   isoMode = false,
+  readOnly = false,
+  readOnlyNote,
 }) => {
   const { t } = useTranslation();
 
   // ── Navigation state ──────────────────────────────────────────────────────
-  const sortedThreats = useMemo(() => {
-    if (!assetDataRef) return threats;
-    return [...threats].sort((a, b) => {
-      const ia = getThreatImpact(a, assetDataRef);
-      const ib = getThreatImpact(b, assetDataRef);
-      const idxA = ia ? IMPACT_ORDER.indexOf(ia) : IMPACT_ORDER.length;
-      const idxB = ib ? IMPACT_ORDER.indexOf(ib) : IMPACT_ORDER.length;
-      return idxA - idxB;
-    });
-  }, [threats, assetDataRef]);
+  // In the table's grouping: per element / flow, natural order (manual test 2026-11-16).
+  const sortedThreats = useMemo(() => dialogThreatOrder(threats), [threats]);
 
   const [currentIndex, setCurrentIndex] = useState(() => {
-    if (!assetDataRef) return initialIndex;
-    const sorted = [...threats].sort((a, b) => {
-      const ia = getThreatImpact(a, assetDataRef);
-      const ib = getThreatImpact(b, assetDataRef);
-      const idxA = ia ? IMPACT_ORDER.indexOf(ia) : IMPACT_ORDER.length;
-      const idxB = ib ? IMPACT_ORDER.indexOf(ib) : IMPACT_ORDER.length;
-      return idxA - idxB;
-    });
     const id = threats[initialIndex]?.id;
-    const idx = sorted.findIndex((t) => t.id === id);
-    return idx >= 0 ? idx : initialIndex;
+    const idx = dialogThreatOrder(threats).findIndex((t) => t.id === id);
+    return idx >= 0 ? idx : 0;
   });
   const currentThreat = sortedThreats[currentIndex] ?? null;
   const [relevanceError, setRelevanceError] = useState<string | null>(null);
@@ -285,15 +327,17 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
     }
   }, [open, currentIndex]);
 
+  // The threat the dialog was opened for — positioned on open and when another
+  // threat is opened, NOT on every save: a save updates `threats`, and
+  // re-positioning then sent "Confirm →" back to the opened threat (manual
+  // test 2026-11-16).
+  const openedId = threats[initialIndex]?.id;
   useEffect(() => {
-    if (!open) return;
-    // initialIndex referenziert die unsortierte threats-Liste.
-    // Über die ID in den Index der sortierten Liste übersetzen.
-    const id = threats[initialIndex]?.id;
-    if (!id) return;
-    const sortedIdx = sortedThreats.findIndex((t) => t.id === id);
-    setCurrentIndex(sortedIdx >= 0 ? sortedIdx : initialIndex);
-  }, [open, initialIndex, threats, sortedThreats]);
+    if (!open || !openedId) return;
+    const sortedIdx = sortedThreats.findIndex((t) => t.id === openedId);
+    if (sortedIdx >= 0) setCurrentIndex(sortedIdx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on open / another opened threat only
+  }, [open, openedId]);
 
   // ── Derived: reviewed count for progress display ─────────────────────────
   const reviewedCount = useMemo(
@@ -480,7 +524,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
   const navigateTo = (index: number) => {
     // Auto-save current if dirty
-    if (local && currentThreat && isDirtyState(local, currentThreat)) {
+    if (!readOnly && local && currentThreat && isDirtyState(local, currentThreat)) {
       onSave(currentThreat.id, buildUpdates());
     }
     setCurrentIndex(index);
@@ -490,13 +534,10 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
     if (currentIndex > 0) navigateTo(currentIndex - 1);
   };
 
-  // Advance to next unrated or uncertain; if none remain, close
+  // Advance to the next open threat — this element / flow first, then on
+  // through the list; if none remains, close.
   const navigateNextUnrated = () => {
-    const next = sortedThreats.findIndex(
-      (t, i) =>
-        i > currentIndex &&
-        (t.relevance === "unrated" || t.relevance === "uncertain"),
-    );
+    const next = nextOpenIndex(sortedThreats, currentIndex);
     if (next !== -1) {
       navigateTo(next);
     } else {
@@ -655,7 +696,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
           <ReviewBadge review={currentThreat.review} />
           {/* Undo a drift-review Keep — the threat returns to its generated
               source and reappears in the drift review if still not produced */}
-          {currentThreat.retainedAfterRuleChange && (
+          {currentThreat.retainedAfterRuleChange && !readOnly && (
             <Tooltip
               title={t("tabs.threats.drift.undoKeep.tooltip", {
                 defaultValue:
@@ -727,6 +768,19 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
           <Box sx={{ flex: 1, overflow: "auto" }}>
             <List dense disablePadding>
               {sortedThreats.map((threat, index) => {
+                // A heading per element / flow, like the table's accordions.
+                const owner = threatOwnerOf(threat);
+                const heading =
+                  index === 0 || threatOwnerOf(sortedThreats[index - 1]).key !== owner.key ? (
+                    <ListSubheader
+                      key={`heading-${owner.key}`}
+                      disableSticky
+                      data-testid="threat-dialog-group"
+                      sx={{ lineHeight: "28px", fontSize: 11, fontWeight: 600, bgcolor: "background.default", px: 1.5 }}
+                    >
+                      {owner.label}
+                    </ListSubheader>
+                  ) : null;
                 const relevanceColor =
                   RELEVANCE_COLORS[threat.relevance ?? "unrated"];
                 const isActive = index === currentIndex;
@@ -735,8 +789,10 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   ? IMPACT_CHIP_COLORS[impactLevel]
                   : null;
                 return (
+                  <React.Fragment key={threat.id}>
+                  {heading}
                   <ListItemButton
-                    key={threat.id}
+                    data-testid="threat-dialog-item"
                     selected={isActive}
                     ref={(node) => {
                       if (node && isActive) {
@@ -832,6 +888,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                       }
                     />
                   </ListItemButton>
+                  </React.Fragment>
                 );
               })}
             </List>
@@ -840,6 +897,18 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 
         {/* ── Right: threat detail ──────────────────────────────────────── */}
         <Box sx={{ flex: 1, overflow: "auto", p: 2.5 }}>
+          {readOnly && (
+            <Alert severity="info" sx={{ mb: 2 }} data-testid="threat-dialog-read-only">
+              {readOnlyNote ??
+                t("tabs.threats.dialog.readOnly", { defaultValue: "Read-only" })}
+            </Alert>
+          )}
+          {/* Read-only: a disabled fieldset turns every field below off. */}
+          <Box
+            component="fieldset"
+            disabled={readOnly}
+            sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}
+          >
           <Stack spacing={2.5}>
             {/* CAUSE — read-only, amber */}
             {currentThreat.causeDescription && (
@@ -915,6 +984,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     sx={{ height: 18, fontSize: 10 }}
                   />
                 )}
+                {!readOnly && (
                 <Tooltip
                   title={
                     editingThreat
@@ -932,6 +1002,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
+                )}
               </Stack>
               {editingThreat ? (
                 <TextField
@@ -982,6 +1053,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     defaultValue: "Attack Scenario",
                   })}
                 </Typography>
+                {!readOnly && (
                 <Tooltip
                   title={
                     editingAttack
@@ -999,6 +1071,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
+                )}
               </Stack>
               {editingAttack ? (
                 <TextField
@@ -1123,7 +1196,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     one is a project mitigation — tracked by id (report,
                     tickets, merge), with a DFD effect in the closed loop.
                     Free text written earlier stays editable and convertible. */}
-                {projectMitigations && (
+                {projectMitigations && !readOnly && (
                   <Button
                     size="small"
                     startIcon={<AddIcon />}
@@ -1136,7 +1209,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   </Button>
                 )}
               </Stack>
-              {(isManual || (projectMitigations?.entries.length ?? 0) > 0) && (
+              {!readOnly && (isManual || (projectMitigations?.entries.length ?? 0) > 0) && (
                 <CatalogEntryPicker
                   kind="mitigation"
                   strideCategory={currentThreat.strideCategory}
@@ -1169,12 +1242,12 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             },
                           )}
                         />
-                        <LinkToCatalogButton
+                        {!readOnly && <LinkToCatalogButton
                           kind="mitigation"
                           text={m.notes}
                           onLink={(id) => linkMitigation(index, id)}
-                        />
-                        {projectMitigations && !!m.notes?.trim() && (
+                        />}
+                        {projectMitigations && !readOnly && !!m.notes?.trim() && (
                           <Button
                             size="small"
                             variant="text"
@@ -1187,6 +1260,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             })}
                           </Button>
                         )}
+                        {!readOnly && (
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1200,6 +1274,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        )}
                       </Stack>
                     ) : (
                       <>
@@ -1217,7 +1292,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <MitigationCoverageBadge
                             coverage={mitigationCoverage.get(m.id ?? "")}
                           />
-                          {projectMitigations && isProjectMitigationId(m.id) && (
+                          {projectMitigations && !readOnly && isProjectMitigationId(m.id) && (
                             <Button
                               size="small"
                               onClick={() => setPmForm({ mode: "edit", id: m.id! })}
@@ -1226,7 +1301,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                               {t("common.edit", { defaultValue: "Edit" })}
                             </Button>
                           )}
-                          {(isManual || isProjectMitigationId(m.id)) && (
+                          {!readOnly && (isManual || isProjectMitigationId(m.id)) && (
                             <IconButton
                               size="small"
                               sx={{ ml: "auto" }}
@@ -1300,6 +1375,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     )
                   </Typography>
                 </Box>
+                {!readOnly && (
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
@@ -1310,8 +1386,9 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     defaultValue: "Add custom verification",
                   })}
                 </Button>
+                )}
               </Stack>
-              {isManual && (
+              {isManual && !readOnly && (
                 <CatalogEntryPicker
                   kind="verification"
                   strideCategory={currentThreat.strideCategory}
@@ -1343,11 +1420,12 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             },
                           )}
                         />
-                        <LinkToCatalogButton
+                        {!readOnly && <LinkToCatalogButton
                           kind="verification"
                           text={v.notes}
                           onLink={(id) => linkVerification(index, id)}
-                        />
+                        />}
+                        {!readOnly && (
                         <Tooltip
                           title={t("common.delete", {
                             defaultValue: "Delete",
@@ -1361,6 +1439,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        )}
                       </Stack>
                     ) : (
                       <>
@@ -1368,7 +1447,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                           <Typography variant="body2" fontWeight="medium" sx={{ flexGrow: 1 }}>
                             {v.text}
                           </Typography>
-                          {isManual && (
+                          {isManual && !readOnly && (
                             <IconButton
                               size="small"
                               onClick={() => removeCatalogEntry("verification", index)}
@@ -1463,7 +1542,37 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               </Stack>
             </Box>
 
-            {/* EVAL NOTE */}
+            {/* EVAL NOTE — read-only (imported threat): the component's
+                decision with its note and, if overridden, the machine's
+                decision with its rationale (I3); no ISO hint — the
+                relevance comes from the component, not from the assets. */}
+            {readOnly ? (
+              <Box
+                sx={{ border: 1, borderColor: "divider", borderRadius: 1, p: 1.5 }}
+                data-testid="threat-dialog-decisions"
+              >
+                <Typography variant="body2" data-testid="threat-dialog-decision-component">
+                  <strong>
+                    {t("tabs.threats.dialog.componentDecision", { defaultValue: "Component" })}:
+                  </strong>{" "}
+                  {t(`tabs.threats.eval.${currentThreat.importedOverride?.componentRelevance ?? local.relevance}`, {
+                    defaultValue: currentThreat.importedOverride?.componentRelevance ?? local.relevance,
+                  })}
+                  {" — "}
+                  {local.evalNote.trim() || "—"}
+                </Typography>
+                {currentThreat.importedOverride && (
+                  <Typography variant="body2" sx={{ mt: 0.5 }} data-testid="threat-dialog-decision-machine">
+                    <strong>
+                      {t("tabs.threats.dialog.machineDecision", { defaultValue: "This machine" })}:
+                    </strong>{" "}
+                    {t(`tabs.threats.eval.${local.relevance}`, { defaultValue: local.relevance })}
+                    {" — "}
+                    {currentThreat.importedOverride.rationale}
+                  </Typography>
+                )}
+              </Box>
+            ) : (
             <TextField
               size="small"
               fullWidth
@@ -1492,6 +1601,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               minRows={3}
               maxRows={6}
             />
+            )}
 
             {/* THREAT ACTOR — collapsed by default */}
             {configuration.showThreatActor && (
@@ -1516,6 +1626,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                     </InputLabel>
                     <Select
                       value={local.threatActor}
+                      disabled={readOnly}
                       label={t("tabs.threats.threatActor", {
                         defaultValue: "Threat Actor",
                       })}
@@ -1557,6 +1668,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               </Accordion>
             )}
           </Stack>
+          </Box>
         </Box>
       </DialogContent>
 
@@ -1601,6 +1713,21 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
         </Stack>
 
         {/* Right: actions */}
+        {readOnly ? (
+          <Stack direction="row" spacing={1}>
+            <IconButton
+              size="small"
+              onClick={() => navigateTo(currentIndex + 1)}
+              disabled={currentIndex >= sortedThreats.length - 1}
+              data-testid="threat-dialog-next"
+            >
+              <NextIcon fontSize="small" />
+            </IconButton>
+            <Button size="small" variant="contained" onClick={onClose}>
+              {t("common.close", { defaultValue: "Close" })}
+            </Button>
+          </Stack>
+        ) : (
         <Stack direction="row" spacing={1}>
           <Button
             size="small"
@@ -1644,6 +1771,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             {t("common.ok", { defaultValue: "OK" })}
           </Button>
         </Stack>
+        )}
       </DialogActions>
       {projectMitigations && (
         <ProjectMitigationForm

@@ -54,11 +54,6 @@ describe("§3.1 (closed) — DFDAsset.properties now flows to AssetData via sync
     expect(asset!.assetGroup).toBe("data");
   });
 
-  it("carries protectionNeed into Asset.properties", () => {
-    const asset = runSyncFor(dfdAssetWithRichProps);
-    expect(asset!.properties?.protectionNeed).toBe("high");
-  });
-
   it("CARRIES the rich DFD category fields through to Asset.properties", () => {
     const asset = runSyncFor(dfdAssetWithRichProps);
     const props = (asset!.properties ?? {}) as Record<string, unknown>;

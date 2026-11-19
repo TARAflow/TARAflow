@@ -145,7 +145,6 @@ export function buildAssetGraph(
         displayId: a.displayId ?? a.id,
         name: a.name ?? "",
         group: a.assetGroup,
-        ...(a.protectionNeed ? { protectionNeed: a.protectionNeed } : {}),
         ...(distance !== undefined ? { distance } : {}),
       };
     });

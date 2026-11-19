@@ -1,25 +1,15 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Box,
-  Button,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import {
-  Sync as SyncIcon,
-  Warning as WarningIcon,
-  ExpandMore as ExpandMoreIcon,
-} from "@mui/icons-material";
+import { Alert, AlertTitle, Box, Button, CircularProgress } from "@mui/material";
+import { Sync as SyncIcon } from "@mui/icons-material";
 
 import type { RiskSyncStatus } from "../services/risk-sync-service";
 
 type Props = {
-  /** Transient info messages (e.g. import results). */
+  /** Results of the last sync or import — information, dismissible. */
   syncWarnings: string[];
+  /** Dismisses the results. */
+  onDismissNotices?: () => void;
   /** True when risks are out of sync with threats and a sync is offered. */
   needsSync: boolean;
   isSyncing: boolean;
@@ -28,15 +18,17 @@ type Props = {
 };
 
 /**
- * Notifications accordion for the Risks tab. Bundles every notification
- * (sync info messages, uncertain-threat warnings, out-of-sync notice) into a
- * single orange, collapsible container. Collapsed it shows only the count;
- * expanded it lists each notification as a plain bullet. This component owns
- * its own visibility — it renders nothing when there is nothing to show — so
- * the parent tab just drops it into the layout without any wrapping Collapse.
+ * Banners of the Risks tab, like those of the Threats and Assets tabs
+ * (manual test 2026-11-15): a warning only where something is to do —
+ * risks out of sync with the threats (with the sync action right there),
+ * risks on uncertain threats (confirm them in the Threats tab). The results
+ * of the last sync or import are a dismissible information, not a warning,
+ * and do not keep a banner open. Renders nothing when there is nothing to
+ * show.
  */
 export const RiskSyncBanner: React.FC<Props> = ({
   syncWarnings,
+  onDismissNotices,
   needsSync,
   isSyncing,
   syncStatus,
@@ -45,10 +37,6 @@ export const RiskSyncBanner: React.FC<Props> = ({
   const { t } = useTranslation();
 
   const uncertainCount = syncStatus.uncertainRisks ?? 0;
-
-  // Total notification count shown in the accordion header.
-  const bannerCount =
-    syncWarnings.length + (uncertainCount > 0 ? 1 : 0) + (needsSync ? 1 : 0);
 
   // Human-readable summary of what changed, for the out-of-sync bullet.
   // Mirrors the individual counts the old chips rendered, minus "uncertain"
@@ -83,95 +71,45 @@ export const RiskSyncBanner: React.FC<Props> = ({
     return parts.join(", ");
   }, [syncStatus]);
 
-  if (bannerCount === 0) return null;
+  if (!needsSync && uncertainCount === 0 && syncWarnings.length === 0) return null;
 
   return (
-    <Accordion
-      disableGutters
-      elevation={0}
-      sx={{
-        flexShrink: 0,
-        mx: 2,
-        mt: 1,
-        borderRadius: 1,
-        color: "warning.dark",
-        bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12),
-        // Remove the default top divider line MUI draws above accordions.
-        "&:before": { display: "none" },
-        "& .MuiAccordionSummary-root:hover": {
-          bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
-        },
-      }}
-    >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon sx={{ color: "warning.dark" }} />}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <WarningIcon fontSize="small" color="warning" />
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {t("tabs.risks.bannerSummary", {
-              count: bannerCount,
-              defaultValue: `${bannerCount} notification${
-                bannerCount === 1 ? "" : "s"
-              } need your attention`,
-            })}
-          </Typography>
-        </Box>
-      </AccordionSummary>
-
-      <AccordionDetails sx={{ pt: 0 }}>
-        <Box component="ul" sx={{ m: 0, pl: 3, "& li": { mb: 0.5 } }}>
-          {/* Sync info messages (e.g. import results) */}
-          {syncWarnings.map((warning, i) => (
-            <li key={i}>
-              <Typography variant="body2">{warning}</Typography>
-            </li>
+    <Box sx={{ flexShrink: 0, mx: 2, mt: 1, display: "flex", flexDirection: "column", gap: 1 }} data-testid="risk-banners">
+      {needsSync && (
+        <Alert
+          severity="warning"
+          data-testid="risk-sync-banner"
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              startIcon={isSyncing ? <CircularProgress size={16} /> : <SyncIcon />}
+              onClick={onSync}
+              disabled={isSyncing}
+            >
+              {t("tabs.risks.syncNow", { defaultValue: "Sync Now" })}
+            </Button>
+          }
+        >
+          <AlertTitle>{t("tabs.risks.outOfSyncDetails", { defaultValue: "Risks are out of sync with Threats:" })}</AlertTitle>
+          {syncChangeSummary}
+        </Alert>
+      )}
+      {uncertainCount > 0 && (
+        <Alert severity="warning" data-testid="risk-uncertain-banner">
+          {t("tabs.risks.uncertainWarning", {
+            count: uncertainCount,
+            defaultValue: `${uncertainCount} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab.`,
+          })}
+        </Alert>
+      )}
+      {syncWarnings.length > 0 && (
+        <Alert severity="info" onClose={onDismissNotices} data-testid="risk-sync-notices">
+          {syncWarnings.map((w, i) => (
+            <div key={i}>{w}</div>
           ))}
-
-          {/* Uncertain threats */}
-          {uncertainCount > 0 && (
-            <li>
-              <Typography variant="body2">
-                {t("tabs.risks.uncertainWarning", {
-                  count: uncertainCount,
-                  defaultValue: `${uncertainCount} risk(s) are based on uncertain threats — please confirm their relevance in the Threat Eval tab.`,
-                })}
-              </Typography>
-            </li>
-          )}
-
-          {/* Out-of-sync with threats */}
-          {needsSync && (
-            <li>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1.5,
-                  flexWrap: "wrap",
-                }}
-              >
-                <Typography variant="body2">
-                  {t("tabs.risks.outOfSync", {
-                    defaultValue: "Risks are out of sync with Threats",
-                  })}
-                  {syncChangeSummary ? `: ${syncChangeSummary}` : ""}
-                </Typography>
-                <Button
-                  color="warning"
-                  size="small"
-                  variant="outlined"
-                  startIcon={<SyncIcon />}
-                  onClick={onSync}
-                  disabled={isSyncing}
-                >
-                  {t("tabs.risks.syncNow", { defaultValue: "Sync Now" })}
-                </Button>
-              </Box>
-            </li>
-          )}
-        </Box>
-      </AccordionDetails>
-    </Accordion>
+        </Alert>
+      )}
+    </Box>
   );
 };

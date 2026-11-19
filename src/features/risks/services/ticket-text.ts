@@ -8,6 +8,17 @@
 import type { Risk } from "../models/risk-assessment-types";
 import type { SelectedMitigation } from "../models/risk-mitigation-types";
 import { formatRiskLabel } from "shared/models/risk-label";
+import { blockerLines, type ResidualBlocker } from "shared";
+
+// The ticket text is English (tracker-independent), like the rest of it.
+const CAUSE_EN: Record<string, string> = {
+  pending: "not implemented yet",
+  aou_open: "open",
+  aou_evidence_pending: "fulfilled by a measure not implemented yet",
+  aou_not_fulfilled: "not fulfilled",
+  aou_invalid_in_component: "invalid in the component",
+  overridden_here: "marked not effective here:",
+};
 
 // ==================== DESCRIPTION BUILDER ====================
 
@@ -21,6 +32,12 @@ export const buildTicketDescription = (
   risk: Risk,
   mitigation: SelectedMitigation,
   mitigationText: string,
+  /**
+   * Multi-project TARA I7 (4): measures that keep the residual risk from
+   * counting. The ticket keeps the stored target value ("After") — it is what
+   * the measure is meant to achieve — and says that it does not count now.
+   */
+  uncredited: readonly ResidualBlocker[] = [],
 ): string => {
   const lines: string[] = [];
 
@@ -43,6 +60,12 @@ export const buildTicketDescription = (
   const before = risk.calculatedRiskBeforeMitigation?.toFixed(1) ?? "–";
   const after = risk.calculatedRiskAfterMitigation?.toFixed(1) ?? "–";
   lines.push(`*Risk Score:* Before: ${before} | After: ${after}`);
+  if (uncredited.length > 0) {
+    const causes = blockerLines(uncredited, (c) =>
+      (c.kind === "overridden_here" ? [CAUSE_EN[c.kind], c.ref] : [c.ref, CAUSE_EN[c.kind] ?? c.kind]).filter(Boolean).join(" "),
+    );
+    lines.push(`_Residual risk currently not credited: ${causes.join("; ")}_`);
+  }
 
   lines.push("");
   lines.push("----");

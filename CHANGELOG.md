@@ -1,3 +1,226 @@
+## [0.19.0-beta] - 2026-11-19
+
+**Component TARAs in a machine TARA:** the analysis of a reused component
+(a sensor, a controller, a supplier's module) is imported into the TARA of
+the machine that contains it, pinned to a commit of the component's
+repository, instead of being analysed again. New project schema **14**:
+projects are converted when opened (with a backup) and then no longer open
+in 0.18.x.
+
+### Added
+- **Import a component TARA** (DFD tab, *Import component TARA…*): the
+  component's committed file is read at its commit (or tag), checked and
+  inserted as a multiprocess with the component's DFD on read-only pages
+  and its boundaries around it on the parent page. The component's external
+  entities are mapped to elements of the machine; several instances of one
+  component get their own prefix (e.g. *SD1*, *SD2*), identical units a
+  quantity. The import keeps the component's threats, attack trees,
+  intrinsic factors, measures, assets, asset relations, assumptions of use,
+  supporting claims and its overview (description, responsible, tags,
+  item definition texts, source references) — never its impact, context
+  factors, risk levels or hazards: those depend on the machine.
+- **What the machine decides per instance:** the impact of the instance's
+  assets, the context factors, the window of opportunity of the
+  component's attack paths (also per step of an AND combination), the
+  relevance of threats on the flows across the component's boundary (with
+  a rationale), the assumptions of use as a checklist (fulfilled, not
+  fulfilled, not applicable — with this TARA's evidence), a component
+  measure *not effective here*, and the component's supporting claims cited
+  in the requirement matrix. Ratings can be copied from another instance of
+  the same component once.
+- **Component measures count only while they hold:** a measure of the
+  component reduces the machine's risk only while the component
+  implemented it and every assumption it relies on is fulfilled in the
+  instance with implemented evidence; otherwise it is *unclear* or *not
+  effective* and the risk is shown with its value before treatment. The
+  same rule decides whether a component measure is evidence in the
+  requirement matrix.
+- **Drift and update:** TARAflow checks whether a newer state of an
+  imported component exists (*Check*, *Fetch and check*; a state on a
+  separate branch is named as such, never offered as newer). *Update…*
+  shows what changed, which of the machine's decisions are affected, new
+  external entities to map and threats or paths to pair with their
+  predecessors; a trivial update says that no decision is affected.
+  Decisions that no longer fit are listed for review; *Discard update*
+  restores the state before it until the project is saved. *Refresh stored
+  state* rewrites a component this TARAflow version reads differently.
+- **Overview tab *Components*** (only while something is imported): per
+  component its overview, where it comes from (repository, file, branch /
+  tag, commit), the methodology match, its instances with their
+  assumptions of use, *Show in DFD*, the drift status with *Check* and
+  *Update…*, and the **deviations** — what this TARA decided differently
+  from the component (goals added to its assets, measures not effective,
+  assumptions not fulfilled, relevances overridden, factors rated anew) and
+  the claims it relies on — copied as Markdown for the component's team.
+- **Report:** the imported threats per component with the instances where
+  they differ, the provenance of each imported risk, the imported attack
+  trees with every attack-potential factor per step, a chapter *Imported
+  components* (overview, origin, instances, measures not effective or
+  unclear with the reason, assumptions with their evidence, deviations),
+  in every format including the PDF.
+- **Audit Verification Engine v2:** new check *component-import* — the
+  snapshot of every imported component in a committed project file must
+  still match its recorded hash (`CMP_SNAPSHOT_HASH_MISMATCH`, error).
+  Results now carry `aveVersion: 2`; all other checks are unchanged, and
+  projects without imported components verify as before. The commit diff
+  names instance changes (assumption status, external-entity mapping,
+  quantity, overrides) instead of *instance modified*.
+- **Issue trackers:** a ticket row per mitigation with a link dialog
+  (search, status filter, suggestions) and *create*; with a linked ticket
+  the progress follows the ticket.
+- **Findings panels in the Threats and Risks tabs**, like in the DFD,
+  Assets and Hazards tabs: one row per threat that is not decided, has no
+  description, lost its element or is to review — a click opens exactly
+  that threat; risk findings open the risk dialog on the tab where they are
+  fixed. Component findings about risks are shown there, not in the DFD.
+- **Overview → Components:** *Open component TARA*; *Follow branch …* when
+  the checked-out branch of the component's repository has a newer state
+  than the branch the import follows.
+- **Methods out of sync:** a dot on a STRIDE method whose threats no longer
+  match the DFD (orange) or whose regeneration would change threats (blue).
+
+### Changed
+- **Asset group fields** (data type, lifecycle, exposure, role, …) are
+  asked for as an *info*, no longer as a warning, and the message says what
+  the field does: recorded with the asset, or context for rating the attack
+  feasibility that TARAflow does not evaluate yet, or which model field is
+  evaluated instead — no longer "required for … threat selection". A DFD
+  can therefore reach *complete* without them. Functions marked as safety
+  function are not prioritised automatically; the documentation said so and
+  is corrected.
+- **Audit commit message:** the subject names the TARA file after the round
+  (`[TARA] Detail Review — machines/panel.tara.json`) and a trailer
+  `Project-File` carries its path — with several TARA files in one
+  repository each commit says which one it is for. The message schema and
+  the commit hook accept it as before.
+- **Status by hand with a tracker:** in a project with a tracker, a
+  mitigation set to done by hand needs evidence or a reference.
+- **Phase indicators:** the findings of imported components count on the
+  DFD phase; a source reference with credentials in its URL is a warning on
+  General.
+- **Compliance tab and report:** the to-do list names the properties under
+  the DFD form's labels and only the fields an element leaves unset; the
+  reasons of a row's status (also an edition's void reason) and the
+  missing fields in the report are in the document language.
+- **Per-element threats:** flows between two external entities are out of
+  scope on single-page DFDs too; a regeneration lists existing threats on
+  such flows as obsolete (info `DFD_EE_TO_EE_FLOW`).
+- **Issue trackers:** Polarion is listed as *planned* instead of *from
+  0.19* — it comes after 1.0, with Redmine and Gitee.
+- **Safety card** of an asset hidden while it is empty and cannot be set;
+  always shown for people, physical and infrastructure assets.
+- **Threats rated** means relevant or not relevant; *uncertain* is not a
+  decision — the counters (*x / y rated*, per table) and the Threats phase
+  count the same way. Every phase that is not complete names why in its
+  tooltip (e.g. elements without a description, threats not decided).
+- **Audit trail verification:** the findings newest first, the same rule at
+  one commit in one row, a readable heading per severity; the commit diff
+  of an assumption of use names only what changed.
+- **Compliance matrix:** every row says why it has its status — also *not
+  applicable*, also in the IEC 62443 matrix.
+- **Deleting a threat** asks first and says what goes with it.
+- **Shape libraries:** the interface resizes in every direction again (a
+  rectangle, e.g. for a connector strip); the data flows' names have no
+  background box.
+- **Source references:** *Resolve* says why it failed (no such repository,
+  no access, no network, no answer) and never waits on a password prompt.
+
+### Removed
+- **Asset fields *Protection need* and *Criticality*:** ratings entered as
+  fields that no calculation used — threats, risks, compliance and the
+  report take the impact from the security goals and the damage scenarios —
+  and that could contradict them. Their warnings ("required for threat
+  prioritisation") were wrong and are gone too. Unused model fields without
+  an input (business impact, aggregated criticality, analysis depth, the
+  physical hazard potential on the asset, the old asset-tab text fields)
+  are removed with them.
+
+### Fixed
+- **Risk status:** a risk is *verified* only when every active mitigation
+  is; one mitigation that is only implemented keeps it at *implemented*.
+- **CLI report** builds its data with the app's transform: labels (MoSCoW,
+  impact, STRIDE, status) and the active STRIDE methods were missing.
+- **Repository URLs** are stored without credentials; a stored URL with
+  credentials is flagged in the Overview's sources.
+- **Multi-page DFDs after a project switch:** coming back to a project
+  with a leveled DFD, the DFD tab lost its page tree on loading and offered
+  *Adopt pages* for every page; saving was refused until another tab was
+  opened. Adopting there re-linked the pages from scratch and dropped
+  identity links (e.g. the boundaries around an imported component lost
+  their properties). The page tree now stays when the DFD is loaded.
+- **Autosave:** a change made while the project was being written (e.g. the
+  DFD tab saving right after another edit) was replaced in memory by the
+  older copy; the file was right, the app was not. A write now only marks
+  the project saved, and only when nothing changed meanwhile — otherwise
+  the next autosave writes it.
+- **Open project** starts the file dialog in the folder of the open
+  project, without one in the home directory; *Import component TARA…*
+  starts in the machine's folder.
+- **Component import and update:** the multiprocess, new external entities
+  and boundary flows get the machine's next numbers (no *DF-xx*); a
+  boundary flow paired as renamed keeps its number; an update keeps the
+  multiprocess's description, properties and asset relations; an unpinned
+  import says so in its status; no structure findings (unused interface,
+  unconnected element) for the component's own elements in the machine.
+- **Interfaces:** a straight flow (no orthogonal routing) through an
+  interface is found — it was checked only as one of the two L-paths.
+- **Audit tab:** opening a project or the autosave after a commit no longer
+  rewrites the file for timestamps alone; a file that differs from HEAD only
+  in derived values can be committed; the diff compares values regardless
+  of key order (toggling a regulation tag no longer lists a threat); the
+  Audit tab no longer marks the project unsaved; the signing and SSH keys
+  are remembered per project on this computer; *git:rawInDir* reports git's
+  real exit code (the drift check saw no newer state).
+
+### Upgrade notes
+- **Uncertain threats** no longer count as rated: a project with threats
+  set to *uncertain* shows its Threats phase *in progress* again — decide
+  them (relevant / not relevant).
+- **Straight flows through interfaces** are found when the DFD is saved
+  again; the field `straight` then appears in the file for such flows, and
+  more threats may name the interface. In a component this is a newer
+  state for the machines that import it (no decision affected).
+- Projects are converted to schema 14 when opened (backup alongside); a
+  project without imported components changes in nothing else, and a TARA
+  verification stays valid.
+- A component TARA must be committed to be imported pinned; an uncommitted
+  file is imported *unpinned*. Once the file is committed, *Check* names the
+  commit and offers *Refresh stored state…*, which binds the import to it —
+  also when the content did not change. The drift check needs a local clone
+  of the component's repository.
+- **Risk status *verified*:** a risk is verified only when every active
+  mitigation is. In existing projects risks can fall back from *verified*
+  to *implemented* when opened — check the overview before an audit.
+- **Trackers:** in a project with a tracker, setting a mitigation to done
+  by hand now asks for evidence or a reference; mitigations done without
+  either are reported as a finding.
+- **Per-element threats on EE → EE flows** (out of scope on single-page
+  DFDs too): a regeneration removes them; the next risk sync then removes
+  their risks, including ratings and mitigations. Before regenerating,
+  check whether such flows carry risks — if a flow is security-relevant,
+  model one side as a process.
+- **Credentials in source URLs:** a source reference stored with a token
+  in its URL is flagged. Removing it from the project is not enough — the
+  token stays in the git history of every repository the file was
+  committed to: revoke it at the provider.
+- **Leveled DFDs where *Adopt pages* was confirmed after a project switch**
+  (0.14 – 0.18): the adoption may have dropped identity links between pages —
+  check the context copies and the page tree of such DFDs.
+- **Protection need, criticality and the other removed asset fields:**
+  existing values are dropped when a project is opened and are gone from
+  the file after the next save; the first commit diff lists them once. A
+  verification of the TARA stays valid.
+- **CI with `taraflow-verify`:** the JSON result carries `aveVersion: 2`
+  — a pipeline that checks the version or compares results with a stored
+  one sees the new number.
+- The component's source references are shown read-only in the machine;
+  the machine does not resolve or check them itself.
+- **What comes next:** the way to 1.0.0 is planned release by release in
+  `doc/InProgress/Release/roadmap-to-1.0.md` — 0.20 EN 50742 Approach B,
+  0.21 physical attacks and sensors / actuators, 0.22 EN 18031, 0.23
+  EN 303 645, 0.24 the ISO/SAE 21434 compliance module, then a release
+  candidate with a feature freeze.
+
 ## [0.18.0-beta] - 2026-11-06
 
 More of the requirement matrices from the model, EN 50742 Approach A as a

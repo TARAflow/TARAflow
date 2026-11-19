@@ -13,11 +13,45 @@
     "label": "Overview views",
     "project": "Project",
     "definition": "Definition",
+    "components": "Components",
     "methodology": "Methodology",
     "sources": "Sources",
     "methodologyTitle": "Methodology (read-only)",
     "methodologyHint": "Derived from the project's configuration — the same record the report's methodology chapter uses. Scales, matrix and acceptance criteria are set in the Risk tab's configuration.",
     "openRiskConfiguration": "Change in the Risk tab"
+  },
+  "overviewComponents": {
+    "intro": "The components this TARA imports, as their platform teams describe them at the imported commit. Read-only — the texts change with an update of the component.",
+    "version": "v{{version}}",
+    "aboutMissing": "Imported before the component's overview was taken along — \"Refresh stored state…\" in the multiprocess's tab \"Component\" (DFD) brings description, responsible and sources.",
+    "description": "Description",
+    "responsible": "Responsible",
+    "tags": "Tags",
+    "safety": "Safety-relevant",
+    "yes": "yes",
+    "origin": "Component TARA",
+    "repository": "Repository",
+    "sameRepo": "this repository",
+    "path": "File",
+    "ref": "Branch / tag",
+    "tag": "tag {{tag}}",
+    "commit": "Commit",
+    "unpinned": "not pinned to a commit",
+    "importedAt": "Imported on",
+    "lastUpdate": "Last update",
+    "methodology": "Methodology",
+    "methodologySame": "same likelihood method and factor scales as this TARA",
+    "methodologyDiffers": "differs from this TARA — the component's factor values are not taken over",
+    "sources": "Sources of the component",
+    "instances": "Instances in this TARA",
+    "noAssumptions": "no assumptions of use",
+    "assumptions": "assumptions of use: {{decided}} of {{total}} decided, {{notFulfilled}} not fulfilled",
+    "showInDfd": "Show in DFD",
+    "deviations": "Deviations from the component ({{count}})",
+    "copyDeviations": "Copy as text",
+    "copied": "Copied — Markdown, for a mail, ticket or wiki",
+    "definition": "Item Definition of the component",
+    "sourceDocument": "Source: {{source}}"
   },
   "itemDefinition": {
     "intro": "What is analysed: the item (ISO/SAE 21434 9.3), its boundary, functions, preliminary architecture and operational environment. Describe it here or refer to the architecture document it comes from.",
@@ -88,6 +122,8 @@
       "owner": "Owner",
       "reviewBy": "Review by",
       "usedBy": "used by {{list}}",
+      "measuresRelying": "Measures relying on it: {{list}}",
+      "measuresLabel": "Measures relying on this assumption",
       "add": "Add assumption",
       "remove": "Remove assumption"
     },
@@ -96,6 +132,7 @@
       "sectionMissing": "{{section}} is not described.",
       "assumptionInvalidInUse": "{{assumption}} is invalid but still relied on by {{boundaries}} — review them.",
       "assumptionReviewDue": "{{assumption}} is still open after its review date.",
+      "assumptionMeasureUnknown": "{{assumption}} names measures this project no longer has: {{measures}} — remove them; they are not passed on to importing machines.",
       "linkRemoved": "{{section}}: {{count}} link(s) to removed model items."
     },
     "neutral": {
@@ -119,6 +156,8 @@
     "addReference": "Add reference",
     "repoUrl": "Repository URL",
     "localPathWarning": "This looks like a local path — only the remote URL is stored.",
+    "credentialsInUrl": "The URL contains credentials — remove them: the project file is shared (and copied into every TARA importing it). A private repository uses stored credentials.",
+    "credentialsStored": "This URL contains credentials. Clean the URL (Edit) and revoke the token at the repository provider — it stays in the history of every repository this file was committed to.",
     "refLabel": "Ref label",
     "refLabelPlaceholder": "main, v2.3.1…",
     "refType": {
@@ -136,6 +175,10 @@
     "resolveError": {
       "consentDenied": "Network access was not allowed.",
       "unreachable": "Could not reach {{host}}.",
+      "not_found": "{{host}} has no such repository — or it is private and you have no access. Check the URL.",
+      "no_access": "{{host}} refused access. A private repository needs stored git credentials (credential helper or SSH key).",
+      "offline": "Could not connect to {{host}} — no network, or the host name is wrong.",
+      "timeout": "{{host}} did not answer in time.",
       "refNotFound": "Reached the repository, but \"{{ref}}\" was not found there."
     },
     "consent": {

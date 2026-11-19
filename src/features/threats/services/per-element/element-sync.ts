@@ -13,6 +13,7 @@ import { ElementChange } from "../../models/per-element-types";
 import {
   elementThreatGenerator,
   buildElementToAssetsIndex,
+  isEeToEeFlow,
 } from "./element-generator";
 import {
   DFDAnalysisContext,
@@ -238,6 +239,10 @@ export class ElementThreatSync {
         connection.excludeFromThreatGen ||
         (connection as any)?.properties?.excludeFromThreatGen;
       if (isExcluded) continue;
+      // Flows of an imported component carry the component's threats (§7.1).
+      if (project.excludedElementIds?.has(connection.id)) continue;
+      // EE → EE: out of scope, the generator makes none — never "missing".
+      if (isEeToEeFlow(connection, graph)) continue;
 
       if (!threatenedConnections.has(connection.id)) {
         missingConnections.push(connection);

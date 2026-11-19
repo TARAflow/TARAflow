@@ -13,7 +13,7 @@
 //
 // Lives at: src/features/audit/components/audit-verify-panel.tsx
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Accordion,
@@ -24,10 +24,10 @@ import {
   Box,
   Button,
   Checkbox,
-  Chip,
   CircularProgress,
   FormControlLabel,
   IconButton,
+  Link,
   List,
   ListItem,
   ListItemText,
@@ -42,7 +42,9 @@ import {
   InfoOutlined as InfoIcon,
 } from "@mui/icons-material";
 import { useAuditVerify } from "../hooks/useAuditVerify";
-import type { Finding, Severity } from "../services/verify/findings";
+import type { Severity } from "../services/verify/findings";
+import { findingRows, type FindingRow } from "../services/verify/finding-rows";
+import { createGitService } from "../services/git-service-renderer";
 import { explainFinding } from "../services/verify/finding-explanations";
 
 interface AuditVerifyPanelProps {
@@ -58,22 +60,23 @@ const CHIP_COLOR: Record<Severity, "error" | "warning" | "info"> = {
   info: "info",
 };
 
-function FindingRow({ f }: { f: Finding }) {
+function FindingRowItem({ row }: { row: FindingRow }) {
   const { t } = useTranslation();
-  const { title, hint } = explainFinding(f.id, (k, d) => t(k, d));
+  const { title, hint } = explainFinding(row.id, (k, d) => t(k, d));
+  const [open, setOpen] = useState(false);
+  const files = row.paths;
 
   return (
-    <ListItem disableGutters alignItems="flex-start" sx={{ py: 0.75 }}>
-      <Chip
-        size="small"
-        color={CHIP_COLOR[f.severity]}
-        label={f.severity}
-        sx={{ mr: 1, mt: 0.25, textTransform: "uppercase" }}
-      />
+    <ListItem disableGutters alignItems="flex-start" sx={{ py: 0.75 }} data-testid="audit-verify-row">
       <ListItemText
         primary={
           <Typography variant="body2" fontWeight={600}>
             {title}
+            {row.count > 1 && (
+              <Typography component="span" variant="body2" color="text.secondary">
+                {` (${row.count})`}
+              </Typography>
+            )}
           </Typography>
         }
         secondary={
@@ -93,15 +96,48 @@ function FindingRow({ f }: { f: Finding }) {
               color="text.disabled"
               sx={{ display: "block", fontFamily: "monospace", mt: 0.25 }}
             >
-              {f.id}
-              {f.commit ? ` · ${f.commit.slice(0, 10)}` : ""}
+              {row.id}
+              {row.commit ? ` · ${row.commit.slice(0, 10)}` : ""}
+              {files.length === 1 ? ` · ${files[0]}` : ""}
             </Typography>
+            {files.length > 1 && (
+              <>
+                <Link
+                  component="button"
+                  variant="caption"
+                  onClick={() => setOpen((o) => !o)}
+                  data-testid="audit-verify-row-files"
+                >
+                  {open
+                    ? t("audit.verify.hideFiles", "Hide files")
+                    : t("audit.verify.showFiles", { count: files.length, defaultValue: "Show {{count}} files" })}
+                </Link>
+                {open &&
+                  files.map((p) => (
+                    <Typography
+                      key={p}
+                      component="span"
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block", fontFamily: "monospace" }}
+                    >
+                      {p}
+                    </Typography>
+                  ))}
+              </>
+            )}
           </>
         }
       />
     </ListItem>
   );
 }
+
+const GROUP_TITLE: Record<Severity, string> = {
+  error: "Errors ({{count}})",
+  warning: "Warnings ({{count}})",
+  info: "Notes ({{count}})",
+};
 
 export const AuditVerifyPanel: React.FC<AuditVerifyPanelProps> = ({
   repoRoot,
@@ -116,6 +152,23 @@ export const AuditVerifyPanel: React.FC<AuditVerifyPanelProps> = ({
   useEffect(() => {
     reset();
   }, [repoRoot, anchor, reset]);
+
+  // The commits of the verified branch, newest first — the rows show the
+  // newest problems first (manual test 2026-11-17). Without it: engine order.
+  const [commitOrder, setCommitOrder] = useState<string[]>([]);
+  useEffect(() => {
+    if (!result) return;
+    let live = true;
+    createGitService()
+      .raw(["rev-list", "--topo-order", branch])
+      .then((r) => {
+        if (live && r.success && r.data) setCommitOrder(r.data.split("\n").map((l) => l.trim()).filter(Boolean));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [result, branch]);
 
   return (
     <Box sx={{ mt: 2 }}>
@@ -218,24 +271,20 @@ export const AuditVerifyPanel: React.FC<AuditVerifyPanelProps> = ({
                 </Typography>
               ) : (
                 SEVERITY_ORDER.map((sev) => {
-                  const group = result.findings.filter(
-                    (f) => f.severity === sev,
-                  );
-                  if (group.length === 0) return null;
+                  const count = result.findings.filter((f) => f.severity === sev).length;
+                  if (count === 0) return null;
+                  const rows = findingRows(result.findings, sev, commitOrder);
                   return (
-                    <Box key={sev} sx={{ mb: 1.5 }}>
-                      <Chip
-                        size="small"
-                        color={CHIP_COLOR[sev]}
-                        label={`${sev.toUpperCase()} · ${group.length}`}
-                        sx={{ mb: 0.5 }}
-                      />
+                    <Box key={sev} sx={{ mb: 1.5 }} data-testid={`audit-verify-group-${sev}`}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: `${CHIP_COLOR[sev]}.main` }} />
+                        <Typography variant="subtitle2">
+                          {t(`audit.verify.group.${sev}`, { count, defaultValue: GROUP_TITLE[sev] })}
+                        </Typography>
+                      </Stack>
                       <List dense disablePadding>
-                        {group.map((f, i) => (
-                          <FindingRow
-                            key={`${f.id}-${f.commit ?? ""}-${i}`}
-                            f={f}
-                          />
+                        {rows.map((row) => (
+                          <FindingRowItem key={`${row.id}-${row.commit ?? ""}`} row={row} />
                         ))}
                       </List>
                     </Box>

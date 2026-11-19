@@ -82,6 +82,25 @@ describe("risk findings (FX-4)", () => {
     expect(unmitigated.ids).toHaveLength(7);
   });
 
+  it("with a tracker: a mitigation done by hand needs a ticket or evidence (user 2026-11-10)", () => {
+    const data: Any = {
+      configuration: DEFAULT_CONFIGURATION,
+      risks: [
+        risk("D-1", { selectedMitigations: [{ id: "M-1", status: "implemented" }] }),
+        risk("D-2", { selectedMitigations: [{ id: "M-1", status: "verified", ticketId: "SCRUM-1" }] }),
+        risk("D-3", { selectedMitigations: [{ id: "M-1", status: "implemented", evidenceNote: "Test report TR-7" }] }),
+        risk("D-4", { selectedMitigations: [{ id: "M-1", status: "in_review", evidenceRef: "PR 42" }] }),
+        risk("D-5", { selectedMitigations: [{ id: "M-1", status: "in_progress" }, { id: "M-2", status: "in_review", evidenceNote: " " }] }),
+      ],
+    };
+    // offline (no tracker): nothing required, as before
+    expect(riskFindings(data).find((f) => f.code === "doneWithoutEvidence")).toBeUndefined();
+    const f = riskFindings(data, { trackerConnected: true }).find((x) => x.code === "doneWithoutEvidence")!;
+    expect(f).toMatchObject({ severity: "warning", count: 2, ids: ["D-1", "D-5"] });
+    // the stored validation (file form) does not depend on the tracker
+    expect(riskService.validate(data).warnings.join(" ")).not.toContain("without ticket");
+  });
+
   it("every code has a singular and a plural text in English and German", () => {
     for (const lang of ["en", "de"]) {
       const texts = locale(lang).tabs.risks.findings;

@@ -56,6 +56,7 @@ import type {
   ValidationFinding,
 } from "../models/dfd-types";
 import { translateFinding } from "../utils/translate-finding";
+import type { FindingOwner, FindingOwnerOf } from "../utils/finding-ownership";
 import { getLocalizedMitigation } from "features/threats/services/threat-catalog-service";
 
 
@@ -293,7 +294,26 @@ export interface DFDNotificationsPanelProps {
     riskId?: string,
   ) => void;
   onSelectCell?: (cellId: string) => void;
+  /**
+   * Owner of a finding on an imported component's cell (multi-project TARA
+   * phase 4a): the row shows the owner's chip, and a property suggestion
+   * there offers no Apply — the cell is read-only here.
+   */
+  ownerOf?: FindingOwnerOf;
 }
+
+/** "Component SD1" — fixed in that component's TARA, not here. */
+const OwnerChip: React.FC<{ owner: FindingOwner }> = ({ owner }) => (
+  <Tooltip title={owner.tooltip} placement="top">
+    <Chip
+      label={owner.label}
+      size="small"
+      variant="outlined"
+      data-testid="finding-owner"
+      sx={{ height: 20, fontSize: "0.72rem", flexShrink: 0, borderStyle: "dashed" }}
+    />
+  </Tooltip>
+);
 
 // ==================== COMPONENT ====================
 
@@ -307,6 +327,7 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
   connections = [],
   onApply,
   onSelectCell,
+  ownerOf,
 }) => {
   const { t } = useTranslation();
   const { translateMessage } = useValidationTranslation();
@@ -669,20 +690,27 @@ export const DFDNotificationsPanel: React.FC<DFDNotificationsPanelProps> = ({
                 notification={n as ValidationNotification}
                 translateMessage={translateMessage}
                 onSelectCell={onSelectCell}
+                owner={
+                  (n as ValidationNotification).elementId
+                    ? ownerOf?.((n as ValidationNotification).elementId!, (n as ValidationNotification).finding.key)
+                    : undefined
+                }
               />
             ) : n.type === "drift" ? (
               <DriftRow
                 key={n.key}
                 notification={n as DriftNotification}
-                onApply={onApply}
+                onApply={ownerOf?.((n as DriftNotification).elementId) ? undefined : onApply}
                 onSelectCell={onSelectCell}
+                owner={ownerOf?.((n as DriftNotification).elementId)}
               />
             ) : (
               <SecurityRow
                 key={n.key}
                 notification={n as SecurityNotification}
-                onApply={onApply}
+                onApply={ownerOf?.((n as SecurityNotification).elementId) ? undefined : onApply}
                 onSelectCell={onSelectCell}
+                owner={ownerOf?.((n as SecurityNotification).elementId)}
               />
             ),
           )}
@@ -698,12 +726,14 @@ interface ValidationRowProps {
   notification: ValidationNotification;
   translateMessage: (finding: ValidationFinding) => string;
   onSelectCell?: (cellId: string) => void;
+  owner?: FindingOwner;
 }
 
 const ValidationRow: React.FC<ValidationRowProps> = ({
   notification,
   translateMessage,
   onSelectCell,
+  owner,
 }) => (
   <Box
     onClick={() =>
@@ -768,6 +798,7 @@ const ValidationRow: React.FC<ValidationRowProps> = ({
     >
       {translateMessage(notification.finding)}
     </Typography>
+    {owner && <OwnerChip owner={owner} />}
   </Box>
 );
 
@@ -777,12 +808,15 @@ interface SecurityRowProps {
   notification: SecurityNotification;
   onApply?: DFDNotificationsPanelProps["onApply"];
   onSelectCell?: (cellId: string) => void;
+  /** An imported component's cell: no Apply (read-only here), the owner's chip instead. */
+  owner?: FindingOwner;
 }
 
 const SecurityRow: React.FC<SecurityRowProps> = ({
   notification,
   onApply,
   onSelectCell,
+  owner,
 }) => {
   const { t } = useTranslation();
 
@@ -955,6 +989,8 @@ const SecurityRow: React.FC<SecurityRowProps> = ({
         </Typography>
       </Tooltip>
 
+      {owner && <OwnerChip owner={owner} />}
+
       {/* Apply button — only when onApply is provided, and never for a planned
           mitigation: the DFD describes the system as it is, a value applied
           before the control exists would claim it (user 2026-10-30). */}
@@ -997,9 +1033,11 @@ interface DriftRowProps {
   onApply?: DFDNotificationsPanelProps["onApply"];
   /** Select the element in the diagram (opens its properties), as the other rows do. */
   onSelectCell?: (cellId: string) => void;
+  /** An imported component's cell: no Apply (read-only here), the owner's chip instead. */
+  owner?: FindingOwner;
 }
 
-const DriftRow: React.FC<DriftRowProps> = ({ notification, onApply, onSelectCell }) => {
+const DriftRow: React.FC<DriftRowProps> = ({ notification, onApply, onSelectCell, owner }) => {
   const { t } = useTranslation();
   // Restore the value after it was reverted — only for a mitigation that
   // counts as done; a planned one offers no Apply (CL-6, user 2026-10-30).
@@ -1149,6 +1187,7 @@ const DriftRow: React.FC<DriftRowProps> = ({ notification, onApply, onSelectCell
         </Typography>
       )}
 
+      {owner && <OwnerChip owner={owner} />}
       {canApply && (
         <Tooltip
           title={t("tabs.dfd.notifications.applyTooltip", { defaultValue: "Apply suggestion to model" })}

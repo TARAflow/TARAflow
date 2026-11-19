@@ -5,6 +5,7 @@ import {
   generateCommitMessage,
   type CommitMessageData,
 } from "features/audit/models/audit-types";
+import { parseCommitMessage, taraRound, validateAuditMessage } from "features/audit/services/verify/message";
 
 function baseData(over: Partial<CommitMessageData> = {}): CommitMessageData {
   return {
@@ -57,6 +58,31 @@ describe("generateCommitMessage", () => {
     const msg = generateCommitMessage(baseData());
     expect(/^\s*-?\s*Affected Phases:/m.test(msg)).toBe(false);
     expect(/^\s*-?\s*Batch Size:/m.test(msg)).toBe(false);
+  });
+
+  it("names the TARA file in the subject and a Project-File trailer — several TARA files in one repository", () => {
+    const msg = generateCommitMessage(baseData({ projectFile: "machines/panel.tara.json" }));
+    expect(msg.split("\n")[0]).toBe("[TARA] Detail Review — machines/panel.tara.json");
+    expect(parseCommitMessage(msg).trailers["Project-File"]).toEqual(["machines/panel.tara.json"]);
+    // still a valid audit message for the schema check and the hook
+    expect(validateAuditMessage(msg)).toEqual([]);
+  });
+
+  it("the round is the same with and without the file in the subject (the file stays in Project-File)", () => {
+    const withFile = generateCommitMessage(baseData({ projectFile: "doc/maschine.tara.json" })).split("\n")[0];
+    const without = generateCommitMessage(baseData()).split("\n")[0];
+    expect(taraRound(withFile)).toBe("Detail Review");
+    expect(taraRound(without)).toBe("Detail Review");
+    expect(taraRound("[TARA] Detail Review — sub dir/Maschine A.tara.json")).toBe("Detail Review");
+    // a custom round with a dash keeps its name; not a [TARA] subject → null
+    expect(taraRound("[TARA] Review — Phase 2")).toBe("Review — Phase 2");
+    expect(taraRound("audit: bootstrap")).toBeNull();
+  });
+
+  it("without a file the subject stays [TARA] <round> and there is no Project-File trailer", () => {
+    const msg = generateCommitMessage(baseData());
+    expect(msg.split("\n")[0]).toBe("[TARA] Detail Review");
+    expect(/^Project-File:/m.test(msg)).toBe(false);
   });
 
   it("includes a Project trailer with id when a project is given", () => {

@@ -2,7 +2,7 @@
 
 
 > **Superseded (2026-11-07).** The navigation of this design became the "Open component TARA"
-> action of an imported multiprocess in `doc/Open/multi-project-tara-design.md` (v3, §12).
+> action of an imported multiprocess in `doc/Done/multi-project-tara-design.md` (v3, §12).
 
 Status: draft for review · Author: (Juergen)
 

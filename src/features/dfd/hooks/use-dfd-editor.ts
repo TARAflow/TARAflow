@@ -14,6 +14,7 @@ import type {
   DFDStats,
   DFDExportData,
   DFDData,
+  ComponentImportRunner,
 } from "../models/dfd-types";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ValidationResult } from "../services/dfd-validator";
@@ -66,6 +67,8 @@ export interface UseDFDEditorOptions {
     weightX?: number;
     weightY?: number;
   };
+  /** Pages of imported components (multi-project TARA) — never numbered. */
+  getLockedPageIds?: () => ReadonlySet<string> | undefined;
 }
 
 export interface UseDFDEditorReturn {
@@ -114,12 +117,15 @@ export interface UseDFDEditorReturn {
   syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
   /** Context copies shown faded and dashed (leveled DFD 5g). */
   setContextCells: (cells: ContextCellMap) => Promise<void>;
+  setLockedPages: (pageIds: readonly string[]) => Promise<void>;
   /** Select one particular cell (page + cell), e.g. "Go to definition". */
   selectCellAt: (pageId: string, cellId: string) => Promise<void>;
   /** Open a draw.io page without selecting a cell (leveled DFD). */
   openPage: (pageId: string) => Promise<void>;
   /** The draw.io page last reported by the selection events; null before. */
   getCurrentPageId: () => string | null;
+  /** Multi-project TARA: run the app's component import on the editor's diagram; true = applied. */
+  insertComponent: (runner: ComponentImportRunner) => Promise<boolean>;
   /** One SVG thumbnail per page (leveled DFD 5i, D18). */
   exportPageSvgs: (pageIds: string[]) => Promise<PageSvgExport>;
   /**
@@ -443,6 +449,47 @@ export function useDFDEditor(
     (pageId: string) => bridgeSelectCell("", pageId),
     [bridgeSelectCell],
   );
+
+  // Multi-project TARA (design v3 §5): the app runs the import (dialog,
+  // checks, insertComponentInstance) on the diagram as it is in the editor;
+  // the result is saved at once with its records as the base (commitXml),
+  // then loaded into draw.io.
+  const persistenceGetBase = persistence.getBase;
+  const persistenceCommitXml = persistence.commitXml;
+  const insertComponent = useCallback(
+    async (runner: ComponentImportRunner): Promise<boolean> => {
+      const base = persistenceGetBase();
+      const xml = bridgeRef.current?.getCurrentXML() ?? base?.xml ?? "";
+      if (!xml) return false;
+      const outcome = await runner({
+        xml,
+        pages: base?.pages ?? [],
+        pageId: currentPageIdRef.current ?? "",
+        elements: base?.elements ?? [],
+        connections: base?.connections ?? [],
+        assets: base?.assets ?? [],
+      });
+      if (!outcome) return false;
+      // Saved and handed on BEFORE draw.io shows it: from here on every
+      // save, validation and page step sees the new page tree with its links.
+      const committed = persistenceCommitXml(
+        {
+          ...(base ?? { elements: [], connections: [], assets: [] }),
+          xml: outcome.xml,
+          pages: outcome.pages,
+          elements: outcome.elements,
+          connections: outcome.connections,
+          assets: outcome.assets,
+          lastModified: new Date().toISOString(),
+        },
+        outcome.xml,
+      );
+      if (!committed || !bridgeRef.current) return false;
+      await bridgeRef.current.loadXML(outcome.xml);
+      return true;
+    },
+    [persistenceGetBase, persistenceCommitXml],
+  );
   const selectCell = useCallback(
     async (tfId: string): Promise<void> => {
       const target = cellIdentityRef.current.cellOf(tfId, currentPageIdRef.current);
@@ -468,6 +515,7 @@ export function useDFDEditor(
     validateAfter: true,
     validationDelay: 500,
     getPages: getProjectPages,
+    getLockedPageIds: options.getLockedPageIds,
   });
 
   // Export/Import layer
@@ -644,9 +692,11 @@ export function useDFDEditor(
     setPageTabInfo: bridge.setPageTabInfo,
     syncPages: bridge.syncPages,
     setContextCells: bridge.setContextCells,
+    setLockedPages: bridge.setLockedPages,
     selectCellAt,
     openPage,
     getCurrentPageId,
+    insertComponent,
     exportPageSvgs: bridge.exportPageSvgs,
     updatePageThumbnails,
     getCurrentXML: async () => bridge.getCurrentXML(),

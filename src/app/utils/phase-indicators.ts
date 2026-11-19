@@ -21,6 +21,7 @@ import { missingGeneralFields, type GeneralField } from "features/overview";
 import type { ProjectInfoData } from "features/overview";
 import { translateFinding, type ValidationFinding } from "features/dfd";
 import { PhaseId } from "../models/phase-types";
+import { hasUrlCredentials, withoutUrlCredentials } from "shared/utils/url-credentials";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -38,12 +39,28 @@ export interface PhaseIndicatorInput {
   dfdValidation: { errors: readonly ValidationFinding[]; warnings: readonly ValidationFinding[] } | null;
   /** The DFD phase status that validation stands for (dfdService.phaseStatusOf). */
   dfdStatus?: PhaseStatus;
+  /**
+   * Findings of imported components (multi-project TARA, 6c): shown in the
+   * DFD tab's panel, so counted on the DFD phase too — errors make it
+   * incomplete, warnings keep it from complete.
+   */
+  componentFindings?: { errors: readonly ValidationFinding[]; warnings: readonly ValidationFinding[] } | null;
+  /** The project's source references (Overview → Sources): one with credentials in its URL is a warning (6c). */
+  sourceBindings?: readonly { repoUrl: string }[];
   /** The Hazard tab's validation (safety-relevant projects with hazards), translated (hazardFindingLines, FX-1). */
   hazardValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   /** The Risk tab's validation of the current state, translated (riskFindingLines, FX-4). */
   riskValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   /** Stored threats the current rules would no longer / additionally generate. */
   threatDrift?: { obsolete: number; added: number };
+  /**
+   * DFD elements, flows and assets without a description (display ids):
+   * the DFD is complete only when everything is described — a tooltip
+   * without them gave no reason for "in progress" (manual test 2026-11-17).
+   */
+  undescribed?: readonly string[];
+  /** Threats not rated yet (display ids) — why the Threats phase is in progress. */
+  unratedThreats?: readonly string[];
   /**
    * TARA verification (iso-21434 only): its kind and the Overview's status
    * text. Counted on the General phase, where the status line lives — not
@@ -77,6 +94,12 @@ function capped(lines: string[], t: Translate): string[] {
   ];
 }
 
+/** "<label> (n): A, B, C, D, E …" — at most MAX_DETAILS names. */
+function namedList(t: Translate, key: string, fallback: string, ids: readonly string[]): string {
+  const list = ids.slice(0, MAX_DETAILS).join(", ") + (ids.length > MAX_DETAILS ? " …" : "");
+  return t(key, { count: ids.length, list, defaultValue: fallback });
+}
+
 export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
   const { t } = input;
   const counts: Record<number, PhaseCounts> = {};
@@ -97,9 +120,20 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
   const verificationOpen = !!input.verification && input.verification.kind !== "verified";
   const verificationFailed = input.verification?.kind === "failed";
   if (verificationOpen) general.push(input.verification!.text);
+  // A source reference with credentials in its URL (review of patch 73): the
+  // token stays in the git history — clean the URL and revoke it.
+  const withCredentials = (input.sourceBindings ?? []).filter((b) => hasUrlCredentials(b.repoUrl));
+  for (const b of withCredentials) {
+    general.push(
+      t("phases.details.credentialsInUrl", {
+        url: withoutUrlCredentials(b.repoUrl),
+        defaultValue: "Source reference {{url}} carries credentials in its URL — clean it (Overview → Sources) and revoke the token at the provider",
+      }),
+    );
+  }
   counts[PhaseId.General] = {
     errors: verificationFailed ? 1 : 0,
-    warnings: missing.length + (verificationOpen && !verificationFailed ? 1 : 0),
+    warnings: missing.length + (verificationOpen && !verificationFailed ? 1 : 0) + withCredentials.length,
   };
   if (general.length > 0) details[PhaseId.General] = general;
 
@@ -123,18 +157,25 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
     if (lines.length > 0) details[PhaseId.Hazard] = capped(lines, t);
   }
 
-  // DFD: the current validation, errors first.
+  // DFD: the current validation and the imported components' findings (6c), errors first.
   let status = input.phaseStatus;
-  if (input.dfdValidation) {
-    counts[PhaseId.DFD] = {
-      errors: input.dfdValidation.errors.length,
-      warnings: input.dfdValidation.warnings.length,
-    };
-    const lines = [...input.dfdValidation.errors, ...input.dfdValidation.warnings].map((f) =>
-      translateFinding(t, f),
-    );
+  const cmpErrors = input.componentFindings?.errors ?? [];
+  const cmpWarnings = input.componentFindings?.warnings ?? [];
+  if (input.dfdValidation || cmpErrors.length + cmpWarnings.length > 0) {
+    const errors = [...(input.dfdValidation?.errors ?? []), ...cmpErrors];
+    const warnings = [...(input.dfdValidation?.warnings ?? []), ...cmpWarnings];
+    counts[PhaseId.DFD] = { errors: errors.length, warnings: warnings.length };
+    const lines = [...errors, ...warnings].map((f) => translateFinding(t, f));
     if (lines.length > 0) details[PhaseId.DFD] = capped(lines, t);
-    if (input.dfdStatus) status = { ...status, [PhaseId.DFD]: input.dfdStatus };
+    let dfdStatus = input.dfdValidation ? input.dfdStatus : undefined;
+    // the component findings keep the DFD from complete / make it incomplete
+    if (dfdStatus && cmpErrors.length > 0) dfdStatus = "incomplete";
+    else if (dfdStatus === "complete" && cmpWarnings.length > 0) dfdStatus = "in-progress";
+    if (dfdStatus) status = { ...status, [PhaseId.DFD]: dfdStatus };
+  }
+  const undescribed = input.undescribed ?? [];
+  if (undescribed.length > 0 && status[PhaseId.DFD as keyof PhaseStatusMap] !== "complete") {
+    details[PhaseId.DFD] = [...(details[PhaseId.DFD] ?? []), namedList(t, "phases.details.undescribed", "Without a description ({{count}}): {{list}}", undescribed)];
   }
 
   // Threats: generation drift (not a validation finding).
@@ -153,6 +194,8 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
   if (added > 0) {
     drift.push(t("tabs.threats.drift.banner.added", { count: added, defaultValue: "{{count}} threats would be added" }));
   }
+  const unrated = input.unratedThreats ?? [];
+  if (unrated.length > 0) drift.push(namedList(t, "phases.details.unrated", "Not decided yet — unrated or uncertain ({{count}}): {{list}}", unrated));
   if (drift.length > 0) details[PhaseId.Threats] = drift;
 
   return { status, counts, details };

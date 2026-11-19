@@ -21,6 +21,8 @@ export interface SourceBindingResolutionResult {
    * doesn't resolve there (e.g. a deleted tag). */
   sha?: string | null;
   error?: string;
+  /** Why the repository could not be reached (git's message classified). */
+  failure?: "not_found" | "no_access" | "offline" | "timeout" | "unknown";
 }
 
 // ==================== HOST EXTRACTION ====================
@@ -109,7 +111,12 @@ export async function resolveSourceBinding(
   );
 
   if (!result.success) {
-    return { success: false, reachable: false, error: result.error };
+    return {
+      success: false,
+      reachable: false,
+      error: result.error,
+      ...(result.data?.failure ? { failure: result.data.failure } : {}),
+    };
   }
   return {
     success: true,

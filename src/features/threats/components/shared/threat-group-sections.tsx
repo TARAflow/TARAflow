@@ -26,6 +26,7 @@ import {
   type GroupSummaryRow,
 } from "shared";
 import type { Threat, ThreatTable } from "../../models/threat-types";
+import { ImportedThreatCard, type ImportedThreatSection } from "./imported-threats-section";
 
 const NOT_IN_DFD = "__not_in_dfd__";
 const STRIDE = ["S", "T", "R", "I", "D", "E"] as const;
@@ -59,15 +60,41 @@ export interface ThreatGroupSectionsProps {
   tables: ThreatTable[];
   /** Renders one table; index = position in `tables`. */
   renderTable: (table: ThreatTable, index: number, groupKey: string) => React.ReactNode;
+  /**
+   * Threats of imported components, one card per instance in the group of
+   * the instance's multiprocess — the same place the Risks tab lists their
+   * risks (manual test 2026-11-15). Read-only — the card's info icon says so.
+   */
+  importedSections?: readonly ImportedThreatSection[];
 }
 
 export const ThreatGroupSections: React.FC<ThreatGroupSectionsProps> = ({
   groups,
   tables,
   renderTable,
+  importedSections = [],
 }) => {
   const { t } = useTranslation();
-  if (!groups) return <>{tables.map((table, index) => renderTable(table, index, ""))}</>;
+  const importedInfo = t("components.threats.groupInfo", {
+    ns: "components",
+    defaultValue:
+      "Threats from an imported component — read-only: text, STRIDE and relevance are the component's decisions (on boundary flows the machine may override the relevance). Rate their risks in the Risk tab.",
+  });
+  const shownImported = importedSections.filter((x) => x.count > 0);
+  const cards = (list: readonly ImportedThreatSection[]) =>
+    list.map((x) => <ImportedThreatCard key={x.key} section={x} info={importedInfo} />);
+  if (!groups) {
+    return (
+      <>
+        {tables.map((table, index) => renderTable(table, index, ""))}
+        {cards(shownImported)}
+      </>
+    );
+  }
+  // An instance's card goes to the group of its multiprocess (top level when
+  // the multiprocess is not decomposed or not in the DFD).
+  const groupOfImported = (x: ImportedThreatSection) =>
+    (x.multiprocessId && groups.elementGroup[x.multiprocessId]) || TOP_LEVEL_GROUP;
 
   const sections = [
     ...groups.groups.map((g) => ({
@@ -90,8 +117,9 @@ export const ThreatGroupSections: React.FC<ThreatGroupSectionsProps> = ({
       const sectionTables = tables
         .map((table, index) => ({ table: { ...table, threats: table.threats.filter(inGroup) }, index }))
         .filter(({ table }) => table.threats.length > 0);
-      const threats = sectionTables.flatMap(({ table }) => table.threats);
-      return { ...section, sectionTables, threats };
+      const imported = section.key === NOT_IN_DFD ? [] : shownImported.filter((x) => groupOfImported(x) === section.key);
+      const threats = [...sectionTables.flatMap(({ table }) => table.threats), ...imported.flatMap((x) => x.threats)];
+      return { ...section, sectionTables, imported, threats };
     })
     .filter((section) => section.threats.length > 0);
 
@@ -119,7 +147,12 @@ export const ThreatGroupSections: React.FC<ThreatGroupSectionsProps> = ({
         key: section.key,
         label: section.label,
         count: section.threats.length,
-        render: () => section.sectionTables.map(({ table, index }) => renderTable(table, index, section.key)),
+        render: () => (
+          <>
+            {section.sectionTables.map(({ table, index }) => renderTable(table, index, section.key))}
+            {cards(section.imported)}
+          </>
+        ),
       }))}
       summaries={{
         inGroup: TOP_LEVEL_GROUP,

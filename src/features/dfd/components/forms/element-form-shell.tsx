@@ -9,12 +9,19 @@
 //     <InterfaceGeneralTab element={element} onChange={onChange} />
 //   </ElementFormShell>
 //
+// Further tabs before "General" (`extraTabs`, user 2026-11-13): a general
+// slot — the shell knows nothing of what they hold (the details panel fills
+// it, e.g. "Component" of an imported multiprocess). With extra tabs the
+// form starts on the first of them; a tab the user picks stays picked for
+// the session among elements with the same extra tabs; `tabRequest` opens a
+// tab on purpose (a finding, "Show in DFD").
+//
 // The shell owns: tab navigation, safety badge on Tab 2 label.
 // The caller owns: Tab 1 content, React.memo wrapping of the outer form.
 
 import React, { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, Tab, Tabs } from "@mui/material";
+import { Badge, Box, Stack, Tab, Tabs } from "@mui/material";
 import { WarningAmber as WarningAmberIcon } from "@mui/icons-material";
 import type { AssetGroup } from "shared";
 import type { DFDElement } from "../../models/dfd-types";
@@ -42,6 +49,27 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 
 // ==================== PROPS ====================
 
+/** A tab before "General" — filled by the caller. */
+export interface ExtraTab {
+  id: string;
+  label: ReactNode;
+  /** Open items, shown as a number on the tab; 0 / absent = none. */
+  badge?: number;
+  render: () => ReactNode;
+}
+
+/** Open a tab on purpose; a new object each time (e.g. per finding click). */
+export interface TabRequest {
+  tab: string;
+}
+
+/** The tab ids besides the extra ones. */
+const GENERAL = "general";
+const RELATIONS = "relations";
+
+/** Per set of extra tabs the tab the user picked last — for this session only. */
+const pickedTab = new Map<string, string>();
+
 export interface ElementFormShellProps {
   element: DFDElement;
   onChange: (updates: Partial<DFDElement>) => void;
@@ -61,6 +89,11 @@ export interface ElementFormShellProps {
   /** Override the Asset tab label (defaults to i18n key) */
   assetTabLabel?: string;
 
+  /** Tabs before "General", in this order. */
+  extraTabs?: readonly ExtraTab[];
+  /** Open this tab (an extra tab's id, "general" or "relations"). */
+  tabRequest?: TabRequest | null;
+
   /** Controlled active tab (optional — shell manages own state if omitted) */
   activeTab?: number;
   onTabChange?: (tab: number) => void;
@@ -78,13 +111,38 @@ export const ElementFormShell: React.FC<ElementFormShellProps> = ({
   assetTabLabel,
   activeTab: controlledTab,
   onTabChange,
+  extraTabs = [],
+  tabRequest,
 }) => {
   const { t } = useTranslation();
 
-  const [internalTab, setInternalTab] = React.useState(0);
+  // Tab order: the extra tabs, "General", "Relations" — addressed by id.
+  const ids = [...extraTabs.map((x) => x.id), GENERAL, RELATIONS];
+  const setKey = extraTabs.map((x) => x.id).join("|");
+  // Fixed start (review 2026-11-13): the first extra tab, or what the user
+  // picked among elements with the same extra tabs; never by state.
+  const startId = () => (setKey ? (pickedTab.get(setKey) ?? extraTabs[0].id) : GENERAL);
+  const [internalId, setInternalId] = React.useState<string>(startId);
+  // Elements with extra tabs start by the rule; others keep the tab as before
+  // (their tab set does not change).
+  const lastKey = React.useRef(setKey);
+  React.useEffect(() => {
+    if (setKey || lastKey.current !== setKey) setInternalId(startId());
+    lastKey.current = setKey;
+  }, [element.id, setKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A request opens its tab (and counts as picked).
+  React.useEffect(() => {
+    if (!tabRequest || !ids.includes(tabRequest.tab)) return;
+    setInternalId(tabRequest.tab);
+    if (setKey) pickedTab.set(setKey, tabRequest.tab);
+  }, [tabRequest]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const internalTab = Math.max(0, ids.indexOf(ids.includes(internalId) ? internalId : GENERAL));
   const activeTab = controlledTab ?? internalTab;
+  const offset = extraTabs.length;
   const handleTabChange = (_: React.SyntheticEvent, v: number) => {
-    setInternalTab(v);
+    setInternalId(ids[v]);
+    if (setKey) pickedTab.set(setKey, ids[v]);
     onTabChange?.(v);
   };
 
@@ -106,6 +164,21 @@ export const ElementFormShell: React.FC<ElementFormShellProps> = ({
         onChange={handleTabChange}
         sx={{ borderBottom: 1, borderColor: "divider" }}
       >
+        {extraTabs.map((x) => (
+          <Tab
+            key={x.id}
+            data-testid={`element-tab-${x.id}`}
+            label={
+              x.badge ? (
+                <Badge color="warning" badgeContent={x.badge} sx={{ "& .MuiBadge-badge": { right: -10 } }} data-testid={`element-tab-${x.id}-badge`}>
+                  {x.label}
+                </Badge>
+              ) : (
+                x.label
+              )
+            }
+          />
+        ))}
         <Tab
           label={
             generalTabLabel ??
@@ -133,13 +206,19 @@ export const ElementFormShell: React.FC<ElementFormShellProps> = ({
         />
       </Tabs>
 
+      {extraTabs.map((x, i) => (
+        <TabPanel key={x.id} value={activeTab} index={i}>
+          {x.render()}
+        </TabPanel>
+      ))}
+
       {/* Tab 1: General — element-specific content */}
-      <TabPanel value={activeTab} index={0}>
+      <TabPanel value={activeTab} index={offset}>
         {generalTab}
       </TabPanel>
 
       {/* Tab 2: Asset — identical for all elements */}
-      <TabPanel value={activeTab} index={1}>
+      <TabPanel value={activeTab} index={offset + 1}>
         {showRollup ? (
           <AssetRollupView
             value={rollup}

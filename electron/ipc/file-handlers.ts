@@ -69,12 +69,14 @@ export function registerFileHandlers() {
     }
   });
 
-  // Open Dialog
-  ipcMain.handle("file:openDialog", async (event) => {
+  // Open Dialog — starts in the folder of the open project, else in the
+  // home directory (user 2026-11-14: it always opened in the same place).
+  ipcMain.handle("file:openDialog", async (event, defaultDir?: string) => {
     try {
       const parentWindow = BrowserWindow.fromWebContents(event.sender);
       const options: OpenDialogOptions = {
         title: "Open Project",
+        defaultPath: typeof defaultDir === "string" && defaultDir ? defaultDir : homedir(),
         filters: [
           { name: "TARAflow Projects", extensions: ["tara.json"] },
           { name: "All Files", extensions: ["*"] },

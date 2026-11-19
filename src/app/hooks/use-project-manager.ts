@@ -190,9 +190,9 @@ export function useProjectManager(): UseProjectManagerReturn {
       // useBidirectionalAssetSync's effect firing on mount). This redundant
       // merge can, in the rare case of two truly simultaneous updateProject
       // calls, lag one render behind for THIS immediate extra disk-write —
-      // the in-memory state set above is unaffected and always correct, and
       // the next autosave interval or manual save captures the latest state
-      // regardless.
+      // regardless. The in-memory state set above stays as it is: after the
+      // write only the saved flag changes (below), never the content.
       const latest = projectsRef.current.find((p) => p.id === patch.id);
       if (!latest) return;
 
@@ -205,8 +205,19 @@ export function useProjectManager(): UseProjectManagerReturn {
         };
         const success = await syncProjectToStorage(savedProject);
         if (success) {
+          // Only the saved flag — never the copy: a change that arrived
+          // while the write ran (e.g. the DFD tab's commit after a component
+          // import) would be replaced by the state from before it
+          // (2026-11-14). Unsaved stays set when something changed since.
           setProjects((prev) =>
-            prev.map((p) => (p.id === patch.id ? savedProject : p)),
+            prev.map((p) =>
+              // the written copy's revision: built on a base one render
+              // behind (two updates in one tick), it lacks a change that is
+              // in memory — then the flag stays set (review 2026-11-14)
+              p.id === patch.id && p.revision === savedProject.revision
+                ? { ...p, hasUnsavedChanges: false }
+                : p,
+            ),
           );
         }
       }
@@ -224,8 +235,12 @@ export function useProjectManager(): UseProjectManagerReturn {
       interval: activeProject?.settings?.autoSaveInterval ?? 2,
       // Stable callbacks via ref — prevent useAutoSave from re-running
       // its interval setup on every render when toast changes identity.
-      onSuccess: useCallback((projectId: string) => {
-        console.log(`[useProjectManager] Auto-saved project ${projectId}`);
+      // Written: only the saved flag, and only when the written state is
+      // still the one in memory (same revision) — as updateProject does.
+      onSuccess: useCallback((projectId: string, revision: number | undefined) => {
+        setProjects((prev) =>
+          prev.map((p) => (p.id === projectId && p.hasUnsavedChanges && p.revision === revision ? { ...p, hasUnsavedChanges: false } : p)),
+        );
       }, []),
       onError: useCallback((_projectId: string, error: string) => {
         toastRef.current.error(`Auto-save failed: ${error}`);
@@ -325,8 +340,11 @@ export function useProjectManager(): UseProjectManagerReturn {
 
       const success = await syncProjectToStorage(savedProject);
       if (success) {
+        // The saved copy only where nothing changed during the write — a
+        // change meanwhile (e.g. the DFD tab saving on the same Ctrl+S)
+        // stays, and the project stays unsaved (2026-11-14).
         setProjects((prev) =>
-          prev.map((p) => (p.id === projectId ? savedProject : p)),
+          prev.map((p) => (p.id === projectId && p === project ? savedProject : p)),
         );
         toastRef.current.success(`Project "${project.info.name}" saved`);
       }

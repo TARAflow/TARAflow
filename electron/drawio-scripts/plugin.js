@@ -173,6 +173,32 @@
         return style;
       };
 
+      // Pages of imported components (multi-project TARA §6.2): read-only.
+      // The page ids are pushed by drawio:setLockedPages; on such a page no
+      // cell can be moved, resized, edited, deleted or connected.
+      var lockGraph = ui.editor.graph;
+      var onLockedPage = function() {
+        var pages = Draw._taraflowLockedPages;
+        var page = ui.currentPage;
+        return !!(pages && page && page.getId && pages[page.getId()]);
+      };
+      var baseIsCellLocked = lockGraph.isCellLocked;
+      lockGraph.isCellLocked = function(cell) {
+        return onLockedPage() || baseIsCellLocked.apply(this, arguments);
+      };
+      var baseIsCellDeletable = lockGraph.isCellDeletable;
+      lockGraph.isCellDeletable = function(cell) {
+        return !onLockedPage() && baseIsCellDeletable.apply(this, arguments);
+      };
+      var baseIsCellEditable = lockGraph.isCellEditable;
+      lockGraph.isCellEditable = function(cell) {
+        return !onLockedPage() && baseIsCellEditable.apply(this, arguments);
+      };
+      var baseIsCellConnectable = lockGraph.isCellConnectable;
+      lockGraph.isCellConnectable = function(cell) {
+        return !onLockedPage() && baseIsCellConnectable.apply(this, arguments);
+      };
+
       // Setup selection listener. Cell ids are only unique within a
       // page, so every selection carries the page it was made on
       // (leveled DFD, design §5.2).

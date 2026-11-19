@@ -93,7 +93,7 @@ function propertiesEqual(
   const ao = (a ?? {}) as Record<string, unknown>;
   const bo = (b ?? {}) as Record<string, unknown>;
   // Union of keys; `undefined` and an absent key compare equal, so a merge that
-  // only adds `protectionNeed: undefined` (or re-sets a value to what it was)
+  // only adds `description: undefined` (or re-sets a value to what it was)
   // is not treated as a change.
   const keys = new Set([...Object.keys(ao), ...Object.keys(bo)]);
   for (const k of keys) {
@@ -191,8 +191,6 @@ export function syncFromDFD(
         properties: {
           ...dfdAsset.properties,
           description: dfdAsset.description || undefined,
-          protectionNeed:
-            dfdAsset.protectionNeed ?? dfdAsset.properties?.protectionNeed,
         },
       };
       // Derive immediately — without this, an asset created with an
@@ -226,15 +224,12 @@ export function syncFromDFD(
       // fields the DFD form never writes (e.g. the HVA block) are absent from
       // dfdAsset.properties and survive the spread. `description` stays owned by
       // use-bidirectional-asset-sync (last-writer-wins), so it is stripped here
-      // rather than pulled from the DFD mirror. protectionNeed keeps its
-      // canonical top-level → mirror precedence.
+      // rather than pulled from the DFD mirror.
       const { description: _dfdDescription, ...dfdPropsNoDescription } =
         dfdAsset.properties ?? {};
       const mergedProps = {
         ...existing.properties,
         ...dfdPropsNoDescription,
-        protectionNeed:
-          dfdAsset.protectionNeed ?? existing.properties?.protectionNeed,
       };
       const propsChanged = !propertiesEqual(mergedProps, existing.properties);
 

@@ -8,6 +8,7 @@
 
 import type { RiskData } from "../models/risk-assessment-types";
 import { isTreatmentToReview, treatmentVocabulary } from "../models/risk-treatment-vocabulary";
+import { needsStatusEvidence } from "./mitigation-evidence";
 
 export type RiskFindingCode =
   | "unrated"
@@ -16,7 +17,8 @@ export type RiskFindingCode =
   | "transferToReview"
   | "reduceUnmitigated"
   | "residualMissing"
-  | "uncertainThreats";
+  | "uncertainThreats"
+  | "doneWithoutEvidence";
 
 export interface RiskFinding {
   code: RiskFindingCode;
@@ -25,6 +27,8 @@ export interface RiskFinding {
   count: number;
   /** Their display ids where the message names them (first five, then "…"). */
   ids?: readonly string[];
+  /** The risks concerned (risk ids) — the findings panel opens them (manual test 2026-11-15). */
+  riskIds?: readonly string[];
 }
 
 /**
@@ -40,6 +44,7 @@ export const RISK_FINDING_TEXT: Record<RiskFindingCode, string> = {
   reduceUnmitigated: "{{count}} risk(s) to reduce have no mitigation ({{list}})",
   residualMissing: "{{count}} risk(s) to reduce have no residual risk rating ({{list}})",
   uncertainThreats: "{{count}} risk(s) based on uncertain threats — confirm relevance in Threat Eval",
+  doneWithoutEvidence: "{{count}} risk(s) with a mitigation done without ticket or evidence ({{list}})",
 };
 
 const LIST_MAX = 5;
@@ -50,13 +55,40 @@ function idList(ids: readonly string[] | undefined): string {
   return ids.slice(0, LIST_MAX).join(", ") + (ids.length > LIST_MAX ? ", …" : "");
 }
 
-/** The findings of the current risk data, errors and warnings in the order the tab shows them. */
-export function riskFindings(riskData: RiskData): RiskFinding[] {
+/**
+ * The findings of the current risk data, errors and warnings in the order the
+ * tab shows them. `trackerConnected`: the project has an issue tracker — a
+ * mitigation done by hand then needs a ticket or evidence (user 2026-11-10).
+ */
+/**
+ * The risk dialog's tab where a finding is fixed — a click on the finding
+ * opens it there (manual test 2026-11-18): the rating on "Risk Before", the
+ * treatment, its justification and the mitigations on "Mitigations", the
+ * residual rating on "Risk After".
+ */
+export const RISK_FINDING_TAB: Record<RiskFindingCode, "before" | "mitigations" | "after"> = {
+  unrated: "before",
+  uncertainThreats: "before",
+  wontNoJustification: "mitigations",
+  treatmentNoJustification: "mitigations",
+  transferToReview: "mitigations",
+  reduceUnmitigated: "mitigations",
+  doneWithoutEvidence: "mitigations",
+  residualMissing: "after",
+};
+
+export function riskFindings(riskData: RiskData, options: { trackerConnected?: boolean } = {}): RiskFinding[] {
   const risks = riskData.risks;
   const out: RiskFinding[] = [];
   const add = (code: RiskFindingCode, severity: RiskFinding["severity"], hits: typeof risks, named = false) => {
     if (hits.length === 0) return;
-    out.push({ code, severity, count: hits.length, ...(named && { ids: hits.map((r) => r.threatDisplayId) }) });
+    out.push({
+      code,
+      severity,
+      count: hits.length,
+      ...(named && { ids: hits.map((r) => r.threatDisplayId) }),
+      riskIds: hits.map((r) => r.id),
+    });
   };
 
   add("unrated", "warning", risks.filter((r) => r.calculatedRiskBeforeMitigation === 0));
@@ -115,6 +147,14 @@ export function riskFindings(riskData: RiskData): RiskFinding[] {
   }
 
   add("uncertainThreats", "warning", risks.filter((r) => r.threatRelevance === "uncertain"));
+  if (options.trackerConnected) {
+    add(
+      "doneWithoutEvidence",
+      "warning",
+      risks.filter((r) => r.selectedMitigations.some((m) => needsStatusEvidence(m, true))),
+      true,
+    );
+  }
   return out;
 }
 

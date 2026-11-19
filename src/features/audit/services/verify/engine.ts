@@ -25,6 +25,7 @@ import { checkAnchorTag } from "./checks/anchor-tag";
 import { checkMessageSchema } from "./checks/message-schema";
 import { checkFourEyes } from "./checks/four-eyes";
 import { checkTcsRepro } from "./checks/tcs-repro";
+import { checkComponentImport } from "./checks/component-import";
 import { checkProtectionAttestation } from "./checks/protection-attestation";
 
 const MANIFEST = ALLOWED_SIGNERS_REL_PATH;
@@ -37,6 +38,7 @@ const CHECKS: Check[] = [
   checkMessageSchema,
   checkFourEyes,
   checkTcsRepro,
+  checkComponentImport,
   checkProtectionAttestation,
 ];
 

@@ -58,6 +58,8 @@ export interface UseDrawioBridgeReturn {
   syncPages: (spec: DrawioPageSyncSpec) => Promise<DrawioPageSyncResult>;
   /** Context copies shown faded and dashed (leveled DFD 5g). */
   setContextCells: (cells: ContextCellMap) => Promise<void>;
+  /** Multi-project TARA: pages of imported components, read-only. */
+  setLockedPages: (pageIds: readonly string[]) => Promise<void>;
   /** One SVG thumbnail per page (leveled DFD 5i, D18). */
   exportPageSvgs: (pageIds: string[]) => Promise<PageSvgExport>;
 
@@ -355,6 +357,11 @@ export function useDrawioBridge(
     await bridgeRef.current.setContextCells(cells);
   }, []);
 
+  const setLockedPages = useCallback(async (pageIds: readonly string[]): Promise<void> => {
+    if (!bridgeRef.current) return;
+    await bridgeRef.current.setLockedPages(pageIds);
+  }, []);
+
   const exportPageSvgs = useCallback(async (pageIds: string[]): Promise<PageSvgExport> => {
     if (!bridgeRef.current) return { success: false, error: "no bridge" };
     return bridgeRef.current.exportPageSvgs(pageIds);
@@ -436,6 +443,7 @@ export function useDrawioBridge(
     setPageTabInfo,
     syncPages,
     setContextCells,
+    setLockedPages,
     exportPageSvgs,
     onImageReady,
     loadXMLTransient,

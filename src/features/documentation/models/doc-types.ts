@@ -19,6 +19,8 @@ import type { ThreatData } from "features/threats";
 import type { RiskData } from "features/risks";
 import type { AttackTreeData } from "features/attacktree";
 import type { ItemDefinition } from "shared/models/item-definition-types";
+import type { UncreditedResiduals } from "shared/services/credited-residual";
+import type { AssumptionEvidence, ComponentDeviation } from "shared/services/component-deviations";
 import type { CybersecurityConcept, VerificationEntry } from "shared/models/cybersecurity-concept-types";
 
 // ==================== DOCUMENT FORMAT ====================
@@ -34,6 +36,7 @@ export type DocChapterId =
   | "methodology"
   | "system-overview"
   | "item-definition"
+  | "imported-components"
   | "dfd"
   | "dfd-descriptions"
   | "assets"
@@ -126,6 +129,7 @@ export const CHAPTER_TITLES: Record<DocChapterId, { en: string; de: string }> = 
     de: "Anforderungsmatrix",
   },
   "attack-trees": { en: "Attack Trees", de: "Angriffsbäume" },
+  "imported-components": { en: "Imported Components", de: "Importierte Komponenten" },
   appendix: { en: "Appendix", de: "Anhang" },
 };
 
@@ -136,6 +140,8 @@ export const DEFAULT_CHAPTER_CONFIG: DocChapterConfig[] = [
   { id: "system-overview", enabled: true, autoHideIfEmpty: false },
   // Item definition (WP-09-01, ISO 21434 plan A-5): what is analysed.
   { id: "item-definition", enabled: true, autoHideIfEmpty: true },
+  // The imported components (multi-project TARA 6a-2): what this TARA builds on.
+  { id: "imported-components", enabled: true, autoHideIfEmpty: true },
   { id: "dfd", enabled: true, autoHideIfEmpty: true },
   { id: "dfd-descriptions", enabled: true, autoHideIfEmpty: true },
   { id: "assets", enabled: true, autoHideIfEmpty: true },
@@ -288,6 +294,168 @@ export interface DocComputedValues {
    * a standard. Absent → no matrix chapter.
    */
   compliance?: DocCompliance[];
+  /**
+   * Risks whose residual risk is not credited (multi-project TARA I7 (4)):
+   * risk id → the measures that do not hold. The report data's risks already
+   * carry the credited values (app/services/doc-residual.ts); this is for the
+   * "not credited" note. Absent → every residual counts.
+   */
+  uncreditedResiduals?: UncreditedResiduals;
+  /**
+   * The threats of the imported components (multi-project TARA phase 6a-1),
+   * per component and method, each threat once — built by the app layer from
+   * the snapshots. Absent → no imports.
+   */
+  importedThreats?: DocImportedThreatGroup[];
+  /**
+   * The same imported threats as threat records (both methods, as the
+   * machine uses them — instance ids, the instance's multiprocess): what a
+   * risk of an imported component refers to. The risk chapters find a
+   * risk's threat here too — its group (the instance's multiprocess), its
+   * element type, its anchor (manual test 2026-11-17: they were "Not in the
+   * DFD"). Absent → no imports.
+   */
+  importedThreatRecords?: ThreatData["perElementTables"][number]["threats"];
+  /**
+   * Risks of imported components (risk id → note): the instance, the
+   * component's commit, the factors prefilled from the component and those
+   * this TARA overrode, the quantity. Absent → no imports.
+   */
+  importedRiskNotes?: Map<string, DocImportedRiskNote>;
+  /**
+   * The attack trees of imported components (6a-1b, ISO/SAE 21434: their
+   * paths make the risks): per component and tree the structure once, the
+   * paths per instance rated with this TARA's configuration and its window
+   * of opportunity per step. Absent → no imported trees.
+   */
+  importedAttackTrees?: DocImportedAttackTree[];
+  /**
+   * The chapter "Imported components" (6a-2): per component its overview,
+   * origin, methodology match and instances (EE mapping, assumptions, the
+   * measures that do not count here). Absent → no imports.
+   */
+  importedComponents?: DocImportedComponent[];
+}
+
+/** One imported component as the chapter "Imported components" shows it (6a-2). */
+export interface DocImportedComponent {
+  componentName: string;
+  version?: string;
+  description?: string;
+  responsible?: string;
+  tags: string[];
+  safetyRelevant?: boolean;
+  at: DocComponentAt;
+  origin: { repoUrl?: string; sameRepo?: boolean; path?: string; branch?: string; importedAt: string; lastUpdateAt?: string };
+  methodologyMatches?: boolean;
+  sourceBindings: { repoUrl: string; refType: string; refLabel: string; commit?: string }[];
+  instances: {
+    prefix: string;
+    quantity: number;
+    /** Component EE → the machine element it is mapped to. */
+    eeMapping: { componentEe: string; machineElement: string }[];
+    assumptions: {
+      displayId: string;
+      text: string;
+      status: string;
+      rationale?: string;
+      /**
+       * What this TARA names as the evidence of a fulfilled assumption: its
+       * measures with their state, its elements, a note (review 2026-11-12 —
+       * whether a component measure counts depends on it).
+       */
+      evidence?: AssumptionEvidence;
+    }[];
+    /** The component's measures that do not count fully in this instance. */
+    measures: { label: string; effectiveness: "not_effective" | "unclear"; reasons: { kind: string; ref?: string }[] }[];
+  }[];
+  /** What this TARA decided differently from the component — the list for its platform team (6a-3). */
+  deviations: ComponentDeviation[];
+}
+
+/** One rated path of an imported tree in one instance. */
+export interface DocImportedAttackPath {
+  /** "SD1:AT-1.2" — the attack-path threats' numbering with the prefix. */
+  id: string;
+  chain: string[];
+  potential?: number;
+  /** With this TARA's feasibility configuration; absent while a step is unrated. */
+  feasibility?: string;
+  relevance: { relevance: string; strideCategory?: string }[];
+  /** The window of opportunity per step: this TARA's rating, else the component's value as a suggestion. */
+  steps: {
+    name?: string;
+    window?: string;
+    componentWindow?: string;
+    /** The component's other factors of the step (elapsed time, expertise, knowledge, equipment) — unchanged in this TARA's potential. */
+    componentFactors?: { elapsedTime: string; specialistExpertise: string; knowledgeOfItem: string; equipment: string };
+    ratable: boolean;
+  }[];
+}
+
+export interface DocImportedAttackTree {
+  componentName: string;
+  at: DocComponentAt;
+  /** The tree's number in the component (AT-<n>). */
+  treeNumber: number;
+  /** The component's tree — its structure is shown once. */
+  tree: AttackTreeData["trees"][number];
+  instances: { prefix: string; paths: DocImportedAttackPath[] }[];
+  /**
+   * This TARA does not rate attack paths (not ISO/SAE 21434): the tree is
+   * shown for information, the window of opportunity is the component's —
+   * no open rating (review 2026-11-13).
+   */
+  forInformation?: true;
+}
+
+/** Where an imported component's state comes from, for "Name @ a1b2c3d4". */
+export interface DocComponentAt {
+  tag?: string;
+  /** Full commit sha; the report shows 8 characters. */
+  commit?: string;
+  unpinned?: boolean;
+}
+
+/** One imported threat — once per component, the instances below where they differ. */
+export interface DocImportedThreat {
+  /** The threat's id in the component, e.g. "P2-T-1". */
+  displayId: string;
+  /** The instance threats ("SD1:P2-T-1", …) — link targets of the risk rows. */
+  instanceIds: string[];
+  strideCategory: ThreatData["perElementTables"][number]["threats"][number]["strideCategory"];
+  elementOrFlow: string;
+  trustBoundary?: string;
+  threatDescription: string;
+  attackDescription: string;
+  proposedMitigations: ThreatData["perElementTables"][number]["threats"][number]["proposedMitigations"];
+  proposedVerifications: ThreatData["perElementTables"][number]["threats"][number]["proposedVerifications"];
+  /** The component's relevance decision. */
+  relevance: string;
+  /** Only the instances that differ: a relevance override of this TARA, another counterpart on a boundary flow. */
+  differences: { prefix: string; override?: { relevance: string; rationale: string }; counterpart?: string }[];
+}
+
+export interface DocImportedThreatGroup {
+  componentName: string;
+  at: DocComponentAt;
+  method: "per-element" | "per-interaction";
+  /** Instance prefixes, e.g. ["SD1", "SD2"]. */
+  instances: string[];
+  threats: DocImportedThreat[];
+}
+
+/** The provenance of an imported risk's rating (E10). */
+export interface DocImportedRiskNote {
+  componentName: string;
+  prefix: string;
+  at: DocComponentAt;
+  /** Identical units this instance stands for; 1 = one. */
+  quantity: number;
+  /** Factor ids whose value is the component's (prefilled, not changed). */
+  prefilled: string[];
+  /** Factor ids prefilled from the component but rated anew by this TARA, with the rationale. */
+  overridden: { factorId: string; rationale?: string }[];
 }
 
 /** SL-C values of one FR (D-2, D-4, D-14). */
@@ -320,6 +488,10 @@ export interface DocComplianceRow {
   unknown: string[];
   supporting: string[];
   mitigations: string[];
+  /** Mitigations whose effectiveness is unclear (an imported component's, phase 4b) — not counted. */
+  unclearMitigations?: string[];
+  /** Cited component claims that do not count (phase 4c): unclear, not effective, or covering part of the row. */
+  uncountedClaims?: { id: string; reason: "unclear" | "not_effective" | "partial" }[];
   claims: string[];
   reasoning?: string;
   /** "Title — summary in our own words" (D-27), document language; never normative text. */

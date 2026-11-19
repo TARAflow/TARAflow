@@ -8,14 +8,21 @@ import { ValidationMessages } from "./validator-utils";
 /**
  * Validate asset properties.
  * Called from dfd-validator.ts.
+ *
+ * A missing name is a warning. A missing group property is an INFO (model
+ * field purpose design §7, review 2026-11-14): no calculation reads these
+ * fields yet — they are recorded with the asset (documentation, or context
+ * for the attack feasibility rating to come) — so they neither warn nor keep
+ * the DFD phase from "complete".
  */
 export function validateAssetProperties(
   assets: DFDAsset[],
   warnings: ValidationFinding[],
+  infos: ValidationFinding[],
 ): void {
   for (const asset of assets) {
     validateAssetBase(asset, warnings);
-    validateAssetGroupProperties(asset, warnings);
+    validateAssetGroupProperties(asset, infos);
   }
 }
 
@@ -37,15 +44,6 @@ function validateAssetBase(
       params: { name: displayId },
     });
   }
-
-  if (!asset.protectionNeed && !asset.properties?.protectionNeed) {
-    warnings.push({
-      key: ValidationMessages.ASSET_MISSING_PROTECTION_NEED,
-      displayId,
-      elementId: asset.id,
-      params: { name: displayId },
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -54,13 +52,13 @@ function validateAssetBase(
 
 function validateAssetGroupProperties(
   asset: DFDAsset,
-  warnings: ValidationFinding[],
+  infos: ValidationFinding[],
 ): void {
   const props = asset.properties;
   const displayId = asset.displayId ?? asset.name;
 
-  function warn(key: string): void {
-    warnings.push({
+  function note(key: string): void {
+    infos.push({
       key,
       displayId,
       elementId: asset.id,
@@ -70,56 +68,52 @@ function validateAssetGroupProperties(
 
   switch (asset.assetGroup) {
     case "data":
-      // dataType — required for Information Disclosure / Tampering threat selection
+      // dataType — recorded with the asset; no calculation reads it yet (P4, 0.19)
       if (!props?.dataType || props.dataType.length === 0) {
-        warn(ValidationMessages.ASSET_MISSING_DATA_TYPE);
+        note(ValidationMessages.ASSET_MISSING_DATA_TYPE);
       }
-      // lifecycle — required for retention/deletion threat scenarios
+      // lifecycle — context for the attack feasibility rating; not evaluated yet
       if (!props?.lifecycle) {
-        warn(ValidationMessages.ASSET_MISSING_LIFECYCLE);
+        note(ValidationMessages.ASSET_MISSING_LIFECYCLE);
       }
       break;
 
     case "system":
-      // criticality — required for threat prioritisation
-      if (!props?.criticality) {
-        warn(ValidationMessages.ASSET_MISSING_CRITICALITY);
-      }
-      // exposure — required for attack surface assessment
+      // exposure — recorded with the asset; not evaluated (the flows' exposure level is)
       if (!props?.exposure) {
-        warn(ValidationMessages.ASSET_MISSING_EXPOSURE);
+        note(ValidationMessages.ASSET_MISSING_EXPOSURE);
       }
       break;
 
     case "infrastructure":
-      // physicalAccessControl — replaces physicalAccessPossible + isPhysicalBarrier
+      // physicalAccessControl — recorded with the asset; not evaluated (the physical boundary's is)
       if (!props?.physicalAccessControl) {
-        warn(ValidationMessages.ASSET_MISSING_PHYSICAL_ACCESS);
+        note(ValidationMessages.ASSET_MISSING_PHYSICAL_ACCESS);
       }
       break;
 
     case "service":
-      // serviceType — required for supply chain threat assessment
+      // serviceType — recorded with the asset; no calculation reads it yet
       if (!props?.serviceType) {
-        warn(ValidationMessages.ASSET_MISSING_SERVICE_TYPE);
+        note(ValidationMessages.ASSET_MISSING_SERVICE_TYPE);
       }
-      // responsibility — required for CRA Art. 13 supply chain obligations
+      // responsibility — context (third party, supply chain); not evaluated yet
       if (!props?.responsibility) {
-        warn(ValidationMessages.ASSET_MISSING_RESPONSIBILITY);
+        note(ValidationMessages.ASSET_MISSING_RESPONSIBILITY);
       }
       break;
 
     case "human":
-      // role — required for privilege escalation / insider threat scenarios
+      // role — recorded with the asset; not evaluated (the external entity's type is)
       if (!props?.role) {
-        warn(ValidationMessages.ASSET_MISSING_ROLE);
+        note(ValidationMessages.ASSET_MISSING_ROLE);
       }
       break;
 
     case "process":
-      // automationLevel — replaces boolean automated, affects DoS/Tampering impact
+      // automationLevel — context for the attack feasibility rating; not evaluated yet
       if (!props?.automationLevel) {
-        warn(ValidationMessages.ASSET_MISSING_AUTOMATION_LEVEL);
+        note(ValidationMessages.ASSET_MISSING_AUTOMATION_LEVEL);
       }
       break;
 

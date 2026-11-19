@@ -122,6 +122,8 @@ export function verificationStateHash(project: Partial<Project>): string {
     claims: concept?.claims ?? [],
     // D-25: only when present — absent, the content (and hash) is unchanged.
     ...(project.compliance ? { compliance: project.compliance } : {}),
+    // Schema 14: imported components — only when present, like compliance.
+    ...(project.components ? { components: project.components } : {}),
   };
   return fnv1aHex12(canonicalStringify(strip(content)));
 }

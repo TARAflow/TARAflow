@@ -123,6 +123,10 @@ nothing has been enforced upstream.
 - **TCS reproducibility:** each `*.tara.json` parses and is byte-identical to a
   fresh TCS re-serialization;
 - **hooks version:** installed hooks match the expected version;
+- **imported components (AVE v2, 2026-11-12):** in each changed `*.tara.json` every
+  embedded component snapshot hashes to its recorded content hash (FNV-1a over the
+  TCS canonical form) — `CMP_SNAPSHOT_HASH_MISMATCH` (error) otherwise; the component
+  pages are not checked here (the app does, it has the DOM);
 - **protection attestation:** branch-protection expectations recorded
   (informational for hosted remotes — the engine cannot observe server policy);
 - **round monotonicity:** round numbers monotonic, no skipped rounds (optional).
@@ -169,3 +173,6 @@ cold run with no cache must produce the identical result.
 
 The rule set is versioned (`AVE v1`). A change that alters what counts as a
 pass/fail is a new AVE version, recorded so results remain interpretable over time.
+
+- **v2 (2026-11-12):** the check of imported component snapshots (multi-project TARA,
+  `CMP_SNAPSHOT_HASH_MISMATCH`).

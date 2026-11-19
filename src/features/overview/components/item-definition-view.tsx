@@ -38,6 +38,8 @@ interface ItemDefinitionViewProps {
   modelItems: readonly ItemModelItem[];
   /** assumption id → boundaries that link it */
   assumptionUsage?: Readonly<Record<string, readonly string[]>>;
+  /** The project's measures an assumption can name (phase 3c). */
+  measures?: readonly { id: string; label: string }[];
   /** What is still missing (A-4), computed by the tab. */
   findings?: readonly ItemFinding[];
   onChange: (change: { description?: string; itemDefinition: ItemDefinition }) => void;
@@ -76,6 +78,7 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
   itemDefinition,
   modelItems,
   assumptionUsage = {},
+  measures,
   findings = [],
   onChange,
   neutral = false,
@@ -146,6 +149,7 @@ export const ItemDefinitionView: React.FC<ItemDefinitionViewProps> = ({
         assumptions={def.assumptions}
         issued={issuedAssumptionNumber(def)}
         usage={assumptionUsage}
+        measures={measures}
         neutral={neutral}
         onSave={(assumptions) => onChange({ itemDefinition: withAssumptions(def, assumptions) })}
       />

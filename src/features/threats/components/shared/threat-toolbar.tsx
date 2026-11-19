@@ -5,6 +5,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Badge,
   Box,
   IconButton,
   Tooltip,
@@ -48,6 +49,19 @@ export interface ThreatToolbarProps {
    * buttons are shown disabled and cannot be selected (e.g. per-interaction
    * under ISO/SAE 21434). */
   disabledMethods?: StrideMethod[];
+  /**
+   * Methods whose threats no longer match the DFD (elements or flows added,
+   * removed or redrawn) — an orange dot on their button, also for the method
+   * not shown (manual test 2026-11-16: per-interaction threats stayed on
+   * deleted flows unnoticed). Only methods that have threats.
+   */
+  methodsOutOfSync?: readonly StrideMethod[];
+  /**
+   * Methods whose threats match the DFD but a regeneration would add or
+   * remove threats (generation drift) — a light-blue dot; out of sync
+   * (orange) wins (manual test 2026-11-16).
+   */
+  methodsDrifting?: readonly StrideMethod[];
   hasThreats: boolean;
   hasDFD: boolean;
   syncStatus: ThreatSyncStatus | null;
@@ -79,6 +93,8 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
     validation,
     activeMethod,
     disabledMethods,
+    methodsOutOfSync,
+    methodsDrifting,
     hasThreats,
     hasDFD,
     syncStatus,
@@ -98,6 +114,20 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
     onImport,
   }) => {
     const { t } = useTranslation();
+    const outOfSync = (method: StrideMethod) => !!methodsOutOfSync?.includes(method);
+    const drifting = (method: StrideMethod) => !outOfSync(method) && !!methodsDrifting?.includes(method);
+    const withSyncHint = (label: string, method: StrideMethod) =>
+      outOfSync(method)
+        ? `${label} — ${t("tabs.threats.methodOutOfSync", {
+            defaultValue: "threats not in sync with the DFD: open this method and regenerate",
+          })}`
+        : drifting(method)
+          ? `${label} — ${t("tabs.threats.methodDrifting", {
+              defaultValue: "a regeneration would add or remove threats: open this method and check",
+            })}`
+          : label;
+    // orange: out of sync; light blue: drift; none: up to date
+    const dotColor = (method: StrideMethod) => (outOfSync(method) ? "warning" : "info");
     const needsSync = syncStatus && !syncStatus.inSync;
     const reviewed = validation?.stats.reviewed ?? 0;
     const total = validation?.stats.total ?? 0;
@@ -138,18 +168,29 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
           onChange={onMethodChange}
           size="small"
         >
-          <ToggleButton value="per-element">
+          <ToggleButton value="per-element" data-testid="threat-method-per-element">
             <Tooltip
-              title={t("tabs.threats.perElement", {
-                defaultValue: "STRIDE per Element",
-              })}
+              title={withSyncHint(
+                t("tabs.threats.perElement", {
+                  defaultValue: "STRIDE per Element",
+                }),
+                "per-element",
+              )}
             >
-              <PerElementIcon fontSize="small" />
+              <Badge
+                variant="dot"
+                color={dotColor("per-element")}
+                invisible={!outOfSync("per-element") && !drifting("per-element")}
+                data-testid="threat-method-out-of-sync-per-element"
+              >
+                <PerElementIcon fontSize="small" />
+              </Badge>
             </Tooltip>
           </ToggleButton>
           <ToggleButton
             value="per-interaction"
             disabled={disabledMethods?.includes("per-interaction")}
+            data-testid="threat-method-per-interaction"
           >
             <Tooltip
               title={
@@ -158,12 +199,22 @@ export const ThreatToolbar = React.memo<ThreatToolbarProps>(
                       defaultValue:
                         "STRIDE per Interaction is disabled by the active regulation preset",
                     })
-                  : t("tabs.threats.perInteraction", {
-                      defaultValue: "STRIDE per Interaction",
-                    })
+                  : withSyncHint(
+                      t("tabs.threats.perInteraction", {
+                        defaultValue: "STRIDE per Interaction",
+                      }),
+                      "per-interaction",
+                    )
               }
             >
-              <PerInteractionIcon fontSize="small" />
+              <Badge
+                variant="dot"
+                color={dotColor("per-interaction")}
+                invisible={!outOfSync("per-interaction") && !drifting("per-interaction")}
+                data-testid="threat-method-out-of-sync-per-interaction"
+              >
+                <PerInteractionIcon fontSize="small" />
+              </Badge>
             </Tooltip>
           </ToggleButton>
         </ToggleButtonGroup>

@@ -4,7 +4,9 @@
 // the TicketPort the app passes in — a linked ticket is synced once when the
 // dialog opens (no polling), the status stays editable with a linked ticket
 // (verified / rejected by the analyst, §3.2), and linking a ticket to one
-// custom mitigation does not touch the others (they have no id).
+// custom mitigation does not touch the others (they have no id). User
+// 2026-11-10: linking / creating in their own dialog; with a tracker a done
+// status without ticket needs evidence or a reference before saving.
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -86,12 +88,90 @@ describe("mitigation status dialog on the ticket port", () => {
         onClose={() => {}}
       />,
     );
-    const tickets = await screen.findAllByText("SCRUM-5");
-    fireEvent.click(tickets[0]);
+    // the tracker is asked for tickets only when linking (user 2026-11-10)
+    expect(p.fetchTickets).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByTestId("ticket-link-open")[0]);
+    fireEvent.click(await screen.findByText("SCRUM-5"));
+    fireEvent.click(screen.getByTestId("ticket-link-confirm"));
     await waitFor(() => expect(p.calls.length).toBe(1));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     const [first, second] = onSave.mock.calls[0][1].selectedMitigations;
     expect(first).toMatchObject({ notes: "Badge check at the panel", ticketId: "SCRUM-5", ticketStatus: "OPEN", status: "open" });
     expect(second.ticketId).toBeUndefined();
+  });
+
+  it("with a tracker: a done status without ticket needs evidence before saving", async () => {
+    const onSave = vi.fn();
+    render(
+      <RiskMitigationStatusDialog
+        open
+        risk={risk([{ id: "M-S-001", status: "implemented" }])}
+        integrationConnection={connection}
+        ticketPort={port({})}
+        issueTypes={[{ id: "1", name: "Task" }]}
+        onSave={onSave}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByTestId("status-set-by-hand")).toBeTruthy();
+    expect(screen.getByTestId("ticket-row-none")).toBeTruthy();
+    const save = screen.getByRole("button", { name: "Save" });
+    expect((save as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Without a linked ticket this status needs evidence or a reference")).toBeTruthy();
+    fireEvent.change(screen.getByTestId("status-evidence"), { target: { value: "Design review DR-12" } });
+    expect((save as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(save);
+    expect(onSave.mock.calls[0][1].selectedMitigations[0]).toMatchObject({ status: "implemented", evidenceNote: "Design review DR-12" });
+  });
+
+  it("offline (no tracker): the status saves without evidence, as before", () => {
+    const onSave = vi.fn();
+    render(
+      <RiskMitigationStatusDialog open risk={risk([{ id: "M-S-001", status: "implemented" }])} onSave={onSave} onClose={() => {}} />,
+    );
+    expect(screen.queryByTestId("status-set-by-hand")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalled();
+  });
+
+  it("with a ticket the progress options come from the ticket; verified once done; follow it again", async () => {
+    const onSave = vi.fn();
+    render(
+      <RiskMitigationStatusDialog
+        open
+        risk={risk([{ id: "M-S-001", status: "verified", ticketId: "SCRUM-1", ticketStatus: "CLOSED" }])}
+        integrationConnection={connection}
+        ticketPort={port({ "SCRUM-1": "done" })}
+        issueTypes={[{ id: "1", name: "Task" }]}
+        onSave={onSave}
+        onClose={() => {}}
+      />,
+    );
+    fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
+    const disabled = (v: string) => screen.getByTestId(`status-option-${v}`).getAttribute("aria-disabled") === "true";
+    expect(["open", "in_progress", "in_review"].map(disabled)).toEqual([true, true, true]);
+    expect(["implemented", "verified", "rejected"].map(disabled)).toEqual([false, false, false]);
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+    fireEvent.click(screen.getByTestId("status-follow-ticket"));
+    expect(screen.queryByTestId("status-follow-ticket")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave.mock.calls[0][1].selectedMitigations[0]).toMatchObject({ status: "implemented", ticketId: "SCRUM-1" });
+  });
+
+  it("verified is not offered while the ticket is still open", () => {
+    render(
+      <RiskMitigationStatusDialog
+        open
+        risk={risk([{ id: "M-S-001", status: "in_progress", ticketId: "SCRUM-1", ticketStatus: "IN_PROGRESS" }])}
+        integrationConnection={connection}
+        ticketPort={port({})}
+        issueTypes={[{ id: "1", name: "Task" }]}
+        onSave={vi.fn()}
+        onClose={() => {}}
+      />,
+    );
+    fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
+    expect(screen.getByTestId("status-option-verified").getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByTestId("status-option-rejected").getAttribute("aria-disabled")).toBeNull();
   });
 });

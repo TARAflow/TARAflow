@@ -97,10 +97,6 @@ export function mapDFDAssetsToAssetFeature(
     name: asset.name,
     description: asset.description,
     assetGroup: asset.assetGroup,
-    // Canonical field — DFDAsset.protectionNeed, NOT the
-    // AssetProperties.protectionNeed mirror (see safety-types.ts comment:
-    // "Mirror of DFDAsset.protectionNeed — canonical value on DFDAsset").
-    protectionNeed: asset.protectionNeed,
     // Category-specific properties, carried through so the sync can land them
     // in Asset.properties (single canonical schema since the SoT consolidation).
     properties: asset.properties,

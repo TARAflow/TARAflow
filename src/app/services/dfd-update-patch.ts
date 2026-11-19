@@ -29,6 +29,10 @@ import { buildAssetHazardLinks } from "../utils/build-asset-hazard-links";
 import { buildAssetDataReference } from "../utils/build-asset-data-reference";
 import { resolveDfdGraph } from "../utils/resolve-dfd-graph";
 import { purgeAssetFromProject } from "./asset-deletion";
+import {
+  pruneDeletedInstances,
+  type RemovedComponentInstance,
+} from "./component-import/instance-lifecycle";
 
 const normDesc = (s: string | undefined): string | undefined =>
   s && s.trim().length > 0 ? s : undefined;
@@ -37,6 +41,8 @@ export interface DfdUpdateOutcome {
   patch: Partial<Project> & { id: string };
   /** A2A operations the relations service refused (to tell the user). */
   rejectedA2AOps: readonly { op: A2AOp; reason: A2ARejection }[];
+  /** Component instances whose multiprocess was deleted (to tell the user). */
+  removedComponentInstances: RemovedComponentInstance[];
 }
 
 export function buildDfdUpdatePatch(
@@ -178,13 +184,59 @@ export function buildDfdUpdate(
   );
 
 
+  // 4) A deleted multiprocess of a component instance removes the instance
+  //    (multi-project TARA §6.7) and its assets (E5): the asset sync never
+  //    removes store records, so they are purged like a deleted asset.
+  const pruned = pruneDeletedInstances(current, dfd.elements ?? []);
+  let purgedDfd = dfd as Project["dfd"];
+  let purgedAssets = assets;
+  for (const removed of pruned.removed) {
+    for (const assetId of removed.assetIds) {
+      if (!purgedAssets?.assets.some((a) => a.id === assetId)) continue;
+      try {
+        const purged = purgeAssetFromProject(
+          { ...current, dfd: purgedDfd, assets: purgedAssets, hazards, risks },
+          assetId,
+        );
+        ({ assets: purgedAssets, hazards, risks } = purged);
+        purgedDfd = purged.dfd;
+      } catch (err) {
+        console.error("[DFD] component asset not purged:", err);
+      }
+    }
+  }
+
+  // …and the risks of its imported threats, with the goals' / claims'
+  // references to them: stored records the risk sync never removes.
+  const goneThreats = new Set(pruned.removed.flatMap((r) => r.threatIds));
+  let concept = current.cybersecurityConcept;
+  let risksPurged = false;
+  if (goneThreats.size > 0 && risks) {
+    const goneRisks = new Set(risks.risks.filter((r) => goneThreats.has(r.threatId)).map((r) => r.id));
+    if (goneRisks.size > 0) {
+      risks = { ...risks, risks: risks.risks.filter((r) => !goneRisks.has(r.id)) };
+      risksPurged = true;
+      if (concept) {
+        const keep = (ids: string[]) => ids.filter((id) => !goneRisks.has(id));
+        concept = {
+          ...concept,
+          goals: concept.goals.map((g) => ({ ...g, riskIds: keep(g.riskIds) })),
+          claims: concept.claims.map((c) => ({ ...c, riskIds: keep(c.riskIds) })),
+        };
+      }
+    }
+  }
+
+  const purgedAny = pruned.removed.some((r) => r.assetIds.length > 0);
   const patch = {
     id: current.id,
-    dfd,
-    assets, // persist the reconciled asset store too
+    dfd: purgedAny ? { ...(purgedDfd as typeof dfd), graph } : dfd,
+    assets: purgedAny ? purgedAssets : assets, // persist the reconciled asset store too
     phaseStatus: updates.phaseStatus,
     threats,
-    ...(updates.deletedAssetIds?.length ? { hazards, risks } : {}),
+    ...(updates.deletedAssetIds?.length || purgedAny || risksPurged ? { hazards, risks } : {}),
+    ...(risksPurged && concept !== current.cybersecurityConcept ? { cybersecurityConcept: concept } : {}),
+    ...(pruned.components ? { components: pruned.components } : {}),
   };
-  return { patch, rejectedA2AOps };
+  return { patch, rejectedA2AOps, removedComponentInstances: pruned.removed };
 }

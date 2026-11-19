@@ -80,6 +80,10 @@ describe("prepareForDisk — runtime-only fields never reach disk", () => {
     );
   });
 
+  it("drops the in-memory revision (unsaved-flag bookkeeping, review 2026-11-14)", () => {
+    expect(prepareForDisk(makeProject({ revision: 7 } as never))).not.toHaveProperty("revision");
+  });
+
   it("drops session + navigation state (isOpen, lastOpened, currentPhase)", () => {
     // Not project content: isOpen/lastOpened are session state (the registry
     // tracks last-opened), currentPhase is UI navigation (phaseStatus carries

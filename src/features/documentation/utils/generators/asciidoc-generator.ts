@@ -38,6 +38,11 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
 
   // ==================== TEXT HANDLING ====================
 
+  /** Further link targets in a table cell (imported threats shown once, 6a-1). */
+  threatAnchorMarks(ids: readonly string[]): string {
+    return ids.map((id) => `[[threat-${id}]]`).join("");
+  }
+
   escapeTableText(text: string): string {
     return escapeAsciidoc(text);
   }
@@ -213,7 +218,8 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
       ...(section.rows.length
         ? [
             `.${section.pathsTitle}`,
-            `[cols="1,4,1,1,1", options="header"]`,
+            // an imported tree has a sixth column, the factors per step (6a-1b)
+            `[cols="${section.headers.length > 5 ? "1,3,4,1,1,1" : "1,4,1,1,1"}", options="header"]`,
             "|===",
             row(section.headers),
             "",

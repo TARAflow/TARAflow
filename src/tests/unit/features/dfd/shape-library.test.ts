@@ -37,6 +37,22 @@ describe.each([1, 2])("shape library DFD_%i", (n) => {
     expect(straight).not.toContain('<Array as="points">');
   });
 
+  // user 2026-11-19: the flow's name without a white box behind it
+  it("every data flow's text has no background", () => {
+    for (const title of ["Dataflow (curved)", "Dataflow (orthogonal)", "Dataflow (straight)"]) {
+      const style = /type="dataflow"[^>]*>\s*<mxCell[^>]*style="([^"]*)"/.exec(unescape(entries.find((e) => e.title === title)!.xml))?.[1] ?? "";
+      expect(style, title).toContain("labelBackgroundColor=none");
+      expect(style, title).not.toContain("defaultLabelBackgroundColor");
+    }
+  });
+
+  // user 2026-11-19: an interface can be drawn as a rectangle again
+  it("the interface resizes in every direction (no fixed aspect)", () => {
+    const style = /type="interface"[^>]*>\s*<mxCell[^>]*style="([^"]*)"/.exec(unescape(entries.find((e) => e.title === "Interface")!.xml))?.[1] ?? "";
+    expect(style).toContain("dashed=1");
+    expect(style).not.toContain("aspect=fixed");
+  });
+
   it("every element shape carries exactly one id label (boundaries and the legend none)", () => {
     const withoutId = new Set(["Trust Boundary", "Physical Boundary", "Chip Boundary", "Legend"]);
     for (const e of entries) {

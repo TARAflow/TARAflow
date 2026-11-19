@@ -89,6 +89,13 @@ export interface Assumption {
   /** ISO date by which it should be reviewed. */
   reviewBy?: string;
   status: AssumptionStatus;
+  /**
+   * The measures whose effectiveness relies on this assumption (catalog ids
+   * and project mitigations M-C-nnn) — multi-project TARA phase 3c, I7 (1):
+   * an importing machine counts such a component measure only where the
+   * assumption holds. Free-text measures have no id: convert them first.
+   */
+  mitigationIds?: string[];
 }
 
 export interface ItemDefinition {

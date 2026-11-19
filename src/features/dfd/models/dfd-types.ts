@@ -186,6 +186,13 @@ export interface DFDConnection extends DFDBaseEntity {
   entryX?: number;
   entryY?: number;
   curved?: boolean;
+  /**
+   * The flow is drawn as a straight line (draw.io style without an
+   * `edgeStyle`, or `edgeStyle=none`). Without it the geometry assumes an
+   * orthogonal route (one of the two L-paths) — also for records saved
+   * before this field existed. Re-read from the XML on every parse.
+   */
+  straight?: boolean;
   arrow?: {
     start?: string;
     end?: string;
@@ -377,6 +384,14 @@ export interface DFDCellLink {
    * when it is not part of the multiprocess's flow context.
    */
   manual?: boolean;
+  /**
+   * Component import (multi-project TARA, I4): a copy that belongs to its
+   * definition — a component's shell boundary around the imported
+   * multiprocess on the parent page. Higher than its definition by design
+   * (no BAL_HOME_NOT_HIGHEST); removed automatically once its definition is
+   * gone (the component's page deleted), never left behind dangling.
+   */
+  attached?: boolean;
 }
 
 // ==================== DFD EXPORT/IMPORT ====================
@@ -413,6 +428,96 @@ export interface DFDProjectData {
 }
 
 // ==================== DFD UPDATE RESULT ====================
+
+/**
+ * Multi-project TARA (design v3 §5): what the DFD hands to the app when the
+ * analyst imports a component TARA — the diagram as it is in the editor now
+ * and the page shown (the multiprocess goes there).
+ */
+export interface ComponentInsertContext {
+  xml: string;
+  pages: DFDPage[];
+  /** draw.io page id of the page shown; "" when unknown (first page). */
+  pageId: string;
+  elements: DFDElement[];
+  connections: DFDConnection[];
+  /** The DFD asset mirror (patch 13). */
+  assets: DFDAsset[];
+}
+
+/** The DFD after the import — complete arrays, loaded into draw.io and saved as they are. */
+export interface ComponentInsertOutcome {
+  xml: string;
+  pages: DFDPage[];
+  elements: DFDElement[];
+  connections: DFDConnection[];
+  assets: DFDAsset[];
+}
+
+/** What the details panel shows about an imported multiprocess (multi-project TARA). */
+export interface ComponentMultiprocessInfo {
+  /** Component name. */
+  name: string;
+  /** Where it comes from, e.g. "tag sd/v1 · commit 01234567" or "unpinned". */
+  source: string;
+  /** Instance prefix, e.g. "SD1". */
+  prefix: string;
+  /** Identical units this instance stands for (same context, I5); 1 = one. */
+  quantity?: number;
+  /** Sets the quantity (≥ 1); absent = read-only. */
+  onSetQuantity?: (quantity: number) => void;
+  /** Instances of the same import whose ratings can be copied here (I5). */
+  copySources?: { id: string; label: string }[];
+  /** Copies the ratings of a source instance once (no live coupling). */
+  onCopyRatings?: (sourceId: string, options: ComponentCopyOptions) => void;
+  /** Further component content for the details panel (e.g. the AoU checklist, filled by the app). */
+  renderExtra?: () => import("react").ReactNode;
+  /** Opens the component TARA as a further project; absent = not available. */
+  onOpen?: () => void;
+  /**
+   * Is a newer state of the component available (phase 5a, read-only)? The
+   * status in words; absent = not checked (e.g. outside Electron).
+   */
+  drift?: { kind: "up_to_date" | "newer_available" | "diverged" | "unreachable"; text: string };
+  /** A check is running. */
+  driftChecking?: boolean;
+  /** Check again; fetch = `git fetch` first (network, on request only). */
+  onCheckDrift?: (fetch: boolean) => void;
+  /** An unpinned import is read from its file: there is nothing to fetch — no "Fetch and check". */
+  fetchNotApplicable?: boolean;
+  /**
+   * Update to the newer state (phase 5c-2): a runner like the import's — the
+   * DFD tab commits its outcome and loads it into draw.io, so the update
+   * reaches the editor the same single way. Absent = no newer state.
+   */
+  updateRunner?: ComponentImportRunner;
+  /**
+   * The update reads the imported commit again: only this TARAflow reads it
+   * differently (builder changed) — the button says "Refresh stored state…".
+   */
+  updateIsRefresh?: boolean;
+  /** "Discard update" while not saved: the project as before, through the same runner path. */
+  discardRunner?: ComponentImportRunner;
+  /** Assumptions of use still open in this instance — counted on the tab "Component". */
+  openAssumptions?: number;
+  /** Decisions to review after an update (derived), each with its confirm action. */
+  reviews?: { key: string; text: string; onConfirm: () => void }[];
+}
+
+/** What "copy ratings from another instance" takes over (I5). */
+export interface ComponentCopyOptions {
+  /** Likelihood factors (context, prefill overrides), relevance overrides, windows of opportunity. */
+  decisions: boolean;
+  /** Impact of the instance assets (and the risks' impact factors). */
+  assetImpact: boolean;
+  /** "fill": only what is not rated here yet; "overwrite": the source's values replace these. */
+  mode: "fill" | "overwrite";
+}
+
+/** The app's import flow (dialog etc.); null = cancelled. */
+export type ComponentImportRunner = (
+  context: ComponentInsertContext,
+) => Promise<ComponentInsertOutcome | null>;
 
 export interface DFDUpdateResult {
   dfd: DFDData;

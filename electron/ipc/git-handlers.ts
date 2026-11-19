@@ -4,6 +4,8 @@
 import { ipcMain } from "electron";
 import { simpleGit } from "simple-git";
 import { GitService } from "../services/git-service-main";
+import { rawGitInDir } from "./git-raw-in-dir";
+import { resolveRemoteRef } from "./remote-ref";
 
 let gitService: GitService;
 
@@ -104,23 +106,9 @@ export function registerGitHandlers() {
   // simpleGit(dir), but stays in the main process, so the "one git path" rule
   // (no git in the renderer) still holds. Never throws to the renderer: a
   // non-zero exit is returned as { code }.
+  // The real exit code — also for a "no" without stderr (rawGitInDir).
   ipcMain.handle("git:rawInDir", async (_, dir: string, args: string[]) => {
-    try {
-      const stdout = await simpleGit(dir, {
-        unsafe: { allowUnsafeHooksPath: true },
-      }).raw(args);
-      return { success: true, data: { stdout, stderr: "", code: 0 } };
-    } catch (err: any) {
-      // simple-git throws on non-zero exit (e.g. rev-parse outside a repo)
-      return {
-        success: true,
-        data: {
-          stdout: err?.git?.stdout ?? "",
-          stderr: String(err?.message ?? err),
-          code: typeof err?.exitCode === "number" ? err.exitCode : 128,
-        },
-      };
-    }
+    return { success: true, data: await rawGitInDir(dir, args) };
   });
 
   // Rebind the bound GitService to the discovered audit repo root. Called on
@@ -151,25 +139,6 @@ export function registerGitHandlers() {
   // rather than retrofitted later.
   ipcMain.handle(
     "git:resolveRemoteRef",
-    async (_e, repoUrl: string, refLabel: string) => {
-      try {
-        const output = await simpleGit().listRemote([repoUrl, refLabel]);
-        const line = output
-          .split("\n")
-          .map((l) => l.trim())
-          .find((l) => l.length > 0);
-        if (!line) {
-          return { success: true, data: { reachable: true, sha: null } };
-        }
-        const sha = line.split("\t")[0];
-        return { success: true, data: { reachable: true, sha } };
-      } catch (err: any) {
-        return {
-          success: false,
-          data: { reachable: false, sha: null },
-          error: String(err?.message ?? err),
-        };
-      }
-    },
+    async (_e, repoUrl: string, refLabel: string) => resolveRemoteRef(repoUrl, refLabel),
   );
 }

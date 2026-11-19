@@ -3,6 +3,7 @@
 
 import { useMemo } from "react";
 import type { ThreatTable } from "../../models/threat-types";
+import { isThreatRated } from "../../services/threat-phase-status";
 
 export interface ValidationResult {
   stats: {
@@ -19,12 +20,7 @@ export function useThreatValidation(tables: ThreatTable[]): ValidationResult {
     for (const table of tables) {
       for (const threat of table.threats) {
         total++;
-        if (
-          threat.workflowStatus === "reviewed" ||
-          threat.workflowStatus === "closed"
-        ) {
-          reviewed++;
-        }
+        if (isThreatRated(threat)) reviewed++;
       }
     }
 

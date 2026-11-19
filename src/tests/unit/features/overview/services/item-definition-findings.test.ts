@@ -67,6 +67,20 @@ describe("item definition findings (A-4)", () => {
     ]);
   });
 
+  it("measures an assumption names that the project no longer has (phase 3c); unchecked without the measure list", () => {
+    const input = {
+      ...base,
+      presetId: "standard" as const,
+      itemDefinition: def({
+        assumptions: [{ id: "a1", displayId: "ASM-01", text: "x", status: "confirmed", mitigationIds: ["M-C-001", "M-C-009"] }],
+      }),
+    };
+    expect(itemDefinitionFindings({ ...input, measureIds: new Set(["M-C-001"]) })).toEqual([
+      { code: "ITEM_ASSUMPTION_MEASURE_UNKNOWN", severity: "warning", assumption: "ASM-01", measures: ["M-C-009"] },
+    ]);
+    expect(itemDefinitionFindings(input).filter((f) => f.code === "ITEM_ASSUMPTION_MEASURE_UNKNOWN")).toEqual([]);
+  });
+
   it("links to removed model items inform, per section; function assets too", () => {
     const f = itemDefinitionFindings({
       ...base,

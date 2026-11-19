@@ -10,6 +10,8 @@ import type { DFDViewMode } from "../models/dfd-types";
 /** A new object per request, so the same element can be asked for twice. */
 export interface ElementFocusRequest {
   readonly elementId: string;
+  /** A tab of the element form to open (e.g. "component" from the Overview). */
+  readonly tab?: string;
 }
 
 /** After switching to the drawing the bridge re-initialises (see dfd-tab); select after that. */

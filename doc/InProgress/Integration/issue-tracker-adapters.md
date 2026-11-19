@@ -1,6 +1,6 @@
 # Issue-tracker integration — adapters, secure channel, ticket sync
 
-**Status:** v4 · 2026-11-03 · IT-1 … IT-11 done (§5) — Jira Cloud, Jira Server / DC, Azure DevOps, GitHub, GitLab, OpenProject; Polarion 0.19 · branch `feature/iso21434-item-definition`,
+**Status:** v5 · 2026-11-10 · IT-1 … IT-14 done (§5) — Jira Cloud, Jira Server / DC, Azure DevOps, GitHub, GitLab, OpenProject; Polarion 0.19 · branch `feature/iso21434-item-definition`,
 release 0.16.0-beta (Jira); further trackers 0.17
 **Replaces:** `doc/Open/Integration/HANDOVER_Integration_Adapter_v1.md` (removed — it
 predates the OAuth services, the 0.15.2 token fix and the security findings below, and
@@ -112,7 +112,7 @@ interface TicketAdapter {
   readonly tool: IntegrationTool;
   testConnection(input: ConnectionInput): Promise<ConnectionTestResult>; // saves the token
   fetchIssueTypes(projectKey: string): Promise<IssueType[]>;
-  fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]>;
+  fetchTickets(projectKey: string, issueType: string, query?: TicketQuery): Promise<TicketSummary[]>; // IT-13: scope + text
   createTicket(input: CreateTicketInput): Promise<CreateTicketResult>;
   fetchTicketStates(keys: string[]): Promise<Map<string, TicketState>>; // one batch
 }
@@ -173,6 +173,10 @@ new form; the per-tracker tabs and forms (`jira-config.tsx`, `ado-config.tsx`) g
 | IT-10 | **GitLab Issues** (0.18, preview): `GitLabAdapter` (API v4, gitlab.com or self-managed) — projects by full path (`group/sub/project`), the type is a label ("Issue" = none), key `group/project#iid`; opened / closed — GitLab has no close reason, so a won't-fix / duplicate / invalid label marks closed without fix; review / progress labels (scoped ones too); states per project in one request with `iids[]` | 37 | done (preview) |
 
 | IT-11 | **OpenProject** (0.18, preview, API v3): `OpenProjectAdapter` — projects by identifier with their work package types, key = work package id; statuses carry `isClosed` (read once): closed = done, or closed without fix under a rejecting name; open statuses by name (review / in progress / to do); ticket states in one filtered query with the status filter `*` (the default returns open ones only); markdown descriptions, type by name | 38 | done (preview) |
+
+| IT-12 | **Status by hand, with evidence** (0.19, user 2026-11-10): the status stays manual; with a tracker connected, a done status (`in_review`, `implemented`, `verified`) without a linked ticket needs an evidence note or a reference — the status dialog does not save without it, offline nothing changes (`risks/services/mitigation-evidence.ts`). Evidence and reference are offered whenever no ticket is linked (before: only offline, so with a tracker a status could be set without anything); "set by hand" next to the status, "follows SCRUM-1 when it changes" with a ticket. Risk finding `doneWithoutEvidence` (warning, with a tracker only; the stored validation does not depend on it). Per mitigation one ticket row (`mitigation-ticket-row.tsx`): linked → the ticket card; not linked → "No ticket — Link… / Create…", linking and creating in their own dialog — the status dialog stays short, the tracker is asked for tickets only when linking | 65 | done |
+| IT-13 | **Link dialog** (0.19, user 2026-11-10, `ticket-link-dialog.tsx`): search (key or text) and status filter — open (default), in progress, done, all; done tickets stay reachable to link a mitigation afterwards —, type; "Suggested" = tickets linked to the same mitigation on other risks, from the project's own data (`risks/services/ticket-links.ts`); tickets linked already are marked ("linked with M-T-001 · P1-T-1 (+2)") and listed after the free ones, hiding them is a choice (off); a click chooses, "Link KEY" links (double click links at once); nothing found → "Create a new ticket"; every text of the ticket row and both dialogs through i18n. `fetchTickets(projectKey, type, { scope, text })` (`TicketQuery`, default scope "active" = before): Jira `statusCategory` + `text ~`, a key in a request of its own (an unknown key fails the whole JQL); GitHub `state=` on the list, with text the search API (`in:title`, a number as the issue); GitLab `state=` + `search` / `iids[]`; OpenProject status `o` / `c` + `subjectOrId **`; Azure DevOps `[System.Title] CONTAINS` / `[System.Id]`, the scope filtered per item by its state category (WIQL has none — "done" sees the 50 most recently changed items only) | 66 | done |
+| IT-14 | **Progress from the ticket** (0.19, user 2026-11-10): with a linked ticket the status dialog offers only what the ticket cannot say — "verified" once the ticket is done (the TARA's step after the fix), "rejected" always (with a reason), the ticket's own status (back to it) and the current one; open / in progress / in review / implemented are greyed: changed in the tracker ("progress comes from SCRUM-12 — change it in the tracker"). "Follow SCRUM-12 again" when the status differs from the ticket's. TARAflow does not move tickets: workflows and transitions differ per project and tracker, and one source of progress stays (decision 2 unchanged). `ticket-sync.ts`: `statusFromTicket`, `selectableWithTicket`, `differsFromTicket` | 67 | done |
 
 Every tracker except Polarion is in 0.18 (preview until a real run). Polarion (REST v1) moves
 to 0.19 (user 2026-11-03).

@@ -29,6 +29,7 @@ import { hasSafetyData } from "shared/models/asset-reference-types";
 import type { AssetReference } from "shared/models/asset-reference-types";
 
 import { loadProjectFixture, FIXTURES } from "../../../../fixtures/load-fixture";
+import { dropRetiredAssetFields } from "app/services/drop-retired-asset-fields";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -52,7 +53,10 @@ function stripVolatile<T>(result: T): T {
  * (lossy) DFDAsset.linkedElements mirror. syncFromDFD's own elements/
  * connections params remain reserved/unused — [] is still faithful there.
  */
-function runSync(project: ReturnType<typeof loadProjectFixture>) {
+function runSync(raw: ReturnType<typeof loadProjectFixture>) {
+  // As the app loads it: the retired asset field (protection need, 0.19) is
+  // dropped on load, so the sync never sees it (the fixtures are legacy input).
+  const project = dropRetiredAssetFields(raw);
   const assetData = project.assets ?? createDefaultAssetData();
   const dfdAssets = mapDFDAssetsToAssetFeature(
     project.dfd?.assets ?? [],

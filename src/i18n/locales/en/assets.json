@@ -1,6 +1,7 @@
 {
   "tabs": {
     "assets": {
+      "deleteWithInstance": "Removed with its component instance (delete the instance in the DFD)",
       "title": "Assets Management",
       "description": "Define and manage your system assets here.",
       "assets": "Assets",
@@ -253,6 +254,8 @@
         "goalEnvelopeSlack": "Asset {{id}}: no active security goal reaches the asset value for {{criterion}} — intended as a higher worst case?",
         "threatWithoutGoal": "Asset {{id}}: {{count}} threat(s) of category {{stride}} ({{threats}}) violate no active security goal — add {{goals}} or check whether the threats belong to this asset",
         "threatWithoutGoalNotApplicable": "Asset {{id}}: {{count}} threat(s) of category {{stride}} ({{threats}}) violate no active security goal — {{goals}} cannot be set on {{group}} assets: link a function or system asset carrying {{goals}} to the DFD element, or check whether the threats belong to this asset",
+        "goalAddedNoComponentThreat": "Asset {{id}}: goal {{type}} added here — the component {{component}} has no threats for it (its threats come only from the component). Request a new revision of the component.",
+        "linkedOnlyToComponent": "Asset {{id}}: tied only to assets of {{component}}, not to a DFD element, so no threat reaches it. Link it to an element of this machine — or, if the data is processed only inside the component, request a new revision of the component.",
         "goalWithoutThreat": "Asset {{id}}: no threat violates {{type}} — is the goal needed, or is a threat missing?"
       },
       "columns": {
@@ -335,6 +338,7 @@
         "supply_chain": "Supply Chain"
       },
       "dialog": {
+        "importedFrom": "From {{component}}: name, description, DFD links and the component's security goals are read-only here. Impact, damage scenarios and further goals are rated by this machine.",
         "protectionStrength": "Protection Strength:",
         "levelRationale": "Override Rationale",
         "levelRationalePlaceholder": "Why does this protection level differ from the system suggestion?",
@@ -342,6 +346,8 @@
         "editTitle": "Edit Asset {{id}}",
         "basicInfo": "Basic Information",
         "impactRatings": "Impact Ratings",
+        "unitsHint": "×{{count}}: this asset stands for {{count}} identical units. The same weakness hits all of them at once — does the impact cover all units failing together?",
+        "safetySourceHint": "Derived from safety annotations in the DFD or from hazard items (safety-relevant projects). Without either: set it with the manual safety impact override above.",
         "averageImpact": "Ø {{value}}",
         "overall": "Overall",
         "overallImpactTooltip": "Overall: {{label}}",
@@ -474,6 +480,8 @@
         "importResult": "Import: {{added}} added · {{replaced}} replaced · {{kept}} kept"
       },
       "goalCards": {
+        "fromComponent": "from {{prefix}}",
+        "fromComponentTooltip": "Goal of {{component}}: it cannot be removed here, its requirement text is the component's.",
         "heading": "Security goals",
         "help": "Goals are suggested from the asset's DFD relations; their level follows the impact criteria of the goal's violation. Adjust or exclude a suggestion only with a rationale.",
         "subheading": "The damage potential (tab 1) is the upper bound. Each card shows why the goal applies and what drives its level.",
@@ -574,6 +582,8 @@
         "hideInfos": "Hide infos",
         "open": "Open the asset where this is fixed",
         "onlyInfos": "No errors or warnings — infos are hidden.",
+        "ownerLabel": "Component {{prefix}}",
+        "ownerTooltip": "Belongs to {{component}} — read-only here, fixed in the component's TARA.",
         "summary": "{{errors}} errors · {{warnings}} warnings · {{infos}} infos — details below the table"
       }
     }

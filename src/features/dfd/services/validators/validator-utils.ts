@@ -107,11 +107,9 @@ export const ValidationMessages = {
   ASSET_RELATION_TYPE_INVALID: "dfdValidation.assetRelationTypeInvalid",
   ASSET_RELATION_INCONSISTENT: "dfdValidation.assetRelationInconsistent",
   ASSET_MISSING_NAME: "dfdValidation.assetMissingName",
-  ASSET_MISSING_PROTECTION_NEED: "dfdValidation.assetMissingProtectionNeed",
   // Per-group asset property keys
   ASSET_MISSING_DATA_TYPE: "dfdValidation.assetMissingDataType",
   ASSET_MISSING_LIFECYCLE: "dfdValidation.assetMissingLifecycle",
-  ASSET_MISSING_CRITICALITY: "dfdValidation.assetMissingCriticality",
   ASSET_MISSING_EXPOSURE: "dfdValidation.assetMissingExposure",
   ASSET_MISSING_PHYSICAL_ACCESS: "dfdValidation.assetMissingPhysicalAccess",
   ASSET_MISSING_SERVICE_TYPE: "dfdValidation.assetMissingServiceType",

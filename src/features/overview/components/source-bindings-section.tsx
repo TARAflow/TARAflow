@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { SourceBinding, DriftStatus } from "shared";
+import { hasUrlCredentials } from "shared/utils/url-credentials";
 import { useSourceBindings } from "../hooks/use-source-bindings";
 import {
   SOURCE_REF_TYPE_OPTIONS,
@@ -45,6 +46,15 @@ interface SourceBindingsSectionProps {
   scopeDescriptionKey: string;
   onUpdate: (bindings: SourceBinding[]) => void;
 }
+
+// Why "Resolve" failed, in words (manual test 2026-11-17: before, every
+// failure was "Could not reach <host>").
+const FAILURE_TEXT = {
+  not_found: "{{host}} has no such repository — or it is private and you have no access. Check the URL.",
+  no_access: "{{host}} refused access. A private repository needs stored git credentials (credential helper or SSH key).",
+  offline: "Could not connect to {{host}} — no network, or the host name is wrong.",
+  timeout: "{{host}} did not answer in time.",
+} as const;
 
 interface PendingConsent {
   host: string;
@@ -88,7 +98,11 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
 
   const handleEdit = () => startEdit(bindings);
   const handleCancel = () => cancelEdit(bindings);
+  // A URL with credentials is not stored (review 2026-11-11): the project file
+  // travels — with the component import into every machine that imports it.
+  const withCredentials = draft.some((b) => hasUrlCredentials(b.repoUrl));
   const handleSave = () => {
+    if (withCredentials) return;
     onUpdate(draft);
     setIsEditing(false);
   };
@@ -126,10 +140,15 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
           ? t("sourceBinding.resolveError.consentDenied", {
               defaultValue: "Network access was not allowed.",
             })
-          : t("sourceBinding.resolveError.unreachable", {
-              host: extractRepoHost(row.repoUrl),
-              defaultValue: "Could not reach {{host}}.",
-            });
+          : result.failure && result.failure !== "unknown"
+            ? t(`sourceBinding.resolveError.${result.failure}`, {
+                host: extractRepoHost(row.repoUrl),
+                defaultValue: FAILURE_TEXT[result.failure],
+              })
+            : t("sourceBinding.resolveError.unreachable", {
+                host: extractRepoHost(row.repoUrl),
+                defaultValue: "Could not reach {{host}}.",
+              });
       setResolveErrors((errs) => ({ ...errs, [row.id]: message }));
       return;
     }
@@ -220,7 +239,9 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              disabled={withCredentials}
+              data-testid="source-binding-save"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
               {t("common.save")}
@@ -263,6 +284,15 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                     placeholder="https://github.com/org/repo.git"
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                  {hasUrlCredentials(row.repoUrl) && (
+                    <p className="flex items-center gap-1 text-xs text-red-600 mt-1" data-testid="source-binding-credentials">
+                      <AlertTriangle className="w-3 h-3" />
+                      {t("sourceBinding.credentialsInUrl", {
+                        defaultValue:
+                          "The URL contains credentials — remove them: the project file is shared (and copied into every TARA importing it). A private repository uses stored credentials.",
+                      })}
+                    </p>
+                  )}
                   {looksLikeLocalPath(row.repoUrl) && (
                     <p className="flex items-center gap-1 text-xs text-amber-600 mt-1">
                       <AlertTriangle className="w-3 h-3" />
@@ -274,9 +304,22 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                   )}
                 </>
               ) : (
-                <p className="text-sm text-gray-900 break-all">
-                  {row.repoUrl || "-"}
-                </p>
+                <>
+                  <p className="text-sm text-gray-900 break-all">
+                    {row.repoUrl || "-"}
+                  </p>
+                  {/* Stored before the editor refused it (review 2026-11-11): cleaning
+                      is not enough — the token stays in the git history. */}
+                  {hasUrlCredentials(row.repoUrl) && (
+                    <p className="flex items-start gap-1 text-xs text-red-600 mt-1" data-testid="source-binding-credentials-stored">
+                      <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                      {t("sourceBinding.credentialsStored", {
+                        defaultValue:
+                          "This URL contains credentials. Clean the URL (Edit) and revoke the token at the repository provider — it stays in the history of every repository this file was committed to.",
+                      })}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 

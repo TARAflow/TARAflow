@@ -17,7 +17,6 @@ function makeAsset(overrides: Partial<DFDAsset> = {}): DFDAsset {
     displayId: "DA-001",
     name: "Meassure Data",
     assetGroup: "data",
-    protectionNeed: "low",
     ...overrides,
   } as DFDAsset;
 }
@@ -134,16 +133,6 @@ describe("mapDFDAssetsToAssetFeature", () => {
 
     expect(result[0].linkedElements).toHaveLength(1);
     expect(result[0].linkedElements?.[0].displayId).toBe("P-4"); // not P-999
-  });
-
-  it("reads protectionNeed from the canonical top-level field, not properties.protectionNeed", () => {
-    const asset = makeAsset({
-      protectionNeed: "high",
-      properties: { protectionNeed: "low" } as any, // stale mirror, must be ignored
-    });
-
-    const result = mapDFDAssetsToAssetFeature([asset], [], []);
-    expect(result[0].protectionNeed).toBe("high");
   });
 
   it("isolates links per asset — a relation to asset A never leaks into asset B's linkedElements", () => {

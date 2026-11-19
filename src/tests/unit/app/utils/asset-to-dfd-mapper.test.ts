@@ -65,7 +65,7 @@ describe("deriveDfdAssets — feature store → DFDAsset[] bridge", () => {
         id: "SY-001",
         name: "Data Service",
         assetGroup: "system",
-        properties: { description: "the service", protectionNeed: "high" },
+        properties: { description: "the service" },
       }),
     ];
 
@@ -76,7 +76,6 @@ describe("deriveDfdAssets — feature store → DFDAsset[] bridge", () => {
     expect(dfdAsset.name).toBe("Data Service");
     expect(dfdAsset.assetGroup).toBe("system");
     expect(dfdAsset.description).toBe("the service");
-    expect(dfdAsset.protectionNeed).toBe("high");
   });
 
   it("carries the UUID id and the readable displayId separately (UUID model)", () => {
@@ -94,10 +93,9 @@ describe("deriveDfdAssets — feature store → DFDAsset[] bridge", () => {
     expect(dfdAsset.displayId).toBe("DA-001"); // the label, NOT the uuid
   });
 
-  it("leaves description/protectionNeed undefined when the feature asset has none", () => {
+  it("leaves description undefined when the feature asset has none", () => {
     const [dfdAsset] = deriveDfdAssets([makeAsset({ properties: {} })], [], []);
     expect(dfdAsset.description).toBeUndefined();
-    expect(dfdAsset.protectionNeed).toBeUndefined();
   });
 
   it("derives linkedElements from element.assetRelations (is_an included)", () => {

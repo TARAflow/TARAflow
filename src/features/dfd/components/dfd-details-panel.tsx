@@ -8,17 +8,45 @@
 //   • Nothing selected  → only "Assets" tab shown (Element tab hidden)
 
 import React, { useEffect, useState } from "react";
-import { Box, IconButton, Tab, Tabs, Tooltip, Typography } from "@mui/material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  IconButton,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Select,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useTranslation } from "react-i18next";
 import { AssetGroup } from "shared";
-import type { DFDConnection, DFDElement } from "../models/dfd-types";
+import type { ComponentCopyOptions, ComponentImportRunner, ComponentMultiprocessInfo, DFDConnection, DFDElement } from "../models/dfd-types";
+import { Button } from "@mui/material";
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { AvailableAsset } from "./forms/asset-relation-selector";
 import { DFDElementForm } from "./dfd-element-form";
+import type { ExtraTab, TabRequest } from "./forms/element-form-shell";
+
+/** The id of the tab "Component" — a finding or "Show in DFD" opens it on purpose. */
+export const COMPONENT_TAB = "component";
 import type { RefinementCandidate } from "./forms/dataflow-description-form";
 import type { AssetUsageLookup } from "shared";
 import { AssetPanel } from "./dfd-asset-panel";
@@ -88,6 +116,12 @@ interface DFDDetailsPanelProps {
    * "Asset" tab shows it instead of editable relations.
    */
   assetRollup?: AssetRollupContextValue;
+  /** Multi-project TARA: the selected multiprocess is an imported component. */
+  componentInfo?: ComponentMultiprocessInfo;
+  /** Runs a component runner (update / discard) through the DFD tab: commit, then load into draw.io. */
+  onRunComponent?: (runner: ComponentImportRunner) => void;
+  /** Open a tab of the element form on purpose (e.g. "component" from a finding). */
+  tabRequest?: TabRequest | null;
 }
 
 // ==================== COMPONENT ====================
@@ -119,6 +153,9 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
   childPage,
   identity,
   assetRollup,
+  componentInfo,
+  onRunComponent,
+  tabRequest,
 }) => {
   const { t } = useTranslation();
 
@@ -335,6 +372,14 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
                     onCreateAsset={onCreateAsset}
                     graphContext={graphContext}
                     refinementCandidates={refinementCandidates}
+                    {...(componentInfo && element?.type === "Multiprocess"
+                      ? {
+                          extraTabs: [
+                            componentTab(componentInfo, onRunComponent, t("components.details.tab", { ns: "components", defaultValue: "Component" })),
+                          ],
+                        }
+                      : {})}
+                    {...(tabRequest ? { tabRequest } : {})}
                   />
                 </AssetRollupContext.Provider>
               </Box>
@@ -367,3 +412,279 @@ export const DFDDetailsPanel: React.FC<DFDDetailsPanelProps> = ({
 };
 
 export default DFDDetailsPanel;
+
+/**
+ * The tab "Component" of an imported multiprocess (user 2026-11-13), in the
+ * form's slot before "General". Its number: assumptions of use still open,
+ * decisions to review, a newer state — a signal, the start tab stays fixed.
+ */
+function componentTab(
+  info: ComponentMultiprocessInfo,
+  onRun: ((runner: ComponentImportRunner) => void) | undefined,
+  label: string,
+): ExtraTab {
+  return {
+    id: COMPONENT_TAB,
+    label,
+    badge: (info.openAssumptions ?? 0) + (info.reviews?.length ?? 0) + (info.drift?.kind === "newer_available" ? 1 : 0),
+    render: () => <ComponentSection info={info} onRun={onRun} />,
+  };
+}
+
+/** Up to this many decisions to review, their accordion is open by itself. */
+const REVIEWS_OPEN_UP_TO = 3;
+
+/** An imported component: name, prefix, source, "Open component TARA". */
+const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (runner: ComponentImportRunner) => void }> = ({ info, onRun }) => {
+  const { t } = useTranslation();
+  const [copying, setCopying] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  return (
+    <Box sx={{ px: 1, pb: 1 }} data-testid="component-section">
+      <Typography variant="caption" color="text.secondary" display="block">
+        {t("components.details.title", { ns: "components", defaultValue: "Imported component ({{prefix}}) — read-only", prefix: info.prefix })}
+      </Typography>
+      <Typography variant="body2" fontWeight="medium">
+        {info.name}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" display="block">
+        {info.source}
+      </Typography>
+      {/* Newer state of the component? (phase 5a, read-only — an update is an explicit action) */}
+      {(info.drift || info.onCheckDrift) && (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mt: 0.5 }} data-testid="component-drift">
+          {info.drift && (
+            <Typography
+              variant="caption"
+              color={info.drift.kind === "newer_available" ? "info.main" : "text.secondary"}
+              data-testid={`component-drift-${info.drift.kind}`}
+            >
+              {info.drift.text}
+            </Typography>
+          )}
+          {info.onCheckDrift && (
+            <>
+              <Button size="small" sx={{ px: 0.5, minWidth: 0 }} disabled={info.driftChecking} onClick={() => info.onCheckDrift!(false)} data-testid="component-drift-check">
+                {t("components.drift.check", { ns: "components", defaultValue: "Check" })}
+              </Button>
+              {!info.fetchNotApplicable && (
+              <Button size="small" sx={{ px: 0.5, minWidth: 0 }} disabled={info.driftChecking} onClick={() => info.onCheckDrift!(true)} data-testid="component-drift-fetch">
+                {t("components.drift.fetch", { ns: "components", defaultValue: "Fetch and check" })}
+              </Button>
+              )}
+            </>
+          )}
+        </Box>
+      )}
+      {/* Update to the newer state (5c-2), and "discard" while not saved */}
+      {onRun && (info.updateRunner || info.discardRunner) && (
+        <Box sx={{ display: "flex", gap: 1, mt: 0.5, flexWrap: "wrap" }}>
+          {info.updateRunner && (
+            <Button size="small" variant="outlined" onClick={() => onRun(info.updateRunner!)} data-testid="component-update">
+              {info.updateIsRefresh
+                ? t("components.update.refresh", { ns: "components", defaultValue: "Refresh stored state…" })
+                : t("components.update.open", { ns: "components", defaultValue: "Update…" })}
+            </Button>
+          )}
+          {info.discardRunner && (
+            <Button size="small" color="warning" variant="outlined" onClick={() => setConfirmDiscard(true)} data-testid="component-update-discard">
+              {t("components.update.discard", { ns: "components", defaultValue: "Discard update" })}
+            </Button>
+          )}
+        </Box>
+      )}
+      {/* Discard asks first: it restores the whole state before the update — work since then goes too (review 2026-11-10) */}
+      {confirmDiscard && onRun && info.discardRunner && (
+        <Dialog open onClose={() => setConfirmDiscard(false)} data-testid="component-update-discard-confirm">
+          <DialogTitle>{t("components.update.discardTitle", { ns: "components", defaultValue: "Discard the update?" })}</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2">
+              {t("components.update.discardText", {
+                ns: "components",
+                defaultValue:
+                  "Discarding restores the state before the update. Everything changed since then (confirmed reviews, ratings, DFD) is lost as well.",
+              })}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            {/* Cancel is the default: focused, the safe choice */}
+            <Button autoFocus onClick={() => setConfirmDiscard(false)} data-testid="component-update-discard-cancel">
+              {t("components.update.cancel", { ns: "components", defaultValue: "Cancel" })}
+            </Button>
+            <Button
+              color="warning"
+              variant="contained"
+              onClick={() => {
+                setConfirmDiscard(false);
+                onRun(info.discardRunner!);
+              }}
+              data-testid="component-update-discard-ok"
+            >
+              {t("components.update.discardOk", { ns: "components", defaultValue: "Discard" })}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+      {/* Decisions to review after an update (5b/5c) */}
+      {/* An accordion (manual test 2026-11-17: ten entries filled the panel):
+          the title with the count stays visible; open by itself for a few. */}
+      {(info.reviews?.length ?? 0) > 0 && (
+        <Accordion
+          disableGutters
+          elevation={0}
+          defaultExpanded={info.reviews!.length <= REVIEWS_OPEN_UP_TO}
+          sx={{ mt: 1, border: 1, borderColor: "divider", "&:before": { display: "none" } }}
+          data-testid="component-reviews"
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />} sx={{ minHeight: 32, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+            <Typography variant="caption" color="warning.main" fontWeight="medium">
+              {t("components.reviews.title", { ns: "components", count: info.reviews!.length, defaultValue: "{{count}} decision(s) to review after the update" })}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0 }}>
+          {info.reviews!.map((r) => (
+            <Box key={r.key} sx={{ display: "flex", alignItems: "center", gap: 1 }} data-testid={`component-review-${r.key}`}>
+              <Typography variant="caption" sx={{ flex: 1 }}>
+                {r.text}
+              </Typography>
+              <Button size="small" sx={{ minWidth: 0 }} onClick={r.onConfirm} data-testid={`component-review-confirm-${r.key}`}>
+                {t("components.reviews.confirm", { ns: "components", defaultValue: "Confirm" })}
+              </Button>
+            </Box>
+          ))}
+          </AccordionDetails>
+        </Accordion>
+      )}
+      {/* Identical units in the same installation context (I5), and "Open
+          component TARA" on the same line, centred to the field (user
+          2026-11-14); the field's explanation as its tooltip */}
+      {(info.onSetQuantity || (info.quantity ?? 1) > 1 || info.onOpen) && (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 1, flexWrap: "wrap" }}>
+          {info.onSetQuantity ? (
+            <Tooltip
+              title={t("components.details.quantityHint", { ns: "components", defaultValue: "Identical units in the same place — one analysis for all of them" })}
+              placement="top"
+            >
+              <TextField
+                size="small"
+                type="number"
+                label={t("components.details.quantity", { ns: "components", defaultValue: "Quantity" })}
+                value={info.quantity ?? 1}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isInteger(n) && n >= 1) info.onSetQuantity!(n);
+                }}
+                sx={{ width: 120 }}
+                inputProps={{ min: 1, step: 1, "data-testid": "component-quantity" }}
+              />
+            </Tooltip>
+          ) : (info.quantity ?? 1) > 1 ? (
+            <Typography variant="body2" data-testid="component-quantity-label">
+              ×{info.quantity}
+            </Typography>
+          ) : null}
+          {info.onOpen && (
+            <Button size="small" onClick={info.onOpen} data-testid="component-open">
+              {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
+            </Button>
+          )}
+        </Box>
+      )}
+      {info.renderExtra?.()}
+      {info.onCopyRatings && (info.copySources?.length ?? 0) > 0 && (
+        <Box>
+          <Button size="small" sx={{ mt: 0.5, px: 0 }} onClick={() => setCopying(true)} data-testid="component-copy-ratings">
+            {t("components.details.copyRatings", { ns: "components", defaultValue: "Copy ratings from another instance…" })}
+          </Button>
+        </Box>
+      )}
+      {copying && info.onCopyRatings && (
+        <CopyRatingsDialog
+          prefix={info.prefix}
+          sources={info.copySources ?? []}
+          onClose={() => setCopying(false)}
+          onCopy={(sourceId, options) => {
+            info.onCopyRatings!(sourceId, options);
+            setCopying(false);
+          }}
+        />
+      )}
+    </Box>
+  );
+};
+
+/**
+ * Copy the ratings of another instance of the same import once (I5): what
+ * to take over, fill or overwrite. No live coupling — afterwards the
+ * instances are independent again.
+ */
+const CopyRatingsDialog: React.FC<{
+  prefix: string;
+  sources: { id: string; label: string }[];
+  onClose: () => void;
+  onCopy: (sourceId: string, options: ComponentCopyOptions) => void;
+}> = ({ prefix, sources, onClose, onCopy }) => {
+  const { t } = useTranslation();
+  const ns = { ns: "components" } as const;
+  const [sourceId, setSourceId] = useState(sources[0]?.id ?? "");
+  const [decisions, setDecisions] = useState(true);
+  const [assetImpact, setAssetImpact] = useState(false);
+  const [mode, setMode] = useState<ComponentCopyOptions["mode"]>("fill");
+  return (
+    <Dialog open onClose={onClose} maxWidth="sm" fullWidth data-testid="component-copy-dialog">
+      <DialogTitle>{t("components.copy.title", { ...ns, prefix, defaultValue: "Copy ratings to {{prefix}}" })}</DialogTitle>
+      <DialogContent>
+        <Stack spacing={1.5} sx={{ pt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            {t("components.copy.intro", {
+              ...ns,
+              defaultValue:
+                "Takes the ratings of another instance of the same component state over once. Afterwards both instances are independent — later changes are not carried over. Risk treatment stays per risk.",
+            })}
+          </Typography>
+          <Select size="small" value={sourceId} onChange={(e) => setSourceId(String(e.target.value))} inputProps={{ "data-testid": "component-copy-source" }}>
+            {sources.map((s) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.label}
+              </MenuItem>
+            ))}
+          </Select>
+          <FormControlLabel
+            control={<Checkbox checked={decisions} onChange={(e) => setDecisions(e.target.checked)} inputProps={{ "data-testid": "component-copy-decisions" } as never} />}
+            label={t("components.copy.decisions", {
+              ...ns,
+              defaultValue: "Likelihood factors (context, overrides of prefilled factors), relevance overrides, window of opportunity, assumption status",
+            })}
+          />
+          <FormControlLabel
+            control={<Checkbox checked={assetImpact} onChange={(e) => setAssetImpact(e.target.checked)} inputProps={{ "data-testid": "component-copy-impact" } as never} />}
+            label={t("components.copy.assetImpact", { ...ns, defaultValue: "Impact of the instance assets" })}
+          />
+          <RadioGroup value={mode} onChange={(e) => setMode(e.target.value as ComponentCopyOptions["mode"])}>
+            <FormControlLabel
+              value="fill"
+              control={<Radio size="small" inputProps={{ "data-testid": "component-copy-fill" } as never} />}
+              label={t("components.copy.fill", { ...ns, defaultValue: "Only fill what is not rated here yet" })}
+            />
+            <FormControlLabel
+              value="overwrite"
+              control={<Radio size="small" inputProps={{ "data-testid": "component-copy-overwrite" } as never} />}
+              label={t("components.copy.overwrite", { ...ns, defaultValue: "Overwrite with the source's values" })}
+            />
+          </RadioGroup>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t("components.import.cancel", { ...ns, defaultValue: "Cancel" })}</Button>
+        <Button
+          variant="contained"
+          disabled={!sourceId || (!decisions && !assetImpact)}
+          onClick={() => onCopy(sourceId, { decisions, assetImpact, mode })}
+          data-testid="component-copy-confirm"
+        >
+          {t("components.copy.confirm", { ...ns, defaultValue: "Copy" })}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};

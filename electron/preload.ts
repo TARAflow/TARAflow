@@ -45,7 +45,7 @@ contextBridge.exposeInMainWorld("electron", {
   file: {
     saveDialog: (defaultName: string) =>
       ipcRenderer.invoke("file:saveDialog", defaultName),
-    openDialog: () => ipcRenderer.invoke("file:openDialog"),
+    openDialog: (defaultDir?: string) => ipcRenderer.invoke("file:openDialog", defaultDir),
     // Generic file picker (SSH keys, allowed_signers pubkeys) — NOT the project
     // dialog: no tara.json filter, showHiddenFiles for ~/.ssh.
     pickFile: (options?: {
@@ -201,6 +201,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("drawio:setContextCells", cells),
   setDrawioPageTabInfo: (info: Record<string, unknown>) =>
     ipcRenderer.invoke("drawio:setPageTabInfo", info),
+  setDrawioLockedPages: (pages: Record<string, true>) =>
+    ipcRenderer.invoke("drawio:setLockedPages", pages),
   injectDrawioLibraries: (dfd1Xml: string, dfd2Xml: string) =>
     ipcRenderer.invoke("drawio:injectLibraries", dfd1Xml, dfd2Xml),
   // Issue trackers (adapters design §4.1): token in the main process only.

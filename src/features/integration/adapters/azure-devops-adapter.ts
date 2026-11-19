@@ -22,6 +22,7 @@ import {
   type CreateTicketInput,
   type CreateTicketResult,
   type TicketCategory,
+  type TicketQuery,
   type TicketState,
   type TicketSummary,
 } from "shared/models/ticket-types";
@@ -103,9 +104,17 @@ export class AzureDevOpsAdapter implements TicketAdapter {
     };
   }
 
-  async fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]> {
+  async fetchTickets(projectKey: string, issueType: string, ticketQuery: TicketQuery = {}): Promise<TicketSummary[]> {
     const typeClause = issueType && issueType !== "__all__" ? ` AND [System.WorkItemType] = ${wiqlString(issueType)}` : "";
-    const query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = ${wiqlString(projectKey)}${typeClause} ORDER BY [System.ChangedDate] DESC`;
+    const scope = ticketQuery.scope ?? "active";
+    // A number finds that work item; words search the title.
+    const text = ticketQuery.text?.trim().replace(/^#/, "") ?? "";
+    const textClause = !text
+      ? ""
+      : /^\d+$/.test(text)
+        ? ` AND ([System.Id] = ${Number(text)} OR [System.Title] CONTAINS ${wiqlString(text)})`
+        : ` AND [System.Title] CONTAINS ${wiqlString(text)}`;
+    const query = `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = ${wiqlString(projectKey)}${typeClause}${textClause} ORDER BY [System.ChangedDate] DESC`;
     const res = await trackerRequest<Json>(this.ref, "POST", `${this.project(projectKey)}/_apis/wit/wiql?$top=50&${API}`, { query });
     if (!res.ok) return [];
     const ids = (res.data?.workItems ?? []).map((w: Json) => String(w.id));
@@ -117,7 +126,9 @@ export class AzureDevOpsAdapter implements TicketAdapter {
     for (const item of items) {
       const f = item.fields ?? {};
       const category = await this.category(f);
-      if (category === "done" || category === "done_without_fix") continue;
+      // The state category is known only per item: the scope filters here.
+      const done = category === "done" || category === "done_without_fix";
+      if ((scope === "active" && done) || (scope === "done" && !done)) continue;
       out.push({
         key: String(item.id),
         summary: f["System.Title"] ?? "",

@@ -21,6 +21,11 @@ export type {
   // App integration
   DFDProjectData,
   DFDUpdateResult,
+  ComponentInsertContext,
+  ComponentInsertOutcome,
+  ComponentImportRunner,
+  ComponentMultiprocessInfo,
+  ComponentCopyOptions,
   DFDViewMode,
 
   // Export
@@ -151,6 +156,7 @@ export { type ICrossingElements } from "./interfaces/drawio-interfaces";
 // ==================== COMPONENTS ====================
 export { DFDPreviewDialog } from "./components/dfd-preview-dialog";
 export { DFDTab } from "./components/dfd-tab";
+export { COMPONENT_TAB } from "./components/dfd-details-panel";
 export { DefaultDFDGraphBuilder } from "./services/dfd-graph-builder";
 export {
   buildDfdGraph,
@@ -226,6 +232,23 @@ export {
 
 // Leveled DFD (6a, D20): accordion groups of the asset / threat / risk tables.
 export { multiprocessGroupsOf, multiprocessGroupsFrom } from "./services/leveled/table-groups";
+// Multi-project TARA: one instance of an imported component into the DFD (design v3 §5, §6).
+export {
+  insertComponentInstance,
+  replaceComponentInstance,
+  type ReplaceComponentResult,
+  componentInstanceTfId,
+  instanceMultiprocessTfId,
+  instanceAssetId,
+  prefixDisplayLabel,
+  InsertComponentError,
+  type InsertComponentInput,
+  type InsertComponentResult,
+  type ComponentDfdInput,
+} from "./services/leveled/insert-component";
+export { lockedPageIdsOf } from "./services/leveled/locked-pages";
+// Multi-project TARA phase 4a: owner of a finding on an imported component's cell.
+export { isStructuralFinding, type FindingOwner, type FindingOwnerOf } from "./utils/finding-ownership";
 export {
   analyseLeveled,
   parseDfd,

@@ -34,7 +34,30 @@ import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
 import type { A2ARelation, CybersecurityConcept, ItemDefinition } from "shared";
+import { RETIRED_ASSET_FIELDS, type RetiredAssetField } from "shared/models/retired-asset-fields";
 import { canonicalStringify } from "shared/utils/tcs-canonical";
+
+/**
+ * Asset fields retired from the model (shared/models/retired-asset-fields.ts),
+ * still in files written before them — the previous state of a commit is read
+ * raw from git, so each drop shows once in the diff.
+ */
+type LegacyAssetFields = Partial<Record<RetiredAssetField, unknown>> & {
+  properties?: Asset["properties"] & Partial<Record<RetiredAssetField, unknown>>;
+};
+
+/** Labels of the retired fields a user once saw in the form; the rest by name. */
+const RETIRED_LABEL: Partial<Record<RetiredAssetField, string>> = {
+  protectionNeed: "Protection Need",
+  criticality: "Criticality",
+};
+
+/** The value of a retired field on an asset record, if the file still had it (as text). */
+function legacyAssetValue(asset: Asset, field: RetiredAssetField): string | undefined {
+  const legacy: LegacyAssetFields = asset;
+  const value = legacy.properties?.[field] ?? legacy[field];
+  return value === undefined || value === null ? undefined : typeof value === "string" ? value : JSON.stringify(value);
+}
 
 /**
  * Value equality for the change detection: the canonical form (TCS — keys
@@ -195,7 +218,51 @@ export class DiffService {
       changes.push({ phase: "verification", phaseLabel: "Verification", changeCount: verificationChanges.length, changes: verificationChanges });
     }
 
+    // Imported components (schema 14, multi-project TARA design §8.2): the
+    // import record without its snapshot (the content hash stands for it)
+    // and the instances in the DFD.
+    const componentChanges = [
+      ...this.withUpdateLines(
+        this.compareById(
+          (currentProject.components?.imports ?? []).map(({ snapshot: _s, lastUpdate: _u, ...rest }) => rest),
+          (previousProject?.components?.imports ?? []).map(({ snapshot: _s, lastUpdate: _u, ...rest }) => rest),
+          (x) => `${x.name} @ ${x.source.tag ?? x.source.commitSha?.slice(0, 8) ?? "unpinned"}`,
+          () => "Component import",
+        ),
+        currentProject.components?.imports ?? [],
+        previousProject?.components?.imports ?? [],
+      ),
+      ...this.compareInstances(currentProject, previousProject),
+    ];
+    if (componentChanges.length > 0) {
+      changes.push({ phase: "components", phaseLabel: "Components", changeCount: componentChanges.length, changes: componentChanges });
+    }
+
     return changes;
+  }
+
+  /**
+   * The change list when the file differs from HEAD but no phase lists a
+   * change: only derived values moved (manual test 2026-11-17 — the threat
+   * ids the risk sync copies into the risks after a renumbering). One entry,
+   * so the commit stays possible and its message says what it is.
+   */
+  derivedOnlyChanges(): PhaseChanges[] {
+    return [
+      {
+        phase: "derived",
+        phaseLabel: "Derived values",
+        changeCount: 1,
+        changes: [
+          {
+            type: "modified",
+            id: "derived",
+            name: "Derived values only",
+            description: "Only values the app derives changed (e.g. threat ids copied into the risks by the risk sync)",
+          },
+        ],
+      },
+    ];
   }
 
   /**
@@ -205,13 +272,14 @@ export class DiffService {
     changes: PhaseChanges[],
     roundName: string,
     author: string,
-    opts?: { reviewer?: string; projectName?: string; projectId?: string },
+    opts?: { reviewer?: string; projectName?: string; projectId?: string; projectFile?: string },
   ): CommitMessageData {
     const totalChanges = changes.reduce((sum, p) => sum + p.changeCount, 0);
     return {
       round: roundName,
       projectName: opts?.projectName,
       projectId: opts?.projectId,
+      ...(opts?.projectFile ? { projectFile: opts.projectFile } : {}),
       batchSize: totalChanges,
       affectedPhases: changes.map((p) => p.phaseLabel),
       changes,
@@ -526,15 +594,15 @@ export class DiffService {
       });
     }
 
-    // Protection need (protection-relevant, distinct from the impact ratings)
-    if (current.properties?.protectionNeed !== previous.properties?.protectionNeed) {
-      details.push({
-        field: "protectionNeed",
-        fieldLabel: "Protection Need",
-        oldValue: previous.properties?.protectionNeed,
-        newValue: current.properties?.protectionNeed,
-        valueType: "string",
-      });
+    // Retired fields (protection need, criticality, … — 0.19): no longer in
+    // memory, but the previous state (read raw from git) may still carry
+    // them; each drop shows once.
+    for (const field of RETIRED_ASSET_FIELDS) {
+      const oldValue = legacyAssetValue(previous, field);
+      const newValue = legacyAssetValue(current, field);
+      if (oldValue !== newValue) {
+        details.push({ field, fieldLabel: `${RETIRED_LABEL[field] ?? field} (retired)`, oldValue, newValue, valueType: "string" });
+      }
     }
 
     // Overall Impact
@@ -941,6 +1009,27 @@ export class DiffService {
       });
     }
 
+    // Factor ratings (value, source, override rationale) — a rationale or a
+    // value change that leaves the calculated risk unchanged must still open
+    // the commit gate (multi-project TARA §7.2, patch 16).
+    for (const key of ["factorRatings", "mitigatedFactorRatings"] as const) {
+      const text = (r: Risk) =>
+        (r[key] ?? [])
+          .map((f) => `${f.factorId}=${f.value}${f.source ? ` (${f.source})` : ""}${f.overrideRationale ? ` — ${f.overrideRationale}` : ""}`)
+          .join(", ");
+      const before = text(previous);
+      const after = text(current);
+      if (before !== after) {
+        details.push({
+          field: key,
+          fieldLabel: key === "factorRatings" ? "Factor ratings" : "Factor ratings after mitigation",
+          oldValue: before,
+          newValue: after,
+          valueType: "string",
+        });
+      }
+    }
+
     return details;
   }
 
@@ -966,6 +1055,143 @@ export class DiffService {
   }
 
   /** Added / deleted / modified by id; a modification lists the changed fields. */
+  /**
+   * A component update (multi-project TARA phase 5c) writes what it dropped or
+   * put to review into the import's lastUpdate — one detail line each, so the
+   * commit message names them (design §9.2: "the orphaned decisions in the
+   * commit message").
+   */
+  private withUpdateLines(
+    changes: ChangeItem[],
+    current: readonly { id: string; name: string; lastUpdate?: { at: string; lines: string[] } }[],
+    previous: readonly { id: string; lastUpdate?: { at: string } }[],
+  ): ChangeItem[] {
+    const before = new Map(previous.map((x) => [x.id, x.lastUpdate?.at]));
+    const out = [...changes];
+    for (const imp of current) {
+      if (!imp.lastUpdate || before.get(imp.id) === imp.lastUpdate.at) continue;
+      const details: ChangeDetail[] = (imp.lastUpdate.lines.length > 0 ? imp.lastUpdate.lines : ["nothing dropped"]).map((line) => ({
+        field: "lastUpdate",
+        fieldLabel: "Update",
+        oldValue: undefined,
+        newValue: line,
+        valueType: valueTypeOf(line),
+      }));
+      const i = out.findIndex((c) => c.id === imp.id);
+      if (i >= 0) out[i] = { ...out[i], details: [...(out[i].details ?? []), ...details] };
+      else out.push({ type: "modified", id: imp.id, name: imp.name, description: "Component import updated", details });
+    }
+    return out;
+  }
+
+  /**
+   * Instances of imported components with detail lines in the component's
+   * words (phase 6b): the assumption status per ASM, the EE mapping, the
+   * quantity, relevance / measure overrides, windows of opportunity, cited
+   * claims, reviews still open — before, one line "Component instance
+   * modified: n field(s) changed" with "[object Object]" values.
+   */
+  private compareInstances(cur: Project, prev: Project | null | undefined): ChangeItem[] {
+    type Instance = NonNullable<Project["components"]>["instances"][number];
+    const imports = new Map([...(prev?.components?.imports ?? []), ...(cur.components?.imports ?? [])].map((i) => [i.id, i]));
+    const names = new Map(
+      [...(prev?.dfd?.elements ?? []), ...(cur.dfd?.elements ?? [])].map((e) => [e.id, `${e.displayId ? `${e.displayId} ` : ""}${e.name ?? e.id}`]),
+    );
+    const before = new Map((prev?.components?.instances ?? []).map((i) => [i.id, i]));
+    const now = new Map((cur.components?.instances ?? []).map((i) => [i.id, i]));
+    const label = (i: Instance) => `${i.prefix} · ${imports.get(i.importId)?.name ?? i.importId}`;
+    const changes: ChangeItem[] = [];
+    const detail = (field: keyof Instance, fieldLabel: string, oldValue: unknown, newValue: unknown): ChangeDetail => ({
+      field,
+      fieldLabel,
+      oldValue,
+      newValue,
+      valueType: valueTypeOf(newValue ?? oldValue),
+    });
+    /** Keyed entries of two lists → a detail per added / removed / changed entry. */
+    const keyed = <T>(
+      out: ChangeDetail[],
+      field: keyof Instance,
+      a: readonly T[] | undefined,
+      b: readonly T[] | undefined,
+      key: (x: T) => string,
+      fieldLabel: (k: string) => string,
+      value: (x: T) => string,
+    ) => {
+      const am = new Map((a ?? []).map((x) => [key(x), value(x)]));
+      const bm = new Map((b ?? []).map((x) => [key(x), value(x)]));
+      for (const k of new Set([...am.keys(), ...bm.keys()])) {
+        if (am.get(k) !== bm.get(k)) out.push(detail(field, fieldLabel(k), am.get(k), bm.get(k)));
+      }
+    };
+    for (const [id, i] of now) {
+      const old = before.get(id);
+      if (!old) {
+        changes.push({ type: "added", id, name: label(i), description: "Component instance added" });
+        continue;
+      }
+      const snapshot = imports.get(i.importId)?.snapshot;
+      const asm = new Map((snapshot?.assumptions ?? []).map((a) => [a.id, a.displayId]));
+      const threats = new Map(
+        [...(snapshot?.threats?.perElementTables ?? []), ...(snapshot?.threats?.perInteractionTables ?? [])]
+          .flatMap((t) => t.threats)
+          .map((t) => [t.id, t.displayId]),
+      );
+      const claims = new Map((snapshot?.concept?.claims ?? []).map((c) => [c.id, c.displayId]));
+      const ees = new Map((snapshot?.dfd?.elements ?? []).map((e) => [e.id, e.name]));
+      const details: ChangeDetail[] = [];
+      if (old.prefix !== i.prefix) details.push(detail("prefix", "Prefix", old.prefix, i.prefix));
+      if ((old.quantity ?? 1) !== (i.quantity ?? 1)) details.push(detail("quantity", "Quantity", old.quantity ?? 1, i.quantity ?? 1));
+      keyed(details, "eeMapping", old.eeMapping, i.eeMapping, (m) => m.componentEeId, (k) => `EE ${ees.get(k) ?? k}`, (m) => names.get(m.machineTfId) ?? m.machineTfId);
+      {
+        // An assumption: only what changed — status, rationale, evidence —
+        // not the unchanged evidence on both sides (manual test 2026-11-17).
+        type Asm = NonNullable<Instance["assumptions"]>[number];
+        const evidenceOf = (a: Asm) =>
+          [...(a.evidence?.mitigationIds ?? []), ...(a.evidence?.elementIds ?? []).map((e) => names.get(e) ?? e), ...(a.evidence?.note ? [a.evidence.note] : [])].join(", ");
+        const whole = (a: Asm) => {
+          const evidence = evidenceOf(a);
+          return `${a.status}${a.rationale ? ` (${a.rationale})` : ""}${evidence ? ` [evidence: ${evidence}]` : ""}`;
+        };
+        const am = new Map((old.assumptions ?? []).map((a) => [a.assumptionId, a]));
+        const bm = new Map((i.assumptions ?? []).map((a) => [a.assumptionId, a]));
+        for (const k of new Set([...am.keys(), ...bm.keys()])) {
+          const a = am.get(k);
+          const b = bm.get(k);
+          const name = asm.get(k) ?? k;
+          if (!a || !b) {
+            details.push(detail("assumptions", name, a ? whole(a) : undefined, b ? whole(b) : undefined));
+            continue;
+          }
+          if (a.status !== b.status) details.push(detail("assumptions", name, a.status, b.status));
+          if ((a.rationale ?? "") !== (b.rationale ?? "")) details.push(detail("assumptions", `${name} rationale`, a.rationale, b.rationale));
+          if (evidenceOf(a) !== evidenceOf(b)) details.push(detail("assumptions", `${name} evidence`, evidenceOf(a) || undefined, evidenceOf(b) || undefined));
+        }
+      }
+      keyed(details, "relevanceOverrides", old.relevanceOverrides, i.relevanceOverrides, (o) => o.threatKey, (k) => `Relevance ${threats.get(k) ?? k}`, (o) => `${o.relevance} (${o.rationale})`);
+      keyed(details, "measureOverrides", old.measureOverrides, i.measureOverrides, (o) => o.measureId, (k) => `Not effective here ${k}`, (o) => o.rationale);
+      keyed(
+        details,
+        "pathOverlays",
+        old.pathOverlays,
+        i.pathOverlays,
+        (o) => `${o.treeKey}|${o.pathKey}|${o.leafId ?? ""}`,
+        (k) => `Window of opportunity ${k.split("|").filter(Boolean).slice(1).join(" · ")}`,
+        (o) => o.windowOfOpportunity,
+      );
+      keyed(details, "citedClaims", old.citedClaims, i.citedClaims, (c) => c.claimId, (k) => `Cited ${claims.get(k) ?? k}`, (c) => c.requirements.join(", "));
+      const reviews = (x: Instance) => Object.keys(x.reviewBasis ?? {}).length;
+      if (reviews(old) !== reviews(i)) details.push(detail("reviewBasis", "Reviews open", reviews(old), reviews(i)));
+      if (details.length > 0) {
+        changes.push({ type: "modified", id, name: label(i), description: `Component instance modified: ${details.length} change(s)`, details });
+      }
+    }
+    for (const [id, i] of before) {
+      if (!now.has(id)) changes.push({ type: "deleted", id, name: label(i), description: "Component instance deleted" });
+    }
+    return changes;
+  }
+
   private compareById<T extends { id: string }>(
     current: readonly T[],
     previous: readonly T[],

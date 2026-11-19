@@ -19,7 +19,14 @@ import type {
   DFDViewMode,
   AssetRelation,
   DFDElementType,
+  ComponentImportRunner,
+  ComponentMultiprocessInfo,
+  DFDPage,
+  ValidationFinding,
 } from "../models/dfd-types";
+import { lockedPageIdsOf } from "../services/leveled/locked-pages";
+import { withExternalFindings } from "../utils/with-external-findings";
+import type { FindingOwnerOf } from "../utils/finding-ownership";
 
 import type { DFDAsset } from "../models/dfd-asset-types";
 import type { ControlInstance } from "shared/models/control-instance";
@@ -52,7 +59,8 @@ import {
 } from "../asset-graph";
 import { DFDToolbar } from "./dfd-toolbar";
 import { AssetAssignmentDialog } from "./asset-assignment-dialog";
-import { DFDDetailsPanel } from "./dfd-details-panel";
+import { COMPONENT_TAB, DFDDetailsPanel } from "./dfd-details-panel";
+import type { TabRequest } from "./forms/element-form-shell";
 import { ModelFieldProvider } from "./forms/model-field-inputs";
 import type { VisibilityElement, VisibilityFlowInput } from "shared";
 import { DFDConfigDialog } from "./dfd-config-dialog";
@@ -97,6 +105,12 @@ export interface DFDTabProps {
    * object per request. Opens the drawing and selects the element.
    */
   elementFocusRequest?: ElementFocusRequest | null;
+  /**
+   * Run a component runner (update / refresh) started outside the DFD tab —
+   * e.g. from the Overview's component accordion (6d): a new object per
+   * request; the same single path into the editor as from the details panel.
+   */
+  componentRunRequest?: { readonly runner: ComponentImportRunner } | null;
   /** Component under evaluation of the Compliance tab — the element forms ask the component's settings on it (CM-6). */
   complianceComponentId?: string;
   /**
@@ -144,6 +158,29 @@ export interface DFDTabProps {
    * the question when a linked definition is lost (app layer).
    */
   threatCountOf?: (tfId: string) => number;
+  /**
+   * Multi-project TARA (design v3 §5): the app's import flow; present =
+   * the toolbar offers "Import component TARA…" (with the draw.io plugin).
+   */
+  onImportComponent?: ComponentImportRunner;
+  /**
+   * Multi-project TARA (design v3 §6.6): the multiprocesses of imported
+   * components (instance multiprocess and the component's own decomposed
+   * ones) — their pages are not renumbered.
+   */
+  importedMultiprocessIds?: readonly string[];
+  /** Multi-project TARA: details of an imported multiprocess (by tfId). */
+  componentInfoOf?: (tfId: string) => ComponentMultiprocessInfo | undefined;
+  /** Owner of a finding on an imported component's cell (multi-project TARA phase 4a). */
+  findingOwnerOf?: FindingOwnerOf;
+  /** Assets / elements an imported component owns (id → owner label) — locked in the asset graph (phase 4a-3). */
+  lockedBy?: (id: string) => string | undefined;
+  /** Findings of other layers (e.g. imported components), shown with the DFD's own. */
+  externalFindings?: {
+    errors: ValidationFinding[];
+    warnings: ValidationFinding[];
+    infos: ValidationFinding[];
+  };
 }
 
 // ==================== COMPONENT ====================
@@ -157,8 +194,15 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   securityDrifts,
   assetUsage,
   threatCountOf,
+  onImportComponent,
+  importedMultiprocessIds,
+  externalFindings,
+  componentInfoOf,
+  findingOwnerOf,
+  lockedBy,
   graphFocusRequest,
   elementFocusRequest,
+  componentRunRequest,
   hazards,
   assetRegistry,
   labelVocabulary,
@@ -178,6 +222,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // section — selectedElementId is the logical record it shows.
   const [selectedCellRef, setSelectedCellRef] = useState<CellRef | null>(null);
   const [detailsPanelOpen, setDetailsPanelOpen] = useState(false);
+  // A tab of the element form opened on purpose (a finding, "Show in DFD").
+  const [tabRequest, setTabRequest] = useState<TabRequest | null>(null);
   const [showAutoNumberConfig, setShowAutoNumberConfig] = useState(false);
   const [autoNumberingConfig, setAutoNumberingConfig] =
     useState<DFDAutoNumberingConfig>(
@@ -239,8 +285,17 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   // Stabilize options object — inline object literal creates new reference
   // on every render, causing useDFDEditor internals to reset.
+  // Read at numbering time (stable function, no editor re-init).
+  const lockedPagesRef = useRef<{ mps?: readonly string[]; pages?: readonly DFDPage[] }>({});
+  lockedPagesRef.current = { mps: importedMultiprocessIds, pages: project.dfd?.pages };
+  const getLockedPageIds = useCallback(
+    () => lockedPageIdsOf(lockedPagesRef.current.pages, lockedPagesRef.current.mps),
+    [],
+  );
+
   const editorOptions = useMemo(
     () => ({
+      getLockedPageIds,
       onUpdate,
       onDirtyChange,
       darkMode,
@@ -251,10 +306,23 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       autoNumberingConfig,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [darkMode, handleSelectionChanged, autoNumberingConfig],
+    [darkMode, handleSelectionChanged, autoNumberingConfig, getLockedPageIds],
   );
 
   const editor = useDFDEditor(project, editorOptions);
+
+  // Pages of imported components are read-only in the editor (§6.2).
+  const lockedPageKey = [...lockedPageIdsOf(project.dfd?.pages, importedMultiprocessIds)].sort().join("|");
+  const { pluginReady, setLockedPages } = editor;
+  useEffect(() => {
+    if (pluginReady) void setLockedPages(lockedPageKey ? lockedPageKey.split("|") : []);
+  }, [pluginReady, setLockedPages, lockedPageKey]);
+
+  // The DFD's own findings plus those of other layers (imported components).
+  const shownValidation = useMemo(
+    () => withExternalFindings(editor.validation, externalFindings),
+    [editor.validation, externalFindings],
+  );
 
   // Stabilize graphContext — new DFDGraphAnalysisContext() on every render
   // causes all consumers to remount. useMemo ensures stable reference.
@@ -301,7 +369,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         displayId: a.displayId,
         name: a.name,
         assetGroup: a.assetGroup,
-        protectionNeed: a.protectionNeed,
       })),
     [dfd?.assets],
   );
@@ -324,12 +391,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       // before this callback returns and the real assetId reaches the Selector.
       let created!: DFDAsset;
       scheduleSave((base) => {
-        const { newDfd, asset } = createAsset(
-          name,
-          assetGroup,
-          undefined,
-          base,
-        );
+        const { newDfd, asset } = createAsset(name, assetGroup, base);
         created = asset;
         return {
           dfd: newDfd,
@@ -344,7 +406,6 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         displayId: created.displayId,
         name: created.name,
         assetGroup: created.assetGroup,
-        protectionNeed: created.protectionNeed,
       };
     },
     [createAsset, scheduleSave, project.phaseStatus],
@@ -418,7 +479,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       // Same base-threading fix as handleCreateAsset — never build the new
       // asset on a stale project.dfd while another save is pending.
       scheduleSave((base) => {
-        const { newDfd } = createAsset("", assetGroup, undefined, base);
+        const { newDfd } = createAsset("", assetGroup, base);
         return {
           dfd: newDfd,
           phaseStatus: project.phaseStatus,
@@ -432,6 +493,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   // Delete asset and all its relations atomically
   const handleDeleteAsset = useCallback(
     (assetId: string) => {
+      // An imported component's asset goes only with its instance (phase 4a-3).
+      if (lockedBy?.(assetId)) return;
       // Build on scheduleSave's `base` (a pending edit may be fresher than
       // project.dfd) and report the deletion upward: the app layer removes
       // the asset from every other store (asset store, hazards, risks).
@@ -445,7 +508,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         };
       });
     },
-    [deleteAsset, scheduleSave, project.phaseStatus],
+    [deleteAsset, scheduleSave, project.phaseStatus, lockedBy],
   );
 
   // ==================== EXPORT/IMPORT HOOK ====================
@@ -478,6 +541,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       setPageTabInfo: async () => {},
       syncPages: async () => ({ success: false }),
       setContextCells: async () => {},
+      setLockedPages: async () => {},
       exportPageSvgs: async () => ({ success: false }),
     },
     {
@@ -486,6 +550,8 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       savePages: editor.savePages,
       scheduleSave: () => {},
       scheduleDrawioSave: () => {},
+      getBase: () => undefined,
+      commitXml: () => null,
       queueA2AOps: editor.queueA2AOps,
       commitA2AOps: () => {},
       flush: editor.flushDebouncedSave,
@@ -715,6 +781,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
   const handleNotificationNavigation = useCallback(
     (id: string) => {
+      // A finding of an imported component's multiprocess: its tab "Component" (review 2026-11-13).
+      if (componentInfoOf?.(id)) {
+        setTabRequest({ tab: COMPONENT_TAB });
+        setDetailsPanelOpen(true);
+      }
       const asset = dfd?.assets?.find((a) => a.id === id || a.displayId === id);
 
       if (viewMode === "describe") {
@@ -748,7 +819,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       }
       editor.selectCell(id);
     },
-    [editor, dfd, viewMode, revealInDescription, setViewMode],
+    [editor, dfd, viewMode, revealInDescription, setViewMode, componentInfoOf],
   );
   // ── Asset graph view (D2, phase 2) ──────────────────────────────────────
   const assetGraphSource = useMemo(
@@ -809,6 +880,26 @@ export const DFDTab: React.FC<DFDTabProps> = ({
   );
 
   useElementFocusRequest(elementFocusRequest, viewMode, setViewMode, editor.pluginReady, editor.selectCell);
+  // "Show in DFD" naming a tab (the Overview's component instances): open it.
+  useEffect(() => {
+    if (!elementFocusRequest?.tab) return;
+    setTabRequest({ tab: elementFocusRequest.tab });
+    setDetailsPanelOpen(true);
+  }, [elementFocusRequest]);
+
+  // A component runner from another tab (6d): the drawing, then the editor's
+  // runner path once — like the details panel's "Update…".
+  const handledRun = useRef<typeof componentRunRequest>(null);
+  useEffect(() => {
+    if (!componentRunRequest || handledRun.current === componentRunRequest) return;
+    if (viewMode !== "draw") {
+      setViewMode("draw");
+      return;
+    }
+    if (!editor.pluginReady) return;
+    handledRun.current = componentRunRequest;
+    void editor.insertComponent(componentRunRequest.runner);
+  }, [componentRunRequest, viewMode, setViewMode, editor]);
 
   useEffect(() => {
     if (!graphFocusRequest) return;
@@ -850,7 +941,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         isDirty={editor.isDirty}
-        validation={editor.validation}
+        validation={shownValidation}
         stats={editor.stats ?? null}
         darkMode={darkMode}
         onToggleDarkMode={handleToggleDarkMode}
@@ -862,6 +953,11 @@ export const DFDTab: React.FC<DFDTabProps> = ({
         onImport={exportImport.promptImport}
         onSave={handleSave}
         onInsertContext={leveled.parse && editor.pluginReady ? insertContext.open : undefined}
+        onImportComponent={
+          onImportComponent && editor.pluginReady
+            ? () => void editor.insertComponent(onImportComponent)
+            : undefined
+        }
         onAutoNumberPage={leveled.parse ? leveled.page.autoNumberPage : undefined}
         getCurrentPageName={leveled.page.currentPageName}
         getPageNumberingBlocker={leveled.page.pageNumberingBlocker}
@@ -980,6 +1076,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
               rightInset={0}
               darkMode={darkMode}
               pageScope={leveled.pageScope}
+              lockedBy={lockedBy}
             />
           </Box>
 
@@ -991,6 +1088,9 @@ export const DFDTab: React.FC<DFDTabProps> = ({
             onToggle={() => setDetailsPanelOpen((prev) => !prev)}
             onClose={() => setDetailsPanelOpen(false)}
             element={selectedElement}
+            componentInfo={selectedElement ? componentInfoOf?.(selectedElement.id) : undefined}
+            onRunComponent={editor.pluginReady ? (runner) => void editor.insertComponent(runner) : undefined}
+            tabRequest={tabRequest}
             connection={selectedConnection}
             onChange={(updates) => {
               if (selectedElement) {
@@ -1031,13 +1131,14 @@ export const DFDTab: React.FC<DFDTabProps> = ({
 
       {/* Notifications Panel — validation errors/warnings + security gaps */}
       <DFDNotificationsPanel
-        validation={editor.validation}
+        validation={shownValidation}
         controlInstances={controlInstances}
         securityDrifts={securityDrifts}
         elements={project.dfd?.elements ?? []}
         connections={project.dfd?.connections ?? []}
         onApply={handleApplyControlSuggestion}
         onSelectCell={handleNotificationNavigation}
+        ownerOf={findingOwnerOf}
       />
 
       {/* Preview Dialog */}

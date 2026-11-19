@@ -17,6 +17,8 @@ interface OpenProjectDialogProps {
   onOpenFile?: (filePath: string) => void;
   // Browser mode: called with parsed project JSON from the file input.
   onImportFile?: (project: any) => void;
+  /** The folder the file dialog starts in (the open project's); absent = home. */
+  defaultDir?: string;
   onClose: () => void;
 }
 
@@ -25,6 +27,7 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
   onOpen,
   onOpenFile,
   onImportFile,
+  defaultDir,
   onClose,
 }) => {
   const { t } = useTranslation();
@@ -67,7 +70,7 @@ export const OpenProjectDialog: React.FC<OpenProjectDialogProps> = ({
     if (!isElectron || !onOpenFile) return;
 
     try {
-      const result = await (window as any).electron.file.openDialog();
+      const result = await (window as any).electron.file.openDialog(defaultDir);
 
       if (result.success && result.data) {
         // Close dialog first, then notify parent with the resolved path.

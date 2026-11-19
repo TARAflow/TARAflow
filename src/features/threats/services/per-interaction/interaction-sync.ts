@@ -259,6 +259,10 @@ export class InteractionThreatSync {
         connection.excludeFromThreatGen ||
         (connection as any)?.properties?.excludeFromThreatGen;
       if (isExcluded) continue;
+      // A flow inside an imported component carries the component's threats
+      // (§7.1); a boundary flow keeps the machine-side perspective.
+      const excluded = project.excludedElementIds;
+      if (excluded?.has(connection.from) && excluded.has(connection.to)) continue;
 
       // Flows the generator never covers (no trust boundary on either side,
       // e.g. External Entity → External Entity) are out of scope, not missing:
@@ -284,6 +288,7 @@ export class InteractionThreatSync {
     // Find missing interfaces
     const missingInterfaces: DFDElementReference[] = [];
     for (const interfaceId of interfaceIds) {
+      if (project.excludedElementIds?.has(interfaceId)) continue;
       if (!threatenedInterfaces.has(interfaceId)) {
         const element = graph.elementsById.get(interfaceId);
         if (element) {

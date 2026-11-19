@@ -206,6 +206,38 @@ describe("Overview sub-tabs (A-1)", () => {
     expect(usage.className).toContain("text-red-700");
   });
 
+  it("phase 3c: an assumption names the measures relying on it; shown read-only, unknown ones are a finding", () => {
+    const onUpdate = vi.fn();
+    const props = {
+      phases: PHASES,
+      progressPhaseIds: [0],
+      getStatusIcon: () => "",
+      getStatusColor: () => "",
+      onUpdate,
+      projectId: "P9",
+      measureOptions: [{ id: "M-C-001", label: "M-C-001 Locked cabinet" }, { id: "M-T-001", label: "M-T-001 Integrity check" }],
+    };
+    const withAssumption = (mitigationIds?: string[]) => ({
+      ...data,
+      itemDefinition: { sections: {}, functions: [], assumptions: [{ id: "a1", displayId: "ASM-01", text: "Panel locked", status: "confirmed" as const, ...(mitigationIds ? { mitigationIds } : {}) }] },
+    });
+    const { unmount } = render(<GeneralTab data={withAssumption()} {...props} />);
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    const card = screen.getByTestId("item-definition-assumptions");
+    fireEvent.click(within(card).getByText("Edit"));
+    const select = within(card).getByTestId("assumption-measures-edit-ASM-01") as HTMLSelectElement;
+    for (const o of Array.from(select.options)) o.selected = o.value === "M-C-001";
+    fireEvent.change(select);
+    fireEvent.click(within(card).getByText("Save"));
+    expect((onUpdate.mock.calls.at(-1)![0] as GeneralTabData).itemDefinition?.assumptions[0].mitigationIds).toEqual(["M-C-001"]);
+    unmount();
+    render(<GeneralTab data={withAssumption(["M-C-001", "M-X-404"])} {...props} />);
+    fireEvent.click(screen.getByTestId("overview-view-definition"));
+    expect(screen.getByTestId("assumption-measures-ASM-01").textContent).toContain("M-C-001, M-X-404");
+    const codes = [...screen.getByTestId("item-definition-findings").querySelectorAll("li")].map((li) => li.getAttribute("data-code"));
+    expect(codes).toContain("ITEM_ASSUMPTION_MEASURE_UNKNOWN");
+  });
+
   it("A-4: under iso-21434 the missing sections are findings, counted on the Definition tab", () => {
     view(vi.fn(), "P1", { ...data, info: { ...data.info, tags: { ...data.info.tags, regulation: ["ISO/SAE 21434"] } } });
     expect(screen.getByTestId("overview-view-definition-badge").textContent).toBe("3");

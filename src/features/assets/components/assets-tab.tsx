@@ -101,6 +101,17 @@ export interface AssetTabProps {
    * the app layer. Given → threat ↔ goal cross-checks in the findings panel.
    */
   threatLinks?: ThreatGoalLink[];
+  /**
+   * How many identical units an asset stands for (an imported component's
+   * instance with a quantity, I5); absent / 1 = one. The dialog asks whether
+   * its impact covers all units failing together.
+   */
+  unitsOf?: (assetId: string) => number;
+  /**
+   * An imported asset's component goal types (phase 4a-2): not removable,
+   * requirement text read-only; findings on them belong to the component.
+   */
+  componentGoalsOf?: (assetId: string) => readonly string[] | undefined;
 }
 
 // ==================== VIEW MEMORY ====================
@@ -138,6 +149,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   tableHighlightRequest,
   assetUsage,
   threatLinks,
+  unitsOf,
+  componentGoalsOf,
 }) => {
   const { t } = useTranslation();
 
@@ -1001,7 +1014,7 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
         </Box>
 
         {/* Findings — below the table, like the DFD tab */}
-        <AssetNotificationPanel findings={findings} onOpen={handleOpenFinding} />
+        <AssetNotificationPanel findings={findings} onOpen={handleOpenFinding} assets={assetData.assets} componentGoalsOf={componentGoalsOf} relations={assetData.relations} />
       </Box>
       {/* Asset delete confirm — project-wide, blocked by attack-tree anchors */}
       {confirmDeleteAsset && (
@@ -1027,6 +1040,8 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
           focusGoal={dialogFocus?.goal}
           threatLinks={threatLinks}
           assetLinks={assetLinksById.get(selectedAsset.id)}
+          units={unitsOf?.(selectedAsset.id)}
+          componentGoals={componentGoalsOf?.(selectedAsset.id)}
         />
       )}
       {/* Configuration Dialog */}

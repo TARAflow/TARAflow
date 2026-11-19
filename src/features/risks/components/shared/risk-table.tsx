@@ -19,7 +19,7 @@ import type {
 } from "../../models/risk-scale-types";
 import type { RiskColumn } from "./risk-columns";
 import { RISK_SCALES } from "../../models/risk-scale-types";
-import { DataTable } from "shared";
+import { DataTable, compareDisplayIds } from "shared";
 
 // ==================== ROW BACKGROUND COLORS ====================
 
@@ -59,6 +59,16 @@ interface RiskTableProps {
   groupRisks?: Risk[];
 }
 
+/**
+ * Rows in the order of their threat ids, naturally (DF7-T-1 before DF10-T-1)
+ * — a risk that comes back (threat relevant again) takes its place instead
+ * of the end of the table (manual test 2026-11-15). The dialog browses the
+ * group in the same order.
+ */
+export function sortRisksByThreatId(risks: readonly Risk[]): Risk[] {
+  return [...risks].sort((a, b) => compareDisplayIds(a.threatDisplayId, b.threatDisplayId));
+}
+
 export const RiskTable: React.FC<RiskTableProps> = ({
   risks,
   columns,
@@ -67,10 +77,10 @@ export const RiskTable: React.FC<RiskTableProps> = ({
   groupRisks,
 }) => (
   <DataTable<Risk>
-    rows={risks}
+    rows={sortRisksByThreatId(risks)}
     columns={columns}
     getRowId={(risk) => risk.id}
-    group={groupRisks}
+    group={groupRisks ? sortRisksByThreatId(groupRisks) : undefined}
     onRowClick={onEdit}
     rowBackground={(risk) =>
       // ISO/SAE 21434: background by the risk value 1–5 (3a-2).

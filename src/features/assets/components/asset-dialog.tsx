@@ -97,6 +97,28 @@ import { AssetLinkChips } from "./asset-link-chips";
 
 // ==================== TYPES ====================
 
+/**
+ * A rating row for every configured impact criterion (missing ones unrated,
+ * as on a new asset), the asset's own values kept. An asset that came
+ * without ratings — e.g. the assets of an imported component, whose impact
+ * the machine rates (multi-project TARA E5) — showed no criterion to rate
+ * (manual test 2026-11-08). Ratings of criteria no longer configured stay.
+ */
+export function withAllCriteria(
+  ratings: readonly Asset["impactRatings"][number][] | undefined,
+  configuration: Pick<AssetConfiguration, "impactCriteria">,
+): Asset["impactRatings"] {
+  const own = ratings ?? [];
+  const configured = configuration.impactCriteria.map(
+    (c) => own.find((r) => r.criterionId === c.id) ?? { criterionId: c.id, value: null },
+  );
+  const ids = new Set(configuration.impactCriteria.map((c) => c.id));
+  return [...configured, ...own.filter((r) => !ids.has(r.criterionId))];
+}
+
+/** Asset groups whose harm is what safety is about — the safety card always shows. */
+const SAFETY_CENTRAL_GROUPS: ReadonlySet<string> = new Set(["human", "physical", "infrastructure"]);
+
 interface AssetDialogProps {
   open: boolean;
   asset: Asset;
@@ -119,6 +141,19 @@ interface AssetDialogProps {
   threatLinks?: ThreatGoalLink[];
   /** Asset-to-asset links of this asset (read-only display). */
   assetLinks?: readonly AssetLink[];
+  /**
+   * Identical units the asset stands for (I5); above 1 a hint asks whether
+   * the impact covers all of them failing together — the same weakness hits
+   * every unit at once (review 2026-11-08).
+   */
+  units?: number;
+  /**
+   * The security goal types the asset's component has active — only for an
+   * imported asset (phase 4a-2): those cannot be removed and keep the
+   * component's requirement text; the machine may add others (rationale
+   * required, as for any manual goal).
+   */
+  componentGoals?: readonly string[];
 }
 
 interface TabPanelProps {
@@ -169,6 +204,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   focusGoal,
   threatLinks,
   assetLinks,
+  units,
+  componentGoals,
 }) => {
   const { t } = useTranslation();
 
@@ -182,6 +219,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   const [editedAsset, setEditedAsset] = useState<Asset>(() => {
     const base = {
       ...asset,
+      impactRatings: withAllCriteria(asset.impactRatings, configuration),
       securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
     };
     // Apply graph suggestions immediately so pre-suggested goals open as checked
@@ -201,6 +239,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
   useEffect(() => {
     const base = {
       ...asset,
+      impactRatings: withAllCriteria(asset.impactRatings, configuration),
       securityGoals: normalizeSecurityGoals(asset.securityGoals ?? []),
     };
     setEditedAsset({
@@ -598,6 +637,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
       onDescription={(text) => handleSecurityGoalDescription(goal.type, text)}
       onConsequence={(text) => handleSecurityGoalConsequence(goal.type, text)}
       onUseTemplate={() => handleUseTemplate(goal.type)}
+      lockedBy={editedAsset.importedFrom && componentGoals?.includes(goal.type) ? editedAsset.importedFrom : undefined}
     />
   );
 
@@ -664,6 +704,16 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
           overflow: "hidden",
         }}
       >
+        {/* Imported from a component (phase 4a-2): what is read-only here */}
+        {editedAsset.importedFrom && (
+          <Alert severity="info" sx={{ borderRadius: 0 }} data-testid="asset-imported-from">
+            {t("tabs.assets.dialog.importedFrom", {
+              component: editedAsset.importedFrom,
+              defaultValue:
+                "From {{component}}: name, description, DFD links and the component's security goals are read-only here. Impact, damage scenarios and further goals are rated by this machine.",
+            })}
+          </Alert>
+        )}
         {/* Tabs */}
         <Tabs
           value={tabValue}
@@ -770,7 +820,9 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                     fullWidth
                     size="small"
                     required
-                    autoFocus
+                    autoFocus={!editedAsset.importedFrom}
+                    disabled={!!editedAsset.importedFrom}
+                    inputProps={{ "data-testid": "asset-name" }}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -788,6 +840,8 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                         },
                       })
                     }
+                    disabled={!!editedAsset.importedFrom}
+                    inputProps={{ "data-testid": "asset-description" }}
                     fullWidth
                     multiline
                     rows={2}
@@ -1027,8 +1081,34 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                   defaultValue: "Impact Ratings",
                 })}
               </Typography>
+              {(units ?? 1) > 1 && (
+                <Alert severity="info" sx={{ mb: 1.5 }} data-testid="asset-units-hint">
+                  {t("tabs.assets.dialog.unitsHint", {
+                    count: units,
+                    defaultValue:
+                      "×{{count}}: this asset stands for {{count}} identical units. The same weakness hits all of them at once — does the impact cover all units failing together?",
+                  })}
+                </Alert>
+              )}
               <Grid container spacing={2}>
                 {editedAsset.impactRatings.map((rating) => {
+                  // Safety without a value and not settable (no derived
+                  // safety impact, no manual override) only confused —
+                  // hidden until there is something to show or set
+                  // (manual test 2026-11-08); the override checkbox above
+                  // brings it back. People, physical and infrastructure
+                  // assets always show it: harm to them is what safety is
+                  // about — with where the value comes from.
+                  const safetyCentral = SAFETY_CENTRAL_GROUPS.has(editedAsset.assetGroup);
+                  if (
+                    rating.criterionId === SAFETY_CRITERION_ID &&
+                    !isPhysicalManual &&
+                    !editedAsset.physicalImpact &&
+                    rating.value !== "na" &&
+                    !safetyCentral
+                  ) {
+                    return null;
+                  }
                   const criterion = PREDEFINED_IMPACT_CRITERIA.find(
                     (c) => c.id === rating.criterionId,
                   );
@@ -1061,6 +1141,7 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                           </Tooltip>
                         </Stack>
                         {rating.criterionId === SAFETY_CRITERION_ID ? (
+                          <>
                           <SafetySeveritySelect
                             manual={isPhysicalManual}
                             value={
@@ -1071,6 +1152,21 @@ export const AssetDialog: React.FC<AssetDialogProps> = ({
                             derived={editedAsset.physicalImpact}
                             onChange={handleSafetySeverityChange}
                           />
+                          {!isPhysicalManual && !editedAsset.physicalImpact && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                              sx={{ mt: 0.5 }}
+                              data-testid="asset-safety-source-hint"
+                            >
+                              {t("tabs.assets.dialog.safetySourceHint", {
+                                defaultValue:
+                                  "Derived from safety annotations in the DFD or from hazard items (safety-relevant projects). Without either: set it with the manual safety impact override above.",
+                              })}
+                            </Typography>
+                          )}
+                          </>
                         ) : (
                         <Select
                           value={

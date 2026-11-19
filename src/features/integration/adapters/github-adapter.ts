@@ -19,6 +19,7 @@ import {
   type CreateTicketInput,
   type CreateTicketResult,
   type TicketCategory,
+  type TicketQuery,
   type TicketState,
   type TicketSummary,
 } from "shared/models/ticket-types";
@@ -98,17 +99,38 @@ export class GitHubAdapter implements TicketAdapter {
     };
   }
 
-  async fetchTickets(projectKey: string, issueType: string): Promise<TicketSummary[]> {
-    const label = issueType && issueType !== "__all__" && issueType !== PLAIN_ISSUE ? `&labels=${encodeURIComponent(issueType)}` : "";
-    const res = await trackerRequest<Json[]>(
-      this.ref,
-      "GET",
-      `${this.rest}/repos/${projectKey.split("/").map(encodeURIComponent).join("/")}/issues?state=open&sort=updated&per_page=50${label}`,
-      undefined,
-      HEADERS,
-    );
-    if (!res.ok) return [];
-    return (res.data ?? [])
+  async fetchTickets(projectKey: string, issueType: string, query: TicketQuery = {}): Promise<TicketSummary[]> {
+    const typed = issueType && issueType !== "__all__" && issueType !== PLAIN_ISSUE;
+    const scope = query.scope ?? "active";
+    const state = scope === "active" ? "open" : scope === "done" ? "closed" : "all";
+    const text = query.text?.trim().replace(/^#/, "") ?? "";
+    let issues: Json[];
+    if (text) {
+      // The list endpoint has no text filter: the search API ("in:title" plus
+      // the number — "#12" or "12" finds issue 12 too).
+      const q = [
+        `repo:${projectKey}`,
+        "is:issue",
+        ...(state === "all" ? [] : [`state:${state}`]),
+        ...(typed ? [`label:"${issueType.replace(/"/g, "")}"`] : []),
+        /^\d+$/.test(text) ? text : `${text} in:title`,
+      ].join(" ");
+      const res = await trackerRequest<Json>(this.ref, "GET", `${this.rest}/search/issues?q=${encodeURIComponent(q)}&sort=updated&per_page=50`, undefined, HEADERS);
+      if (!res.ok) return [];
+      issues = res.data?.items ?? [];
+    } else {
+      const label = typed ? `&labels=${encodeURIComponent(issueType)}` : "";
+      const res = await trackerRequest<Json[]>(
+        this.ref,
+        "GET",
+        `${this.rest}/repos/${projectKey.split("/").map(encodeURIComponent).join("/")}/issues?state=${state}&sort=updated&per_page=50${label}`,
+        undefined,
+        HEADERS,
+      );
+      if (!res.ok) return [];
+      issues = res.data ?? [];
+    }
+    return issues
       .filter((i: Json) => !i.pull_request)
       .map((i: Json) => {
         const labels = (i.labels ?? []).map((l: Json) => (typeof l === "string" ? l : l.name));

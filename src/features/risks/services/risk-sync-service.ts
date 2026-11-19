@@ -36,6 +36,7 @@ import {
 } from "shared";
  import {
    applyAssetCriteriaToFactorRatings,
+   applyFactorPrefill,
    calculateRiskValues,
    setAttackTreeLikelihoodFactor,
    type TreeLikelihoodContribution,
@@ -530,6 +531,34 @@ function resolveLinkedAssets(
     .filter((a): a is AssetReference => a !== undefined);
 }
 
+/**
+ * A risk with its "before" values recalculated from its factor ratings —
+ * the same gate as the sync (linked assets from the risk). For callers that
+ * change ratings outside the risk dialog (e.g. copying the ratings of one
+ * component instance to another, multi-project TARA I5).
+ */
+export function recalculateRiskValues(
+  risk: Risk,
+  configuration: RiskConfiguration,
+  assetDataRef?: AssetDataReference,
+): Risk {
+  const before = calculateGatedRiskValues(
+    risk.factorRatings,
+    configuration,
+    resolveLinkedAssets(risk.linkedAssetIds, assetDataRef),
+  );
+  return {
+    ...risk,
+    calculatedImpact: before.impact,
+    calculatedLikelihood: before.likelihood,
+    calculatedRiskBeforeMitigation: before.risk,
+    calculatedSrsl: before.srsl,
+    calculatedApScore: before.apScore,
+    calculatedApBand: before.apBand,
+    lastModified: new Date().toISOString(),
+  };
+}
+
 // ==================== FACTOR RATINGS RECONCILIATION ====================
 
 /**
@@ -690,6 +719,8 @@ export function syncRisksFromThreats(
       threat,
       dfd,
     );
+    // Imported component: its intrinsic factor values (§7.2, patch 16).
+    updatedFactorRatings = applyFactorPrefill(updatedFactorRatings, threat.factorPrefill);
 
     const ratingsChanged = !sameContent(updatedFactorRatings, reconciledRatings);
 
@@ -781,6 +812,8 @@ export function syncRisksFromThreats(
       threat,
       dfd,
     );
+    // Imported component: its intrinsic factor values (§7.2, patch 16).
+    factorRatings = applyFactorPrefill(factorRatings, threat.factorPrefill);
 
     const beforeValues = calculateGatedRiskValues(
       factorRatings,

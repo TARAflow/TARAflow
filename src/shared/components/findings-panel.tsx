@@ -37,6 +37,11 @@ export interface PanelFinding {
   text: string;
   /** A click opens the object the finding is about. */
   clickable: boolean;
+  /**
+   * Fixed elsewhere — e.g. in an imported component's TARA (multi-project
+   * TARA phase 4a): shown as a chip with a tooltip.
+   */
+  owner?: { label: string; tooltip: string };
 }
 
 /** The panel's own texts, in the UI language. */
@@ -300,6 +305,17 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({ findings, onOpen, 
                 <Typography variant="caption" sx={{ flexGrow: 1, minWidth: 0 }}>
                   {f.text}
                 </Typography>
+                {f.owner && (
+                  <Tooltip title={f.owner.tooltip}>
+                    <Chip
+                      label={f.owner.label}
+                      size="small"
+                      variant="outlined"
+                      data-testid={`${testIdPrefix}-owner`}
+                      sx={{ height: 20, fontSize: "0.72rem", flexShrink: 0, borderStyle: "dashed" }}
+                    />
+                  </Tooltip>
+                )}
                 {clickable && (
                   <Tooltip title={labels.open}>
                     <OpenInNewIcon sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }} />

@@ -243,6 +243,13 @@ export interface CommitMessageData {
   projectName?: string;
   /** Stable project id — the machine-readable half of the distinguisher. */
   projectId?: string;
+  /**
+   * The project file, relative to the repository root (POSIX separators):
+   * with several TARA files in one repository the subject says which one a
+   * commit is for (`git log --oneline`), the trailer `Project-File` keeps it
+   * machine-readable.
+   */
+  projectFile?: string;
   batchSize: number; // Total number of changed items
   affectedPhases: string[]; // Phase names
   changes: PhaseChanges[]; // Detailed changes
@@ -287,6 +294,13 @@ export interface AuditProjectData {
   threats: any;
   risks: any;
   attackTrees: any;
+  /**
+   * Imported components (schema 14) — diffed and named in the commit message
+   * like the other blocks. Missing here, the diff compared "no components"
+   * with the committed file and reported the import as removed (manual test
+   * 2026-11-17), and a first commit of an import named no component.
+   */
+  components?: any;
   /** Item Definition and goals / claims / verifications — diffed and committed too. */
   itemDefinition?: ItemDefinition;
   cybersecurityConcept?: CybersecurityConcept;
@@ -383,7 +397,9 @@ export interface CommitOptions {
  * change breakdown (body), and a contiguous git-trailer block at the end.
  */
 export function generateCommitMessage(data: CommitMessageData): string {
-  const subject = `[TARA] ${data.round}`;
+  // `[TARA] <round> — <file>`: the round stays first (schema, hook); the file
+  // tells the commits of several TARA files in one repository apart.
+  const subject = `[TARA] ${data.round}${data.projectFile ? ` — ${data.projectFile}` : ""}`;
 
   // ---- Body: human-readable change breakdown ----
   const fmt = (v: any): string =>
@@ -417,6 +433,7 @@ export function generateCommitMessage(data: CommitMessageData): string {
       `Project: ${data.projectName}${data.projectId ? ` [${data.projectId}]` : ""}`,
     );
   }
+  if (data.projectFile) trailers.push(`Project-File: ${data.projectFile}`);
   trailers.push(`Affected-Phases: ${data.affectedPhases.join(", ")}`);
   trailers.push(`Batch-Size: ${data.batchSize}`);
   trailers.push(`Author: ${data.author}`);

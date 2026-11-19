@@ -14,6 +14,7 @@ import { DeleteOutline as DeleteIcon } from "@mui/icons-material";
 import {
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -57,13 +58,43 @@ export function applyClaimChoice(concept: CybersecurityConcept, requirements: re
 export const isUnusedClaim = (c: CybersecurityClaim): boolean =>
   c.kind === "supporting" && (c.requirements ?? []).length === 0 && c.riskIds.length === 0;
 
+/**
+ * A supporting claim of an imported component for a row (multi-project TARA
+ * phase 4c): offered where the component links it to the row's
+ * requirements, citable by the machine. Whether it counts is derived by the
+ * app (its assumptions of use in the instance) — shown as its state.
+ */
+export interface ComponentClaimChoice {
+  key: string;
+  /** "SD1 CLM-03" */
+  displayId: string;
+  statement: string;
+  responsibleParty?: string;
+  /** "SD1 · Smoke Detector" */
+  source: string;
+  state: "effective" | "unclear" | "not_effective";
+  /** Cited for this row's requirements. */
+  cited: boolean;
+}
+
+const CLAIM_STATE_COLOR = { effective: "success", unclear: "warning", not_effective: "error" } as const;
+const CLAIM_STATE_DEFAULT = {
+  effective: "counts here",
+  unclear: "unclear — an assumption of use lacks evidence",
+  not_effective: "not effective here — an assumption of use is not fulfilled",
+} as const;
+
 /** The claims of one row in the info dialog, with "add" and "remove from this row". */
 export const RowClaims: React.FC<{
   concept: CybersecurityConcept;
   requirements: readonly string[];
   onConceptChange: (concept: CybersecurityConcept) => void;
   t: T;
-}> = ({ concept, requirements, onConceptChange, t }) => {
+  /** Claims of imported components for this row (phase 4c); absent / empty = no section. */
+  componentClaims?: readonly ComponentClaimChoice[];
+  /** Cite / withdraw a component claim for this row's requirements. */
+  onCiteComponentClaim?: (key: string, cite: boolean) => void;
+}> = ({ concept, requirements, onConceptChange, t, componentClaims = [], onCiteComponentClaim }) => {
   const [adding, setAdding] = useState(false);
   const claims = claimsOfRequirements(concept, requirements);
   return (
@@ -95,6 +126,40 @@ export const RowClaims: React.FC<{
       <Button size="small" sx={{ mt: 0.5 }} onClick={() => setAdding(true)} data-testid="compliance-add-claim">
         {t("addClaim", "Add claim")}
       </Button>
+      {componentClaims.length > 0 && (
+        <Box sx={{ mt: 1 }} data-testid="compliance-component-claims">
+          <Typography variant="caption" color="text.secondary" display="block">
+            {t(
+              "componentClaims",
+              "Claims of imported components — cited, they count only for that component's elements and only while its assumptions of use hold here",
+            )}
+          </Typography>
+          {componentClaims.map((c) => (
+            <Stack key={c.key} direction="row" spacing={1} alignItems="center" data-testid={`compliance-component-claim-${c.key}`}>
+              <Typography variant="body2" sx={{ flex: 1 }}>
+                <b>{c.displayId}</b> {c.statement}
+                {c.responsibleParty && ` — ${t("responsibleParty", "provided by")}: ${c.responsibleParty}`}
+              </Typography>
+              <Chip
+                size="small"
+                variant="outlined"
+                color={CLAIM_STATE_COLOR[c.state]}
+                label={t(`componentClaimState.${c.state}`, CLAIM_STATE_DEFAULT[c.state])}
+              />
+              {onCiteComponentClaim && (
+                <Button
+                  size="small"
+                  color={c.cited ? "inherit" : "primary"}
+                  onClick={() => onCiteComponentClaim(c.key, !c.cited)}
+                  data-testid={`compliance-cite-${c.key}`}
+                >
+                  {c.cited ? t("uncite", "Withdraw") : t("cite", "Cite")}
+                </Button>
+              )}
+            </Stack>
+          ))}
+        </Box>
+      )}
       {adding && (
         <ClaimDialog
           existing={concept.claims.filter((c) => c.kind === "supporting" && !claims.includes(c))}

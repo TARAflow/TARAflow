@@ -13,6 +13,9 @@ import type {
 import type { StrideCategory } from "../../shared";
 import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../shared";
 import { buildMethodologyRecord } from "./methodology-record";
+import { docResidualView } from "./doc-residual";
+import { docImportedAttackTrees, docImportedComponents, docImportedRiskNotes, docImportedThreats } from "./doc-imported";
+import { componentThreatData } from "../utils/component-threats";
 
 // ==================== LABEL CALCULATION HELPERS ====================
 
@@ -114,6 +117,7 @@ function getStatusLabel(status: string, language: DocLanguage): string {
 function computeDocValues(
   project: Project,
   language: DocLanguage,
+  uncredited?: DocComputedValues["uncreditedResiduals"],
 ): DocComputedValues {
   const impactScale = project.assets?.configuration?.impactScale ?? "4-level";
   // ISO/SAE 21434 names on the 4-level impact scale (display only).
@@ -150,13 +154,30 @@ function computeDocValues(
     statusLabels.set(status, getStatusLabel(status, language));
   });
 
-  // Determine active STRIDE methods based on actual content
+  // The threats of imported components (6a-1), per component and method.
+  const importedThreats = docImportedThreats(project);
+  // …and as records, for the risk chapters (a risk's threat: group, type, anchor).
+  const importedThreatData = componentThreatData(project);
+  const importedThreatRecords = importedThreatData
+    ? [...importedThreatData.perElementTables, ...importedThreatData.perInteractionTables].flatMap((t) => t.threats)
+    : [];
+  const importedRiskNotes = docImportedRiskNotes(project);
+  // Only an ISO/SAE 21434 TARA rates attack paths; otherwise the trees are for information.
+  const importedAttackTrees = docImportedAttackTrees(project, {
+    pathsRated: regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) === "iso-21434",
+  });
+  const importedComponents = docImportedComponents(project);
+  const imports = (method: "per-element" | "per-interaction") =>
+    importedThreats.some((g) => g.method === method && g.threats.length > 0);
+
+  // Determine active STRIDE methods based on actual content (own and imported threats)
   const activeStrideMethods: Array<"per-element" | "per-interaction"> = [];
-  if (project.threats?.perElementTables?.some((t) => t.threats.length > 0)) {
+  if (project.threats?.perElementTables?.some((t) => t.threats.length > 0) || imports("per-element")) {
     activeStrideMethods.push("per-element");
   }
   if (
-    project.threats?.perInteractionTables?.some((t) => t.threats.length > 0)
+    project.threats?.perInteractionTables?.some((t) => t.threats.length > 0) ||
+    imports("per-interaction")
   ) {
     activeStrideMethods.push("per-interaction");
   }
@@ -177,6 +198,14 @@ function computeDocValues(
     verification: docVerificationOf(project, new Date().toISOString().slice(0, 10)),
     // IEC 62443-4-2 requirement matrix (iec-62443-4-2-cra-coverage.md §5).
     compliance: buildDocCompliance(project, language),
+    // Residual risks not credited (I7 (4)) — for the report's note.
+    ...(uncredited && uncredited.size > 0 ? { uncreditedResiduals: uncredited } : {}),
+    // Imported components (6a-1): their threats, the provenance of their risks' ratings.
+    ...(importedThreats.length > 0 ? { importedThreats } : {}),
+    ...(importedThreatRecords.length > 0 ? { importedThreatRecords } : {}),
+    ...(importedRiskNotes.size > 0 ? { importedRiskNotes } : {}),
+    ...(importedAttackTrees.length > 0 ? { importedAttackTrees } : {}),
+    ...(importedComponents.length > 0 ? { importedComponents } : {}),
   };
 }
 
@@ -194,6 +223,8 @@ export function transformProjectToDocData(
   project: Project,
   language: DocLanguage,
 ): DocProjectData {
+  // The credited residual (I7 (4)), applied once for every report reader.
+  const residual = docResidualView(project);
   return {
     // Basic metadata
     id: project.id,
@@ -206,14 +237,14 @@ export function transformProjectToDocData(
     dfd: project.dfd ?? null,
     assets: project.assets ?? null,
     threats: project.threats ?? null,
-    risks: project.risks ?? null,
+    risks: residual.risks,
     attackTree: project.attackTrees ?? null,
     ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
     ...(project.cybersecurityConcept ? { cybersecurityConcept: project.cybersecurityConcept } : {}),
     ...(project.compliance?.componentId ? { complianceComponentId: project.compliance.componentId } : {}),
 
     // Computed values (performance optimization)
-    computed: computeDocValues(project, language),
+    computed: computeDocValues(project, language, residual.uncredited),
 
     // Documentation state
     documentation: project.documentation ?? null,

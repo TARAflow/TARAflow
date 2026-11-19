@@ -21,6 +21,7 @@ import { assetImpactResolver } from "../../assets/services/asset-impact-resolver
 import { getDFDElementTypeText } from "../../dfd/models/dfd-formatters";
 import { getRegulationTags } from "../../../shared/utils/tag-categories";
 import { flattenProjectTags } from "../../../shared/models/project-tags";
+import { uncreditedNote } from "./residual-note";
 import { isoRiskLabel } from "./iso-risk-label";
 import { goalsClaimsOfRisk } from "./cybersecurity-concept-report";
 import { controlLabels, mitigationLabels } from "./control-text";
@@ -257,7 +258,7 @@ export function traceabilityRows(project: DocProjectData, t: TranslationFn): Tra
         `${treatmentI18nKey(risk.treatment, treatmentVocabulary(config))}.label`,
         treatmentFallbackLabel(risk.treatment, treatmentVocabulary(config)),
       ),
-      riskAfter: isoRiskLabel(risk, t, true),
+      riskAfter: [isoRiskLabel(risk, t, true), uncreditedNote(risk.id, project.computed, t)].filter(Boolean).join(" — "),
       goalsClaims: goalsClaimsOfRisk(project.cybersecurityConcept, risk.id),
     };
   });

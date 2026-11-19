@@ -81,7 +81,7 @@ describe("references fit the element types of their rules (D-29)", () => {
 
 describe("the catalog references match the design document (§10)", () => {
   it("same mitigations, same requirement ids", () => {
-    const doc = readFileSync(join(process.cwd(), "doc/InProgress/RegulationCompliance/iec-62443-4-2-cra-coverage.md"), "utf-8");
+    const doc = readFileSync(join(process.cwd(), "doc/Done/RegulationCompliance/iec-62443-4-2-cra-coverage.md"), "utf-8");
     const section = doc.slice(doc.indexOf("## 10. Mitigation catalog references"));
     const fromDoc = Object.fromEntries(
       [...section.matchAll(/^\| (M-[A-Z0-9-]+) \| .*? \| (.*) \|$/gm)].map((m) => [m[1], [...m[2].matchAll(/`([^`]+)`/g)].map((x) => x[1])]),

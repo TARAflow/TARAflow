@@ -13,6 +13,9 @@ import {
   applyTicketStates,
   applyTicketStatesToRisks,
   linkedTicketKeys,
+  statusFromTicket,
+  selectableWithTicket,
+  differsFromTicket,
 } from "features/risks/services/ticket-sync";
 import type { TicketState } from "shared/models/ticket-types";
 import type { SelectedMitigation } from "features/risks/models/risk-mitigation-types";
@@ -106,5 +109,32 @@ describe("over a risk and all risks", () => {
         { selectedMitigations: [m(), m({ ticketId: undefined })] },
       ]),
     ).toEqual(["SCRUM-1", "SCRUM-2"]);
+  });
+});
+
+describe("status with a linked ticket (IT-14, user 2026-11-10)", () => {
+  it("the ticket's status as a mitigation status; none while unknown", () => {
+    expect(statusFromTicket("OPEN")).toBe("open");
+    expect(statusFromTicket("REVIEW")).toBe("in_review");
+    expect(statusFromTicket("CLOSED")).toBe("implemented");
+    expect(statusFromTicket("DECLINED")).toBe("rejected");
+    expect(statusFromTicket("UNKNOWN")).toBeUndefined();
+    expect(statusFromTicket(undefined)).toBeUndefined();
+  });
+
+  it("progress comes from the ticket: left are its status, rejected, verified once done", () => {
+    expect([...selectableWithTicket({ status: "in_progress", ticketStatus: "IN_PROGRESS" })].sort()).toEqual(["in_progress", "rejected"]);
+    expect([...selectableWithTicket({ status: "implemented", ticketStatus: "CLOSED" })].sort()).toEqual(["implemented", "rejected", "verified"]);
+    // an older manual status stays visible, the ticket's is offered beside it
+    expect([...selectableWithTicket({ status: "verified", ticketStatus: "OPEN" })].sort()).toEqual(["open", "rejected", "verified"]);
+    // never synced: only rejected beside the current one
+    expect([...selectableWithTicket({ status: "open", ticketStatus: undefined })].sort()).toEqual(["open", "rejected"]);
+  });
+
+  it("follow the ticket again: only when the status differs from a known ticket status", () => {
+    expect(differsFromTicket({ status: "verified", ticketStatus: "CLOSED" })).toBe(true);
+    expect(differsFromTicket({ status: "implemented", ticketStatus: "CLOSED" })).toBe(false);
+    expect(differsFromTicket({ status: "rejected", ticketStatus: "DECLINED" })).toBe(false);
+    expect(differsFromTicket({ status: "verified", ticketStatus: undefined })).toBe(false);
   });
 });

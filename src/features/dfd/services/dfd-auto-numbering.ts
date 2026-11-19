@@ -63,6 +63,8 @@ interface ElementWithPosition {
 /** One draw.io page prepared for numbering. */
 interface NumberingPage {
   pageId: string;
+  /** A page of an imported component — no numbers are given there. */
+  locked?: boolean;
   /** tfId of the multiprocess this page decomposes (placed child pages). */
   decomposes?: string;
   identities: Map<string, CellIdentity>;
@@ -124,6 +126,12 @@ export class DFDAutoNumbering {
     xml: string,
     pages?: readonly DFDPage[],
     onlyPageId?: string,
+    /**
+     * Pages of imported components (multi-project TARA §6.6): no number is
+     * given there; context copies of machine elements on them still follow
+     * their definition.
+     */
+    lockedPageIds?: ReadonlySet<string>,
   ): string {
     if (!xml || xml.trim() === "") {
       return xml;
@@ -178,6 +186,7 @@ export class DFDAutoNumbering {
         return {
           pageId,
           decomposes,
+          locked: lockedPageIds?.has(pageId) ?? false,
           identities: collectCellIdentities(
             pages?.find((page) => page.pageId === pageId)?.links,
           ),
@@ -745,10 +754,12 @@ export class DFDAutoNumbering {
     // number their label shows. They provide the namespaces of the pages
     // inside and the counters to continue from (a child page whose MP has
     // no number yet uses the root namespace, shared with pages outside).
-    const inScope = (page: NumberingPage) => !scope || scope.has(page.pageId);
+    // Locked pages count as outside the scope: nothing is numbered there and
+    // only copies of renumbered machine elements change.
+    const inScope = (page: NumberingPage) => !page.locked && (!scope || scope.has(page.pageId));
     if (scope) {
       for (const page of pages) {
-        if (inScope(page)) continue;
+        if (inScope(page) || page.locked) continue;
         for (const element of page.elements) {
           if (!element.idLabelElement) continue;
           if (identityOf(page.identities, element.id).role !== "definition") continue;

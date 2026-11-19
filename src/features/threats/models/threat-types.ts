@@ -401,6 +401,22 @@ export interface Threat {
    */
   relevanceOverridden?: boolean;
 
+  /**
+   * Threat of an imported component whose relevance this machine overrode
+   * on a boundary flow (multi-project TARA, I3). `relevance` holds the
+   * machine's decision; the component's decision and its note
+   * (`evalNote`) stay as the component made them, the machine's rationale
+   * is kept here — both are shown (review 2026-11-07).
+   */
+  importedOverride?: { componentRelevance: ThreatRelevance; rationale: string; date: string };
+
+  /**
+   * Threat of an imported component: the multiprocess of its instance —
+   * the table group it belongs to (boundary flows included). Set when the
+   * imported threats are derived from the snapshot; never stored.
+   */
+  componentMultiprocessId?: string;
+
   /** True when the analyst has manually edited threatDescription or attackDescription */
   isTextCustomized: boolean;
 
@@ -949,8 +965,56 @@ export interface ThreatProjectData {
    * drop a threat that carries a risk assessment. Optional: absent = unknown.
    */
   riskAttachments?: Record<string, ThreatRiskAttachment>;
+  /**
+   * Elements and flows whose threats come from elsewhere — the parts of an
+   * imported component (multi-project TARA design v3 §7.1). No generator
+   * runs on them; on a flow between such an element and another one only
+   * the perspectives whose victim is the other element are generated
+   * (interactionContext.victimRole). Built at the app layer. Absent: none.
+   */
+  excludedElementIds?: ReadonlySet<string>;
+  /**
+   * Threats of imported components per instance, read-only (patch 14) —
+   * derived at the app layer, never part of `threats`.
+   */
+  importedThreatGroups?: readonly {
+    key: string;
+    label: string;
+    threats: Threat[];
+    /** Per threat: the component's decision, boundary flow, override (I3). */
+    rows?: readonly ImportedThreatRow[];
+    /** The component of the instance — its instances are shown together (I5). */
+    componentKey?: string;
+    componentLabel?: string;
+    /** Instance prefix, e.g. "SD1". */
+    prefix?: string;
+  }[];
   lastModified: string;
 }
+
+/** An imported threat with the component's decision and the machine's override (I3). */
+export interface ImportedThreatRow {
+  threat: Threat;
+  /** Id of the threat in the component — key of the override. */
+  threatKey: string;
+  componentRelevance: ThreatRelevance;
+  /** On a boundary flow — the relevance may be overridden. */
+  boundary: boolean;
+  override?: { relevance: ThreatRelevance; rationale: string; date: string };
+  /** The component changed its decision since the override. */
+  stale?: boolean;
+  /** The analysis method the threat belongs to (absent: shown in both). */
+  method?: StrideMethod;
+  /** Boundary-flow threat: the machine element at the flow's outer end in this instance. */
+  counterpart?: string;
+}
+
+/** The machine's relevance decision on an imported boundary-flow threat (null = remove). */
+export type ImportedRelevanceDecision = {
+  relevance: ThreatRelevance;
+  rationale: string;
+  componentRelevance: ThreatRelevance;
+} | null;
 
 export interface ThreatRiskAttachment {
   /** Number of mitigations selected on the risk. */

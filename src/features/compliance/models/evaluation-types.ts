@@ -3,6 +3,7 @@
 // §9.4). Plain data — the app layer builds the input from the project
 // (component scope, property view per run, statements, claims, mitigations).
 
+import type { RowReason } from "../services/row-reasons";
 import type { ComplianceRowStatus, ComplianceStatement, DeviceCategoryChoice } from "shared";
 import type {
   AnyEdition,
@@ -71,6 +72,15 @@ export interface MatrixClaim {
   /** "CLM-03" */
   displayId: string;
   rowLabels: readonly string[];
+  /**
+   * A claim cited from an imported component (multi-project TARA phase 4c):
+   * it covers only these elements — a row is claimed only when every
+   * element still open there is one of them. Absent: the whole row (the
+   * project's own claims).
+   */
+  concernsElementIds?: readonly string[];
+  /** Its effectiveness in the instance (the I7 rule); absent = counts. */
+  state?: "effective" | "unclear" | "not_effective";
 }
 
 /** A mitigation that names IEC 62443 requirements (D-6). */
@@ -81,6 +91,13 @@ export interface MitigationEvidence {
   done: boolean;
   /** Elements the threats of its risks concern — must meet the component scope (D-16). */
   concernsElementIds: readonly string[];
+  /**
+   * Its effectiveness is unclear (multi-project TARA phase 4b: an imported
+   * component's measure whose assumption of use lacks evidence here). Counts
+   * in neither run — not as planned either: "planned" is coming, "unclear"
+   * needs another action (evidence for the assumption). Shown on the row.
+   */
+  unclear?: boolean;
 }
 
 export type { DeviceCategoryChoice };
@@ -141,11 +158,22 @@ export interface RowResult {
   /** Environment elements that meet the row as a supporting measure (D-20). */
   supportingElements: string[];
   mitigationIds: string[];
+  /** Mitigations naming the row whose effectiveness is unclear — not counted (phase 4b). */
+  unclearMitigationIds?: string[];
   claimIds: string[];
+  /**
+   * Cited component claims on the row that do not count (phase 4c): unclear
+   * (an assumption open / without implemented evidence) or not effective
+   * (an assumption not fulfilled), or covering only part of the row's open
+   * elements.
+   */
+  uncountedClaims?: { id: string; reason: "unclear" | "not_effective" | "partial" }[];
   /** Unmodelled criteria of type B rules. */
   checklist: string[];
   /** Why the row is n/a, derived or from the edition. */
   reasoning?: string;
+  /** Why: the reason as a code with values — texts in the reader's language (0.19 i18n follow-up); absent on statement rows. */
+  reason?: RowReason;
   /** A done mitigation meets the row while the model shows it not met (D-21). */
   contradiction?: boolean;
   /** The statement's snapshot differs from the current model result (D-17). */

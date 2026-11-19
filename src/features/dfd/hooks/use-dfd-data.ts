@@ -73,7 +73,6 @@ export interface UseDFDDataReturn {
   createAsset: (
     name: string,
     assetGroup: AssetGroup,
-    protectionNeed?: DFDAsset["protectionNeed"],
     baseDfd?: DFDData,
   ) => { newDfd: DFDData; asset: DFDAsset };
 
@@ -101,7 +100,6 @@ function toAvailableAssets(assets: DFDAsset[]): AvailableAsset[] {
     displayId: a.displayId,
     name: a.name,
     assetGroup: a.assetGroup,
-    protectionNeed: a.protectionNeed,
   }));
 }
 
@@ -173,7 +171,7 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
   );
 
   /**
-   * Update asset properties (name, protectionNeed, properties, …).
+   * Update asset properties (name, description, properties, …).
    * linkedElements will be re-synced automatically by updateDFD.
    *
    * IDENTITY (Phase 5b, UUID): the asset `id` is an opaque, stable UUID —
@@ -308,7 +306,6 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
     (
       name: string,
       assetGroup: AssetGroup,
-      protectionNeed?: DFDAsset["protectionNeed"],
       baseDfd?: DFDData,
     ): { newDfd: DFDData; asset: DFDAsset } => {
       const effectiveBase = baseDfd ?? dfd;
@@ -319,7 +316,6 @@ export function useDFDData(project: DFDProjectData): UseDFDDataReturn {
         effectiveBase.assets.map((a) => a.displayId ?? a.id),
         name,
         assetGroup,
-        protectionNeed,
       );
 
       const newAsset: DFDAsset = {
