@@ -179,6 +179,7 @@ function unratedThreatsOf(threats: Project["threats"] | null | undefined): strin
   if (!threats) return [];
   return [...(threats.perElementTables ?? []), ...(threats.perInteractionTables ?? [])]
     .flatMap((t) => t.threats ?? [])
-    .filter((t) => !t.relevance || t.relevance === "unrated")
+    // as the phase counts: relevant / not relevant are decided, "uncertain" is not
+    .filter((t) => t.relevance !== "relevant" && t.relevance !== "not_relevant")
     .map((t) => t.displayId ?? t.id);
 }

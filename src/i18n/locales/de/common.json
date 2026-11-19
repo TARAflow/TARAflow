@@ -91,7 +91,7 @@
       "missing": "Fehlt: {{fields}}",
       "credentialsInUrl": "Quell-Referenz {{url}} enthält Zugangsdaten in der URL — bereinigen (Übersicht → Quellen) und das Token beim Anbieter zurückziehen",
       "undescribed": "Ohne Beschreibung ({{count}}): {{list}}",
-      "unrated": "Noch nicht bewertet ({{count}}): {{list}}",
+      "unrated": "Noch nicht entschieden — nicht bewertet oder unsicher ({{count}}): {{list}}",
       "more": "… {{count}} weitere",
       "field": {
         "name": "Name",

@@ -47,7 +47,11 @@ describe.each([
   };
 
   it("every relevance decided: x/x", () => {
-    expect(count(["relevant", "not_relevant", "uncertain"])).toBe("3/3");
+    expect(count(["relevant", "not_relevant"])).toBe("2/2");
+  });
+
+  it("uncertain is not decided (manual test 2026-11-19)", () => {
+    expect(count(["relevant", "not_relevant", "uncertain"])).toBe("2/3");
   });
 
   it("unrated ones do not count", () => {

@@ -195,7 +195,7 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
     drift.push(t("tabs.threats.drift.banner.added", { count: added, defaultValue: "{{count}} threats would be added" }));
   }
   const unrated = input.unratedThreats ?? [];
-  if (unrated.length > 0) drift.push(namedList(t, "phases.details.unrated", "Not rated yet ({{count}}): {{list}}", unrated));
+  if (unrated.length > 0) drift.push(namedList(t, "phases.details.unrated", "Not decided yet — unrated or uncertain ({{count}}): {{list}}", unrated));
   if (drift.length > 0) details[PhaseId.Threats] = drift;
 
   return { status, counts, details };

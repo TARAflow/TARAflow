@@ -150,7 +150,7 @@ describe("phase indicators", () => {
       t,
     });
     expect(details[PhaseId.DFD]).toEqual([`Without a description (7): ${ids.slice(0, MAX_DETAILS).join(", ")} …`]);
-    expect(details[PhaseId.Threats]).toEqual(["Not rated yet (2): FP-DF4-S-IN-1, SB-DF2-T-OUT-1"]);
+    expect(details[PhaseId.Threats]).toEqual(["Not decided yet — unrated or uncertain (2): FP-DF4-S-IN-1, SB-DF2-T-OUT-1"]);
     // reasons, not findings: the counts stay
     expect(counts[PhaseId.DFD]).toEqual({ errors: 0, warnings: 0 });
     expect(counts[PhaseId.Threats]).toEqual({ errors: 0, warnings: 0 });
