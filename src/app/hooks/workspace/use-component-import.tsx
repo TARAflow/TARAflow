@@ -176,7 +176,7 @@ export function useComponentImport({
   const onPickFile = useCallback(async (): Promise<ComponentPickResult> => {
     const project = projectsRef.current.find((p) => p.id === pending?.projectId);
     if (!project) return { ok: false, error: "failed" };
-    const path = await pickComponentFile(t("components.import.pickTitle", { defaultValue: "Choose the component TARA" }));
+    const path = await pickComponentFile(t("components.import.pickTitle", { defaultValue: "Choose the component TARA" }), project.filePath);
     if (!path) return null;
     const result = await readComponentSourceFromDisk(path, project.filePath);
     if (!result.ok) return { ok: false, error: result.error, ...(result.detail ? { detail: result.detail } : {}) };
