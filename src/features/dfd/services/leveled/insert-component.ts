@@ -70,6 +70,12 @@ export interface InsertComponentInput {
   parentPageId: string;
   multiprocess: { name: string; x: number; y: number };
   /**
+   * Move the multiprocess (with the room its boundaries take around it) to
+   * the first free place from x / y on, so it does not land on — and under —
+   * a machine element (manual test 2026-11-19). An update keeps its place.
+   */
+  placeFree?: boolean;
+  /**
    * Component EE id → machine tfId on the parent page; absent / undefined =
    * take the EE over as a new external entity on the parent page (E1).
    */
@@ -222,7 +228,8 @@ export function shellBoundaryIds(component: ComponentDfdInput): string[] {
 
 /** Puts one component instance into the machine DFD (design §5, §6). */
 export function insertComponentInstance(input: InsertComponentInput): InsertComponentResult {
-  const { machine, instanceId, prefix, multiprocess, eeMapping } = input;
+  const { machine, instanceId, prefix, eeMapping } = input;
+  const multiprocess = { ...input.multiprocess };
   // A copy: the component's records come from the embedded snapshot, whose
   // content hash is recorded — the machine's records must not share objects
   // with it. The DFD graph builder writes derived values into element
@@ -304,6 +311,11 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
   }
   const mapTf = (tfId: string) => idMap[tfId] ?? (idMap[tfId] = ns(tfId));
   const shellIds = new Set(shellBoundaryIds(component));
+  if (input.placeFree) {
+    const placed = freePlace(parentRoot, multiprocess, shellIds.size);
+    multiprocess.x = placed.x;
+    multiprocess.y = placed.y;
+  }
   /** Shell tfId → its cell on the component's root page, as the component drew it. */
   const shellCells = new Map<string, Element>();
 
@@ -611,6 +623,43 @@ export function prefixDisplayLabel(text: string, prefix: string): string {
   }
   // A free display id (e.g. a boundary's "SDC"): before the first text.
   return text.replace(/(^|>)(\s*)([^<\s][^<]*)/, `$1$2${prefix}:$3`);
+}
+
+const CONTAINER_TYPES = new Set(["trustboundary", "chipboundary", "physicalboundary", "legend"]);
+
+/**
+ * The first place from `start` on where the multiprocess and the shells
+ * drawn around it (30 px a side per ring, 40 px above) overlap no vertex of
+ * the page — boundaries aside, the multiprocess may well lie inside one.
+ * Scans to the right in 60 px steps, then the next row (120 px down).
+ */
+function freePlace(root: Element, start: { x: number; y: number }, rings: number): { x: number; y: number } {
+  const side = rings > 0 ? 30 + 30 * (rings - 1) : 0;
+  const top = rings > 0 ? 40 + 30 * (rings - 1) : 0;
+  const boxes = cellsOf(root)
+    .filter((c) => {
+      const mx = mxCellOf(c);
+      return mx.getAttribute("vertex") === "1" && mx.getAttribute("parent") === "1" && !CONTAINER_TYPES.has(typeOf(c));
+    })
+    .map((c) => {
+      const g = mxCellOf(c).getElementsByTagName("mxGeometry")[0];
+      const n = (a: string) => Number(g?.getAttribute(a) ?? 0) || 0;
+      return { x: n("x"), y: n("y"), w: n("width"), h: n("height") };
+    })
+    .filter((b) => b.w > 0 && b.h > 0);
+  const gap = 20;
+  const free = (x: number, y: number) => {
+    const r = { x: x - side - gap, y: y - top - gap, w: 160 + 2 * (side + gap), h: 60 + top + side + 2 * gap };
+    return boxes.every((b) => b.x >= r.x + r.w || b.x + b.w <= r.x || b.y >= r.y + r.h || b.y + b.h <= r.y);
+  };
+  for (let row = 0; row < 40; row++) {
+    for (let col = 0; col < 40; col++) {
+      const x = start.x + col * 60;
+      const y = start.y + row * 120;
+      if (free(x, y)) return { x, y };
+    }
+  }
+  return start;
 }
 
 const PLACEHOLDER = /^(MP|EE|DF)-xx$/;

@@ -176,6 +176,8 @@ export function applyComponentImport(input: {
     prefix: choice.prefix,
     parentPageId: context.pageId,
     multiprocess: { name: choice.name, x: 400 + 40 * instanceCount, y: 300 + 40 * instanceCount },
+    // not on a machine element (manual test 2026-11-19)
+    placeFree: true,
     eeMapping: choice.eeMapping,
   });
 

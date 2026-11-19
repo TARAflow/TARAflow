@@ -128,6 +128,30 @@ describe("insertComponentInstance — structure", () => {
     expect(r.xml).not.toMatch(/(MP|EE|DF)-xx/);
   });
 
+  // Manual test 2026-11-19: the new multiprocess landed on — and under — a machine element.
+  it("placeFree: the multiprocess goes to the first free place, not onto a machine element", () => {
+    const busy = mxfile(page("top", "Fire Panel", node("m_big", "process", "Controller", "P-9", 560)));
+    const big = { id: "m_big", displayId: "P-9", name: "Controller", type: "Process", position: { x: 560, y: 0 }, size: { width: 120, height: 60 }, properties: {} } as unknown as DFDElement;
+    const at = (placeFree: boolean) => {
+      const r = insertComponentInstance({
+        machine: { xml: busy.replace(/<mxGeometry[^>]*\/>/, '<mxGeometry x="560" y="160" width="300" height="200" as="geometry"/>'), elements: [big], connections: [] },
+        component,
+        instanceId: "inst-1",
+        prefix: "SD1",
+        parentPageId: "top",
+        multiprocess: { name: "Smoke Detector", x: 600, y: 200 },
+        eeMapping: {},
+        placeFree,
+      });
+      const g = new RegExp(`id="${r.multiprocessTfId}"[^>]*>\\s*<mxCell[^>]*>\\s*<mxGeometry x="(\\d+)" y="(\\d+)"`).exec(r.xml)!;
+      return { x: Number(g[1]), y: Number(g[2]) };
+    };
+    expect(at(false)).toEqual({ x: 600, y: 200 }); // the given place: on the controller (560,160 300×200)
+    const free = at(true);
+    expect(free.y).toBe(200);
+    expect(free.x).toBeGreaterThanOrEqual(560 + 300 + 20); // right of the controller, with a gap
+  });
+
   it("carries the component's properties", () => {
     const r = insert();
     const withProps = smoke.dfd!.elements.find((e) => e.type === "Process" && Object.keys(e.properties ?? {}).length > 0)!;
