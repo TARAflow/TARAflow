@@ -119,6 +119,9 @@ in 0.18.x.
 - **Compliance matrix:** every row says why it has its status — also *not
   applicable*, also in the IEC 62443 matrix.
 - **Deleting a threat** asks first and says what goes with it.
+- **Shape libraries:** the interface resizes in every direction again (a
+  rectangle, e.g. for a connector strip); the data flows' names have no
+  background box.
 - **Source references:** *Resolve* says why it failed (no such repository,
   no access, no network, no answer) and never waits on a password prompt.
 

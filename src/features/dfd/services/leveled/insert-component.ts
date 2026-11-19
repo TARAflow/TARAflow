@@ -120,7 +120,8 @@ export function instanceMultiprocessTfId(instanceId: string): string {
 
 const MP_STYLE = "shape=ext;double=1;rounded=1;whiteSpace=wrap;html=1;arcSize=50;margin=1;strokeWidth=2;";
 const EE_STYLE = "rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;";
-const FLOW_STYLE = "endArrow=classic;html=1;rounded=0;enumerate=0;";
+// as the libraries' straight data flow: the name without a white box behind it
+const FLOW_STYLE = "endArrow=classic;html=1;rounded=0;enumerate=0;labelBackgroundColor=none;";
 const IDLABEL_STYLE = "rounded=0;html=1;strokeColor=#0000CC;fillColor=none;autosize=1;";
 
 function parseXml(xml: string): Document {
