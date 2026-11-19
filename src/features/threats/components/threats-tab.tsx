@@ -619,6 +619,16 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const otherHook = activeMethod === "per-element" ? interactionHook : elementHook;
   const otherHasThreats = otherHook.tables.some((tb) => tb.threats.length > 0);
   const otherInSync = otherHook.syncStatus?.inSync ?? true;
+  // Its stored threats as the drift sees them — id and owner (generated /
+  // manual); a rating changes neither (review 2026-11-20: rating a relevance
+  // re-ran a full generation of the other method on every click).
+  const otherThreatKey = useMemo(
+    () =>
+      otherHook.tables
+        .flatMap((tb) => tb.threats.map((x) => `${x.id}:${x.source ?? ""}`))
+        .join("|"),
+    [otherHook.tables],
+  );
   const otherDrift = useMemo(
     () =>
       hasDFD && otherHasThreats && otherInSync && !disabledMethods.includes(otherMethod)
@@ -629,7 +639,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       hasDFD,
       otherHasThreats,
       otherInSync,
-      project.threats,
+      otherThreatKey,
       project.dfdGraph,
       project.assetDataRef,
       project.dfd,
