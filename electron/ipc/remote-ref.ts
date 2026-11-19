@@ -40,6 +40,13 @@ export function classifyRemoteError(message: string): RemoteFailure {
   return "unknown";
 }
 
+// simple-git also checks what the environment configures (an editor, an SSH
+// command, an askpass helper, config paths, git configuration in GIT_CONFIG_*
+// — e.g. url.<base>.insteadOf in company or CI setups). These are the
+// categories the user's environment commonly sets; allowed, as git would
+// inherit them. Other configuration through the environment (aliases,
+// credential helpers, filters …) still fails here — a known limit until the
+// environment of the main process's git calls is decided (roadmap 0.20).
 const USER_ENVIRONMENT = {
   allowUnsafeAskPass: true,
   allowUnsafeConfigEnvCount: true,
@@ -50,6 +57,7 @@ const USER_ENVIRONMENT = {
   allowUnsafePager: true,
   allowUnsafeSshCommand: true,
   allowUnsafeTemplateDir: true,
+  allowUnsafeUrlRewrite: true,
 };
 
 /** Every URL in a message without its credentials. */
@@ -59,13 +67,17 @@ function scrub(message: string): string {
 
 export async function resolveRemoteRef(repoUrl: string, refLabel: string, timeoutMs = 20_000): Promise<RemoteRefResult> {
   try {
-    // GIT_TERMINAL_PROMPT=0 needs an explicit environment; simple-git then
-    // checks every variable in it. They are the user's own environment — the
-    // same git inherits without .env() — so the variables it would refuse
-    // (an editor, an SSH command, an askpass helper …) are allowed through.
-    // The argument checks stay: a URL like "--upload-pack=…" is refused.
-    const output = await simpleGit({ timeout: { block: timeoutMs }, unsafe: USER_ENVIRONMENT })
-      .env({ ...process.env, GIT_TERMINAL_PROMPT: "0" })
+    // The user's own environment plus GIT_TERMINAL_PROMPT=0 (no prompt nobody
+    // sees). simple-git 4 guards every GIT_* variable and a few others (EDITOR,
+    // PAGER, …): one passed through .env() and not named in allowEnvironment
+    // rejects the call — GIT_TERMINAL_PROMPT itself included, so Resolve
+    // failed for everyone (review 2026-11-20). It is the user's environment on
+    // their own computer, which git would inherit anyway: every variable of it
+    // is allowed. The argument checks stay: a URL like "--upload-pack=…" is
+    // refused.
+    const env = { ...process.env, GIT_TERMINAL_PROMPT: "0" };
+    const output = await simpleGit({ timeout: { block: timeoutMs }, allowEnvironment: Object.keys(env), unsafe: USER_ENVIRONMENT })
+      .env(env)
       .listRemote([repoUrl, refLabel]);
     const line = output
       .split("\n")

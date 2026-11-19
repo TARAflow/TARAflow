@@ -13,7 +13,17 @@ let dir = "";
 let head = "";
 const git = (...args: string[]) => execFileSync("git", args, { cwd: dir }).toString().trim();
 
+// The tests must not depend on the machine's git configuration in the
+// environment (review 2026-11-20: a container's GIT_CONFIG_KEY_n with
+// url.<base>.insteadOf made four of them fail). Set aside here, restored after.
+const saved: Record<string, string | undefined> = {};
+const isGitConfigVar = (k: string) => /^GIT_CONFIG_(COUNT|KEY_\d+|VALUE_\d+|PARAMETERS|GLOBAL|SYSTEM|NOSYSTEM)$/.test(k);
+
 beforeAll(() => {
+  for (const k of Object.keys(process.env).filter(isGitConfigVar)) {
+    saved[k] = process.env[k];
+    delete process.env[k];
+  }
   dir = mkdtempSync(join(tmpdir(), "remote-ref-"));
   git("init", "-q", "-b", "main");
   git("config", "user.email", "test@example.com");
@@ -24,7 +34,11 @@ beforeAll(() => {
   git("commit", "-q", "-m", "first");
   head = git("rev-parse", "HEAD");
 });
-afterAll(() => rmSync(dir, { recursive: true, force: true }));
+afterAll(() => {
+  rmSync(dir, { recursive: true, force: true });
+  for (const k of Object.keys(process.env).filter(isGitConfigVar)) delete process.env[k];
+  Object.assign(process.env, Object.fromEntries(Object.entries(saved).filter(([, v]) => v !== undefined)));
+});
 
 describe("classifyRemoteError", () => {
   it.each([
@@ -57,6 +71,22 @@ describe("resolveRemoteRef", () => {
   it("no repository there: not_found", async () => {
     const r = await resolveRemoteRef(join(dir, "missing"), "main");
     expect(r).toMatchObject({ success: false, data: { reachable: false, failure: "not_found" } });
+  });
+
+  // git configuration from the environment (company / CI setups): a URL
+  // rewrite does not stop the Resolve
+  it("git configuration in the environment (url.insteadOf): still resolved", async () => {
+    process.env.GIT_CONFIG_COUNT = "1";
+    process.env.GIT_CONFIG_KEY_0 = "url.https://mirror.example/.insteadOf";
+    process.env.GIT_CONFIG_VALUE_0 = "https://github.invalid/";
+    try {
+      const r = await resolveRemoteRef(dir, "main");
+      expect(r).toMatchObject({ success: true, data: { reachable: true, sha: head } });
+    } finally {
+      delete process.env.GIT_CONFIG_COUNT;
+      delete process.env.GIT_CONFIG_KEY_0;
+      delete process.env.GIT_CONFIG_VALUE_0;
+    }
   });
 
   it("the message carries no credentials of the URL", async () => {
