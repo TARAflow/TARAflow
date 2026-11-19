@@ -10,6 +10,7 @@ import {
 import { DiffService } from "features/audit/services/diff-service";
 import { generateCommitMessage } from "features/audit/models/audit-types";
 import { validateAuditMessage } from "features/audit/services/verify/message";
+import { unlistedChangeList } from "features/audit/services/unlisted-changes";
 
 describe("repoRelativePath", () => {
   it("resolves a file in a subfolder (posix)", () => {
@@ -99,12 +100,14 @@ describe("fileDiffersFromHead / derived values only", () => {
     expect(raw).toHaveBeenCalledWith(["status", "--porcelain", "--", "sub/m.tara.json"]);
   });
 
-  it("the derived-only change gives a commit message the hook accepts", () => {
-    const changes = new DiffService().derivedOnlyChanges();
-    expect(changes).toHaveLength(1);
-    const data = new DiffService().generateCommitMessageData(changes, "Detail Review", "Ann", { projectFile: "m.tara.json" });
-    const message = generateCommitMessage({ ...data, date: "2026-11-17T00:00:00.000Z" } as never);
-    expect(validateAuditMessage(message)).toEqual([]);
-    expect(message).toContain("Derived values");
+  it("the unlisted-change list gives a commit message the hook accepts, with the places", () => {
+    for (const derivedOnly of [true, false]) {
+      const changes = unlistedChangeList({ derivedOnly, paths: ["/risks/risks/0/threatDisplayId"] });
+      const data = new DiffService().generateCommitMessageData(changes, "Detail Review", "Ann", { projectFile: "m.tara.json" });
+      const message = generateCommitMessage({ ...data, date: "2026-11-17T00:00:00.000Z" } as never);
+      expect(validateAuditMessage(message)).toEqual([]);
+      expect(message).toContain(derivedOnly ? "Derived values" : "Changes the audit diff does not list");
+      expect(message).toContain("/risks/risks/0/threatDisplayId");
+    }
   });
 });

@@ -8,7 +8,7 @@
 
 import React from "react";
 import { render, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuditProjectData } from "features/audit/models/audit-types";
 import { createDefaultAuditData } from "features/audit/models/audit-types";
 
@@ -26,7 +26,13 @@ vi.mock("features/audit/components/audit-toolbar", () => ({
     return null;
   },
 }));
-vi.mock("features/audit/components/audit-summary", () => ({ AuditSummary: () => null }));
+const summary = vi.fn();
+vi.mock("features/audit/components/audit-summary", () => ({
+  AuditSummary: (props: { changes: { phaseLabel: string; changes: { id: string }[] }[] }) => {
+    summary(props);
+    return null;
+  },
+}));
 vi.mock("features/audit/components/phase-diff-viewer", () => ({ PhaseDiffViewer: () => null }));
 vi.mock("features/audit/components/commit-dialog", () => ({ CommitDialog: () => null }));
 vi.mock("features/audit/components/verification-panel", () => ({ VerificationPanel: () => null }));
@@ -75,28 +81,52 @@ const project = {
   dfd: null,
   assets: null,
   threats: null,
-  risks: null,
+  risks: { risks: [{ id: "r1", threatId: "t1", threatDisplayId: "DF-9-T-1", selectedMitigations: [], factorRatings: [], mitigatedFactorRatings: [] }] },
   attackTrees: null,
   lastModified: "",
 } as unknown as AuditProjectData;
 
 const lastToolbar = () => toolbar.mock.calls.at(-1)?.[0] as { hasChanges: boolean; changeCount: number } | undefined;
 
+const lastChanges = () => summary.mock.calls.at(-1)?.[0]?.changes as { phaseLabel: string; changes: { id: string }[] }[] | undefined;
+
 describe("AuditTab — derived values only", () => {
   beforeEach(() => {
     toolbar.mockClear();
+    summary.mockClear();
     head = JSON.stringify(project);
   });
+  afterEach(() => {
+    delete (window as { electron?: unknown }).electron;
+  });
+  const onDisk = (text: string | null) => {
+    (window as { electron?: unknown }).electron = { file: { readProject: async () => (text === null ? { success: false } : { success: true, data: text }) } };
+  };
 
-  it("the file differs from HEAD, the diff lists nothing: one committable change", async () => {
+  it("only the threat ids copied into the risks changed: \"Derived values\", with the places", async () => {
     status = " M m.tara.json\n";
+    const changed = JSON.parse(head);
+    changed.risks.risks[0].threatDisplayId = "DF-6-T-1";
+    onDisk(JSON.stringify(changed));
     render(<AuditTab project={project} onUpdate={vi.fn()} />);
     await waitFor(() => expect(lastToolbar()?.hasChanges).toBe(true));
-    expect(lastToolbar()?.changeCount).toBe(1);
+    expect(lastChanges()![0].phaseLabel).toBe("Derived values");
+    expect(lastChanges()![0].changes.map((c) => c.id)).toEqual(["/risks/risks/0/threatDisplayId"]);
+  });
+
+  // review 2026-11-20: a change the diff does not cover is no "derived value"
+  it("another change the diff does not list: committable, named as such, with its place", async () => {
+    status = " M m.tara.json\n";
+    onDisk(JSON.stringify({ ...JSON.parse(head), notListed: { field: 1 } }));
+    render(<AuditTab project={project} onUpdate={vi.fn()} />);
+    await waitFor(() => expect(lastToolbar()?.hasChanges).toBe(true));
+    expect(lastChanges()![0].phaseLabel).toBe("Changes the audit diff does not list");
+    expect(lastChanges()![0].changes.map((c) => c.id)).toEqual(["/notListed"]);
   });
 
   it("the file is clean: no change", async () => {
     status = "";
+    onDisk(head);
     render(<AuditTab project={project} onUpdate={vi.fn()} />);
     await new Promise((r) => setTimeout(r, 50));
     expect(lastToolbar()?.hasChanges).toBe(false);

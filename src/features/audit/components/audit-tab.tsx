@@ -45,10 +45,22 @@ import { commitSigning } from "../services/audit-signing-identity";
 import { readGitDerivedInfo } from "../services/derive-audit-config";
 import { commitSigningMessage } from "./commit-signing-message";
 import { diffService } from "../services/diff-service";
+import { unlistedChangeList, unlistedChanges } from "../services/unlisted-changes";
 import { createGitService } from "../services/git-service-renderer";
 import { credentialService } from "../services/credential-service-renderer";
 import type { Project } from "app/models/project-types";
 import { AuditVerifyPanel } from "./audit-verify-panel";
+
+/** The project file as it lies on disk — what a commit takes; null when unreadable. */
+async function readWorkingFile(filePath: string): Promise<string | null> {
+  try {
+    const res = await window.electron?.file?.readProject?.(filePath);
+    return res?.success && typeof res.data === "string" ? res.data : null;
+  } catch {
+    return null;
+  }
+}
+
 
 
 // ==================== COMPONENT ====================
@@ -377,8 +389,10 @@ const AuditTabView: React.FC<AuditTabProps> = ({
         project as Project,
         previousProject,
       );
-      // nothing listed, but the file differs from HEAD: derived values only —
-      // still committable, or the repository stays dirty for good
+      // nothing listed, but the file differs from HEAD: committable — or the
+      // repository stays dirty for good — as what it is: "derived values"
+      // only when every changed place is one, else "changes the audit diff
+      // does not list", with the places (review 2026-11-20)
       if (
         detectedChanges.length === 0 &&
         previousProject &&
@@ -386,7 +400,8 @@ const AuditTabView: React.FC<AuditTabProps> = ({
         filePath &&
         (await fileDiffersFromHead((args) => gitService.raw(args), repoRoot, filePath))
       ) {
-        detectedChanges = diffService.derivedOnlyChanges();
+        const onDisk = await readWorkingFile(filePath);
+        detectedChanges = unlistedChangeList(unlistedChanges(JSON.stringify(previousProject), onDisk));
       }
 
       setChanges(detectedChanges);
