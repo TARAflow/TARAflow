@@ -238,6 +238,17 @@ describe("Compliance tab", () => {
     expect(within(screen.getByTestId("compliance-info-dialog")).queryByText("Statement")).toBeNull();
   });
 
+  // User 2026-11-19: "not applicable" without a reason could not be followed in the tab.
+  it("a row that does not apply says why in its notes", () => {
+    const rows: Edition["rows"] = [
+      { label: "CR 1.14", group: "IAC", minSl: null, requirementIds: [], void: "void in prAA", supportingMeasuresAllowed: false },
+      ...CRA_ROWS,
+    ];
+    renderTab(edition(rows));
+    fireEvent.change(screen.getByTestId("compliance-filter"), { target: { value: "n/a" } });
+    expect(screen.getByTestId("compliance-row-CR 1.14").textContent).toMatch(/The CRA edition .* declares this requirement void/);
+  });
+
   it("every void reason of the editions has a text (FX-22)", () => {
     const reasons = [...EDITION_PRAA_2026.rows, ...EDITION_2019.rows].flatMap((r) => (r.void ? [r.void] : []));
     expect(reasons.length).toBeGreaterThan(0);

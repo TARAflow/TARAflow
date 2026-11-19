@@ -802,7 +802,10 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   (row.unclearMitigationIds?.length ?? 0) > 0 &&
                     `${t("unclearMitigations", "unclear (assumption of use without evidence)")}: ${shortList(row.unclearMitigationIds!)}`,
                   row.risks && row.risks.length > 0 && `${t("risks", "risks")}: ${shortList(row.risks)}`,
-                  !levels && row.source !== "statement" && !row.failing.length && !row.unknown.length && !row.risks?.length && row.status !== "met" && row.status !== "n/a" && rowReasonText(t, row, fieldLabels.typeName),
+                  // why a row is open — and why it does not apply, in every view (user
+                  // 2026-11-19: "not applicable" without a reason could not be followed in
+                  // the IEC 62443 matrix; the report had it)
+                  row.source !== "statement" && !row.failing.length && !row.unknown.length && !row.risks?.length && row.status !== "met" && rowReasonText(t, row, fieldLabels.typeName),
                   checklist.length > 0 && `${t("checklist", "to confirm")}: ${checklist.join("; ")}`,
                   row.source === "statement" && row.reasoning,
                 ].filter(Boolean);
