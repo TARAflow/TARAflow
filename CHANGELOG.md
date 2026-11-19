@@ -1,4 +1,4 @@
-## [0.19.0-beta] - 2026-11-14
+## [0.19.0-beta] - 2026-11-19
 
 **Component TARAs in a machine TARA:** the analysis of a reused component
 (a sensor, a controller, a supplier's module) is imported into the TARA of
@@ -68,6 +68,16 @@ in 0.18.x.
 - **Issue trackers:** a ticket row per mitigation with a link dialog
   (search, status filter, suggestions) and *create*; with a linked ticket
   the progress follows the ticket.
+- **Findings panels in the Threats and Risks tabs**, like in the DFD,
+  Assets and Hazards tabs: one row per threat that is not decided, has no
+  description, lost its element or is to review — a click opens exactly
+  that threat; risk findings open the risk dialog on the tab where they are
+  fixed. Component findings about risks are shown there, not in the DFD.
+- **Overview → Components:** *Open component TARA*; *Follow branch …* when
+  the checked-out branch of the component's repository has a newer state
+  than the branch the import follows.
+- **Methods out of sync:** a dot on a STRIDE method whose threats no longer
+  match the DFD (orange) or whose regeneration would change threats (blue).
 
 ### Changed
 - **Asset group fields** (data type, lifecycle, exposure, role, …) are
@@ -99,6 +109,18 @@ in 0.18.x.
   0.19* — it comes after 1.0, with Redmine and Gitee.
 - **Safety card** of an asset hidden while it is empty and cannot be set;
   always shown for people, physical and infrastructure assets.
+- **Threats rated** means relevant or not relevant; *uncertain* is not a
+  decision — the counters (*x / y rated*, per table) and the Threats phase
+  count the same way. Every phase that is not complete names why in its
+  tooltip (e.g. elements without a description, threats not decided).
+- **Audit trail verification:** the findings newest first, the same rule at
+  one commit in one row, a readable heading per severity; the commit diff
+  of an assumption of use names only what changed.
+- **Compliance matrix:** every row says why it has its status — also *not
+  applicable*, also in the IEC 62443 matrix.
+- **Deleting a threat** asks first and says what goes with it.
+- **Source references:** *Resolve* says why it failed (no such repository,
+  no access, no network, no answer) and never waits on a password prompt.
 
 ### Removed
 - **Asset fields *Protection need* and *Criticality*:** ratings entered as
@@ -129,9 +151,32 @@ in 0.18.x.
   the project saved, and only when nothing changed meanwhile — otherwise
   the next autosave writes it.
 - **Open project** starts the file dialog in the folder of the open
-  project, without one in the home directory.
+  project, without one in the home directory; *Import component TARA…*
+  starts in the machine's folder.
+- **Component import and update:** the multiprocess, new external entities
+  and boundary flows get the machine's next numbers (no *DF-xx*); a
+  boundary flow paired as renamed keeps its number; an update keeps the
+  multiprocess's description, properties and asset relations; an unpinned
+  import says so in its status; no structure findings (unused interface,
+  unconnected element) for the component's own elements in the machine.
+- **Interfaces:** a straight flow (no orthogonal routing) through an
+  interface is found — it was checked only as one of the two L-paths.
+- **Audit tab:** opening a project or the autosave after a commit no longer
+  rewrites the file for timestamps alone; a file that differs from HEAD only
+  in derived values can be committed; the diff compares values regardless
+  of key order (toggling a regulation tag no longer lists a threat); the
+  Audit tab no longer marks the project unsaved; the signing and SSH keys
+  are remembered per project on this computer; *git:rawInDir* reports git's
+  real exit code (the drift check saw no newer state).
 
 ### Upgrade notes
+- **Uncertain threats** no longer count as rated: a project with threats
+  set to *uncertain* shows its Threats phase *in progress* again — decide
+  them (relevant / not relevant).
+- **Straight flows through interfaces** are found when the DFD is saved
+  again; the field `straight` then appears in the file for such flows, and
+  more threats may name the interface. In a component this is a newer
+  state for the machines that import it (no decision affected).
 - Projects are converted to schema 14 when opened (backup alongside); a
   project without imported components changes in nothing else, and a TARA
   verification stays valid.
