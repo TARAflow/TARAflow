@@ -70,6 +70,7 @@ import {
 } from "../../services/threat-catalog-service";
 import { CreateThreatDialog } from "../../components/shared/create-threat-dialog";
 import type { InteractionDirection } from "features/threats/models/per-interaction-types";
+import { isThreatRated } from "../../services/threat-phase-status";
 
 // ==================== TYPES ====================
 
@@ -146,9 +147,8 @@ const RELEVANCE_ROW_BG: Record<string, string> = {
   uncertain: "#fffbeb",
 };
 
-function isCompleted(t: Threat): boolean {
-  return t.workflowStatus === "reviewed" || t.workflowStatus === "closed";
-}
+// rated = relevance decided — the rule of the phase status (isThreatRated)
+const isCompleted = (t: Threat): boolean => isThreatRated(t);
 
 function countCompletedByLevel(
   threats: Threat[],
@@ -754,9 +754,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
 
     // ── Accordion header stats ──────────────────────────────────────────────
     const total = table.threats.length;
-    const reviewed = table.threats.filter(
-      (t) => t.workflowStatus === "reviewed" || t.workflowStatus === "closed",
-    ).length;
+    const reviewed = table.threats.filter(isThreatRated).length;
     const relevant = table.threats.filter(
       (t) => t.relevance === "relevant",
     ).length;

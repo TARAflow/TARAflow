@@ -68,6 +68,7 @@ import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
 } from "../../services/threat-catalog-service";
+import { isThreatRated } from "../../services/threat-phase-status";
 
 // ==================== TYPES ====================
 
@@ -178,9 +179,8 @@ function countImpacts(
 
 // ==================== COMPLETION HELPER ====================
 
-function isCompleted(t: Threat): boolean {
-  return t.workflowStatus === "reviewed" || t.workflowStatus === "closed";
-}
+// rated = relevance decided — the rule of the phase status (isThreatRated)
+const isCompleted = (t: Threat): boolean => isThreatRated(t);
 
 function countCompletedByLevel(
   threats: Threat[],
@@ -616,9 +616,7 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
 
     // ── Accordion header stats ──────────────────────────────────────────────
     const total = table.threats.length;
-    const reviewed = table.threats.filter(
-      (t) => t.workflowStatus === "reviewed" || t.workflowStatus === "closed",
-    ).length;
+    const reviewed = table.threats.filter(isThreatRated).length;
     const relevant = table.threats.filter(
       (t) => t.relevance === "relevant",
     ).length;

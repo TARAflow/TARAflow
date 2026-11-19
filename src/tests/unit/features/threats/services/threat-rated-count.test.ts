@@ -1,0 +1,32 @@
+// src/tests/unit/features/threats/services/threat-rated-count.test.ts
+//
+// Manual test 2026-11-19 (Pump Station): the Threats tab said "0 / 87
+// rated" while its phase was complete — the counter read workflowStatus,
+// which only the threat dialog sets; relevances set elsewhere (e.g. in the
+// file) did not count. One rule now: rated = relevance decided.
+
+import { describe, expect, it } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { isThreatRated, threatPhaseStatus } from "features/threats/services/threat-phase-status";
+import { useThreatValidation } from "features/threats/hooks/shared/use-threat-validation";
+import type { ThreatTable } from "features/threats/models/threat-types";
+
+const threat = (relevance: string | undefined, workflowStatus = "open") => ({ id: Math.random().toString(), relevance, workflowStatus });
+const tables = [
+  { threats: [threat("relevant"), threat("not_relevant"), threat("uncertain")] },
+  { threats: [threat("unrated"), threat(undefined), threat("unrated", "reviewed")] },
+] as unknown as ThreatTable[];
+
+describe("rated threats — one rule", () => {
+  it("rated = relevance decided, whatever the workflow status", () => {
+    expect(tables.flatMap((t) => t.threats).map(isThreatRated)).toEqual([true, true, true, false, false, false]);
+  });
+
+  it("the tab's counter counts the same as the phase status", () => {
+    const { result } = renderHook(() => useThreatValidation(tables));
+    expect(result.current.stats).toEqual({ total: 6, reviewed: 3 });
+    const allRated = [{ threats: [threat("relevant"), threat("not_relevant")] }] as unknown as ThreatTable[];
+    expect(renderHook(() => useThreatValidation(allRated)).result.current.stats).toEqual({ total: 2, reviewed: 2 });
+    expect(threatPhaseStatus({ perElementTables: allRated, perInteractionTables: [] } as never)).toBe("complete");
+  });
+});
