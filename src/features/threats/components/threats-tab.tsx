@@ -31,6 +31,7 @@ import { ThreatSyncBanner } from "./shared/threat-sync-banner";
 import { ThreatDriftBanner } from "./shared/threat-drift-banner";
 import { unsupportedDfdLayoutError } from "../services/dfd-page-layout-guard";
 import { ThreatDriftDialog } from "./shared/threat-drift-dialog";
+import { threatFindings, type ThreatFindingKind } from "./shared/threat-findings";
 import {
   detectGenerationDrift,
   hasDrift,
@@ -40,7 +41,7 @@ import {
 } from "../services/threat-generation-drift";
 import { ElementThreatsView } from "./per-element/element-threats-view";
 import { InteractionThreatsView } from "./per-interaction/interaction-threats-view";
-import { DFDPreviewPanel } from "shared";
+import { DFDPreviewPanel, FindingsPanel, type PanelFinding } from "shared";
 import { useThreatValidation } from "../hooks/shared/use-threat-validation";
 import { useThreatsExportImport } from "../hooks/shared/use-threat-export-import";
 import { useElementThreats } from "../hooks/per-element/use-element-threats";
@@ -563,6 +564,22 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   );
   const reconciliation = generateConfirm?.reconciliation ?? null;
 
+  // ── Findings panel (manual test 2026-11-18) ─────────────────────────────
+  // One row per threat not rated, uncertain or to review — a click opens
+  // exactly that threat in the dialog — and the drift as an info (its dialog).
+  const orphanedThreatIds = activeHook.syncStatus?.orphanedThreats.threatIds;
+  const tableFindings = useMemo(
+    () => threatFindings(activeHook.tables, orphanedThreatIds ?? []),
+    [activeHook.tables, orphanedThreatIds],
+  );
+  const FINDING_TEXT: Record<ThreatFindingKind, string> = {
+    unrated: "{{id}}: not rated yet — {{description}}",
+    uncertain: "{{id}}: relevance uncertain — confirm or dismiss it — {{description}}",
+    review: "{{id}}: to review after a change of the DFD or a component — {{description}}",
+    noDescription: "{{id}}: no threat description",
+    orphaned: "{{id}}: its element or flow is no longer in the DFD — keep it as a manual threat or delete it — {{description}}",
+  };
+
   // ── Generation drift ────────────────────────────────────────────────────
   // Stored threats vs. what the current rules / security goals would produce.
   // Only evaluated while the DFD sync is clean: threats for new or deleted
@@ -622,6 +639,47 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const methodsDrifting = useMemo(
     () => [...(hasDrift(drift) ? [activeMethod] : []), ...(hasDrift(otherDrift) ? [otherMethod] : [])],
     [drift, otherDrift, activeMethod, otherMethod],
+  );
+
+  const panelFindings: PanelFinding[] = useMemo(() => {
+    const rows: PanelFinding[] = tableFindings.map((f) => ({
+      id: f.id,
+      severity: f.severity,
+      text: t(`tabs.threats.notifications.${f.kind}`, {
+        id: f.displayId,
+        description: f.description,
+        defaultValue: FINDING_TEXT[f.kind],
+      }),
+      clickable: true,
+    }));
+    if (hasDrift(drift)) {
+      rows.push({
+        id: "threat-drift",
+        severity: "info",
+        text: t("tabs.threats.notifications.drift", {
+          obsolete: drift.obsolete.length,
+          added: drift.addedCount,
+          defaultValue: "Generation rules changed: {{obsolete}} stored threat(s) would no longer be generated, {{added}} would be added",
+        }),
+        clickable: true,
+      });
+    }
+    return rows;
+    // FINDING_TEXT is a constant of the render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableFindings, drift, t]);
+  const openFinding = useCallback(
+    (id: string) => {
+      if (id === "threat-drift") {
+        setShowDriftDialog(true);
+        return;
+      }
+      const f = tableFindings.find((x) => x.id === id);
+      if (!f) return;
+      setSelectedThreat({ tableIndex: f.tableIndex, threatId: f.threatId });
+      setShowThreatDialog(true);
+    },
+    [tableFindings],
   );
 
   // A new drift (different counts) re-shows a dismissed banner.
@@ -877,6 +935,20 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           )}
         </Box>
       </Box>
+
+      {/* Findings — below the list, like the DFD, Asset and Risk tabs (manual test 2026-11-18) */}
+      <FindingsPanel
+        findings={panelFindings}
+        onOpen={openFinding}
+        testIdPrefix="threat-notification"
+        labels={{
+          title: (count) => t("tabs.threats.notifications.title", { count, defaultValue: "{{count}} finding(s)" }),
+          open: t("tabs.threats.notifications.open", { defaultValue: "Open the threat where this is fixed" }),
+          showInfos: t("tabs.threats.notifications.showInfos", { defaultValue: "Show infos" }),
+          hideInfos: t("tabs.threats.notifications.hideInfos", { defaultValue: "Hide infos" }),
+          onlyInfos: t("tabs.threats.notifications.onlyInfos", { defaultValue: "No errors or warnings — infos are hidden." }),
+        }}
+      />
 
       {/* Threat Dialog */}
       {showThreatDialog &&

@@ -20,6 +20,19 @@
       "methodOutOfSync": "threats not in sync with the DFD: open this method and regenerate",
       "methodDrifting": "a regeneration would add or remove threats: open this method and check",
       "dfdPageLayoutUnsupported": "The DFD has a compressed page or pages that are not adopted into the page tree yet — threat generation and synchronisation are disabled until every page is uncompressed and adopted (\"Adopt pages…\" in the DFD tab).",
+      "notifications": {
+        "title": "{{count}} finding(s)",
+        "open": "Open the threat where this is fixed",
+        "showInfos": "Show infos",
+        "hideInfos": "Hide infos",
+        "onlyInfos": "No errors or warnings — infos are hidden.",
+        "unrated": "{{id}}: not rated yet — {{description}}",
+        "uncertain": "{{id}}: relevance uncertain — confirm or dismiss it — {{description}}",
+        "review": "{{id}}: to review after a change of the DFD or a component — {{description}}",
+        "noDescription": "{{id}}: no threat description",
+        "orphaned": "{{id}}: its element or flow is no longer in the DFD — keep it as a manual threat or delete it — {{description}}",
+        "drift": "Generation rules changed: {{obsolete}} stored threat(s) would no longer be generated, {{added}} would be added"
+      },
       "groups": {
         "topLevel": "Top level",
         "notInDfd": "Not in the DFD",
