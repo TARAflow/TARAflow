@@ -186,6 +186,9 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   const showGenerateConfirm = generateConfirm !== null;
   const [deleteManualThreats, setDeleteManualThreats] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  // One threat to delete, after the analyst confirmed (manual test 2026-11-19:
+  // the trash icon deleted at once).
+  const [pendingDelete, setPendingDelete] = useState<{ tableIndex: number; threatId: string } | null>(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImportData, setPendingImportData] = useState<{
     perElementTables: any[];
@@ -905,7 +908,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 void elementHook.generateThreats();
               }}
               onOpenEditDialog={handleOpenEditDialog}
-              onDelete={elementHook.deleteThreat}
+              onDelete={(tableIndex, threatId) => setPendingDelete({ tableIndex, threatId })}
               onAdd={elementHook.addThreat}
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
@@ -925,7 +928,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
                 void interactionHook.generateThreats();
               }}
               onOpenEditDialog={handleOpenEditDialog}
-              onDelete={interactionHook.deleteThreat}
+              onDelete={(tableIndex, threatId) => setPendingDelete({ tableIndex, threatId })}
               onAdd={interactionHook.addThreat}
               showFilters={showFilters}
               reviewedCount={validation.stats.reviewed}
@@ -1108,6 +1111,48 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
           onCancel={() => setShowImportConfirm(false)}
         />
       )}
+
+      {/* Delete one threat — confirmation */}
+      {pendingDelete &&
+        (() => {
+          const threat = activeHook.tables[pendingDelete.tableIndex]?.threats.find((x) => x.id === pendingDelete.threatId);
+          const close = () => setPendingDelete(null);
+          if (!threat) return null;
+          const withRisk = !!project.riskAttachments?.[threat.id];
+          return (
+            <ConfirmDialog
+              title={t("tabs.threats.deleteConfirmTitle", { id: threat.displayId ?? "", defaultValue: "Delete threat {{id}}?" })}
+              message={[
+                t("tabs.threats.deleteConfirmMessage", {
+                  description: threat.threatDescription ?? "",
+                  defaultValue: "\"{{description}}\" is deleted. This cannot be undone.",
+                }),
+                ...(withRisk
+                  ? [
+                      t("tabs.threats.deleteConfirmRisk", {
+                        defaultValue: "Its risk, with the ratings and mitigations chosen there, goes with the next risk sync.",
+                      }),
+                    ]
+                  : []),
+                ...(threat.source !== "manual"
+                  ? [
+                      t("tabs.threats.deleteConfirmGenerated", {
+                        defaultValue: "A generated threat comes back with the next regeneration — mark it \"not relevant\" instead to keep the decision.",
+                      }),
+                    ]
+                  : []),
+              ].join(" ")}
+              variant="danger"
+              confirmLabel={t("common.delete", { defaultValue: "Delete" })}
+              cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+              onConfirm={() => {
+                activeHook.deleteThreat(pendingDelete.tableIndex, pendingDelete.threatId);
+                close();
+              }}
+              onCancel={close}
+            />
+          );
+        })()}
 
       {/* Delete All Confirmation */}
       {showDeleteAllConfirm && (
