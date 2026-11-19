@@ -467,9 +467,11 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (run
               <Button size="small" sx={{ px: 0.5, minWidth: 0 }} disabled={info.driftChecking} onClick={() => info.onCheckDrift!(false)} data-testid="component-drift-check">
                 {t("components.drift.check", { ns: "components", defaultValue: "Check" })}
               </Button>
+              {!info.fetchNotApplicable && (
               <Button size="small" sx={{ px: 0.5, minWidth: 0 }} disabled={info.driftChecking} onClick={() => info.onCheckDrift!(true)} data-testid="component-drift-fetch">
                 {t("components.drift.fetch", { ns: "components", defaultValue: "Fetch and check" })}
               </Button>
+              )}
             </>
           )}
         </Box>

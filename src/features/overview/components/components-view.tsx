@@ -186,9 +186,12 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
                         <Button size="small" disabled={checking} onClick={() => onCheck(false)} data-testid="component-overview-check">
                           {t("components.drift.check", { ns: "components", defaultValue: "Check" })}
                         </Button>
-                        <Button size="small" disabled={checking} onClick={() => onCheck(true)} data-testid="component-overview-fetch">
-                          {t("components.drift.fetch", { ns: "components", defaultValue: "Fetch and check" })}
-                        </Button>
+                        {/* an unpinned import is read from its file: nothing to fetch */}
+                        {!o.unpinned && (
+                          <Button size="small" disabled={checking} onClick={() => onCheck(true)} data-testid="component-overview-fetch">
+                            {t("components.drift.fetch", { ns: "components", defaultValue: "Fetch and check" })}
+                          </Button>
+                        )}
                       </>
                     )}
                     {onUpdate && item.update && (

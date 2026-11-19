@@ -187,6 +187,7 @@
       "committed": "committed by now ({{where}}) — refresh the stored state to pin the import to it",
       "diverged": "Another state on a separate branch ({{where}}) — neither newer nor older; check with the component team",
       "upToDate": "Up to date",
+      "unpinned": "not pinned — its file is not committed yet",
       "otherBranch": "a newer state on the checked-out branch {{branch}} ({{where}}) — the import follows its own branch",
       "followBranch": "Follow branch {{branch}}",
       "newer": "Newer state available ({{where}}) — the update follows as an explicit step",

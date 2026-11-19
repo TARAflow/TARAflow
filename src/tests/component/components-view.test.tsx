@@ -99,6 +99,13 @@ describe("ComponentsView: check and update (6d)", () => {
     expect(screen.queryByTestId("component-overview-actions")).toBeNull();
   });
 
+  it("an unpinned import: Check, but no Fetch and check (nothing to fetch)", () => {
+    const base = item("a", "Smoke Detector");
+    render(<ComponentsView items={[{ ...base, origin: { ...base.origin, unpinned: "untracked" } as never }]} onCheck={() => {}} />);
+    expect(screen.getByTestId("component-overview-check")).toBeTruthy();
+    expect(screen.queryByTestId("component-overview-fetch")).toBeNull();
+  });
+
   // Manual test 2026-11-19: the component TARA could only be opened from the DFD.
   it("\"Open component TARA\" here too, for each import", () => {
     const onOpen = vi.fn();

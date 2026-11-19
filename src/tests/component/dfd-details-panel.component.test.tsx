@@ -33,6 +33,7 @@ function show(componentInfo?: {
   drift?: { kind: "up_to_date" | "newer_available" | "unreachable"; text: string };
   driftChecking?: boolean;
   onCheckDrift?: (fetch: boolean) => void;
+  fetchNotApplicable?: boolean;
 }) {
   render(<DFDDetailsPanel open onToggle={() => {}} onClose={() => {}} element={mp} onChange={() => {}} elements={[mp]} componentInfo={componentInfo} />);
 }
@@ -59,6 +60,13 @@ describe("DFDDetailsPanel — imported component", () => {
     cleanup();
     show({ name: "Smoke Detector", source: "commit 01234567", prefix: "SD1", onCheckDrift, driftChecking: true });
     expect((screen.getByTestId("component-drift-check") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // Manual test 2026-11-19: an unpinned import is read from its file — nothing to fetch.
+  it("unpinned: Check, but no Fetch and check", () => {
+    show({ name: "Smoke Detector", source: "unpinned (untracked)", prefix: "SD2", drift: { kind: "up_to_date", text: "Up to date · not pinned" }, onCheckDrift: vi.fn(), fetchNotApplicable: true });
+    expect(screen.getByTestId("component-drift-check")).toBeTruthy();
+    expect(screen.queryByTestId("component-drift-fetch")).toBeNull();
   });
 
   it("no open button when the app cannot open it", () => {

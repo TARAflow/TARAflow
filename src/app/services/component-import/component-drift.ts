@@ -86,6 +86,12 @@ export type ComponentDriftStatus =
        */
       committedAs?: { commitSha: string; tag?: string };
       /**
+       * The import is not pinned to a commit and its file is not committed
+       * yet (manual test 2026-11-19: the chip said only "up to date" while
+       * the DFD said "imported unpinned").
+       */
+      unpinned?: boolean;
+      /**
        * The component's repository has another branch checked out, with a
        * newer state of the file than the imported one (manual test
        * 2026-11-17: the import followed `import-example`, the new commit was
@@ -178,7 +184,7 @@ export async function checkComponentDrift(
     const committed = await committedStateOf(localPath, git, source.tagPattern);
     return committed && committed.contentHash === imported.contentHash
       ? { kind: "up_to_date", committedAs: { commitSha: committed.commitSha, ...(committed.tag ? { tag: committed.tag } : {}) } }
-      : result;
+      : { ...result, unpinned: true };
   }
 
   const top = await git(["rev-parse", "--show-toplevel"], dirOf(localPath));

@@ -187,6 +187,7 @@
       "committed": "inzwischen committet ({{where}}) — gespeicherten Stand auffrischen, um den Import an diesen Commit zu binden",
       "diverged": "Anderer Stand auf getrenntem Ast ({{where}}) — weder neuer noch älter; mit dem Komponenten-Team klären",
       "upToDate": "Aktuell",
+      "unpinned": "nicht gebunden — die Datei ist noch nicht committet",
       "otherBranch": "ein neuerer Stand auf dem ausgecheckten Branch {{branch}} ({{where}}) — der Import folgt seinem eigenen Branch",
       "followBranch": "Branch {{branch}} folgen",
       "newer": "Neuerer Stand verfügbar ({{where}}) — das Update folgt als expliziter Schritt",

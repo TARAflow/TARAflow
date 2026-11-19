@@ -483,6 +483,8 @@ export interface ComponentMultiprocessInfo {
   driftChecking?: boolean;
   /** Check again; fetch = `git fetch` first (network, on request only). */
   onCheckDrift?: (fetch: boolean) => void;
+  /** An unpinned import is read from its file: there is nothing to fetch — no "Fetch and check". */
+  fetchNotApplicable?: boolean;
   /**
    * Update to the newer state (phase 5c-2): a runner like the import's — the
    * DFD tab commits its outcome and loads it into draw.io, so the update

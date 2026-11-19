@@ -113,6 +113,18 @@ describe("drift check against a real repository (phase 5a)", () => {
     expect(await checkComponentDrift(unpinned, join(root, "missing.tara.json"), read, git)).toMatchObject({ kind: "unreachable", reason: "file_missing" });
   });
 
+  // Manual test 2026-11-19: the chip said "up to date" while the DFD said "imported unpinned".
+  it("unpinned, the same content, the file not committed: up to date and unpinned", async () => {
+    const copy = join(root, "components", "camera-copy.tara.json");
+    writeFileSync(copy, readFileSync(file, "utf-8"));
+    const r = await readComponentSource(copy, read, git);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.source.unpinned).toBeTruthy();
+    const unpinned = { ...imported, source: r.source, contentHash: r.contentHash };
+    expect(await checkComponentDrift(unpinned, copy, read, git)).toEqual({ kind: "up_to_date", unpinned: true });
+    rmSync(copy);
+  });
+
   it("fetch only on request: a checkout behind its remote sees the newer state only after fetching", async () => {
     const clone = mkdtempSync(join(tmpdir(), "taraflow-clone-"));
     try {

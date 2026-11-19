@@ -310,9 +310,9 @@ describe("an unpinned import committed later without a change is pinned by a ref
     expect(read.source.unpinned).toBe("untracked");
     let project = importInto(read);
     const unpinned = project.components!.imports[0];
-    // not committed yet: up to date, nothing offered
+    // not committed yet: up to date and unpinned (the status says so, patch 148), nothing offered
     const before = await checkComponentDrift(unpinned, file, readText, run);
-    expect(before).toEqual({ kind: "up_to_date" });
+    expect(before).toEqual({ kind: "up_to_date", unpinned: true });
     expect(updateTargetOf(unpinned, before)).toBeUndefined();
 
     // committed without a change
