@@ -528,7 +528,14 @@ const InteractionThreatRows: React.FC<{
                   )}
                   <TableCell sx={{ ...cellSx, textAlign: "right" }}>
                     <Tooltip title={t("common.edit", { defaultValue: "Edit" })}>
-                      <IconButton size="small" onClick={() => onEdit(threat)}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          // the row opens the dialog too — once is enough
+                          e.stopPropagation();
+                          onEdit(threat);
+                        }}
+                      >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -537,7 +544,12 @@ const InteractionThreatRows: React.FC<{
                     >
                       <IconButton
                         size="small"
-                        onClick={() => onDelete(threat.id)}
+                        onClick={(e) => {
+                          // not the row's click: it opened the threat dialog over the
+                          // delete confirmation (manual test 2026-11-19)
+                          e.stopPropagation();
+                          onDelete(threat.id);
+                        }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
