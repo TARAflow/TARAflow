@@ -385,6 +385,30 @@ export function useComponentImport({
   // Details of an imported multiprocess, with "Open component TARA".
   const components = activeProject?.components;
   const machineFilePath = activeProject?.filePath;
+
+  /**
+   * Opens an import's component TARA as a further project — from the
+   * multiprocess's tab "Component" and from Overview → Components (manual
+   * test 2026-11-19). Where it lies on this computer: the remembered path,
+   * else the component's repository (resolveComponentPath).
+   */
+  const openComponentTara = useCallback(
+    (importId: string) => {
+      const imported = components?.imports.find((i) => i.id === importId);
+      if (!imported || !openProjectFile) return;
+      void (async () => {
+        const path = await resolveComponentPath(imported.componentId, imported.source, machineFilePath, createIpcGitRunner());
+        if (path) await openProjectFile(path);
+        else
+          toast.warning(
+            t("components.details.pathUnknown", {
+              defaultValue: "Where the component TARA lies on this computer is not known — open it via File → Open.",
+            }),
+          );
+      })();
+    },
+    [components, machineFilePath, openProjectFile, t, toast],
+  );
   const componentInfoOf = useCallback(
     (tfId: string): ComponentMultiprocessInfo | undefined => {
       const instance = components?.instances.find((i) => i.multiprocessTfId === tfId);
@@ -487,25 +511,10 @@ export function useComponentImport({
             }),
           );
         },
-        ...(openProjectFile && componentImportAvailable()
-          ? {
-              onOpen: () => {
-                void (async () => {
-                  const path = await resolveComponentPath(imported.componentId, imported.source, machineFilePath, createIpcGitRunner());
-                  if (path) await openProjectFile(path);
-                  else
-                    toast.warning(
-                      t("components.details.pathUnknown", {
-                        defaultValue: "Where the component TARA lies on this computer is not known — open it via File → Open.",
-                      }),
-                    );
-                })();
-              },
-            }
-          : {}),
+        ...(openProjectFile && componentImportAvailable() ? { onOpen: () => openComponentTara(imported.id) } : {}),
       };
     },
-    [components, machineFilePath, openProjectFile, t, toast, activeProjectRef, updateProject, drift, updateRunnerFor, applied, discardRunner],
+    [components, openProjectFile, openComponentTara, t, toast, activeProjectRef, updateProject, drift, updateRunnerFor, applied, discardRunner],
   );
 
   // Relevance override on an imported boundary-flow threat (I3) — written
@@ -576,6 +585,8 @@ export function useComponentImport({
       </>
     ),
     componentInfoOf,
+    /** Open an import's component TARA as a further project; undefined outside Electron or without the opener. */
+    openComponentTara: openProjectFile && componentImportAvailable() ? openComponentTara : undefined,
     /**
      * The update of an import for a start outside the DFD tab (Overview, 6d):
      * its runner and whether it refreshes the stored state; undefined when

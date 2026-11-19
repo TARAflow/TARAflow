@@ -29,6 +29,8 @@ export interface ComponentsViewProps {
   onUpdate?: (importId: string) => void;
   /** Let an import follow another branch of the component's repository (then it is checked again). */
   onFollowBranch?: (importId: string, branch: string) => void;
+  /** Open the import's component TARA as a further project (as in the DFD's tab "Component"). */
+  onOpen?: (importId: string) => void;
 }
 
 const DRIFT_COLOR: Record<NonNullable<ComponentOverviewItem["drift"]>["kind"], "success" | "warning" | "error" | "default"> = {
@@ -58,7 +60,7 @@ const Heading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </Typography>
 );
 
-export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd, onCheck, checking, onUpdate, onFollowBranch }) => {
+export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd, onCheck, checking, onUpdate, onFollowBranch, onOpen }) => {
   const { t } = useTranslation();
   // The texts of the deviation list through the app's i18n (the report's keys, any namespace).
   // Raw texts: the shared formatter fills the {{placeholders}} itself.
@@ -172,8 +174,13 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
                 <Field label={t("overviewComponents.importedAt", { defaultValue: "Imported on" })}>{day(o.importedAt)}</Field>
                 <Field label={t("overviewComponents.lastUpdate", { defaultValue: "Last update" })}>{o.lastUpdateAt ? day(o.lastUpdateAt) : undefined}</Field>
                 {/* Check and update right here (6d) — the update runs in the DFD tab, the editor's path */}
-                {(onCheck || (onUpdate && item.update) || (onFollowBranch && item.followBranch)) && (
+                {(onOpen || onCheck || (onUpdate && item.update) || (onFollowBranch && item.followBranch)) && (
                   <Box sx={{ display: "flex", gap: 1, py: 0.5, flexWrap: "wrap" }} data-testid="component-overview-actions">
+                    {onOpen && (
+                      <Button size="small" onClick={() => onOpen(item.importId)} data-testid="component-overview-open">
+                        {t("components.details.open", { ns: "components", defaultValue: "Open component TARA" })}
+                      </Button>
+                    )}
                     {onCheck && (
                       <>
                         <Button size="small" disabled={checking} onClick={() => onCheck(false)} data-testid="component-overview-check">

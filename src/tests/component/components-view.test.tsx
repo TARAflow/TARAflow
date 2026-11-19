@@ -99,6 +99,16 @@ describe("ComponentsView: check and update (6d)", () => {
     expect(screen.queryByTestId("component-overview-actions")).toBeNull();
   });
 
+  // Manual test 2026-11-19: the component TARA could only be opened from the DFD.
+  it("\"Open component TARA\" here too, for each import", () => {
+    const onOpen = vi.fn();
+    render(<ComponentsView items={[item("a", "Smoke Detector"), item("b", "Camera")]} onOpen={onOpen} />);
+    const buttons = screen.getAllByTestId("component-overview-open");
+    expect(buttons.map((b) => b.textContent)).toEqual(["Open component TARA", "Open component TARA"]);
+    fireEvent.click(buttons[1]);
+    expect(onOpen).toHaveBeenCalledWith("b");
+  });
+
   // Manual test 2026-11-17: the newer state was on the checked-out test branch.
   it("a newer state on the checked-out branch: \"Follow branch …\" lets the import follow it", () => {
     const onFollowBranch = vi.fn();

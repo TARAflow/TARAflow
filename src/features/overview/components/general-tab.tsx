@@ -124,6 +124,8 @@ interface GeneralTabProps {
   onUpdateComponent?: (importId: string) => void;
   /** Let a component import follow another branch of its repository. */
   onFollowComponentBranch?: (importId: string, branch: string) => void;
+  /** Open a component import's TARA as a further project. */
+  onOpenComponent?: (importId: string) => void;
 }
 
 /**
@@ -161,6 +163,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   componentsChecking,
   onUpdateComponent,
   onFollowComponentBranch,
+  onOpenComponent,
 }) => {
   const { t } = useTranslation();
   const [chosenView, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -353,6 +356,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
           {...(componentsChecking !== undefined ? { checking: componentsChecking } : {})}
           {...(onUpdateComponent ? { onUpdate: onUpdateComponent } : {})}
           {...(onFollowComponentBranch ? { onFollowBranch: onFollowComponentBranch } : {})}
+          {...(onOpenComponent ? { onOpen: onOpenComponent } : {})}
         />
       )}
 

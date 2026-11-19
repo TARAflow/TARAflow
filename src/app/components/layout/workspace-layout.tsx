@@ -410,6 +410,7 @@ export const WorkspaceLayout: React.FC = () => {
               const action = componentImport.updateActionOf(importId);
               if (action) navigation.runInDfd(action.runner);
             }}
+            {...(componentImport.openComponentTara ? { onOpenComponent: componentImport.openComponentTara } : {})}
             onFollowComponentBranch={(importId, branch) => {
               // the import follows the checked-out branch; the drift check runs again
               const components = activeProject.components;
