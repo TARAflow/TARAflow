@@ -124,6 +124,15 @@ in 0.18.x.
   background box.
 - **Source references:** *Resolve* says why it failed (no such repository,
   no access, no network, no answer) and never waits on a password prompt.
+  It works with simple-git 4's environment guard — it failed for every
+  user whose environment holds a `GIT_*` variable or an editor — and with
+  URL rewrites configured in the environment (`url.<base>.insteadOf` from a
+  company or CI setup).
+- **Audit tab, a file that differs from HEAD without a listed change:**
+  committable, named for what it is — *Derived values* only when every
+  changed place is one (the threat id copied into a risk, timestamps),
+  otherwise *Changes the audit diff does not list* — with the changed
+  places (JSON pointers) in the commit message.
 
 ### Removed
 - **Asset fields *Protection need* and *Criticality*:** ratings entered as
@@ -165,21 +174,34 @@ in 0.18.x.
 - **Interfaces:** a straight flow (no orthogonal routing) through an
   interface is found — it was checked only as one of the two L-paths.
 - **Audit tab:** opening a project or the autosave after a commit no longer
-  rewrites the file for timestamps alone; a file that differs from HEAD only
-  in derived values can be committed; the diff compares values regardless
-  of key order (toggling a regulation tag no longer lists a threat); the
-  Audit tab no longer marks the project unsaved; the signing and SSH keys
-  are remembered per project on this computer; *git:rawInDir* reports git's
-  real exit code (the drift check saw no newer state).
+  rewrites the file for timestamps alone; the diff compares values
+  regardless of key order (toggling a regulation tag no longer lists a
+  threat); the Audit tab no longer marks the project unsaved; the signing
+  and SSH keys are remembered per project on this computer — and a key
+  cleared in the Audit tab stays cleared; *git:rawInDir* reports git's real
+  exit code (the drift check saw no newer state).
+- **Threats tab:** rating a threat no longer recomputes the other STRIDE
+  method's drift (a full generation per click).
 
 ### Upgrade notes
 - **Uncertain threats** no longer count as rated: a project with threats
   set to *uncertain* shows its Threats phase *in progress* again — decide
   them (relevant / not relevant).
 - **Straight flows through interfaces** are found when the DFD is saved
-  again; the field `straight` then appears in the file for such flows, and
-  more threats may name the interface. In a component this is a newer
-  state for the machines that import it (no decision affected).
+  again; the field `straight` (written only for straight flows, additive)
+  then appears in the file, and more threats may name the interface. A
+  component with straight flows therefore shows once as a newer state for
+  the machines that import it after its next save — no decision affected.
+- **Known limit — git settings in environment variables:** simple-git 4
+  removes `GIT_*` variables (and editor / pager) from the environment of
+  TARAflow's git calls: `GIT_SSH_COMMAND`, `GIT_SSL_CAINFO` (a company CA),
+  `GIT_ASKPASS` or git configuration given as `GIT_CONFIG_*` do not reach
+  commit, push and fetch in the Audit tab or the drift check of imported
+  components. Put such settings in the git configuration (`~/.gitconfig`)
+  instead. Which variables pass is decided in 0.20.
+- **Write guard:** a save that would change only timestamps
+  (`lastModified`, `lastValidated`) leaves the file as it is — the file
+  keeps its old timestamps until its content changes.
 - Projects are converted to schema 14 when opened (backup alongside); a
   project without imported components changes in nothing else, and a TARA
   verification stays valid.

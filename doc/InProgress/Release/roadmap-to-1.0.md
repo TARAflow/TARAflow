@@ -1,6 +1,6 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.6 · 2026-11-18 · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
+**Status:** v0.7 · 2026-11-20 · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
 catalogue stamp, field register + guard test, `no-feature-to-feature` with a baseline);
 the ISO/SAE 21434 risk model as a release of its own (0.23), two releases before the RC;
@@ -149,6 +149,23 @@ everything else.
   not fail the result, except with `--strict`. New findings are never acknowledged
   automatically. Not acknowledgeable: a broken trust chain, CMP_SNAPSHOT_HASH_MISMATCH,
   an invalid signature — those are to fix.
+- **Hardening `git:rawInDir`** (review 2026-11-20): it runs any git arguments the renderer
+  sends, with `allowUnsafeHooksPath`. Since the component import the renderer shows
+  content from other people's files — an XSS there would become code execution through
+  `-c core.hooksPath=…` and similar. Guard rails: an allowlist of the subcommands the app
+  uses (rev-parse, merge-base, cat-file, show, ls-files, status, tag, log, rev-list,
+  symbolic-ref); `-c` and `--config-env` refused; `core.hooksPath` set only through its
+  own IPC channel without free arguments.
+- **The user's git environment** (review 2026-11-20): simple-git 4 removes every `GIT_*`
+  variable (and editor / pager) from the environment of the app's git calls unless named
+  in `allowEnvironment` — GIT_SSH_COMMAND, GIT_SSL_CAINFO, GIT_ASKPASS, GIT_CONFIG_* do
+  not reach commit, push, fetch (GitService) or the drift check (rawInDir); only Resolve
+  passes them since 0.19. Decide with the rawInDir hardening: a fixed list for the main
+  process's calls with fixed arguments (GitService, Resolve); none for rawInDir, whose
+  arguments come from the renderer.
+- **Interfaces of an imported component on its physical boundary** (user 2026-11-19) appear
+  on the machine's top page as attached reference copies on the border of the case copy,
+  where the boundary flows cross them, set again on an update.
 
 ### 3.2 0.21 — physical attacks, sensors and actuators, field retirements
 
