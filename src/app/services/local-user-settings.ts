@@ -119,6 +119,12 @@ export function rememberLocalSettings(
   for (const [field, of] of Object.entries(KEY_FIELDS) as [keyof typeof KEY_FIELDS, (c: AuditConfigLike) => string | undefined][]) {
     const value = of(audit?.config);
     if (value && !(onlyMissing && storedProject[field])) nextProject[field] = value;
+    // The user cleared the field in the Audit tab (a rotated or removed key):
+    // forget it, or withLocalAudit fills it in again at the next open (review
+    // 2026-11-20). Only for an edit of the audit block — not when it is
+    // adopted from a file or git config (onlyMissing), not for other updates
+    // (no audit block).
+    else if (!value && audit?.config && !onlyMissing) delete nextProject[field];
   }
   write(projectKey(projectId), nextProject);
 

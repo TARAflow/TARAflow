@@ -96,6 +96,23 @@ describe("local user settings — the user's keys", () => {
     expect(withLocalAudit("p2", withKeys({ enabled: true, format: "ssh" }))!.config.signing).not.toHaveProperty("sshSigningKeyPath");
   });
 
+  // Review 2026-11-20: a cleared key came back at the next open.
+  it("a key the user removes stays removed after reopening", () => {
+    rememberLocalSettings("p1", withKeys({ enabled: true, format: "ssh", sshSigningKeyPath: "/old.pub" }, { auth: { method: "ssh", sshKeyPath: "/id_old" } }), null);
+    // the user clears both fields in the Audit tab (key rotated / removed)
+    rememberLocalSettings("p1", withKeys({ enabled: true, format: "ssh" }, { auth: { method: "ssh" } }), null);
+    const reopened = withLocalAudit("p1", withKeys({ enabled: true, format: "ssh" }, { auth: { method: "ssh" } }))!;
+    expect(reopened.config.signing).not.toHaveProperty("sshSigningKeyPath");
+    expect(reopened.config.auth).not.toHaveProperty("sshKeyPath");
+  });
+
+  it("adopting from a file or git config (onlyMissing) and other updates do not remove a key", () => {
+    rememberLocalSettings("p1", withKeys({ enabled: true, format: "ssh", sshSigningKeyPath: "/k.pub" }), null);
+    rememberLocalSettings("p1", withKeys({ enabled: true, format: "ssh" }), null, { onlyMissing: true });
+    rememberLocalSettings("p1", null as unknown as Audit, null);
+    expect(withLocalAudit("p1", withKeys({ enabled: true, format: "ssh" }))!.config.signing?.sshSigningKeyPath).toBe("/k.pub");
+  });
+
   it("nothing to fill in: the same object (no re-render)", () => {
     rememberLocalSettings("p1", audit({ name: "Ann", email: "ann@x" }), null);
     const a = withLocalAudit("p1", audit())!;
