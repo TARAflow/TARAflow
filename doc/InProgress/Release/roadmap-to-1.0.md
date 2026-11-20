@@ -123,6 +123,11 @@ Order inside the release: results dump → catalogue stamp → register + guard 
 depcruise rule → snapshot hash test (rule 5, reference: a component saved with 0.19) →
 everything else.
 
+**Snapshot hash test done** (0.20 patch 06): `src/tests/regression/component-snapshot-hash-0-19.test.ts`
+— the example component `SmokeDetectorCase` as committed in TARAflow_Examples (e68d84da)
+loads, and saved again loads, with the content hash 0.19 recorded at its import
+(`ac3ab72ad377`); a failure names the changed snapshot places. Re-based in 0.21.
+
 - **Results dump of 0.19** (rule 3.1) on the shipped example projects — the reference the
   stamp and every later release is compared with. Customer projects only locally (rule 8).
   **Done** (0.20 patch 01): `npm run dump:results`, reference in
