@@ -68,6 +68,8 @@ jobs:
       # module. Severity is already "error" in the config (see Phase 1).
       - name: Purity boundary check (dependency-cruiser)
         run: npx depcruise --config utils/depcruise-doc.cjs --output-type err-long src/features/documentation/utils
+      - name: Feature independence (no feature imports another; baseline of 0.20)
+        run: npm run depcruise:features
 
       # Phase 7 smoke test: build the CLI bundle and run it against the
       # fixture project exactly as a real user would. Linux-only because

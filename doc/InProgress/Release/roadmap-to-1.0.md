@@ -135,6 +135,11 @@ everything else.
   **Done** (0.20 patch 04): 246 fields — 155 calculation, 45 documentation, 46 pending
   (frozen, may only shrink).
 - **`no-feature-to-feature`** depcruise rule in CI with a baseline list (rule 3.4).
+  **Done** (0.20 patch 05): `utils/depcruise-features.cjs`, `npm run depcruise:features` in
+  CI, baseline `utils/depcruise-features-baseline.json` with the 80 edges of 0.20 (type-only
+  imports included) — documentation 66 (→ dfd 24, risks 21, assets 10, attack tree 6,
+  threats 4, overview 1), audit 6, risks → threats 4, attack tree 2, dfd ↔ threats 2. A test
+  pins its size; it only shrinks.
 - **EN 50742 Approach B** — coverage done (`en-50742-rq-coverage.md` §6, patch 112,
   decisions O13 – O16): component role (Table 4, fixed SL-T, 26 counted rows + 12
   recommended by analogy), system role (8.2) as a statement row (R-9), scope = the

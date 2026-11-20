@@ -1,0 +1,1209 @@
+[
+  {
+    "type": "dependency",
+    "from": "src/features/attacktree/components/attacktree-tab2.tsx",
+    "to": "src/features/threats/services/threat-catalog-service.ts",
+    "unresolvedTo": "../../threats/services/threat-catalog-service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/attacktree/services/attacktree-parser.ts",
+    "to": "src/features/assets/models/asset-security-goals-types.ts",
+    "unresolvedTo": "features/assets/models/asset-security-goals-types",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/audit/services/diff-service.ts",
+    "to": "src/features/assets/index.ts",
+    "unresolvedTo": "features/assets",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/audit/services/diff-service.ts",
+    "to": "src/features/attacktree/index.ts",
+    "unresolvedTo": "features/attacktree",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/audit/services/diff-service.ts",
+    "to": "src/features/dfd/index.ts",
+    "unresolvedTo": "features/dfd",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/audit/services/diff-service.ts",
+    "to": "src/features/dfd/services/dfd-diff.ts",
+    "unresolvedTo": "features/dfd/services/dfd-diff",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/audit/services/diff-service.ts",
+    "to": "src/features/risks/index.ts",
+    "unresolvedTo": "features/risks",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/audit/services/diff-service.ts",
+    "to": "src/features/threats/index.ts",
+    "unresolvedTo": "features/threats",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/dfd/components/dfd-notification-panel.tsx",
+    "to": "src/features/threats/services/threat-catalog-service.ts",
+    "unresolvedTo": "features/threats/services/threat-catalog-service",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/models/doc-types.ts",
+    "to": "src/features/assets/index.ts",
+    "unresolvedTo": "features/assets",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/models/doc-types.ts",
+    "to": "src/features/attacktree/index.ts",
+    "unresolvedTo": "features/attacktree",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/models/doc-types.ts",
+    "to": "src/features/dfd/index.ts",
+    "unresolvedTo": "features/dfd",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/models/doc-types.ts",
+    "to": "src/features/overview/index.ts",
+    "unresolvedTo": "features/overview",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/models/doc-types.ts",
+    "to": "src/features/risks/index.ts",
+    "unresolvedTo": "features/risks",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/models/doc-types.ts",
+    "to": "src/features/threats/index.ts",
+    "unresolvedTo": "features/threats",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/attack-tree-report.ts",
+    "to": "src/features/attacktree/models/attacktree-feasibility-types.ts",
+    "unresolvedTo": "../../attacktree/models/attacktree-feasibility-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/attack-tree-report.ts",
+    "to": "src/features/attacktree/models/attacktree-types.ts",
+    "unresolvedTo": "../../attacktree/models/attacktree-types",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/attack-tree-report.ts",
+    "to": "src/features/attacktree/services/attacktree-feasibility.ts",
+    "unresolvedTo": "../../attacktree/services/attacktree-feasibility",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/attack-tree-report.ts",
+    "to": "src/features/attacktree/services/attacktree-parser.ts",
+    "unresolvedTo": "../../attacktree/services/attacktree-parser",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/attack-tree-report.ts",
+    "to": "src/features/attacktree/services/attacktree-threat-generator.ts",
+    "unresolvedTo": "../../attacktree/services/attacktree-threat-generator",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/control-text.ts",
+    "to": "src/features/threats/services/threat-catalog-service.ts",
+    "unresolvedTo": "../../threats/services/threat-catalog-service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-page-sections.ts",
+    "to": "src/features/dfd/models/dfd-types.ts",
+    "unresolvedTo": "../../dfd/models/dfd-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-page-sections.ts",
+    "to": "src/features/dfd/services/leveled/report-pages.ts",
+    "unresolvedTo": "../../dfd/services/leveled/report-pages",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-parent-level-flows.ts",
+    "to": "src/features/dfd/models/dfd-types.ts",
+    "unresolvedTo": "../../dfd/models/dfd-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-parent-level-flows.ts",
+    "to": "src/features/dfd/services/build-dfd-graph.ts",
+    "unresolvedTo": "../../dfd/services/build-dfd-graph",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-parent-level-flows.ts",
+    "to": "src/features/dfd/services/leveled/effective-model.ts",
+    "unresolvedTo": "../../dfd/services/leveled/effective-model",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-parent-level-flows.ts",
+    "to": "src/features/dfd/services/leveled/leveled-analysis.ts",
+    "unresolvedTo": "../../dfd/services/leveled/leveled-analysis",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-parent-level-flows.ts",
+    "to": "src/features/dfd/services/leveled/parent-level-flows.ts",
+    "unresolvedTo": "../../dfd/services/leveled/parent-level-flows",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-report-groups.ts",
+    "to": "src/features/dfd/models/dfd-types.ts",
+    "unresolvedTo": "../../dfd/models/dfd-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-report-groups.ts",
+    "to": "src/features/dfd/services/build-dfd-graph.ts",
+    "unresolvedTo": "../../dfd/services/build-dfd-graph",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-report-groups.ts",
+    "to": "src/features/dfd/services/leveled/leveled-analysis.ts",
+    "unresolvedTo": "../../dfd/services/leveled/leveled-analysis",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-report-groups.ts",
+    "to": "src/features/dfd/services/leveled/table-groups.ts",
+    "unresolvedTo": "../../dfd/services/leveled/table-groups",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-stats-table.ts",
+    "to": "src/features/dfd/models/dfd-element-types.ts",
+    "unresolvedTo": "../../dfd/models/dfd-element-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-stats-table.ts",
+    "to": "src/features/dfd/models/dfd-formatters.ts",
+    "unresolvedTo": "../../dfd/models/dfd-formatters",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/dfd-stats-table.ts",
+    "to": "src/features/dfd/models/dfd-types.ts",
+    "unresolvedTo": "../../dfd/models/dfd-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/assets/index.ts",
+    "unresolvedTo": "features/assets",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/assets/services/asset-impact-resolver.ts",
+    "unresolvedTo": "../../../assets/services/asset-impact-resolver",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/dfd/models/dfd-formatters.ts",
+    "unresolvedTo": "../../../dfd/models/dfd-formatters",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/dfd/models/dfd-types.ts",
+    "unresolvedTo": "../../../dfd/models/dfd-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/risks/models/en50742-approach-a-core.ts",
+    "unresolvedTo": "../../../risks/models/en50742-approach-a-core",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/risks/models/iso-risk-matrix.ts",
+    "unresolvedTo": "../../../risks/models/iso-risk-matrix",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/risks/models/iso-scenarios.ts",
+    "unresolvedTo": "../../../risks/models/iso-scenarios",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/risks/models/iso21434-core.ts",
+    "unresolvedTo": "../../../risks/models/iso21434-core",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/risks/models/risk-mitigation-types.ts",
+    "unresolvedTo": "../../../risks/models/risk-mitigation-types",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/risks/models/risk-treatment-vocabulary.ts",
+    "unresolvedTo": "../../../risks/models/risk-treatment-vocabulary",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/base-generator.ts",
+    "to": "src/features/threats/services/threat-catalog-service.ts",
+    "unresolvedTo": "../../../threats/services/threat-catalog-service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/pdfmake-converter.ts",
+    "to": "src/features/dfd/models/dfd-formatters.ts",
+    "unresolvedTo": "../../../dfd/models/dfd-formatters",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/pdfmake-converter.ts",
+    "to": "src/features/dfd/models/dfd-types.ts",
+    "unresolvedTo": "../../../dfd/models/dfd-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/pdfmake-converter.ts",
+    "to": "src/features/risks/models/en50742-approach-a-core.ts",
+    "unresolvedTo": "../../../risks/models/en50742-approach-a-core",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/pdfmake-converter.ts",
+    "to": "src/features/risks/models/iso-scenarios.ts",
+    "unresolvedTo": "../../../risks/models/iso-scenarios",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/pdfmake-converter.ts",
+    "to": "src/features/threats/services/threat-catalog-service.ts",
+    "unresolvedTo": "../../../threats/services/threat-catalog-service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/property-doc-mappers.ts",
+    "to": "src/features/dfd/models/dfd-asset-types.ts",
+    "unresolvedTo": "../../../dfd/models/dfd-asset-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/property-doc-mappers.ts",
+    "to": "src/features/dfd/models/dfd-types.ts",
+    "unresolvedTo": "../../../dfd/models/dfd-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/generators/property-doc-mappers.ts",
+    "to": "src/features/dfd/models/element-properties.ts",
+    "unresolvedTo": "../../../dfd/models/element-properties",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/iso-risk-label.ts",
+    "to": "src/features/risks/models/iso-risk-display.ts",
+    "unresolvedTo": "../../risks/models/iso-risk-display",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/iso-risk-label.ts",
+    "to": "src/features/risks/models/iso-risk-matrix.ts",
+    "unresolvedTo": "../../risks/models/iso-risk-matrix",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/iso-scenario-text.ts",
+    "to": "src/features/risks/models/iso-risk-display.ts",
+    "unresolvedTo": "../../risks/models/iso-risk-display",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/iso-scenario-text.ts",
+    "to": "src/features/risks/models/iso-scenarios.ts",
+    "unresolvedTo": "../../risks/models/iso-scenarios",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/iso-scenario-text.ts",
+    "to": "src/features/risks/models/risk-treatment-vocabulary.ts",
+    "unresolvedTo": "../../risks/models/risk-treatment-vocabulary",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/methodology-sections.ts",
+    "to": "src/features/risks/models/risk-scale-types.ts",
+    "unresolvedTo": "../../risks/models/risk-scale-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/methodology-sections.ts",
+    "to": "src/features/risks/models/risk-treatment-vocabulary.ts",
+    "unresolvedTo": "../../risks/models/risk-treatment-vocabulary",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/report-chapter-data.ts",
+    "to": "src/features/assets/index.ts",
+    "unresolvedTo": "features/assets",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/report-chapter-data.ts",
+    "to": "src/features/assets/services/asset-impact-resolver.ts",
+    "unresolvedTo": "../../assets/services/asset-impact-resolver",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/report-chapter-data.ts",
+    "to": "src/features/dfd/models/dfd-formatters.ts",
+    "unresolvedTo": "../../dfd/models/dfd-formatters",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/report-chapter-data.ts",
+    "to": "src/features/dfd/models/dfd-types.ts",
+    "unresolvedTo": "../../dfd/models/dfd-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/report-chapter-data.ts",
+    "to": "src/features/risks/models/iso-risk-matrix.ts",
+    "unresolvedTo": "../../risks/models/iso-risk-matrix",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/report-chapter-data.ts",
+    "to": "src/features/risks/models/iso21434-core.ts",
+    "unresolvedTo": "../../risks/models/iso21434-core",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/report-chapter-data.ts",
+    "to": "src/features/risks/models/risk-treatment-vocabulary.ts",
+    "unresolvedTo": "../../risks/models/risk-treatment-vocabulary",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/risk-score-text.ts",
+    "to": "src/features/risks/models/risk-scale-types.ts",
+    "unresolvedTo": "../../risks/models/risk-scale-types",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/security-goal-doc-rows.ts",
+    "to": "src/features/assets/models/asset-impact-types.ts",
+    "unresolvedTo": "../../assets/models/asset-impact-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/security-goal-doc-rows.ts",
+    "to": "src/features/assets/models/asset-security-goals-types.ts",
+    "unresolvedTo": "../../assets/models/asset-security-goals-types",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/security-goal-doc-rows.ts",
+    "to": "src/features/assets/models/asset-types.ts",
+    "unresolvedTo": "../../assets/models/asset-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/security-goal-doc-rows.ts",
+    "to": "src/features/assets/services/asset-goal-state.ts",
+    "unresolvedTo": "../../assets/services/asset-goal-state",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/security-goal-doc-rows.ts",
+    "to": "src/features/assets/utils/goal-badges.ts",
+    "unresolvedTo": "../../assets/utils/goal-badges",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/documentation/utils/threat-risk-stats.ts",
+    "to": "src/features/risks/models/risk-scale-types.ts",
+    "unresolvedTo": "../../risks/models/risk-scale-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/risks/components/mitigation-scope-selector.tsx",
+    "to": "src/features/threats/models/threat-types.ts",
+    "unresolvedTo": "../../threats/models/threat-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/risks/components/risk-dialog/use-mitigation-selection.ts",
+    "to": "src/features/threats/services/threat-catalog-service.ts",
+    "unresolvedTo": "../../../threats/services/threat-catalog-service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/risks/components/risk-dialog/use-risk-dialog-derived.ts",
+    "to": "src/features/threats/services/threat-catalog-service.ts",
+    "unresolvedTo": "../../../threats/services/threat-catalog-service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/risks/components/shared/risk-columns.tsx",
+    "to": "src/features/threats/services/threat-catalog-service.ts",
+    "unresolvedTo": "../../../threats/services/threat-catalog-service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/threats/utils/stride-modifier.ts",
+    "to": "src/features/dfd/models/element-properties.ts",
+    "unresolvedTo": "features/dfd/models/element-properties",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-feature-to-feature"
+    }
+  }
+]
