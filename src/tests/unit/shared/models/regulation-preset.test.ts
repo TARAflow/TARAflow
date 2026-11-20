@@ -36,10 +36,9 @@ describe("regulation preset catalog", () => {
     ]);
   });
 
-  it("en-50742-b manages no likelihood factors (compliance-driven)", () => {
-    expect(
-      REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds,
-    ).toBeUndefined();
+  it("en-50742-b manages the standard factors without the motive (4.3/242, O16 — 0.20)", () => {
+    expect(REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds).toEqual(["skill_level", "opportunity", "ease_of_exploit"]);
+    expect(REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds).not.toContain("motive");
   });
 
 

@@ -284,7 +284,10 @@ only with countermeasures of the system, otherwise it lists those rows for a sta
 (`withSystemCountermeasures`). Test: `evaluate-matrix.en50742-b.test.ts`. 8.5 and 7.3.4 read the
 retention field `auditRecordRetention` of the data stores in scope (patch 13: some store
 holds audit logs ≥ 5 years; none → gap with a statement to close it, never n/a). Not
-switched on (patch 14).
+switched on in patch 14: tag "EN 50742 B" (brings "IEC 62443" along), preset without
+`motive` (O16), sub-tab with the fixed SL-T read-only, recommended rows marked and left out
+of the counts and the to-do list, statements written to the row's family, report with the
+fixed SL-T and recommended rows named.
 
 ## 7. Clause 9 — Information for use
 
@@ -404,7 +407,7 @@ of rows per status. Header kind `srsl` next to `security-levels` and `conformanc
 | O9 | 7.5 has no model field: decide a version-reporting field (shared with HDR 3.2 RE(1)) in the stage-2 triage of the model coverage plan, or keep the row C. | model coverage plan §4.3 |
 | O10 | 7.4.3.5.1 (authenticity of SRESW/SRASW) is mandated by no STRIDE row of design §11.4 (`EN50742_MANDATED_CLAUSES`). Decided (E-4): the sub-tab evaluates it from the model with the existing 62443 security properties (§9.2). Still open: check against the final EN whether it belongs into the mandate table as well. | design doc §11.4 |
 | O11 | Row EN-4.3/238 + 7.2.1/272 is a statement per safety function; a field per mandated control ("does not affect the safety function") would make it B. Decide with P4. | design doc §3.8 |
-| O12 | Approach B is switched off in `shared/utils/tag-categories.ts` with the outdated reason "no IEC 62443-4-2 support yet"; `regulation-presets-design.md` is stale. Switch on with the sub-tab. | 0.20 |
+| O12 | Approach B is switched off in `shared/utils/tag-categories.ts` with the outdated reason "no IEC 62443-4-2 support yet"; `regulation-presets-design.md` is stale. Switch on with the sub-tab. | **done** (0.20 patch 14) |
 | O13 | B-F1: system role (8.2, Table 3). **Decided 2026-11-14:** component role + statement row for 8.2 in 0.20; an IEC 62443-3-3 SR edition once a customer chooses B for a whole machine (roadmap §4 R-9). | done |
 | O14 | B-F3: Table 4 EDR-only rows. **Decided 2026-11-14:** literal for the status; HDR / NDR / SAR variants shown as recommended, not counted. Re-check with the final EN (O1). | done |
 | O15 | B-F4: scope. **Decided 2026-11-14:** elements on a path to a safety function (CM-12b search), mixed elements in full, outside = out of scope, no safety function = unknown. | done |

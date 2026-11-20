@@ -68,6 +68,14 @@ export interface RegulationPreset {
   likelihoodFactorIds?: string[];
 
   /**
+   * Factors outside the regime pools this preset switches off as well (same
+   * rule: one the analyst enabled by hand stays, reported as a conflict).
+   * EN 50742 B: "motive" — the likelihood of being targeted is not relevant
+   * (4.3/242, O16).
+   */
+  disabledFactorIds?: string[];
+
+  /**
    * STRIDE threat generators this preset disables (per-element / per-interaction
    * / attack-path). Omitted → the preset disables none. Enforced BOTH in the GUI
    * (the method toggle is disabled and cannot be selected) AND in the backend
@@ -165,9 +173,13 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
     likelihoodMethod: "weighted-mean",
     nameKey: "regulationPresets.en-50742-b.name",
     descriptionKey: "regulationPresets.en-50742-b.description",
-    // Approach B is compliance-driven (IEC 62443-3-3/-4-2 fixed subset),
-    // delivered by the Compliance feature — it does not manage likelihood
-    // factors, so likelihoodFactorIds is intentionally omitted.
+    // Approach B is compliance-driven (IEC 62443-4-2 fixed subset, Table 4,
+    // delivered by the Compliance feature); the risks keep the standard
+    // weighted mean — without "motive": 4.3/242, common to both approaches,
+    // says the likelihood of being targeted is not relevant (O16, user
+    // 2026-11-14).
+    likelihoodFactorIds: ["skill_level", "opportunity", "ease_of_exploit"],
+    disabledFactorIds: ["motive"],
   },
   "etsi-tvra": {
     id: "etsi-tvra",

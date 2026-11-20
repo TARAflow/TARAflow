@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### Added
+- **EN 50742 Approach B** (prEN 50742:2025, component role): the tag *EN 50742 B* opens a
+  requirement matrix with the IEC 62443-4-2:2019 requirements of Table 4 for the
+  component's safety functions, a fixed SL-T (FR1–FR3, FR7: 2; FR5, FR6: 1), the variants
+  Table 4 does not name shown as recommended (not counted), the EN 50742 clauses of
+  Clauses 4, 6, 8 and 9, and the system role as a statement. Adding the tag also adds
+  *IEC 62443*; the two matrices share their statements. The risks use the standard
+  factors without the attacker's motive. New data store field *Audit records kept*
+  (only for stores holding audit logs) for 8.5 and Approach A 7.3.4.
+
 ### Changed
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
   the data flows crossing them. A trust boundary of the new type *Safety Zone (EN 50742)*

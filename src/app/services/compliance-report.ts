@@ -368,7 +368,8 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
   const { achieved, planned } = result;
   const name = complianceNameOf(project);
   const familyData = familyCompliance(project.compliance, edition.family);
-  const target = familyData.target ?? {};
+  // EN 50742 B fixes the SL-T (Table 4, B-F5)
+  const target = edition.fixedSlTarget ?? familyData.target ?? {};
   const rowById = new Map(edition.rows.map((r) => [r.label, r]));
   const levels = standard.header === "security-levels";
 
@@ -459,7 +460,12 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
         ...(r.unclearMitigationIds?.length ? { unclearMitigations: [...r.unclearMitigationIds] } : {}),
         ...(r.uncountedClaims?.length ? { uncountedClaims: r.uncountedClaims.map((c) => ({ ...c })) } : {}),
         claims: r.claimIds,
-        reasoning: reasonOf(r),
+        // EN 50742 B (O14): a recommended row is named as such in every format
+        reasoning: r.recommended
+          ? [String(complianceT("compliance.recommendedTooltip", { defaultValue: "Recommended by analogy — Table 4 names only the embedded-device variant (O14). Shown, not counted." })), reasonOf(r)]
+              .filter(Boolean)
+              .join(" — ")
+          : reasonOf(r),
         summary: descriptions.map((d) => `${d.title} — ${d.summary}`).join(" / "),
         checklist: localizedChecklist(descriptions, r.checklist),
         contradiction: r.contradiction,

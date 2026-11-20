@@ -219,6 +219,19 @@ the field, not on this feature.
 
 ## 10. EN 50742 — Approach A / Approach B Split
 
+> **As built (0.20, patch 14 — supersedes the `complianceProfile` / `machineryRole`
+> sketch below where it differs):** the preset `en-50742-b` keeps the risk method
+> `weighted-mean` and manages the likelihood factors as `standard` **without `motive`**
+> (4.3/242 is common to both approaches, O16): `skill_level`, `opportunity`,
+> `ease_of_exploit`. The compliance side is not a field of the preset: the tag
+> "EN 50742 B" selects the Compliance sub-tab `en-50742-b` through the standard registry
+> (`standard-registry.ts`, edition `edition-en-50742-b.ts`: Table 4 of IEC 62443-4-2:2019
+> with a fixed SL-T, `Edition.fixedSlTarget`). Only the **component role** (8.3) is
+> evaluated; the system role (8.2, Table 3, IEC 62443-3-3) is a statement row (O13).
+> The scope is the EN 50742 relevance of O17 / O18 (safety zone, else the path to a
+> safety function), as for Approach A. Adding the tag brings the tag "IEC 62443" along
+> (user 2026-11-20). Details: `en-50742-rq-coverage.md` §6.
+
 prEN 50742 offers two independent compliance routes (Clause 4.1: "Either
 approach A ... or approach B ... shall be applied"), and — this is the
 correction to an earlier draft of this section — **they do not share a

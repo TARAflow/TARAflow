@@ -173,16 +173,18 @@ export const TAG_CATEGORIES: TagCategory[] = [
       // risk-config-dialog / asset-config-dialog) and requires the Hazard tab
       // (requiresHazardAnalysis).
       //
-      // Approach B (Clause 8, fixed IEC 62443-3-3/-4-2 compliance subset) is
-      // deliberately NOT offered: TARAflow has no IEC 62443-4-2 support yet,
-      // so a "B" claim could not be backed by the tool. The preset id
-      // `en-50742-b` and the A/B mutual-exclusion check stay in place for when
-      // the Compliance feature delivers it; an existing project that still
-      // carries the tag keeps working (badge without tooltip, removable).
       {
         name: "EN 50742 A",
         tooltipKey: "tags.tooltips.en50742A",
         docDescriptionKey: "tags.docDescriptions.en50742A",
+      },
+      // Approach B (Clause 8, component role: the fixed IEC 62443-4-2 subset of
+      // Table 4) — the Compliance sub-tab `en-50742-b` (0.20). Mutually
+      // exclusive with A (tag validator).
+      {
+        name: "EN 50742 B",
+        tooltipKey: "tags.tooltips.en50742B",
+        docDescriptionKey: "tags.docDescriptions.en50742B",
       },
     ],
   },

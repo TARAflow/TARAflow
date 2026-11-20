@@ -76,7 +76,11 @@ export type TodoTarget = Partial<Record<FoundationalRequirement, SecurityLevel>>
 
 /** The row's SL-C level is needed for the target of its FR. */
 function withinTarget(row: RowResult, target: TodoTarget): boolean {
+  // recommended rows (EN 50742 B, O14) are never a to-do
+  if (row.recommended) return false;
   if (target === "all") return true;
+  // rows without a level (the EN rows of EN 50742 B next to its Table 4 rows) are always to do
+  if (row.minSl === null) return true;
   const level = target[row.group as FoundationalRequirement];
   return level !== undefined && (row.minSl ?? 1) <= level;
 }

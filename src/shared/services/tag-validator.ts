@@ -186,6 +186,11 @@ export function isEn50742ApproachATag(tag: string): boolean {
   return methodGroupOf(tag) === "EN 50742" && en50742ApproachOf(tag) !== "B";
 }
 
+/** The tag selects EN 50742 Approach B — "EN 50742 B", "EN50742_B", "EN 50742 Approach B" (Compliance sub-tab `en-50742-b`). */
+export function isEn50742ApproachBTag(tag: string): boolean {
+  return methodGroupOf(tag) === "EN 50742" && en50742ApproachOf(tag) === "B";
+}
+
 // ==================== SAFETY / HAZARD IMPLICATION ====================
 
 /**

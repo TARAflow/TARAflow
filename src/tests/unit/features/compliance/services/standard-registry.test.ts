@@ -44,10 +44,16 @@ describe("activeStandards", () => {
     }
   });
 
-  it("Approach B and unrelated tags do not select EN 50742 A", () => {
-    expect(ids(["EN 50742 B"])).toEqual([]);
-    expect(ids(["EN50742_B"])).toEqual([]);
+  it("Approach B selects EN 50742 B (0.20), never A; unrelated tags select nothing", () => {
+    expect(ids(["EN 50742 B"])).toEqual(["en-50742-b"]);
+    expect(ids(["EN50742_B"])).toEqual(["en-50742-b"]);
+    expect(ids(["EN 50742 Approach B"])).toEqual(["en-50742-b"]);
+    expect(ids(["EN 50742 A"])).toEqual(["en-50742-a"]);
     expect(ids(["ISO 21434"])).toEqual([]);
+  });
+
+  it("EN 50742 B with IEC 62443 (the tag it brings along): both matrices", () => {
+    expect(ids(["EN 50742 B", TAG_IEC_62443])).toEqual(["iec-62443-4-2-2019", "en-50742-b"]);
   });
 
   it("with every tag set, one sub-tab per standard in registry order", () => {

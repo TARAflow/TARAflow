@@ -556,6 +556,7 @@ export {
   requiresHazardAnalysis,
   tagEffectOf,
   isEn50742ApproachATag,
+  isEn50742ApproachBTag,
   MATRIX_TAGS,
 } from "./services/tag-validator";
 

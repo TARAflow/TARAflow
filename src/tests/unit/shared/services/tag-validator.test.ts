@@ -4,6 +4,10 @@ import {
   requiresHazardAnalysis,
   getRegulationConflicts,
   hasTagConflicts,
+  addTagToProject,
+  EMPTY_PROJECT_TAGS,
+  getRegulationPreset,
+  getAllPredefinedTagNames,
 } from "shared";
 import type { ProjectTags } from "shared";
 
@@ -81,5 +85,33 @@ describe("getRegulationConflicts — mutual exclusion", () => {
 
   it("does not flag non-regime tags", () => {
     expect(getRegulationConflicts(tags(["Automotive", "IoT"]))).toHaveLength(0);
+  });
+});
+
+describe("EN 50742 Approach B (0.20)", () => {
+  it("adding the B tag brings IEC 62443 along (user 2026-11-20), once", () => {
+    const once = addTagToProject(EMPTY_PROJECT_TAGS, "EN 50742 B");
+    expect(once.regulation).toEqual(["EN 50742 B", "IEC 62443"]);
+    const already = addTagToProject({ ...EMPTY_PROJECT_TAGS, regulation: ["IEC 62443"] }, "EN 50742 B");
+    expect(already.regulation).toEqual(["IEC 62443", "EN 50742 B"]);
+    // an alias spelling (custom bucket) brings it along too
+    expect(addTagToProject(EMPTY_PROJECT_TAGS, "EN50742_B").regulation).toEqual(["IEC 62443"]);
+    // Approach A brings nothing along
+    expect(addTagToProject(EMPTY_PROJECT_TAGS, "EN 50742 A").regulation).toEqual(["EN 50742 A"]);
+  });
+
+  it("selects the preset en-50742-b: standard factors without the motive (O16)", () => {
+    const id = regulationPresetFromTags({ ...EMPTY_PROJECT_TAGS, regulation: ["EN 50742 B", "IEC 62443"] });
+    expect(id).toBe("en-50742-b");
+    expect(getRegulationPreset(id).likelihoodFactorIds).toEqual(["skill_level", "opportunity", "ease_of_exploit"]);
+    expect(getRegulationPreset(id).likelihoodMethod).toBe("weighted-mean");
+  });
+
+  it("A and B together stay a conflict (Clause 4.1)", () => {
+    expect(getRegulationConflicts({ ...EMPTY_PROJECT_TAGS, regulation: ["EN 50742 A", "EN 50742 B"] }).length).toBeGreaterThan(0);
+  });
+
+  it("the B tag is offered in the tag editor", () => {
+    expect(getAllPredefinedTagNames()).toContain("EN 50742 B");
   });
 });

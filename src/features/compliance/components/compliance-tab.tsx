@@ -293,11 +293,16 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   const familyData = familyCompliance(data, family);
   const hasComponent = familyHasComponent(family);
   // D-31: one statement per requirement, shared by the editions of the family.
-  const statements = useMemo(() => editionStatements(edition, familyData.statements), [edition, familyData.statements]);
+  // EN 50742 B: the IEC 62443-4-2 rows read and write the statements of their own family (K-6).
+  const statements = useMemo(
+    () => editionStatements(edition, familyData.statements, (f) => familyCompliance(data, f).statements),
+    [edition, familyData.statements, data],
+  );
   const keyOf = (label: string) => {
     const row = rowDef.get(label);
     return row ? statementKeyOf(row) : label;
   };
+  const familyOf = (label: string) => rowDef.get(label)?.family ?? family;
   const rowDef = useMemo(() => new Map(edition.rows.map((r) => [r.label, r])), [edition]);
 
   const rows = useMemo(() => achieved.rows.filter((r) => matchesFilter(r, filter)), [achieved.rows, filter]);
@@ -306,7 +311,9 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     [achieved.rows],
   );
 
-  const target = useMemo(() => familyData.target ?? {}, [familyData.target]);
+  // EN 50742 B fixes the SL-T (Table 4, B-F5) — nothing to enter.
+  const fixedTarget = edition.fixedSlTarget;
+  const target = useMemo(() => fixedTarget ?? familyData.target ?? {}, [fixedTarget, familyData.target]);
   // Without levels there is no target: every open row is to do.
   const hasTarget = !levels || Object.keys(target).length > 0;
   const todo = useMemo(
@@ -321,7 +328,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   };
   const statusCounts = useMemo(() => {
     const counts = new Map<RowStatus, number>();
-    for (const r of achieved.rows) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
+    // recommended rows (O14) are shown, not counted
+    for (const r of achieved.rows) if (!r.recommended) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
     return counts;
   }, [achieved.rows]);
   const rowByLabel = useMemo(() => new Map(achieved.rows.map((r) => [r.label, r])), [achieved.rows]);
@@ -550,6 +558,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   <TableCell sx={{ whiteSpace: "nowrap" }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <span>{t("target", "SL-T (requirement)")}</span>
+                      {!fixedTarget && (
                       <TextField
                         select
                         size="small"
@@ -571,10 +580,20 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                           </MenuItem>
                         ))}
                       </TextField>
+                      )}
                     </Stack>
                   </TableCell>
                   {FOUNDATIONAL_REQUIREMENTS.map((fr) => {
                     const target = familyData.target?.[fr];
+                    if (fixedTarget) {
+                      return (
+                        <TableCell key={fr} align="center" data-testid={`compliance-target-fixed-${fr}`}>
+                          <Tooltip title={t("targetFixed", "Fixed by the standard (EN 50742 Table 4)")}>
+                            <Chip size="small" variant="outlined" label={fixedTarget[fr]} />
+                          </Tooltip>
+                        </TableCell>
+                      );
+                    }
                     return (
                       <TableCell key={fr} align="center">
                         <TextField
@@ -608,7 +627,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{label}</TableCell>
                     {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
                       <TableCell key={fr} align="center">
-                        <LevelChip value={values[fr]} target={compare ? familyData.target?.[fr] : undefined} />
+                        <LevelChip value={values[fr]} target={compare ? (fixedTarget?.[fr] ?? familyData.target?.[fr]) : undefined} />
                       </TableCell>
                     ))}
                   </TableRow>
@@ -813,6 +832,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   <TableRow key={row.label} data-testid={`compliance-row-${row.label}`}>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       {requirementLink(row.label, `compliance-req-${row.label}`)}
+                      {row.recommended && (
+                        <Tooltip title={t("recommendedTooltip", "Recommended by analogy — Table 4 names only the embedded-device variant (O14). Shown, not counted.")}>
+                          <Chip size="small" variant="outlined" sx={{ ml: 0.5 }} label={t("recommended", "recommended")} data-testid={`compliance-recommended-${row.label}`} />
+                        </Tooltip>
+                      )}
                     </TableCell>
                     <TableCell>{levels ? (row.minSl ?? "—") : t(`group.${row.group}`, row.group)}</TableCell>
                     {cra && <TableCell>{(rowDef.get(row.label)?.cra ?? []).join(", ") || "—"}</TableCell>}
@@ -854,7 +878,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
       </Stack>
 
       {info && (() => {
-        const infoRequirements = (rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(family, id));
+        const infoRequirements = (rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(familyOf(info.label), id));
         return (
           <RequirementInfoDialog
             row={info}
@@ -897,11 +921,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           existing={statements[editing.label]}
           onClose={() => setEditing(null)}
           onSave={(statement) => {
-            onChange(withComplianceStatement(data, family, keyOf(editing.label), statement));
+            onChange(withComplianceStatement(data, familyOf(editing.label), keyOf(editing.label), statement));
             setEditing(null);
           }}
           onRemove={() => {
-            onChange(withoutComplianceStatement(data, family, keyOf(editing.label)));
+            onChange(withoutComplianceStatement(data, familyOf(editing.label), keyOf(editing.label)));
             setEditing(null);
           }}
           today={today}

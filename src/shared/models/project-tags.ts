@@ -7,6 +7,7 @@ import {
   getTagCategory,
   type TagCategoryKey,
 } from "../utils/tag-categories";
+import { isEn50742ApproachBTag } from "../services/tag-validator";
 
 // ==================== TYPE ====================
 
@@ -69,8 +70,15 @@ export function addTagToProject(
     : getTagCategory(trimmed, {});
 
   const bucket = (cat?.key ?? "custom") as keyof ProjectTags;
-  return { ...tags, [bucket]: [...(tags[bucket] as string[]), trimmed] };
+  const next = { ...tags, [bucket]: [...(tags[bucket] as string[]), trimmed] };
+  // EN 50742 Approach B builds on IEC 62443-4-2:2019 (Table 4): its tag brings
+  // the IEC 62443 tag along (user 2026-11-20) — the 62443 sub-tab shows the
+  // full matrix next to B's subset, and both share their statements (K-6).
+  return isEn50742ApproachBTag(trimmed) ? addTagToProject(next, IEC_62443_TAG) : next;
 }
+
+/** The tag of the IEC 62443-4-2:2019 matrix (standard registry TAG_IEC_62443). */
+export const IEC_62443_TAG = "IEC 62443";
 
 /**
  * Remove a tag from whichever bucket it lives in.

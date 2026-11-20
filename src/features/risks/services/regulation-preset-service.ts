@@ -166,6 +166,8 @@ export function applyRegulationPreset(
     factorDefs,
     EXCLUSIVE_METHODS.has(preset.likelihoodMethod),
   );
+  // e.g. EN 50742 B: the standard "motive" (O16)
+  for (const id of preset.disabledFactorIds ?? []) pool.add(id);
 
   const enabled: string[] = [];
   const disabled: string[] = [];

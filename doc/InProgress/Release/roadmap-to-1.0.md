@@ -156,6 +156,8 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   assess (fallback: the path to the safety functions). Approach A rates EL / AC / WoO /
   SRSL only for those risks — changes A results (release note; no customer uses EN 50742
   yet).
+- **Done (0.20 patches 09 – 14):** data, evaluation, retention field, preset, tag (brings
+  "IEC 62443" along), sub-tab and report.
 - Module in the Compliance tab like `en-50742-a`; switch the tag on
   (`shared/utils/tag-categories.ts`, disabled with the outdated reason "no IEC 62443-4-2
   support yet"); update `regulation-presets-design.md` (stale).
