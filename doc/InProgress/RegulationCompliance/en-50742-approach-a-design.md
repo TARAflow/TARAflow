@@ -19,6 +19,19 @@
 > **ISO 21434** rides the same preset rails (see `regulation-presets-design.md`
 > and `iso-21434-conformance-implementation-plan.md`); the shared layers below are built once.
 >
+> **EN 50742 relevance — the safety zone (O17 / O18, user 2026-11-20).** EN 50742 is
+> about the interfaces to the safety functions and the data flows crossing them — for
+> Approach A and B alike. Machines usually separate a grey area from the yellow, safety-
+> related area; a trust boundary of type **`safety`** marks the yellow area. Relevant
+> are the flows crossing its border (either direction) and the interfaces they pass;
+> without a zone, the interfaces and flows on a path to a safety function (CM-12b).
+> One function decides it (`app/utils/en50742-relevance.ts`, with the reason per id).
+> Consequences for Approach A (0.20 patch 11): EL, AC, WoO and the SRSL only for risks
+> whose anchor is relevant — the other risks are rated as usual (L × I), shown as
+> "not EN 50742 relevant"; the model rows of the sub-tab are evaluated on the relevant
+> interfaces, flows and the elements they reach directly. No customer uses EN 50742
+> yet (user 2026-11-20): the change of results needs a release note, no migration.
+>
 > Normative source: prEN 50742:2025 (E), CENELEC CLC/TC 44X (Draft for Enquiry,
 > Dec 2025). Requirement wording below is condensed into implementation form;
 > the authoritative text is the standard itself. Numeric tables are reproduced

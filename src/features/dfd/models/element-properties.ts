@@ -1918,6 +1918,10 @@ export const TRUST_BOUNDARY_CORE_TYPE_OPTIONS = [
   "cloud", // Cloud service boundary (tenant, region, provider)
   "legal", // Legal/contractual boundary (data processing agreement)
   "device", // Logical device boundary (between two connected devices)
+  // Safety zone (EN 50742, O18): the safety-related part of a machine — the
+  // yellow area of the grey / yellow separation. Its border interfaces and
+  // the flows crossing it are what EN 50742 Approaches A and B assess.
+  "safety",
   // App sandbox ↔ OS-/platform-vendor-controlled component (e.g. mobile OS
   // browser broker, keychain/keystore, container runtime ↔ host).
   // Distinction from "privilege": not a privilege escalation within the

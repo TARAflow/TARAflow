@@ -24,6 +24,7 @@ import { i18n } from "i18n";
 import type { Project } from "../models/project-types";
 import { buildAnalysisView, buildDfdGraph, analyseLeveled, isLeveled } from "features/dfd";
 import { withComponentMeasures } from "../utils/component-treatments";
+import { en50742Relevance, type En50742Relevance } from "../utils/en50742-relevance";
 import { instanceClaims } from "./component-import/cited-claims";
 import { withComponentThreats } from "../utils/component-threats";
 import { getAllMitigations } from "features/threats";
@@ -157,6 +158,8 @@ export interface ProjectComplianceContext {
   evaluate: (edition: AnyEdition) => EditionEvaluation;
   /** EN 50742 A: risks, safety functions with their paths, hazards, WoO (CM-12). */
   en50742View: () => En50742View;
+  /** EN 50742 A and B: the relevant interfaces and flows — safety zone, else the path (O17 / O18). */
+  en50742Relevance: () => En50742Relevance;
 }
 
 /**
@@ -267,11 +270,30 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
     ].filter((c) => c.rowLabels.length > 0);
   let en50742: ReturnType<typeof buildEn50742View> | undefined;
   const en50742View = () => (en50742 ??= buildEn50742View(project, paths));
+  let relevance: En50742Relevance | undefined;
+  const en50742RelevanceOf = () =>
+    (relevance ??= en50742Relevance({
+      zoneIds: (dfd.elements as Any[])
+        .filter((e) => e.type === "TrustBoundary" && e.properties?.boundaryType === "safety")
+        .map((e) => e.id as string),
+      boundariesOf: (id) => {
+        const flow = graph.dataFlowAnalysis.get(id);
+        return flow ? { from: flow.fromTrustBoundaryIds ?? [], to: flow.toTrustBoundaryIds ?? [] } : undefined;
+      },
+      safetyFunctions: ((project.assets?.assets ?? []) as Any[])
+        .filter((a) => !!a.physicalImpact)
+        .map((a) => ({
+          id: a.id as string,
+          linkedIds: ((a.linkedDFDElements ?? []) as Any[]).map((l) => l.elementId as string).filter(Boolean),
+        })),
+      paths,
+    }));
 
   return {
     scope,
     scopeName: nameOf(componentId),
     en50742View,
+    en50742Relevance: en50742RelevanceOf,
     evaluate: (edition) => {
       const familyData = familyCompliance(project.compliance, edition.family);
       const familyComponent = complianceComponentOf(project.compliance, edition.family);
