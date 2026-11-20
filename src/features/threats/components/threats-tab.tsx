@@ -83,6 +83,7 @@ function ensureValidThreatData(
     configuration: data.configuration ?? defaultData.configuration,
     perElementTables: data.perElementTables ?? [],
     perInteractionTables: data.perInteractionTables ?? [],
+    ...(data.catalogStamp ? { catalogStamp: data.catalogStamp } : {}),
     lastModified: data.lastModified ?? new Date().toISOString(),
   };
 }

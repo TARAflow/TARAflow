@@ -33,6 +33,7 @@ import type { ThreatData, Threat } from "features/threats";
 import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
+import { storedCatalogVersion } from "shared/models/threat-catalog-stamp";
 import type { A2ARelation, CybersecurityConcept, ItemDefinition } from "shared";
 import { RETIRED_ASSET_FIELDS, type RetiredAssetField } from "shared/models/retired-asset-fields";
 import { canonicalStringify } from "shared/utils/tcs-canonical";
@@ -785,6 +786,32 @@ export class DiffService {
         () => "Project mitigation",
       ),
     );
+
+    // Threat catalogue version a method was (re)generated with (catalogue
+    // divergence phase A) — a regeneration that changes no threat still
+    // records the re-evaluation in the trail.
+    if (current && previous) {
+      for (const method of ["per-element", "per-interaction"] as const) {
+        const before = storedCatalogVersion(previous, method);
+        const after = storedCatalogVersion(current, method);
+        if (before === after) continue;
+        changes.push({
+          type: "modified",
+          id: `threat-catalog-${method}`,
+          name: `Threat catalogue (${method})`,
+          description: `Threats ${method} regenerated with catalogue v${after} (before v${before})`,
+          details: [
+            {
+              field: "catalogStamp",
+              fieldLabel: "Threat catalogue version",
+              oldValue: before,
+              newValue: after,
+              valueType: "number",
+            },
+          ],
+        });
+      }
+    }
 
     // Modified threats
     Array.from(currentMap.entries()).forEach(([id, currentThreat]) => {

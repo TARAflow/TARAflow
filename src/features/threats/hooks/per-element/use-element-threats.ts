@@ -19,6 +19,7 @@ import type {
 } from "../../models/threat-types";
 import { elementThreatService } from "../../services/per-element/element-threat-service";
 import { retainManualThreatTables } from "../../services/threat-identity";
+import { stampCatalog } from "../../services/threat-catalog-version";
 import type { StatisticsResult } from "../../services/threat-service";
 import { DFDAnalysisContext } from "shared";
 
@@ -109,12 +110,17 @@ export function useElementThreats({
 
   // ==================== NOTIFY PARENT ====================
 
+  // `generated`: a full (re)generation — stamps the catalogue version of the
+  // method; every other update carries the stored stamp unchanged.
   const notifyUpdate = useCallback(
-    (updatedTables: ThreatTable[]) => {
+    (updatedTables: ThreatTable[], generated = false) => {
+      const stored = project.threats?.catalogStamp;
+      const catalogStamp = generated ? stampCatalog(stored, "per-element") : stored;
       onUpdate?.({
         configuration,
         perElementTables: updatedTables,
         perInteractionTables: project.threats?.perInteractionTables ?? [],
+        ...(catalogStamp ? { catalogStamp } : {}),
         lastModified: new Date().toISOString(),
       });
     },
@@ -141,7 +147,7 @@ export function useElementThreats({
       if (result.success) {
         startTransition(() => {
           setTables(result.tables);
-          notifyUpdate(result.tables);
+          notifyUpdate(result.tables, true);
           setIsGenerating(false);
         });
         return true;

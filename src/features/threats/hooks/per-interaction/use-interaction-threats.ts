@@ -20,6 +20,7 @@ import type {
 } from "../../models/threat-types";
 import { interactionThreatService } from "../../services/per-interaction/interaction-threat-service";
 import { retainManualThreatTables } from "../../services/threat-identity";
+import { stampCatalog } from "../../services/threat-catalog-version";
 import type { StatisticsResult } from "../../services/threat-service";
 import type { DFDAnalysisContext } from "shared";
 
@@ -110,12 +111,17 @@ export function useInteractionThreats({
 
   // ==================== NOTIFY PARENT ====================
 
+  // `generated`: a full (re)generation — stamps the catalogue version of the
+  // method; every other update carries the stored stamp unchanged.
   const notifyUpdate = useCallback(
-    (updatedTables: ThreatTable[]) => {
+    (updatedTables: ThreatTable[], generated = false) => {
+      const stored = project.threats?.catalogStamp;
+      const catalogStamp = generated ? stampCatalog(stored, "per-interaction") : stored;
       onUpdate?.({
         configuration,
         perElementTables: project.threats?.perElementTables ?? [],
         perInteractionTables: updatedTables,
+        ...(catalogStamp ? { catalogStamp } : {}),
         lastModified: new Date().toISOString(),
       });
     },
@@ -151,7 +157,7 @@ export function useInteractionThreats({
       if (result.success) {
         startTransition(() => {
           setTables(result.tables);
-          notifyUpdate(result.tables);
+          notifyUpdate(result.tables, true);
           setIsGenerating(false);
         });
         return true;

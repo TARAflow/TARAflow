@@ -56,6 +56,8 @@ export {
 
 // Calculation stamp (ISO/SAE 21434 conformance plan 0c)
 export type { CalcStamp } from "./models/calc-stamp";
+export type { ThreatCatalogStamp } from "./models/threat-catalog-stamp";
+export { UNSTAMPED_CATALOG_VERSION, storedCatalogVersion } from "./models/threat-catalog-stamp";
 
 // CIANAAA
 export type {

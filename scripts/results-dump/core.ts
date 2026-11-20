@@ -52,6 +52,8 @@ export const RESULTS_DUMP_FORMAT = 1;
 export interface DumpHeader {
   taraflowVersion: string;
   taraflowCommit: string;
+  /** THREAT_CATALOG_VERSION of the code that made the dump (from 0.20). */
+  threatCatalogVersion?: number;
   /** Commit of the repository the input file comes from (e.g. TARAflow_Examples). */
   inputCommit?: string;
   inputFile: string;
@@ -329,9 +331,22 @@ export function dumpProject(raw: unknown, header: DumpHeader): Record<string, un
   return withStableIds(() => dump(raw, header));
 }
 
-function dump(raw: unknown, header: DumpHeader): Record<string, unknown> {
+function load(raw: unknown, name: string) {
   const migrated = parseAndRepairWithMetadata(structuredClone(raw));
-  if (!migrated) throw new Error(`${header.inputFile}: not a TARAflow project`);
+  if (!migrated) throw new Error(`${name}: not a TARAflow project`);
+  return migrated;
+}
+
+/**
+ * Only the threat part of a dump — what the threat catalogue version guards
+ * (threat-catalog-version.golden.test.ts).
+ */
+export function dumpThreatResults(raw: unknown, name: string): Record<string, unknown> {
+  return withStableIds(() => dumpThreats(load(raw, name).project));
+}
+
+function dump(raw: unknown, header: DumpHeader): Record<string, unknown> {
+  const migrated = load(raw, header.inputFile);
   const project = migrated.project;
   return {
     format: RESULTS_DUMP_FORMAT,

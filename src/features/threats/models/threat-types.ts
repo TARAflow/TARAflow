@@ -13,6 +13,7 @@ import type {
   ProjectTags,
   StrideCategory,
   StrideMethod,
+  ThreatCatalogStamp,
 } from "shared";
 
 import type { StrategyType } from "./strategy-types";
@@ -63,6 +64,7 @@ export type ThreatSource =
  * for local imports.
  */
 export type { StrideMethod } from "shared";
+export type { ThreatCatalogStamp } from "shared";
 
 // ==================== THREAT RELEVANCE ====================
 
@@ -899,6 +901,14 @@ export interface ThreatData {
   perElementTables: ThreatTable[];
   perInteractionTables: ThreatTable[];
   validation?: ThreatValidation;
+  /**
+   * Threat catalogue version each method's generated threats were last fully
+   * (re)generated with (THREAT_CATALOG_VERSION, threat-catalog-version.ts).
+   * Absent — files before 0.20, or a method never generated — counts as 1.
+   * Optional and never written as a default (roadmap rule 5); not part of a
+   * component snapshot (only the tables are).
+   */
+  catalogStamp?: ThreatCatalogStamp;
   lastModified: string;
 }
 

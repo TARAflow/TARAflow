@@ -19,6 +19,7 @@ import { installDomParser } from "../../taraflow-reporter/cli/dom-parser-node";
 import { initI18nNode } from "../../taraflow-reporter/cli/i18n-node";
 import { dumpProject, stringifyDump } from "./core";
 import { diffDumps } from "./diff";
+import { THREAT_CATALOG_VERSION } from "../../src/features/threats/services/threat-catalog-version";
 
 function usage(): never {
   console.error("usage: npm run dump:results -- <file|dir>… --out <dir> [--compare <ref-dir>]");
@@ -84,6 +85,7 @@ for (const [file, base] of inputs.flatMap(collect)) {
       dumpProject(JSON.parse(bytes.toString("utf-8")), {
         taraflowVersion,
         taraflowCommit: commitLabel,
+        threatCatalogVersion: THREAT_CATALOG_VERSION,
         ...(inputCommit ? { inputCommit: inputDirty ? `${inputCommit}+modified` : inputCommit } : {}),
         inputFile: rel,
         inputSha256: createHash("sha256").update(bytes).digest("hex"),

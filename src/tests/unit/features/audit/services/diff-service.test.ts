@@ -442,3 +442,34 @@ describe("DiffService — key order is no change (canonical comparison)", () => 
     expect(changes.find((p) => p.phase === "threats")!.changeCount).toBe(1);
   });
 });
+
+describe("DiffService — threat catalogue stamp (catalogue divergence phase A)", () => {
+  const threats = (catalogStamp?: Record<string, number>) => ({
+    configuration: { activeMethod: "per-element" },
+    perElementTables: [],
+    perInteractionTables: [],
+    ...(catalogStamp ? { catalogStamp } : {}),
+  });
+
+  it("a regeneration with a newer catalogue is listed even when no threat changed", () => {
+    const changes = svc.detectChanges(
+      project({ threats: threats({ "per-element": 2 }) }),
+      project({ threats: threats() }),
+    );
+    const items = changes.find((p) => p.phase === "threats")!.changes;
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      type: "modified",
+      id: "threat-catalog-per-element",
+      details: [{ field: "catalogStamp", oldValue: 1, newValue: 2 }],
+    });
+  });
+
+  it("a stamp equal to the unstamped default (1) is no change", () => {
+    const changes = svc.detectChanges(
+      project({ threats: threats({ "per-element": 1 }) }),
+      project({ threats: threats() }),
+    );
+    expect(changes.find((p) => p.phase === "threats")).toBeUndefined();
+  });
+});
