@@ -21,6 +21,7 @@ import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { computeIsoRisks, isIsoProject } from "app/utils/commit-iso-risk-values";
 import { componentExcludedIds } from "app/services/component-import/component-scope";
+import { threatRelevance } from "app/utils/en50742-relevance";
 import { DFDGraphAnalysisContext } from "features/dfd";
 import {
   DEFAULT_THREAT_CONFIGURATION,
@@ -233,10 +234,24 @@ function dumpRisks(project: Project) {
       )
     : undefined;
   const iso = isIsoProject(project) ? computeIsoRisks(project).risks?.risks : undefined;
+  // EN 50742 (O18): the relevance of each risk's anchor, as the Risk tab gets it.
+  const preset = regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS);
+  const relevance =
+    preset === "en-50742-a" || preset === "en-50742-b" ? prepareProjectCompliance(project)?.en50742Relevance() : undefined;
+  const threatsById = new Map(
+    [...(project.threats?.perElementTables ?? []), ...(project.threats?.perInteractionTables ?? [])]
+      .flatMap((t) => t.threats)
+      .map((t) => [t.id, t]),
+  );
+  const relevantOf = (threatId: string) => {
+    const threat = threatsById.get(threatId);
+    return relevance && threat ? threatRelevance(threat, relevance).relevant : undefined;
+  };
   const isoById = new Map((iso ?? []).map((r) => [r.id, r.isoRisk]));
   const risks: Record<string, unknown> = {};
   for (const risk of riskData.risks) {
-    const before = recalculateRiskValues(risk, configuration, assetDataRef);
+    const en50742Relevant = relevantOf(risk.threatId);
+    const before = recalculateRiskValues(risk, configuration, assetDataRef, en50742Relevant);
     const after = risk.mitigatedFactorRatings
       ? calculateRiskValues(risk.mitigatedFactorRatings, configuration)
       : undefined;
@@ -253,10 +268,12 @@ function dumpRisks(project: Project) {
       apScore: before.calculatedApScore,
       apBand: before.calculatedApBand,
       iso: isoById.get(risk.id),
+      en50742Relevant,
     };
     // What the file says, only where the current code computes otherwise —
     // a stale stored value is a finding of its own, not a result change.
     const storedDiffers =
+      (risk.calculatedSrsl ?? null) !== (before.calculatedSrsl ?? null) ||
       risk.calculatedImpact !== before.calculatedImpact ||
       risk.calculatedLikelihood !== before.calculatedLikelihood ||
       risk.calculatedRiskBeforeMitigation !== before.calculatedRiskBeforeMitigation;
@@ -267,6 +284,7 @@ function dumpRisks(project: Project) {
             impact: risk.calculatedImpact,
             likelihood: risk.calculatedLikelihood,
             riskBefore: risk.calculatedRiskBeforeMitigation,
+            srsl: risk.calculatedSrsl,
           },
         }
       : value;

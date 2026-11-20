@@ -1,11 +1,14 @@
 // scripts/results-dump/main.ts
 //
-//   npm run dump:results -- <file|dir>… --out <dir> [--compare <ref-dir>]
+//   npm run dump:results -- <file|dir>… --out <dir> [--compare <ref-dir>]…
 //
 // Dumps the results of every *.tara.json given (directories recursively,
 // *.backup.json skipped) into <out>/<relative path>.results.json. With
 // --compare, each dump is compared with the file of the same name in
-// <ref-dir>; differences are listed and the exit code is 1.
+// <ref-dir>; differences are listed and the exit code is 1. Several
+// --compare: the first reference that has the file counts — a release folder
+// holds only the projects whose results changed (e.g. --compare 0.20
+// --compare 0.19).
 //
 // Customer projects (roadmap rule 8): run it with --out OUTSIDE the
 // repository — their dumps are never committed.
@@ -22,17 +25,17 @@ import { diffDumps } from "./diff";
 import { THREAT_CATALOG_VERSION } from "../../src/features/threats/services/threat-catalog-version";
 
 function usage(): never {
-  console.error("usage: npm run dump:results -- <file|dir>… --out <dir> [--compare <ref-dir>]");
+  console.error("usage: npm run dump:results -- <file|dir>… --out <dir> [--compare <ref-dir>]…");
   process.exit(2);
 }
 
 const args = process.argv.slice(2);
 let out: string | undefined;
-let compare: string | undefined;
+const compare: string[] = [];
 const inputs: string[] = [];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--out") out = args[++i];
-  else if (args[i] === "--compare") compare = args[++i];
+  else if (args[i] === "--compare") compare.push(args[++i]);
   else if (args[i].startsWith("--")) usage();
   else inputs.push(args[i]);
 }
@@ -93,9 +96,9 @@ for (const [file, base] of inputs.flatMap(collect)) {
     );
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, text);
-    if (compare) {
-      const refFile = join(compare, relative(out, target));
-      if (!existsSync(refFile)) {
+    if (compare.length > 0) {
+      const refFile = compare.map((dir) => join(dir, relative(out, target))).find((f) => existsSync(f));
+      if (!refFile) {
         console.log(`NEW   ${rel} (no reference)`);
         differing++;
         continue;

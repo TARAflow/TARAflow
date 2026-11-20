@@ -85,6 +85,16 @@ export interface ThreatReference {
   /** Threat of an imported component: the multiprocess of its instance (its table group). */
   componentMultiprocessId?: string;
   /**
+   * EN 50742 (O17 / O18): whether the threat's anchor — an interface or a
+   * data flow crossing into the safety zone / on a path to a safety
+   * function — is EN 50742 relevant, with the reason as display text. Only
+   * a relevant risk gets EL, attacker capability, WoO and an SRSL. Set by the
+   * app layer (en50742-relevance.ts) for EN 50742 projects; absent = no
+   * decision (other projects, imported component threats): the risk is
+   * calculated as before.
+   */
+  en50742?: { relevant: boolean; reason?: string };
+  /**
    * Derived CIANAAA impact level from UnifiedStrategy.getInitialImpact().
    * Phase 3b: used to pre-fill matching Risk impact factor.
    */

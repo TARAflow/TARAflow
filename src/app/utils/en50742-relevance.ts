@@ -89,3 +89,87 @@ export function en50742Relevance(input: En50742RelevanceInput): En50742Relevance
   for (const [id, sfs] of bySf) relevant.set(id, { kind: "on-path", safetyFunctionIds: [...sfs].sort() });
   return { mode: "path", zoneIds, relevant };
 }
+
+// ==================== PER THREAT ====================
+
+/** What a risk's threat is anchored on — the EN 50742 anchors are interfaces and data flows. */
+export interface AnchoredThreat {
+  linkedElement?: { elementId?: string; elementType?: string } | null;
+  dataFlow?: { connectionId?: string } | null;
+}
+
+export function threatAnchor(threat: AnchoredThreat): { id?: string; kind: "interface" | "flow" | "other" } {
+  const linked = threat.linkedElement;
+  if (linked?.elementId) {
+    if (linked.elementType === "Interface") return { id: linked.elementId, kind: "interface" };
+    if (linked.elementType === "DataFlow") return { id: linked.elementId, kind: "flow" };
+    return { id: linked.elementId, kind: "other" };
+  }
+  const flow = threat.dataFlow?.connectionId;
+  return flow ? { id: flow, kind: "flow" } : { kind: "other" };
+}
+
+export type ThreatRelevance =
+  | { relevant: true; reason: En50742RelevanceReason }
+  | { relevant: false; reason: "not-an-interface" | "outside-zone" | "off-path" | "no-safety-scope" };
+
+/** Whether a threat's risk gets EL / AC / WoO / SRSL (O18), and why (not). */
+export function threatRelevance(threat: AnchoredThreat, relevance: En50742Relevance): ThreatRelevance {
+  const anchor = threatAnchor(threat);
+  if (anchor.kind === "other" || !anchor.id) return { relevant: false, reason: "not-an-interface" };
+  const reason = relevance.relevant.get(anchor.id);
+  if (reason) return { relevant: true, reason };
+  if (relevance.mode === "none") return { relevant: false, reason: "no-safety-scope" };
+  return { relevant: false, reason: relevance.mode === "zone" ? "outside-zone" : "off-path" };
+}
+
+/** English text of a threat's relevance (the default of its i18n key). */
+export const THREAT_RELEVANCE_TEXTS = {
+  "crosses-zone": "the flow crosses the safety zone {{zones}}",
+  "zone-interface": "the interface lies on the border of the safety zone {{zones}} ({{flows}})",
+  "on-path": "on a path to the safety function {{functions}}",
+  "not-an-interface": "the threat is not on an interface or a data flow",
+  "outside-zone": "the interface / flow does not cross the safety zone",
+  "off-path": "the interface / flow is on no path to a safety function",
+  "no-safety-scope": "no safety zone and no safety function modelled",
+} as const;
+
+type Translate = (key: string, options: Record<string, unknown>) => string;
+
+/** The display text of a threat's relevance — labels by element id (display id / name). */
+export function threatRelevanceText(r: ThreatRelevance, labelOf: (id: string) => string, t: Translate): string {
+  const list = (ids: readonly string[]) => ids.map(labelOf).join(", ");
+  const code = typeof r.reason === "string" ? r.reason : r.reason.kind;
+  const values =
+    typeof r.reason === "string"
+      ? {}
+      : r.reason.kind === "on-path"
+        ? { functions: list(r.reason.safetyFunctionIds) }
+        : { zones: list(r.reason.zoneIds), flows: r.reason.kind === "zone-interface" ? list(r.reason.flowIds) : "" };
+  return t(`tabs.risks.en50742Relevance.${code}`, { ...values, defaultValue: THREAT_RELEVANCE_TEXTS[code] });
+}
+
+// ==================== SCOPE OF THE MODEL ROWS ====================
+
+/**
+ * O17: the model rows of EN 50742 A and B are evaluated on the relevant
+ * interfaces and flows and on what those flows reach directly — the process
+ * / store behind the interface (the flow's endpoints) and the chip and
+ * physical boundaries around it. Empty in mode "none" (the rows are then
+ * unknown, never met).
+ */
+export function en50742Scope(
+  relevance: En50742Relevance,
+  flows: readonly { id: string; from: string; to: string }[],
+  boundariesAround: (elementId: string) => readonly string[],
+): Set<string> {
+  const scope = new Set<string>(relevance.relevant.keys());
+  for (const flow of flows) {
+    if (!relevance.relevant.has(flow.id)) continue;
+    for (const end of [flow.from, flow.to]) {
+      scope.add(end);
+      for (const b of boundariesAround(end)) scope.add(b);
+    }
+  }
+  return scope;
+}

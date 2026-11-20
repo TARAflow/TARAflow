@@ -160,6 +160,15 @@
         "emptyClaim": "Leerer Claim",
         "reuseClaim": "Claim wiederverwenden"
       },
+      "en50742Relevance": {
+        "crosses-zone": "der Datenfluss kreuzt die Safety-Zone {{zones}}",
+        "zone-interface": "das Interface liegt auf der Grenze der Safety-Zone {{zones}} ({{flows}})",
+        "on-path": "auf einem Pfad zur Safety Function {{functions}}",
+        "not-an-interface": "die Bedrohung liegt nicht auf einem Interface oder Datenfluss",
+        "outside-zone": "Interface / Datenfluss kreuzt die Safety-Zone nicht",
+        "off-path": "Interface / Datenfluss liegt auf keinem Pfad zu einer Safety Function",
+        "no-safety-scope": "keine Safety-Zone und keine Safety Function modelliert"
+      },
       "dialog": {
         "title": "Risikobewertung: {{id}}",
         "threatDescription": "Bedrohung",
@@ -270,6 +279,7 @@
         "srslNoSeverity": "Keine Severity — Safety-Function-Asset mit physischem Impact verlinken",
         "srslFormula": "AP = ({{el}} × {{woo}}) + {{ac}} = {{result}} → {{band}}",
         "srslSectionTitle": "SRSL (EN 50742)",
+        "en50742NotRelevant": "Nicht EN-50742-relevant — {{reason}}. Normal bewertet (Wahrscheinlichkeit × Auswirkung); EL, Angreiferfähigkeit und SRSL gelten nicht.",
         "wooTooltip": "Globaler Wert — Änderung im Overview-Tab (Security Context).",
         "wooNotSet": "Nicht gesetzt — im Overview konfigurieren",
         "severity": "Severity",

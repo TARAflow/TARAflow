@@ -119,6 +119,13 @@ export interface ComplianceInput {
   deviceCategories?: DeviceCategoryChoice;
   /** EN 50742 A: risks, safety functions, hazards, WoO (CM-12); absent for other standards. */
   en50742?: En50742View;
+  /**
+   * The scope cannot be determined (EN 50742, O17: no safety zone and no
+   * safety function, or nothing found that crosses the zone / leads to a
+   * safety function) — model rows are unknown with this reason, never met
+   * and never n/a.
+   */
+  scopeUnknown?: "noSafetyScope" | "noRelevantInterface";
 }
 
 // ==================== RESULT ====================

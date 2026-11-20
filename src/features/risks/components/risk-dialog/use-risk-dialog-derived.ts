@@ -87,11 +87,16 @@ export function useRiskDialogDerived({
   // an EL was resolved (EL0..EL4 map to 1..5; 0 = no anchor). Internal elements
   // (Process / DataStore) carry no EL → no SRSL, so the whole section is hidden
   // rather than shown as an eternal "not determined".
+  // O18: an anchor that is not EN 50742 relevant has no SRSL section either
+  // (a manual EL from before stays in the ratings, it no longer counts).
+  const en50742NotRelevant = isEN50742 && currentThreatRef?.en50742?.relevant === false;
+  const en50742Reason = currentThreatRef?.en50742?.reason;
   const hasExposureAnchor = useMemo(
     () =>
+      !en50742NotRelevant &&
       (local?.factorRatings.find((r) => r.factorId === "exposure_level")
         ?.value ?? 0) > 0,
-    [local],
+    [local, en50742NotRelevant],
   );
 
   // Resolved multiplicands for the AP formula tooltip (AP box) — display
@@ -128,9 +133,10 @@ export function useRiskDialogDerived({
             local.factorRatings,
             configuration,
             linkedAssets,
+            currentThreatRef?.en50742?.relevant,
           )
         : { impact: 0, likelihood: 0, risk: 0 },
-    [local?.factorRatings, configuration, linkedAssets],
+    [local?.factorRatings, configuration, linkedAssets, currentThreatRef?.en50742?.relevant],
   );
   // mitigatedFactorRatings NEVER go through the §11.2 gate — SRSL is a target
   // level satisfied by controls, not "mitigated down" (§3.8); the After lens
@@ -355,6 +361,8 @@ export function useRiskDialogDerived({
     linkedAssets,
     en50742Severity,
     hasExposureAnchor,
+    en50742NotRelevant,
+    en50742Reason,
     srslFormula,
     beforeValues,
     afterValues,

@@ -30,6 +30,7 @@ import { formatRiskLabel } from "shared";
 import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import type { Project } from "../models/project-types";
 import { pathAnchors, type SafetyPathInput } from "./safety-function-paths";
+import type { En50742Relevance } from "./en50742-relevance";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -48,7 +49,7 @@ function anchorOf(threat: Any): { id?: string; type?: SrslAnchorType } {
   return flow ? { id: flow, type: "DataFlow" } : {};
 }
 
-export function buildEn50742View(project: Project, paths: SafetyPathInput): En50742View {
+export function buildEn50742View(project: Project, paths: SafetyPathInput, relevance?: En50742Relevance): En50742View {
   const threats = new Map<string, Any>(
     [
       ...((project.threats as Any)?.perElementTables ?? []).flatMap((t: Any) => t.threats ?? []),
@@ -72,6 +73,12 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput): En50
         interfaces: [...anchors].filter((id) => typeOf.get(id) === "Interface"),
       };
     });
+  // O18: the interfaces and flows EN 50742 assesses — the safety zone's when
+  // one is modelled; in path mode the same anchors as above.
+  if (relevance) {
+    onPath.clear();
+    for (const id of relevance.relevant.keys()) onPath.add(id);
+  }
   const safetyIds = new Set(safetyFunctions.map((s) => s.id));
 
   const risks: En50742Risk[] = ((project.risks?.risks ?? []) as Any[]).map((risk) => {

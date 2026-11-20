@@ -453,7 +453,13 @@ export function checkRiskSyncStatus(
       threat,
       dfd,
     );
-    return !sameContent(withEl, risk.factorRatings);
+    // O18: an SRSL on a risk whose anchor is no longer EN 50742 relevant
+    // (a manual EL stays, the SRSL goes) — the sync takes it away.
+    const srslGatedAway =
+      riskData.configuration.likelihoodMethod === "en-50742-a" &&
+      threat.en50742?.relevant === false &&
+      risk.calculatedSrsl != null;
+    return srslGatedAway || !sameContent(withEl, risk.factorRatings);
   }).length;
 
   // Asset-link drift: the risk's linkedAssetIds no longer match what the DFD
@@ -541,11 +547,14 @@ export function recalculateRiskValues(
   risk: Risk,
   configuration: RiskConfiguration,
   assetDataRef?: AssetDataReference,
+  /** O18: the EN 50742 relevance of the risk's anchor (undefined = no decision). */
+  en50742Relevant?: boolean,
 ): Risk {
   const before = calculateGatedRiskValues(
     risk.factorRatings,
     configuration,
     resolveLinkedAssets(risk.linkedAssetIds, assetDataRef),
+    en50742Relevant,
   );
   return {
     ...risk,
@@ -730,7 +739,15 @@ export function syncRisksFromThreats(
       JSON.stringify([...(risk.linkedAssetIds ?? [])].sort()) !==
       JSON.stringify([...(threat.linkedAssetIds ?? [])].sort());
 
+    // O18: an anchor that is no longer EN 50742 relevant takes its SRSL away
+    // even when no rating changed (a safety zone was drawn, a flow moved).
+    const srslGatedAway =
+      updatedConfiguration.likelihoodMethod === "en-50742-a" &&
+      threat.en50742?.relevant === false &&
+      risk.calculatedSrsl != null;
+
     if (
+      srslGatedAway ||
       linkedAssetsChanged ||
       descChanged ||
       attackChanged ||
@@ -745,6 +762,7 @@ export function syncRisksFromThreats(
         updatedFactorRatings,
         updatedConfiguration,
         linkedAssets,
+        threat.en50742?.relevant,
       );
       // mitigatedFactorRatings NEVER go through the gate — SRSL is a target
       // level satisfied by controls, not "mitigated down" (§3.8); the After
@@ -819,6 +837,7 @@ export function syncRisksFromThreats(
       factorRatings,
       updatedConfiguration,
       linkedAssets,
+      threat.en50742?.relevant,
     );
 
     return {

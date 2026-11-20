@@ -37,6 +37,8 @@ export const REASON_TEXTS = {
   noElRatedInterface: "no EL-rated interface yet: {{list}}",
   srslZeroExposed: "SRSL 0 on an interface above EL0",
   noSrsl: "no SRSL determined",
+  noSafetyScope: "no safety zone and no safety function — the interfaces EN 50742 assesses are not known",
+  noRelevantInterface: "no interface or data flow crosses the safety zone or leads to a safety function — link the safety functions to the DFD or draw the zone",
 } as const;
 
 export type RowReasonCode = keyof typeof REASON_TEXTS | "void";

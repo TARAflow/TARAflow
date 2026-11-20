@@ -1,3 +1,23 @@
+## [Unreleased]
+
+### Changed
+- **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
+  the data flows crossing them. A trust boundary of the new type *Safety Zone (EN 50742)*
+  marks the safety-related (yellow) part of a machine; without one, the interfaces and
+  flows on a path to a safety function count. In an EN 50742 A project only the risks
+  on such an interface or flow get the exposure level, attacker capability, window of
+  opportunity and an SRSL — the other risks are rated as usual (likelihood × impact)
+  and the risk dialog says why. The model rows of the EN 50742 A requirement matrix are
+  evaluated on the same interfaces and flows (and what they reach directly) instead of
+  the whole machine; with neither a safety zone nor a linked safety function they stay
+  *unknown*. Results of existing EN 50742 A projects can change (SRSL of risks outside
+  the zone, the matrix rows).
+- **Git:** the app's read-only git channels accept read-only commands only; the user's
+  SSH command, askpass, CA certificates and git configuration from the environment reach
+  commit and push; the SSH key field of the Audit settings is used for the push; a
+  personal access token is no longer written into the remote URL (a token stored there
+  by an earlier push is removed on the next push — **revoke it**).
+
 ## [0.19.0-beta] - 2026-11-19
 
 **Component TARAs in a machine TARA:** the analysis of a reused component

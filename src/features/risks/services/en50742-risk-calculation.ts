@@ -187,6 +187,8 @@ export function calculateEN50742RiskValues(
 export interface ExposureLevelAnchorThreat {
   linkedElement?: { elementId: string; elementType?: string } | null;
   dataFlow?: { connectionId?: string } | null;
+  /** EN 50742 relevance of the anchor (O18); false = no EL is derived for it. */
+  en50742?: { relevant: boolean } | null;
 }
 
 function resolveAnchorProperties(
@@ -246,7 +248,11 @@ export function applyExposureLevelToFactorRatings(
   // permanently, exactly as before.
   if (rating.source === "manual" && rating.value !== 0) return ratings;
 
-  const rawEL = resolveAnchorProperties(threat, dfd)?.exposureLevel;
+  // O18: an anchor outside the safety zone / off the path to a safety
+  // function is not EN 50742 relevant — no EL is derived for it (a derived
+  // value from before is reset; a manual value stays, but the gate below
+  // gives the risk no SRSL).
+  const rawEL = threat.en50742?.relevant === false ? undefined : resolveAnchorProperties(threat, dfd)?.exposureLevel;
   const el =
     typeof rawEL === "string" &&
     (EN50742_EXPOSURE_LEVELS as readonly string[]).includes(rawEL)
@@ -374,6 +380,12 @@ export function calculateGatedRiskValues(
   ratings: FactorRating[],
   configuration: RiskConfiguration,
   linkedAssets: AssetReference[],
+  /**
+   * O18: the risk's anchor is EN 50742 relevant. false → no SRSL (the risk
+   * is rated as usual, L × I); undefined → no decision available, the SRSL
+   * follows the ratings as before.
+   */
+  en50742Relevant?: boolean,
 ): GatedRiskCalculationResult {
   // SRSL and R = L × I are SEPARATE assessments (EN 50742 Approach A yields an
   // SRSL + mandated controls; the residual risk stays the standard L × I).
@@ -397,7 +409,7 @@ export function calculateGatedRiskValues(
     | AttackerCapability
     | undefined;
 
-  if (!el || !ac || !configuration.windowOfOpportunity) {
+  if (en50742Relevant === false || !el || !ac || !configuration.windowOfOpportunity) {
     return { ...generic, srsl: null, apScore: null, apBand: null };
   }
 

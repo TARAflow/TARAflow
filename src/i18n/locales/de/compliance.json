@@ -184,7 +184,9 @@
       "noExposedInterface": "keine Schnittstelle über EL0 auf einem Pfad zu einer Sicherheitsfunktion",
       "noElRatedInterface": "noch keine Schnittstelle mit EL-Bewertung: {{list}}",
       "srslZeroExposed": "SRSL 0 an einer Schnittstelle über EL0",
-      "noSrsl": "kein SRSL ermittelt"
+      "noSrsl": "kein SRSL ermittelt",
+      "noSafetyScope": "keine Safety-Zone und keine Safety Function — die Schnittstellen, die EN 50742 bewertet, sind nicht bekannt",
+      "noRelevantInterface": "kein Interface und kein Datenfluss kreuzt die Safety-Zone oder führt zu einer Safety Function — Safety Functions mit dem DFD verknüpfen oder die Zone zeichnen"
     },
     "reasonItem": {
       "windowOfOpportunity": "Gelegenheitsfenster",

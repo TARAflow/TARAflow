@@ -326,6 +326,9 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       openChecklist: [...(rule.checklist ?? [])],
     });
   }
+  // EN 50742 (O17): without a safety zone and a safety function the scope is
+  // not known — a model row cannot be met (nor n/a).
+  if (input.scopeUnknown && rule.targets.length > 0) return outcome("unknown", because(input.scopeUnknown));
   if (rule.minSrsl) {
     const reached = input.en50742 ? srslReached(rule.minSrsl, input.en50742) : "unknown";
     if (reached === "no") return outcome("n/a", because("srslNotReached", { values: { srsl: String(rule.minSrsl) } }));

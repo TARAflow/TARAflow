@@ -24,7 +24,7 @@ import { i18n } from "i18n";
 import type { Project } from "../models/project-types";
 import { buildAnalysisView, buildDfdGraph, analyseLeveled, isLeveled } from "features/dfd";
 import { withComponentMeasures } from "../utils/component-treatments";
-import { en50742Relevance, type En50742Relevance } from "../utils/en50742-relevance";
+import { en50742Relevance, en50742Scope, type En50742Relevance } from "../utils/en50742-relevance";
 import { instanceClaims } from "./component-import/cited-claims";
 import { withComponentThreats } from "../utils/component-threats";
 import { getAllMitigations } from "features/threats";
@@ -268,8 +268,6 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
         }),
       ),
     ].filter((c) => c.rowLabels.length > 0);
-  let en50742: ReturnType<typeof buildEn50742View> | undefined;
-  const en50742View = () => (en50742 ??= buildEn50742View(project, paths));
   let relevance: En50742Relevance | undefined;
   const en50742RelevanceOf = () =>
     (relevance ??= en50742Relevance({
@@ -288,6 +286,16 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
         })),
       paths,
     }));
+  let en50742: ReturnType<typeof buildEn50742View> | undefined;
+  const en50742View = () => (en50742 ??= buildEn50742View(project, paths, en50742RelevanceOf()));
+  // O17: the model rows of EN 50742 (A and B) on the relevant interfaces,
+  // flows and what the flows reach directly.
+  let en50742ScopeSet: Set<string> | undefined;
+  const en50742ScopeOf = () =>
+    (en50742ScopeSet ??= en50742Scope(en50742RelevanceOf(), view.flows, (id) => [
+      ...(graph.elementChipBoundaries.get(id) ?? []),
+      ...(graph.elementPhysicalBoundaries.get(id) ?? []),
+    ]));
 
   return {
     scope,
@@ -297,7 +305,8 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
     evaluate: (edition) => {
       const familyData = familyCompliance(project.compliance, edition.family);
       const familyComponent = complianceComponentOf(project.compliance, edition.family);
-      const familyScope = scopeOf(familyComponent);
+      const isEn50742 = edition.family === "en-50742";
+      const familyScope = isEn50742 ? en50742ScopeOf() : scopeOf(familyComponent);
       const base = {
         edition,
         scope: familyScope,
@@ -307,7 +316,11 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
         mitigations,
         deviceCategories: familyData.deviceCategories,
         claims: matrixClaims(edition),
-        ...(edition.family === "en-50742" ? { en50742: en50742View() } : {}),
+        ...(isEn50742 ? { en50742: en50742View() } : {}),
+        // O17: no scope → the model rows are unknown, never met and never n/a
+        ...(isEn50742 && en50742RelevanceOf().relevant.size === 0
+          ? { scopeUnknown: en50742RelevanceOf().mode === "none" ? ("noSafetyScope" as const) : ("noRelevantInterface" as const) }
+          : {}),
       };
       return {
         achieved: evaluateMatrix({ ...base, view, run: "achieved" }),

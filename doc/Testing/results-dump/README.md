@@ -37,8 +37,11 @@ beyond the ISO risk value, documents.
 # dump (directories recursively; *.backup.json are skipped)
 npm run dump:results -- ../TARAflow_Examples --out /tmp/dump
 
-# compare with the reference — exit code 1 on any difference
-npm run dump:results -- ../TARAflow_Examples --out /tmp/dump --compare doc/Testing/results-dump/0.19
+# compare with the reference — exit code 1 on any difference; several --compare:
+# the first folder that has the project counts (a release folder holds only
+# the projects whose results changed)
+npm run dump:results -- ../TARAflow_Examples --out /tmp/dump \
+  --compare doc/Testing/results-dump/0.20 --compare doc/Testing/results-dump/0.19
 ```
 
 `--compare` prints one line per changed leaf:
@@ -57,7 +60,8 @@ Before comparing, check that the input repository is at the commit named in the 
 
 - **`0.19/` is never changed.** A release that changes results on purpose (the catalogue
   stamp, the EN 50742 A SRSL 0 guard, the 0.21 generator changes …) adds its own folder
-  (`0.20/`, …) in the same patch as the change. The patch shows the diff against the last
+  (`0.20/`, …) in the same patch as the change — with only the projects whose results
+  changed; the others are as in the folder before. The patch shows the diff against the last
   reference, and the release note names it.
 - **Customer projects never enter the repository** (roadmap rule 8). Run the same command
   with `--out` outside the repository. Keep those dumps locally as the reference for the
@@ -98,3 +102,21 @@ Observations, all part of the reference and not fixed here:
   SRSL 1). The SRSL 0 guard of 0.20 would hardly show in this reference. An example with rated EL / AC / WoO on
   several interfaces is needed before that change. The matrix reads the SRSL stored on the
   risk (`calculatedSrsl`), the risk part shows it recalculated.
+
+## What changed in 0.20 (`0.20/`)
+
+**Patch 11 — EN 50742 relevance (O17 / O18, user 2026-11-20).** Only the three EN 50742 A
+examples change; the other twelve are as in 0.19.
+
+- Every risk of an EN 50742 project carries `en50742Relevant` — whether its threat sits
+  on an interface or a data flow that crosses the safety zone or (without a zone, as in
+  all examples) lies on a path to a safety function. Only relevant risks get EL, attacker
+  capability, WoO and an SRSL. In the examples no SRSL changes: the one rated SRSL
+  (Simple_Test_Project) is on a relevant interface.
+- The model rows of the `en-50742-a` sub-tab are evaluated on the relevance scope instead
+  of the whole machine: in Simple_Test_Project the store `11` leaves the scope of 7.3.2 /
+  7.3.3 (no longer failing there); in cnc-ref — safety functions without DFD elements —
+  nothing is relevant: 7.3.2, 7.3.3 and 7.3.5 stay *unknown*, now with the reason "no
+  interface or data flow crosses the safety zone or leads to a safety function" instead
+  of a list of unset properties.
+

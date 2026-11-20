@@ -91,7 +91,9 @@ describe("scope: the whole machine", () => {
     const en = context.evaluate(EDITION_EN50742_A);
     const whole = prepareProjectCompliance({ ...project, compliance: undefined })!;
     expect(en.scopeName).toBeUndefined();
-    expect([...en.scope].sort()).toEqual([...whole.scope].sort());
+    // O17 (0.20): the EN 50742 scope is the relevance scope (safety zone /
+    // path to the safety functions), never the IEC 62443 component
+    expect([...en.scope].sort()).toEqual([...whole.evaluate(EDITION_EN50742_A).scope].sort());
     expect(context.scope.size).toBeLessThan(whole.scope.size);
   });
 });

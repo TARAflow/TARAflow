@@ -88,6 +88,7 @@ import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree
 import { useWorkspaceNavigation } from "app/hooks/workspace/use-workspace-navigation";
 import { usePinnedTabHandlers } from "app/hooks/workspace/use-pinned-tab-handlers";
 import { useLocalProjectSettings } from "app/hooks/workspace/use-local-project-settings";
+import { useEn50742Relevance } from "app/hooks/workspace/use-en50742-relevance";
 import { useDfdDerivedData } from "app/hooks/workspace/use-dfd-derived-data";
 import { useAssetDerivedData } from "app/hooks/workspace/use-asset-derived-data";
 import { useOverviewData } from "app/hooks/workspace/use-overview-data";
@@ -176,6 +177,8 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   const dfdData = useDfdDerivedData(activeProject);
+  // EN 50742 (O18): which risks get EL / AC / WoO / SRSL, with the reason.
+  const withEn50742Relevance = useEn50742Relevance(activeProject, t);
   // Identical units per instance asset (I5) — the asset dialog's hint.
   const instanceComponents = activeProject?.components;
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
@@ -574,13 +577,11 @@ export const WorkspaceLayout: React.FC = () => {
               name: activeProject.info?.name || "",
               risks: activeProject.risks ?? null,
               phaseStatus: activeProject.phaseStatus,
-              perElementThreats: extractThreatReferences(
-                activeProject.threats,
-                "per-element",
+              perElementThreats: withEn50742Relevance(
+                extractThreatReferences(activeProject.threats, "per-element"),
               ),
-              perInteractionThreats: extractThreatReferences(
-                activeProject.threats,
-                "per-interaction",
+              perInteractionThreats: withEn50742Relevance(
+                extractThreatReferences(activeProject.threats, "per-interaction"),
               ),
               perAttackPathThreats: buildAttackPathThreatReferences(
                 activeProject.attackTrees,
